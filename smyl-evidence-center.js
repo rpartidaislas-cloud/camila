@@ -181,6 +181,70 @@
     })[status] || 'Borrador';
   }
 
+  const REGION_OPTIONS = Object.freeze([
+    ['', 'Sin región específica'],
+    ['full_mouth', 'Boca completa'],
+    ['upper_arch', 'Arcada superior'],
+    ['lower_arch', 'Arcada inferior'],
+    ['quadrant_1', 'Cuadrante 1 · superior derecho'],
+    ['quadrant_2', 'Cuadrante 2 · superior izquierdo'],
+    ['quadrant_3', 'Cuadrante 3 · inferior izquierdo'],
+    ['quadrant_4', 'Cuadrante 4 · inferior derecho'],
+    ['tooth', 'Pieza específica'],
+    ['soft_tissue', 'Tejidos blandos'],
+    ['face', 'Rostro y sonrisa']
+  ]);
+
+  const REGION_LABELS = Object.freeze(Object.fromEntries(REGION_OPTIONS));
+
+  function modalityAction(category) {
+    return ({
+      photograph: 'Tomar fotografías',
+      radiograph_2d: 'Subir radiografía',
+      document: 'Agregar documento'
+    })[category?.id] || `Agregar ${String(category?.short || 'evidencia').toLowerCase()}`;
+  }
+
+  function typeGroup(category, subtype) {
+    if (category.id === 'photograph') {
+      if (subtype.startsWith('face_')) return 'Rostro';
+      if (subtype.startsWith('intraoral_')) return 'Intraorales';
+      if (subtype.startsWith('occlusal_')) return 'Oclusales';
+      return 'Otras';
+    }
+    if (category.id === 'radiograph_2d') {
+      if (['periapical', 'bitewing', 'panoramic'].includes(subtype)) return 'Disponibles ahora';
+      return 'Estudios especializados';
+    }
+    return 'Tipo de documento';
+  }
+
+  function typeVisual(subtype) {
+    if (subtype.startsWith('face_')) return 'face';
+    if (subtype.startsWith('intraoral_')) return 'intraoral';
+    if (subtype.startsWith('occlusal_')) return 'occlusal';
+    if (subtype === 'localized') return 'localized';
+    if (subtype === 'before_after') return 'followup';
+    if (['periapical', 'bitewing', 'panoramic'].includes(subtype)) return 'radiograph';
+    return 'document';
+  }
+
+  function defaultRegionFor(subtype) {
+    if (subtype?.startsWith('face_')) return 'face';
+    if (subtype === 'occlusal_upper') return 'upper_arch';
+    if (subtype === 'occlusal_lower') return 'lower_arch';
+    if (subtype === 'panoramic' || subtype === 'fmx' || subtype === 'before_after') return 'full_mouth';
+    if (subtype === 'localized' || subtype === 'periapical' || subtype === 'bitewing') return 'tooth';
+    return '';
+  }
+
+  function humanFileSize(size) {
+    const value = Number(size) || 0;
+    if (value < 1024) return `${value} B`;
+    if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} KB`;
+    return `${(value / (1024 * 1024)).toFixed(value < 10 * 1024 * 1024 ? 1 : 0)} MB`;
+  }
+
   class EvidenceCenter {
     constructor(root, options) {
       if (!root) throw new Error('SmylEvidenceCenter requiere un contenedor.');
@@ -190,6 +254,7 @@
       this.filter = 'all';
       this.step = 0;
       this.draft = {};
+      this.previewUrl = '';
       this.returnFocus = null;
       this.renderShell();
       this.render();
@@ -201,8 +266,8 @@
 
       const head = element('header', 'sec-head');
       const copy = element('div', 'sec-head-copy');
-      copy.append(element('span', 'sec-kicker', 'EVIDENCIA CLÍNICA'), element('h2', '', 'Estudios y registros'), element('p', '', 'Cada estudio conserva su original, contexto y revisión profesional.'));
-      this.addButton = button('Agregar evidencia', 'sec-primary', () => this.openAdd());
+      copy.append(element('span', 'sec-kicker', 'EXPEDIENTE DEL PACIENTE'), element('h2', '', 'Documentación clínica'), element('p', '', 'Fotografías, radiografías e informes, ordenados en un solo lugar.'));
+      this.addButton = button('Agregar evidencia', 'sec-primary sec-add', () => this.openAdd());
       head.append(copy, this.addButton);
 
       this.summary = element('div', 'sec-summary');
@@ -223,6 +288,8 @@
     }
 
     render() {
+      this.root.dataset.empty = String(this.items.length === 0);
+      this.addButton.hidden = this.items.length === 0;
       this.renderSummary();
       this.renderFilters();
       this.renderList();
@@ -231,9 +298,8 @@
     renderSummary() {
       const pending = this.items.filter(item => item.status === 'review').length;
       const signed = this.items.filter(item => item.status === 'signed').length;
-      const linked = new Set(this.items.map(item => item.region).filter(Boolean)).size;
       this.summary.replaceChildren();
-      [[this.items.length, this.items.length === 1 ? 'estudio' : 'estudios'], [pending, 'por revisar'], [signed, 'firmados'], [linked, linked === 1 ? 'región vinculada' : 'regiones vinculadas']].forEach(([value, label]) => {
+      [[this.items.length, this.items.length === 1 ? 'registro' : 'registros'], [pending, 'por revisar'], [signed, 'confirmados']].forEach(([value, label]) => {
         const metric = element('span', 'sec-metric');
         metric.append(element('strong', '', String(value)), element('small', '', label));
         this.summary.append(metric);
@@ -242,7 +308,11 @@
 
     renderFilters() {
       this.filters.replaceChildren();
-      const options = [{ id: 'all', short: 'Todo' }, ...CATEGORIES];
+      const creatable = category => {
+        const state = this.options.creationAvailability?.(category.id);
+        return state === undefined || state === true || state?.enabled !== false;
+      };
+      const options = [{ id: 'all', short: 'Todo' }, ...CATEGORIES.filter(category => creatable(category) || this.items.some(item => item.modality === category.id))];
       options.forEach(option => {
         const count = option.id === 'all' ? this.items.length : this.items.filter(item => item.modality === option.id).length;
         const tab = button('', 'sec-filter', () => {
@@ -263,9 +333,15 @@
       if (!visible.length) {
         const empty = element('section', 'sec-empty');
         const category = this.filter === 'all' ? null : categoryById(this.filter);
-        empty.append(icon(category?.icon || 'document'), element('h3', '', category ? `Sin ${category.label.toLowerCase()}` : 'Sin evidencia todavía'), element('p', '', category ? category.description : 'Agrega únicamente la evidencia necesaria para la atención de esta persona.'));
-        const action = button(category ? `Agregar ${category.short.toLowerCase()}` : 'Agregar primera evidencia', 'sec-secondary', () => this.openAdd(category?.id));
-        empty.append(action);
+        empty.append(icon(category?.icon || 'document'), element('h3', '', category ? `Sin ${category.label.toLowerCase()}` : 'Agrega la primera evidencia'), element('p', '', category ? category.description : 'Empieza con una fotografía, una radiografía o un documento clínico.'));
+        const actions = element('div', 'sec-empty-actions');
+        const quick = category ? [category] : CATEGORIES.filter(item => ['photograph', 'radiograph_2d', 'document'].includes(item.id));
+        quick.forEach((item, index) => {
+          const action = button('', index === 0 ? 'sec-quick sec-quick-primary' : 'sec-quick', () => this.openAdd(item.id));
+          action.append(icon(item.icon), element('span', '', modalityAction(item)));
+          actions.append(action);
+        });
+        empty.append(actions);
         this.list.append(empty);
         return;
       }
@@ -291,8 +367,9 @@
 
     openAdd(preselectedModality) {
       this.returnFocus = document.activeElement;
-      this.step = preselectedModality ? 1 : 0;
+      this.step = 0;
       this.draft = preselectedModality ? { modality: preselectedModality } : {};
+      this.releasePreview();
       this.renderWizard();
       if (typeof this.dialog.showModal === 'function') this.dialog.showModal();
       else this.dialog.setAttribute('open', '');
@@ -302,17 +379,27 @@
     closeAdd() {
       if (this.dialog.open && typeof this.dialog.close === 'function') this.dialog.close();
       else this.dialog.removeAttribute('open');
+      this.releasePreview();
       this.returnFocus?.focus?.();
     }
 
     next() {
-      this.step = Math.min(3, this.step + 1);
+      this.step = Math.min(1, this.step + 1);
       this.renderWizard();
     }
 
     back() {
-      this.step = Math.max(0, this.step - 1);
+      if (this.step === 1) this.step = 0;
+      else if (this.draft.modality) {
+        delete this.draft.modality;
+        delete this.draft.subtype;
+      }
       this.renderWizard();
+    }
+
+    releasePreview() {
+      if (this.previewUrl && global.URL?.revokeObjectURL) global.URL.revokeObjectURL(this.previewUrl);
+      this.previewUrl = '';
     }
 
     renderWizard() {
@@ -320,27 +407,33 @@
       this.dialog.replaceChildren();
       const head = element('header', 'sec-dialog-head');
       const title = element('div');
-      title.append(element('span', 'sec-kicker', `PASO ${this.step + 1} DE 4`), element('h2', '', ['¿Qué vas a agregar?', 'Elige el tipo de estudio', 'Completa los datos esenciales', 'Revisa antes de guardar'][this.step]));
+      title.append(element('span', 'sec-kicker', `PASO ${this.step + 1} DE 2`), element('h2', '', ['Elige la evidencia', 'Confirma el contexto'][this.step]));
       title.querySelector('h2').id = 'sec-dialog-title';
       head.append(title, button('Cerrar', 'sec-close', () => this.closeAdd()));
       const progress = element('div', 'sec-progress');
-      progress.setAttribute('aria-label', `Paso ${this.step + 1} de 4`);
-      for (let index = 0; index < 4; index += 1) {
+      progress.setAttribute('aria-label', `Paso ${this.step + 1} de 2`);
+      for (let index = 0; index < 2; index += 1) {
         const bar = element('i');
         bar.dataset.complete = String(index <= this.step);
         progress.append(bar);
       }
       const body = element('div', 'sec-dialog-body');
       if (this.step === 0) this.renderCategoryStep(body);
-      if (this.step === 1) this.renderTypeStep(body, category);
-      if (this.step === 2) this.renderDetailsStep(body, category);
-      if (this.step === 3) this.renderReviewStep(body, category);
+      if (this.step === 1) this.renderDetailsStep(body, category);
       this.dialog.append(head, progress, body);
     }
 
     renderCategoryStep(body) {
-      body.append(element('p', 'sec-step-intro', 'Selecciona la modalidad. Los campos siguientes cambiarán según el tipo de evidencia.'));
-      const grid = element('div', 'sec-category-grid');
+      if (this.draft.modality) {
+        this.renderTypeStep(body, categoryById(this.draft.modality));
+        return;
+      }
+      body.append(element('p', 'sec-step-intro', 'Selecciona una acción. Sólo mostramos las opciones disponibles en este expediente.'));
+      const grid = element('div', 'sec-category-grid sec-category-primary');
+      const more = element('details', 'sec-more-types');
+      const moreSummary = element('summary');
+      moreSummary.append(element('span', '', 'Más tipos de estudio'), element('small', '', 'Requieren herramientas especializadas'));
+      const moreGrid = element('div', 'sec-category-grid');
       CATEGORIES.forEach(category => {
         const rawAvailability = this.options.creationAvailability?.(category.id);
         const availability = rawAvailability === false
@@ -348,18 +441,23 @@
           : { enabled: rawAvailability?.enabled !== false, label: rawAvailability?.label || '' };
         const card = button('', 'sec-category', availability.enabled ? () => {
           this.draft.modality = category.id;
-          this.next();
+          this.renderWizard();
         } : null);
+        card.dataset.modality = category.id;
+        card.dataset.available = String(availability.enabled);
         card.setAttribute('aria-disabled', String(!availability.enabled));
         card.append(icon(category.icon));
         const copy = element('span');
-        copy.append(element('strong', '', category.label), element('small', '', category.description));
+        copy.append(element('strong', '', availability.enabled ? modalityAction(category) : category.label), element('small', '', category.description));
         card.append(copy);
         if (!availability.enabled) card.append(element('em', '', availability.label || 'Por activar'));
-        else if (category.advanced) card.append(element('em', '', 'Especializado'));
-        grid.append(card);
+        (availability.enabled ? grid : moreGrid).append(card);
       });
       body.append(grid);
+      if (moreGrid.childElementCount) {
+        more.append(moreSummary, moreGrid);
+        body.append(more);
+      }
     }
 
     renderTypeStep(body, category) {
@@ -368,89 +466,179 @@
         this.renderWizard();
         return;
       }
-      const intro = element('div', 'sec-selected-category');
+      const intro = element('div', 'sec-selected-category sec-selected-category-change');
       intro.append(icon(category.icon), element('div'));
       intro.lastChild.append(element('strong', '', category.label), element('small', '', category.description));
+      intro.append(button('Cambiar', 'sec-text-action', () => {
+        delete this.draft.modality;
+        delete this.draft.subtype;
+        this.renderWizard();
+      }));
       body.append(intro);
       if (category.advanced) body.append(element('p', 'sec-notice', 'CBCT y DICOM requieren un visor especializado. SMYL conservará el volumen original y su informe; no lo convertirá en una imagen plana.'));
-      const grid = element('div', 'sec-type-grid');
+      const groups = new Map();
       category.types.forEach(([id, label]) => {
         const rawAvailability = this.options.typeAvailability?.(category.id, id);
         const availability = rawAvailability === false
           ? { enabled: false, label: 'Por activar' }
           : { enabled: rawAvailability?.enabled !== false, label: rawAvailability?.label || '' };
+        const groupName = typeGroup(category, id);
+        if (!groups.has(groupName)) groups.set(groupName, { enabled: [], disabled: [] });
         const option = button('', 'sec-type', availability.enabled ? () => {
           this.draft.subtype = id;
           this.next();
         } : null);
-        option.append(element('span', '', label));
+        option.dataset.visual = typeVisual(id);
+        option.append(element('span', 'sec-type-visual'), element('span', 'sec-type-label', label));
         if (!availability.enabled) option.append(element('em', '', availability.label || 'Por activar'));
         option.setAttribute('aria-disabled', String(!availability.enabled));
         option.setAttribute('aria-pressed', String(this.draft.subtype === id));
-        grid.append(option);
+        groups.get(groupName)[availability.enabled ? 'enabled' : 'disabled'].push(option);
       });
-      const footer = element('footer', 'sec-dialog-actions');
-      footer.append(button('Atrás', 'sec-secondary', () => this.back()));
-      body.append(grid, footer);
+      groups.forEach((options, label) => {
+        if (options.enabled.length) {
+          const group = element('section', 'sec-type-group');
+          group.append(element('h3', '', label));
+          const grid = element('div', 'sec-type-grid');
+          options.enabled.forEach(option => grid.append(option));
+          group.append(grid);
+          body.append(group);
+        }
+        if (options.disabled.length) {
+          const unavailable = element('details', 'sec-unavailable-types');
+          const summary = element('summary', '', `${label} · por activar`);
+          const grid = element('div', 'sec-type-grid');
+          options.disabled.forEach(option => grid.append(option));
+          unavailable.append(summary, grid);
+          body.append(unavailable);
+        }
+      });
     }
 
     renderDetailsStep(body, category) {
+      if (!category || !this.draft.subtype) {
+        this.step = 0;
+        this.renderWizard();
+        return;
+      }
       const form = element('form', 'sec-form');
+      const error = element('p', 'sec-inline-error');
+      error.setAttribute('role', 'alert');
       form.addEventListener('submit', event => {
         event.preventDefault();
         const data = new FormData(form);
         this.draft.title = String(data.get('title') || '').trim();
         this.draft.date = String(data.get('date') || '');
-        this.draft.region = String(data.get('region') || '').trim();
-        this.draft.file = form.elements.evidenceFile?.files?.[0] || null;
-        this.next();
+        this.draft.regionPreset = String(data.get('regionPreset') || '');
+        this.draft.tooth = String(data.get('tooth') || '').trim();
+        this.draft.region = this.draft.regionPreset === 'tooth'
+          ? (this.draft.tooth ? `Pieza ${this.draft.tooth}` : '')
+          : (REGION_LABELS[this.draft.regionPreset] || '');
+        this.draft.file = form.elements.evidenceFile?.files?.[0] || this.draft.file || null;
+        if (category.fileAccept && !this.draft.file) {
+          error.textContent = 'Selecciona el archivo original para continuar.';
+          form.querySelector('.sec-file-preview')?.focus?.();
+          return;
+        }
+        if (this.draft.regionPreset === 'tooth' && !/^([1-4][1-8])$/.test(this.draft.tooth)) {
+          error.textContent = 'Escribe una pieza FDI válida, por ejemplo 16, 21, 36 o 48.';
+          form.elements.tooth?.focus();
+          return;
+        }
+        error.textContent = '';
+        this.submitDraft();
       });
-      const summary = element('div', 'sec-selected-category');
+      const summary = element('div', 'sec-selected-category sec-selected-category-change');
       summary.append(icon(category.icon), element('div'));
       summary.lastChild.append(element('strong', '', typeLabel(category, this.draft.subtype)), element('small', '', category.label));
-      form.append(summary);
+      summary.append(button('Cambiar tipo', 'sec-text-action', () => {
+        this.step = 0;
+        delete this.draft.subtype;
+        this.releasePreview();
+        this.renderWizard();
+      }));
+      form.append(summary, error);
 
+      const layout = element('div', 'sec-details-layout');
+      const media = element('section', 'sec-media-panel');
+      media.append(element('span', 'sec-panel-label', 'ARCHIVO ORIGINAL'));
+      const preview = element('div', 'sec-file-preview');
+      preview.tabIndex = -1;
+      const renderFile = file => {
+        preview.replaceChildren();
+        preview.dataset.hasFile = String(!!file);
+        this.releasePreview();
+        if (!file) {
+          preview.append(icon(category.icon), element('strong', '', category.id === 'photograph' ? 'Toma o elige una imagen' : 'Selecciona el estudio original'), element('small', '', 'Verás una vista previa antes de continuar.'));
+          return;
+        }
+        if (file.type?.startsWith('image/') && global.URL?.createObjectURL) {
+          this.previewUrl = global.URL.createObjectURL(file);
+          const image = element('img');
+          image.src = this.previewUrl;
+          image.alt = 'Vista previa del archivo seleccionado';
+          preview.append(image);
+        } else {
+          const documentIcon = icon(category.icon);
+          documentIcon.classList.add('sec-file-document');
+          preview.append(documentIcon);
+        }
+        const meta = element('div', 'sec-file-meta');
+        meta.append(element('strong', '', file.name || 'Archivo seleccionado'), element('small', '', humanFileSize(file.size)));
+        preview.append(meta);
+      };
+      renderFile(this.draft.file);
+      media.append(preview);
+
+      const fileInput = Object.assign(element('input', 'sec-file-input'), { type: 'file', name: 'evidenceFile', accept: category.fileAccept || '' });
+      fileInput.setAttribute('aria-label', 'Seleccionar archivo original');
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files?.[0] || null;
+        this.draft.file = file;
+        renderFile(file);
+        error.textContent = '';
+      });
+      const fileActions = element('div', 'sec-file-actions');
+      if (category.id === 'photograph') {
+        const camera = button('Tomar foto', 'sec-primary sec-file-action', () => {
+          fileInput.setAttribute('capture', this.draft.subtype.startsWith('face_') ? 'user' : 'environment');
+          fileInput.click();
+        });
+        fileActions.append(camera);
+      }
+      fileActions.append(button(this.draft.file ? 'Cambiar archivo' : 'Elegir archivo', 'sec-secondary sec-file-action', () => {
+        fileInput.removeAttribute('capture');
+        fileInput.click();
+      }));
+      media.append(fileActions, fileInput, element('p', 'sec-file-help', category.id === 'radiograph_2d' ? 'JPG o PNG. El original se conserva sin modificaciones.' : 'El original se conserva sin modificaciones.'));
+
+      const fieldsPanel = element('section', 'sec-context-panel');
+      fieldsPanel.append(element('span', 'sec-panel-label', 'CONTEXTO CLÍNICO'), element('h3', '', 'Confirma los datos esenciales'));
       const fields = element('div', 'sec-field-grid');
       const dateField = element('label', 'sec-field');
       dateField.append(element('span', '', 'Fecha del estudio'), Object.assign(element('input'), { type: 'date', name: 'date', required: true, value: this.draft.date || new Date().toISOString().slice(0, 10) }));
       const regionField = element('label', 'sec-field');
-      const regionInput = Object.assign(element('input'), { type: 'text', name: 'region', value: this.draft.region || '', maxLength: 120, placeholder: 'Ej. piezas 16–18 o arcada superior' });
-      regionField.append(element('span', '', 'Pieza, superficie o región'), regionInput);
+      const regionSelect = element('select');
+      regionSelect.name = 'regionPreset';
+      REGION_OPTIONS.forEach(([value, label]) => regionSelect.append(Object.assign(element('option', '', label), { value })));
+      regionSelect.value = this.draft.regionPreset || defaultRegionFor(this.draft.subtype);
+      regionField.append(element('span', '', 'Región relacionada'), regionSelect);
+      const toothField = element('label', 'sec-field sec-tooth-field');
+      const toothInput = Object.assign(element('input'), { type: 'text', name: 'tooth', value: this.draft.tooth || '', maxLength: 2, inputMode: 'numeric', placeholder: 'Ej. 16' });
+      toothField.append(element('span', '', 'Pieza FDI'), toothInput);
+      const syncTooth = () => { toothField.hidden = regionSelect.value !== 'tooth'; };
+      regionSelect.addEventListener('change', syncTooth);
+      syncTooth();
       const titleField = element('label', 'sec-field sec-field-wide');
-      titleField.append(element('span', '', 'Nombre descriptivo · opcional'), Object.assign(element('input'), { type: 'text', name: 'title', value: this.draft.title || '', maxLength: 120, placeholder: 'Ej. Bitewings de control' }));
-      fields.append(dateField, regionField, titleField);
-
-      if (category.fileAccept) {
-        const fileField = element('label', 'sec-upload sec-field-wide');
-        const fileInput = Object.assign(element('input'), { type: 'file', name: 'evidenceFile', accept: category.fileAccept });
-        fileField.append(icon(category.icon), element('strong', '', category.id === 'cbct_3d' ? 'Seleccionar volumen o informe' : 'Seleccionar archivo original'), element('small', '', 'El original no se modifica. La carga definitiva ocurrirá al confirmar.'), fileInput);
-        fields.append(fileField);
-      } else {
-        const notice = element('div', 'sec-clinical-note sec-field-wide');
-        notice.append(element('strong', '', 'Registro clínico estructurado'), element('p', '', 'Esta evaluación se captura en su editor correspondiente; no requiere adjuntar un archivo.'));
-        fields.append(notice);
-      }
-      form.append(fields);
+      titleField.append(element('span', '', 'Nombre descriptivo · opcional'), Object.assign(element('input'), { type: 'text', name: 'title', value: this.draft.title || '', maxLength: 120, placeholder: category.id === 'photograph' ? 'Ej. Valoración inicial' : 'Ej. Estudio de control' }));
+      fields.append(dateField, regionField, toothField, titleField);
+      fieldsPanel.append(fields, element('p', 'sec-safety', 'Se preparará un borrador. Nada pasa al odontograma sin confirmación profesional.'));
+      layout.append(media, fieldsPanel);
+      form.append(layout);
       const footer = element('footer', 'sec-dialog-actions');
-      footer.append(button('Atrás', 'sec-secondary', () => this.back()), Object.assign(element('button', 'sec-primary', 'Continuar'), { type: 'submit' }));
+      footer.append(button('Atrás', 'sec-secondary', () => this.back()), Object.assign(element('button', 'sec-primary', category.id === 'radiograph_2d' ? 'Continuar al editor' : 'Continuar para guardar'), { type: 'submit' }));
       form.append(footer);
       body.append(form);
-    }
-
-    renderReviewStep(body, category) {
-      const review = element('section', 'sec-review');
-      review.append(icon(category.icon), element('div'));
-      review.lastChild.append(element('span', 'sec-kicker', category.label.toUpperCase()), element('h3', '', this.draft.title || typeLabel(category, this.draft.subtype)));
-      const facts = element('dl', 'sec-review-facts');
-      [['Tipo', typeLabel(category, this.draft.subtype)], ['Fecha', this.draft.date ? new Date(`${this.draft.date}T12:00:00`).toLocaleDateString('es-MX', { dateStyle: 'long' }) : 'Sin fecha'], ['Región', this.draft.region || 'Sin región vinculada'], ['Original', this.draft.file?.name || (category.fileAccept ? 'Sin archivo seleccionado' : 'Registro clínico')]].forEach(([label, value]) => {
-        const fact = element('div');
-        fact.append(element('dt', '', label), element('dd', '', value));
-        facts.append(fact);
-      });
-      review.append(facts, element('p', 'sec-safety', 'Guardar crea un borrador. Ninguna sugerencia se incorpora al odontograma hasta que un profesional la confirme.'));
-      const footer = element('footer', 'sec-dialog-actions');
-      footer.append(button('Atrás', 'sec-secondary', () => this.back()), button('Guardar evidencia', 'sec-primary', () => this.submitDraft()));
-      body.append(review, footer);
     }
 
     async submitDraft() {
@@ -484,6 +672,7 @@
     }
 
     destroy() {
+      this.releasePreview();
       this.dialog.remove();
       this.root.replaceChildren();
       this.root.classList.remove('sec-root');

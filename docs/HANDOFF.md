@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-08 — Codex — Centro de evidencia clínica UX v2
+
+- El centro deja de presentar seis modalidades con el mismo peso. La tarea principal ahora comienza con tres acciones claras:
+  **Tomar fotografías**, **Subir radiografía** o **Agregar documento**; escaneos, evaluaciones y CBCT quedan bajo divulgación
+  progresiva y siguen bloqueados cuando no existe una ruta real de guardado.
+- El asistente pasa de cuatro pantallas a dos: **elige la evidencia** y **confirma el contexto**. Fotografías se agrupan por
+  rostro, intraorales y oclusales; Rayos X muestra primero las proyecciones hoy conectadas. La selección de archivo tiene vista
+  previa, cámara en móvil, nombre/tamaño, fecha, región estructurada y pieza FDI validada.
+- La pantalla principal reduce métricas, elimina tarjetas vacías y coloca la cobertura por objetivo clínico en una sección
+  secundaria colapsable. No se cambió el modelo clínico, la persistencia, los permisos ni las reglas de confirmación profesional.
+- Política visual SMYL aplicada al diálogo real (incluyendo variables cuando vive fuera del contenedor), tipografía mínima de
+  12 px, objetivos táctiles y composición responsive. Web y `mobile/www` quedan sincronizados; recursos y PWA usan `v=2` y
+  cache `evidence-center-ux-v2`.
+- Verificación: 1,320 pruebas del repositorio (1,270 aprobadas, 50 omitidas por dependencias opcionales, 0 fallos); recorrido
+  Playwright en 1280, 820, 390 y 320 px, tanto selector como contexto, sin desbordes ni objetivos táctiles cortos. Capturas en
+  `artifacts/evidence-center-v1/`, incluyendo variantes `*-details.png`.
+
 ## 2026-11-08 — Claude: cobro por «No vino» (monto fijo, con confirmación, apagado por omisión)
 
 **Decisiones del dueño:** monto fijo de la clínica; **nunca automático** (recepción confirma).
