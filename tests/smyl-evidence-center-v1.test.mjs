@@ -119,6 +119,29 @@ test('la navegación expone semántica y foco accesibles', () => {
   assert.match(styles, /min-height:\s*44px/);
 });
 
+test('el diálogo se centra de forma explícita y conserva la hoja inferior móvil', () => {
+  assert.match(styles, /\.sec-dialog\{position:fixed;inset:0;/);
+  assert.match(styles, /max-height:min\(800px,calc\(100dvh - 48px\)\);margin:auto/);
+  assert.match(styles, /@media\(max-width:820px\).*?\.sec-dialog\{inset:auto 0 0;/s);
+  assert.match(fixture, /\*\{box-sizing:border-box;margin:0\}/);
+});
+
+test('cada familia clínica usa ilustraciones vectoriales diferenciadas', () => {
+  for (const visual of [
+    'portrait', 'smile', 'profile-right', 'profile-left',
+    'mouth-front', 'mouth-right', 'mouth-left', 'arch-upper', 'arch-lower',
+    'xray-root', 'xray-bitewing', 'xray-panorama',
+    'report-radiology', 'report-pathology', 'report-laboratory',
+    'report-referral', 'report-dental-lab', 'report-medical', 'report-consent'
+  ]) assert.match(source, new RegExp(visual));
+  assert.match(source, /function typeIllustration\(subtype\)/);
+  assert.match(source, /setAttribute\('aria-hidden', 'true'\)/);
+  assert.match(source, /Informes clínicos/);
+  assert.match(source, /Coordinación y laboratorio/);
+  assert.match(source, /Consentimientos y otros/);
+  assert.doesNotMatch(source, /\['periapical', 'bitewing', 'panoramic'\]\.includes\(subtype\)\) return 'radiograph'/);
+});
+
 test('el estado vacío prioriza las tres tareas frecuentes', () => {
   assert.match(source, /Tomar fotografías/);
   assert.match(source, /Subir radiografía/);

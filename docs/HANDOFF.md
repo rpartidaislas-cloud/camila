@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-08 — Codex — Centro de evidencia clínica visual v3
+
+- El selector deja de depender del posicionamiento nativo del navegador: en escritorio se abre como una ventana centrada,
+  con márgenes simétricos y altura contenida; en tableta y móvil conserva una hoja inferior anclada, desplazamiento interno y
+  acciones táctiles de al menos 44 px. Se corrigió también el escenario real de la aplicación, cuyo reinicio global elimina
+  el margen predeterminado de `dialog`.
+- Fotografías, Rayos X y documentos ya no comparten pictogramas genéricos. Cada proyección o vista usa una ilustración clínica
+  lineal propia; las radiografías reciben tratamiento visual oscuro y los documentos se agrupan en **Informes clínicos**,
+  **Coordinación y laboratorio** y **Consentimientos y otros** para reducir búsqueda visual.
+- La tarjeta de modalidad se compactó en 320 px, se mantiene el retorno de foco al cerrar con Escape y las animaciones se
+  desactivan cuando el sistema solicita movimiento reducido. No cambian persistencia, contratos clínicos, permisos, modelos,
+  carga de archivos ni lógica de confirmación profesional.
+- Web y `mobile/www` permanecen sincronizados; `app.html` y PWA usan `smyl-evidence-center.*?v=3` y cache
+  `evidence-center-ux-v3`. La suite completa pasa 1,324 pruebas (1,274 aprobadas, 50 omitidas por dependencias opcionales,
+  0 fallos); el recorrido Playwright pasa en 1280×900, 820×1000, 390×844, 360×800 y 320×568, sin desbordes,
+  controles pequeños ni pérdida de foco. Capturas actualizadas en `artifacts/evidence-center-v1/`.
+
 ## 2026-11-08 — Codex — Centro de evidencia clínica UX v2
 
 - El centro deja de presentar seis modalidades con el mismo peso. La tarea principal ahora comienza con tres acciones claras:

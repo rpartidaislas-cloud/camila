@@ -123,6 +123,65 @@
     cube: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l8 4.4v9.6l-8 4.4-8-4.4V7.2zM4.3 7.4L12 12l7.7-4.6M12 12v9"/></svg>'
   });
 
+  const TYPE_VISUALS = Object.freeze({
+    face_rest: 'portrait',
+    face_smile: 'smile',
+    face_profile_right: 'profile-right',
+    face_profile_left: 'profile-left',
+    intraoral_frontal: 'mouth-front',
+    intraoral_right: 'mouth-right',
+    intraoral_left: 'mouth-left',
+    occlusal_upper: 'arch-upper',
+    occlusal_lower: 'arch-lower',
+    localized: 'target',
+    before_after: 'followup',
+    periapical: 'xray-root',
+    bitewing: 'xray-bitewing',
+    panoramic: 'xray-panorama',
+    occlusal: 'xray-arch',
+    fmx: 'xray-series',
+    cephalometric_lateral: 'xray-profile',
+    cephalometric_pa: 'xray-frontal',
+    tmj_series: 'xray-tmj',
+    radiology_report: 'report-radiology',
+    pathology_report: 'report-pathology',
+    laboratory_report: 'report-laboratory',
+    referral: 'report-referral',
+    dental_lab_document: 'report-dental-lab',
+    medical_clearance: 'report-medical',
+    consent: 'report-consent'
+  });
+
+  const TYPE_ILLUSTRATIONS = Object.freeze({
+    portrait: '<svg viewBox="0 0 88 64"><path d="M31 23c0-10 5-16 13-16s13 6 13 16-5 17-13 17-13-7-13-17Z"/><path d="M18 61c2-13 11-20 26-20s24 7 26 20"/><path class="guide" d="M44 5v52M24 25h40"/></svg>',
+    smile: '<svg viewBox="0 0 88 64"><path d="M31 23c0-10 5-16 13-16s13 6 13 16-5 17-13 17-13-7-13-17Z"/><path d="M18 61c2-13 11-20 26-20s24 7 26 20"/><path class="accent" d="M36 28c5 5 11 5 16 0"/><path class="guide" d="M44 5v52M24 25h40"/></svg>',
+    'profile-right': '<svg viewBox="0 0 88 64"><path d="M33 8c14 0 23 9 23 20l7 6-7 4c-2 12-10 19-23 20-7-10-9-19-9-27S27 15 33 8Z"/><path class="guide" d="M20 31h50M44 5v54"/></svg>',
+    'profile-left': '<svg viewBox="0 0 88 64"><path d="M55 8c-14 0-23 9-23 20l-7 6 7 4c2 12 10 19 23 20 7-10 9-19 9-27S61 15 55 8Z"/><path class="guide" d="M18 31h50M44 5v54"/></svg>',
+    'mouth-front': '<svg viewBox="0 0 88 64"><path d="M12 33c8-16 20-23 32-23s24 7 32 23c-8 16-20 21-32 21S20 49 12 33Z"/><path class="accent" d="M18 32h52M27 23v19M36 18v29M44 16v32M52 18v29M61 23v19"/></svg>',
+    'mouth-right': '<svg viewBox="0 0 88 64"><path d="M12 34c14-17 30-23 61-13-7 23-29 33-61 13Z"/><path class="accent" d="M17 33c19-3 35-5 52-9M30 26v15M43 23v17M56 21v15"/></svg>',
+    'mouth-left': '<svg viewBox="0 0 88 64"><path d="M76 34C62 17 46 11 15 21c7 23 29 33 61 13Z"/><path class="accent" d="M71 33c-19-3-35-5-52-9M58 26v15M45 23v17M32 21v15"/></svg>',
+    'arch-upper': '<svg viewBox="0 0 88 64"><path d="M13 50C14 19 26 8 44 8s30 11 31 42"/><path class="accent" d="M21 47c2-20 10-30 23-30s21 10 23 30"/><path class="guide" d="M24 31h40"/></svg>',
+    'arch-lower': '<svg viewBox="0 0 88 64"><path d="M13 14c1 31 13 42 31 42s30-11 31-42"/><path class="accent" d="M21 17c2 20 10 30 23 30s21-10 23-30"/><path class="guide" d="M24 33h40"/></svg>',
+    target: '<svg viewBox="0 0 88 64"><circle cx="44" cy="32" r="20"/><circle class="accent" cx="44" cy="32" r="8"/><path class="guide" d="M44 4v15M44 45v15M16 32h15M57 32h15"/></svg>',
+    followup: '<svg viewBox="0 0 88 64"><rect x="8" y="10" width="30" height="44" rx="8"/><rect x="50" y="10" width="30" height="44" rx="8"/><path class="accent" d="m39 27 8 5-8 5M17 34c5-8 9-8 13 0M59 34c5-8 9-8 13 0"/></svg>',
+    'xray-root': '<svg viewBox="0 0 88 64"><path d="M31 11c5-5 21-5 26 0l-4 21-2 22-7-15-7 15-2-22-4-21Z"/><path class="accent" d="M44 11v28M36 24h16"/></svg>',
+    'xray-bitewing': '<svg viewBox="0 0 88 64"><path d="M10 17c8-9 17-9 25 0 6-9 13-9 19 0 7-9 15-9 24 0l-5 16H15l-5-16ZM15 47h58M25 34v20M44 34v20M63 34v20"/><path class="accent" d="M8 32h72"/></svg>',
+    'xray-panorama': '<svg viewBox="0 0 88 64"><path d="M8 20c11 31 61 31 72 0M15 17c8 22 50 22 58 0"/><path class="accent" d="M12 35c16 19 48 19 64 0M22 23v16M32 28v16M44 30v17M56 28v16M66 23v16"/></svg>',
+    'xray-arch': '<svg viewBox="0 0 88 64"><path d="M12 52C13 20 26 8 44 8s31 12 32 44M23 49c2-19 9-28 21-28s19 9 21 28"/><path class="accent" d="M44 8v45M20 34h48"/></svg>',
+    'xray-series': '<svg viewBox="0 0 88 64"><rect x="8" y="8" width="21" height="19" rx="3"/><rect x="33" y="8" width="22" height="19" rx="3"/><rect x="59" y="8" width="21" height="19" rx="3"/><rect x="8" y="36" width="21" height="19" rx="3"/><rect x="33" y="36" width="22" height="19" rx="3"/><rect x="59" y="36" width="21" height="19" rx="3"/><path class="accent" d="M18 13v9M44 13v9M69 13v9M18 41v9M44 41v9M69 41v9"/></svg>',
+    'xray-profile': '<svg viewBox="0 0 88 64"><path d="M31 7c18 0 29 11 29 24l8 6-9 5c-4 10-13 16-27 16-7-9-10-18-10-28S25 13 31 7Z"/><path class="accent" d="M17 31h56M44 4v56"/></svg>',
+    'xray-frontal': '<svg viewBox="0 0 88 64"><path d="M24 24C24 11 33 5 44 5s20 6 20 19c0 19-8 34-20 34S24 43 24 24Z"/><path class="accent" d="M44 5v53M18 27h52M32 40h24"/></svg>',
+    'xray-tmj': '<svg viewBox="0 0 88 64"><path d="M17 12c11 0 19 8 19 19s-8 21-19 21M71 12c-11 0-19 8-19 19s8 21 19 21"/><circle class="accent" cx="25" cy="31" r="6"/><circle class="accent" cx="63" cy="31" r="6"/></svg>',
+    'report-radiology': '<svg viewBox="0 0 88 64"><rect x="20" y="5" width="48" height="54" rx="5"/><path d="M32 16h24M32 48h24"/><path class="accent" d="M32 38c2-13 22-13 24 0M38 27c0-6 12-6 12 0"/></svg>',
+    'report-pathology': '<svg viewBox="0 0 88 64"><rect x="19" y="6" width="50" height="52" rx="5"/><circle cx="44" cy="30" r="15"/><circle class="accent" cx="39" cy="26" r="4"/><circle class="accent" cx="50" cy="34" r="5"/><path d="M30 50h28"/></svg>',
+    'report-laboratory': '<svg viewBox="0 0 88 64"><rect x="19" y="6" width="50" height="52" rx="5"/><path d="M37 14h14M40 14v14L31 47c-2 4 2 7 6 7h14c4 0 8-3 6-7l-9-19V14"/><path class="accent" d="M35 43h18"/></svg>',
+    'report-referral': '<svg viewBox="0 0 88 64"><rect x="18" y="7" width="52" height="50" rx="5"/><path d="M28 20h25M28 31h17M28 42h23"/><path class="accent" d="m52 36 9 6-9 6"/></svg>',
+    'report-dental-lab': '<svg viewBox="0 0 88 64"><rect x="18" y="7" width="52" height="50" rx="5"/><path d="M33 19c6-5 16-5 22 0l-3 15-2 14-6-10-6 10-2-14-3-15Z"/><path class="accent" d="M28 51h32"/></svg>',
+    'report-medical': '<svg viewBox="0 0 88 64"><rect x="18" y="7" width="52" height="50" rx="5"/><path d="M44 15c8 7 14 7 14 7 0 15-4 23-14 28-10-5-14-13-14-28 0 0 6 0 14-7Z"/><path class="accent" d="M44 25v15M37 32h14"/></svg>',
+    'report-consent': '<svg viewBox="0 0 88 64"><rect x="18" y="7" width="52" height="50" rx="5"/><path d="M28 19h31M28 29h24M28 48h31"/><path class="accent" d="M30 42c9-10 11 4 18-5 3-4 7 2 11-3"/></svg>',
+    document: '<svg viewBox="0 0 88 64"><rect x="20" y="5" width="48" height="54" rx="5"/><path d="M31 18h26M31 29h26M31 40h19M31 50h23"/><path class="accent" d="M55 5v13h13"/></svg>'
+  });
+
   function element(tag, className, text) {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -216,17 +275,25 @@
       if (['periapical', 'bitewing', 'panoramic'].includes(subtype)) return 'Disponibles ahora';
       return 'Estudios especializados';
     }
+    if (category.id === 'document') {
+      if (['radiology_report', 'pathology_report', 'laboratory_report'].includes(subtype)) return 'Informes clínicos';
+      if (['referral', 'dental_lab_document', 'medical_clearance'].includes(subtype)) return 'Coordinación y laboratorio';
+      return 'Consentimientos y otros';
+    }
     return 'Tipo de documento';
   }
 
   function typeVisual(subtype) {
-    if (subtype.startsWith('face_')) return 'face';
-    if (subtype.startsWith('intraoral_')) return 'intraoral';
-    if (subtype.startsWith('occlusal_')) return 'occlusal';
-    if (subtype === 'localized') return 'localized';
-    if (subtype === 'before_after') return 'followup';
-    if (['periapical', 'bitewing', 'panoramic'].includes(subtype)) return 'radiograph';
-    return 'document';
+    return TYPE_VISUALS[subtype] || (subtype.startsWith('occlusal_') ? 'xray-arch' : 'document');
+  }
+
+  function typeIllustration(subtype) {
+    const visual = typeVisual(subtype);
+    const node = element('span', 'sec-type-visual');
+    node.dataset.visual = visual;
+    node.setAttribute('aria-hidden', 'true');
+    node.innerHTML = TYPE_ILLUSTRATIONS[visual] || TYPE_ILLUSTRATIONS.document;
+    return node;
   }
 
   function defaultRegionFor(subtype) {
@@ -489,7 +556,7 @@
           this.next();
         } : null);
         option.dataset.visual = typeVisual(id);
-        option.append(element('span', 'sec-type-visual'), element('span', 'sec-type-label', label));
+        option.append(typeIllustration(id), element('span', 'sec-type-label', label));
         if (!availability.enabled) option.append(element('em', '', availability.label || 'Por activar'));
         option.setAttribute('aria-disabled', String(!availability.enabled));
         option.setAttribute('aria-pressed', String(this.draft.subtype === id));
