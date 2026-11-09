@@ -7,6 +7,15 @@ Además la CLI 3.x cambió `--linked` por `--remote`. `scripts/create-encrypted-
 El `--dry-run` informa `cli`, `project_flag` y `storage_experimental`. Verificado además contra la CLI 3.1.0 real (error esperado «proyecto no enlazado» tras reintentar con `--experimental`).
 Pruebas: `tests/backup-behaviour.test.mjs` (10) cubre modo 2.x, 3.x, reintento experimental, Docker caído, contraseña ausente y no filtrada. Guía actualizada en `docs/SMYL_RESPALDOS.md` (rutas sin espacios, contraseña con `Read-Host`).
 
+## 2026-11-09 — Codex — WhatsApp v5: coexistencia segura con la app Business
+
+- Configuración → Canales → WhatsApp ofrece dos decisiones explícitas: **Conservar mi WhatsApp** (la misma línea continúa en la app WhatsApp Business y también se conecta a SMYL) o **Usar un número exclusivo**. Los requisitos y límites se explican antes de abrir Meta; las herramientas quedan desactivadas hasta que exista una cuenta conectada.
+- El modo elegido viaja por el proxy autenticado de SMYL y queda ligado a una sesión de configuración de un solo uso en LANA. El navegador no puede cambiarlo después; LANA valida además que el número devuelto por Meta pertenezca al WABA autorizado y evita registrar teléfono o contenido sensible en logs.
+- El modo coexistencia abre Embedded Signup con `featureType: whatsapp_business_app_onboarding`. La vista conectada distingue `WhatsApp + SMYL` de `Sólo SMYL` y muestra por separado el estado del historial. La migración LANA `20261111113000_smyl_whatsapp_coexistence_mode.sql` agrega `connection_mode` e inicia `history_sync_status` sin romper conexiones dedicadas existentes.
+- Alcance real actual: los mensajes nuevos y los ecos de respuestas enviadas desde el celular se procesan; responder en la app pausa al asistente para esa conversación. Los chats/contactos anteriores todavía **no se importan**: faltan el procesamiento de `history` y `smb_app_state_sync` y la prueba final con un número mexicano real antes de habilitarlo de forma general.
+- La UI se simplificó a una jerarquía de estado, cuenta, tipo de conexión, alcance y herramientas; conserva el logotipo de WhatsApp sin convertir su verde en color de acción. Web y `mobile/www` permanecen sincronizados con `smyl-connections.js?v=18`, `smyl-navigation.js?v=23`, CSS `v=9` y caché `whatsapp-coexistence-v5`.
+- Verificación: auditoría responsive aprobada en 1280, 820, 390 y 320 px (dos modos, logo cargado, controles 42/44 px, sin errores ni desbordamiento), suites enfocadas de SMYL y LANA aprobadas. La migración y las funciones de LANA se publicaron y verificaron primero; esta entrega publica después el puente autenticado y el frontend de SMYL.
+
 ## 2026-11-09 — Codex — WhatsApp v4: espacio operativo con identidad de canal
 
 - El área de WhatsApp deja la cuadrícula de tarjetas equivalentes y se organiza en tres bloques consecutivos: cuenta, uso dentro de SMYL y herramientas. La cuenta real conserva sus estados y acción existentes; no cambian OAuth, credenciales, permisos, persistencia ni backend.

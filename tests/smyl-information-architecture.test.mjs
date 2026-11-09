@@ -31,14 +31,14 @@ test('las herramientas de baja frecuencia ya no compiten en el primer nivel', ()
 });
 
 test('Canales e IA tiene un espacio por canal y herramientas compartidas', () => {
-  assert.match(nav, /\['channels','Resumen','R'\]/);
-  assert.match(nav, /\['whatsapp','WhatsApp','<img src="icons\/brands\/whatsapp\.svg" alt="">'\]/);
-  assert.match(nav, /\['messenger','Messenger','M'\]/);
-  assert.match(nav, /\['instagram','Instagram','I'\]/);
-  assert.match(nav, /\['assistant','SMYL Asistente','A'\]/);
-  assert.match(nav, /\['templates','Plantillas','P'\]/);
-  assert.match(nav, /\['automations','Automatizaciones','⌁'\]/);
-  assert.match(nav, /\['lab','Probar al asistente','T'\]/);
+  assert.match(nav, /\['channels','Estado','R','general'\]/);
+  assert.match(nav, /\['whatsapp','WhatsApp','<img src="icons\/brands\/whatsapp\.svg" alt="">','channels'\]/);
+  assert.match(nav, /\['messenger','Messenger','M','channels'\]/);
+  assert.match(nav, /\['instagram','Instagram','I','channels'\]/);
+  assert.match(nav, /\['assistant','SMYL Asistente','A','tools'\]/);
+  assert.match(nav, /\['templates','Plantillas','P','tools'\]/);
+  assert.match(nav, /\['automations','Automatizaciones','⌁','tools'\]/);
+  assert.match(nav, /\['lab','Probar al asistente','T','tools'\]/);
   assert.match(nav, /preview\.dataset\.connectionPane|labPane\.dataset\.connectionPane = 'lab'/);
   assert.match(nav, /data-channel-slot/);
   assert.match(nav, /smyl_connections_workspace/);

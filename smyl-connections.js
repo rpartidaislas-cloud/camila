@@ -25,9 +25,9 @@
 
   function pageMarkup() {
     return '<div class="connections-shell">' +
-      '<header class="connections-hero"><div><p class="pro-eyebrow">COMUNICACIÓN CON PACIENTES</p>' +
-      '<h1>Canales y automatizaciones</h1>' +
-      '<p>Conecta cada cuenta, configura sus herramientas y define cuándo debe intervenir tu equipo.</p></div>' +
+      '<header class="connections-hero"><div><p class="pro-eyebrow">COMUNICACIÓN</p>' +
+      '<h1>Canales</h1>' +
+      '<p>Conecta una cuenta y configura cómo atiende SMYL.</p></div>' +
       '<div class="connections-status-card" role="status" aria-live="polite" aria-atomic="true"><span class="connections-status-label">ESTADO</span>' +
       '<div class="connections-status-row"><span class="connections-status-dot"></span><strong data-lana-status>Cargando…</strong></div>' +
       '<p data-lana-summary>Comprobando la configuración de esta clínica.</p><small data-lana-verified></small></div></header>' +
@@ -43,7 +43,7 @@
       '<p class="connections-help">Utiliza esta opción únicamente si soporte te proporcionó un código. Se cifra en el servidor.</p><div class="connections-actions"><button type="submit" class="btn btn-secondary" data-connect-lana>Usar código existente</button></div></form></details><p class="connections-form-message" data-lana-message role="status"></p>' +
       '<div class="connections-staff-note" data-staff-note hidden>Solo el dueño de la clínica puede cambiar esta conexión. El equipo sí puede consultar su estado.</div></section>' +
       '<section class="connections-card"><div class="connections-card-head"><div><span>CANALES</span><h2>Conecta las cuentas de la clínica</h2></div></div>' +
-      '<div class="connections-channel-list" role="list" aria-label="Canales de mensajería"><div role="listitem" data-channel-row="whatsapp"><span class="connections-channel-icon connections-channel-icon--whatsapp" aria-hidden="true"><img src="icons/brands/whatsapp.svg" alt=""></span><p><strong>Cuenta de la clínica</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-connect-channel="whatsapp" disabled>Conectar</button></div><div role="listitem" data-channel-row="messenger"><span class="connections-channel-icon" aria-hidden="true">M</span><p><strong>Messenger</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-connect-channel="messenger" disabled>Conectar</button></div><div role="listitem" data-channel-row="instagram"><span class="connections-channel-icon" aria-hidden="true">I</span><p><strong>Instagram</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-connect-channel="instagram" disabled>Conectar</button></div></div>' +
+      '<div class="connections-channel-list" role="list" aria-label="Canales de mensajería"><div role="listitem" data-channel-row="whatsapp"><span class="connections-channel-icon connections-channel-icon--whatsapp" aria-hidden="true"><img src="icons/brands/whatsapp.svg" alt=""></span><p><strong>Cuenta de la clínica</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-channel-primary-action data-connect-channel="whatsapp" disabled>Conectar</button><section class="connections-whatsapp-modes" data-whatsapp-modes aria-labelledby="whatsapp-mode-title"><header><span>TIPO DE CONEXIÓN</span><h3 id="whatsapp-mode-title">¿Cómo quieres usar tu número?</h3><p>Elige una opción. Podrás revisar los requisitos antes de abrir Meta.</p></header><div class="connections-whatsapp-mode-grid"><article class="connections-whatsapp-mode is-featured"><span class="connections-whatsapp-mode-label">Mismo número</span><h4>Conservar mi WhatsApp</h4><p>Usa el mismo número en la app Business y en SMYL.</p><details><summary>Requisitos y límites</summary><ul><li>Necesitas la app WhatsApp Business actualizada.</li><li>Grupos y llamadas continúan sólo en el celular.</li><li>Los chats anteriores no se importan todavía; los mensajes nuevos sí llegan a SMYL.</li><li>Responder desde el celular pausa al asistente en esa conversación.</li></ul></details><button type="button" class="btn btn-primary" data-connect-channel="whatsapp" data-connection-mode="coexistence" disabled>Conectar mi número actual</button></article><article class="connections-whatsapp-mode"><span class="connections-whatsapp-mode-label">Línea separada</span><h4>Usar un número exclusivo</h4><p>Para una línea nueva administrada desde SMYL.</p><details><summary>Requisitos y límites</summary><ul><li>El número debe estar libre de WhatsApp y WhatsApp Business.</li><li>Si ya está en una app, la migración puede perder su historial local.</li><li>Recomendamos una línea nueva para este modo.</li></ul></details><button type="button" class="btn btn-secondary" data-connect-channel="whatsapp" data-connection-mode="dedicated" disabled>Conectar número nuevo</button></article></div></section></div><div role="listitem" data-channel-row="messenger"><span class="connections-channel-icon" aria-hidden="true">M</span><p><strong>Messenger</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-channel-primary-action data-connect-channel="messenger" disabled>Conectar</button></div><div role="listitem" data-channel-row="instagram"><span class="connections-channel-icon" aria-hidden="true">I</span><p><strong>Instagram</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-channel-primary-action data-connect-channel="instagram" disabled>Conectar</button></div></div>' +
       '<div class="connections-channel-retry" data-channel-retry hidden role="status"><span>No pudimos consultar los canales.</span><button type="button" class="btn btn-secondary" data-retry-channels>Reintentar</button></div>' +
       '<p class="connections-boundary">Los tokens de Meta se procesan en una capa privada y nunca se muestran en el navegador ni se mezclan con el expediente clínico.</p></section></div>' +
       '<dialog class="connections-disconnect-dialog" data-disconnect-dialog><form method="dialog"><span class="connections-status-label">DESCONECTAR CANAL</span><h2 data-disconnect-title>¿Desconectar este canal?</h2><p data-disconnect-copy>El asistente dejará de recibir y enviar mensajes. El historial se conservará y podrás conectar otra cuenta después.</p><div class="connections-disconnect-summary"><span class="connections-channel-icon" data-disconnect-icon>I</span><div><strong data-disconnect-name>Instagram</strong><small data-disconnect-account></small></div></div><footer><button type="button" class="btn btn-secondary" data-disconnect-cancel>Cancelar</button><button type="button" class="btn connections-danger-button" data-disconnect-confirm>Desconectar</button></footer></form></dialog>' +
@@ -246,32 +246,85 @@
     if (retry) retry.hidden = !show;
   }
 
+  function historyStateLabel(value, coexistence) {
+    if (!coexistence) return 'No aplica';
+    if (value === 'completed') return 'Sincronizado';
+    if (value === 'requested' || value === 'processing') return 'En proceso';
+    if (value === 'failed') return 'Requiere revisión';
+    return 'No importado';
+  }
+
+  function renderChannelWorkspaceState(name, item, connected, connectedToLana) {
+    var pane = document.querySelector('[data-connection-pane="' + name + '"]');
+    if (!pane) return;
+    var coexistence = Boolean(item && item.connection_mode === 'coexistence');
+    pane.dataset.channelState = connected ? 'connected' : 'pending';
+    pane.dataset.connectionMode = coexistence ? 'coexistence' : (connected ? 'dedicated' : '');
+    var status = pane.querySelector('[data-channel-pane-status]');
+    if (status) {
+      status.textContent = connected ? 'Conectado' : (connectedToLana ? 'Sin conectar' : 'Activa canales');
+      status.dataset.state = connected ? 'connected' : 'pending';
+    }
+    var scopeTitle = pane.querySelector('[data-channel-scope-title]');
+    var scopeCopy = pane.querySelector('[data-channel-scope-copy]');
+    var mode = pane.querySelector('[data-channel-mode]');
+    var history = pane.querySelector('[data-channel-history]');
+    if (scopeTitle) scopeTitle.textContent = connected ? 'Disponible para la clínica' : 'Se configura al conectar';
+    if (scopeCopy) scopeCopy.textContent = connected
+      ? 'La cuenta pertenece a esta clínica y el equipo la usa según sus permisos.'
+      : 'Primero conecta la cuenta. Después podrás revisar su alcance y herramientas.';
+    if (mode) mode.textContent = connected
+      ? (name === 'whatsapp' ? (coexistence ? 'WhatsApp + SMYL' : 'Sólo SMYL') : 'Cuenta conectada')
+      : 'Pendiente';
+    if (history) history.textContent = connected
+      ? (name === 'whatsapp' ? historyStateLabel(item && item.history_sync_status, coexistence) : 'Conservado')
+      : 'Pendiente';
+    pane.querySelectorAll('[data-requires-channel]').forEach(function (button) {
+      button.disabled = !connected;
+      button.setAttribute('aria-disabled', String(!connected));
+      var toolState = button.querySelector('[data-tool-state]');
+      if (toolState) toolState.textContent = connected ? 'Disponible' : 'Conecta el canal';
+    });
+  }
+
   function renderChannels(channels) {
     state.channels = Array.isArray(channels) ? channels : [];
     showChannelRetry(false);
     var connectedToLana = Boolean(state.status && state.status.connected);
+    var owner = Boolean(state.status && state.status.can_manage);
     document.querySelectorAll('[data-channel-row]').forEach(function (row) {
       var name = row.dataset.channelRow;
       var item = state.channels.find(function (value) { return value.channel === name; });
       var connected = Boolean(item && item.connected);
+      var coexistence = Boolean(item && item.connection_mode === 'coexistence');
       var statusText = row.querySelector('[data-channel-state]');
-      var button = row.querySelector('[data-connect-channel]');
+      var button = row.querySelector('[data-channel-primary-action]');
+      var choices = row.querySelector('[data-whatsapp-modes]');
+      var choiceButtons = row.querySelectorAll('[data-whatsapp-modes] [data-connection-mode]');
       row.dataset.state = connected ? 'connected' : 'pending';
+      row.dataset.activeConnectionMode = coexistence ? 'coexistence' : (connected ? 'dedicated' : '');
+      row.dataset.historyState = item && item.history_sync_status || '';
       statusText.textContent = connected
-        ? ((item.display_name || 'Cuenta conectada') + ' · Canal activo')
-        : (connectedToLana ? 'Listo para conectar' : 'Activa la mensajería para continuar');
-      var owner = Boolean(state.status && state.status.can_manage);
+        ? ((item.display_name || item.display_phone_number || 'Cuenta conectada') + ' · ' + (name === 'whatsapp' ? (coexistence ? 'WhatsApp + SMYL' : 'Sólo SMYL') : 'Canal activo'))
+        : (connectedToLana ? (name === 'whatsapp' ? 'Elige cómo conectar el número' : 'Listo para conectar') : 'Activa la mensajería para continuar');
+      if (choices) choices.hidden = connected;
+      choiceButtons.forEach(function (choice) { choice.disabled = connected || !connectedToLana || !owner; });
+
       // Messenger e Instagram se revocan canal por canal. WhatsApp no: su cuenta
       // vive en el motor de mensajería y borrarla podría apagar un WhatsApp real,
       // así que aquí sólo se puede desvincular el enlace completo de SMYL.
       var canDisconnect = connected && name !== 'whatsapp' && owner;
       var canUnlink = connected && name === 'whatsapp' && owner;
       var rowAction = canDisconnect ? 'disconnect' : canUnlink ? 'unlink' : 'connect';
-      button.textContent = state.disconnectingChannel === name ? 'Desconectando…' : canDisconnect ? 'Desconectar' : canUnlink ? 'Desvincular' : connected ? 'Conectado' : 'Conectar';
-      button.setAttribute('aria-label', button.textContent + ' ' + channelName(name));
-      button.dataset.channelAction = rowAction;
-      button.classList.toggle('connections-channel-disconnect', canDisconnect || canUnlink);
-      button.disabled = state.disconnectingChannel === name || (connected ? !(canDisconnect || canUnlink) : (!connectedToLana || !owner));
+      if (button) {
+        button.hidden = name === 'whatsapp' && !connected;
+        button.textContent = state.disconnectingChannel === name ? 'Desconectando…' : canDisconnect ? 'Desconectar' : canUnlink ? 'Desvincular' : connected ? 'Conectado' : 'Conectar';
+        button.setAttribute('aria-label', button.textContent + ' ' + channelName(name));
+        button.dataset.channelAction = rowAction;
+        button.classList.toggle('connections-channel-disconnect', canDisconnect || canUnlink);
+        button.disabled = state.disconnectingChannel === name || (connected ? !(canDisconnect || canUnlink) : (!connectedToLana || !owner));
+      }
+      renderChannelWorkspaceState(name, item, connected, connectedToLana);
     });
   }
 
@@ -298,15 +351,16 @@
 
   async function connectChannel(event) {
     var selected = event.currentTarget.dataset.connectChannel;
+    var connectionMode = selected === 'whatsapp' && event.currentTarget.dataset.connectionMode === 'coexistence' ? 'coexistence' : 'dedicated';
     var button = event.currentTarget;
-    var popup = window.open('', 'smyl-lana-' + selected, 'width=560,height=760');
+    var popup = window.open('', 'smyl-lana-' + selected + '-' + connectionMode, 'width=560,height=760');
     if (!popup) { setMessage('Permite las ventanas emergentes para conectar este canal.', 'error'); return; }
     popup.document.title = 'Preparando conexión…';
     popup.document.body.textContent = 'Preparando conexión segura con el canal…';
     button.disabled = true;
-    setMessage('Preparando la conexión de ' + selected + '…', '');
+    setMessage(connectionMode === 'coexistence' ? 'Preparando tu número actual…' : 'Preparando la conexión de ' + selected + '…', '');
     try {
-      var data = await channelRequest('POST', { action: 'setup', channel: selected });
+      var data = await channelRequest('POST', { action: 'setup', channel: selected, connection_mode: connectionMode });
       var setupOrigin = new URL(data.setup_url).origin;
       var finished = false;
       var onMessage = function (messageEvent) {
