@@ -13,7 +13,7 @@ const css = read('../smyl-radiograph-workbench.css');
 
 assert.match(app, /smyl-radiograph-workbench\.css\?v=11/);
 assert.match(app, /smyl-radiograph-review\.js\?v=17/);
-assert.match(app, /smyl-dental-record\.js\?v=18/);
+assert.match(app, /smyl-dental-record\.js\?v=19/);
 assert.match(worker, /radiograph-navigation-v43/);
 assert.match(worker, /smyl-radiograph-workbench\.css\?v=11/);
 

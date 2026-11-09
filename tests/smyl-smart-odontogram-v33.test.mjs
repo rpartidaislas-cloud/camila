@@ -68,10 +68,29 @@ test('las capas resumen sólo actividad útil y conservan una única acción pri
   assert.equal((fixture.match(/class="pc-primary cw-evaluation-cta"/g) || []).length, 1);
 });
 
+test('Rayos X separa estudios de hallazgos y permite abrir cada original privado', () => {
+  assert.match(record, /async previewStudy\(tenant,patient,studyId\)/);
+  assert.match(record, /return await imageBlob\(ctx,study\)/);
+  assert.match(record, /teeth=\[\.\.\.new Set\(items\.map/);
+  assert.match(workspace, /cw-radiograph-shelf/);
+  assert.match(workspace, /cw-radiograph-grid/);
+  assert.match(workspace, /SmylDentalProgress\.previewStudy/);
+  assert.match(workspace, /URL\.createObjectURL\(blob\)/);
+  assert.match(workspace, /URL\.revokeObjectURL\(url\)/);
+  assert.match(workspace, /IntersectionObserver/);
+  assert.match(workspace, /dateOnly=raw\.match/);
+  assert.match(workspace, /radiograph:studyCount/);
+  assert.match(workspace, /estudio radiográfico/);
+  assert.match(workspace, /hallazgo por revisar/);
+  assert.doesNotMatch(workspace, /asset\.path|signedUrl/);
+  assert.match(styles, /cw-radiograph-card/);
+  assert.match(styles, /scroll-snap-type:x proximity/);
+});
+
 test('web, móvil y PWA publican la misma versión', () => {
-  assert.match(app, /smyl-dental-record\.js\?v=18/);
-  assert.match(app, /smyl-case-workspace\.css\?v=20/);
-  assert.match(app, /smyl-case-workspace\.js\?v=24/);
+  assert.match(app, /smyl-dental-record\.js\?v=19/);
+  assert.match(app, /smyl-case-workspace\.css\?v=21/);
+  assert.match(app, /smyl-case-workspace\.js\?v=25/);
   assert.match(worker, /smart-odontogram-v33/);
   for (const file of ['app.html', 'sw.js', 'smyl-dental-record.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));

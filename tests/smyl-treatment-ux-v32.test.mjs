@@ -77,7 +77,9 @@ test('hallazgos prioriza un mapa operable con cinco capas e inspector persistent
   assert.doesNotMatch(workspace, /classList\.toggle\('cw-map-inspector-empty'/);
   assert.doesNotMatch(styles, /\.cw-map-inspector-empty\{/);
   assert.match(workspace, /photo:totals\.photo\+totals\.photoPending/);
-  assert.match(workspace, /radiograph:totals\.radiograph\+totals\.radiographPending/);
+  assert.match(workspace, /radiograph:studyCount/);
+  assert.match(workspace, /estudio radiogr[aá]fico/);
+  assert.match(workspace, /hallazgos por revisar/);
   assert.doesNotMatch(workspace, /cw-source-workspace/);
   assert.doesNotMatch(workspace, /cw-source-mode|cw-source-suggestion/);
   assert.ok(workspace.indexOf('cw-clinical-map-layout') < workspace.indexOf('cw-map-context'));
@@ -127,8 +129,8 @@ test('web, móvil y PWA distribuyen la misma implementación', () => {
   assert.match(app, /smyl-patient-360\.css\?v=17/);
   assert.match(app, /smyl-clinic\.js\?v=20/);
   assert.match(app, /smyl-patient-360\.js\?v=25/);
-  assert.match(app, /smyl-case-workspace\.css\?v=20/);
-  assert.match(app, /smyl-case-workspace\.js\?v=24/);
+  assert.match(app, /smyl-case-workspace\.css\?v=21/);
+  assert.match(app, /smyl-case-workspace\.js\?v=25/);
   assert.match(worker, /treatment-ux-v32/);
   assert.match(worker, /evaluation-flow-v73/);
   assert.match(worker, /treatment-tenant-workbench-v82/);
