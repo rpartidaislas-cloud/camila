@@ -23,17 +23,32 @@ function setup() {
   fs.mkdirSync(bin); fs.mkdirSync(tmp);
   fs.writeFileSync(path.join(bin, 'npx'), `#!/bin/bash
 [ "$1" = "supabase" ] || exit 1; shift
+[ -n "$FAKE_LOG" ] && echo "$@" >> "$FAKE_LOG"
+EXP=""; if [ "$1" = "--experimental" ]; then EXP=1; shift; fi
+bad_flag() {
+  if [ "$FAKE_CLI" = "3" ] && [[ "$*" == *"--linked"* ]]; then echo "unknown flag: --linked" >&2; exit 1; fi
+  if [ "$FAKE_CLI" != "3" ] && [[ "$*" == *"--remote"* ]]; then echo "unknown flag: --remote" >&2; exit 1; fi
+}
 case "$1 $2" in
-  "--version "*) echo "3.0.0";;
-  "storage ls") printf '%s\\n' $FAKE_BUCKETS;;
+  "--version "*) if [ "$FAKE_CLI" = "3" ]; then echo "3.0.0"; else echo "2.110.0"; fi;;
+  "storage ls") bad_flag "$@"
+    if [ -n "$FAKE_STORAGE_EXPERIMENTAL" ] && [ -z "$EXP" ]; then echo "Experimental: use --experimental to enable storage" >&2; exit 1; fi
+    printf '%s\\n' $FAKE_BUCKETS;;
   "db dump")
+    if [[ "$*" == *"--help"* ]]; then if [ "$FAKE_CLI" = "3" ]; then echo "  --remote[=<ref>]    Target a remote database"; else echo "  --linked    Dumps from the linked project"; fi; exit 0; fi
+    bad_flag "$@"
     f="\${@: -1}"
     if [[ "$*" == *"--role-only"* ]]; then echo "CREATE ROLE anon;" > "$f"
     elif [[ "$*" == *"--data-only"* ]]; then printf 'COPY public.camila_tenants (id) FROM stdin;\\n1\\n\\\\.\\nCOPY auth.users (id) FROM stdin;\\n1\\n\\\\.\\n' > "$f"
     else echo "CREATE TABLE public.camila_tenants (id uuid);" > "$f"; fi;;
-  "storage cp") dest="\${@: -1}"; [ -n "$FAIL_BUCKET" ] && [[ "$*" == *"$FAIL_BUCKET"* ]] && exit 1
+  "storage cp") bad_flag "$@"
+    dest="\${@: -1}"; [ -n "$FAIL_BUCKET" ] && [[ "$*" == *"$FAIL_BUCKET"* ]] && { echo "error de prueba: sin permiso (clave $SUPABASE_DB_PASSWORD)" >&2; exit 1; }
     mkdir -p "$dest"; echo "objeto uno" > "$dest/a.png"; echo "objeto dos" > "$dest/b.png";;
 esac
+`, { mode: 0o755 });
+  fs.writeFileSync(path.join(bin, 'docker'), `#!/bin/bash
+[ -n "$FAKE_DOCKER_DOWN" ] && { echo "Cannot connect to the Docker daemon" >&2; exit 1; }
+echo "28.0.0"
 `, { mode: 0o755 });
   const key = path.join(dir, 'key.txt');
   spawnSync('age-keygen', ['-o', key], { encoding: 'utf8' });
@@ -44,7 +59,7 @@ function runBackup(ctx, out, extraEnv = {}) {
   return spawnSync(process.execPath, [backupScript, `--out=${out}`, ...(extraEnv.args || [])], {
     encoding: 'utf8',
     env: { ...process.env, PATH: `${ctx.bin}:${process.env.PATH}`, TMPDIR: ctx.tmp, FAKE_BUCKETS: BUCKETS.join(' '),
-      SMYL_BACKUP_CONFIRM: 'EXPORT_ENCRYPTED_CLINICAL_BACKUP', SMYL_BACKUP_AGE_RECIPIENT: ctx.recipient, ...extraEnv.env }
+      SMYL_BACKUP_CONFIRM: 'EXPORT_ENCRYPTED_CLINICAL_BACKUP', SMYL_BACKUP_AGE_RECIPIENT: ctx.recipient, SUPABASE_DB_PASSWORD: 'secreto123', FAKE_LOG: path.join(ctx.dir, 'cli.log'), FAKE_CLI: '', FAKE_STORAGE_EXPERIMENTAL: '', FAKE_DOCKER_DOWN: '', ...extraEnv.env }
   });
 }
 const verify = (ctx, bundle, key = ctx.key) => spawnSync(process.execPath, [verifyScript, `--bundle=${bundle}`, `--identity=${key}`], { encoding: 'utf8', env: { ...process.env, TMPDIR: ctx.tmp } });
@@ -129,5 +144,60 @@ test('la verificación avisa si faltan las cuentas de acceso (auth.users)', { sk
     const checked = verify(ctx, out);
     assert.equal(checked.status, 1);
     assert.match(checked.stdout, /auth\.users/);
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('se adapta a la CLI 3.x, que usa --remote en lugar de --linked', { skip }, () => {
+  const ctx = setup();
+  try {
+    const out = path.join(ctx.dir, 'paquete');
+    const result = runBackup(ctx, out, { env: { FAKE_CLI: '3' } });
+    assert.equal(result.status, 0, result.stderr);
+    const log = fs.readFileSync(path.join(ctx.dir, 'cli.log'), 'utf8');
+    assert.match(log, /db dump --remote --role-only/);
+    assert.doesNotMatch(log, /storage (?:ls|cp) --linked/);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(out, 'manifest.json'), 'utf8')).cli, '3.0.0');
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('con la CLI 2.x usa --linked y, si Storage exige --experimental, reintenta con esa bandera', { skip }, () => {
+  const ctx = setup();
+  try {
+    const dry = runBackup(ctx, path.join(ctx.dir, 'seco'), { args: ['--dry-run'], env: { FAKE_STORAGE_EXPERIMENTAL: '1' } });
+    assert.equal(dry.status, 0, dry.stderr);
+    const info = JSON.parse(dry.stdout);
+    assert.equal(info.project_flag, '--linked');
+    assert.equal(info.storage_experimental, true);
+    assert.equal(info.cli, '2.110.0');
+    const real = runBackup(ctx, path.join(ctx.dir, 'paquete'), { env: { FAKE_STORAGE_EXPERIMENTAL: '1' } });
+    assert.equal(real.status, 0, real.stderr);
+    assert.match(fs.readFileSync(path.join(ctx.dir, 'cli.log'), 'utf8'), /--experimental storage cp --linked/);
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('sin Docker abortar con un mensaje claro; sin contraseña sólo el respaldo real aborta, no la prueba previa', { skip }, () => {
+  const ctx = setup();
+  try {
+    const noDocker = runBackup(ctx, path.join(ctx.dir, 'a'), { args: ['--dry-run'], env: { FAKE_DOCKER_DOWN: '1' } });
+    assert.equal(noDocker.status, 1);
+    assert.match(noDocker.stderr, /Docker no responde[\s\S]*Engine running/);
+    const dry = runBackup(ctx, path.join(ctx.dir, 'b'), { args: ['--dry-run'], env: { SUPABASE_DB_PASSWORD: '' } });
+    assert.equal(dry.status, 0, dry.stderr);
+    const real = runBackup(ctx, path.join(ctx.dir, 'c'), { env: { SUPABASE_DB_PASSWORD: '' } });
+    assert.equal(real.status, 1);
+    assert.match(real.stderr, /SUPABASE_DB_PASSWORD/);
+    assert.equal(fs.existsSync(path.join(ctx.dir, 'c')), false, 'no crea el paquete');
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('cuando la CLI falla se muestra el motivo, sin la contraseña', { skip }, () => {
+  const ctx = setup();
+  try {
+    const result = runBackup(ctx, path.join(ctx.dir, 'paquete'), { env: { FAIL_BUCKET: 'camila-analisis' } });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /error de prueba: sin permiso/);
+    assert.doesNotMatch(result.stderr, /secreto123/, 'la contraseña nunca se imprime');
+    assert.match(result.stderr, /\*\*\*/);
+    assert.deepEqual(fs.readdirSync(ctx.tmp), []);
   } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
 });
