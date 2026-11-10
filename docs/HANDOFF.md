@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-10 — Codex — Favicon con identidad SMYL
+
+- La pestaña de `app.html` deja de usar el ícono morado histórico y muestra el
+  logotipo cuadrado oficial de SMYL (`icons/smyl_pwa.png`).
+- El favicon y el acceso de Apple usan el mismo activo con versión `v=2` para
+  evitar que el navegador conserve el ícono anterior en caché.
+- Web y `mobile/www` permanecen sincronizados. No se modificaron el manifiesto,
+  los atajos instalables, la lógica de la aplicación ni el backend.
+
 ## 2026-11-10 — Codex — Revisión radiográfica guiada v15
 
 - La revisión asistida deja de mezclar imagen, filtros, señales y cierre en una sola superficie. Ahora sigue tres pasos reales y visibles: **Comprobar imagen**, **Revisar señales** y **Resumen**.
