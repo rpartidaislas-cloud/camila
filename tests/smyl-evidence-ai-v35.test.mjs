@@ -44,7 +44,7 @@ test('la revisión asistida se adapta a móvil y conserva estados legibles', () 
 });
 
 test('web, móvil y PWA publican la etapa 3.5', () => {
-  assert.match(app, /smyl-dental-record\.js\?v=23/);
+  assert.match(app, /smyl-dental-record\.js\?v=24/);
   assert.match(app, /smyl-case-workspace\.css\?v=24/);
   assert.match(app, /smyl-case-workspace\.js\?v=28/);
   assert.match(worker, /evidence-ai-v35/);

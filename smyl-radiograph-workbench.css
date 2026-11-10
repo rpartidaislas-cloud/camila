@@ -809,6 +809,15 @@
 .rr-summary-item strong { color: var(--rr-ink); font-size: 13px; line-height: 18px; }
 .rr-summary-item p { max-width: 62ch; margin: 0; color: var(--rr-muted); font-size: 13px; line-height: 18px; }
 .rr-review-summary > .rr-actions { display: flex; justify-content: center; gap: 8px; }
+.rr-check-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.rr-check-actions > button { width: 100%; }
+.rr-review-summary[data-result="no-evaluation"] { border-color: #ead2a0; background: linear-gradient(180deg, #fffdf8 0%, #fff 55%); }
+.rr-review-summary[data-result="no-evaluation"] > .rr-section-label { color: #9a6610; }
+.rr-no-evaluation { display: grid; width: min(100%, 560px); box-sizing: border-box; grid-template-columns: 38px minmax(0, 1fr); gap: 12px; padding: 18px; border: 1px solid #ead2a0; border-radius: 13px; background: var(--rr-warning-soft); text-align: left; }
+.rr-no-evaluation-icon { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 50%; background: #fff; color: #9a6610; font-size: 18px; font-weight: 800; box-shadow: inset 0 0 0 1px #e4c57f; }
+.rr-no-evaluation strong { color: var(--rr-ink); font-size: 15px; line-height: 21px; }
+.rr-no-evaluation p { margin: 3px 0 0; color: var(--rr-muted); font-size: 13px; line-height: 19px; }
+.rr-no-evaluation-limits { grid-column: 1 / -1; margin: 2px 0 0 50px; padding-left: 17px; color: var(--rr-muted); font-size: 13px; line-height: 19px; }
 
 @media (min-width: 960px) {
   .rr-image-adjustments { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); }
@@ -839,6 +848,9 @@
   .rr-review-summary .rr-complete-counts > div { padding: 10px 6px; text-align: center; }
   .rr-summary-item { align-items: stretch; flex-direction: column; gap: 8px; }
   .rr-summary-item .rr-state { align-self: flex-start; }
-  .rr-review-summary > .rr-actions { align-items: stretch; flex-direction: column-reverse; }
+  .rr-review-summary > .rr-actions { width: 100%; align-items: stretch; flex-direction: column-reverse; flex-wrap: nowrap; }
   .rr-review-summary > .rr-actions > button { width: 100%; min-height: 44px; }
+  .rr-no-evaluation { grid-template-columns: 34px minmax(0, 1fr); padding: 15px 14px; }
+  .rr-no-evaluation-icon { width: 32px; height: 32px; }
+  .rr-no-evaluation-limits { margin-left: 0; }
 }

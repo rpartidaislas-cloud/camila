@@ -1,5 +1,13 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-10 — Codex — Radiografía multiescala y abstención segura v16
+
+- La revisión asistida conserva una **vista completa** como referencia única y agrega detalles ampliados solapados según el tipo de radiografía: cuatro regiones para panorámicas y dos para periapicales, aletas de mordida u otros estudios. Los recortes se generan desde el original decodificado, reciben sólo una normalización suave de contraste cuando aporta información y se envían en una sola lectura para evitar resultados fragmentados.
+- El contrato exige confirmar todo contra la vista completa, mantener coordenadas normalizadas en ese original y devolver una sola lista sin duplicados. El cliente elimina duplicados exactos y, si el mapa automático de piezas no es concluyente, conserva la lectura pero añade una limitación explícita para validar manualmente pieza y zona.
+- Cuando la calidad es `unusable`, SMYL muestra **No evaluable por IA** y permite **Continuar sin evaluación de IA**. El original permanece disponible, no se generan señales, no se guarda una revisión falsa y el expediente queda como **Pendiente manual**; el dentista puede volver a comprobar la imagen o subir otra toma.
+- La experiencia responsive/PWA quedó corregida también en el resumen: las acciones ya no se envuelven fuera del diálogo a 390/320 px, mantienen objetivos táctiles de 44 px y no producen desbordamiento. Web y `mobile/www` están sincronizados con cliente `v=12`, revisión `v=21`, CSS `v=16`, expediente `v=24` y caché `radiograph-multiscale-abstention-v16`.
+- No se cambian tablas, migraciones, permisos ni la Edge Function. La mejora queda confinada a preparación de imagen, contrato seguro del cliente y presentación de estados. Suite completa aprobada sin fallos; recorridos Playwright normal y `unusable` aprobados en 1280×820, 820×900, 390×844 y 320×700. Capturas en `artifacts/radiograph-multiscale-abstention-v16/`.
+
 ## 2026-11-10 — Codex — Revisión radiográfica guiada v15
 
 - La revisión asistida deja de mezclar imagen, filtros, señales y cierre en una sola superficie. Ahora sigue tres pasos reales y visibles: **Comprobar imagen**, **Revisar señales** y **Resumen**.

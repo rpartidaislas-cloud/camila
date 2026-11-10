@@ -65,7 +65,7 @@ test('completed() ignora ubicaciones corruptas y sigue funcionando sin locations
 test('el prompt pide diente, ubicación y cuadro siempre, normalizados, sin null', () => {
   const src = fs.readFileSync(new URL('../smyl-radiograph-analysis-client.js', import.meta.url), 'utf8');
   assert.doesNotMatch(src, /No inventes coordenadas/);
-  assert.match(src, /todo normalizado de 0 a 1 respecto a la imagen recibida desde la esquina superior izquierda/);
+  assert.match(src, /todo normalizado de 0 a 1 respecto a la VISTA COMPLETA ORIGINAL desde la esquina superior izquierda/);
   assert.match(src, /SIEMPRE tu mejor estimación de ubicación/);
   assert.match(src, /no uses null/);
   assert.match(src, /"x":"0 a 1","y":"0 a 1","w":"0\.03 a 0\.5","h":"0\.03 a 0\.5"/);
@@ -179,8 +179,8 @@ test('las observaciones que nombran una pieza del mapa usan su caja; las demás 
 
 test('el análisis son dos pasadas: mapa con rejilla y lectura con el mapa', () => {
   const src = fs.readFileSync(new URL('../smyl-radiograph-analysis-client.js', import.meta.url), 'utf8');
-  assert.match(src, /ask\('analyze_dental_radiograph_map_v1',mapSystem,gridEncoded/);
-  assert.match(src, /ask\('analyze_dental_radiograph_v1',toothMap\?system\+mapAddendum:system,encoded/);
+  assert.match(src, /ask\('analyze_dental_radiograph_map_v1',mapSystem,\[\{data:gridEncoded/);
+  assert.match(src, /ask\('analyze_dental_radiograph_v1',toothMap\?system\+mapAddendum:system,\[\{data:encoded,label:'Vista completa original/);
   assert.match(src, /function drawGrid\(ctx,width,height\)/);
   assert.match(src, /gridEncoded=canvas\.toDataURL/);
   assert.match(src, /const requestId=crypto\.randomUUID\(\);/, 'las dos llamadas comparten requestId');
