@@ -40,7 +40,7 @@ test('el visor dibuja cuadros punteados y ofrece dos vistas sin tocar la imagen'
   assert.match(js, /item\.x===null\|\|item\.state==='rejected'\)return;/, 'las descartadas no se dibujan');
   assert.match(js, /n\('div','rr-box rr-box-'\+item\.state/);
   assert.match(js, /if\(run\.placing\)run\.view\.marks=true;/, 'ubicar una señal fuerza la vista con marcas');
-  assert.match(js, /marks:true\}/);
+  assert.match(js, /marks:false\}/, 'la comprobación inicial abre sin marcas de IA');
   assert.match(js, /querySelector\('\.rr-actions'\)\?\.scrollIntoView/, 'la señal abierta baja hasta sus botones');
   const css = read('smyl-radiograph-workbench.css');
   assert.match(css, /\.rr-box \{[^}]*border: 2px dashed/);
@@ -105,10 +105,11 @@ test('el visor avisa cuando la pieza no coincide con la posición, sin cambiar l
 test('mesa de luz: la imagen ocupa el campo oscuro y los controles flotan encima', () => {
   const js = read('smyl-radiograph-review.js');
   assert.match(js, /n\('details','rr-qpop rr-qpop-'\+report\.quality\)/, 'la calidad vive en un chip');
-  assert.match(js, /canvas\.append\(quality\)/, 'el chip flota sobre la imagen');
+  assert.match(js, /canvas\.append\(qualityPopover\(report\)\)/, 'el chip flota sobre la imagen');
   assert.match(js, /LIMITACIONES DEL ANÁLISIS/);
   assert.doesNotMatch(js, /rr-safety-note|rr-review-head|Ver limitaciones del análisis/);
-  assert.match(js, /head\.append\(copy,marksToggle\(stage\)\)/, 'el interruptor de vista va en la cabecera de la imagen');
+  assert.match(js, /head\.append\(copy\);if\(clickable\)head\.append\(marksToggle\(stage\)\)/, 'el interruptor sólo aparece durante la revisión de señales');
+  assert.match(js, /n\('details','rr-image-adjustments'\)/, 'los ajustes de imagen quedan plegados');
   assert.match(js, /if\(report\.quality==='unusable'\)quality\.open=true;/);
   assert.match(js, /panel\.append\(footer\)/, 'la barra de guardado vive dentro del panel de señales');
   const css = read('smyl-radiograph-workbench.css');
@@ -120,14 +121,16 @@ test('mesa de luz: la imagen ocupa el campo oscuro y los controles flotan encima
   for (const match of css.matchAll(/font-size:\s*([0-9.]+)px/g)) assert.ok(Number(match[1]) >= 12, 'Texto menor de 12 px: ' + match[0]);
 });
 
-test('barra superior con pasos y panel con pestañas con conteo', () => {
+test('barra superior con tres pasos y una sola señal activa', () => {
   const js = read('smyl-radiograph-review.js');
   assert.match(js, /\['Imagen','Señales','Resumen'\]/);
-  assert.match(js, /setStep\(run\.doc&&run\.doc\.workflow\.state==='completed'\?2:1\)/);
-  assert.match(js, /'rr-filter rr-tab'/);
-  assert.match(js, /badge\.dataset\.rrCount=key/);
-  assert.match(js, /host\.querySelectorAll\('\[data-rr-count\]'\)\.forEach/, 'los conteos se actualizan sin recargar');
-  assert.match(js, /' revisadas'|'\s*\/\s*'\+items\.length\+' revisadas'/);
+  assert.match(js, /run\.phase==='image'\?1:run\.phase==='summary'\?3:2/);
+  assert.match(js, /list\.append\(editItem\(selected,selectedIndex\)\)/, 'sólo monta la señal activa');
+  assert.match(js, /n\('details','rr-signal-queue'\)/, 'la cola completa es secundaria y plegable');
+  assert.doesNotMatch(js, /'rr-filter rr-tab'/);
+  assert.match(js, /decided\+' de '\+items\.length\+' revisadas'/);
+  assert.match(js, /run\.phase='summary'/);
+  assert.match(js, /professionalText=item\.text&&item\.text!==source\?\.observation/, 'el resumen no presenta una sugerencia descartada como conclusión profesional');
   assert.match(js, /n\('p','rr-save-note','Cada decisión se guarda al confirmarla o descartarla\. La IA nunca valida por sí sola\.'\)/);
 });
 

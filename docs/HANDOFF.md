@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-10 — Codex — Revisión radiográfica guiada v15
+
+- La revisión asistida deja de mezclar imagen, filtros, señales y cierre en una sola superficie. Ahora sigue tres pasos reales y visibles: **Comprobar imagen**, **Revisar señales** y **Resumen**.
+- El primer paso muestra la radiografía sin marcas de IA, concentra la calidad del estudio y una comprobación breve; zoom, brillo, contraste e inversión permanecen disponibles bajo **Ajustar imagen**, plegados por defecto.
+- El segundo paso presenta una sola señal clínica a la vez. La cola completa queda bajo **Ver todas las señales**, la sugerencia de IA continúa separada de la validación profesional y el dentista puede volver a comprobar la imagen sin perder el avance.
+- El tercer paso resume confirmadas, descartadas y pendientes con el último guardado verificado. Una señal descartada ya no reutiliza el texto de IA como si fuera conclusión profesional. La persistencia, el control de versión, los permisos y los contratos clínicos no cambian.
+- Web y `mobile/www` quedan sincronizados con `smyl-radiograph-review.js?v=20`, CSS `v=15` y caché `radiograph-guided-process-v15`. No se modifican migraciones, backend ni prompts de IA.
+- La entrega permanece local y **no se publicó**, por solicitud expresa. Suite completa de 1,337 pruebas aprobada (1,287 aprobadas y 50 omitidas por dependencias opcionales), además del recorrido Playwright en escritorio, tableta, 390 px y 320 px con guardado real del fixture, zoom, paneo, pellizco, navegación de señales y resumen final. Capturas en `artifacts/radiograph-workbench-v41/`.
+
 ## 2026-11-10 — Codex — Radiografía contextual en odontograma v14
 
 - La mesa radiográfica reduce ruido visual: **Original / Señales** reemplaza textos largos, se retiran en escritorio la leyenda y los atajos redundantes, el panel profesional usa una medida de lectura controlada y la redacción clínica queda organizada como sugerencia de IA, validación y conclusión profesional.
