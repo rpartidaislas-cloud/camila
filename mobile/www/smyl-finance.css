@@ -592,6 +592,14 @@ button.finance-guide-chip[data-tone=warn]:hover{background:#f9dfa6}
 .finance-account-ledger article>aside{display:grid;justify-items:end;gap:3px}
 .finance-account-ledger article>aside small:empty{display:none}
 .finance-account-ledger article>aside button{white-space:nowrap}
+.finance-history-note{margin:0 0 12px;padding:10px 12px;border:1px solid #d7e4e8;border-radius:10px;background:#f3f8f8;color:#536d73;font-size:12px;line-height:1.45}
+.finance-account-ledger article[data-kind=void]{border-color:#efd8d3;background:#fffafa}
+.finance-account-ledger article[data-kind=void] .finance-ledger-icon{background:#fbe9e5;color:#a74432}
+.finance-account-ledger article[data-kind=charge] .finance-ledger-icon{background:#eaf6f3;color:#176b61}
+.finance-account-ledger article>aside{display:flex;align-items:flex-end;justify-content:center;gap:6px;flex-direction:column}
+.finance-account-ledger article>aside button{min-height:31px;border:1px solid #cbd8df;border-radius:8px;background:#fff;padding:0 9px;color:#294650;font-size:12px;font-weight:700}
+.finance-account-ledger article>aside button[data-account-void],.finance-account-ledger article>aside button[data-account-refund]{border-color:#e8c9c2;color:#9d3d2b}
+.finance-dialog .btn-danger{border-color:#b64232;background:#b64232;color:#fff}
 .finance-account-ledger article[data-kind=payment]>aside{grid-auto-flow:column;align-items:center;gap:6px}
 .finance-account-tabs{display:flex;gap:2px;margin:6px 0 4px;border-bottom:1px solid #dfe7ee}
 .finance-account-tabs button{display:inline-flex;align-items:center;gap:6px;min-height:42px;margin-bottom:-1px;padding:0 14px;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:#5b6b78;font-size:13px;font-weight:600}

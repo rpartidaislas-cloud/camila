@@ -83,7 +83,7 @@ test('la cuenta del paciente separa el texto, muestra estado y último pago, y o
   assert.match(acc, /Total cargado/);
   assert.match(acc, /data-tone="credit"><span>A favor/);
   assert.match(acc, /Último pago/);
-  assert.match(acc, /data-account-tab="payments"[^>]*>Pagos y recibos/);
+  assert.match(acc, /data-account-tab="payments"[^>]*>Historial/);
   assert.match(acc, /<summary>Liquidados \(/);
   assert.match(acc, /id="account-advance">Registrar anticipo/);
   assert.match(acc, /snapshot\.due>0\?'<button type="button" class="btn btn-primary" id="account-pay">Cobrar/);
