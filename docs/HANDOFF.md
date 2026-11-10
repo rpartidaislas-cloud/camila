@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-10 — Codex — Radiografía contextual en odontograma v14
+
+- La mesa radiográfica reduce ruido visual: **Original / Señales** reemplaza textos largos, se retiran en escritorio la leyenda y los atajos redundantes, el panel profesional usa una medida de lectura controlada y la redacción clínica queda organizada como sugerencia de IA, validación y conclusión profesional.
+- Al seleccionar una señal ya no se muestra el círculo amarillo grande. Se conserva el recuadro editable, sus asas y la correlación con la tarjeta, por lo que el ajuste de posición y tamaño sigue siendo explícito y accesible.
+- La capa **Rayos X** del odontograma ahora proyecta cada hallazgo vinculado a la pieza seleccionada. El inspector solicita la previsualización privada existente, recorta la zona guardada por la IA/dentista, dibuja su recuadro, muestra estado y conclusión y permite abrir el estudio completo. Si una pieza tiene varias señales, se recorren desde un selector compacto.
+- No se crean diagnósticos ni una fuente clínica paralela: el recorte utiliza las coordenadas `x/y/w/h` y la revisión ya guardada. La IA continúa como sugerencia; sólo las decisiones profesionales confirmadas pasan al expediente. No cambian migraciones, permisos, backend ni prompts.
+- Web y `mobile/www` quedan sincronizados con `smyl-radiograph-review.js?v=19`, CSS radiográfica `v=14`, `smyl-dental-record.js?v=23`, workspace `js?v=28`/`css?v=24` y caché `radiograph-context-crop-v14`.
+- Verificación: suite completa de 1,337 pruebas (1,287 aprobadas, 50 omitidas por dependencias opcionales, 0 fallos), pruebas focalizadas 43/43 y recorrido radiográfico en 1280×820, 820×900, 390×844 y 320×700 sin desbordes, con controles de 42/44 px y navegación, zoom, paneo y guardado conservados.
+
 ## 2026-11-10 — Codex — Decisiones radiográficas verificables v13
 
 - La revisión asistida separa con claridad la sugerencia original de IA de la decisión profesional: el detalle automático queda plegado y la pieza, ubicación y conclusión del dentista viven en un bloque clínico propio.

@@ -261,25 +261,35 @@
   const arch=quadrant<3?'superior':'inferior',side=quadrant===1||quadrant===4?'derecho':'izquierdo';
   return 'Pieza '+id+' · '+types[position]+' '+arch+' '+side;
  }
+ async function drawRadiographCrop(ctx,finding,canvas,marker,status,token){
+  const blob=await window.SmylDentalProgress?.previewStudy?.(ctx.tenant,ctx.patient,finding.studyId);if(!(blob instanceof Blob))throw Error('preview');
+  let image,revoke=()=>{};try{
+   if(typeof createImageBitmap==='function')image=await createImageBitmap(blob);else{const url=URL.createObjectURL(blob);revoke=()=>URL.revokeObjectURL(url);image=await new Promise((resolve,reject)=>{const value=new Image();value.onload=()=>resolve(value);value.onerror=reject;value.src=url;});}
+   if(!valid(ctx)||ctx.radiographCropToken!==token||!canvas.isConnected)return;
+   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value)),width=image.width||image.naturalWidth,height=image.height||image.naturalHeight,cx=clamp(Number(finding.x),0,1),cy=clamp(Number(finding.y),0,1),boxW=clamp(Number(finding.w)||.07,.02,.6),boxH=clamp(Number(finding.h)||.12,.02,.6),ratio=1.8;
+   let cropW=clamp(Math.max(.22,boxW*3.4),.18,.64),cropH=Math.max(.2,boxH*2.8,cropW*width/(ratio*height));cropH=clamp(cropH,.18,.64);cropW=clamp(Math.max(cropW,cropH*ratio*height/width),.18,.72);
+   const left=clamp(cx-cropW/2,0,1-cropW),top=clamp(cy-cropH/2,0,1-cropH),context=canvas.getContext('2d',{alpha:false});canvas.width=720;canvas.height=400;context.drawImage(image,left*width,top*height,cropW*width,cropH*height,0,0,canvas.width,canvas.height);
+   marker.style.left=((cx-boxW/2-left)/cropW*100)+'%';marker.style.top=((cy-boxH/2-top)/cropH*100)+'%';marker.style.width=(boxW/cropW*100)+'%';marker.style.height=(boxH/cropH*100)+'%';canvas.hidden=false;marker.hidden=false;status.hidden=true;
+  }finally{image?.close?.();revoke();}
+ }
  function renderToothRadiographContext(ctx,tooth){
   const host=ctx.mapInspectorRadiographs;if(!host)return;host.replaceChildren();host.hidden=(ctx.mapFilter||'all')!=='radiograph'||!tooth;if(host.hidden)return;
   const context=window.SmylDentalProgress?.toothRadiographContext?.(ctx.tenant,ctx.patient,tooth);
-  host.setAttribute('aria-live','polite');host.append(n('span','cw-kicker','EVIDENCIA DE LA PIEZA'));
+  host.setAttribute('aria-live','polite');host.append(n('span','cw-kicker','RADIOGRAFÍA RELACIONADA'));
   if(!context){host.append(n('p','cw-help','No pudimos verificar el detalle radiográfico de esta pieza. Abre el estudio para revisarlo.'));return;}
   const studies=Array.isArray(context.studies)?context.studies:[],findings=Array.isArray(context.findings)?context.findings:studies.flatMap(study=>(Array.isArray(study.findings)?study.findings:[]).map(finding=>({...finding,studyId:finding.studyId||study.id,studyLabel:finding.studyLabel||study.label})));
-  const studyList=n('div','cw-map-radiograph-studies');studyList.setAttribute('role','list');
-  studies.forEach(study=>{const row=n('div','cw-map-radiograph-study');row.setAttribute('role','listitem');row.append(n('strong','',study.label||'Estudio radiográfico'),n('span','',(radiographTypes[study.type]||radiographTypes.other)+' · '+radiographDate(study.date)));studyList.append(row);});
-  if(studies.length)host.append(studyList);
   if(!findings.length){host.append(n('p','cw-help',studies.length?'Esta pieza no tiene señales radiográficas registradas.':'No hay estudios vinculados con esta pieza.'));return;}
-  const list=n('div','cw-map-radiograph-findings');list.setAttribute('role','list');list.setAttribute('aria-label','Hallazgos radiográficos de la pieza '+tooth);
-  findings.forEach(finding=>{const row=n('article','cw-map-radiograph-finding'),copyBox=n('div'),state=({pending:'Por revisar',confirmed:'Confirmado',corrected:'Corregido',rejected:'Descartado'})[finding.state]||'Sin decisión',open=btn('Revisar en estudio',()=>openRadiograph(ctx,finding.studyId));row.setAttribute('role','listitem');row.dataset.state=finding.state||'pending';copyBox.append(n('strong','',finding.text||'Señal radiográfica por comprobar'),n('span','',state+(finding.studyLabel?' · '+finding.studyLabel:'')));row.append(copyBox,open);list.append(row);});host.append(list);
+  const ordered=[...findings].sort((a,b)=>(a.state==='confirmed'?-1:0)-(b.state==='confirmed'?-1:0)),preview=n('figure','cw-radiograph-crop'),caption=n('figcaption'),captionTitle=n('strong'),captionMeta=n('span'),view=n('div','cw-radiograph-crop-view'),canvas=n('canvas'),marker=n('span','cw-radiograph-crop-marker'),loading=n('span','cw-radiograph-crop-loading','Preparando recorte…'),detail=n('p','cw-radiograph-crop-detail'),switcher=n('div','cw-radiograph-crop-switcher'),open=btn('Abrir estudio completo',()=>{});canvas.hidden=true;marker.hidden=true;canvas.setAttribute('role','img');canvas.setAttribute('aria-label','Recorte de la radiografía correspondiente a la pieza '+tooth);caption.append(captionTitle,captionMeta);view.append(canvas,marker,loading);preview.append(caption,view,detail);open.classList.add('cw-radiograph-crop-open');
+  const buttons=ordered.map((finding,index)=>{const control=btn(ordered.length===1?'Señal vinculada':'Señal '+(index+1),()=>select(finding,control));control.dataset.state=finding.state||'pending';control.setAttribute('aria-label','Mostrar señal '+(index+1)+' de la pieza '+tooth);switcher.append(control);return control;});
+  const select=(finding,control)=>{buttons.forEach(button=>button.setAttribute('aria-pressed',String(button===control)));const study=studies.find(value=>value.id===finding.studyId),state=({pending:'Por revisar',confirmed:'Confirmada',corrected:'Corregida',rejected:'Descartada'})[finding.state]||'Sin decisión';copy(captionTitle,study?.label||finding.studyLabel||'Estudio radiográfico');copy(captionMeta,[state,study?radiographDate(study.date):''].filter(Boolean).join(' · '));copy(detail,finding.text||finding.sourceText||'Señal radiográfica por comprobar.');open.onclick=()=>openRadiograph(ctx,finding.studyId);canvas.hidden=true;marker.hidden=true;loading.hidden=false;loading.textContent=Number.isFinite(finding.x)&&Number.isFinite(finding.y)?'Preparando recorte…':'Esta señal no tiene un recuadro guardado.';const token=(ctx.radiographCropToken||0)+1;ctx.radiographCropToken=token;if(Number.isFinite(finding.x)&&Number.isFinite(finding.y))drawRadiographCrop(ctx,finding,canvas,marker,loading,token).catch(()=>{if(valid(ctx)&&ctx.radiographCropToken===token&&loading.isConnected){loading.hidden=false;loading.textContent='No pudimos mostrar el recorte. Abre el estudio completo.';}});};
+  host.append(preview);if(ordered.length>1)host.append(switcher);host.append(open);select(ordered[0],buttons[0]);
  }
  function renderMapInspector(ctx,snapshot,totals){
   if(!ctx.mapInspectorTitle)return;
-  const tooth=ctx.selectedTooth,item=tooth?snapshot?.teeth?.[tooth]||{}:null;
+  const tooth=ctx.selectedTooth,item=tooth?snapshot?.teeth?.[tooth]||{}:null,radiographMode=(ctx.mapFilter||'all')==='radiograph';
   ctx.mapInspector.dataset.empty=String(!tooth);
   copy(ctx.mapInspectorTitle,tooth?toothAnatomy(tooth):'Selecciona una pieza');
-  copy(ctx.mapInspectorMeta,tooth?'Consulta sus fuentes y abre la ficha sólo cuando necesites editar.':'El mapa conserva la selección mientras cambias de capa.');
+  copy(ctx.mapInspectorMeta,tooth?(ctx.mapFilter==='radiograph'?'Revisa el recorte y la conclusión vinculada.':'Consulta la evidencia vinculada a esta pieza.'):'El mapa conserva la selección mientras cambias de capa.');
   ctx.mapInspectorFacts.replaceChildren();
   const addFact=(value,label,tone='neutral')=>{if(!value)return;const fact=n('span','cw-map-inspector-fact',String(value)+' '+label);fact.dataset.value=String(value);fact.dataset.tone=tone;ctx.mapInspectorFacts.append(fact);};
   if(tooth){
@@ -293,7 +303,9 @@
    if(!ctx.mapInspectorFacts.childElementCount)ctx.mapInspectorFacts.append(n('span','cw-map-inspector-fact','Sin registros en esta capa'));
    copy(ctx.mapInspectorStatus,'Selecciona una pieza para ver su contexto sin abrir el editor.');
   }
+  ctx.mapInspectorStatus.hidden=!!tooth&&radiographMode;
   renderToothRadiographContext(ctx,tooth);
+  ctx.mapEdit.hidden=radiographMode;
   ctx.mapEdit.disabled=!snapshot?.ready||!tooth;
  }
  function syncFindingsAction(ctx){
@@ -334,7 +346,7 @@
    totals.photo+=item.photo||0;totals.photoPending+=item.photoPending||0;totals.radiograph+=item.radiograph||0;totals.radiographPending+=item.radiographPending||0;totals.pending+=item.pending||0;
   }
   window.SmylToothMap.render(ctx.mapHost,{disabled:!snapshot?.ready,onSelect:tooth=>{
-   ctx.selectedTooth=String(tooth);ctx.mapFingerprint='';renderClinicalMap(ctx,snapshot);syncFindingsAction(ctx);
+   ctx.selectedTooth=String(tooth);ctx.mapFingerprint='';renderClinicalMap(ctx,snapshot);syncFindingsAction(ctx);if(innerWidth<=1024)requestAnimationFrame(()=>ctx.mapInspector?.scrollIntoView({block:'nearest',behavior:'smooth'}));
   },state:tooth=>{
    const item=snapshot?.teeth?.[tooth]||{},selected=String(tooth)===String(ctx.selectedTooth||''),showManual=!!item.manual&&(filter==='all'||filter==='manual'),showPhoto=!!item.photo&&(filter==='all'||filter==='photo'),showRadiograph=!!item.radiograph&&(filter==='all'||filter==='radiograph'),sourcePending=filter==='photo'?item.photoPending:filter==='radiograph'?item.radiographPending:filter==='manual'?0:item.pending;
    if(!showManual&&!showPhoto&&!showRadiograph&&!sourcePending)return {selected,className:selected?'cw-map-selected':'',label:selected?'Seleccionada · sin registros en esta capa':'Sin anotación en esta capa'};

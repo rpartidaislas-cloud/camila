@@ -11,17 +11,17 @@ const review = read('../smyl-radiograph-review.js');
 const dental = read('../smyl-dental-record.js');
 const css = read('../smyl-radiograph-workbench.css');
 
-assert.match(app, /smyl-radiograph-workbench\.css\?v=13/);
-assert.match(app, /smyl-radiograph-review\.js\?v=18/);
-assert.match(app, /smyl-dental-record\.js\?v=22/);
+assert.match(app, /smyl-radiograph-workbench\.css\?v=14/);
+assert.match(app, /smyl-radiograph-review\.js\?v=19/);
+assert.match(app, /smyl-dental-record\.js\?v=23/);
 assert.match(worker, /radiograph-navigation-v43/);
-assert.match(worker, /smyl-radiograph-workbench\.css\?v=13/);
-assert.match(worker, /radiograph-decision-flow-v13/);
+assert.match(worker, /smyl-radiograph-workbench\.css\?v=14/);
+assert.match(worker, /radiograph-context-crop-v14/);
 
 assert.match(review, /rr-workspace/);
 assert.match(review, /categoryLabel/);
-assert.match(review, /Sugerencia original de IA/);
-assert.match(review, /Conclusión del dentista/);
+assert.match(review, /Sugerencia de IA/);
+assert.match(review, /Conclusión clínica/);
 assert.match(review, /Confirmar y guardar/);
 assert.match(review, /Descartar y guardar/);
 assert.match(review, /async function decideItem/);

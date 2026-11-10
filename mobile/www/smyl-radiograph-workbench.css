@@ -637,3 +637,96 @@
     height: 44px;
   }
 }
+
+/* Mesa radiográfica v14 · lectura más limpia y panel clínico de medida controlada. */
+.rr-image-stage > .rr-mark.is-selected {
+  visibility: hidden;
+  opacity: 0;
+}
+.rr-ai-fact p,
+.rr-clinical-decision > header p,
+.rr-field-help,
+.rr-location {
+  max-width: 44ch;
+}
+.rr-ai-summary,
+.rr-clinical-decision {
+  border-radius: 11px;
+}
+.rr-ai-summary > summary {
+  min-height: 52px;
+  padding: 8px 10px;
+}
+.rr-ai-body {
+  padding: 0 10px 10px 54px;
+}
+.rr-ai-fact {
+  padding: 8px 0;
+}
+.rr-ai-fact p {
+  font-size: 13px;
+  line-height: 18px;
+}
+.rr-clinical-decision {
+  gap: 10px;
+  padding: 12px;
+  box-shadow: none;
+}
+.rr-clinical-decision > header {
+  padding-bottom: 9px;
+}
+.rr-clinical-decision h3 {
+  font-size: 16px;
+  line-height: 21px;
+}
+.rr-location-row {
+  padding: 9px 0;
+}
+.rr-decision-note {
+  text-align: left;
+}
+
+@media (min-width: 960px) {
+  .rr-workspace {
+    grid-template-columns: minmax(0, 1fr) clamp(420px, 27vw, 450px);
+  }
+  .rr-image-legend,
+  .rr-hint {
+    display: none;
+  }
+  .rr-panel-head {
+    padding: 17px 20px 10px;
+  }
+  .rr-panel-head h2 {
+    font-size: 21px;
+    line-height: 26px;
+  }
+  .rr-panel-head p {
+    max-width: 43ch;
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .rr-filters.rr-tabs {
+    padding: 0 12px;
+  }
+  .rr-tab {
+    min-height: 42px;
+    padding-inline: 5px;
+    font-size: 12px;
+  }
+  .rr-items {
+    gap: 7px;
+    padding: 0 10px 10px;
+  }
+  .rr-item-head {
+    min-height: 56px;
+    padding: 8px 10px;
+  }
+  .rr-item-body {
+    gap: 10px;
+    padding: 10px;
+  }
+  .rr-save {
+    padding: 9px 16px 11px;
+  }
+}

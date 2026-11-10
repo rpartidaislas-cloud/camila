@@ -35,8 +35,8 @@ test('el contrato rechaza tamaños incompletos, fuera de rango o sin ubicación'
 test('el visor dibuja cuadros punteados y ofrece dos vistas sin tocar la imagen', () => {
   const js = read('smyl-radiograph-review.js');
   assert.match(js, /function marksToggle\(stage\)/);
-  assert.match(js, /button\('Sin marcas'/);
-  assert.match(js, /button\('Con observaciones'/);
+  assert.match(js, /button\('Original'/);
+  assert.match(js, /button\('Señales'/);
   assert.match(js, /item\.x===null\|\|item\.state==='rejected'\)return;/, 'las descartadas no se dibujan');
   assert.match(js, /n\('div','rr-box rr-box-'\+item\.state/);
   assert.match(js, /if\(run\.placing\)run\.view\.marks=true;/, 'ubicar una señal fuerza la vista con marcas');
@@ -46,6 +46,7 @@ test('el visor dibuja cuadros punteados y ofrece dos vistas sin tocar la imagen'
   assert.match(css, /\.rr-box \{[^}]*border: 2px dashed/);
   assert.match(css, /\.rr-box \{[^}]*pointer-events: none/, 'los cuadros no capturan clics de ubicación');
   assert.match(css, /\.rr-marks-off > \.rr-box, \.rr-marks-off > \.rr-mark \{ display: none; \}/);
+  assert.match(css, /\.rr-image-stage > \.rr-mark\.is-selected \{[^}]*visibility: hidden;/s, 'el círculo de selección se oculta y permanece el recuadro editable');
 });
 
 test('cuando falta el diente se dice «Diente por indicar»', () => {
@@ -114,7 +115,7 @@ test('mesa de luz: la imagen ocupa el campo oscuro y los controles flotan encima
   assert.match(css, /\.rr-image-wrap \{ position: absolute; inset: 0;/);
   assert.match(css, /\.rr-view-tools \{ position: absolute;[^}]*width: max-content;/);
   assert.match(css, /\.rr-canvas \.rr-qpop \{ position: absolute;/);
-  assert.match(css, /clamp\(432px, 28vw, 480px\)/);
+  assert.match(css, /clamp\(420px, 27vw, 450px\)/);
   assert.match(css, /@media \(min-width: 960px\)/);
   for (const match of css.matchAll(/font-size:\s*([0-9.]+)px/g)) assert.ok(Number(match[1]) >= 12, 'Texto menor de 12 px: ' + match[0]);
 });
@@ -172,7 +173,7 @@ test('el cuadro de la señal abierta se mueve y cambia de tamaño (ratón, tacto
   assert.match(js, /event\.shiftKey\)apply\(/, 'Mayús + flechas cambian el tamaño');
   assert.match(js, /item\.x=round\(rect\.left\+rect\.width\/2\);item\.y=round\(rect\.top\+rect\.height\/2\);item\.w=round\(rect\.width\);item\.h=round\(rect\.height\)/);
   assert.match(js, /markDirty\(item\);if\(issue!==issueBefore\)/, 'queda como cambio del dentista y se revisa la coherencia pieza-posición');
-  assert.match(js, /Puedes arrastrar y redimensionar el cuadro directamente sobre la imagen/);
+  assert.match(js, /Ajusta el recuadro directamente sobre la radiografía/);
   const css = read('smyl-radiograph-workbench.css');
   assert.match(css, /\.rr-box\.is-editable \{[^}]*pointer-events: auto;[^}]*touch-action: none;/);
   assert.match(css, /\.rr-handle\[data-handle="se"\] \{[^}]*cursor: nwse-resize;/);

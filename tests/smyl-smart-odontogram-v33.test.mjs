@@ -111,21 +111,28 @@ test('la cola radiografica mide avance por estudio y no confunde señales con es
 
 test('el inspector de pieza reutiliza el mismo odontograma y deriva a la revisión oficial', () => {
   assert.match(record, /toothRadiographContext\(tenant,patient,tooth\)/);
+  assert.match(record, /sourceText/);
+  for (const coordinate of ['x', 'y', 'w', 'h']) assert.match(record, new RegExp(`${coordinate}:Number\\.isFinite\\(item\\.${coordinate}\\)`));
   assert.match(workspace, /toothRadiographContext/);
-  assert.match(workspace, /Revisar en estudio/);
+  assert.match(workspace, /drawRadiographCrop/);
+  assert.match(workspace, /previewStudy/);
+  assert.match(workspace, /Abrir estudio completo/);
   assert.match(workspace, /openRadiograph\(ctx/);
   assert.match(workspace, /cw-map-radiograph-context/);
-  assert.match(workspace, /cw-map-radiograph-finding/);
+  assert.match(workspace, /cw-radiograph-crop-view/);
+  assert.match(workspace, /mapInspectorStatus\.hidden=!!tooth&&radiographMode/);
+  assert.match(workspace, /mapEdit\.hidden=radiographMode/);
   assert.match(styles, /cw-map-radiograph-context/);
+  assert.match(styles, /cw-radiograph-crop-marker/);
   assert.equal((workspace.match(/n\('div','cw-clinical-odontogram'/g) || []).length, 1);
   assert.equal((fixture.match(/class="cw-clinical-odontogram"/g) || []).length, 1);
   assert.doesNotMatch(workspace, /smyl_radiograph_decide_candidate|p_expected_revision/);
 });
 
 test('web, móvil y PWA publican la misma versión', () => {
-  assert.match(app, /smyl-dental-record\.js\?v=22/);
-  assert.match(app, /smyl-case-workspace\.css\?v=23/);
-  assert.match(app, /smyl-case-workspace\.js\?v=27/);
+  assert.match(app, /smyl-dental-record\.js\?v=23/);
+  assert.match(app, /smyl-case-workspace\.css\?v=24/);
+  assert.match(app, /smyl-case-workspace\.js\?v=28/);
   assert.match(worker, /smart-odontogram-v33/);
   for (const file of ['app.html', 'sw.js', 'smyl-dental-record.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));

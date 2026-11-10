@@ -101,7 +101,7 @@
     for(const study of activeStudies(ctx)){
      const review=activeRxReviews(ctx).find(row=>row.study_id===study.id),items=(review?.document.items||[]).filter(item=>String(item.tooth||'')===id),report=review?.document.analysis?.report;
      if(!items.length)continue;
-     studies.push({id:study.id,label:study.label||types[study.type],type:study.type,date:study.date||'',quality:report?.quality||'',findings:items.map(item=>({id:item.id,state:item.state,text:typeof item.text==='string'?item.text.slice(0,500):''}))});
+     studies.push({id:study.id,label:study.label||types[study.type],type:study.type,date:study.date||'',quality:report?.quality||'',findings:items.map(item=>{const source=report?.observations?.find(observation=>observation.id===item.sourceId);return {id:item.id,state:item.state,text:typeof item.text==='string'?item.text.slice(0,500):'',sourceText:typeof source?.observation==='string'?source.observation.slice(0,500):'',x:Number.isFinite(item.x)?item.x:null,y:Number.isFinite(item.y)?item.y:null,w:Number.isFinite(item.w)?item.w:null,h:Number.isFinite(item.h)?item.h:null};})});
     }
     return {tooth:id,studies};
    },openTooth(tenant,patient,tooth){

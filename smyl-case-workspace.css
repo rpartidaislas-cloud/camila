@@ -347,3 +347,109 @@
  .cw-enhanced .cw-map-stage{min-height:360px}.cw-enhanced .cw-clinical-odontogram.dr-map{width:min(285px,100%)}
  .cw-enhanced .cw-map-legend{display:grid;grid-template-columns:1fr 1fr}
 }
+
+/* Odontograma radiográfico v3.4 · recorte contextual de la señal seleccionada. */
+.cw-enhanced .cw-map-inspector-title,
+.cw-enhanced .cw-map-inspector > p {
+ overflow-wrap:anywhere;
+}
+.cw-enhanced .cw-map-radiograph-context {
+ gap:10px;
+ margin-top:8px;
+}
+.cw-enhanced .cw-radiograph-crop {
+ display:grid;
+ gap:8px;
+ margin:0;
+}
+.cw-enhanced .cw-radiograph-crop figcaption {
+ display:grid;
+ gap:2px;
+}
+.cw-enhanced .cw-radiograph-crop figcaption strong {
+ color:var(--cw-ink);
+ font-size:13px;
+ line-height:18px;
+}
+.cw-enhanced .cw-radiograph-crop figcaption span {
+ color:#68778a;
+ font-size:12px;
+ line-height:17px;
+}
+.cw-enhanced .cw-radiograph-crop-view {
+ position:relative;
+ display:grid;
+ width:100%;
+ aspect-ratio:1.8;
+ place-items:center;
+ overflow:hidden;
+ border:1px solid #cfd9e3;
+ border-radius:10px;
+ background:#0b1b2e;
+}
+.cw-enhanced .cw-radiograph-crop-view canvas {
+ display:block;
+ width:100%;
+ height:100%;
+ object-fit:cover;
+}
+.cw-enhanced .cw-radiograph-crop-marker {
+ position:absolute;
+ box-sizing:border-box;
+ border:2px solid #73d3c2;
+ border-radius:5px;
+ background:rgba(115,211,194,.08);
+ box-shadow:0 0 0 1px rgba(255,255,255,.88);
+ pointer-events:none;
+}
+.cw-enhanced .cw-radiograph-crop-loading {
+ max-width:28ch;
+ padding:12px;
+ color:#c7d3df;
+ font-size:12px;
+ line-height:18px;
+ text-align:center;
+}
+.cw-enhanced .cw-radiograph-crop-detail {
+ display:-webkit-box;
+ margin:0;
+ overflow:hidden;
+ color:#526174;
+ font-size:12px;
+ line-height:18px;
+ -webkit-box-orient:vertical;
+ -webkit-line-clamp:3;
+}
+.cw-enhanced .cw-radiograph-crop-switcher {
+ display:flex;
+ gap:6px;
+ overflow-x:auto;
+ scrollbar-width:none;
+}
+.cw-enhanced .cw-radiograph-crop-switcher::-webkit-scrollbar {
+ display:none;
+}
+.cw-enhanced .cw-workspace .cw-radiograph-crop-switcher button {
+ flex:none;
+ min-height:36px;
+ padding:6px 10px;
+ border-color:#d5dfe8;
+ background:#fff;
+ color:#536274;
+ font-size:12px;
+}
+.cw-enhanced .cw-workspace .cw-radiograph-crop-switcher button[aria-pressed=true] {
+ border-color:#8dcfc5;
+ background:#e9f7f4;
+ color:#176a61;
+}
+.cw-enhanced .cw-workspace .cw-radiograph-crop-open {
+ width:100%;
+ min-height:40px;
+ margin-top:2px;
+}
+
+@media(max-width:760px){
+ .cw-enhanced .cw-workspace .cw-radiograph-crop-switcher button,
+ .cw-enhanced .cw-workspace .cw-radiograph-crop-open{min-height:44px}
+}
