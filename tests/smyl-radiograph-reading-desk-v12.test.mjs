@@ -33,10 +33,10 @@ test('controles y estados son legibles en escritorio y movil', () => {
   assert.match(css, /@media \(max-width: 639px\)/);
 });
 
-test('web, PWA y aplicacion movil distribuyen la version v12', () => {
-  assert.match(app, /smyl-radiograph-workbench\.css\?v=12/);
+test('web, PWA y aplicacion movil distribuyen la version visual vigente', () => {
+  assert.match(app, /smyl-radiograph-workbench\.css\?v=13/);
   assert.match(app, /smyl-dental-record\.js\?v=22/);
-  assert.match(sw, /radiograph-reading-desk-v12/);
+  assert.match(sw, /radiograph-decision-flow-v13/);
   for (const file of ['smyl-dental-record.js', 'smyl-radiograph-workbench.css', 'app.html', 'sw.js']) {
     assert.equal(read(file), read('mobile/www/' + file), file + ' debe coincidir en mobile/www');
   }

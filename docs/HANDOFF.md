@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-10 — Codex — Decisiones radiográficas verificables v13
+
+- La revisión asistida separa con claridad la sugerencia original de IA de la decisión profesional: el detalle automático queda plegado y la pieza, ubicación y conclusión del dentista viven en un bloque clínico propio.
+- **Confirmar y guardar** y **Descartar y guardar** persisten cada señal de inmediato mediante el contrato existente de revisión y control de versión. La interfaz sólo muestra una decisión como completada después de que el servidor confirma el guardado; ante un error conserva la edición y no declara el dato guardado.
+- El pie de revisión mantiene siempre las dos decisiones disponibles, muestra estado de guardado verificable, avanza a la siguiente señal pendiente y termina con un resumen de confirmadas y descartadas. Una decisión ya guardada puede reabrirse con **Editar decisión** sin perder el contexto.
+- Se añadió validación explícita de conclusión y ubicación antes de confirmar, mensajes visibles de éxito/error y una salida segura que aclara que las decisiones anteriores ya guardadas permanecen en el expediente. No cambian migraciones, backend, modelos clínicos ni prompts de IA.
+- Web y `mobile/www` quedan sincronizados con `smyl-radiograph-review.js?v=18`, CSS `v=13` y caché `radiograph-decision-flow-v13`.
+- Verificación: suite completa de 1,337 pruebas (1,287 aprobadas, 50 omitidas por dependencias opcionales, 0 fallos) y recorrido visual/funcional en 1280×820, 820×900, 390×844 y 320×700, sin desbordes y con objetivos táctiles de 42/44 px.
+
 ## 2026-11-09 — Codex — WhatsApp v4: espacio operativo con identidad de canal
 
 - El área de WhatsApp deja la cuadrícula de tarjetas equivalentes y se organiza en tres bloques consecutivos: cuenta, uso dentro de SMYL y herramientas. La cuenta real conserva sus estados y acción existentes; no cambian OAuth, credenciales, permisos, persistencia ni backend.

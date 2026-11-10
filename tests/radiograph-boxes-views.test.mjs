@@ -127,7 +127,7 @@ test('barra superior con pasos y panel con pestañas con conteo', () => {
   assert.match(js, /badge\.dataset\.rrCount=key/);
   assert.match(js, /host\.querySelectorAll\('\[data-rr-count\]'\)\.forEach/, 'los conteos se actualizan sin recargar');
   assert.match(js, /' revisadas'|'\s*\/\s*'\+items\.length\+' revisadas'/);
-  assert.match(js, /n\('p','rr-save-note','Revisión privada: no se convierte automáticamente en diagnóstico\.'\)/);
+  assert.match(js, /n\('p','rr-save-note','Cada decisión se guarda al confirmarla o descartarla\. La IA nunca valida por sí sola\.'\)/);
 });
 
 test('atajos de teclado: J/K recorren, C confirma, V cambia de vista, y no actúan al escribir', () => {
@@ -172,7 +172,7 @@ test('el cuadro de la señal abierta se mueve y cambia de tamaño (ratón, tacto
   assert.match(js, /event\.shiftKey\)apply\(/, 'Mayús + flechas cambian el tamaño');
   assert.match(js, /item\.x=round\(rect\.left\+rect\.width\/2\);item\.y=round\(rect\.top\+rect\.height\/2\);item\.w=round\(rect\.width\);item\.h=round\(rect\.height\)/);
   assert.match(js, /markDirty\(item\);if\(issue!==issueBefore\)/, 'queda como cambio del dentista y se revisa la coherencia pieza-posición');
-  assert.match(js, /arrastra el cuadro en la imagen o sus asas para ajustarla/);
+  assert.match(js, /Puedes arrastrar y redimensionar el cuadro directamente sobre la imagen/);
   const css = read('smyl-radiograph-workbench.css');
   assert.match(css, /\.rr-box\.is-editable \{[^}]*pointer-events: auto;[^}]*touch-action: none;/);
   assert.match(css, /\.rr-handle\[data-handle="se"\] \{[^}]*cursor: nwse-resize;/);

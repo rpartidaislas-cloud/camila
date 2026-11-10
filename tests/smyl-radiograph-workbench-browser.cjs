@@ -17,6 +17,7 @@ const fs = require('node:fs');
   const report = [];
   for (const item of cases) {
     const page = await browser.newPage({ viewport: { width: item.width, height: item.height } });
+    page.on('pageerror',error=>console.error('PAGE ERROR',item.name,error.message));
     await page.goto(base);
     await page.locator('#open').click();
     await page.locator('.rr-dialog[open] .rr-workspace').waitFor();
@@ -38,7 +39,7 @@ const fs = require('node:fs');
         filters: visible('.rr-filter').length,
         tools: visible('.rr-view-tools input').length,
         cleanSavePosition: getComputedStyle(document.querySelector('.rr-save')).position,
-        layoutOrder: Boolean(workspace&&canvas&&panel&&footer&&panel.bottom<=workspace.bottom+1&&workspace.bottom<=footer.top+1&&(Math.abs(canvas.top-panel.top)<2||canvas.bottom<=panel.top+1)),
+        layoutOrder: Boolean(workspace&&canvas&&panel&&footer&&document.querySelector('.rr-signal-panel')?.contains(document.querySelector('.rr-save'))&&panel.bottom<=workspace.bottom+1&&footer.bottom<=panel.bottom+1&&(Math.abs(canvas.top-panel.top)<2||canvas.bottom<=panel.top+1)),
         minButtonHeight: Math.min(...controls.map(element => element.getBoundingClientRect().height).concat([44]))
       };
     });
@@ -60,7 +61,7 @@ const fs = require('node:fs');
       await page.locator('.rr-mark').click();
       const selected = await page.locator('.rr-item[aria-current="true"] .rr-number').textContent();
       if (selected.trim() !== '2') throw new Error('Marker and signal card are not correlated');
-      await page.getByRole('button', { name: 'Confirmadas', exact: true }).click();
+      await page.getByRole('button', { name: /^Confirmadas/ }).click();
       if (await page.locator('.rr-item').count() !== 1) throw new Error('Confirmed filter did not isolate one signal');
       await page.getByRole('button', { name: 'Todas', exact: true }).click();
       await page.locator('.rr-tool-range input[aria-label="Contraste"]').fill('150');
@@ -89,16 +90,20 @@ const fs = require('node:fs');
     }
     await page.screenshot({ path: path.join(output, `${item.name}.png`), fullPage: false });
     if (item.name === 'desktop') {
-      await page.getByRole('button', { name: 'Por revisar', exact: true }).click();
+      await page.getByRole('button', { name: /^Por revisar/ }).click();
       if (await page.locator('.rr-item-body').count() !== 1) throw new Error('Filtered signal did not become the active task');
       const text = page.locator('.rr-item-body textarea');
       await text.fill('Cambio de densidad por comprobar con revisión profesional.');
-      await page.getByRole('button', { name: 'Confirmar señal', exact: true }).click();
+      await page.getByRole('button', { name: 'Confirmar y guardar', exact: true }).click();
       if (!(await page.locator('.rr-feedback').textContent()).includes('Ubica la señal')) throw new Error('Placement guidance disappeared after rendering');
+      await page.locator('.rr-image-stage > img').click({position:{x:220,y:250}});
+      await page.getByRole('button', { name: 'Confirmar y guardar', exact: true }).click();
+      await page.waitForFunction(()=>document.querySelector('.rr-feedback')?.textContent.includes('guardada en el expediente'));
+      const saved=await page.evaluate(()=>({count:window.__reviewSaves.length,state:window.__reviewSaves.at(-1)?.items[0]?.state,text:window.__reviewSaves.at(-1)?.items[0]?.text}));
+      if(saved.count!==1||saved.state!=='confirmed'||!saved.text.includes('revisión profesional')) throw new Error('The explicit decision was not verified by the store');
+      if(!await page.getByRole('button',{name:'Finalizar revisión',exact:true}).count()) throw new Error('Completed review did not expose its final step');
       await page.getByRole('button', { name: 'Volver al expediente', exact: true }).click();
-      await page.locator('.rr-confirm-dialog[open]').waitFor();
-      await page.getByRole('button', { name: 'Continuar revisando', exact: true }).click();
-      if (!await page.locator('.rr-dialog[open]').count()) throw new Error('Custom close confirmation dismissed the review');
+      if(await page.locator('.rr-confirm-dialog[open]').count()) throw new Error('A verified review still appeared as unsaved');
     }
     await page.close();
   }

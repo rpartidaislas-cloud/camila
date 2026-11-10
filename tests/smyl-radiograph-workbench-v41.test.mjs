@@ -11,17 +11,20 @@ const review = read('../smyl-radiograph-review.js');
 const dental = read('../smyl-dental-record.js');
 const css = read('../smyl-radiograph-workbench.css');
 
-assert.match(app, /smyl-radiograph-workbench\.css\?v=12/);
-assert.match(app, /smyl-radiograph-review\.js\?v=17/);
+assert.match(app, /smyl-radiograph-workbench\.css\?v=13/);
+assert.match(app, /smyl-radiograph-review\.js\?v=18/);
 assert.match(app, /smyl-dental-record\.js\?v=22/);
 assert.match(worker, /radiograph-navigation-v43/);
-assert.match(worker, /smyl-radiograph-workbench\.css\?v=12/);
+assert.match(worker, /smyl-radiograph-workbench\.css\?v=13/);
+assert.match(worker, /radiograph-decision-flow-v13/);
 
 assert.match(review, /rr-workspace/);
 assert.match(review, /categoryLabel/);
-assert.match(review, /Base visual sugerida/);
-assert.match(review, /Notas del dentista/);
-assert.match(review, /Detectado por la IA/);
+assert.match(review, /Sugerencia original de IA/);
+assert.match(review, /Conclusión del dentista/);
+assert.match(review, /Confirmar y guardar/);
+assert.match(review, /Descartar y guardar/);
+assert.match(review, /async function decideItem/);
 assert.match(review, /button\(String\(index\+1\),\(\)=>selectItem\(item\.id\)/);
 assert.doesNotMatch(review, /Sin texto/);
 assert.doesNotMatch(review, /\bconfirm\s*\(/);
@@ -44,6 +47,9 @@ assert.match(css, /grid-template-columns:\s*minmax\(0,\s*7fr\)\s+minmax\(320px,\
 assert.match(css, /--rr-primary:\s*var\(--smyl-ui-primary/);
 assert.match(css, /\.rr-item-pending\s*\{[^}]*border-style:\s*dashed/s);
 assert.match(css, /\.rr-item-confirmed\s*\{/);
+assert.match(css, /\.rr-ai-summary\s*\{/);
+assert.match(css, /\.rr-clinical-decision\s*\{/);
+assert.match(css, /\.rr-decision-actions\s*\{/);
 assert.match(css, /\.rr-confirm-dialog\s*\{/);
 assert.match(css, /\.rr-image-wrap\.is-zoomed\s*\{[^}]*touch-action:\s*none/s);
 assert.match(css, /\.dr-radiograph-dialog \.dr-viewport\.is-zoomed\s*\{/);
