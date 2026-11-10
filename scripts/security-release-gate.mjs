@@ -67,7 +67,7 @@ export function runSecurityReleaseGate() {
   const recoveryGate = read('scripts/validate-restore-evidence.mjs');
   check('Recuperación exige cifrado, Storage e integridad',
     /EXPORT_ENCRYPTED_CLINICAL_BACKUP/.test(backupTool) && /age-x25519/.test(backupTool) &&
-      /storage', 'cp'/.test(backupTool) && /cross_tenant_denied/.test(recoveryGate) &&
+      /(?:storage', 'cp'|storageCmd\('cp')/.test(backupTool) && /cross_tenant_denied/.test(recoveryGate) &&
       /eicar_blocked/.test(recoveryGate),
     'El paquete separa base/objetos y la restauración exige hashes, RLS y antimalware real.');
 

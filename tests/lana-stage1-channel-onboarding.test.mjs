@@ -28,6 +28,7 @@ test('channel operations stay behind the linked LANA API key and owner check', (
   assert.match(channels, /body\.action === "disconnect"/);
   assert.match(channels, /`\/channels\/\$\{selected\}`[\s\S]*method: "DELETE"/);
   assert.match(channels, /return_origin: returnOrigin/);
+  assert.match(channels, /connection_mode: selected === "whatsapp" \? requestedMode : "dedicated"/);
   assert.doesNotMatch(channels, /access_token|api_key/);
 });
 
@@ -41,6 +42,8 @@ test('SMYL presents automatic activation and per-channel connection without stor
   assert.match(ui, /data-disconnect-dialog/);
   assert.match(ui, /action: 'disconnect'/);
   assert.match(ui, /El historial de conversaciones se conservó/);
+  assert.match(ui, /Conservar mi WhatsApp/);
+  assert.match(ui, /data-connection-mode="coexistence"/);
   assert.doesNotMatch(ui, /localStorage|sessionStorage/);
   assert.equal(mobileUi, ui);
 });

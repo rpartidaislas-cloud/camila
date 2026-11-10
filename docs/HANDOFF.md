@@ -9,6 +9,31 @@
 - Web y `mobile/www` quedan sincronizados con `smyl-radiograph-review.js?v=18`, CSS `v=13` y caché `radiograph-decision-flow-v13`.
 - Verificación: suite completa de 1,337 pruebas (1,287 aprobadas, 50 omitidas por dependencias opcionales, 0 fallos) y recorrido visual/funcional en 1280×820, 820×900, 390×844 y 320×700, sin desbordes y con objetivos táctiles de 42/44 px.
 
+## 2026-11-09 — Codex — Corte de caja multimetodo v1
+
+- La ventana de cierre deja de pedir solamente efectivo y presenta una conciliación profesional por **efectivo, tarjeta, transferencia, cheque y otros**. Cada fila muestra lo esperado por SMYL, lo contado o reportado por el equipo y su diferencia.
+- El corte muestra apertura, hora exacta de cierre y duración; permite distinguir **cierre de turno** y **cierre del día**. El efectivo incluye un desglose opcional por denominaciones que calcula el total contado.
+- Si existe cualquier diferencia se exige seleccionar un motivo antes de confirmar. El cierre conserva en las notas de auditoría el esperado, reportado y diferencia de cada método, el tipo de cierre, el motivo y las notas, utilizando el RPC financiero vigente; no se cambió ni aplicó esquema de base de datos.
+- Web y `mobile/www` quedan sincronizados con `smyl-finance.js?v=30`, CSS `v=24` y caché `cash-reconciliation-v1`. La ventana se verificó en 1280×900 y 390×844 sin desbordes y con controles móviles de 44 px.
+- Verificación: prueba focalizada de conciliación 4/4, recorrido Playwright escritorio/móvil y suite completa de 1,341 pruebas (1,291 aprobadas, 50 omitidas por dependencias opcionales, 0 fallos). Capturas en `artifacts/cash-reconciliation-v1/`.
+- Pendiente para backend, después de confirmar un respaldo real correcto: si se desea consulta estructurada por método en reportes, crear campos/RPC propios en una migración revisada. La interfaz publicada no depende de esa ampliación.
+
+## 2026-11-09 — Claude: respaldo cifrado compatible con la CLI real de Supabase (2.x y 3.x)
+
+Al probar el primer respaldo real en Windows falló `supabase storage ls`: la CLI exige **`--experimental`** para los comandos de Storage y el script no lo usaba (la prueba con una CLI simulada lo había ocultado).
+Además la CLI 3.x cambió `--linked` por `--remote`. `scripts/create-encrypted-backup.mjs` ahora detecta ambas cosas, comprueba que **Docker** responda, exige `SUPABASE_DB_PASSWORD` en el respaldo real (nunca en archivos) y **muestra el motivo** de cualquier fallo de la CLI (ocultando la contraseña).
+El `--dry-run` informa `cli`, `project_flag` y `storage_experimental`. Verificado además contra la CLI 3.1.0 real (error esperado «proyecto no enlazado» tras reintentar con `--experimental`).
+Pruebas: `tests/backup-behaviour.test.mjs` (10) cubre modo 2.x, 3.x, reintento experimental, Docker caído, contraseña ausente y no filtrada. Guía actualizada en `docs/SMYL_RESPALDOS.md` (rutas sin espacios, contraseña con `Read-Host`).
+
+## 2026-11-09 — Codex — WhatsApp v5: coexistencia segura con la app Business
+
+- Configuración → Canales → WhatsApp ofrece dos decisiones explícitas: **Conservar mi WhatsApp** (la misma línea continúa en la app WhatsApp Business y también se conecta a SMYL) o **Usar un número exclusivo**. Los requisitos y límites se explican antes de abrir Meta; las herramientas quedan desactivadas hasta que exista una cuenta conectada.
+- El modo elegido viaja por el proxy autenticado de SMYL y queda ligado a una sesión de configuración de un solo uso en LANA. El navegador no puede cambiarlo después; LANA valida además que el número devuelto por Meta pertenezca al WABA autorizado y evita registrar teléfono o contenido sensible en logs.
+- El modo coexistencia abre Embedded Signup con `featureType: whatsapp_business_app_onboarding`. La vista conectada distingue `WhatsApp + SMYL` de `Sólo SMYL` y muestra por separado el estado del historial. La migración LANA `20261111113000_smyl_whatsapp_coexistence_mode.sql` agrega `connection_mode` e inicia `history_sync_status` sin romper conexiones dedicadas existentes.
+- Alcance real actual: los mensajes nuevos y los ecos de respuestas enviadas desde el celular se procesan; responder en la app pausa al asistente para esa conversación. Los chats/contactos anteriores todavía **no se importan**: faltan el procesamiento de `history` y `smb_app_state_sync` y la prueba final con un número mexicano real antes de habilitarlo de forma general.
+- La UI se simplificó a una jerarquía de estado, cuenta, tipo de conexión, alcance y herramientas; conserva el logotipo de WhatsApp sin convertir su verde en color de acción. Web y `mobile/www` permanecen sincronizados con `smyl-connections.js?v=18`, `smyl-navigation.js?v=23`, CSS `v=9` y caché `whatsapp-coexistence-v5`.
+- Verificación: auditoría responsive aprobada en 1280, 820, 390 y 320 px (dos modos, logo cargado, controles 42/44 px, sin errores ni desbordamiento), suites enfocadas de SMYL y LANA aprobadas. La migración y las funciones de LANA se publicaron y verificaron primero; esta entrega publica después el puente autenticado y el frontend de SMYL.
+
 ## 2026-11-09 — Codex — WhatsApp v4: espacio operativo con identidad de canal
 
 - El área de WhatsApp deja la cuadrícula de tarjetas equivalentes y se organiza en tres bloques consecutivos: cuenta, uso dentro de SMYL y herramientas. La cuenta real conserva sus estados y acción existentes; no cambian OAuth, credenciales, permisos, persistencia ni backend.

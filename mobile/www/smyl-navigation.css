@@ -181,6 +181,7 @@ button.connections-tool-card:hover{border-color:#88b3aa;background:#f3f8f6}
 .connections-channel-account .connections-channel-list strong{font-size:14px}
 .connections-channel-account .connections-channel-list small{margin-top:3px}
 .connections-channel-account .connections-channel-list .btn{min-width:104px}
+.connections-channel-account .connections-channel-list [data-channel-primary-action][hidden]{display:none}
 .connections-channel-scope{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.8fr);gap:28px;align-items:center;padding:18px 24px;border-top:1px solid #e0e7e4;background:#f4f7f5}
 .connections-channel-scope dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0}
 .connections-channel-scope dl>div{padding-left:13px;border-left:2px solid #c9d8d2}
@@ -216,4 +217,79 @@ button.connections-tool-card:hover{border-color:#88b3aa;background:#f3f8f6}
   .connections-channel-tools>header{display:grid;gap:5px;padding:18px}.connections-channel-tools>header>p{text-align:left}
   .connections-channel-tools .connections-tool-card{grid-template-columns:42px minmax(0,1fr);gap:12px;min-height:88px;padding:14px}
   .connections-channel-tools .connections-tool-card em{grid-column:2;margin-top:2px}
+}
+
+/* Canales v5 · jerarquía simple y elección explícita del modo de WhatsApp. */
+.connections-shell{
+  --channels-navy:var(--smyl-navy-900,#0b1b2e);
+  --channels-ink:var(--smyl-ink,#0b1b2e);
+  --channels-muted:var(--smyl-text-muted,#657887);
+  --channels-border:var(--smyl-border,#cad6df);
+  --channels-canvas:var(--smyl-canvas,#f3f7fa);
+  --channels-surface:var(--smyl-surface,#fff);
+  --channels-accent:var(--smyl-accent,#0f766e);
+  --channels-accent-subtle:var(--smyl-accent-subtle,#e7f6f4);
+}
+.connections-shell .connections-hero{align-items:start;padding:8px 0 24px}
+.connections-shell .connections-hero h1{font-size:28px;font-weight:600;letter-spacing:-.55px}
+.connections-shell .connections-status-card{border-color:var(--channels-border);border-left:3px solid #a58b52;border-radius:10px;background:var(--channels-surface);box-shadow:0 1px 20px rgba(11,27,46,.06)}
+.connections-workspace{gap:24px}
+.connections-workspace .connections-tabs{gap:2px;padding:10px;border:1px solid var(--channels-border);border-radius:12px;background:var(--channels-surface);box-shadow:0 1px 20px rgba(11,27,46,.05)}
+.connections-tab-group-label{display:block;padding:12px 10px 5px;color:var(--channels-muted);font-size:12px;font-weight:600;line-height:16px}
+.connections-tab-group-label:first-child{padding-top:4px}
+.connections-workspace .connections-tabs button{min-height:44px;border-radius:8px}
+.connections-workspace .connections-tabs button>span{border-color:var(--channels-border);border-radius:8px;color:var(--channels-accent);font-weight:700}
+.connections-workspace .connections-tabs button>strong{font-size:13px;font-weight:500}
+.connections-workspace .connections-tabs button[aria-selected=true]{background:var(--channels-navy);box-shadow:none}
+.connections-workspace .connections-tabs button[aria-selected=true]>strong{font-weight:600}
+.connections-pane-head{margin-bottom:18px;padding-bottom:18px;border-color:var(--channels-border)}
+.connections-pane-head h2{color:var(--channels-ink);font-size:22px;font-weight:600}
+.connections-pane-head p{color:var(--channels-muted);font-size:13px}
+.connections-channel-head>.connections-platform-label[data-state=connected]{border-color:#a9ccbb;background:#edf7f2;color:#087a55}
+.connections-channel-head>.connections-platform-label[data-state=pending]{border-color:var(--channels-border);background:var(--channels-surface);color:var(--channels-muted)}
+.connections-channel-control,.connections-channel-tools{border-color:var(--channels-border);border-radius:12px;box-shadow:0 1px 20px rgba(11,27,46,.06)}
+.connections-channel-account{align-items:start;padding:24px}
+.connections-channel-account>header h3,.connections-channel-scope h3{color:var(--channels-ink);font-weight:600}
+.connections-channel-account>header p,.connections-channel-scope p{color:var(--channels-muted);font-size:13px}
+.connections-channel-account .connections-channel-list>div{align-items:center}
+.connections-whatsapp-modes{grid-column:1/-1;margin-top:18px;padding-top:20px;border-top:1px solid var(--channels-border)}
+.connections-whatsapp-modes[hidden]{display:none}
+.connections-whatsapp-modes>header{max-width:620px;margin-bottom:16px}
+.connections-whatsapp-modes>header>span{display:block;margin-bottom:5px;color:var(--channels-accent);font-size:12px;font-weight:600;letter-spacing:.08em}
+.connections-whatsapp-modes>header h3{margin:0;color:var(--channels-ink);font-size:18px;font-weight:600;letter-spacing:-.2px}
+.connections-whatsapp-modes>header p{margin:5px 0 0;color:var(--channels-muted);font-size:13px;line-height:1.5}
+.connections-whatsapp-mode-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.connections-whatsapp-mode{display:flex;min-height:260px;flex-direction:column;align-items:stretch;padding:20px;border:1px solid var(--channels-border);border-radius:10px;background:var(--channels-surface)}
+.connections-whatsapp-mode.is-featured{border-color:#91bcb5;background:var(--channels-accent-subtle)}
+.connections-whatsapp-mode-label{display:inline-flex;align-self:flex-start;margin-bottom:12px;padding:4px 8px;border-radius:999px;background:var(--channels-canvas);color:var(--channels-muted);font-size:12px;font-weight:600}
+.connections-whatsapp-mode.is-featured .connections-whatsapp-mode-label{background:#d7efeb;color:var(--channels-accent)}
+.connections-whatsapp-mode h4{margin:0;color:var(--channels-ink);font-size:16px;font-weight:600}
+.connections-whatsapp-mode>p{margin:6px 0 14px;color:var(--channels-muted);font-size:13px;line-height:1.5}
+.connections-whatsapp-mode details{margin:0 0 18px}
+.connections-whatsapp-mode summary{width:fit-content;min-height:42px;padding:10px 0;color:var(--channels-accent);font-size:13px;font-weight:600;cursor:pointer}
+.connections-whatsapp-mode ul{display:grid;gap:7px;margin:7px 0 0;padding-left:19px;color:var(--channels-muted);font-size:12px;line-height:1.45}
+.connections-whatsapp-mode>.btn{width:100%;margin-top:auto;justify-content:center}
+.connections-channel-scope{border-color:var(--channels-border);background:var(--channels-canvas)}
+.connections-channel-scope dl>div{border-left-color:#b7c7c3}
+.connections-channel-scope dd{color:var(--channels-ink);font-weight:600}
+.connections-channel-tools>header{border-color:var(--channels-border)}
+.connections-channel-tools .connections-tool-card{border-color:var(--channels-border)}
+.connections-channel-tools .connections-tool-copy h3{font-weight:600}
+.connections-channel-tools .connections-tool-copy small{display:block;margin-top:5px;color:var(--channels-muted);font-size:12px;font-weight:500}
+.connections-channel-tools button.connections-tool-card:disabled{cursor:not-allowed;opacity:.62}
+.connections-channel-tools button.connections-tool-card:disabled:hover{background:var(--channels-surface)}
+
+@media(max-width:760px){
+  .connections-workspace .connections-tabs{padding:8px}
+  .connections-tab-group-label{display:none}
+}
+@media(max-width:680px){
+  .connections-whatsapp-mode-grid{grid-template-columns:1fr}
+  .connections-whatsapp-mode{min-height:0}
+}
+@media(max-width:560px){
+  .connections-shell .connections-hero h1{font-size:24px}
+  .connections-channel-head>.connections-platform-label{display:inline-flex}
+  .connections-whatsapp-modes{margin-top:14px;padding-top:16px}
+  .connections-whatsapp-mode{padding:17px}
 }
