@@ -1,5 +1,12 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-11 — Codex — Libro de pagos simplificado
+
+- Se retiran **Preparar CFDI**, el estado de borrador fiscal y **Preparar factura** del flujo cotidiano de Pagos. La pestaña fiscal permanece independiente y no se alteran datos, RPC, reembolsos ni auditoría contable.
+- Cada movimiento prioriza paciente, método, referencia, fecha, importe y estado. **Ver recibo** queda como acción visible; **Reembolsar pago** pasa a un menú secundario disponible únicamente para roles autorizados.
+- Los reembolsos muestran un estado explícito y la misma jerarquía visual. Escritorio y móvil conservan textos de 12 px o más y controles táctiles de 44 px en pantallas pequeñas.
+- Web y `mobile/www` quedan sincronizados con `smyl-finance.js?v=32`, CSS `v=26` y caché `payments-ledger-ux-v1`. Las 18 pruebas focalizadas de Cobros, permisos y paridad PWA quedan aprobadas.
+
 ## 2026-11-11 — Codex — Carga radiográfica directa desde Evidencia
 
 - Se corrige el bloqueo de **Evidencia → Subir radiografía** para pacientes sin un caso o simulación previa. La carga ya no intenta activar el botón genérico de Valoración, que permanecía deshabilitado en ese escenario; ahora abre mediante `SmylCaseWorkspace.openRadiographIntake()` el editor radiográfico canónico ligado al expediente del paciente.

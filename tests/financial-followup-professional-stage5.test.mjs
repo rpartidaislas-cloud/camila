@@ -40,7 +40,7 @@ test('el pago se revisa antes de enviarse a la operación atómica', () => {
 });
 
 test('el registro profesional guía paciente, importe, método, aplicación y recibo', () => {
-  for (const copy of ['CUENTA DEL PACIENTE', 'Liquidar ', 'Registrar anticipo', 'Forma de pago', 'Aplicar a cargos', 'PAGO REGISTRADO', 'Imprimir recibo', 'Compartir', 'Preparar factura']) {
+  for (const copy of ['CUENTA DEL PACIENTE', 'Liquidar ', 'Registrar anticipo', 'Forma de pago', 'Aplicar a cargos', 'PAGO REGISTRADO', 'Imprimir recibo', 'Compartir']) {
     assert.match(finance, new RegExp(copy));
   }
   assert.match(finance, /data-allocation/);
@@ -49,6 +49,10 @@ test('el registro profesional guía paciente, importe, método, aplicación y re
   assert.match(styles, /\.finance-payment-layout/);
   assert.match(styles, /\.finance-payment-success/);
   assert.match(dialogSystem, /finance-payment-form/);
+  assert.doesNotMatch(finance, /Preparar CFDI|Preparar factura|data-cfdi|data-success-cfdi/);
+  assert.match(finance, /Ver recibo/);
+  assert.match(finance, /finance-row-menu/);
+  assert.match(finance, /Reembolsar pago/);
 });
 
 test('el cobro cotidiano parte del paciente y decide la operación sin mezclar movimientos', () => {
@@ -74,8 +78,8 @@ test('el cobro cotidiano parte del paciente y decide la operación sin mezclar m
 });
 
 test('web, móvil y PWA publican la etapa cinco sincronizada', () => {
-  assert.match(app, /smyl-finance\.css\?v=25/);
-  assert.match(app, /smyl-finance\.js\?v=31/);
+  assert.match(app, /smyl-finance\.css\?v=26/);
+  assert.match(app, /smyl-finance\.js\?v=32/);
   assert.match(worker, /collection-visual-v1/);
   assert.match(worker, /smyl-v267-guided-collection-sentry-v1/);
   for (const file of ['app.html', 'sw.js', 'smyl-finance.js', 'smyl-finance.css', 'smyl-dialog-system.js']) {

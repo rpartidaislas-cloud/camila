@@ -707,3 +707,31 @@ body.smyl-ui-governed .contenido .finance-dialog .finance-account-tabs [role=tab
   .finance-close-footer>div:last-child{display:grid;grid-template-columns:1fr 1.4fr}
   .finance-close-footer button{min-height:44px}
 }
+
+/* Libro de pagos v3 · lectura rápida, recibo visible y acciones excepcionales discretas. */
+.finance-ledger-copy{display:grid;gap:2px;min-width:0}
+.finance-ledger-copy>strong{font-size:14px;line-height:1.35}
+.finance-ledger-copy>p,.finance-ledger-copy>small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.finance-ledger-summary{display:grid;justify-items:end;gap:9px;min-width:290px;text-align:right}
+.finance-ledger-total{display:flex;align-items:center;justify-content:flex-end;gap:9px}
+.finance-ledger-total>strong{font-size:16px;font-variant-numeric:tabular-nums}
+.finance-ledger-total>span{padding:4px 9px;border-radius:999px;background:#e4f5ef;color:#176b55;font-size:12px;font-weight:750;line-height:1.2}
+.finance-ledger article[data-kind=refund] .finance-ledger-total>span{background:#f1f4f6;color:#61717c}
+.finance-ledger-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.finance-ledger-actions>small{margin:0 2px 0 0;color:#6f7e8f;font-size:12px}
+.finance-receipt-action{min-height:38px!important;border:1px solid #bfd0da!important;border-radius:9px!important;background:#fff!important;padding:0 13px!important;color:#17353c!important;font-size:13px!important;font-weight:750!important}
+.finance-receipt-action:hover{border-color:#0f766e!important;color:#0f766e!important}
+.finance-row-menu{position:relative}
+.finance-row-menu>summary{display:grid;place-items:center;width:40px;height:38px;border:1px solid #c7d4dc;border-radius:9px;background:#fff;color:#435766;font-size:17px;font-weight:800;line-height:1;cursor:pointer;list-style:none}
+.finance-row-menu>summary::-webkit-details-marker{display:none}
+.finance-row-menu[open]>summary{border-color:#0f766e;box-shadow:0 0 0 3px #0f766e14;color:#0f766e}
+.finance-row-menu>div{position:absolute;z-index:40;top:calc(100% + 6px);right:0;width:190px;border:1px solid #d5dfe6;border-radius:10px;background:#fff;padding:6px;box-shadow:0 14px 32px #10253824;text-align:left}
+.finance-row-menu button{width:100%;min-height:40px;border:0!important;border-radius:7px!important;background:transparent!important;padding:0 10px!important;color:#a33d2c!important;font-size:13px!important;font-weight:700!important;text-align:left}
+.finance-row-menu button:hover{background:#fdf0ed!important}
+@media(max-width:760px){
+  .finance-ledger-summary{grid-column:2;justify-items:stretch;min-width:0;text-align:left}
+  .finance-ledger-total{justify-content:space-between}
+  .finance-ledger-actions{justify-content:flex-start;flex-wrap:wrap}
+  .finance-receipt-action,.finance-row-menu>summary{min-height:44px!important;height:44px}
+  .finance-row-menu>div{right:auto;left:0}
+}

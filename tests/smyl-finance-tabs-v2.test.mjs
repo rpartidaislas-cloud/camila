@@ -141,7 +141,9 @@ test('Cobros: «Reembolsar y cancelar cargos» es una función de rol aplicada e
   const sql = read('supabase/migrations/20261109100000_smyl_finance_refund_permission.sql');
   const wf = read('.github/workflows/smyl-reembolsos-permiso-migracion.yml');
   assert.match(fin, /state\.canRefund=owner\|\|p\.has\('finance\.refund'\)/);
-  assert.match(fin, /state\.canManage&&state\.canRefund\?'<button data-refund=/);
+  assert.match(fin, /state\.canManage&&state\.canRefund/);
+  assert.match(fin, /data-refund=/);
+  assert.match(fin, /finance-row-menu/);
   assert.match(fin, /function openRefund\(payment\)\{if\(!state\.canRefund\)/);
   assert.match(admin, /'finance\.refund': 'Reembolsar y cancelar cargos'/);
   assert.match(admin, /'finance\.manage', 'finance\.refund'/);
