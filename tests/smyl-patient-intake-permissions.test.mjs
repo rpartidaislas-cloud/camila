@@ -20,7 +20,8 @@ test('el modal de paciente verifica clínica y permiso antes de guardar', () => 
   assert.match(clinic, /PGRST202/, 'sin las funciones en la base no debe bloquear');
   assert.match(clinic, /patient-save-button/);
   assert.match(clinic, /patient-clinic-line/);
-  assert.match(clinic, /Se guardará en /);
+  assert.match(clinic, /'Clínica: ' \+ clinic/);
+  assert.match(clinic, /'Sucursal: ' \+ branchName/);
 });
 
 test('los errores 42501 y PGRST301 se explican por separado', () => {
@@ -41,7 +42,7 @@ test('web, móvil y PWA publican la misma corrección del alta de pacientes', ()
   }
   for (const file of ['app.html', 'sw.js']) {
     const source = read(file);
-    assert.match(source, /smyl-clinic\.js\?v=20/, `${file} debe cargar smyl-clinic.js v20`);
+    assert.match(source, /smyl-clinic\.js\?v=21/, `${file} debe cargar smyl-clinic.js v21`);
     assert.match(source, /smyl-clinical-model\.js\?v=3/, `${file} debe cargar smyl-clinical-model.js v3`);
     assert.equal(read(path.join('mobile', 'www', file)), source, `${file} difiere en mobile/www`);
   }

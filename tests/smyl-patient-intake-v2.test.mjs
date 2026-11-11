@@ -32,12 +32,12 @@ test('el modal pide teléfono con prefijo, correo, atención, alertas y consenti
     assert.match(app, new RegExp(`id="${id}"`), `falta #${id}`);
   }
   assert.match(app, /<option value="52" selected>MX \+52<\/option>/);
-  assert.match(app, /acepta recibir recordatorios y mensajes de la clínica por WhatsApp/);
+  assert.match(app, /Autorizó mensajes por WhatsApp/);
   assert.match(app, /<summary><span>Datos adicionales<\/span><small>Opcional<\/small><\/summary>/);
   assert.doesNotMatch(app, /💾 Guardar paciente/, 'sin emojis en controles (política visual)');
 });
 
-test('la lógica de alta normaliza el teléfono, detecta duplicados y degrada sin la migración', () => {
+test('la lógica de alta normaliza el teléfono, detecta duplicados y bloquea guardados parciales', () => {
   const clinic = read('smyl-clinic.js');
   assert.match(clinic, /function phoneKey\(/);
   assert.match(clinic, /digits\.length === 12 && digits\.slice\(0, 2\) === '52'/, 'misma regla que smyl_normalize_contact_phone');
@@ -47,7 +47,8 @@ test('la lógica de alta normaliza el teléfono, detecta duplicados y degrada si
   assert.match(clinic, /Abrir su ficha/);
   assert.match(clinic, /Es otra persona, continuar/);
   assert.match(clinic, /Revisa el posible duplicado antes de guardar/);
-  assert.match(clinic, /error\.code !== 'PGRST204'/, 'sin las columnas nuevas guarda los datos básicos');
+  assert.match(clinic, /SMYL_PATIENT_SCHEMA_REQUIRED/, 'sin las columnas nuevas bloquea el guardado completo');
+  assert.doesNotMatch(clinic, /legacySchema = true/, 'nunca debe guardar sólo una parte de la ficha');
   assert.match(clinic, /from\('smyl_branches'\)\.select\('id,name,is_default'\)/);
   assert.match(clinic, /from\('smyl_professionals'\)\.select\('id,display_name'\)/);
   assert.match(clinic, /consentimiento_whatsapp: document\.getElementById\('mp-consent-wa'\)\.checked/);
@@ -60,7 +61,7 @@ test('web, móvil y PWA publican la misma alta de pacientes v2', () => {
   }
   for (const file of ['app.html', 'sw.js']) {
     const source = read(file);
-    assert.match(source, /smyl-clinic\.js\?v=20/, `${file} debe cargar smyl-clinic.js v20`);
-    assert.match(source, /smyl-clinic\.css\?v=(?:[5-9]|1[0-9])/, `${file} debe cargar smyl-clinic.css v5`);
+    assert.match(source, /smyl-clinic\.js\?v=21/, `${file} debe cargar smyl-clinic.js v21`);
+    assert.match(source, /smyl-clinic\.css\?v=10/, `${file} debe cargar smyl-clinic.css v10`);
   }
 });

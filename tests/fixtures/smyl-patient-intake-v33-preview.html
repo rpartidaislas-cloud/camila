@@ -22,7 +22,7 @@
       const modal=document.querySelector('#modal-paciente');
       modal.dataset.smylLegacyDialog='true';
       modal.classList.add('visible');
-      modal.querySelector('#patient-clinic-line').textContent='Se guardará en Clínica de prueba.';
+      modal.querySelector('#patient-clinic-line').textContent='Clínica: Clínica de prueba · Sucursal: Centro';
       modal.querySelectorAll('button').forEach(button=>button.removeAttribute('onclick'));
     });
   </script>
