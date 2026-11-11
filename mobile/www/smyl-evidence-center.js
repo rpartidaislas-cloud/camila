@@ -25,14 +25,14 @@
     },
     {
       id: 'radiograph_2d',
-      label: 'Rayos X 2D',
+      label: 'Radiografías 2D',
       short: 'Rayos X',
-      description: 'Periapical, bitewing, panorámica, oclusal y series.',
+      description: 'Periapical, aleta de mordida, panorámica y otros estudios.',
       icon: 'radiograph',
       fileAccept: 'image/jpeg,image/png',
       types: [
         ['periapical', 'Periapical'],
-        ['bitewing', 'Bitewing / aleta de mordida'],
+        ['bitewing', 'Aleta de mordida'],
         ['panoramic', 'Panorámica'],
         ['occlusal', 'Oclusal'],
         ['fmx', 'Serie completa / FMX'],
@@ -116,7 +116,7 @@
 
   const ICONS = Object.freeze({
     camera: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h3l1.4-2h7.2l1.4 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
-    radiograph: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5c2.2 0 3.1 1.2 5 1.2s2.8-1.2 5-1.2c2.3 0 3.5 2 3.1 4.7-.4 3-2 4.7-2.6 8.4-.4 2.4-1.2 3.9-2.5 3.9-1.6 0-1.2-5.7-3-5.7s-1.4 5.7-3 5.7c-1.3 0-2.1-1.5-2.5-3.9-.6-3.7-2.2-5.4-2.6-8.4C3.5 5.5 4.7 3.5 7 3.5z"/><path d="M8 9.5h8M12 7v5"/></svg>',
+    radiograph: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3" width="17" height="18" rx="3"/><path d="M8 8.2c1.5-1.4 6.5-1.4 8 0l-1.2 5.4-.8 4.2-2-3.2-2 3.2-.8-4.2L8 8.2Z"/><path d="M12 7v7M6.5 18.5h11"/></svg>',
     scan: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><path d="M7 12h10M7 15h10"/></svg>',
     clipboard: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5v-2h6v2M8 10h8M8 14h8M8 18h5"/></svg>',
     document: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6M9 16h6"/></svg>',
@@ -152,6 +152,18 @@
     consent: 'report-consent'
   });
 
+  const TYPE_DESCRIPTIONS = Object.freeze({
+    periapical: 'Pieza completa, raíz y tejido periapical.',
+    bitewing: 'Bitewing · Coronas posteriores y cresta ósea.',
+    panoramic: 'Vista general de ambas arcadas.',
+    occlusal: 'Una arcada y áreas amplias del maxilar o la mandíbula.',
+    fmx: 'Serie intraoral completa para revisar todas las regiones.',
+    cephalometric_lateral: 'Perfil óseo y relaciones craneofaciales laterales.',
+    cephalometric_pa: 'Simetría y relaciones craneofaciales de frente.',
+    tmj_series: 'Articulaciones temporomandibulares en varias posiciones.',
+    other: ''
+  });
+
   const TYPE_ILLUSTRATIONS = Object.freeze({
     portrait: '<svg viewBox="0 0 88 64"><path d="M31 23c0-10 5-16 13-16s13 6 13 16-5 17-13 17-13-7-13-17Z"/><path d="M18 61c2-13 11-20 26-20s24 7 26 20"/><path class="guide" d="M44 5v52M24 25h40"/></svg>',
     smile: '<svg viewBox="0 0 88 64"><path d="M31 23c0-10 5-16 13-16s13 6 13 16-5 17-13 17-13-7-13-17Z"/><path d="M18 61c2-13 11-20 26-20s24 7 26 20"/><path class="accent" d="M36 28c5 5 11 5 16 0"/><path class="guide" d="M44 5v52M24 25h40"/></svg>',
@@ -164,9 +176,9 @@
     'arch-lower': '<svg viewBox="0 0 88 64"><path d="M13 14c1 31 13 42 31 42s30-11 31-42"/><path class="accent" d="M21 17c2 20 10 30 23 30s21-10 23-30"/><path class="guide" d="M24 33h40"/></svg>',
     target: '<svg viewBox="0 0 88 64"><circle cx="44" cy="32" r="20"/><circle class="accent" cx="44" cy="32" r="8"/><path class="guide" d="M44 4v15M44 45v15M16 32h15M57 32h15"/></svg>',
     followup: '<svg viewBox="0 0 88 64"><rect x="8" y="10" width="30" height="44" rx="8"/><rect x="50" y="10" width="30" height="44" rx="8"/><path class="accent" d="m39 27 8 5-8 5M17 34c5-8 9-8 13 0M59 34c5-8 9-8 13 0"/></svg>',
-    'xray-root': '<svg viewBox="0 0 88 64"><path d="M31 11c5-5 21-5 26 0l-4 21-2 22-7-15-7 15-2-22-4-21Z"/><path class="accent" d="M44 11v28M36 24h16"/></svg>',
-    'xray-bitewing': '<svg viewBox="0 0 88 64"><path d="M10 17c8-9 17-9 25 0 6-9 13-9 19 0 7-9 15-9 24 0l-5 16H15l-5-16ZM15 47h58M25 34v20M44 34v20M63 34v20"/><path class="accent" d="M8 32h72"/></svg>',
-    'xray-panorama': '<svg viewBox="0 0 88 64"><path d="M8 20c11 31 61 31 72 0M15 17c8 22 50 22 58 0"/><path class="accent" d="M12 35c16 19 48 19 64 0M22 23v16M32 28v16M44 30v17M56 28v16M66 23v16"/></svg>',
+    'xray-root': '<svg viewBox="0 0 88 64"><rect class="film" x="8" y="5" width="72" height="54" rx="7"/><path class="anatomy" d="M25 15c3-4 10-4 13 0l-1 11-2 23-4-11-4 11-1-23-1-11Zm25 0c3-4 10-4 13 0l-1 11-2 23-4-11-4 11-1-23-1-11Z"/><path class="focus" d="M43 11v42M16 52h56"/><circle class="marker" cx="56" cy="49" r="4"/></svg>',
+    'xray-bitewing': '<svg viewBox="0 0 88 64"><rect class="film" x="8" y="5" width="72" height="54" rx="7"/><path class="anatomy" d="M14 15c2-5 6-6 10-2 4-4 8-3 11 2l-2 14H16l-2-14Zm39 0c2-5 6-6 10-2 4-4 8-3 11 2l-2 14H55l-2-14ZM14 49c2 5 6 6 10 2 4 4 8 3 11-2l-2-14H16l-2 14Zm39 0c2 5 6 6 10 2 4 4 8 3 11-2l-2-14H55l-2 14Z"/><path class="focus" d="M11 32h66"/><path class="guide" d="M44 10v44"/></svg>',
+    'xray-panorama': '<svg viewBox="0 0 88 64"><rect class="film" x="6" y="5" width="76" height="54" rx="7"/><path class="anatomy" d="M13 18c7 22 19 31 31 31s24-9 31-31M18 15c8 16 17 22 26 22s18-6 26-22M17 40c9 11 18 16 27 16s18-5 27-16"/><path class="teeth" d="M22 23v15M30 28v15M39 31v16M49 31v16M58 28v15M66 23v15"/><path class="focus" d="M11 18c9 27 22 38 33 38s24-11 33-38"/></svg>',
     'xray-arch': '<svg viewBox="0 0 88 64"><path d="M12 52C13 20 26 8 44 8s31 12 32 44M23 49c2-19 9-28 21-28s19 9 21 28"/><path class="accent" d="M44 8v45M20 34h48"/></svg>',
     'xray-series': '<svg viewBox="0 0 88 64"><rect x="8" y="8" width="21" height="19" rx="3"/><rect x="33" y="8" width="22" height="19" rx="3"/><rect x="59" y="8" width="21" height="19" rx="3"/><rect x="8" y="36" width="21" height="19" rx="3"/><rect x="33" y="36" width="22" height="19" rx="3"/><rect x="59" y="36" width="21" height="19" rx="3"/><path class="accent" d="M18 13v9M44 13v9M69 13v9M18 41v9M44 41v9M69 41v9"/></svg>',
     'xray-profile': '<svg viewBox="0 0 88 64"><path d="M31 7c18 0 29 11 29 24l8 6-9 5c-4 10-13 16-27 16-7-9-10-18-10-28S25 13 31 7Z"/><path class="accent" d="M17 31h56M44 4v56"/></svg>',
@@ -209,6 +221,10 @@
 
   function typeLabel(category, id) {
     return category.types.find(type => type[0] === id)?.[1] || 'Sin tipo';
+  }
+
+  function typeDescription(subtype) {
+    return TYPE_DESCRIPTIONS[subtype] || '';
   }
 
   function cleanItems(items) {
@@ -272,8 +288,8 @@
       return 'Otras';
     }
     if (category.id === 'radiograph_2d') {
-      if (['periapical', 'bitewing', 'panoramic'].includes(subtype)) return 'Disponibles ahora';
-      return 'Estudios especializados';
+      if (['periapical', 'bitewing', 'panoramic'].includes(subtype)) return 'Tipo de radiografía';
+      return 'Otros tipos de radiografía';
     }
     if (category.id === 'document') {
       if (['radiology_report', 'pathology_report', 'laboratory_report'].includes(subtype)) return 'Informes clínicos';
@@ -440,7 +456,7 @@
       this.renderWizard();
       if (typeof this.dialog.showModal === 'function') this.dialog.showModal();
       else this.dialog.setAttribute('open', '');
-      queueMicrotask(() => this.dialog.querySelector('button:not([disabled]), input:not([disabled]), select:not([disabled])')?.focus());
+      this.focusWizardTask();
     }
 
     closeAdd() {
@@ -453,6 +469,7 @@
     next() {
       this.step = Math.min(1, this.step + 1);
       this.renderWizard();
+      this.focusWizardTask();
     }
 
     back() {
@@ -462,6 +479,16 @@
         delete this.draft.subtype;
       }
       this.renderWizard();
+      this.focusWizardTask();
+    }
+
+    focusWizardTask() {
+      queueMicrotask(() => {
+        const target = this.step === 0
+          ? this.dialog.querySelector('.sec-type:not(:disabled), .sec-category:not([aria-disabled="true"])')
+          : this.dialog.querySelector('.sec-file-preview, input:not([disabled]), select:not([disabled])');
+        target?.focus?.();
+      });
     }
 
     releasePreview() {
@@ -474,7 +501,8 @@
       this.dialog.replaceChildren();
       const head = element('header', 'sec-dialog-head');
       const title = element('div');
-      title.append(element('span', 'sec-kicker', `PASO ${this.step + 1} DE 2`), element('h2', '', ['Elige la evidencia', 'Confirma el contexto'][this.step]));
+      const stepTitle = this.step === 0 && category ? 'Elige el tipo de estudio' : ['Elige la evidencia', 'Confirma el contexto'][this.step];
+      title.append(element('span', 'sec-kicker', `PASO ${this.step + 1} DE 2`), element('h2', '', stepTitle));
       title.querySelector('h2').id = 'sec-dialog-title';
       head.append(title, button('Cerrar', 'sec-close', () => this.closeAdd()));
       const progress = element('div', 'sec-progress');
@@ -487,6 +515,13 @@
       const body = element('div', 'sec-dialog-body');
       if (this.step === 0) this.renderCategoryStep(body);
       if (this.step === 1) this.renderDetailsStep(body, category);
+      const context = body.querySelector('.sec-step-intro, .sec-type-group-heading p, .sec-clinical-note');
+      if (context) {
+        context.id = 'sec-dialog-context';
+        this.dialog.setAttribute('aria-describedby', context.id);
+      } else {
+        this.dialog.removeAttribute('aria-describedby');
+      }
       this.dialog.append(head, progress, body);
     }
 
@@ -509,6 +544,7 @@
         const card = button('', 'sec-category', availability.enabled ? () => {
           this.draft.modality = category.id;
           this.renderWizard();
+          this.focusWizardTask();
         } : null);
         card.dataset.modality = category.id;
         card.dataset.available = String(availability.enabled);
@@ -536,10 +572,11 @@
       const intro = element('div', 'sec-selected-category sec-selected-category-change');
       intro.append(icon(category.icon), element('div'));
       intro.lastChild.append(element('strong', '', category.label), element('small', '', category.description));
-      intro.append(button('Cambiar', 'sec-text-action', () => {
+      intro.append(button('Cambiar modalidad', 'sec-text-action', () => {
         delete this.draft.modality;
         delete this.draft.subtype;
         this.renderWizard();
+        this.focusWizardTask();
       }));
       body.append(intro);
       if (category.advanced) body.append(element('p', 'sec-notice', 'CBCT y DICOM requieren un visor especializado. SMYL conservará el volumen original y su informe; no lo convertirá en una imagen plana.'));
@@ -556,16 +593,25 @@
           this.next();
         } : null);
         option.dataset.visual = typeVisual(id);
-        option.append(typeIllustration(id), element('span', 'sec-type-label', label));
+        const optionCopy = element('span', 'sec-type-copy');
+        const description = typeDescription(id);
+        optionCopy.append(element('strong', 'sec-type-label', label));
+        if (description) optionCopy.append(element('small', '', description));
+        option.append(typeIllustration(id), optionCopy);
+        if (availability.enabled) option.append(element('span', 'sec-type-arrow', '›'));
         if (!availability.enabled) option.append(element('em', '', availability.label || 'Por activar'));
         option.setAttribute('aria-disabled', String(!availability.enabled));
-        option.setAttribute('aria-pressed', String(this.draft.subtype === id));
+        option.disabled = !availability.enabled;
         groups.get(groupName)[availability.enabled ? 'enabled' : 'disabled'].push(option);
       });
       groups.forEach((options, label) => {
         if (options.enabled.length) {
           const group = element('section', 'sec-type-group');
-          group.append(element('h3', '', label));
+          const heading = element('div', 'sec-type-group-heading');
+          heading.append(element('h3', '', label), element('p', '', category.id === 'radiograph_2d'
+            ? 'Selecciona el estudio que corresponde al archivo que vas a agregar.'
+            : 'Selecciona la opción que mejor describe la evidencia.'));
+          group.append(heading);
           const grid = element('div', 'sec-type-grid');
           options.enabled.forEach(option => grid.append(option));
           group.append(grid);
@@ -573,7 +619,12 @@
         }
         if (options.disabled.length) {
           const unavailable = element('details', 'sec-unavailable-types');
-          const summary = element('summary', '', `${label} · por activar`);
+          const summary = element('summary');
+          const summaryCopy = element('span', 'sec-unavailable-copy');
+          summaryCopy.append(element('strong', '', label), element('small', '', category.id === 'radiograph_2d'
+            ? 'Oclusal, serie completa, cefalometrías y ATM'
+            : 'Opciones que requieren configuración adicional'));
+          summary.append(summaryCopy, element('span', 'sec-unavailable-count', `${options.disabled.length} próximamente`));
           const grid = element('div', 'sec-type-grid');
           options.disabled.forEach(option => grid.append(option));
           unavailable.append(summary, grid);
@@ -596,24 +647,27 @@
         const data = new FormData(form);
         this.draft.title = String(data.get('title') || '').trim();
         this.draft.date = String(data.get('date') || '');
-        this.draft.regionPreset = String(data.get('regionPreset') || '');
-        this.draft.tooth = String(data.get('tooth') || '').trim();
-        this.draft.region = this.draft.regionPreset === 'tooth'
-          ? (this.draft.tooth ? `Pieza ${this.draft.tooth}` : '')
-          : (REGION_LABELS[this.draft.regionPreset] || '');
+        const capturesRegion = category.id !== 'radiograph_2d';
+        this.draft.regionPreset = capturesRegion ? String(data.get('regionPreset') || '') : '';
+        this.draft.tooth = capturesRegion ? String(data.get('tooth') || '').trim() : '';
+        this.draft.region = capturesRegion
+          ? (this.draft.regionPreset === 'tooth'
+            ? (this.draft.tooth ? `Pieza ${this.draft.tooth}` : '')
+            : (REGION_LABELS[this.draft.regionPreset] || ''))
+          : '';
         this.draft.file = form.elements.evidenceFile?.files?.[0] || this.draft.file || null;
         if (category.fileAccept && !this.draft.file) {
           error.textContent = 'Selecciona el archivo original para continuar.';
           form.querySelector('.sec-file-preview')?.focus?.();
           return;
         }
-        if (this.draft.regionPreset === 'tooth' && !/^([1-4][1-8])$/.test(this.draft.tooth)) {
+        if (capturesRegion && this.draft.regionPreset === 'tooth' && !/^([1-4][1-8])$/.test(this.draft.tooth)) {
           error.textContent = 'Escribe una pieza FDI válida, por ejemplo 16, 21, 36 o 48.';
           form.elements.tooth?.focus();
           return;
         }
         error.textContent = '';
-        this.submitDraft();
+        this.submitDraft(error);
       });
       const summary = element('div', 'sec-selected-category sec-selected-category-change');
       summary.append(icon(category.icon), element('div'));
@@ -623,6 +677,7 @@
         delete this.draft.subtype;
         this.releasePreview();
         this.renderWizard();
+        this.focusWizardTask();
       }));
       form.append(summary, error);
 
@@ -680,10 +735,17 @@
       media.append(fileActions, fileInput, element('p', 'sec-file-help', category.id === 'radiograph_2d' ? 'JPG o PNG. El original se conserva sin modificaciones.' : 'El original se conserva sin modificaciones.'));
 
       const fieldsPanel = element('section', 'sec-context-panel');
-      fieldsPanel.append(element('span', 'sec-panel-label', 'CONTEXTO CLÍNICO'), element('h3', '', 'Confirma los datos esenciales'));
+      fieldsPanel.append(element('span', 'sec-panel-label', category.id === 'radiograph_2d' ? 'DATOS DEL ESTUDIO' : 'CONTEXTO CLÍNICO'), element('h3', '', category.id === 'radiograph_2d' ? 'Confirma el estudio original' : 'Confirma los datos esenciales'));
       const fields = element('div', 'sec-field-grid');
+      const isRadiograph = category.id === 'radiograph_2d';
       const dateField = element('label', 'sec-field');
-      dateField.append(element('span', '', 'Fecha del estudio'), Object.assign(element('input'), { type: 'date', name: 'date', required: true, value: this.draft.date || new Date().toISOString().slice(0, 10) }));
+      const dateInput = Object.assign(element('input'), {
+        type: 'date',
+        name: 'date',
+        required: !isRadiograph,
+        value: this.draft.date || (isRadiograph ? '' : new Date().toISOString().slice(0, 10))
+      });
+      dateField.append(element('span', '', isRadiograph ? 'Fecha del estudio · opcional' : 'Fecha del estudio'), dateInput);
       const regionField = element('label', 'sec-field');
       const regionSelect = element('select');
       regionSelect.name = 'regionPreset';
@@ -698,8 +760,12 @@
       syncTooth();
       const titleField = element('label', 'sec-field sec-field-wide');
       titleField.append(element('span', '', 'Nombre descriptivo · opcional'), Object.assign(element('input'), { type: 'text', name: 'title', value: this.draft.title || '', maxLength: 120, placeholder: category.id === 'photograph' ? 'Ej. Valoración inicial' : 'Ej. Estudio de control' }));
-      fields.append(dateField, regionField, toothField, titleField);
-      fieldsPanel.append(fields, element('p', 'sec-safety', 'Se preparará un borrador. Nada pasa al odontograma sin confirmación profesional.'));
+      fields.append(dateField);
+      if (category.id !== 'radiograph_2d') fields.append(regionField, toothField);
+      fields.append(titleField);
+      fieldsPanel.append(fields, element('p', 'sec-safety', category.id === 'radiograph_2d'
+        ? 'Si desconoces la fecha, déjala vacía. La pieza y los hallazgos se relacionan después, durante la valoración profesional.'
+        : 'Se preparará un borrador. Nada pasa al odontograma sin confirmación profesional.'));
       layout.append(media, fieldsPanel);
       form.append(layout);
       const footer = element('footer', 'sec-dialog-actions');
@@ -708,7 +774,7 @@
       body.append(form);
     }
 
-    async submitDraft() {
+    async submitDraft(errorNode) {
       const payload = {
         modality: this.draft.modality,
         subtype: this.draft.subtype,
@@ -727,8 +793,13 @@
         else this.root.dispatchEvent(new CustomEvent('smyl:evidence:create', { bubbles: true, detail: payload }));
         this.closeAdd();
       } catch (error) {
-        const message = element('p', 'sec-error', error?.message || 'No se pudo guardar la evidencia. Intenta nuevamente.');
-        this.dialog.querySelector('.sec-dialog-body')?.prepend(message);
+        const message = error?.message || 'No se pudo guardar la evidencia. Intenta nuevamente.';
+        const target = errorNode || this.dialog.querySelector('.sec-inline-error');
+        if (target) {
+          target.textContent = message;
+          target.tabIndex = -1;
+          target.focus({ preventScroll: true });
+        }
       } finally {
         this.dialog.dataset.busy = 'false';
         this.dialog.querySelectorAll('button').forEach(control => { control.disabled = false; });

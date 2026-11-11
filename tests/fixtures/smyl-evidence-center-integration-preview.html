@@ -36,5 +36,13 @@
   <script src="../../smyl-evidence-model.js"></script>
   <script src="../../smyl-evidence-center.js"></script>
   <script src="../../smyl-evidence-center-integration.js"></script>
+  <script>
+    if (new URLSearchParams(location.search).has('radiograph-intake')) {
+      setTimeout(() => {
+        window.SmylEvidenceCenterIntegration?.openAdd?.('radiograph_2d');
+        setTimeout(() => document.querySelector('.sec-type-grid .sec-type:nth-child(3)')?.click(), 80);
+      }, 120);
+    }
+  </script>
 </body>
 </html>

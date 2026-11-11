@@ -15,6 +15,15 @@
 - Web y `mobile/www` quedan sincronizados con workspace `v=30`, integración de Evidencia `v=4` y caché `radiograph-intake-v1`.
 - Verificación: 21 pruebas focalizadas, suite general y recorrido Playwright completo aprobados. El recorrido confirma Panorámica, PNG, metadatos, apertura del editor, transferencia del archivo, cierre del asistente y ausencia de errores del navegador.
 
+## 2026-11-11 — Codex — Selector FDI gráfico y mesa radiográfica móvil v18
+
+- La revisión por señal sustituye el desplegable largo por un selector gráfico FDI de 32 piezas, organizado por arcada y lado del paciente. Mantiene navegación por teclado, diferencia la sugerencia de IA de la elección profesional y conserva `item.tooth` como única fuente de datos; no crea un segundo odontograma.
+- En celular el selector se abre como panel superpuesto y muestra todas las piezas sin desplazar el formulario ni requerir scroll a 390 o 320 px. Incluye cierre explícito, foco visible y retorno de foco al control de origen.
+- La mesa móvil recupera una radiografía útil y estable, coloca ajustes y calidad sobre la imagen, ordena la validación clínica de forma progresiva y conserva **Descartar** / **Confirmar** siempre accesibles sin tapar campos.
+- El estado inferior ya no comunica «guardado» mientras la señal sigue pendiente. Las decisiones permanecen bajo control profesional y sólo cambian después del guardado verificado existente.
+- Web, PWA y `mobile/www` quedan sincronizados con `smyl-radiograph-review.js?v=23`, CSS `v=18` y caché `radiograph-mobile-reading-v18`. No se modifican backend, migraciones, permisos, modelo clínico ni prompts de IA.
+- Verificación: 30/30 pruebas focalizadas y recorrido Playwright aprobado en 1280×820, 820×900, 390×844 y 320×700; sin desbordes, con 32 piezas únicas, selector móvil completo sin scroll, controles táctiles de 44 px y decisiones visibles. Capturas en `artifacts/radiograph-workbench-v41/`.
+
 ## 2026-11-10 — Codex — Fotografía clínica profesional y análisis asistido v1
 
 - **Evidencia** queda como la única puerta de entrada para cargar y clasificar fotografías clínicas. Admite rostro, intraoral frontal, lateral derecha/izquierda, oclusal superior/inferior, localizada y comparativas; cada estudio usa de 1 a 4 vistas verificadas sin duplicar el archivo original.
@@ -10663,5 +10672,30 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - En PWA se muestra únicamente la señal activa; las demás quedan como contexto en escritorio. Se compactan cabecera, selector Original/Señales, ajuste de imagen y calidad, y se elimina el círculo amarillo grande de selección.
 - La acción clínica queda inequívoca: `Descartar` o `Confirmar y continuar`. La confirmación muestra un aviso breve, guarda la decisión y abre la siguiente señal; el aviso se retira solo.
 - El expediente móvil simplifica filtros y estudios radiográficos: una sola fila desplazable, filtros sin resultados ocultos y estudios en lista vertical compacta, sin tarjetas horizontales recortadas.
-- Versiones: `smyl-radiograph-workbench.css?v=17`, `smyl-radiograph-review.js?v=22`, `smyl-case-workspace.css?v=25` y `smyl-case-workspace.js?v=31`; caché `radiograph-mobile-flow-v17`; copias sincronizadas en `mobile/www/`.
+- Versiones integradas: `smyl-radiograph-workbench.css?v=19`, `smyl-radiograph-review.js?v=24`, `smyl-case-workspace.css?v=25` y `smyl-case-workspace.js?v=33`; caché `radiograph-mobile-flow-v17`; copias sincronizadas en `mobile/www/`.
 - QA: 30 pruebas estáticas aprobadas y recorrido real en Chromium a 1280, 820, 390 y 320 px, sin desborde ni controles cubriendo contenido.
+
+## 2026-11-11 — Codex — Selector de evidencia radiográfica v2
+
+- Se reemplaza la iconografía oscura y genérica de Periapical, Aleta de mordida y Panorámica por una familia SVG clínica propia: mismo marco, escala, grosor y color, con anatomía diferenciada y sin recursos externos.
+- Las tarjetas ahora muestran nombre, explicación breve y chevrón de avance. `Bitewing` queda como término secundario; la modalidad visible se llama `Radiografías 2D` y el selector usa `Tipo de radiografía`.
+- Los estudios sin editor conectado quedan bajo `Otros tipos de radiografía`, con cantidad y estado `Próximamente`; sus controles están realmente deshabilitados y ya no entran en la navegación por teclado.
+- Se elimina la semántica de selección persistente que no llegaba a mostrarse porque la tarjeta avanza en un clic. Al abrir, cambiar modalidad, avanzar o regresar, el foco se coloca en la siguiente tarea y el diálogo expone una descripción accesible.
+- La cuadrícula queda fija en 3 columnas para escritorio, 2 para tableta y 1 para celular. No hay desbordamiento ni controles menores a 44 px en móvil.
+- Archivos: `smyl-evidence-center.js` v5, `smyl-evidence-center.css` v4, `app.html`, `sw.js`, pruebas y capturas de regresión; copias sincronizadas en `mobile/www/`.
+- Sin cambios en datos, backend, Supabase, almacenamiento ni rutas clínicas. Periapical, Aleta de mordida y Panorámica siguen siendo los únicos subtipos habilitados desde este flujo.
+- QA: 52 pruebas de evidencia aprobadas; recorrido visual y funcional aprobado en 1280, 820, 390, 360 y 320 px, más entrega al cargador radiográfico canónico.
+
+## 2026-11-11 — Codex — Prevención local de radiografías duplicadas
+
+- El cargador radiográfico calcula la huella SHA-256 antes de crear el UUID, la ruta privada o el registro del estudio. Si encuentra el mismo original entre los estudios activos del paciente, no crea otra copia.
+- El aviso dirige el foco al estudio existente para que el profesional pueda abrirlo desde la lista. Las radiografías archivadas no se consideran duplicados activos.
+- Se conservan los mismos permisos clínicos, validación de formato/tamaño, RLS, almacenamiento y RPC; no se modificaron migraciones ni backend.
+- Web y `mobile/www` quedan sincronizados en `smyl-dental-record.js`. La prueba `smyl-radiograph-upload-dedupe-v1.test.mjs` cubre el orden seguro: huella → comprobación → identidad/ruta sólo si es nuevo.
+
+## 2026-11-11 — Codex — Ingreso radiográfico único desde Evidencia
+
+- Evidencia es la única puerta de carga de originales radiográficos. El botón contextual de Valoración ahora dice `Ir a Evidencia`, preselecciona Rayos X y nunca abre un segundo cargador.
+- El editor radiográfico canónico quedó montado dentro de la tarea Evidencia; Valoración conserva únicamente el odontograma, la lectura del estudio y las decisiones profesionales.
+- La carga radiográfica ya no pide región ni pieza FDI: esos vínculos se registran durante la valoración para evitar capturar datos que el modelo anterior no persistía.
+- Se actualizaron versiones de recursos, caché PWA y copias de `mobile/www`, además de contratos específicos para ruta única, ubicación clínica y bloqueo de duplicados.

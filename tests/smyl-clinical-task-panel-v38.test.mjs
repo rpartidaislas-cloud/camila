@@ -29,7 +29,7 @@ test('radiografías usa un flujo breve y no repite el mapa dental', () => {
 
 test('el workspace expone una apertura estable para cargar radiografías desde Evidencia', () => {
   assert.match(workspace, /function openRadiographIntake\(/);
-  assert.match(workspace, /open\('review'/);
+  assert.match(workspace, /open\('photos'/);
   assert.match(workspace, /mapFilters\?\.radiograph\?\.click\(\)/);
   assert.match(workspace, /reviewPart\(ctx,1\)/);
   assert.match(workspace, /SmylCaseWorkspace=\{[^}]*openRadiographIntake/s);
@@ -49,8 +49,8 @@ test('los controles móviles mantienen 44 px y el flujo se apila', () => {
 });
 
 test('web, PWA y fuente móvil distribuyen la tarea clínica v3.8', () => {
-  assert.match(app, /smyl-case-workspace\.css\?v=24/);
-  assert.match(app, /smyl-case-workspace\.js\?v=30/);
+  assert.match(app, /smyl-case-workspace\.css\?v=25/);
+  assert.match(app, /smyl-case-workspace\.js\?v=33/);
   assert.match(worker, /clinical-task-panel-v38/);
   assert.match(worker, /single-odontogram-v39/);
 assert.match(worker, /radiograph-navigation-v43/);

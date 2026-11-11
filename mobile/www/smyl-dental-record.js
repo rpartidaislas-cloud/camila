@@ -55,7 +55,12 @@
  }
  function archived(ctx,id){return ctx.archivedStudies?.has(String(id));}
  function activeStudies(ctx){return (ctx.doc.studies||[]).filter(study=>!archived(ctx,study.id));}
+ function activeDuplicate(ctx,sha256){return activeStudies(ctx).find(study=>study.asset?.sha256===sha256)||null;}
  function duplicateCounts(ctx){const counts=new Map();activeStudies(ctx).forEach(study=>{const digest=study.asset?.sha256;if(digest)counts.set(digest,(counts.get(digest)||0)+1);});return counts;}
+ function focusStudy(ctx,studyId){
+  const index=activeStudies(ctx).findIndex(study=>study.id===studyId),card=index<0?null:ctx.studies?.querySelectorAll(':scope>.dr-study')?.[index],open=card?.querySelector('.dr-study-actions button');
+  card?.scrollIntoView({block:'nearest',behavior:'smooth'});open?.focus({preventScroll:true});
+ }
  function activeRxReviews(ctx){const ids=new Set(activeStudies(ctx).map(study=>study.id));return (ctx.rxReviews||[]).filter(row=>ids.has(row.study_id));}
  // Read-only UI progress. Counts never confer a diagnosis or approval.
  window.SmylDentalProgress={status(tenant,patient,caseId){
@@ -327,14 +332,18 @@
  }
  async function addFile(ctx,file){
   if(!file||!ctx.canWrite||ctx.busy||!ctx.ready||ctx.doc.studies.length>=20)return;
-  ctx.busy=true;ctx.form.disabled=true;message(ctx,'Preparando imagen sin modificar el original…');
+  let duplicateId='';ctx.busy=true;ctx.form.disabled=true;message(ctx,'Preparando imagen sin modificar el original…');
   try{
-   await guard(ctx,'write');const id=crypto.randomUUID(),asset=await M.asset(file,ctx.tenant,ctx.patient,id);
+   await guard(ctx,'write');
+   if(!['image/jpeg','image/png'].includes(file.type)||file.size<16||file.size>20971520)throw new Error('Usa una imagen JPG o PNG de hasta 20 MB. DICOM y PDF aún no están disponibles.');
+   const sha256=await M.hash(await file.arrayBuffer()),duplicate=activeDuplicate(ctx,sha256);
+   if(duplicate){duplicateId=duplicate.id;message(ctx,'Esta radiografía ya está registrada. No se creó otra copia; puedes abrir la existente en la lista.');return;}
+   const id=crypto.randomUUID(),asset=await M.asset(file,ctx.tenant,ctx.patient,id);
    // Decode locally to reject malformed images; never transcode original bytes.
    const url=URL.createObjectURL(file);try{await new Promise((resolve,reject)=>{const img=new Image(),timer=setTimeout(()=>{img.src='';reject(new Error('Imagen no legible'));},15000);img.onload=()=>{clearTimeout(timer);img.naturalWidth*img.naturalHeight<=80000000?resolve():reject(new Error('Imagen demasiado grande'));};img.onerror=()=>{clearTimeout(timer);reject(new Error('Imagen no legible'));};img.src=url;});}finally{URL.revokeObjectURL(url);}
    if(!current(ctx))return;
    ctx.doc.studies.push({id,type:ctx.type.value,label:ctx.label.value.trim(),date:ctx.date.value,asset,notes:'',marks:[]});ctx.files.set(id,file);dirty(ctx);renderStudies(ctx);
-  }catch(e){message(ctx,errorText(e));}finally{ctx.busy=false;if(current(ctx)){ctx.file.value='';applyAccess(ctx);}}
+  }catch(e){message(ctx,errorText(e));}finally{ctx.busy=false;if(current(ctx)){ctx.file.value='';applyAccess(ctx);if(duplicateId)focusStudy(ctx,duplicateId);}}
  }
  async function save(ctx){
   if(!ctx.ready||!ctx.canWrite||ctx.busy||!ctx.dirty)return;ctx.busy=true;applyAccess(ctx);message(ctx,'Guardando observaciones e imágenes privadas…');

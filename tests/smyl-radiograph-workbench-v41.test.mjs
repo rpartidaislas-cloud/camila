@@ -11,12 +11,13 @@ const review = read('../smyl-radiograph-review.js');
 const dental = read('../smyl-dental-record.js');
 const css = read('../smyl-radiograph-workbench.css');
 
-assert.match(app, /smyl-radiograph-workbench\.css\?v=17/);
-assert.match(app, /smyl-radiograph-review\.js\?v=22/);
-assert.match(app, /smyl-dental-record\.js\?v=24/);
+assert.match(app, /smyl-radiograph-workbench\.css\?v=19/);
+assert.match(app, /smyl-radiograph-review\.js\?v=24/);
+assert.match(app, /smyl-dental-record\.js\?v=25/);
 assert.match(worker, /radiograph-navigation-v43/);
-assert.match(worker, /smyl-radiograph-workbench\.css\?v=17/);
+assert.match(worker, /smyl-radiograph-workbench\.css\?v=19/);
 assert.match(worker, /radiograph-guided-process-v15/);
+assert.match(worker, /radiograph-mobile-reading-v18/);
 
 assert.match(review, /rr-workspace/);
 assert.match(review, /categoryLabel/);
@@ -39,6 +40,11 @@ assert.match(review, /rr-signal-queue/);
 assert.match(review, /rr-review-summary/);
 assert.match(review, /list\.append\(editItem\(selected,selectedIndex\)\)/);
 assert.doesNotMatch(review, /rr-filter rr-tab/);
+assert.match(review, /function toothPicker\(item,source\)/);
+assert.match(review, /Pieza relacionada en odontograma FDI/);
+assert.match(review, /control\.setAttribute\('role','radio'\)/);
+assert.match(review, /control\.setAttribute\('aria-checked'/);
+assert.match(review, /\['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'\]/);
 
 assert.match(dental, /dr-reading-workspace/);
 assert.match(dental, /if\(!ctx\.canWrite\|\|!adding\)return/);
@@ -65,6 +71,9 @@ assert.match(css, /\.rr-image-adjustments\s*\{/);
 assert.match(css, /\.rr-check-panel\s*\{/);
 assert.match(css, /\.rr-summary-list\s*\{/);
 assert.match(css, /\.dr-mark-dialog\s*\{[^}]*--smyl-ui-surface/s);
+assert.match(css, /\.rr-tooth-options\s*\{[^}]*grid-template-columns:\s*repeat\(8,\s*minmax\(0,\s*1fr\)\)/s);
+assert.match(css, /\.rr-tooth-option\.is-selected\s*\{/);
+assert.match(css, /\.rr-tooth-option\.is-suggested::after\s*\{/);
 assert.match(css, /@media \(max-width: 639px\)/);
 for (const match of css.matchAll(/font-size:\s*([0-9.]+)px/g)) assert.ok(Number(match[1]) >= 12, `Texto menor de 12 px: ${match[0]}`);
 

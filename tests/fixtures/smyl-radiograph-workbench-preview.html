@@ -6,7 +6,7 @@
   <title>SMYL · Mesa radiográfica</title>
   <link rel="stylesheet" href="../../smyl-ui-template-v3.css?v=6">
   <link rel="stylesheet" href="../../smyl-radiograph-review.css?v=2">
-  <link rel="stylesheet" href="../../smyl-radiograph-workbench.css?v=17">
+  <link rel="stylesheet" href="../../smyl-radiograph-workbench.css?v=19">
   <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f4f7fb;font-family:Inter,system-ui,sans-serif}#open{min-height:44px;padding:0 18px;border:0;border-radius:10px;background:#0b1b2e;color:#fff;font-weight:700}</style>
 </head>
 <body>
@@ -15,7 +15,11 @@
     window.miRolEquipo='dueño';
     window.tenantId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
     window.pacienteActual={id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'};
-    window.SmylDentalModel={teeth:['11','12','13','14','15','16','17','18','21','22','23','24','25','26','27','28','31','32','33','34','35','36','37','38','41','42','43','44','45','46','47','48']};
+    window.SmylDentalModel={
+      upper:[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28],
+      lower:[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38],
+      teeth:['11','12','13','14','15','16','17','18','21','22','23','24','25','26','27','28','31','32','33','34','35','36','37','38','41','42','43','44','45','46','47','48']
+    };
     const noEvaluation=new URLSearchParams(location.search).get('quality')==='unusable';
     const observations=noEvaluation?[]:[
       {id:'r1',category:'density',tooth:'46',observation:'Cambio de densidad por comprobar.',evidence:'Zona radiolúcida delimitada en región posterior.'},
@@ -32,7 +36,7 @@
     window.SmylRadiographAnalysisClient={};
   </script>
   <script src="../../smyl-radiograph-review-model.js?v=7"></script>
-  <script src="../../smyl-radiograph-review.js?v=22"></script>
+  <script src="../../smyl-radiograph-review.js?v=24"></script>
   <script>
     const study={id:'11111111-1111-4111-8111-111111111111',type:'panoramic',label:'Panorámica inicial',asset:{sha256:'a'.repeat(64)}};
     const svg='<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620"><rect width="1200" height="620" fill="#151b22"/><ellipse cx="600" cy="320" rx="480" ry="230" fill="#3f4852"/><path d="M180 330 Q600 70 1020 330" fill="none" stroke="#d9dde0" stroke-width="120" opacity=".68"/><path d="M190 350 Q600 590 1010 350" fill="none" stroke="#c9cdd1" stroke-width="115" opacity=".62"/><circle cx="600" cy="300" r="85" fill="#202832"/></svg>';
