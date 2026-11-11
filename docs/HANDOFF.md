@@ -10658,3 +10658,14 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - `Asignación y seguimiento`, `Alerta para la atención` y `Datos adicionales` funcionan como un acordeón: al abrir una se cierran las demás y la sección activa se lleva al área visible.
 - Las tres secciones empiezan cerradas tanto en alta como en edición. Sus encabezados resumen el contenido existente —asignación, número de alertas o cantidad de datos— para evitar abrirlas sólo para comprobar si están completas.
 - No se modificaron datos, permisos, Supabase ni flujos de guardado. Web y `mobile/www` quedan sincronizados con `smyl-clinic.css?v=11` y `smyl-clinic.js?v=22`.
+
+## 2026-11-11 — Codex — Selector de evidencia radiográfica v2
+
+- Se reemplaza la iconografía oscura y genérica de Periapical, Aleta de mordida y Panorámica por una familia SVG clínica propia: mismo marco, escala, grosor y color, con anatomía diferenciada y sin recursos externos.
+- Las tarjetas ahora muestran nombre, explicación breve y chevrón de avance. `Bitewing` queda como término secundario; la modalidad visible se llama `Radiografías 2D` y el selector usa `Tipo de radiografía`.
+- Los estudios sin editor conectado quedan bajo `Otros tipos de radiografía`, con cantidad y estado `Próximamente`; sus controles están realmente deshabilitados y ya no entran en la navegación por teclado.
+- Se elimina la semántica de selección persistente que no llegaba a mostrarse porque la tarjeta avanza en un clic. Al abrir, cambiar modalidad, avanzar o regresar, el foco se coloca en la siguiente tarea y el diálogo expone una descripción accesible.
+- La cuadrícula queda fija en 3 columnas para escritorio, 2 para tableta y 1 para celular. No hay desbordamiento ni controles menores a 44 px en móvil.
+- Archivos: `smyl-evidence-center.js` v5, `smyl-evidence-center.css` v4, `app.html`, `sw.js`, pruebas y capturas de regresión; copias sincronizadas en `mobile/www/`.
+- Sin cambios en datos, backend, Supabase, almacenamiento ni rutas clínicas. Periapical, Aleta de mordida y Panorámica siguen siendo los únicos subtipos habilitados desde este flujo.
+- QA: 52 pruebas de evidencia aprobadas; recorrido visual y funcional aprobado en 1280, 820, 390, 360 y 320 px, más entrega al cargador radiográfico canónico.

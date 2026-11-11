@@ -61,9 +61,11 @@ const fs = require('node:fs');
     await page.getByRole('button', { name: 'Subir radiografía' }).click();
     const xrayVisuals = await page.evaluate(() => {
       const visuals = [...document.querySelectorAll('.sec-type-visual')].filter(node => node.getClientRects().length);
+      const grid = document.querySelector('.sec-type-grid');
       return {
         visible: visuals.map(node => node.dataset.visual),
-        distinct: new Set(visuals.map(node => node.dataset.visual)).size
+        distinct: new Set(visuals.map(node => node.dataset.visual)).size,
+        columns: getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length
       };
     });
     if (name === 'desktop') await page.screenshot({ path: path.join(output, 'desktop-xray-types.png') });
@@ -120,6 +122,7 @@ const fs = require('node:fs');
     || !item.photoVisuals.allDecorative
     || item.xrayVisuals.visible.length < 3
     || item.xrayVisuals.distinct < 3
+    || item.xrayVisuals.columns !== (item.name === 'desktop' ? 3 : item.name === 'tablet' ? 2 : 1)
     || item.documentVisuals.distinct < 7
     || !item.documentVisuals.groups.includes('Informes clínicos')
     || !item.documentVisuals.groups.includes('Coordinación y laboratorio')

@@ -142,6 +142,21 @@ test('cada familia clínica usa ilustraciones vectoriales diferenciadas', () => 
   assert.doesNotMatch(source, /\['periapical', 'bitewing', 'panoramic'\]\.includes\(subtype\)\) return 'radiograph'/);
 });
 
+test('el selector radiográfico explica cada opción y usa controles no ambiguos', () => {
+  assert.match(source, /\['bitewing', 'Aleta de mordida'\]/);
+  assert.match(source, /Pieza completa, raíz y tejido periapical/);
+  assert.match(source, /Bitewing · Coronas posteriores y cresta ósea/);
+  assert.match(source, /Vista general de ambas arcadas/);
+  assert.match(source, /Tipo de radiografía/);
+  assert.match(source, /Cambiar modalidad/);
+  assert.match(source, /option\.disabled = !availability\.enabled/);
+  assert.doesNotMatch(source, /option\.setAttribute\('aria-pressed'/);
+  assert.match(source, /sec-type-arrow/);
+  assert.match(styles, /Selector clínico v2/);
+  assert.match(styles, /\.sec-type-visual\[data-visual\^=xray\]/);
+  assert.match(styles, /\.sec-unavailable-copy/);
+});
+
 test('el estado vacío prioriza las tres tareas frecuentes', () => {
   assert.match(source, /Tomar fotografías/);
   assert.match(source, /Subir radiografía/);
