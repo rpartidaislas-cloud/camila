@@ -409,12 +409,10 @@
     });
   }
 
-  function prefillRadiograph(state, payload) {
-    const editor = document.querySelector('.cw-advanced-editor:not([hidden])');
+  function prefillRadiograph(state, payload, editor) {
     const form = editor?.querySelector('.dr-record');
     if (!form) {
-      announce(state, 'No se pudo abrir el editor radiográfico. Ve a Valoración → Rayos X para agregarlo.', 'error');
-      return;
+      throw new Error('No pudimos abrir el cargador radiográfico. Conservamos tu selección para que puedas intentarlo de nuevo.');
     }
     const type = form.querySelector('.dr-study-type select');
     if (type) type.value = ['panoramic', 'periapical', 'bitewing'].includes(payload.subtype) ? payload.subtype : 'other';
@@ -425,23 +423,24 @@
     if (textInput) textInput.value = payload.title || '';
     if (dateInput) dateInput.value = payload.date || '';
     if (payload.file && !['image/jpeg', 'image/png'].includes(payload.file.type)) {
-      announce(state, 'El editor radiográfico actual admite JPG o PNG. El archivo no se cargó ni se guardó.', 'error');
-      return;
+      throw new Error('El editor radiográfico admite archivos JPG o PNG. El archivo no se cargó ni se guardó.');
     }
-    setFiles(fileInput, payload.file);
-    fileInput?.focus({ preventScroll: true });
+    if (!fileInput || !setFiles(fileInput, payload.file)) {
+      throw new Error('No pudimos transferir el archivo al cargador radiográfico. Conservamos tu selección para que puedas intentarlo de nuevo.');
+    }
+    requestAnimationFrame(() => {
+      if (!current(state) || !editor.isConnected) return;
+      editor.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      fileInput?.focus({ preventScroll: true });
+    });
     announce(state, 'Radiografía preparada en el editor. Revísala y pulsa Guardar observaciones; todavía no se ha guardado.', 'attention');
+    return true;
   }
 
   function routeRadiograph(state, payload) {
-    global.SmylCaseWorkspace?.open?.('review');
-    const filters = [...document.querySelectorAll('.cw-map-filter')];
-    filters.find(button => button.dataset.label === 'Rayos X')?.click();
-    requestAnimationFrame(() => {
-      const action = document.querySelector('.cw-evaluation-cta');
-      if (action && !action.disabled) action.click();
-      setTimeout(() => prefillRadiograph(state, payload), 0);
-    });
+    const editor = global.SmylCaseWorkspace?.openRadiographIntake?.(payload);
+    if (!editor) throw new Error('No pudimos abrir el cargador radiográfico. Conservamos tu selección para que puedas intentarlo de nuevo.');
+    return prefillRadiograph(state, payload, editor);
   }
 
   async function routeDraft(state, payload) {

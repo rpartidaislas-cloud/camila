@@ -175,6 +175,14 @@
   ctx.advancedEditor?.scrollIntoView({block:'start',behavior:'smooth'});
   return true;
  }
+ function openRadiographIntake(){
+  const ctx=active;if(!valid(ctx))return false;
+  if(!open('review',false))return false;
+  if(ctx.mapFilters?.radiograph)ctx.mapFilters.radiograph.click();
+  else{ctx.mapFilter='radiograph';ctx.mapFingerprint='';renderClinicalMap(ctx,ctx.mapSnapshot);}
+  if(!reviewPart(ctx,1))return false;
+  return ctx.advancedEditor||false;
+ }
  function renderEvidenceHistory(ctx,files,dental,entry){
   if(!ctx.evidenceTimeline)return;
   const views=entry?.row?.document?.views||[],studyItems=dental?.studyItems||[],photoState={loaded:dental?.photoLoaded,reviewed:dental?.hasReview,pending:dental?.pending||0,workflowPending:dental?.workflowPending||0,confirmed:dental?.confirmed||0,rejected:dental?.rejected||0},fingerprint=JSON.stringify({files,studyItems,photoState,views:views.length,caseId:entry?.row?.id||''});
@@ -329,6 +337,7 @@
     else if(!state.photoCount){label='Agregar fotografías';disabled=false;action=()=>openClinicalPhotoIntake(ctx);}
     else{label=state.hasReview?'Revisar fotografías':'Analizar fotografías';disabled=false;action=()=>openClinicalPhotoReview(ctx,state.firstPhotoStudy);}
   }else if(filter==='radiograph'){
+    disabled=!state.dental?.ready||!!state.dental?.busy||state.dental?.canManageStudies===false;
    if(state.rxPending){label='Revisar '+state.rxPending+' '+(state.rxPending===1?'hallazgo pendiente':'hallazgos pendientes');action=()=>reviewPart(ctx,1);}
    else if(data.firstStudy){label='Abrir último estudio';action=()=>{if(!window.SmylDentalProgress?.openStudy?.(ctx.tenant,ctx.patient,data.firstStudy))reviewPart(ctx,1);};}
    else{label='Agregar radiografía';action=()=>reviewPart(ctx,1);}
@@ -558,6 +567,6 @@
   addEventListener('smyl:clinical-photo-status',e=>{const ctx=active,d=e.detail;if(!valid(ctx)||d?.tenant!==ctx.tenant||d.patient!==ctx.patient)return;ctx.clinicalPhotoStatus=d;refresh();});
   window.sb?.auth?.onAuthStateChange?.((event,session)=>{const ctx=active;if(ctx?.root.isConnected&&(session?.user?.id!==ctx.tenant||session.user.is_anonymous)){views.clear();ctx.revoked=true;ctx.entries=null;ctx.selected=null;ctx.receipts.clear();ctx.root.replaceChildren(n('p','cw-overview','La sesión cambió. Abre nuevamente el expediente con la cuenta autorizada.'));}});
  }
- window.SmylCaseWorkspace={open,context(tenant,patient){const ctx=active;if(!valid(ctx)||ctx.tenant!==tenant||ctx.patient!==patient)return null;const entry=ctx.selected;return entry&&entry.current()?{caseId:entry.row.id,isCurrent:()=>valid(ctx)&&ctx.selected===entry&&entry.current()}:null;}};
+ window.SmylCaseWorkspace={open,openRadiographIntake,context(tenant,patient){const ctx=active;if(!valid(ctx)||ctx.tenant!==tenant||ctx.patient!==patient)return null;const entry=ctx.selected;return entry&&entry.current()?{caseId:entry.row.id,isCurrent:()=>valid(ctx)&&ctx.selected===entry&&entry.current()}:null;}};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

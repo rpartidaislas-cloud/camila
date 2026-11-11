@@ -130,7 +130,7 @@ test('web, móvil y PWA distribuyen la misma implementación', () => {
   assert.match(app, /smyl-clinic\.js\?v=20/);
   assert.match(app, /smyl-patient-360\.js\?v=26/);
   assert.match(app, /smyl-case-workspace\.css\?v=24/);
-  assert.match(app, /smyl-case-workspace\.js\?v=29/);
+  assert.match(app, /smyl-case-workspace\.js\?v=30/);
   assert.match(worker, /treatment-ux-v32/);
   assert.match(worker, /evaluation-flow-v73/);
   assert.match(worker, /treatment-tenant-workbench-v82/);

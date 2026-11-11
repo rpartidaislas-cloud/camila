@@ -88,6 +88,18 @@ test('la ruta real de Rayos X no degrada silenciosamente subtipos ni acepta TIFF
   assert.doesNotMatch(readFileSync(new URL('../smyl-evidence-center.js', import.meta.url), 'utf8'), /image\/tiff/);
 });
 
+test('Subir radiografía abre el editor por una API directa y no por el CTA genérico', () => {
+  const routeStart = source.indexOf('function routeRadiograph');
+  const routeEnd = source.indexOf('async function routeDraft', routeStart);
+  assert.ok(routeStart > -1 && routeEnd > routeStart, 'debe existir la ruta de radiografía');
+  const route = source.slice(routeStart, routeEnd);
+
+  assert.match(route, /SmylCaseWorkspace\?\.openRadiographIntake\?\.\(/);
+  assert.doesNotMatch(route, /\.cw-evaluation-cta/);
+  assert.doesNotMatch(route, /requestAnimationFrame/);
+  assert.match(route, /prefillRadiograph/);
+});
+
 test('las modalidades sin infraestructura no fallan al final del formulario', () => {
   const integration = api();
   assert.equal(integration.creationAvailability.photograph.enabled, true);

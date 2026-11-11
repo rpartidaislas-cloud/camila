@@ -1,5 +1,13 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-11 — Codex — Carga radiográfica directa desde Evidencia
+
+- Se corrige el bloqueo de **Evidencia → Subir radiografía** para pacientes sin un caso o simulación previa. La carga ya no intenta activar el botón genérico de Valoración, que permanecía deshabilitado en ese escenario; ahora abre mediante `SmylCaseWorkspace.openRadiographIntake()` el editor radiográfico canónico ligado al expediente del paciente.
+- El flujo conserva tipo, nombre, fecha y archivo original. Si el editor o la transferencia del archivo no están disponibles, mantiene abierto el diálogo con la selección intacta y muestra un error accionable; ya no comunica un éxito falso.
+- La acción radiográfica de Valoración depende de permisos y disponibilidad del registro dental, no de que exista una simulación seleccionada. No cambian persistencia, RLS, almacenamiento, contratos clínicos ni backend.
+- Web y `mobile/www` quedan sincronizados con workspace `v=30`, integración de Evidencia `v=4` y caché `radiograph-intake-v1`.
+- Verificación: 21 pruebas focalizadas, suite general y recorrido Playwright completo aprobados. El recorrido confirma Panorámica, PNG, metadatos, apertura del editor, transferencia del archivo, cierre del asistente y ausencia de errores del navegador.
+
 ## 2026-11-10 — Codex — Fotografía clínica profesional y análisis asistido v1
 
 - **Evidencia** queda como la única puerta de entrada para cargar y clasificar fotografías clínicas. Admite rostro, intraoral frontal, lateral derecha/izquierda, oclusal superior/inferior, localizada y comparativas; cada estudio usa de 1 a 4 vistas verificadas sin duplicar el archivo original.
