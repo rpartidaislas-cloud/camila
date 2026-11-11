@@ -58,8 +58,8 @@ test('la lista de pacientes se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-clinic.js', 'smyl-clinic.css', 'smyl-patients-directory.css', 'smyl-schedule.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-clinic\.js\?v=21/);
-  assert.match(read('sw.js'), /smyl-clinic\.js\?v=21/);
+  assert.match(read('app.html'), /smyl-clinic\.js\?v=22/);
+  assert.match(read('sw.js'), /smyl-clinic\.js\?v=22/);
 });
 
 test('los demás módulos tampoco se quedan en 1,000 pacientes', () => {

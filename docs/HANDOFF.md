@@ -10642,3 +10642,10 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - Se elimina el fallback que, ante columnas no disponibles (`PGRST204`), guardaba sólo los datos básicos y descartaba silenciosamente asignación, alertas y consentimiento. Ahora el alta falla cerrada y conserva el formulario para reintentar.
 - No se modificaron migraciones, RLS ni funciones de Supabase. Queda pendiente de backend convertir el consentimiento en historial inmutable de concesión/revocación y, si se decide, encapsular el alta completa en una operación transaccional del servidor.
 - Archivos: `app.html`, `smyl-clinic.css` v10, `smyl-clinic.js` v21, `sw.js`, pruebas y fixture visual; copias sincronizadas en `mobile/www/`.
+
+## 2026-11-11 — Codex — Alta de pacientes v3.1: acordeón sin recortes
+
+- El cuerpo desplazable deja de usar una cuadrícula que permitía comprimir paneles abiertos; ahora es una columna flexible y cada sección opcional conserva su altura natural.
+- `Asignación y seguimiento`, `Alerta para la atención` y `Datos adicionales` funcionan como un acordeón: al abrir una se cierran las demás y la sección activa se lleva al área visible.
+- Las tres secciones empiezan cerradas tanto en alta como en edición. Sus encabezados resumen el contenido existente —asignación, número de alertas o cantidad de datos— para evitar abrirlas sólo para comprobar si están completas.
+- No se modificaron datos, permisos, Supabase ni flujos de guardado. Web y `mobile/www` quedan sincronizados con `smyl-clinic.css?v=11` y `smyl-clinic.js?v=22`.

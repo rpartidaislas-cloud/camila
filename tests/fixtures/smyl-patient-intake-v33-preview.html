@@ -24,6 +24,13 @@
       modal.classList.add('visible');
       modal.querySelector('#patient-clinic-line').textContent='Clínica: Clínica de prueba · Sucursal: Centro';
       modal.querySelectorAll('button').forEach(button=>button.removeAttribute('onclick'));
+      modal.querySelectorAll('.clinic-patient-extra').forEach(details=>{
+        details.addEventListener('toggle',()=>{
+          if(!details.open)return;
+          modal.querySelectorAll('.clinic-patient-extra').forEach(other=>{if(other!==details)other.open=false;});
+          requestAnimationFrame(()=>details.scrollIntoView({block:'nearest'}));
+        });
+      });
     });
   </script>
 </body>

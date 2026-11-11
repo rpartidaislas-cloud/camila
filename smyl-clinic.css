@@ -320,8 +320,8 @@
 #modal-paciente .mp-heading>span{color:var(--smyl-ui-accent,#157c78);font-size:12px;font-weight:750;letter-spacing:.08em}
 #modal-paciente .modal-header h3{font-size:22px!important;font-weight:650!important;letter-spacing:-.02em!important}
 #patient-clinic-line{width:max-content;max-width:100%;min-height:26px;margin:3px 0 0;padding:4px 10px;border-radius:999px;background:#eef6f4;color:#285e58;font-size:12px;font-weight:600;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#modal-paciente .mp-body{display:grid;gap:12px;min-height:0;padding:20px 24px 24px;overflow-y:auto;overscroll-behavior:contain}
-#modal-paciente .mp-block{display:grid;gap:14px}
+#modal-paciente .mp-body{display:flex;flex-direction:column;gap:12px;min-height:0;padding:20px 24px 24px;overflow-y:auto;overscroll-behavior:contain;scroll-padding:12px}
+#modal-paciente .mp-block{display:grid;flex:0 0 auto;gap:14px}
 #modal-paciente .mp-block-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:0}
 #modal-paciente .mp-block-head>div{display:flex;align-items:center;gap:9px;min-width:0}
 #modal-paciente .mp-block-head h4{margin:0;color:var(--smyl-ui-ink,#0b1b2e);font-size:16px;font-weight:650;line-height:22px}
@@ -344,12 +344,16 @@
 #modal-paciente .mp-alert-content{padding:16px;border-top:1px solid var(--smyl-ui-border,#d9e2ec)}
 #modal-paciente .mp-alert-field{padding:12px;border:1px solid #e8d8cf;border-radius:12px;background:#fffaf6}
 #modal-paciente .mp-alert-field label{color:#70483b}
-#modal-paciente .clinic-patient-extra{margin:0;padding:0;border:1px solid var(--smyl-ui-border,#d9e2ec);border-radius:12px;background:#fff;overflow:hidden}
+#modal-paciente .clinic-patient-extra{flex:0 0 auto;margin:0;padding:0;border:1px solid var(--smyl-ui-border,#d9e2ec);border-radius:12px;background:#fff;overflow:hidden}
 #modal-paciente .clinic-patient-extra summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:0 14px;color:var(--smyl-ui-ink,#0b1b2e);font-size:13px;font-weight:650;cursor:pointer;list-style:none}
 #modal-paciente .clinic-patient-extra summary::-webkit-details-marker{display:none}
 #modal-paciente .clinic-patient-extra summary::after{content:'+';order:3;color:var(--smyl-ui-ink-secondary,#526174);font-size:18px;font-weight:400}
 #modal-paciente .clinic-patient-extra[open] summary::after{content:'−'}
-#modal-paciente .clinic-patient-extra summary small{margin-left:auto;color:var(--smyl-ui-ink-secondary,#526174);font-size:12px;font-weight:500}
+#modal-paciente .clinic-patient-extra summary small{max-width:52%;margin-left:auto;overflow:hidden;color:var(--smyl-ui-ink-secondary,#526174);font-size:12px;font-weight:500;text-overflow:ellipsis;white-space:nowrap}
+#modal-paciente .clinic-patient-extra[data-filled=true] summary small{padding:3px 8px;border-radius:999px;background:#eef6f4;color:#285e58;font-weight:600}
+#modal-paciente .mp-alert-extra[data-filled=true] summary small{background:#fff4e8;color:#7a4c27}
+#modal-paciente .clinic-patient-extra[open]{border-color:#bfd5d1;box-shadow:0 6px 18px -16px rgba(11,27,46,.45)}
+#modal-paciente .clinic-patient-extra[open] summary{background:#f8fbfa}
 #modal-paciente .clinic-patient-extra .form-grid{padding:16px!important;border-top:1px solid var(--smyl-ui-border,#d9e2ec)}
 #modal-paciente .modal-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 24px!important}
 #modal-paciente .modal-footer>p{margin:0;color:var(--smyl-ui-ink-secondary,#526174);font-size:12px;line-height:18px}
