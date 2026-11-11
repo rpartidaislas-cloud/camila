@@ -73,6 +73,10 @@ test('Nuevo paciente sigue la política visual y revela lo opcional al final', (
   assert.match(css, /#modal-paciente \.fg>:is\(input,select,textarea\)[\s\S]*?min-height:46px/);
   assert.match(clinic, /Hay datos sin guardar/);
   assert.match(clinic, /updateWhatsAppConsent/);
+  assert.match(clinic, /other !== details\) other\.open = false/, 'sólo debe quedar una sección opcional abierta');
+  assert.match(clinic, /updatePatientExtraSummaries/, 'las filas cerradas deben resumir lo capturado');
+  assert.match(css, /#modal-paciente \.mp-body\{display:flex;flex-direction:column/, 'el cuerpo debe crecer y desplazarse sin recortar secciones');
+  assert.match(css, /clinic-patient-extra\{flex:0 0 auto/, 'los paneles abiertos no deben comprimirse');
 });
 
 test('la fixture visual del directorio sólo usa datos sintéticos', () => {
