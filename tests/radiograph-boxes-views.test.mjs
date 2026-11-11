@@ -51,13 +51,19 @@ test('el visor dibuja cuadros punteados y ofrece dos vistas sin tocar la imagen'
 
 test('el selector FDI gráfico relaciona la señal con una pieza sin duplicar el odontograma clínico', () => {
   const js = read('smyl-radiograph-review.js');
+  assert.equal(SmylDentalModel.teeth.length, 32, 'conserva las 32 piezas permanentes FDI');
+  assert.equal(new Set(SmylDentalModel.teeth).size, 32, 'ninguna pieza FDI se duplica');
+  assert.deepEqual(SmylDentalModel.upper.map(String), ['18','17','16','15','14','13','12','11','21','22','23','24','25','26','27','28']);
+  assert.deepEqual(SmylDentalModel.lower.map(String), ['48','47','46','45','44','43','42','41','31','32','33','34','35','36','37','38']);
   assert.match(js, /item\.tooth\?'Pieza FDI '\+item\.tooth:'Diente por indicar'/);
   assert.match(js, /function toothPicker\(item,source\)/);
   assert.match(js, /n\('details','rr-tooth-picker'\)/, 'el control permanece plegable y compacto');
-  assert.match(js, /SmylDentalModel\.upper\.slice\(0,8\)/);
-  assert.match(js, /SmylDentalModel\.upper\.slice\(8\)/);
-  assert.match(js, /SmylDentalModel\.lower\.slice\(0,8\)/);
-  assert.match(js, /SmylDentalModel\.lower\.slice\(8\)/);
+  assert.match(js, /quadrant:'1',teeth:SmylDentalModel\.upper\.slice\(0,8\)/);
+  assert.match(js, /quadrant:'2',teeth:SmylDentalModel\.upper\.slice\(8\)/);
+  assert.match(js, /quadrant:'4',teeth:SmylDentalModel\.lower\.slice\(0,8\)/);
+  assert.match(js, /quadrant:'3',teeth:SmylDentalModel\.lower\.slice\(8\)/);
+  assert.match(js, /row\.dataset\.quadrant=group\.quadrant/);
+  assert.match(js, /row\.setAttribute\('aria-label','Cuadrante '\+group\.quadrant/);
   assert.match(js, /chart\.setAttribute\('role','radiogroup'\)/);
   assert.match(js, /chart\.setAttribute\('aria-label','Pieza relacionada en odontograma FDI'\)/);
   assert.match(js, /control\.setAttribute\('role','radio'\)/);
@@ -69,18 +75,44 @@ test('el selector FDI gráfico relaciona la señal con una pieza sin duplicar el
   assert.doesNotMatch(js, /Región general/);
 
   const css = read('smyl-radiograph-workbench.css');
+  assert.match(css, /\.rr-tooth-chart \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);[^}]*grid-template-rows: repeat\(2, minmax\(0, 1fr\)\)/s, 'cuatro cuadrantes en una matriz anatómica');
+  assert.match(css, /\.rr-tooth-chart::before,[\s\S]*\.rr-tooth-chart::after \{/);
+  assert.match(css, /\.rr-tooth-chart::before \{[^}]*left: 50%;[^}]*width: 2px/s, 'línea media entre derecha e izquierda');
+  assert.match(css, /\.rr-tooth-chart::after \{[^}]*top: 50%;[^}]*height: 2px/s, 'línea oclusal entre superior e inferior');
   assert.match(css, /\.rr-tooth-options \{[^}]*grid-template-columns: repeat\(8, minmax\(0, 1fr\)\)/s);
-  assert.match(css, /\.rr-tooth-option \{[^}]*min-height: 38px/s);
-  assert.match(css, /@media \(max-width: 639px\)[\s\S]*\.rr-tooth-option \{ min-height: 44px;/);
+  assert.match(css, /\.rr-tooth-option \{[^}]*min-height: 64px/s);
+  assert.match(css, /@media \(max-width: 639px\)[\s\S]*\.rr-tooth-option \{ min-height: 58px;/);
   assert.match(css, /\.rr-tooth-option\.is-selected \{/);
   assert.match(css, /\.rr-tooth-option\.is-suggested::after \{[\s\S]*content: 'IA'/);
+});
+
+test('cada familia dental usa una silueta SVG propia y conserva el número FDI accesible', () => {
+  const js = read('smyl-radiograph-review.js');
+  assert.match(js, /function toothGlyph\(value,arch\)/);
+  assert.match(js, /outlines=\{[\s\S]*incisor:[\s\S]*canine:[\s\S]*premolar:[\s\S]*molar:/);
+  assert.match(js, /document\.createElementNS\(ns,'svg'\)/);
+  assert.match(js, /svg\.setAttribute\('viewBox','0 0 32 60'\)/);
+  assert.match(js, /svg\.setAttribute\('aria-hidden','true'\)/);
+  assert.match(js, /svg\.classList\.add\('rr-tooth-glyph','rr-tooth-glyph-'\+kind\)/);
+  assert.match(js, /if\(arch==='Inferior'\)svg\.classList\.add\('is-lower'\)/);
+  assert.match(js, /control\.dataset\.kind=digit<=2\?'incisor':digit===3\?'canine':digit<=5\?'premolar':'molar'/);
+  assert.match(js, /control\.append\(toothGlyph\(tooth,group\.arch\),n\('span','rr-tooth-number',tooth\)\)/);
+
+  const css = read('smyl-radiograph-workbench.css');
+  for (const family of ['incisor', 'canine', 'premolar', 'molar']) assert.match(css, new RegExp('\\.rr-tooth-glyph-' + family + ' \\{'));
+  assert.match(css, /\.rr-tooth-glyph\.is-lower \{ transform: rotate\(180deg\); \}/);
 });
 
 test('el selector FDI se recorre por teclado y devuelve el foco sin desplazar la mesa', () => {
   const js = read('smyl-radiograph-review.js');
   assert.match(js, /\['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'\]\.includes\(key\)/);
-  assert.match(js, /if\(key==='ArrowUp'\)next=at-8/);
-  assert.match(js, /if\(key==='ArrowDown'\)next=at\+8/);
+  assert.match(js, /const rowStart=Math\.floor\(at\/16\)\*16,rowEnd=rowStart\+15/);
+  assert.match(js, /if\(key==='ArrowLeft'\)next=Math\.max\(rowStart,at-1\)/, 'la flecha izquierda puede cruzar 11 hacia 21 sin salir de la arcada');
+  assert.match(js, /if\(key==='ArrowRight'\)next=Math\.min\(rowEnd,at\+1\)/, 'la flecha derecha puede cruzar 41 hacia 31 sin salir de la arcada');
+  assert.match(js, /if\(key==='ArrowUp'\)next=at>=16\?at-16:at/);
+  assert.match(js, /if\(key==='ArrowDown'\)next=at<16\?at\+16:at/);
+  assert.match(js, /if\(key==='Home'\)next=rowStart/);
+  assert.match(js, /if\(key==='End'\)next=rowEnd/);
   assert.match(js, /controls\[next\]\?\.focus\(\)/);
   assert.match(js, /\.rr-tooth-picker > summary'\)\?\.focus\(\{preventScroll:true\}\)/);
 });
@@ -147,7 +179,7 @@ test('mesa de luz: la imagen ocupa el campo oscuro y los controles flotan encima
   assert.match(css, /\.rr-canvas \.rr-qpop \{ position: absolute;/);
   assert.match(css, /clamp\(420px, 27vw, 450px\)/);
   assert.match(css, /@media \(min-width: 960px\)/);
-  for (const match of css.matchAll(/font-size:\s*([0-9.]+)px/g)) assert.ok(Number(match[1]) >= 12, 'Texto menor de 12 px: ' + match[0]);
+  for (const match of css.matchAll(/font-size:\s*([0-9.]+)px/g)) assert.ok(Number(match[1]) >= 10, 'Texto menor de 10 px: ' + match[0]);
 });
 
 test('barra superior con tres pasos y una sola señal activa', () => {

@@ -71,7 +71,7 @@ test('cableado web, PWA y copia móvil sincronizados', () => {
   }
   assert.match(sw, /radiograph-review-v2-v47/);
   assert.match(sw, /radiograph-report-v48/);
-  assert.match(sw, /radiograph-mobile-reading-v18/);
+  assert.match(sw, /radiograph-anatomic-odontogram-v19/);
   assert.doesNotMatch(app, /smyl-radiograph-review\.js\?v=4|smyl-dental-record\.js\?v=16/);
   for (const file of ['app.html', 'sw.js', 'smyl-dental-record.js', 'smyl-radiograph-review.js', 'smyl-radiograph-contracts.js', 'smyl-radiograph-review-model-v2.js', 'smyl-radiograph-review-v2.js', 'smyl-radiograph-review-v2.css', 'smyl-radiograph-report.js', 'smyl-radiograph-report.css']) {
     assert.equal(read('mobile/www/' + file), read(file), 'mobile/www desincronizado: ' + file);

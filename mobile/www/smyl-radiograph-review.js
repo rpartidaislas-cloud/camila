@@ -165,27 +165,36 @@
   }
   // Selector FDI compacto para la señal activa. Es un control de relación de la evidencia,
   // no un segundo odontograma clínico ni una fuente paralela de datos.
+  function toothGlyph(value,arch){
+   const ns='http://www.w3.org/2000/svg',digit=Number(value)%10,kind=digit<=2?'incisor':digit===3?'canine':digit<=5?'premolar':'molar',outlines={
+    incisor:'M16 2C12 2 10 9 10 18L9 29C5 33 4 41 6 49C8 55 12 57 16 57C20 57 24 55 26 49C28 41 27 33 23 29L22 18C22 9 20 2 16 2Z',
+    canine:'M16 1C12 1 11 9 11 20L10 31C7 35 6 42 8 48L16 57L24 48C26 42 25 35 22 31L21 20C21 9 20 1 16 1Z',
+    premolar:'M8 3C7 12 9 23 11 30C6 34 5 42 7 49C9 55 13 57 16 54C19 57 23 55 25 49C27 42 26 34 21 30C23 23 25 12 24 4C21 0 18 13 16 25C14 13 11 0 8 3Z',
+    molar:'M6 4C5 13 8 24 10 31C5 34 4 42 6 50C8 56 12 57 16 54C20 57 24 56 26 50C28 42 27 34 22 31C24 23 27 13 26 4C23 0 20 14 18 26C17 15 15 2 13 2C11 2 9 15 8 26C7 18 7 7 6 4Z'
+   },svg=document.createElementNS(ns,'svg'),shape=document.createElementNS(ns,'path'),detail=document.createElementNS(ns,'path');
+   svg.setAttribute('viewBox','0 0 32 60');svg.setAttribute('aria-hidden','true');svg.classList.add('rr-tooth-glyph','rr-tooth-glyph-'+kind);if(arch==='Inferior')svg.classList.add('is-lower');shape.setAttribute('d',outlines[kind]);shape.classList.add('rr-tooth-glyph-shape');detail.setAttribute('d',kind==='molar'?'M10 36C13 33 19 33 22 36M16 34V52':kind==='premolar'?'M11 36C14 33 18 33 21 36M16 34V51':kind==='canine'?'M11 39L16 47L21 39':'M10 39C13 42 19 42 22 39');detail.classList.add('rr-tooth-glyph-detail');svg.append(shape,detail);return svg;
+  }
   function toothPicker(item,source){
    const disabled=item.state!=='pending',picker=n('details','rr-tooth-picker'),summary=n('summary'),summaryCopy=n('span','rr-tooth-picker-copy'),selected=n('strong','rr-tooth-current',item.tooth?'Pieza FDI '+item.tooth:'Indicar pieza'),change=n('span','rr-tooth-change',item.tooth?'Cambiar':'Abrir odontograma');
    picker.open=!item.tooth&&!disabled;picker.dataset.disabled=String(disabled);summaryCopy.append(n('span','rr-section-label','PIEZA FDI'),selected);summary.append(summaryCopy,change);picker.append(summary);
    const body=n('div','rr-tooth-picker-body'),closePicker=button('Cerrar',()=>{picker.open=false;summary.focus({preventScroll:true});},'rr-tooth-picker-close'),orientation=n('div','rr-tooth-orientation'),chart=n('div','rr-tooth-chart'),suggested=String(source?.tooth||''),groups=[
-    {arch:'Superior',side:'Derecha',teeth:SmylDentalModel.upper.slice(0,8)},
-    {arch:'Superior',side:'Izquierda',teeth:SmylDentalModel.upper.slice(8)},
-    {arch:'Inferior',side:'Derecha',teeth:SmylDentalModel.lower.slice(0,8)},
-    {arch:'Inferior',side:'Izquierda',teeth:SmylDentalModel.lower.slice(8)}
+    {arch:'Superior',side:'Derecha',quadrant:'1',teeth:SmylDentalModel.upper.slice(0,8)},
+    {arch:'Superior',side:'Izquierda',quadrant:'2',teeth:SmylDentalModel.upper.slice(8)},
+    {arch:'Inferior',side:'Derecha',quadrant:'4',teeth:SmylDentalModel.lower.slice(0,8)},
+    {arch:'Inferior',side:'Izquierda',quadrant:'3',teeth:SmylDentalModel.lower.slice(8)}
    ];
    orientation.append(n('span','','Derecha del paciente'),n('span','','Izquierda del paciente'));chart.setAttribute('role','radiogroup');chart.setAttribute('aria-label','Pieza relacionada en odontograma FDI');
    const choose=(value)=>{if(disabled)return;item.tooth=String(value||'');markDirty(item);render();requestAnimationFrame(()=>host.querySelector('[data-rr-item="'+item.id+'"] .rr-tooth-picker > summary')?.focus({preventScroll:true}));};
    groups.forEach((group,groupIndex)=>{
-    const row=n('div','rr-tooth-row'),rowLabel=n('span','rr-tooth-row-label'),options=n('div','rr-tooth-options');row.dataset.arch=group.arch.toLowerCase();row.dataset.side=group.side.toLowerCase();rowLabel.append(n('strong','',group.arch),n('small','',group.side));options.setAttribute('role','presentation');
+    const row=n('div','rr-tooth-row'),rowLabel=n('span','rr-tooth-row-label'),options=n('div','rr-tooth-options');row.dataset.arch=group.arch.toLowerCase();row.dataset.side=group.side.toLowerCase();row.dataset.quadrant=group.quadrant;row.setAttribute('aria-label','Cuadrante '+group.quadrant+', '+group.arch.toLowerCase()+' '+group.side.toLowerCase());rowLabel.append(n('strong','','Cuadrante '+group.quadrant),n('small','',group.arch+' '+group.side));options.setAttribute('role','presentation');
     group.teeth.forEach((value,toothIndex)=>{
-     const tooth=String(value),control=button(tooth,()=>choose(tooth),'rr-tooth-option');control.setAttribute('role','radio');control.setAttribute('aria-label','Pieza FDI '+tooth);control.setAttribute('aria-checked',String(item.tooth===tooth));control.setAttribute('aria-describedby','rr-tooth-picker-help');control.disabled=disabled;control.tabIndex=item.tooth===tooth||(!item.tooth&&groupIndex===0&&toothIndex===0)?0:-1;if(item.tooth===tooth)control.classList.add('is-selected');if(suggested===tooth&&item.tooth!==tooth){control.classList.add('is-suggested');control.dataset.suggested='true';control.title='Pieza sugerida por la IA';}
-     control.addEventListener('keydown',event=>{const controls=Array.from(chart.querySelectorAll('.rr-tooth-option:not(:disabled)')),at=controls.indexOf(control),key=event.key;if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(key))return;event.preventDefault();let next=at;if(key==='ArrowLeft')next=at-1;if(key==='ArrowRight')next=at+1;if(key==='ArrowUp')next=at-8;if(key==='ArrowDown')next=at+8;if(key==='Home')next=0;if(key==='End')next=controls.length-1;next=Math.max(0,Math.min(controls.length-1,next));controls[next]?.focus();});
+     const tooth=String(value),control=button('',()=>choose(tooth),'rr-tooth-option'),digit=Number(tooth)%10;control.dataset.kind=digit<=2?'incisor':digit===3?'canine':digit<=5?'premolar':'molar';control.append(toothGlyph(tooth,group.arch),n('span','rr-tooth-number',tooth));control.setAttribute('role','radio');control.setAttribute('aria-label','Pieza FDI '+tooth);control.setAttribute('aria-checked',String(item.tooth===tooth));control.setAttribute('aria-describedby','rr-tooth-picker-help');control.disabled=disabled;control.tabIndex=item.tooth===tooth||(!item.tooth&&groupIndex===0&&toothIndex===0)?0:-1;if(item.tooth===tooth)control.classList.add('is-selected');if(suggested===tooth){control.classList.add('is-suggested');control.dataset.suggested='true';control.title='Pieza sugerida por la IA';}
+     control.addEventListener('keydown',event=>{const controls=Array.from(chart.querySelectorAll('.rr-tooth-option:not(:disabled)')),at=controls.indexOf(control),key=event.key;if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(key))return;event.preventDefault();const rowStart=Math.floor(at/16)*16,rowEnd=rowStart+15;let next=at;if(key==='ArrowLeft')next=Math.max(rowStart,at-1);if(key==='ArrowRight')next=Math.min(rowEnd,at+1);if(key==='ArrowUp')next=at>=16?at-16:at;if(key==='ArrowDown')next=at<16?at+16:at;if(key==='Home')next=rowStart;if(key==='End')next=rowEnd;controls[next]?.focus();});
      options.append(control);
     });row.append(rowLabel,options);chart.append(row);
    });
    closePicker.setAttribute('aria-label','Cerrar selector de pieza');
-   const help=n('p','rr-tooth-picker-help','Selecciona la pieza directamente. Las flechas del teclado recorren el odontograma.');help.id='rr-tooth-picker-help';body.append(orientation,closePicker,chart,help);if(item.tooth&&!disabled)body.append(button('Dejar pieza por indicar',()=>choose(''),'rr-tooth-clear'));picker.append(body);return picker;
+   const help=n('p','rr-tooth-picker-help','Selecciona la pieza en el odontograma. La cruz separa los cuatro cuadrantes FDI.');help.id='rr-tooth-picker-help';body.append(orientation,closePicker,chart,help);if(item.tooth&&!disabled)body.append(button('Dejar pieza por indicar',()=>choose(''),'rr-tooth-clear'));picker.append(body);return picker;
   }
   function editItem(item,index){
    const source=run.doc.analysis.report.observations.find(o=>o.id===item.sourceId),selected=run.selected===item.id,card=n('article','rr-item rr-item-'+item.state+(selected?' is-selected':''));if(item.state==='pending'&&source&&item.text===source.observation)item.text='';card.dataset.rrItem=item.id;card.dataset.state=item.state;card.tabIndex=-1;card.setAttribute('aria-current',String(selected));

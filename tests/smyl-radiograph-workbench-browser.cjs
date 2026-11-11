@@ -74,6 +74,10 @@ const fs = require('node:fs');
       const picker = document.querySelector('.rr-item[aria-current="true"] .rr-tooth-picker');
       const pickerSummary = picker?.querySelector(':scope > summary')?.getBoundingClientRect();
       const toothOptions = Array.from(picker?.querySelectorAll('.rr-tooth-option[role="radio"]') || []);
+      const toothChart = picker?.querySelector('.rr-tooth-chart');
+      const quadrants = Array.from(picker?.querySelectorAll('.rr-tooth-row[data-quadrant]') || []);
+      const verticalDivider = toothChart ? getComputedStyle(toothChart, '::before') : null;
+      const horizontalDivider = toothChart ? getComputedStyle(toothChart, '::after') : null;
       return {
         rootOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         dialogOverflow: document.querySelector('.rr-dialog').scrollWidth > document.querySelector('.rr-dialog').clientWidth + 1,
@@ -98,6 +102,13 @@ const fs = require('node:fs');
         toothPickerOverflow: Boolean(picker && picker.scrollWidth > picker.clientWidth + 1),
         toothRadioCount: toothOptions.length,
         toothRadioLabels: new Set(toothOptions.map(option => option.getAttribute('aria-label'))).size,
+        toothTabStopCount: toothOptions.filter(option => option.tabIndex === 0).length,
+        toothGlyphCount: picker?.querySelectorAll('.rr-tooth-glyph[aria-hidden="true"]').length || 0,
+        toothFamilies: Array.from(new Set(toothOptions.map(option => option.dataset.kind))).sort().join(','),
+        quadrantCount: quadrants.length,
+        quadrantOrder: quadrants.map(quadrant => quadrant.dataset.quadrant).join(','),
+        quadrantLabels: new Set(quadrants.map(quadrant => quadrant.getAttribute('aria-label'))).size,
+        quadrantCrossVisible: Boolean(verticalDivider && horizontalDivider && parseFloat(verticalDivider.width) >= 2 && parseFloat(verticalDivider.height) > 0 && parseFloat(horizontalDivider.height) >= 2 && parseFloat(horizontalDivider.width) > 0),
         selectedTooth: toothOptions.find(option => option.getAttribute('aria-checked') === 'true')?.textContent?.trim() || '',
         nativeToothSelects: picker?.querySelectorAll('select').length || 0
       };
@@ -113,15 +124,22 @@ const fs = require('node:fs');
         const panel = element.closest('.rr-items')?.getBoundingClientRect();
         const body = element.querySelector('.rr-tooth-picker-body');
         const bodyRect = body?.getBoundingClientRect();
+        const quadrants = Array.from(element.querySelectorAll('.rr-tooth-row[data-quadrant]'));
         return {
           horizontalFit: Boolean(panel && rect.left >= panel.left - 1 && rect.right <= panel.right + 1),
           overflow: element.scrollWidth > element.clientWidth + 1,
           visibleOptions: Array.from(element.querySelectorAll('.rr-tooth-option')).filter(option => option.getClientRects().length).length,
+          visibleGlyphs: Array.from(element.querySelectorAll('.rr-tooth-glyph')).filter(glyph => glyph.getClientRects().length).length,
+          visibleQuadrants: quadrants.filter(quadrant => quadrant.getClientRects().length).length,
+          quadrantSizes: quadrants.map(quadrant => quadrant.querySelectorAll('.rr-tooth-option').length),
+          quadrantOrder: quadrants.map(quadrant => quadrant.dataset.quadrant).join(','),
           bodyFullyVisible: Boolean(bodyRect && bodyRect.top >= 63 && bodyRect.bottom <= innerHeight - 60),
-          bodyNeedsScroll: Boolean(body && body.scrollHeight > body.clientHeight + 1)
+          bodyNeedsScroll: Boolean(body && body.scrollHeight > body.clientHeight + 1),
+          hostScroll: element.closest('.rr-host')?.scrollTop || 0,
+          itemsScroll: element.closest('.rr-items')?.scrollTop || 0
         };
       });
-      if (!openPicker.horizontalFit || openPicker.overflow || openPicker.visibleOptions !== 32 || !openPicker.bodyFullyVisible || openPicker.bodyNeedsScroll) throw new Error(`Compact FDI picker overflowed at ${item.width}px: ${JSON.stringify(openPicker)}`);
+      if (!openPicker.horizontalFit || openPicker.overflow || openPicker.visibleOptions !== 32 || openPicker.visibleGlyphs !== 32 || openPicker.visibleQuadrants !== 4 || openPicker.quadrantOrder !== '1,2,4,3' || openPicker.quadrantSizes.some(size => size !== 8) || !openPicker.bodyFullyVisible || openPicker.bodyNeedsScroll || openPicker.hostScroll || openPicker.itemsScroll) throw new Error(`Anatomical FDI picker overflowed at ${item.width}px: ${JSON.stringify(openPicker)}`);
       await page.screenshot({ path: path.join(output, `${item.name}-tooth-picker.png`), fullPage: false });
       await page.getByRole('button', { name: 'Cerrar selector de pieza', exact: true }).click();
       if (await picker.evaluate(element => element.open)) throw new Error(`Compact FDI picker did not close at ${item.width}px`);
@@ -133,8 +151,25 @@ const fs = require('node:fs');
       const selected = picker.getByRole('radio', { name: 'Pieza FDI 46', exact: true });
       if (await selected.getAttribute('aria-checked') !== 'true') throw new Error('Compact FDI picker did not expose the current piece as selected');
       await selected.focus();
+      await selected.press('ArrowUp');
+      let focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
+      if (focusedLabel !== 'Pieza FDI 16') throw new Error(`Anatomical FDI vertical navigation failed: ${focusedLabel}`);
+      await page.keyboard.press('ArrowDown');
+      focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
+      if (focusedLabel !== 'Pieza FDI 46') throw new Error(`Anatomical FDI vertical return failed: ${focusedLabel}`);
+      const upperMidline = picker.getByRole('radio', { name: 'Pieza FDI 11', exact: true });
+      await upperMidline.focus();
+      await upperMidline.press('ArrowRight');
+      focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
+      if (focusedLabel !== 'Pieza FDI 21') throw new Error(`Upper FDI midline crossing failed: ${focusedLabel}`);
+      const lowerMidline = picker.getByRole('radio', { name: 'Pieza FDI 41', exact: true });
+      await lowerMidline.focus();
+      await lowerMidline.press('ArrowRight');
+      focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
+      if (focusedLabel !== 'Pieza FDI 31') throw new Error(`Lower FDI midline crossing failed: ${focusedLabel}`);
+      await selected.focus();
       await selected.press('ArrowLeft');
-      const focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
+      focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
       if (focusedLabel !== 'Pieza FDI 47') throw new Error(`Compact FDI keyboard navigation failed: ${focusedLabel}`);
       await page.keyboard.press('Enter');
       await page.locator('.rr-tooth-picker > summary').waitFor();
@@ -188,5 +223,5 @@ const fs = require('node:fs');
   }
   await browser.close();
   console.log(JSON.stringify(report, null, 2));
-  if (report.some(item => item.rootOverflow || item.dialogOverflow || item.sameRow !== item.expectedSameRow || !item.layoutOrder || item.workspaceUse < .9 || item.signals !== 1 || item.expandedSignals !== 1 || item.filters !== 0 || item.queue !== 1 || item.tools !== 0 || (item.width >= 640 && !item.decisionVisibleWithoutScroll) || item.initialHostScroll || item.initialItemsScroll || item.toothPickerCount !== 1 || item.toothPickerOpen || item.toothPickerSummaryHeight < 36 || item.toothPickerSummaryHeight > 56 || item.toothPickerOverflow || item.toothRadioCount !== 32 || item.toothRadioLabels !== 32 || item.selectedTooth !== '46' || item.nativeToothSelects || (item.width < 960 && item.cleanSavePosition === 'sticky') || item.minButtonHeight < (item.name.startsWith('mobile') ? 44 : 36) || (item.width >= 960 && (item.canvasRatio < .62 || item.canvasRatio > .75)))) process.exitCode = 1;
+  if (report.some(item => item.rootOverflow || item.dialogOverflow || item.sameRow !== item.expectedSameRow || !item.layoutOrder || item.workspaceUse < .9 || item.signals !== 1 || item.expandedSignals !== 1 || item.filters !== 0 || item.queue !== 1 || item.tools !== 0 || (item.width >= 640 && !item.decisionVisibleWithoutScroll) || item.initialHostScroll || item.initialItemsScroll || item.toothPickerCount !== 1 || item.toothPickerOpen || item.toothPickerSummaryHeight < 36 || item.toothPickerSummaryHeight > 56 || item.toothPickerOverflow || item.toothRadioCount !== 32 || item.toothRadioLabels !== 32 || item.toothTabStopCount !== 1 || item.toothGlyphCount !== 32 || item.toothFamilies !== 'canine,incisor,molar,premolar' || item.quadrantCount !== 4 || item.quadrantOrder !== '1,2,4,3' || item.quadrantLabels !== 4 || !item.quadrantCrossVisible || item.selectedTooth !== '46' || item.nativeToothSelects || (item.width < 960 && item.cleanSavePosition === 'sticky') || item.minButtonHeight < (item.name.startsWith('mobile') ? 44 : 36) || (item.width >= 960 && (item.canvasRatio < .62 || item.canvasRatio > .75)))) process.exitCode = 1;
 })().catch(error => { console.error(error); process.exitCode = 1; });

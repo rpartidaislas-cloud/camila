@@ -993,7 +993,7 @@
   .rr-no-evaluation-limits { margin-left: 0; }
 }
 
-/* Radiograph tooth picker v17 · compact FDI control for the active signal. */
+/* Radiograph tooth picker v19 · anatomical FDI odontogram with four quadrants. */
 .rr-tooth-picker {
   overflow: hidden;
   border: 1px solid var(--rr-line);
@@ -1034,38 +1034,118 @@
 .rr-tooth-current { overflow: hidden; color: var(--rr-ink); font-size: 14px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
 .rr-tooth-change { margin-left: auto; color: var(--rr-primary); font-size: 12px; font-weight: 750; white-space: nowrap; }
 .rr-tooth-picker[open] .rr-tooth-change { color: var(--rr-muted); }
-.rr-tooth-picker-body { display: grid; gap: 8px; padding: 9px 10px 10px; border-top: 1px solid var(--rr-line); }
-.rr-tooth-orientation { display: flex; justify-content: space-between; gap: 12px; padding: 0 66px 0 73px; color: var(--rr-meta); font-size: 12px; font-weight: 650; line-height: 15px; }
-.rr-tooth-chart { display: grid; gap: 6px; }
-.rr-tooth-row { display: grid; min-width: 0; align-items: center; grid-template-columns: 62px minmax(0, 1fr); gap: 7px; }
-.rr-tooth-row-label { display: grid; min-width: 0; color: var(--rr-muted); font-size: 12px; line-height: 14px; text-align: right; }
-.rr-tooth-row-label strong { color: var(--rr-ink); font-size: 12px; }
-.rr-tooth-row-label small { color: var(--rr-meta); font-size: 12px; }
-.rr-tooth-options { display: grid; min-width: 0; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
-.rr-tooth-option {
+.rr-tooth-picker[open]::before {
+  position: fixed;
+  z-index: 38;
+  inset: 0;
+  background: rgba(5, 15, 27, .58);
+  content: '';
+  pointer-events: none;
+}
+.rr-tooth-picker-body {
+  position: fixed;
+  z-index: 40;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: min(680px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  box-sizing: border-box;
+  gap: 10px;
+  padding: 15px 16px 14px;
+  overflow: auto;
+  transform: translate(-50%, -50%);
+  overscroll-behavior: contain;
+  border: 1px solid var(--rr-line-strong);
+  border-radius: 18px;
+  background: var(--rr-surface);
+  box-shadow: 0 26px 72px rgba(5, 18, 31, .38);
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.rr-tooth-orientation {
+  display: flex;
+  min-width: 0;
+  justify-content: space-around;
+  gap: 24px;
+  padding: 0 22px;
+  color: var(--rr-meta);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+.rr-tooth-chart {
   position: relative;
   display: grid;
   min-width: 0;
-  min-height: 38px;
-  padding: 4px 1px;
-  place-items: center;
-  border: 1px solid #cbd8d6;
-  border-radius: 11px 11px 14px 14px;
-  background: #fff;
-  color: #31514e;
-  font: 750 12px/14px var(--smyl-ui-font, Inter, system-ui, sans-serif);
-  box-shadow: inset 0 -3px 0 #eef4f3;
-  cursor: pointer;
+  padding: 4px 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 18px 14px;
 }
-.rr-tooth-row[data-arch="inferior"] .rr-tooth-option { border-radius: 14px 14px 11px 11px; box-shadow: inset 0 3px 0 #eef4f3; }
-.rr-tooth-option:hover:not(:disabled) { transform: translateY(-1px); border-color: #72bdb1; background: #f1fbf9; }
+.rr-tooth-chart::before,
+.rr-tooth-chart::after {
+  position: absolute;
+  z-index: 0;
+  border-radius: 999px;
+  background: #78918d;
+  content: '';
+  pointer-events: none;
+}
+.rr-tooth-chart::before { top: 0; bottom: 0; left: 50%; width: 2px; transform: translateX(-1px); }
+.rr-tooth-chart::after { top: 50%; right: 0; left: 0; height: 2px; transform: translateY(-1px); }
+.rr-tooth-row { position: relative; z-index: 1; min-width: 0; }
+.rr-tooth-row-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.rr-tooth-options { display: grid; min-width: 0; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; }
+.rr-tooth-option {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 64px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1px;
+  padding: 3px 1px 2px;
+  flex-direction: column;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: #31514e;
+  font: 800 11px/13px var(--smyl-ui-font, Inter, system-ui, sans-serif);
+  cursor: pointer;
+  transition: background .14s ease, border-color .14s ease, transform .14s ease;
+}
+.rr-tooth-row[data-arch="inferior"] .rr-tooth-option { justify-content: flex-start; padding-top: 2px; padding-bottom: 3px; }
+.rr-tooth-row[data-arch="inferior"] .rr-tooth-number { order: -1; }
+.rr-tooth-glyph { width: 23px; height: 43px; flex: none; overflow: visible; color: #54706c; filter: drop-shadow(0 1px 0 rgba(14, 52, 47, .08)); }
+.rr-tooth-glyph.is-lower { transform: rotate(180deg); }
+.rr-tooth-glyph-shape { fill: #fffdf3; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.rr-tooth-glyph-detail { fill: none; stroke: currentColor; stroke-width: 1.05; stroke-linecap: round; opacity: .52; }
+.rr-tooth-glyph-incisor { width: 18px; }
+.rr-tooth-glyph-canine { width: 20px; }
+.rr-tooth-glyph-premolar { width: 22px; }
+.rr-tooth-glyph-molar { width: 25px; }
+.rr-tooth-number { display: block; min-width: 20px; padding: 1px 2px; border-radius: 999px; background: #edf4f2; color: #294b47; text-align: center; }
+.rr-tooth-option:hover:not(:disabled) { transform: translateY(-1px); border-color: #a9cbc5; background: #eef8f6; }
 .rr-tooth-option.is-selected {
   border-color: var(--rr-primary);
-  background: var(--rr-primary);
+  background: #0e625d;
   color: #fff;
-  box-shadow: 0 0 0 2px #72d3c2, inset 0 -3px 0 rgba(0, 0, 0, .12);
+  box-shadow: 0 0 0 2px #72d3c2;
 }
-.rr-tooth-row[data-arch="inferior"] .rr-tooth-option.is-selected { box-shadow: 0 0 0 2px #72d3c2, inset 0 3px 0 rgba(255, 255, 255, .14); }
+.rr-tooth-option.is-selected .rr-tooth-glyph { color: #fff; }
+.rr-tooth-option.is-selected .rr-tooth-glyph-shape { fill: rgba(255, 255, 255, .18); }
+.rr-tooth-option.is-selected .rr-tooth-number { background: #fff; color: #0d514c; }
 .rr-tooth-option.is-suggested:not(.is-selected) { border-style: dashed; border-color: #c18413; background: #fff9eb; color: #7b540d; }
 .rr-tooth-option.is-suggested::after {
   position: absolute;
@@ -1086,10 +1166,27 @@
   line-height: 1;
 }
 .rr-tooth-option:disabled { cursor: default; opacity: .66; }
-.rr-tooth-picker-help { margin: 0 0 0 69px; color: var(--rr-meta); font-size: 12px; line-height: 16px; }
-.rr-tooth-clear { width: max-content; min-height: 44px; margin-left: 69px; padding: 7px 8px; border: 0; background: transparent; color: var(--rr-muted); font-size: 12px; font-weight: 650; cursor: pointer; }
+.rr-tooth-picker-help { margin: 0; color: var(--rr-meta); font-size: 12px; line-height: 16px; }
+.rr-tooth-clear { width: max-content; min-height: 40px; margin: 0; padding: 7px 8px; border: 0; background: transparent; color: var(--rr-muted); font-size: 12px; font-weight: 650; cursor: pointer; }
 .rr-tooth-clear:hover { color: var(--rr-danger); }
-.rr-tooth-picker-close { display: none; }
+.rr-tooth-picker-close {
+  display: inline-flex;
+  min-width: 68px;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 10px;
+  border: 1px solid var(--rr-line);
+  border-radius: 10px;
+  background: var(--rr-surface);
+  color: var(--rr-primary);
+  font: 750 12px/16px var(--smyl-ui-font, Inter, system-ui, sans-serif);
+  cursor: pointer;
+}
+.rr-tooth-orientation { grid-column: 1; }
+.rr-tooth-chart,
+.rr-tooth-picker-help,
+.rr-tooth-clear { grid-column: 1 / -1; }
 .rr-tooth-picker[data-disabled="true"] > summary { cursor: default; }
 .rr-tooth-picker[data-disabled="true"] .rr-tooth-change { display: none; }
 
@@ -1104,55 +1201,32 @@
 
 @media (max-width: 639px) {
   .rr-tooth-picker > summary { min-height: 52px; }
-  .rr-tooth-picker[open]::before {
-    position: fixed;
-    z-index: 38;
-    inset: 64px 0 0;
-    background: rgba(5, 15, 27, .5);
-    content: '';
-    pointer-events: none;
-  }
+  .rr-tooth-picker[open]::before { inset: 64px 0 0; }
   .rr-tooth-picker-body {
-    position: fixed;
-    z-index: 40;
+    top: auto;
     right: 8px;
     bottom: 72px;
     left: 8px;
+    width: auto;
     max-height: calc(100dvh - 148px);
     padding: 10px 8px;
-    overflow: auto;
-    overscroll-behavior: contain;
-    border: 1px solid var(--rr-line-strong);
+    transform: none;
     border-radius: 14px;
-    background: var(--rr-surface);
-    box-shadow: 0 20px 52px rgba(5, 18, 31, .34);
-    grid-template-columns: minmax(0, 1fr) auto;
   }
-  .rr-tooth-picker-close {
-    display: inline-flex;
-    min-width: 64px;
-    min-height: 44px;
-    align-items: center;
-    justify-content: center;
-    padding: 7px 10px;
-    border: 1px solid var(--rr-line);
-    border-radius: 10px;
-    background: var(--rr-surface);
-    color: var(--rr-primary);
-    font: 750 12px/16px var(--smyl-ui-font, Inter, system-ui, sans-serif);
-    cursor: pointer;
-  }
-  .rr-tooth-orientation { grid-column: 1; }
-  .rr-tooth-chart,
-  .rr-tooth-picker-help,
-  .rr-tooth-clear { grid-column: 1 / -1; }
-  .rr-tooth-orientation { padding-right: 3px; padding-left: 57px; }
-  .rr-tooth-row { grid-template-columns: 50px minmax(0, 1fr); gap: 5px; }
-  .rr-tooth-row-label strong { font-size: 12px; }
-  .rr-tooth-row-label small { font-size: 12px; }
-  .rr-tooth-options { gap: 3px; }
-  .rr-tooth-option { min-height: 44px; font-size: 12px; }
-  .rr-tooth-picker-help, .rr-tooth-clear { margin-left: 55px; }
+  .rr-tooth-picker-close { min-width: 64px; min-height: 44px; }
+  .rr-tooth-orientation { gap: 8px; padding: 0 4px; font-size: 11px; }
+  .rr-tooth-chart { padding: 2px 1px; gap: 12px 6px; }
+  .rr-tooth-options { gap: 0; }
+  .rr-tooth-option { min-height: 58px; padding-inline: 0; font-size: 10px; }
+  .rr-tooth-glyph { width: 17px; height: 38px; }
+  .rr-tooth-glyph-incisor { width: 14px; }
+  .rr-tooth-glyph-canine { width: 15px; }
+  .rr-tooth-glyph-premolar { width: 17px; }
+  .rr-tooth-glyph-molar { width: 19px; }
+  .rr-tooth-number { min-width: 17px; padding-inline: 1px; font-size: 10px; }
+  .rr-tooth-picker-help { overflow: hidden; font-size: 11px; line-height: 15px; text-overflow: ellipsis; white-space: nowrap; }
+  .rr-tooth-clear { min-height: 44px; }
+  .rr-review:has(.rr-tooth-picker[open]) .rr-save { visibility: hidden; pointer-events: none; }
 }
 
 @media (max-width: 359px) {

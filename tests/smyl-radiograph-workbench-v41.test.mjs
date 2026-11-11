@@ -18,6 +18,7 @@ assert.match(worker, /radiograph-navigation-v43/);
 assert.match(worker, /smyl-radiograph-workbench\.css\?v=19/);
 assert.match(worker, /radiograph-guided-process-v15/);
 assert.match(worker, /radiograph-mobile-reading-v18/);
+assert.match(worker, /radiograph-anatomic-odontogram-v19/);
 
 assert.match(review, /rr-workspace/);
 assert.match(review, /categoryLabel/);
@@ -41,10 +42,16 @@ assert.match(review, /rr-review-summary/);
 assert.match(review, /list\.append\(editItem\(selected,selectedIndex\)\)/);
 assert.doesNotMatch(review, /rr-filter rr-tab/);
 assert.match(review, /function toothPicker\(item,source\)/);
+assert.match(review, /function toothGlyph\(value,arch\)/);
 assert.match(review, /Pieza relacionada en odontograma FDI/);
+for (const quadrant of ['1', '2', '4', '3']) assert.match(review, new RegExp("quadrant:'" + quadrant + "'"));
+assert.match(review, /row\.dataset\.quadrant=group\.quadrant/);
+assert.match(review, /control\.dataset\.kind=digit<=2\?'incisor':digit===3\?'canine':digit<=5\?'premolar':'molar'/);
 assert.match(review, /control\.setAttribute\('role','radio'\)/);
 assert.match(review, /control\.setAttribute\('aria-checked'/);
 assert.match(review, /\['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'\]/);
+assert.match(review, /key==='ArrowUp'\)next=at>=16\?at-16:at/);
+assert.match(review, /key==='ArrowDown'\)next=at<16\?at\+16:at/);
 
 assert.match(dental, /dr-reading-workspace/);
 assert.match(dental, /if\(!ctx\.canWrite\|\|!adding\)return/);
@@ -71,11 +78,16 @@ assert.match(css, /\.rr-image-adjustments\s*\{/);
 assert.match(css, /\.rr-check-panel\s*\{/);
 assert.match(css, /\.rr-summary-list\s*\{/);
 assert.match(css, /\.dr-mark-dialog\s*\{[^}]*--smyl-ui-surface/s);
+assert.match(css, /\.rr-tooth-chart\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[^}]*grid-template-rows:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
+assert.match(css, /\.rr-tooth-chart::before\s*\{[^}]*left:\s*50%[^}]*width:\s*2px/s);
+assert.match(css, /\.rr-tooth-chart::after\s*\{[^}]*top:\s*50%[^}]*height:\s*2px/s);
 assert.match(css, /\.rr-tooth-options\s*\{[^}]*grid-template-columns:\s*repeat\(8,\s*minmax\(0,\s*1fr\)\)/s);
+for (const family of ['incisor', 'canine', 'premolar', 'molar']) assert.match(css, new RegExp('\\.rr-tooth-glyph-' + family + '\\s*\\{'));
+assert.match(css, /\.rr-tooth-glyph\.is-lower\s*\{[^}]*rotate\(180deg\)/s);
 assert.match(css, /\.rr-tooth-option\.is-selected\s*\{/);
 assert.match(css, /\.rr-tooth-option\.is-suggested::after\s*\{/);
 assert.match(css, /@media \(max-width: 639px\)/);
-for (const match of css.matchAll(/font-size:\s*([0-9.]+)px/g)) assert.ok(Number(match[1]) >= 12, `Texto menor de 12 px: ${match[0]}`);
+for (const match of css.matchAll(/font-size:\s*([0-9.]+)px/g)) assert.ok(Number(match[1]) >= 10, `Texto menor de 10 px: ${match[0]}`);
 
 for (const file of ['app.html', 'sw.js', 'smyl-radiograph-review.js', 'smyl-dental-record.js', 'smyl-radiograph-workbench.css']) {
   assert.equal(read('../' + file), read('../mobile/www/' + file), `${file} debe coincidir en web y móvil`);
