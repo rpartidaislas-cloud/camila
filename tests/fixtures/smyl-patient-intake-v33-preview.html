@@ -9,11 +9,13 @@
   <link rel="stylesheet" href="../../smyl-clinic.css">
   <style>
     *{box-sizing:border-box}body{margin:0;background:#eef3f8;font-family:Inter,system-ui,sans-serif}.qa-page{min-height:100vh;padding:48px;background:linear-gradient(135deg,#edf3f7,#f8fafc)}
-    .qa-page h1{margin:0;color:#102239;font-size:32px}.qa-page p{color:#667586}.modal-bg{position:fixed;inset:0;z-index:20;display:none;background:rgba(10,24,38,.54)}.modal-bg.visible{display:flex}.modal{background:#fff}.form-grid{display:grid}.fg{display:flex;flex-direction:column}.fg.full{grid-column:1/-1}.modal-footer{display:flex}.btn{border:1px solid #d7e0e8;background:#fff;color:#102239;font:600 13px Inter,system-ui,sans-serif}.btn-primary{background:#102239;color:#fff}.clinic-notice{padding:12px}
+    .qa-page h1{margin:0;color:#102239;font-size:32px}.qa-page p{color:#667586}.modal-bg{position:fixed;inset:0;z-index:20;display:none;background:rgba(10,24,38,.54)}.modal-bg.visible{display:flex}.modal{background:#fff}.form-grid{display:grid}.fg{display:flex;flex-direction:column}.fg.full{grid-column:1/-1}.modal-footer{display:flex}.btn{border:1px solid #d7e0e8;background:#fff;color:#102239;font:600 13px Inter,system-ui,sans-serif}.btn-primary{background:#102239;color:#fff}.clinic-notice{padding:12px}.qa-bottom-nav{display:none}
+    @media(max-width:768px){.qa-page{padding:24px 16px 96px}.qa-bottom-nav{position:fixed;z-index:40;right:0;bottom:0;left:0;display:flex;height:calc(66px + env(safe-area-inset-bottom,0px));align-items:center;justify-content:space-around;padding-bottom:env(safe-area-inset-bottom,0px);border-top:1px solid #d7e0e8;background:rgba(255,255,255,.97)}.qa-bottom-nav span{color:#526174;font-size:12px}}
   </style>
 </head>
 <body>
   <main class="qa-page"><h1>Directorio de pacientes</h1><p>Fixture visual con datos sintéticos.</p></main>
+  <nav class="bottom-nav qa-bottom-nav" aria-label="Navegación principal móvil"><span>Inicio</span><span>Agenda</span><span>Pacientes</span><span>Chat</span><span>Más</span></nav>
   <script>
     fetch('../../app.html').then(r=>r.text()).then(html=>{
       const start=html.indexOf('<div class="modal-bg" id="modal-paciente">');
@@ -22,6 +24,7 @@
       const modal=document.querySelector('#modal-paciente');
       modal.dataset.smylLegacyDialog='true';
       modal.classList.add('visible');
+      document.body.classList.add('smyl-patient-dialog-open');
       modal.querySelector('#patient-clinic-line').textContent='Clínica: Clínica de prueba · Sucursal: Centro';
       modal.querySelectorAll('button').forEach(button=>button.removeAttribute('onclick'));
       modal.querySelectorAll('.clinic-patient-extra').forEach(details=>{

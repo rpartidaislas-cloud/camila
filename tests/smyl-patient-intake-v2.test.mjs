@@ -61,7 +61,7 @@ test('web, móvil y PWA publican la misma alta de pacientes v2', () => {
   }
   for (const file of ['app.html', 'sw.js']) {
     const source = read(file);
-    assert.match(source, /smyl-clinic\.js\?v=22/, `${file} debe cargar smyl-clinic.js v22`);
-    assert.match(source, /smyl-clinic\.css\?v=11/, `${file} debe cargar smyl-clinic.css v11`);
+    assert.match(source, /smyl-clinic\.js\?v=23/, `${file} debe cargar smyl-clinic.js v23`);
+    assert.match(source, /smyl-clinic\.css\?v=12/, `${file} debe cargar smyl-clinic.css v12`);
   }
 });

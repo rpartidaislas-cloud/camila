@@ -66,8 +66,9 @@ test('Nuevo paciente sigue la política visual y revela lo opcional al final', (
   assert.match(modal, /Autorizó mensajes por WhatsApp/);
   assert.match(modal, /Alerta para la atención/);
   assert.match(modal, /<details class="clinic-secondary clinic-patient-extra/);
-  assert.match(modal, />Crear y abrir expediente</);
-  assert.match(clinic, /id \? 'Guardar cambios' : 'Crear y abrir expediente'/);
+  assert.match(modal, />Crear paciente</);
+  assert.match(modal, /<button(?=[^>]*\bid="patient-save-button")(?=[^>]*\btype="button")(?=[^>]*\bonclick="guardarPaciente\(\)")[^>]*>Crear paciente<\/button>/, 'la acción primaria debe existir desde el primer render, sin depender de JavaScript tardío');
+  assert.match(clinic, /id \? 'Guardar cambios' : 'Crear paciente'/);
   assert.match(css, /width:min\(720px,calc\(100vw - 32px\)\)/);
   assert.match(css, /#modal-paciente \.mp-body/);
   assert.match(css, /#modal-paciente \.fg>:is\(input,select,textarea\)[\s\S]*?min-height:46px/);
@@ -77,6 +78,12 @@ test('Nuevo paciente sigue la política visual y revela lo opcional al final', (
   assert.match(clinic, /updatePatientExtraSummaries/, 'las filas cerradas deben resumir lo capturado');
   assert.match(css, /#modal-paciente \.mp-body\{display:flex;flex-direction:column/, 'el cuerpo debe crecer y desplazarse sin recortar secciones');
   assert.match(css, /clinic-patient-extra\{flex:0 0 auto/, 'los paneles abiertos no deben comprimirse');
+  assert.match(css, /body\.smyl-patient-dialog-open :is\([^)]*\.bottom-nav[^)]*\)\{display:none!important/, 'la navegación inferior no debe cubrir la acción primaria');
+  assert.match(css, /#modal-paciente\[data-smyl-legacy-dialog=true\]\.visible\{[^}]*height:var\(--smyl-patient-viewport-height,100dvh\)/, 'el alta debe ocupar la altura visual disponible del PWA');
+  assert.match(css, /#modal-paciente[^\{]* \.modal-paciente\{[^}]*grid-template-rows:auto minmax\(0,1fr\) auto auto/, 'encabezado, cuerpo desplazable y acción deben conservar su propia fila');
+  assert.match(css, /@media\(max-width:640px\)[\s\S]*?#modal-paciente \.modal-footer \.btn\{[^}]*width:100%[^}]*min-height:52px/, 'la acción primaria móvil debe ser inequívoca y fácil de tocar');
+  assert.match(clinic, /from\('camila_pacientes'\)\.insert\(\[Object\.assign\(\{ id: patientAttempt \}, payload\)\]\)\.select\('\*'\)\.single\(\)/, 'el botón debe ejecutar un alta confirmada por la base');
+  assert.match(clinic, /await verPaciente\(saved\.id\)/, 'tras guardar debe abrir el expediente creado');
 });
 
 test('la fixture visual del directorio sólo usa datos sintéticos', () => {

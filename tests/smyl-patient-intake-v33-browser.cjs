@@ -15,7 +15,9 @@ const path = require('path');
   const sizes = [
     { name: 'desktop-1280', width: 1280, height: 800 },
     { name: 'tablet-820', width: 820, height: 900 },
-    { name: 'mobile-390', width: 390, height: 844 }
+    { name: 'mobile-390', width: 390, height: 844 },
+    { name: 'mobile-320', width: 320, height: 700 },
+    { name: 'mobile-keyboard', width: 390, height: 620 }
   ];
   const report = [];
   for (const size of sizes) {
@@ -32,7 +34,14 @@ const path = require('path');
     const metrics = await page.evaluate(() => {
       const modal = document.querySelector('.modal-paciente');
       const footer = document.querySelector('#modal-paciente .modal-footer');
+      const body = document.querySelector('#modal-paciente .mp-body');
       const input = document.querySelector('#mp-nombre');
+      const primary = footer.querySelector('.btn-primary');
+      const nav = document.querySelector('.qa-bottom-nav');
+      const footerBox = footer.getBoundingClientRect();
+      const primaryBox = primary.getBoundingClientRect();
+      const navBox = nav.getBoundingClientRect();
+      const navVisible = getComputedStyle(nav).display !== 'none';
       return {
         viewport: document.documentElement.clientWidth,
         scrollWidth: document.documentElement.scrollWidth,
@@ -40,11 +49,24 @@ const path = require('path');
         modalWidth: Math.round(modal.getBoundingClientRect().width),
         modalHeight: Math.round(modal.getBoundingClientRect().height),
         inputHeight: Math.round(input.getBoundingClientRect().height),
-        footerVisible: footer.getBoundingClientRect().bottom <= innerHeight + 1,
+        footerVisible: footerBox.top >= -1 && footerBox.bottom <= innerHeight + 1,
+        footerPosition: getComputedStyle(footer).position,
+        footerAboveNav: !navVisible || footerBox.bottom <= navBox.top + 1,
+        navVisible,
+        bodyScrolls: body.scrollHeight > body.clientHeight,
+        bodyOverflowY: getComputedStyle(body).overflowY,
+        primaryId: primary.id,
+        primaryType: primary.type,
+        primaryTabIndex: primary.tabIndex,
+        primaryDisabled: primary.disabled,
+        primaryHeight: Math.round(primaryBox.height),
+        primaryVisible: primaryBox.top >= -1 && primaryBox.bottom <= innerHeight + 1,
+        primaryName: primary.textContent.trim(),
         actions: footer.querySelectorAll('button').length
       };
     });
-    if (metrics.horizontalOverflow || metrics.inputHeight < 44 || !metrics.footerVisible || metrics.actions !== 2) throw new Error(`${size.name}: ${JSON.stringify(metrics)}`);
+    const isMobile = size.width <= 768;
+    if (metrics.horizontalOverflow || metrics.inputHeight < 44 || !metrics.footerVisible || !metrics.primaryVisible || metrics.actions !== 2 || metrics.primaryId !== 'patient-save-button' || metrics.primaryType !== 'button' || metrics.primaryTabIndex < 0 || metrics.primaryDisabled || metrics.primaryName !== 'Crear paciente' || (isMobile && (metrics.navVisible || !metrics.footerAboveNav || metrics.primaryHeight < 44 || metrics.bodyOverflowY !== 'auto'))) throw new Error(`${size.name}: ${JSON.stringify(metrics)}`);
     await page.screenshot({ path: path.join(output, `${size.name}.png`), fullPage: true });
     report.push({ ...size, ...metrics });
     await page.close();

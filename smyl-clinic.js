@@ -875,6 +875,8 @@
   async function savePatient() {
     if (savingPatient) return;
     var feedback = document.getElementById('patient-feedback'); feedback.replaceChildren();
+    var saveButton = document.getElementById('patient-save-button');
+    var saveLabel = editandoPacienteId ? 'Guardar cambios' : 'Crear paciente';
     var ids = ['mp-nombre','mp-apellido','mp-email','mp-tel','mp-fnac','mp-genero','mp-notas'];
     for (var id of ids) { if (!document.getElementById(id).reportValidity()) return; }
     if (!tenantId) { feedback.append(notice('Inicia sesión para guardar en tu clínica.', true)); return; }
@@ -901,7 +903,9 @@
       if (hits.length) { renderDuplicates(hits); feedback.append(notice('Revisa el posible duplicado antes de guardar.', true)); return; }
     }
     patientAttempt = patientAttempt || crypto.randomUUID();
-    savingPatient = true; document.querySelectorAll('#modal-paciente button,#modal-paciente input,#modal-paciente select,#modal-paciente textarea').forEach(function (b) { b.disabled = true; });
+    savingPatient = true;
+    if (saveButton) { saveButton.textContent = 'Guardando…'; saveButton.setAttribute('aria-busy','true'); }
+    document.querySelectorAll('#modal-paciente button,#modal-paciente input,#modal-paciente select,#modal-paciente textarea').forEach(function (b) { b.disabled = true; });
     try {
       var buildQuery = function (payload) {
         if (editing) {
@@ -941,6 +945,7 @@
     } finally {
       savingPatient = false;
       document.querySelectorAll('#modal-paciente button,#modal-paciente input,#modal-paciente select,#modal-paciente textarea').forEach(function (b) { b.disabled = false; });
+      if (saveButton) { saveButton.textContent = saveLabel; saveButton.removeAttribute('aria-busy'); }
       updateWhatsAppConsent();
     }
   }
@@ -1014,7 +1019,7 @@
       document.getElementById('mp-nombre').focus();
       updatePatientClinicLine();
       var save = document.getElementById('patient-save-button');
-      if (save) { save.disabled = false; save.textContent = id ? 'Guardar cambios' : 'Crear y abrir expediente'; }
+      if (save) { save.disabled = false; save.textContent = id ? 'Guardar cambios' : 'Crear paciente'; }
       var patient = id ? todosLosPacientes.find(function (p) { return p.id === id; }) : null;
       var parts = splitPhone(patient ? patient.telefono : '');
       document.getElementById('mp-tel-cc').value = parts.cc; document.getElementById('mp-tel').value = parts.national;
@@ -1050,6 +1055,23 @@
     addEventListener('beforeunload', function (event) { if ((current && (current.dirty || current.saving || current.aiBusy)) || savingPatient) { event.preventDefault(); event.returnValue = ''; } });
     var modal = document.getElementById('modal-paciente');
     modal.setAttribute('role','dialog'); modal.setAttribute('aria-modal','true'); modal.setAttribute('aria-labelledby','modal-pac-title');
+    var patientViewport = window.visualViewport;
+    var syncPatientDialogShell = function () {
+      var open = modal.classList.contains('visible');
+      document.body.classList.toggle('smyl-patient-dialog-open', open);
+      if (!open) return;
+      var height = Math.max(320, Math.round(patientViewport ? patientViewport.height : window.innerHeight));
+      var top = Math.max(0, Math.round(patientViewport ? patientViewport.offsetTop : 0));
+      modal.style.setProperty('--smyl-patient-viewport-height', height + 'px');
+      modal.style.setProperty('--smyl-patient-viewport-top', top + 'px');
+    };
+    new MutationObserver(syncPatientDialogShell).observe(modal,{attributes:true,attributeFilter:['class']});
+    window.addEventListener('resize',syncPatientDialogShell,{passive:true});
+    if (patientViewport) {
+      patientViewport.addEventListener('resize',syncPatientDialogShell,{passive:true});
+      patientViewport.addEventListener('scroll',syncPatientDialogShell,{passive:true});
+    }
+    syncPatientDialogShell();
     document.getElementById('mp-nombre').required = true;
     [['mp-nombre',150],['mp-apellido',150],['mp-email',254],['mp-tel',40],['mp-notas',8000]].forEach(function (pair) { document.getElementById(pair[0]).maxLength = pair[1]; });
     modal.querySelectorAll('.fg').forEach(function (f) { var label = f.querySelector('label'), input = f.querySelector('input,textarea,select'); if (label && input && !label.htmlFor) label.htmlFor = input.id; });

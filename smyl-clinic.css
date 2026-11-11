@@ -362,7 +362,25 @@
 #modal-paciente .modal-footer .btn-primary{min-width:184px;background:var(--smyl-ui-primary,#0b1b2e);border-color:var(--smyl-ui-primary,#0b1b2e)}
 #modal-paciente #patient-feedback:not(:empty){padding:0 24px 16px}
 #modal-paciente #mp-duplicados:not(:empty){margin-top:12px}
-@media(max-width:640px){#modal-paciente[data-smyl-legacy-dialog=true] .modal-paciente{width:100vw!important}#modal-paciente .modal-header{padding:max(16px,env(safe-area-inset-top)) 16px 14px!important}#modal-paciente .mp-body{gap:12px;padding:18px 16px 22px}#modal-paciente .mp-block-head{display:grid;gap:3px}#modal-paciente .mp-block-head p{text-align:left}#modal-paciente .form-grid{grid-template-columns:1fr}#modal-paciente .modal-footer{align-items:stretch;flex-direction:column;padding:12px 16px max(12px,env(safe-area-inset-bottom))!important}#modal-paciente .modal-footer>p{display:none}#modal-paciente .mp-footer-actions{display:grid;grid-template-columns:minmax(0,.72fr) minmax(0,1.28fr);width:100%;margin:0}#modal-paciente .modal-footer .btn{min-height:48px;min-width:0;padding-inline:10px}#modal-paciente #patient-feedback:not(:empty){padding:0 16px 14px}}
+#modal-paciente.visible{z-index:1200!important}
+body.smyl-patient-dialog-open{overflow:hidden!important}
+@media(max-width:640px){
+  body.smyl-patient-dialog-open :is(.pro-mobile-nav,.bottom-nav,.fab-wrap,.fab-container,#fab-main){display:none!important;pointer-events:none!important}
+  #modal-paciente[data-smyl-legacy-dialog=true].visible{top:var(--smyl-patient-viewport-top,0px)!important;right:0!important;bottom:auto!important;left:0!important;height:var(--smyl-patient-viewport-height,100dvh)!important;min-height:0!important;padding:0!important}
+  #modal-paciente[data-smyl-legacy-dialog=true] .modal-paciente{display:grid!important;grid-template-rows:auto minmax(0,1fr) auto auto;width:100vw!important;height:100%!important;max-height:100%!important;margin:0!important;overflow:hidden!important}
+  #modal-paciente .modal-header{position:relative!important;flex:0 0 auto;padding:max(16px,env(safe-area-inset-top)) 16px 14px!important}
+  #modal-paciente .mp-body{min-height:0;gap:12px;padding:18px 16px 22px;overflow-y:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scroll-padding-block:18px 96px}
+  #modal-paciente .mp-block-head{display:grid;gap:3px}
+  #modal-paciente .mp-block-head p{text-align:left}
+  #modal-paciente .form-grid{grid-template-columns:1fr}
+  #modal-paciente #patient-feedback:not(:empty){max-height:28dvh;padding:10px 16px;overflow:auto;border-top:1px solid var(--smyl-ui-border,#d9e2ec);background:#fff}
+  #modal-paciente .modal-footer{position:relative!important;bottom:auto!important;z-index:4;align-items:stretch;flex:0 0 auto;flex-direction:column;padding:10px 16px max(10px,env(safe-area-inset-bottom))!important;background:#fff!important;box-shadow:0 -10px 24px rgba(11,27,46,.08)}
+  #modal-paciente .modal-footer>p{display:none}
+  #modal-paciente .mp-footer-actions{display:grid;grid-template-columns:1fr;width:100%;margin:0}
+  #modal-paciente .mp-footer-actions .btn-secondary{display:none}
+  #modal-paciente .modal-footer .btn{width:100%!important;min-width:0;min-height:52px;padding-inline:14px;border-radius:12px;font-size:15px}
+  #modal-paciente .modal-footer .btn-primary{min-width:0}
+}
 
 /* Ficha 360: el root deja de ser una tarjeta para evitar superficies anidadas. */
 #p-paciente-detalle .p360-root{
