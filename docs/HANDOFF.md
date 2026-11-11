@@ -17,7 +17,14 @@
 - Cuando la calidad es `unusable`, SMYL muestra **No evaluable por IA** y permite **Continuar sin evaluación de IA**. El original permanece disponible, no se generan señales, no se guarda una revisión falsa y el expediente queda como **Pendiente manual**; el dentista puede volver a comprobar la imagen o subir otra toma.
 - La experiencia responsive/PWA quedó corregida también en el resumen: las acciones ya no se envuelven fuera del diálogo a 390/320 px, mantienen objetivos táctiles de 44 px y no producen desbordamiento. Web y `mobile/www` están sincronizados con cliente `v=12`, revisión `v=21`, CSS `v=16`, expediente `v=24` y caché `radiograph-multiscale-abstention-v16`.
 - No se cambian tablas, migraciones, permisos ni la Edge Function. La mejora queda confinada a preparación de imagen, contrato seguro del cliente y presentación de estados. Suite completa aprobada sin fallos; recorridos Playwright normal y `unusable` aprobados en 1280×820, 820×900, 390×844 y 320×700. Capturas en `artifacts/radiograph-multiscale-abstention-v16/`.
+## 2026-11-10 — Codex — Favicon con identidad SMYL
 
+- La pestaña de `app.html` deja de usar el ícono morado histórico y muestra el
+  logotipo cuadrado oficial de SMYL (`icons/smyl_pwa.png`).
+- El favicon y el acceso de Apple usan el mismo activo con versión `v=2` para
+  evitar que el navegador conserve el ícono anterior en caché.
+- Web y `mobile/www` permanecen sincronizados. No se modificaron el manifiesto,
+  los atajos instalables, la lógica de la aplicación ni el backend.
 ## 2026-11-10 — Codex — Revisión radiográfica guiada v15
 
 - La revisión asistida deja de mezclar imagen, filtros, señales y cierre en una sola superficie. Ahora sigue tres pasos reales y visibles: **Comprobar imagen**, **Revisar señales** y **Resumen**.
