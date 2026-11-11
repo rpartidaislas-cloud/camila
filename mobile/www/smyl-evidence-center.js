@@ -667,7 +667,7 @@
           return;
         }
         error.textContent = '';
-        this.submitDraft();
+        this.submitDraft(error);
       });
       const summary = element('div', 'sec-selected-category sec-selected-category-change');
       summary.append(icon(category.icon), element('div'));
@@ -774,7 +774,7 @@
       body.append(form);
     }
 
-    async submitDraft() {
+    async submitDraft(errorNode) {
       const payload = {
         modality: this.draft.modality,
         subtype: this.draft.subtype,
@@ -793,8 +793,13 @@
         else this.root.dispatchEvent(new CustomEvent('smyl:evidence:create', { bubbles: true, detail: payload }));
         this.closeAdd();
       } catch (error) {
-        const message = element('p', 'sec-error', error?.message || 'No se pudo guardar la evidencia. Intenta nuevamente.');
-        this.dialog.querySelector('.sec-dialog-body')?.prepend(message);
+        const message = error?.message || 'No se pudo guardar la evidencia. Intenta nuevamente.';
+        const target = errorNode || this.dialog.querySelector('.sec-inline-error');
+        if (target) {
+          target.textContent = message;
+          target.tabIndex = -1;
+          target.focus({ preventScroll: true });
+        }
       } finally {
         this.dialog.dataset.busy = 'false';
         this.dialog.querySelectorAll('button').forEach(control => { control.disabled = false; });

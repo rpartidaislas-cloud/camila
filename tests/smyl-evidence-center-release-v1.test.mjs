@@ -14,8 +14,8 @@ const assets = [
 test('la aplicación carga el contrato antes del centro y la integración después del expediente', () => {
   const app = read('app.html');
   const model = app.indexOf('smyl-evidence-model.js?v=1');
-  const center = app.indexOf('smyl-evidence-center.js?v=6');
-  const workspace = app.indexOf('smyl-case-workspace.js?v=31');
+  const center = app.indexOf('smyl-evidence-center.js?v=7');
+  const workspace = app.indexOf('smyl-case-workspace.js?v=32');
   const integration = app.indexOf('smyl-evidence-center-integration.js?v=4');
   assert.ok(model > -1 && model < center);
   assert.ok(center < workspace && workspace < integration);
@@ -25,10 +25,10 @@ test('el service worker precarga todos los recursos del centro clínico', () => 
   const serviceWorker = read('sw.js');
   for (const asset of assets) assert.match(serviceWorker, new RegExp(`/camila/${asset.replaceAll('.', '\\.')}`));
   assert.match(serviceWorker, /evidence-center-ux-v4/);
-  assert.match(serviceWorker, /smyl-evidence-center\.js\?v=6/);
+  assert.match(serviceWorker, /smyl-evidence-center\.js\?v=7/);
   assert.match(serviceWorker, /smyl-evidence-center\.css\?v=4/);
   assert.match(serviceWorker, /smyl-evidence-center-integration\.js\?v=4/);
-  assert.match(serviceWorker, /smyl-case-workspace\.js\?v=31/);
+  assert.match(serviceWorker, /smyl-case-workspace\.js\?v=32/);
   assert.match(serviceWorker, /smyl-evidence-center-integration\.css\?v=2/);
 });
 

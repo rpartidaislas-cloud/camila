@@ -58,7 +58,7 @@ test('la nueva superficie concentra mapa, inspector y contexto con respuesta mó
 test('web, móvil y PWA publican la etapa 3.7', () => {
   assert.match(app, /smyl-patient-360\.js\?v=26/);
   assert.match(app, /smyl-case-workspace\.css\?v=24/);
-  assert.match(app, /smyl-case-workspace\.js\?v=31/);
+  assert.match(app, /smyl-case-workspace\.js\?v=32/);
   assert.match(app, /smyl-clinical-photo-review\.js\?v=1/);
   assert.match(worker, /source-workspace-v37/);
   for (const file of [

@@ -6,7 +6,7 @@ const source = readFileSync(new URL('../smyl-evidence-center.js', import.meta.ur
 
 test('la carga radiografica no pide una pieza antes de la valoracion profesional', () => {
   const detailsStart = source.indexOf('renderDetailsStep(body, category)');
-  const detailsEnd = source.indexOf('async submitDraft()', detailsStart);
+  const detailsEnd = source.indexOf('async submitDraft(', detailsStart);
   assert.ok(detailsStart > -1 && detailsEnd > detailsStart, 'debe existir el paso de detalles');
   const details = source.slice(detailsStart, detailsEnd);
 
@@ -26,7 +26,7 @@ test('la carga radiografica no pide una pieza antes de la valoracion profesional
 
 test('el payload radiografico no conserva ubicacion anatomica del asistente de carga', () => {
   const detailsStart = source.indexOf('renderDetailsStep(body, category)');
-  const detailsEnd = source.indexOf('async submitDraft()', detailsStart);
+  const detailsEnd = source.indexOf('async submitDraft(', detailsStart);
   assert.ok(detailsStart > -1 && detailsEnd > detailsStart, 'debe existir el paso de detalles');
   const details = source.slice(detailsStart, detailsEnd);
 

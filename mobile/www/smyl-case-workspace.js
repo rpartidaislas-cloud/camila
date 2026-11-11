@@ -167,8 +167,6 @@
   sections.forEach((section,current)=>{section.hidden=current!==1;section.open=current===1;});return true;
  }
  function reviewPart(ctx,index){
-  const sections=ctx.reviewPart?.body.querySelectorAll('.dr-record>.dr-form>.dr-section')||[];
-  if(!sections.length)return false;
   if(!advancedPart(ctx,index))return false;
   ctx.advancedEditor.hidden=false;
   if(ctx.advancedEditor)ctx.advancedEditor.open=true;
@@ -482,7 +480,9 @@
  function adopt(ctx){
   const screen=document.getElementById('p-paciente-detalle'),gallery=screen.querySelector('.pc-gallery'),dental=screen.querySelector('.dr-record');
   if(gallery&&!gallery.closest('[data-p360-panel="simulations"]')&&!ctx.evidencePart.body.contains(gallery)){gallery.classList.add('cw-simulation-source');gallery.setAttribute('aria-hidden','true');ctx.evidencePart.body.insertBefore(gallery,ctx.photoHint);}
-  if(dental&&!ctx.reviewPart.body.contains(dental))ctx.reviewPart.body.insertBefore(dental,ctx.reviewHelp);
+  if(dental?.dataset.workspaceOrganized==='true'){
+   if(ctx.advancedEditor&&!ctx.advancedEditor.contains(dental))ctx.advancedEditor.append(dental);
+  }else if(dental&&!ctx.reviewPart.body.contains(dental))ctx.reviewPart.body.insertBefore(dental,ctx.reviewHelp);
   organizeReview(ctx,dental);
  }
  function select(ctx,entry){

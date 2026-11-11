@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>QA · Cargador radiográfico real</title>
+  <style>
+    body{font-family:system-ui,sans-serif;margin:0;background:#f3f6f8;color:#102239}
+    #p-paciente-detalle{padding:24px}.dr-section{padding:12px}.qa-result{margin:0 0 16px;padding:12px;background:#fff}
+  </style>
+</head>
+<body>
+  <main id="p-paciente-detalle" class="pantalla activa">
+    <p class="qa-result" role="status">Preparando editor real…</p>
+    <div class="clinic-layout">
+      <section class="dr-record">
+        <form class="dr-form">
+          <details class="dr-section"><summary>Odontograma</summary></details>
+          <details class="dr-section">
+            <summary>Radiografías</summary>
+            <div class="dr-upload-fields">
+              <label class="dr-study-type">Tipo<select><option value="panoramic">Panorámica</option></select></label>
+              <label>Nombre<input type="text"></label>
+              <label>Fecha<input type="date"></label>
+              <label>Archivo<input type="file" accept="image/jpeg,image/png"></label>
+            </div>
+          </details>
+        </form>
+      </section>
+    </div>
+  </main>
+  <script>
+    window.tenantId='11111111-1111-4111-8111-111111111111';
+    window.pacienteActual={id:'22222222-2222-4222-8222-222222222222',nombre:'Paciente QA'};
+    window.ir=()=>true;
+    window.SmylPatient360={files:()=>({total:0,items:[]}),context:()=>null,open:()=>true};
+    window.SmylPatientProgress={status:()=>({ready:true,notes:{},appointments:{}})};
+    window.SmylClinicalWorkflow={status:()=>({available:true,ready:false})};
+    window.SmylDentalProgress={
+      status:()=>({ready:true,busy:false,dirty:false,studies:0,studyItems:[],teeth:{}}),
+      map:()=>null
+    };
+  </script>
+  <script src="../../smyl-evidence-model.js"></script>
+  <script src="../../smyl-evidence-center.js"></script>
+  <script src="../../smyl-case-workspace.js"></script>
+  <script src="../../smyl-evidence-center-integration.js"></script>
+  <script>
+    const waitFor=(read,timeout=4000)=>new Promise((resolve,reject)=>{const started=Date.now(),tick=()=>{const value=read();if(value)return resolve(value);if(Date.now()-started>timeout)return reject(new Error('Tiempo de espera agotado'));setTimeout(tick,25);};tick();});
+    addEventListener('load',()=>setTimeout(async()=>{
+      try{
+        await waitFor(()=>window.SmylEvidenceCenterIntegration?.openAdd?.('radiograph_2d'));
+        const panoramic=await waitFor(()=>[...document.querySelectorAll('.sec-type')].find(button=>button.textContent.includes('Panorámica')));
+        panoramic.click();
+        const sourceInput=await waitFor(()=>document.querySelector('.sec-file-input'));
+        const transfer=new DataTransfer(),file=new File(['radiograph-qa'],'panoramica-qa.png',{type:'image/png'});
+        transfer.items.add(file);sourceInput.files=transfer.files;sourceInput.dispatchEvent(new Event('change',{bubbles:true}));
+        sourceInput.form.requestSubmit();
+        const editor=await waitFor(()=>{const value=document.querySelector('.cw-advanced-editor');return value?.querySelector('.dr-record')&&value?.querySelector('input[type="file"]')?.files?.length?value:null;});
+        const targetInput=editor.querySelector('input[type="file"]');
+        window.__radiographIntake={
+          ok:true,
+          connected:editor.isConnected,
+          hidden:editor.hidden,
+          open:editor.open,
+          inEvidence:!!editor.closest('#cw-evaluation-panel-evidence'),
+          containsRecord:!!editor.querySelector('.dr-record'),
+          fileTransferred:targetInput.files[0]?.name==='panoramica-qa.png',
+          dialogClosed:!document.querySelector('.sec-dialog')?.open,
+          errorCount:document.querySelectorAll('.sec-error').length,
+          inlineError:document.querySelector('.sec-inline-error')?.textContent||''
+        };
+      }catch(error){window.__radiographIntake={ok:false,error:error.message};}
+      document.body.dataset.intake=window.__radiographIntake.ok?'ok':'failed';
+      document.body.dataset.fileTransferred=String(!!window.__radiographIntake.fileTransferred);
+      document.body.dataset.dialogClosed=String(!!window.__radiographIntake.dialogClosed);
+      document.body.dataset.errorCount=String(window.__radiographIntake.errorCount??-1);
+      document.querySelector('.qa-result').textContent=window.__radiographIntake.ok?'Archivo transferido al editor radiográfico':'No se pudo abrir el editor';
+    },220));
+  </script>
+</body>
+</html>
