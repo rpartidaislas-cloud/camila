@@ -10632,3 +10632,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - Se añade `smyl-dashboard-v2.css?v=1` como capa aislada posterior a la plantilla global. No modifica otros módulos, datos, permisos ni backend. `smyl-daily-home.js` sube a v15 y el caché PWA termina en `dashboard-operativo-v2`.
 - La nueva capa no añade microtexto inferior a 12 px, mantiene foco visible, controles táctiles y layouts específicos para escritorio, tableta y móvil. `mobile/www` queda sincronizado mediante `mobile/scripts/sync-web.js`.
 - QA visual aprobada en Chromium a 1440, 1024, 820, 390 y 320 px, más un escenario de agenda vacía/inbox no disponible. Suite completa: 1,337 pruebas; 1,287 aprobadas, 50 omitidas, 0 fallidas.
+
+## 2026-11-11 — Codex — Alta de pacientes v3: captura breve, contexto y guardado íntegro
+
+- `Nuevo paciente` prioriza únicamente nombre, apellidos, WhatsApp y correo. Asignación, alerta para el equipo y datos adicionales pasan a divulgación progresiva para reducir carga visual.
+- La cabecera muestra la clínica y, cuando corresponde, la sucursal seleccionada. La acción principal se renombra a `Crear y abrir expediente` y explica que la historia clínica puede completarse después.
+- La autorización de WhatsApp vive junto al número, permanece bloqueada hasta disponer de un teléfono válido y aclara que debe registrarse sólo después de confirmación del paciente.
+- Se añade aviso al cerrar con cambios, cierre con Escape, contención de foco dentro del diálogo y apertura automática de las secciones opcionales que ya contienen información al editar.
+- Se elimina el fallback que, ante columnas no disponibles (`PGRST204`), guardaba sólo los datos básicos y descartaba silenciosamente asignación, alertas y consentimiento. Ahora el alta falla cerrada y conserva el formulario para reintentar.
+- No se modificaron migraciones, RLS ni funciones de Supabase. Queda pendiente de backend convertir el consentimiento en historial inmutable de concesión/revocación y, si se decide, encapsular el alta completa en una operación transaccional del servidor.
+- Archivos: `app.html`, `smyl-clinic.css` v10, `smyl-clinic.js` v21, `sw.js`, pruebas y fixture visual; copias sincronizadas en `mobile/www/`.

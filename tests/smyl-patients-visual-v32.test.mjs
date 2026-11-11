@@ -61,15 +61,18 @@ test('Ficha 360 hereda navy, controles legibles y root sin tarjeta exterior', ()
 
 test('Nuevo paciente sigue la política visual y revela lo opcional al final', () => {
   const modal = app.match(/<!-- ═══ MODAL PACIENTE ═══ -->([\s\S]*?)<!-- ═══ MODAL CAMBIAR DE PLAN ═══ -->/)?.[1] || '';
-  assert.match(modal, /Datos esenciales/);
-  assert.match(modal, /Atención/);
-  assert.match(modal, /Mensajes por WhatsApp/);
-  assert.match(modal, /<details class="clinic-secondary clinic-patient-extra">/);
-  assert.match(modal, />Crear paciente</);
-  assert.match(clinic, /id \? 'Guardar cambios' : 'Crear paciente'/);
-  assert.match(css, /width:min\(680px,calc\(100vw - 32px\)\)/);
+  assert.match(modal, /Información básica/);
+  assert.match(modal, /Asignación y seguimiento/);
+  assert.match(modal, /Autorizó mensajes por WhatsApp/);
+  assert.match(modal, /Alerta para la atención/);
+  assert.match(modal, /<details class="clinic-secondary clinic-patient-extra/);
+  assert.match(modal, />Crear y abrir expediente</);
+  assert.match(clinic, /id \? 'Guardar cambios' : 'Crear y abrir expediente'/);
+  assert.match(css, /width:min\(720px,calc\(100vw - 32px\)\)/);
   assert.match(css, /#modal-paciente \.mp-body/);
-  assert.match(css, /#modal-paciente \.fg :is\(input,select,textarea\)\{min-height:48px/);
+  assert.match(css, /#modal-paciente \.fg>:is\(input,select,textarea\)[\s\S]*?min-height:46px/);
+  assert.match(clinic, /Hay datos sin guardar/);
+  assert.match(clinic, /updateWhatsAppConsent/);
 });
 
 test('la fixture visual del directorio sólo usa datos sintéticos', () => {

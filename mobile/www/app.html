@@ -899,11 +899,11 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-navigation.js?v=23"></script>
 <link rel="stylesheet" href="smyl-command-menu.css?v=3">
 <script defer src="smyl-command-menu.js?v=4"></script>
-<link rel="stylesheet" href="smyl-clinic.css?v=9">
+<link rel="stylesheet" href="smyl-clinic.css?v=10">
 <script defer src="smyl-clinical-model.js?v=3"></script>
 <script defer src="smyl-treatment-plan-model.js?v=1"></script>
 <script defer src="smyl-treatment-plan-client.js?v=1"></script>
-<script defer src="smyl-clinic.js?v=20"></script>
+<script defer src="smyl-clinic.js?v=21"></script>
 <link rel="stylesheet" href="smyl-patient-360.css?v=18">
 <script defer src="smyl-history-model.js?v=2"></script>
 <script defer src="smyl-history-read.js?v=2"></script>
@@ -2049,7 +2049,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
   <div class="modal modal-paciente">
     <div class="modal-header">
       <div class="mp-heading">
-        <span>PACIENTES</span>
+        <span>ALTA DE PACIENTE</span>
         <h3 id="modal-pac-title">Nuevo paciente</h3>
         <p id="patient-clinic-line"></p>
       </div>
@@ -2057,11 +2057,11 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
     </div>
     <div class="mp-body">
       <section class="mp-block" aria-labelledby="mp-essential-title">
-        <header class="mp-block-head"><div><span>01</span><h4 id="mp-essential-title">Datos esenciales</h4></div><p>Identidad y contacto del paciente.</p></header>
+        <header class="mp-block-head"><div><h4 id="mp-essential-title">Información básica</h4></div><p>Lo necesario para identificar y contactar al paciente.</p></header>
         <div class="form-grid">
           <div class="fg"><label for="mp-nombre">Nombre <em>Obligatorio</em></label><input type="text" id="mp-nombre" placeholder="Nombre(s)" autocomplete="off"></div>
-          <div class="fg"><label for="mp-apellido">Apellido</label><input type="text" id="mp-apellido" placeholder="Apellido(s)" autocomplete="off"></div>
-          <div class="fg"><label for="mp-tel">WhatsApp</label>
+          <div class="fg"><label for="mp-apellido">Apellidos</label><input type="text" id="mp-apellido" placeholder="Apellidos" autocomplete="off"></div>
+          <div class="fg mp-contact-field"><label for="mp-tel">WhatsApp <span>Opcional</span></label>
             <div class="mp-phone">
               <select id="mp-tel-cc" aria-label="Código de país">
                 <option value="52" selected>MX +52</option>
@@ -2076,13 +2076,15 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
               </select>
               <input type="tel" id="mp-tel" placeholder="33 1234 5678" inputmode="tel" autocomplete="off">
             </div>
+            <small id="mp-tel-help">Se usará para identificar conversaciones y enviar recordatorios.</small>
+            <label class="mp-inline-consent" for="mp-consent-wa"><input type="checkbox" id="mp-consent-wa" disabled><span><strong>Autorizó mensajes por WhatsApp</strong><small>Registra esta autorización sólo si el paciente la confirmó.</small></span></label>
           </div>
-          <div class="fg"><label for="mp-email">Correo</label><input type="email" id="mp-email" placeholder="correo@ejemplo.com" autocomplete="off"></div>
+          <div class="fg mp-email-field"><label for="mp-email">Correo <span>Opcional</span></label><input type="email" id="mp-email" placeholder="correo@ejemplo.com" autocomplete="off"><small>Alternativa de contacto y recuperación de citas.</small></div>
         </div>
         <div id="mp-duplicados" aria-live="polite"></div>
       </section>
-      <section class="mp-block" aria-labelledby="mp-care-title">
-        <header class="mp-block-head"><div><span>02</span><h4 id="mp-care-title">Atención</h4></div><p>Asigna el seguimiento inicial.</p></header>
+      <details class="clinic-secondary clinic-patient-extra mp-care-extra">
+        <summary><span>Asignación y seguimiento</span><small>Opcional</small></summary>
         <div class="form-grid">
           <div class="fg" id="mp-sucursal-fg" hidden><label for="mp-sucursal">Sucursal</label><select id="mp-sucursal"><option value="">Sin sucursal</option></select></div>
           <div class="fg"><label for="mp-profesional">Profesional responsable</label><select id="mp-profesional"><option value="">Por asignar</option></select></div>
@@ -2099,13 +2101,15 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
               <option value="otro">Otro</option>
             </select>
           </div>
-          <div class="fg mp-alert-field"><label for="mp-alerta-input">Alerta para la atención</label><input type="text" id="mp-alerta-input" placeholder="Alergia, anticoagulantes…" maxlength="60" autocomplete="off"><small>Escribe una alerta y presiona Enter.</small><div class="mp-chips" id="mp-alertas"></div></div>
         </div>
-      </section>
-      <section class="mp-consent" aria-labelledby="mp-consent-title">
-        <label class="mp-check" for="mp-consent-wa"><input type="checkbox" id="mp-consent-wa"><span><strong id="mp-consent-title">Mensajes por WhatsApp</strong><small>El paciente acepta recibir recordatorios y mensajes de la clínica por WhatsApp.</small></span></label>
-      </section>
-      <details class="clinic-secondary clinic-patient-extra">
+      </details>
+      <details class="clinic-secondary clinic-patient-extra mp-alert-extra">
+        <summary><span>Alerta para la atención</span><small>Sólo si aplica</small></summary>
+        <div class="mp-alert-content">
+          <div class="fg mp-alert-field"><label for="mp-alerta-input">Indicación visible para el equipo</label><input type="text" id="mp-alerta-input" placeholder="Ej. alergia conocida o anticoagulantes" maxlength="60" autocomplete="off"><small>Escribe una alerta y presiona Enter. No sustituye la historia clínica.</small><div class="mp-chips" id="mp-alertas"></div></div>
+        </div>
+      </details>
+      <details class="clinic-secondary clinic-patient-extra mp-additional-extra">
         <summary><span>Datos adicionales</span><small>Opcional</small></summary>
         <div class="form-grid">
           <div class="fg"><label for="mp-fnac">Fecha de nacimiento</label><input type="date" id="mp-fnac"></div>
@@ -2122,8 +2126,11 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       </details>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="cerrarModalPaciente()">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarPaciente()">Crear paciente</button>
+      <p>Podrás completar la historia clínica después.</p>
+      <div class="mp-footer-actions">
+        <button class="btn btn-secondary" onclick="cerrarModalPaciente()">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarPaciente()">Crear y abrir expediente</button>
+      </div>
     </div>
   </div>
 </div>
