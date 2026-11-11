@@ -49,11 +49,40 @@ test('el visor dibuja cuadros punteados y ofrece dos vistas sin tocar la imagen'
   assert.match(css, /\.rr-image-stage > \.rr-mark\.is-selected \{[^}]*visibility: hidden;/s, 'el círculo de selección se oculta y permanece el recuadro editable');
 });
 
-test('cuando falta el diente se dice «Diente por indicar»', () => {
+test('el selector FDI gráfico relaciona la señal con una pieza sin duplicar el odontograma clínico', () => {
   const js = read('smyl-radiograph-review.js');
   assert.match(js, /item\.tooth\?'Pieza FDI '\+item\.tooth:'Diente por indicar'/);
-  assert.match(js, /new Option\('Diente por indicar',''\)/);
+  assert.match(js, /function toothPicker\(item,source\)/);
+  assert.match(js, /n\('details','rr-tooth-picker'\)/, 'el control permanece plegable y compacto');
+  assert.match(js, /SmylDentalModel\.upper\.slice\(0,8\)/);
+  assert.match(js, /SmylDentalModel\.upper\.slice\(8\)/);
+  assert.match(js, /SmylDentalModel\.lower\.slice\(0,8\)/);
+  assert.match(js, /SmylDentalModel\.lower\.slice\(8\)/);
+  assert.match(js, /chart\.setAttribute\('role','radiogroup'\)/);
+  assert.match(js, /chart\.setAttribute\('aria-label','Pieza relacionada en odontograma FDI'\)/);
+  assert.match(js, /control\.setAttribute\('role','radio'\)/);
+  assert.match(js, /control\.setAttribute\('aria-label','Pieza FDI '\+tooth\)/);
+  assert.match(js, /control\.setAttribute\('aria-checked',String\(item\.tooth===tooth\)\)/);
+  assert.match(js, /item\.tooth=String\(value\|\|''\);markDirty\(item\);render\(\)/, 'la pieza usa el mismo item clínico como fuente de verdad');
+  assert.match(js, /button\('Dejar pieza por indicar'/);
+  assert.doesNotMatch(js, /select\.add\(new Option\('Diente por indicar'/, 'el desplegable largo dejó de ser la interfaz principal');
   assert.doesNotMatch(js, /Región general/);
+
+  const css = read('smyl-radiograph-workbench.css');
+  assert.match(css, /\.rr-tooth-options \{[^}]*grid-template-columns: repeat\(8, minmax\(0, 1fr\)\)/s);
+  assert.match(css, /\.rr-tooth-option \{[^}]*min-height: 38px/s);
+  assert.match(css, /@media \(max-width: 639px\)[\s\S]*\.rr-tooth-option \{ min-height: 44px;/);
+  assert.match(css, /\.rr-tooth-option\.is-selected \{/);
+  assert.match(css, /\.rr-tooth-option\.is-suggested::after \{[\s\S]*content: 'IA'/);
+});
+
+test('el selector FDI se recorre por teclado y devuelve el foco sin desplazar la mesa', () => {
+  const js = read('smyl-radiograph-review.js');
+  assert.match(js, /\['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'\]\.includes\(key\)/);
+  assert.match(js, /if\(key==='ArrowUp'\)next=at-8/);
+  assert.match(js, /if\(key==='ArrowDown'\)next=at\+8/);
+  assert.match(js, /controls\[next\]\?\.focus\(\)/);
+  assert.match(js, /\.rr-tooth-picker > summary'\)\?\.focus\(\{preventScroll:true\}\)/);
 });
 
 test('la migración acepta w y h opcionales y juntos, solo con ubicación', () => {

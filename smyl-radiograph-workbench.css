@@ -854,3 +854,400 @@
   .rr-no-evaluation-icon { width: 32px; height: 32px; }
   .rr-no-evaluation-limits { margin-left: 0; }
 }
+
+/* Radiograph tooth picker v17 · compact FDI control for the active signal. */
+.rr-tooth-picker {
+  overflow: hidden;
+  border: 1px solid var(--rr-line);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fbfdfd 0%, #f5faf9 100%);
+}
+.rr-tooth-picker > summary {
+  display: flex;
+  min-height: 48px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 11px;
+  color: var(--rr-ink);
+  cursor: pointer;
+  list-style: none;
+}
+.rr-tooth-picker > summary::-webkit-details-marker { display: none; }
+.rr-tooth-picker > summary::after {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  transform: rotate(45deg);
+  border-right: 2px solid var(--rr-primary);
+  border-bottom: 2px solid var(--rr-primary);
+  content: '';
+  transition: transform .16s ease;
+}
+.rr-tooth-picker[open] > summary::after { transform: rotate(225deg); }
+.rr-tooth-picker > summary:focus-visible,
+.rr-tooth-option:focus-visible,
+.rr-tooth-clear:focus-visible {
+  outline: 3px solid var(--smyl-ui-focus, #2563eb);
+  outline-offset: -3px;
+}
+.rr-tooth-picker-copy { display: grid; min-width: 0; gap: 2px; }
+.rr-tooth-current { overflow: hidden; color: var(--rr-ink); font-size: 14px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
+.rr-tooth-change { margin-left: auto; color: var(--rr-primary); font-size: 12px; font-weight: 750; white-space: nowrap; }
+.rr-tooth-picker[open] .rr-tooth-change { color: var(--rr-muted); }
+.rr-tooth-picker-body { display: grid; gap: 8px; padding: 9px 10px 10px; border-top: 1px solid var(--rr-line); }
+.rr-tooth-orientation { display: flex; justify-content: space-between; gap: 12px; padding: 0 66px 0 73px; color: var(--rr-meta); font-size: 12px; font-weight: 650; line-height: 15px; }
+.rr-tooth-chart { display: grid; gap: 6px; }
+.rr-tooth-row { display: grid; min-width: 0; align-items: center; grid-template-columns: 62px minmax(0, 1fr); gap: 7px; }
+.rr-tooth-row-label { display: grid; min-width: 0; color: var(--rr-muted); font-size: 12px; line-height: 14px; text-align: right; }
+.rr-tooth-row-label strong { color: var(--rr-ink); font-size: 12px; }
+.rr-tooth-row-label small { color: var(--rr-meta); font-size: 12px; }
+.rr-tooth-options { display: grid; min-width: 0; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+.rr-tooth-option {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 38px;
+  padding: 4px 1px;
+  place-items: center;
+  border: 1px solid #cbd8d6;
+  border-radius: 11px 11px 14px 14px;
+  background: #fff;
+  color: #31514e;
+  font: 750 12px/14px var(--smyl-ui-font, Inter, system-ui, sans-serif);
+  box-shadow: inset 0 -3px 0 #eef4f3;
+  cursor: pointer;
+}
+.rr-tooth-row[data-arch="inferior"] .rr-tooth-option { border-radius: 14px 14px 11px 11px; box-shadow: inset 0 3px 0 #eef4f3; }
+.rr-tooth-option:hover:not(:disabled) { transform: translateY(-1px); border-color: #72bdb1; background: #f1fbf9; }
+.rr-tooth-option.is-selected {
+  border-color: var(--rr-primary);
+  background: var(--rr-primary);
+  color: #fff;
+  box-shadow: 0 0 0 2px #72d3c2, inset 0 -3px 0 rgba(0, 0, 0, .12);
+}
+.rr-tooth-row[data-arch="inferior"] .rr-tooth-option.is-selected { box-shadow: 0 0 0 2px #72d3c2, inset 0 3px 0 rgba(255, 255, 255, .14); }
+.rr-tooth-option.is-suggested:not(.is-selected) { border-style: dashed; border-color: #c18413; background: #fff9eb; color: #7b540d; }
+.rr-tooth-option.is-suggested::after {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  display: grid;
+  min-width: 22px;
+  height: 22px;
+  padding-inline: 2px;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #b67807;
+  color: #fff;
+  content: 'IA';
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1;
+}
+.rr-tooth-option:disabled { cursor: default; opacity: .66; }
+.rr-tooth-picker-help { margin: 0 0 0 69px; color: var(--rr-meta); font-size: 12px; line-height: 16px; }
+.rr-tooth-clear { width: max-content; min-height: 44px; margin-left: 69px; padding: 7px 8px; border: 0; background: transparent; color: var(--rr-muted); font-size: 12px; font-weight: 650; cursor: pointer; }
+.rr-tooth-clear:hover { color: var(--rr-danger); }
+.rr-tooth-picker-close { display: none; }
+.rr-tooth-picker[data-disabled="true"] > summary { cursor: default; }
+.rr-tooth-picker[data-disabled="true"] .rr-tooth-change { display: none; }
+
+@media (min-width: 960px) {
+  .rr-signal-panel { min-height: 0; overflow: hidden; }
+  .rr-signal-panel .rr-items { min-height: 0; scrollbar-width: thin; }
+  .rr-signal-panel .rr-save { position: relative; z-index: 4; }
+  .rr-clinical-decision { gap: 9px; }
+  .rr-clinical-decision > header p { display: none; }
+  .rr-clinical-decision .rr-field textarea { min-height: 64px; }
+}
+
+@media (max-width: 639px) {
+  .rr-tooth-picker > summary { min-height: 52px; }
+  .rr-tooth-picker[open]::before {
+    position: fixed;
+    z-index: 38;
+    inset: 64px 0 0;
+    background: rgba(5, 15, 27, .5);
+    content: '';
+    pointer-events: none;
+  }
+  .rr-tooth-picker-body {
+    position: fixed;
+    z-index: 40;
+    right: 8px;
+    bottom: 72px;
+    left: 8px;
+    max-height: calc(100dvh - 148px);
+    padding: 10px 8px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--rr-line-strong);
+    border-radius: 14px;
+    background: var(--rr-surface);
+    box-shadow: 0 20px 52px rgba(5, 18, 31, .34);
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .rr-tooth-picker-close {
+    display: inline-flex;
+    min-width: 64px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 10px;
+    border: 1px solid var(--rr-line);
+    border-radius: 10px;
+    background: var(--rr-surface);
+    color: var(--rr-primary);
+    font: 750 12px/16px var(--smyl-ui-font, Inter, system-ui, sans-serif);
+    cursor: pointer;
+  }
+  .rr-tooth-orientation { grid-column: 1; }
+  .rr-tooth-chart,
+  .rr-tooth-picker-help,
+  .rr-tooth-clear { grid-column: 1 / -1; }
+  .rr-tooth-orientation { padding-right: 3px; padding-left: 57px; }
+  .rr-tooth-row { grid-template-columns: 50px minmax(0, 1fr); gap: 5px; }
+  .rr-tooth-row-label strong { font-size: 12px; }
+  .rr-tooth-row-label small { font-size: 12px; }
+  .rr-tooth-options { gap: 3px; }
+  .rr-tooth-option { min-height: 44px; font-size: 12px; }
+  .rr-tooth-picker-help, .rr-tooth-clear { margin-left: 55px; }
+}
+
+@media (max-width: 359px) {
+  .rr-tooth-change { display: none; }
+}
+
+/* La etapa de señales funciona como una mesa de trabajo, no como una página larga. */
+@media (max-width: 959px) {
+  .rr-host:has(.rr-review[data-phase="signals"]) { overflow: hidden; }
+  .rr-review[data-phase="signals"] { height: 100%; min-height: 0; padding: 0; overflow: hidden; }
+  .rr-review[data-phase="signals"] .rr-workspace {
+    display: grid;
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: minmax(210px, 40%) minmax(0, 1fr);
+    gap: 0;
+  }
+  .rr-review[data-phase="signals"] .rr-canvas { min-height: 0; border-width: 0 0 1px; border-radius: 0; }
+  .rr-review[data-phase="signals"] .rr-signal-panel {
+    min-height: 0;
+    max-height: none;
+    margin: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+  .rr-review[data-phase="signals"] .rr-items { min-height: 0; max-height: none; padding-top: 2px; overflow: auto; scrollbar-width: thin; }
+  .rr-review[data-phase="signals"] .rr-save { position: relative; z-index: 6; bottom: auto; }
+  .rr-review[data-phase="signals"] .rr-view-switch .rr-tool { min-height: 36px; }
+}
+
+@media (min-width: 720px) and (max-width: 959px) {
+  .rr-review[data-phase="signals"] .rr-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 44%);
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .rr-review[data-phase="signals"] .rr-canvas { border-width: 0 1px 0 0; }
+}
+
+@media (max-width: 639px) {
+  .rr-review[data-phase="signals"] .rr-workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(190px, 34%) minmax(0, 1fr); }
+  .rr-review[data-phase="signals"] .rr-panel-head { padding: 10px 12px 6px; }
+  .rr-review[data-phase="signals"] .rr-panel-head p { display: none; }
+  .rr-review[data-phase="signals"] .rr-step-back { min-height: 44px; margin-top: 2px; }
+  .rr-review[data-phase="signals"] .rr-signal-queue { margin-top: 2px; }
+  .rr-review[data-phase="signals"] .rr-save { padding: 8px 10px 10px; }
+  .rr-review[data-phase="signals"] .rr-save-info .rr-save-meta { display: none; }
+  .rr-review[data-phase="signals"] .rr-view-switch .rr-tool { min-height: 44px; }
+}
+
+/* Mesa radiográfica móvil v18 · imagen útil, decisión progresiva y sin solapamientos. */
+@media (max-width: 639px) {
+  .rr-dialog { width: 100vw; height: 100dvh; border-radius: 0; }
+  .rr-dialog .rr-bar {
+    min-height: 64px;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+  }
+  .rr-bar .rr-identity { min-width: 0; gap: 0; }
+  .rr-bar .rr-kicker { overflow: hidden; font-size: 12px; letter-spacing: .04em; line-height: 14px; text-overflow: ellipsis; white-space: nowrap; }
+  .rr-bar .rr-identity > strong { font-size: 15px; line-height: 19px; }
+  .rr-bar .rr-study-meta { display: none; }
+  .rr-dialog .rr-bar > button { min-width: 0; max-width: 118px; min-height: 44px; padding: 6px 10px; line-height: 16px; }
+
+  .rr-review[data-phase="signals"] .rr-workspace {
+    grid-template-rows: minmax(164px, 27%) minmax(0, 1fr);
+  }
+
+  /* En móvil los controles flotan sobre la radiografía en lugar de desplazarla. */
+  .rr-review[data-phase="signals"] .rr-canvas {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background: radial-gradient(120% 100% at 50% 48%, #173149 0%, #0a1624 64%, #07111c 100%);
+  }
+  .rr-review[data-phase="signals"] .rr-image-wrap {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    overflow: auto;
+    background: transparent;
+  }
+  .rr-review[data-phase="signals"] .rr-image-stage { flex: none; margin: auto; }
+  .rr-review[data-phase="signals"] .rr-image-stage > img {
+    border-radius: 4px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, .38), 0 0 0 1px rgba(255, 255, 255, .08);
+  }
+  .rr-review[data-phase="signals"] .rr-canvas-head {
+    position: absolute;
+    z-index: 7;
+    top: 8px;
+    left: 8px;
+    display: block;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+  .rr-review[data-phase="signals"] .rr-canvas-head > div:first-child { display: none; }
+  .rr-review[data-phase="signals"] .rr-canvas-head > .rr-view-switch {
+    display: inline-flex;
+    padding: 3px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 10px;
+    background: rgba(10, 22, 36, .76);
+    backdrop-filter: blur(10px);
+  }
+  .rr-review[data-phase="signals"] .rr-view-switch .rr-tool {
+    min-height: 44px;
+    padding: 6px 10px;
+    border: 0;
+    background: transparent;
+    color: #b7c5d4;
+  }
+  .rr-review[data-phase="signals"] .rr-view-switch .rr-tool[aria-pressed="true"] { background: #eef3f8; color: #0b1b2e; }
+  .rr-review[data-phase="signals"] .rr-image-adjustments {
+    position: absolute;
+    z-index: 8;
+    bottom: 8px;
+    left: 8px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+  .rr-review[data-phase="signals"] .rr-image-adjustments > summary {
+    width: auto;
+    min-height: 36px;
+    padding: 6px 10px;
+    border-color: rgba(255, 255, 255, .18);
+    background: rgba(10, 22, 36, .78);
+    color: #eef3f8;
+    backdrop-filter: blur(10px);
+  }
+  .rr-review[data-phase="signals"] .rr-image-adjustments > summary::before { color: #9fb1c5; }
+  .rr-review[data-phase="signals"] .rr-image-adjustments .rr-view-tools {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    width: min(286px, calc(100vw - 20px));
+    max-height: min(300px, calc(100dvh - 180px));
+    margin: 0;
+    padding: 8px;
+    overflow: auto;
+    border: 1px solid rgba(255, 255, 255, .18);
+    border-radius: 10px;
+    background: rgba(10, 22, 36, .96);
+    color: #eef3f8;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .28);
+  }
+  .rr-review[data-phase="signals"] .rr-image-adjustments .rr-tool,
+  .rr-review[data-phase="signals"] .rr-image-adjustments .rr-tool-range { color: #eef3f8; }
+  .rr-review[data-phase="signals"] .rr-image-legend { display: none; }
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop {
+    position: absolute;
+    z-index: 8;
+    right: 8px;
+    bottom: 8px;
+  }
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop > summary {
+    min-height: 36px;
+    padding: 6px 10px;
+    border-color: rgba(233, 167, 42, .56);
+    background: rgba(10, 22, 36, .82);
+    color: #eef3f8;
+    backdrop-filter: blur(10px);
+  }
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop > summary::after { color: #9fb1c5; }
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop-body {
+    top: auto;
+    right: 0;
+    bottom: calc(100% + 6px);
+    left: auto;
+    width: min(286px, calc(100vw - 20px));
+    max-height: calc(100dvh - 180px);
+    overflow: auto;
+  }
+
+  /* La señal se lee de arriba abajo; la decisión aparece después del contexto. */
+  .rr-review[data-phase="signals"] .rr-panel-head {
+    display: grid;
+    padding: 8px 10px 6px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto;
+    column-gap: 8px;
+  }
+  .rr-review[data-phase="signals"] .rr-panel-head .rr-section-label { grid-column: 1; font-size: 12px; line-height: 14px; }
+  .rr-review[data-phase="signals"] .rr-panel-head h2 { grid-column: 1; margin: 0; font-size: 18px; line-height: 22px; }
+  .rr-review[data-phase="signals"] .rr-step-back {
+    grid-row: 1 / 3;
+    grid-column: 2;
+    min-height: 44px;
+    align-self: center;
+    margin: 0;
+    padding: 5px 8px;
+    border: 1px solid var(--rr-line);
+    border-radius: 9px;
+    background: var(--rr-surface);
+    font-size: 0;
+  }
+  .rr-review[data-phase="signals"] .rr-step-back::before { content: '← Imagen'; font-size: 12px; }
+  .rr-review[data-phase="signals"] .rr-signal-queue { grid-column: 1 / -1; min-width: 0; margin-top: 3px; }
+  .rr-review[data-phase="signals"] .rr-signal-queue > summary { min-height: 34px; padding-top: 7px; }
+  .rr-review[data-phase="signals"] .rr-items { padding: 2px 8px 8px; scroll-padding-block: 8px; }
+  .rr-review[data-phase="signals"] .rr-item-head { min-height: 52px; padding: 7px 9px; }
+  .rr-review[data-phase="signals"] .rr-item-body { gap: 8px; padding: 8px; }
+  .rr-review[data-phase="signals"] .rr-ai-summary > summary { min-height: 50px; padding: 7px 8px; }
+  .rr-review[data-phase="signals"] .rr-ai-summary > summary span span { display: none; }
+  .rr-review[data-phase="signals"] .rr-clinical-decision { gap: 8px; padding: 10px; }
+  .rr-review[data-phase="signals"] .rr-clinical-decision > header { gap: 1px; padding-bottom: 6px; }
+  .rr-review[data-phase="signals"] .rr-clinical-decision > header p { display: none; }
+  .rr-review[data-phase="signals"] .rr-clinical-decision h3 { font-size: 16px; line-height: 20px; }
+  .rr-review[data-phase="signals"] .rr-field textarea { min-height: 68px; resize: none; }
+  .rr-review[data-phase="signals"] .rr-location-row { padding: 7px 0; }
+
+  /* La barra inferior sólo conserva progreso y decisiones; nunca tapa el formulario. */
+  .rr-review[data-phase="signals"] .rr-save { gap: 6px; padding: 6px 8px 8px; }
+  .rr-review[data-phase="signals"] .rr-save-info { display: none; }
+  .rr-review[data-phase="signals"] .rr-save .rr-save-prog { gap: 8px; }
+  .rr-review[data-phase="signals"] .rr-save-prog b { font-size: 12px; }
+  .rr-review[data-phase="signals"] .rr-footer-actions { gap: 6px; }
+  .rr-review[data-phase="signals"] .rr-footer-actions > button {
+    min-height: 44px;
+    padding: 7px 8px;
+    font-size: 12px;
+    line-height: 16px;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 359px) {
+  .rr-dialog .rr-bar > button { max-width: 110px; }
+  .rr-review[data-phase="signals"] .rr-workspace { grid-template-rows: minmax(156px, 26%) minmax(0, 1fr); }
+  .rr-review[data-phase="signals"] .rr-image-adjustments > summary,
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop > summary { padding-inline: 8px; font-size: 12px; }
+}

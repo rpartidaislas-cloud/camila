@@ -8,6 +8,15 @@
 - Web y `mobile/www` quedan sincronizados con workspace `v=30`, integración de Evidencia `v=4` y caché `radiograph-intake-v1`.
 - Verificación: 21 pruebas focalizadas, suite general y recorrido Playwright completo aprobados. El recorrido confirma Panorámica, PNG, metadatos, apertura del editor, transferencia del archivo, cierre del asistente y ausencia de errores del navegador.
 
+## 2026-11-11 — Codex — Selector FDI gráfico y mesa radiográfica móvil v18
+
+- La revisión por señal sustituye el desplegable largo por un selector gráfico FDI de 32 piezas, organizado por arcada y lado del paciente. Mantiene navegación por teclado, diferencia la sugerencia de IA de la elección profesional y conserva `item.tooth` como única fuente de datos; no crea un segundo odontograma.
+- En celular el selector se abre como panel superpuesto y muestra todas las piezas sin desplazar el formulario ni requerir scroll a 390 o 320 px. Incluye cierre explícito, foco visible y retorno de foco al control de origen.
+- La mesa móvil recupera una radiografía útil y estable, coloca ajustes y calidad sobre la imagen, ordena la validación clínica de forma progresiva y conserva **Descartar** / **Confirmar** siempre accesibles sin tapar campos.
+- El estado inferior ya no comunica «guardado» mientras la señal sigue pendiente. Las decisiones permanecen bajo control profesional y sólo cambian después del guardado verificado existente.
+- Web, PWA y `mobile/www` quedan sincronizados con `smyl-radiograph-review.js?v=23`, CSS `v=18` y caché `radiograph-mobile-reading-v18`. No se modifican backend, migraciones, permisos, modelo clínico ni prompts de IA.
+- Verificación: 30/30 pruebas focalizadas y recorrido Playwright aprobado en 1280×820, 820×900, 390×844 y 320×700; sin desbordes, con 32 piezas únicas, selector móvil completo sin scroll, controles táctiles de 44 px y decisiones visibles. Capturas en `artifacts/radiograph-workbench-v41/`.
+
 ## 2026-11-10 — Codex — Fotografía clínica profesional y análisis asistido v1
 
 - **Evidencia** queda como la única puerta de entrada para cargar y clasificar fotografías clínicas. Admite rostro, intraoral frontal, lateral derecha/izquierda, oclusal superior/inferior, localizada y comparativas; cada estudio usa de 1 a 4 vistas verificadas sin duplicar el archivo original.
