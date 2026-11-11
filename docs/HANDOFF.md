@@ -1,5 +1,15 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-10 — Codex — Fotografía clínica profesional y análisis asistido v1
+
+- **Evidencia** queda como la única puerta de entrada para cargar y clasificar fotografías clínicas. Admite rostro, intraoral frontal, lateral derecha/izquierda, oclusal superior/inferior, localizada y comparativas; cada estudio usa de 1 a 4 vistas verificadas sin duplicar el archivo original.
+- **Hallazgos** se concentra en la interpretación: el análisis asistido relaciona observaciones por pieza o zona, conserva la procedencia de cada vista y deja toda sugerencia en estado pendiente hasta que el profesional la confirme, corrija o descarte. Rechazar requiere motivo; ninguna sugerencia se convierte automáticamente en diagnóstico.
+- El flujo incluye abstención segura y cierres auditables: **sin hallazgos**, **no evaluable** o **revisión manual**. En baja calidad se puede continuar sin IA, solicitar otra toma o registrar la evaluación profesional sin inventar resultados.
+- Los originales permanecen privados y vinculados al tenant/paciente. Las listas ya no descargan fotografías completas; el archivo se solicita sólo al abrir la revisión y el backend vuelve a validar categoría, ruta privada, tipo, tamaño, hash y dimensiones antes de analizarlo.
+- Se incorpora `analyze_clinical_photos_v1` en la Edge Function `claude`, con reserva idempotente, bloqueo temporal, cuotas diaria/mensual, contrato JSON fijo y análisis conjunto de 1–4 vistas. La migración `20261110120000_smyl_clinical_photo_analysis.sql` agrega el cierre profesional versionado, permisos y auditoría; debe publicarse **antes** de la función.
+- Web, PWA y `mobile/www` incorporan el mismo servicio y espacio de revisión, con objetivos táctiles de 44 px, texto mínimo de 12 px, estados visibles, recuperación ante fallos y caché `clinical-photo-evidence-v1`. El despliegue seguro es: migración → Edge Function → frontend/PWA.
+- Verificación final: suite general y contratos clínicos aprobados sin fallos; recorrido visual/funcional aprobado en 1440×960, 1024×900 y 390×844, sin errores ni desbordamiento, con scroll móvil, descarte confirmado, cierre manual y abstención **No evaluable**. Evidencia en `artifacts/clinical-photo-visual-qa/`.
+
 ## 2026-11-10 — Codex — Radiografía multiescala y abstención segura v16
 
 - La revisión asistida conserva una **vista completa** como referencia única y agrega detalles ampliados solapados según el tipo de radiografía: cuatro regiones para panorámicas y dos para periapicales, aletas de mordida u otros estudios. Los recortes se generan desde el original decodificado, reciben sólo una normalización suave de contraste cuando aporta información y se envían en una sola lectura para evitar resultados fragmentados.

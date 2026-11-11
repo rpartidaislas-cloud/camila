@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>QA · Valoración fotográfica profesional</title>
+  <link rel="stylesheet" href="../../smyl-clinical-photo-review.css">
+  <style>
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#f2f6f9;color:#10243b;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+    body{padding:28px}.qa-shell{max-width:1220px;margin:auto}.qa-context{padding:20px 22px;border:1px solid #d7e1ea;border-radius:14px;background:#fff}.qa-context h1{margin:0;font-size:24px}.qa-context p{margin:6px 0 0;color:#5f7084;line-height:1.5}.cw-clinical-map{min-height:180px;margin-top:18px;padding:18px;border:1px dashed #cbd8e3;border-radius:14px;background:#fff;color:#5f7084}.cw-clinical-map strong{display:block;color:#10243b}
+    @media(max-width:620px){body{padding:10px}.qa-context{padding:16px}.qa-context h1{font-size:20px}.cw-clinical-map{padding:14px}}
+  </style>
+</head>
+<body>
+  <main id="p-paciente-detalle" class="pantalla activa">
+    <div class="qa-shell">
+      <header class="qa-context">
+        <span class="scpr-kicker">EXPEDIENTE SINTÉTICO</span>
+        <h1>Paciente de demostración</h1>
+        <p>Fixture local sin datos clínicos reales ni servicios externos.</p>
+      </header>
+      <section class="cw-clinical-map">
+        <strong>Mapa clínico longitudinal</strong>
+        <p>La valoración fotográfica se monta antes de esta sección.</p>
+      </section>
+    </div>
+  </main>
+  <script>
+    window.tenantId='11111111-1111-4111-8111-111111111111';
+    window.pacienteActual={id:'22222222-2222-4222-8222-222222222222',nombre:'Paciente de demostración'};
+    const iso='2026-11-10T15:00:00.000Z';
+    const studies=[
+      {id:'study-frontal',subtype:'intraoral_frontal',label:'Intraoral frontal',createdAt:iso,quality:'usable',qualityDetail:{status:'usable',notes:'Enfoque y exposición suficientes para orientación general.'},findings:[
+        {id:'finding-1',category:'restoration',label:'Restauración visible por comprobar',description:'Se observa una zona de material restaurador en el sector anterior. Verifica contorno y adaptación en el original.',payload:{evidence:'Sector anterosuperior, vista frontal.'},anatomy:{scope:'tooth',fdi:'11'},state:'pending'},
+        {id:'finding-2',category:'soft_tissue',label:'Tejido blando documentado',description:'Registro de referencia del margen gingival.',anatomy:{scope:'whole_mouth'},state:'confirmed',latestDecision:{state:'confirmed',revision:1,note:'Registro clínico confirmado.'}}
+      ]},
+      {id:'study-right',subtype:'intraoral_right',label:'Intraoral lateral derecha',createdAt:iso,quality:'pending',findings:[]},
+      {id:'study-left',subtype:'intraoral_left',label:'Intraoral lateral izquierda',createdAt:iso,quality:'pending',findings:[]},
+      {id:'study-occlusal',subtype:'occlusal_upper',label:'Oclusal superior',createdAt:iso,quality:'unusable',qualityDetail:{status:'unusable',notes:'La orientación y el desenfoque no permiten localizar hallazgos con seguridad.'},findings:[]}
+    ];
+    function svgBlob(label){
+      const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d8c7bd"/><stop offset="1" stop-color="#9e756a"/></linearGradient></defs><rect width="1200" height="800" fill="#10243b"/><ellipse cx="600" cy="410" rx="430" ry="250" fill="url(#g)"/><path d="M270 430 Q600 650 930 430 Q600 565 270 430" fill="#6d2730"/><g fill="#f5eee1" stroke="#d4c7b7" stroke-width="3">${Array.from({length:12},(_,i)=>`<rect x="${365+i*40}" y="430" width="35" height="82" rx="13"/>`).join('')}</g><text x="600" y="735" text-anchor="middle" fill="#fff" font-family="Arial" font-size="28">${label}</text></svg>`;
+      return new Blob([svg],{type:'image/svg+xml'});
+    }
+    window.SmylClinicalPhotoService={
+      label(type){return ({intraoral_frontal:'Intraoral frontal',intraoral_right:'Intraoral lateral derecha',intraoral_left:'Intraoral lateral izquierda',occlusal_upper:'Oclusal superior'})[type]||'Fotografía clínica'},
+      async list(){return {available:true,studies:structuredClone(studies)}},
+      async loadOriginal(study){return {blob:svgBlob(study.label),sha256:'a'.repeat(64)}},
+      async analyze(){return {ok:true}},
+      async decide(payload){
+        const finding=studies.flatMap(study=>study.findings||[]).find(item=>item.id===payload.findingId);
+        if(!finding)throw new Error('Sugerencia sintética no encontrada');
+        finding.state=payload.state;
+        finding.latestDecision={state:payload.state,revision:Number(payload.expectedRevision||0)+1,note:payload.note||'',correction:payload.correction||{},professional_name:'Dra. QA',decided_at:new Date().toISOString()};
+        return {ok:true};
+      },
+      async setDisposition(payload){
+        const study=studies.find(item=>item.id===payload.studyId);
+        if(!study)throw new Error('Toma sintética no encontrada');
+        study.disposition={state:payload.state,reason:payload.reason,note:payload.note,revision:Number(payload.expectedRevision||0)+1,professional_name:'Dra. QA',decided_at:new Date().toISOString()};
+        return {ok:true};
+      },
+      async createManual(payload){
+        const study=studies.find(item=>item.id===payload.studyId);
+        study.findings.push({id:`manual-${Date.now()}`,category:payload.category,label:payload.label,description:payload.description,anatomy:payload.anatomy,state:'confirmed',latestDecision:{state:'confirmed',revision:1,note:payload.description,professional_name:'Dra. QA',decided_at:new Date().toISOString()}});
+        return {ok:true};
+      }
+    };
+  </script>
+  <script src="../../smyl-clinical-photo-review.js"></script>
+</body>
+</html>

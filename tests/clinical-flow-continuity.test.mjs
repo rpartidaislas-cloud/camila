@@ -27,7 +27,7 @@ test('Tratamiento presenta un recorrido clínico navegable de cuatro etapas', ()
 
 test('la evaluación conserva una sola acción principal y la adapta al paso pendiente', () => {
   assert.match(script, /function updateEvaluationAction\(ctx\)/);
-  for (const label of ['Continuar a evidencia', 'Continuar a hallazgos', 'Revisar', 'Continuar a propuesta', 'Volver a hallazgos']) {
+  for (const label of ['Continuar a evidencia', 'Continuar a valoración', 'Revisar', 'Continuar a propuesta', 'Volver a valoración']) {
     assert.match(script, new RegExp(label));
   }
   assert.equal((script.match(/ctx\.evaluationCta=btn/g) || []).length, 1);

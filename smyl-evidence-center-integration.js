@@ -166,14 +166,56 @@
     };
   }
 
-  function collectEvidence(tenant, patient) {
+  function regionLabel(region) {
+    if (!region || typeof region !== 'object') return '';
+    if (region.scope === 'tooth' && region.fdi) return `Pieza FDI ${region.fdi}`;
+    const labels = {
+      whole_mouth: 'Boca completa',
+      upper_arch: 'Arcada superior',
+      lower_arch: 'Arcada inferior',
+      quadrant_1: 'Cuadrante 1 · superior derecho',
+      quadrant_2: 'Cuadrante 2 · superior izquierdo',
+      quadrant_3: 'Cuadrante 3 · inferior izquierdo',
+      quadrant_4: 'Cuadrante 4 · inferior derecho',
+      face: 'Rostro y sonrisa',
+      soft_tissue: 'Tejidos blandos',
+      localized: 'Zona localizada'
+    };
+    return labels[region.regionCode] || (region.scope === 'whole_mouth' ? labels.whole_mouth : '');
+  }
+
+  function photoStudyItem(study) {
+    const pending = Math.max(0, Number(study?.pending) || 0);
+    const reviewed = Math.max(0, Number(study?.confirmed) || 0) + Math.max(0, Number(study?.rejected) || 0);
+    const status = study?.status === 'signed' ? 'signed' : pending > 0 ? 'review' : 'draft';
+    return {
+      id: String(study?.id || ''),
+      modality: 'photograph',
+      subtype: String(study?.subtype || 'localized'),
+      title: String(study?.display_name || study?.viewLabel || study?.label || 'Fotografía clínica'),
+      date: String(study?.acquired_at || study?.created_at || '').slice(0, 10),
+      region: regionLabel(study?.region),
+      status,
+      findings: pending + reviewed,
+      source: 'clinical_photo_study',
+      patientFileId: String(study?.original?.patientFileId || study?.asset?.patient_file_id || '')
+    };
+  }
+
+  function collectEvidence(tenant, patient, photoStudies) {
     const files = global.SmylPatientEvidenceFiles?.all?.(tenant, patient)
       || global.SmylPatient360?.allFiles?.(tenant, patient)
       || global.SmylPatient360?.files?.(tenant, patient);
     const caseId = global.SmylCaseWorkspace?.context?.(tenant, patient)?.caseId;
     const dental = caseId ? global.SmylDentalProgress?.status?.(tenant, patient, caseId) : null;
     const items = [];
-    (files?.items || []).forEach(file => items.push(legacyFileItem(file)));
+    const canonicalPhotos = (Array.isArray(photoStudies) ? photoStudies : []).map(photoStudyItem);
+    const indexedFiles = new Set(canonicalPhotos.map(item => item.patientFileId).filter(Boolean));
+    canonicalPhotos.forEach(item => items.push(item));
+    (files?.items || []).forEach(file => {
+      if (file?.category === 'clinical_photo' && indexedFiles.has(String(file?.id || ''))) return;
+      items.push(legacyFileItem(file));
+    });
     (dental?.studyItems || []).forEach(study => items.push(radiographItem(study)));
     const seen = new Set();
     return items.filter(item => {
@@ -316,17 +358,62 @@
     dialog.querySelector('input[name="file"]')?.focus({ preventScroll: true });
   }
 
-  function routePatientFile(state, payload, category) {
-    if (!global.SmylPatientFiles?.add?.(category)) throw new Error('Tu rol no permite agregar archivos a este expediente.');
+  function routePatientFile(state, payload, category, options) {
+    if (!global.SmylPatientFiles?.add?.(category, options)) throw new Error('Tu rol no permite agregar archivos a este expediente.');
     requestAnimationFrame(() => prefillPatientFile(state, payload));
     announce(state, 'Revisa el archivo y confirma la carga en la ficha privada. Todavía no se ha guardado.', 'attention');
+  }
+
+  function canonicalPhotoRegion(payload) {
+    const tooth = String(payload?.tooth || '').trim();
+    if (/^[1-4][1-8]$/.test(tooth)) return { scope: 'tooth', fdi: tooth };
+    const preset = String(payload?.regionPreset || '').trim();
+    if (preset === 'full_mouth') return { scope: 'whole_mouth' };
+    if (['upper_arch', 'lower_arch'].includes(preset)) return { scope: 'arch', regionCode: preset };
+    if (/^quadrant_[1-4]$/.test(preset)) return { scope: 'quadrant', regionCode: preset };
+    if (preset === 'soft_tissue') return { scope: 'soft_tissue_region', regionCode: 'soft_tissue' };
+    if (preset === 'face') return { scope: 'anatomical_region', regionCode: 'face' };
+    if (preset === 'tooth') return { scope: 'anatomical_region', regionCode: 'localized' };
+    return undefined;
+  }
+
+  function routeClinicalPhoto(state, payload) {
+    if (!global.SmylClinicalPhotoService?.indexPatientFile) {
+      throw new Error('La clasificación profesional de fotografías todavía no terminó de cargar. Intenta de nuevo.');
+    }
+    const indexingPayload = {
+      subtype: payload.subtype,
+      title: payload.title,
+      date: payload.date,
+      region: canonicalPhotoRegion(payload),
+      metadata: {
+        regionLabel: payload.region || '',
+        regionPreset: payload.regionPreset || '',
+        tooth: payload.tooth || ''
+      }
+    };
+    return routePatientFile(state, payload, 'clinical_photo', {
+      workflow: 'clinical_photo',
+      lockCategory: true,
+      accept: 'image/jpeg,image/png,image/webp',
+      title: 'Agregar fotografía clínica',
+      description: 'Guarda el original una sola vez y clasifícalo para su valoración profesional. La IA no confirmará observaciones automáticamente.',
+      submitLabel: 'Guardar original',
+      successMessage: 'Fotografía original guardada y preparada para valoración.',
+      onSaved: row => global.SmylClinicalPhotoService.indexPatientFile({
+        tenant: state.tenant,
+        patient: state.patient,
+        row,
+        payload: indexingPayload
+      })
+    });
   }
 
   function prefillRadiograph(state, payload) {
     const editor = document.querySelector('.cw-advanced-editor:not([hidden])');
     const form = editor?.querySelector('.dr-record');
     if (!form) {
-      announce(state, 'No se pudo abrir el editor radiográfico. Ve a Hallazgos → Rayos X para agregarlo.', 'error');
+      announce(state, 'No se pudo abrir el editor radiográfico. Ve a Valoración → Rayos X para agregarlo.', 'error');
       return;
     }
     const type = form.querySelector('.dr-study-type select');
@@ -360,7 +447,7 @@
   async function routeDraft(state, payload) {
     if (!current(state)) throw new Error('El expediente cambió. Vuelve a abrir al paciente.');
     if (!global.SmylEvidenceModel?.isSubtypeAllowed?.(payload.modality, payload.subtype)) throw new Error('El tipo de evidencia no corresponde a la modalidad.');
-    if (payload.modality === 'photograph') return routePatientFile(state, payload, 'clinical_photo');
+    if (payload.modality === 'photograph') return routeClinicalPhoto(state, payload);
     if (payload.modality === 'document') return routePatientFile(state, payload, DOCUMENT_CATEGORY[payload.subtype] || 'other');
     if (payload.modality === 'radiograph_2d') return routeRadiograph(state, payload);
     const labels = {
@@ -380,6 +467,23 @@
       if (!global.SmylPatient360?.openFile?.(state.tenant, state.patient, origin.id)) announce(state, 'No se pudo abrir el archivo con los permisos actuales.', 'error');
       return;
     }
+    if (origin.source === 'clinical_photo_study') {
+      global.SmylCaseWorkspace?.open?.('review');
+      requestAnimationFrame(() => {
+        document.getElementById('cw-evaluation-task-findings')?.click();
+        Promise.resolve(global.SmylClinicalPhotoReview?.refresh?.()).finally(() => {
+          const section = document.querySelector('.scpr-root');
+          section?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+          dispatchEvent(new CustomEvent('smyl:clinical-photo-open-request', { detail: {
+            tenant: state.tenant,
+            patient: state.patient,
+            studyId: origin.id
+          }}));
+        });
+      });
+      announce(state, 'Abriendo la valoración de la fotografía original.', 'neutral');
+      return;
+    }
     if (origin.source === 'dental_record') {
       if (!global.SmylDentalProgress?.openStudy?.(state.tenant, state.patient, origin.id)) {
         global.SmylCaseWorkspace?.open?.('review');
@@ -390,7 +494,7 @@
 
   function refresh(state) {
     if (!current(state)) return dispose(state);
-    const items = collectEvidence(state.tenant, state.patient);
+    const items = collectEvidence(state.tenant, state.patient, state.photoStudies);
     const fingerprint = JSON.stringify(items);
     if (fingerprint === state.fingerprint) return;
     state.fingerprint = fingerprint;
@@ -399,9 +503,30 @@
     renderPathways(state, items);
   }
 
+  async function refreshPhotos(state, force) {
+    if (!current(state) || state.photoLoading || !global.SmylClinicalPhotoService?.list) return;
+    state.photoLoading = true;
+    try {
+      const response = await global.SmylClinicalPhotoService.list(state.tenant, state.patient, { force: force === true });
+      if (!current(state)) return;
+      state.photoAvailable = response?.available !== false;
+      state.photoStudies = Array.isArray(response) ? response : Array.isArray(response?.studies) ? response.studies : [];
+      refresh(state);
+    } catch (error) {
+      if (!current(state)) return;
+      state.photoAvailable = false;
+      state.photoStudies = [];
+      refresh(state);
+      console.warn('SMYL canonical photo evidence unavailable', error);
+    } finally {
+      state.photoLoading = false;
+    }
+  }
+
   function dispose(state) {
     if (!state) return;
     clearInterval(state.timer);
+    clearInterval(state.photoTimer);
     state.center?.destroy?.();
     if (state.legacy?.isConnected) state.legacy.hidden = false;
     state.root?.remove();
@@ -423,7 +548,7 @@
     feedback.setAttribute('aria-live', 'polite');
     root.append(centerHost, pathways, feedback);
     legacy.before(root);
-    const state = { token: ++sequence, root, pathways, centerHost, feedback, legacy, tenant: value.tenant, patient: value.patient, fingerprint: '', origins: new Map(), center: null, timer: null };
+    const state = { token: ++sequence, root, pathways, centerHost, feedback, legacy, tenant: value.tenant, patient: value.patient, fingerprint: '', origins: new Map(), center: null, timer: null, photoTimer: null, photoStudies: [], photoAvailable: null, photoLoading: false };
     active = state;
     try {
       state.center = global.SmylEvidenceCenter.mount(centerHost, {
@@ -444,7 +569,9 @@
       guardUnavailableCreation(state);
       legacy.hidden = true;
       refresh(state);
+      refreshPhotos(state, true);
       state.timer = setInterval(() => refresh(state), 1400);
+      state.photoTimer = setInterval(() => refreshPhotos(state, false), 6000);
     } catch (error) {
       legacy.hidden = false;
       root.remove();
@@ -461,6 +588,10 @@
       if (current(active)) refresh(active);
       else mount();
     }));
+    ['smyl:patient-file-created', 'smyl:clinical-photo-indexed', 'smyl:clinical-photo-analysis', 'smyl:clinical-photo-decision', 'smyl:clinical-photo-manual-finding'].forEach(name => addEventListener(name, () => {
+      if (current(active)) refreshPhotos(active, true);
+      else mount();
+    }));
     mount();
   }
 
@@ -473,8 +604,14 @@
     originMap,
     creationCapability,
     legacyFileItem,
+    photoStudyItem,
     radiographItem,
-    mount
+    mount,
+    openAdd(modality) {
+      if (!current(active)) mount();
+      if (!current(active) || !active.center) return false;
+      return active.center.openAdd(modality || undefined) !== false;
+    }
   });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

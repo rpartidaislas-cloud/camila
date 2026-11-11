@@ -7,6 +7,8 @@ const app = read('../app.html');
 const worker = read('../sw.js');
 const patient = read('../smyl-patient-360.js');
 const workspace = read('../smyl-case-workspace.js');
+const evidenceIntegration = read('../smyl-evidence-center-integration.js');
+const photoReview = read('../smyl-clinical-photo-review.js');
 const styles = read('../smyl-case-workspace.css');
 const fixture = read('./fixtures/smyl-clinical-flow-preview.html');
 
@@ -21,7 +23,10 @@ test('fotografías y radiografías habilitan su propio flujo de archivo', () => 
   assert.match(patient, /window\.SmylPatientFiles=Object\.freeze/);
   assert.match(patient, /select\.value=category/);
   assert.match(workspace, /Agregar fotografías/);
-  assert.match(workspace, /SmylPatientFiles\?\.add\('clinical_photo'\)/);
+  assert.doesNotMatch(workspace, /SmylPatientFiles\?\.add\('clinical_photo'\)/);
+  assert.match(evidenceIntegration, /routeClinicalPhoto/);
+  assert.match(evidenceIntegration, /indexPatientFile/);
+  assert.match(photoReview, /Aquí no se suben archivos/);
   assert.match(workspace, /Agregar radiografía/);
   assert.match(workspace, /reviewPart\(ctx,1\)/);
 });
@@ -48,9 +53,22 @@ test('la nueva superficie concentra mapa, inspector y contexto con respuesta mó
 });
 
 test('web, móvil y PWA publican la etapa 3.7', () => {
-  assert.match(app, /smyl-patient-360\.js\?v=25/);
+  assert.match(app, /smyl-patient-360\.js\?v=26/);
   assert.match(app, /smyl-case-workspace\.css\?v=24/);
-  assert.match(app, /smyl-case-workspace\.js\?v=28/);
+  assert.match(app, /smyl-case-workspace\.js\?v=29/);
+  assert.match(app, /smyl-clinical-photo-review\.js\?v=1/);
   assert.match(worker, /source-workspace-v37/);
-  for (const file of ['app.html', 'sw.js', 'smyl-patient-360.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) assert.equal(read('../' + file), read('../mobile/www/' + file));
+  for (const file of [
+    'app.html',
+    'sw.js',
+    'smyl-patient-360.js',
+    'smyl-patient-360.css',
+    'smyl-evidence-center.js',
+    'smyl-evidence-center-integration.js',
+    'smyl-clinical-photo-service.js',
+    'smyl-clinical-photo-review.js',
+    'smyl-clinical-photo-review.css',
+    'smyl-case-workspace.js',
+    'smyl-case-workspace.css'
+  ]) assert.equal(read('../' + file), read('../mobile/www/' + file));
 });

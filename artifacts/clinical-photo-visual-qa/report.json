@@ -1,0 +1,302 @@
+[
+  {
+    "name": "desktop-1440",
+    "width": 1440,
+    "height": 960,
+    "errors": [],
+    "list": {
+      "clientWidth": 1440,
+      "scrollWidth": 1440,
+      "buttons": [
+        {
+          "text": "Analizar serie",
+          "height": 44
+        },
+        {
+          "text": "Revisar sugerencias",
+          "height": 44
+        },
+        {
+          "text": "Preparar valoración",
+          "height": 44
+        },
+        {
+          "text": "Preparar valoración",
+          "height": 44
+        },
+        {
+          "text": "Abrir valoración",
+          "height": 44
+        }
+      ],
+      "minText": 12
+    },
+    "noAi": {
+      "buttons": [
+        "Volver al expediente",
+        "Continuar sin IA",
+        "Registrar observación manual",
+        "Analizar fotografía"
+      ],
+      "scrollWidth": 1180,
+      "clientWidth": 1180
+    },
+    "dispositionInitial": {
+      "outcome": "manual_only",
+      "reasons": 1,
+      "saveDisabled": true
+    },
+    "noEvaluation": {
+      "outcome": "not_evaluable",
+      "reasons": [
+        "Enfoque insuficiente",
+        "Iluminación o exposición insuficiente",
+        "Zona clínica incompleta o no visible",
+        "Orientación no verificable",
+        "Artefacto u obstrucción",
+        "Otro motivo"
+      ],
+      "labels": [
+        "Resultado profesional",
+        "Motivo",
+        "Nota profesional"
+      ]
+    },
+    "noEvaluationSaved": "CIERRE PROFESIONAL DE LA TOMA\nNo evaluable\n\nLa orientación no permite localizar con seguridad la zona fotografiada.\n\nDra. QA · 10 nov 2026, 8:54 p.m. · revisión 1",
+    "rejectBefore": {
+      "disabled": true,
+      "labels": [
+        "Motivo del descarte"
+      ]
+    },
+    "rejectReady": true,
+    "rejectSaved": "SUGERENCIA DESCARTADA\nRestauración visible por comprobar\n\nLa apariencia corresponde a una restauración ya documentada y no a la sugerencia propuesta.\n\nRestauración visible · Pieza · FDI 11\nDra. QA · 10 nov 2026, 8:54 p.m. · revisión 1",
+    "manualSaved": "CIERRE PROFESIONAL DE LA TOMA\nValoración manual registrada\n\nRevisión profesional realizada directamente sobre la toma original.\n\nDra. QA · 10 nov 2026, 8:54 p.m. · revisión 1",
+    "dialogMetrics": {
+      "clientWidth": 1180,
+      "scrollWidth": 1180,
+      "bodyClient": 610,
+      "bodyScroll": 610,
+      "scrollMoved": false,
+      "scrollStart": 0,
+      "scrollEnd": 0,
+      "targets": [
+        {
+          "tag": "BUTTON",
+          "text": "Volver al expediente",
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Cerrar sin observaciones",
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Agregar observación manual",
+          "height": 44
+        }
+      ]
+    }
+  },
+  {
+    "name": "tablet-1024",
+    "width": 1024,
+    "height": 900,
+    "errors": [],
+    "list": {
+      "clientWidth": 1024,
+      "scrollWidth": 1024,
+      "buttons": [
+        {
+          "text": "Analizar serie",
+          "height": 44
+        },
+        {
+          "text": "Revisar sugerencias",
+          "height": 44
+        },
+        {
+          "text": "Preparar valoración",
+          "height": 44
+        },
+        {
+          "text": "Preparar valoración",
+          "height": 44
+        },
+        {
+          "text": "Abrir valoración",
+          "height": 44
+        }
+      ],
+      "minText": 12
+    },
+    "noAi": {
+      "buttons": [
+        "Volver al expediente",
+        "Continuar sin IA",
+        "Registrar observación manual",
+        "Analizar fotografía"
+      ],
+      "scrollWidth": 986,
+      "clientWidth": 986
+    },
+    "dispositionInitial": {
+      "outcome": "manual_only",
+      "reasons": 1,
+      "saveDisabled": true
+    },
+    "noEvaluation": {
+      "outcome": "not_evaluable",
+      "reasons": [
+        "Enfoque insuficiente",
+        "Iluminación o exposición insuficiente",
+        "Zona clínica incompleta o no visible",
+        "Orientación no verificable",
+        "Artefacto u obstrucción",
+        "Otro motivo"
+      ],
+      "labels": [
+        "Resultado profesional",
+        "Motivo",
+        "Nota profesional"
+      ]
+    },
+    "noEvaluationSaved": "CIERRE PROFESIONAL DE LA TOMA\nNo evaluable\n\nLa orientación no permite localizar con seguridad la zona fotografiada.\n\nDra. QA · 10 nov 2026, 8:54 p.m. · revisión 1",
+    "rejectBefore": {
+      "disabled": true,
+      "labels": [
+        "Motivo del descarte"
+      ]
+    },
+    "rejectReady": true,
+    "rejectSaved": "SUGERENCIA DESCARTADA\nRestauración visible por comprobar\n\nLa apariencia corresponde a una restauración ya documentada y no a la sugerencia propuesta.\n\nRestauración visible · Pieza · FDI 11\nDra. QA · 10 nov 2026, 8:54 p.m. · revisión 1",
+    "manualSaved": "CIERRE PROFESIONAL DE LA TOMA\nValoración manual registrada\n\nRevisión profesional realizada directamente sobre la toma original.\n\nDra. QA · 10 nov 2026, 8:54 p.m. · revisión 1",
+    "dialogMetrics": {
+      "clientWidth": 986,
+      "scrollWidth": 986,
+      "bodyClient": 600,
+      "bodyScroll": 600,
+      "scrollMoved": false,
+      "scrollStart": 0,
+      "scrollEnd": 0,
+      "targets": [
+        {
+          "tag": "BUTTON",
+          "text": "Volver al expediente",
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Cerrar sin observaciones",
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Agregar observación manual",
+          "height": 44
+        }
+      ]
+    }
+  },
+  {
+    "name": "mobile-390",
+    "width": 390,
+    "height": 844,
+    "errors": [],
+    "list": {
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "buttons": [
+        {
+          "text": "Analizar serie",
+          "height": 44
+        },
+        {
+          "text": "Revisar sugerencias",
+          "height": 44
+        },
+        {
+          "text": "Preparar valoración",
+          "height": 44
+        },
+        {
+          "text": "Preparar valoración",
+          "height": 44
+        },
+        {
+          "text": "Abrir valoración",
+          "height": 44
+        }
+      ],
+      "minText": 12
+    },
+    "noAi": {
+      "buttons": [
+        "Volver al expediente",
+        "Continuar sin IA",
+        "Registrar observación manual",
+        "Analizar fotografía"
+      ],
+      "scrollWidth": 390,
+      "clientWidth": 390
+    },
+    "dispositionInitial": {
+      "outcome": "manual_only",
+      "reasons": 1,
+      "saveDisabled": true
+    },
+    "noEvaluation": {
+      "outcome": "not_evaluable",
+      "reasons": [
+        "Enfoque insuficiente",
+        "Iluminación o exposición insuficiente",
+        "Zona clínica incompleta o no visible",
+        "Orientación no verificable",
+        "Artefacto u obstrucción",
+        "Otro motivo"
+      ],
+      "labels": [
+        "Resultado profesional",
+        "Motivo",
+        "Nota profesional"
+      ]
+    },
+    "noEvaluationSaved": "CIERRE PROFESIONAL DE LA TOMA\nNo evaluable\n\nLa orientación no permite localizar con seguridad la zona fotografiada.\n\nDra. QA · 10 nov 2026, 8:54 p.m. · revisión 1",
+    "rejectBefore": {
+      "disabled": true,
+      "labels": [
+        "Motivo del descarte"
+      ]
+    },
+    "rejectReady": true,
+    "rejectSaved": "SUGERENCIA DESCARTADA\nRestauración visible por comprobar\n\nLa apariencia corresponde a una restauración ya documentada y no a la sugerencia propuesta.\n\nRestauración visible · Pieza · FDI 11\nDra. QA · 10 nov 2026, 8:54 p.m. · revisión 1",
+    "manualSaved": "CIERRE PROFESIONAL DE LA TOMA\nValoración manual registrada\n\nRevisión profesional realizada directamente sobre la toma original.\n\nDra. QA · 10 nov 2026, 8:54 p.m. · revisión 1",
+    "dialogMetrics": {
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "bodyClient": 716,
+      "bodyScroll": 858,
+      "scrollMoved": true,
+      "scrollStart": 0,
+      "scrollEnd": 142,
+      "targets": [
+        {
+          "tag": "BUTTON",
+          "text": "Volver al expediente",
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Cerrar sin observaciones",
+          "height": 44
+        },
+        {
+          "tag": "BUTTON",
+          "text": "Agregar observación manual",
+          "height": 53
+        }
+      ]
+    }
+  }
+]

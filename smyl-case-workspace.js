@@ -52,15 +52,15 @@
    else if(context.reviewed){label='Continuar a evidencia';status='Contexto revisado en esta sesión';action=()=>showEvaluationTask(ctx,'evidence');}
    else{label=context.state==='attention'||context.state==='incomplete'?'Revisado y continuar':'Continuar a evidencia';status=context.footer||'Confirma el contexto clínico';action=()=>{if(acknowledgeContext(ctx))showEvaluationTask(ctx,'evidence');};}
   }
-  else if(task==='evidence'){label='Continuar a hallazgos';status=ctx.evidencePart?.badge?.textContent||'Revisa la evidencia disponible';action=()=>showEvaluationTask(ctx,'findings');}
+  else if(task==='evidence'){label='Continuar a valoración';status=ctx.evidencePart?.badge?.textContent||'Revisa la evidencia disponible';action=()=>showEvaluationTask(ctx,'findings');}
   else if(task==='findings'){
-   status=ctx.reviewPart?.badge?.textContent||'Completa los hallazgos';
+   status=ctx.reviewPart?.badge?.textContent||'Completa la valoración clínica';
    if(flow.findingsComplete){label='Revisar';action=()=>showEvaluationTask(ctx,'closure');}
-   else{label=flow.reviewLabel||'Revisar hallazgos';disabled=!!flow.reviewDisabled;action=()=>{if(ctx.reviewAction)ctx.reviewAction();};}
+   else{label=flow.reviewLabel||'Continuar valoración';disabled=!!flow.reviewDisabled;action=()=>{if(ctx.reviewAction)ctx.reviewAction();};}
   }else if(task==='closure'){
    status=flow.reviewComplete?'Evaluación lista para preparar la propuesta':'Aún hay pendientes en la evaluación';
    if(flow.reviewComplete){label='Continuar a propuesta';action=()=>open('plan');}
-   else{label=ctx.contextState?.reviewed?'Volver a hallazgos':'Volver a contexto';action=()=>showEvaluationTask(ctx,ctx.contextState?.reviewed?'findings':'context');}
+   else{label=ctx.contextState?.reviewed?'Volver a valoración':'Volver a contexto';action=()=>showEvaluationTask(ctx,ctx.contextState?.reviewed?'findings':'context');}
   }
   if(ctx.evaluationFooterStatus)copy(ctx.evaluationFooterStatus,status);
   copy(ctx.evaluationCta,label);ctx.evaluationCta.disabled=disabled;ctx.evaluationAction=action;
@@ -191,7 +191,7 @@
   rows.sort((a,b)=>(Date.parse(b.at)||0)-(Date.parse(a.at)||0));const list=n('div','cw-evidence-list');
   if(!rows.length)list.append(n('p','cw-evidence-empty','Todavía no hay evidencia clínica. Puedes continuar con el odontograma.'));
   else{const row=rows[0],article=n('article','cw-evidence-item cw-evidence-latest');article.dataset.kind=row.kind;const icon=n('span','cw-evidence-icon',row.kind==='photo'?'F':row.kind==='radiograph'?'RX':'A'),copyBox=n('div');copyBox.append(n('span','','REGISTRO MÁS RECIENTE'),n('strong','',row.name));const when=Date.parse(row.at),detail=[Number.isFinite(when)?new Date(when).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}):'Sin fecha',row.detail].filter(Boolean).join(' · '),meta=n('div','cw-evidence-meta');meta.append(n('small','',detail));const review=n('span','cw-evidence-review',row.review.label);review.dataset.state=row.review.tone;meta.append(review);copyBox.append(meta);const action=btn(row.button,()=>{if(row.action==='file')window.SmylPatient360?.openFile?.(ctx.tenant,ctx.patient,row.id);else if(row.action==='radiograph'){if(!window.SmylDentalProgress?.openStudy?.(ctx.tenant,ctx.patient,row.id))reviewPart(ctx,1);}else if(ctx.selected?.current())ctx.selected.review();});action.classList.add('cw-evidence-open');article.append(icon,copyBox,action);list.append(article);}
-  ctx.evidenceTimeline.append(list);const foot=n('footer','cw-evidence-history-foot'),hasRadiographs=studyItems.length>0,previous=btn(hasRadiographs?'Ver radiografías':rows.length>1?'Ver evidencia anterior':'Ver archivos clínicos',()=>{if(hasRadiographs){showEvaluationTask(ctx,'findings');ctx.mapFilters?.radiograph?.click();}else window.SmylPatient360?.open('files');});previous.classList.add('cw-evidence-previous');foot.append(n('p','',hasRadiographs?'Consulta todos los estudios sin salir de Hallazgos.':rows.length>1?'El historial conserva la evidencia anterior.':'Los originales permanecen en el expediente privado.'),previous);ctx.evidenceTimeline.append(foot);
+  ctx.evidenceTimeline.append(list);const foot=n('footer','cw-evidence-history-foot'),hasRadiographs=studyItems.length>0,previous=btn(hasRadiographs?'Ver radiografías':rows.length>1?'Ver evidencia anterior':'Ver archivos clínicos',()=>{if(hasRadiographs){showEvaluationTask(ctx,'findings');ctx.mapFilters?.radiograph?.click();}else window.SmylPatient360?.open('files');});previous.classList.add('cw-evidence-previous');foot.append(n('p','',hasRadiographs?'Consulta todos los estudios en Valoración clínica, sin duplicar originales.':rows.length>1?'El historial conserva la evidencia anterior.':'Los originales permanecen en el expediente privado.'),previous);ctx.evidenceTimeline.append(foot);
  }
  const radiographTypes={panoramic:'Panorámica',periapical:'Periapical',bitewing:'Aleta de mordida',other:'Otra radiografía'};
  function openRadiograph(ctx,id){
@@ -308,6 +308,14 @@
   ctx.mapEdit.hidden=radiographMode;
   ctx.mapEdit.disabled=!snapshot?.ready||!tooth;
  }
+  function openClinicalPhotoIntake(ctx){
+   showEvaluationTask(ctx,'evidence');
+   requestAnimationFrame(()=>window.SmylEvidenceCenterIntegration?.openAdd?.('photograph'));
+  }
+  function openClinicalPhotoReview(ctx,studyId){
+   showEvaluationTask(ctx,'findings');
+   requestAnimationFrame(()=>{const section=document.querySelector('.scpr-root');section?.scrollIntoView({block:'start',behavior:'smooth'});if(studyId)window.SmylClinicalPhotoReview?.open?.(studyId);else window.SmylClinicalPhotoReview?.openFirst?.();});
+  }
  function syncFindingsAction(ctx){
   const state=ctx.findingsActionState;if(!state||!ctx.reviewButton)return;
   const filter=ctx.mapFilter||'all',baseDisabled=!!state.reviewDisabled,data=ctx.sourceData||{};
@@ -317,20 +325,20 @@
    label=ctx.selectedTooth?'Editar pieza '+ctx.selectedTooth:'Seleccionar una pieza';
    action=()=>ctx.selectedTooth?window.SmylDentalProgress?.openTooth(ctx.tenant,ctx.patient,ctx.selectedTooth):ctx.mapHost?.scrollIntoView({block:'center',behavior:'smooth'});
   }else if(filter==='photo'){
-   if(state.photoPending){label='Revisar '+state.photoPending+' sugerencia'+(state.photoPending===1?'':'s');action=()=>{if(ctx.selected?.current())ctx.selected.review();};}
-   else if(!state.photoCount){label='Agregar fotografías';action=()=>window.SmylPatientFiles?.add('clinical_photo');}
-   else{label=state.hasReview?'Revisar fotografías':'Analizar fotografías';action=()=>{if(ctx.selected?.current())ctx.selected.review();};}
+    if(state.photoPending){label='Revisar '+state.photoPending+' sugerencia'+(state.photoPending===1?'':'s');disabled=false;action=()=>openClinicalPhotoReview(ctx,state.firstPendingPhotoStudy||state.firstPhotoStudy);}
+    else if(!state.photoCount){label='Agregar fotografías';disabled=false;action=()=>openClinicalPhotoIntake(ctx);}
+    else{label=state.hasReview?'Revisar fotografías':'Analizar fotografías';disabled=false;action=()=>openClinicalPhotoReview(ctx,state.firstPhotoStudy);}
   }else if(filter==='radiograph'){
    if(state.rxPending){label='Revisar '+state.rxPending+' '+(state.rxPending===1?'hallazgo pendiente':'hallazgos pendientes');action=()=>reviewPart(ctx,1);}
    else if(data.firstStudy){label='Abrir último estudio';action=()=>{if(!window.SmylDentalProgress?.openStudy?.(ctx.tenant,ctx.patient,data.firstStudy))reviewPart(ctx,1);};}
    else{label='Agregar radiografía';action=()=>reviewPart(ctx,1);}
   }else if(filter==='pending'){
-   if(state.photoPending){label='Revisar '+state.photoPending+' de fotografías';action=()=>{if(ctx.selected?.current())ctx.selected.review();};}
+   if(state.photoPending){label='Revisar '+state.photoPending+' de fotografías';disabled=false;action=()=>openClinicalPhotoReview(ctx,state.firstPendingPhotoStudy||state.firstPhotoStudy);}
    else if(state.rxPending){label='Revisar '+state.rxPending+' pendiente'+(state.rxPending===1?'':'s');action=()=>reviewPart(ctx,1);}
    else{label=ctx.selectedTooth?'Editar pieza '+ctx.selectedTooth:'Seleccionar una pieza';action=()=>ctx.selectedTooth?window.SmylDentalProgress?.openTooth(ctx.tenant,ctx.patient,ctx.selectedTooth):ctx.mapHost?.scrollIntoView({block:'center',behavior:'smooth'});}
-  }else if(state.photoPending){label='Revisar '+state.photoPending+' observación'+(state.photoPending===1?'':'es');action=()=>{if(ctx.selected?.current())ctx.selected.review();};}
+  }else if(state.photoPending){label='Revisar '+state.photoPending+' observación'+(state.photoPending===1?'':'es');disabled=false;action=()=>openClinicalPhotoReview(ctx,state.firstPendingPhotoStudy||state.firstPhotoStudy);}
   else if(state.rxPending){label='Revisar '+state.rxPending+' '+(state.rxPending===1?'hallazgo RX pendiente':'hallazgos RX pendientes');action=()=>reviewPart(ctx,1);}
-  else if(state.photoCount){label=state.hasReview?'Continuar análisis':'Analizar fotografías';action=()=>{if(ctx.selected?.current())ctx.selected.review();};}
+  else if(state.photoCount){label=state.hasReview?'Continuar análisis':'Analizar fotografías';disabled=false;action=()=>openClinicalPhotoReview(ctx,state.firstPhotoStudy);}
   else if(ctx.selectedTooth){label='Editar pieza '+ctx.selectedTooth;action=()=>window.SmylDentalProgress?.openTooth(ctx.tenant,ctx.patient,ctx.selectedTooth);}
   copy(ctx.reviewButton,label);ctx.reviewButton.disabled=disabled;ctx.reviewAction=action;
   ctx.evaluationFlowState={reviewComplete:state.evaluationComplete,findingsComplete:state.findingsComplete,reviewLabel:label,reviewDisabled:disabled};updateEvaluationAction(ctx);
@@ -411,7 +419,7 @@
   const quick=n('nav','cw-quick-links');quick.setAttribute('aria-label','Áreas del expediente');
   [['Resumen','overview'],['Expediente','history'],['Tratamiento','plan'],['Actividad','appointments']].forEach(([label,key])=>{const action=btn(label,()=>key==='plan'?open('plan'):window.SmylPatient360?.open(key));action.dataset.patientSection=key;quick.append(action);});root.append(quick);
   ctx.overview=n('p','cw-stage-status');ctx.overview.setAttribute('role','status');root.append(ctx.overview);ctx.nav={};
-  const evaluation=module(ctx,'evaluation','01','Evaluación','Contexto, evidencia y hallazgos.');evaluation.details.dataset.active='true';ctx.activeStage='evaluation';
+  const evaluation=module(ctx,'evaluation','01','Evaluación','Contexto, evidencia y valoración profesional.');evaluation.details.dataset.active='true';ctx.activeStage='evaluation';
   const plan=module(ctx,'plan','02','Propuesta','Valoración, procedimientos y fases.');plan.details.hidden=true;
   const approval=module(ctx,'approval','03','Aceptación','Cotización, consentimiento y decisión.');approval.details.hidden=true;
   const followup=module(ctx,'followup','04','Seguimiento e historial','Citas, evoluciones y trabajo realizado.');followup.details.hidden=true;
@@ -420,14 +428,14 @@
   ctx.overview.before(progress);
   const evaluationFlow=n('section','cw-evaluation-flow');ctx.evaluationFlow=evaluationFlow;ctx.evaluationMobileProgress=n('p','cw-evaluation-mobile-progress','Paso 1 de 4 · Contexto');ctx.evaluationTaskList=n('ol','cw-evaluation-tasks');ctx.evaluationTaskList.setAttribute('role','tablist');ctx.evaluationTaskList.setAttribute('aria-label','Tareas de la evaluación');ctx.evaluationPanels=n('div','cw-evaluation-panels');ctx.evaluationTasks={};evaluationFlow.append(ctx.evaluationMobileProgress,ctx.evaluationTaskList,ctx.evaluationPanels);evaluation.body.append(evaluationFlow);
   ctx.contextPart=evaluationTask(ctx,'context','01','Contexto','Historia y alertas');
-  ctx.evidencePart=evaluationTask(ctx,'evidence','02','Evidencia','Archivos y estudios');ctx.evidenceSection=ctx.evidencePart.root;
-  ctx.reviewPart=evaluationTask(ctx,'findings','03','Hallazgos','Odontograma y revisión');ctx.reviewSection=ctx.reviewPart.root;
+  ctx.evidencePart=evaluationTask(ctx,'evidence','02','Evidencia','Subir y clasificar originales');ctx.evidenceSection=ctx.evidencePart.root;
+  ctx.reviewPart=evaluationTask(ctx,'findings','03','Valoración','Revisar y decidir');ctx.reviewSection=ctx.reviewPart.root;
   ctx.closePart=evaluationTask(ctx,'closure','04','Revisión','Antes de la propuesta');
   ctx.contextCopy=n('p','cw-evaluation-intro','Confirma la seguridad clínica antes de revisar imágenes.');ctx.contextPart.body.append(ctx.contextCopy);mountContext(ctx,patient);
   const versionNote=n('aside','cw-version-note'),versionCopy=n('div');versionCopy.append(n('strong','','Versiones guardadas'),n('p','','Cada guardado crea una nueva versión. Lo anterior no se reemplaza.'));ctx.planHistory=btn('Ver historial',()=>{const history=document.getElementById('clinic-history');if(!history)return;history.hidden=false;history.open=true;history.scrollIntoView({block:'start',behavior:'smooth'});});versionNote.append(n('span','','✓'),versionCopy,ctx.planHistory);plan.body.append(versionNote);
   const clinical=screen.querySelector('.clinic-workspace');if(clinical)plan.body.append(clinical);
   const documentActions=n('div','cw-action-row');documentActions.append(btn('Abrir archivos clínicos',()=>window.SmylPatient360?.open('files')));
-  ctx.evidenceTimeline=n('section','cw-evidence-history');ctx.photoHint=n('p','cw-help','Las simulaciones se mantienen separadas de la evidencia clínica.');ctx.evidencePart.body.append(ctx.evidenceTimeline,ctx.photoHint,documentActions);
+  ctx.evidenceTimeline=n('section','cw-evidence-history');ctx.photoHint=n('p','cw-help','Las radiografías son opcionales. Las simulaciones se mantienen separadas de la evidencia clínica.');ctx.evidencePart.body.append(ctx.evidenceTimeline,ctx.photoHint,documentActions);
   const simulationLink=n('aside','cw-simulation-link');simulationLink.innerHTML='<div><span>ESPACIO INDEPENDIENTE</span><strong>Simulaciones de sonrisa</strong><small>Comparaciones visuales orientativas, separadas del expediente clínico.</small></div><div><button type="button" data-open-simulations>Ver simulaciones</button><a href="simulacion-rapida.html?workspace=professional">Nueva simulación</a></div>';
   simulationLink.querySelector('[data-open-simulations]').onclick=()=>window.ir('historial');ctx.evidencePart.body.append(simulationLink);
   const clinicalMap=n('section','cw-clinical-map'),mapHead=n('header','cw-clinical-map-head'),mapTitle=n('div');mapTitle.append(n('span','cw-kicker','MAPA CLÍNICO LONGITUDINAL'),n('strong','','Odontograma verificable por fuente'),n('p','','Selecciona una pieza para revisar su evidencia y registrar la valoración profesional.'));
@@ -439,8 +447,8 @@
   const mapAside=n('aside','cw-map-aside cw-map-inspector');ctx.mapInspector=mapAside;ctx.mapSummary=n('strong','','Preparando el mapa');ctx.mapDetail=n('p','','Comprobando anotaciones clínicas y evidencia confirmada.');ctx.mapInspectorTitle=n('strong','cw-map-inspector-title','Selecciona una pieza');ctx.mapInspectorMeta=n('p','','El mapa conserva la selección mientras cambias de capa.');ctx.mapInspectorFacts=n('div','cw-map-inspector-facts');ctx.mapInspectorStatus=n('p','cw-help','Selecciona una pieza para ver su contexto sin abrir el editor.');ctx.mapInspectorRadiographs=n('section','cw-map-radiograph-context cw-map-inspector-radiograph');ctx.mapInspectorRadiographs.hidden=true;ctx.mapEdit=btn('Editar pieza',()=>{if(valid(ctx)&&ctx.selectedTooth)window.SmylDentalProgress?.openTooth(ctx.tenant,ctx.patient,ctx.selectedTooth);});ctx.mapEdit.classList.add('cw-map-edit');ctx.mapFull=ctx.mapEdit;ctx.reviewText=n('p','cw-help');ctx.reviewButton=btn('Analizar fotografías',()=>{if(valid(ctx)&&ctx.reviewAction)ctx.reviewAction();});mapAside.append(n('span','cw-kicker','VISTA ACTUAL'),ctx.mapSummary,ctx.mapDetail,n('span','cw-kicker','PIEZA SELECCIONADA'),ctx.mapInspectorTitle,ctx.mapInspectorMeta,ctx.mapInspectorFacts,ctx.mapInspectorStatus,ctx.mapInspectorRadiographs,ctx.mapEdit);mapLayout.append(mapStage,mapAside);clinicalMap.append(mapLayout);
   ctx.mapContext=n('section','cw-map-context');ctx.mapContextClasses={copy:'cw-map-context-copy',metrics:'cw-map-context-metrics',chip:'cw-map-context-chip'};clinicalMap.append(ctx.mapContext);
   const mapLegend=n('div','cw-map-legend');[['manual','Clínica'],['photo','Fotografía confirmada'],['radiograph','Rayos X confirmado'],['pending','IA por revisar']].forEach(([tone,label])=>mapLegend.append(n('span','cw-map-key cw-map-key-'+tone,label)));clinicalMap.append(mapLegend);ctx.reviewPart.body.append(clinicalMap);
-  ctx.reviewHelp=n('p','cw-help','El odontograma superior es el único mapa clínico. Las radiografías son opcionales; las herramientas inferiores sólo sirven para registrar una observación o agregar un estudio, y las simulaciones nunca se utilizan como evidencia clínica.');ctx.reviewPart.body.append(ctx.reviewHelp);
-  const closeSummary=n('section','cw-evaluation-close');ctx.closeTitle=n('h3','','Revisión pendiente');ctx.closeCopy=n('p','','Comprueba el contexto y los hallazgos antes de preparar la propuesta.');const closeFacts=n('dl','cw-evaluation-close-facts'),contextFact=n('div',''),evidenceFact=n('div',''),findingsFact=n('div','');contextFact.append(n('dt','','Contexto'),ctx.closeContext=n('dd','','Sin revisar'));evidenceFact.append(n('dt','','Evidencia'),ctx.closeEvidence=n('dd','','Sin comprobar'));findingsFact.append(n('dt','','Hallazgos'),ctx.closeFindings=n('dd','','Pendientes'));closeFacts.append(contextFact,evidenceFact,findingsFact);closeSummary.append(ctx.closeTitle,ctx.closeCopy,closeFacts);ctx.closePart.body.append(closeSummary);
+  ctx.reviewHelp=n('p','cw-help','Aquí no se suben originales. El odontograma es el único mapa clínico: revisa la evidencia ya clasificada, registra tu valoración y decide qué sugerencias se incorporan al expediente. Las simulaciones nunca se utilizan como evidencia clínica.');ctx.reviewPart.body.append(ctx.reviewHelp);
+  const closeSummary=n('section','cw-evaluation-close');ctx.closeTitle=n('h3','','Revisión pendiente');ctx.closeCopy=n('p','','Comprueba el contexto, la evidencia y las decisiones profesionales antes de preparar la propuesta.');const closeFacts=n('dl','cw-evaluation-close-facts'),contextFact=n('div',''),evidenceFact=n('div',''),findingsFact=n('div','');contextFact.append(n('dt','','Contexto'),ctx.closeContext=n('dd','','Sin revisar'));evidenceFact.append(n('dt','','Evidencia'),ctx.closeEvidence=n('dd','','Sin comprobar'));findingsFact.append(n('dt','','Valoración clínica'),ctx.closeFindings=n('dd','','Pendiente'));closeFacts.append(contextFact,evidenceFact,findingsFact);closeSummary.append(ctx.closeTitle,ctx.closeCopy,closeFacts);ctx.closePart.body.append(closeSummary);
   const evaluationFoot=n('footer','cw-evaluation-footer');ctx.evaluationFooterStatus=n('span','cw-evaluation-footer-status','Cargando contexto clínico');ctx.evaluationCta=btn('Continuar a evidencia',()=>{if(valid(ctx)&&ctx.evaluationAction)ctx.evaluationAction();},true);ctx.evaluationCta.classList.add('cw-evaluation-cta');evaluationFoot.append(ctx.evaluationFooterStatus,ctx.evaluationCta);evaluationFlow.append(evaluationFoot);showEvaluationTask(ctx,resume.task,false);
   const planProgress=n('ul','cw-checklist');ctx.planChecks={};
   for(const [id,label] of [['assessment','Completar valoración'],['treatments','Elegir tratamientos'],['approved','Revisar propuesta']]){const item=n('li','',label);item.dataset.label=label;planProgress.append(item);ctx.planChecks[id]=item;}
@@ -485,36 +493,39 @@
   if(!ctx.selected&&ctx.entries.length){select(ctx,ctx.entries[0]);return;}
   const entry=ctx.selected,views=entry?.row.document.views||[],count=views.length,pairs=views.filter(v=>v.result).length;
   const load=gallery?.dataset.loadState;
+  const photoStatus=ctx.clinicalPhotoStatus||null,canonicalPhotoCount=photoStatus?Number(photoStatus.studies||0):0,canonicalPhotoResolved=photoStatus?Number(photoStatus.resolvedStudies||0):0,canonicalPhotoPending=photoStatus?Number((photoStatus.unresolvedStudies??photoStatus.pending)||0):0;
   const files=window.SmylPatient360?.files?.(ctx.tenant,ctx.patient),progress=window.SmylPatientProgress?.status?.(ctx.tenant,ctx.patient),clinical=window.SmylClinicalWorkflow?.status(ctx.tenant,ctx.patient),dental=window.SmylDentalProgress?.status(ctx.tenant,ctx.patient,entry?.row.id),evidenceTotal=count+(dental?.studies||0)+(files?.total||0);
+  const photoCount=photoStatus?canonicalPhotoCount:count,photoPending=(dental?.pending||0)+(dental?.workflowPending||0)+canonicalPhotoPending,rxPending=dental?.rxPending||0;
   const evidenceLabel=evidenceTotal?evidenceTotal+(evidenceTotal===1?' evidencia':' evidencias'):load==='ready'?'Sin evidencia':'Cargando documentación';
   const contextState=renderContext(ctx),contextReviewed=!!contextState?.reviewed&&!contextState.stale;
   const contextLabel=contextState?.stale?'Contexto actualizado':contextReviewed?(contextState.state==='ready'?'Revisado':'Revisado con pendientes'):contextState?.state==='attention'?(contextState.model?.attentionCount||0)+' por revisar':contextState?.state==='incomplete'?'Por confirmar':'Cargando';
   partState(ctx.contextPart,contextLabel,contextReviewed?(contextState.state==='ready'?'done':'neutral'):'pending');
   partState(ctx.evidencePart,evidenceLabel,evidenceTotal?'done':load==='error'||load==='unavailable'?'neutral':'pending');
-  copy(ctx.photoHint,count?count+' fotografías originales disponibles. Las simulaciones se consultan por separado.':'Sin fotografías clínicas. Puedes continuar con el odontograma.');
+  copy(ctx.photoHint,photoCount?photoCount+' fotografías clínicas originales disponibles. Las simulaciones se consultan por separado.':'Sin fotografías clínicas. Puedes continuar con el odontograma.');
   renderEvidenceHistory(ctx,files,dental,entry);
-  const photoPending=(dental?.pending||0)+(dental?.workflowPending||0),rxPending=dental?.rxPending||0;
-  const findingsComplete=!!dental?.hasReview&&!photoPending&&!rxPending&&!dental?.dirty&&dental?.photoLoaded===true;
-  let reviewLabel=count?'Fotografías por revisar':'Odontograma pendiente',reviewCopy=count?'Analiza las fotografías y confirma únicamente las observaciones que quieras incorporar al mapa.':'Abre el odontograma y registra únicamente hallazgos confirmados por el profesional.';
+  const hasProfessionalReview=!!dental?.hasReview||canonicalPhotoResolved>0,photoProgressLoaded=photoStatus?true:dental?.photoLoaded===true;
+  const findingsComplete=hasProfessionalReview&&!photoPending&&!rxPending&&!dental?.dirty&&photoProgressLoaded;
+  let reviewLabel=photoCount?'Fotografías por revisar':'Odontograma pendiente',reviewCopy=photoCount?'Analiza las fotografías y confirma únicamente las observaciones que quieras incorporar al expediente.':'Abre el odontograma y registra únicamente hallazgos confirmados por el profesional.';
   if(!dental?.ready){reviewLabel='No disponible';reviewCopy='Espera a que cargue el mapa o revisa el aviso de conexión de este módulo.';}
   else if(dental.dirty){reviewLabel='Cambios sin guardar';reviewCopy='Guarda las observaciones del mapa antes de continuar.';}
-  else if(count&&!dental.photoLoaded){reviewLabel='Por comprobar';reviewCopy='No se pudo confirmar el avance del análisis fotográfico. Ningún resultado dudoso se incorporó al mapa.';}
+  else if(photoCount&&!photoStatus&&!dental.photoLoaded){reviewLabel='Por comprobar';reviewCopy='No se pudo confirmar el avance del análisis fotográfico. Ningún resultado dudoso se incorporó al mapa.';}
+  else if(canonicalPhotoCount&&canonicalPhotoPending===0){reviewLabel='Fotografías revisadas';reviewCopy=canonicalPhotoResolved+' '+(canonicalPhotoResolved===1?'toma resuelta':'tomas resueltas')+' con decisión profesional auditable. Esto no sustituye la exploración clínica.';}
   else if(dental.hasReview){reviewLabel=photoPending||rxPending?(photoPending+rxPending)+' por revisar':'Lista';reviewCopy=dental.confirmed+' observaciones confirmadas · '+dental.pending+' pendientes · '+dental.rejected+' descartadas. Esto no sustituye tu valoración clínica.';}
   if(dental?.studies&&dental.rxLoaded)reviewCopy+=' Radiografías: '+dental.studies+' guardadas · '+dental.rxReviews+' revisadas · '+dental.rxConfirmed+' confirmadas · '+dental.rxPending+' pendientes.';
   else if(dental?.studies&&!dental.rxLoaded)reviewCopy+=' El avance de radiografías aún no pudo comprobarse.';
-  partState(ctx.reviewPart,reviewLabel,findingsComplete?'done':dental?.hasReview?'neutral':'pending');copy(ctx.reviewText,reviewCopy);
+  partState(ctx.reviewPart,reviewLabel,findingsComplete?'done':hasProfessionalReview?'neutral':'pending');copy(ctx.reviewText,reviewCopy);
   const reviewDisabled=!entry||!dental?.ready||dental.busy||dental.dirty;
   const evaluationComplete=findingsComplete&&contextReviewed;
   partState(ctx.closePart,evaluationComplete?'Lista para la propuesta':'Pendiente',evaluationComplete?'done':'pending');
   copy(ctx.closeTitle,evaluationComplete?'Lista para la propuesta':'Revisión pendiente');
-  copy(ctx.closeCopy,evaluationComplete?'El contexto y los hallazgos quedaron revisados en esta sesión.':'Completa los pendientes antes de preparar la propuesta.');
+  copy(ctx.closeCopy,evaluationComplete?'El contexto, la evidencia y la valoración profesional quedaron revisados en esta sesión.':'Completa los pendientes antes de preparar la propuesta.');
   copy(ctx.closeContext,contextState?.stale?'Cambió · revisar':contextReviewed?'Revisado en esta sesión':contextState?.state==='attention'?'Alertas por revisar':'Sin revisar');
   copy(ctx.closeEvidence,evidenceLabel);copy(ctx.closeFindings,reviewLabel);
-  ctx.studyItems=dental?.studyItems||[];ctx.sourceData={photos:count,photoPending,photoConfirmed:dental?.confirmed||0,studies:ctx.studyItems.length,rxPending,rxConfirmed:dental?.rxConfirmed||0,firstStudy:ctx.studyItems[0]?.id||'',files:files?.total||0,teethFollowing:dental?.teeth?.following||0,teethDone:dental?.teeth?.done||0};
-  ctx.findingsActionState={entry,dental,photoCount:count,photoPending,rxPending,findingsComplete,evaluationComplete,reviewDisabled,hasReview:!!dental?.hasReview};
+  ctx.studyItems=dental?.studyItems||[];ctx.sourceData={photos:photoCount,photoPending,photoConfirmed:(dental?.confirmed||0)+(photoStatus?.reviewed||0),studies:ctx.studyItems.length,rxPending,rxConfirmed:dental?.rxConfirmed||0,firstStudy:ctx.studyItems[0]?.id||'',files:files?.total||0,teethFollowing:dental?.teeth?.following||0,teethDone:dental?.teeth?.done||0};
+  ctx.findingsActionState={entry,dental,photoCount,photoPending,rxPending,findingsComplete,evaluationComplete,reviewDisabled,hasReview:hasProfessionalReview,firstPhotoStudy:photoStatus?.firstStudyId||'',firstPendingPhotoStudy:photoStatus?.firstPendingStudyId||''};
   renderClinicalMap(ctx,window.SmylDentalProgress?.map?.(ctx.tenant,ctx.patient,entry?.row.id));
   syncFindingsAction(ctx);
-  state(ctx,'evaluation',evaluationComplete?'Lista para propuesta':contextState?.stale?'Contexto actualizado':!contextReviewed?'Contexto por revisar':dental?.hasReview?'Revisión en curso':'Requiere revisión',evaluationComplete?'done':dental?.hasReview?'neutral':'pending');
+  state(ctx,'evaluation',evaluationComplete?'Lista para propuesta':contextState?.stale?'Contexto actualizado':!contextReviewed?'Contexto por revisar':hasProfessionalReview?'Revisión en curso':'Requiere revisión',evaluationComplete?'done':hasProfessionalReview?'neutral':'pending');
   const planComplete=evaluationComplete&&clinical?.ready;
   ctx.planHistory.disabled=!document.getElementById('clinic-history');
   state(ctx,'plan',clinical?.saving?'Guardando':clinical?.dirty?'Cambios sin guardar':clinical?.ready?'Propuesta revisada':clinical?.saved?'Borrador guardado':clinical?.available?'Por completar':'No disponible',clinical?.ready?'done':'pending');
@@ -544,6 +555,7 @@
   addEventListener('smyl:portal-revoked',e=>{const ctx=active,d=e.detail;if(valid(ctx)&&d?.tenant===ctx.tenant&&d.patient===ctx.patient){ctx.receipts.delete(d.caseId);refresh();}});
   addEventListener('smyl:patient-summary',e=>{const ctx=active,d=e.detail;if(!valid(ctx)||d?.tenant!==ctx.tenant||d.patient!==ctx.patient)return;ctx.summary=d;const parts=[];if(d.alerts)parts.push(d.alerts+' '+(d.alerts===1?'alerta clínica':'alertas clínicas'));if(d.nextAppointment){const when=new Date(d.nextAppointment);parts.push('Próxima cita · '+when.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' '+when.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}));}copy(ctx.patientStatus,parts.join(' · ')||'Expediente al día');ctx.patientStatus.dataset.alerts=String(!!d.alerts);refresh();});
   addEventListener('smyl:patient-context-updated',e=>{const ctx=active,d=e.detail;if(!valid(ctx)||d?.tenant!==ctx.tenant||d.patient!==ctx.patient)return;ctx.contextFingerprint='';refresh();});
+  addEventListener('smyl:clinical-photo-status',e=>{const ctx=active,d=e.detail;if(!valid(ctx)||d?.tenant!==ctx.tenant||d.patient!==ctx.patient)return;ctx.clinicalPhotoStatus=d;refresh();});
   window.sb?.auth?.onAuthStateChange?.((event,session)=>{const ctx=active;if(ctx?.root.isConnected&&(session?.user?.id!==ctx.tenant||session.user.is_anonymous)){views.clear();ctx.revoked=true;ctx.entries=null;ctx.selected=null;ctx.receipts.clear();ctx.root.replaceChildren(n('p','cw-overview','La sesión cambió. Abre nuevamente el expediente con la cuenta autorizada.'));}});
  }
  window.SmylCaseWorkspace={open,context(tenant,patient){const ctx=active;if(!valid(ctx)||ctx.tenant!==tenant||ctx.patient!==patient)return null;const entry=ctx.selected;return entry&&entry.current()?{caseId:entry.row.id,isCurrent:()=>valid(ctx)&&ctx.selected===entry&&entry.current()}:null;}};

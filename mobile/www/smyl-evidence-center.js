@@ -715,6 +715,8 @@
         title: this.draft.title || '',
         date: this.draft.date || '',
         region: this.draft.region || '',
+        regionPreset: this.draft.regionPreset || '',
+        tooth: this.draft.tooth || '',
         file: this.draft.file || null,
         status: 'draft'
       };

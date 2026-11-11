@@ -33,8 +33,8 @@ test('Tratamiento separa la decisión clínica en cuatro etapas', () => {
 test('la evaluación simplifica contexto, evidencia, hallazgos y revisión en una sola superficie', () => {
   const tasks = [
     /evaluationTask\(ctx,'context','01','Contexto','Historia y alertas'\)/,
-    /evaluationTask\(ctx,'evidence','02','Evidencia','Archivos y estudios'\)/,
-    /evaluationTask\(ctx,'findings','03','Hallazgos','Odontograma y revisión'\)/,
+    /evaluationTask\(ctx,'evidence','02','Evidencia','Subir y clasificar originales'\)/,
+    /evaluationTask\(ctx,'findings','03','Valoración','Revisar y decidir'\)/,
     /evaluationTask\(ctx,'closure','04','Revisión','Antes de la propuesta'\)/,
   ];
   for (const task of tasks) assert.match(workspace, task);
@@ -42,7 +42,7 @@ test('la evaluación simplifica contexto, evidencia, hallazgos y revisión en un
   assert.match(workspace, /function showEvaluationTask\(ctx,id,focus=true\)/);
   assert.equal((workspace.match(/ctx\.evaluationCta=btn/g) || []).length, 1);
   assert.match(workspace, /function updateEvaluationAction\(ctx\)/);
-  for (const label of ['Continuar a evidencia', 'Continuar a hallazgos', 'Revisar', 'Continuar a propuesta', 'Volver a hallazgos']) {
+  for (const label of ['Continuar a evidencia', 'Continuar a valoración', 'Revisar', 'Continuar a propuesta', 'Volver a valoración']) {
     assert.match(workspace, new RegExp(label));
   }
 });
@@ -61,7 +61,7 @@ test('la evaluación permite continuar sin fotografías y conserva el odontogram
   assert.match(workspace, /Seleccionar una pieza/);
   assert.match(workspace, /Analizar fotografías/);
   assert.match(workspace, /Las radiografías son opcionales/);
-  assert.match(workspace, /las simulaciones nunca se utilizan como evidencia clínica/);
+  assert.match(workspace, /Las simulaciones nunca se utilizan como evidencia clínica/);
 });
 
 test('hallazgos prioriza un mapa operable con cinco capas e inspector persistente', () => {
@@ -126,11 +126,11 @@ test('la política visual conserva jerarquía, una CTA visible, tactilidad y res
 });
 
 test('web, móvil y PWA distribuyen la misma implementación', () => {
-  assert.match(app, /smyl-patient-360\.css\?v=17/);
+  assert.match(app, /smyl-patient-360\.css\?v=18/);
   assert.match(app, /smyl-clinic\.js\?v=20/);
-  assert.match(app, /smyl-patient-360\.js\?v=25/);
+  assert.match(app, /smyl-patient-360\.js\?v=26/);
   assert.match(app, /smyl-case-workspace\.css\?v=24/);
-  assert.match(app, /smyl-case-workspace\.js\?v=28/);
+  assert.match(app, /smyl-case-workspace\.js\?v=29/);
   assert.match(worker, /treatment-ux-v32/);
   assert.match(worker, /evaluation-flow-v73/);
   assert.match(worker, /treatment-tenant-workbench-v82/);
