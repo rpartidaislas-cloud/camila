@@ -10669,3 +10669,17 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - Archivos: `smyl-evidence-center.js` v5, `smyl-evidence-center.css` v4, `app.html`, `sw.js`, pruebas y capturas de regresión; copias sincronizadas en `mobile/www/`.
 - Sin cambios en datos, backend, Supabase, almacenamiento ni rutas clínicas. Periapical, Aleta de mordida y Panorámica siguen siendo los únicos subtipos habilitados desde este flujo.
 - QA: 52 pruebas de evidencia aprobadas; recorrido visual y funcional aprobado en 1280, 820, 390, 360 y 320 px, más entrega al cargador radiográfico canónico.
+
+## 2026-11-11 — Codex — Prevención local de radiografías duplicadas
+
+- El cargador radiográfico calcula la huella SHA-256 antes de crear el UUID, la ruta privada o el registro del estudio. Si encuentra el mismo original entre los estudios activos del paciente, no crea otra copia.
+- El aviso dirige el foco al estudio existente para que el profesional pueda abrirlo desde la lista. Las radiografías archivadas no se consideran duplicados activos.
+- Se conservan los mismos permisos clínicos, validación de formato/tamaño, RLS, almacenamiento y RPC; no se modificaron migraciones ni backend.
+- Web y `mobile/www` quedan sincronizados en `smyl-dental-record.js`. La prueba `smyl-radiograph-upload-dedupe-v1.test.mjs` cubre el orden seguro: huella → comprobación → identidad/ruta sólo si es nuevo.
+
+## 2026-11-11 — Codex — Ingreso radiográfico único desde Evidencia
+
+- Evidencia es la única puerta de carga de originales radiográficos. El botón contextual de Valoración ahora dice `Ir a Evidencia`, preselecciona Rayos X y nunca abre un segundo cargador.
+- El editor radiográfico canónico quedó montado dentro de la tarea Evidencia; Valoración conserva únicamente el odontograma, la lectura del estudio y las decisiones profesionales.
+- La carga radiográfica ya no pide región ni pieza FDI: esos vínculos se registran durante la valoración para evitar capturar datos que el modelo anterior no persistía.
+- Se actualizaron versiones de recursos, caché PWA y copias de `mobile/www`, además de contratos específicos para ruta única, ubicación clínica y bloqueo de duplicados.

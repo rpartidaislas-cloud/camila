@@ -27,8 +27,11 @@ test('fotografías y radiografías habilitan su propio flujo de archivo', () => 
   assert.match(evidenceIntegration, /routeClinicalPhoto/);
   assert.match(evidenceIntegration, /indexPatientFile/);
   assert.match(photoReview, /Aquí no se suben archivos/);
-  assert.match(workspace, /Agregar radiografía/);
-  assert.match(workspace, /reviewPart\(ctx,1\)/);
+  assert.match(workspace, /No hay radiografías para valorar/);
+  assert.match(workspace, /Ir a Evidencia/);
+  assert.match(workspace, /openRadiographEvidence\(ctx\)/);
+  assert.match(workspace, /openAdd\?\.\('radiograph_2d'\)/);
+  assert.doesNotMatch(workspace, /btn\('Agregar radiografía',\(\)=>reviewPart\(ctx,1\)/);
 });
 
 test('la IA se presenta como sugerencia y requiere confirmación profesional', () => {
@@ -55,7 +58,7 @@ test('la nueva superficie concentra mapa, inspector y contexto con respuesta mó
 test('web, móvil y PWA publican la etapa 3.7', () => {
   assert.match(app, /smyl-patient-360\.js\?v=26/);
   assert.match(app, /smyl-case-workspace\.css\?v=24/);
-  assert.match(app, /smyl-case-workspace\.js\?v=30/);
+  assert.match(app, /smyl-case-workspace\.js\?v=31/);
   assert.match(app, /smyl-clinical-photo-review\.js\?v=1/);
   assert.match(worker, /source-workspace-v37/);
   for (const file of [

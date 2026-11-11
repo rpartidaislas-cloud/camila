@@ -647,18 +647,21 @@
         const data = new FormData(form);
         this.draft.title = String(data.get('title') || '').trim();
         this.draft.date = String(data.get('date') || '');
-        this.draft.regionPreset = String(data.get('regionPreset') || '');
-        this.draft.tooth = String(data.get('tooth') || '').trim();
-        this.draft.region = this.draft.regionPreset === 'tooth'
-          ? (this.draft.tooth ? `Pieza ${this.draft.tooth}` : '')
-          : (REGION_LABELS[this.draft.regionPreset] || '');
+        const capturesRegion = category.id !== 'radiograph_2d';
+        this.draft.regionPreset = capturesRegion ? String(data.get('regionPreset') || '') : '';
+        this.draft.tooth = capturesRegion ? String(data.get('tooth') || '').trim() : '';
+        this.draft.region = capturesRegion
+          ? (this.draft.regionPreset === 'tooth'
+            ? (this.draft.tooth ? `Pieza ${this.draft.tooth}` : '')
+            : (REGION_LABELS[this.draft.regionPreset] || ''))
+          : '';
         this.draft.file = form.elements.evidenceFile?.files?.[0] || this.draft.file || null;
         if (category.fileAccept && !this.draft.file) {
           error.textContent = 'Selecciona el archivo original para continuar.';
           form.querySelector('.sec-file-preview')?.focus?.();
           return;
         }
-        if (this.draft.regionPreset === 'tooth' && !/^([1-4][1-8])$/.test(this.draft.tooth)) {
+        if (capturesRegion && this.draft.regionPreset === 'tooth' && !/^([1-4][1-8])$/.test(this.draft.tooth)) {
           error.textContent = 'Escribe una pieza FDI válida, por ejemplo 16, 21, 36 o 48.';
           form.elements.tooth?.focus();
           return;
@@ -732,10 +735,17 @@
       media.append(fileActions, fileInput, element('p', 'sec-file-help', category.id === 'radiograph_2d' ? 'JPG o PNG. El original se conserva sin modificaciones.' : 'El original se conserva sin modificaciones.'));
 
       const fieldsPanel = element('section', 'sec-context-panel');
-      fieldsPanel.append(element('span', 'sec-panel-label', 'CONTEXTO CLÍNICO'), element('h3', '', 'Confirma los datos esenciales'));
+      fieldsPanel.append(element('span', 'sec-panel-label', category.id === 'radiograph_2d' ? 'DATOS DEL ESTUDIO' : 'CONTEXTO CLÍNICO'), element('h3', '', category.id === 'radiograph_2d' ? 'Confirma el estudio original' : 'Confirma los datos esenciales'));
       const fields = element('div', 'sec-field-grid');
+      const isRadiograph = category.id === 'radiograph_2d';
       const dateField = element('label', 'sec-field');
-      dateField.append(element('span', '', 'Fecha del estudio'), Object.assign(element('input'), { type: 'date', name: 'date', required: true, value: this.draft.date || new Date().toISOString().slice(0, 10) }));
+      const dateInput = Object.assign(element('input'), {
+        type: 'date',
+        name: 'date',
+        required: !isRadiograph,
+        value: this.draft.date || (isRadiograph ? '' : new Date().toISOString().slice(0, 10))
+      });
+      dateField.append(element('span', '', isRadiograph ? 'Fecha del estudio · opcional' : 'Fecha del estudio'), dateInput);
       const regionField = element('label', 'sec-field');
       const regionSelect = element('select');
       regionSelect.name = 'regionPreset';
@@ -750,8 +760,12 @@
       syncTooth();
       const titleField = element('label', 'sec-field sec-field-wide');
       titleField.append(element('span', '', 'Nombre descriptivo · opcional'), Object.assign(element('input'), { type: 'text', name: 'title', value: this.draft.title || '', maxLength: 120, placeholder: category.id === 'photograph' ? 'Ej. Valoración inicial' : 'Ej. Estudio de control' }));
-      fields.append(dateField, regionField, toothField, titleField);
-      fieldsPanel.append(fields, element('p', 'sec-safety', 'Se preparará un borrador. Nada pasa al odontograma sin confirmación profesional.'));
+      fields.append(dateField);
+      if (category.id !== 'radiograph_2d') fields.append(regionField, toothField);
+      fields.append(titleField);
+      fieldsPanel.append(fields, element('p', 'sec-safety', category.id === 'radiograph_2d'
+        ? 'Si desconoces la fecha, déjala vacía. La pieza y los hallazgos se relacionan después, durante la valoración profesional.'
+        : 'Se preparará un borrador. Nada pasa al odontograma sin confirmación profesional.'));
       layout.append(media, fieldsPanel);
       form.append(layout);
       const footer = element('footer', 'sec-dialog-actions');
