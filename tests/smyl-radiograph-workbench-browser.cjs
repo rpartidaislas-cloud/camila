@@ -52,7 +52,8 @@ const fs = require('node:fs');
       await viewport.evaluate(element=>{const event=(type,touches)=>{const value=new Event(type,{bubbles:true,cancelable:true});Object.defineProperty(value,'touches',{value:touches});element.dispatchEvent(value);};event('touchstart',[{clientX:100,clientY:320},{clientX:210,clientY:320}]);event('touchmove',[{clientX:65,clientY:320},{clientX:245,clientY:320}]);event('touchend',[]);});
       await page.waitForTimeout(40);
       const pinch=await viewport.evaluate(element=>({left:element.scrollLeft,zoomed:element.classList.contains('is-zoomed')}));
-      if (!pinch.zoomed||Number(await zoom.inputValue())<=1||pinch.left<=0) throw new Error('Assisted-review pinch gesture did not zoom');
+      const pinchZoom=Number(await zoom.inputValue());
+      if (!pinch.zoomed||pinchZoom<=1||pinch.left<=0) throw new Error(`Assisted-review pinch gesture did not zoom: ${JSON.stringify({...pinch,pinchZoom})}`);
       await page.getByRole('button',{name:'Vista original',exact:true}).click();
     }
     await page.locator('.rr-image-adjustments > summary').click();
@@ -99,7 +100,7 @@ const fs = require('node:fs');
       await page.locator('.rr-image-adjustments > summary').click();
     }
     if (item.width < 960) {
-      const finalAction=page.getByRole('button',{name:'Confirmar y guardar',exact:true});
+      const finalAction=page.getByRole('button',{name:'Confirmar y continuar',exact:true});
       await finalAction.scrollIntoViewIfNeeded();
       const reachable = await page.evaluate(() => {
         const dialog=document.querySelector('.rr-dialog').getBoundingClientRect(),action=document.querySelector('[data-rr-decision="confirm"]').getBoundingClientRect();
@@ -113,11 +114,11 @@ const fs = require('node:fs');
       if (await page.locator('.rr-item-body').count() !== 1) throw new Error('Filtered signal did not become the active task');
       const text = page.locator('.rr-item-body textarea');
       await text.fill('Cambio de densidad por comprobar con revisión profesional.');
-      await page.getByRole('button', { name: 'Confirmar y guardar', exact: true }).click();
+      await page.getByRole('button', { name: 'Confirmar y continuar', exact: true }).click();
       if (!(await page.locator('.rr-feedback').textContent()).includes('Ubica la señal')) throw new Error('Placement guidance disappeared after rendering');
       await page.locator('.rr-image-stage > img').click({position:{x:220,y:250}});
-      await page.getByRole('button', { name: 'Confirmar y guardar', exact: true }).click();
-      await page.waitForFunction(()=>document.querySelector('.rr-feedback')?.textContent.includes('guardada en el expediente'));
+      await page.getByRole('button', { name: 'Confirmar y continuar', exact: true }).click();
+      await page.waitForFunction(()=>document.querySelector('.rr-feedback')?.textContent.includes('Señal 1 guardada'));
       const saved=await page.evaluate(()=>({count:window.__reviewSaves.length,state:window.__reviewSaves.at(-1)?.items[0]?.state,text:window.__reviewSaves.at(-1)?.items[0]?.text}));
       if(saved.count!==1||saved.state!=='confirmed'||!saved.text.includes('revisión profesional')) throw new Error('The explicit decision was not verified by the store');
       if(!await page.getByRole('button',{name:'Ver resumen',exact:true}).count()) throw new Error('Completed review did not expose its summary step');

@@ -10656,3 +10656,12 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - `Asignación y seguimiento`, `Alerta para la atención` y `Datos adicionales` funcionan como un acordeón: al abrir una se cierran las demás y la sección activa se lleva al área visible.
 - Las tres secciones empiezan cerradas tanto en alta como en edición. Sus encabezados resumen el contenido existente —asignación, número de alertas o cantidad de datos— para evitar abrirlas sólo para comprobar si están completas.
 - No se modificaron datos, permisos, Supabase ni flujos de guardado. Web y `mobile/www` quedan sincronizados con `smyl-clinic.css?v=11` y `smyl-clinic.js?v=22`.
+
+## 2026-11-11 — Codex — Revisión radiográfica PWA v17: una señal, una decisión
+
+- La revisión móvil deja de superponer controles, avisos y pie de acciones sobre la radiografía. El pie vuelve al flujo normal, la imagen ocupa todo el ancho útil y el gesto de ampliación conserva la superficie completa.
+- En PWA se muestra únicamente la señal activa; las demás quedan como contexto en escritorio. Se compactan cabecera, selector Original/Señales, ajuste de imagen y calidad, y se elimina el círculo amarillo grande de selección.
+- La acción clínica queda inequívoca: `Descartar` o `Confirmar y continuar`. La confirmación muestra un aviso breve, guarda la decisión y abre la siguiente señal; el aviso se retira solo.
+- El expediente móvil simplifica filtros y estudios radiográficos: una sola fila desplazable, filtros sin resultados ocultos y estudios en lista vertical compacta, sin tarjetas horizontales recortadas.
+- Versiones: `smyl-radiograph-workbench.css?v=17`, `smyl-radiograph-review.js?v=22`, `smyl-case-workspace.css?v=25` y `smyl-case-workspace.js?v=31`; caché `radiograph-mobile-flow-v17`; copias sincronizadas en `mobile/www/`.
+- QA: 30 pruebas estáticas aprobadas y recorrido real en Chromium a 1280, 820, 390 y 320 px, sin desborde ni controles cubriendo contenido.

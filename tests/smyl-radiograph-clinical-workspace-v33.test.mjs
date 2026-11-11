@@ -31,7 +31,7 @@ test('evidencia, decisión y detalle publican semántica accesible', () => {
   assert.match(review, /Imagen radiográfica original y señales ubicadas/);
   assert.match(review, /Decisión sobre la señal activa/);
   assert.match(review, /Señal clínica activa/);
-  assert.match(review, /Ver todas las señales/);
+  assert.match(review, /Ver lista/);
   assert.match(review, /role','listitem/);
   assert.match(record, /Visor radiográfico\. Amplía y arrastra para recorrer la imagen/);
 });

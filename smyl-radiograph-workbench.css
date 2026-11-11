@@ -819,6 +819,144 @@
 .rr-no-evaluation p { margin: 3px 0 0; color: var(--rr-muted); font-size: 13px; line-height: 19px; }
 .rr-no-evaluation-limits { grid-column: 1 / -1; margin: 2px 0 0 50px; padding-left: 17px; color: var(--rr-muted); font-size: 13px; line-height: 19px; }
 
+/* PWA radiográfica v17 · una señal, una decisión y ningún control cubriendo contenido. */
+@media (max-width: 639px) {
+  .rr-dialog .rr-bar {
+    display: grid;
+    min-height: 56px;
+    padding: 8px 12px;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    align-items: center;
+    gap: 10px;
+  }
+  .rr-dialog .rr-bar .rr-identity { gap: 0; }
+  .rr-dialog .rr-bar .rr-identity > strong { font-size: 15px; line-height: 20px; }
+  .rr-dialog .rr-bar .rr-study-meta { display: none; }
+  .rr-dialog .rr-bar .rr-kicker { font-size: 12px; line-height: 15px; }
+  .rr-dialog .rr-bar .rr-steps { display: none; }
+  .rr-dialog .rr-bar .rr-exit {
+    position: relative;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 12px;
+    font-size: 12px;
+    text-indent: -9999px;
+  }
+  .rr-dialog .rr-bar .rr-exit::before { position: absolute; inset: 0; display: grid; place-items: center; content: '←'; font-size: 22px; line-height: 1; text-indent: 0; }
+  .rr-host { padding-bottom: env(safe-area-inset-bottom); }
+  .rr-review { padding: 0; gap: 0; }
+  .rr-workspace { display: block; }
+  .rr-canvas {
+    display: flex;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    background: #0b1727;
+    flex-direction: column;
+  }
+  .rr-canvas-head {
+    order: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 0;
+    background: #0b1727;
+  }
+  .rr-canvas-head > div:first-child { display: none; }
+  .rr-canvas-head > .rr-view-switch { display: grid; width: 100%; padding: 3px; border: 1px solid #31465c; border-radius: 10px; background: #14263a; grid-template-columns: 1fr 1fr; }
+  .rr-view-switch .rr-tool { min-height: 38px; padding: 6px 10px; border: 0; background: transparent; color: #c1cedc; }
+  .rr-view-switch .rr-tool[aria-pressed="true"] { background: #f4f7fa; color: #0b1b2e; }
+  .rr-image-wrap {
+    order: 2;
+    display: flex;
+    width: 100%;
+    height: clamp(220px, 31dvh, 292px);
+    min-height: 220px;
+    max-height: 292px;
+    align-items: center;
+    overflow: auto;
+    background: #07111d;
+  }
+  .rr-image-stage { min-width: 100%; flex: none; }
+  .rr-image-stage > .rr-box.is-context,
+  .rr-image-stage > .rr-mark.is-context { display: none; }
+  .rr-image-stage > .rr-box.is-selected { z-index: 4; }
+  .rr-image-adjustments { order: 3; margin: 8px 10px 0; }
+  .rr-image-adjustments > summary { width: 100%; min-height: 40px; box-sizing: border-box; border-color: #31465c; background: #14263a; color: #e7edf4; }
+  .rr-image-adjustments > summary::before { color: #9fb1c5; }
+  .rr-image-adjustments[open] > summary { border-color: #6ecdc0; background: #173149; }
+  .rr-image-adjustments .rr-view-tools { margin-top: 6px; padding: 8px; border: 1px solid #31465c; border-radius: 10px; background: #14263a; }
+  .rr-image-adjustments .rr-tool-range { color: #c1cedc; }
+  .rr-image-adjustments .rr-tool { border-color: #536b83; background: #0b1727; color: #e7edf4; }
+  .rr-canvas .rr-qpop { order: 4; margin: 8px 10px 10px; }
+  .rr-canvas .rr-qpop > summary { width: 100%; min-height: 40px; box-sizing: border-box; justify-content: center; border-color: #31465c; background: #14263a; color: #e7edf4; }
+  .rr-canvas .rr-qpop-body { position: static; width: 100%; margin-top: 6px; box-sizing: border-box; }
+  .rr-image-legend, .rr-hint { display: none; }
+  .rr-signal-panel {
+    margin: 0;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: #fff;
+  }
+  .rr-panel-head { padding: 14px 16px 10px; }
+  .rr-panel-head .rr-section-label { font-size: 12px; line-height: 15px; }
+  .rr-panel-head h2 { font-size: 20px; line-height: 25px; }
+  .rr-panel-head > p { display: none; }
+  .rr-step-back { position: absolute; top: 10px; right: 14px; min-height: 36px; margin: 0; padding: 4px 10px; border: 1px solid var(--rr-line); border-radius: 9px; background: #fff; }
+  .rr-panel-head { position: relative; }
+  .rr-signal-queue { margin-top: 8px; }
+  .rr-signal-queue > summary { min-height: 36px; padding-top: 8px; }
+  .rr-items { padding: 0 12px 12px; }
+  .rr-item { border-radius: 12px; }
+  .rr-item.is-selected { box-shadow: none; }
+  .rr-item.is-selected > .rr-item-head { display: none; }
+  .rr-item-body { gap: 10px; padding: 10px; border-top: 0; }
+  .rr-ai-summary > summary { min-height: 48px; }
+  .rr-ai-summary > summary span span { display: none; }
+  .rr-clinical-decision { gap: 9px; padding: 11px; }
+  .rr-clinical-decision > header p,
+  .rr-field-help,
+  .rr-decision-note { display: none; }
+  .rr-clinical-decision h3 { font-size: 17px; line-height: 22px; }
+  .rr-field { gap: 5px; }
+  .rr-field textarea { min-height: 88px; }
+  .rr-location-row { padding: 8px 0 0; border-bottom: 0; }
+  .rr-save,
+  .rr-save[data-dirty="true"] {
+    position: static;
+    display: grid;
+    margin: 0;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    border: 0;
+    border-top: 1px solid var(--rr-line);
+    border-radius: 0;
+    grid-template-columns: 1fr;
+  }
+  .rr-save-info, .rr-save-note { display: none !important; }
+  .rr-save-prog { order: 1; }
+  .rr-footer-actions { order: 2; display: grid; gap: 8px; grid-template-columns: minmax(0, .72fr) minmax(0, 1.28fr); }
+  .rr-footer-actions > button { width: 100%; min-height: 48px; margin: 0; }
+  .rr-feedback {
+    position: sticky;
+    z-index: 30;
+    top: 0;
+    left: auto;
+    width: auto;
+    margin: 8px 10px 0;
+    padding: 8px 10px;
+    transform: none;
+    font-size: 12px;
+    line-height: 16px;
+    box-shadow: 0 8px 22px rgba(11, 27, 46, .14);
+  }
+}
+
 @media (min-width: 960px) {
   .rr-image-adjustments { position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); }
   .rr-image-adjustments > summary { border-color: rgba(255, 255, 255, .16); background: rgba(10, 22, 36, .74); color: #e8eef5; backdrop-filter: blur(12px); }

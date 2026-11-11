@@ -453,3 +453,35 @@
  .cw-enhanced .cw-workspace .cw-radiograph-crop-switcher button,
  .cw-enhanced .cw-workspace .cw-radiograph-crop-open{min-height:44px}
 }
+
+/* Expediente PWA v25 · filtros y estudios radiográficos sin amontonamiento. */
+@media(max-width:760px){
+ .cw-enhanced .cw-map-filters{flex-wrap:nowrap;gap:6px;padding:8px 10px;overflow-x:auto;scroll-snap-type:x proximity}
+ .cw-enhanced .cw-workspace .cw-map-filter{min-width:max-content;min-height:40px;flex:none;padding-inline:12px;scroll-snap-align:start}
+ .cw-enhanced .cw-workspace .cw-map-filter[data-count="0"]:not([aria-pressed="true"]){display:none}
+ .cw-enhanced .cw-radiograph-shelf-head{display:grid;align-items:start;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:12px 12px 8px}
+ .cw-enhanced .cw-radiograph-shelf-head p{max-width:32ch}
+ .cw-enhanced .cw-workspace .cw-radiograph-clear{width:auto;min-height:36px;padding:6px 10px;font-size:12px}
+ .cw-enhanced .cw-radiograph-queue-filters{padding:0 12px 8px;scroll-snap-type:x proximity}
+ .cw-enhanced .cw-workspace .cw-radiograph-queue-filters button{min-height:40px;scroll-snap-align:start}
+ .cw-enhanced .cw-radiograph-grid{display:grid;grid-auto-flow:row;grid-auto-columns:auto;gap:8px;padding:0 12px 14px;overflow:visible;scroll-snap-type:none}
+ .cw-enhanced .cw-radiograph-card{grid-template-columns:92px minmax(0,1fr);min-height:138px;scroll-snap-align:none}
+ .cw-enhanced .cw-radiograph-media{min-height:138px}
+ .cw-enhanced .cw-radiograph-card-body{padding:11px}
+ .cw-enhanced .cw-radiograph-card-body>strong{font-size:15px;line-height:1.3}
+ .cw-enhanced .cw-radiograph-card-meta{margin-top:3px}
+ .cw-enhanced .cw-radiograph-pieces{display:none}
+ .cw-enhanced .cw-radiograph-badges{gap:4px}
+ .cw-enhanced .cw-radiograph-status{min-height:23px;margin-top:6px;padding:2px 7px;font-size:12px}
+ .cw-enhanced .cw-radiograph-progress{gap:4px;margin:6px 0 8px}
+ .cw-enhanced .cw-radiograph-card-actions{grid-template-columns:minmax(0,1fr) auto;gap:6px}
+ .cw-enhanced .cw-radiograph-card-actions>button{width:auto;min-height:40px;padding:6px 9px}
+ .cw-enhanced .cw-evaluation-panels{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+}
+
+@media(max-width:420px){
+ .cw-enhanced .cw-radiograph-shelf-head{align-items:start;grid-template-columns:minmax(0,1fr) auto}
+ .cw-enhanced .cw-workspace .cw-radiograph-clear{width:auto;min-height:36px}
+ .cw-enhanced .cw-radiograph-grid{grid-auto-columns:auto}
+ .cw-enhanced .cw-radiograph-card{grid-template-columns:84px minmax(0,1fr)}
+}
