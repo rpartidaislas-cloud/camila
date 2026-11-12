@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-12 — Codex — Archivo clínico con categorías configurables
+
+- **Evidencia** se convierte en el archivo clínico único: conserva fotografía, radiografía y documento como tipos técnicos fijos, pero los organiza mediante categorías clínicas compartidas por tenant. Las sugerencias aparecen como chips delineados y sólo se crean al activarlas; el profesional también puede crear categorías propias.
+- Se agregan `smyl_evidence_categories` y `smyl_evidence_category_assignments`. Una categoría se archiva, no se elimina; quitar una clasificación revoca la asignación vigente y conserva el registro anterior. No se modifica ni se sobrescribe el original clínico.
+- La carga permite elegir varias categorías opcionales. Fotografías, documentos y radiografías aplican la clasificación al origen canónico después del guardado confirmado. Los archivos existentes pueden clasificarse desde su tarjeta.
+- **Valoración** deja de competir con Evidencia: muestra una bandeja de consulta del archivo y después el odontograma. Sus controles se presentan explícitamente como capas del odontograma, no como categorías. Simulaciones se retira por completo del flujo de Evidencia.
+- Web y `mobile/www` quedan sincronizados con categorías `v1`, centro `js?v=8`/`css?v=5`, integración `js?v=5`/`css?v=3`, workspace `js?v=34`/`css?v=26` y caché `clinical-categories-v1`.
+- `20261112120000_smyl_evidence_categories.sql` quedó aplicada y registrada en Supabase SMYL antes de publicar el frontend/PWA. Verificación: tablas, RLS y tres RPC activas; 49 pruebas focalizadas y suite completa de 1,403 pruebas sin fallos; revisión visual headless en 1440×1100 y 390×900, sin recortes ni duplicar carga clínica.
+
 ## 2026-11-11 — Codex — Libro de pagos simplificado
 
 - Se retiran **Preparar CFDI**, el estado de borrador fiscal y **Preparar factura** del flujo cotidiano de Pagos. La pestaña fiscal permanece independiente y no se alteran datos, RPC, reembolsos ni auditoría contable.

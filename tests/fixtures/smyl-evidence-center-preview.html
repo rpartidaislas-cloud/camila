@@ -21,10 +21,20 @@
   <script src="../../smyl-evidence-center.js"></script>
   <script>
     const records = [
-      { id:'demo-1', modality:'radiograph_2d', subtype:'panoramic', title:'Panorámica inicial', date:'2026-10-14', region:'Ambas arcadas', status:'review', findings:2 },
-      { id:'demo-2', modality:'photograph', subtype:'face_smile', title:'Fotografías de valoración', date:'2026-10-14', region:'Rostro y sonrisa', status:'signed', findings:0 },
-      { id:'demo-3', modality:'document', subtype:'radiology_report', title:'Informe radiológico externo', date:'2026-10-15', region:'Ambas arcadas', status:'signed', findings:0 },
+      { id:'demo-1', source:'dental_record', modality:'radiograph_2d', subtype:'panoramic', title:'Panorámica inicial', date:'2026-10-14', region:'Ambas arcadas', status:'review', findings:2, categoryIds:['cat-1'] },
+      { id:'demo-2', source:'clinical_photo_study', modality:'photograph', subtype:'face_smile', title:'Fotografías de valoración', date:'2026-10-14', region:'Rostro y sonrisa', status:'signed', findings:0, categoryIds:['cat-1'] },
+      { id:'demo-3', source:'patient_file', modality:'document', subtype:'radiology_report', title:'Informe radiológico externo', date:'2026-10-15', region:'Ambas arcadas', status:'signed', findings:0, categoryIds:['cat-2'] },
       { id:'demo-4', modality:'clinical_measurement', subtype:'periodontogram', title:'Periodontograma inicial', date:'2026-10-15', region:'Dentición completa', status:'draft', findings:0 }
+    ];
+    const clinicalCategories = [
+      {id:'cat-1',templateKey:'diagnostic_initial',name:'Diagnóstico inicial',order:10,archived:false},
+      {id:'cat-2',templateKey:'followup',name:'Seguimiento',order:80,archived:false}
+    ];
+    const suggestions = [
+      {key:'orthodontics',name:'Ortodoncia'},
+      {key:'endodontics',name:'Endodoncia'},
+      {key:'periodontics',name:'Periodoncia'},
+      {key:'implants',name:'Implantes'}
     ];
     const feedback = document.getElementById('preview-feedback');
     const creationAvailability = {
@@ -37,11 +47,25 @@
     };
     const center = SmylEvidenceCenter.mount(document.getElementById('evidence-center'), {
       items: records,
+      categories: clinicalCategories,
+      suggestions,
       creationAvailability: modality => creationAvailability[modality] || { enabled:false, label:'Por activar' },
       typeAvailability: (modality, subtype) => modality !== 'radiograph_2d' || ['periapical','bitewing','panoramic'].includes(subtype)
         ? { enabled:true }
         : { enabled:false, label:'Editor especializado' },
       onOpen(item){ feedback.textContent = `Abrir: ${item.title}`; },
+      async onActivateCategory(category){
+        clinicalCategories.push({id:`cat-${Date.now()}`,templateKey:category.key,name:category.name,archived:false});
+        center.setCategories(clinicalCategories,suggestions);
+      },
+      async onCreateCategory(name){
+        clinicalCategories.push({id:`cat-${Date.now()}`,templateKey:'',name,archived:false});
+        center.setCategories(clinicalCategories,suggestions);
+      },
+      async onAssignCategories(item, categoryIds){
+        const row=records.find(record=>record.id===item.id);if(row)row.categoryIds=categoryIds;
+        center.setItems(records);
+      },
       async onCreate(payload){
         records.unshift({ id:`demo-${Date.now()}`, ...payload, status:'draft' });
         center.setItems(records);

@@ -7,7 +7,7 @@ const workspace = read('../smyl-case-workspace.js');
 const integration = read('../smyl-evidence-center-integration.js');
 
 test('Valoración no presenta una segunda carga radiográfica', () => {
-  assert.ok(/Aquí no se suben originales/.test(workspace));
+  assert.ok(/Aquí no se cargan archivos/.test(workspace));
   assert.equal(/btn\('Agregar radiografía',\(\)=>reviewPart\(ctx,1\)/.test(workspace), false, 'Valoración no debe abrir el cargador directamente');
   assert.equal(/label='Agregar radiografía';action=\(\)=>reviewPart\(ctx,1\)/.test(workspace), false, 'la acción contextual tampoco debe cargar desde Valoración');
   assert.ok(/No hay radiografías para valorar/.test(workspace));

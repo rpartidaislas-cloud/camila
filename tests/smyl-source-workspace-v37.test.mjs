@@ -13,7 +13,8 @@ const styles = read('../smyl-case-workspace.css');
 const fixture = read('./fixtures/smyl-clinical-flow-preview.html');
 
 test('cada fuente activa una capa del mismo odontograma clínico', () => {
-  for (const copy of ["['all','Todo']", "['manual','Clínica']", "['photo','Fotografías']", "['radiograph','Rayos X']", "['pending','Pendientes']"]) assert.match(workspace, new RegExp(copy.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  for (const copy of ["['all','Vista clínica']", "['manual','Anotaciones']", "['photo','Hallazgos en fotos']", "['radiograph','Hallazgos en RX']", "['pending','Por revisar']"]) assert.match(workspace, new RegExp(copy.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(workspace, /CAPAS DEL ODONTOGRAMA/);
   assert.match(workspace, /renderClinicalMap\(ctx,ctx\.mapSnapshot\)/);
   assert.match(workspace, /ctx\.mapFilter=id/);
   assert.doesNotMatch(workspace, /renderSourceWorkspace\(/);
@@ -57,8 +58,8 @@ test('la nueva superficie concentra mapa, inspector y contexto con respuesta mó
 
 test('web, móvil y PWA publican la etapa 3.7', () => {
   assert.match(app, /smyl-patient-360\.js\?v=26/);
-  assert.match(app, /smyl-case-workspace\.css\?v=25/);
-  assert.match(app, /smyl-case-workspace\.js\?v=33/);
+  assert.match(app, /smyl-case-workspace\.css\?v=26/);
+  assert.match(app, /smyl-case-workspace\.js\?v=34/);
   assert.match(app, /smyl-clinical-photo-review\.js\?v=1/);
   assert.match(worker, /source-workspace-v37/);
   for (const file of [
@@ -67,6 +68,7 @@ test('web, móvil y PWA publican la etapa 3.7', () => {
     'smyl-patient-360.js',
     'smyl-patient-360.css',
     'smyl-evidence-center.js',
+    'smyl-evidence-categories.js',
     'smyl-evidence-center-integration.js',
     'smyl-clinical-photo-service.js',
     'smyl-clinical-photo-review.js',

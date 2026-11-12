@@ -230,6 +230,8 @@
   function cleanItems(items) {
     return (Array.isArray(items) ? items : []).map((item, index) => ({
       id: String(item?.id || `evidence-${index + 1}`),
+      source: String(item?.source || ''),
+      sourceId: String(item?.sourceId || item?.id || `evidence-${index + 1}`),
       modality: categoryById(item?.modality || item?.category).id,
       subtype: String(item?.subtype || item?.type || ''),
       title: String(item?.title || ''),
@@ -243,7 +245,8 @@
         signed: 'signed',
         superseded: 'superseded'
       })[item?.status] || 'draft',
-      findings: Math.max(0, Number(item?.findings) || 0)
+      findings: Math.max(0, Number(item?.findings) || 0),
+      categoryIds: [...new Set((Array.isArray(item?.categoryIds) ? item.categoryIds : []).map(String).filter(Boolean))]
     }));
   }
 
@@ -334,6 +337,8 @@
       this.root = root;
       this.options = options || {};
       this.items = cleanItems(this.options.items);
+      this.clinicalCategories = Array.isArray(this.options.categories) ? this.options.categories : [];
+      this.suggestedCategories = Array.isArray(this.options.suggestions) ? this.options.suggestions : [];
       this.filter = 'all';
       this.step = 0;
       this.draft = {};
@@ -349,14 +354,13 @@
 
       const head = element('header', 'sec-head');
       const copy = element('div', 'sec-head-copy');
-      copy.append(element('span', 'sec-kicker', 'EXPEDIENTE DEL PACIENTE'), element('h2', '', 'Documentación clínica'), element('p', '', 'Fotografías, radiografías e informes, ordenados en un solo lugar.'));
+      copy.append(element('span', 'sec-kicker', 'ARCHIVO CLÍNICO'), element('h2', '', 'Evidencia del paciente'), element('p', '', 'Originales ordenados por categoría, fecha y tipo de archivo.'));
       this.addButton = button('Agregar evidencia', 'sec-primary sec-add', () => this.openAdd());
       head.append(copy, this.addButton);
 
       this.summary = element('div', 'sec-summary');
-      this.filters = element('div', 'sec-filters');
-      this.filters.setAttribute('role', 'tablist');
-      this.filters.setAttribute('aria-label', 'Tipos de evidencia clínica');
+      this.filters = element('section', 'sec-clinical-categories');
+      this.filters.setAttribute('aria-label', 'Categorías clínicas del archivo');
       this.list = element('div', 'sec-list');
       this.list.setAttribute('aria-live', 'polite');
       this.root.append(head, this.summary, this.filters, this.list);
@@ -368,11 +372,17 @@
         this.closeAdd();
       });
       document.body.append(this.dialog);
+
+      this.categoryDialog = element('dialog', 'sec-category-dialog');
+      this.categoryDialog.addEventListener('cancel', event => {
+        event.preventDefault();
+        this.closeCategoryDialog();
+      });
+      document.body.append(this.categoryDialog);
     }
 
     render() {
       this.root.dataset.empty = String(this.items.length === 0);
-      this.addButton.hidden = this.items.length === 0;
       this.renderSummary();
       this.renderFilters();
       this.renderList();
@@ -380,9 +390,9 @@
 
     renderSummary() {
       const pending = this.items.filter(item => item.status === 'review').length;
-      const signed = this.items.filter(item => item.status === 'signed').length;
+      const uncategorized = this.items.filter(item => !item.categoryIds.length).length;
       this.summary.replaceChildren();
-      [[this.items.length, this.items.length === 1 ? 'registro' : 'registros'], [pending, 'por revisar'], [signed, 'confirmados']].forEach(([value, label]) => {
+      [[this.items.length, this.items.length === 1 ? 'archivo' : 'archivos'], [uncategorized, 'sin categoría'], [pending, 'por revisar']].forEach(([value, label]) => {
         const metric = element('span', 'sec-metric');
         metric.append(element('strong', '', String(value)), element('small', '', label));
         this.summary.append(metric);
@@ -391,40 +401,67 @@
 
     renderFilters() {
       this.filters.replaceChildren();
-      const creatable = category => {
-        const state = this.options.creationAvailability?.(category.id);
-        return state === undefined || state === true || state?.enabled !== false;
-      };
-      const options = [{ id: 'all', short: 'Todo' }, ...CATEGORIES.filter(category => creatable(category) || this.items.some(item => item.modality === category.id))];
+      const active = this.clinicalCategories.filter(category => !category.archived);
+      const activeTemplates = new Set(active.map(category => category.templateKey).filter(Boolean));
+      const suggestions = this.suggestedCategories.filter(category => !activeTemplates.has(category.key));
+      const head = element('header', 'sec-category-head');
+      const copy = element('div');
+      copy.append(element('span', 'sec-kicker', 'MIS CATEGORÍAS'), element('h3', '', 'Organiza el archivo a tu manera'), element('p', '', 'Las categorías no cambian ni duplican el original.'));
+      const create = button('Nueva categoría', 'sec-category-create', () => this.openCreateCategory());
+      head.append(copy, create);
+      const chips = element('div', 'sec-category-chips');
+      chips.setAttribute('role', 'tablist');
+      chips.setAttribute('aria-label', 'Filtrar evidencia por categoría clínica');
+      const options = [
+        { id: 'all', name: 'Todo', count: this.items.length },
+        { id: 'uncategorized', name: 'Sin categoría', count: this.items.filter(item => !item.categoryIds.length).length },
+        ...active.map(category => ({
+          id: category.id,
+          name: category.name,
+          count: this.items.filter(item => item.categoryIds.includes(category.id)).length
+        }))
+      ];
       options.forEach(option => {
-        const count = option.id === 'all' ? this.items.length : this.items.filter(item => item.modality === option.id).length;
-        const tab = button('', 'sec-filter', () => {
+        const tab = button('', 'sec-category-chip', () => {
           this.filter = option.id;
           this.renderFilters();
           this.renderList();
         });
         tab.setAttribute('role', 'tab');
         tab.setAttribute('aria-selected', String(this.filter === option.id));
-        tab.append(element('span', '', option.short), element('b', '', String(count)));
-        this.filters.append(tab);
+        tab.append(element('span', '', option.name), element('b', '', String(option.count)));
+        chips.append(tab);
       });
+      this.filters.append(head, chips);
+      if (suggestions.length) {
+        const suggested = element('div', 'sec-suggested-categories');
+        const suggestedCopy = element('div');
+        suggestedCopy.append(element('strong', '', 'Sugeridas'), element('small', '', 'Haz clic para activar una en tu clínica.'));
+        const suggestedChips = element('div', 'sec-suggested-chips');
+        suggestions.forEach(category => {
+          const control = button(`+ ${category.name}`, 'sec-suggested-chip', () => this.activateSuggestion(category, control));
+          control.setAttribute('aria-label', `Activar categoría ${category.name}`);
+          suggestedChips.append(control);
+        });
+        suggested.append(suggestedCopy, suggestedChips);
+        this.filters.append(suggested);
+      }
     }
 
     renderList() {
       this.list.replaceChildren();
-      const visible = this.filter === 'all' ? this.items : this.items.filter(item => item.modality === this.filter);
+      const visible = this.filter === 'all'
+        ? this.items
+        : this.filter === 'uncategorized'
+          ? this.items.filter(item => !item.categoryIds.length)
+          : this.items.filter(item => item.categoryIds.includes(this.filter));
       if (!visible.length) {
         const empty = element('section', 'sec-empty');
-        const category = this.filter === 'all' ? null : categoryById(this.filter);
-        empty.append(icon(category?.icon || 'document'), element('h3', '', category ? `Sin ${category.label.toLowerCase()}` : 'Agrega la primera evidencia'), element('p', '', category ? category.description : 'Empieza con una fotografía, una radiografía o un documento clínico.'));
-        const actions = element('div', 'sec-empty-actions');
-        const quick = category ? [category] : CATEGORIES.filter(item => ['photograph', 'radiograph_2d', 'document'].includes(item.id));
-        quick.forEach((item, index) => {
-          const action = button('', index === 0 ? 'sec-quick sec-quick-primary' : 'sec-quick', () => this.openAdd(item.id));
-          action.append(icon(item.icon), element('span', '', modalityAction(item)));
-          actions.append(action);
-        });
-        empty.append(actions);
+        const selectedCategory = this.clinicalCategories.find(category => category.id === this.filter);
+        const title = this.filter === 'all' ? 'Agrega la primera evidencia' : this.filter === 'uncategorized' ? 'Todo está clasificado' : `Sin archivos en ${selectedCategory?.name || 'esta categoría'}`;
+        const description = this.filter === 'all' ? 'Guarda una sola vez el original y clasifícalo para encontrarlo después.' : 'Puedes cambiar de categoría o agregar un nuevo archivo.';
+        empty.append(icon('document'), element('h3', '', title), element('p', '', description));
+        empty.append(button('Agregar evidencia', 'sec-primary sec-empty-primary', () => this.openAdd()));
         this.list.append(empty);
         return;
       }
@@ -439,19 +476,118 @@
         copy.append(element('span', 'sec-study-category', category.label), element('strong', '', item.title || typeLabel(category, item.subtype)));
         const metadata = [item.date ? new Date(`${item.date}T12:00:00`).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha', item.region || 'Sin región vinculada'].join(' · ');
         copy.append(element('small', '', metadata));
+        const categoryRow = element('div', 'sec-study-categories');
+        const assigned = item.categoryIds.map(id => this.clinicalCategories.find(entry => entry.id === id)).filter(Boolean);
+        if (assigned.length) assigned.forEach(entry => categoryRow.append(element('span', 'sec-study-category-chip', entry.name)));
+        else categoryRow.append(element('span', 'sec-study-category-chip is-empty', 'Sin categoría'));
+        copy.append(categoryRow);
         main.append(copy);
         const state = element('span', 'sec-status', statusLabel(item.status));
         state.dataset.tone = item.status;
-        const action = button('Abrir', 'sec-link', () => this.options.onOpen?.(item));
-        card.append(main, state, action);
+        const actions = element('div', 'sec-study-actions');
+        actions.append(button('Clasificar', 'sec-link sec-classify', () => this.openAssignment(item)), button('Abrir', 'sec-link', () => this.options.onOpen?.(item)));
+        card.append(main, state, actions);
         this.list.append(card);
       });
+    }
+
+    async activateSuggestion(category, control) {
+      if (!this.options.onActivateCategory) return;
+      control.disabled = true;
+      control.textContent = 'Activando…';
+      try {
+        await this.options.onActivateCategory(category);
+      } catch (error) {
+        control.disabled = false;
+        control.textContent = `+ ${category.name}`;
+        this.options.onCategoryError?.(error);
+      }
+    }
+
+    openCreateCategory() {
+      this.categoryDialog.replaceChildren();
+      const form = element('form', 'sec-category-form');
+      form.method = 'dialog';
+      const head = element('header');
+      const copy = element('div');
+      copy.append(element('span', 'sec-kicker', 'NUEVA CATEGORÍA'), element('h2', '', 'Crea una categoría clínica'), element('p', '', 'Será visible para los profesionales de esta clínica.'));
+      head.append(copy, button('Cerrar', 'sec-close', () => this.closeCategoryDialog()));
+      const field = element('label', 'sec-category-name');
+      const input = Object.assign(element('input'), { name: 'name', type: 'text', minLength: 2, maxLength: 48, required: true, placeholder: 'Ej. Odontopediatría' });
+      field.append(element('span', '', 'Nombre'), input);
+      const error = element('p', 'sec-inline-error');
+      error.setAttribute('role', 'alert');
+      const actions = element('footer');
+      actions.append(button('Cancelar', 'sec-secondary', () => this.closeCategoryDialog()), Object.assign(element('button', 'sec-primary', 'Crear categoría'), { type: 'submit' }));
+      form.append(head, field, error, actions);
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const submit = form.querySelector('[type="submit"]');
+        submit.disabled = true;
+        try {
+          await this.options.onCreateCategory?.(input.value);
+          this.closeCategoryDialog();
+        } catch (cause) {
+          error.textContent = cause?.message || 'No se pudo crear la categoría.';
+          submit.disabled = false;
+        }
+      });
+      this.categoryDialog.append(form);
+      if (typeof this.categoryDialog.showModal === 'function') this.categoryDialog.showModal();
+      else this.categoryDialog.setAttribute('open', '');
+      queueMicrotask(() => input.focus());
+    }
+
+    openAssignment(item) {
+      const active = this.clinicalCategories.filter(category => !category.archived);
+      this.categoryDialog.replaceChildren();
+      const form = element('form', 'sec-category-form sec-assignment-form');
+      const head = element('header');
+      const copy = element('div');
+      copy.append(element('span', 'sec-kicker', 'CLASIFICAR'), element('h2', '', item.title || typeLabel(categoryById(item.modality), item.subtype)), element('p', '', 'Puedes elegir más de una categoría. El original no cambia.'));
+      head.append(copy, button('Cerrar', 'sec-close', () => this.closeCategoryDialog()));
+      const choices = element('div', 'sec-assignment-choices');
+      active.forEach(category => {
+        const label = element('label', 'sec-assignment-choice');
+        const input = Object.assign(element('input'), { type: 'checkbox', value: category.id, checked: item.categoryIds.includes(category.id) });
+        label.append(input, element('span', '', category.name));
+        choices.append(label);
+      });
+      if (!active.length) choices.append(element('p', 'sec-category-empty', 'Activa una sugerencia o crea una categoría primero.'));
+      const error = element('p', 'sec-inline-error');
+      error.setAttribute('role', 'alert');
+      const actions = element('footer');
+      actions.append(button('Cancelar', 'sec-secondary', () => this.closeCategoryDialog()), Object.assign(element('button', 'sec-primary', 'Guardar clasificación'), { type: 'submit', disabled: !active.length }));
+      form.append(head, choices, error, actions);
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const selected = [...choices.querySelectorAll('input:checked')].map(input => input.value);
+        const submit = form.querySelector('[type="submit"]');
+        submit.disabled = true;
+        try {
+          await this.options.onAssignCategories?.(item, selected);
+          this.closeCategoryDialog();
+        } catch (cause) {
+          error.textContent = cause?.message || 'No se pudo guardar la clasificación.';
+          submit.disabled = false;
+        }
+      });
+      this.categoryDialog.append(form);
+      if (typeof this.categoryDialog.showModal === 'function') this.categoryDialog.showModal();
+      else this.categoryDialog.setAttribute('open', '');
+      queueMicrotask(() => choices.querySelector('input')?.focus());
+    }
+
+    closeCategoryDialog() {
+      if (this.categoryDialog.open && typeof this.categoryDialog.close === 'function') this.categoryDialog.close();
+      else this.categoryDialog.removeAttribute('open');
     }
 
     openAdd(preselectedModality) {
       this.returnFocus = document.activeElement;
       this.step = 0;
       this.draft = preselectedModality ? { modality: preselectedModality } : {};
+      if (this.clinicalCategories.some(category => !category.archived && category.id === this.filter)) this.draft.categoryIds = [this.filter];
       this.releasePreview();
       this.renderWizard();
       if (typeof this.dialog.showModal === 'function') this.dialog.showModal();
@@ -656,6 +792,7 @@
             : (REGION_LABELS[this.draft.regionPreset] || ''))
           : '';
         this.draft.file = form.elements.evidenceFile?.files?.[0] || this.draft.file || null;
+        this.draft.categoryIds = [...form.querySelectorAll('input[name="clinicalCategory"]:checked')].map(input => input.value);
         if (category.fileAccept && !this.draft.file) {
           error.textContent = 'Selecciona el archivo original para continuar.';
           form.querySelector('.sec-file-preview')?.focus?.();
@@ -680,6 +817,26 @@
         this.focusWizardTask();
       }));
       form.append(summary, error);
+
+      const activeClinicalCategories = this.clinicalCategories.filter(entry => !entry.archived);
+      if (activeClinicalCategories.length) {
+        const categoryField = element('fieldset', 'sec-upload-categories');
+        categoryField.append(element('legend', '', 'Categorías clínicas · opcional'), element('p', '', 'Sirven para encontrar este archivo después; puedes elegir varias.'));
+        const categoryChoices = element('div', 'sec-upload-category-chips');
+        activeClinicalCategories.forEach(entry => {
+          const label = element('label', 'sec-upload-category-chip');
+          const input = Object.assign(element('input'), {
+            type: 'checkbox',
+            name: 'clinicalCategory',
+            value: entry.id,
+            checked: (this.draft.categoryIds || []).includes(entry.id)
+          });
+          label.append(input, element('span', '', entry.name));
+          categoryChoices.append(label);
+        });
+        categoryField.append(categoryChoices);
+        form.append(categoryField);
+      }
 
       const layout = element('div', 'sec-details-layout');
       const media = element('section', 'sec-media-panel');
@@ -783,6 +940,7 @@
         region: this.draft.region || '',
         regionPreset: this.draft.regionPreset || '',
         tooth: this.draft.tooth || '',
+        categoryIds: [...new Set((this.draft.categoryIds || []).map(String).filter(Boolean))],
         file: this.draft.file || null,
         status: 'draft'
       };
@@ -811,9 +969,18 @@
       this.render();
     }
 
+    setCategories(categories, suggestions) {
+      this.clinicalCategories = Array.isArray(categories) ? categories : [];
+      this.suggestedCategories = Array.isArray(suggestions) ? suggestions : [];
+      const activeIds = new Set(this.clinicalCategories.filter(category => !category.archived).map(category => category.id));
+      if (!['all', 'uncategorized'].includes(this.filter) && !activeIds.has(this.filter)) this.filter = 'all';
+      this.render();
+    }
+
     destroy() {
       this.releasePreview();
       this.dialog.remove();
+      this.categoryDialog.remove();
       this.root.replaceChildren();
       this.root.classList.remove('sec-root');
     }
