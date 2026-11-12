@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-12 — Codex — Entrada única para evidencia radiográfica
+
+- **Evidencia** conserva una sola acción de carga. Al elegir una radiografía, el mismo archivo pasa al editor clínico y la pantalla cambia a una tarea enfocada de revisión; ya no vuelve a pedir el archivo ni mantiene dos cargadores compitiendo.
+- Durante la preparación se ocultan tipo, fecha, selector de archivo, guía auxiliar, IA y estudios anteriores. Sólo queda visible la radiografía nueva, con **Abrir y anotar**, **Descartar** y una acción final inequívoca: **Guardar radiografía**.
+- Guardar restaura el archivo clínico y aplica sus categorías; descartar o fallar restaura la pantalla sin cambiar el expediente. El estado guardado del registro dental sirve como base para evitar avisos falsos de cambios y nunca sobrescribe ni elimina evidencia anterior.
+- El archivo vacío muestra una única entrada **Agregar evidencia**. Un filtro sin resultados ofrece **Ver todo el archivo** en vez de abrir otro cargador. Los estados asíncronos sólo cierran el flujo cuando el registro confirma un guardado real, no cuando termina una lectura secundaria.
+- Web y `mobile/www` quedan sincronizados con expediente `v26`, centro `js?v=9`/`css?v=6`, integración `js?v=6`/`css?v=4` y caché `evidence-single-intake-v1`. No se cambian backend, migraciones, permisos ni originales clínicos.
+- Verificación: 39 pruebas focalizadas y suite completa de 249 archivos de prueba aprobadas; revisión visual headless de escritorio y breakpoint móvil sin campos duplicados, desbordes ni acciones fuera de la tarjeta.
+
 ## 2026-11-12 — Codex — Archivo clínico con categorías configurables
 
 - **Evidencia** se convierte en el archivo clínico único: conserva fotografía, radiografía y documento como tipos técnicos fijos, pero los organiza mediante categorías clínicas compartidas por tenant. Las sugerencias aparecen como chips delineados y sólo se crean al activarlas; el profesional también puede crear categorías propias.

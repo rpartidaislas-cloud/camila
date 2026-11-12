@@ -458,10 +458,24 @@
       if (!visible.length) {
         const empty = element('section', 'sec-empty');
         const selectedCategory = this.clinicalCategories.find(category => category.id === this.filter);
-        const title = this.filter === 'all' ? 'Agrega la primera evidencia' : this.filter === 'uncategorized' ? 'Todo está clasificado' : `Sin archivos en ${selectedCategory?.name || 'esta categoría'}`;
-        const description = this.filter === 'all' ? 'Guarda una sola vez el original y clasifícalo para encontrarlo después.' : 'Puedes cambiar de categoría o agregar un nuevo archivo.';
+        const archiveEmpty = this.items.length === 0;
+        const title = archiveEmpty
+          ? 'Aún no hay evidencia'
+          : this.filter === 'uncategorized'
+            ? 'Todo está clasificado'
+            : `Sin archivos en ${selectedCategory?.name || 'esta categoría'}`;
+        const description = archiveEmpty
+          ? 'Agrega el primer archivo clínico. El original se conservará una sola vez.'
+          : this.filter === 'uncategorized'
+            ? 'Todos los archivos ya tienen una categoría clínica.'
+            : 'Esta categoría todavía no contiene archivos.';
         empty.append(icon('document'), element('h3', '', title), element('p', '', description));
-        empty.append(button('Agregar evidencia', 'sec-primary sec-empty-primary', () => this.openAdd()));
+        if (archiveEmpty) empty.append(button('Agregar evidencia', 'sec-primary sec-empty-primary', () => this.openAdd()));
+        else empty.append(button('Ver todo el archivo', 'sec-secondary sec-empty-primary', () => {
+          this.filter = 'all';
+          this.renderFilters();
+          this.renderList();
+        }));
         this.list.append(empty);
         return;
       }
