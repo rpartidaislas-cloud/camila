@@ -10708,3 +10708,14 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - El editor radiográfico canónico quedó montado dentro de la tarea Evidencia; Valoración conserva únicamente el odontograma, la lectura del estudio y las decisiones profesionales.
 - La carga radiográfica ya no pide región ni pieza FDI: esos vínculos se registran durante la valoración para evitar capturar datos que el modelo anterior no persistía.
 - Se actualizaron versiones de recursos, caché PWA y copias de `mobile/www`, además de contratos específicos para ruta única, ubicación clínica y bloqueo de duplicados.
+
+## 2026-11-12 — Codex — Odontograma FDI acoplado a la mesa radiográfica
+
+- El selector de pieza deja de abrirse como una ventana centrada sobre la radiografía. Ahora se despliega como un panel anatómico acoplado **debajo de la imagen**, por lo que nunca cubre dientes ni señales clínicas.
+- En escritorio conserva la radiografía y el panel de validación visibles; en tableta y móvil pasa al flujo vertical inmediatamente después de la imagen. Incluye orientación derecha/izquierda del paciente, cuatro cuadrantes FDI, sugerencia de IA, pieza seleccionada, leyenda y acción para dejarla sin indicar.
+- Se compactó el disparador de pieza, se devuelve el foco al cerrarlo, Escape lo cierra de forma segura y los atajos clínicos no se activan mientras se navega el odontograma.
+- La mesa incorpora navegación anterior/siguiente entre señales, contador visible, calidad de imagen, lista desplegable de señales y controles de imagen con etiquetas más claras (`Ajustar`, `Restablecer`, zoom actual).
+- Se corrigió el estado cuando la señal seleccionada deja de existir y se añadieron relaciones accesibles entre el control y el panel acoplado.
+- Versiones integradas: `smyl-radiograph-workbench.css?v=20`, `smyl-radiograph-review.js?v=25`; caché PWA renovada y copias sincronizadas en `mobile/www/`.
+- QA focal: 41 pruebas ejecutadas, 40 aprobadas y 1 omitida porque PGlite no está disponible. Regresión radiográfica ampliada: 187 pruebas, 168 aprobadas, 19 omitidas por PGlite/Playwright no disponibles y 0 fallidas (se excluyó únicamente el contrato de regeneración del bundle de `radiograph-analyze`, una desincronización previa del backend fuera de este cambio). `node --check` y `git diff --check` aprobados. La comprobación visual local confirmó que el odontograma no cubre la radiografía. El último refresco visual automatizado fue detenido manualmente por el usuario, sin afectar las pruebas ni los archivos.
+- Estado de entrega: incluido en la publicación de producción del 12 de noviembre de 2026.

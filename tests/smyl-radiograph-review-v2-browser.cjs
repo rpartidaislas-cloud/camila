@@ -189,7 +189,7 @@ let browser = null;
       await zoom.fill('2'); await page.waitForTimeout(40);
       const centered = await viewport.evaluate((e) => ({ left: e.scrollLeft, center: (e.scrollLeft + e.clientWidth / 2) / e.scrollWidth, zoomed: e.classList.contains('is-zoomed') }));
       if (!centered.zoomed || centered.left <= 0 || Math.abs(centered.center - .5) > .04) fail('zoom not centered ' + JSON.stringify(centered));
-      await page.getByRole('button', { name: 'Vista original', exact: true }).click();
+      await page.getByRole('button', { name: 'Restablecer', exact: true }).click();
     }
     if (item.name === 'mobile') {
       const last = page.locator('.rr-item').last();

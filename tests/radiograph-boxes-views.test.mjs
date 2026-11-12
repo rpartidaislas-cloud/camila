@@ -41,7 +41,7 @@ test('el visor dibuja cuadros punteados y ofrece dos vistas sin tocar la imagen'
   assert.match(js, /n\('div','rr-box rr-box-'\+item\.state/);
   assert.match(js, /if\(run\.placing\)run\.view\.marks=true;/, 'ubicar una señal fuerza la vista con marcas');
   assert.match(js, /marks:false\}/, 'la comprobación inicial abre sin marcas de IA');
-  assert.match(js, /querySelector\('\.rr-actions'\)\?\.scrollIntoView/, 'la señal abierta baja hasta sus botones');
+  assert.doesNotMatch(js, /querySelector\('\.rr-actions'\)\?\.scrollIntoView/, 'cambiar de señal no desplaza la mesa de trabajo');
   const css = read('smyl-radiograph-workbench.css');
   assert.match(css, /\.rr-box \{[^}]*border: 2px dashed/);
   assert.match(css, /\.rr-box \{[^}]*pointer-events: none/, 'los cuadros no capturan clics de ubicación');
@@ -56,8 +56,11 @@ test('el selector FDI gráfico relaciona la señal con una pieza sin duplicar el
   assert.deepEqual(SmylDentalModel.upper.map(String), ['18','17','16','15','14','13','12','11','21','22','23','24','25','26','27','28']);
   assert.deepEqual(SmylDentalModel.lower.map(String), ['48','47','46','45','44','43','42','41','31','32','33','34','35','36','37','38']);
   assert.match(js, /item\.tooth\?'Pieza FDI '\+item\.tooth:'Diente por indicar'/);
-  assert.match(js, /function toothPicker\(item,source\)/);
-  assert.match(js, /n\('details','rr-tooth-picker'\)/, 'el control permanece plegable y compacto');
+  assert.match(js, /function toothPicker\(item\)/);
+  assert.match(js, /function toothPickerDock\(item,source\)/);
+  assert.match(js, /n\('section','rr-tooth-dock'\)/, 'el odontograma se acopla fuera de la radiografía');
+  assert.match(js, /canvas\.classList\.add\('has-tooth-dock'\)/);
+  assert.match(js, /trigger\.dataset\.rrToothTrigger=item\.id/);
   assert.match(js, /quadrant:'1',teeth:SmylDentalModel\.upper\.slice\(0,8\)/);
   assert.match(js, /quadrant:'2',teeth:SmylDentalModel\.upper\.slice\(8\)/);
   assert.match(js, /quadrant:'4',teeth:SmylDentalModel\.lower\.slice\(0,8\)/);
@@ -69,7 +72,7 @@ test('el selector FDI gráfico relaciona la señal con una pieza sin duplicar el
   assert.match(js, /control\.setAttribute\('role','radio'\)/);
   assert.match(js, /control\.setAttribute\('aria-label','Pieza FDI '\+tooth\)/);
   assert.match(js, /control\.setAttribute\('aria-checked',String\(item\.tooth===tooth\)\)/);
-  assert.match(js, /item\.tooth=String\(value\|\|''\);markDirty\(item\);render\(\)/, 'la pieza usa el mismo item clínico como fuente de verdad');
+  assert.match(js, /item\.tooth=String\(value\|\|''\);run\.toothPickerOpen=null;markDirty\(item\);render\(\)/, 'la pieza usa el mismo item clínico como fuente de verdad');
   assert.match(js, /button\('Dejar pieza por indicar'/);
   assert.doesNotMatch(js, /select\.add\(new Option\('Diente por indicar'/, 'el desplegable largo dejó de ser la interfaz principal');
   assert.doesNotMatch(js, /Región general/);
@@ -113,8 +116,11 @@ test('el selector FDI se recorre por teclado y devuelve el foco sin desplazar la
   assert.match(js, /if\(key==='ArrowDown'\)next=at<16\?at\+16:at/);
   assert.match(js, /if\(key==='Home'\)next=rowStart/);
   assert.match(js, /if\(key==='End'\)next=rowEnd/);
-  assert.match(js, /controls\[next\]\?\.focus\(\)/);
-  assert.match(js, /\.rr-tooth-picker > summary'\)\?\.focus\(\{preventScroll:true\}\)/);
+  assert.match(js, /const nextControl=controls\[next\]/);
+  assert.match(js, /nextControl\.focus\(\)/);
+  assert.match(js, /item\.tooth=nextTooth/);
+  assert.match(js, /option\.setAttribute\('aria-checked',String\(checked\)\)/);
+  assert.match(js, /\[data-rr-tooth-trigger="'\+item\.id\+'"\]'\)\?\.focus\(\{preventScroll:true\}\)/);
 });
 
 test('la migración acepta w y h opcionales y juntos, solo con ubicación', () => {
@@ -216,7 +222,7 @@ test('la imagen se ajusta al área libre entre los controles flotantes y el zoom
   const js = read('smyl-radiograph-review.js');
   assert.match(js, /function fitWidth\(wrap,img\)/);
   assert.match(js, /matchMedia\?\.\('\(min-width: 960px\)'\)/, 'solo en escritorio');
-  assert.match(js, /wrap\.clientHeight-176/);
+  assert.match(js, /wrap\.clientHeight-72/);
   assert.match(js, /Math\.round\(fit\*run\.view\.zoom\)\+'px'/);
   assert.match(js, /new ResizeObserver\(\(\)=>applyImageView\(stage,img\)\)\.observe\(wrap\)/);
 });

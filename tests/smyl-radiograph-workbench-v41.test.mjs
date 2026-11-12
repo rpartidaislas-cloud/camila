@@ -11,14 +11,15 @@ const review = read('../smyl-radiograph-review.js');
 const dental = read('../smyl-dental-record.js');
 const css = read('../smyl-radiograph-workbench.css');
 
-assert.match(app, /smyl-radiograph-workbench\.css\?v=19/);
-assert.match(app, /smyl-radiograph-review\.js\?v=24/);
+assert.match(app, /smyl-radiograph-workbench\.css\?v=20/);
+assert.match(app, /smyl-radiograph-review\.js\?v=25/);
 assert.match(app, /smyl-dental-record\.js\?v=25/);
 assert.match(worker, /radiograph-navigation-v43/);
-assert.match(worker, /smyl-radiograph-workbench\.css\?v=19/);
+assert.match(worker, /smyl-radiograph-workbench\.css\?v=20/);
 assert.match(worker, /radiograph-guided-process-v15/);
 assert.match(worker, /radiograph-mobile-reading-v18/);
-assert.match(worker, /radiograph-anatomic-odontogram-v19/);
+assert.match(worker, /radiograph-anatomic-odontogram-v20/);
+assert.match(worker, /radiograph-docked-odontogram-v20/);
 
 assert.match(review, /rr-workspace/);
 assert.match(review, /categoryLabel/);
@@ -41,7 +42,13 @@ assert.match(review, /rr-signal-queue/);
 assert.match(review, /rr-review-summary/);
 assert.match(review, /list\.append\(editItem\(selected,selectedIndex\)\)/);
 assert.doesNotMatch(review, /rr-filter rr-tab/);
-assert.match(review, /function toothPicker\(item,source\)/);
+assert.match(review, /function toothPicker\(item\)/);
+assert.match(review, /function toothPickerDock\(item,source\)/);
+assert.match(review, /toothPickerOpen/);
+assert.match(review, /rr-tooth-picker-trigger/);
+assert.match(review, /rr-signal-nav/);
+assert.match(review, /button\('Ajustar'/);
+assert.match(review, /button\('Restablecer'/);
 assert.match(review, /function toothGlyph\(value,arch\)/);
 assert.match(review, /Pieza relacionada en odontograma FDI/);
 for (const quadrant of ['1', '2', '4', '3']) assert.match(review, new RegExp("quadrant:'" + quadrant + "'"));
@@ -86,6 +93,10 @@ for (const family of ['incisor', 'canine', 'premolar', 'molar']) assert.match(cs
 assert.match(css, /\.rr-tooth-glyph\.is-lower\s*\{[^}]*rotate\(180deg\)/s);
 assert.match(css, /\.rr-tooth-option\.is-selected\s*\{/);
 assert.match(css, /\.rr-tooth-option\.is-suggested::after\s*\{/);
+assert.match(css, /\.rr-canvas\.has-tooth-dock\s*\{[^}]*--rr-tooth-dock-space:\s*240px/s);
+assert.match(css, /\.rr-canvas\.has-tooth-dock \.rr-image-wrap\s*\{[^}]*bottom:\s*var\(--rr-tooth-dock-space\)/s);
+assert.match(css, /\.rr-canvas\.has-tooth-dock \.rr-tooth-dock\s*\{[^}]*position:\s*absolute[^}]*bottom:\s*12px/s);
+assert.match(css, /\.rr-signal-nav\s*\{/);
 assert.match(css, /@media \(max-width: 639px\)/);
 for (const match of css.matchAll(/font-size:\s*([0-9.]+)px/g)) assert.ok(Number(match[1]) >= 10, `Texto menor de 10 px: ${match[0]}`);
 

@@ -43,7 +43,7 @@ const fs = require('node:fs');
       const box = await viewport.boundingBox();
       await page.mouse.move(box.x+box.width*.62,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.38,box.y+box.height*.5,{steps:4});await page.mouse.up();
       if (await viewport.evaluate(element=>element.scrollLeft) <= centered.left+5) throw new Error('Assisted-review horizontal drag did not pan');
-      await page.getByRole('button', { name: 'Vista original', exact: true }).click();
+      await page.getByRole('button', { name: 'Restablecer', exact: true }).click();
       await page.waitForTimeout(40);
       if (await viewport.evaluate(element=>element.scrollLeft>2||element.classList.contains('is-zoomed'))) throw new Error('Assisted-review original view did not reset');
     }
@@ -53,7 +53,7 @@ const fs = require('node:fs');
       await page.waitForTimeout(40);
       const pinch=await viewport.evaluate(element=>({left:element.scrollLeft,zoomed:element.classList.contains('is-zoomed')}));
       if (!pinch.zoomed||Number(await zoom.inputValue())<=1||pinch.left<=0) throw new Error('Assisted-review pinch gesture did not zoom');
-      await page.getByRole('button',{name:'Vista original',exact:true}).click();
+      await page.getByRole('button',{name:'Restablecer',exact:true}).click();
     }
     await page.locator('.rr-image-adjustments > summary').click();
     await page.getByRole('button',{name:'Revisar 3 señales',exact:true}).click();
@@ -71,13 +71,7 @@ const fs = require('node:fs');
       const visualTop = Math.max(0, dialog?.top || 0);
       const visualBottom = Math.min(innerHeight, dialog?.bottom || innerHeight);
       const actionInsideViewport = rect => Boolean(rect && rect.width && rect.height && rect.top >= visualTop - 1 && rect.bottom <= visualBottom + 1);
-      const picker = document.querySelector('.rr-item[aria-current="true"] .rr-tooth-picker');
-      const pickerSummary = picker?.querySelector(':scope > summary')?.getBoundingClientRect();
-      const toothOptions = Array.from(picker?.querySelectorAll('.rr-tooth-option[role="radio"]') || []);
-      const toothChart = picker?.querySelector('.rr-tooth-chart');
-      const quadrants = Array.from(picker?.querySelectorAll('.rr-tooth-row[data-quadrant]') || []);
-      const verticalDivider = toothChart ? getComputedStyle(toothChart, '::before') : null;
-      const horizontalDivider = toothChart ? getComputedStyle(toothChart, '::after') : null;
+      const toothTrigger = document.querySelector('.rr-item[aria-current="true"] .rr-tooth-picker-trigger');
       return {
         rootOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         dialogOverflow: document.querySelector('.rr-dialog').scrollWidth > document.querySelector('.rr-dialog').clientWidth + 1,
@@ -96,59 +90,61 @@ const fs = require('node:fs');
         decisionVisibleWithoutScroll: actionInsideViewport(reject) && actionInsideViewport(confirm),
         initialHostScroll: document.querySelector('.rr-host')?.scrollTop || 0,
         initialItemsScroll: document.querySelector('.rr-items')?.scrollTop || 0,
-        toothPickerCount: picker ? 1 : 0,
-        toothPickerOpen: Boolean(picker?.open),
-        toothPickerSummaryHeight: pickerSummary?.height || 0,
-        toothPickerOverflow: Boolean(picker && picker.scrollWidth > picker.clientWidth + 1),
-        toothRadioCount: toothOptions.length,
-        toothRadioLabels: new Set(toothOptions.map(option => option.getAttribute('aria-label'))).size,
-        toothTabStopCount: toothOptions.filter(option => option.tabIndex === 0).length,
-        toothGlyphCount: picker?.querySelectorAll('.rr-tooth-glyph[aria-hidden="true"]').length || 0,
-        toothFamilies: Array.from(new Set(toothOptions.map(option => option.dataset.kind))).sort().join(','),
-        quadrantCount: quadrants.length,
-        quadrantOrder: quadrants.map(quadrant => quadrant.dataset.quadrant).join(','),
-        quadrantLabels: new Set(quadrants.map(quadrant => quadrant.getAttribute('aria-label'))).size,
-        quadrantCrossVisible: Boolean(verticalDivider && horizontalDivider && parseFloat(verticalDivider.width) >= 2 && parseFloat(verticalDivider.height) > 0 && parseFloat(horizontalDivider.height) >= 2 && parseFloat(horizontalDivider.width) > 0),
-        selectedTooth: toothOptions.find(option => option.getAttribute('aria-checked') === 'true')?.textContent?.trim() || '',
-        nativeToothSelects: picker?.querySelectorAll('select').length || 0
+        toothTriggerCount: toothTrigger ? 1 : 0,
+        toothTriggerExpanded: toothTrigger?.getAttribute('aria-expanded') === 'true',
+        toothTriggerHeight: toothTrigger?.getBoundingClientRect().height || 0,
+        toothDockCount: document.querySelectorAll('.rr-tooth-dock').length
       };
     });
     const expectedSameRow = item.width >= 720;
     report.push({ name: item.name, width: item.width, ...metrics, expectedSameRow });
     if (item.name.startsWith('mobile')) {
-      const picker = page.locator('.rr-item[aria-current="true"] .rr-tooth-picker');
-      await picker.locator(':scope > summary').click();
-      if (!await picker.evaluate(element => element.open)) throw new Error(`Compact FDI picker did not open at ${item.width}px`);
-      const openPicker = await picker.evaluate(element => {
+      const trigger = page.locator('.rr-item[aria-current="true"] .rr-tooth-picker-trigger');
+      await trigger.click();
+      const dock = page.locator('.rr-tooth-dock');
+      await dock.waitFor();
+      if (await trigger.getAttribute('aria-expanded') !== 'true') throw new Error(`Docked FDI picker did not open at ${item.width}px`);
+      const openPicker = await dock.evaluate(element => {
         const rect = element.getBoundingClientRect();
-        const panel = element.closest('.rr-items')?.getBoundingClientRect();
-        const body = element.querySelector('.rr-tooth-picker-body');
-        const bodyRect = body?.getBoundingClientRect();
+        const canvas = element.closest('.rr-canvas')?.getBoundingClientRect();
+        const image = element.closest('.rr-canvas')?.querySelector('.rr-image-wrap')?.getBoundingClientRect();
+        const toothOptions = Array.from(element.querySelectorAll('.rr-tooth-option[role="radio"]'));
+        const toothChart = element.querySelector('.rr-tooth-chart');
         const quadrants = Array.from(element.querySelectorAll('.rr-tooth-row[data-quadrant]'));
+        const verticalDivider = toothChart ? getComputedStyle(toothChart, '::before') : null;
+        const horizontalDivider = toothChart ? getComputedStyle(toothChart, '::after') : null;
         return {
-          horizontalFit: Boolean(panel && rect.left >= panel.left - 1 && rect.right <= panel.right + 1),
+          horizontalFit: Boolean(canvas && rect.left >= canvas.left - 1 && rect.right <= canvas.right + 1),
           overflow: element.scrollWidth > element.clientWidth + 1,
-          visibleOptions: Array.from(element.querySelectorAll('.rr-tooth-option')).filter(option => option.getClientRects().length).length,
+          visibleOptions: toothOptions.filter(option => option.getClientRects().length).length,
           visibleGlyphs: Array.from(element.querySelectorAll('.rr-tooth-glyph')).filter(glyph => glyph.getClientRects().length).length,
           visibleQuadrants: quadrants.filter(quadrant => quadrant.getClientRects().length).length,
           quadrantSizes: quadrants.map(quadrant => quadrant.querySelectorAll('.rr-tooth-option').length),
           quadrantOrder: quadrants.map(quadrant => quadrant.dataset.quadrant).join(','),
-          bodyFullyVisible: Boolean(bodyRect && bodyRect.top >= 63 && bodyRect.bottom <= innerHeight - 60),
-          bodyNeedsScroll: Boolean(body && body.scrollHeight > body.clientHeight + 1),
-          hostScroll: element.closest('.rr-host')?.scrollTop || 0,
-          itemsScroll: element.closest('.rr-items')?.scrollTop || 0
+          quadrantLabels: new Set(quadrants.map(quadrant => quadrant.getAttribute('aria-label'))).size,
+          quadrantCrossVisible: Boolean(verticalDivider && horizontalDivider && parseFloat(verticalDivider.width) >= 2 && parseFloat(verticalDivider.height) > 0 && parseFloat(horizontalDivider.height) >= 2 && parseFloat(horizontalDivider.width) > 0),
+          radioLabels: new Set(toothOptions.map(option => option.getAttribute('aria-label'))).size,
+          tabStops: toothOptions.filter(option => option.tabIndex === 0).length,
+          families: Array.from(new Set(toothOptions.map(option => option.dataset.kind))).sort().join(','),
+          selectedTooth: toothOptions.find(option => option.getAttribute('aria-checked') === 'true')?.textContent?.trim() || '',
+          nativeSelects: element.querySelectorAll('select').length,
+          doesNotCoverImage: Boolean(image && rect.top >= image.bottom - 1)
         };
       });
-      if (!openPicker.horizontalFit || openPicker.overflow || openPicker.visibleOptions !== 32 || openPicker.visibleGlyphs !== 32 || openPicker.visibleQuadrants !== 4 || openPicker.quadrantOrder !== '1,2,4,3' || openPicker.quadrantSizes.some(size => size !== 8) || !openPicker.bodyFullyVisible || openPicker.bodyNeedsScroll || openPicker.hostScroll || openPicker.itemsScroll) throw new Error(`Anatomical FDI picker overflowed at ${item.width}px: ${JSON.stringify(openPicker)}`);
+      if (!openPicker.horizontalFit || openPicker.overflow || openPicker.visibleOptions !== 32 || openPicker.visibleGlyphs !== 32 || openPicker.visibleQuadrants !== 4 || openPicker.quadrantOrder !== '1,2,4,3' || openPicker.quadrantSizes.some(size => size !== 8) || openPicker.quadrantLabels !== 4 || !openPicker.quadrantCrossVisible || openPicker.radioLabels !== 32 || openPicker.tabStops !== 1 || openPicker.families !== 'canine,incisor,molar,premolar' || openPicker.selectedTooth !== '46' || openPicker.nativeSelects || !openPicker.doesNotCoverImage) throw new Error(`Docked anatomical FDI picker failed at ${item.width}px: ${JSON.stringify(openPicker)}`);
       await page.screenshot({ path: path.join(output, `${item.name}-tooth-picker.png`), fullPage: false });
-      await page.getByRole('button', { name: 'Cerrar selector de pieza', exact: true }).click();
-      if (await picker.evaluate(element => element.open)) throw new Error(`Compact FDI picker did not close at ${item.width}px`);
+      await dock.getByRole('button', { name: 'Cerrar', exact: true }).click();
+      if (await page.locator('.rr-tooth-dock').count() || await trigger.getAttribute('aria-expanded') !== 'false') throw new Error(`Docked FDI picker did not close at ${item.width}px`);
     }
     if (item.name === 'desktop') {
-      const picker = page.locator('.rr-item[aria-current="true"] .rr-tooth-picker');
-      await picker.locator(':scope > summary').click();
-      if (!await picker.evaluate(element => element.open)) throw new Error('Compact FDI picker did not open from its summary');
-      const selected = picker.getByRole('radio', { name: 'Pieza FDI 46', exact: true });
+      const trigger = page.locator('.rr-item[aria-current="true"] .rr-tooth-picker-trigger');
+      await trigger.click();
+      const dock = page.locator('.rr-tooth-dock');
+      await dock.waitFor();
+      if (await trigger.getAttribute('aria-expanded') !== 'true') throw new Error('Docked FDI picker did not open from its trigger');
+      const noOverlap = await dock.evaluate(element => { const dock = element.getBoundingClientRect(), image = element.closest('.rr-canvas')?.querySelector('.rr-image-wrap')?.getBoundingClientRect(); return Boolean(image && dock.top >= image.bottom - 1); });
+      if (!noOverlap) throw new Error('Docked FDI picker obscured the radiograph');
+      const selected = dock.getByRole('radio', { name: 'Pieza FDI 46', exact: true });
       if (await selected.getAttribute('aria-checked') !== 'true') throw new Error('Compact FDI picker did not expose the current piece as selected');
       await selected.focus();
       await selected.press('ArrowUp');
@@ -157,12 +153,12 @@ const fs = require('node:fs');
       await page.keyboard.press('ArrowDown');
       focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
       if (focusedLabel !== 'Pieza FDI 46') throw new Error(`Anatomical FDI vertical return failed: ${focusedLabel}`);
-      const upperMidline = picker.getByRole('radio', { name: 'Pieza FDI 11', exact: true });
+      const upperMidline = dock.getByRole('radio', { name: 'Pieza FDI 11', exact: true });
       await upperMidline.focus();
       await upperMidline.press('ArrowRight');
       focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
       if (focusedLabel !== 'Pieza FDI 21') throw new Error(`Upper FDI midline crossing failed: ${focusedLabel}`);
-      const lowerMidline = picker.getByRole('radio', { name: 'Pieza FDI 41', exact: true });
+      const lowerMidline = dock.getByRole('radio', { name: 'Pieza FDI 41', exact: true });
       await lowerMidline.focus();
       await lowerMidline.press('ArrowRight');
       focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
@@ -172,7 +168,8 @@ const fs = require('node:fs');
       focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
       if (focusedLabel !== 'Pieza FDI 47') throw new Error(`Compact FDI keyboard navigation failed: ${focusedLabel}`);
       await page.keyboard.press('Enter');
-      await page.locator('.rr-tooth-picker > summary').waitFor();
+      await trigger.waitFor();
+      if (await page.locator('.rr-tooth-dock').count()) throw new Error('Docked FDI picker remained open after choosing a piece');
       if (!(await page.locator('.rr-tooth-current').textContent()).includes('47')) throw new Error('Compact FDI picker did not synchronize the selected piece');
     }
     if (item.name === 'desktop') {
@@ -185,7 +182,7 @@ const fs = require('node:fs');
       await page.locator('.rr-image-adjustments > summary').click();
       await page.locator('.rr-tool-range input[aria-label="Contraste"]').fill('150');
       await page.getByRole('button', { name: 'Invertir', exact: true }).click();
-      await page.getByRole('button', { name: 'Vista original', exact: true }).click();
+      await page.getByRole('button', { name: 'Restablecer', exact: true }).click();
       const style = await page.locator('.rr-image-stage img').getAttribute('style');
       if (!style.includes('brightness(100%)') || !style.includes('contrast(100%)') || !style.includes('invert(0)')) throw new Error('Original view reset failed');
       await page.locator('.rr-image-adjustments > summary').click();
@@ -223,5 +220,5 @@ const fs = require('node:fs');
   }
   await browser.close();
   console.log(JSON.stringify(report, null, 2));
-  if (report.some(item => item.rootOverflow || item.dialogOverflow || item.sameRow !== item.expectedSameRow || !item.layoutOrder || item.workspaceUse < .9 || item.signals !== 1 || item.expandedSignals !== 1 || item.filters !== 0 || item.queue !== 1 || item.tools !== 0 || (item.width >= 640 && !item.decisionVisibleWithoutScroll) || item.initialHostScroll || item.initialItemsScroll || item.toothPickerCount !== 1 || item.toothPickerOpen || item.toothPickerSummaryHeight < 36 || item.toothPickerSummaryHeight > 56 || item.toothPickerOverflow || item.toothRadioCount !== 32 || item.toothRadioLabels !== 32 || item.toothTabStopCount !== 1 || item.toothGlyphCount !== 32 || item.toothFamilies !== 'canine,incisor,molar,premolar' || item.quadrantCount !== 4 || item.quadrantOrder !== '1,2,4,3' || item.quadrantLabels !== 4 || !item.quadrantCrossVisible || item.selectedTooth !== '46' || item.nativeToothSelects || (item.width < 960 && item.cleanSavePosition === 'sticky') || item.minButtonHeight < (item.name.startsWith('mobile') ? 44 : 36) || (item.width >= 960 && (item.canvasRatio < .62 || item.canvasRatio > .75)))) process.exitCode = 1;
+  if (report.some(item => item.rootOverflow || item.dialogOverflow || item.sameRow !== item.expectedSameRow || !item.layoutOrder || item.workspaceUse < .9 || item.signals !== 1 || item.expandedSignals !== 1 || item.filters !== 0 || item.queue !== 1 || item.tools !== 0 || (item.width >= 640 && !item.decisionVisibleWithoutScroll) || item.initialHostScroll || item.initialItemsScroll || item.toothTriggerCount !== 1 || item.toothTriggerExpanded || item.toothTriggerHeight < 36 || item.toothTriggerHeight > 60 || item.toothDockCount !== 0 || (item.width < 960 && item.cleanSavePosition === 'sticky') || item.minButtonHeight < (item.name.startsWith('mobile') ? 44 : 36) || (item.width >= 960 && (item.canvasRatio < .62 || item.canvasRatio > .75)))) process.exitCode = 1;
 })().catch(error => { console.error(error); process.exitCode = 1; });

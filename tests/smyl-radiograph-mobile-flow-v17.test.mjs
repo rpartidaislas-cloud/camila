@@ -33,11 +33,12 @@ test('el expediente móvil reduce filtros y muestra estudios como lista compacta
 test('web, PWA y copia móvil distribuyen la misma versión', () => {
   const app = read('app.html');
   const worker = read('sw.js');
-  for (const expected of ['smyl-radiograph-workbench.css?v=19', 'smyl-radiograph-review.js?v=24', 'smyl-case-workspace.css?v=26', 'smyl-case-workspace.js?v=34']) {
+  for (const expected of ['smyl-radiograph-workbench.css?v=20', 'smyl-radiograph-review.js?v=25', 'smyl-case-workspace.css?v=26', 'smyl-case-workspace.js?v=34']) {
     assert.match(app, new RegExp(expected.replaceAll('.', '\\.').replace('?', '\\?')));
     assert.match(worker, new RegExp(expected.replaceAll('.', '\\.').replace('?', '\\?')));
   }
   assert.match(worker, /radiograph-mobile-flow-v17/);
+  assert.match(worker, /radiograph-docked-odontogram-v20/);
   for (const file of ['app.html', 'sw.js', 'smyl-radiograph-review.js', 'smyl-radiograph-workbench.css', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) {
     assert.equal(read(file), read('mobile/www/' + file), file + ' debe coincidir en mobile/www');
   }
