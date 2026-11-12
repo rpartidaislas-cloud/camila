@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Carga única de evidencia</title>
+  <link rel="stylesheet" href="../../smyl-dental-record.css">
+  <link rel="stylesheet" href="../../smyl-case-workspace.css">
+  <link rel="stylesheet" href="../../smyl-evidence-center-integration.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f2f6f8;color:#173334;font-family:"Open Sans",Arial,sans-serif}.preview{width:min(980px,calc(100% - 36px));margin:36px auto}.preview>header{margin-bottom:18px}.preview h1{margin:0;font-size:26px}.preview>header p{margin:5px 0 0;color:#64777d;font-size:13px}.cw-advanced-editor{--cw-line:#d9e4e8;--cw-ink:#10283b;--cw-muted:#647487;--cw-primary:#0c2035}@media(max-width:600px){.preview{width:100%;margin:0;padding:12px}.preview>header{padding:8px 2px}.preview h1{font-size:21px}}
+  </style>
+</head>
+<body>
+  <main class="preview">
+    <header>
+      <h1>Evidencia clínica</h1>
+      <p>Una sola carga, una revisión y un guardado.</p>
+    </header>
+    <details class="cw-advanced-editor" data-active-part="radiograph" data-evidence-intake="ready" open>
+      <summary>
+        <span class="cw-source-icon" aria-hidden="true">RX</span>
+        <span><strong>Revisar y guardar radiografía</strong><small>El original se conserva en el expediente.</small></span>
+        <span class="cw-advanced-toggle">En curso</span>
+      </summary>
+      <div class="cw-advanced-guide" aria-hidden="true"><span><b>1</b><small>Describe el estudio</small></span></div>
+      <section class="dr-record" data-evidence-intake="ready">
+        <section class="seci-radiograph-focus" role="status">
+          <span class="seci-radiograph-icon">RX</span>
+          <div><span class="seci-radiograph-kicker">CARGA EN CURSO</span><strong>Radiografía sin guardar</strong><p>panoramica-noviembre.png · revisa y finaliza con Guardar radiografía.</p></div>
+        </section>
+        <p class="dr-status">Archivo preparado sin modificar el original.</p>
+        <fieldset class="dr-form">
+          <section class="dr-section">
+            <p class="dr-help">Carga duplicada que debe permanecer oculta.</p>
+            <div class="dr-upload-fields"><label class="dr-field">Tipo<input value="Panorámica"></label><label class="dr-file-field"><span>Archivo</span><input type="file"></label></div>
+            <div class="dr-studies">
+              <article class="dr-study"><h4>Estudio anterior</h4><p>Periapical · 10/11/2026</p></article>
+              <article class="dr-study is-evidence-intake" data-study-id="new-study">
+                <h4>Panorámica inicial</h4>
+                <p>Panorámica · 12/11/2026</p>
+                <div class="dr-study-meta"><small>Pendiente de guardar</small></div>
+                <div class="dr-study-actions"><button class="dr-button" type="button">Abrir y anotar</button><button class="dr-button dr-secondary-danger" type="button">Descartar</button></div>
+              </article>
+            </div>
+            <aside class="dr-ai">Esta zona asistida permanece oculta durante la carga.</aside>
+          </section>
+          <button class="dr-button dr-primary" type="button">Guardar radiografía</button>
+        </fieldset>
+      </section>
+    </details>
+  </main>
+</body>
+</html>

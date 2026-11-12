@@ -360,6 +360,99 @@
     state.feedback.dataset.tone = tone || 'neutral';
   }
 
+  function beginRadiographIntake(state, payload, editor, before) {
+    const record = editor?.querySelector('.dr-record');
+    if (!record) throw new Error('No pudimos abrir el cargador radiográfico. Conservamos tu selección para que puedas intentarlo de nuevo.');
+    const shell = record.closest('.cw-advanced-editor');
+    const form = record.querySelector('.dr-form');
+    const save = form?.querySelector(':scope > .dr-primary');
+    const shellSummary = shell?.querySelector(':scope > summary');
+    const shellTitle = shellSummary?.querySelector(':scope > span:nth-child(2) strong');
+    const shellToggle = shellSummary?.querySelector('.cw-advanced-toggle');
+    const banner = el('section', 'seci-radiograph-focus');
+    banner.setAttribute('role', 'status');
+    banner.setAttribute('aria-live', 'polite');
+    banner.tabIndex = -1;
+    const copy = el('div');
+    copy.append(el('span', 'seci-radiograph-kicker', 'CARGA EN CURSO'), el('strong', '', 'Preparando radiografía'), el('p', '', `${payload.file?.name || 'Archivo seleccionado'} · todavía no se ha guardado.`));
+    banner.append(el('span', 'seci-radiograph-icon', 'RX'), copy);
+    form?.before(banner);
+    const intake = {
+      editor,
+      record,
+      shell,
+      banner,
+      before,
+      studyId: '',
+      save,
+      saveLabel: save?.textContent || 'Guardar observaciones',
+      shellTitle,
+      shellTitleLabel: shellTitle?.textContent || 'Agregar estudio radiográfico',
+      shellToggle,
+      shellToggleLabel: shellToggle?.textContent || 'Cerrar',
+      blockSummary: null,
+      keepOpen: null
+    };
+    intake.blockSummary = event => {
+      if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) return;
+      event.preventDefault();
+    };
+    intake.keepOpen = () => {
+      if (state.pendingRadiographIntake === intake && shell && !shell.open) shell.open = true;
+    };
+    state.pendingRadiographIntake = intake;
+    state.root.hidden = true;
+    if (shell) shell.open = true;
+    shellSummary?.addEventListener('click', intake.blockSummary);
+    shellSummary?.addEventListener('keydown', intake.blockSummary);
+    shell?.addEventListener('toggle', intake.keepOpen);
+    record.dataset.evidenceIntake = 'preparing';
+    if (shell) shell.dataset.evidenceIntake = 'preparing';
+    if (save) save.textContent = 'Guardar radiografía';
+    if (shellTitle) shellTitle.textContent = 'Revisar y guardar radiografía';
+    if (shellToggle) shellToggle.textContent = 'En curso';
+  }
+
+  function markRadiographPrepared(state, studyId) {
+    const intake = state.pendingRadiographIntake;
+    if (!intake || !studyId) return;
+    if (intake.before?.has(String(studyId))) return;
+    intake.studyId = String(studyId);
+    intake.record.dataset.evidenceIntake = 'ready';
+    if (intake.shell) intake.shell.dataset.evidenceIntake = 'ready';
+    const card = [...intake.record.querySelectorAll('.dr-study')].find(item => item.dataset.studyId === intake.studyId);
+    card?.classList.add('is-evidence-intake');
+    const discard = [...(card?.querySelectorAll('button') || [])].find(control => control.textContent.trim() === 'Quitar carga');
+    if (discard) discard.textContent = 'Descartar';
+    const title = intake.banner.querySelector('strong');
+    const detail = intake.banner.querySelector('p');
+    if (title) title.textContent = 'Radiografía sin guardar';
+    if (detail) detail.textContent = 'Revisa el archivo preparado y finaliza con Guardar radiografía.';
+    requestAnimationFrame(() => {
+      if (!current(state) || !intake.banner.isConnected) return;
+      intake.banner.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      intake.save?.focus({ preventScroll: true });
+    });
+  }
+
+  function finishRadiographIntake(state, options) {
+    const intake = state?.pendingRadiographIntake;
+    if (!intake) return;
+    intake.banner?.remove();
+    intake.record?.removeAttribute('data-evidence-intake');
+    intake.shell?.removeAttribute('data-evidence-intake');
+    intake.record?.querySelectorAll('.is-evidence-intake').forEach(card => card.classList.remove('is-evidence-intake'));
+    intake.shell?.querySelector(':scope > summary')?.removeEventListener('click', intake.blockSummary);
+    intake.shell?.querySelector(':scope > summary')?.removeEventListener('keydown', intake.blockSummary);
+    intake.shell?.removeEventListener('toggle', intake.keepOpen);
+    if (intake.save?.isConnected) intake.save.textContent = intake.saveLabel;
+    if (intake.shellTitle?.isConnected) intake.shellTitle.textContent = intake.shellTitleLabel;
+    if (intake.shellToggle?.isConnected) intake.shellToggle.textContent = intake.shellToggleLabel;
+    state.pendingRadiographIntake = null;
+    state.root.hidden = false;
+    if (options?.focusArchive) requestAnimationFrame(() => state.centerHost?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  }
+
   function creationCapability(modality) {
     return CREATE_CAPABILITIES[modality] || {
       enabled: false,
@@ -505,25 +598,33 @@
     requestAnimationFrame(() => {
       if (!current(state) || !editor.isConnected) return;
       editor.scrollIntoView({ block: 'start', behavior: 'smooth' });
-      fileInput?.focus({ preventScroll: true });
+      state.pendingRadiographIntake?.banner?.focus({ preventScroll: true });
     });
-    announce(state, 'Radiografía preparada en el editor. Revísala y pulsa Guardar observaciones; todavía no se ha guardado.', 'attention');
+    announce(state, 'Radiografía preparada en el editor. Revísala y pulsa Guardar radiografía; todavía no se ha guardado.', 'attention');
     return true;
   }
 
   function routeRadiograph(state, payload) {
+    const caseId = global.SmylCaseWorkspace?.context?.(state.tenant, state.patient)?.caseId;
+    const status = caseId ? global.SmylDentalProgress?.status?.(state.tenant, state.patient, caseId) : null;
+    const before = new Set((status?.studyItems || []).map(item => String(item.id)));
     if (payload.categoryIds?.length) {
-      const caseId = global.SmylCaseWorkspace?.context?.(state.tenant, state.patient)?.caseId;
-      const status = caseId ? global.SmylDentalProgress?.status?.(state.tenant, state.patient, caseId) : null;
       state.pendingRadiographCategory = {
-        before: new Set((status?.studyItems || []).map(item => String(item.id))),
+        before,
         categoryIds: payload.categoryIds.slice(),
         expiresAt: Date.now() + 15 * 60 * 1000
       };
     }
     const editor = global.SmylCaseWorkspace?.openRadiographIntake?.(payload);
     if (!editor) throw new Error('No pudimos abrir el cargador radiográfico. Conservamos tu selección para que puedas intentarlo de nuevo.');
-    return prefillRadiograph(state, payload, editor);
+    beginRadiographIntake(state, payload, editor, before);
+    try {
+      return prefillRadiograph(state, payload, editor);
+    } catch (error) {
+      state.pendingRadiographCategory = null;
+      finishRadiographIntake(state);
+      throw error;
+    }
   }
 
   async function completePendingRadiograph(state) {
@@ -627,6 +728,7 @@
     if (!state) return;
     clearInterval(state.timer);
     clearInterval(state.photoTimer);
+    finishRadiographIntake(state);
     state.center?.destroy?.();
     if (state.legacy?.isConnected) state.legacy.hidden = false;
     state.root?.remove();
@@ -648,7 +750,7 @@
     feedback.setAttribute('aria-live', 'polite');
     root.append(centerHost, pathways, feedback);
     legacy.before(root);
-    const state = { token: ++sequence, root, pathways, centerHost, feedback, legacy, tenant: value.tenant, patient: value.patient, fingerprint: '', origins: new Map(), center: null, timer: null, photoTimer: null, photoStudies: [], photoAvailable: null, photoLoading: false, categoryLoading: false, categoryPromise: null, categorySnapshot: { available: false, categories: [], assignments: [], suggestions: global.SmylEvidenceCategories?.suggestions || [] }, pendingRadiographCategory: null };
+    const state = { token: ++sequence, root, pathways, centerHost, feedback, legacy, tenant: value.tenant, patient: value.patient, fingerprint: '', origins: new Map(), center: null, timer: null, photoTimer: null, photoStudies: [], photoAvailable: null, photoLoading: false, categoryLoading: false, categoryPromise: null, categorySnapshot: { available: false, categories: [], assignments: [], suggestions: global.SmylEvidenceCategories?.suggestions || [] }, pendingRadiographCategory: null, pendingRadiographIntake: null };
     active = state;
     try {
       state.center = global.SmylEvidenceCenter.mount(centerHost, {
@@ -703,13 +805,37 @@
     const screen = document.getElementById('p-paciente-detalle');
     if (!screen) return;
     new MutationObserver(mount).observe(screen, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
-    ['smyl:dental-context-updated', 'smyl:patient-summary', 'smyl:case-selection'].forEach(name => addEventListener(name, () => {
+    ['smyl:dental-context-updated', 'smyl:patient-summary', 'smyl:case-selection'].forEach(name => addEventListener(name, event => {
       if (current(active)) {
         refresh(active);
-        if (name === 'smyl:dental-context-updated') completePendingRadiograph(active).catch(error => announce(active, error?.message || 'La radiografía se guardó, pero falta clasificarla.', 'attention'));
+        if (name === 'smyl:dental-context-updated' && event.detail?.reason === 'saved' && active.pendingRadiographIntake) completePendingRadiograph(active).then(() => {
+          if (!current(active)) return;
+          finishRadiographIntake(active, { focusArchive: true });
+          announce(active, 'Radiografía guardada en el archivo clínico.', 'neutral');
+        }).catch(error => {
+          if (!current(active)) return;
+          finishRadiographIntake(active, { focusArchive: true });
+          announce(active, error?.message || 'La radiografía se guardó, pero falta clasificarla.', 'attention');
+        });
       }
       else mount();
     }));
+    addEventListener('smyl:dental-study-prepared', event => {
+      if (!current(active) || !active.pendingRadiographIntake || event.detail?.tenant !== active.tenant || event.detail?.patient !== active.patient) return;
+      markRadiographPrepared(active, event.detail?.studyId);
+    });
+    addEventListener('smyl:dental-study-preparation-cancelled', event => {
+      if (!current(active) || !active.pendingRadiographIntake || event.detail?.tenant !== active.tenant || event.detail?.patient !== active.patient) return;
+      active.pendingRadiographCategory = null;
+      finishRadiographIntake(active, { focusArchive: true });
+      announce(active, 'Carga descartada. El expediente no cambió.', 'neutral');
+    });
+    addEventListener('smyl:dental-study-preparation-failed', event => {
+      if (!current(active) || !active.pendingRadiographIntake || event.detail?.tenant !== active.tenant || event.detail?.patient !== active.patient) return;
+      active.pendingRadiographCategory = null;
+      finishRadiographIntake(active);
+      announce(active, event.detail?.reason === 'duplicate' ? 'Esta radiografía ya estaba registrada; no se creó otra copia.' : 'La radiografía no se agregó. Revisa el archivo y vuelve a intentarlo.', 'attention');
+    });
     ['smyl:patient-file-created', 'smyl:clinical-photo-indexed', 'smyl:clinical-photo-analysis', 'smyl:clinical-photo-decision', 'smyl:clinical-photo-manual-finding'].forEach(name => addEventListener(name, () => {
       if (current(active)) refreshPhotos(active, true);
       else mount();

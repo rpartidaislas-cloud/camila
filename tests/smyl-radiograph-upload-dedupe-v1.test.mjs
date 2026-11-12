@@ -16,7 +16,7 @@ test('la carga bloquea un duplicado activo por SHA antes de crear identidad o ru
   assert.ok(fingerprint < lookup, 'la huella debe existir antes de buscar duplicados');
   assert.ok(lookup < identity, 'la búsqueda debe ocurrir antes de crear un UUID');
   assert.ok(identity < asset && asset < append, 'sólo un archivo nuevo crea activo y estudio');
-  assert.match(addFile, /if\(duplicate\)\{[^}]*No se creó otra copia;[^}]*return;/);
+  assert.match(addFile, /if\(duplicate\)\{[\s\S]*?No se creó otra copia;[\s\S]*?reason:'duplicate'[\s\S]*?return;/);
 });
 
 test('el bloqueo considera sólo estudios activos y lleva al original existente', () => {

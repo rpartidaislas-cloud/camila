@@ -16,9 +16,9 @@ test('la aplicación carga el contrato antes del centro y la integración despu�
   const app = read('app.html');
   const model = app.indexOf('smyl-evidence-model.js?v=1');
   const categories = app.indexOf('smyl-evidence-categories.js?v=1');
-  const center = app.indexOf('smyl-evidence-center.js?v=8');
+  const center = app.indexOf('smyl-evidence-center.js?v=9');
   const workspace = app.indexOf('smyl-case-workspace.js?v=34');
-  const integration = app.indexOf('smyl-evidence-center-integration.js?v=5');
+  const integration = app.indexOf('smyl-evidence-center-integration.js?v=6');
   assert.ok(model > -1 && model < center);
   assert.ok(model < categories && categories < center);
   assert.ok(center < workspace && workspace < integration);
@@ -27,13 +27,14 @@ test('la aplicación carga el contrato antes del centro y la integración despu�
 test('el service worker precarga todos los recursos del centro clínico', () => {
   const serviceWorker = read('sw.js');
   for (const asset of assets) assert.match(serviceWorker, new RegExp(`/camila/${asset.replaceAll('.', '\\.')}`));
-  assert.match(serviceWorker, /evidence-center-ux-v5/);
+  assert.match(serviceWorker, /evidence-center-ux-v6/);
+  assert.match(serviceWorker, /evidence-single-intake-v1/);
   assert.match(serviceWorker, /smyl-evidence-categories\.js\?v=1/);
-  assert.match(serviceWorker, /smyl-evidence-center\.js\?v=8/);
-  assert.match(serviceWorker, /smyl-evidence-center\.css\?v=5/);
-  assert.match(serviceWorker, /smyl-evidence-center-integration\.js\?v=5/);
+  assert.match(serviceWorker, /smyl-evidence-center\.js\?v=9/);
+  assert.match(serviceWorker, /smyl-evidence-center\.css\?v=6/);
+  assert.match(serviceWorker, /smyl-evidence-center-integration\.js\?v=6/);
   assert.match(serviceWorker, /smyl-case-workspace\.js\?v=34/);
-  assert.match(serviceWorker, /smyl-evidence-center-integration\.css\?v=3/);
+  assert.match(serviceWorker, /smyl-evidence-center-integration\.css\?v=4/);
 });
 
 test('la versión móvil es un espejo exacto de los recursos publicados', () => {
