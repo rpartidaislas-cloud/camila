@@ -11,8 +11,8 @@ const styles = read('../smyl-case-workspace.css');
 const fixture = read('./fixtures/smyl-clinical-flow-preview.html');
 
 test('el tratamiento incorpora un odontograma FDI interactivo y longitudinal', () => {
-  assert.match(workspace, /MAPA CLÍNICO LONGITUDINAL/);
-  assert.match(workspace, /Odontograma verificable por fuente/);
+  assert.match(workspace, /ODONTOGRAMA/);
+  assert.match(workspace, /Valoración por pieza/);
   assert.match(workspace, /SmylToothMap\.render/);
   assert.match(workspace, /SmylDentalProgress\?\.openTooth/);
   assert.match(workspace, /cw-map-inspector/);
@@ -40,7 +40,7 @@ test('las sugerencias de IA nunca se presentan como hallazgo confirmado', () => 
 });
 
 test('la interacción es legible, filtrable y adaptativa', () => {
-  for (const filter of ["'all','Todo'", "'manual','Clínica'", "'photo','Fotografías'", "'radiograph','Rayos X'", "'pending','Pendientes'"]) {
+  for (const filter of ["'all','Vista clínica'", "'manual','Anotaciones'", "'photo','Hallazgos en fotos'", "'radiograph','Hallazgos en RX'", "'pending','Por revisar'"]) {
     assert.match(workspace, new RegExp(filter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
   assert.match(workspace, /cw-map-filter-count/);
@@ -131,8 +131,8 @@ test('el inspector de pieza reutiliza el mismo odontograma y deriva a la revisi�
 
 test('web, móvil y PWA publican la misma versión', () => {
   assert.match(app, /smyl-dental-record\.js\?v=25/);
-  assert.match(app, /smyl-case-workspace\.css\?v=25/);
-  assert.match(app, /smyl-case-workspace\.js\?v=33/);
+  assert.match(app, /smyl-case-workspace\.css\?v=26/);
+  assert.match(app, /smyl-case-workspace\.js\?v=34/);
   assert.match(worker, /smart-odontogram-v33/);
   for (const file of ['app.html', 'sw.js', 'smyl-dental-record.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));

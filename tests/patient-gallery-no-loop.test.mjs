@@ -24,7 +24,8 @@ test('la galería se crea sólo si no existe ninguna en la pantalla, esté donde
 
 test('el espacio de trabajo no saca la galería de su panel de Simulaciones', () => {
   const adopt = workspace.slice(workspace.indexOf('function adopt(ctx){'), workspace.indexOf('function select(ctx,entry){'));
-  assert.match(adopt, /gallery&&!gallery\.closest\('\[data-p360-panel="simulations"\]'\)&&!ctx\.evidencePart\.body\.contains\(gallery\)/);
+  assert.doesNotMatch(adopt, /append(?:Child)?\(gallery\)|insertBefore\(gallery/);
+  assert.doesNotMatch(adopt, /ctx\.evidencePart\.body\.contains\(gallery\)/);
 });
 
 test('el espacio de trabajo sigue leyendo las sesiones desde la galería del panel', () => {

@@ -26,26 +26,23 @@ test('el expediente no apila una segunda identidad ni el flujo completo bajo el 
 });
 
 test('la documentación clínica no presenta simulaciones como evidencia', () => {
-  assert.match(workspace, /evaluationTask\(ctx,'evidence','02','Evidencia','Subir y clasificar originales'\)/);
-  assert.match(workspace, /Las simulaciones se mantienen separadas de la evidencia clínica/);
-  assert.match(workspace, /Las simulaciones nunca se utilizan como evidencia clínica/);
-  assert.match(workspace, /cw-simulation-source/);
-  assert.match(workspaceCss, /\.cw-simulation-source\{display:none!important\}/);
+  assert.match(workspace, /evaluationTask\(ctx,'evidence','02','Evidencia','Archivo clínico y originales'\)/);
+  assert.match(workspace, /Guarda el original una sola vez/);
+  assert.doesNotMatch(workspace, /cw-simulation-link|ESPACIO INDEPENDIENTE|data-open-simulations/);
+  assert.doesNotMatch(workspace, /evidencePart\.body\.insertBefore\(gallery/);
   assert.doesNotMatch(workspace, /Selecciona las fotografías y simulaciones de este caso/);
 });
 
-test('simulaciones tiene un espacio independiente y una advertencia visual clara', () => {
-  assert.match(workspace, /ESPACIO INDEPENDIENTE/);
-  assert.match(workspace, /Comparaciones visuales orientativas, separadas del expediente clínico/);
-  assert.match(workspace, /window\.ir\('historial'\)/);
+test('simulaciones permanece fuera del archivo de evidencia', () => {
+  assert.doesNotMatch(workspace, /Simulaciones de sonrisa/);
   assert.match(app, /Simulaciones de sonrisa/);
-  assert.match(app, /separadas del expediente clínico/);
+  assert.match(workspace, /cw-valuation-evidence/);
 });
 
 test('la simplificación se distribuye en web, móvil y PWA', () => {
   assert.match(app, /smyl-patient-360\.css\?v=18/);
   assert.match(app, /smyl-patient-360\.js\?v=26/);
-  assert.match(app, /smyl-case-workspace\.js\?v=33/);
+  assert.match(app, /smyl-case-workspace\.js\?v=34/);
   assert.match(read('../sw.js'), /smyl-v263-lana-connection-recovery/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(read('../smyl-patient-360.js'), read('../mobile/www/smyl-patient-360.js'));

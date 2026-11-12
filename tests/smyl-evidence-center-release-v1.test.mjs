@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const assets = [
   'smyl-evidence-model.js',
+  'smyl-evidence-categories.js',
   'smyl-evidence-center.js',
   'smyl-evidence-center.css',
   'smyl-evidence-center-integration.js',
@@ -14,22 +15,25 @@ const assets = [
 test('la aplicación carga el contrato antes del centro y la integración después del expediente', () => {
   const app = read('app.html');
   const model = app.indexOf('smyl-evidence-model.js?v=1');
-  const center = app.indexOf('smyl-evidence-center.js?v=7');
-  const workspace = app.indexOf('smyl-case-workspace.js?v=33');
-  const integration = app.indexOf('smyl-evidence-center-integration.js?v=4');
+  const categories = app.indexOf('smyl-evidence-categories.js?v=1');
+  const center = app.indexOf('smyl-evidence-center.js?v=8');
+  const workspace = app.indexOf('smyl-case-workspace.js?v=34');
+  const integration = app.indexOf('smyl-evidence-center-integration.js?v=5');
   assert.ok(model > -1 && model < center);
+  assert.ok(model < categories && categories < center);
   assert.ok(center < workspace && workspace < integration);
 });
 
 test('el service worker precarga todos los recursos del centro clínico', () => {
   const serviceWorker = read('sw.js');
   for (const asset of assets) assert.match(serviceWorker, new RegExp(`/camila/${asset.replaceAll('.', '\\.')}`));
-  assert.match(serviceWorker, /evidence-center-ux-v4/);
-  assert.match(serviceWorker, /smyl-evidence-center\.js\?v=7/);
-  assert.match(serviceWorker, /smyl-evidence-center\.css\?v=4/);
-  assert.match(serviceWorker, /smyl-evidence-center-integration\.js\?v=4/);
-  assert.match(serviceWorker, /smyl-case-workspace\.js\?v=33/);
-  assert.match(serviceWorker, /smyl-evidence-center-integration\.css\?v=2/);
+  assert.match(serviceWorker, /evidence-center-ux-v5/);
+  assert.match(serviceWorker, /smyl-evidence-categories\.js\?v=1/);
+  assert.match(serviceWorker, /smyl-evidence-center\.js\?v=8/);
+  assert.match(serviceWorker, /smyl-evidence-center\.css\?v=5/);
+  assert.match(serviceWorker, /smyl-evidence-center-integration\.js\?v=5/);
+  assert.match(serviceWorker, /smyl-case-workspace\.js\?v=34/);
+  assert.match(serviceWorker, /smyl-evidence-center-integration\.css\?v=3/);
 });
 
 test('la versión móvil es un espejo exacto de los recursos publicados', () => {

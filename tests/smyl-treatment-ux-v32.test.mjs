@@ -33,7 +33,7 @@ test('Tratamiento separa la decisión clínica en cuatro etapas', () => {
 test('la evaluación simplifica contexto, evidencia, hallazgos y revisión en una sola superficie', () => {
   const tasks = [
     /evaluationTask\(ctx,'context','01','Contexto','Historia y alertas'\)/,
-    /evaluationTask\(ctx,'evidence','02','Evidencia','Subir y clasificar originales'\)/,
+    /evaluationTask\(ctx,'evidence','02','Evidencia','Archivo clínico y originales'\)/,
     /evaluationTask\(ctx,'findings','03','Valoración','Revisar y decidir'\)/,
     /evaluationTask\(ctx,'closure','04','Revisión','Antes de la propuesta'\)/,
   ];
@@ -60,8 +60,10 @@ test('la evaluación permite continuar sin fotografías y conserva el odontogram
   assert.match(workspace, /Sin fotografías clínicas\. Puedes continuar con el odontograma/);
   assert.match(workspace, /Seleccionar una pieza/);
   assert.match(workspace, /Analizar fotografías/);
-  assert.match(workspace, /Las radiografías son opcionales/);
-  assert.match(workspace, /Las simulaciones nunca se utilizan como evidencia clínica/);
+  assert.match(workspace, /Agrégalas una sola vez en Evidencia/);
+  assert.match(workspace, /Las categorías sólo lo ordenan y nunca reemplazan su historial/);
+  const evidenceBuild = workspace.slice(workspace.indexOf("ctx.evidencePart=evaluationTask"), workspace.indexOf("ctx.reviewPart=evaluationTask"));
+  assert.doesNotMatch(evidenceBuild, /Simulaciones|simulación/i);
 });
 
 test('hallazgos prioriza un mapa operable con cinco capas e inspector persistente', () => {
@@ -127,10 +129,10 @@ test('la política visual conserva jerarquía, una CTA visible, tactilidad y res
 
 test('web, móvil y PWA distribuyen la misma implementación', () => {
   assert.match(app, /smyl-patient-360\.css\?v=18/);
-  assert.match(app, /smyl-clinic\.js\?v=22/);
+  assert.match(app, /smyl-clinic\.js\?v=23/);
   assert.match(app, /smyl-patient-360\.js\?v=26/);
-  assert.match(app, /smyl-case-workspace\.css\?v=25/);
-  assert.match(app, /smyl-case-workspace\.js\?v=33/);
+  assert.match(app, /smyl-case-workspace\.css\?v=26/);
+  assert.match(app, /smyl-case-workspace\.js\?v=34/);
   assert.match(worker, /treatment-ux-v32/);
   assert.match(worker, /evaluation-flow-v73/);
   assert.match(worker, /treatment-tenant-workbench-v82/);

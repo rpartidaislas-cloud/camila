@@ -237,6 +237,20 @@
     }]));
   }
 
+  function assignmentKey(sourceType, sourceId) {
+    return `${String(sourceType || '')}:${String(sourceId || '')}`;
+  }
+
+  function applyCategoryAssignments(state, items) {
+    const active = new Map();
+    (state.categorySnapshot?.assignments || []).filter(row => row.active).forEach(row => {
+      const key = assignmentKey(row.sourceType, row.sourceId);
+      if (!active.has(key)) active.set(key, []);
+      active.get(key).push(row.categoryId);
+    });
+    return items.map(item => ({ ...item, categoryIds: active.get(assignmentKey(item.source, item.id)) || [] }));
+  }
+
   function pathwayState(items, pathway) {
     const sources = pathway.requirements.map(([label, predicate]) => ({ label, available: items.some(predicate) }));
     return { ...pathway, sources, available: sources.filter(source => source.available).length, total: sources.length };
@@ -244,36 +258,87 @@
 
   function renderPathways(state, items) {
     state.pathways.replaceChildren();
-    const calculated = PATHWAYS.map(pathway => pathwayState(items, pathway));
-    const complete = calculated.filter(pathway => pathway.available === pathway.total).length;
-    const summary = el('summary', 'seci-pathway-summary');
+    state.pathways.hidden = true;
+  }
+
+  function renderValuationArchive(state, items) {
+    const host = document.querySelector('#p-paciente-detalle.activa .cw-valuation-evidence');
+    if (!host) return;
+    host.replaceChildren();
+    const categories = state.categorySnapshot?.categories || [];
+    const head = el('header', 'seci-valuation-head');
     const copy = el('div');
-    copy.append(el('span', 'seci-kicker', 'COBERTURA CLÍNICA'), el('h3', '', 'Fuentes por objetivo'), el('p', '', items.length ? 'Consulta qué información está disponible para cada valoración.' : 'Aparecerá conforme agregues documentación al expediente.'));
-    const overview = el('span', 'seci-pathway-overview', `${complete} de ${calculated.length} completos`);
-    summary.append(copy, overview);
-    state.pathways.append(summary);
-    const body = el('div', 'seci-pathway-body');
-    const grid = el('div', 'seci-pathway-grid');
-    calculated.forEach(pathway => {
-      const card = el('details', 'seci-pathway');
-      const summary = el('summary');
-      const title = el('span');
-      title.append(el('strong', '', pathway.label), el('small', '', pathway.description));
-      const progress = el('span', 'seci-pathway-progress', `${pathway.available}/${pathway.total} fuentes`);
-      progress.dataset.state = pathway.available === pathway.total ? 'available' : pathway.available ? 'partial' : 'empty';
-      summary.append(title, progress);
-      const list = el('ul');
-      pathway.sources.forEach(source => {
-        const row = el('li', '', source.label);
-        row.dataset.available = String(source.available);
-        row.prepend(el('span', '', source.available ? '✓' : '○'));
-        list.append(row);
+    copy.append(el('span', 'seci-kicker', 'EVIDENCIA DISPONIBLE'), el('h3', '', 'Consulta antes de valorar'), el('p', '', 'Los originales se cargan y clasifican en Evidencia. Aquí sólo se consultan.'));
+    const openArchive = el('button', 'seci-open-archive', 'Abrir archivo');
+    openArchive.type = 'button';
+    openArchive.onclick = () => global.SmylCaseWorkspace?.open?.('photos');
+    head.append(copy, openArchive);
+    host.append(head);
+    const categoryCounts = categories.filter(category => !category.archived).map(category => ({
+      ...category,
+      count: items.filter(item => item.categoryIds?.includes(category.id)).length
+    })).filter(category => category.count > 0);
+    if (categoryCounts.length) {
+      const chips = el('div', 'seci-valuation-categories');
+      categoryCounts.forEach(category => {
+        const chip = el('span', 'seci-valuation-category');
+        chip.append(el('span', '', category.name), el('b', '', String(category.count)));
+        chips.append(chip);
       });
-      card.append(summary, list);
-      grid.append(card);
+      host.append(chips);
+    }
+    const recent = items.slice(0, 3);
+    const list = el('div', 'seci-valuation-list');
+    recent.forEach(item => {
+      const category = global.SmylEvidenceCenter?.categories?.find(entry => entry.id === item.modality);
+      const assigned = (item.categoryIds || []).map(id => categories.find(entry => entry.id === id)?.name).filter(Boolean);
+      const control = el('button', 'seci-valuation-item');
+      control.type = 'button';
+      const itemCopy = el('span');
+      itemCopy.append(el('strong', '', item.title || category?.label || 'Evidencia clínica'), el('small', '', [category?.label, assigned.join(', ')].filter(Boolean).join(' · ')));
+      control.append(itemCopy, el('span', '', 'Ver →'));
+      control.onclick = () => openItem(state, item);
+      list.append(control);
     });
-    body.append(grid, el('p', 'seci-safety', 'El profesional decide qué información es necesaria. SMYL no indica tomar imágenes de rutina.'));
-    state.pathways.append(body);
+    if (!recent.length) list.append(el('p', 'seci-valuation-empty', 'Aún no hay evidencia clínica. Puedes continuar con la valoración manual.'));
+    host.append(list);
+  }
+
+  async function assignMany(state, sourceType, sourceId, categoryIds) {
+    if (!global.SmylEvidenceCategories?.setCategory || !sourceId) return;
+    const selected = new Set((categoryIds || []).map(String));
+    const currentIds = new Set((state.categorySnapshot?.assignments || [])
+      .filter(row => row.active && row.sourceType === sourceType && row.sourceId === String(sourceId))
+      .map(row => row.categoryId));
+    const tasks = [];
+    selected.forEach(categoryId => {
+      if (!currentIds.has(categoryId)) tasks.push(global.SmylEvidenceCategories.setCategory(state.patient, sourceType, sourceId, categoryId, true));
+    });
+    currentIds.forEach(categoryId => {
+      if (!selected.has(categoryId)) tasks.push(global.SmylEvidenceCategories.setCategory(state.patient, sourceType, sourceId, categoryId, false));
+    });
+    if (tasks.length) await Promise.all(tasks);
+  }
+
+  async function refreshCategories(state) {
+    if (!current(state) || !global.SmylEvidenceCategories?.load) return;
+    if (state.categoryLoading) return state.categoryPromise;
+    state.categoryLoading = true;
+    state.categoryPromise = (async () => {
+      try {
+        state.categorySnapshot = await global.SmylEvidenceCategories.load(state.tenant, state.patient);
+        if (!current(state)) return;
+        state.center?.setCategories(state.categorySnapshot.categories, state.categorySnapshot.suggestions);
+        state.fingerprint = '';
+        refresh(state);
+      } catch (error) {
+        announce(state, error?.message || 'No se pudieron cargar las categorías clínicas.', 'error');
+      } finally {
+        state.categoryLoading = false;
+        state.categoryPromise = null;
+      }
+    })();
+    return state.categoryPromise;
   }
 
   function setFiles(input, file) {
@@ -359,7 +424,13 @@
   }
 
   function routePatientFile(state, payload, category, options) {
-    if (!global.SmylPatientFiles?.add?.(category, options)) throw new Error('Tu rol no permite agregar archivos a este expediente.');
+    const customSaved = options?.onSaved;
+    const prepared = { ...(options || {}), onSaved: async row => {
+      if (customSaved) await customSaved(row);
+      else if (payload.categoryIds?.length) await assignMany(state, 'patient_file', row?.id, payload.categoryIds);
+      if (payload.categoryIds?.length) await refreshCategories(state);
+    }};
+    if (!global.SmylPatientFiles?.add?.(category, prepared)) throw new Error('Tu rol no permite agregar archivos a este expediente.');
     requestAnimationFrame(() => prefillPatientFile(state, payload));
     announce(state, 'Revisa el archivo y confirma la carga en la ficha privada. Todavía no se ha guardado.', 'attention');
   }
@@ -400,12 +471,15 @@
       description: 'Guarda el original una sola vez y clasifícalo para su valoración profesional. La IA no confirmará observaciones automáticamente.',
       submitLabel: 'Guardar original',
       successMessage: 'Fotografía original guardada y preparada para valoración.',
-      onSaved: row => global.SmylClinicalPhotoService.indexPatientFile({
-        tenant: state.tenant,
-        patient: state.patient,
-        row,
-        payload: indexingPayload
-      })
+      onSaved: async row => {
+        const study = await global.SmylClinicalPhotoService.indexPatientFile({
+          tenant: state.tenant,
+          patient: state.patient,
+          row,
+          payload: indexingPayload
+        });
+        if (payload.categoryIds?.length) await assignMany(state, 'clinical_photo_study', study?.id, payload.categoryIds);
+      }
     });
   }
 
@@ -438,9 +512,35 @@
   }
 
   function routeRadiograph(state, payload) {
+    if (payload.categoryIds?.length) {
+      const caseId = global.SmylCaseWorkspace?.context?.(state.tenant, state.patient)?.caseId;
+      const status = caseId ? global.SmylDentalProgress?.status?.(state.tenant, state.patient, caseId) : null;
+      state.pendingRadiographCategory = {
+        before: new Set((status?.studyItems || []).map(item => String(item.id))),
+        categoryIds: payload.categoryIds.slice(),
+        expiresAt: Date.now() + 15 * 60 * 1000
+      };
+    }
     const editor = global.SmylCaseWorkspace?.openRadiographIntake?.(payload);
     if (!editor) throw new Error('No pudimos abrir el cargador radiográfico. Conservamos tu selección para que puedas intentarlo de nuevo.');
     return prefillRadiograph(state, payload, editor);
+  }
+
+  async function completePendingRadiograph(state) {
+    const pending = state.pendingRadiographCategory;
+    if (!pending) return;
+    if (Date.now() > pending.expiresAt) {
+      state.pendingRadiographCategory = null;
+      return;
+    }
+    const caseId = global.SmylCaseWorkspace?.context?.(state.tenant, state.patient)?.caseId;
+    const status = caseId ? global.SmylDentalProgress?.status?.(state.tenant, state.patient, caseId) : null;
+    const created = (status?.studyItems || []).find(item => !pending.before.has(String(item.id)));
+    if (!created) return;
+    state.pendingRadiographCategory = null;
+    await assignMany(state, 'dental_record', created.id, pending.categoryIds);
+    await refreshCategories(state);
+    announce(state, 'Radiografía guardada y clasificada en el archivo clínico.', 'neutral');
   }
 
   async function routeDraft(state, payload) {
@@ -493,13 +593,14 @@
 
   function refresh(state) {
     if (!current(state)) return dispose(state);
-    const items = collectEvidence(state.tenant, state.patient, state.photoStudies);
+    const items = applyCategoryAssignments(state, collectEvidence(state.tenant, state.patient, state.photoStudies));
     const fingerprint = JSON.stringify(items);
     if (fingerprint === state.fingerprint) return;
     state.fingerprint = fingerprint;
     state.origins = originMap(items);
     state.center.setItems(items);
     renderPathways(state, items);
+    renderValuationArchive(state, items);
   }
 
   async function refreshPhotos(state, force) {
@@ -540,14 +641,14 @@
     dispose(active);
     const root = el('section', 'seci-root');
     root.dataset.patientId = value.patient;
-    const pathways = el('details', 'seci-pathways');
+    const pathways = el('div', 'seci-pathways');
     const centerHost = el('div', 'seci-center');
     const feedback = el('p', 'seci-feedback');
     feedback.setAttribute('role', 'status');
     feedback.setAttribute('aria-live', 'polite');
     root.append(centerHost, pathways, feedback);
     legacy.before(root);
-    const state = { token: ++sequence, root, pathways, centerHost, feedback, legacy, tenant: value.tenant, patient: value.patient, fingerprint: '', origins: new Map(), center: null, timer: null, photoTimer: null, photoStudies: [], photoAvailable: null, photoLoading: false };
+    const state = { token: ++sequence, root, pathways, centerHost, feedback, legacy, tenant: value.tenant, patient: value.patient, fingerprint: '', origins: new Map(), center: null, timer: null, photoTimer: null, photoStudies: [], photoAvailable: null, photoLoading: false, categoryLoading: false, categoryPromise: null, categorySnapshot: { available: false, categories: [], assignments: [], suggestions: global.SmylEvidenceCategories?.suggestions || [] }, pendingRadiographCategory: null };
     active = state;
     try {
       state.center = global.SmylEvidenceCenter.mount(centerHost, {
@@ -563,11 +664,30 @@
             : { enabled: false, label: 'Editor especializado' };
         },
         onOpen: item => openItem(state, item),
-        onCreate: payload => routeDraft(state, payload)
+        onCreate: payload => routeDraft(state, payload),
+        categories: state.categorySnapshot.categories,
+        suggestions: state.categorySnapshot.suggestions,
+        onActivateCategory: async category => {
+          await global.SmylEvidenceCategories.activate(category.key);
+          await refreshCategories(state);
+          announce(state, `${category.name} ya está disponible en la clínica.`, 'neutral');
+        },
+        onCreateCategory: async name => {
+          const category = await global.SmylEvidenceCategories.create(name);
+          await refreshCategories(state);
+          announce(state, `${category.name} ya está disponible en la clínica.`, 'neutral');
+        },
+        onAssignCategories: async (item, categoryIds) => {
+          await assignMany(state, item.source, item.sourceId || item.id, categoryIds);
+          await refreshCategories(state);
+          announce(state, 'Clasificación guardada. El original no cambió.', 'neutral');
+        },
+        onCategoryError: error => announce(state, error?.message || 'No se pudo actualizar la categoría.', 'error')
       });
       guardUnavailableCreation(state);
       legacy.hidden = true;
       refresh(state);
+      refreshCategories(state);
       refreshPhotos(state, true);
       state.timer = setInterval(() => refresh(state), 1400);
       state.photoTimer = setInterval(() => refreshPhotos(state, false), 6000);
@@ -584,13 +704,20 @@
     if (!screen) return;
     new MutationObserver(mount).observe(screen, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
     ['smyl:dental-context-updated', 'smyl:patient-summary', 'smyl:case-selection'].forEach(name => addEventListener(name, () => {
-      if (current(active)) refresh(active);
+      if (current(active)) {
+        refresh(active);
+        if (name === 'smyl:dental-context-updated') completePendingRadiograph(active).catch(error => announce(active, error?.message || 'La radiografía se guardó, pero falta clasificarla.', 'attention'));
+      }
       else mount();
     }));
     ['smyl:patient-file-created', 'smyl:clinical-photo-indexed', 'smyl:clinical-photo-analysis', 'smyl:clinical-photo-decision', 'smyl:clinical-photo-manual-finding'].forEach(name => addEventListener(name, () => {
       if (current(active)) refreshPhotos(active, true);
       else mount();
     }));
+    addEventListener('smyl:evidence-categories-changed', () => {
+      if (current(active)) refreshCategories(active);
+      else mount();
+    });
     mount();
   }
 
@@ -601,6 +728,8 @@
     pathwayState,
     itemKey,
     originMap,
+    assignmentKey,
+    applyCategoryAssignments,
     creationCapability,
     legacyFileItem,
     photoStudyItem,

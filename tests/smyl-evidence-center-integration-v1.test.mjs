@@ -55,17 +55,14 @@ test('conserva el origen aunque el componente visual normalice el elemento', () 
   assert.equal(origin.source, 'patient_file');
 });
 
-test('las seis rutas clínicas calculan fuentes disponibles sin prescribir estudios', () => {
+test('las categorías se aplican por origen sin alterar la modalidad técnica', () => {
   const integration = api();
-  assert.deepEqual(Array.from(integration.pathways, pathway => pathway.id), ['restorative', 'endodontic', 'periodontal', 'orthodontic', 'surgery', 'pathology']);
-  const endo = integration.pathways.find(pathway => pathway.id === 'endodontic');
-  const state = integration.pathwayState([
-    { modality: 'clinical_measurement', subtype: 'pulp_test' },
-    { modality: 'radiograph_2d', subtype: 'periapical' }
-  ], endo);
-  assert.equal(state.available, state.total);
-  assert.match(source, /SMYL no indica tomar imágenes de rutina/);
-  assert.doesNotMatch(source, /debes tomar|obligatorio tomar|diagnóstico automático/i);
+  const items = [{id:'r1',source:'dental_record',modality:'radiograph_2d',subtype:'panoramic'}];
+  const state = {categorySnapshot:{assignments:[{sourceType:'dental_record',sourceId:'r1',categoryId:'cat-1',active:true}]}};
+  const [classified] = integration.applyCategoryAssignments(state, items);
+  assert.deepEqual(Array.from(classified.categoryIds), ['cat-1']);
+  assert.equal(classified.modality, 'radiograph_2d');
+  assert.equal(integration.assignmentKey('dental_record','r1'), 'dental_record:r1');
 });
 
 test('la integración conserva una única fuente de verdad y no guarda por su cuenta', () => {
@@ -131,13 +128,15 @@ test('sólo oculta el listado legado después de montar el centro', () => {
   assert.match(source, /if \(state\.legacy\?\.isConnected\) state\.legacy\.hidden = false/);
 });
 
-test('el diseño mantiene rutas compactas y adaptables', () => {
-  assert.match(styles, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+test('Valoración consulta el archivo sin ofrecer otra carga', () => {
   assert.match(styles, /@media\(max-width:600px\)/);
   assert.match(styles, /overflow-x:auto/);
-  assert.match(styles, /min-height:68px/);
-  assert.match(styles, /seci-pathway-summary/);
-  assert.match(source, /el\('details', 'seci-pathways'\)/);
+  assert.match(styles, /seci-valuation-item/);
+  assert.match(source, /EVIDENCIA DISPONIBLE/);
+  assert.match(source, /Aquí sólo se consultan/);
+  const valuationStart = source.indexOf('function renderValuationArchive');
+  const valuationEnd = source.indexOf('\n  function ', valuationStart + 1);
+  assert.doesNotMatch(source.slice(valuationStart, valuationEnd), /openAdd/);
   assert.ok(source.indexOf('centerHost, pathways') > -1);
   assert.match(fixture, /smyl-evidence-center-integration\.js/);
   assert.match(fixture, /class="cw-evidence-history"/);

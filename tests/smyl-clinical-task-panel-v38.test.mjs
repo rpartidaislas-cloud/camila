@@ -24,7 +24,8 @@ test('la tarea activa muestra una sola herramienta clínica', () => {
 test('radiografías usa un flujo breve y no repite el mapa dental', () => {
   for (const copy of ['Agregar estudio radiográfico', 'Describe el estudio', 'Selecciona el archivo', 'Revisa y confirma']) assert.match(workspace, new RegExp(copy));
   assert.match(styles, /\.cw-advanced-editor \.dr-section>summary\{display:none\}/);
-  assert.match(workspace, /El odontograma es el único mapa clínico/);
+  assert.match(workspace, /Agrégalas una sola vez en Evidencia/);
+  assert.equal((workspace.match(/n\('div','cw-clinical-odontogram'/g) || []).length, 1);
 });
 
 test('el workspace expone una apertura estable para cargar radiografías desde Evidencia', () => {
@@ -49,8 +50,8 @@ test('los controles móviles mantienen 44 px y el flujo se apila', () => {
 });
 
 test('web, PWA y fuente móvil distribuyen la tarea clínica v3.8', () => {
-  assert.match(app, /smyl-case-workspace\.css\?v=25/);
-  assert.match(app, /smyl-case-workspace\.js\?v=33/);
+  assert.match(app, /smyl-case-workspace\.css\?v=26/);
+  assert.match(app, /smyl-case-workspace\.js\?v=34/);
   assert.match(worker, /clinical-task-panel-v38/);
   assert.match(worker, /single-odontogram-v39/);
 assert.match(worker, /radiograph-navigation-v43/);
