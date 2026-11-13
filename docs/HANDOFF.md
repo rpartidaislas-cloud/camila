@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-12 — Codex — Arquitectura compartida de evidencia clínica, etapas 0 y 1
+
+- Se crea un contrato transversal para las seis modalidades de Evidencia: fotografía, radiografía 2D, escaneo/modelo, medición clínica, documento y CBCT. Todas declaran capacidades reales y conservan su visor especializado; una modalidad sin analizador conectado se marca como no compatible y nunca simula un resultado.
+- La mesa común usa cinco fases estables —`Original`, `Calidad`, `Sugerencias`, `Decisión` e `Historial`— con estados pendiente, actual, completo, omitido y error. La IA continúa generando propuestas pendientes; sólo el profesional confirma, corrige o descarta.
+- Fotografía clínica y radiografía 2D ya consumen el núcleo compartido. Se unifican jerarquía, espaciado, estados, feedback sin avisos duplicados, foco, controles y respuesta móvil, sin sustituir sus analizadores ni sus visores propios.
+- La fotografía reemplaza marcadores provisionales por iconografía SVG, conserva el original privado y presenta el flujo móvil a pantalla completa. Las cinco fases caben sin recortes y no introducen texto menor de 12 px. La mesa radiográfica también eleva a 12 px sus etiquetas operativas compactas.
+- Web, PWA y `mobile/www` incluyen `smyl-evidence-workspace.js/css`; el modelo sube a v2, fotografía a v2 y las revisiones radiográficas a v26/v6. El caché PWA se renueva con `evidence-workspace-v1`.
+- Verificación: suite completa `1,419` pruebas, `1,363` aprobadas, `56` omitidas por dependencias opcionales y `0` fallidas; suite de seguridad en Postgres/PGlite `29/29`; contratos nuevos del workspace `7/7`; QA visual en escritorio y móvil guardada en `artifacts/evidence-workspace-v1/`.
+- Estado de despliegue: cambios listos en la rama de trabajo. La migración de alcance por paciente está preparada y probada, pero debe aplicarse en Supabase SMYL antes de publicar esta versión; no se aplicó ni se publicó desde esta entrega.
+
+## 2026-11-12 — Codex — Archivos clínicos con alcance real por paciente
+
+- La autorización del bucket privado `smyl-clinical-files` ya no concede acceso por el solo hecho de pertenecer a la clínica y tener permiso clínico. La ruta tenant/paciente continúa validándose, pero ahora también exige que el usuario pueda acceder a ese paciente según el alcance configurado de su rol (`own`, `care_team`, `branches` o `clinic`).
+- Se conserva la comprobación de que el paciente exista en la misma clínica, el fallo cerrado para rutas inválidas, la cuarentena de archivos y las políticas actuales de lectura/escritura; no se habilitan operaciones nuevas ni se cambia el formato de las rutas.
+- Archivos: migración `20261112130000_smyl_clinical_file_patient_scope.sql` y prueba `clinical-file-patient-scope-v1.test.mjs`.
+- Verificación: contratos estáticos y prueba funcional en Postgres/PGlite aprobados; un profesional con permisos puede acceder al archivo de su paciente asignado, pero no al de otro paciente de la misma clínica, a un UUID inexistente ni a una operación sin permiso.
+
 ## 2026-11-12 — Codex — Entrada única para evidencia radiográfica
 
 - **Evidencia** conserva una sola acción de carga. Al elegir una radiografía, el mismo archivo pasa al editor clínico y la pantalla cambia a una tarea enfocada de revisión; ya no vuelve a pedir el archivo ni mantiene dos cargadores compitiendo.

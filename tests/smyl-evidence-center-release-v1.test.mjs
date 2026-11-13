@@ -5,6 +5,8 @@ import { readFileSync } from 'node:fs';
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const assets = [
   'smyl-evidence-model.js',
+  'smyl-evidence-workspace.js',
+  'smyl-evidence-workspace.css',
   'smyl-evidence-categories.js',
   'smyl-evidence-center.js',
   'smyl-evidence-center.css',
@@ -14,12 +16,13 @@ const assets = [
 
 test('la aplicación carga el contrato antes del centro y la integración después del expediente', () => {
   const app = read('app.html');
-  const model = app.indexOf('smyl-evidence-model.js?v=1');
+  const model = app.indexOf('smyl-evidence-model.js?v=2');
+  const evidenceWorkspace = app.indexOf('smyl-evidence-workspace.js?v=1');
   const categories = app.indexOf('smyl-evidence-categories.js?v=1');
   const center = app.indexOf('smyl-evidence-center.js?v=9');
   const workspace = app.indexOf('smyl-case-workspace.js?v=34');
   const integration = app.indexOf('smyl-evidence-center-integration.js?v=6');
-  assert.ok(model > -1 && model < center);
+  assert.ok(model > -1 && model < evidenceWorkspace && evidenceWorkspace < center);
   assert.ok(model < categories && categories < center);
   assert.ok(center < workspace && workspace < integration);
 });
@@ -30,6 +33,8 @@ test('el service worker precarga todos los recursos del centro clínico', () => 
   assert.match(serviceWorker, /evidence-center-ux-v6/);
   assert.match(serviceWorker, /evidence-single-intake-v1/);
   assert.match(serviceWorker, /smyl-evidence-categories\.js\?v=1/);
+  assert.match(serviceWorker, /smyl-evidence-workspace\.js\?v=1/);
+  assert.match(serviceWorker, /smyl-evidence-workspace\.css\?v=1/);
   assert.match(serviceWorker, /smyl-evidence-center\.js\?v=9/);
   assert.match(serviceWorker, /smyl-evidence-center\.css\?v=6/);
   assert.match(serviceWorker, /smyl-evidence-center-integration\.js\?v=6/);

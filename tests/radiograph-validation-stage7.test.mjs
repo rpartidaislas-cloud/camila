@@ -74,7 +74,7 @@ test('cableado: divulgación en la mesa, panel sólo con aprobación clínica, w
   assert.match(mesa, /client\.rpc\('smyl_radiograph_model_disclosure'\)/);
   assert.match(mesa, /d\.simulated\?'Motor simulado · sin validación clínica':'Motor y validación'/);
   assert.match(mesa, /run\.api\.caps\.clinicalApprove===true&&typeof V\.open==='function'/);
-  for (const tag of ['smyl-radiograph-validation.css?v=1', 'smyl-radiograph-validation.js?v=2', 'smyl-radiograph-review-v2.js?v=5', 'smyl-radiograph-review-v2.css?v=3']) { assert.ok(app.includes(tag), tag); assert.ok(sw.includes('/camila/' + tag), tag); }
+  for (const tag of ['smyl-radiograph-validation.css?v=1', 'smyl-radiograph-validation.js?v=2', 'smyl-radiograph-review-v2.js?v=6', 'smyl-radiograph-review-v2.css?v=3']) { assert.ok(app.includes(tag), tag); assert.ok(sw.includes('/camila/' + tag), tag); }
   assert.match(sw, /radiograph-validation-v50/);
   for (const file of ['app.html', 'sw.js', 'smyl-radiograph-review-v2.js', 'smyl-radiograph-review-v2.css', 'smyl-radiograph-validation.js', 'smyl-radiograph-validation.css']) assert.equal(read('mobile/www/' + file), read(file), 'mobile/www desincronizado: ' + file);
 });

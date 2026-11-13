@@ -2,8 +2,8 @@
 // Versión del cache — incrementar cuando se actualicen archivos
 const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks-patients-visual-v32-history-ux-v32-whatsapp-template-categories-treatment-ux-v32-smart-odontogram-v33-evidence-history-v34-simplified-navigation-patient-intake-v33-no-new-design-primary-evidence-ai-v35-evolution-closure-v36-daily-workbench-v12-meta-cards-v13-source-workspace-v37-clinical-task-panel-v38-single-odontogram-v39-radiograph-ui-v40-reading-workbench-v42-radiograph-navigation-v43-patient-summary-v44-patient-timeline-v45-team-roles-v46-team-layout-v47-radiograph-review-v2-v47-radiograph-report-v48-radiograph-longitudinal-v49-radiograph-validation-v50-radiograph-hardening-v51-radiograph-v1-json-v52-radiograph-v1-retry-v53-radiograph-v1-retry-fix-v54-radiograph-v1-diagnostic-v55-quiet-update-v56-radiograph-null-v57-radiograph-opus-v58-radiograph-boxes-v59-radiograph-units-v60-radiograph-order-v61-radiograph-lightbox-v62-radiograph-fit-v63-radiograph-map-v64-simulator-simple-v1-progressive-v2-premium-v3-radiograph-drag-v65-clinical-workspace-v33-v66-daily-home-scope-fix-v67-vita-carousel-v4-sidebar-v68-navy-studio-v5-history-dates-v68-history-structured-v69-patient-simulations-v70-navy-cleanup-v6-face-guide-v7-simulator-ux-v6-bleach-guide-v8-shade-compare-v9-bleach-bl-v10-result-views-v11-lana-unlink-v1-dialog-v2-voice-notes-v12-patient-open-fix-v1-history-focused-v71-topbar-cleanup-v72-evaluation-flow-v73-patient-summary-simple-v74-history-read-integration-v75-treatment-simple-v77-panel-audit-fase0-caja-citas-v1-aviso-panel-v2-lista-pacientes-v3-selector-diferido-v4-agenda-estatica-v5-tope-ia-v6-sondeo-adaptativo-v7-supabase-local-v8-anti-empalme-v9-errores-cliente-v10-proposal-pwa-compact-v1-evaluation-context-v78-patient-directory-v4-result-explicit-v12-patient-record-header-v79-pwa-manifest-v80-topbar-limpia-v81-treatment-tenant-workbench-v82-cobros-v82-plantillas-cobro-v83-cobro-whatsapp-v84-cobranza-v85-login-split-v86-odontogram-clinical-workbench-v87-cargo-fiscal-v86-buscador-pacientes-v87-google-login-v89-google-precheck-v90-cotizaciones-v88-messaging-center-cotizaciones-v1-professional-payment-flow-sentry-v1-smyl-v267-guided-collection-sentry-v1-legal-v96-sentry-on-v2-freeze-watchdog-v1-sidebar-v2-finance-tabs-v3-page-width-v1-pending-charges-v1-agenda-billing-v1-nav-pending-badge-v1-no-show-fee-v1-guided-collection-v2-account-v2-clinical-evidence-center-v1-catalog-v2-catalog-roles-v1-refund-roles-v1-radiograph-gallery-v1-settings-channels-v2-radiograph-queue-v2-catalog-inline-price-v1-settings-workspace-v3-whatsapp-workspace-v4-radiograph-reading-desk-v12-dashboard-operativo-v2-whatsapp-coexistence-v5-cash-reconciliation-v1-finance-history-corrections-v1-radiograph-decision-flow-v13-radiograph-context-crop-v14-radiograph-guided-process-v15-radiograph-multiscale-abstention-v16-clinical-photo-evidence-v1-radiograph-intake-v1-radiograph-tooth-picker-v17-radiograph-mobile-reading-v18-single-radiograph-intake-v1-radiograph-intake-runtime-fix-v1-radiograph-mobile-flow-v17-patient-mobile-submit-v1-radiograph-docked-odontogram-v20-radiograph-device-parity-zoom-v21';
 const ANATOMICAL_ODONTOGRAM_CACHE = CACHE_VERSION + '-radiograph-anatomic-odontogram-v20';
-const STATIC_CACHE = ANATOMICAL_ODONTOGRAM_CACHE + '-collection-visual-v1-static-evidence-center-ux-v6-clinical-categories-v1-evidence-single-intake-v1-payments-ledger-ux-v1';
-const DYNAMIC_CACHE = ANATOMICAL_ODONTOGRAM_CACHE + '-collection-visual-v1-dynamic-evidence-center-ux-v6-clinical-categories-v1-evidence-single-intake-v1-payments-ledger-ux-v1';
+const STATIC_CACHE = ANATOMICAL_ODONTOGRAM_CACHE + '-collection-visual-v1-static-evidence-center-ux-v6-clinical-categories-v1-evidence-single-intake-v1-payments-ledger-ux-v1-evidence-workspace-v1';
+const DYNAMIC_CACHE = ANATOMICAL_ODONTOGRAM_CACHE + '-collection-visual-v1-dynamic-evidence-center-ux-v6-clinical-categories-v1-evidence-single-intake-v1-payments-ledger-ux-v1-evidence-workspace-v1';
 
 // Archivos que se cachean al instalar
 const STATIC_FILES = [
@@ -35,7 +35,7 @@ const STATIC_FILES = [
   '/camila/smyl-radiograph-longitudinal.css?v=1',
   '/camila/smyl-radiograph-validation.js?v=2',
   '/camila/smyl-radiograph-validation.css?v=1',
-  '/camila/smyl-radiograph-review-v2.js?v=5',
+  '/camila/smyl-radiograph-review-v2.js?v=6',
   '/camila/smyl-radiograph-review-v2.css?v=3',
   '/camila/smyl-dental-record.js?v=26',
   '/camila/smyl-analysis-workflow.js?v=2',
@@ -84,15 +84,17 @@ const STATIC_FILES = [
   '/camila/smyl-patient-360.css?v=18',
   '/camila/smyl-patient-record-stage2.js?v=2',
   '/camila/smyl-patient-record-stage2.css?v=2',
-  '/camila/smyl-evidence-model.js?v=1',
+  '/camila/smyl-evidence-model.js?v=2',
+  '/camila/smyl-evidence-workspace.js?v=1',
+  '/camila/smyl-evidence-workspace.css?v=1',
   '/camila/smyl-evidence-categories.js?v=1',
   '/camila/smyl-evidence-center.js?v=9',
   '/camila/smyl-evidence-center.css?v=6',
   '/camila/smyl-evidence-center-integration.js?v=6',
   '/camila/smyl-evidence-center-integration.css?v=4',
   '/camila/smyl-clinical-photo-service.js?v=1',
-  '/camila/smyl-clinical-photo-review.js?v=1',
-  '/camila/smyl-clinical-photo-review.css?v=1',
+  '/camila/smyl-clinical-photo-review.js?v=2',
+  '/camila/smyl-clinical-photo-review.css?v=2',
   '/camila/smyl-case-workspace.js?v=34',
   '/camila/smyl-case-workspace.css?v=26',
   '/camila/smyl-clinic.css?v=12',

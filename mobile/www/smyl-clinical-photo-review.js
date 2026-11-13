@@ -26,6 +26,34 @@
   let active = null;
   let sequence = 0;
 
+  function evidenceWorkspace() {
+    return global.SmylEvidenceWorkspace || null;
+  }
+
+  function progressFor(study, override) {
+    const findings = Array.isArray(study?.findings) ? study.findings : [];
+    const input = {
+      quality: qualityOf(study),
+      findings: findings.length,
+      pending: pendingFindings(study).length,
+      reviewed: reviewedFindings(study).length,
+      closed: Boolean(studyDisposition(study)),
+      ...(override || {})
+    };
+    const workspace = evidenceWorkspace();
+    if (workspace?.photoProgress) return workspace.photoProgress(input);
+    return input.closed
+      ? { original: 'complete', quality: 'complete', suggestions: 'complete', decision: 'complete', history: 'current' }
+      : { original: 'complete', quality: 'current', suggestions: 'pending', decision: 'pending', history: 'pending' };
+  }
+
+  function setReviewProgress(state, study, override) {
+    const progress = state?.dialog?.querySelector('.smyl-ew-progress');
+    const workspace = evidenceWorkspace();
+    if (progress && workspace?.setProgress) workspace.setProgress(progress, progressFor(study, override));
+    if (state?.dialog) state.dialog.dataset.reviewPhase = progress?.dataset.currentPhase || '';
+  }
+
   function el(tag, className, text) {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -37,6 +65,22 @@
     node.type = 'button';
     if (action) node.addEventListener('click', action);
     return node;
+  }
+  function photoIcon(className) {
+    const shell = el('span', className || 'scpr-photo-icon');
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    const body = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    body.setAttribute('d', 'M4.75 7.25h3.1l1.2-1.7h5.9l1.2 1.7h3.1c.97 0 1.75.78 1.75 1.75v8.25c0 .97-.78 1.75-1.75 1.75H4.75C3.78 19 3 18.22 3 17.25V9c0-.97.78-1.75 1.75-1.75Z');
+    const lens = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    lens.setAttribute('cx', '12');
+    lens.setAttribute('cy', '13');
+    lens.setAttribute('r', '3.25');
+    svg.append(body, lens);
+    shell.append(svg);
+    return shell;
   }
   function context() {
     const patient = global.pacienteActual;
@@ -93,8 +137,12 @@
   }
   function announce(state, message, tone) {
     if (!current(state)) return;
-    state.feedback.textContent = message || '';
-    state.feedback.dataset.tone = tone || 'neutral';
+    const workspace = evidenceWorkspace();
+    if (workspace?.setFeedback) workspace.setFeedback(state.feedback, { message, tone, key: `${tone || 'neutral'}:${message || ''}` });
+    else {
+      state.feedback.textContent = message || '';
+      state.feedback.dataset.tone = tone || 'neutral';
+    }
   }
   function revokeUrls(state) {
     for (const value of state.urls.values()) URL.revokeObjectURL(value);
@@ -133,7 +181,7 @@
       const tab = document.getElementById('cw-evaluation-task-evidence');
       tab?.click();
     }, 'scpr-primary');
-    empty.append(el('span', 'scpr-empty-icon', 'F'), copy, action);
+    empty.append(photoIcon('scpr-empty-icon scpr-photo-icon'), copy, action);
     state.list.append(empty);
   }
 
@@ -145,7 +193,7 @@
       const media = el('div', 'scpr-study-media');
       media.setAttribute('role', 'img');
       media.setAttribute('aria-label', 'Se verifica al abrir la valoración; el original permanece privado');
-      const placeholder = el('span', 'scpr-study-placeholder', 'F');
+      const placeholder = photoIcon('scpr-study-placeholder scpr-photo-icon');
       placeholder.setAttribute('aria-hidden', 'true');
       media.append(placeholder, el('span', 'scpr-original-badge', 'ORIGINAL PRIVADO'));
       const body = el('div', 'scpr-study-copy');
@@ -221,7 +269,9 @@
     const close = () => closeDialog(state);
     const header = el('header', 'scpr-dialog-head'), copy = el('div');
     copy.append(el('span', 'scpr-kicker', 'SERIE FOTOGRÁFICA'), el('h2', '', 'Analizar vistas complementarias'), el('p', '', 'Selecciona hasta cuatro originales del mismo paciente. Cada toma conservará su clasificación y su resultado independiente.'));
-    header.append(copy, button('Volver al expediente', close, 'scpr-secondary'));
+    const back = button('Volver al expediente', close, 'scpr-secondary scpr-back');
+    back.setAttribute('aria-label', 'Volver al expediente');
+    header.append(copy, back);
     const body = el('div', 'scpr-dialog-body scpr-batch-body');
     const intro = el('section', 'scpr-batch-intro');
     intro.append(el('h3', '', 'La comparación entre vistas mejora el contexto, no sustituye tu valoración'), el('p', '', 'La IA puede contrastar frontal, laterales y oclusales, pero debe abstenerse si una toma no es evaluable o si la orientación no es inequívoca.'));
@@ -271,18 +321,30 @@
   function reviewHeader(dialog, study, close) {
     const header = el('header', 'scpr-dialog-head');
     const copy = el('div');
-    copy.append(el('span', 'scpr-kicker', 'VALORACIÓN FOTOGRÁFICA'), el('h2', '', studyLabel(study)), el('p', '', 'Original clínico → sugerencia separada → decisión profesional.'));
-    header.append(copy, button('Volver al expediente', close, 'scpr-secondary'));
-    const steps = el('ol', 'scpr-review-steps');
-    [['1', 'Original'], ['2', 'Sugerencias'], ['3', 'Decisión']].forEach(([number, label]) => {
-      const item = el('li'); item.append(el('span', '', number), el('strong', '', label)); steps.append(item);
-    });
+    copy.append(el('span', 'scpr-kicker', 'EVIDENCIA · FOTOGRAFÍA CLÍNICA'), el('h2', '', studyLabel(study)), el('p', '', 'Original protegido, control de calidad, sugerencias y decisión profesional en un solo flujo.'));
+    const back = button('Volver al expediente', close, 'scpr-secondary scpr-back');
+    back.setAttribute('aria-label', 'Volver al expediente');
+    header.append(copy, back);
+    const workspace = evidenceWorkspace();
+    const steps = workspace?.createProgress
+      ? workspace.createProgress({ states: progressFor(study), ariaLabel: 'Progreso de la valoración fotográfica' })
+      : el('ol', 'smyl-ew-progress');
+    if (!steps.children.length) {
+      [['1', 'Original'], ['2', 'Calidad'], ['3', 'Sugerencias'], ['4', 'Decisión'], ['5', 'Historial']].forEach(([number, label], index) => {
+        const item = el('li', 'smyl-ew-progress__item');
+        item.dataset.state = index === 1 ? 'current' : index === 0 ? 'complete' : 'pending';
+        if (index === 1) item.setAttribute('aria-current', 'step');
+        item.append(el('span', 'smyl-ew-progress__marker', index === 0 ? '✓' : number), el('span', 'smyl-ew-progress__label', label), el('span', 'smyl-ew-progress__status', index === 0 ? 'Listo' : index === 1 ? 'En curso' : 'Pendiente'));
+        steps.append(item);
+      });
+    }
     return [header, steps];
   }
 
   async function openReview(state, initialStudy) {
     if (!current(state) || state.dialog) return;
-    const dialog = el('dialog', 'scpr-dialog');
+    const dialog = el('dialog', 'scpr-dialog smyl-evidence-workspace');
+    evidenceWorkspace()?.decorate?.(dialog, 'photograph');
     dialog.setAttribute('aria-label', `Valoración de ${studyLabel(initialStudy)}`);
     const close = () => closeDialog(state);
     const [header, steps] = reviewHeader(dialog, initialStudy, close);
@@ -299,7 +361,12 @@
       if (!current(state) || state.dialog !== dialog) return;
       renderReview(state, initialStudy.id, url, body);
     } catch (error) {
-      body.replaceChildren(el('p', 'scpr-error', error?.message || 'No se pudo verificar el original. No se ejecutó ningún análisis.'));
+      setReviewProgress(state, initialStudy, { failed: true });
+      const problem = el('p', 'scpr-error');
+      const message = error?.message || 'No se pudo verificar el original. No se ejecutó ningún análisis.';
+      if (evidenceWorkspace()?.setFeedback) evidenceWorkspace().setFeedback(problem, { message, tone: 'error', key: 'photo-original-load' });
+      else problem.textContent = message;
+      body.replaceChildren(problem);
     }
   }
 
@@ -352,6 +419,7 @@
   }
 
   function renderDispositionForm(state, study, host, initialState) {
+    setReviewProgress(state, study, { quality: qualityOf(study) === 'pending' ? 'limited' : qualityOf(study) });
     host.replaceChildren();
     const form = el('form', 'scpr-professional-form scpr-disposition-form');
     form.append(el('span', 'scpr-kicker', 'CIERRE DE LA TOMA'), el('h3', '', 'Registrar el resultado de tu revisión'), el('p', '', 'Este cierre no equivale a un diagnóstico. Deja constancia de por qué la toma se resolvió sin una sugerencia confirmada.'));
@@ -404,7 +472,7 @@
 
   function renderAnalyze(state, study, host) {
     const panel = el('section', 'scpr-decision-panel');
-    panel.append(el('span', 'scpr-kicker', 'PASO 2 · ANÁLISIS ASISTIDO'), el('h3', '', 'Decide cómo revisar esta toma'), el('p', '', 'La IA puede señalar detalles visibles por comprobar. Nunca confirma diagnósticos ni modifica el expediente por sí sola.'));
+    panel.append(el('span', 'scpr-kicker', 'CALIDAD Y ANÁLISIS ASISTIDO'), el('h3', '', 'Decide cómo revisar esta toma'), el('p', '', 'La IA puede señalar detalles visibles por comprobar. Nunca confirma diagnósticos ni modifica el expediente por sí sola.'));
     const safety = el('div', 'scpr-safety');
     safety.append(el('strong', '', 'Abstención segura'), el('p', '', 'Si la toma está desenfocada, mal orientada o no permite localizar la zona, se marcará como no evaluable y podrás continuar manualmente.'));
     const consent = el('label', 'scpr-confirm'), check = el('input');
@@ -414,6 +482,7 @@
     const analyze = button('Analizar fotografía', async () => {
       if (!check.checked || analyze.disabled) return;
       analyze.disabled = true; manual.disabled = resolve.disabled = true; check.disabled = true;
+      setReviewProgress(state, study, { quality: 'usable', analyzing: true });
       feedback.textContent = 'Analizando el original. Puede tardar cerca de un minuto; no cierres esta ventana.';
       try {
         await global.SmylClinicalPhotoService.analyze([study.id], { consent: true });
@@ -422,7 +491,10 @@
         if (!updated || !state.dialog) return;
         renderReview(state, study.id, state.urls.get(study.id), host);
       } catch (error) {
-        feedback.textContent = error?.message || 'No se pudo confirmar el análisis. No se reintentó automáticamente.';
+        setReviewProgress(state, study, { failed: true });
+        const message = error?.message || 'No se pudo confirmar el análisis. No se reintentó automáticamente.';
+        if (evidenceWorkspace()?.setFeedback) evidenceWorkspace().setFeedback(feedback, { message, tone: 'error', key: 'photo-analysis' });
+        else feedback.textContent = message;
         analyze.disabled = false; manual.disabled = resolve.disabled = false; check.disabled = false; check.checked = false;
       }
     }, 'scpr-primary');
@@ -441,6 +513,7 @@
   }
 
   function renderFindingDecision(state, study, finding, host) {
+    setReviewProgress(state, study);
     host.replaceChildren();
     const source = el('section', 'scpr-ai-source');
     source.append(el('span', 'scpr-kicker', 'SUGERENCIA DE IA · NO CONFIRMADA'), el('h3', '', cleanText(finding.label, 160) || CATEGORY_LABELS[finding.category] || 'Observación por comprobar'), el('p', '', cleanText(finding.description, 2000)), el('small', '', cleanText(finding?.payload?.evidence || finding?.payload?.where || '', 400)));
@@ -509,6 +582,7 @@
   }
 
   function renderFindings(state, study, host) {
+    setReviewProgress(state, study);
     const findings = study.findings || [];
     const pending = findings.filter(finding => findingState(finding) === 'pending');
     const dispositionSummary = renderSavedDisposition(study);
@@ -562,6 +636,7 @@
   }
 
   function renderManualForm(state, study, host) {
+    setReviewProgress(state, study, { quality: qualityOf(study) === 'pending' ? 'limited' : qualityOf(study) });
     host.replaceChildren();
     const form = el('form', 'scpr-professional-form scpr-manual-form');
     form.append(el('span', 'scpr-kicker', 'REGISTRO PROFESIONAL'), el('h3', '', 'Agregar observación manual'), el('p', '', 'Registra únicamente lo que confirmaste al revisar el original y la exploración clínica.'));
@@ -613,6 +688,7 @@
   function renderReview(state, studyId, url, host) {
     const study = currentStudy(state, studyId);
     if (!study || !host) return;
+    setReviewProgress(state, study);
     host.replaceChildren();
     const layout = el('div', 'scpr-review-layout'), original = renderOriginal(study, url), decision = el('section', 'scpr-review-work');
     layout.append(original, decision); host.append(layout);
@@ -635,7 +711,8 @@
     if (!value || !map || !global.SmylClinicalPhotoService) return;
     if (current(active)) return;
     dispose(active);
-    const root = el('section', 'scpr-root');
+    const root = el('section', 'scpr-root smyl-evidence-workspace');
+    evidenceWorkspace()?.decorate?.(root, 'photograph');
     root.dataset.patientId = value.patient;
     const head = el('header', 'scpr-head'), copy = el('div');
     copy.append(el('span', 'scpr-kicker', 'FOTOGRAFÍA CLÍNICA'), el('h2', '', 'Valoración fotográfica'), el('p', '', 'Analiza y decide sobre las tomas originales incorporadas en Evidencia. Aquí no se suben archivos.'));

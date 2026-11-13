@@ -1214,17 +1214,17 @@
     border-radius: 14px;
   }
   .rr-tooth-picker-close { min-width: 64px; min-height: 44px; }
-  .rr-tooth-orientation { gap: 8px; padding: 0 4px; font-size: 11px; }
+  .rr-tooth-orientation { gap: 8px; padding: 0 4px; font-size: 12px; }
   .rr-tooth-chart { padding: 2px 1px; gap: 12px 6px; }
   .rr-tooth-options { gap: 0; }
-  .rr-tooth-option { min-height: 58px; padding-inline: 0; font-size: 10px; }
+  .rr-tooth-option { min-height: 58px; padding-inline: 0; font-size: 12px; }
   .rr-tooth-glyph { width: 17px; height: 38px; }
   .rr-tooth-glyph-incisor { width: 14px; }
   .rr-tooth-glyph-canine { width: 15px; }
   .rr-tooth-glyph-premolar { width: 17px; }
   .rr-tooth-glyph-molar { width: 19px; }
-  .rr-tooth-number { min-width: 17px; padding-inline: 1px; font-size: 10px; }
-  .rr-tooth-picker-help { overflow: hidden; font-size: 11px; line-height: 15px; text-overflow: ellipsis; white-space: nowrap; }
+  .rr-tooth-number { min-width: 17px; padding-inline: 1px; font-size: 12px; }
+  .rr-tooth-picker-help { overflow: hidden; font-size: 12px; line-height: 16px; text-overflow: ellipsis; white-space: nowrap; }
   .rr-tooth-clear { min-height: 44px; }
   .rr-review:has(.rr-tooth-picker[open]) .rr-save { visibility: hidden; pointer-events: none; }
 }
@@ -1534,27 +1534,27 @@
 .rr-tooth-dock-head { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; }
 .rr-tooth-dock-head > div { display: grid; min-width: 0; gap: 1px; }
 .rr-tooth-dock-head strong { overflow: hidden; font-size: 13px; line-height: 17px; text-overflow: ellipsis; white-space: nowrap; }
-.rr-tooth-dock .rr-section-label { color: var(--rr-success); font-size: 10px; line-height: 13px; }
-.rr-tooth-dock .rr-tooth-orientation { padding-inline: 8%; font-size: 10px; line-height: 12px; }
+.rr-tooth-dock .rr-section-label { color: var(--rr-success); font-size: 12px; line-height: 16px; }
+.rr-tooth-dock .rr-tooth-orientation { padding-inline: 8%; font-size: 12px; line-height: 15px; }
 .rr-tooth-dock .rr-tooth-chart { padding: 0 4px; gap: 7px 10px; }
-.rr-tooth-dock .rr-tooth-option { min-height: 46px; padding: 1px; border-radius: 8px; font-size: 10px; line-height: 12px; }
+.rr-tooth-dock .rr-tooth-option { min-height: 46px; padding: 1px; border-radius: 8px; font-size: 12px; line-height: 15px; }
 .rr-tooth-dock .rr-tooth-glyph { width: 17px; height: 29px; }
 .rr-tooth-dock .rr-tooth-glyph-incisor { width: 13px; }
 .rr-tooth-dock .rr-tooth-glyph-canine { width: 14px; }
 .rr-tooth-dock .rr-tooth-glyph-premolar { width: 16px; }
 .rr-tooth-dock .rr-tooth-glyph-molar { width: 18px; }
-.rr-tooth-dock .rr-tooth-number { min-width: 16px; padding: 0 1px; font-size: 10px; line-height: 12px; }
-.rr-tooth-dock .rr-tooth-option.is-suggested::after { top: -6px; right: -4px; min-width: 18px; height: 18px; border-width: 1px; font-size: 10px; }
+.rr-tooth-dock .rr-tooth-number { min-width: 16px; padding: 0 1px; font-size: 12px; line-height: 15px; }
+.rr-tooth-dock .rr-tooth-option.is-suggested::after { top: -6px; right: -4px; min-width: 18px; height: 18px; border-width: 1px; font-size: 12px; }
 .rr-tooth-dock-footer { display: flex; min-width: 0; align-items: center; gap: 10px; }
-.rr-tooth-dock-footer .rr-tooth-picker-help { flex: 1; overflow: hidden; font-size: 10px; line-height: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.rr-tooth-legend { display: inline-flex; flex: none; gap: 10px; color: var(--rr-meta); font-size: 10px; white-space: nowrap; }
+.rr-tooth-dock-footer .rr-tooth-picker-help { flex: 1; overflow: hidden; font-size: 12px; line-height: 16px; text-overflow: ellipsis; white-space: nowrap; }
+.rr-tooth-legend { display: inline-flex; flex: none; gap: 10px; color: var(--rr-meta); font-size: 12px; white-space: nowrap; }
 .rr-tooth-legend > span { display: inline-flex; align-items: center; gap: 4px; }
 .rr-tooth-legend > span::before { width: 8px; height: 8px; border-radius: 50%; background: var(--rr-primary); content: ''; }
 .rr-tooth-legend .rr-tooth-legend-ai::before { background: #b67807; }
-.rr-tooth-dock-footer .rr-tooth-clear { min-height: 30px; padding: 4px 6px; font-size: 10px; }
+.rr-tooth-dock-footer .rr-tooth-clear { min-height: 34px; padding: 5px 7px; font-size: 12px; }
 
 .rr-signal-nav { display: inline-flex; align-items: center; gap: 5px; }
-.rr-signal-nav > span { min-width: 34px; color: var(--rr-muted); font-size: 11px; font-weight: 750; text-align: center; }
+.rr-signal-nav > span { min-width: 34px; color: var(--rr-muted); font-size: 12px; font-weight: 750; text-align: center; }
 .rr-signal-nav-button {
   display: inline-grid;
   width: 36px;
@@ -1570,14 +1570,14 @@
   cursor: pointer;
 }
 .rr-signal-nav-button:disabled { opacity: .36; cursor: default; }
-.rr-panel-quality { display: inline-flex; width: max-content; align-items: center; gap: 5px; color: var(--rr-muted); font-size: 11px; font-weight: 700; }
+.rr-panel-quality { display: inline-flex; width: max-content; align-items: center; gap: 5px; color: var(--rr-muted); font-size: 12px; font-weight: 700; }
 .rr-panel-quality::before { width: 8px; height: 8px; border-radius: 50%; background: var(--rr-success); content: ''; }
 .rr-panel-quality-limited::before { background: #d99a1a; }
 .rr-panel-quality-unusable::before { background: var(--rr-danger); }
 
 .rr-image-stage > .rr-box.is-context,
 .rr-image-stage > .rr-mark.is-context { opacity: .24; }
-.rr-image-stage > .rr-mark { width: 30px; height: 30px; min-height: 30px; font-size: 11px; }
+.rr-image-stage > .rr-mark { width: 30px; height: 30px; min-height: 30px; font-size: 12px; }
 .rr-image-stage > .rr-mark::after { position: absolute; inset: -7px; content: ''; }
 .rr-image-stage > .rr-mark.is-selected { visibility: visible; opacity: 1; pointer-events: none; }
 

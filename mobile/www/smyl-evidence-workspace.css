@@ -1,0 +1,97 @@
+/* SMYL · Superficie visual común para evidencia clínica. */
+:root{
+  --smyl-evidence-ink:var(--smyl-ui-ink,#10243b);
+  --smyl-evidence-muted:var(--smyl-ui-muted,#5f7084);
+  --smyl-evidence-line:var(--smyl-ui-line,#d7e1ea);
+  --smyl-evidence-navy:var(--smyl-ui-navy,#0c273f);
+  --smyl-evidence-teal:var(--smyl-ui-accent,#16776d);
+  --smyl-evidence-surface:var(--smyl-ui-surface,#fff);
+  --smyl-evidence-subtle:var(--smyl-ui-subtle,#f6f8fa);
+  --smyl-evidence-warning:#9a680d;
+  --smyl-evidence-danger:#a3453d;
+  --smyl-evidence-radius-control:10px;
+  --smyl-evidence-radius-card:12px;
+  --smyl-evidence-radius-panel:20px;
+}
+
+.smyl-evidence-workspace{
+  color:var(--smyl-evidence-ink);
+  font-family:var(--smyl-ui-font,"Open Sans",Inter,system-ui,sans-serif);
+  font-size:14px;
+  line-height:1.45;
+}
+
+.smyl-ew-progress{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  margin:0;
+  padding:0 20px;
+  border-bottom:1px solid var(--smyl-evidence-line);
+  background:var(--smyl-evidence-subtle);
+  list-style:none;
+}
+
+.smyl-ew-progress__item{
+  position:relative;
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:24px minmax(0,auto);
+  grid-template-rows:auto auto;
+  justify-content:center;
+  align-content:center;
+  column-gap:8px;
+  min-height:58px;
+  padding:7px 8px;
+  color:var(--smyl-evidence-muted);
+}
+
+.smyl-ew-progress__item:not(:last-child)::after{
+  content:"";
+  position:absolute;
+  top:50%;
+  right:-14px;
+  width:28px;
+  height:1px;
+  background:var(--smyl-evidence-line);
+}
+
+.smyl-ew-progress__marker{
+  grid-row:1/3;
+  align-self:center;
+  display:grid;
+  place-items:center;
+  width:24px;
+  height:24px;
+  border:1px solid #cbd8e3;
+  border-radius:50%;
+  background:#fff;
+  color:#52677a;
+  font-size:12px;
+  font-weight:700;
+}
+
+.smyl-ew-progress__label{align-self:end;color:#3d5267;font-size:13px;font-weight:600;white-space:nowrap}
+.smyl-ew-progress__status{align-self:start;color:#718295;font-size:12px;font-weight:500}
+.smyl-ew-progress__item[data-state="complete"] .smyl-ew-progress__marker{border-color:#b9d9d3;background:#e9f5f2;color:#176d62}
+.smyl-ew-progress__item[data-state="complete"] .smyl-ew-progress__label{color:#345b56}
+.smyl-ew-progress__item[data-state="complete"]::after{background:#8fc8be}
+.smyl-ew-progress__item[data-state="current"]{background:#fff}
+.smyl-ew-progress__item[data-state="current"]::before{content:"";position:absolute;right:8px;bottom:0;left:8px;height:3px;border-radius:3px 3px 0 0;background:var(--smyl-evidence-teal)}
+.smyl-ew-progress__item[data-state="current"] .smyl-ew-progress__marker{border-color:var(--smyl-evidence-teal);background:var(--smyl-evidence-teal);color:#fff;box-shadow:0 0 0 4px rgba(22,119,109,.12)}
+.smyl-ew-progress__item[data-state="current"] .smyl-ew-progress__label{color:var(--smyl-evidence-ink);font-weight:700}
+.smyl-ew-progress__item[data-state="skipped"] .smyl-ew-progress__marker{border-style:dashed;background:#f4f6f8;color:#7b8997}
+.smyl-ew-progress__item[data-state="error"] .smyl-ew-progress__marker{border-color:#e1aaa4;background:#fff0ee;color:var(--smyl-evidence-danger)}
+.smyl-ew-progress__item[data-state="error"] .smyl-ew-progress__status{color:var(--smyl-evidence-danger)}
+
+@media(max-width:760px){
+  .smyl-ew-progress{grid-template-columns:repeat(5,minmax(0,1fr));width:100%;box-sizing:border-box;padding:0 4px;overflow-x:hidden}
+  .smyl-ew-progress__item{display:flex;min-width:0;min-height:54px;padding:6px 2px;align-items:center;flex-direction:column;gap:3px}
+  .smyl-ew-progress__marker{width:22px;height:22px;flex:none}
+  .smyl-ew-progress__label{width:100%;max-width:100%;font-size:12px;overflow:hidden;text-align:center;text-overflow:ellipsis}
+  .smyl-ew-progress__status{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .smyl-ew-progress__item:not(:last-child)::after{display:none}
+}
+
+@media(max-width:420px){
+  .smyl-ew-progress__label{font-size:12px}
+}

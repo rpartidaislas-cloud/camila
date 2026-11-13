@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>QA · Valoración fotográfica profesional</title>
+  <link rel="stylesheet" href="../../smyl-evidence-workspace.css">
   <link rel="stylesheet" href="../../smyl-clinical-photo-review.css">
   <style>
     *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#f2f6f9;color:#10243b;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -67,6 +68,26 @@
       }
     };
   </script>
+  <script src="../../smyl-evidence-model.js"></script>
+  <script src="../../smyl-evidence-workspace.js"></script>
   <script src="../../smyl-clinical-photo-review.js"></script>
+  <script>
+    const qaParams=new URLSearchParams(location.search);
+    if(qaParams.has('open')){
+      addEventListener('load',()=>setTimeout(()=>window.SmylClinicalPhotoReview?.open('study-frontal'),80),{once:true});
+    }
+    if(qaParams.has('metrics')){
+      addEventListener('load',()=>setTimeout(()=>{
+        const dialog=document.querySelector('.scpr-dialog');
+        const rect=dialog?.getBoundingClientRect();
+        document.documentElement.dataset.qaMetrics=JSON.stringify({
+          innerWidth,innerHeight,
+          dialog:rect?{x:rect.x,y:rect.y,width:rect.width,height:rect.height}:null,
+          margin:dialog?getComputedStyle(dialog).margin:null,
+          position:dialog?getComputedStyle(dialog).position:null
+        });
+      },300),{once:true});
+    }
+  </script>
 </body>
 </html>

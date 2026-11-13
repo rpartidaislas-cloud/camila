@@ -102,6 +102,25 @@
 
   const STUDY_STATUSES = Object.freeze(['draft', 'ready', 'under_review', 'signed', 'superseded']);
   const QUALITY_STATES = Object.freeze(['pending', 'usable', 'limited', 'unusable']);
+  // Contrato transversal de la mesa de evidencia. Describe el ciclo compartido
+  // sin asumir que todas las modalidades usan el mismo analizador clínico.
+  const WORKSPACE_PHASES = Object.freeze([
+    Object.freeze({ key: 'original', label: 'Original' }),
+    Object.freeze({ key: 'quality', label: 'Calidad' }),
+    Object.freeze({ key: 'suggestions', label: 'Sugerencias' }),
+    Object.freeze({ key: 'decision', label: 'Decisión' }),
+    Object.freeze({ key: 'history', label: 'Historial' })
+  ]);
+  const WORKSPACE_PHASE_STATES = Object.freeze(['pending', 'current', 'complete', 'skipped', 'error']);
+  const ANALYSIS_STATES = Object.freeze(['pending', 'running', 'ready', 'failed', 'unsupported']);
+  const MODALITY_CAPABILITIES = Object.freeze({
+    photograph: Object.freeze({ viewer: 'image', qc: true, analysis: true, decision: true, history: true }),
+    radiograph_2d: Object.freeze({ viewer: 'radiograph', qc: true, analysis: true, decision: true, history: true }),
+    scan_model: Object.freeze({ viewer: 'mesh_3d', qc: false, analysis: false, decision: false, history: false }),
+    clinical_measurement: Object.freeze({ viewer: 'structured', qc: false, analysis: false, decision: false, history: false }),
+    document: Object.freeze({ viewer: 'document', qc: false, analysis: false, decision: false, history: true }),
+    cbct_3d: Object.freeze({ viewer: 'dicom', qc: false, analysis: false, decision: false, history: false })
+  });
   const ANATOMY_SCOPES = Object.freeze(['whole_mouth', 'arch', 'quadrant', 'tooth', 'surface', 'soft_tissue_region', 'anatomical_region']);
   const SURFACES = Object.freeze(['M', 'D', 'O', 'I', 'V', 'B', 'L', 'P', 'C', 'R']);
   const ASSET_ROLES = Object.freeze(['original', 'derived', 'thumbnail', 'report', 'segmentation']);
@@ -148,6 +167,11 @@
 
   function getSubtypeLabel(subtype){
     return SUBTYPE_LABELS[subtype] || subtype || '';
+  }
+
+  function getModalityCapabilities(modality){
+    const value = MODALITY_CAPABILITIES[modality];
+    return value ? { ...value } : null;
   }
 
   function createStudyDraft(modality, subtype){
@@ -275,9 +299,10 @@
 
   return Object.freeze({
     SCHEMA_VERSION, MODALITIES, SUBTYPES, MODALITY_LABELS, SUBTYPE_LABELS,
-    STUDY_STATUSES, QUALITY_STATES, ANATOMY_SCOPES, SURFACES, ASSET_ROLES, CONTEXT_TYPES, CONTEXT_RELATIONSHIPS,
+    STUDY_STATUSES, QUALITY_STATES, WORKSPACE_PHASES, WORKSPACE_PHASE_STATES, ANALYSIS_STATES, MODALITY_CAPABILITIES,
+    ANATOMY_SCOPES, SURFACES, ASSET_ROLES, CONTEXT_TYPES, CONTEXT_RELATIONSHIPS,
     FINDING_ORIGINS, FINDING_STATES, DECISION_STATES, EVIDENCE_LEVELS, FINDING_CATEGORIES,
-    isSubtypeAllowed, getSubtypes, getModalityLabel, getSubtypeLabel, createStudyDraft,
+    isSubtypeAllowed, getSubtypes, getModalityLabel, getSubtypeLabel, getModalityCapabilities, createStudyDraft,
     parseStudyDraft, parseAnatomyLink, parseContextLink, parseFindingDraft, parseDecision, parseReportDocument,
     validateStudyDraft: safe(parseStudyDraft), validateAnatomyLink: safe(parseAnatomyLink),
     validateContextLink: safe(parseContextLink),

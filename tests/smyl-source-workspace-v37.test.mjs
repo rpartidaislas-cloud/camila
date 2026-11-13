@@ -60,13 +60,16 @@ test('web, móvil y PWA publican la etapa 3.7', () => {
   assert.match(app, /smyl-patient-360\.js\?v=26/);
   assert.match(app, /smyl-case-workspace\.css\?v=26/);
   assert.match(app, /smyl-case-workspace\.js\?v=34/);
-  assert.match(app, /smyl-clinical-photo-review\.js\?v=1/);
+  assert.match(app, /smyl-clinical-photo-review\.js\?v=2/);
   assert.match(worker, /source-workspace-v37/);
   for (const file of [
     'app.html',
     'sw.js',
     'smyl-patient-360.js',
     'smyl-patient-360.css',
+    'smyl-evidence-model.js',
+    'smyl-evidence-workspace.js',
+    'smyl-evidence-workspace.css',
     'smyl-evidence-center.js',
     'smyl-evidence-categories.js',
     'smyl-evidence-center-integration.js',

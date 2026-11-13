@@ -73,12 +73,13 @@
   client=client||window.sb;
   if(!(blob instanceof Blob)||typeof current!=='function'||!current()||!C()||!M2()||!window.SmylRadiographReview?.viewportNavigation){notice('No pudimos abrir la revisión','Vuelve a abrir la radiografía desde la ficha del paciente.');return;}
   const dialog=n('dialog','rr-dialog rv2-dialog'),bar=n('header','rr-bar'),host=n('div','rr-host'),run={dialog,host,study,blob,tenant,patient,current,client,url:URL.createObjectURL(blob),api:null,source:null,state:null,map:null,findings:[],qc:null,qcRun:null,selected:null,filter:'all',drafts:new Map(),editing:null,busy:false,closed:false,focus:document.activeElement,view:{zoom:1,brightness:100,contrast:100,invert:false,centerX:.5,centerY:.5},img:null,comparable:null,disclosure:null};
+  window.SmylEvidenceWorkspace?.decorate?.(dialog,'radiograph_2d');
   active=run;
   const valid=()=>!run.closed&&current()&&window.tenantId===tenant&&window.pacienteActual?.id===patient;
   const titleId='rv2-title-'+(++seq),dialogTitle=n('strong','',study.label||typeLabel[study.type]||'Revisión por pieza');dialogTitle.id=titleId;dialog.setAttribute('aria-labelledby',titleId);
   bar.append(n('div','rr-identity',null),button('Volver al expediente',()=>close(run)));bar.firstChild.append(n('span','rr-kicker','SMYL · RADIOGRAFÍA · REVISIÓN POR PIEZA'),dialogTitle,n('span','rr-study-meta',typeLabel[study.type]||'Radiografía'));
   dialog.append(bar,host);document.body.append(dialog);dialog.showModal();dialog.addEventListener('cancel',e=>{e.preventDefault();close(run);});dialog.addEventListener('close',()=>close(run,true));
-  const status=(text,kind='')=>{let e=host.querySelector('.rr-feedback');if(!e){e=n('p','rr-feedback');e.setAttribute('role','status');e.setAttribute('aria-live','polite');host.prepend(e);}e.className='rr-feedback '+kind;e.textContent=text;};
+  const status=(text,kind='')=>{let e=host.querySelector('.rr-feedback');if(!e){e=n('p','rr-feedback');e.setAttribute('role','status');e.setAttribute('aria-live','polite');host.prepend(e);}e.className='rr-feedback '+kind;const tone=kind==='rr-error'?'error':kind==='rr-ok'?'success':'neutral';if(window.SmylEvidenceWorkspace?.setFeedback)window.SmylEvidenceWorkspace.setFeedback(e,{message:text,tone,key:'radiograph-review-v2:'+tone+':'+String(text||'')});else e.textContent=text;};
   // --- carga -----------------------------------------------------------------------------------
   async function reload(){
    run.source=await run.api.source();if(!run.source){run.state=null;run.map=null;run.qc=null;return;}
