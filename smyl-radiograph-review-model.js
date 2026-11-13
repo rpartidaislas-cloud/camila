@@ -45,6 +45,23 @@
   if(upper?y>occlusal+.16:y<occlusal-.16)return 'arch';
   return '';
  }
+// Filtro más estricto para ubicaciones propuestas automáticamente. `positionIssue` conserva márgenes amplios para
+// avisos durante la edición manual; aquí sí descartamos una coordenada que no corresponde razonablemente con el
+// número FDI, porque es preferible pedir al profesional que la ubique a mostrar una marca engañosa.
+function automaticPositionIssue(studyType,toothNumber,x,y){
+ const broad=positionIssue(studyType,toothNumber,x,y);if(broad)return broad;
+ const fdi=String(toothNumber||'');
+ if(studyType!=='panoramic'||!/^[1-4][1-8]$/.test(fdi)||typeof x!=='number'||typeof y!=='number'||!Number.isFinite(x)||!Number.isFinite(y))return '';
+ const q=Number(fdi[0]),digit=Number(fdi[1]),right=q===1||q===4,upper=q<=2;
+ // Distancia aproximada desde la línea media por tipo de pieza. La tolerancia sigue siendo amplia para contemplar
+ // recortes, magnificación y anatomía individual, pero impide asignar un incisivo a la zona molar (o viceversa).
+ const lateral=[0,.035,.075,.125,.18,.235,.3,.37,.445][digit],expectedX=.5+(right?-lateral:lateral);
+ if(Math.abs(x-expectedX)>.18)return 'tooth';
+ if(y<.1||y>.9)return 'tooth';
+ const occlusal=.5-.2*Math.pow(2*x-1,2),expectedY=occlusal+(upper?-.14:.14);
+ if(Math.abs(y-expectedY)>.24)return 'tooth';
+ return '';
+}
  function parseReport(value){
   if(!exact(value,['schema','quality','qualityNote','observations','limitations'])||value.schema!==1||!['usable','limited','unusable'].includes(value.quality)||!text(value.qualityNote,400,1)||!Array.isArray(value.observations)||value.observations.length>12||!Array.isArray(value.limitations)||value.limitations.length>8)throw Error('Informe radiográfico no válido.');
   const ids=new Set();value.observations.forEach(o=>{const why=observationProblem(o,ids);if(why)throw Error('Observación radiográfica no válida'+(why.id?' ('+why.id+')':'')+': '+why.reason+'.');ids.add(o.id);});
@@ -80,5 +97,5 @@
   next.items=analysis.report.observations.map(o=>{const l=at(o);const item={id:crypto.randomUUID(),sourceId:o.id,tooth:o.tooth||'',text:o.observation,x:l?l.x:null,y:l?l.y:null,state:'pending'};if(l&&[l.w,l.h].every(boxSize)){item.w=l.w;item.h=l.h;}return item;});if(!validate(next))throw Error('La respuesta no cumple el contrato.');return next;}
  function unconfirmed(doc){if(!validate(doc)||doc.workflow.state!=='requested')throw Error('La solicitud no está registrada.');const next=structuredClone(doc);next.workflow.state='unconfirmed';return next;}
  function validRow(row,study,tenant,patient){return !!row&&row.tenant_id===tenant&&row.patient_id===patient&&row.study_id===study.id&&uuid(row.updated_by)&&Number.isInteger(row.revision)&&row.revision>0&&Number.isFinite(Date.parse(row.updated_at))&&validate(row.document,study);}
- return {types,categories,parseReport,validate,create,requested,completed,unconfirmed,validRow,same,positionIssue};
+ return {types,categories,parseReport,validate,create,requested,completed,unconfirmed,validRow,same,positionIssue,automaticPositionIssue};
 });

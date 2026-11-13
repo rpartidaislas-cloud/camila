@@ -1783,3 +1783,222 @@
   .rr-zoom-quick { width: calc(100% - 20px); }
   .rr-zoom-quick .rr-tool-range { display: none; }
 }
+
+/* Mesa radiográfica v22 · controles clínicos compactos y sin obstrucciones. */
+.rr-icon {
+  display: block;
+  width: 19px;
+  height: 19px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.rr-icon-button { display: inline-grid; place-items: center; }
+.rr-view-switch .rr-tool { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.rr-image-adjustments > summary::before { content: none; }
+.rr-image-control-row { display: contents; }
+.rr-active-signal { display: none !important; }
+.rr-image-stage > .rr-box.is-context .rr-box-tooth { display: none; }
+
+@media (max-width: 639px) {
+  /* La lectura conserva el protagonismo; todos los ajustes viven en un solo dock de 54 px. */
+  .rr-review[data-phase="signals"] .rr-canvas-head {
+    order: 1;
+    padding: 6px 8px;
+  }
+  .rr-review[data-phase="signals"] .rr-canvas-head > .rr-view-switch {
+    min-height: 44px;
+    padding: 2px;
+    border-color: #2b435a;
+    border-radius: 11px;
+    background: #102338;
+  }
+  .rr-review[data-phase="signals"] .rr-view-switch .rr-tool {
+    min-height: 40px;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .rr-review[data-phase="signals"] .rr-view-switch .rr-icon { width: 18px; height: 18px; }
+  .rr-review[data-phase="signals"] .rr-image-wrap,
+  .rr-review[data-phase="signals"] .rr-canvas.has-tooth-dock .rr-image-wrap {
+    order: 2;
+    height: clamp(230px, 38dvh, 340px);
+    min-height: 230px;
+    max-height: 340px;
+  }
+
+  .rr-review[data-phase="signals"] .rr-image-control-row {
+    position: relative;
+    z-index: 10;
+    order: 3;
+    display: flex;
+    width: calc(100% - 16px);
+    min-width: 0;
+    min-height: 54px;
+    box-sizing: border-box;
+    align-items: center;
+    gap: 4px;
+    margin: 6px 8px 8px;
+    padding: 4px;
+    border: 1px solid #2d455d;
+    border-radius: 13px;
+    background: #102338;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .18);
+  }
+  .rr-review[data-phase="signals"] .rr-canvas.has-tooth-dock .rr-image-control-row { order: 4; }
+  .rr-review[data-phase="signals"] .rr-canvas.has-tooth-dock .rr-tooth-dock { order: 3; }
+
+  .rr-review[data-phase="signals"] .rr-zoom-quick {
+    position: static;
+    display: flex;
+    width: auto;
+    min-width: 0;
+    min-height: 44px;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    transform: none;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    order: 0;
+  }
+  .rr-review[data-phase="signals"] .rr-zoom-quick .rr-tool-range { display: none; }
+  .rr-review[data-phase="signals"] .rr-zoom-button,
+  .rr-review[data-phase="signals"] .rr-zoom-quick > .rr-tool,
+  .rr-review[data-phase="signals"] .rr-image-adjustments > summary,
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop > summary {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    box-sizing: border-box;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: #dce7f1;
+  }
+  .rr-review[data-phase="signals"] .rr-zoom-button:hover,
+  .rr-review[data-phase="signals"] .rr-zoom-quick > .rr-tool:hover,
+  .rr-review[data-phase="signals"] .rr-image-adjustments > summary:hover,
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop > summary:hover,
+  .rr-review[data-phase="signals"] .rr-image-adjustments[open] > summary,
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop[open] > summary {
+    background: #1a354d;
+    color: #fff;
+  }
+  .rr-review[data-phase="signals"] .rr-zoom-value {
+    min-width: 42px;
+    color: #e5edf5;
+    font-size: 12px;
+    line-height: 44px;
+  }
+  .rr-review[data-phase="signals"] .rr-fit-button .rr-control-label,
+  .rr-review[data-phase="signals"] .rr-image-adjustments > summary .rr-control-label,
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop > summary .rr-quality-label { display: none; }
+
+  .rr-review[data-phase="signals"] .rr-image-adjustments,
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop {
+    position: relative;
+    inset: auto;
+    order: 1 !important;
+    flex: none;
+    margin: 0;
+    padding: 0;
+    transform: none;
+  }
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop { order: 2 !important; }
+  .rr-review[data-phase="signals"] .rr-image-adjustments > summary,
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop > summary {
+    font-size: 0;
+    list-style: none;
+    backdrop-filter: none;
+  }
+  .rr-review[data-phase="signals"] .rr-image-adjustments > summary::before { content: none; }
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop > summary::before { display: none; }
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop > summary::after { display: none; }
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop-usable > summary .rr-icon { color: #58c7ac; }
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop-limited > summary .rr-icon { color: #e6b95f; }
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop-unusable > summary .rr-icon { color: #ef8c87; }
+
+  .rr-review[data-phase="signals"] .rr-image-adjustments .rr-view-tools,
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop-body {
+    position: absolute;
+    z-index: 20;
+    top: auto;
+    right: 0;
+    bottom: calc(100% + 8px);
+    left: auto;
+    width: min(286px, calc(100vw - 24px));
+    max-width: none;
+    max-height: min(320px, calc(100dvh - 170px));
+    box-sizing: border-box;
+    margin: 0;
+    overflow: auto;
+    transform: none;
+    border: 1px solid #36516b;
+    border-radius: 12px;
+    background: #102338;
+    color: #eef4f8;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, .34);
+  }
+  .rr-review[data-phase="signals"] .rr-image-adjustments .rr-view-tools {
+    display: grid;
+    right: auto;
+    left: 50%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 10px;
+    transform: translateX(-72%);
+  }
+  .rr-review[data-phase="signals"] .rr-image-adjustments:not([open]) > .rr-view-tools { display: none; }
+  .rr-review[data-phase="signals"] .rr-image-adjustments .rr-tool-range {
+    display: grid;
+    min-width: 0;
+    grid-column: 1 / -1;
+    grid-template-columns: 68px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    color: #d7e3ed;
+    font-size: 12px;
+  }
+  .rr-review[data-phase="signals"] .rr-image-adjustments .rr-tool-range input { width: 100%; min-width: 0; }
+  .rr-review[data-phase="signals"] .rr-image-adjustments .rr-tool {
+    min-height: 44px;
+    border-color: #49647d;
+    background: #0b1929;
+    color: #eef4f8;
+  }
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop-body { padding: 12px 14px; background: #fff; color: var(--rr-ink); }
+
+  /* El panel ya identifica la señal y la calidad: no se repiten sobre la radiografía. */
+  .rr-review[data-phase="signals"] .rr-active-signal,
+  .rr-review[data-phase="signals"] .rr-panel-quality { display: none; }
+  .rr-review[data-phase="signals"] .rr-image-stage > .rr-box.is-context,
+  .rr-review[data-phase="signals"] .rr-image-stage > .rr-mark.is-context,
+  .rr-review[data-phase="signals"] .rr-image-stage > .rr-mark.is-selected { display: none; }
+  .rr-review[data-phase="signals"] .rr-image-stage > .rr-box.is-selected { z-index: 4; }
+}
+
+@media (max-width: 359px) {
+  .rr-review[data-phase="signals"] .rr-image-control-row { gap: 1px; }
+  .rr-review[data-phase="signals"] .rr-zoom-button,
+  .rr-review[data-phase="signals"] .rr-zoom-quick > .rr-tool,
+  .rr-review[data-phase="signals"] .rr-image-adjustments > summary,
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop > summary { width: 44px; min-width: 44px; }
+  .rr-review[data-phase="signals"] .rr-zoom-value { min-width: 34px; }
+  .rr-review[data-phase="signals"] .rr-canvas .rr-qpop-body { width: min(270px, calc(100vw - 40px)); }
+}

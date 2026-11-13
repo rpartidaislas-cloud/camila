@@ -4,6 +4,12 @@
  let active=null;
  const n=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls||'';if(text!=null)e.textContent=text;return e;};
  const button=(text,fn,cls='rr-secondary')=>{const e=n('button',cls,text);e.type='button';e.onclick=fn;return e;};
+ const iconPaths={
+  minus:['M5 12h14'],plus:['M12 5v14','M5 12h14'],fit:['M8 4H5a1 1 0 0 0-1 1v3','M16 4h3a1 1 0 0 1 1 1v3','M20 16v3a1 1 0 0 1-1 1h-3','M8 20H5a1 1 0 0 1-1-1v-3'],
+  sliders:['M4 7h10','M18 7h2','M4 17h2','M10 17h10','M14 4v6','M6 14v6'],image:['M4 5h16v14H4z','m7 4-4 5','m2-2 7 7'],signals:['M12 3v3','M12 18v3','M3 12h3','M18 12h3','M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6'],qualityOk:['m6 12 4 4 8-9'],qualityLimited:['M12 3 21 20H3L12 3Z','M12 9v4','M12 17h.01'],qualityBlocked:['M7 7l10 10','M17 7 7 17','M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18']
+ };
+ const svgIcon=name=>{const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.classList.add('rr-icon');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');(iconPaths[name]||[]).forEach(d=>{const path=document.createElementNS(ns,'path');path.setAttribute('d',d);svg.append(path);});return svg;};
+ const iconButton=(label,name,fn,cls='rr-tool')=>{const control=button('',fn,cls);control.classList.add('rr-icon-button');control.setAttribute('aria-label',label);control.title=label;control.append(svgIcon(name));return control;};
  const typeLabel={panoramic:'Panorámica',periapical:'Periapical',bitewing:'Aleta de mordida',other:'Radiografía'};
  const categoryLabel={density:'Densidad',contour:'Contorno',restoration:'Restauración',support:'Soporte periodontal',development:'Desarrollo dental',other:'Señal por revisar'};
  const stateLabel={pending:'Por revisar',confirmed:'Confirmada',rejected:'Descartada'};
@@ -31,7 +37,7 @@
  function close(run=active,force=false){if(!run||run.closed)return false;if(!force&&(run.busy||run.dirty)){confirmClose(run);return false;}run.closed=true;clearTimeout(run.statusTimer);if(run.keyHandler)document.removeEventListener('keydown',run.keyHandler);if(run.syncHandler){document.removeEventListener('visibilitychange',run.syncHandler);window.removeEventListener('focus',run.syncHandler);}run.abort?.abort();run.confirmDialog?.close();URL.revokeObjectURL(run.url);run.dialog.close();run.dialog.remove();if(active===run)active=null;run.focus?.focus?.({preventScroll:true});return true;}
  async function open({study,blob,tenant,patient,current}){
   if(active){close();if(active)return;}if(!(blob instanceof Blob)||!current()){notice('No pudimos abrir la revisión','Vuelve a abrir la radiografía desde la ficha del paciente.');return;}
-   const dialog=n('dialog','rr-dialog'),bar=n('header','rr-bar'),host=n('div','rr-host'),run={dialog,host,study,blob,tenant,patient,current,url:URL.createObjectURL(blob),revision:0,doc:null,store:null,dirty:false,busy:false,syncing:false,closed:false,focus:document.activeElement,placing:null,selected:null,toothPickerOpen:null,phase:'image',lastSavedAt:null,savingItem:null,syncHandler:null,view:{zoom:1,brightness:100,contrast:100,invert:false,centerX:.5,centerY:.5,marks:false}};active=run;
+   const dialog=n('dialog','rr-dialog'),bar=n('header','rr-bar'),host=n('div','rr-host'),run={dialog,host,study,blob,tenant,patient,current,url:URL.createObjectURL(blob),revision:0,doc:null,store:null,dirty:false,busy:false,syncing:false,closed:false,focus:document.activeElement,placing:null,selected:null,toothPickerOpen:null,phase:'image',lastSavedAt:null,savingItem:null,syncHandler:null,manuallyLocated:new Set(),view:{zoom:1,brightness:100,contrast:100,invert:false,centerX:.5,centerY:.5,marks:false}};active=run;
   window.SmylEvidenceWorkspace?.decorate?.(dialog,'radiograph_2d');
   const valid=()=>!run.closed&&current()&&window.miRolEquipo==='dueño'&&window.tenantId===tenant&&window.pacienteActual?.id===patient;
    const titleId='rr-dialog-title-'+(++dialogSequence),dialogTitle=n('strong','',study.label||typeLabel[study.type]||'Revisión radiográfica'),exit=button('Volver al expediente',()=>close(run));dialogTitle.id=titleId;dialog.setAttribute('aria-labelledby',titleId);run.steps=n('nav','rr-steps');exit.classList.add('rr-exit');exit.setAttribute('aria-label','Volver al expediente');bar.append(n('div','rr-identity',null),run.steps,exit);bar.firstChild.append(n('span','rr-kicker','SMYL · RADIOGRAFÍA'),dialogTitle,n('span','rr-study-meta',typeLabel[study.type]||'Radiografía'));dialog.append(bar,host);document.body.append(dialog);dialog.showModal();dialog.addEventListener('cancel',e=>{e.preventDefault();close(run);});dialog.addEventListener('close',()=>close(run,true));
@@ -64,7 +70,7 @@
     const row=await run.store.load();if(!valid()||!row||Number(row.revision)<=Number(run.revision))return false;
     if(run.dirty){status('Este estudio se actualizó en otro dispositivo. Termina o descarta la edición abierta antes de recargar.','rr-error');return false;}
     const selected=run.selected;run.doc=row.document;run.revision=row.revision;run.lastSavedAt=row.updated_at?new Date(row.updated_at):new Date();run.placing=null;run.toothPickerOpen=null;
-    const items=run.doc?.items||[];run.selected=items.some(item=>item.id===selected)?selected:(items.find(item=>item.state==='pending')||items[0])?.id||null;render();if(announce)status('Revisión actualizada con los cambios guardados en el otro dispositivo.','rr-ok');return true;
+    const items=run.doc?.items||[];run.manuallyLocated.clear();run.selected=items.some(item=>item.id===selected)?selected:(items.find(item=>item.state==='pending')||items[0])?.id||null;render();if(announce)status('Revisión actualizada con los cambios guardados en el otro dispositivo.','rr-ok');return true;
    }catch(_){return false;}finally{run.syncing=false;}
   }
   // En escritorio la imagen aprovecha la mesa de lectura; sólo reserva el espacio real de los controles flotantes.
@@ -79,6 +85,7 @@
   function marksToggle(stage){
    const group=n('div','rr-view-switch');group.setAttribute('role','group');group.setAttribute('aria-label','Vista de la radiografía');
    const clean=button('Original',()=>setMarks(false),'rr-tool'),marked=button('Señales',()=>setMarks(true),'rr-tool');
+   clean.prepend(svgIcon('image'));marked.prepend(svgIcon('signals'));
    function setMarks(on){run.view.marks=on;stage.classList.toggle('rr-marks-off',!on);clean.setAttribute('aria-pressed',String(!on));marked.setAttribute('aria-pressed',String(on));}
    setMarks(run.view.marks!==false);group.append(clean,marked);return group;
   }
@@ -89,14 +96,22 @@
    Object.assign(zoom,{type:'range',min:1,max:3,step:.25,value:run.view.zoom});zoom.setAttribute('aria-label','Ampliar radiografía');
    Object.assign(contrast,{type:'range',min:60,max:180,step:5,value:run.view.contrast});contrast.setAttribute('aria-label','Contraste');
    Object.assign(brightness,{type:'range',min:60,max:160,step:5,value:run.view.brightness});brightness.setAttribute('aria-label','Brillo');
-   let zoomOut,zoomIn;const updateZoom=value=>{run.view.zoom=value;zoom.value=value;zoomValue.textContent=Math.round(value*100)+'%';if(zoomOut)zoomOut.disabled=value<=1.01;if(zoomIn)zoomIn.disabled=value>=2.99;};
+   let zoomOut,zoomIn,reset;const updateReset=()=>{if(reset)reset.hidden=run.view.brightness===100&&run.view.contrast===100&&!run.view.invert;};const updateZoom=value=>{run.view.zoom=value;zoom.value=value;zoomValue.textContent=Math.round(value*100)+'%';if(zoomOut)zoomOut.disabled=value<=1.01;if(zoomIn)zoomIn.disabled=value>=2.99;};
    const navigation=viewportNavigation(viewport,stage,{getZoom:()=>run.view.zoom,setZoom:updateZoom,apply:()=>applyImageView(stage,img),blocked:()=>!!run.placing,remember:(x,y)=>{run.view.centerX=x;run.view.centerY=y;}}),invert=button('Invertir',()=>{run.view.invert=!run.view.invert;invert.setAttribute('aria-pressed',String(run.view.invert));applyImageView(stage,img);},'rr-tool');invert.setAttribute('aria-pressed',String(run.view.invert));
-   const fit=button('Ajustar',()=>navigation.reset(),'rr-tool'),reset=button('Restablecer',()=>{run.view.brightness=100;run.view.contrast=100;run.view.invert=false;run.view.centerX=.5;run.view.centerY=.5;contrast.value=100;brightness.value=100;invert.setAttribute('aria-pressed','false');navigation.reset();applyImageView(stage,img);},'rr-tool');
-   zoomOut=button('−',()=>navigation.zoomAt(run.view.zoom-.25),'rr-zoom-button');zoomIn=button('+',()=>navigation.zoomAt(run.view.zoom+.25),'rr-zoom-button');zoomOut.setAttribute('aria-label','Alejar radiografía');zoomIn.setAttribute('aria-label','Ampliar radiografía');zoomValue.setAttribute('aria-live','polite');updateZoom(run.view.zoom);
-   zoom.oninput=()=>navigation.zoomAt(zoom.value);contrast.oninput=()=>{run.view.contrast=Number(contrast.value);applyImageView(stage,img);};brightness.oninput=()=>{run.view.brightness=Number(brightness.value);applyImageView(stage,img);};
+   const fit=iconButton('Ajustar radiografía a la pantalla','fit',()=>navigation.reset(),'rr-tool');fit.classList.add('rr-fit-button');fit.append(n('span','rr-control-label','Ajustar'));
+   reset=button('Restablecer',()=>{run.view.brightness=100;run.view.contrast=100;run.view.invert=false;run.view.centerX=.5;run.view.centerY=.5;contrast.value=100;brightness.value=100;invert.setAttribute('aria-pressed','false');navigation.reset();applyImageView(stage,img);updateReset();},'rr-tool');
+   zoomOut=iconButton('Alejar radiografía','minus',()=>navigation.zoomAt(run.view.zoom-.25),'rr-zoom-button');zoomIn=iconButton('Ampliar radiografía','plus',()=>navigation.zoomAt(run.view.zoom+.25),'rr-zoom-button');zoomValue.setAttribute('aria-live','polite');updateZoom(run.view.zoom);updateReset();
+   zoom.oninput=()=>navigation.zoomAt(zoom.value);contrast.oninput=()=>{run.view.contrast=Number(contrast.value);applyImageView(stage,img);updateReset();};brightness.oninput=()=>{run.view.brightness=Number(brightness.value);applyImageView(stage,img);updateReset();};invert.onclick=()=>{run.view.invert=!run.view.invert;invert.setAttribute('aria-pressed',String(run.view.invert));applyImageView(stage,img);updateReset();};
    const restore=()=>navigation.restore(run.view.centerX,run.view.centerY);if(img.complete)restore();else img.addEventListener('load',restore,{once:true});
    const control=(label,input)=>{const box=n('label','rr-tool-range');box.append(typeof label==='string'?n('span','',label):label,input);return box;};quick.append(zoomOut,control(zoomText,zoom),zoomValue,zoomIn,fit);tools.append(control('Contraste',contrast),control('Brillo',brightness),invert,reset);return {quick,tools};
   }
+  function automaticLocationIssue(item){
+   if(item.x===null||item.y===null)return 'missing';
+   if(item.state!=='pending'||run.manuallyLocated.has(item.id))return '';
+   if(!item.tooth)return 'unverified';
+   return SmylRadiographReviewModel.automaticPositionIssue?.(study.type,item.tooth,item.x,item.y)||SmylRadiographReviewModel.positionIssue(study.type,item.tooth,item.x,item.y);
+  }
+  function locationReady(item){return !automaticLocationIssue(item);}
   function selectItem(id){run.selected=id;run.placing=null;run.toothPickerOpen=null;render();requestAnimationFrame(()=>{const card=host.querySelector('[data-rr-item="'+id+'"]');if(!card)return;card.focus({preventScroll:true});card.scrollIntoView({block:'nearest',inline:'nearest'});});}
   // Edición del cuadro de la señal abierta. Trabaja en fracciones de la imagen (0 a 1) con el mismo tamaño mínimo y máximo que el
   // contrato guardado (0.02 a 0.6) y deja el resultado como cambio del dentista (la señal vuelve a «por revisar»).
@@ -106,9 +121,10 @@
    box.classList.add('is-editable');box.removeAttribute('aria-hidden');box.tabIndex=0;box.setAttribute('role','group');
    box.setAttribute('aria-label','Cuadro de la señal '+(index+1)+'. Flechas para moverlo; Mayús y flechas para cambiar su tamaño.');
    ['nw','n','ne','e','se','s','sw','w'].forEach(side=>{const handle=n('span','rr-handle');handle.dataset.handle=side;box.append(handle);});
-   const paint=()=>{const l=rect.left*100+'%',t=rect.top*100+'%';box.style.left=l;box.style.top=t;box.style.width=rect.width*100+'%';box.style.height=rect.height*100+'%';mark.style.left=l;mark.style.top=t;};
+   const paint=()=>{const l=rect.left*100+'%',t=rect.top*100+'%';box.style.left=l;box.style.top=t;box.style.width=rect.width*100+'%';box.style.height=rect.height*100+'%';mark.style.left=(rect.left+rect.width/2)*100+'%';mark.style.top=(rect.top+rect.height/2)*100+'%';};
    const commit=()=>{
     item.x=round(rect.left+rect.width/2);item.y=round(rect.top+rect.height/2);item.w=round(rect.width);item.h=round(rect.height);
+    run.manuallyLocated.add(item.id);
     const issue=SmylRadiographReviewModel.positionIssue(study.type,item.tooth,item.x,item.y);box.classList.toggle('rr-box-warn',!!issue);toothTag.textContent=(item.tooth||'?')+(issue?' !':'');
     markDirty(item);if(issue!==issueBefore){issueBefore=issue;render();}
    };
@@ -136,23 +152,24 @@
    });
   }
   function imagePanel(doc,clickable=false){
-   const unlocated=(doc?.items||[]).filter(i=>i.x===null&&i.state!=='rejected').length,canvas=n('section','rr-canvas'),head=n('header','rr-canvas-head'),copy=n('div'),wrap=n('div','rr-image-wrap'),stage=n('div','rr-image-stage'),img=n('img');
+   const unlocated=(doc?.items||[]).filter(i=>i.state!=='rejected'&&!locationReady(i)).length,canvas=n('section','rr-canvas'),head=n('header','rr-canvas-head'),copy=n('div'),wrap=n('div','rr-image-wrap'),stage=n('div','rr-image-stage'),img=n('img');
    canvas.setAttribute('aria-label','Imagen radiográfica original y señales ubicadas');
-    const noteText=clickable?(unlocated?unlocated+(unlocated===1?' señal sin ubicación. ':' señales sin ubicación. ')+'Ábrela y usa «Ubicar señal».':'Revisa el recuadro de la señal activa.'):'El original se conserva sin modificaciones.',note=n('small','rr-canvas-note'+(clickable&&unlocated?' is-alert':''),noteText),adjustments=n('details','rr-image-adjustments'),adjustmentSummary=n('summary','','Más ajustes');copy.append(note);head.append(copy);if(clickable)head.append(marksToggle(stage));img.src=run.url;img.alt='Radiografía original · '+(study.label||study.type);stage.append(img);wrap.append(stage);applyImageView(stage,img);img.addEventListener('load',()=>applyImageView(stage,img));if(window.ResizeObserver)new ResizeObserver(()=>applyImageView(stage,img)).observe(wrap);const imageControls=viewToolbar(stage,img,wrap);adjustments.append(adjustmentSummary,imageControls.tools);canvas.append(head,imageControls.quick,adjustments,wrap);
+    const noteText=clickable?(unlocated?unlocated+(unlocated===1?' señal por ubicar. ':' señales por ubicar. ')+' La app no mostrará una posición automática incoherente.':'Revisa el recuadro de la señal activa.'):'El original se conserva sin modificaciones.',note=n('small','rr-canvas-note'+(clickable&&unlocated?' is-alert':''),noteText),adjustments=n('details','rr-image-adjustments'),adjustmentSummary=n('summary');adjustmentSummary.append(svgIcon('sliders'),n('span','rr-control-label','Ajustes'));adjustmentSummary.setAttribute('aria-label','Ajustes de imagen');copy.append(note);head.append(copy);if(clickable)head.append(marksToggle(stage));img.src=run.url;img.alt='Radiografía original · '+(study.label||study.type);stage.append(img);wrap.append(stage);applyImageView(stage,img);img.addEventListener('load',()=>applyImageView(stage,img));if(window.ResizeObserver)new ResizeObserver(()=>applyImageView(stage,img)).observe(wrap);const imageControls=viewToolbar(stage,img,wrap);adjustments.append(adjustmentSummary,imageControls.tools);if(clickable)canvas.append(head,wrap);else canvas.append(head,imageControls.quick,adjustments,wrap);
    if(run.placing)run.view.marks=true;
    stage.classList.toggle('rr-marks-off',!run.view.marks);stage.classList.toggle('is-placing',!!run.placing);
    // Cuadros punteados sobre las zonas observadas (solo señales ubicadas; las descartadas no se dibujan). El tamaño lo propone la IA;
    // si una señal se ubicó a mano, se usa un cuadro de tamaño estándar. Los cuadros no capturan clics: la imagen sigue recibiendo la ubicación.
-   (doc?.items||[]).forEach((item,index)=>{if(item.x===null||item.state==='rejected')return;
+    (doc?.items||[]).forEach((item,index)=>{if(item.state==='rejected'||!locationReady(item))return;
     const w=Math.min(.6,typeof item.w==='number'?item.w:.07),h=Math.min(.6,typeof item.h==='number'?item.h:.12),left=Math.max(0,Math.min(1-w,item.x-w/2)),top=Math.max(0,Math.min(1-h,item.y-h/2)),selected=run.selected===item.id;
      const contextClass=clickable&&!selected?' is-context':'',box=n('div','rr-box rr-box-'+item.state+(selected?' is-selected':'')+contextClass);box.dataset.rrBox=item.id;box.style.left=left*100+'%';box.style.top=top*100+'%';box.style.width=w*100+'%';box.style.height=h*100+'%';box.setAttribute('aria-hidden','true');
     const issue=SmylRadiographReviewModel.positionIssue(study.type,item.tooth,item.x,item.y);if(issue)box.classList.add('rr-box-warn');
     const toothTag=n('span','rr-box-tooth',(item.tooth||'?')+(issue?' !':''));box.append(toothTag);stage.append(box);
-     const mark=button(String(index+1),()=>selectItem(item.id),'rr-mark rr-mark-'+item.state+(selected?' is-selected':'')+contextClass);mark.dataset.rrMark=item.id;mark.style.left=left*100+'%';mark.style.top=top*100+'%';mark.setAttribute('aria-label',(stateLabel[item.state]||'Señal')+' '+(index+1)+(item.tooth?' · pieza '+item.tooth:' · diente por indicar')+(issue?' · comprobar: la posición no coincide con la pieza':''));mark.setAttribute('aria-pressed',String(selected));stage.append(mark);
+      const mark=button(String(index+1),()=>selectItem(item.id),'rr-mark rr-mark-'+item.state+(selected?' is-selected':'')+contextClass);mark.dataset.rrMark=item.id;mark.style.left=item.x*100+'%';mark.style.top=item.y*100+'%';mark.setAttribute('aria-label',(stateLabel[item.state]||'Señal')+' '+(index+1)+(item.tooth?' · pieza '+item.tooth:' · diente por indicar')+(issue?' · comprobar: la posición no coincide con la pieza':''));mark.setAttribute('aria-pressed',String(selected));stage.append(mark);
     // La señal abierta tiene el cuadro editable: se arrastra para moverlo y las asas cambian su tamaño (ratón, tacto y flechas).
     if(clickable&&selected&&!run.placing&&run.view.marks)makeBoxEditable(item,index,{box,mark,toothTag,stage,left,top,w,h});});
-   if(clickable&&doc?.items?.length){const activeIndex=doc.items.findIndex(item=>item.id===run.selected),item=doc.items[activeIndex];if(item){const activeLabel=n('div','rr-active-signal','Señal activa '+(activeIndex+1)+' de '+doc.items.length+' · '+(item.tooth?'Pieza FDI '+item.tooth:'Pieza por indicar'));activeLabel.setAttribute('aria-live','polite');canvas.append(activeLabel);}}
-   if(clickable)img.onclick=e=>{if(!run.placing)return;const item=run.doc.items.find(i=>i.id===run.placing),r=img.getBoundingClientRect();if(!item)return;item.x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));item.y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));item.state='pending';run.selected=item.id;run.placing=null;run.dirty=true;render();};
+    if(clickable&&doc?.items?.length){const activeIndex=doc.items.findIndex(item=>item.id===run.selected),item=doc.items[activeIndex];if(item){const activeLabel=n('div','rr-active-signal','Señal activa '+(activeIndex+1)+' de '+doc.items.length+' · '+(item.tooth?'Pieza FDI '+item.tooth:'Pieza por indicar'));activeLabel.setAttribute('aria-live','polite');canvas.append(activeLabel);}}
+    if(clickable){const controlRow=n('div','rr-image-control-row');controlRow.append(imageControls.quick,adjustments,qualityPopover(doc.analysis.report));canvas.append(controlRow);}
+    if(clickable)img.onclick=e=>{if(!run.placing)return;const item=run.doc.items.find(i=>i.id===run.placing),r=img.getBoundingClientRect();if(!item)return;item.x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));item.y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));item.state='pending';run.manuallyLocated.add(item.id);run.selected=item.id;run.placing=null;run.dirty=true;render();};
    if(run.placing){const prompt=n('div','rr-place');prompt.setAttribute('role','status');prompt.append(n('strong','','Ubica la señal'),n('span','','Toca la zona correspondiente en la radiografía.'));canvas.append(prompt);}
    if(clickable){const legend=n('div','rr-image-legend');legend.append(n('span','rr-key rr-key-pending','Por revisar'),n('span','rr-key rr-key-confirmed','Confirmada'),n('span','rr-key rr-key-warn','Comprobar posición'),n('span','rr-gesture-hint','Arrastra para recorrer · pellizca para ampliar'));canvas.append(legend);
     const hint=n('div','rr-hint'),kb=(keys,label)=>{const item=n('span');keys.forEach(key=>item.append(n('kbd','',key)));item.append(label);return item;};hint.setAttribute('aria-hidden','true');hint.append(kb(['J','K'],'navegar'),kb(['C'],'confirmar'),kb(['V'],'cambiar vista'),n('span','','Arrastra el cuadro abierto · asas para su tamaño'));canvas.append(hint);}
@@ -169,7 +186,7 @@
    if(run.busy)return;
    const note=host.querySelector('[data-rr-item="'+item.id+'"] textarea');
    if(nextState==='confirmed'&&!item.text.trim()){status('Escribe la conclusión profesional antes de confirmar.','rr-error');note?.focus();return;}
-   if(nextState==='confirmed'&&item.x===null){run.placing=item.id;run.selected=item.id;render();status('Ubica la señal en la radiografía antes de confirmarla.','rr-error');return;}
+   if(nextState==='confirmed'&&!locationReady(item)){run.placing=item.id;run.selected=item.id;render();status('Ubica la señal sobre la zona clínica antes de confirmarla. La posición automática no fue suficientemente coherente.','rr-error');return;}
    const previousState=item.state;item.state=nextState;run.placing=null;run.toothPickerOpen=null;run.dirty=true;run.busy=true;run.savingItem=item.id;
    const card=host.querySelector('[data-rr-item="'+item.id+'"]');card?.classList.add('is-saving');card?.querySelectorAll('button,select,textarea').forEach(control=>control.disabled=true);if(trigger)trigger.textContent='Guardando…';status('Verificando y guardando la decisión…');
    try{
@@ -231,7 +248,7 @@
    const decision=n('section','rr-clinical-decision'),decisionHead=n('header');decisionHead.append(n('span','rr-section-label','VALIDACIÓN CLÍNICA'),n('h3','','Conclusión profesional'),n('p','','Esta información se guardará en el expediente.'));decision.append(decisionHead);
    const tooth=toothPicker(item);
    const textLabel=n('label','rr-field','Conclusión clínica'),text=n('textarea');text.rows=2;text.maxLength=600;text.value=item.text;text.disabled=item.state!=='pending';text.placeholder='Describe lo que confirmas en esta zona.';text.setAttribute('aria-label','Conclusión profesional de la señal '+(index+1));text.oninput=()=>{item.text=text.value;markDirty(item);};textLabel.append(text,n('small','rr-field-help','Obligatoria para confirmar.'));
-   const locate=button(item.x===null?'Ubicar señal':'Ajustar recuadro',()=>{run.placing=item.id;run.selected=item.id;render();},'rr-secondary'),location=n('div','rr-location-row');location.append(n('div','',null),locate);location.firstChild.append(n('strong','','Zona en la imagen'),n('span','rr-location',item.x===null?'Señal todavía sin ubicación.':item.state==='confirmed'?'Ubicación validada.':'Ajusta el recuadro directamente sobre la radiografía.'));
+   const located=locationReady(item),locate=button(located?'Ajustar recuadro':'Ubicar señal',()=>{run.placing=item.id;run.selected=item.id;render();},'rr-secondary'),location=n('div','rr-location-row');location.append(n('div','',null),locate);location.firstChild.append(n('strong','','Zona en la imagen'),n('span','rr-location',!located?'La ubicación automática no es confiable; indícala sobre el original.':item.state==='confirmed'?'Ubicación validada.':'Ajusta el recuadro directamente sobre la radiografía.'));
    decision.append(tooth,textLabel,location,n('p','rr-decision-note',item.state==='pending'?'Guarda tu decisión en la barra inferior.':'Decisión verificada. Usa «Editar decisión» para cambiarla.'));body.append(decision);card.append(body);return card;
   }
   function signalPanel(){
@@ -245,7 +262,7 @@
    panel.append(head,list);return panel;
   }
   function qualityPopover(report){
-   const quality=n('details','rr-qpop rr-qpop-'+report.quality),qualitySummary=n('summary','',({usable:'Imagen utilizable',limited:'Imagen limitada',unusable:'No evaluable por IA'})[report.quality]),qualityBody=n('div','rr-qpop-body');
+   const label=({usable:'Imagen utilizable',limited:'Imagen limitada',unusable:'No evaluable por IA'})[report.quality],icon=({usable:'qualityOk',limited:'qualityLimited',unusable:'qualityBlocked'})[report.quality],quality=n('details','rr-qpop rr-qpop-'+report.quality),qualitySummary=n('summary'),qualityBody=n('div','rr-qpop-body');qualitySummary.setAttribute('aria-label','Calidad del estudio: '+label);qualitySummary.append(svgIcon(icon),n('span','rr-quality-label',label));
    qualityBody.append(n('span','rr-section-label','CALIDAD DEL ESTUDIO'),n('p','',report.qualityNote));
    if(report.limitations.length){const list=n('ul');report.limitations.forEach(value=>list.append(n('li','',value)));qualityBody.append(n('span','rr-section-label','LIMITACIONES DEL ANÁLISIS'),list);}
    if(report.quality==='unusable')quality.open=true;quality.append(qualitySummary,qualityBody);return quality;
@@ -288,7 +305,7 @@
    run.phase='signals';
    top.dataset.phase='signals';
    if(!run.selected&&run.doc.items.length)run.selected=(run.doc.items.find(item=>item.state==='pending')||run.doc.items[0]).id;
-   const workspace=n('div','rr-workspace'),canvas=imagePanel(run.doc,true),panel=signalPanel();workspace.dataset.mode=run.placing?'placing':'review';canvas.append(qualityPopover(report));workspace.append(canvas,panel);top.append(workspace);
+   const workspace=n('div','rr-workspace'),canvas=imagePanel(run.doc,true),panel=signalPanel();workspace.dataset.mode=run.placing?'placing':'review';workspace.append(canvas,panel);top.append(workspace);
    const confirmed=countOf('confirmed'),pending=countOf('pending'),footer=n('footer','rr-save'),info=n('div','rr-save-info'),prog=n('div','rr-save-prog'),progBar=n('span','rr-save-prog-bar'),selectedItem=run.doc.items.find(item=>item.id===run.selected),selectedIndex=run.doc.items.findIndex(item=>item.id===run.selected),footerActions=n('div','rr-footer-actions');progBar.append(n('s'));prog.append(n('b','rr-save-prog-label'),progBar);footer.dataset.dirty=String(run.dirty);footer.dataset.saving=String(run.busy);
    const footerTitle=run.busy?'Guardando decisión…':run.dirty?'Decisión pendiente':selectedItem?.state==='pending'?'Pendiente de decisión':savedLabel(),footerMeta=run.busy?'Verificando con el servidor.':run.dirty?'Confirma o descarta esta señal para guardar los cambios.':selectedItem?.state==='pending'?'Completa la conclusión y decide esta señal.':confirmed+' confirmadas · '+pending+' por revisar';info.append(n('strong','rr-save-title',footerTitle),n('span','rr-save-meta',footerMeta));
    if(selectedItem?.state==='pending'){
