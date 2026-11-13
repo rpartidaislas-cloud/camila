@@ -12,10 +12,10 @@ const styles = read('../smyl-case-workspace.css');
 const fixture = read('./fixtures/smyl-clinical-flow-preview.html');
 
 test('Tratamiento resume la evidencia por fecha sin crear otro archivo clínico', () => {
-  assert.match(workspace, /EVIDENCIA CLÍNICA/);
+  assert.match(workspace, /Archivos clínicos disponibles para revisión/);
   assert.match(workspace, /REGISTRO MÁS RECIENTE/);
   assert.match(workspace, /SmylPatient360\?\.files/);
-  assert.match(workspace, /Los originales permanecen en el expediente privado/);
+  assert.match(workspace, /SmylEvidenceCenterIntegration\?\.collectEvidence/);
   assert.doesNotMatch(workspace, /localStorage/);
 });
 
@@ -27,8 +27,8 @@ test('la ficha expone sólo un resumen seguro y conserva el archivo canónico', 
 });
 
 test('fotografías, radiografías y archivos se mantienen diferenciados', () => {
-  assert.match(dental, /studyItems:studies\.map/);
-  for (const label of ['Fotos', 'Rayos X', 'Archivos']) {
+  assert.match(dental, /const studyItems=studies\.map/);
+  for (const label of ['Fotos', 'Radiografías', 'Otros']) {
     assert.match(workspace, new RegExp(label));
   }
   assert.match(fixture, /Panorámica inicial/);
@@ -45,8 +45,8 @@ test('la historia de evidencia es progresiva y móvil', () => {
 test('web, móvil y PWA publican la misma etapa', () => {
   assert.match(app, /smyl-patient-360\.js\?v=26/);
   assert.match(app, /smyl-dental-record\.js\?v=26/);
-  assert.match(app, /smyl-case-workspace\.css\?v=26/);
-  assert.match(app, /smyl-case-workspace\.js\?v=34/);
+  assert.match(app, /smyl-case-workspace\.css\?v=27/);
+  assert.match(app, /smyl-case-workspace\.js\?v=35/);
   assert.match(worker, /evidence-history-v34/);
   for (const file of ['app.html', 'sw.js', 'smyl-patient-360.js', 'smyl-dental-record.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));

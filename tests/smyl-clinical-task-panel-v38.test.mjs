@@ -24,15 +24,15 @@ test('la tarea activa muestra una sola herramienta clínica', () => {
 test('radiografías usa un flujo breve y no repite el mapa dental', () => {
   for (const copy of ['Agregar estudio radiográfico', 'Describe el estudio', 'Selecciona el archivo', 'Revisa y confirma']) assert.match(workspace, new RegExp(copy));
   assert.match(styles, /\.cw-advanced-editor \.dr-section>summary\{display:none\}/);
-  assert.match(workspace, /Agrégalas una sola vez en Evidencia/);
+  assert.match(workspace, /Agrega el original una sola vez en Archivos clínicos/);
   assert.equal((workspace.match(/n\('div','cw-clinical-odontogram'/g) || []).length, 1);
 });
 
-test('el workspace expone una apertura estable para cargar radiografías desde Evidencia', () => {
+test('el workspace expone una apertura estable para cargar radiografías desde Archivos clínicos', () => {
   assert.match(workspace, /function openRadiographIntake\(/);
-  assert.match(workspace, /open\('photos'/);
-  assert.match(workspace, /mapFilters\?\.radiograph\?\.click\(\)/);
-  assert.match(workspace, /reviewPart\(ctx,1\)/);
+  assert.match(workspace, /function openRadiographEvidence\(ctx\)/);
+  assert.match(workspace, /SmylEvidenceCenterIntegration\?\.openAdd\?\.\('radiograph_2d'\)/);
+  assert.match(workspace, /evaluationTask\(ctx,'findings','02','Revisión profesional','Comprobar y decidir'\)/);
   assert.match(workspace, /SmylCaseWorkspace=\{[^}]*openRadiographIntake/s);
 });
 
@@ -50,8 +50,8 @@ test('los controles móviles mantienen 44 px y el flujo se apila', () => {
 });
 
 test('web, PWA y fuente móvil distribuyen la tarea clínica v3.8', () => {
-  assert.match(app, /smyl-case-workspace\.css\?v=26/);
-  assert.match(app, /smyl-case-workspace\.js\?v=34/);
+  assert.match(app, /smyl-case-workspace\.css\?v=27/);
+  assert.match(app, /smyl-case-workspace\.js\?v=35/);
   assert.match(worker, /clinical-task-panel-v38/);
   assert.match(worker, /single-odontogram-v39/);
 assert.match(worker, /radiograph-navigation-v43/);
