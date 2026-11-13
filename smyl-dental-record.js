@@ -42,7 +42,7 @@
   if(!current(ctx)||!allowed||!ctx.actor||data?.user?.id!==ctx.actor||data.user.is_anonymous!==false)throw new Error('Tu sesión o tus permisos clínicos cambiaron. Vuelve a abrir el expediente.');
  }
  function errorText(e){return e.code==='40001'?'La ficha cambió en otra sesión. Tus notas siguen aquí; recarga la ficha antes de guardar.':e.code==='PGRST205'||e.code==='42P01'||e.code==='PGRST202'?'Este espacio aún no está habilitado para guardar en la clínica.':e.code==='42501'?'Tu cuenta no tiene permiso para guardar en esta ficha.':e.message?.startsWith('Usa ')||e.message?.startsWith('El contenido')?e.message:'No pudimos confirmar la operación. Conserva esta pantalla y vuelve a intentar.';}
- function dispose(ctx){if(!ctx)return;ctx.urls.forEach(URL.revokeObjectURL);ctx.urls=[];ctx.dialogs.forEach(d=>d.remove());}
+ function dispose(ctx){if(!ctx)return;ctx.dictation?.close?.();ctx.dictation=null;ctx.urls.forEach(URL.revokeObjectURL);ctx.urls=[];ctx.dialogs.forEach(d=>d.remove());}
  function mayLeave(){if(!active)return true;if(active.busy){alert('Espera a que termine el guardado o la carga.');return false;}return !active.dirty||confirm('Hay observaciones dentales sin guardar. ¿Salir y descartarlas?');}
  function dirty(ctx){if(!ctx.canWrite)return;ctx.dirty=true;applyAccess(ctx);message(ctx,'Cambios sin guardar · pulsa Guardar observaciones.');}
  function applyAccess(ctx){
@@ -69,18 +69,23 @@
   const stages=review?.document.schema===3&&Array.isArray(review.document.workflow?.stages)?review.document.workflow.stages:[];
   const studies=activeStudies(ctx),duplicates=duplicateCounts(ctx),rxRows=activeRxReviews(ctx),rxItems=rxRows.flatMap(r=>r.document.items||[]);
   const toothNotes=Object.values(ctx.doc.teeth||{});
-  return {ready:ctx.ready,dirty:ctx.dirty,busy:ctx.busy,photoLoaded:ctx.photoLoaded===true,
+  const studyItems=studies.map(study=>{
+   const review=rxRows.find(row=>row.study_id===study.id),items=review?.document.items||[],workflow=review?.document.workflow?.state||'ready',report=review?.document.analysis?.report;
+   const confirmed=items.filter(item=>item.state==='confirmed').length,pending=items.filter(item=>item.state==='pending').length,rejected=items.filter(item=>item.state==='rejected').length,total=confirmed+pending+rejected,reviewedCount=confirmed+rejected;
+   const teeth=[...new Set(items.map(item=>String(item.tooth||'')).filter(tooth=>M.teeth.includes(tooth)))],manualReviewed=Array.isArray(study.marks)&&study.marks.length>0,assistedReviewed=!!review&&pending===0&&workflow==='completed'&&report?.quality!=='unusable',reviewed=manualReviewed||assistedReviewed;
+   const original=study.original&&typeof study.original==='object'?study.original:{},asset=study.asset&&typeof study.asset==='object'?study.asset:{},metadata=study.metadata&&typeof study.metadata==='object'?study.metadata:{};
+   const patientFileId=String(study.patientFileId||study.patient_file_id||original.patientFileId||original.patient_file_id||asset.patientFileId||asset.patient_file_id||metadata.patientFileId||metadata.patient_file_id||'');
+   const sha256=String(study.sha256||asset.sha256||original.sha256||metadata.sha256||'');
+   const storagePath=String(study.storagePath||study.storage_path||asset.storagePath||asset.storage_path||asset.path||original.storagePath||original.storage_path||original.path||metadata.storagePath||metadata.storage_path||'');
+   return {id:study.id,label:study.label||types[study.type],type:study.type,date:study.date||'',patientFileId,sha256,storagePath,duplicateCount:duplicates.get(asset.sha256)||1,isDuplicate:(duplicates.get(asset.sha256)||0)>1,hasReview:!!review,reviewed,manualReviewed,assistedReviewed,workflow,quality:report?.quality||'',qualityNote:typeof report?.qualityNote==='string'?report.qualityNote.slice(0,400):'',limitations:Array.isArray(report?.limitations)?report.limitations.filter(value=>typeof value==='string').slice(0,8).map(value=>value.slice(0,400)):[],confirmed,pending,rejected,total,reviewedCount,reviewRevision:Number.isInteger(review?.revision)?review.revision:0,reviewUpdatedAt:typeof review?.updated_at==='string'?review.updated_at:'',teeth};
+  }),rxResolved=studyItems.filter(study=>study.reviewed).length,rxUnresolved=Math.max(0,studyItems.length-rxResolved);
+  return {ready:ctx.ready,dirty:ctx.dirty,busy:ctx.busy,canWrite:ctx.canWrite,photoLoaded:ctx.photoLoaded===true,
    hasReview:!!review,pending:items.filter(i=>i.state==='pending').length,confirmed:items.filter(i=>i.state==='confirmed').length,
    rejected:items.filter(i=>i.state==='rejected').length,workflowTotal:stages.length,
    workflowCompleted:stages.filter(s=>s.state==='completed').length,
    workflowPending:stages.filter(s=>s.state!=='completed').length,studies:studies.length,archivedStudies:ctx.archivedStudies?.size||0,rxLoaded:ctx.rxLoaded===true,
-   rxReviews:rxRows.length,rxPending:rxItems.filter(i=>i.state==='pending').length,canManageStudies:ctx.canWrite&&ctx.archiveAvailable!==false,
-   studyItems:studies.map(study=>{
-    const review=rxRows.find(row=>row.study_id===study.id),items=review?.document.items||[],workflow=review?.document.workflow?.state||'ready',report=review?.document.analysis?.report;
-    const confirmed=items.filter(item=>item.state==='confirmed').length,pending=items.filter(item=>item.state==='pending').length,rejected=items.filter(item=>item.state==='rejected').length,total=confirmed+pending+rejected,reviewedCount=confirmed+rejected;
-    const teeth=[...new Set(items.map(item=>String(item.tooth||'')).filter(tooth=>M.teeth.includes(tooth)))];
-    return {id:study.id,label:study.label||types[study.type],type:study.type,date:study.date||'',duplicateCount:duplicates.get(study.asset?.sha256)||1,isDuplicate:(duplicates.get(study.asset?.sha256)||0)>1,reviewed:pending===0&&workflow==='completed'&&report?.quality!=='unusable',workflow,quality:report?.quality||'',qualityNote:typeof report?.qualityNote==='string'?report.qualityNote.slice(0,400):'',limitations:Array.isArray(report?.limitations)?report.limitations.filter(value=>typeof value==='string').slice(0,8).map(value=>value.slice(0,400)):[],confirmed,pending,rejected,total,reviewedCount,reviewRevision:Number.isInteger(review?.revision)?review.revision:0,reviewUpdatedAt:typeof review?.updated_at==='string'?review.updated_at:'',teeth};
-   }),
+   rxReviews:rxRows.length,rxPending:rxItems.filter(i=>i.state==='pending').length,rxResolved,rxUnresolved,rxReviewComplete:studyItems.length===0||rxUnresolved===0,canReviewStudies:ctx.canWrite&&ctx.canApprove,canManageStudies:ctx.canWrite&&ctx.archiveAvailable!==false,
+   studyItems,
    rxConfirmed:rxItems.filter(i=>i.state==='confirmed').length,rxRejected:rxItems.filter(i=>i.state==='rejected').length,
    teeth:{total:toothNotes.length,pending:toothNotes.filter(note=>note.status==='pending').length,following:toothNotes.filter(note=>note.status==='following').length,done:toothNotes.filter(note=>note.status==='done').length}};
   },map(tenant,patient,caseId){
@@ -99,7 +104,7 @@
      pending:photos.filter(i=>i.state==='pending').length+radiographs.filter(i=>i.state==='pending').length
     };
    }
-   return {ready:ctx.ready&&!ctx.busy,revision:ctx.revision,teeth};
+   return {ready:ctx.ready&&!ctx.busy,canWrite:ctx.canWrite,revision:ctx.revision,teeth};
    },toothRadiographContext(tenant,patient,tooth){
     const ctx=active,id=String(tooth||'');if(!ctx||!current(ctx)||ctx.tenant!==tenant||ctx.patient!==patient||!ctx.canRead||!M.teeth.includes(id)||ctx.rxLoaded!==true)return null;
     const studies=[];
@@ -112,6 +117,20 @@
    },openTooth(tenant,patient,tooth){
    const ctx=active;if(!ctx||!current(ctx)||ctx.tenant!==tenant||ctx.patient!==patient||!ctx.canRead||!M.teeth.includes(String(tooth))||!ctx.ready||ctx.busy)return false;
    toothDialog(ctx,String(tooth));return true;
+  },openVoice(tenant,patient,preferredTooth){
+   const ctx=active,dictation=window.SmylDentalDictation;
+   if(!ctx||!current(ctx)||ctx.tenant!==tenant||ctx.patient!==patient||!ctx.canWrite||!ctx.ready||ctx.busy||!dictation?.supported?.())return false;
+   ctx.dictation?.close?.();
+   let session=null;
+   session=dictation.open({initialTooth:M.teeth.includes(String(preferredTooth||''))?String(preferredTooth):'',returnFocus:document.activeElement,onClose:()=>{if(ctx.dictation===session)ctx.dictation=null;},onApply:candidate=>{
+    if(!current(ctx)||!ctx.canWrite||ctx.busy||!M.teeth.includes(String(candidate?.tooth||'')))throw new Error('La ficha cambió. Vuelve a abrir el dictado.');
+    const tooth=String(candidate.tooth),old=ctx.doc.teeth[tooth]||{observation:'',action:'',status:'pending'},line=String(candidate.observation||'').trim();
+    if(!line)throw new Error('Completa el hallazgo antes de agregarlo.');
+    const prior=String(old.observation||'').trim();if(prior.split(/\n+/).some(value=>value.trim().toLocaleLowerCase('es-MX')===line.toLocaleLowerCase('es-MX')))throw new Error('Este hallazgo ya está en el borrador de la pieza.');
+    const observation=[prior,line].filter(Boolean).join('\n\n');if(observation.length>2000)throw new Error('La observación de esta pieza alcanzó su límite. Abre la pieza y resume antes de agregar otro hallazgo.');
+    ctx.doc.teeth[tooth]={...old,observation};dirty(ctx);renderTeeth(ctx);dispatchEvent(new CustomEvent('smyl:dental-context-updated',{detail:{tenant:ctx.tenant,patient:ctx.patient,reason:'draft',tooth}}));return true;
+   }});
+   ctx.dictation=session||null;return !!session;
   },openStudy(tenant,patient,studyId){
    const ctx=active,study=ctx?.doc?.studies?.find(item=>item.id===studyId);if(!ctx||!study||archived(ctx,studyId)||!current(ctx)||ctx.tenant!==tenant||ctx.patient!==patient||!ctx.canRead||!ctx.ready||ctx.busy)return false;
    viewStudy(ctx,study);return true;
@@ -332,16 +351,19 @@
    card.dataset.studyId=s.id;
    card.append(n('h4','',s.label||types[s.type]),n('p','',types[s.type]+(s.date?' · '+s.date:'')));
    if((duplicates.get(s.asset?.sha256)||0)>1)meta.append(n('span','dr-study-duplicate','Posible duplicado exacto'));
-   meta.append(n('small','',ctx.files.has(s.id)?'Pendiente de guardar':summary||'Original privado'));
-   actions.append(button(ctx.canWrite?'Abrir y anotar':'Abrir estudio',()=>viewStudy(ctx,s)));
+   const pendingUpload=ctx.files.has(s.id);
+   meta.append(n('small','',pendingUpload?'Pendiente de guardar':summary||'Original privado'));
+   const openStudy=button(pendingUpload&&ctx.canWrite?'Añadir notas':ctx.canWrite?'Abrir archivo':'Ver archivo',()=>viewStudy(ctx,s));
+   if(pendingUpload)openStudy.classList.add('dr-intake-notes');
+   actions.append(openStudy);
    if(ctx.canWrite){
-    const remove=button(ctx.files.has(s.id)?'Quitar carga':'Retirar',()=>{
-     if(ctx.files.has(s.id)){
+    const remove=button(pendingUpload?'Descartar carga':'Retirar',()=>{
+     if(pendingUpload){
       ctx.doc.studies=ctx.doc.studies.filter(item=>item.id!==s.id);ctx.files.delete(s.id);ctx.dirty=!SmylCaseModel.same(ctx.doc,ctx.savedDoc);applyAccess(ctx);message(ctx,ctx.dirty?'Cambios sin guardar · pulsa Guardar observaciones.':'Carga descartada. El expediente no cambió.');renderStudies(ctx);
       dispatchEvent(new CustomEvent('smyl:dental-study-preparation-cancelled',{detail:{tenant:ctx.tenant,patient:ctx.patient,studyId:s.id}}));
      }else archiveStudyDialog(ctx,s);
     });
-    remove.classList.add('dr-secondary-danger');actions.append(remove);
+    remove.classList.add('dr-secondary-danger');if(pendingUpload)remove.classList.add('dr-intake-discard');actions.append(remove);
    }
    card.append(meta,actions);ctx.studies.append(card);
   });

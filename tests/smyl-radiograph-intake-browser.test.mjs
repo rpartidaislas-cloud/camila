@@ -22,7 +22,7 @@ before(async () => {
 
 after(async () => { if (browser) await browser.close(); });
 
-test('el workspace real abre el editor radiográfico dentro de Evidencia', async t => {
+test('el workspace real abre el editor radiográfico dentro de Revisión profesional', async t => {
   if (!browser) return t.skip(reason);
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   const errors = [];
@@ -36,7 +36,7 @@ test('el workspace real abre el editor radiográfico dentro de Evidencia', async
       connected:true,
       hidden:false,
       open:true,
-      inEvidence:true,
+      inReview:true,
       containsRecord:true,
       fileTransferred:true,
       dialogClosed:true,

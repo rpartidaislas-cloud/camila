@@ -65,7 +65,7 @@ test('integración mínima en el expediente: botón oculto hasta que la clínica
 });
 
 test('cableado web, PWA y copia móvil sincronizados', () => {
-  for (const tag of ['smyl-radiograph-workbench.css?v=21', 'smyl-radiograph-review-v2.css?v=3', 'smyl-radiograph-contracts.js?v=2', 'smyl-radiograph-review-model-v2.js?v=1', 'smyl-radiograph-review-v2.js?v=6', 'smyl-radiograph-review.js?v=26', 'smyl-dental-record.js?v=26']) {
+  for (const tag of ['smyl-radiograph-workbench.css?v=21', 'smyl-radiograph-review-v2.css?v=3', 'smyl-radiograph-contracts.js?v=2', 'smyl-radiograph-review-model-v2.js?v=1', 'smyl-radiograph-review-v2.js?v=6', 'smyl-radiograph-review.js?v=27', 'smyl-dental-record.js?v=28']) {
     assert.ok(app.includes(tag), 'app.html ' + tag);
     assert.ok(sw.includes('/camila/' + tag), 'sw.js ' + tag);
   }

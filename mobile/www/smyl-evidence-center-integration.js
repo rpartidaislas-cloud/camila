@@ -138,8 +138,14 @@
 
   function legacyFileItem(file) {
     const mapped = FILE_MODALITY[file?.category] || FILE_MODALITY.other;
+    const id = String(file?.id || '');
+    const linkedStudySource = mapped[0] === 'radiograph_2d'
+      ? 'dental_record'
+      : mapped[0] === 'photograph'
+        ? 'clinical_photo_study'
+        : 'patient_file';
     return {
-      id: String(file?.id || ''),
+      id,
       modality: mapped[0],
       subtype: mapped[1],
       title: String(file?.name || file?.label || 'Archivo clínico'),
@@ -147,14 +153,22 @@
       region: '',
       status: 'draft',
       findings: 0,
-      source: 'patient_file'
+      source: 'patient_file',
+      patientFileId: id,
+      linkedStudyId: String(file?.studyId || file?.study_id || file?.metadata?.studyId || file?.metadata?.study_id || ''),
+      linkedStudySource,
+      sha256: String(file?.sha256 || file?.hash || ''),
+      storagePath: String(file?.storagePath || file?.storage_path || file?.path || ''),
+      aliases: id ? [{ source: 'patient_file', id }] : []
     };
   }
 
   function radiographItem(study) {
     const subtype = ['panoramic', 'periapical', 'bitewing'].includes(study?.type) ? study.type : 'other';
+    const id = String(study?.id || '');
+    const patientFileId = String(study?.patientFileId || study?.patient_file_id || study?.original?.patientFileId || study?.asset?.patient_file_id || '');
     return {
-      id: String(study?.id || ''),
+      id,
       modality: 'radiograph_2d',
       subtype,
       title: String(study?.label || 'Radiografía dental'),
@@ -162,7 +176,16 @@
       region: '',
       status: Number(study?.pending) > 0 ? 'review' : 'draft',
       findings: Math.max(0, Number(study?.pending) || 0) + Math.max(0, Number(study?.confirmed) || 0),
-      source: 'dental_record'
+      source: 'dental_record',
+      patientFileId,
+      linkedStudyId: id,
+      linkedStudySource: 'dental_record',
+      sha256: String(study?.sha256 || study?.hash || study?.original?.sha256 || study?.asset?.sha256 || ''),
+      storagePath: String(study?.storagePath || study?.storage_path || study?.original?.path || study?.asset?.path || ''),
+      aliases: [
+        ...(id ? [{ source: 'dental_record', id }] : []),
+        ...(patientFileId ? [{ source: 'patient_file', id: patientFileId }] : [])
+      ]
     };
   }
 
@@ -188,8 +211,10 @@
     const pending = Math.max(0, Number(study?.pending) || 0);
     const reviewed = Math.max(0, Number(study?.confirmed) || 0) + Math.max(0, Number(study?.rejected) || 0);
     const status = study?.status === 'signed' ? 'signed' : pending > 0 ? 'review' : 'draft';
+    const id = String(study?.id || '');
+    const patientFileId = String(study?.original?.patientFileId || study?.asset?.patient_file_id || '');
     return {
-      id: String(study?.id || ''),
+      id,
       modality: 'photograph',
       subtype: String(study?.subtype || 'localized'),
       title: String(study?.display_name || study?.viewLabel || study?.label || 'Fotografía clínica'),
@@ -198,8 +223,62 @@
       status,
       findings: pending + reviewed,
       source: 'clinical_photo_study',
-      patientFileId: String(study?.original?.patientFileId || study?.asset?.patient_file_id || '')
+      patientFileId,
+      linkedStudyId: id,
+      linkedStudySource: 'clinical_photo_study',
+      sha256: String(study?.original?.sha256 || study?.original?.hash || study?.asset?.sha256 || ''),
+      storagePath: String(study?.original?.path || study?.asset?.storage_path || study?.asset?.path || ''),
+      aliases: [
+        ...(id ? [{ source: 'clinical_photo_study', id }] : []),
+        ...(patientFileId ? [{ source: 'patient_file', id: patientFileId }] : [])
+      ]
     };
+  }
+
+  function canonicalEvidenceKeys(item) {
+    const keys = [];
+    const modality = String(item?.modality || item?.source || 'unknown');
+    const linkedStudySource = String(item?.linkedStudySource || item?.source || modality);
+    if (item?.patientFileId) keys.push(`patient-file:${item.patientFileId}`);
+    if (item?.linkedStudyId) keys.push(`study:${linkedStudySource}:${item.linkedStudyId}`);
+    if (item?.sha256) keys.push(`sha256:${modality}:${item.sha256}`);
+    if (item?.storagePath) keys.push(`path:${modality}:${item.storagePath}`);
+    if (item?.id && item?.source) keys.push(`source:${item.source}:${item.id}`);
+    return [...new Set(keys)];
+  }
+
+  function mergeAliases(primary, secondary) {
+    const aliases = [...(primary?.aliases || []), ...(secondary?.aliases || [])];
+    const seen = new Set();
+    return aliases.filter(alias => {
+      const key = assignmentKey(alias?.source, alias?.id);
+      if (!alias?.source || !alias?.id || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  function deduplicateEvidence(items) {
+    const result = [];
+    const indexes = new Map();
+    const priority = { patient_file: 0, dental_record: 1, clinical_photo_study: 2 };
+    (Array.isArray(items) ? items : []).forEach(item => {
+      if (!item?.id) return;
+      const keys = canonicalEvidenceKeys(item);
+      const existingIndex = keys.map(key => indexes.get(key)).find(index => Number.isInteger(index));
+      if (!Number.isInteger(existingIndex)) {
+        const nextIndex = result.length;
+        result.push(item);
+        keys.forEach(key => indexes.set(key, nextIndex));
+        return;
+      }
+      const existing = result[existingIndex];
+      const preferred = (priority[item.source] || 0) > (priority[existing.source] || 0) ? item : existing;
+      const other = preferred === item ? existing : item;
+      result[existingIndex] = { ...preferred, aliases: mergeAliases(preferred, other) };
+      [...canonicalEvidenceKeys(existing), ...keys].forEach(key => indexes.set(key, existingIndex));
+    });
+    return result;
   }
 
   function collectEvidence(tenant, patient, photoStudies) {
@@ -217,13 +296,7 @@
       items.push(legacyFileItem(file));
     });
     (dental?.studyItems || []).forEach(study => items.push(radiographItem(study)));
-    const seen = new Set();
-    return items.filter(item => {
-      const key = `${item.source}:${item.id}`;
-      if (!item.id || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    return deduplicateEvidence(items);
   }
 
   function itemKey(item) {
@@ -248,7 +321,11 @@
       if (!active.has(key)) active.set(key, []);
       active.get(key).push(row.categoryId);
     });
-    return items.map(item => ({ ...item, categoryIds: active.get(assignmentKey(item.source, item.id)) || [] }));
+    return items.map(item => {
+      const identities = [{ source: item.source, id: item.id }, ...(item.aliases || [])];
+      const categoryIds = [...new Set(identities.flatMap(identity => active.get(assignmentKey(identity.source, identity.id)) || []))];
+      return { ...item, categoryIds };
+    });
   }
 
   function pathwayState(items, pathway) {
@@ -268,10 +345,13 @@
     const categories = state.categorySnapshot?.categories || [];
     const head = el('header', 'seci-valuation-head');
     const copy = el('div');
-    copy.append(el('span', 'seci-kicker', 'EVIDENCIA DISPONIBLE'), el('h3', '', 'Consulta antes de valorar'), el('p', '', 'Los originales se cargan y clasifican en Evidencia. Aquí sólo se consultan.'));
-    const openArchive = el('button', 'seci-open-archive', 'Abrir archivo');
+    copy.append(el('span', 'seci-kicker', 'ARCHIVOS CLÍNICOS'), el('h3', '', 'Fuentes para revisar'), el('p', '', 'Consulta los originales antes de registrar una conclusión profesional.'));
+    const openArchive = el('button', 'seci-open-archive', 'Ver archivos clínicos');
     openArchive.type = 'button';
-    openArchive.onclick = () => global.SmylCaseWorkspace?.open?.('photos');
+    openArchive.onclick = () => {
+      if (typeof global.SmylPatient360?.open === 'function') global.SmylPatient360.open('files');
+      else global.SmylCaseWorkspace?.open?.('files');
+    };
     head.append(copy, openArchive);
     host.append(head);
     const categoryCounts = categories.filter(category => !category.archived).map(category => ({
@@ -287,21 +367,10 @@
       });
       host.append(chips);
     }
-    const recent = items.slice(0, 3);
-    const list = el('div', 'seci-valuation-list');
-    recent.forEach(item => {
-      const category = global.SmylEvidenceCenter?.categories?.find(entry => entry.id === item.modality);
-      const assigned = (item.categoryIds || []).map(id => categories.find(entry => entry.id === id)?.name).filter(Boolean);
-      const control = el('button', 'seci-valuation-item');
-      control.type = 'button';
-      const itemCopy = el('span');
-      itemCopy.append(el('strong', '', item.title || category?.label || 'Evidencia clínica'), el('small', '', [category?.label, assigned.join(', ')].filter(Boolean).join(' · ')));
-      control.append(itemCopy, el('span', '', 'Ver →'));
-      control.onclick = () => openItem(state, item);
-      list.append(control);
-    });
-    if (!recent.length) list.append(el('p', 'seci-valuation-empty', 'Aún no hay evidencia clínica. Puedes continuar con la valoración manual.'));
-    host.append(list);
+    const summary = el('p', 'seci-valuation-empty', items.length
+      ? `${items.length} ${items.length === 1 ? 'archivo clínico disponible' : 'archivos clínicos disponibles'}. Los originales se administran en Archivos.`
+      : 'Aún no hay archivos clínicos. Puedes continuar con la revisión manual.');
+    host.append(summary);
   }
 
   async function assignMany(state, sourceType, sourceId, categoryIds) {
@@ -370,6 +439,7 @@
     const shellTitle = shellSummary?.querySelector(':scope > span:nth-child(2) strong');
     const shellToggle = shellSummary?.querySelector('.cw-advanced-toggle');
     const banner = el('section', 'seci-radiograph-focus');
+    banner.id = 'seci-radiograph-intake-status';
     banner.setAttribute('role', 'status');
     banner.setAttribute('aria-live', 'polite');
     banner.tabIndex = -1;
@@ -408,7 +478,11 @@
     shell?.addEventListener('toggle', intake.keepOpen);
     record.dataset.evidenceIntake = 'preparing';
     if (shell) shell.dataset.evidenceIntake = 'preparing';
-    if (save) save.textContent = 'Guardar radiografía';
+    if (save) {
+      save.textContent = 'Guardar radiografía';
+      save.classList.add('seci-intake-save');
+      save.setAttribute('aria-describedby', 'seci-radiograph-intake-status');
+    }
     if (shellTitle) shellTitle.textContent = 'Revisar y guardar radiografía';
     if (shellToggle) shellToggle.textContent = 'En curso';
   }
@@ -422,12 +496,14 @@
     if (intake.shell) intake.shell.dataset.evidenceIntake = 'ready';
     const card = [...intake.record.querySelectorAll('.dr-study')].find(item => item.dataset.studyId === intake.studyId);
     card?.classList.add('is-evidence-intake');
-    const discard = [...(card?.querySelectorAll('button') || [])].find(control => control.textContent.trim() === 'Quitar carga');
-    if (discard) discard.textContent = 'Descartar';
+    const notes = card?.querySelector('.dr-intake-notes');
+    const discard = card?.querySelector('.dr-intake-discard');
+    if (notes) notes.setAttribute('aria-label', 'Añadir notas opcionales antes de guardar la radiografía');
+    if (discard) discard.setAttribute('aria-label', 'Descartar esta carga radiográfica sin guardar');
     const title = intake.banner.querySelector('strong');
     const detail = intake.banner.querySelector('p');
     if (title) title.textContent = 'Radiografía sin guardar';
-    if (detail) detail.textContent = 'Revisa el archivo preparado y finaliza con Guardar radiografía.';
+    if (detail) detail.textContent = 'Guarda la radiografía para añadirla al expediente. Las notas son opcionales.';
     requestAnimationFrame(() => {
       if (!current(state) || !intake.banner.isConnected) return;
       intake.banner.scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -445,7 +521,11 @@
     intake.shell?.querySelector(':scope > summary')?.removeEventListener('click', intake.blockSummary);
     intake.shell?.querySelector(':scope > summary')?.removeEventListener('keydown', intake.blockSummary);
     intake.shell?.removeEventListener('toggle', intake.keepOpen);
-    if (intake.save?.isConnected) intake.save.textContent = intake.saveLabel;
+    if (intake.save?.isConnected) {
+      intake.save.textContent = intake.saveLabel;
+      intake.save.classList.remove('seci-intake-save');
+      intake.save.removeAttribute('aria-describedby');
+    }
     if (intake.shellTitle?.isConnected) intake.shellTitle.textContent = intake.shellTitleLabel;
     if (intake.shellToggle?.isConnected) intake.shellToggle.textContent = intake.shellToggleLabel;
     state.pendingRadiographIntake = null;
@@ -600,7 +680,7 @@
       editor.scrollIntoView({ block: 'start', behavior: 'smooth' });
       state.pendingRadiographIntake?.banner?.focus({ preventScroll: true });
     });
-    announce(state, 'Radiografía preparada en el editor. Revísala y pulsa Guardar radiografía; todavía no se ha guardado.', 'attention');
+    announce(state, 'Radiografía preparada. Pulsa Guardar radiografía para añadirla al expediente.', 'attention');
     return true;
   }
 
@@ -646,7 +726,7 @@
 
   async function routeDraft(state, payload) {
     if (!current(state)) throw new Error('El expediente cambió. Vuelve a abrir al paciente.');
-    if (!global.SmylEvidenceModel?.isSubtypeAllowed?.(payload.modality, payload.subtype)) throw new Error('El tipo de evidencia no corresponde a la modalidad.');
+    if (!global.SmylEvidenceModel?.isSubtypeAllowed?.(payload.modality, payload.subtype)) throw new Error('El tipo de archivo clínico no corresponde a la modalidad.');
     if (payload.modality === 'photograph') return routeClinicalPhoto(state, payload);
     if (payload.modality === 'document') return routePatientFile(state, payload, DOCUMENT_CATEGORY[payload.subtype] || 'other');
     if (payload.modality === 'radiograph_2d') return routeRadiograph(state, payload);
@@ -655,7 +735,7 @@
       clinical_measurement: 'evaluaciones clínicas estructuradas',
       cbct_3d: 'volúmenes CBCT/DICOM'
     };
-    throw new Error(`El guardado de ${labels[payload.modality] || 'esta evidencia'} todavía no está habilitado. No se guardó ningún dato.`);
+    throw new Error(`El guardado de ${labels[payload.modality] || 'este archivo clínico'} todavía no está habilitado. No se guardó ningún dato.`);
   }
 
   function openItem(state, item) {

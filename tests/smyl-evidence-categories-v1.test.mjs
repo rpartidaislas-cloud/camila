@@ -46,10 +46,12 @@ test('la clasificación conserva historial y nunca elimina el original', () => {
 });
 
 test('Evidencia es archivo y Valoración sólo consulta', () => {
-  assert.match(center, /ARCHIVO CLÍNICO/);
-  assert.match(center, /Evidencia del paciente/);
-  assert.match(integration, /Los originales se cargan y clasifican en Evidencia\. Aquí sólo se consultan/);
-  assert.match(integration, /seci-valuation-item/);
+  assert.match(center, /EXPEDIENTE DEL PACIENTE/);
+  assert.match(center, /Archivos clínicos/);
+  assert.match(integration, /Consulta los originales antes de registrar una conclusión profesional\./);
+  assert.match(integration, /Los originales se administran en Archivos\./);
+  assert.match(integration, /cw-valuation-evidence/);
+  assert.match(integration, /seci-open-archive/);
 });
 
 test('web y móvil comparten el mismo servicio de categorías', () => {

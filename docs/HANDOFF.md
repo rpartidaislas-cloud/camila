@@ -1,5 +1,23 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-13 — Codex — Dictado clínico como entrada del odontograma
+
+- Se incorpora **Dictar hallazgo** como una única acción secundaria dentro del odontograma. No se crea un módulo, expediente ni guardado paralelo: la voz sólo prepara una observación en el borrador dental canónico.
+- El profesional activa explícitamente el micrófono, dicta `pieza FDI + superficie + hallazgo`, revisa tres campos editables y decide si lo agrega. El reconocimiento nunca guarda; únicamente **Guardar observaciones** conserva una nueva versión y mantiene intacto el historial anterior.
+- El intérprete es-MX admite números hablados, sinónimos de superficies y frases con acentos y conectores. Rechaza piezas inválidas o ambiguas, distingue medidas como `12 mm` de una pieza FDI y reinicia cada nuevo resultado para no mezclar dictados.
+- El flujo no persiste audio ni texto provisional y avisa que el navegador procesa la voz. Sin soporte o permiso, la acción desaparece o falla de forma recuperable mientras el editor manual permanece disponible.
+- Se añade la guía de proyecto `skills/smyl-clinical-input/SKILL.md` para mantener una sola fuente clínica, confirmación profesional, privacidad, versionado y criterios visuales en futuras entradas rápidas. Web, PWA y `mobile/www` quedan sincronizados con dictado `v1`, expediente `v28`, workspace `js?v=37`/`css?v=28` y caché `clinical-dictation-v1`.
+- Verificación: suite completa `1,445` pruebas, `1,389` aprobadas, `56` omitidas por dependencias opcionales y `0` fallidas; recorrido Playwright aprobado en 1280, 834, 390 y 320 px, sin desbordes y con controles táctiles. Capturas y reporte en `artifacts/clinical-dictation-v1/`. La deuda de microtexto queda nuevamente dentro del tope (`938`). Esta entrega forma parte del lanzamiento de producción solicitado el 13 de noviembre de 2026.
+
+## 2026-11-13 — Codex — Una sola acción radiográfica por estado
+
+- La carga sin guardar deja una sola acción dominante: **Guardar radiografía**. **Añadir notas** queda como opción secundaria y **Descartar carga** como acción destructiva discreta; la tarjeta se compactó para reducir altura y ruido tanto en escritorio como en PWA.
+- Después de guardar, cada estudio presenta una única siguiente acción clínica derivada de su estado real: **Iniciar revisión**, **Revisar N hallazgos**, **Resolver revisión**, **Continuar revisión**, **Ver revisión** o **Ver estudio** para roles de consulta. Se retiran los nombres genéricos y competidores **Abrir y anotar**, **Revisar estudio** y **Valorar estudio**.
+- El pie de Evaluación ya no vuelve a abrir la misma radiografía con otro botón. Durante una revisión radiográfica sólo informa el avance; muestra **Continuar a conclusión** cuando todas las decisiones requeridas están resueltas.
+- Las acciones clínicas fallan cerrado: sólo se habilitan cuando el estado confirma `clinical.write` y `clinical.approve`. El archivo original sigue disponible para consulta y las opciones de retiro permanecen dentro de **Más acciones**.
+- Web y `mobile/www` quedan sincronizados. En el árbol compartido vigente se distribuyen revisión radiográfica `v27`, expediente dental `v28`, workspace `js?v=37`/`css?v=28`, integración `js?v=8`/`css?v=5` y caché `radiograph-single-action-v1`.
+- Verificación: `54/54` contratos focalizados aprobados, sintaxis de los módulos modificados aprobada y QA visual local de carga/cola en escritorio y móvil guardada en `artifacts/radiograph-single-action-v1/`. La suite completa conserva un único fallo de instrumentación ajeno a este cambio: el tope histórico de microtexto espera `938` y el árbol compartido actual cuenta `940`; no se añadió microtexto menor de 12 px en esta entrega. No se publicó desde este cambio.
+
 ## 2026-11-12 — Codex — Arquitectura compartida de evidencia clínica, etapas 0 y 1
 
 - Se crea un contrato transversal para las seis modalidades de Evidencia: fotografía, radiografía 2D, escaneo/modelo, medición clínica, documento y CBCT. Todas declaran capacidades reales y conservan su visor especializado; una modalidad sin analizador conectado se marca como no compatible y nunca simula un resultado.
@@ -10748,6 +10766,16 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 
 ## 2026-11-13 — Claude Code — «Agregar servicio o cargo»: sin «· sin datos fiscales» en el selector
 - Ricardo pidió quitar la leyenda « · sin datos fiscales» de cada servicio en el selector de `openCharge` (`smyl-finance.js` v33). El aviso informativo al elegir un servicio («Se puede cobrar, pero aún no facturar…») se mantiene. Sin cambios de datos. Copias en `mobile/www/`.
+
+## 2026-11-12 — Codex — Evaluación clínica separada por responsabilidad
+
+- La evaluación del expediente se simplifica a tres responsabilidades visibles: **Contexto**, **Revisión profesional** y **Conclusión**. Cada pantalla muestra una sola tarea principal y conserva el avance al cambiar de etapa.
+- Contexto concentra antecedentes y alertas. Revisión profesional reúne los archivos clínicos, fotografías, radiografías y sugerencias de IA que requieren decisión humana. Conclusión muestra únicamente los hallazgos confirmados y el odontograma clínico.
+- Se elimina la repetición visual de una misma radiografía entre el archivo general y la bandeja radiográfica. La deduplicación canónica conserva categorías, vínculos y alias sin mezclar por accidente fotografías y radiografías con identificadores iguales.
+- El paso a Conclusión queda protegido: un estudio sin confirmar, no utilizable o todavía pendiente de revisión continúa abierto. Una valoración manual válida sí puede completarse aunque no exista una simulación de sonrisa.
+- La versión móvil reduce textos y tarjetas, evita desbordamiento global y deja el desplazamiento horizontal sólo en filtros o carruseles intencionales. Web y `mobile/www/` quedan sincronizados.
+- Versiones integradas: `smyl-case-workspace.css?v=27`, `smyl-case-workspace.js?v=35`, `smyl-clinical-photo-review.js?v=2`, `smyl-evidence-center.js?v=10`, `smyl-evidence-center-integration.js?v=7` y caché PWA `evaluation-separation-v79`.
+- QA: 78 pruebas focales/estáticas aprobadas, 11 recorridos en navegador real aprobados y revisión visual en 1280×900, 834×1000, 390×844 y 320×760. Sin cambios de backend, migraciones ni publicación en esta etapa.
 
 ## 2026-11-13 — Claude Code — «Agregar servicio o cargo»: total a la vista y campos sin doble borde
 - Corrección: en la revisión previa dije que el precio y el IVA no se llenaban solos al elegir un servicio; **sí se llenan** (precio del catálogo y, con política fiscal revisada, IVA automático). La leyenda «Servicio sin política fiscal revisada: indica si lleva IVA» y el casillero «Agregar IVA 16%» salen solo cuando el servicio no tiene política fiscal revisada. No se cambió esa lógica.

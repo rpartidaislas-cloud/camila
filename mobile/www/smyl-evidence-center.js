@@ -280,7 +280,7 @@
       photograph: 'Tomar fotografías',
       radiograph_2d: 'Subir radiografía',
       document: 'Agregar documento'
-    })[category?.id] || `Agregar ${String(category?.short || 'evidencia').toLowerCase()}`;
+    })[category?.id] || `Agregar ${String(category?.short || 'archivo').toLowerCase()}`;
   }
 
   function typeGroup(category, subtype) {
@@ -354,8 +354,8 @@
 
       const head = element('header', 'sec-head');
       const copy = element('div', 'sec-head-copy');
-      copy.append(element('span', 'sec-kicker', 'ARCHIVO CLÍNICO'), element('h2', '', 'Evidencia del paciente'), element('p', '', 'Originales ordenados por categoría, fecha y tipo de archivo.'));
-      this.addButton = button('Agregar evidencia', 'sec-primary sec-add', () => this.openAdd());
+      copy.append(element('span', 'sec-kicker', 'EXPEDIENTE DEL PACIENTE'), element('h2', '', 'Archivos clínicos'), element('p', '', 'Originales ordenados por categoría, fecha y tipo de estudio.'));
+      this.addButton = button('Agregar archivo', 'sec-primary sec-add', () => this.openAdd());
       head.append(copy, this.addButton);
 
       this.summary = element('div', 'sec-summary');
@@ -411,7 +411,7 @@
       head.append(copy, create);
       const chips = element('div', 'sec-category-chips');
       chips.setAttribute('role', 'tablist');
-      chips.setAttribute('aria-label', 'Filtrar evidencia por categoría clínica');
+      chips.setAttribute('aria-label', 'Filtrar archivos por categoría clínica');
       const options = [
         { id: 'all', name: 'Todo', count: this.items.length },
         { id: 'uncategorized', name: 'Sin categoría', count: this.items.filter(item => !item.categoryIds.length).length },
@@ -460,7 +460,7 @@
         const selectedCategory = this.clinicalCategories.find(category => category.id === this.filter);
         const archiveEmpty = this.items.length === 0;
         const title = archiveEmpty
-          ? 'Aún no hay evidencia'
+          ? 'Aún no hay archivos clínicos'
           : this.filter === 'uncategorized'
             ? 'Todo está clasificado'
             : `Sin archivos en ${selectedCategory?.name || 'esta categoría'}`;
@@ -470,7 +470,7 @@
             ? 'Todos los archivos ya tienen una categoría clínica.'
             : 'Esta categoría todavía no contiene archivos.';
         empty.append(icon('document'), element('h3', '', title), element('p', '', description));
-        if (archiveEmpty) empty.append(button('Agregar evidencia', 'sec-primary sec-empty-primary', () => this.openAdd()));
+        if (archiveEmpty) empty.append(button('Agregar archivo', 'sec-primary sec-empty-primary', () => this.openAdd()));
         else empty.append(button('Ver todo el archivo', 'sec-secondary sec-empty-primary', () => {
           this.filter = 'all';
           this.renderFilters();
@@ -651,7 +651,7 @@
       this.dialog.replaceChildren();
       const head = element('header', 'sec-dialog-head');
       const title = element('div');
-      const stepTitle = this.step === 0 && category ? 'Elige el tipo de estudio' : ['Elige la evidencia', 'Confirma el contexto'][this.step];
+      const stepTitle = this.step === 0 && category ? 'Elige el tipo de estudio' : ['Elige el archivo clínico', 'Confirma el contexto'][this.step];
       title.append(element('span', 'sec-kicker', `PASO ${this.step + 1} DE 2`), element('h2', '', stepTitle));
       title.querySelector('h2').id = 'sec-dialog-title';
       head.append(title, button('Cerrar', 'sec-close', () => this.closeAdd()));
@@ -760,7 +760,7 @@
           const heading = element('div', 'sec-type-group-heading');
           heading.append(element('h3', '', label), element('p', '', category.id === 'radiograph_2d'
             ? 'Selecciona el estudio que corresponde al archivo que vas a agregar.'
-            : 'Selecciona la opción que mejor describe la evidencia.'));
+            : 'Selecciona la opción que mejor describe el archivo clínico.'));
           group.append(heading);
           const grid = element('div', 'sec-type-grid');
           options.enabled.forEach(option => grid.append(option));
@@ -965,7 +965,7 @@
         else this.root.dispatchEvent(new CustomEvent('smyl:evidence:create', { bubbles: true, detail: payload }));
         this.closeAdd();
       } catch (error) {
-        const message = error?.message || 'No se pudo guardar la evidencia. Intenta nuevamente.';
+        const message = error?.message || 'No se pudo guardar el archivo clínico. Intenta nuevamente.';
         const target = errorNode || this.dialog.querySelector('.sec-inline-error');
         if (target) {
           target.textContent = message;

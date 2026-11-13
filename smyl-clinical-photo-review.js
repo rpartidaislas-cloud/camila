@@ -1,5 +1,5 @@
 /* SMYL · Valoración profesional de fotografías clínicas canónicas.
- * Los originales se cargan únicamente en Evidencia. Este módulo sólo consulta,
+ * Los originales se cargan únicamente en Archivos clínicos. Este módulo sólo consulta,
  * solicita análisis y registra decisiones profesionales auditables. */
 (function clinicalPhotoReviewModule(global) {
   'use strict';
@@ -176,10 +176,10 @@
   function renderEmpty(state) {
     const empty = el('section', 'scpr-empty');
     const copy = el('div');
-    copy.append(el('strong', '', 'Aún no hay fotografías clínicas clasificadas'), el('p', '', 'Agrega la toma una sola vez en Evidencia. Después aparecerá aquí para análisis y decisión profesional.'));
-    const action = button('Ir a Evidencia', () => {
-      const tab = document.getElementById('cw-evaluation-task-evidence');
-      tab?.click();
+    copy.append(el('strong', '', 'Aún no hay fotografías clínicas clasificadas'), el('p', '', 'Agrega la toma una sola vez en Archivos clínicos. Después aparecerá aquí para revisión y decisión profesional.'));
+    const action = button('Ver archivos clínicos', () => {
+      if (typeof global.SmylPatient360?.open === 'function') global.SmylPatient360.open('files');
+      else global.SmylCaseWorkspace?.open?.('photos');
     }, 'scpr-primary');
     empty.append(photoIcon('scpr-empty-icon scpr-photo-icon'), copy, action);
     state.list.append(empty);
@@ -707,20 +707,22 @@
 
   function mount() {
     const value = context();
-    const map = document.querySelector('#p-paciente-detalle.activa .cw-clinical-map');
-    if (!value || !map || !global.SmylClinicalPhotoService) return;
+    const reviewHost = document.querySelector('#p-paciente-detalle.activa #cw-evaluation-panel-findings .cw-evaluation-panel-body');
+    if (!value || !reviewHost || !global.SmylClinicalPhotoService) return;
     if (current(active)) return;
     dispose(active);
     const root = el('section', 'scpr-root smyl-evidence-workspace');
     evidenceWorkspace()?.decorate?.(root, 'photograph');
     root.dataset.patientId = value.patient;
     const head = el('header', 'scpr-head'), copy = el('div');
-    copy.append(el('span', 'scpr-kicker', 'FOTOGRAFÍA CLÍNICA'), el('h2', '', 'Valoración fotográfica'), el('p', '', 'Analiza y decide sobre las tomas originales incorporadas en Evidencia. Aquí no se suben archivos.'));
+    copy.append(el('span', 'scpr-kicker', 'FOTOGRAFÍAS CLÍNICAS'), el('h2', '', 'Revisión de fotografías'), el('p', '', 'Comprueba las tomas originales de Archivos clínicos y confirma sólo los hallazgos que correspondan.'));
     const headTools = el('div', 'scpr-head-tools'), metrics = el('div', 'scpr-metrics');
     const batchButton = button('Analizar serie', () => openBatchReview(active), 'scpr-secondary'); batchButton.hidden = true;
     headTools.append(metrics, batchButton); head.append(copy, headTools);
     const list = el('div', 'scpr-list'), feedback = el('p', 'scpr-feedback'); feedback.setAttribute('role', 'status'); feedback.setAttribute('aria-live', 'polite');
-    root.append(head, list, feedback); map.before(root);
+    root.append(head, list, feedback);
+    const radiographQueue = reviewHost.querySelector('.cw-radiograph-shelf');
+    if (radiographQueue) reviewHost.insertBefore(root, radiographQueue); else reviewHost.append(root);
     const state = { token: ++sequence, root, metrics, batchButton, list, feedback, tenant: value.tenant, patient: value.patient, studies: [], urls: new Map(), dialog: null, loading: false, timer: null };
     active = state;
     refresh(state, true);
@@ -757,6 +759,11 @@
 
   global.SmylClinicalPhotoReview = Object.freeze({
     refresh() { if (current(active)) return refresh(active, true); mount(); return Promise.resolve(); },
+    studies(tenant, patient) {
+      const state = active;
+      if (!current(state) || (tenant && tenant !== state.tenant) || (patient && patient !== state.patient)) return [];
+      return state.studies.slice();
+    },
     open(studyId) { return openRequested(String(studyId || ''), {}); },
     openFirst() {
       const state = active;

@@ -11,7 +11,7 @@ const dental = read('smyl-dental-record.js');
 const fixture = read('tests/fixtures/smyl-evidence-single-intake-preview.html');
 
 test('el archivo vacío ofrece una sola entrada y distingue filtros sin resultados', () => {
-  assert.match(center, /archiveEmpty\s+\? 'Aún no hay evidencia'/);
+  assert.match(center, /archiveEmpty\s+\? 'Aún no hay archivos clínicos'/);
   assert.match(center, /archiveEmpty\s+\? 'Agrega el primer archivo clínico/);
   assert.match(center, /'Ver todo el archivo'/);
   assert.match(centerCss, /\.sec-root\[data-empty=true\] \.sec-head \.sec-add/);
@@ -24,7 +24,10 @@ test('la radiografía elegida entra a un único modo enfocado de revisión y gua
   assert.match(integration, /shellTitle\.textContent = 'Revisar y guardar radiografía'/);
   assert.match(integration, /shellToggle\.textContent = 'En curso'/);
   assert.match(integration, /shell\.open = true/);
-  assert.match(integration, /discard\.textContent = 'Descartar'/);
+  assert.match(integration, /querySelector\('\.dr-intake-notes'\)/);
+  assert.match(integration, /querySelector\('\.dr-intake-discard'\)/);
+  assert.match(integration, /Añadir notas opcionales antes de guardar la radiografía/);
+  assert.match(integration, /Descartar esta carga radiográfica sin guardar/);
   assert.match(integration, /intake\.before\?\.has\(String\(studyId\)\)/);
   assert.match(integrationCss, /data-evidence-intake[^}]+\.dr-upload-fields/);
   assert.match(integrationCss, /\.dr-study:not\(\.is-evidence-intake\)\{display:none\}/);
@@ -49,11 +52,11 @@ test('web y PWA publican las versiones del flujo único', () => {
   const app = read('app.html');
   const sw = read('sw.js');
   for (const tag of [
-    'smyl-dental-record.js?v=26',
-    'smyl-evidence-center.js?v=9',
+    'smyl-dental-record.js?v=28',
+    'smyl-evidence-center.js?v=10',
     'smyl-evidence-center.css?v=6',
-    'smyl-evidence-center-integration.js?v=6',
-    'smyl-evidence-center-integration.css?v=4'
+    'smyl-evidence-center-integration.js?v=8',
+    'smyl-evidence-center-integration.css?v=5'
   ]) {
     assert.match(app, new RegExp(tag.replaceAll('.', '\\.').replace('?', '\\?')));
     assert.match(sw, new RegExp(tag.replaceAll('.', '\\.').replace('?', '\\?')));
@@ -65,5 +68,6 @@ test('la vista de control reproduce el modo enfocado en escritorio y móvil', ()
   assert.match(fixture, /data-evidence-intake="ready"/);
   assert.match(fixture, /Radiografía sin guardar/);
   assert.match(fixture, /Guardar radiografía/);
-  assert.match(fixture, /Descartar/);
+  assert.match(fixture, /Añadir notas/);
+  assert.match(fixture, /Descartar carga/);
 });
