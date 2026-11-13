@@ -34,8 +34,8 @@ test('controles y estados son legibles en escritorio y movil', () => {
 });
 
 test('web, PWA y aplicacion movil distribuyen la version visual vigente', () => {
-  assert.match(app, /smyl-radiograph-workbench\.css\?v=20/);
-  assert.match(app, /smyl-radiograph-review\.js\?v=25/);
+  assert.match(app, /smyl-radiograph-workbench\.css\?v=21/);
+  assert.match(app, /smyl-radiograph-review\.js\?v=26/);
   assert.match(app, /smyl-dental-record\.js\?v=26/);
   assert.match(sw, /radiograph-guided-process-v15/);
   assert.match(sw, /radiograph-anatomic-odontogram-v20/);

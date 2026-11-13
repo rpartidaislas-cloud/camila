@@ -4,7 +4,7 @@ import test from 'node:test';
 
 const read = file => fs.readFileSync(new URL('../' + file, import.meta.url), 'utf8');
 
-test('la revisión PWA presenta una sola señal y acciones sin superposición', () => {
+test('la revisión PWA conserva el contexto y presenta acciones sin superposición', () => {
   const review = read('smyl-radiograph-review.js');
   const css = read('smyl-radiograph-workbench.css');
   assert.match(review, /is-context/);
@@ -13,7 +13,7 @@ test('la revisión PWA presenta una sola señal y acciones sin superposición', 
   assert.match(review, /Continuando con la siguiente/);
   assert.match(review, /setTimeout\(\(\)=>\{if\(e\.isConnected\)/);
   assert.match(css, /PWA radiográfica v17/);
-  assert.match(css, /\.rr-image-stage > \.rr-box\.is-context,[\s\S]*?display: none/);
+  assert.match(css, /@media \(max-width: 639px\)[\s\S]*?\.rr-image-stage > \.rr-mark\.is-context\s*\{[^}]*display:\s*block[^}]*opacity/);
   assert.match(css, /\.rr-save\[data-dirty="true"\][\s\S]*?position: static/);
   assert.match(css, /\.rr-image-stage \{ min-width: 100%; flex: none; \}/);
 });
@@ -33,12 +33,12 @@ test('el expediente móvil reduce filtros y muestra estudios como lista compacta
 test('web, PWA y copia móvil distribuyen la misma versión', () => {
   const app = read('app.html');
   const worker = read('sw.js');
-  for (const expected of ['smyl-radiograph-workbench.css?v=20', 'smyl-radiograph-review.js?v=25', 'smyl-case-workspace.css?v=26', 'smyl-case-workspace.js?v=34']) {
+  for (const expected of ['smyl-radiograph-workbench.css?v=21', 'smyl-radiograph-review.js?v=26', 'smyl-case-workspace.css?v=26', 'smyl-case-workspace.js?v=34']) {
     assert.match(app, new RegExp(expected.replaceAll('.', '\\.').replace('?', '\\?')));
     assert.match(worker, new RegExp(expected.replaceAll('.', '\\.').replace('?', '\\?')));
   }
   assert.match(worker, /radiograph-mobile-flow-v17/);
-  assert.match(worker, /radiograph-docked-odontogram-v20/);
+  assert.match(worker, /radiograph-device-parity-zoom-v21/);
   for (const file of ['app.html', 'sw.js', 'smyl-radiograph-review.js', 'smyl-radiograph-workbench.css', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) {
     assert.equal(read(file), read('mobile/www/' + file), file + ' debe coincidir en mobile/www');
   }

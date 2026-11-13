@@ -31,8 +31,8 @@ const fs = require('node:fs');
     await page.screenshot({ path: path.join(output, `${item.name}-image.png`), fullPage: false });
     await page.locator('.rr-image-adjustments > summary').click();
     const tools=page.locator('.rr-view-tools input');
-    if(await tools.count()!==3) throw new Error('Expected three image adjustment sliders');
-    if(!await page.locator('.rr-view-tools input[aria-label="Ampliar radiografía"]').isVisible()) throw new Error('Collapsed image controls did not open');
+    if(await tools.count()!==2) throw new Error('Expected contrast and brightness sliders under More settings');
+    if(!await page.locator('.rr-view-tools input[aria-label="Contraste"]').isVisible()) throw new Error('Collapsed image controls did not open');
     if (item.name === 'desktop') {
       const zoom = page.locator('.rr-tool-range input[aria-label="Ampliar radiografía"]');
       const viewport = page.locator('.rr-image-wrap');
@@ -64,7 +64,9 @@ const fs = require('node:fs');
       const canvas = document.querySelector('.rr-canvas')?.getBoundingClientRect();
       const panel = document.querySelector('.rr-signal-panel')?.getBoundingClientRect();
       const footer = document.querySelector('.rr-save')?.getBoundingClientRect();
-      const controls = visible('.rr-dialog button');
+      // Las marcas usan un pseudo-elemento transparente para ampliar el área táctil;
+      // mide aquí sólo los controles con caja visual propia.
+      const controls = visible('.rr-dialog button:not(.rr-mark)');
       const dialog = document.querySelector('.rr-dialog')?.getBoundingClientRect();
       const reject = document.querySelector('[data-rr-decision="reject"]')?.getBoundingClientRect();
       const confirm = document.querySelector('[data-rr-decision="confirm"]')?.getBoundingClientRect();
@@ -133,7 +135,7 @@ const fs = require('node:fs');
       });
       if (!openPicker.horizontalFit || openPicker.overflow || openPicker.visibleOptions !== 32 || openPicker.visibleGlyphs !== 32 || openPicker.visibleQuadrants !== 4 || openPicker.quadrantOrder !== '1,2,4,3' || openPicker.quadrantSizes.some(size => size !== 8) || openPicker.quadrantLabels !== 4 || !openPicker.quadrantCrossVisible || openPicker.radioLabels !== 32 || openPicker.tabStops !== 1 || openPicker.families !== 'canine,incisor,molar,premolar' || openPicker.selectedTooth !== '46' || openPicker.nativeSelects || !openPicker.doesNotCoverImage) throw new Error(`Docked anatomical FDI picker failed at ${item.width}px: ${JSON.stringify(openPicker)}`);
       await page.screenshot({ path: path.join(output, `${item.name}-tooth-picker.png`), fullPage: false });
-      await dock.getByRole('button', { name: 'Cerrar', exact: true }).click();
+      await dock.getByRole('button', { name: 'Cerrar selector de pieza', exact: true }).click();
       if (await page.locator('.rr-tooth-dock').count() || await trigger.getAttribute('aria-expanded') !== 'false') throw new Error(`Docked FDI picker did not close at ${item.width}px`);
     }
     if (item.name === 'desktop') {
