@@ -735,3 +735,17 @@ body.smyl-ui-governed .contenido .finance-dialog .finance-account-tabs [role=tab
   .finance-receipt-action,.finance-row-menu>summary{min-height:44px!important;height:44px}
   .finance-row-menu>div{right:auto;left:0}
 }
+
+/* Registrar cargo: el campo de descuento y el de precio eran una caja dentro de otra (una regla global pintaba el borde del input);
+   el total a cobrar queda a la vista junto a los botones aunque el formulario haga scroll. */
+body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-input,.finance-money-input) input{border:0!important;box-shadow:none!important;background:transparent!important;border-radius:0!important;outline:0}
+body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-input,.finance-money-input):focus-within{border-color:#0f766e;box-shadow:0 0 0 3px rgba(15,118,110,.15)}
+.finance-charge-form .finance-actions .finance-actions-total{margin-right:auto;display:grid;gap:1px;line-height:1.15}
+.finance-charge-form .finance-actions .finance-actions-total span{font-size:12px;color:#6b7a8c}
+.finance-charge-form .finance-actions .finance-actions-total b{font-size:18px;color:#12233f;font-variant-numeric:tabular-nums}
+@media(max-width:620px){.finance-charge-form .finance-actions .finance-actions-total{flex:1 0 100%}}
+body.smyl-ui-governed .contenido .finance-charge-form .finance-discount-input{height:39px;box-sizing:border-box;overflow:hidden}
+body.smyl-ui-governed .contenido .finance-charge-form .finance-money-input{height:39px;box-sizing:border-box}
+body.smyl-ui-governed .contenido .finance-charge-form .finance-discount-input select{border:0!important;border-left:1px solid #d9dfe7!important;border-radius:0!important;box-shadow:none!important;min-height:0!important;height:100%!important;margin:0!important;background:#f6f8fb!important}
+body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-input,.finance-money-input) input{height:100%!important;min-height:0!important;padding-top:0!important;padding-bottom:0!important}
+.finance-charge-form .finance-form-grid>label{line-height:18px}

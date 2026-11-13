@@ -172,3 +172,13 @@ test('Agregar servicio o cargo: el selector no marca «sin datos fiscales»; el 
   assert.doesNotMatch(fin, /sin datos fiscales/);
   assert.match(fin, /Se puede cobrar, pero aún no facturar/);
 });
+
+test('Agregar servicio o cargo: el total queda junto a los botones y el descuento no es una caja dentro de otra', () => {
+  const fin = fs.readFileSync(new URL('../smyl-finance.js', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../smyl-finance.css', import.meta.url), 'utf8');
+  assert.match(fin, /finance-actions-total/);
+  assert.match(fin, /data-sum="total-foot"/);
+  assert.match(fin, /\[data-sum="total-foot"\]'\)\.textContent=money2\(m\.total\)/);
+  assert.match(css, /body\.smyl-ui-governed \.contenido \.finance-charge-form :is\(\.finance-discount-input,\.finance-money-input\) input\{border:0!important/);
+  assert.match(css, /\.finance-actions-total\{margin-right:auto/);
+});

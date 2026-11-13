@@ -10776,3 +10776,8 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - La versión móvil reduce textos y tarjetas, evita desbordamiento global y deja el desplazamiento horizontal sólo en filtros o carruseles intencionales. Web y `mobile/www/` quedan sincronizados.
 - Versiones integradas: `smyl-case-workspace.css?v=27`, `smyl-case-workspace.js?v=35`, `smyl-clinical-photo-review.js?v=2`, `smyl-evidence-center.js?v=10`, `smyl-evidence-center-integration.js?v=7` y caché PWA `evaluation-separation-v79`.
 - QA: 78 pruebas focales/estáticas aprobadas, 11 recorridos en navegador real aprobados y revisión visual en 1280×900, 834×1000, 390×844 y 320×760. Sin cambios de backend, migraciones ni publicación en esta etapa.
+
+## 2026-11-13 — Claude Code — «Agregar servicio o cargo»: total a la vista y campos sin doble borde
+- Corrección: en la revisión previa dije que el precio y el IVA no se llenaban solos al elegir un servicio; **sí se llenan** (precio del catálogo y, con política fiscal revisada, IVA automático). La leyenda «Servicio sin política fiscal revisada: indica si lleva IVA» y el casillero «Agregar IVA 16%» salen solo cuando el servicio no tiene política fiscal revisada. No se cambió esa lógica.
+- Arreglado de verdad (`smyl-finance.js` v34 / `smyl-finance.css` v27, solo `openCharge`): el campo de **Descuento** (y el de precio) eran una caja dentro de otra porque una regla global pintaba el borde del input; ahora un solo borde, misma altura que los demás campos. El **Total a cobrar** quedaba fuera de vista (hay que bajar el formulario); ahora aparece siempre en el pie, junto a los botones.
+- Sin cambios de datos. CACHE `...-charge-dialog-v2`, copias en `mobile/www/`.
