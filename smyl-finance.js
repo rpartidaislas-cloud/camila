@@ -1,7 +1,7 @@
 /* SMYL · Etapa 5: caja, pagos, recibos internos y preparación fiscal. */
 (function(){
   'use strict';
-  var state={noShowFee:0,settingsReady:false,visitAppointments:[],visitCharges:[],noCharge:[],noChargeReady:false,loaded:false,loading:false,tenant:null,actor:null,tab:'accounts',accountFilter:'attention',canRead:false,canManage:false,patients:[],branches:[],services:[],appointments:[],proposals:[],proposalBatches:[],charges:[],payments:[],allocations:[],refunds:[],refundAllocations:[],receipts:[],sessions:[],adjustments:[],fiscal:[],drafts:[],issuer:null,pac:null,cancellations:[],fiscalReadiness:null,rolePermissions:[],memberRoles:[]};
+  var state={noShowFee:0,settingsReady:false,visitAppointments:[],visitCharges:[],noCharge:[],noChargeReady:false,loaded:false,loading:false,tenant:null,actor:null,tab:'accounts',accountFilter:'open',canRead:false,canManage:false,patients:[],branches:[],services:[],appointments:[],proposals:[],proposalBatches:[],charges:[],payments:[],allocations:[],refunds:[],refundAllocations:[],receipts:[],sessions:[],adjustments:[],fiscal:[],drafts:[],issuer:null,pac:null,cancellations:[],fiscalReadiness:null,rolePermissions:[],memberRoles:[]};
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
   function el(t,c,x){var n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;}
   var byIndex=new WeakMap();
@@ -40,7 +40,29 @@
   // Cada cifra abre la pestaña o el filtro que la explica.
   var METRIC_GO=[['accounts','open','Ver cuentas con saldo'],['payments','','Ver pagos de hoy'],['accounts','credit','Ver cuentas con saldo a favor'],['cash','','Ver la caja']];
   // Franja de una línea: solo aparece si hay algo que atender. Las cifras de arriba y los filtros de «Por cobrar» llevan al detalle.
-  function renderCollectionFocus(){var host=document.getElementById('finance-focus');if(!host)return;var accounts=state.patients.map(function(p){return {p:p,s:accountSnapshot(p.id)};}),overdue=accounts.filter(function(x){return x.s.overdue.length;}),credits=accounts.filter(function(x){return x.s.credit>0;}),session=state.sessions.find(function(x){return x.status==='open'&&x.opened_by===state.actor;}),oldSession=session&&(Date.now()-new Date(session.opened_at).getTime()>18*60*60*1000),parts=[],total=overdue.length+credits.length+(oldSession?1:0);if(!total){host.innerHTML='';host.hidden=true;return;}if(overdue.length)parts.push(overdue.length+(overdue.length===1?' cuenta con cartera vencida (':' cuentas con cartera vencida (')+money(overdue.reduce(function(v,x){return v+x.s.overdue.reduce(function(a,c){return a+balance(c);},0);},0))+')');if(credits.length)parts.push(credits.length+(credits.length===1?' con saldo a favor sin aplicar':' con saldo a favor sin aplicar'));if(oldSession)parts.push('corte pendiente: caja abierta más de 18 horas');var onlyCash=!overdue.length&&!credits.length;host.hidden=false;host.innerHTML='<div class="finance-alert" data-tone="'+(overdue.length?'danger':oldSession?'warning':'credit')+'"><p><strong>'+total+' pendiente'+(total===1?'':'s')+'</strong><span>'+esc(parts.join(' · '))+'</span></p><button type="button" data-finance-alert-go>'+(onlyCash?'Revisar corte':'Revisar')+'</button></div>';host.querySelector('[data-finance-alert-go]').onclick=function(){if(onlyCash){state.tab='cash';}else{state.tab='accounts';state.accountFilter=overdue.length?'overdue':'attention';}render();};}
+  function renderCollectionFocus(){
+    var host=document.getElementById('finance-focus');
+    if(!host)return;
+    var accounts=state.patients.map(function(p){return {p:p,s:accountSnapshot(p.id)};}),
+      overdue=accounts.filter(function(x){return x.s.overdue.length;}),
+      credits=accounts.filter(function(x){return x.s.credit>0;}),
+      session=state.sessions.find(function(x){return x.status==='open'&&x.opened_by===state.actor;}),
+      oldSession=session&&(Date.now()-new Date(session.opened_at).getTime()>18*60*60*1000),
+      total=overdue.length+credits.length+(oldSession?1:0),tasks=[];
+    if(!total){host.innerHTML='';host.hidden=true;return;}
+    if(overdue.length){
+      var overdueAmount=overdue.reduce(function(v,x){return v+x.s.overdue.reduce(function(a,c){return a+balance(c);},0);},0);
+      tasks.push('<button type="button" class="finance-task" data-finance-alert-filter="overdue"><span class="finance-task-count">'+overdue.length+'</span><span><strong>'+(overdue.length===1?'Cuenta vencida':'Cuentas vencidas')+'</strong><small>'+money(overdueAmount)+' por cobrar</small></span><i aria-hidden="true">→</i></button>');
+    }
+    if(credits.length){
+      var creditAmount=credits.reduce(function(v,x){return v+x.s.credit;},0);
+      tasks.push('<button type="button" class="finance-task" data-finance-alert-filter="credit"><span class="finance-task-count">'+credits.length+'</span><span><strong>'+(credits.length===1?'Saldo a favor':'Saldos a favor')+'</strong><small>'+money(creditAmount)+' sin aplicar</small></span><i aria-hidden="true">→</i></button>');
+    }
+    if(oldSession)tasks.push('<button type="button" class="finance-task" data-finance-alert-filter="cash"><span class="finance-task-count">1</span><span><strong>Corte pendiente</strong><small>Caja abierta más de 18 horas</small></span><i aria-hidden="true">→</i></button>');
+    host.hidden=false;
+    host.innerHTML='<div class="finance-alert" data-tone="'+(overdue.length?'danger':oldSession?'warning':'credit')+'"><div class="finance-alert-heading"><span>POR REVISAR</span><strong>'+total+' tarea'+(total===1?'':'s')+'</strong></div><div class="finance-alert-tasks">'+tasks.join('')+'</div></div>';
+    host.querySelectorAll('[data-finance-alert-filter]').forEach(function(button){button.onclick=function(){var target=button.dataset.financeAlertFilter;if(target==='cash'){state.tab='cash';}else{state.tab='accounts';state.accountFilter=target;}render();};});
+  }
 
   // Resumen ligero de la cuenta de UN paciente (para la tarjeta «Cuenta» del chat): consultas acotadas al paciente, no la carga completa de Cobros.
   function summarizeAccount(d,today){var paid=new Map(),n=function(x){return Number(x||0);};(d.allocations||[]).forEach(function(a){paid.set(a.charge_id,(paid.get(a.charge_id)||0)+n(a.amount));});(d.refundAllocations||[]).forEach(function(a){paid.set(a.charge_id,(paid.get(a.charge_id)||0)-n(a.amount));});var live=(d.charges||[]).filter(function(c){return c.status!=='voided';}),open=[],due=0;live.forEach(function(c){var b=Math.max(0,n(c.total_amount)-(paid.get(c.id)||0));if(b>0){open.push({due_on:c.due_on||null,balance:b});due+=b;}});var overdue=open.filter(function(c){return c.due_on&&String(c.due_on).slice(0,10)<today;}),nextList=open.filter(function(c){return c.due_on;}).sort(function(a,b){return String(a.due_on).localeCompare(String(b.due_on));});var ids=new Set((d.payments||[]).map(function(p){return p.id;})),received=(d.payments||[]).reduce(function(s,p){return s+n(p.amount);},0),refunded=(d.refunds||[]).filter(function(r){return ids.has(r.payment_id);}).reduce(function(s,r){return s+n(r.amount);},0),applied=(d.allocations||[]).filter(function(a){return ids.has(a.payment_id);}).reduce(function(s,a){return s+n(a.amount);},0);var pays=(d.payments||[]).slice().sort(function(a,b){return String(b.paid_at||'').localeCompare(String(a.paid_at||''));});return {due:due,credit:Math.max(0,received-refunded-applied),openCount:open.length,overdueCount:overdue.length,overdueAmount:overdue.reduce(function(s,c){return s+c.balance;},0),nextDue:nextList.length?String(nextList[0].due_on).slice(0,10):null,nextBalance:nextList.length?nextList[0].balance:0,lastPaymentAmount:pays.length?n(pays[0].amount):0,chargeCount:live.length};}
@@ -52,6 +74,53 @@
   async function loadChatLinks(){if(state.chatLinksTenant===state.tenant||!state.tenant)return;state.chatLinksTenant=state.tenant;try{var rows=await q(window.sb.from('camila_lana_handoffs').select('patient_id,lana_conversation_id,lana_channel,updated_at').eq('tenant_id',state.tenant).order('updated_at',{ascending:false}).limit(1000));var map={};(rows||[]).forEach(function(r){if(!map[r.patient_id])map[r.patient_id]={conversation:r.lana_conversation_id,channel:r.lana_channel};});chatLinks=map;if(Object.keys(map).length)renderAccounts();}catch(e){}}
   function openChat(patientId){var l=chatLinks[patientId];if(l&&window.SmylInbox&&typeof window.SmylInbox.open==='function')window.SmylInbox.open(l.conversation);}
   function renderAccounts(){var search=(document.getElementById('finance-search').value||'').toLowerCase(),snaps=state.patients.map(function(p){return {p:p,s:accountSnapshot(p.id)};}),match=function(x,f){if(f==='attention')return x.s.overdue.length||x.s.credit>0;if(f==='overdue')return x.s.overdue.length>0;if(f==='open')return x.s.due>0;if(f==='credit')return x.s.credit>0;if(f==='settled')return x.s.charges.length&&x.s.due===0&&!x.s.credit;return true;},rows=snaps.filter(function(x){return (!search||name(x.p.id).toLowerCase().includes(search))&&match(x,state.accountFilter);}).sort(function(a,b){return b.s.overdue.length-a.s.overdue.length||b.s.due-a.s.due;}),overdueMode=state.accountFilter==='overdue',listHost=document.getElementById('finance-accounts'),todayHost=document.getElementById('finance-today');document.querySelectorAll('[data-account-filter]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.accountFilter===state.accountFilter));var n=b.querySelector('em');if(n)n.textContent=String(snaps.filter(function(x){return match(x,b.dataset.accountFilter);}).length);});var pending=snaps.filter(function(x){return match(x,'attention');}).length,tabCount=document.querySelector('[data-finance-tab="accounts"] em');if(tabCount){tabCount.textContent=String(pending);tabCount.hidden=!pending;}listHost.hidden=overdueMode;if(todayHost)todayHost.hidden=!overdueMode;if(overdueMode){renderToday();return;}listHost.innerHTML=rows.length?'<div class="finance-table"><div class="finance-row finance-row-head"><span>Paciente</span><span>Avance de cuenta</span><span>Saldo</span><span>Acciones</span></div>'+rows.map(function(x){var s=x.s,status=s.overdue.length?'Vencido':s.due?'Pendiente':s.credit?'Saldo a favor':'Al corriente',tone=s.overdue.length?'danger':s.due?'due':'paid';return '<article class="finance-row" data-account-state="'+tone+'"><div><strong>'+esc(name(x.p.id))+'</strong><small>'+(s.credit?money(s.credit)+' a favor':s.next?dueLabel(s.next):s.last?'Sin saldo pendiente':'Sin cargos')+'</small></div><div class="finance-account-progress"><span><b>'+s.progress+'%</b> cubierto</span><i><u style="width:'+s.progress+'%"></u></i><small>'+money(s.paid)+' de '+money(s.total)+'</small></div><div><strong>'+money(s.due)+'</strong><span class="finance-badge" data-tone="'+tone+'">'+status+'</span></div><div class="finance-row-actions"><button data-account="'+x.p.id+'">Ver cuenta</button>'+(chatLinks[x.p.id]?'<button data-chat="'+x.p.id+'" title="Abrir el chat de '+esc(CHAT_NAMES[chatLinks[x.p.id].channel]||'mensajes')+'">Abrir chat</button>':'')+'</div></article>';}).join('')+'</div>':'<div class="finance-empty"><strong>Sin cuentas en esta vista</strong><p>Cambia el filtro o ajusta la búsqueda.</p></div>';document.querySelectorAll('[data-account]').forEach(function(b){b.onclick=function(){openAccount(b.dataset.account);};});document.querySelectorAll('[data-chat]').forEach(function(b){b.onclick=function(){openChat(b.dataset.chat);};});}
+  // Cobros workspace v3: una cuenta comunica una sola situación financiera y una sola acción principal.
+  renderAccounts=function(){
+    var search=(document.getElementById('finance-search').value||'').toLowerCase(),
+      snaps=state.patients.map(function(p){return {p:p,s:accountSnapshot(p.id)};}),
+      match=function(x,f){
+        if(f==='attention')return x.s.overdue.length||x.s.credit>0;
+        if(f==='overdue')return x.s.overdue.length>0;
+        if(f==='open')return x.s.due>0;
+        if(f==='credit')return x.s.credit>0;
+        if(f==='settled')return x.s.charges.length&&x.s.due===0&&!x.s.credit;
+        return true;
+      },
+      rows=snaps.filter(function(x){return (!search||name(x.p.id).toLowerCase().includes(search))&&match(x,state.accountFilter);}).sort(function(a,b){return b.s.overdue.length-a.s.overdue.length||b.s.due-a.s.due||b.s.credit-a.s.credit;}),
+      overdueMode=state.accountFilter==='overdue',listHost=document.getElementById('finance-accounts'),todayHost=document.getElementById('finance-today'),summaryHost=document.getElementById('finance-account-summary');
+    document.querySelectorAll('[data-account-filter]').forEach(function(button){
+      button.setAttribute('aria-pressed',String(button.dataset.accountFilter===state.accountFilter));
+      var count=button.querySelector('em');
+      if(count)count.textContent=String(snaps.filter(function(x){return match(x,button.dataset.accountFilter);}).length);
+    });
+    var filterStrip=document.querySelector('.finance-account-filters'),selectedFilter=filterStrip&&filterStrip.querySelector('[aria-pressed="true"]');
+    if(filterStrip&&selectedFilter&&filterStrip.scrollWidth>filterStrip.clientWidth)requestAnimationFrame(function(){selectedFilter.scrollIntoView({block:'nearest',inline:'center'});});
+    var openCount=snaps.filter(function(x){return match(x,'open');}).length,tabCount=document.querySelector('[data-finance-tab="accounts"] em');
+    if(tabCount){tabCount.textContent=String(openCount);tabCount.hidden=!openCount;}
+    if(summaryHost){
+      var totals=rows.reduce(function(out,x){out.due+=x.s.due;out.credit+=x.s.credit;return out;},{due:0,credit:0}),labels={attention:'requieren revisión',open:'con saldo pendiente',credit:'con saldo a favor',settled:'liquidadas',all:'en total'};
+      summaryHost.textContent=overdueMode?'Ordenadas por días de atraso':rows.length+' cuenta'+(rows.length===1?'':'s')+' '+(labels[state.accountFilter]||'');
+      if(rows.length&&state.accountFilter==='open')summaryHost.textContent+=' · '+money(totals.due);
+      if(rows.length&&state.accountFilter==='credit')summaryHost.textContent+=' · '+money(totals.credit);
+    }
+    listHost.hidden=overdueMode;
+    if(todayHost)todayHost.hidden=!overdueMode;
+    if(overdueMode){renderToday();return;}
+    listHost.innerHTML=rows.length?'<div class="finance-table"><div class="finance-row finance-row-head"><span>Paciente</span><span>Estado de cuenta</span><span>Importe</span><span>Acción</span></div>'+rows.map(function(x){
+      var s=x.s,hasDebt=s.due>0,creditOnly=!hasDebt&&s.credit>0,settled=s.charges.length&&!hasDebt&&!s.credit,
+        status=s.overdue.length?'Vencida':hasDebt?'Pendiente':creditOnly?'A favor':settled?'Liquidada':'Sin movimientos',
+        tone=s.overdue.length?'danger':hasDebt?'due':creditOnly?'credit':settled?'paid':'neutral',
+        context=hasDebt&&s.total?'<div class="finance-account-progress"><span><b>'+s.progress+'% cubierto</b><small>'+money(s.paid)+' de '+money(s.total)+'</small></span><i><u style="width:'+s.progress+'%"></u></i></div>':creditOnly?'<div class="finance-account-note"><strong>Anticipo disponible</strong><small>Listo para aplicar a un cargo.</small></div>':'<div class="finance-account-note"><strong>'+(settled?'Cuenta al corriente':'Sin actividad financiera')+'</strong><small>'+(settled?'No hay pagos pendientes.':'Aún no se han registrado cargos.')+'</small></div>',
+        amountLabel=hasDebt?'Por cobrar':creditOnly?'Saldo a favor':settled?'Estado':'Cuenta',
+        amount=hasDebt?money(s.due):creditOnly?'+'+money(s.credit):settled?'Sin saldo':'—',
+        detail=hasDebt?(s.next?dueLabel(s.next):'Sin fecha de vencimiento'):creditOnly?'Anticipo sin aplicar':s.last?'Sin saldo pendiente':'Sin cargos',
+        chat=chatLinks[x.p.id]?'<details class="finance-row-menu"><summary aria-label="Más acciones para '+esc(name(x.p.id))+'">•••</summary><div><button type="button" data-chat="'+x.p.id+'">Abrir chat</button></div></details>':'';
+      return '<article class="finance-row" data-account-state="'+tone+'"><div class="finance-account-identity"><strong>'+esc(name(x.p.id))+'</strong><small>'+esc(detail)+'</small></div><div class="finance-account-context">'+context+'</div><div class="finance-account-amount"><span>'+amountLabel+'</span><strong>'+amount+'</strong><span class="finance-badge" data-tone="'+tone+'">'+status+'</span>'+(hasDebt&&s.credit?'<small>Además, '+money(s.credit)+' a favor</small>':'')+'</div><div class="finance-row-actions"><button type="button" class="finance-account-open" data-account="'+x.p.id+'">Abrir cuenta</button>'+chat+'</div></article>';
+    }).join('')+'</div>':'<div class="finance-empty"><strong>Sin cuentas en esta vista</strong><p>Cambia el filtro o ajusta la búsqueda.</p></div>';
+    listHost.querySelectorAll('[data-account]').forEach(function(button){button.onclick=function(){openAccount(button.dataset.account);};});
+    listHost.querySelectorAll('[data-chat]').forEach(function(button){button.onclick=function(){openChat(button.dataset.chat);};});
+  };
+
   function renderPayments(){
     var methods={cash:'Efectivo',card:'Tarjeta',transfer:'Transferencia',check:'Cheque',other:'Otro'};
     var events=state.payments.map(function(p){return {kind:'payment',at:p.paid_at,row:p};})
@@ -357,6 +426,55 @@
   function build(){var page=el('section','pantalla finance-page');page.id='p-caja';page.innerHTML='<h1>Cobros</h1><div id="finance-feedback" aria-live="polite"></div><section id="finance-focus" class="finance-alert-host" aria-live="polite" hidden></section><section id="finance-metrics" class="finance-metrics"></section><div class="finance-bar"><nav class="finance-tabs" aria-label="Secciones de Cobros"><button data-finance-tab="accounts" aria-selected="true">Por cobrar<em hidden></em></button><button data-finance-tab="payments">Pagos</button><button data-finance-tab="cash">Caja</button><button data-finance-tab="fiscal">Facturación</button></nav><div class="finance-head-actions"><button id="finance-new-charge">Nuevo cargo</button><button id="finance-from-proposal">Importar cotización</button><button class="btn btn-primary" id="finance-new-payment">Registrar pago</button></div></div><section data-finance-panel="accounts"><section id="finance-visits" class="finance-visits" aria-live="polite" hidden></section><article class="finance-card"><div class="finance-toolbar"><input id="finance-search" type="search" placeholder="Buscar paciente"><div class="finance-account-filters"><button type="button" data-account-filter="attention" aria-pressed="true">Por atender <em></em></button><button type="button" data-account-filter="overdue">Vencidas <em></em></button><button type="button" data-account-filter="open">Con saldo <em></em></button><button type="button" data-account-filter="credit">Saldo a favor <em></em></button><button type="button" data-account-filter="settled">Liquidadas</button><button type="button" data-account-filter="all">Todas</button></div></div><p class="finance-section-copy">Del más urgente al más reciente. El avance sale de cargos, pagos y reembolsos confirmados; ningún cobro se ejecuta automáticamente.</p><div id="finance-accounts"></div><div id="finance-today" hidden></div></article></section><section data-finance-panel="payments" hidden><article class="finance-card"><header><div><h2>Libro de pagos</h2><p>Los movimientos no se borran: se corrigen con reembolsos auditados.</p></div></header><div id="finance-payments" class="finance-ledger"></div></article></section><section data-finance-panel="cash" hidden><div class="finance-grid"><article class="finance-card"><header><div><h2>Mi turno</h2><p>Control de efectivo por usuario y sucursal.</p></div></header><div id="finance-cash"></div></article><aside class="finance-card"><h2>Reglas de caja</h2><p>El efectivo requiere sesión abierta. Tarjeta y transferencia se registran sin alterar el efectivo esperado. Toda entrada o salida exige motivo.</p></aside></div></section><section data-finance-panel="fiscal" hidden><article class="finance-card"><header><div><h2>Preparación CFDI 4.0</h2><p>Borradores con conceptos y prevalidación local antes de cualquier PAC sandbox.</p></div></header><div id="finance-fiscal"></div></article></section><dialog id="finance-dialog" class="finance-dialog"></dialog>';document.querySelector('.contenido').append(page);var print=el('section','finance-print');print.id='finance-print';document.body.append(print);page.querySelectorAll('[data-finance-tab]').forEach(function(b){b.onclick=function(){state.tab=b.dataset.financeTab;render();};});page.querySelectorAll('[data-account-filter]').forEach(function(b){b.onclick=function(){state.accountFilter=b.dataset.accountFilter;renderAccounts();};});page.querySelector('#finance-from-proposal').onclick=function(){openProposalCharge();};page.querySelector('#finance-new-charge').onclick=function(){openCharge();};page.querySelector('#finance-new-payment').onclick=function(){openPayment();};page.querySelector('#finance-search').oninput=renderAccounts;page.querySelector('#finance-dialog').onclick=function(e){if(e.target===e.currentTarget)e.currentTarget.close();};}
   function upgradeFinanceActions(){var actions=document.querySelector('#p-caja .finance-head-actions');if(!actions)return;actions.innerHTML='<button class="btn btn-primary" id="finance-guided-collection">Cobrar a paciente</button><details class="finance-more-actions"><summary>Más acciones</summary><div><button type="button" id="finance-new-charge"><strong>Agregar cargo sin pago</strong><small>Crear un adeudo en la cuenta.</small></button><button type="button" id="finance-from-proposal"><strong>Importar cotización</strong><small>Convertir una versión aceptada.</small></button><button type="button" id="finance-new-advance"><strong>Registrar anticipo</strong><small>Guardar saldo a favor.</small></button><button type="button" id="finance-no-show-fee"><strong>Cobro por inasistencia</strong><small>Monto cuando un paciente no vino.</small></button></div></details>';actions.querySelector('#finance-guided-collection').onclick=function(){openGuidedCollection();};actions.querySelector('#finance-new-charge').onclick=function(){openCharge(null,{mode:'charge'});};actions.querySelector('#finance-from-proposal').onclick=function(){openProposalCharge();};actions.querySelector('#finance-new-advance').onclick=function(){openPayment(null,{mode:'advance'});};actions.querySelector('#finance-no-show-fee').onclick=function(){openNoShowFee();};}
   function navigation(){window.TITULOS.caja='Caja';var primary=document.querySelector('.pro-primary-nav');if(primary&&!primary.querySelector('[onclick="ir(\'caja\')"]')){var b=el('button','nav-item','Caja');b.type='button';b.setAttribute('onclick',"ir('caja')");var inventory=primary.querySelector('[onclick="ir(\'inventario\')"]');if(inventory)inventory.after(b);else primary.append(b);}var mobile=document.querySelector('.pro-mobile-nav');if(mobile&&!mobile.querySelector('[onclick="ir(\'caja\')"]')){var m=el('button','nav-item','Caja');m.type='button';m.setAttribute('onclick',"ir('caja')");var i=mobile.querySelector('[onclick="ir(\'inventario\')"]');if(i)i.after(m);else mobile.append(m);}}
+  function upgradeFinanceWorkspace(){
+    var panel=document.querySelector('#p-caja [data-finance-panel="accounts"]'),card=panel&&panel.querySelector('.finance-card:not(.finance-visits-card)');
+    if(!card)return;
+    card.classList.add('finance-accounts-card');
+    var toolbar=card.querySelector('.finance-toolbar');
+    if(toolbar&&!card.querySelector('.finance-accounts-heading')){
+      var heading=el('header','finance-accounts-heading');
+      heading.innerHTML='<div><span>CUENTAS</span><h2>Cuentas de pacientes</h2></div><p id="finance-account-summary" aria-live="polite"></p>';
+      toolbar.before(heading);
+    }
+    var search=card.querySelector('#finance-search');
+    if(search){search.placeholder='Buscar por nombre';search.setAttribute('aria-label','Buscar cuenta de paciente');}
+    var labels={attention:'Requieren acción',overdue:'Vencidas',open:'Pendientes',credit:'A favor',settled:'Liquidadas',all:'Todas'};
+    card.querySelectorAll('[data-account-filter]').forEach(function(button){var first=button.firstChild;if(first&&first.nodeType===3)first.nodeValue=labels[button.dataset.accountFilter]+' ';});
+    var filters=card.querySelector('.finance-account-filters'),pending=filters&&filters.querySelector('[data-account-filter=open]');
+    if(filters&&pending)filters.prepend(pending);
+    if(!state.filterResizeBound){state.filterResizeBound=true;window.addEventListener('resize',function(){var strip=document.querySelector('.finance-account-filters'),active=strip&&strip.querySelector('[aria-pressed="true"]');if(strip&&active&&strip.scrollWidth>strip.clientWidth)active.scrollIntoView({block:'nearest',inline:'center'});});}
+    var copy=card.querySelector('.finance-section-copy');
+    if(copy)copy.textContent='Ordenadas por prioridad. Ningún cobro se realiza automáticamente.';
+  }
+  var buildBase=build;
+  build=function(){buildBase();upgradeFinanceWorkspace();};
+  renderToday=function(){
+    var host=document.getElementById('finance-today');
+    if(!host||state.tab!=='accounts'||state.accountFilter!=='overdue')return;
+    var search=((document.getElementById('finance-search')||{}).value||'').toLowerCase(),rows=collectRows().filter(function(x){return !search||name(x.p.id).toLowerCase().includes(search);}),total=rows.reduce(function(sum,x){return sum+x.amount;},0);
+    host.innerHTML=rows.length?'<div class="finance-list-summary"><div><strong>'+rows.length+' paciente'+(rows.length===1?'':'s')+' con saldo vencido · '+money(total)+'</strong><small>Ordenados por días de atraso. Los recordatorios siempre se revisan antes de enviarse.</small></div></div><div class="finance-today-list">'+rows.map(function(x){
+      var id=x.p.id,link=chatLinks[id],blocked=collectMeta.blocked[id],last=collectMeta.reminders[id],days=last?daysAgo(last):null,recent=days!==null&&days<7,status=blocked?'No contactar':recent?'Avisado '+agoLabel(days):last?'Último aviso '+agoLabel(days):'Sin aviso reciente',tone=blocked?'danger':recent?'paid':'due',menu=[];
+      if(link&&!blocked&&window.SmylInbox&&window.SmylInbox.collect&&link.channel==='whatsapp')menu.push('<button type="button" data-today-send="'+id+'">'+(recent?'Enviar otro recordatorio':'Enviar recordatorio')+'</button>');
+      if(link)menu.push('<button type="button" data-chat="'+id+'">Abrir chat</button>');
+      if(blocked){if(state.canManage)menu.push('<button type="button" data-today-allow="'+id+'">Permitir recordatorios</button>');}
+      else menu.push('<button type="button" data-today-block="'+id+'">No contactar</button>');
+      return '<article class="finance-today-row"><div class="finance-account-identity"><strong>'+esc(name(id))+'</strong><small>'+x.s.overdue.length+' cargo'+(x.s.overdue.length===1?'':'s')+' · '+x.days+' día'+(x.days===1?'':'s')+' de atraso</small></div><div class="finance-account-amount"><span>Vencido</span><strong>'+money(x.amount)+'</strong><span class="finance-badge" data-tone="'+tone+'">'+esc(status)+'</span></div><div class="finance-row-actions"><button type="button" class="finance-account-open" data-account="'+id+'">Abrir cuenta</button>'+(menu.length?'<details class="finance-row-menu"><summary aria-label="Más acciones para '+esc(name(id))+'">•••</summary><div>'+menu.join('')+'</div></details>':'')+'</div></article>';
+    }).join('')+'</div>':'<div class="finance-empty"><strong>'+(search?'Sin resultados en Vencidas':'Nadie con saldo vencido')+'</strong><p>'+(search?'Ajusta la búsqueda o cambia de filtro.':'Cuando un cargo pase su fecha de vencimiento, el paciente aparecerá aquí.')+'</p></div>';
+    host.querySelectorAll('[data-account]').forEach(function(button){button.onclick=function(){openAccount(button.dataset.account);};});
+    host.querySelectorAll('[data-chat]').forEach(function(button){button.onclick=function(){openChat(button.dataset.chat);};});
+    host.querySelectorAll('[data-today-send]').forEach(function(button){button.onclick=function(){var item=chatLinks[button.dataset.todaySend];if(item)window.SmylInbox.collect(item.conversation);};});
+    host.querySelectorAll('[data-today-block]').forEach(function(button){button.onclick=function(){setCollectPref(button.dataset.todayBlock,true);};});
+    host.querySelectorAll('[data-today-allow]').forEach(function(button){button.onclick=function(){setCollectPref(button.dataset.todayAllow,false);};});
+  };
+  var renderVisitsBase=renderVisits;
+  renderVisits=function(){
+    renderVisitsBase();
+    var card=document.querySelector('#finance-visits .finance-visits-card'),heading=card&&card.querySelector('header>div'),title=heading&&heading.querySelector('h2'),copy=heading&&heading.querySelector('p');
+    if(heading&&!heading.querySelector('.finance-section-kicker'))heading.insertAdjacentHTML('afterbegin','<span class="finance-section-kicker">CITAS ATENDIDAS</span>');
+    if(title&&title.firstChild)title.firstChild.nodeValue='Pendientes de registrar ';
+    if(copy)copy.textContent='Confirma qué se realizó o marca la visita sin cargo. Nada se cobra automáticamente.';
+  };
+
   // ── Numerito en el menú: pacientes pendientes de cargo ─────────────────────────────────────────────────
   // Mismo criterio que la lista de Cobros (cita que llegó, sin cargo vigente, sin «sin cargo» y con servicio de precio ≠ $0), calculado con
   // la función de sólo lectura smyl_appointment_billing sin abrir Cobros. Sin permiso finance.read la función no devuelve nada y no se muestra.

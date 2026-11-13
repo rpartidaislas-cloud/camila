@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-13 — Codex — Cobros como espacio de trabajo orientado a tareas
+
+- **Cobros** deja de presentar indicadores, citas y cuentas como bloques equivalentes. La cabecera usa una franja compacta de cuatro indicadores y la alerta superior se convierte en una bandeja de tareas separadas para vencimientos, saldos a favor y corte de caja.
+- **Citas atendidas** queda como una tarea operativa independiente para registrar cargo o marcar sin cargo. **Cuentas de pacientes** concentra la cartera y abre por defecto en **Pendientes**, con búsqueda y filtros horizontales; ya no mezcla una cuenta con saldo a favor dentro de la vista principal de cobro.
+- Cada cuenta tiene una sola acción visible, **Abrir cuenta**. Chat, recordatorios y datos de contacto permanecen disponibles como acciones secundarias. Los saldos a favor se muestran como importe positivo, las cuentas sin vencimiento ya no aparentan estar vencidas y los menús secundarios vacíos no se presentan.
+- La experiencia PWA conserva pestañas y filtros en una sola fila desplazable, texto de al menos 12 px y controles táctiles de 44 px. La selección activa se mantiene visible al cambiar el ancho de pantalla y no se pierde información en 390 ni 320 px.
+- Se conserva la mejora ya publicada del formulario de cargo: total siempre visible y campos compuestos sin doble borde. No cambian saldos, cálculos, permisos, RPC, persistencia, historial contable ni facturación. Web y `mobile/www` quedan sincronizados con `smyl-finance.js?v=35`, CSS `v=28` y caché `finance-workspace-v4`.
+- Verificación: `101/101` pruebas financieras focalizadas aprobadas; sintaxis y paridad web/PWA aprobadas; recorrido real en Chrome aprobado en escritorio, 390 px y 320 px, sin desbordamiento horizontal, microtexto ni objetivos táctiles insuficientes. Publicado en producción el 13 de noviembre de 2026 sin migraciones ni cambios de backend.
+
 ## 2026-11-13 — Codex — Dictado clínico como entrada del odontograma
 
 - Se incorpora **Dictar hallazgo** como una única acción secundaria dentro del odontograma. No se crea un módulo, expediente ni guardado paralelo: la voz sólo prepara una observación en el borrador dental canónico.

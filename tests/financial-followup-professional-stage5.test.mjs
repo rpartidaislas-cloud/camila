@@ -10,9 +10,10 @@ const styles = read('../smyl-finance.css');
 const dialogSystem = read('../smyl-dialog-system.js');
 
 test('la cartera prioriza vencimientos, créditos y cortes verificables', () => {
-  for (const label of ['cartera vencida', 'saldo a favor sin aplicar', 'corte pendiente']) {
-    assert.match(finance, new RegExp(label));
-  }
+  assert.match(finance, /Cuenta vencida/);
+  assert.match(finance, /Saldo a favor/);
+  assert.match(finance, /sin aplicar/);
+  assert.match(finance, /Corte pendiente/);
   assert.match(finance, /finance-alert/);
   assert.match(finance, /accountSnapshot/);
   assert.match(finance, /dueLabel/);
@@ -20,8 +21,9 @@ test('la cartera prioriza vencimientos, créditos y cortes verificables', () => 
 });
 
 test('cada cuenta comunica avance sin inventar estados financieros', () => {
-  assert.match(finance, /Por atender/);
-  assert.match(finance, /Con saldo/);
+  assert.match(finance, /Requieren acción/);
+  assert.match(finance, /Pendientes/);
+  assert.match(finance, /A favor/);
   assert.match(finance, /Liquidadas/);
   assert.match(finance, /Total cargado/);
   assert.doesNotMatch(finance, /Total de tratamiento/);
@@ -78,8 +80,8 @@ test('el cobro cotidiano parte del paciente y decide la operación sin mezclar m
 });
 
 test('web, móvil y PWA publican la etapa cinco sincronizada', () => {
-  assert.match(app, /smyl-finance\.css\?v=27/);
-  assert.match(app, /smyl-finance\.js\?v=34/);
+  assert.match(app, /smyl-finance\.css\?v=28/);
+  assert.match(app, /smyl-finance\.js\?v=35/);
   assert.match(worker, /collection-visual-v1/);
   assert.match(worker, /smyl-v267-guided-collection-sentry-v1/);
   for (const file of ['app.html', 'sw.js', 'smyl-finance.js', 'smyl-finance.css', 'smyl-dialog-system.js']) {

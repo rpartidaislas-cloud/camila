@@ -6,10 +6,16 @@ const { chromium } = require('playwright');
 const http = require('http'), fs = require('fs'), path = require('path');
 const root = path.resolve(__dirname, '..', '..'), S = __dirname; // los datos viven en fake-supabase-cobros.js; las capturas se guardan en la carpeta temporal
 const shots = require('os').tmpdir();
+const chromeCandidates = [
+  process.env.PLAYWRIGHT_CHROME_EXECUTABLE,
+  process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : '',
+  process.platform === 'win32' && process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Google', 'Chrome', 'Application', 'chrome.exe') : ''
+].filter(Boolean);
+const chromeExecutable = chromeCandidates.find(candidate => fs.existsSync(candidate));
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
 const server = http.createServer((req, res) => { let p = decodeURIComponent(req.url.split('?')[0]); if (p === '/') p = '/app.html'; const f = path.join(root, p);
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end(); } res.writeHead(200, { 'Content-Type': types[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(res); }).listen(0, async () => {
-  const b = await chromium.launch(); const ctx = await b.newContext({ serviceWorkers: 'block', viewport: { width: 1500, height: 1000 }, deviceScaleFactor: 1 }); const page = await ctx.newPage(); const errs = [];
+  const b = await chromium.launch(chromeExecutable ? { executablePath: chromeExecutable } : {}); const ctx = await b.newContext({ serviceWorkers: 'block', viewport: { width: 1500, height: 1000 }, deviceScaleFactor: 1 }); const page = await ctx.newPage(); const errs = [];
   page.on('pageerror', e => errs.push(e.message.slice(0, 200))); page.on('dialog', d => d.dismiss());
   await page.route('**/*', r => { const u = r.request().url(); if (u.includes('@supabase/supabase-js') || u.includes('/vendor/supabase-js-')) return r.fulfill({ status: 200, contentType: 'text/javascript', body: fs.readFileSync(path.join(S, 'fake-supabase-cobros.js'), 'utf8') }); return u.startsWith('http://127.0.0.1') ? r.continue() : r.abort(); });
   await page.goto(`http://127.0.0.1:${server.address().port}/app.html`, { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(2500);
@@ -38,7 +44,26 @@ const server = http.createServer((req, res) => { let p = decodeURIComponent(req.
   await page.evaluate(() => { window.__db.smyl_appointments.push({ id: 'a7', tenant_id: window.__db.camila_tenants[0].id, patient_id: 'p2000000-0000-4000-8000-000000000002', service_id: 's1', branch_id: 'b1', starts_at: new Date().toISOString(), status: 'arrived' }); ir('dashboard'); });
   await page.waitForTimeout(300); await page.evaluate(() => ir('caja')); await page.waitForTimeout(1500);
   const r5 = (await rows()).length; console.log('5) llegada nueva sin recargar:', r5, 'pendientes'); check(r5 === 4, 'una llegada nueva debe aparecer al volver a Cobros');
-  await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(400); await page.screenshot({ path: shots + '/cobros-pendientes-movil.png' });
+  const auditMobile = async (width, height, label) => {
+    await page.setViewportSize({ width, height }); await page.waitForTimeout(350);
+    const metrics = await page.evaluate(() => {
+      const root = document.querySelector('#p-caja');
+      const visible = element => { const style = getComputedStyle(element); return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0; };
+      const under12 = [...root.querySelectorAll('p,span,small,label,button,strong')].filter(visible).filter(element => element.textContent.trim() && parseFloat(getComputedStyle(element).fontSize) < 11.99).map(element => element.textContent.trim().slice(0, 40));
+      const shortTargets = [...root.querySelectorAll('button,input,[role="button"]')].filter(visible).map(element => ({ text: element.textContent.trim().slice(0, 30), box: element.getBoundingClientRect() })).filter(item => item.box.height < 43.5 || item.box.width < 43.5).map(item => item.text);
+      const tab = root.querySelector('.finance-tabs'), filters = root.querySelector('.finance-account-filters');
+      return { overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, under12, shortTargets, tabRows: Math.round(tab.scrollHeight / tab.querySelector('button').getBoundingClientRect().height), filterRows: Math.round(filters.scrollHeight / filters.querySelector('button').getBoundingClientRect().height) };
+    });
+    console.log(`   ${label}:`, JSON.stringify(metrics));
+    check(!metrics.overflow, `${label} no debe desbordar horizontalmente`);
+    check(metrics.under12.length === 0, `${label} no debe mostrar microtexto`);
+    check(metrics.shortTargets.length === 0, `${label} debe conservar objetivos táctiles`);
+    check(metrics.tabRows === 1 && metrics.filterRows === 1, `${label} debe mantener pestañas y filtros en una fila`);
+    await page.locator('.finance-accounts-card').scrollIntoViewIfNeeded(); await page.waitForTimeout(150);
+    await page.screenshot({ path: shots + `/cobros-cuentas-${label}.png` });
+  };
+  await auditMobile(390, 844, 'movil-390');
+  await auditMobile(320, 760, 'movil-320');
   const fail = [];
   const first = (await rows()); void first;
   console.log('errores de página:', JSON.stringify(errs)); if (errs.length) fail.push('errores de página'); if (failCount) fail.push('aserciones');
