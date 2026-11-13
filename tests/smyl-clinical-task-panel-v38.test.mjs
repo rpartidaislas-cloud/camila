@@ -50,8 +50,8 @@ test('los controles móviles mantienen 44 px y el flujo se apila', () => {
 });
 
 test('web, PWA y fuente móvil distribuyen la tarea clínica v3.8', () => {
-  assert.match(app, /smyl-case-workspace\.css\?v=27/);
-  assert.match(app, /smyl-case-workspace\.js\?v=35/);
+  assert.match(app, /smyl-case-workspace\.css\?v=28/);
+  assert.match(app, /smyl-case-workspace\.js\?v=37/);
   assert.match(worker, /clinical-task-panel-v38/);
   assert.match(worker, /single-odontogram-v39/);
 assert.match(worker, /radiograph-navigation-v43/);

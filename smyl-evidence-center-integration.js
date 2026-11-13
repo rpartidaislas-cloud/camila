@@ -439,6 +439,7 @@
     const shellTitle = shellSummary?.querySelector(':scope > span:nth-child(2) strong');
     const shellToggle = shellSummary?.querySelector('.cw-advanced-toggle');
     const banner = el('section', 'seci-radiograph-focus');
+    banner.id = 'seci-radiograph-intake-status';
     banner.setAttribute('role', 'status');
     banner.setAttribute('aria-live', 'polite');
     banner.tabIndex = -1;
@@ -477,7 +478,11 @@
     shell?.addEventListener('toggle', intake.keepOpen);
     record.dataset.evidenceIntake = 'preparing';
     if (shell) shell.dataset.evidenceIntake = 'preparing';
-    if (save) save.textContent = 'Guardar radiografía';
+    if (save) {
+      save.textContent = 'Guardar radiografía';
+      save.classList.add('seci-intake-save');
+      save.setAttribute('aria-describedby', 'seci-radiograph-intake-status');
+    }
     if (shellTitle) shellTitle.textContent = 'Revisar y guardar radiografía';
     if (shellToggle) shellToggle.textContent = 'En curso';
   }
@@ -491,12 +496,14 @@
     if (intake.shell) intake.shell.dataset.evidenceIntake = 'ready';
     const card = [...intake.record.querySelectorAll('.dr-study')].find(item => item.dataset.studyId === intake.studyId);
     card?.classList.add('is-evidence-intake');
-    const discard = [...(card?.querySelectorAll('button') || [])].find(control => control.textContent.trim() === 'Quitar carga');
-    if (discard) discard.textContent = 'Descartar';
+    const notes = card?.querySelector('.dr-intake-notes');
+    const discard = card?.querySelector('.dr-intake-discard');
+    if (notes) notes.setAttribute('aria-label', 'Añadir notas opcionales antes de guardar la radiografía');
+    if (discard) discard.setAttribute('aria-label', 'Descartar esta carga radiográfica sin guardar');
     const title = intake.banner.querySelector('strong');
     const detail = intake.banner.querySelector('p');
     if (title) title.textContent = 'Radiografía sin guardar';
-    if (detail) detail.textContent = 'Revisa el archivo preparado y finaliza con Guardar radiografía.';
+    if (detail) detail.textContent = 'Guarda la radiografía para añadirla al expediente. Las notas son opcionales.';
     requestAnimationFrame(() => {
       if (!current(state) || !intake.banner.isConnected) return;
       intake.banner.scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -514,7 +521,11 @@
     intake.shell?.querySelector(':scope > summary')?.removeEventListener('click', intake.blockSummary);
     intake.shell?.querySelector(':scope > summary')?.removeEventListener('keydown', intake.blockSummary);
     intake.shell?.removeEventListener('toggle', intake.keepOpen);
-    if (intake.save?.isConnected) intake.save.textContent = intake.saveLabel;
+    if (intake.save?.isConnected) {
+      intake.save.textContent = intake.saveLabel;
+      intake.save.classList.remove('seci-intake-save');
+      intake.save.removeAttribute('aria-describedby');
+    }
     if (intake.shellTitle?.isConnected) intake.shellTitle.textContent = intake.shellTitleLabel;
     if (intake.shellToggle?.isConnected) intake.shellToggle.textContent = intake.shellToggleLabel;
     state.pendingRadiographIntake = null;
@@ -669,7 +680,7 @@
       editor.scrollIntoView({ block: 'start', behavior: 'smooth' });
       state.pendingRadiographIntake?.banner?.focus({ preventScroll: true });
     });
-    announce(state, 'Radiografía preparada en el editor. Revísala y pulsa Guardar radiografía; todavía no se ha guardado.', 'attention');
+    announce(state, 'Radiografía preparada. Pulsa Guardar radiografía para añadirla al expediente.', 'attention');
     return true;
   }
 

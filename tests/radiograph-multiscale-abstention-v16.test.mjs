@@ -62,9 +62,9 @@ test('web y PWA usan la misma versión del flujo multiescala', () => {
   const app = read('app.html');
   const worker = read('sw.js');
   assert.match(app, /smyl-radiograph-analysis-client\.js\?v=12/);
-  assert.match(app, /smyl-radiograph-review\.js\?v=26/);
+  assert.match(app, /smyl-radiograph-review\.js\?v=27/);
   assert.match(app, /smyl-radiograph-workbench\.css\?v=21/);
-  assert.match(app, /smyl-dental-record\.js\?v=26/);
+  assert.match(app, /smyl-dental-record\.js\?v=28/);
   assert.match(worker, /radiograph-multiscale-abstention-v16/);
   for (const file of ['app.html', 'sw.js', 'smyl-radiograph-analysis-client.js', 'smyl-radiograph-review.js', 'smyl-radiograph-workbench.css', 'smyl-dental-record.js']) {
     assert.equal(read(file), read('mobile/www/' + file), file + ' desincronizado');

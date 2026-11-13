@@ -12,8 +12,8 @@ const dental = read('../smyl-dental-record.js');
 const css = read('../smyl-radiograph-workbench.css');
 
 assert.match(app, /smyl-radiograph-workbench\.css\?v=21/);
-assert.match(app, /smyl-radiograph-review\.js\?v=26/);
-assert.match(app, /smyl-dental-record\.js\?v=26/);
+assert.match(app, /smyl-radiograph-review\.js\?v=27/);
+assert.match(app, /smyl-dental-record\.js\?v=28/);
 assert.match(worker, /radiograph-navigation-v43/);
 assert.match(worker, /smyl-radiograph-workbench\.css\?v=21/);
 assert.match(worker, /radiograph-guided-process-v15/);

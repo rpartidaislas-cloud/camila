@@ -41,7 +41,7 @@ test('la evaluación separa contexto, revisión profesional y conclusión en una
   assert.match(workspace, /function showEvaluationTask\(ctx,id,focus=true\)/);
   assert.equal((workspace.match(/ctx\.evaluationCta=btn/g) || []).length, 1);
   assert.match(workspace, /function updateEvaluationAction\(ctx\)/);
-  for (const label of ['Continuar a revisión', 'Revisar conclusión', 'Continuar revisión', 'Continuar a propuesta']) {
+  for (const label of ['Continuar a revisión', 'Continuar a conclusión', 'Continuar revisión', 'Continuar a propuesta']) {
     assert.match(workspace, new RegExp(label));
   }
   assert.doesNotMatch(workspace, /evaluationTask\(ctx,'evidence'/);
@@ -132,8 +132,8 @@ test('web, móvil y PWA distribuyen la misma implementación', () => {
   assert.match(app, /smyl-patient-360\.css\?v=18/);
   assert.match(app, /smyl-clinic\.js\?v=23/);
   assert.match(app, /smyl-patient-360\.js\?v=26/);
-  assert.match(app, /smyl-case-workspace\.css\?v=27/);
-  assert.match(app, /smyl-case-workspace\.js\?v=35/);
+  assert.match(app, /smyl-case-workspace\.css\?v=28/);
+  assert.match(app, /smyl-case-workspace\.js\?v=37/);
   assert.match(worker, /evaluation-separation-v79/);
   for (const file of ['app.html', 'sw.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css', 'smyl-patient-360.js', 'smyl-patient-360.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));

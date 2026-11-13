@@ -252,7 +252,7 @@
   }
   function render(){
    if(!valid())return close(run,true);host.replaceChildren();setStep(!run.doc||run.doc.workflow.state!=='completed'||run.phase==='image'?1:run.phase==='summary'?3:2);
-   if(!run.store){host.append(n('section','rr-empty',null));host.firstChild.append(n('h1','','Revisión asistida preparada'),n('p','','El guardado privado de esta fase aún no está activado. La radiografía no se enviará a IA desde esta pantalla.'),n('p','rr-note','Puedes seguir usando “Abrir y anotar” para registrar observaciones manuales.'));return;}
+   if(!run.store){host.append(n('section','rr-empty',null));host.firstChild.append(n('h1','','Revisión asistida preparada'),n('p','','El guardado privado de esta fase aún no está activado. La radiografía no se enviará a IA desde esta pantalla.'),n('p','rr-note','Puedes abrir el archivo original para registrar observaciones manuales.'));return;}
    // Una revisión reiniciada con «Volver a intentar» queda en 'ready': vuelve a mostrar el inicio (sin crear otra fila).
    if(!run.doc||run.doc.workflow.state==='ready'){
     const intro=n('section','rr-intro');intro.append(n('p','rr-step','1 de 3 · Comprobar imagen'),n('h1','','Revisar con apoyo de IA'),n('p','rr-lead','La IA señala zonas para comprobar. No diagnostica ni modifica el mapa dental.'),imagePanel(null));

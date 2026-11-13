@@ -21,7 +21,8 @@ test('read permission unlocks the record, dental map and radiograph viewer witho
   assert.match(source, /openStudy[\s\S]*?!ctx\.canRead/);
   assert.match(source, /planContext[\s\S]*?!ctx\.canRead/);
   assert.match(source, /await guard\(ctx,'read'\);const row=await checked\(sb\.from\('smyl_dental_records'\)/);
-  assert.match(source, /button\(ctx\.canWrite\?'Abrir y anotar':'Abrir estudio'/);
+  assert.match(source, /button\(pendingUpload&&ctx\.canWrite\?'Añadir notas':ctx\.canWrite\?'Abrir archivo':'Ver archivo'/);
+  assert.match(source, /canReviewStudies:ctx\.canWrite&&ctx\.canApprove/);
   assert.match(source, /notes\.e\.readOnly=!ctx\.canWrite/);
 });
 

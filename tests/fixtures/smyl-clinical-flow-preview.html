@@ -60,7 +60,7 @@
   <script src="../../smyl-tooth-map.js?v=2"></script>
   <script>
     const taskOrder=['context','findings','closure'];
-    const taskLabels={context:'Revisado y continuar',findings:'Revisar conclusión',closure:'Continuar a propuesta'};
+    const taskLabels={context:'Revisado y continuar',findings:'Continuar a conclusión',closure:'Continuar a propuesta'};
     const taskTitles={context:'Contexto',findings:'Revisión profesional',closure:'Conclusión'};
     const taskStatus={context:'2 datos requieren revisión',findings:'2 hallazgos por revisar',closure:'Conclusión pendiente'};
     function showTask(id){document.querySelector('.cw-evaluation-flow').dataset.activeTask=id;document.querySelectorAll('[data-task-panel]').forEach(panel=>panel.hidden=panel.dataset.taskPanel!==id);document.querySelectorAll('[data-task-target]').forEach(button=>{if(button.dataset.taskTarget===id)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current');});document.querySelector('.cw-evaluation-cta').textContent=id==='closure'?previewModes[previewFilter].cta:taskLabels[id];document.querySelector('.cw-evaluation-mobile-progress').textContent=`Paso ${taskOrder.indexOf(id)+1} de ${taskOrder.length} · ${taskTitles[id]}`;document.querySelector('.cw-evaluation-footer-status').textContent=id==='closure'?previewModes[previewFilter].status:taskStatus[id];}
@@ -75,7 +75,7 @@
       all:{title:'Expediente unificado',copy:'Fuentes confirmadas y pendientes, sin duplicar el odontograma.',stats:[[4,'piezas relacionadas'],[5,'archivos clínicos'],[2,'por revisar']],cta:'Revisar hallazgos',status:'2 hallazgos por revisar'},
       manual:{title:'Valoración profesional',copy:'Hallazgos y seguimiento registrados por el equipo clínico.',stats:[[2,'piezas clínicas'],[1,'en seguimiento'],[0,'realizadas']],cta:'Editar pieza seleccionada',status:'Valoración clínica activa'},
       photo:{title:'Fotografías clínicas',copy:'Evidencia visual confirmada y sugerencias pendientes de revisión.',stats:[[1,'fotografía'],[1,'por confirmar'],[0,'descartadas']],cta:'Agregar fotografías',status:'Capa de fotografías activa'},
-      radiograph:{title:'Estudios radiográficos',copy:'Estudios confirmados y zonas sugeridas que requieren criterio profesional.',stats:[[1,'estudio'],[1,'por confirmar'],[0,'descartados']],cta:'Valorar estudio',status:'Capa de rayos X activa'},
+      radiograph:{title:'Estudios radiográficos',copy:'Estudios confirmados y zonas sugeridas que requieren criterio profesional.',stats:[[1,'estudio'],[1,'por confirmar'],[0,'descartados']],cta:'Continuar revisión',status:'1 hallazgo por revisar'},
       pending:{title:'Pendientes de revisión',copy:'Sugerencias de IA separadas de los hallazgos confirmados.',stats:[[2,'sugerencias'],[0,'confirmadas'],[0,'descartadas']],cta:'Revisar pendientes',status:'2 sugerencias por revisar'}
     };
     let previewFilter='all',previewSelectedTooth='11';
