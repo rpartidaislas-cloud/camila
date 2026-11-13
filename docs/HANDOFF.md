@@ -10748,3 +10748,8 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 
 ## 2026-11-13 — Claude Code — «Agregar servicio o cargo»: sin «· sin datos fiscales» en el selector
 - Ricardo pidió quitar la leyenda « · sin datos fiscales» de cada servicio en el selector de `openCharge` (`smyl-finance.js` v33). El aviso informativo al elegir un servicio («Se puede cobrar, pero aún no facturar…») se mantiene. Sin cambios de datos. Copias en `mobile/www/`.
+
+## 2026-11-13 — Claude Code — «Agregar servicio o cargo»: total a la vista y campos sin doble borde
+- Corrección: en la revisión previa dije que el precio y el IVA no se llenaban solos al elegir un servicio; **sí se llenan** (precio del catálogo y, con política fiscal revisada, IVA automático). La leyenda «Servicio sin política fiscal revisada: indica si lleva IVA» y el casillero «Agregar IVA 16%» salen solo cuando el servicio no tiene política fiscal revisada. No se cambió esa lógica.
+- Arreglado de verdad (`smyl-finance.js` v34 / `smyl-finance.css` v27, solo `openCharge`): el campo de **Descuento** (y el de precio) eran una caja dentro de otra porque una regla global pintaba el borde del input; ahora un solo borde, misma altura que los demás campos. El **Total a cobrar** quedaba fuera de vista (hay que bajar el formulario); ahora aparece siempre en el pie, junto a los botones.
+- Sin cambios de datos. CACHE `...-charge-dialog-v2`, copias en `mobile/www/`.
