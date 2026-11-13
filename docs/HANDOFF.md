@@ -10745,3 +10745,6 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - Versiones integradas: `smyl-radiograph-workbench.css?v=20`, `smyl-radiograph-review.js?v=25`; caché PWA renovada y copias sincronizadas en `mobile/www/`.
 - QA focal: 41 pruebas ejecutadas, 40 aprobadas y 1 omitida porque PGlite no está disponible. Regresión radiográfica ampliada: 187 pruebas, 168 aprobadas, 19 omitidas por PGlite/Playwright no disponibles y 0 fallidas (se excluyó únicamente el contrato de regeneración del bundle de `radiograph-analyze`, una desincronización previa del backend fuera de este cambio). `node --check` y `git diff --check` aprobados. La comprobación visual local confirmó que el odontograma no cubre la radiografía. El último refresco visual automatizado fue detenido manualmente por el usuario, sin afectar las pruebas ni los archivos.
 - Estado de entrega: incluido en la publicación de producción del 12 de noviembre de 2026.
+
+## 2026-11-13 — Claude Code — «Agregar servicio o cargo»: sin «· sin datos fiscales» en el selector
+- Ricardo pidió quitar la leyenda « · sin datos fiscales» de cada servicio en el selector de `openCharge` (`smyl-finance.js` v33). El aviso informativo al elegir un servicio («Se puede cobrar, pero aún no facturar…») se mantiene. Sin cambios de datos. Copias en `mobile/www/`.

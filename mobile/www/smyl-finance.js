@@ -168,7 +168,7 @@
   function openCharge(patientId,options){options=options||{};var branches=state.branches,defaultBranch=(branches.find(function(b){return b.is_default;})||branches[0]||{}).id||'',d=dialog('<form class="finance-charge-form" novalidate><h2>Agregar servicio o cargo</h2><p>Queda en la cuenta del paciente. Si te equivocas, se cancela con un movimiento visible: nunca se edita en silencio.</p>'
     +'<div class="finance-form-grid"><label class="wide">Paciente<select name="patient" required><option value="">Selecciona</option>'+opts(state.patients,function(p){return name(p.id);},patientId)+'</select></label>'
     +'<h3 class="wide finance-form-section">¿Qué se cobra?</h3>'
-    +'<label class="wide">Servicio<select name="service"><option value="">Concepto libre (no facturable)</option>'+state.services.map(function(s){return '<option value="'+s.id+'">'+esc(s.name)+(chargeInvoiceable(s)?'':' · sin datos fiscales')+'</option>';}).join('')+'</select></label>'
+    +'<label class="wide">Servicio<select name="service"><option value="">Concepto libre (no facturable)</option>'+state.services.map(function(s){return '<option value="'+s.id+'">'+esc(s.name)+'</option>';}).join('')+'</select></label>'
     +'<label class="wide">Concepto<input name="concept" maxlength="240" required placeholder="Consulta, profilaxis, restauración…"></label>'
     +'<label>Cantidad<input name="quantity" type="number" min="1" step="1" value="1" required inputmode="numeric"></label>'
     +'<label>Precio unitario<span class="finance-money-input"><span>$</span><input name="price" type="text" inputmode="decimal" required placeholder="0.00" autocomplete="off"></span></label>'
