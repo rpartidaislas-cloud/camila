@@ -28,7 +28,7 @@ test('las correcciones financieras se auditan y nunca eliminan movimientos confi
 });
 
 test('las versiones publicadas y la copia móvil quedan sincronizadas', () => {
-  assert.match(read('app.html'), /smyl-finance\.js\?v=32/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=33/);
   assert.match(read('app.html'), /smyl-finance\.css\?v=26/);
   assert.match(read('sw.js'), /finance-history-corrections-v1/);
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'app.html', 'sw.js']) {

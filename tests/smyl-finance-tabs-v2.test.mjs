@@ -166,3 +166,9 @@ test('Servicios y tarifas: todo servicio activo muestra su precio editable en la
   assert.match(js, /if\(input\.value===''&&current\)\{input\.value=current;return;\}/);
   assert.match(css, /\.catalog-price-input\.has-price/);
 });
+
+test('Agregar servicio o cargo: el selector no marca «sin datos fiscales»; el aviso al elegir lo explica', () => {
+  const fin = fs.readFileSync(new URL('../smyl-finance.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(fin, /sin datos fiscales/);
+  assert.match(fin, /Se puede cobrar, pero aún no facturar/);
+});
