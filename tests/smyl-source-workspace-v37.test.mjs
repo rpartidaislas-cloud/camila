@@ -13,7 +13,7 @@ const styles = read('../smyl-case-workspace.css');
 const fixture = read('./fixtures/smyl-clinical-flow-preview.html');
 
 test('cada fuente activa una capa del mismo odontograma clínico', () => {
-  for (const copy of ["['all','Vista clínica']", "['manual','Anotaciones']", "['photo','Hallazgos en fotos']", "['radiograph','Hallazgos en RX']", "['pending','Por revisar']"]) assert.match(workspace, new RegExp(copy.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  for (const copy of ["['all','Vista clínica']", "['manual','Anotaciones']", "['photo','Hallazgos en fotos']", "['radiograph','Hallazgos radiográficos']", "['pending','Por revisar']"]) assert.match(workspace, new RegExp(copy.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(workspace, /CAPAS DEL ODONTOGRAMA/);
   assert.match(workspace, /renderClinicalMap\(ctx,ctx\.mapSnapshot\)/);
   assert.match(workspace, /ctx\.mapFilter=id/);
@@ -27,16 +27,16 @@ test('fotografías y radiografías habilitan su propio flujo de archivo', () => 
   assert.doesNotMatch(workspace, /SmylPatientFiles\?\.add\('clinical_photo'\)/);
   assert.match(evidenceIntegration, /routeClinicalPhoto/);
   assert.match(evidenceIntegration, /indexPatientFile/);
-  assert.match(photoReview, /Aquí no se suben archivos/);
-  assert.match(workspace, /No hay radiografías para valorar/);
-  assert.match(workspace, /Ir a Evidencia/);
+  assert.match(photoReview, /Los originales se cargan únicamente en Archivos clínicos/);
+  assert.match(workspace, /No hay radiografías para revisar/);
+  assert.match(workspace, /Agrega el original una sola vez en Archivos clínicos/);
   assert.match(workspace, /openRadiographEvidence\(ctx\)/);
   assert.match(workspace, /openAdd\?\.\('radiograph_2d'\)/);
   assert.doesNotMatch(workspace, /btn\('Agregar radiografía',\(\)=>reviewPart\(ctx,1\)/);
 });
 
 test('la IA se presenta como sugerencia y requiere confirmación profesional', () => {
-  assert.match(workspace, /Nada pasa al odontograma hasta que lo confirmes/);
+  assert.match(workspace, /La interpretación asistida nunca confirma hallazgos automáticamente/);
   assert.match(workspace, /Revisa, edita o descarta cada sugerencia antes de continuar/);
   assert.doesNotMatch(workspace, /diagnóstico automático|guardar diagnóstico sugerido/i);
 });
@@ -52,16 +52,16 @@ test('la nueva superficie concentra mapa, inspector y contexto con respuesta mó
   for (const selector of ['cw-clinical-map-layout', 'cw-map-inspector', 'cw-map-inspector-facts', 'cw-map-context']) assert.match(styles, new RegExp(selector));
   assert.match(styles, /Hallazgos v4\.4/);
   assert.match(styles, /@media\(max-width:760px\)/);
-  assert.match(fixture, /Expediente unificado/);
+  assert.match(fixture, /Contexto, revisión y conclusión/);
   assert.match(fixture, /Pieza 11 · Incisivo central superior derecho/);
 });
 
-test('web, móvil y PWA publican la etapa 3.7', () => {
+test('web, móvil y PWA comparten la implementación de la evaluación simplificada', () => {
   assert.match(app, /smyl-patient-360\.js\?v=26/);
-  assert.match(app, /smyl-case-workspace\.css\?v=26/);
-  assert.match(app, /smyl-case-workspace\.js\?v=34/);
+  assert.match(app, /smyl-case-workspace\.css\?v=27/);
+  assert.match(app, /smyl-case-workspace\.js\?v=35/);
   assert.match(app, /smyl-clinical-photo-review\.js\?v=2/);
-  assert.match(worker, /source-workspace-v37/);
+  assert.match(worker, /evaluation-separation-v79/);
   for (const file of [
     'app.html',
     'sw.js',

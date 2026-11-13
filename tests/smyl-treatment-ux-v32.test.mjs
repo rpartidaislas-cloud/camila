@@ -30,21 +30,21 @@ test('Tratamiento separa la decisión clínica en cuatro etapas', () => {
   assert.doesNotMatch(clinic, /Revisar plan|Volver al plan/);
 });
 
-test('la evaluación simplifica contexto, evidencia, hallazgos y revisión en una sola superficie', () => {
+test('la evaluación separa contexto, revisión profesional y conclusión en una sola superficie', () => {
   const tasks = [
     /evaluationTask\(ctx,'context','01','Contexto','Historia y alertas'\)/,
-    /evaluationTask\(ctx,'evidence','02','Evidencia','Archivo clínico y originales'\)/,
-    /evaluationTask\(ctx,'findings','03','Valoración','Revisar y decidir'\)/,
-    /evaluationTask\(ctx,'closure','04','Revisión','Antes de la propuesta'\)/,
+    /evaluationTask\(ctx,'findings','02','Revisión profesional','Comprobar y decidir'\)/,
+    /evaluationTask\(ctx,'closure','03','Conclusión','Hallazgos confirmados'\)/,
   ];
   for (const task of tasks) assert.match(workspace, task);
   assert.match(workspace, /aria-label','Tareas de la evaluación/);
   assert.match(workspace, /function showEvaluationTask\(ctx,id,focus=true\)/);
   assert.equal((workspace.match(/ctx\.evaluationCta=btn/g) || []).length, 1);
   assert.match(workspace, /function updateEvaluationAction\(ctx\)/);
-  for (const label of ['Continuar a evidencia', 'Continuar a valoración', 'Revisar', 'Continuar a propuesta', 'Volver a valoración']) {
+  for (const label of ['Continuar a revisión', 'Revisar conclusión', 'Continuar revisión', 'Continuar a propuesta']) {
     assert.match(workspace, new RegExp(label));
   }
+  assert.doesNotMatch(workspace, /evaluationTask\(ctx,'evidence'/);
 });
 
 test('el tenant retoma etapa y tarea sin persistir datos clínicos en el navegador', () => {
@@ -60,14 +60,14 @@ test('la evaluación permite continuar sin fotografías y conserva el odontogram
   assert.match(workspace, /Sin fotografías clínicas\. Puedes continuar con el odontograma/);
   assert.match(workspace, /Seleccionar una pieza/);
   assert.match(workspace, /Analizar fotografías/);
-  assert.match(workspace, /Agrégalas una sola vez en Evidencia/);
-  assert.match(workspace, /Las categorías sólo lo ordenan y nunca reemplazan su historial/);
-  const evidenceBuild = workspace.slice(workspace.indexOf("ctx.evidencePart=evaluationTask"), workspace.indexOf("ctx.reviewPart=evaluationTask"));
-  assert.doesNotMatch(evidenceBuild, /Simulaciones|simulación/i);
+  assert.match(workspace, /Agrega el original una sola vez en Archivos clínicos/);
+  assert.match(workspace, /Cada original se conserva una sola vez/);
+  assert.match(workspace, /cw-clinical-files-source/);
+  assert.match(workspace, /Archivos clínicos consultados en esta revisión/);
 });
 
 test('hallazgos prioriza un mapa operable con cinco capas e inspector persistente', () => {
-  for (const layer of ['Todo', 'Clínica', 'Fotografías', 'Rayos X', 'Pendientes']) {
+  for (const layer of ['Vista clínica', 'Anotaciones', 'Hallazgos en fotos', 'Hallazgos radiográficos', 'Por revisar']) {
     assert.match(workspace, new RegExp(layer));
   }
   assert.match(workspace, /cw-map-filter-count/);
@@ -102,6 +102,7 @@ test('las rutas internas anteriores siguen abriendo la etapa equivalente', () =>
 });
 
 test('la política visual conserva jerarquía, una CTA visible, tactilidad y respuesta móvil', () => {
+  assert.match(styles, /Expediente clínico v26 · contexto, revisión profesional y conclusión/);
   assert.match(styles, /Evaluación v4 · cuatro tareas, una superficie y una sola acción principal/);
   assert.match(styles, /Tratamiento simple v4\.1 · una etapa visible y el historial siempre accesible/);
   assert.match(styles, /Tratamiento v4\.2 · contexto clínico primero, navegación jerárquica y acción persistente/);
@@ -131,11 +132,9 @@ test('web, móvil y PWA distribuyen la misma implementación', () => {
   assert.match(app, /smyl-patient-360\.css\?v=18/);
   assert.match(app, /smyl-clinic\.js\?v=23/);
   assert.match(app, /smyl-patient-360\.js\?v=26/);
-  assert.match(app, /smyl-case-workspace\.css\?v=26/);
-  assert.match(app, /smyl-case-workspace\.js\?v=34/);
-  assert.match(worker, /treatment-ux-v32/);
-  assert.match(worker, /evaluation-flow-v73/);
-  assert.match(worker, /treatment-tenant-workbench-v82/);
+  assert.match(app, /smyl-case-workspace\.css\?v=27/);
+  assert.match(app, /smyl-case-workspace\.js\?v=35/);
+  assert.match(worker, /evaluation-separation-v79/);
   for (const file of ['app.html', 'sw.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css', 'smyl-patient-360.js', 'smyl-patient-360.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));
   }

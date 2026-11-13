@@ -8,7 +8,7 @@ const script = read('../smyl-case-workspace.js');
 const styles = read('../smyl-case-workspace.css');
 const worker = read('../sw.js');
 
-test('Tratamiento presenta un recorrido clínico navegable de cuatro etapas', () => {
+test('Tratamiento conserva cuatro etapas y simplifica Evaluación a tres pasos clínicos', () => {
   assert.match(script, /aria-label','Etapas del caso/);
   for (const label of ['Evaluación', 'Propuesta', 'Aceptación', 'Seguimiento']) {
     assert.match(script, new RegExp(`'${label}'`));
@@ -23,11 +23,17 @@ test('Tratamiento presenta un recorrido clínico navegable de cuatro etapas', ()
   assert.match(script, /Siguiente acción · Continúa el seguimiento/);
   assert.match(styles, /\.cw-nav\{display:grid/);
   assert.match(styles, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  for (const task of [
+    /evaluationTask\(ctx,'context','01','Contexto','Historia y alertas'\)/,
+    /evaluationTask\(ctx,'findings','02','Revisión profesional','Comprobar y decidir'\)/,
+    /evaluationTask\(ctx,'closure','03','Conclusión','Hallazgos confirmados'\)/,
+  ]) assert.match(script, task);
+  assert.doesNotMatch(script, /evaluationTask\(ctx,'evidence'/);
 });
 
 test('la evaluación conserva una sola acción principal y la adapta al paso pendiente', () => {
   assert.match(script, /function updateEvaluationAction\(ctx\)/);
-  for (const label of ['Continuar a evidencia', 'Continuar a valoración', 'Revisar', 'Continuar a propuesta', 'Volver a valoración']) {
+  for (const label of ['Continuar a revisión', 'Revisar conclusión', 'Continuar revisión', 'Continuar a propuesta']) {
     assert.match(script, new RegExp(label));
   }
   assert.equal((script.match(/ctx\.evaluationCta=btn/g) || []).length, 1);
@@ -52,7 +58,7 @@ test('el recorrido termina en seguimiento sin afirmar un envío automático', ()
 test('web, móvil y PWA cargan la misma versión del recorrido', () => {
   assert.match(app, /smyl-case-workspace\.js\?v=\d+/);
   assert.match(app, /smyl-case-workspace\.css\?v=\d+/);
-  assert.match(worker, /evaluation-flow-v73/);
+  assert.match(worker, /evaluation-separation-v79/);
   assert.match(worker, /smyl-case-workspace\.js\?v=\d+/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(script, read('../mobile/www/smyl-case-workspace.js'));

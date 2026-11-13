@@ -29,7 +29,7 @@ test('el mapa conserva una sola fuente de verdad y separa cada origen', () => {
   assert.match(record, /radiographPending/);
   assert.match(record, /pending:photos\.filter/);
   assert.match(record, /openTooth\(tenant,patient,tooth\)/);
-  for (const source of ['Clínica', 'Fotografías', 'Rayos X', 'Pendientes']) assert.match(workspace, new RegExp(source));
+  for (const source of ['Vista clínica', 'Hallazgos en fotos', 'Hallazgos radiográficos', 'Por revisar']) assert.match(workspace, new RegExp(source));
 });
 
 test('las sugerencias de IA nunca se presentan como hallazgo confirmado', () => {
@@ -40,7 +40,7 @@ test('las sugerencias de IA nunca se presentan como hallazgo confirmado', () => 
 });
 
 test('la interacción es legible, filtrable y adaptativa', () => {
-  for (const filter of ["'all','Vista clínica'", "'manual','Anotaciones'", "'photo','Hallazgos en fotos'", "'radiograph','Hallazgos en RX'", "'pending','Por revisar'"]) {
+  for (const filter of ["'all','Vista clínica'", "'manual','Anotaciones'", "'photo','Hallazgos en fotos'", "'radiograph','Hallazgos radiográficos'", "'pending','Por revisar'"]) {
     assert.match(workspace, new RegExp(filter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
   assert.match(workspace, /cw-map-filter-count/);
@@ -131,9 +131,9 @@ test('el inspector de pieza reutiliza el mismo odontograma y deriva a la revisi�
 
 test('web, móvil y PWA publican la misma versión', () => {
   assert.match(app, /smyl-dental-record\.js\?v=26/);
-  assert.match(app, /smyl-case-workspace\.css\?v=26/);
-  assert.match(app, /smyl-case-workspace\.js\?v=34/);
-  assert.match(worker, /smart-odontogram-v33/);
+  assert.match(app, /smyl-case-workspace\.css\?v=27/);
+  assert.match(app, /smyl-case-workspace\.js\?v=35/);
+  assert.match(worker, /evaluation-separation-v79/);
   for (const file of ['app.html', 'sw.js', 'smyl-dental-record.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));
   }

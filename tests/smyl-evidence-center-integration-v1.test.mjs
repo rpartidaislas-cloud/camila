@@ -7,7 +7,7 @@ const source = readFileSync(new URL('../smyl-evidence-center-integration.js', im
 const styles = readFileSync(new URL('../smyl-evidence-center-integration.css', import.meta.url), 'utf8');
 const fixture = readFileSync(new URL('./fixtures/smyl-evidence-center-integration-preview.html', import.meta.url), 'utf8');
 
-function api() {
+function api(windowOverrides = {}) {
   const document = {
     readyState: 'loading',
     addEventListener() {},
@@ -16,7 +16,7 @@ function api() {
     querySelectorAll() { return []; },
     createElement() { return { className: '', dataset: {}, append() {}, prepend() {}, setAttribute() {}, addEventListener() {} }; }
   };
-  const window = { document };
+  const window = { document, ...windowOverrides };
   const context = { window, document, MutationObserver: class {}, addEventListener() {}, setInterval() {}, clearInterval() {}, console };
   vm.runInNewContext(source, context, { filename: 'smyl-evidence-center-integration.js' });
   return context.window.SmylEvidenceCenterIntegration;
@@ -37,6 +37,92 @@ test('mapea radiografías existentes sin inventar firma profesional', () => {
   assert.equal(pending.status, 'review');
   assert.equal(pending.findings, 3);
   assert.equal(integration.radiographItem({ id: 'r2', type: 'occlusal' }).subtype, 'other');
+});
+
+test('un original radiográfico indexado no aparece otra vez como archivo genérico', () => {
+  const integration = api({
+    SmylPatientEvidenceFiles: {
+      all() {
+        return {
+          items: [
+            { id: 'file-rx-1', category: 'radiograph', name: 'Panorámica original.png' },
+            { id: 'file-consent-1', category: 'consent', name: 'Consentimiento.pdf' }
+          ]
+        };
+      }
+    },
+    SmylCaseWorkspace: { context() { return { caseId: 'case-1' }; } },
+    SmylDentalProgress: {
+      status() {
+        return {
+          studyItems: [{
+            id: 'study-rx-1',
+            type: 'panoramic',
+            label: 'Panorámica',
+            original: { patientFileId: 'file-rx-1' }
+          }]
+        };
+      }
+    }
+  });
+
+  const items = integration.collectEvidence('tenant-1', 'patient-1', []);
+  assert.equal(items.filter(item => item.modality === 'radiograph_2d').length, 1);
+  assert.equal(items.find(item => item.modality === 'radiograph_2d')?.source, 'dental_record');
+  assert.ok(items.some(item => item.id === 'file-consent-1'), 'los demás archivos clínicos deben conservarse');
+});
+
+test('deduplica con la forma compacta que entrega DentalProgress en producción', () => {
+  const integration = api({
+    SmylPatientEvidenceFiles: {
+      all() {
+        return { items: [{
+          id: 'file-rx-compact',
+          category: 'radiograph',
+          name: 'Panorámica compacta.png',
+          sha256: 'abc123',
+          storagePath: 'tenant/patient/study/abc123.png'
+        }] };
+      }
+    },
+    SmylCaseWorkspace: { context() { return { caseId: 'case-compact' }; } },
+    SmylDentalProgress: {
+      status() {
+        return { studyItems: [{
+          id: 'study-compact',
+          type: 'panoramic',
+          patientFileId: 'file-rx-compact',
+          sha256: 'abc123',
+          storagePath: 'tenant/patient/study/abc123.png'
+        }] };
+      }
+    }
+  });
+
+  const items = integration.collectEvidence('tenant-1', 'patient-1', []);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].source, 'dental_record');
+  assert.ok(items[0].aliases.some(alias => alias.source === 'patient_file' && alias.id === 'file-rx-compact'));
+});
+
+test('no fusiona estudios de modalidades distintas aunque sus IDs coincidan', () => {
+  const integration = api({
+    SmylPatientEvidenceFiles: { all() { return { items: [] }; } },
+    SmylCaseWorkspace: { context() { return { caseId: 'case-collision' }; } },
+    SmylDentalProgress: {
+      status() {
+        return { studyItems: [{ id: 'shared-id', type: 'panoramic', label: 'Panorámica' }] };
+      }
+    }
+  });
+
+  const items = integration.collectEvidence('tenant-1', 'patient-1', [{
+    id: 'shared-id',
+    subtype: 'frontal_smile',
+    display_name: 'Sonrisa frontal'
+  }]);
+  assert.equal(items.length, 2);
+  assert.deepEqual(Array.from(items, item => item.modality).sort(), ['photograph', 'radiograph_2d']);
 });
 
 test('conserva el origen aunque el componente visual normalice el elemento', () => {
@@ -128,15 +214,17 @@ test('sólo oculta el listado legado después de montar el centro', () => {
   assert.match(source, /if \(state\.legacy\?\.isConnected\) state\.legacy\.hidden = false/);
 });
 
-test('Valoración consulta el archivo sin ofrecer otra carga', () => {
+test('Revisión profesional resume los archivos clínicos sin duplicar el repositorio', () => {
   assert.match(styles, /@media\(max-width:600px\)/);
   assert.match(styles, /overflow-x:auto/);
   assert.match(styles, /seci-valuation-item/);
-  assert.match(source, /EVIDENCIA DISPONIBLE/);
-  assert.match(source, /Aquí sólo se consultan/);
+  assert.match(source, /ARCHIVOS CL[IÍ]NICOS/);
+  assert.match(source, /Ver archivos cl[ií]nicos/);
   const valuationStart = source.indexOf('function renderValuationArchive');
   const valuationEnd = source.indexOf('\n  function ', valuationStart + 1);
-  assert.doesNotMatch(source.slice(valuationStart, valuationEnd), /openAdd/);
+  const valuation = source.slice(valuationStart, valuationEnd);
+  assert.doesNotMatch(valuation, /openAdd/);
+  assert.doesNotMatch(valuation, /slice\(0,\s*3\)\.forEach/, 'no debe reconstruir una segunda lista de archivos dentro de Revisión');
   assert.ok(source.indexOf('centerHost, pathways') > -1);
   assert.match(fixture, /smyl-evidence-center-integration\.js/);
   assert.match(fixture, /class="cw-evidence-history"/);

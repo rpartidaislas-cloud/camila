@@ -486,3 +486,100 @@
  .cw-enhanced .cw-radiograph-grid{grid-auto-columns:auto}
  .cw-enhanced .cw-radiograph-card{grid-template-columns:84px minmax(0,1fr)}
 }
+
+/* Expediente clínico v26 · contexto, revisión profesional y conclusión. */
+.cw-enhanced .cw-evaluation-flow,
+.cw-enhanced .cw-evaluation-panel,
+.cw-enhanced .cw-evaluation-panel-body,
+.cw-enhanced .cw-evidence-history,
+.cw-enhanced .cw-clinical-map,
+.cw-enhanced .cw-radiograph-shelf{min-width:0}
+.cw-enhanced .cw-evaluation-tasks{gap:7px;padding:16px 13px;background:#f5f8fa}
+.cw-enhanced .cw-evaluation-task{position:relative;min-height:66px;padding:10px 10px 10px 12px;border:1px solid transparent;border-left:3px solid transparent;border-radius:10px;background:transparent}
+.cw-enhanced .cw-evaluation-task:hover{border-color:#dce5ec;background:#fff}
+.cw-enhanced .cw-evaluation-task[aria-current=step]{border-color:#d5e3e1;border-left-color:var(--cw-primary);background:#fff;box-shadow:0 5px 16px rgba(11,27,46,.055)}
+.cw-enhanced .cw-evaluation-task[data-state=done]:not([aria-current=step]){border-color:#d9e9e5;background:#f2f9f7}
+.cw-enhanced .cw-evaluation-task-copy strong{font-size:13px;line-height:1.35}
+.cw-enhanced .cw-evaluation-task-state{margin-top:2px;color:#6c7b8d;font-size:12px;line-height:1.35}
+.cw-enhanced .cw-evaluation-panel-body{display:grid;gap:14px;padding:18px 0 16px}
+.cw-enhanced .cw-evaluation-panel-body>*{min-width:0;margin-top:0;margin-bottom:0}
+.cw-enhanced .cw-evaluation-panel[data-task=closure] .cw-evaluation-close{padding:18px;border:1px solid #cfe1dd;border-radius:13px;background:linear-gradient(135deg,#f7fbfa 0%,#fff 76%)}
+.cw-enhanced .cw-evaluation-panel[data-task=closure] .cw-evaluation-close h3{font-size:20px;letter-spacing:-.015em}
+.cw-enhanced .cw-evaluation-panel[data-task=closure] .cw-evaluation-close-facts{border:1px solid #dce5eb;border-radius:10px;background:#fff;overflow:hidden}
+.cw-enhanced .cw-evidence-compact{padding:14px 15px;border:1px solid #d9e4eb;border-radius:12px;background:#f8fafb}
+.cw-enhanced .cw-evidence-compact>div:first-child>strong{font-size:15px}
+.cw-enhanced .cw-evidence-compact-metrics>span{background:#fff}
+.cw-enhanced .cw-evaluation-panel .cw-evidence-history{border:1px solid #d9e4eb;border-radius:12px;background:#fff;overflow:hidden}
+.cw-enhanced .cw-evaluation-panel .cw-evidence-history>.cw-evidence-compact{border:0;border-bottom:1px solid #e1e8ee;border-radius:0;background:#f8fafb}
+.cw-enhanced .cw-evaluation-panel .cw-evidence-assistant{padding:12px 15px}
+.cw-enhanced .cw-evaluation-panel .cw-evidence-list{padding-inline:15px}
+.cw-enhanced .cw-evaluation-panel .cw-evidence-history-foot{padding:11px 15px;background:#fbfcfd}
+.cw-enhanced .cw-evaluation-panel .cw-radiograph-shelf{border:1px solid #d9e4eb;border-radius:12px;background:#f8fafb;overflow:hidden}
+.cw-enhanced .cw-evaluation-panel .cw-clinical-map{border-color:#d4e1e7;box-shadow:none}
+.cw-enhanced .cw-clinical-files-source{display:grid;gap:12px;padding:15px;border:1px solid #d9e4eb;border-radius:12px;background:#fff}
+.cw-enhanced .cw-clinical-files-source-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.cw-enhanced .cw-clinical-files-source-head>div{display:grid;gap:3px;min-width:0}
+.cw-enhanced .cw-clinical-files-source-head strong{color:var(--cw-ink);font-size:16px;line-height:1.3}
+.cw-enhanced .cw-clinical-files-source-head p{margin:0;color:var(--cw-muted);font-size:13px;line-height:1.45}
+.cw-enhanced .cw-clinical-files-source-body{display:grid;gap:12px;min-width:0}
+.cw-enhanced .cw-radiograph-more{position:relative;min-width:0}
+.cw-enhanced .cw-radiograph-more>summary{display:flex;align-items:center;justify-content:center;min-height:38px;padding:7px 10px;border:1px solid #cfdbe5;border-radius:8px;background:#fff;color:var(--cw-ink);font-size:12px;font-weight:750;line-height:1.2;list-style:none;cursor:pointer;white-space:nowrap}
+.cw-enhanced .cw-radiograph-more>summary::-webkit-details-marker{display:none}
+.cw-enhanced .cw-radiograph-more[open]>summary{border-color:#afc7d5;background:#f5f8fa}
+.cw-enhanced .cw-radiograph-more>button{position:absolute;right:0;z-index:4;min-width:142px;margin-top:5px;padding:9px 11px;border-radius:8px;box-shadow:0 10px 28px rgba(11,27,46,.16)}
+
+@media(min-width:761px){
+ .cw-enhanced .cw-evaluation-flow{grid-template-columns:178px minmax(0,1fr)}
+ .cw-enhanced .cw-evaluation-panels{padding-inline:20px}
+ .cw-enhanced .cw-evaluation-footer{padding-inline:20px}
+}
+
+@media(max-width:760px){
+ .cw-enhanced .cw-evaluation-flow{gap:0}
+ .cw-enhanced .cw-evaluation-mobile-progress{position:relative;display:flex;align-items:center;min-height:48px;margin:0;padding:11px 12px 11px 46px;border:1px solid #d8e3ea;border-radius:11px;background:#f8fafb;color:#243b53;font-size:12px;font-weight:800;line-height:1.35}
+ .cw-enhanced .cw-evaluation-mobile-progress::before{content:'\2192';position:absolute;left:12px;display:grid;place-items:center;width:25px;height:25px;border-radius:8px;background:#dff1ed;color:#176a61;font-size:15px;font-weight:850}
+ .cw-enhanced .cw-evaluation-panels{padding:0 0 calc(92px + env(safe-area-inset-bottom))}
+ .cw-enhanced .cw-evaluation-panel-body{gap:12px;padding:12px 0 6px}
+ .cw-enhanced .cw-evaluation-intro{padding-inline:2px;font-size:13px;line-height:1.5}
+ .cw-enhanced .cw-evidence-compact{gap:11px;padding:12px}
+ .cw-enhanced .cw-evidence-compact .cw-kicker{font-size:11px}
+ .cw-enhanced .cw-evidence-compact>div:first-child>strong{font-size:15px;line-height:1.35}
+ .cw-enhanced .cw-evidence-compact-metrics{display:flex;width:100%;gap:5px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+ .cw-enhanced .cw-evidence-compact-metrics::-webkit-scrollbar{display:none}
+ .cw-enhanced .cw-evidence-compact-metrics>span{min-width:max-content;min-height:32px;padding-inline:9px}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-assistant{gap:8px;padding:11px 12px}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-assistant p{display:none}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-list{padding-inline:12px}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-item{grid-template-columns:32px minmax(0,1fr) auto;gap:9px;padding:10px 0}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-item>div :is(span,strong,small){white-space:normal;overflow-wrap:anywhere}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-history-foot{gap:8px;padding:10px 12px}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-history-foot p{display:none}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-history-foot button{width:100%}
+ .cw-enhanced .cw-radiograph-shelf-head{border-bottom:1px solid #e2e8ee}
+ .cw-enhanced .cw-radiograph-queue-filters{padding-top:9px}
+ .cw-enhanced .cw-radiograph-card{border-radius:11px;box-shadow:none}
+ .cw-enhanced .cw-radiograph-card-actions>button{min-height:44px}
+ .cw-enhanced .cw-radiograph-more>summary{min-height:44px}
+ .cw-enhanced .cw-radiograph-more>button{position:static;width:100%;margin-top:6px;box-shadow:none}
+ .cw-enhanced .cw-clinical-files-source{padding:12px}
+ .cw-enhanced .cw-clinical-files-source-head p{display:none}
+ .cw-enhanced .cw-evaluation-panel[data-task=closure] .cw-evaluation-close{padding:14px}
+ .cw-enhanced .cw-evaluation-panel[data-task=closure] .cw-evaluation-close h3{font-size:18px}
+ .cw-enhanced .cw-evaluation-panel[data-task=closure] .cw-evaluation-close-facts>div{padding:11px 12px}
+ .cw-enhanced .cw-evaluation-panel[data-task=closure] .cw-clinical-map-head p{display:none}
+ .cw-enhanced .cw-evaluation-panel[data-task=closure] .cw-map-context-copy p{display:none}
+ .cw-enhanced .cw-evaluation-footer{position:static;margin:0;padding:10px 0 calc(10px + env(safe-area-inset-bottom));border-top:0;background:transparent;box-shadow:none}
+ .cw-enhanced .cw-evaluation-footer .cw-evaluation-cta{min-height:48px;border-radius:10px}
+}
+
+@media(max-width:420px){
+ .cw-enhanced .cw-evaluation-mobile-progress{margin-inline:0}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-item{grid-template-columns:32px minmax(0,1fr)}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-open{grid-column:1/-1;width:100%;min-height:44px}
+ .cw-enhanced .cw-radiograph-card{grid-template-columns:78px minmax(0,1fr)}
+ .cw-enhanced .cw-radiograph-media{min-height:132px}
+ .cw-enhanced .cw-radiograph-card-actions{grid-template-columns:minmax(0,1fr) auto}
+ .cw-enhanced .cw-radiograph-card-actions>button{padding-inline:8px}
+ .cw-enhanced .cw-clinical-map-layout{padding:8px}
+ .cw-enhanced .cw-map-stage{min-height:340px}
+}

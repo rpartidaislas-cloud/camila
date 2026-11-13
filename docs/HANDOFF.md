@@ -10748,3 +10748,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 
 ## 2026-11-13 — Claude Code — «Agregar servicio o cargo»: sin «· sin datos fiscales» en el selector
 - Ricardo pidió quitar la leyenda « · sin datos fiscales» de cada servicio en el selector de `openCharge` (`smyl-finance.js` v33). El aviso informativo al elegir un servicio («Se puede cobrar, pero aún no facturar…») se mantiene. Sin cambios de datos. Copias en `mobile/www/`.
+
+## 2026-11-12 — Codex — Evaluación clínica separada por responsabilidad
+
+- La evaluación del expediente se simplifica a tres responsabilidades visibles: **Contexto**, **Revisión profesional** y **Conclusión**. Cada pantalla muestra una sola tarea principal y conserva el avance al cambiar de etapa.
+- Contexto concentra antecedentes y alertas. Revisión profesional reúne los archivos clínicos, fotografías, radiografías y sugerencias de IA que requieren decisión humana. Conclusión muestra únicamente los hallazgos confirmados y el odontograma clínico.
+- Se elimina la repetición visual de una misma radiografía entre el archivo general y la bandeja radiográfica. La deduplicación canónica conserva categorías, vínculos y alias sin mezclar por accidente fotografías y radiografías con identificadores iguales.
+- El paso a Conclusión queda protegido: un estudio sin confirmar, no utilizable o todavía pendiente de revisión continúa abierto. Una valoración manual válida sí puede completarse aunque no exista una simulación de sonrisa.
+- La versión móvil reduce textos y tarjetas, evita desbordamiento global y deja el desplazamiento horizontal sólo en filtros o carruseles intencionales. Web y `mobile/www/` quedan sincronizados.
+- Versiones integradas: `smyl-case-workspace.css?v=27`, `smyl-case-workspace.js?v=35`, `smyl-clinical-photo-review.js?v=2`, `smyl-evidence-center.js?v=10`, `smyl-evidence-center-integration.js?v=7` y caché PWA `evaluation-separation-v79`.
+- QA: 78 pruebas focales/estáticas aprobadas, 11 recorridos en navegador real aprobados y revisión visual en 1280×900, 834×1000, 390×844 y 320×760. Sin cambios de backend, migraciones ni publicación en esta etapa.

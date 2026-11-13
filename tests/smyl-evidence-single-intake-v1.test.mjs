@@ -11,7 +11,7 @@ const dental = read('smyl-dental-record.js');
 const fixture = read('tests/fixtures/smyl-evidence-single-intake-preview.html');
 
 test('el archivo vacío ofrece una sola entrada y distingue filtros sin resultados', () => {
-  assert.match(center, /archiveEmpty\s+\? 'Aún no hay evidencia'/);
+  assert.match(center, /archiveEmpty\s+\? 'Aún no hay archivos clínicos'/);
   assert.match(center, /archiveEmpty\s+\? 'Agrega el primer archivo clínico/);
   assert.match(center, /'Ver todo el archivo'/);
   assert.match(centerCss, /\.sec-root\[data-empty=true\] \.sec-head \.sec-add/);
@@ -50,9 +50,9 @@ test('web y PWA publican las versiones del flujo único', () => {
   const sw = read('sw.js');
   for (const tag of [
     'smyl-dental-record.js?v=26',
-    'smyl-evidence-center.js?v=9',
+    'smyl-evidence-center.js?v=10',
     'smyl-evidence-center.css?v=6',
-    'smyl-evidence-center-integration.js?v=6',
+    'smyl-evidence-center-integration.js?v=7',
     'smyl-evidence-center-integration.css?v=4'
   ]) {
     assert.match(app, new RegExp(tag.replaceAll('.', '\\.').replace('?', '\\?')));

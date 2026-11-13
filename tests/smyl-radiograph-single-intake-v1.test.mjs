@@ -6,23 +6,23 @@ const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const workspace = read('../smyl-case-workspace.js');
 const integration = read('../smyl-evidence-center-integration.js');
 
-test('Valoración no presenta una segunda carga radiográfica', () => {
-  assert.ok(/Aquí no se cargan archivos/.test(workspace));
+test('Revisión profesional conserva una sola carga radiográfica canónica', () => {
+  assert.ok(/Agrega el original una sola vez en Archivos clínicos/.test(workspace));
   assert.equal(/btn\('Agregar radiografía',\(\)=>reviewPart\(ctx,1\)/.test(workspace), false, 'Valoración no debe abrir el cargador directamente');
   assert.equal(/label='Agregar radiografía';action=\(\)=>reviewPart\(ctx,1\)/.test(workspace), false, 'la acción contextual tampoco debe cargar desde Valoración');
-  assert.ok(/No hay radiografías para valorar/.test(workspace));
-  assert.ok(/Ir a Evidencia/.test(workspace));
+  assert.ok(/No hay radiografías para revisar/.test(workspace));
+  assert.ok(/openRadiographEvidence\(ctx\)/.test(workspace));
   assert.equal(/openStudy\?\.\([^)]*\)\)reviewPart\(ctx,1\)/.test(workspace), false,
     'si un estudio no abre, el flujo no debe apuntar a un editor oculto en Valoración');
 });
 
-test('el acceso contextual vuelve a Evidencia y preselecciona Rayos X', () => {
+test('el acceso contextual permanece en Revisión profesional y abre Archivos clínicos en Rayos X', () => {
   assert.ok(/function openRadiographEvidence\(ctx\)/.test(workspace));
   const start = workspace.indexOf('function openRadiographEvidence(ctx)');
   const end = workspace.indexOf('\n function ', start + 1);
-  assert.ok(start > -1 && end > start, 'debe existir una ruta explícita hacia Evidencia');
+  assert.ok(start > -1 && end > start, 'debe existir una ruta explícita hacia Archivos clínicos');
   const route = workspace.slice(start, end);
-  assert.ok(/showEvaluationTask\(ctx,'evidence'\)/.test(route));
+  assert.ok(/showEvaluationTask\(ctx,'findings'\)/.test(route));
   assert.ok(/SmylEvidenceCenterIntegration\?\.openAdd\?\.\('radiograph_2d'\)/.test(route));
   assert.equal(/reviewPart\(ctx,1\)/.test(route), false);
 });
