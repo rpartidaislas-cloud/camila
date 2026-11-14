@@ -268,3 +268,30 @@ test('Inventario v2: «Reponer» por fila y «Crear pedidos sugeridos» sin dupl
   assert.match(css, /\.inventory-reponer\{/);
   for (const f of ['smyl-inventory.js', 'smyl-inventory.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
+
+test('Inventario: «Registrar consumo», «Ajustar inventario» y «Comprar y recibir» son funciones de rol aplicadas en pantalla y en la base', () => {
+  const js = fs.readFileSync(new URL('../smyl-inventory.js', import.meta.url), 'utf8');
+  const admin = fs.readFileSync(new URL('../smyl-clinic-admin.js', import.meta.url), 'utf8');
+  const sql = fs.readFileSync(new URL('../supabase/migrations/20261114120000_smyl_inventory_role_permissions.sql', import.meta.url), 'utf8');
+  const wf = fs.readFileSync(new URL('../.github/workflows/smyl-inventario-permisos-migracion.yml', import.meta.url), 'utf8');
+  assert.match(js, /state\.canAdjust=state\.canManage&&extra\('inventory\.adjust'\)/);
+  assert.match(js, /state\.canPurchase=state\.canManage&&extra\('inventory\.purchase'\)/);
+  assert.match(js, /state\.canConsume=state\.canRead&&\(state\.canManage\|\|p\.has\('inventory\.consume'\)\)/);
+  assert.match(js, /state\.canAdjust&&!reversed&&m\.movement_type!=='reversal'/);
+  assert.match(js, /state\.canPurchase&&open\?'<button class="btn btn-primary" data-receive=/);
+  assert.match(js, /if\(!state\.canConsume\)\{notify\('Tu rol puede consultar inventario/);
+  assert.match(admin, /'inventory\.consume': 'Registrar consumo'/);
+  assert.match(admin, /'inventory\.adjust': 'Ajustar inventario'/);
+  assert.match(admin, /'inventory\.purchase': 'Comprar y recibir'/);
+  assert.match(admin, /'inventory\.read', 'inventory\.manage', 'inventory\.consume', 'inventory\.adjust', 'inventory\.purchase'/);
+  assert.match(sql, /smyl_inventory_movement_guard/);
+  assert.match(sql, /smyl_purchase_order_guard/);
+  assert.match(sql, /p_movement_type='consumption' and public\.smyl_has_permission\(v_tenant,'inventory\.consume'\)/);
+  assert.match(sql, /where rp\.permission_key = 'inventory\.manage'/);
+  assert.match(sql, /'finance\.cash', 'finance\.cash\.supervise', 'finance\.invoice', 'finance\.refund'/);
+  assert.match(wf, /workflow_dispatch/);
+  assert.match(wf, /20261114120000/);
+  assert.match(wf, /finance\.cash\.supervise/);
+  assert.doesNotMatch(wf, /pull_request|push:/);
+  for (const f of ['smyl-inventory.js', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
+});

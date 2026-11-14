@@ -22,6 +22,7 @@
     'finance.cash': 'Abrir y operar su caja', 'finance.cash.supervise': 'Supervisar cajas del equipo',
     'finance.invoice': 'Preparar facturas', 'finance.refund': 'Reembolsar y cancelar cargos',
     'inventory.read': 'Consultar inventario', 'inventory.manage': 'Gestionar inventario',
+    'inventory.consume': 'Registrar consumo', 'inventory.adjust': 'Ajustar inventario', 'inventory.purchase': 'Comprar y recibir',
     'catalog.manage': 'Gestionar servicios', 'catalog.prices': 'Cambiar precios',
     'settings.manage': 'Administrar configuración'
   };
@@ -34,7 +35,7 @@
     { name: 'Mensajes', keys: ['messages.read', 'messages.respond', 'messages.manage'] },
     { name: 'Cobros y caja', keys: ['finance.read', 'finance.manage', 'finance.cash', 'finance.cash.supervise', 'finance.refund'] },
     { name: 'Facturación', keys: ['finance.invoice'] },
-    { name: 'Inventario', keys: ['inventory.read', 'inventory.manage'] }
+    { name: 'Inventario', keys: ['inventory.read', 'inventory.manage', 'inventory.consume', 'inventory.adjust', 'inventory.purchase'] }
   ];
   var DATA_SCOPES = {
     own: 'Solo propio', care_team: 'Equipo tratante', branches: 'Sucursales asignadas', clinic: 'Toda la clínica'
