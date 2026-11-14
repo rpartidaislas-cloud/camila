@@ -46,7 +46,7 @@ const surfaces = ['assisted', 'manual'];
         await frame.waitForSelector('.rr-dialog[open] .rr-workspace');
       } else {
         await frame.getByText('Radiografías', { exact: true }).click();
-        await frame.getByRole('button', { name: 'Abrir y anotar' }).click();
+        await frame.getByRole('button', { name: 'Abrir archivo' }).click();
         await frame.waitForSelector('.dr-radiograph-dialog[open] .dr-reading-workspace');
       }
       const focusStart = frame.locator(surface === 'assisted' ? '.rr-view-tools button' : '.dr-radiograph-dialog .dr-tools button').first();

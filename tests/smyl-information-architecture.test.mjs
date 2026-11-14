@@ -11,7 +11,8 @@ test('la navegación principal prioriza el trabajo diario del dentista', () => {
   assert.match(nav, /\['Inicio', 'dashboard'/);
   assert.match(nav, /\['Pacientes', 'pacientes'/);
   assert.match(nav, /\['Agenda', 'agenda'/);
-  assert.match(nav, /\['Mensajes', 'inbox'/);
+  assert.match(nav, /\['Chat', 'inbox'/);
+  assert.match(nav, /detailsGroup\('Mensajería', MESSAGING/);
   assert.match(nav, /detailsGroup\('Negocio', BUSINESS/);
   // Todos los ajustes viven en la pantalla Configuración: el menú solo tiene ese acceso.
   assert.match(nav, /var SETTINGS = \[\['Configuración', 'configuracion', 'settings'\]\]/);
@@ -29,17 +30,26 @@ test('las herramientas de baja frecuencia ya no compiten en el primer nivel', ()
   assert.match(nav, /var SETTINGS = \[/);
 });
 
-test('Canales e IA se divide en canales, asistente y laboratorio', () => {
-  assert.match(nav, /\['channels','Canales'\]/);
-  assert.match(nav, /\['assistant','SMYL Asistente'\]/);
-  assert.match(nav, /\['lab','Laboratorio'\]/);
+test('Canales e IA tiene un espacio por canal y herramientas compartidas', () => {
+  assert.match(nav, /\['channels','Estado','R','general'\]/);
+  assert.match(nav, /\['whatsapp','WhatsApp','<img src="icons\/brands\/whatsapp\.svg" alt="">','channels'\]/);
+  assert.match(nav, /\['messenger','Messenger','M','channels'\]/);
+  assert.match(nav, /\['instagram','Instagram','I','channels'\]/);
+  assert.match(nav, /\['assistant','SMYL Asistente','A','tools'\]/);
+  assert.match(nav, /\['templates','Plantillas','P','tools'\]/);
+  assert.match(nav, /\['automations','Automatizaciones','⌁','tools'\]/);
+  assert.match(nav, /\['lab','Probar al asistente','T','tools'\]/);
   assert.match(nav, /preview\.dataset\.connectionPane|labPane\.dataset\.connectionPane = 'lab'/);
+  assert.match(nav, /data-channel-slot/);
+  assert.match(nav, /smyl_connections_workspace/);
   assert.match(css, /\.connections-tabs/);
+  assert.match(css, /\.connections-channel-config/);
 });
 
 test('web y PWA cargan la arquitectura centralizada', () => {
-  assert.match(app, /smyl-navigation\.js\?v=(?:9|1[0-9])/);
-  assert.match(app, /smyl-navigation\.css\?v=5/);
+  assert.match(app, /smyl-navigation\.js\?v=(?:9|1[0-9]|2[0-9])/);
+  assert.match(app, /smyl-navigation\.css\?v=(?:[5-9]|[1-9][0-9])/);
   assert.match(sw, /smyl-v263-lana-connection-recovery/);
-  assert.match(sw, /smyl-navigation\.js\?v=(?:9|1[0-9])/);
+  assert.match(sw, /smyl-navigation\.js\?v=(?:9|1[0-9]|2[0-9])/);
+  assert.match(sw, /icons\/brands\/whatsapp\.svg/);
 });

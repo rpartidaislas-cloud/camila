@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var model = window.SmylClinicalModel;
-  var current = null, sequence = 0, patientSequence = 0, savingPatient = false, patientAttempt = null;
+  var current = null, sequence = 0, patientSequence = 0, savingPatient = false, patientAttempt = null, patientFormTouched = false;
   var patientMessage = '', patientFailure = false, patientDirectoryFilter = 'all', patientMenuDismissBound = false;
   function el(tag, cls, text) {
     var n = document.createElement(tag); if (cls) n.className = cls;
@@ -33,6 +33,14 @@
   function patientClinicName() {
     var t = window.tenantData || {};
     return (t.config && t.config.consultorio) || t.nombre || '';
+  }
+  function updatePatientClinicLine() {
+    var line = document.getElementById('patient-clinic-line');
+    if (!line) return;
+    var clinic = patientClinicName(), branch = document.getElementById('mp-sucursal');
+    var branchName = branch && branch.value && branch.selectedOptions.length ? branch.selectedOptions[0].textContent.trim() : '';
+    line.textContent = [clinic ? 'Clínica: ' + clinic : '', branchName ? 'Sucursal: ' + branchName : ''].filter(Boolean).join(' · ');
+    line.hidden = !line.textContent;
   }
   // Antes de llenar el formulario, pregunta a la base lo mismo que exigirá la
   // política de camila_pacientes: que la clínica de la sesión sea la de la
@@ -94,7 +102,7 @@
     (values || []).slice(0, 20).forEach(function (value) {
       var chip = el('span', 'mp-chip', value); chip.dataset.value = value;
       var remove = el('button', '', '×'); remove.type = 'button'; remove.setAttribute('aria-label', 'Quitar ' + value);
-      remove.addEventListener('click', function () { chip.remove(); });
+      remove.addEventListener('click', function () { chip.remove(); patientFormTouched = true; updatePatientExtraSummaries(); });
       chip.append(remove); host.append(chip);
     });
   }
@@ -103,7 +111,7 @@
     if (!text) return;
     var existing = readAlerts();
     if (existing.length >= 20 || existing.some(function (item) { return item.toLowerCase() === text.toLowerCase(); })) return;
-    renderAlerts(existing.concat([text]));
+    renderAlerts(existing.concat([text])); updatePatientExtraSummaries();
   }
   async function loadIntakeCatalogs(tenant) {
     if (intakeCatalogs.tenant === tenant) return intakeCatalogs;
@@ -129,6 +137,31 @@
     document.getElementById('mp-sucursal-fg').hidden = catalogs.branches.length < 2;
     professional.value = (patient && patient.professional_id) || '';
     if (patient && patient.professional_id && professional.value !== patient.professional_id) professional.value = '';
+    updatePatientClinicLine();
+    updatePatientExtraSummaries();
+  }
+  function updatePatientExtraSummaries() {
+    var care = document.querySelector('#modal-paciente .mp-care-extra'), alertBox = document.querySelector('#modal-paciente .mp-alert-extra'), additional = document.querySelector('#modal-paciente .mp-additional-extra');
+    if (!care || !alertBox || !additional) return;
+    var careParts = [], branchField = document.getElementById('mp-sucursal-fg'), branch = document.getElementById('mp-sucursal'), professional = document.getElementById('mp-profesional'), origin = document.getElementById('mp-origen');
+    if (!branchField.hidden && branch.value) careParts.push(branch.selectedOptions[0].textContent.trim());
+    if (professional.value) careParts.push(professional.selectedOptions[0].textContent.trim());
+    if (origin.value) careParts.push(origin.selectedOptions[0].textContent.trim());
+    var careSummary = care.querySelector('summary small');
+    careSummary.textContent = careParts.length ? careParts.slice(0, 2).join(' · ') : 'Opcional'; care.dataset.filled = String(!!careParts.length);
+    var alerts = readAlerts();
+    alertBox.querySelector('summary small').textContent = alerts.length ? alerts.length + (alerts.length === 1 ? ' alerta' : ' alertas') : 'Sólo si aplica'; alertBox.dataset.filled = String(!!alerts.length);
+    var additionalCount = ['mp-fnac','mp-genero','mp-notas'].filter(function (id) { return !!document.getElementById(id).value.trim(); }).length;
+    additional.querySelector('summary small').textContent = additionalCount ? additionalCount + (additionalCount === 1 ? ' dato' : ' datos') : 'Opcional'; additional.dataset.filled = String(!!additionalCount);
+  }
+  function updateWhatsAppConsent() {
+    var input = document.getElementById('mp-tel'), consent = document.getElementById('mp-consent-wa'), help = document.getElementById('mp-tel-help');
+    var phone = composePhone(document.getElementById('mp-tel-cc').value, input.value), valid = !!phoneKey(phone);
+    consent.disabled = !valid && !consent.checked;
+    consent.setAttribute('aria-describedby', 'mp-tel-help');
+    if (help) help.textContent = valid ? 'Número listo para identificar conversaciones y enviar recordatorios.' : 'Agrega un número válido para registrar la autorización de WhatsApp.';
+    input.setAttribute('aria-invalid', String(!!input.value.trim() && !valid));
+    input.setAttribute('aria-describedby', 'mp-tel-help');
   }
   function renderDuplicates(hits) {
     var host = document.getElementById('mp-duplicados'); host.replaceChildren();
@@ -139,7 +172,7 @@
     box.append(el('strong', '', duplicateHits.length === 1 ? 'Ya existe un paciente con estos datos' : 'Ya existen ' + duplicateHits.length + ' pacientes con estos datos'));
     box.append(el('p', '', [first.name, first.match === 'telefono' ? 'mismo teléfono' : 'mismo correo', first.phone, first.email].filter(Boolean).join(' · ')));
     var actions = el('div', 'mp-dup-actions');
-    actions.append(button('Abrir su ficha', function () { window.cerrarModalPaciente(); verPaciente(first.id); }, 'btn btn-primary btn-sm'));
+    actions.append(button('Abrir su ficha', function () { patientFormTouched = false; window.cerrarModalPaciente(); verPaciente(first.id); }, 'btn btn-primary btn-sm'));
     actions.append(button('Es otra persona, continuar', function () { duplicateAck = true; host.replaceChildren(); }, 'btn btn-secondary btn-sm'));
     box.append(actions); host.append(box);
   }
@@ -842,6 +875,8 @@
   async function savePatient() {
     if (savingPatient) return;
     var feedback = document.getElementById('patient-feedback'); feedback.replaceChildren();
+    var saveButton = document.getElementById('patient-save-button');
+    var saveLabel = editandoPacienteId ? 'Guardar cambios' : 'Crear paciente';
     var ids = ['mp-nombre','mp-apellido','mp-email','mp-tel','mp-fnac','mp-genero','mp-notas'];
     for (var id of ids) { if (!document.getElementById(id).reportValidity()) return; }
     if (!tenantId) { feedback.append(notice('Inicia sesión para guardar en tu clínica.', true)); return; }
@@ -854,6 +889,7 @@
     var data = { tenant_id: tenant, nombre: document.getElementById('mp-nombre').value.trim(), apellido: document.getElementById('mp-apellido').value.trim(), email: document.getElementById('mp-email').value.trim(), telefono: phone, fecha_nacimiento: document.getElementById('mp-fnac').value || null, genero: document.getElementById('mp-genero').value || null, notas: document.getElementById('mp-notas').value.trim() };
     if (!data.nombre) { feedback.append(notice('Escribe el nombre del paciente.', true)); return; }
     if (document.getElementById('mp-tel').value.trim() && !phoneKey(phone)) { feedback.append(notice('Revisa el teléfono: debe tener entre 8 y 15 dígitos.', true)); return; }
+    if (document.getElementById('mp-consent-wa').checked && !phoneKey(phone)) { feedback.append(notice('Agrega un WhatsApp válido antes de registrar la autorización de mensajes.', true)); return; }
     var extra = {
       origen: document.getElementById('mp-origen').value || '',
       branch_id: document.getElementById('mp-sucursal').value || null,
@@ -867,7 +903,9 @@
       if (hits.length) { renderDuplicates(hits); feedback.append(notice('Revisa el posible duplicado antes de guardar.', true)); return; }
     }
     patientAttempt = patientAttempt || crypto.randomUUID();
-    savingPatient = true; document.querySelectorAll('#modal-paciente button,#modal-paciente input,#modal-paciente select,#modal-paciente textarea').forEach(function (b) { b.disabled = true; });
+    savingPatient = true;
+    if (saveButton) { saveButton.textContent = 'Guardando…'; saveButton.setAttribute('aria-busy','true'); }
+    document.querySelectorAll('#modal-paciente button,#modal-paciente input,#modal-paciente select,#modal-paciente textarea').forEach(function (b) { b.disabled = true; });
     try {
       var buildQuery = function (payload) {
         if (editing) {
@@ -877,16 +915,13 @@
         }
         return sb.from('camila_pacientes').insert([Object.assign({ id: patientAttempt }, payload)]).select('*').single();
       };
-      var saved, legacySchema = false;
+      var saved;
       try { saved = await checked(buildQuery(Object.assign({}, data, extra))); }
       catch (error) {
-        // PGRST204: la base aún no tiene las columnas de la alta v2 (migración
-        // 20261020150000). Se guardan los datos básicos y se avisa.
-        if (error.code !== 'PGRST204') throw error;
-        legacySchema = true; saved = await checked(buildQuery(data));
+        if (error.code === 'PGRST204') throw Object.assign(new Error('La ficha no se guardó porque la base de pacientes necesita una actualización. No se descartó ningún dato; pide al administrador activar la versión vigente antes de reintentar.'), { code: 'SMYL_PATIENT_SCHEMA_REQUIRED' });
+        throw error;
       }
       if (!saved || !saved.id || saved.tenant_id !== tenant) throw new Error('Unconfirmed patient save');
-      if (legacySchema) { patientMessage = 'Origen, sucursal, profesional, alertas y consentimiento se guardarán cuando se active la actualización de la base de pacientes (migración 20261020150000).'; patientFailure = false; }
       if (tenantId !== tenant) return;
       if (current) current.dirty = false;
       var index = todosLosPacientes.findIndex(function (p) { return p.id === saved.id; });
@@ -903,10 +938,16 @@
         failure = patientBlockMessage(recheck && recheck.ok ? 'scope' : recheck && recheck.reason ? recheck.reason : 'permission');
       }
       feedback.append(notice(error.code === '23505' || error.code === 'PGRST116' ? 'No se confirmó esta operación. Cierra el formulario y vuelve a cargar Pacientes antes de reintentar para evitar duplicados o sobrescribir cambios.'
+        : error.code === 'SMYL_PATIENT_SCHEMA_REQUIRED' ? error.message
         : failure ? failure
         : error.code === 'PGRST301' ? patientBlockMessage('session')
         : model.errorMessage(error), true));
-    } finally { savingPatient = false; document.querySelectorAll('#modal-paciente button,#modal-paciente input,#modal-paciente select,#modal-paciente textarea').forEach(function (b) { b.disabled = false; }); }
+    } finally {
+      savingPatient = false;
+      document.querySelectorAll('#modal-paciente button,#modal-paciente input,#modal-paciente select,#modal-paciente textarea').forEach(function (b) { b.disabled = false; });
+      if (saveButton) { saveButton.textContent = saveLabel; saveButton.removeAttribute('aria-busy'); }
+      updateWhatsAppConsent();
+    }
   }
   async function loadPatientSelect() {
     var select = document.getElementById('f-caso-paciente'), tenant = tenantId;
@@ -976,8 +1017,7 @@
       if (id && todosLosPacientes.some(function (p) { return p.id === id && p._local; })) return;
       oldOpen(id); patientAttempt = null; document.getElementById('patient-feedback').replaceChildren();
       document.getElementById('mp-nombre').focus();
-      var clinicLine = document.getElementById('patient-clinic-line');
-      if (clinicLine) clinicLine.textContent = patientClinicName() ? 'Se guardará en ' + patientClinicName() + '.' : '';
+      updatePatientClinicLine();
       var save = document.getElementById('patient-save-button');
       if (save) { save.disabled = false; save.textContent = id ? 'Guardar cambios' : 'Crear paciente'; }
       var patient = id ? todosLosPacientes.find(function (p) { return p.id === id; }) : null;
@@ -988,6 +1028,7 @@
       document.getElementById('mp-alerta-input').value = '';
       renderAlerts((patient && patient.alertas_medicas) || []);
       document.getElementById('mp-duplicados').replaceChildren(); clearTimeout(duplicateTimer); duplicateAck = false; duplicateHits = [];
+      modal.querySelectorAll('.clinic-patient-extra').forEach(function (details) { details.open = false; });
       fillIntakeSelects(intakeCatalogs.tenant === tenantId ? intakeCatalogs : { tenant: tenantId, branches: [], professionals: [] }, patient);
       loadIntakeCatalogs(tenantId).then(function (catalogs) {
         if (catalogs.tenant === tenantId && document.getElementById('modal-paciente').classList.contains('visible')) fillIntakeSelects(catalogs, patient);
@@ -999,19 +1040,49 @@
         document.getElementById('patient-feedback').replaceChildren(notice(patientBlockMessage(result.reason), true));
         if (save) save.disabled = true;
       });
+      updateWhatsAppConsent();
+      updatePatientExtraSummaries();
+      patientFormTouched = false;
     };
     var oldClose = window.cerrarModalPaciente;
-    window.cerrarModalPaciente = function () { if (!savingPatient) oldClose(); };
+    window.cerrarModalPaciente = function () {
+      if (savingPatient) return;
+      if (patientFormTouched && !confirm('Hay datos sin guardar. ¿Quieres cerrar y descartarlos?')) return;
+      patientFormTouched = false; oldClose();
+    };
     var oldLogout = window.cerrarSesion;
     window.cerrarSesion = function () { if (leave()) oldLogout(); };
     addEventListener('beforeunload', function (event) { if ((current && (current.dirty || current.saving || current.aiBusy)) || savingPatient) { event.preventDefault(); event.returnValue = ''; } });
     var modal = document.getElementById('modal-paciente');
     modal.setAttribute('role','dialog'); modal.setAttribute('aria-modal','true'); modal.setAttribute('aria-labelledby','modal-pac-title');
+    var patientViewport = window.visualViewport;
+    var syncPatientDialogShell = function () {
+      var open = modal.classList.contains('visible');
+      document.body.classList.toggle('smyl-patient-dialog-open', open);
+      if (!open) return;
+      var height = Math.max(320, Math.round(patientViewport ? patientViewport.height : window.innerHeight));
+      var top = Math.max(0, Math.round(patientViewport ? patientViewport.offsetTop : 0));
+      modal.style.setProperty('--smyl-patient-viewport-height', height + 'px');
+      modal.style.setProperty('--smyl-patient-viewport-top', top + 'px');
+    };
+    new MutationObserver(syncPatientDialogShell).observe(modal,{attributes:true,attributeFilter:['class']});
+    window.addEventListener('resize',syncPatientDialogShell,{passive:true});
+    if (patientViewport) {
+      patientViewport.addEventListener('resize',syncPatientDialogShell,{passive:true});
+      patientViewport.addEventListener('scroll',syncPatientDialogShell,{passive:true});
+    }
+    syncPatientDialogShell();
     document.getElementById('mp-nombre').required = true;
     [['mp-nombre',150],['mp-apellido',150],['mp-email',254],['mp-tel',40],['mp-notas',8000]].forEach(function (pair) { document.getElementById(pair[0]).maxLength = pair[1]; });
     modal.querySelectorAll('.fg').forEach(function (f) { var label = f.querySelector('label'), input = f.querySelector('input,textarea,select'); if (label && input && !label.htmlFor) label.htmlFor = input.id; });
+    modal.querySelectorAll('input,select,textarea').forEach(function (control) {
+      control.addEventListener('input', function () { patientFormTouched = true; updatePatientExtraSummaries(); });
+      control.addEventListener('change', function () { patientFormTouched = true; updatePatientExtraSummaries(); });
+    });
     ['mp-tel', 'mp-email'].forEach(function (id) { document.getElementById(id).addEventListener('input', scheduleDuplicateCheck); });
-    document.getElementById('mp-tel-cc').addEventListener('change', scheduleDuplicateCheck);
+    document.getElementById('mp-tel').addEventListener('input', updateWhatsAppConsent);
+    document.getElementById('mp-tel-cc').addEventListener('change', function () { scheduleDuplicateCheck(); updateWhatsAppConsent(); });
+    document.getElementById('mp-sucursal').addEventListener('change', updatePatientClinicLine);
     var alertInput = document.getElementById('mp-alerta-input');
     alertInput.addEventListener('keydown', function (event) {
       if (event.key === 'Enter' || event.key === ',') { event.preventDefault(); addAlert(alertInput.value); alertInput.value = ''; }
@@ -1021,6 +1092,22 @@
     var clinicLine = document.getElementById('patient-clinic-line');
     if (!clinicLine) { clinicLine = el('p'); clinicLine.id = 'patient-clinic-line'; document.getElementById('modal-pac-title').after(clinicLine); }
     var saveButton = modal.querySelector('.modal-footer .btn-primary'); if (saveButton) saveButton.id = 'patient-save-button';
+    modal.querySelectorAll('.clinic-patient-extra').forEach(function (details) {
+      details.addEventListener('toggle', function () {
+        if (!details.open) return;
+        modal.querySelectorAll('.clinic-patient-extra').forEach(function (other) { if (other !== details) other.open = false; });
+        requestAnimationFrame(function () { details.scrollIntoView({ block: 'nearest' }); });
+      });
+    });
+    modal.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') { event.preventDefault(); window.cerrarModalPaciente(); return; }
+      if (event.key !== 'Tab') return;
+      var focusable = Array.prototype.filter.call(modal.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[href]'), function (node) { return node.offsetParent !== null; });
+      if (!focusable.length) return;
+      var first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
     var dialog = el('dialog', 'clinic-dialog'); dialog.id = 'clinic-review-dialog'; dialog.setAttribute('aria-labelledby','clinic-review-title');
     var reviewTitle = el('h2', '', 'Revisar este plan'); reviewTitle.id = 'clinic-review-title';
     var label = el('label', 'clinic-confirm'); var check = el('input'); check.type = 'checkbox'; check.id = 'clinic-review-confirm';

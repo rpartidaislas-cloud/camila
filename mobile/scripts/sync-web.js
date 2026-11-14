@@ -35,6 +35,8 @@ copyFile(path.join(ROOT, 'smyl-professional-directory.css'), path.join(WWW, 'smy
 copyFile(path.join(ROOT, 'smyl-ui-template-v3.css'), path.join(WWW, 'smyl-ui-template-v3.css'));
 copyFile(path.join(ROOT, 'smyl-navigation.js'), path.join(WWW, 'smyl-navigation.js'));
 copyFile(path.join(ROOT, 'smyl-navigation.css'), path.join(WWW, 'smyl-navigation.css'));
+copyFile(path.join(ROOT, 'smyl-settings-hub.js'), path.join(WWW, 'smyl-settings-hub.js'));
+copyFile(path.join(ROOT, 'smyl-settings-hub.css'), path.join(WWW, 'smyl-settings-hub.css'));
 copyFile(path.join(ROOT, 'smyl-command-menu.js'), path.join(WWW, 'smyl-command-menu.js'));
 copyFile(path.join(ROOT, 'smyl-command-menu.css'), path.join(WWW, 'smyl-command-menu.css'));
 copyFile(path.join(ROOT, 'smyl-studio.js'), path.join(WWW, 'smyl-studio.js'));
@@ -60,6 +62,17 @@ copyFile(path.join(ROOT, 'smyl-clinic-admin.js'), path.join(WWW, 'smyl-clinic-ad
 copyFile(path.join(ROOT, 'smyl-clinic-admin.css'), path.join(WWW, 'smyl-clinic-admin.css'));
 copyFile(path.join(ROOT, 'smyl-patient-360.js'), path.join(WWW, 'smyl-patient-360.js'));
 copyFile(path.join(ROOT, 'smyl-patient-360.css'), path.join(WWW, 'smyl-patient-360.css'));
+copyFile(path.join(ROOT, 'smyl-evidence-model.js'), path.join(WWW, 'smyl-evidence-model.js'));
+copyFile(path.join(ROOT, 'smyl-evidence-workspace.js'), path.join(WWW, 'smyl-evidence-workspace.js'));
+copyFile(path.join(ROOT, 'smyl-evidence-workspace.css'), path.join(WWW, 'smyl-evidence-workspace.css'));
+copyFile(path.join(ROOT, 'smyl-evidence-categories.js'), path.join(WWW, 'smyl-evidence-categories.js'));
+copyFile(path.join(ROOT, 'smyl-evidence-center.js'), path.join(WWW, 'smyl-evidence-center.js'));
+copyFile(path.join(ROOT, 'smyl-evidence-center.css'), path.join(WWW, 'smyl-evidence-center.css'));
+copyFile(path.join(ROOT, 'smyl-evidence-center-integration.js'), path.join(WWW, 'smyl-evidence-center-integration.js'));
+copyFile(path.join(ROOT, 'smyl-evidence-center-integration.css'), path.join(WWW, 'smyl-evidence-center-integration.css'));
+copyFile(path.join(ROOT, 'smyl-clinical-photo-service.js'), path.join(WWW, 'smyl-clinical-photo-service.js'));
+copyFile(path.join(ROOT, 'smyl-clinical-photo-review.js'), path.join(WWW, 'smyl-clinical-photo-review.js'));
+copyFile(path.join(ROOT, 'smyl-clinical-photo-review.css'), path.join(WWW, 'smyl-clinical-photo-review.css'));
 copyFile(path.join(ROOT, 'smyl-patient-cases.js'), path.join(WWW, 'smyl-patient-cases.js'));
 copyFile(path.join(ROOT, 'smyl-patient-cases.css'), path.join(WWW, 'smyl-patient-cases.css'));
 copyFile(path.join(ROOT, 'smyl-case-workspace.js'), path.join(WWW, 'smyl-case-workspace.js'));
@@ -76,6 +89,7 @@ copyFile(path.join(ROOT, 'smyl-inbox.js'), path.join(WWW, 'smyl-inbox.js'));
 copyFile(path.join(ROOT, 'smyl-inbox.css'), path.join(WWW, 'smyl-inbox.css'));
 copyFile(path.join(ROOT, 'smyl-daily-home.js'), path.join(WWW, 'smyl-daily-home.js'));
 copyFile(path.join(ROOT, 'smyl-daily-home.css'), path.join(WWW, 'smyl-daily-home.css'));
+copyFile(path.join(ROOT, 'smyl-dashboard-v2.css'), path.join(WWW, 'smyl-dashboard-v2.css'));
 copyFile(path.join(ROOT, 'smyl-clinic-setup.js'), path.join(WWW, 'smyl-clinic-setup.js'));
 copyFile(path.join(ROOT, 'smyl-clinic-setup.css'), path.join(WWW, 'smyl-clinic-setup.css'));
 copyFile(path.join(ROOT, 'smyl-inventory.js'), path.join(WWW, 'smyl-inventory.js'));
@@ -95,7 +109,7 @@ copyFile(path.join(ROOT, 'smyl-google-calendar.css'), path.join(WWW, 'smyl-googl
 copyFile(path.join(ROOT, 'smyl-template-catalog.js'), path.join(WWW, 'smyl-template-catalog.js'));
 copyFile(path.join(ROOT, 'smyl-templates.js'), path.join(WWW, 'smyl-templates.js'));
 copyFile(path.join(ROOT, 'smyl-templates.css'), path.join(WWW, 'smyl-templates.css'));
-for (const file of ['smyl-dental-record.js', 'smyl-dental-record.css', 'smyl-radiograph-review.js', 'smyl-radiograph-review.css', 'smyl-radiograph-workbench.css',
+for (const file of ['smyl-dental-record.js', 'smyl-dental-record.css', 'smyl-dental-dictation.js', 'smyl-dental-dictation.css', 'smyl-radiograph-review.js', 'smyl-radiograph-review.css', 'smyl-radiograph-workbench.css',
   'smyl-radiograph-review-model.js', 'smyl-radiograph-review-store.js', 'smyl-radiograph-analysis-client.js',
   'smyl-radiograph-contracts.js', 'smyl-radiograph-review-model-v2.js', 'smyl-radiograph-review-v2.js', 'smyl-radiograph-review-v2.css', 'smyl-radiograph-report.js', 'smyl-radiograph-report.css', 'smyl-radiograph-longitudinal.js', 'smyl-radiograph-longitudinal.css', 'smyl-radiograph-validation.js', 'smyl-radiograph-validation.css']) {
   copyFile(path.join(ROOT, file), path.join(WWW, file));

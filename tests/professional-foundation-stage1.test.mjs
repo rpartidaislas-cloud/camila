@@ -15,8 +15,8 @@ test('Servicios y tarifas es una función visible del negocio', () => {
   assert.doesNotMatch(nav, /Precios de la clínica/);
   assert.match(command, /label:'Negocio'/);
   assert.match(command, /Servicios y tarifas/);
-  assert.match(catalog, /GESTIÓN DEL NEGOCIO/);
-  assert.match(catalog, /fuente única para Agenda, planes y cotizaciones/);
+  assert.match(catalog, /<h1>Servicios y tarifas<\/h1>/);
+  assert.match(catalog, /Precios y claves que usan Agenda, cotizaciones y Cobros/);
 });
 
 test('Agenda consulta el catálogo y ya no desactiva servicios', () => {

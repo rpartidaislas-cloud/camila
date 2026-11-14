@@ -81,7 +81,7 @@ test('web, móvil y PWA publican la misma Agenda', () => {
   }
   for (const file of ['app.html', 'sw.js']) {
     assert.match(read(file), /smyl-schedule\.js\?v=(?:1[3-9]|[2-9][0-9])/);
-    assert.match(read(file), /smyl-schedule\.css\?v=(?:[89]|1[0-9])/);
+    assert.match(read(file), /smyl-schedule\.css\?v=(?:[89]|[12][0-9])/);
   }
   assert.match(read('smyl-schedule.css'), /\.schedule-patient-status\{/);
 });

@@ -9,7 +9,8 @@ const app=read('../app.html');
 const worker=read('../sw.js');
 
 test('la navegación principal refleja el trabajo completo de una clínica dental',()=>{
-  for(const area of ['Inicio','Agenda','Pacientes','Cobros','Mensajes']) assert.match(navigation,new RegExp("\\['"+area+"'"));
+  for(const area of ['Inicio','Agenda','Pacientes','Cobros','Chat']) assert.match(navigation,new RegExp("\\['"+area+"'"));
+  assert.match(navigation,/detailsGroup\('Mensajería', MESSAGING/);
   assert.doesNotMatch(navigation,/\['Tratamientos', 'propuestas'/);
   assert.doesNotMatch(navigation,/\['Alertas', 'notificaciones'/);
   assert.match(navigation,/Servicios y tarifas/);
@@ -49,9 +50,9 @@ test('las tareas frecuentes se resuelven por proceso y paciente',()=>{
 });
 
 test('web, móvil y PWA entregan el mismo panel profesional',()=>{
-  assert.match(app,/smyl-professional-v3\.css\?v=7/);
+  assert.match(app,/smyl-professional-v3\.css\?v=8/);
   assert.match(app,/smyl-professional-v3\.js\?v=[4-9]/);
-  assert.match(app,/smyl-navigation\.js\?v=(?:9|1[0-9])/);
+  assert.match(app,/smyl-navigation\.js\?v=(?:9|1[0-9]|2[0-9])/);
   assert.match(worker,/smyl-v263-lana-connection-recovery/);
   assert.equal(shell,read('../mobile/www/smyl-professional-v3.js'));
   assert.equal(styles,read('../mobile/www/smyl-professional-v3.css'));

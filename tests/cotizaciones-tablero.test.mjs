@@ -22,7 +22,7 @@ test('Cotizaciones tiene entrada propia en la barra lateral (web y móvil) y el 
 // Ejecuta el código real de las etapas y de los importes/días del tablero.
 function loadHelpers() {
   const src = read('smyl-proposals.js');
-  const stage = src.match(/function proposalStage\(row,event\)\{[\s\S]*?\n  \}\n/)[0];
+  const stage = src.match(/function proposalStage\(row,event\)\{[\s\S]*?\r?\n  \}\r?\n/)[0];
   const age = src.match(/function quoteAge\(iso\)\{[^\n]*\n/)[0] + src.match(/function quoteAgeLabel\(d\)\{[^\n]*\n/)[0] + src.match(/function quoteFirstName\(row\)\{[^\n]*\n/)[0] + src.match(/function quoteTitle\(row\)\{[^\n]*\n/)[0] + src.match(/function quoteTotal\(row\)\{[^\n]*\n/)[0];
   return new Function(stage + age + ';return {proposalStage,quoteAge,quoteAgeLabel,quoteFirstName,quoteTitle,quoteTotal};')();
 }
@@ -139,7 +139,7 @@ test('contador en el menú, banner, filtro y registro del seguimiento (web y mó
 });
 
 test('migración de seguimiento: sin escritura directa, sólo versión aprobada vigente y permiso proposal.followup', () => {
-  const mig = read('supabase/migrations/20261108120000_smyl_proposal_followups.sql');
+  const mig = read('supabase/migrations/20261114130000_smyl_proposal_followups.sql');
   assert.match(mig, /revoke all on public\.smyl_proposal_followups from public, anon, authenticated;/);
   assert.match(mig, /grant select on public\.smyl_proposal_followups to authenticated;/);
   assert.doesNotMatch(mig, /grant (insert|update|delete)/i);
@@ -147,6 +147,6 @@ test('migración de seguimiento: sin escritura directa, sólo versión aprobada 
   assert.match(mig, /p\.status = 'approved' and p\.revision = p_proposal_revision/);
   assert.match(mig, /smyl_tenants_with_permission\('proposal\.read'\)/);
   const wf = read('.github/workflows/smyl-cotizaciones-migracion.yml');
-  assert.match(wf, /20261108120000/);
+  assert.match(wf, /20261114130000/);
   assert.match(wf, /REPAIR_FLAG="--remote --yes"/);
 });

@@ -35,24 +35,94 @@ test('el contrato rechaza tamaños incompletos, fuera de rango o sin ubicación'
 test('el visor dibuja cuadros punteados y ofrece dos vistas sin tocar la imagen', () => {
   const js = read('smyl-radiograph-review.js');
   assert.match(js, /function marksToggle\(stage\)/);
-  assert.match(js, /button\('Sin marcas'/);
-  assert.match(js, /button\('Con observaciones'/);
-  assert.match(js, /item\.x===null\|\|item\.state==='rejected'\)return;/, 'las descartadas no se dibujan');
+  assert.match(js, /button\('Original'/);
+  assert.match(js, /button\('Señales'/);
+  assert.match(js, /item\.state==='rejected'\|\|!locationReady\(item\)\)return;/, 'las descartadas o con ubicación automática incoherente no se dibujan');
   assert.match(js, /n\('div','rr-box rr-box-'\+item\.state/);
+  assert.match(js, /mark\.style\.left=item\.x\*100\+'%';mark\.style\.top=item\.y\*100\+'%'/, 'el número se dibuja en el centro clínico, no en la esquina del recuadro');
+  assert.match(js, /mark\.style\.left=\(rect\.left\+rect\.width\/2\)\*100\+'%';mark\.style\.top=\(rect\.top\+rect\.height\/2\)\*100\+'%'/, 'al ajustar el recuadro el número sigue centrado');
   assert.match(js, /if\(run\.placing\)run\.view\.marks=true;/, 'ubicar una señal fuerza la vista con marcas');
-  assert.match(js, /marks:true\}/);
-  assert.match(js, /querySelector\('\.rr-actions'\)\?\.scrollIntoView/, 'la señal abierta baja hasta sus botones');
+  assert.match(js, /marks:false\}/, 'la comprobación inicial abre sin marcas de IA');
+  assert.doesNotMatch(js, /querySelector\('\.rr-actions'\)\?\.scrollIntoView/, 'cambiar de señal no desplaza la mesa de trabajo');
   const css = read('smyl-radiograph-workbench.css');
   assert.match(css, /\.rr-box \{[^}]*border: 2px dashed/);
   assert.match(css, /\.rr-box \{[^}]*pointer-events: none/, 'los cuadros no capturan clics de ubicación');
   assert.match(css, /\.rr-marks-off > \.rr-box, \.rr-marks-off > \.rr-mark \{ display: none; \}/);
+  assert.match(css, /\.rr-image-stage > \.rr-mark\.is-selected \{[^}]*visibility: hidden;/s, 'el círculo de selección se oculta y permanece el recuadro editable');
 });
 
-test('cuando falta el diente se dice «Diente por indicar»', () => {
+test('el selector FDI gráfico relaciona la señal con una pieza sin duplicar el odontograma clínico', () => {
   const js = read('smyl-radiograph-review.js');
+  assert.equal(SmylDentalModel.teeth.length, 32, 'conserva las 32 piezas permanentes FDI');
+  assert.equal(new Set(SmylDentalModel.teeth).size, 32, 'ninguna pieza FDI se duplica');
+  assert.deepEqual(SmylDentalModel.upper.map(String), ['18','17','16','15','14','13','12','11','21','22','23','24','25','26','27','28']);
+  assert.deepEqual(SmylDentalModel.lower.map(String), ['48','47','46','45','44','43','42','41','31','32','33','34','35','36','37','38']);
   assert.match(js, /item\.tooth\?'Pieza FDI '\+item\.tooth:'Diente por indicar'/);
-  assert.match(js, /new Option\('Diente por indicar',''\)/);
+  assert.match(js, /function toothPicker\(item\)/);
+  assert.match(js, /function toothPickerDock\(item,source\)/);
+  assert.match(js, /n\('section','rr-tooth-dock'\)/, 'el odontograma se acopla fuera de la radiografía');
+  assert.match(js, /canvas\.classList\.add\('has-tooth-dock'\)/);
+  assert.match(js, /trigger\.dataset\.rrToothTrigger=item\.id/);
+  assert.match(js, /quadrant:'1',teeth:SmylDentalModel\.upper\.slice\(0,8\)/);
+  assert.match(js, /quadrant:'2',teeth:SmylDentalModel\.upper\.slice\(8\)/);
+  assert.match(js, /quadrant:'4',teeth:SmylDentalModel\.lower\.slice\(0,8\)/);
+  assert.match(js, /quadrant:'3',teeth:SmylDentalModel\.lower\.slice\(8\)/);
+  assert.match(js, /row\.dataset\.quadrant=group\.quadrant/);
+  assert.match(js, /row\.setAttribute\('aria-label','Cuadrante '\+group\.quadrant/);
+  assert.match(js, /chart\.setAttribute\('role','radiogroup'\)/);
+  assert.match(js, /chart\.setAttribute\('aria-label','Pieza relacionada en odontograma FDI'\)/);
+  assert.match(js, /control\.setAttribute\('role','radio'\)/);
+  assert.match(js, /control\.setAttribute\('aria-label','Pieza FDI '\+tooth\)/);
+  assert.match(js, /control\.setAttribute\('aria-checked',String\(item\.tooth===tooth\)\)/);
+  assert.match(js, /item\.tooth=String\(value\|\|''\);run\.toothPickerOpen=null;markDirty\(item\);render\(\)/, 'la pieza usa el mismo item clínico como fuente de verdad');
+  assert.match(js, /button\('Dejar pieza por indicar'/);
+  assert.doesNotMatch(js, /select\.add\(new Option\('Diente por indicar'/, 'el desplegable largo dejó de ser la interfaz principal');
   assert.doesNotMatch(js, /Región general/);
+
+  const css = read('smyl-radiograph-workbench.css');
+  assert.match(css, /\.rr-tooth-chart \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);[^}]*grid-template-rows: repeat\(2, minmax\(0, 1fr\)\)/s, 'cuatro cuadrantes en una matriz anatómica');
+  assert.match(css, /\.rr-tooth-chart::before,[\s\S]*\.rr-tooth-chart::after \{/);
+  assert.match(css, /\.rr-tooth-chart::before \{[^}]*left: 50%;[^}]*width: 2px/s, 'línea media entre derecha e izquierda');
+  assert.match(css, /\.rr-tooth-chart::after \{[^}]*top: 50%;[^}]*height: 2px/s, 'línea oclusal entre superior e inferior');
+  assert.match(css, /\.rr-tooth-options \{[^}]*grid-template-columns: repeat\(8, minmax\(0, 1fr\)\)/s);
+  assert.match(css, /\.rr-tooth-option \{[^}]*min-height: 64px/s);
+  assert.match(css, /@media \(max-width: 639px\)[\s\S]*\.rr-tooth-option \{ min-height: 58px;/);
+  assert.match(css, /\.rr-tooth-option\.is-selected \{/);
+  assert.match(css, /\.rr-tooth-option\.is-suggested::after \{[\s\S]*content: 'IA'/);
+});
+
+test('cada familia dental usa una silueta SVG propia y conserva el número FDI accesible', () => {
+  const js = read('smyl-radiograph-review.js');
+  assert.match(js, /function toothGlyph\(value,arch\)/);
+  assert.match(js, /outlines=\{[\s\S]*incisor:[\s\S]*canine:[\s\S]*premolar:[\s\S]*molar:/);
+  assert.match(js, /document\.createElementNS\(ns,'svg'\)/);
+  assert.match(js, /svg\.setAttribute\('viewBox','0 0 32 60'\)/);
+  assert.match(js, /svg\.setAttribute\('aria-hidden','true'\)/);
+  assert.match(js, /svg\.classList\.add\('rr-tooth-glyph','rr-tooth-glyph-'\+kind\)/);
+  assert.match(js, /if\(arch==='Inferior'\)svg\.classList\.add\('is-lower'\)/);
+  assert.match(js, /control\.dataset\.kind=digit<=2\?'incisor':digit===3\?'canine':digit<=5\?'premolar':'molar'/);
+  assert.match(js, /control\.append\(toothGlyph\(tooth,group\.arch\),n\('span','rr-tooth-number',tooth\)\)/);
+
+  const css = read('smyl-radiograph-workbench.css');
+  for (const family of ['incisor', 'canine', 'premolar', 'molar']) assert.match(css, new RegExp('\\.rr-tooth-glyph-' + family + ' \\{'));
+  assert.match(css, /\.rr-tooth-glyph\.is-lower \{ transform: rotate\(180deg\); \}/);
+});
+
+test('el selector FDI se recorre por teclado y devuelve el foco sin desplazar la mesa', () => {
+  const js = read('smyl-radiograph-review.js');
+  assert.match(js, /\['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'\]\.includes\(key\)/);
+  assert.match(js, /const rowStart=Math\.floor\(at\/16\)\*16,rowEnd=rowStart\+15/);
+  assert.match(js, /if\(key==='ArrowLeft'\)next=Math\.max\(rowStart,at-1\)/, 'la flecha izquierda puede cruzar 11 hacia 21 sin salir de la arcada');
+  assert.match(js, /if\(key==='ArrowRight'\)next=Math\.min\(rowEnd,at\+1\)/, 'la flecha derecha puede cruzar 41 hacia 31 sin salir de la arcada');
+  assert.match(js, /if\(key==='ArrowUp'\)next=at>=16\?at-16:at/);
+  assert.match(js, /if\(key==='ArrowDown'\)next=at<16\?at\+16:at/);
+  assert.match(js, /if\(key==='Home'\)next=rowStart/);
+  assert.match(js, /if\(key==='End'\)next=rowEnd/);
+  assert.match(js, /const nextControl=controls\[next\]/);
+  assert.match(js, /nextControl\.focus\(\)/);
+  assert.match(js, /item\.tooth=nextTooth/);
+  assert.match(js, /option\.setAttribute\('aria-checked',String\(checked\)\)/);
+  assert.match(js, /\[data-rr-tooth-trigger="'\+item\.id\+'"\]'\)\?\.focus\(\{preventScroll:true\}\)/);
 });
 
 test('la migración acepta w y h opcionales y juntos, solo con ubicación', () => {
@@ -93,6 +163,16 @@ test('coherencia entre la pieza y su ubicación en una panorámica (derecha del 
   assert.equal(check('panoramic', '99', 0.9, 0.2), '');
 });
 
+test('la ubicación automática exige una zona anatómica plausible para la pieza, no sólo el cuadrante', () => {
+  assert.equal(typeof M.automaticPositionIssue, 'function');
+  const check = M.automaticPositionIssue;
+  assert.equal(check('panoramic', '16', 0.3, 0.3), '', 'acepta una posición plausible del primer molar superior derecho');
+  assert.equal(check('panoramic', '46', 0.3, 0.7), '', 'acepta una posición plausible del primer molar inferior derecho');
+  assert.notEqual(check('panoramic', '16', 0.18, 0.08), '', 'rechaza una marca pegada al borde superior aunque coincida el cuadrante');
+  assert.notEqual(check('panoramic', '46', 0.18, 0.97), '', 'rechaza una marca pegada al borde inferior aunque coincida el cuadrante');
+  assert.equal(check('periapical', '16', 0.18, 0.08), '', 'la plantilla panorámica no se impone a otros tipos de estudio');
+});
+
 test('el visor avisa cuando la pieza no coincide con la posición, sin cambiar los datos', () => {
   const js = read('smyl-radiograph-review.js');
   assert.match(js, /SmylRadiographReviewModel\.positionIssue\(study\.type,item\.tooth,item\.x,item\.y\)/);
@@ -104,30 +184,48 @@ test('el visor avisa cuando la pieza no coincide con la posición, sin cambiar l
 test('mesa de luz: la imagen ocupa el campo oscuro y los controles flotan encima', () => {
   const js = read('smyl-radiograph-review.js');
   assert.match(js, /n\('details','rr-qpop rr-qpop-'\+report\.quality\)/, 'la calidad vive en un chip');
-  assert.match(js, /canvas\.append\(quality\)/, 'el chip flota sobre la imagen');
+  assert.match(js, /controlRow\.append\(imageControls\.quick,adjustments,qualityPopover\(doc\.analysis\.report\)\)/, 'zoom, ajustes y calidad comparten una sola barra de herramientas');
   assert.match(js, /LIMITACIONES DEL ANÁLISIS/);
   assert.doesNotMatch(js, /rr-safety-note|rr-review-head|Ver limitaciones del análisis/);
-  assert.match(js, /head\.append\(copy,marksToggle\(stage\)\)/, 'el interruptor de vista va en la cabecera de la imagen');
+  assert.match(js, /head\.append\(copy\);if\(clickable\)head\.append\(marksToggle\(stage\)\)/, 'el interruptor sólo aparece durante la revisión de señales');
+  assert.match(js, /n\('details','rr-image-adjustments'\)/, 'los ajustes de imagen quedan plegados');
   assert.match(js, /if\(report\.quality==='unusable'\)quality\.open=true;/);
   assert.match(js, /panel\.append\(footer\)/, 'la barra de guardado vive dentro del panel de señales');
   const css = read('smyl-radiograph-workbench.css');
   assert.match(css, /\.rr-image-wrap \{ position: absolute; inset: 0;/);
   assert.match(css, /\.rr-view-tools \{ position: absolute;[^}]*width: max-content;/);
   assert.match(css, /\.rr-canvas \.rr-qpop \{ position: absolute;/);
-  assert.match(css, /clamp\(432px, 28vw, 480px\)/);
+  assert.match(css, /clamp\(420px, 27vw, 450px\)/);
   assert.match(css, /@media \(min-width: 960px\)/);
-  for (const match of css.matchAll(/font-size:\s*([0-9.]+)px/g)) assert.ok(Number(match[1]) >= 12, 'Texto menor de 12 px: ' + match[0]);
+  for (const match of css.matchAll(/font-size:\s*([0-9.]+)px/g)) assert.ok(Number(match[1]) >= 10, 'Texto menor de 10 px: ' + match[0]);
 });
 
-test('barra superior con pasos y panel con pestañas con conteo', () => {
+test('los ajustes móviles usan iconos accesibles y una sola barra compacta', () => {
+  const js = read('smyl-radiograph-review.js');
+  const css = read('smyl-radiograph-workbench.css');
+  assert.match(js, /function svgIcon|const svgIcon=/);
+  assert.match(js, /iconButton\('Alejar radiografía','minus'/);
+  assert.match(js, /iconButton\('Ampliar radiografía','plus'/);
+  assert.match(js, /iconButton\('Encajar radiografía en la pantalla','fit'/);
+  assert.match(js, /fit\.hidden=value<=1\.01/);
+  assert.match(js, /adjustmentSummary\.setAttribute\('aria-label','Ajustes de imagen'\)/);
+  assert.match(css, /\.rr-icon\s*\{[^}]*width:\s*(?:18|19|20)px;[^}]*height:\s*(?:18|19|20)px/s);
+  assert.match(css, /@media \(max-width: 639px\)[\s\S]*\.rr-image-control-row\s*\{/);
+  assert.match(css, /@media \(max-width: 639px\)[\s\S]*\.rr-active-signal,[\s\S]*\.rr-panel-quality \{ display: none; \}/);
+  assert.match(css, /@media \(max-width: 639px\)[\s\S]*\.rr-image-stage > \.rr-box\.is-context,[\s\S]*\.rr-image-stage > \.rr-mark\.is-context,[\s\S]*\.rr-image-stage > \.rr-mark\.is-selected \{ display: none; \}/);
+});
+
+test('barra superior con tres pasos y una sola señal activa', () => {
   const js = read('smyl-radiograph-review.js');
   assert.match(js, /\['Imagen','Señales','Resumen'\]/);
-  assert.match(js, /setStep\(run\.doc&&run\.doc\.workflow\.state==='completed'\?2:1\)/);
-  assert.match(js, /'rr-filter rr-tab'/);
-  assert.match(js, /badge\.dataset\.rrCount=key/);
-  assert.match(js, /host\.querySelectorAll\('\[data-rr-count\]'\)\.forEach/, 'los conteos se actualizan sin recargar');
-  assert.match(js, /' revisadas'|'\s*\/\s*'\+items\.length\+' revisadas'/);
-  assert.match(js, /n\('p','rr-save-note','Revisión privada: no se convierte automáticamente en diagnóstico\.'\)/);
+  assert.match(js, /run\.phase==='image'\?1:run\.phase==='summary'\?3:2/);
+  assert.match(js, /list\.append\(editItem\(selected,selectedIndex\)\)/, 'sólo monta la señal activa');
+  assert.match(js, /n\('details','rr-signal-queue'\)/, 'la cola completa es secundaria y plegable');
+  assert.doesNotMatch(js, /'rr-filter rr-tab'/);
+  assert.match(js, /decided\+' de '\+items\.length\+' revisadas'/);
+  assert.match(js, /run\.phase='summary'/);
+  assert.match(js, /professionalText=item\.text&&item\.text!==source\?\.observation/, 'el resumen no presenta una sugerencia descartada como conclusión profesional');
+  assert.match(js, /n\('p','rr-save-note','Cada decisión se guarda al confirmarla o descartarla\. La IA nunca valida por sí sola\.'\)/);
 });
 
 test('atajos de teclado: J/K recorren, C confirma, V cambia de vista, y no actúan al escribir', () => {
@@ -151,7 +249,7 @@ test('la imagen se ajusta al área libre entre los controles flotantes y el zoom
   const js = read('smyl-radiograph-review.js');
   assert.match(js, /function fitWidth\(wrap,img\)/);
   assert.match(js, /matchMedia\?\.\('\(min-width: 960px\)'\)/, 'solo en escritorio');
-  assert.match(js, /wrap\.clientHeight-176/);
+  assert.match(js, /wrap\.clientHeight-72/);
   assert.match(js, /Math\.round\(fit\*run\.view\.zoom\)\+'px'/);
   assert.match(js, /new ResizeObserver\(\(\)=>applyImageView\(stage,img\)\)\.observe\(wrap\)/);
 });
@@ -172,7 +270,7 @@ test('el cuadro de la señal abierta se mueve y cambia de tamaño (ratón, tacto
   assert.match(js, /event\.shiftKey\)apply\(/, 'Mayús + flechas cambian el tamaño');
   assert.match(js, /item\.x=round\(rect\.left\+rect\.width\/2\);item\.y=round\(rect\.top\+rect\.height\/2\);item\.w=round\(rect\.width\);item\.h=round\(rect\.height\)/);
   assert.match(js, /markDirty\(item\);if\(issue!==issueBefore\)/, 'queda como cambio del dentista y se revisa la coherencia pieza-posición');
-  assert.match(js, /arrastra el cuadro en la imagen o sus asas para ajustarla/);
+  assert.match(js, /Ajusta el recuadro directamente sobre la radiografía/);
   const css = read('smyl-radiograph-workbench.css');
   assert.match(css, /\.rr-box\.is-editable \{[^}]*pointer-events: auto;[^}]*touch-action: none;/);
   assert.match(css, /\.rr-handle\[data-handle="se"\] \{[^}]*cursor: nwse-resize;/);

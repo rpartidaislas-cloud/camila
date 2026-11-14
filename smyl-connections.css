@@ -71,3 +71,7 @@
 .connections-disconnect-dialog .connections-help{margin:0;padding:12px 14px;border-radius:12px;background:#f1f6f2;color:#3f5a58;font-size:12.5px;line-height:1.55}
 .connections-disconnect-dialog footer{margin-top:24px;padding-top:20px;border-top:1px solid #e6ebe6}
 @media(max-width:600px){.connections-disconnect-dialog form{padding:22px 20px 20px}.connections-disconnect-dialog{max-height:calc(100dvh - 20px)}}
+
+/* WhatsApp v4 · identidad de canal reconocible sin convertir el verde de marca en color de interfaz. */
+.connections-channel-icon--whatsapp{border:0!important;background:transparent!important;box-shadow:0 0 0 1px rgba(37,211,102,.12)}
+.connections-channel-icon--whatsapp img{display:block;width:100%;height:100%;object-fit:contain}

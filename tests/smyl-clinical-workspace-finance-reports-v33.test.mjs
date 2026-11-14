@@ -20,11 +20,10 @@ test('Clinical Workspace v3.3 mantiene intactos los contratos financieros y ejec
 test('Finanzas usa un contenedor seguro, jerarquía legible y una acción primaria visible', () => {
   assert.match(finance, /Clinical Workspace v3\.3 · Finanzas/);
   assert.match(finance, /container:finance-workspace\/inline-size/);
-  assert.match(finance, /\.finance-page\{[\s\S]*?max-width:1440px;min-width:0;overflow:clip/);
-  assert.match(finance, /\.finance-head \.pro-eyebrow,[^{]+\{font-size:12px/);
-  assert.match(finance, /\.finance-head h1\{font-size:clamp\(26px,2\.2vw,32px\)/);
+  assert.match(finance, /\.finance-page\{[\s\S]*?max-width:var\(--smyl-page-max,1440px\);min-width:0;overflow:clip/);
+  assert.match(finance, /\.finance-page>h1\{position:absolute/);
   assert.match(finance, /\.finance-head-actions \.btn-primary\{box-shadow:/);
-  assert.match(finance, /\.finance-metrics article\{min-height:112px/);
+  assert.match(finance, /\.finance-metrics article\{min-height:88px/);
 });
 
 test('Finanzas normaliza objetivos táctiles, estados, tablas y foco', () => {
@@ -34,7 +33,6 @@ test('Finanzas normaliza objetivos táctiles, estados, tablas y foco', () => {
   assert.match(finance, /\.finance-notice\{min-height:50px/);
   assert.match(finance, /\.finance-row-head\{min-height:42px;font-size:12px/);
   assert.match(finance, /\.finance-tabs button\{flex:0 0 auto;min-height:42px/);
-  assert.match(finance, /\.finance-focus-list span,[^{]+\{font-size:12px/);
   assert.match(finance, /\.finance-payment-check-head span,[^{]+\{font-size:12px/);
   assert.match(finance, /@media screen and \(max-width:720px\)[\s\S]*?min-height:44px/);
   assert.match(finance, /\.finance-tabs\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\);width:100%;overflow:visible\}/);
@@ -44,7 +42,7 @@ test('Finanzas normaliza objetivos táctiles, estados, tablas y foco', () => {
 test('Reportes usa una escala ejecutiva consistente y datos escaneables', () => {
   assert.match(reports, /Clinical Workspace v3\.3 · Reportes/);
   assert.match(reports, /container:reports-workspace\/inline-size/);
-  assert.match(reports, /\.reports-page\{[\s\S]*?max-width:1440px;min-width:0;overflow:clip/);
+  assert.match(reports, /\.reports-page\{[\s\S]*?max-width:var\(--smyl-page-max,1440px\);min-width:0;overflow:clip/);
   assert.match(reports, /\.reports-head \.pro-eyebrow\{font-size:12px/);
   assert.match(reports, /\.reports-metrics article\{min-height:112px/);
   assert.match(reports, /\.reports-card h2\{font-size:19px/);

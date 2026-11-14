@@ -10,13 +10,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="SMYL Panel">
-<link rel="icon" sizes="192x192" href="icons/icon-192.png">
-<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
-<link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
-<link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
+<link rel="icon" type="image/png" sizes="513x513" href="icons/smyl_pwa.png?v=2">
+<link rel="apple-touch-icon" href="icons/smyl_pwa.png?v=2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="smyl-browser-privacy.js?v=1"></script>
+<script src="smyl-sentry.js?v=3"></script>
 <script src="smyl-secure-files.js?v=2"></script>
 <link rel="stylesheet" href="smyl-security-center.css?v=2">
 <script src="smyl-security-center.js?v=2"></script>
@@ -242,6 +241,9 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 .ag-tab:hover b{text-decoration:underline}
 .ag-tab:focus-visible b{border-radius:3px;box-shadow:0 0 0 2px rgba(59,130,246,.45)}
 .ag-foot{display:flex;align-items:center;justify-content:center;gap:8px;margin:14px 0 0;font-size:12px;color:var(--ag-muted)}
+.ag-legal{margin:8px 0 0;text-align:center;font-size:12px;color:var(--ag-muted)}
+.ag-legal a{color:var(--ag-muted);text-decoration:underline}
+.ag-legal a:hover{color:#2563EB}
 .ag-foot i{width:7px;height:7px;border-radius:50%;background:#16A34A}
 @keyframes agIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:none}}
 @keyframes agUp{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
@@ -844,15 +846,15 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-panel.css?v=5">
 <script defer src="smyl-panel.js?v=7"></script>
 <link rel="stylesheet" href="smyl-clinic-admin.css?v=9">
-<script defer src="smyl-clinic-admin.js?v=8"></script>
+<script defer src="smyl-clinic-admin.js?v=12"></script>
 <link rel="stylesheet" href="smyl-professional-directory.css?v=12">
 <script defer src="smyl-professional-directory.js?v=12"></script>
-<link rel="stylesheet" href="smyl-schedule.css?v=19">
+<link rel="stylesheet" href="smyl-schedule.css?v=22">
 <link rel="stylesheet" href="smyl-google-calendar.css?v=2">
 <link rel="stylesheet" href="smyl-schedule-setup.css?v=2">
 <script defer src="smyl-schedule-grid.js?v=2"></script>
 <script defer src="smyl-schedule-slots.js?v=1"></script>
-<script defer src="smyl-schedule.js?v=30"></script>
+<script defer src="smyl-schedule.js?v=34"></script>
 <script defer src="smyl-google-calendar.js?v=2"></script>
 <script defer src="smyl-schedule-message.js?v=2"></script>
 <script defer src="smyl-schedule-setup.js?v=2"></script>
@@ -860,30 +862,32 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-templates.css?v=4">
 <script defer src="smyl-template-catalog.js?v=4"></script>
 <script defer src="smyl-templates.js?v=5"></script>
+<link rel="stylesheet" href="smyl-messaging.css?v=1">
+<script defer src="smyl-messaging.js?v=1"></script>
 <link rel="stylesheet" href="smyl-service-catalog.css?v=1">
-<link rel="stylesheet" href="smyl-service-catalog-stage1.css?v=1">
+<link rel="stylesheet" href="smyl-service-catalog-stage1.css?v=4">
 <script defer src="smyl-service-catalog-model.js?v=1"></script>
-<script defer src="smyl-service-catalog.js?v=3"></script>
-<link rel="stylesheet" href="smyl-inventory.css?v=7">
-<script defer src="smyl-inventory.js?v=8"></script>
-<link rel="stylesheet" href="smyl-finance.css?v=12">
-<script defer src="smyl-finance.js?v=16"></script>
-<link rel="stylesheet" href="smyl-reports.css?v=5">
+<script defer src="smyl-service-catalog.js?v=6"></script>
+<link rel="stylesheet" href="smyl-inventory.css?v=12">
+<script defer src="smyl-inventory.js?v=14"></script>
+<link rel="stylesheet" href="smyl-finance.css?v=30">
+<script defer src="smyl-finance.js?v=37"></script>
+<link rel="stylesheet" href="smyl-reports.css?v=6">
 <script defer src="smyl-reports.js?v=4"></script>
 <link rel="stylesheet" href="smyl-readiness.css?v=2">
 <script defer src="smyl-readiness.js?v=1"></script>
-<link rel="stylesheet" href="smyl-connections.css?v=11">
-<script defer src="smyl-connections.js?v=15"></script>
+<link rel="stylesheet" href="smyl-connections.css?v=13">
+<script defer src="smyl-connections.js?v=18"></script>
 <link rel="stylesheet" href="smyl-lana-handoff.css?v=1">
 <script defer src="smyl-lana-handoff.js?v=5"></script>
 <link rel="stylesheet" href="smyl-lana-attention.css?v=1">
 <script defer src="smyl-lana-attention.js?v=4"></script>
 <link rel="stylesheet" href="smyl-daily-home.css?v=14">
-<script defer src="smyl-daily-home.js?v=14"></script>
+<script defer src="smyl-daily-home.js?v=15"></script>
 <link rel="stylesheet" href="smyl-clinic-setup.css?v=3">
 <script defer src="smyl-clinic-setup.js?v=5"></script>
-<link rel="stylesheet" href="smyl-settings-hub.css?v=3">
-<script defer src="smyl-settings-hub.js?v=4"></script>
+<link rel="stylesheet" href="smyl-settings-hub.css?v=5">
+<script defer src="smyl-settings-hub.js?v=7"></script>
 <link rel="stylesheet" href="smyl-task-center.css?v=1">
 <script defer src="smyl-task-center.js?v=5"></script>
 <link rel="stylesheet" href="smyl-resilience.css?v=1">
@@ -891,19 +895,19 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-design-system-v2.css?v=2">
 <link rel="stylesheet" href="smyl-inbox.css?v=38">
 <script defer src="smyl-inbox.js?v=44"></script>
-<link rel="stylesheet" href="smyl-navigation.css?v=5">
-<script defer src="smyl-navigation.js?v=18"></script>
+<link rel="stylesheet" href="smyl-navigation.css?v=9">
+<script defer src="smyl-navigation.js?v=23"></script>
 <link rel="stylesheet" href="smyl-command-menu.css?v=3">
 <script defer src="smyl-command-menu.js?v=4"></script>
-<link rel="stylesheet" href="smyl-clinic.css?v=9">
+<link rel="stylesheet" href="smyl-clinic.css?v=12">
 <script defer src="smyl-clinical-model.js?v=3"></script>
 <script defer src="smyl-treatment-plan-model.js?v=1"></script>
 <script defer src="smyl-treatment-plan-client.js?v=1"></script>
-<script defer src="smyl-clinic.js?v=20"></script>
-<link rel="stylesheet" href="smyl-patient-360.css?v=17">
+<script defer src="smyl-clinic.js?v=23"></script>
+<link rel="stylesheet" href="smyl-patient-360.css?v=18">
 <script defer src="smyl-history-model.js?v=2"></script>
 <script defer src="smyl-history-read.js?v=2"></script>
-<script defer src="smyl-patient-360.js?v=25"></script>
+<script defer src="smyl-patient-360.js?v=26"></script>
 <link rel="stylesheet" href="smyl-patient-record-stage2.css?v=2">
 <script defer src="smyl-patient-record-stage2.js?v=2"></script>
 <link rel="stylesheet" href="smyl-proposals.css?v=13">
@@ -923,49 +927,66 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="my-smyl-portal.css?v=2">
 <link rel="stylesheet" href="smyl-gmail.css?v=1">
 <script defer src="my-smyl-document.js?v=1"></script>
-<script defer src="smyl-gmail.js?v=1"></script>
+<script defer src="smyl-gmail.js?v=2"></script>
 <script defer src="my-smyl-portal.js?v=4"></script>
 <script defer src="smyl-patient-cases.js?v=11"></script>
-<link rel="stylesheet" href="smyl-dental-record.css?v=4">
+<link rel="stylesheet" href="smyl-dental-record.css?v=6">
+<link rel="stylesheet" href="smyl-dental-dictation.css?v=2">
+<link rel="stylesheet" href="smyl-dental-finding-editor.css?v=2">
 <link rel="stylesheet" href="smyl-radiograph-review.css?v=2">
-<link rel="stylesheet" href="smyl-radiograph-workbench.css?v=11">
+<link rel="stylesheet" href="smyl-radiograph-workbench.css?v=23">
 <link rel="stylesheet" href="smyl-radiograph-review-v2.css?v=3">
 <link rel="stylesheet" href="smyl-radiograph-report.css?v=1">
 <link rel="stylesheet" href="smyl-radiograph-longitudinal.css?v=1">
 <link rel="stylesheet" href="smyl-radiograph-validation.css?v=1">
-<script defer src="smyl-dental-model.js?v=1"></script>
-<script defer src="smyl-radiograph-review-model.js?v=7"></script>
+<script defer src="smyl-dental-model.js?v=3"></script>
+<script defer src="smyl-dental-dictation.js?v=2"></script>
+<script defer src="smyl-radiograph-review-model.js?v=9"></script>
 <script defer src="smyl-radiograph-review-store.js?v=2"></script>
-<script defer src="smyl-radiograph-analysis-client.js?v=11"></script>
-<script defer src="smyl-radiograph-review.js?v=17"></script>
+<script defer src="smyl-radiograph-analysis-client.js?v=13"></script>
+<script defer src="smyl-radiograph-review.js?v=29"></script>
 <script defer src="smyl-radiograph-contracts.js?v=2"></script>
 <script defer src="smyl-radiograph-review-model-v2.js?v=1"></script>
 <script defer src="smyl-radiograph-report.js?v=2"></script>
 <script defer src="smyl-radiograph-longitudinal.js?v=2"></script>
 <script defer src="smyl-radiograph-validation.js?v=2"></script>
-<script defer src="smyl-radiograph-review-v2.js?v=5"></script>
-<script defer src="smyl-dental-record.js?v=17"></script>
+<script defer src="smyl-radiograph-review-v2.js?v=6"></script>
+<script defer src="smyl-dental-record.js?v=31"></script>
 <link rel="stylesheet" href="smyl-photo-review.css?v=3">
 <script defer src="smyl-photo-findings.js?v=1"></script>
 <script defer src="smyl-analysis-workflow.js?v=2"></script>
-<script defer src="smyl-photo-review-model.js?v=3"></script>
+<script defer src="smyl-photo-review-model.js?v=4"></script>
 <script defer src="smyl-photo-review-store.js?v=4"></script>
-<script defer src="smyl-tooth-map.js?v=2"></script>
+<script defer src="smyl-tooth-map.js?v=3"></script>
+<script defer src="smyl-dental-finding-editor.js?v=2"></script>
 <script defer src="smyl-review-evidence.js?v=2"></script>
 <script defer src="smyl-photo-review.js?v=5"></script>
 <script defer src="smyl-photo-analysis-client.js?v=3"></script>
 <script defer src="smyl-photo-analysis.js?v=5"></script>
-<link rel="stylesheet" href="smyl-case-workspace.css?v=20">
-<script defer src="smyl-case-workspace.js?v=24"></script>
-<link rel="stylesheet" href="smyl-professional-v3.css?v=7">
+<link rel="stylesheet" href="smyl-evidence-center.css?v=7">
+<link rel="stylesheet" href="smyl-evidence-center-integration.css?v=6">
+<link rel="stylesheet" href="smyl-evidence-workspace.css?v=1">
+<script defer src="smyl-evidence-model.js?v=2"></script>
+<script defer src="smyl-evidence-workspace.js?v=1"></script>
+<script defer src="smyl-evidence-categories.js?v=1"></script>
+<script defer src="smyl-evidence-center.js?v=11"></script>
+<script defer src="smyl-clinical-photo-service.js?v=2"></script>
+<link rel="stylesheet" href="smyl-clinical-photo-review.css?v=2">
+<link rel="stylesheet" href="smyl-case-workspace.css?v=30">
+<script defer src="smyl-case-workspace.js?v=41"></script>
+<script defer src="smyl-clinical-photo-review.js?v=4"></script>
+<script defer src="smyl-evidence-center-integration.js?v=11"></script>
+<link rel="stylesheet" href="smyl-professional-v3.css?v=8">
 <script defer src="smyl-professional-v3.js?v=9"></script>
 <link rel="stylesheet" href="smyl-dialog-system.css?v=2">
-<script defer src="smyl-dialog-system.js?v=1"></script>
+<script defer src="smyl-dialog-system.js?v=3"></script>
 <!-- SMYL UI v3 se carga al final: gobierna el shell y los componentes compartidos
      sin depender del orden histórico de cada módulo. -->
-<link rel="stylesheet" href="smyl-ui-template-v3.css?v=7">
-<link rel="stylesheet" href="smyl-patients-directory.css?v=1">
-<link rel="stylesheet" href="smyl-ui-datta-v4.css?v=1">
+<link rel="stylesheet" href="smyl-ui-template-v3.css?v=8">
+<!-- La capa del dashboard se carga después de la plantilla global para conservar su jerarquía propia. -->
+<link rel="stylesheet" href="smyl-dashboard-v2.css?v=1">
+<link rel="stylesheet" href="smyl-patients-directory.css?v=2">
+<link rel="stylesheet" href="smyl-ui-datta-v4.css?v=2">
 </head>
 <body class="smyl-professional smyl-management-v3 smyl-ui-governed">
 <script>/* Estado del menú lateral y del tema aplicados antes del primer pintado, para que el panel no «salte» al terminar de cargar. */try{if(window.localStorage.getItem("smyl_sidebar_collapsed")==="1")document.body.classList.add("smyl-sidebar-collapsed")}catch(e){}</script>
@@ -1022,6 +1043,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <div id="ag-tab-registro" class="ag-tab" role="button" tabindex="0" onclick="switchAuthGateTab('registro')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchAuthGateTab('registro')}">¿Aún no tienes cuenta? <b>Registrarme</b></div>
     </div>
     <p class="ag-foot"><i aria-hidden="true"></i>Conexión protegida · SMYL</p>
+    <p class="ag-legal"><a href="privacidad.html" target="_blank" rel="noopener">Privacidad</a> · <a href="terminos.html" target="_blank" rel="noopener">Términos</a></p>
   </div>
   </div>
   </div>
@@ -2034,7 +2056,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
   <div class="modal modal-paciente">
     <div class="modal-header">
       <div class="mp-heading">
-        <span>PACIENTES</span>
+        <span>ALTA DE PACIENTE</span>
         <h3 id="modal-pac-title">Nuevo paciente</h3>
         <p id="patient-clinic-line"></p>
       </div>
@@ -2042,11 +2064,11 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
     </div>
     <div class="mp-body">
       <section class="mp-block" aria-labelledby="mp-essential-title">
-        <header class="mp-block-head"><div><span>01</span><h4 id="mp-essential-title">Datos esenciales</h4></div><p>Identidad y contacto del paciente.</p></header>
+        <header class="mp-block-head"><div><h4 id="mp-essential-title">Información básica</h4></div><p>Lo necesario para identificar y contactar al paciente.</p></header>
         <div class="form-grid">
           <div class="fg"><label for="mp-nombre">Nombre <em>Obligatorio</em></label><input type="text" id="mp-nombre" placeholder="Nombre(s)" autocomplete="off"></div>
-          <div class="fg"><label for="mp-apellido">Apellido</label><input type="text" id="mp-apellido" placeholder="Apellido(s)" autocomplete="off"></div>
-          <div class="fg"><label for="mp-tel">WhatsApp</label>
+          <div class="fg"><label for="mp-apellido">Apellidos</label><input type="text" id="mp-apellido" placeholder="Apellidos" autocomplete="off"></div>
+          <div class="fg mp-contact-field"><label for="mp-tel">WhatsApp <span>Opcional</span></label>
             <div class="mp-phone">
               <select id="mp-tel-cc" aria-label="Código de país">
                 <option value="52" selected>MX +52</option>
@@ -2061,13 +2083,15 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
               </select>
               <input type="tel" id="mp-tel" placeholder="33 1234 5678" inputmode="tel" autocomplete="off">
             </div>
+            <small id="mp-tel-help">Se usará para identificar conversaciones y enviar recordatorios.</small>
+            <label class="mp-inline-consent" for="mp-consent-wa"><input type="checkbox" id="mp-consent-wa" disabled><span><strong>Autorizó mensajes por WhatsApp</strong><small>Registra esta autorización sólo si el paciente la confirmó.</small></span></label>
           </div>
-          <div class="fg"><label for="mp-email">Correo</label><input type="email" id="mp-email" placeholder="correo@ejemplo.com" autocomplete="off"></div>
+          <div class="fg mp-email-field"><label for="mp-email">Correo <span>Opcional</span></label><input type="email" id="mp-email" placeholder="correo@ejemplo.com" autocomplete="off"><small>Alternativa de contacto y recuperación de citas.</small></div>
         </div>
         <div id="mp-duplicados" aria-live="polite"></div>
       </section>
-      <section class="mp-block" aria-labelledby="mp-care-title">
-        <header class="mp-block-head"><div><span>02</span><h4 id="mp-care-title">Atención</h4></div><p>Asigna el seguimiento inicial.</p></header>
+      <details class="clinic-secondary clinic-patient-extra mp-care-extra">
+        <summary><span>Asignación y seguimiento</span><small>Opcional</small></summary>
         <div class="form-grid">
           <div class="fg" id="mp-sucursal-fg" hidden><label for="mp-sucursal">Sucursal</label><select id="mp-sucursal"><option value="">Sin sucursal</option></select></div>
           <div class="fg"><label for="mp-profesional">Profesional responsable</label><select id="mp-profesional"><option value="">Por asignar</option></select></div>
@@ -2084,13 +2108,15 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
               <option value="otro">Otro</option>
             </select>
           </div>
-          <div class="fg mp-alert-field"><label for="mp-alerta-input">Alerta para la atención</label><input type="text" id="mp-alerta-input" placeholder="Alergia, anticoagulantes…" maxlength="60" autocomplete="off"><small>Escribe una alerta y presiona Enter.</small><div class="mp-chips" id="mp-alertas"></div></div>
         </div>
-      </section>
-      <section class="mp-consent" aria-labelledby="mp-consent-title">
-        <label class="mp-check" for="mp-consent-wa"><input type="checkbox" id="mp-consent-wa"><span><strong id="mp-consent-title">Mensajes por WhatsApp</strong><small>El paciente acepta recibir recordatorios y mensajes de la clínica por WhatsApp.</small></span></label>
-      </section>
-      <details class="clinic-secondary clinic-patient-extra">
+      </details>
+      <details class="clinic-secondary clinic-patient-extra mp-alert-extra">
+        <summary><span>Alerta para la atención</span><small>Sólo si aplica</small></summary>
+        <div class="mp-alert-content">
+          <div class="fg mp-alert-field"><label for="mp-alerta-input">Indicación visible para el equipo</label><input type="text" id="mp-alerta-input" placeholder="Ej. alergia conocida o anticoagulantes" maxlength="60" autocomplete="off"><small>Escribe una alerta y presiona Enter. No sustituye la historia clínica.</small><div class="mp-chips" id="mp-alertas"></div></div>
+        </div>
+      </details>
+      <details class="clinic-secondary clinic-patient-extra mp-additional-extra">
         <summary><span>Datos adicionales</span><small>Opcional</small></summary>
         <div class="form-grid">
           <div class="fg"><label for="mp-fnac">Fecha de nacimiento</label><input type="date" id="mp-fnac"></div>
@@ -2107,8 +2133,11 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       </details>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="cerrarModalPaciente()">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarPaciente()">Crear paciente</button>
+      <p>Podrás completar la historia clínica después.</p>
+      <div class="mp-footer-actions">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModalPaciente()">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="patient-save-button" onclick="guardarPaciente()">Crear paciente</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2756,6 +2785,8 @@ async function continuarConUsuario(authUser) {
   }
 
   document.getElementById('topbar-sub').textContent = new Date().toLocaleDateString('es-MX', {weekday:'long', day:'numeric', month:'long'});
+  // Sentry: sólo identificadores opacos (nunca correo ni nombre).
+  if (window.SmylSentry) window.SmylSentry.setContext({ userId: authUser.id, tenantId: tenantId, role: miRolEquipo });
   renderSidebar();
   // Justo después de registrarse, se muestra la pantalla de bienvenida en
   // vez del Dashboard directo (antes venía de index.html con ?bienvenida=1;
@@ -2986,6 +3017,16 @@ async function rechazarCuentaGoogleSinClinica() {
 (function () {
   var wrap = document.getElementById('ag-google-wrap');
   if (wrap && smylEsAppNativa()) wrap.style.display = 'none';
+  // Desde la página pública: ?registro=1 abre la pestaña de registro y ?plan= preselecciona el plan.
+  var q0 = new URLSearchParams(location.search);
+  if (q0.get('registro') === '1') {
+    var planSel = document.getElementById('ag-r-plan');
+    var planKey = q0.get('plan');
+    if (planSel && planKey) {
+      Array.prototype.forEach.call(planSel.options, function (o) { if (o.value.indexOf(planKey + ':') === 0) planSel.value = o.value; });
+    }
+    switchAuthGateTab('registro');
+  }
   // Error devuelto por Google/Supabase al regresar (p. ej. el usuario canceló).
   var qp = new URLSearchParams(location.search);
   var hp = new URLSearchParams(location.hash.replace(/^#/, ''));

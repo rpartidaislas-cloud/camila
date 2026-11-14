@@ -19,7 +19,11 @@
     'messages.read': 'Consultar mensajes', 'messages.respond': 'Responder pacientes',
     'messages.manage': 'Organizar chat y asistente',
     'finance.read': 'Consultar finanzas', 'finance.manage': 'Gestionar cobros',
+    'finance.cash': 'Abrir y operar su caja', 'finance.cash.supervise': 'Supervisar cajas del equipo',
+    'finance.invoice': 'Preparar facturas', 'finance.refund': 'Reembolsar y cancelar cargos',
     'inventory.read': 'Consultar inventario', 'inventory.manage': 'Gestionar inventario',
+    'inventory.consume': 'Registrar consumo', 'inventory.adjust': 'Ajustar inventario', 'inventory.purchase': 'Comprar y recibir',
+    'catalog.manage': 'Gestionar servicios', 'catalog.prices': 'Cambiar precios',
     'settings.manage': 'Administrar configuración'
   };
   var PERMISSION_GROUPS = [
@@ -27,8 +31,11 @@
     { name: 'Pacientes y atención', keys: ['patients.read', 'patients.manage', 'clinical.read', 'clinical.write', 'clinical.approve'] },
     { name: 'Agenda', keys: ['schedule.read', 'schedule.manage'] },
     { name: 'Cotizaciones', keys: ['proposal.read', 'proposal.write', 'proposal.approve', 'proposal.followup'] },
+    { name: 'Servicios y tarifas', keys: ['catalog.manage', 'catalog.prices'] },
     { name: 'Mensajes', keys: ['messages.read', 'messages.respond', 'messages.manage'] },
-    { name: 'Caja e inventario', keys: ['finance.read', 'finance.manage', 'inventory.read', 'inventory.manage'] }
+    { name: 'Cobros y caja', keys: ['finance.read', 'finance.manage', 'finance.cash', 'finance.cash.supervise', 'finance.refund'] },
+    { name: 'Facturación', keys: ['finance.invoice'] },
+    { name: 'Inventario', keys: ['inventory.read', 'inventory.manage', 'inventory.consume', 'inventory.adjust', 'inventory.purchase'] }
   ];
   var DATA_SCOPES = {
     own: 'Solo propio', care_team: 'Equipo tratante', branches: 'Sucursales asignadas', clinic: 'Toda la clínica'

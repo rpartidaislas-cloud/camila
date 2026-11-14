@@ -1,6 +1,6 @@
 /* Quiet, modular clinician workspace. Existing editors retain their DOM/state. */
 .clinic-layout.cw-layout{display:block}.cw-workspace{max-width:1080px;margin:0 auto;color:#234c46}.cw-workspace *{box-sizing:border-box}
-.cw-enhanced>.clinic-patient-heading{display:none}.cw-patient-head{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:18px;margin:4px 0 12px;padding:20px 22px;border:1px solid #d3dfd6;border-radius:18px;background:#fffefa;box-shadow:0 10px 28px rgba(35,76,70,.06)}.cw-patient-identity h1{margin:5px 0 6px;color:#183d39;font-size:clamp(24px,3vw,34px);font-weight:600;letter-spacing:-.8px}.cw-patient-meta{margin:0;color:#667a72;font-size:12px;overflow-wrap:anywhere}.cw-patient-status{max-width:260px;padding:8px 11px;border-radius:999px;background:#e8f1eb;color:#286446;font-size:11px;font-weight:700;text-align:center}.cw-patient-status[data-alerts=true]{background:#fff1eb;color:#a24825}.cw-patient-actions{display:flex;gap:8px}.cw-quick-links{display:flex;gap:6px;margin:0 0 26px;padding:4px;border:1px solid #dde5df;border-radius:12px;background:#f1f5f1;overflow-x:auto}.cw-quick-links button{min-height:38px;white-space:nowrap;border:0;background:transparent}.cw-quick-links button:hover{background:#fff}
+.cw-enhanced>.clinic-patient-heading{display:none}.cw-patient-head{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:18px;margin:4px 0 12px;padding:20px 22px;border:1px solid #d3dfd6;border-radius:18px;background:#fffefa;box-shadow:0 10px 28px rgba(35,76,70,.06)}.cw-patient-identity h1{margin:5px 0 6px;color:#183d39;font-size:clamp(24px,3vw,34px);font-weight:600;letter-spacing:-.8px}.cw-patient-meta{margin:0;color:#667a72;font-size:12px;overflow-wrap:anywhere}.cw-patient-status{max-width:260px;padding:8px 11px;border-radius:999px;background:#e8f1eb;color:#286446;font-size:12px;font-weight:700;text-align:center}.cw-patient-status[data-alerts=true]{background:#fff1eb;color:#a24825}.cw-patient-actions{display:flex;gap:8px}.cw-quick-links{display:flex;gap:6px;margin:0 0 26px;padding:4px;border:1px solid #dde5df;border-radius:12px;background:#f1f5f1;overflow-x:auto}.cw-quick-links button{min-height:38px;white-space:nowrap;border:0;background:transparent}.cw-quick-links button:hover{background:#fff}
 .cw-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;margin:0 0 16px}.cw-heading>div{max-width:720px}.cw-heading h2{font-size:clamp(25px,3vw,34px);font-weight:550;letter-spacing:-1px;margin:8px 0 10px;line-height:1.2}.cw-heading p:not(.cw-kicker){font-size:14px;color:#576e67;line-height:1.6}.cw-kicker{font-size:10px;letter-spacing:1.8px;color:#526d67}
 .cw-overview{padding:14px 18px;border-left:3px solid #438a79;background:#eaf1eb;font-size:13px;font-weight:600;line-height:1.6;border-radius:0 10px 10px 0;margin-bottom:20px}
 .cw-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:0 0 20px;padding:4px;background:#e8eee6;border-radius:12px}.cw-nav button{border:0;border-radius:9px;background:transparent;padding:10px 6px;min-height:44px;color:#5d7267;font:600 12px Inter,sans-serif;cursor:pointer}.cw-nav button::before{content:'○';display:inline-block;margin-right:6px;color:#8aa097}.cw-nav button[data-state=done]::before{content:'✓';color:#2e806c;font-weight:700}.cw-nav button[aria-current=step]{background:#fffefa;color:#215d60;box-shadow:0 1px 4px #203d3812}
@@ -98,6 +98,10 @@
 @media(max-width:420px){
   .cw-command{padding:16px}.cw-command-copy h2{font-size:18px}.cw-summary{gap:10px}.cw-module-title{flex-basis:calc(100% - 54px)}.cw-badge{margin-left:50px}.cw-evaluation-title small,.cw-subtitle{display:none}.cw-evaluation-head{gap:9px}.cw-part-badge{margin-left:41px}
 }
+
+/* Cola radiografica v4.5 · duplicados visibles y retiro sin perder historia. */
+.cw-enhanced .cw-radiograph-status[data-tone=duplicate]{border:1px solid #e9c98e;background:#fff5df;color:#805a10}.cw-enhanced .cw-radiograph-card-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:7px;width:100%;margin-top:auto}.cw-enhanced .cw-radiograph-card-actions>button{min-height:38px;margin:0;padding:7px 10px}.cw-enhanced .cw-radiograph-card-actions>button:first-child{border-color:#cfdbe5;background:#fff;color:var(--cw-ink)}.cw-enhanced .cw-radiograph-card-actions .cw-radiograph-remove{border-color:#e0b6b2;background:#fff;color:#913630}.cw-enhanced .cw-radiograph-card-actions .cw-radiograph-remove:hover{background:#fff2f1}
+@media(max-width:760px){.cw-enhanced .cw-radiograph-card-actions{grid-template-columns:1fr}.cw-enhanced .cw-radiograph-card-actions>button{width:100%;min-height:44px}}
 @media(prefers-reduced-motion:reduce){.cw-workspace *{scroll-behavior:auto!important}}
 
 /* Tratamiento v3.5 · interpretación asistida por archivo compatible. */
@@ -146,6 +150,7 @@
 .cw-clinical-map{margin:14px 0 4px;border:1px solid var(--cw-line);border-radius:12px;background:#fbfcfd;overflow:hidden}
 .cw-clinical-map-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px 17px;border-bottom:1px solid var(--cw-line);background:#fff}
 .cw-clinical-map-head>div{min-width:0}.cw-clinical-map-head .cw-kicker{display:block;margin:0 0 5px;color:var(--cw-accent);font-size:12px;font-weight:800;letter-spacing:.08em}.cw-clinical-map-head strong{display:block;color:var(--cw-ink);font-size:16px}.cw-clinical-map-head p{max-width:720px;margin:4px 0 0;color:var(--cw-muted);font-size:12px;line-height:1.5}
+.cw-clinical-map-head-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex:0 0 auto}.cw-workspace .cw-map-voice{display:inline-flex;align-items:center;gap:9px;min-height:40px;padding-inline:13px;border-color:#b9d5d2;background:#f4f9f8;color:#0b615c;font-weight:750;white-space:nowrap}.cw-workspace .cw-map-voice:hover{border-color:#69aaa4;background:#eaf5f3}.cw-workspace .cw-map-voice[hidden]{display:none}.cw-map-voice-icon{position:relative;display:inline-block;width:10px;height:14px;border:1.8px solid currentColor;border-radius:7px}.cw-map-voice-icon::before{content:'';position:absolute;left:50%;bottom:-6px;width:14px;height:8px;border:1.8px solid currentColor;border-top:0;border-radius:0 0 9px 9px;transform:translateX(-50%)}.cw-map-voice-icon::after{content:'';position:absolute;left:50%;bottom:-8px;width:1.8px;height:3px;border-radius:2px;background:currentColor;transform:translateX(-50%)}
 .cw-map-filters{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--cw-line);background:#f5f7fa;overflow-x:auto;scrollbar-width:thin}.cw-workspace .cw-map-filter{min-height:42px;flex:none;border-color:transparent;background:transparent;color:#526174}.cw-workspace .cw-map-filter[aria-pressed=true]{border-color:#b9d6d1;background:#e8f5f2;color:#176a61;box-shadow:none}
 .cw-clinical-map-layout{display:grid;grid-template-columns:minmax(300px,1fr) minmax(230px,310px);gap:20px;padding:16px 17px;background:#fff}.cw-map-stage{min-width:0;padding:4px 12px 0;border:1px solid #e1e7ee;border-radius:10px;background:linear-gradient(180deg,#fbfcfd,#f6f8fa)}
 .cw-map-stage>.dr-orientation{max-width:390px;margin:8px auto 0;color:#6a7889;font-size:12px}.cw-clinical-odontogram.dr-map{width:100%;max-width:360px;margin:0 auto 34px}.cw-clinical-odontogram .dr-arch-base path{stroke:#e8edf2}.cw-clinical-odontogram .dr-arch-label{color:#657487}.cw-clinical-odontogram .dr-tooth:focus-visible{outline-color:var(--cw-primary)}
@@ -154,7 +159,7 @@
 .cw-map-aside{align-self:stretch;display:flex;flex-direction:column;align-items:stretch;padding:16px;border:1px solid var(--cw-line);border-radius:10px;background:#f8fafc}.cw-map-aside>.cw-kicker{margin:0 0 8px;color:#68778a;font-size:12px;font-weight:800;letter-spacing:.08em}.cw-map-aside>strong{color:var(--cw-ink);font-size:17px;line-height:1.35}.cw-map-aside>p:not(.cw-help){margin:6px 0 14px;color:var(--cw-muted);font-size:12px;line-height:1.55}.cw-map-aside>.cw-help{flex:1;margin:5px 0 16px}.cw-map-aside button{width:100%;margin-top:7px;min-height:42px}
 .cw-map-legend{display:flex;align-items:center;justify-content:center;gap:9px 16px;flex-wrap:wrap;padding:11px 14px;border-top:1px solid var(--cw-line);background:#f8fafc;color:#5d6c7e;font-size:12px}.cw-map-key{display:inline-flex;align-items:center;gap:6px}.cw-map-key::before{content:'';width:10px;height:10px;border:1px solid #7e8d9d;border-radius:50%;background:#fff}.cw-map-key-manual::before{border-color:#9a6b14;background:#fff0be}.cw-map-key-photo::before{border-color:#0f766e;background:#0f766e}.cw-map-key-radiograph::before{border-color:#6656a8;background:#6656a8}.cw-map-key-pending::before{border:2px dashed #d58a00;background:#fff}
 @media(max-width:900px){.cw-clinical-map-layout{grid-template-columns:1fr}.cw-map-aside>.cw-help{flex:none}.cw-clinical-odontogram.dr-map{max-width:330px}}
-@media(max-width:760px){.cw-clinical-map-head{align-items:flex-start;flex-direction:column;padding:14px}.cw-clinical-map-head .cw-part-badge{margin-left:0}.cw-map-filters{padding:8px}.cw-workspace .cw-map-filter{min-height:44px}.cw-clinical-map-layout{gap:12px;padding:12px}.cw-map-stage{padding-inline:5px}.cw-map-aside{padding:14px}.cw-map-aside button{min-height:44px}.cw-map-legend{justify-content:flex-start;padding-inline:12px}}
+@media(max-width:760px){.cw-clinical-map-head{align-items:flex-start;flex-direction:column;padding:14px}.cw-clinical-map-head .cw-part-badge{margin-left:0}.cw-clinical-map-head-actions{width:100%;justify-content:space-between}.cw-workspace .cw-map-voice{min-height:44px}.cw-map-filters{padding:8px}.cw-workspace .cw-map-filter{min-height:44px}.cw-clinical-map-layout{gap:12px;padding:12px}.cw-map-stage{padding-inline:5px}.cw-map-aside{padding:14px}.cw-map-aside button{min-height:44px}.cw-map-legend{justify-content:flex-start;padding-inline:12px}}
 @media(max-width:420px){.cw-clinical-odontogram.dr-map{max-width:290px}.cw-map-stage>.dr-orientation{padding-inline:4px}.cw-map-legend{display:grid;grid-template-columns:1fr 1fr;gap:9px}.cw-clinical-map-head strong{font-size:15px}}
 
 /* Evaluación v4 · cuatro tareas, una superficie y una sola acción principal. */
@@ -183,6 +188,7 @@
 .cw-evaluation-panel .cw-evidence-assistant{padding:11px 0;border-bottom:1px solid var(--cw-line);background:transparent}.cw-evaluation-panel .cw-evidence-assistant[data-state=pending],.cw-evaluation-panel .cw-evidence-assistant[data-state=done]{background:transparent}.cw-evaluation-panel .cw-evidence-assistant p{margin-top:2px}
 .cw-evaluation-panel .cw-evidence-list{border-bottom:1px solid var(--cw-line)}.cw-evaluation-panel .cw-evidence-item{padding:12px 0;border:0}.cw-evaluation-panel .cw-evidence-item>div>span{font-size:12px;font-weight:750;letter-spacing:.06em}.cw-evaluation-panel .cw-evidence-history-foot{padding:11px 0;border-top:0;background:transparent}.cw-workspace .cw-evidence-previous{min-height:42px;border-color:transparent;background:transparent;color:#174f78;text-decoration:underline;text-underline-offset:3px}
 .cw-evaluation-panel .cw-simulation-link{margin:14px 0 0;background:#f8fafc}.cw-evaluation-panel .cw-simulation-link a{border-color:#c7d2df;background:#fff;color:#294a51}
+.cw-map-layer-group{display:grid;gap:7px;padding:12px 0 0}.cw-map-layer-group>.cw-kicker{font-size:12px}.cw-map-layer-group .cw-map-filters{margin:0}
 .cw-evaluation-panel .cw-clinical-map{margin-top:0}.cw-evaluation-panel>.cw-help:last-child{margin-bottom:0}
 @media(max-width:760px){
  .cw-evaluation-tasks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}.cw-evaluation-tasks li{min-width:0}.cw-evaluation-tasks li:nth-child(2n){border-right:0}.cw-evaluation-tasks li:nth-child(-n+2){border-bottom:1px solid var(--cw-line)}.cw-evaluation-task{min-height:68px}
@@ -211,7 +217,7 @@
 .cw-evaluation-tasks{grid-area:tasks;display:flex;flex-direction:column;align-self:stretch;gap:4px;min-height:0;padding:14px 12px;border:0;border-right:1px solid var(--cw-line);border-radius:0;background:#f7f9fb;overflow-y:auto}
 .cw-evaluation-tasks li{border:0!important}.cw-evaluation-task{min-height:58px;padding:9px 10px;border:0;border-left:3px solid transparent;border-radius:8px;grid-template-columns:auto minmax(0,1fr)}
 .cw-evaluation-task:hover{background:#eef3f7}.cw-evaluation-task[aria-current=step]{border-left-color:var(--cw-primary);border-bottom:0;background:#fff;box-shadow:0 3px 12px rgba(11,27,46,.07)}
-.cw-evaluation-task-number{width:26px;height:26px;border-radius:8px}.cw-evaluation-task-copy strong{font-size:13px}.cw-evaluation-task-state{font-size:11px;white-space:normal}
+.cw-evaluation-task-number{width:26px;height:26px;border-radius:8px}.cw-evaluation-task-copy strong{font-size:13px}.cw-evaluation-task-state{font-size:12px;white-space:normal}
 .cw-evaluation-panels{grid-area:panels;min-height:0;padding:0 18px;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}.cw-evaluation-panel-body{padding:18px 0 12px}.cw-evaluation-intro{font-size:14px}
 .cw-evaluation-close-facts{grid-template-columns:repeat(3,minmax(0,1fr))}
 .cw-evaluation-footer{position:sticky;z-index:8;bottom:0;grid-area:footer;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:64px;margin:0;padding:12px 18px;border-top:1px solid var(--cw-line);background:rgba(255,255,255,.97);box-shadow:0 -8px 18px rgba(11,27,46,.045);backdrop-filter:blur(8px)}
@@ -274,6 +280,17 @@
 .cw-enhanced .cw-workspace .cw-map-filter[aria-pressed=true]{border-color:#b9d8d2;background:#e7f4f1;color:#176a61;box-shadow:inset 0 0 0 1px rgba(23,106,97,.04)}
 .cw-enhanced .cw-map-filter-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#e4e9ee;color:#536274;font-size:12px;font-weight:850;line-height:1}
 .cw-enhanced .cw-map-filter[aria-pressed=true] .cw-map-filter-count{background:#fff;color:#176a61}
+/* Hallazgos v4.5 · estudios radiográficos visibles, privados y separados de sus hallazgos. */
+.cw-enhanced .cw-radiograph-shelf[hidden]{display:none!important}
+.cw-enhanced .cw-radiograph-shelf{border-bottom:1px solid #dce4eb;background:#f8fafb}
+.cw-enhanced .cw-radiograph-shelf-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:14px 16px 10px}.cw-enhanced .cw-radiograph-shelf-head>div{min-width:0}.cw-enhanced .cw-radiograph-shelf-head .cw-kicker{display:block;margin-bottom:4px;color:#5e4e9a;font-size:12px;font-weight:850;letter-spacing:.09em}.cw-enhanced .cw-radiograph-shelf-head strong{display:block;color:var(--cw-ink);font-size:15px;line-height:1.3}.cw-enhanced .cw-radiograph-shelf-head p{margin:3px 0 0;color:var(--cw-muted);font-size:12px;line-height:1.45}.cw-enhanced .cw-workspace .cw-radiograph-clear{flex:none;min-height:38px;padding-inline:12px;background:#fff}
+.cw-enhanced .cw-radiograph-queue-filters{display:flex;gap:6px;padding:0 16px 10px;overflow-x:auto;scrollbar-width:none}.cw-enhanced .cw-radiograph-queue-filters::-webkit-scrollbar{display:none}.cw-enhanced .cw-workspace .cw-radiograph-queue-filters button{flex:none;min-height:36px;padding:6px 11px;border-color:#d5dfe8;background:#fff;color:#536274;font-size:12px}.cw-enhanced .cw-workspace .cw-radiograph-queue-filters button[aria-pressed=true]{border-color:#b9d8d2;background:#e7f4f1;color:#176a61}
+.cw-enhanced .cw-radiograph-grid{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(330px,420px);gap:10px;padding:0 16px 14px;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x proximity;scrollbar-width:thin}
+.cw-enhanced .cw-radiograph-card{display:grid;grid-template-columns:142px minmax(0,1fr);min-height:142px;border:1px solid #d5dfe8;border-radius:12px;background:#fff;box-shadow:0 5px 14px rgba(11,27,46,.045);overflow:hidden;scroll-snap-align:start}.cw-enhanced .cw-radiograph-card[data-related=true]{border-color:#b9d8d2}
+.cw-enhanced .cw-radiograph-media{position:relative;display:grid;place-items:center;width:100%;min-width:0;min-height:142px;padding:0;border:0;border-right:1px solid #d5dfe8;border-radius:0;background:#0b1b2e;cursor:default;overflow:hidden}.cw-enhanced .cw-radiograph-media img{width:100%;height:100%;object-fit:contain;background:#0b1b2e}.cw-enhanced .cw-radiograph-placeholder{display:grid;place-items:center;max-width:118px;padding:8px;color:#b9c8da;font-size:12px;font-weight:850;line-height:1.25;text-align:center;overflow-wrap:anywhere}.cw-enhanced .cw-radiograph-placeholder:not([hidden])::before{content:'';position:absolute;width:62px;height:48px;border:1px solid rgba(112,214,200,.35);border-radius:9px;background:linear-gradient(135deg,transparent 42%,rgba(112,214,200,.18) 43% 57%,transparent 58%)}
+.cw-enhanced .cw-radiograph-card-body{display:flex;min-width:0;padding:13px;flex-direction:column;align-items:flex-start}.cw-enhanced .cw-radiograph-card-body>strong{display:block;max-width:100%;color:var(--cw-ink);font-size:14px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cw-enhanced .cw-radiograph-card-meta{display:grid;gap:3px;margin-top:5px;color:#68778a;font-size:12px;line-height:1.35}.cw-enhanced .cw-radiograph-status{display:inline-flex;align-items:center;min-height:25px;margin-top:9px;padding:3px 8px;border-radius:999px;background:#eef2f6;color:#536274;font-size:12px;font-weight:750}.cw-enhanced .cw-radiograph-status[data-tone=pending],.cw-enhanced .cw-radiograph-status[data-tone=attention]{background:#fff3dd;color:#805a10}.cw-enhanced .cw-radiograph-status[data-tone=done]{background:#e9f7f2;color:#176a61}.cw-enhanced .cw-radiograph-card-body>button{width:100%;min-height:38px;margin-top:auto;padding:7px 10px;border-color:#cfdbe5;background:#fff;color:var(--cw-ink)}
+.cw-enhanced .cw-radiograph-badges{display:flex;align-items:center;gap:5px;max-width:100%;flex-wrap:wrap}.cw-enhanced .cw-radiograph-status[data-tone=danger]{background:#fdebea;color:#9b302b}.cw-enhanced .cw-radiograph-progress{display:grid;width:100%;gap:5px;margin:8px 0 10px;color:#657487;font-size:12px}.cw-enhanced .cw-radiograph-progress-track{display:block;width:100%;height:5px;border-radius:999px;background:#e6ebf0;overflow:hidden}.cw-enhanced .cw-radiograph-progress-track i{display:block;height:100%;border-radius:inherit;background:#2b8d80}
+.cw-enhanced .cw-radiograph-empty{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;margin:0 16px 14px;padding:14px;border:1px dashed #cbd7e2;border-radius:12px;background:#fff}.cw-enhanced .cw-radiograph-empty>span{display:grid;place-items:center;width:42px;height:42px;border-radius:10px;background:#f1eef9;color:#5e4e9a;font-size:12px;font-weight:850}.cw-enhanced .cw-radiograph-empty strong{display:block;color:var(--cw-ink);font-size:13px}.cw-enhanced .cw-radiograph-empty p{margin:3px 0 0;color:var(--cw-muted);font-size:12px}.cw-enhanced .cw-radiograph-empty>button{min-height:42px}
 .cw-enhanced .cw-map-context{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid #dce4eb;background:#fbfcfd}
 .cw-enhanced .cw-map-context-copy{min-width:0}.cw-enhanced .cw-map-context-copy strong{display:block;color:var(--cw-ink);font-size:13px;line-height:1.35}.cw-enhanced .cw-map-context-copy p{margin:2px 0 0;color:var(--cw-muted);font-size:12px;line-height:1.4}
 .cw-enhanced .cw-map-context-metrics{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
@@ -301,6 +318,7 @@
 .cw-enhanced .cw-map-inspector-facts{display:grid;gap:0;margin:12px 0 16px;border-block:1px solid #dce4eb}
 .cw-enhanced .cw-map-inspector-fact{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;min-height:46px;padding:9px 0;border-bottom:1px solid #e4eaf0;color:#617084;font-size:12px}.cw-enhanced .cw-map-inspector-fact:last-child{border-bottom:0}.cw-enhanced .cw-map-inspector-fact strong{color:var(--cw-ink);font-size:13px;text-align:right}
 .cw-enhanced .cw-map-inspector .cw-map-edit{width:100%;min-height:42px;margin-top:auto}
+.cw-enhanced .cw-map-radiograph-context[hidden]{display:none!important}.cw-enhanced .cw-map-radiograph-context{display:grid;gap:9px;margin:6px 0 14px;padding-top:13px;border-top:1px solid #dce4eb}.cw-enhanced .cw-map-radiograph-studies{display:grid;gap:5px}.cw-enhanced .cw-map-radiograph-study{display:grid;gap:1px;padding:7px 9px;border-radius:8px;background:#f0f3f7}.cw-enhanced .cw-map-radiograph-study strong{color:var(--cw-ink);font-size:12px}.cw-enhanced .cw-map-radiograph-study span{color:#68778a;font-size:12px}.cw-enhanced .cw-map-radiograph-findings{display:grid;gap:7px}.cw-enhanced .cw-map-radiograph-finding{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;padding:9px;border:1px solid #dce4eb;border-radius:9px;background:#fff}.cw-enhanced .cw-map-radiograph-finding[data-state=pending]{border-color:#efd6a8;background:#fffaf0}.cw-enhanced .cw-map-radiograph-finding>div{min-width:0}.cw-enhanced .cw-map-radiograph-finding strong,.cw-enhanced .cw-map-radiograph-finding span{display:block;overflow-wrap:anywhere}.cw-enhanced .cw-map-radiograph-finding strong{color:var(--cw-ink);font-size:12px;line-height:1.35}.cw-enhanced .cw-map-radiograph-finding span{margin-top:3px;color:#68778a;font-size:12px}.cw-enhanced .cw-map-radiograph-finding button{min-height:38px;padding:6px 9px;font-size:12px;white-space:nowrap}
 .cw-enhanced .cw-map-legend{justify-content:flex-start;gap:8px 16px;padding:10px 16px;background:#f8fafb;font-size:12px}
 
 @media(max-width:1024px){
@@ -314,18 +332,272 @@
  .cw-enhanced .cw-clinical-map{border-radius:12px}
  .cw-enhanced .cw-clinical-map-head{align-items:flex-start;flex-direction:column;padding:13px}.cw-enhanced .cw-clinical-map-head strong{font-size:17px}.cw-enhanced .cw-clinical-map-head p{font-size:12px}
  .cw-enhanced .cw-map-filters{flex-wrap:wrap;gap:6px;padding:8px;overflow:visible}.cw-enhanced .cw-workspace .cw-map-filter{flex:1 1 calc(50% - 6px);min-height:44px;padding-inline:10px}
+ .cw-enhanced .cw-radiograph-shelf-head{padding:12px}.cw-enhanced .cw-radiograph-shelf-head p{max-width:36ch}.cw-enhanced .cw-radiograph-queue-filters{padding:0 12px 10px}.cw-enhanced .cw-workspace .cw-radiograph-queue-filters button{min-height:44px}.cw-enhanced .cw-radiograph-grid{grid-auto-columns:minmax(280px,86vw);padding:0 12px 12px}.cw-enhanced .cw-radiograph-card{grid-template-columns:112px minmax(0,1fr);min-height:154px}.cw-enhanced .cw-radiograph-media{min-height:154px}.cw-enhanced .cw-radiograph-card-body>button{min-height:44px}.cw-enhanced .cw-radiograph-empty{grid-template-columns:auto minmax(0,1fr);margin:0 12px 12px}.cw-enhanced .cw-radiograph-empty>button{grid-column:1/-1;width:100%;min-height:44px}
  .cw-enhanced .cw-map-context{grid-template-columns:1fr;padding:10px 12px}.cw-enhanced .cw-map-context-metrics{justify-content:flex-start}
  .cw-enhanced .cw-source-mode{padding:10px 12px}.cw-enhanced .cw-source-actions{align-items:stretch;flex-direction:column}.cw-enhanced .cw-source-actions button{width:100%;min-height:44px}
  .cw-enhanced .cw-clinical-map-layout{gap:12px;padding:10px}
  .cw-enhanced .cw-map-stage{min-height:400px;padding:8px 5px 0;border-radius:10px}.cw-enhanced .cw-clinical-odontogram.dr-map{width:min(330px,100%);margin-bottom:34px}
  .cw-enhanced .cw-map-aside{min-height:0;padding:14px}.cw-enhanced .cw-map-inspector-title{font-size:17px}
- .cw-enhanced .cw-map-inspector-facts{grid-template-columns:1fr}.cw-enhanced .cw-map-inspector-fact{display:grid;grid-template-columns:minmax(0,1fr) auto;min-height:48px;border-right:0;border-bottom:1px solid #e4eaf0}.cw-enhanced .cw-map-inspector-fact:last-child{border-bottom:0}.cw-enhanced .cw-map-inspector-fact strong{display:inline;margin:0;text-align:right}.cw-enhanced .cw-map-inspector .cw-map-edit{min-height:44px}
+ .cw-enhanced .cw-map-inspector-facts{grid-template-columns:1fr}.cw-enhanced .cw-map-inspector-fact{display:grid;grid-template-columns:minmax(0,1fr) auto;min-height:48px;border-right:0;border-bottom:1px solid #e4eaf0}.cw-enhanced .cw-map-inspector-fact:last-child{border-bottom:0}.cw-enhanced .cw-map-inspector-fact strong{display:inline;margin:0;text-align:right}.cw-enhanced .cw-map-inspector .cw-map-edit{min-height:44px}.cw-enhanced .cw-map-radiograph-finding{grid-template-columns:1fr}.cw-enhanced .cw-map-radiograph-finding button{width:100%;min-height:44px}
  .cw-enhanced .cw-map-legend{display:flex;justify-content:flex-start;gap:8px 12px;padding:10px 12px}
 }
 
 @media(max-width:420px){
  .cw-enhanced .cw-map-filter-count{min-width:19px;height:19px;padding-inline:5px}
+ .cw-enhanced .cw-radiograph-shelf-head{align-items:stretch;flex-direction:column;gap:8px}.cw-enhanced .cw-workspace .cw-radiograph-clear{width:100%;min-height:44px}.cw-enhanced .cw-radiograph-grid{grid-auto-columns:84vw}.cw-enhanced .cw-radiograph-card{grid-template-columns:96px minmax(0,1fr)}
  .cw-enhanced .cw-source-intro{align-items:flex-start}.cw-enhanced .cw-source-intro p{display:none}.cw-enhanced .cw-source-stats{justify-content:flex-start;margin:0;overflow:visible}
  .cw-enhanced .cw-map-stage{min-height:360px}.cw-enhanced .cw-clinical-odontogram.dr-map{width:min(285px,100%)}
  .cw-enhanced .cw-map-legend{display:grid;grid-template-columns:1fr 1fr}
 }
+
+/* Odontograma radiográfico v3.4 · recorte contextual de la señal seleccionada. */
+.cw-enhanced .cw-map-inspector-title,
+.cw-enhanced .cw-map-inspector > p {
+ overflow-wrap:anywhere;
+}
+.cw-enhanced .cw-map-radiograph-context {
+ gap:10px;
+ margin-top:8px;
+}
+.cw-enhanced .cw-radiograph-crop {
+ display:grid;
+ gap:8px;
+ margin:0;
+}
+.cw-enhanced .cw-radiograph-crop figcaption {
+ display:grid;
+ gap:2px;
+}
+.cw-enhanced .cw-radiograph-crop figcaption strong {
+ color:var(--cw-ink);
+ font-size:13px;
+ line-height:18px;
+}
+.cw-enhanced .cw-radiograph-crop figcaption span {
+ color:#68778a;
+ font-size:12px;
+ line-height:17px;
+}
+.cw-enhanced .cw-radiograph-crop-view {
+ position:relative;
+ display:grid;
+ width:100%;
+ aspect-ratio:1.8;
+ place-items:center;
+ overflow:hidden;
+ border:1px solid #cfd9e3;
+ border-radius:10px;
+ background:#0b1b2e;
+}
+.cw-enhanced .cw-radiograph-crop-view canvas {
+ display:block;
+ width:100%;
+ height:100%;
+ object-fit:cover;
+}
+.cw-enhanced .cw-radiograph-crop-marker {
+ position:absolute;
+ box-sizing:border-box;
+ border:2px solid #73d3c2;
+ border-radius:5px;
+ background:rgba(115,211,194,.08);
+ box-shadow:0 0 0 1px rgba(255,255,255,.88);
+ pointer-events:none;
+}
+.cw-enhanced .cw-radiograph-crop-loading {
+ max-width:28ch;
+ padding:12px;
+ color:#c7d3df;
+ font-size:12px;
+ line-height:18px;
+ text-align:center;
+}
+.cw-enhanced .cw-radiograph-crop-detail {
+ display:-webkit-box;
+ margin:0;
+ overflow:hidden;
+ color:#526174;
+ font-size:12px;
+ line-height:18px;
+ -webkit-box-orient:vertical;
+ -webkit-line-clamp:3;
+}
+.cw-enhanced .cw-radiograph-crop-switcher {
+ display:flex;
+ gap:6px;
+ overflow-x:auto;
+ scrollbar-width:none;
+}
+.cw-enhanced .cw-radiograph-crop-switcher::-webkit-scrollbar {
+ display:none;
+}
+.cw-enhanced .cw-workspace .cw-radiograph-crop-switcher button {
+ flex:none;
+ min-height:36px;
+ padding:6px 10px;
+ border-color:#d5dfe8;
+ background:#fff;
+ color:#536274;
+ font-size:12px;
+}
+.cw-enhanced .cw-workspace .cw-radiograph-crop-switcher button[aria-pressed=true] {
+ border-color:#8dcfc5;
+ background:#e9f7f4;
+ color:#176a61;
+}
+.cw-enhanced .cw-workspace .cw-radiograph-crop-open {
+ width:100%;
+ min-height:40px;
+ margin-top:2px;
+}
+
+@media(max-width:760px){
+ .cw-enhanced .cw-workspace .cw-radiograph-crop-switcher button,
+ .cw-enhanced .cw-workspace .cw-radiograph-crop-open{min-height:44px}
+}
+
+/* Expediente PWA v25 · filtros y estudios radiográficos sin amontonamiento. */
+@media(max-width:760px){
+ .cw-enhanced .cw-map-filters{flex-wrap:nowrap;gap:6px;padding:8px 10px;overflow-x:auto;scroll-snap-type:x proximity}
+ .cw-enhanced .cw-workspace .cw-map-filter{min-width:max-content;min-height:40px;flex:none;padding-inline:12px;scroll-snap-align:start}
+ .cw-enhanced .cw-workspace .cw-map-filter[data-count="0"]:not([aria-pressed="true"]){display:none}
+ .cw-enhanced .cw-radiograph-shelf-head{display:grid;align-items:start;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:12px 12px 8px}
+ .cw-enhanced .cw-radiograph-shelf-head p{max-width:32ch}
+ .cw-enhanced .cw-workspace .cw-radiograph-clear{width:auto;min-height:36px;padding:6px 10px;font-size:12px}
+ .cw-enhanced .cw-radiograph-queue-filters{padding:0 12px 8px;scroll-snap-type:x proximity}
+ .cw-enhanced .cw-workspace .cw-radiograph-queue-filters button{min-height:40px;scroll-snap-align:start}
+ .cw-enhanced .cw-radiograph-grid{display:grid;grid-auto-flow:row;grid-auto-columns:auto;gap:8px;padding:0 12px 14px;overflow:visible;scroll-snap-type:none}
+ .cw-enhanced .cw-radiograph-card{grid-template-columns:92px minmax(0,1fr);min-height:138px;scroll-snap-align:none}
+ .cw-enhanced .cw-radiograph-media{min-height:138px}
+ .cw-enhanced .cw-radiograph-card-body{padding:11px}
+ .cw-enhanced .cw-radiograph-card-body>strong{font-size:15px;line-height:1.3}
+ .cw-enhanced .cw-radiograph-card-meta{margin-top:3px}
+ .cw-enhanced .cw-radiograph-pieces{display:none}
+ .cw-enhanced .cw-radiograph-badges{gap:4px}
+ .cw-enhanced .cw-radiograph-status{min-height:23px;margin-top:6px;padding:2px 7px;font-size:12px}
+ .cw-enhanced .cw-radiograph-progress{gap:4px;margin:6px 0 8px}
+ .cw-enhanced .cw-radiograph-card-actions{grid-template-columns:minmax(0,1fr) auto;gap:6px}
+ .cw-enhanced .cw-radiograph-card-actions>button{width:auto;min-height:40px;padding:6px 9px}
+ .cw-enhanced .cw-evaluation-panels{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+}
+
+@media(max-width:420px){
+ .cw-enhanced .cw-radiograph-shelf-head{align-items:start;grid-template-columns:minmax(0,1fr) auto}
+ .cw-enhanced .cw-workspace .cw-radiograph-clear{width:auto;min-height:36px}
+ .cw-enhanced .cw-radiograph-grid{grid-auto-columns:auto}
+ .cw-enhanced .cw-radiograph-card{grid-template-columns:84px minmax(0,1fr)}
+}
+
+/* Expediente clínico v26 · contexto, revisión profesional y conclusión. */
+.cw-enhanced .cw-evaluation-flow,
+.cw-enhanced .cw-evaluation-panel,
+.cw-enhanced .cw-evaluation-panel-body,
+.cw-enhanced .cw-evidence-history,
+.cw-enhanced .cw-clinical-map,
+.cw-enhanced .cw-radiograph-shelf{min-width:0}
+.cw-enhanced .cw-evaluation-tasks{gap:7px;padding:16px 13px;background:#f5f8fa}
+.cw-enhanced .cw-evaluation-task{position:relative;min-height:66px;padding:10px 10px 10px 12px;border:1px solid transparent;border-left:3px solid transparent;border-radius:10px;background:transparent}
+.cw-enhanced .cw-evaluation-task:hover{border-color:#dce5ec;background:#fff}
+.cw-enhanced .cw-evaluation-task[aria-current=step]{border-color:#d5e3e1;border-left-color:var(--cw-primary);background:#fff;box-shadow:0 5px 16px rgba(11,27,46,.055)}
+.cw-enhanced .cw-evaluation-task[data-state=done]:not([aria-current=step]){border-color:#d9e9e5;background:#f2f9f7}
+.cw-enhanced .cw-evaluation-task-copy strong{font-size:13px;line-height:1.35}
+.cw-enhanced .cw-evaluation-task-state{margin-top:2px;color:#6c7b8d;font-size:12px;line-height:1.35}
+.cw-enhanced .cw-evaluation-panel-body{display:grid;gap:14px;padding:18px 0 16px}
+.cw-enhanced .cw-evaluation-panel-body>*{min-width:0;margin-top:0;margin-bottom:0}
+.cw-enhanced .cw-evaluation-panel[data-task=closure] .cw-evaluation-close{padding:18px;border:1px solid #cfe1dd;border-radius:13px;background:linear-gradient(135deg,#f7fbfa 0%,#fff 76%)}
+.cw-enhanced .cw-evaluation-panel[data-task=closure] .cw-evaluation-close h3{font-size:20px;letter-spacing:-.015em}
+.cw-enhanced .cw-evaluation-panel[data-task=closure] .cw-evaluation-close-facts{border:1px solid #dce5eb;border-radius:10px;background:#fff;overflow:hidden}
+.cw-enhanced .cw-evidence-compact{padding:14px 15px;border:1px solid #d9e4eb;border-radius:12px;background:#f8fafb}
+.cw-enhanced .cw-evidence-compact>div:first-child>strong{font-size:15px}
+.cw-enhanced .cw-evidence-compact-metrics>span{background:#fff}
+.cw-enhanced .cw-evaluation-panel .cw-evidence-history{border:1px solid #d9e4eb;border-radius:12px;background:#fff;overflow:hidden}
+.cw-enhanced .cw-evaluation-panel .cw-evidence-history>.cw-evidence-compact{border:0;border-bottom:1px solid #e1e8ee;border-radius:0;background:#f8fafb}
+.cw-enhanced .cw-evaluation-panel .cw-evidence-assistant{padding:12px 15px}
+.cw-enhanced .cw-evaluation-panel .cw-evidence-list{padding-inline:15px}
+.cw-enhanced .cw-evaluation-panel .cw-evidence-history-foot{padding:11px 15px;background:#fbfcfd}
+.cw-enhanced .cw-evaluation-panel .cw-radiograph-shelf{border:1px solid #d9e4eb;border-radius:12px;background:#f8fafb;overflow:hidden}
+.cw-enhanced .cw-evaluation-panel .cw-clinical-map{border-color:#d4e1e7;box-shadow:none}
+.cw-enhanced .cw-clinical-files-source{display:grid;gap:12px;padding:15px;border:1px solid #d9e4eb;border-radius:12px;background:#fff}
+.cw-enhanced .cw-clinical-files-source-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.cw-enhanced .cw-clinical-files-source-head>div{display:grid;gap:3px;min-width:0}
+.cw-enhanced .cw-clinical-files-source-head strong{color:var(--cw-ink);font-size:16px;line-height:1.3}
+.cw-enhanced .cw-clinical-files-source-head p{margin:0;color:var(--cw-muted);font-size:13px;line-height:1.45}
+.cw-enhanced .cw-clinical-files-source-body{display:grid;gap:12px;min-width:0}
+.cw-enhanced .cw-radiograph-more{position:relative;min-width:0}
+.cw-enhanced .cw-radiograph-more>summary{display:flex;align-items:center;justify-content:center;min-height:38px;padding:7px 10px;border:1px solid #cfdbe5;border-radius:8px;background:#fff;color:var(--cw-ink);font-size:12px;font-weight:750;line-height:1.2;list-style:none;cursor:pointer;white-space:nowrap}
+.cw-enhanced .cw-radiograph-more>summary::-webkit-details-marker{display:none}
+
+/* Evidencia v27 · carga e historial forman una sola biblioteca clínica. */
+.cw-enhanced .cw-evaluation-panel .cw-clinical-files-source{gap:0;padding:0;overflow:hidden}
+.cw-enhanced .cw-evaluation-panel .cw-clinical-files-source-body{gap:0}
+.cw-enhanced .cw-clinical-files-source-body>.cw-advanced-editor{margin:0;border:0;border-radius:0;background:#fff;box-shadow:none}
+.cw-enhanced .cw-clinical-files-source-body>.cw-advanced-editor>summary{padding-inline:16px}
+.cw-enhanced .cw-clinical-files-source-body>.cw-radiograph-shelf{margin:0;border:0;border-top:1px solid #d9e4eb;border-radius:0;background:#f8fafb;box-shadow:none}
+.cw-enhanced .cw-clinical-files-source-body>.cw-radiograph-shelf:first-child{border-top:0}
+.cw-enhanced .cw-clinical-files-source-body>.cw-evidence-history{border:0;border-bottom:1px solid #e1e8ee;border-radius:0}
+.cw-enhanced .cw-clinical-files-source-body>.cw-evidence-history:empty{display:none}
+.cw-enhanced .cw-clinical-files-source-body>.cw-radiograph-shelf .cw-radiograph-shelf-head{padding:15px 16px 10px}
+.cw-enhanced .cw-clinical-files-source-body>.cw-radiograph-shelf .cw-radiograph-grid{padding-bottom:16px}
+.cw-enhanced .cw-radiograph-more[open]>summary{border-color:#afc7d5;background:#f5f8fa}
+.cw-enhanced .cw-radiograph-more>button{position:absolute;right:0;z-index:4;min-width:142px;margin-top:5px;padding:9px 11px;border-radius:8px;box-shadow:0 10px 28px rgba(11,27,46,.16)}
+
+@media(min-width:761px){
+ .cw-enhanced .cw-evaluation-flow{grid-template-columns:178px minmax(0,1fr)}
+ .cw-enhanced .cw-evaluation-panels{padding-inline:20px}
+ .cw-enhanced .cw-evaluation-footer{padding-inline:20px}
+}
+
+@media(max-width:760px){
+ .cw-enhanced .cw-evaluation-flow{gap:0}
+ .cw-enhanced .cw-evaluation-mobile-progress{position:relative;display:flex;align-items:center;min-height:48px;margin:0;padding:11px 12px 11px 46px;border:1px solid #d8e3ea;border-radius:11px;background:#f8fafb;color:#243b53;font-size:12px;font-weight:800;line-height:1.35}
+ .cw-enhanced .cw-evaluation-mobile-progress::before{content:'\2192';position:absolute;left:12px;display:grid;place-items:center;width:25px;height:25px;border-radius:8px;background:#dff1ed;color:#176a61;font-size:15px;font-weight:850}
+ .cw-enhanced .cw-evaluation-panels{padding:0 0 calc(92px + env(safe-area-inset-bottom))}
+ .cw-enhanced .cw-evaluation-panel-body{gap:12px;padding:12px 0 6px}
+ .cw-enhanced .cw-evaluation-intro{padding-inline:2px;font-size:13px;line-height:1.5}
+ .cw-enhanced .cw-evidence-compact{gap:11px;padding:12px}
+ .cw-enhanced .cw-evidence-compact .cw-kicker{font-size:11px}
+ .cw-enhanced .cw-evidence-compact>div:first-child>strong{font-size:15px;line-height:1.35}
+ .cw-enhanced .cw-evidence-compact-metrics{display:flex;width:100%;gap:5px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+ .cw-enhanced .cw-evidence-compact-metrics::-webkit-scrollbar{display:none}
+ .cw-enhanced .cw-evidence-compact-metrics>span{min-width:max-content;min-height:32px;padding-inline:9px}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-assistant{gap:8px;padding:11px 12px}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-assistant p{display:none}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-list{padding-inline:12px}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-item{grid-template-columns:32px minmax(0,1fr) auto;gap:9px;padding:10px 0}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-item>div :is(span,strong,small){white-space:normal;overflow-wrap:anywhere}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-history-foot{gap:8px;padding:10px 12px}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-history-foot p{display:none}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-history-foot button{width:100%}
+ .cw-enhanced .cw-radiograph-shelf-head{border-bottom:1px solid #e2e8ee}
+ .cw-enhanced .cw-radiograph-queue-filters{padding-top:9px}
+ .cw-enhanced .cw-radiograph-card{border-radius:11px;box-shadow:none}
+ .cw-enhanced .cw-radiograph-card-actions>button{min-height:44px}
+ .cw-enhanced .cw-radiograph-more>summary{min-height:44px}
+ .cw-enhanced .cw-radiograph-more>button{position:static;width:100%;margin-top:6px;box-shadow:none}
+ .cw-enhanced .cw-clinical-files-source{padding:12px}
+ .cw-enhanced .cw-clinical-files-source-head p{display:none}
+ .cw-enhanced .cw-evaluation-panel[data-task=closure] .cw-evaluation-close{padding:14px}
+ .cw-enhanced .cw-evaluation-panel[data-task=closure] .cw-evaluation-close h3{font-size:18px}
+ .cw-enhanced .cw-evaluation-panel[data-task=closure] .cw-evaluation-close-facts>div{padding:11px 12px}
+ .cw-enhanced .cw-evaluation-panel[data-task=closure] .cw-clinical-map-head p{display:none}
+ .cw-enhanced .cw-evaluation-panel[data-task=closure] .cw-map-context-copy p{display:none}
+ .cw-enhanced .cw-evaluation-footer{position:static;margin:0;padding:10px 0 calc(10px + env(safe-area-inset-bottom));border-top:0;background:transparent;box-shadow:none}
+ .cw-enhanced .cw-evaluation-footer .cw-evaluation-cta{min-height:48px;border-radius:10px}
+}
+
+@media(max-width:420px){
+ .cw-enhanced .cw-evaluation-mobile-progress{margin-inline:0}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-item{grid-template-columns:32px minmax(0,1fr)}
+ .cw-enhanced .cw-evaluation-panel .cw-evidence-open{grid-column:1/-1;width:100%;min-height:44px}
+ .cw-enhanced .cw-radiograph-card{grid-template-columns:78px minmax(0,1fr)}
+ .cw-enhanced .cw-radiograph-media{min-height:132px}
+ .cw-enhanced .cw-radiograph-card-actions{grid-template-columns:minmax(0,1fr) auto}
+ .cw-enhanced .cw-radiograph-card-actions>button{padding-inline:8px}
+ .cw-enhanced .cw-clinical-map-layout{padding:8px}
+ .cw-enhanced .cw-map-stage{min-height:340px}
+}
+
+/* Valoración visual v2 · odontograma general y editor ampliado de una sola pieza. */
+.cw-enhanced .cw-clinical-map-layout{grid-template-columns:minmax(440px,1.6fr) minmax(330px,1fr)}
+.cw-enhanced .cw-map-inspector>.cw-help{flex:0}.cw-enhanced .cw-map-finding-editor[hidden]{display:none!important}.cw-enhanced .cw-map-finding-editor{margin-top:2px}
+@media(max-width:1024px){.cw-enhanced .cw-clinical-map-layout{grid-template-columns:minmax(0,1fr)}}

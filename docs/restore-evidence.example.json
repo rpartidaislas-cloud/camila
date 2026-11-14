@@ -1,0 +1,11 @@
+{
+  "target": { "type": "disposable", "production": false },
+  "database": { "restored": false, "migration_count_match": false, "lint_clean": false },
+  "storage": {
+    "expected_objects": 0, "restored_objects": 0, "sampled_hashes": 0, "hash_mismatches": 0,
+    "cross_tenant_denied": false, "expired_url_denied": false
+  },
+  "application": { "auth": false, "rls": false, "signed_urls": false, "private_edge_jwt": false },
+  "timing": { "rpo_minutes": 0, "rto_minutes": 0 },
+  "antimalware": { "provider": "", "contract_signed": false, "clean_file_passed": false, "eicar_blocked": false, "timeout_fail_closed": false }
+}

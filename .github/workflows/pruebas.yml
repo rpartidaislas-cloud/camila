@@ -50,3 +50,20 @@ jobs:
       - name: Ejecutar pruebas de navegador
         shell: bash
         run: node --test tests/smyl-history-roundtrip.test.mjs
+
+  cargador-radiografico:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Instalar Playwright y Chromium
+        shell: bash
+        run: |
+          npm install --no-save --no-package-lock playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Probar carga radiográfica real
+        shell: bash
+        run: node --test tests/smyl-radiograph-intake-browser.test.mjs

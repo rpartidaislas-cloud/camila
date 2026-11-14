@@ -65,7 +65,7 @@ test('completed() ignora ubicaciones corruptas y sigue funcionando sin locations
 test('el prompt pide diente, ubicación y cuadro siempre, normalizados, sin null', () => {
   const src = fs.readFileSync(new URL('../smyl-radiograph-analysis-client.js', import.meta.url), 'utf8');
   assert.doesNotMatch(src, /No inventes coordenadas/);
-  assert.match(src, /todo normalizado de 0 a 1 respecto a la imagen recibida desde la esquina superior izquierda/);
+  assert.match(src, /todo normalizado de 0 a 1 respecto a la VISTA COMPLETA ORIGINAL desde la esquina superior izquierda/);
   assert.match(src, /SIEMPRE tu mejor estimación de ubicación/);
   assert.match(src, /no uses null/);
   assert.match(src, /"x":"0 a 1","y":"0 a 1","w":"0\.03 a 0\.5","h":"0\.03 a 0\.5"/);
@@ -158,6 +158,12 @@ test('mapa de piezas: lado o arcada que no coinciden con la posición se descart
   assert.deepEqual(fdis(cleanToothMap({ schema: 1, teeth: entries }, null, 'periapical')).sort(), ['18', '48']);
 });
 
+test('mapa de piezas: descarta centros automáticos inverosímiles dentro del cuadrante correcto', () => {
+  const entries = [tooth('16', 0.18, 0.08), tooth('46', 0.18, 0.97), tooth('26', 0.7, 0.3)];
+  assert.deepEqual(fdis(cleanToothMap({ schema: 1, teeth: entries }, null, 'panoramic')), ['26']);
+  assert.deepEqual(fdis(cleanToothMap({ schema: 1, teeth: entries }, null, 'periapical')).sort(), ['16', '26', '46']);
+});
+
 test('mapa de piezas: acepta porcentajes o píxeles como el resto de las ubicaciones', () => {
   const pct = cleanToothMap({ schema: 1, teeth: [{ fdi: '46', x: 20, y: 70, w: 5, h: 15, confidence: 'high' }] }, null, 'panoramic');
   assert.deepEqual([pct.teeth[0].x, pct.teeth[0].y, pct.teeth[0].w, pct.teeth[0].h], [0.2, 0.7, 0.05, 0.15]);
@@ -165,22 +171,23 @@ test('mapa de piezas: acepta porcentajes o píxeles como el resto de las ubicaci
   assert.deepEqual([px.teeth[0].x, px.teeth[0].y, px.teeth[0].w, px.teeth[0].h], [0.2, 0.7, 0.05, 0.15]);
 });
 
-test('las observaciones que nombran una pieza del mapa usan su caja; las demás conservan la del modelo', () => {
+test('el mapa valida la ubicación de una observación sin reemplazar silenciosamente el hallazgo', () => {
   const map = cleanToothMap({ schema: 1, teeth: [tooth('46', 0.2, 0.7, { w: 0.06, h: 0.15 }), tooth('36', 0.8, 0.7, { w: 0.3, h: 0.5 })] }, null, 'panoramic');
-  const report = { observations: [{ id: 'r1', tooth: '46' }, { id: 'r2', tooth: '36' }, { id: 'r3', tooth: null }, { id: 'r4', tooth: '11' }] };
-  const locations = { r1: { x: 0.5, y: 0.5 }, r3: { x: 0.5, y: 0.2, w: 0.06, h: 0.12 } };
+  const report = { observations: [{ id: 'r1', tooth: '46' }, { id: 'r2', tooth: '36' }, { id: 'r3', tooth: null }, { id: 'r4', tooth: '11' }, { id: 'r5', tooth: '46' }] };
+  const locations = { r1: { x: 0.5, y: 0.5 }, r3: { x: 0.5, y: 0.2, w: 0.06, h: 0.12 }, r5: { x: 0.22, y: 0.69, w: 0.05, h: 0.1 } };
   const result = applyToothMap(report, locations, map);
-  assert.deepEqual(result.r1, { x: 0.2, y: 0.7, w: 0.06, h: 0.15 });
-  assert.deepEqual(result.r2, { x: 0.8, y: 0.7, w: 0.1, h: 0.2 }, 'caja acotada a una o dos piezas');
+  assert.equal(result.r1, undefined, 'si el hallazgo contradice al mapa queda por ubicar; no se mueve sobre otra zona');
+  assert.deepEqual(result.r2, { x: 0.8, y: 0.7, w: 0.1, h: 0.2 }, 'sin ubicación propia puede usar la pieza como referencia');
   assert.deepEqual(result.r3, locations.r3);
   assert.equal(result.r4, undefined);
+  assert.deepEqual(result.r5, locations.r5, 'una ubicación específica y coherente se conserva');
   assert.equal(applyToothMap(report, locations, null), locations, 'sin mapa no cambia nada');
 });
 
 test('el análisis son dos pasadas: mapa con rejilla y lectura con el mapa', () => {
   const src = fs.readFileSync(new URL('../smyl-radiograph-analysis-client.js', import.meta.url), 'utf8');
-  assert.match(src, /ask\('analyze_dental_radiograph_map_v1',mapSystem,gridEncoded/);
-  assert.match(src, /ask\('analyze_dental_radiograph_v1',toothMap\?system\+mapAddendum:system,encoded/);
+  assert.match(src, /ask\('analyze_dental_radiograph_map_v1',mapSystem,\[\{data:gridEncoded/);
+  assert.match(src, /ask\('analyze_dental_radiograph_v1',toothMap\?system\+mapAddendum:system,\[\{data:encoded,label:'Vista completa original/);
   assert.match(src, /function drawGrid\(ctx,width,height\)/);
   assert.match(src, /gridEncoded=canvas\.toDataURL/);
   assert.match(src, /const requestId=crypto\.randomUUID\(\);/, 'las dos llamadas comparten requestId');

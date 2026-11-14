@@ -18,7 +18,7 @@ test('el paquete exige cifrado y se guarda fuera del repositorio', () => {
 
 test('base y Storage se respaldan como componentes diferentes', () => {
   assert.match(backup, /db', 'dump'/);
-  assert.match(backup, /storage', 'cp'/);
+  assert.match(backup, /storageCmd\('cp'/);
   assert.match(backup, /storage\.tar/);
   assert.match(backup, /smyl-clinical-files/);
   assert.match(backup, /smyl-professional-cases/);

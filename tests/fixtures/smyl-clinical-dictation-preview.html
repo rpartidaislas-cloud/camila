@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Dictado clínico</title>
+  <link rel="stylesheet" href="../../smyl-design-system-v2.css">
+  <link rel="stylesheet" href="../../smyl-case-workspace.css?v=28">
+  <link rel="stylesheet" href="../../smyl-dental-dictation.css?v=1">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f3f6fa;color:#132b37;font-family:Inter,"Open Sans",Arial,sans-serif}.preview-shell{min-height:100vh;padding:48px 24px}.preview-card{max-width:1080px;margin:0 auto;border:1px solid #d5e0e8;border-radius:16px;background:#fff;box-shadow:0 14px 32px rgba(11,27,46,.07)}.preview-card .cw-clinical-map-head{padding:24px}.preview-map{display:grid;grid-template-columns:repeat(8,minmax(54px,1fr));gap:10px;padding:0 24px 24px}.preview-tooth{display:grid;place-items:center;min-height:76px;border:1px solid #d5e0e8;border-radius:12px;background:#f8fbfc;color:#40566b;font-weight:700}.preview-tooth[data-selected=true]{border-color:#38a99d;background:#eaf7f4;color:#0f615b;box-shadow:inset 0 0 0 1px #38a99d}.preview-result{min-height:42px;margin:0 24px 24px;padding:12px 14px;border-radius:10px;background:#f4f7f9;color:#536477;font-size:13px}.cw-clinical-map-head-actions{align-self:center}
+    @media(max-width:760px){.preview-shell{padding:22px 12px}.preview-card .cw-clinical-map-head{padding:18px}.preview-map{grid-template-columns:repeat(4,minmax(48px,1fr));padding:0 18px 18px}.preview-result{margin:0 18px 18px}.preview-tooth{min-height:62px}}
+  </style>
+</head>
+<body>
+  <main class="preview-shell">
+    <section class="preview-card cw-clinical-map" aria-labelledby="preview-title">
+      <header class="cw-clinical-map-head">
+        <div><span class="cw-kicker">MAPA CLÍNICO</span><strong id="preview-title">Odontograma</strong><p>Selecciona una pieza o dicta un hallazgo breve.</p></div>
+        <div class="cw-clinical-map-head-actions"><button id="dictate" class="pc-secondary cw-dictation-action" type="button"><span class="cw-dictation-mic" aria-hidden="true"></span>Dictar hallazgo</button></div>
+      </header>
+      <div class="preview-map" aria-label="Piezas de muestra">
+        <button class="preview-tooth" type="button">18</button><button class="preview-tooth" type="button">17</button><button class="preview-tooth" type="button" data-selected="true">16</button><button class="preview-tooth" type="button">15</button>
+        <button class="preview-tooth" type="button">14</button><button class="preview-tooth" type="button">13</button><button class="preview-tooth" type="button">12</button><button class="preview-tooth" type="button">11</button>
+      </div>
+      <p id="result" class="preview-result" aria-live="polite">Sin cambios en el borrador.</p>
+    </section>
+  </main>
+  <script>
+    class PreviewRecognition{
+      start(){this.onstart?.();setTimeout(()=>{this.onresult?.({results:[[{transcript:'Pieza 16, oclusal, caries'}]]});this.onend?.();},80)}
+      stop(){this.onend?.()}abort(){}
+    }
+    window.SpeechRecognition=PreviewRecognition;
+  </script>
+  <script src="../../smyl-dental-dictation.js?v=1"></script>
+  <script>
+    document.getElementById('dictate').addEventListener('click',event=>{
+      window.SmylDentalDictation.open({
+        initialTooth:'16',returnFocus:event.currentTarget,
+        onApply:value=>{window.__applied=value;document.getElementById('result').textContent=`Pieza ${value.tooth} · ${value.observation} · pendiente de guardar`;return true;}
+      });
+    });
+  </script>
+</body>
+</html>

@@ -19,7 +19,7 @@ test('la mesa radiográfica adopta Clinical Workspace v3.3 sin cambiar el domini
 });
 
 test('controles y señales mantienen objetivos legibles en revisión asistida y manual', () => {
-  assert.match(css, /\.rr-filter \{ min-height: var\(--rr-v33-control\)/);
+  assert.match(css, /\.rr-step-back, \.rr-signal-queue-item \{ min-height: 44px/);
   assert.match(css, /\.rr-mark \{ width: var\(--rr-v33-control\)/);
   assert.match(css, /\.dr-radiograph-dialog \.dr-mark \{ width: var\(--rr-v33-control\)/);
   assert.match(css, /\.rr-tool-range \{[^}]*min-height: var\(--rr-v33-control\)/s);
@@ -29,8 +29,9 @@ test('controles y señales mantienen objetivos legibles en revisión asistida y 
 test('evidencia, decisión y detalle publican semántica accesible', () => {
   assert.match(review, /Herramientas de imagen radiográfica/);
   assert.match(review, /Imagen radiográfica original y señales ubicadas/);
-  assert.match(review, /Decisiones sobre señales clínicas/);
-  assert.match(review, /Filtrar señales por estado/);
+  assert.match(review, /Decisión sobre la señal activa/);
+  assert.match(review, /Señal clínica activa/);
+  assert.match(review, /Ver todas las señales/);
   assert.match(review, /role','listitem/);
   assert.match(record, /Visor radiográfico\. Amplía y arrastra para recorrer la imagen/);
 });

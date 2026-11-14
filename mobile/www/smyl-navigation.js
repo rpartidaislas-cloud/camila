@@ -23,6 +23,9 @@
     account: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
     templates: '<rect x="6" y="3.5" width="12" height="17" rx="2"/><path d="M9.5 3.5h5v2.5h-5zM9 11h6M9 15h4"/>',
+    email: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+    broadcast: '<path d="m3 11 16-7-5 16-3.5-6.5L3 11Z"/><path d="m10.5 13.5 3.5-3.5"/>',
+    campaign: '<path d="M4 13v-2l12-5v12L4 13Z"/><path d="M8 14v5a2 2 0 0 0 2 2h1v-6M18 9a3 3 0 0 1 0 6"/>',
     settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>',
     more: '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',
     plus: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>'
@@ -37,9 +40,14 @@
     ['Cobros', 'caja', 'cash'],
     ['Cotizaciones', 'propuestas', 'quote']
   ];
-  // Sección propia de mensajería (como «Mensajería/Campañas» en LANA): el chat y sus plantillas.
+  // Centro de comunicación: una sola jerarquía para conversar, preparar plantillas
+  // y organizar envíos. Cada ruta conserva su propia autorización y fuente de datos.
   var MESSAGING = [
-    ['Mensajes', 'inbox', 'messages']
+    ['Chat', 'inbox', 'messages'],
+    ['Correo', 'correo', 'email'],
+    ['Mensajes masivos', 'mensajes-masivos', 'broadcast'],
+    ['Plantillas WhatsApp', 'plantillas', 'templates'],
+    ['Campañas', 'campanas', 'campaign']
   ];
   var MOBILE_PRIMARY = [PRIMARY[0], PRIMARY[1], PRIMARY[2], MESSAGING[0]];
   var BUSINESS = [
@@ -50,7 +58,7 @@
   ];
   // Todos los ajustes viven ahora en la pantalla Configuración (smyl-settings-hub.js), ordenada como el panel de LANA.
   // El menú solo tiene ese acceso; se marca mientras estás en cualquiera de las pantallas a las que lleva.
-  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'mi-cuenta', 'plantillas'];
+  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'mi-cuenta'];
   var SETTINGS = [['Configuración', 'configuracion', 'settings']];
   // Otros módulos agregan su propio botón al menú cuando no lo encuentran. Estas rutas ya no tienen botón visible,
   // pero se dejan registradas (ocultas) para que no reaparezcan sueltas en el menú.
@@ -63,9 +71,11 @@
     ['Seguridad', 'seguridad', 'shield'],
     ['Marca y simulación', 'sim-config', 'brand'],
     ['Mi cuenta', 'mi-cuenta', 'account'],
-    // Las plantillas de WhatsApp son parte de Canales: se llega desde Configuración o desde Mensajes.
+    // La ruta permanece registrada para impedir que otros módulos agreguen un acceso duplicado.
     ['Plantillas de WhatsApp', 'plantillas', 'templates']
   ];
+
+  var CHEVRON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 
   function icon(name, size) {
     return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[name] + '</svg>';
@@ -97,13 +107,13 @@
     return label;
   }
 
-  function detailsGroup(label, entries, open) {
+  function detailsGroup(label, entries, open, iconName) {
     var details = document.createElement('details');
     details.className = 'pro-nav-group';
     details.dataset.routes = entries.map(function (entry) { return entry[1]; }).join(' ');
     details.open = Boolean(open);
     var summary = document.createElement('summary');
-    summary.innerHTML = '<span class="pro-nav-group-icon">' + icon('reports', 18) + '</span><span class="pro-nav-group-label">' + label + '</span><span class="pro-nav-chevron" aria-hidden="true">⌄</span>';
+    summary.innerHTML = '<span class="pro-nav-group-icon">' + icon(iconName || 'reports', 18) + '</span><span class="pro-nav-group-label">' + label + '</span><span class="pro-nav-group-count" hidden></span><span class="pro-nav-chevron" aria-hidden="true">' + CHEVRON + '</span>';
     summary.dataset.tooltip = label;
     summary.setAttribute('aria-label', label);
     details.append(summary);
@@ -132,7 +142,13 @@
       item.classList.toggle('activo', isActive);
       if (isActive) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
     });
+    // Mensajería y Negocio se abren solos al entrar a una de sus pantallas y se cierran al salir.
     document.querySelectorAll('.pro-nav-group').forEach(function (group) {
+      var contains = (' ' + group.dataset.routes + ' ').indexOf(' ' + route + ' ') !== -1;
+      group.classList.toggle('has-active', contains);
+      group.open = contains;
+    });
+    document.querySelectorAll('.pam-collapsible-group').forEach(function (group) {
       var contains = (' ' + group.dataset.routes + ' ').indexOf(' ' + route + ' ') !== -1;
       group.classList.toggle('has-active', contains);
       if (contains) group.open = true;
@@ -147,9 +163,9 @@
     nav.setAttribute('aria-label', 'Navegación principal');
     nav.append(sectionLabel('Trabajo diario'));
     PRIMARY.forEach(function (entry) { nav.append(navItem(entry, false)); });
-    nav.append(sectionLabel('Mensajería'));
-    MESSAGING.forEach(function (entry) { nav.append(navItem(entry, false)); });
-    nav.append(detailsGroup('Negocio', BUSINESS, true));
+    nav.append(sectionLabel('Comunicación'));
+    nav.append(detailsGroup('Mensajería', MESSAGING, false, 'messages'));
+    nav.append(detailsGroup('Negocio', BUSINESS, false, 'reports'));
     SETTINGS.forEach(function (entry) { nav.append(navItem(entry, false)); });
     var registry = document.createElement('div');
     registry.className = 'pro-nav-registry'; registry.hidden = true; registry.style.display = 'none'; registry.setAttribute('aria-hidden', 'true');
@@ -193,6 +209,22 @@
     return group;
   }
 
+  function mobileDetailsGroup(label, entries, open) {
+    var details = document.createElement('details');
+    details.className = 'pam-group pam-collapsible-group';
+    details.dataset.routes = entries.map(function (entry) { return entry[1]; }).join(' ');
+    details.open = Boolean(open);
+    var summary = document.createElement('summary');
+    summary.className = 'pam-group-label pam-group-summary';
+    summary.innerHTML = '<span>' + label + '</span><span class="pam-group-toggle" aria-hidden="true">⌄</span>';
+    details.append(summary);
+    var body = document.createElement('div');
+    body.className = 'pam-group-body';
+    entries.forEach(function (entry) { body.append(navItem(entry, true)); });
+    details.append(body);
+    return details;
+  }
+
   function organizeMobileSheet() {
     var host = document.querySelector('.pam-scroll');
     if (!host) return;
@@ -200,7 +232,7 @@
     var quick = [['Nueva simulación', '__new_simulation', 'presentation']];
     host.replaceChildren(
       mobileGroup('Trabajo diario', daily),
-      mobileGroup('Mensajería', MESSAGING),
+      mobileDetailsGroup('Mensajería', MESSAGING, true),
       mobileGroup('Negocio', BUSINESS),
       mobileGroup('Configuración', SETTINGS),
       mobileGroup('Acción rápida', quick)
@@ -303,48 +335,169 @@
     var preview = training && training.querySelector('.connections-preview');
     if (!shell || !flow || !grid || !training || !safety || !preview || shell.querySelector('.connections-tabs')) return;
 
-    var intro = document.createElement('div');
-    intro.className = 'connections-workspace-intro';
-    intro.innerHTML = '<div><span>CONFIGURACIÓN DE COMUNICACIÓN</span><strong>Completa una tarea a la vez.</strong></div><p>Conecta tus cuentas, prepara al asistente y prueba sus respuestas en espacios separados.</p>';
-    var tabs = document.createElement('div');
+    var workspace = document.createElement('div');
+    workspace.className = 'connections-workspace';
+    var tabs = document.createElement('nav');
     tabs.className = 'connections-tabs';
-    tabs.setAttribute('role', 'tablist');
-    [['channels','Canales'],['assistant','SMYL Asistente'],['lab','Laboratorio']].forEach(function (entry, index) {
+    tabs.setAttribute('aria-label', 'Configuración de canales');
+    var paneHost = document.createElement('div');
+    paneHost.className = 'connections-pane-host';
+    var entries = [
+      ['channels','Estado','R','general'],
+      ['whatsapp','WhatsApp','<img src="icons/brands/whatsapp.svg" alt="">','channels'],
+      ['messenger','Messenger','M','channels'],
+      ['instagram','Instagram','I','channels'],
+      ['assistant','SMYL Asistente','A','tools'],
+      ['templates','Plantillas','P','tools'],
+      ['automations','Automatizaciones','⌁','tools'],
+      ['lab','Probar al asistente','T','tools']
+    ];
+    var groupLabels = { general: 'General', channels: 'Canales', tools: 'Herramientas' };
+    var lastGroup = '';
+    entries.forEach(function (entry, index) {
+      if (entry[3] !== lastGroup) {
+        var group = document.createElement('span');
+        group.className = 'connections-tab-group-label';
+        group.textContent = groupLabels[entry[3]];
+        tabs.append(group);
+        lastGroup = entry[3];
+      }
       var button = document.createElement('button');
       button.type = 'button';
       button.dataset.connectionTab = entry[0];
-      button.setAttribute('role', 'tab');
+      button.dataset.connectionGroup = entry[3];
       button.setAttribute('aria-selected', String(index === 0));
-      button.textContent = entry[1];
+      button.innerHTML = '<span class="connections-tab-icon' + (entry[0] === 'whatsapp' ? ' connections-tab-icon--whatsapp' : '') + '" aria-hidden="true">' + entry[2] + '</span><strong>' + entry[1] + '</strong>';
       tabs.append(button);
     });
 
-    var channelsPane = document.createElement('section');
-    channelsPane.className = 'connections-pane';
-    channelsPane.dataset.connectionPane = 'channels';
-    flow.before(intro, tabs, channelsPane);
-    channelsPane.append(flow, grid, safety);
+    var overviewPane = document.createElement('section');
+    overviewPane.className = 'connections-pane connections-overview-pane';
+    overviewPane.dataset.connectionPane = 'channels';
+    overviewPane.innerHTML = '<header class="connections-pane-head"><span>ESTADO</span><h2>Canales de la clínica</h2><p>Activa la mensajería y conecta cada cuenta.</p></header>';
+    var infrastructure = grid.querySelector('.connections-card-main');
+    var channelCard = grid.querySelector('.connections-card:not(.connections-card-main)');
+    var retry = channelCard && channelCard.querySelector('[data-channel-retry]');
+    var boundary = channelCard && channelCard.querySelector('.connections-boundary');
+    if (infrastructure) overviewPane.append(infrastructure);
+    if (retry) overviewPane.append(retry);
+    if (boundary) overviewPane.append(boundary);
+    overviewPane.append(flow, safety);
+    paneHost.append(overviewPane);
+
+    var channelCopy = {
+      whatsapp: ['WhatsApp Business', 'Número, plantillas, recordatorios y atención de pacientes.'],
+      messenger: ['Messenger', 'Mensajes de Facebook y entrega de conversaciones al equipo.'],
+      instagram: ['Instagram', 'Mensajes directos y reglas de respuesta para la cuenta conectada.']
+    };
+    Object.keys(channelCopy).forEach(function (name) {
+      var copy = channelCopy[name];
+      var pane = document.createElement('section');
+      pane.className = 'connections-pane connections-channel-pane';
+      pane.dataset.connectionPane = name;
+      pane.hidden = true;
+      var brand = name === 'whatsapp'
+        ? '<span class="connections-channel-brand" aria-hidden="true"><img src="icons/brands/whatsapp.svg" alt=""></span>'
+        : '<span class="connections-channel-brand connections-channel-brand--letter" aria-hidden="true">' + name.charAt(0).toUpperCase() + '</span>';
+      pane.innerHTML = '<header class="connections-pane-head connections-channel-head"><div class="connections-channel-identity">' + brand + '<div><h2>' + copy[0] + '</h2><p>' + copy[1] + '</p></div></div><span class="connections-platform-label" data-channel-pane-status data-state="pending">Sin conectar</span></header>' +
+        '<section class="connections-channel-control"><div class="connections-channel-account"><header><span>ESTADO</span><h3>Cuenta de la clínica</h3><p>La conexión se autoriza en Meta. SMYL no recibe contraseñas.</p></header><div class="connections-channel-list" data-channel-slot="' + name + '"></div></div>' +
+        '<aside class="connections-channel-scope"><div><span>ALCANCE</span><h3 data-channel-scope-title>Se configura al conectar</h3><p data-channel-scope-copy>Primero conecta la cuenta. Después podrás revisar su alcance y herramientas.</p></div><dl><div><dt>Modo</dt><dd data-channel-mode>Pendiente</dd></div><div><dt>Historial</dt><dd data-channel-history>Pendiente</dd></div></dl></aside></section>' +
+        '<section class="connections-channel-tools"><header><div><span>HERRAMIENTAS</span><h3>¿Qué quieres configurar?</h3></div><p>Cada ajuste tiene su propio espacio.</p></header><div data-channel-tools="' + name + '"></div></section>';
+      var row = channelCard && channelCard.querySelector('[data-channel-row="' + name + '"]');
+      var slot = pane.querySelector('[data-channel-slot="' + name + '"]');
+      if (row && slot) slot.append(row);
+      paneHost.append(pane);
+    });
+
     training.classList.add('connections-pane');
     training.dataset.connectionPane = 'assistant';
+    training.hidden = true;
+    paneHost.append(training);
+
+    var templatesPane = document.createElement('section');
+    templatesPane.className = 'connections-pane connections-tools-pane';
+    templatesPane.dataset.connectionPane = 'templates';
+    templatesPane.hidden = true;
+    templatesPane.innerHTML = '<header class="connections-pane-head"><span>WHATSAPP</span><h2>Plantillas</h2><p>Mensajes aprobados por Meta, ordenados por el momento de atención.</p></header><div class="connections-tools-grid"><article class="connections-tool-card"><span>CITAS</span><h3>Confirmaciones y cambios</h3><p>Nueva cita, confirmación, cambio de horario, rechazo y cancelación.</p></article><article class="connections-tool-card"><span>SEGUIMIENTO</span><h3>Recordatorios</h3><p>Avisos previos y mensajes posteriores a la consulta.</p></article><article class="connections-tool-card"><span>COBROS</span><h3>Pagos y anticipos</h3><p>Solicitudes, vencimientos y confirmaciones de pago.</p></article></div><button type="button" class="btn btn-primary" data-open-templates>Abrir plantillas de WhatsApp</button>';
+    paneHost.append(templatesPane);
+
+    var automationsPane = document.createElement('section');
+    automationsPane.className = 'connections-pane connections-tools-pane';
+    automationsPane.dataset.connectionPane = 'automations';
+    automationsPane.hidden = true;
+    automationsPane.innerHTML = '<header class="connections-pane-head"><span>REGLAS COMPARTIDAS</span><h2>Automatizaciones</h2><p>Define qué hace SMYL y en qué momento debe intervenir una persona.</p></header><div class="connections-tools-grid"><button type="button" class="connections-tool-card" data-open-reminders><span>AGENDA</span><h3>Recordatorios de cita</h3><p>Plantilla, anticipación y estado de los avisos.</p><em>Abrir configuración →</em></button><button type="button" class="connections-tool-card" data-select-workspace="assistant"><span>ASISTENTE</span><h3>Reglas de atención</h3><p>Qué puede responder y cuándo debe entregar la conversación.</p><em>Configurar →</em></button><button type="button" class="connections-tool-card" data-select-workspace="lab"><span>CONTROL</span><h3>Prueba antes de activar</h3><p>Simula una conversación sin escribirle a un paciente real.</p><em>Probar →</em></button></div>';
+    paneHost.append(automationsPane);
+
     var labPane = document.createElement('section');
     labPane.className = 'connections-context connections-pane connections-preview-panel';
     labPane.dataset.connectionPane = 'lab';
-    training.after(labPane);
+    labPane.hidden = true;
+    paneHost.append(labPane);
     labPane.append(preview);
 
+    grid.remove();
+    shell.querySelector('.connections-hero').after(workspace);
+    workspace.append(tabs, paneHost);
+
+    function tool(label, copy, target, action, icon) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'connections-tool-card';
+      button.dataset.selectWorkspace = target;
+      button.dataset.requiresChannel = 'true';
+      button.disabled = true;
+      button.setAttribute('aria-disabled', 'true');
+      button.innerHTML = '<span class="connections-tool-icon" aria-hidden="true">' + icon + '</span><span class="connections-tool-copy"><h3>' + label + '</h3><p>' + copy + '</p><small data-tool-state>Conecta el canal</small></span><em>' + action + '<span aria-hidden="true">→</span></em>';
+      return button;
+    }
+    shell.querySelectorAll('[data-channel-tools]').forEach(function (host) {
+      var name = host.dataset.channelTools;
+      if (name === 'whatsapp') host.append(tool('Plantillas', 'Citas, seguimientos y cobros aprobados por Meta.', 'templates', 'Administrar', '<svg viewBox="0 0 24 24"><path d="M7 3.75h7l3 3V20.25H7zM14 3.75v4h4M9.5 11h5M9.5 14.5h5"/></svg>'));
+      host.append(tool('SMYL Asistente', 'Información, tono y reglas de atención.', 'assistant', 'Configurar', '<svg viewBox="0 0 24 24"><path d="m12 3 1.35 4.15L17.5 8.5l-4.15 1.35L12 14l-1.35-4.15L6.5 8.5l4.15-1.35zM18 15l.75 2.25L21 18l-2.25.75L18 21l-.75-2.25L15 18l2.25-.75z"/></svg>'));
+      host.append(tool('Automatizaciones', 'Recordatorios y entrega al equipo.', 'automations', 'Configurar', '<svg viewBox="0 0 24 24"><path d="M13.2 2.75 6.75 13h5l-.95 8.25L17.25 11h-5z"/></svg>'));
+      host.append(tool('Probar canal', 'Revisa una respuesta antes de activar.', 'lab', 'Probar', '<svg viewBox="0 0 24 24"><path d="M7 5.5h10a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-5.5L8 18.5v-3H7a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2Z"/><path d="m10 9 4 2-4 2z"/></svg>'));
+    });
+
     function select(name) {
+      if (!paneHost.querySelector('[data-connection-pane="' + name + '"]')) name = 'channels';
       tabs.querySelectorAll('[data-connection-tab]').forEach(function (button) {
         var selected = button.dataset.connectionTab === name;
         button.setAttribute('aria-selected', String(selected));
-        button.tabIndex = selected ? 0 : -1;
       });
       shell.querySelectorAll('[data-connection-pane]').forEach(function (pane) { pane.hidden = pane.dataset.connectionPane !== name; });
+      try { window.localStorage.setItem('smyl_connections_workspace', name); } catch (_) {}
+      if (window.matchMedia && window.matchMedia('(max-width: 760px)').matches) paneHost.scrollIntoView({ block: 'start' });
     }
     tabs.addEventListener('click', function (event) {
       var button = event.target.closest('[data-connection-tab]');
       if (button) select(button.dataset.connectionTab);
     });
-    select('channels');
+    shell.addEventListener('click', function (event) {
+      var jump = event.target.closest('[data-select-workspace]');
+      if (jump) { select(jump.dataset.selectWorkspace); return; }
+      if (event.target.closest('[data-open-templates]')) { window.ir('plantillas'); return; }
+      if (event.target.closest('[data-open-reminders]')) {
+        window.ir('agenda');
+        window.setTimeout(function () {
+          var settings = document.querySelector('[data-schedule-tab="settings"]');
+          if (settings) settings.click();
+          var reminders = document.getElementById('schedule-reminders-card');
+          if (reminders) reminders.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 80);
+      }
+    });
+    ['whatsapp','messenger','instagram'].forEach(function (name) {
+      var source = shell.querySelector('[data-channel-row="' + name + '"]');
+      var button = tabs.querySelector('[data-connection-tab="' + name + '"]');
+      if (!source || !button || !window.MutationObserver) return;
+      function syncState() { button.dataset.state = source.dataset.state || 'pending'; }
+      syncState();
+      new MutationObserver(syncState).observe(source, { attributes: true, attributeFilter: ['data-state'] });
+    });
+    var saved = 'channels';
+    try { saved = window.localStorage.getItem('smyl_connections_workspace') || 'channels'; } catch (_) {}
+    select(saved);
+    window.SmylConnectionsWorkspace = Object.freeze({ select: select });
   }
 
   // Flecha para contraer el sidebar a solo iconos; la preferencia se recuerda en este navegador.
@@ -372,30 +525,186 @@
     sidebar.append(toggle);
   }
 
+  function openNewAppointment() {
+    if (typeof window.ir !== 'function') return;
+    window.ir('agenda');
+    window.setTimeout(function () {
+      var create = document.getElementById('schedule-new');
+      if (create) create.click();
+    }, 0);
+  }
+
+  // «Nueva cita» va arriba, bajo la cabecera, como botón con borde y atajo N.
   function setupQuickAction() {
-    var foot = document.querySelector('.sidebar .sb-foot');
-    if (!foot || foot.querySelector('.smyl-sidebar-quick')) return;
-    var button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'smyl-sidebar-quick';
-    button.dataset.tooltip = 'Nueva cita';
+    var sidebar = document.querySelector('.sidebar');
+    var logo = sidebar && sidebar.querySelector('.sb-logo');
+    if (!sidebar || !logo) return;
+    var button = sidebar.querySelector('.smyl-sidebar-quick');
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'smyl-sidebar-quick';
+    }
+    button.removeAttribute('onclick');
+    button.dataset.tooltip = 'Nueva cita (N)';
     button.setAttribute('aria-label', 'Nueva cita');
-    button.innerHTML = '<span aria-hidden="true">' + icon('calendar', 18) + '</span><span class="smyl-sidebar-quick-label">Nueva cita</span>';
-    button.addEventListener('click', function () {
-      if (typeof window.ir !== 'function') return;
-      window.ir('agenda');
-      window.setTimeout(function () {
-        var create = document.getElementById('schedule-new');
-        if (create) create.click();
-      }, 0);
+    button.setAttribute('aria-keyshortcuts', 'N');
+    button.innerHTML = '<span aria-hidden="true">' + icon('plus', 17) + '</span><span class="smyl-sidebar-quick-label">Nueva cita</span><kbd class="smyl-sidebar-quick-key" aria-hidden="true">N</kbd>';
+    if (button.dataset.quickReady !== 'true') {
+      button.dataset.quickReady = 'true';
+      button.addEventListener('click', openNewAppointment);
+    }
+    var wrap = sidebar.querySelector('.sb-quick');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.className = 'sb-quick';
+      logo.after(wrap);
+    }
+    wrap.append(button);
+  }
+
+  function isTypingTarget(target) {
+    if (!target || !(target instanceof Element)) return false;
+    return Boolean(target.closest('input,textarea,select,[contenteditable=""],[contenteditable="true"]'));
+  }
+
+  // Atajo N para «Nueva cita»: solo en escritorio, sin modificadores, fuera de campos de texto y sin diálogos abiertos.
+  function setupNewAppointmentShortcut() {
+    if (document.documentElement.dataset.smylQuickShortcut === 'true') return;
+    document.documentElement.dataset.smylQuickShortcut = 'true';
+    document.addEventListener('keydown', function (event) {
+      if (event.defaultPrevented || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key !== 'n' && event.key !== 'N') return;
+      if (isTypingTarget(event.target)) return;
+      var button = document.querySelector('.sidebar .smyl-sidebar-quick');
+      if (!button || !button.offsetParent) return;
+      var dialogs = document.querySelectorAll('dialog[open],[aria-modal="true"],[role="dialog"],[role="alertdialog"]');
+      for (var i = 0; i < dialogs.length; i += 1) {
+        if (dialogs[i].getAttribute('aria-hidden') !== 'true' && dialogs[i].getClientRects().length) return;
+      }
+      var gate = document.getElementById('auth-gate-overlay');
+      if (gate && gate.offsetParent) return;
+      event.preventDefault();
+      openNewAppointment();
     });
-    foot.prepend(button);
+  }
+
+  // Cabecera única: logo de SMYL y, debajo, el nombre de la clínica (el mismo que antes iba en la tarjeta de usuario).
+  function setupShellHeader() {
+    var logo = document.querySelector('.sidebar .sb-logo > div');
+    var source = document.getElementById('sb-consultorio');
+    if (!logo || !source || logo.querySelector('.sb-clinic-name')) return;
+    var name = document.createElement('span');
+    name.className = 'sb-clinic-name';
+    function sync() {
+      var text = source.textContent.trim();
+      name.textContent = text && text !== 'Consultorio' ? text : 'Mi Consultorio';
+      name.title = name.textContent;
+    }
+    sync();
+    logo.append(name);
+    if (window.MutationObserver) new MutationObserver(sync).observe(source, { childList: true, characterData: true, subtree: true });
+  }
+
+  // Usuario abajo: avatar y nombre llevan a Mi cuenta; el menú ⋯ ofrece Mi cuenta y Cerrar sesión.
+  function setupUserFooter() {
+    var sidebar = document.querySelector('.sidebar');
+    var foot = sidebar && sidebar.querySelector('.sb-foot');
+    var user = sidebar && sidebar.querySelector('.sb-user');
+    if (!foot || !user || foot.querySelector('.sb-user-menu')) return;
+    var info = user.querySelector('.sb-user-info');
+    if (info && !info.querySelector('.sb-user-role')) {
+      var role = document.createElement('div');
+      role.className = 'sb-user-role';
+      role.textContent = 'Mi cuenta';
+      info.append(role);
+    }
+    var holder = document.createElement('div');
+    holder.className = 'sb-account';
+    var more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'sb-user-more';
+    more.setAttribute('aria-haspopup', 'menu');
+    more.setAttribute('aria-expanded', 'false');
+    more.setAttribute('aria-label', 'Opciones de la cuenta');
+    more.innerHTML = icon('more', 16);
+    var menu = document.createElement('div');
+    menu.className = 'sb-user-menu';
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+    var account = document.createElement('button');
+    account.type = 'button';
+    account.setAttribute('role', 'menuitem');
+    account.className = 'sb-user-menu-item';
+    account.innerHTML = icon('account', 16) + '<span>Mi cuenta</span>';
+    account.addEventListener('click', function () { close(); if (typeof window.ir === 'function') window.ir('mi-cuenta'); });
+    menu.append(account);
+    var logout = foot.querySelector('.btn-cerrar');
+    if (logout) {
+      logout.setAttribute('role', 'menuitem');
+      logout.classList.add('sb-user-menu-item');
+      menu.append(logout);
+    }
+    function close() {
+      menu.hidden = true;
+      more.setAttribute('aria-expanded', 'false');
+    }
+    function open() {
+      menu.hidden = false;
+      more.setAttribute('aria-expanded', 'true');
+      var first = menu.querySelector('[role="menuitem"]');
+      if (first) first.focus();
+    }
+    more.addEventListener('click', function (event) {
+      event.stopPropagation();
+      if (menu.hidden) open(); else close();
+    });
+    menu.addEventListener('keydown', function (event) {
+      var items = Array.prototype.slice.call(menu.querySelectorAll('[role="menuitem"]'));
+      var index = items.indexOf(document.activeElement);
+      if (event.key === 'Escape') { event.preventDefault(); close(); more.focus(); }
+      else if (event.key === 'ArrowDown') { event.preventDefault(); items[(index + 1) % items.length].focus(); }
+      else if (event.key === 'ArrowUp') { event.preventDefault(); items[(index - 1 + items.length) % items.length].focus(); }
+    });
+    document.addEventListener('click', function (event) {
+      if (!menu.hidden && !holder.contains(event.target)) close();
+    });
+    holder.append(user, more, menu);
+    foot.append(holder);
+  }
+
+  // Con un grupo cerrado, su cabecera suma los pendientes de sus opciones (p. ej. chats sin leer).
+  function setupGroupCounts() {
+    document.querySelectorAll('.pro-app-nav .pro-nav-group').forEach(function (group) {
+      var badge = group.querySelector('.pro-nav-group-count');
+      var flyout = group.querySelector('.pro-nav-flyout');
+      if (!badge || !flyout || group.dataset.countReady === 'true') return;
+      group.dataset.countReady = 'true';
+      function sync() {
+        var total = 0, overflow = false;
+        flyout.querySelectorAll('.pro-nav-count').forEach(function (count) {
+          if (count.hidden) return;
+          var text = count.textContent.trim();
+          if (/\+$/.test(text)) overflow = true;
+          total += parseInt(text, 10) || 0;
+        });
+        badge.textContent = overflow || total > 99 ? '99+' : String(total);
+        badge.hidden = !total;
+        if (total) badge.setAttribute('aria-label', total + ' pendientes'); else badge.removeAttribute('aria-label');
+      }
+      sync();
+      if (window.MutationObserver) new MutationObserver(sync).observe(flyout, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+    });
   }
 
   function init() {
     organizeDesktop();
     setupCollapse();
+    setupShellHeader();
     setupQuickAction();
+    setupNewAppointmentShortcut();
+    setupUserFooter();
+    setupGroupCounts();
     organizeMobileBar();
     organizeMobileSheet();
     setupMobileSheetModal();

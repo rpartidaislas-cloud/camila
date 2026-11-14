@@ -40,7 +40,9 @@
 .smyl-management-v3 .topbar .btn-secondary{background:#fff;border-color:#d7e0e8;color:#102239}
 .smyl-management-v3 .btn-noti,.smyl-management-v3 .btn-hamburger{border-color:#d7e0e8;border-radius:8px;background:#fff;color:#526173;box-shadow:none}
 .smyl-management-v3 .pro-clinic-status{border-color:#cfe3df;background:#f2faf8;color:#0f685f}
-.smyl-management-v3 .contenido{max-width:1320px;padding:24px 28px 48px}
+/* Ancho único del contenido (decisión de Ricardo, 2026-11-08): 1440 px. Los módulos con tablas lo usan completo; Inicio, Configuración y Mensajería conservan un ancho de lectura menor. */
+.smyl-management-v3{--smyl-page-max:1440px}
+.smyl-management-v3 .contenido{max-width:var(--smyl-page-max);padding:24px 28px 48px}
 .smyl-management-v3 .btn{border-radius:8px;font-weight:600}
 .smyl-management-v3 .btn-primary{background:#194391;border-color:#194391}.smyl-management-v3 .btn-primary:hover{background:#12366f}
 .smyl-management-v3 .btn-secondary{background:#fff;border-color:#d7e0e8;color:#102239}

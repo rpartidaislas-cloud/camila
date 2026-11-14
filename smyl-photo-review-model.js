@@ -33,7 +33,7 @@
   const a=analysis?{model:analysis.model,at:analysis.at,requestId:analysis.requestId,report:F.parse(analysis.report,photos.map(p=>p.view))}:null;
   return {schema:1,photos:photos.map(p=>({view:p.view,sha256:p.sha256})),analysis:a,items:(a?.report.findings||[]).map(f=>({id:crypto.randomUUID(),sourceId:f.id,view:f.view,tooth:f.tooth||'',text:f.observation,state:'pending'}))};
  }
- function validRow(row,caseRow){return !!row&&row.case_id===caseRow.id&&row.tenant_id===caseRow.tenant_id&&row.patient_id===caseRow.patient_id&&Number.isInteger(row.revision)&&row.revision>0&&row.updated_by===row.tenant_id&&Number.isFinite(Date.parse(row.updated_at))&&validate(row.document,caseRow);}
+ function validRow(row,caseRow){return !!row&&row.case_id===caseRow.id&&row.tenant_id===caseRow.tenant_id&&row.patient_id===caseRow.patient_id&&Number.isInteger(row.revision)&&row.revision>0&&uuid(row.updated_by)&&Number.isFinite(Date.parse(row.updated_at))&&validate(row.document,caseRow);}
  // Origin stays immutable; these are dentist-chosen supporting originals, not AI consensus.
  function evidence(doc,item){return doc.schema>=2?item.evidence:doc.photos.filter(p=>p.view===item.view);}
  function upgrade(doc){if(!validate(doc))throw Error('Revisión no válida.');const next=structuredClone(doc);if(next.schema===1){next.items.forEach(i=>i.evidence=evidence(doc,i).map(p=>({...p})));next.schema=2;}return next;}

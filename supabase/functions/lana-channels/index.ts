@@ -8,6 +8,10 @@ function channel(value: unknown): "whatsapp" | "messenger" | "instagram" | null 
   return value === "whatsapp" || value === "messenger" || value === "instagram" ? value : null;
 }
 
+function connectionMode(value: unknown): "dedicated" | "coexistence" | null {
+  return value === "dedicated" || value === "coexistence" ? value : null;
+}
+
 Deno.serve(async (req: Request) => {
   const CORS = makeCors(req, "GET, POST, OPTIONS");
   const json = (status: number, body: Record<string, unknown>): Response =>
@@ -41,13 +45,21 @@ Deno.serve(async (req: Request) => {
       return json(200, { ...remote.body, can_manage: true });
     }
     if (body.action !== "setup") return json(400, { error: "Acción no reconocida." });
+    const requestedMode = body.connection_mode === undefined ? "dedicated" : connectionMode(body.connection_mode);
+    if (!requestedMode) return json(400, { error: "Modo de conexión no soportado." });
+    if (selected !== "whatsapp" && body.connection_mode !== undefined && requestedMode !== "dedicated") {
+      return json(400, { error: "La coexistencia solo está disponible para WhatsApp." });
+    }
     const returnOrigin = new URL(SMYL_PUBLIC_APP_URL).origin;
     if (new URL(SMYL_PUBLIC_APP_URL).protocol !== "https:") {
       return json(500, { error: "SMYL_PUBLIC_APP_URL debe usar HTTPS." });
     }
     const remote = await lanaRequest(auth.tenantId, `/channels/${selected}/setup-session`, {
       method: "POST",
-      body: JSON.stringify({ return_origin: returnOrigin }),
+      body: JSON.stringify({
+        return_origin: returnOrigin,
+        connection_mode: selected === "whatsapp" ? requestedMode : "dedicated",
+      }),
     });
     if (!remote.response.ok) return json(remote.response.status, { error: String(remote.body.error || "No se pudo iniciar la conexión del canal.") });
     return json(200, { ...remote.body, can_manage: true });

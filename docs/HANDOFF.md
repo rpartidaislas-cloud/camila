@@ -1,5 +1,549 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-14 — Codex — Carga clínica con una sola puerta visible
+
+- **Agregar archivo** queda como única entrada para fotografías, radiografías y documentos. Al elegir una radiografía, el archivo pasa al editor canónico y sus campos de carga permanecen ocultos; no se crea ni se conserva un segundo selector.
+- Al guardar, descartar o fallar, el editor radiográfico se cierra y se oculta antes de restaurar **Archivos clínicos**. La pantalla ya no puede mostrar simultáneamente el estado vacío y el formulario especializado usado en el paso anterior.
+- Las radiografías del paciente se incorporan al archivo aunque todavía no exista un caso o plan seleccionado. El contador de Revisión profesional y el archivo leen el mismo registro dental; al terminar se invalida la vista y se vuelve a leer inmediatamente la fuente canónica.
+- No cambian originales, persistencia, permisos, backend, esquema, decisiones profesionales ni historial. Web y `mobile/www` quedan sincronizados con integración de Evidencia `js?v=11` y caché `evidence-single-entry-fix-v1`.
+- Verificación previa a la integración: `45/45` contratos focalizados aprobados y QA visual aprobado en 1280, 820, 390, 360 y 320 px, sin desbordes ni controles cortos. La entrega se integró conservando Inventario v2, Finanzas profesionales y sus versiones de producción.
+
+## 2026-11-13 — Codex — Recibos, caja por responsable y permisos financieros
+
+- **Recibos** pasa a ser la primera vista de Cobros y queda separado de **Facturación**. Cada fila conserva una sola acción, **Abrir recibo**, y su detalle presenta los servicios cobrados, cantidades, descuentos, importe aplicado, forma de pago, referencia, sucursal, fecha, hora y usuario que registró el movimiento.
+- El recibo conserva su identidad como comprobante interno. Desde su detalle puede imprimirse, compartirse o iniciar/continuar el proceso fiscal correspondiente. **Facturación** ya no repite los recibos: concentra únicamente borradores, prevalidación, emisor, PAC y cancelaciones.
+- **Caja** se organiza por responsable. Cada usuario abre y opera su propia caja; el equipo autorizado ve las cajas abiertas y sólo el rol con supervisión puede revisar o cerrar una caja ajena. El sistema conserva quién abrió, quién cerró y los horarios de la sesión.
+- Se añaden permisos independientes `finance.cash`, `finance.cash.supervise` y `finance.invoice`, con migración compatible que conserva el acceso actual y aplica validación también en base de datos. Mi clínica muestra las funciones como **Abrir y operar su caja**, **Supervisar cajas del equipo** y **Preparar facturas**.
+- Web y `mobile/www` quedan sincronizados con finanzas `js?v=37`/`css?v=30`, administración de clínica `js?v=11`, configuración `js?v=7` y caché `professional-finance-v1`. En PWA no hay desbordamiento horizontal ni microtexto a 390 o 320 px; los controles táctiles conservan 44 px.
+- Verificación focalizada: `89/89` contratos financieros y de integración aprobados; QA real en Chrome para Recibos/Facturación y corte de caja aprobado en escritorio y móvil. Publicación autorizada el 13 de noviembre de 2026.
+
+## 2026-11-13 — Codex — Revisión clínica con una sola entrada de evidencia
+
+- La tarea **Revisión profesional** conserva **Archivos clínicos** como única puerta de entrada. Se retiró el resumen duplicado de “Fuentes para revisar” y el estado vacío deja una sola acción, **Agregar archivo**.
+- Las categorías configurables continúan disponibles cuando hay archivos, pero se ocultan durante el estado vacío junto con sus métricas en cero. El original, su clasificación y el historial no cambian.
+- **Revisión de fotografías** y **Estudios radiográficos** ya no muestran tarjetas vacías ni acciones de carga competidoras. Cada herramienta aparece automáticamente sólo cuando existe material de su tipo; los errores reales siguen visibles y recuperables.
+- No se modificaron persistencia, permisos, backend, esquema, decisiones clínicas, odontograma ni guardado versionado. Web y `mobile/www` quedan sincronizados con workspace `js?v=40`, fotografía clínica `js?v=4`, centro `css?v=7`, integración `js?v=10`/`css?v=6` y caché `evidence-review-simple-v1`.
+- Verificación focalizada: `49/49` contratos aprobados. QA real en Chrome aprobado en 1280, 820, 390, 360 y 320 px: una sola acción en vacío, categorías y métricas ocultas, sin desbordamiento horizontal ni controles cortos. Suite general: `1,462` pruebas, `1,404` aprobadas, `56` omitidas y `2` fallos estáticos preexistentes ajenos a este cambio (`smyl-clinical-dictation` y `smyl-evolution-closure`). No se publicó desde esta entrega.
+
+## 2026-11-13 — Codex — Correcciones, resoluciones y evidencia vinculada en el odontograma
+
+- Cada hallazgo vigente ofrece una sola acción compacta, **Actualizar**, que separa **Corregir** y **Marcar resuelto**. La corrección mantiene pieza y cara, exige un cambio real de condición y agrega una nueva versión; resolver agrega otro evento y conserva el registro anterior visible. No se edita ni se borra historia clínica.
+- Las correcciones y resoluciones heredan exactamente la misma `sourceRef`. El modelo y el RPC rechazan desprender, cambiar o ramificar la evidencia durante una sustitución. La migración `20261113120000_smyl_dental_findings_v2.sql` quedó aplicada, verificada y registrada en Supabase SMYL antes de distribuir el frontend.
+- Cuando una pieza tiene una observación fotográfica ya confirmada o corregida, el editor muestra **Evidencia relacionada** como selección opcional. Sólo vincula el ID canónico de `smyl_clinical_evidence_findings`; no copia el original, no crea otro cargador y no usa IDs de las revisiones radiográficas heredadas.
+- **Ver evidencia** resuelve nombre y estado al leer, abre la valoración fotográfica existente y enfoca el hallazgo exacto. Si la fuente ya no está disponible, el vínculo se conserva y la interfaz falla cerrado. La información descriptiva no se congela dentro del odontograma.
+- Web y `mobile/www` quedan sincronizados con modelo dental `v3`, editor `js/css?v=2`, expediente `v30`, workspace `v39`, servicio fotográfico `v2`, revisión fotográfica `v3`, integración de Evidencia `v9` y caché `dental-history-evidence-v3`.
+- Verificación final integrada con Cobros y Facturación: suite completa `1,487` pruebas, `1,427` aprobadas, `60` omitidas por dependencias opcionales y `0` fallidas; contratos focalizados y sintaxis aprobados; recorrido Playwright en 1280, 834, 390 y 320 px sin desbordamiento, con corrección, resolución, vínculo y apertura de evidencia. Capturas en `artifacts/dental-finding-editor-v2/`. Publicación autorizada el 13 de noviembre de 2026.
+
+## 2026-11-13 — Codex — Recibos como entrada de Facturación
+
+- **Facturación** comienza con una bandeja de recibos internos vinculados a pagos confirmados. Cada fila conserva folio, paciente, fecha y hora, método, referencia e importe, y separa claramente **Por facturar**, **En preparación**, **Facturados** y **Todos**.
+- El siguiente paso se deriva del estado real: **Preparar factura** cuando pago, aplicación, receptor y emisor están completos; **Completar datos** si falta el receptor; **Configurar emisor** si falta la clínica; **Revisar cuenta** ante reembolso o aplicación incompleta; y **Ver proceso** cuando ya existe borrador. Un recibo vinculado a borrador o factura nunca vuelve a ofrecer preparación duplicada.
+- El recibo no se convierte ni se pierde: permanece como comprobante del pago y la factura conserva su ciclo fiscal independiente. La preparación reutiliza el RPC fiscal protegido existente y la restricción única por pago; no se añadieron migraciones ni escrituras directas desde el navegador.
+- Web y `mobile/www` quedan sincronizados con `smyl-finance.js?v=36`, CSS `v=29` y caché `fiscal-receipts-v1`. En PWA los filtros permanecen en una fila desplazable, los controles miden al menos 44 px, el texto visible es de 12 px o más y no hay desbordamiento a 390 ni 320 px.
+- Verificación: `107/107` pruebas financieras focalizadas aprobadas; sintaxis, paridad web/PWA y recorrido real en Chrome aprobados en escritorio, 390 px y 320 px. Esta entrega forma parte del lanzamiento de producción solicitado el 13 de noviembre de 2026.
+
+## 2026-11-13 — Codex — Cobros como espacio de trabajo orientado a tareas
+
+- **Cobros** deja de presentar indicadores, citas y cuentas como bloques equivalentes. La cabecera usa una franja compacta de cuatro indicadores y la alerta superior se convierte en una bandeja de tareas separadas para vencimientos, saldos a favor y corte de caja.
+- **Citas atendidas** queda como una tarea operativa independiente para registrar cargo o marcar sin cargo. **Cuentas de pacientes** concentra la cartera y abre por defecto en **Pendientes**, con búsqueda y filtros horizontales; ya no mezcla una cuenta con saldo a favor dentro de la vista principal de cobro.
+- Cada cuenta tiene una sola acción visible, **Abrir cuenta**. Chat, recordatorios y datos de contacto permanecen disponibles como acciones secundarias. Los saldos a favor se muestran como importe positivo, las cuentas sin vencimiento ya no aparentan estar vencidas y los menús secundarios vacíos no se presentan.
+- La experiencia PWA conserva pestañas y filtros en una sola fila desplazable, texto de al menos 12 px y controles táctiles de 44 px. La selección activa se mantiene visible al cambiar el ancho de pantalla y no se pierde información en 390 ni 320 px.
+- Se conserva la mejora ya publicada del formulario de cargo: total siempre visible y campos compuestos sin doble borde. No cambian saldos, cálculos, permisos, RPC, persistencia, historial contable ni facturación. Web y `mobile/www` quedan sincronizados con `smyl-finance.js?v=35`, CSS `v=28` y caché `finance-workspace-v4`.
+- Verificación: `101/101` pruebas financieras focalizadas aprobadas; sintaxis y paridad web/PWA aprobadas; recorrido real en Chrome aprobado en escritorio, 390 px y 320 px, sin desbordamiento horizontal, microtexto ni objetivos táctiles insuficientes. Publicado en producción el 13 de noviembre de 2026 sin migraciones ni cambios de backend.
+
+## 2026-11-13 — Codex — Dictado clínico como entrada del odontograma
+
+- Se incorpora **Dictar hallazgo** como una única acción secundaria dentro del odontograma. No se crea un módulo, expediente ni guardado paralelo: la voz sólo prepara una observación en el borrador dental canónico.
+- El profesional activa explícitamente el micrófono, dicta `pieza FDI + superficie + hallazgo`, revisa tres campos editables y decide si lo agrega. El reconocimiento nunca guarda; únicamente **Guardar observaciones** conserva una nueva versión y mantiene intacto el historial anterior.
+- El intérprete es-MX admite números hablados, sinónimos de superficies y frases con acentos y conectores. Rechaza piezas inválidas o ambiguas, distingue medidas como `12 mm` de una pieza FDI y reinicia cada nuevo resultado para no mezclar dictados.
+- El flujo no persiste audio ni texto provisional y avisa que el navegador procesa la voz. Sin soporte o permiso, la acción desaparece o falla de forma recuperable mientras el editor manual permanece disponible.
+- Se añade la guía de proyecto `skills/smyl-clinical-input/SKILL.md` para mantener una sola fuente clínica, confirmación profesional, privacidad, versionado y criterios visuales en futuras entradas rápidas. Web, PWA y `mobile/www` quedan sincronizados con dictado `v1`, expediente `v28`, workspace `js?v=37`/`css?v=28` y caché `clinical-dictation-v1`.
+- Verificación: suite completa `1,445` pruebas, `1,389` aprobadas, `56` omitidas por dependencias opcionales y `0` fallidas; recorrido Playwright aprobado en 1280, 834, 390 y 320 px, sin desbordes y con controles táctiles. Capturas y reporte en `artifacts/clinical-dictation-v1/`. La deuda de microtexto queda nuevamente dentro del tope (`938`). Esta entrega forma parte del lanzamiento de producción solicitado el 13 de noviembre de 2026.
+
+## 2026-11-13 — Codex — Una sola acción radiográfica por estado
+
+- La carga sin guardar deja una sola acción dominante: **Guardar radiografía**. **Añadir notas** queda como opción secundaria y **Descartar carga** como acción destructiva discreta; la tarjeta se compactó para reducir altura y ruido tanto en escritorio como en PWA.
+- Después de guardar, cada estudio presenta una única siguiente acción clínica derivada de su estado real: **Iniciar revisión**, **Revisar N hallazgos**, **Resolver revisión**, **Continuar revisión**, **Ver revisión** o **Ver estudio** para roles de consulta. Se retiran los nombres genéricos y competidores **Abrir y anotar**, **Revisar estudio** y **Valorar estudio**.
+- El pie de Evaluación ya no vuelve a abrir la misma radiografía con otro botón. Durante una revisión radiográfica sólo informa el avance; muestra **Continuar a conclusión** cuando todas las decisiones requeridas están resueltas.
+- Las acciones clínicas fallan cerrado: sólo se habilitan cuando el estado confirma `clinical.write` y `clinical.approve`. El archivo original sigue disponible para consulta y las opciones de retiro permanecen dentro de **Más acciones**.
+- Web y `mobile/www` quedan sincronizados. En el árbol compartido vigente se distribuyen revisión radiográfica `v27`, expediente dental `v28`, workspace `js?v=37`/`css?v=28`, integración `js?v=8`/`css?v=5` y caché `radiograph-single-action-v1`.
+- Verificación: `54/54` contratos focalizados aprobados, sintaxis de los módulos modificados aprobada y QA visual local de carga/cola en escritorio y móvil guardada en `artifacts/radiograph-single-action-v1/`. La suite completa conserva un único fallo de instrumentación ajeno a este cambio: el tope histórico de microtexto espera `938` y el árbol compartido actual cuenta `940`; no se añadió microtexto menor de 12 px en esta entrega. No se publicó desde este cambio.
+
+## 2026-11-12 — Codex — Arquitectura compartida de evidencia clínica, etapas 0 y 1
+
+- Se crea un contrato transversal para las seis modalidades de Evidencia: fotografía, radiografía 2D, escaneo/modelo, medición clínica, documento y CBCT. Todas declaran capacidades reales y conservan su visor especializado; una modalidad sin analizador conectado se marca como no compatible y nunca simula un resultado.
+- La mesa común usa cinco fases estables —`Original`, `Calidad`, `Sugerencias`, `Decisión` e `Historial`— con estados pendiente, actual, completo, omitido y error. La IA continúa generando propuestas pendientes; sólo el profesional confirma, corrige o descarta.
+- Fotografía clínica y radiografía 2D ya consumen el núcleo compartido. Se unifican jerarquía, espaciado, estados, feedback sin avisos duplicados, foco, controles y respuesta móvil, sin sustituir sus analizadores ni sus visores propios.
+- La fotografía reemplaza marcadores provisionales por iconografía SVG, conserva el original privado y presenta el flujo móvil a pantalla completa. Las cinco fases caben sin recortes y no introducen texto menor de 12 px. La mesa radiográfica también eleva a 12 px sus etiquetas operativas compactas.
+- Web, PWA y `mobile/www` incluyen `smyl-evidence-workspace.js/css`; el modelo sube a v2, fotografía a v2 y las revisiones radiográficas a v26/v6. El caché PWA se renueva con `evidence-workspace-v1`.
+- Verificación: suite completa `1,419` pruebas, `1,363` aprobadas, `56` omitidas por dependencias opcionales y `0` fallidas; suite de seguridad en Postgres/PGlite `29/29`; contratos nuevos del workspace `7/7`; QA visual en escritorio y móvil guardada en `artifacts/evidence-workspace-v1/`.
+- Estado de despliegue: cambios listos en la rama de trabajo. La migración de alcance por paciente está preparada y probada, pero debe aplicarse en Supabase SMYL antes de publicar esta versión; no se aplicó ni se publicó desde esta entrega.
+
+## 2026-11-12 — Codex — Archivos clínicos con alcance real por paciente
+
+- La autorización del bucket privado `smyl-clinical-files` ya no concede acceso por el solo hecho de pertenecer a la clínica y tener permiso clínico. La ruta tenant/paciente continúa validándose, pero ahora también exige que el usuario pueda acceder a ese paciente según el alcance configurado de su rol (`own`, `care_team`, `branches` o `clinic`).
+- Se conserva la comprobación de que el paciente exista en la misma clínica, el fallo cerrado para rutas inválidas, la cuarentena de archivos y las políticas actuales de lectura/escritura; no se habilitan operaciones nuevas ni se cambia el formato de las rutas.
+- Archivos: migración `20261112130000_smyl_clinical_file_patient_scope.sql` y prueba `clinical-file-patient-scope-v1.test.mjs`.
+- Verificación: contratos estáticos y prueba funcional en Postgres/PGlite aprobados; un profesional con permisos puede acceder al archivo de su paciente asignado, pero no al de otro paciente de la misma clínica, a un UUID inexistente ni a una operación sin permiso.
+
+## 2026-11-12 — Codex — Entrada única para evidencia radiográfica
+
+- **Evidencia** conserva una sola acción de carga. Al elegir una radiografía, el mismo archivo pasa al editor clínico y la pantalla cambia a una tarea enfocada de revisión; ya no vuelve a pedir el archivo ni mantiene dos cargadores compitiendo.
+- Durante la preparación se ocultan tipo, fecha, selector de archivo, guía auxiliar, IA y estudios anteriores. Sólo queda visible la radiografía nueva, con **Abrir y anotar**, **Descartar** y una acción final inequívoca: **Guardar radiografía**.
+- Guardar restaura el archivo clínico y aplica sus categorías; descartar o fallar restaura la pantalla sin cambiar el expediente. El estado guardado del registro dental sirve como base para evitar avisos falsos de cambios y nunca sobrescribe ni elimina evidencia anterior.
+- El archivo vacío muestra una única entrada **Agregar evidencia**. Un filtro sin resultados ofrece **Ver todo el archivo** en vez de abrir otro cargador. Los estados asíncronos sólo cierran el flujo cuando el registro confirma un guardado real, no cuando termina una lectura secundaria.
+- Web y `mobile/www` quedan sincronizados con expediente `v26`, centro `js?v=9`/`css?v=6`, integración `js?v=6`/`css?v=4` y caché `evidence-single-intake-v1`. No se cambian backend, migraciones, permisos ni originales clínicos.
+- Verificación: 39 pruebas focalizadas y suite completa de 249 archivos de prueba aprobadas; revisión visual headless de escritorio y breakpoint móvil sin campos duplicados, desbordes ni acciones fuera de la tarjeta.
+
+## 2026-11-12 — Codex — Archivo clínico con categorías configurables
+
+- **Evidencia** se convierte en el archivo clínico único: conserva fotografía, radiografía y documento como tipos técnicos fijos, pero los organiza mediante categorías clínicas compartidas por tenant. Las sugerencias aparecen como chips delineados y sólo se crean al activarlas; el profesional también puede crear categorías propias.
+- Se agregan `smyl_evidence_categories` y `smyl_evidence_category_assignments`. Una categoría se archiva, no se elimina; quitar una clasificación revoca la asignación vigente y conserva el registro anterior. No se modifica ni se sobrescribe el original clínico.
+- La carga permite elegir varias categorías opcionales. Fotografías, documentos y radiografías aplican la clasificación al origen canónico después del guardado confirmado. Los archivos existentes pueden clasificarse desde su tarjeta.
+- **Valoración** deja de competir con Evidencia: muestra una bandeja de consulta del archivo y después el odontograma. Sus controles se presentan explícitamente como capas del odontograma, no como categorías. Simulaciones se retira por completo del flujo de Evidencia.
+- Web y `mobile/www` quedan sincronizados con categorías `v1`, centro `js?v=8`/`css?v=5`, integración `js?v=5`/`css?v=3`, workspace `js?v=34`/`css?v=26` y caché `clinical-categories-v1`.
+- `20261112120000_smyl_evidence_categories.sql` quedó aplicada y registrada en Supabase SMYL antes de publicar el frontend/PWA. Verificación: tablas, RLS y tres RPC activas; 49 pruebas focalizadas y suite completa de 1,403 pruebas sin fallos; revisión visual headless en 1440×1100 y 390×900, sin recortes ni duplicar carga clínica.
+
+## 2026-11-11 — Codex — Libro de pagos simplificado
+
+- Se retiran **Preparar CFDI**, el estado de borrador fiscal y **Preparar factura** del flujo cotidiano de Pagos. La pestaña fiscal permanece independiente y no se alteran datos, RPC, reembolsos ni auditoría contable.
+- Cada movimiento prioriza paciente, método, referencia, fecha, importe y estado. **Ver recibo** queda como acción visible; **Reembolsar pago** pasa a un menú secundario disponible únicamente para roles autorizados.
+- Los reembolsos muestran un estado explícito y la misma jerarquía visual. Escritorio y móvil conservan textos de 12 px o más y controles táctiles de 44 px en pantallas pequeñas.
+- Web y `mobile/www` quedan sincronizados con `smyl-finance.js?v=32`, CSS `v=26` y caché `payments-ledger-ux-v1`. Las 18 pruebas focalizadas de Cobros, permisos y paridad PWA quedan aprobadas.
+
+## 2026-11-11 — Codex — Carga radiográfica directa desde Evidencia
+
+- Se corrige el bloqueo de **Evidencia → Subir radiografía** para pacientes sin un caso o simulación previa. La carga ya no intenta activar el botón genérico de Valoración, que permanecía deshabilitado en ese escenario; ahora abre mediante `SmylCaseWorkspace.openRadiographIntake()` el editor radiográfico canónico ligado al expediente del paciente.
+- El flujo conserva tipo, nombre, fecha y archivo original. Si el editor o la transferencia del archivo no están disponibles, mantiene abierto el diálogo con la selección intacta y muestra un error accionable; ya no comunica un éxito falso.
+- La acción radiográfica de Valoración depende de permisos y disponibilidad del registro dental, no de que exista una simulación seleccionada. No cambian persistencia, RLS, almacenamiento, contratos clínicos ni backend.
+- Web y `mobile/www` quedan sincronizados con workspace `v=30`, integración de Evidencia `v=4` y caché `radiograph-intake-v1`.
+- Verificación: 21 pruebas focalizadas, suite general y recorrido Playwright completo aprobados. El recorrido confirma Panorámica, PNG, metadatos, apertura del editor, transferencia del archivo, cierre del asistente y ausencia de errores del navegador.
+
+## 2026-11-11 — Codex — Selector FDI gráfico y mesa radiográfica móvil v18
+
+- La revisión por señal sustituye el desplegable largo por un selector gráfico FDI de 32 piezas, organizado por arcada y lado del paciente. Mantiene navegación por teclado, diferencia la sugerencia de IA de la elección profesional y conserva `item.tooth` como única fuente de datos; no crea un segundo odontograma.
+- En celular el selector se abre como panel superpuesto y muestra todas las piezas sin desplazar el formulario ni requerir scroll a 390 o 320 px. Incluye cierre explícito, foco visible y retorno de foco al control de origen.
+- La mesa móvil recupera una radiografía útil y estable, coloca ajustes y calidad sobre la imagen, ordena la validación clínica de forma progresiva y conserva **Descartar** / **Confirmar** siempre accesibles sin tapar campos.
+- El estado inferior ya no comunica «guardado» mientras la señal sigue pendiente. Las decisiones permanecen bajo control profesional y sólo cambian después del guardado verificado existente.
+- Web, PWA y `mobile/www` quedan sincronizados con `smyl-radiograph-review.js?v=23`, CSS `v=18` y caché `radiograph-mobile-reading-v18`. No se modifican backend, migraciones, permisos, modelo clínico ni prompts de IA.
+- Verificación: 30/30 pruebas focalizadas y recorrido Playwright aprobado en 1280×820, 820×900, 390×844 y 320×700; sin desbordes, con 32 piezas únicas, selector móvil completo sin scroll, controles táctiles de 44 px y decisiones visibles. Capturas en `artifacts/radiograph-workbench-v41/`.
+
+## 2026-11-10 — Codex — Fotografía clínica profesional y análisis asistido v1
+
+- **Evidencia** queda como la única puerta de entrada para cargar y clasificar fotografías clínicas. Admite rostro, intraoral frontal, lateral derecha/izquierda, oclusal superior/inferior, localizada y comparativas; cada estudio usa de 1 a 4 vistas verificadas sin duplicar el archivo original.
+- **Hallazgos** se concentra en la interpretación: el análisis asistido relaciona observaciones por pieza o zona, conserva la procedencia de cada vista y deja toda sugerencia en estado pendiente hasta que el profesional la confirme, corrija o descarte. Rechazar requiere motivo; ninguna sugerencia se convierte automáticamente en diagnóstico.
+- El flujo incluye abstención segura y cierres auditables: **sin hallazgos**, **no evaluable** o **revisión manual**. En baja calidad se puede continuar sin IA, solicitar otra toma o registrar la evaluación profesional sin inventar resultados.
+- Los originales permanecen privados y vinculados al tenant/paciente. Las listas ya no descargan fotografías completas; el archivo se solicita sólo al abrir la revisión y el backend vuelve a validar categoría, ruta privada, tipo, tamaño, hash y dimensiones antes de analizarlo.
+- Se incorpora `analyze_clinical_photos_v1` en la Edge Function `claude`, con reserva idempotente, bloqueo temporal, cuotas diaria/mensual, contrato JSON fijo y análisis conjunto de 1–4 vistas. La migración `20261110120000_smyl_clinical_photo_analysis.sql` agrega el cierre profesional versionado, permisos y auditoría; debe publicarse **antes** de la función.
+- Web, PWA y `mobile/www` incorporan el mismo servicio y espacio de revisión, con objetivos táctiles de 44 px, texto mínimo de 12 px, estados visibles, recuperación ante fallos y caché `clinical-photo-evidence-v1`. El despliegue seguro es: migración → Edge Function → frontend/PWA.
+- Verificación final: suite general y contratos clínicos aprobados sin fallos; recorrido visual/funcional aprobado en 1440×960, 1024×900 y 390×844, sin errores ni desbordamiento, con scroll móvil, descarte confirmado, cierre manual y abstención **No evaluable**. Evidencia en `artifacts/clinical-photo-visual-qa/`.
+
+## 2026-11-10 — Codex — Radiografía multiescala y abstención segura v16
+
+- La revisión asistida conserva una **vista completa** como referencia única y agrega detalles ampliados solapados según el tipo de radiografía: cuatro regiones para panorámicas y dos para periapicales, aletas de mordida u otros estudios. Los recortes se generan desde el original decodificado, reciben sólo una normalización suave de contraste cuando aporta información y se envían en una sola lectura para evitar resultados fragmentados.
+- El contrato exige confirmar todo contra la vista completa, mantener coordenadas normalizadas en ese original y devolver una sola lista sin duplicados. El cliente elimina duplicados exactos y, si el mapa automático de piezas no es concluyente, conserva la lectura pero añade una limitación explícita para validar manualmente pieza y zona.
+- Cuando la calidad es `unusable`, SMYL muestra **No evaluable por IA** y permite **Continuar sin evaluación de IA**. El original permanece disponible, no se generan señales, no se guarda una revisión falsa y el expediente queda como **Pendiente manual**; el dentista puede volver a comprobar la imagen o subir otra toma.
+- La experiencia responsive/PWA quedó corregida también en el resumen: las acciones ya no se envuelven fuera del diálogo a 390/320 px, mantienen objetivos táctiles de 44 px y no producen desbordamiento. Web y `mobile/www` están sincronizados con cliente `v=12`, revisión `v=21`, CSS `v=16`, expediente `v=24` y caché `radiograph-multiscale-abstention-v16`.
+- No se cambian tablas, migraciones, permisos ni la Edge Function. La mejora queda confinada a preparación de imagen, contrato seguro del cliente y presentación de estados. Suite completa aprobada sin fallos; recorridos Playwright normal y `unusable` aprobados en 1280×820, 820×900, 390×844 y 320×700. Capturas en `artifacts/radiograph-multiscale-abstention-v16/`.
+## 2026-11-10 — Codex — Favicon con identidad SMYL
+
+- La pestaña de `app.html` deja de usar el ícono morado histórico y muestra el
+  logotipo cuadrado oficial de SMYL (`icons/smyl_pwa.png`).
+- El favicon y el acceso de Apple usan el mismo activo con versión `v=2` para
+  evitar que el navegador conserve el ícono anterior en caché.
+- Web y `mobile/www` permanecen sincronizados. No se modificaron el manifiesto,
+  los atajos instalables, la lógica de la aplicación ni el backend.
+## 2026-11-10 — Codex — Revisión radiográfica guiada v15
+
+- La revisión asistida deja de mezclar imagen, filtros, señales y cierre en una sola superficie. Ahora sigue tres pasos reales y visibles: **Comprobar imagen**, **Revisar señales** y **Resumen**.
+- El primer paso muestra la radiografía sin marcas de IA, concentra la calidad del estudio y una comprobación breve; zoom, brillo, contraste e inversión permanecen disponibles bajo **Ajustar imagen**, plegados por defecto.
+- El segundo paso presenta una sola señal clínica a la vez. La cola completa queda bajo **Ver todas las señales**, la sugerencia de IA continúa separada de la validación profesional y el dentista puede volver a comprobar la imagen sin perder el avance.
+- El tercer paso resume confirmadas, descartadas y pendientes con el último guardado verificado. Una señal descartada ya no reutiliza el texto de IA como si fuera conclusión profesional. La persistencia, el control de versión, los permisos y los contratos clínicos no cambian.
+- Web y `mobile/www` quedan sincronizados con `smyl-radiograph-review.js?v=20`, CSS `v=15` y caché `radiograph-guided-process-v15`. No se modifican migraciones, backend ni prompts de IA.
+- La entrega permanece local y **no se publicó**, por solicitud expresa. Suite completa de 1,337 pruebas aprobada (1,287 aprobadas y 50 omitidas por dependencias opcionales), además del recorrido Playwright en escritorio, tableta, 390 px y 320 px con guardado real del fixture, zoom, paneo, pellizco, navegación de señales y resumen final. Capturas en `artifacts/radiograph-workbench-v41/`.
+
+## 2026-11-10 — Codex — Radiografía contextual en odontograma v14
+
+- La mesa radiográfica reduce ruido visual: **Original / Señales** reemplaza textos largos, se retiran en escritorio la leyenda y los atajos redundantes, el panel profesional usa una medida de lectura controlada y la redacción clínica queda organizada como sugerencia de IA, validación y conclusión profesional.
+- Al seleccionar una señal ya no se muestra el círculo amarillo grande. Se conserva el recuadro editable, sus asas y la correlación con la tarjeta, por lo que el ajuste de posición y tamaño sigue siendo explícito y accesible.
+- La capa **Rayos X** del odontograma ahora proyecta cada hallazgo vinculado a la pieza seleccionada. El inspector solicita la previsualización privada existente, recorta la zona guardada por la IA/dentista, dibuja su recuadro, muestra estado y conclusión y permite abrir el estudio completo. Si una pieza tiene varias señales, se recorren desde un selector compacto.
+- No se crean diagnósticos ni una fuente clínica paralela: el recorte utiliza las coordenadas `x/y/w/h` y la revisión ya guardada. La IA continúa como sugerencia; sólo las decisiones profesionales confirmadas pasan al expediente. No cambian migraciones, permisos, backend ni prompts.
+- Web y `mobile/www` quedan sincronizados con `smyl-radiograph-review.js?v=19`, CSS radiográfica `v=14`, `smyl-dental-record.js?v=23`, workspace `js?v=28`/`css?v=24` y caché `radiograph-context-crop-v14`.
+- Verificación: suite completa de 1,337 pruebas (1,287 aprobadas, 50 omitidas por dependencias opcionales, 0 fallos), pruebas focalizadas 43/43 y recorrido radiográfico en 1280×820, 820×900, 390×844 y 320×700 sin desbordes, con controles de 42/44 px y navegación, zoom, paneo y guardado conservados.
+
+## 2026-11-10 — Codex — Decisiones radiográficas verificables v13
+
+- La revisión asistida separa con claridad la sugerencia original de IA de la decisión profesional: el detalle automático queda plegado y la pieza, ubicación y conclusión del dentista viven en un bloque clínico propio.
+- **Confirmar y guardar** y **Descartar y guardar** persisten cada señal de inmediato mediante el contrato existente de revisión y control de versión. La interfaz sólo muestra una decisión como completada después de que el servidor confirma el guardado; ante un error conserva la edición y no declara el dato guardado.
+- El pie de revisión mantiene siempre las dos decisiones disponibles, muestra estado de guardado verificable, avanza a la siguiente señal pendiente y termina con un resumen de confirmadas y descartadas. Una decisión ya guardada puede reabrirse con **Editar decisión** sin perder el contexto.
+- Se añadió validación explícita de conclusión y ubicación antes de confirmar, mensajes visibles de éxito/error y una salida segura que aclara que las decisiones anteriores ya guardadas permanecen en el expediente. No cambian migraciones, backend, modelos clínicos ni prompts de IA.
+- Web y `mobile/www` quedan sincronizados con `smyl-radiograph-review.js?v=18`, CSS `v=13` y caché `radiograph-decision-flow-v13`.
+- Verificación: suite completa de 1,337 pruebas (1,287 aprobadas, 50 omitidas por dependencias opcionales, 0 fallos) y recorrido visual/funcional en 1280×820, 820×900, 390×844 y 320×700, sin desbordes y con objetivos táctiles de 42/44 px.
+
+## 2026-11-09 — Codex — Corte de caja multimetodo v1
+
+- La ventana de cierre deja de pedir solamente efectivo y presenta una conciliación profesional por **efectivo, tarjeta, transferencia, cheque y otros**. Cada fila muestra lo esperado por SMYL, lo contado o reportado por el equipo y su diferencia.
+- El corte muestra apertura, hora exacta de cierre y duración; permite distinguir **cierre de turno** y **cierre del día**. El efectivo incluye un desglose opcional por denominaciones que calcula el total contado.
+- Si existe cualquier diferencia se exige seleccionar un motivo antes de confirmar. El cierre conserva en las notas de auditoría el esperado, reportado y diferencia de cada método, el tipo de cierre, el motivo y las notas, utilizando el RPC financiero vigente; no se cambió ni aplicó esquema de base de datos.
+- Web y `mobile/www` quedan sincronizados con `smyl-finance.js?v=30`, CSS `v=24` y caché `cash-reconciliation-v1`. La ventana se verificó en 1280×900 y 390×844 sin desbordes y con controles móviles de 44 px.
+- Verificación: prueba focalizada de conciliación 4/4, recorrido Playwright escritorio/móvil y suite completa de 1,341 pruebas (1,291 aprobadas, 50 omitidas por dependencias opcionales, 0 fallos). Capturas en `artifacts/cash-reconciliation-v1/`.
+- Pendiente para backend, después de confirmar un respaldo real correcto: si se desea consulta estructurada por método en reportes, crear campos/RPC propios en una migración revisada. La interfaz publicada no depende de esa ampliación.
+
+## 2026-11-09 — Claude: respaldo cifrado compatible con la CLI real de Supabase (2.x y 3.x)
+
+Al probar el primer respaldo real en Windows falló `supabase storage ls`: la CLI exige **`--experimental`** para los comandos de Storage y el script no lo usaba (la prueba con una CLI simulada lo había ocultado).
+Además la CLI 3.x cambió `--linked` por `--remote`. `scripts/create-encrypted-backup.mjs` ahora detecta ambas cosas, comprueba que **Docker** responda, exige `SUPABASE_DB_PASSWORD` en el respaldo real (nunca en archivos) y **muestra el motivo** de cualquier fallo de la CLI (ocultando la contraseña).
+El `--dry-run` informa `cli`, `project_flag` y `storage_experimental`. Verificado además contra la CLI 3.1.0 real (error esperado «proyecto no enlazado» tras reintentar con `--experimental`).
+Pruebas: `tests/backup-behaviour.test.mjs` (10) cubre modo 2.x, 3.x, reintento experimental, Docker caído, contraseña ausente y no filtrada. Guía actualizada en `docs/SMYL_RESPALDOS.md` (rutas sin espacios, contraseña con `Read-Host`).
+
+## 2026-11-09 — Codex — WhatsApp v5: coexistencia segura con la app Business
+
+- Configuración → Canales → WhatsApp ofrece dos decisiones explícitas: **Conservar mi WhatsApp** (la misma línea continúa en la app WhatsApp Business y también se conecta a SMYL) o **Usar un número exclusivo**. Los requisitos y límites se explican antes de abrir Meta; las herramientas quedan desactivadas hasta que exista una cuenta conectada.
+- El modo elegido viaja por el proxy autenticado de SMYL y queda ligado a una sesión de configuración de un solo uso en LANA. El navegador no puede cambiarlo después; LANA valida además que el número devuelto por Meta pertenezca al WABA autorizado y evita registrar teléfono o contenido sensible en logs.
+- El modo coexistencia abre Embedded Signup con `featureType: whatsapp_business_app_onboarding`. La vista conectada distingue `WhatsApp + SMYL` de `Sólo SMYL` y muestra por separado el estado del historial. La migración LANA `20261111113000_smyl_whatsapp_coexistence_mode.sql` agrega `connection_mode` e inicia `history_sync_status` sin romper conexiones dedicadas existentes.
+- Alcance real actual: los mensajes nuevos y los ecos de respuestas enviadas desde el celular se procesan; responder en la app pausa al asistente para esa conversación. Los chats/contactos anteriores todavía **no se importan**: faltan el procesamiento de `history` y `smb_app_state_sync` y la prueba final con un número mexicano real antes de habilitarlo de forma general.
+- La UI se simplificó a una jerarquía de estado, cuenta, tipo de conexión, alcance y herramientas; conserva el logotipo de WhatsApp sin convertir su verde en color de acción. Web y `mobile/www` permanecen sincronizados con `smyl-connections.js?v=18`, `smyl-navigation.js?v=23`, CSS `v=9` y caché `whatsapp-coexistence-v5`.
+- Verificación: auditoría responsive aprobada en 1280, 820, 390 y 320 px (dos modos, logo cargado, controles 42/44 px, sin errores ni desbordamiento), suites enfocadas de SMYL y LANA aprobadas. La migración y las funciones de LANA se publicaron y verificaron primero; esta entrega publica después el puente autenticado y el frontend de SMYL.
+
+## 2026-11-09 — Codex — WhatsApp v4: espacio operativo con identidad de canal
+
+- El área de WhatsApp deja la cuadrícula de tarjetas equivalentes y se organiza en tres bloques consecutivos: cuenta, uso dentro de SMYL y herramientas. La cuenta real conserva sus estados y acción existentes; no cambian OAuth, credenciales, permisos, persistencia ni backend.
+- Se agregó el logotipo reconocible de WhatsApp en la navegación secundaria, la cabecera y la cuenta. El verde `#25D366` se limita a la identidad de marca; botones, foco y acciones permanecen dentro de la política azul marino de SMYL.
+- Plantillas, SMYL Asistente, Automatizaciones y Probar canal pasan a una lista operativa compacta con pictogramas, descripción y verbo específico. El texto de alcance evita lenguaje técnico y aclara que el canal se asigna por sucursal y responsable sin compartir accesos.
+- Web y `mobile/www` quedan sincronizados con `smyl-connections.js?v=17`, CSS `v=13`, `smyl-navigation.js?v=22`, CSS `v=8` y caché `whatsapp-workspace-v4`.
+- QA visual aprobada en 1280, 820, 390 y 320 px: logo cargado, una sola pantalla visible, cuatro herramientas, controles de 42/44 px y sin desbordamiento. También pasan las 14 pruebas estáticas de Configuración/Conexiones y la auditoría de navegador de seguridad en 1440, 1024 y 390 px.
+
+## 2026-11-09 — Codex — Mesa radiográfica v12
+
+- El visor manual pasa de una imagen con panel vacío a una mesa de lectura progresiva: radiografía protagonista, controles compactos con valores visibles, estado del estudio y panel separado en **Hallazgos**, **IA** y **Notas**.
+- Se conservan el original protegido, zoom centrado, arrastre, pellizco móvil, contraste, brillo, inversión, marcas manuales, revisión asistida, revisión por pieza, permisos y persistencia existentes. La IA continúa como sugerencia: nada se incorpora sin confirmación profesional.
+- En escritorio la imagen ocupa cerca del 73% de la superficie y el panel puede ocultarse con **Ampliar imagen**. En tableta y móvil la lectura se apila, el encabezado evita truncamientos, el guardado queda fijo como cierre de tarea y todos los controles táctiles alcanzan 44 px.
+- Web y `mobile/www` quedan sincronizados con `smyl-radiograph-workbench.css?v=12`, `smyl-dental-record.js?v=22` y caché `radiograph-reading-desk-v12`. No hay cambios en migraciones, backend, modelos clínicos ni prompts de IA.
+- Verificación: suite completa de 1,337 pruebas (1,287 aprobadas, 50 omitidas por dependencias opcionales, 0 fallos) y recorrido Playwright en 1280×820, 390×844 y 320×700 sin desbordes, con zoom/paneo/gestos, marcas e IA conservados. Capturas en `artifacts/radiograph-reading-desk-v12/`.
+
+## 2026-11-08 — Codex — Configuración v3: espacio administrativo profesional
+
+- Se eliminó el segundo encabezado «Configuración», el breadcrumb repetido, el contador de opciones y la cuadrícula de tarjetas equivalentes. La barra superior de la aplicación conserva el único título global.
+- Las siete áreas viven ahora en una sola superficie: navegación secundaria azul marino, cabecera contextual e iconos lineales. Las tareas se agrupan por propósito y se muestran como filas con estado y acciones específicas (`Configurar`, `Revisar`, `Administrar`, `Activar`), sin cambiar rutas ni fuentes de datos.
+- En tableta y móvil la navegación se convierte en un selector de área, evitando categorías activas fuera de pantalla. Se mantienen objetivos táctiles de 44 px, foco visible, reducción de movimiento y ausencia de desbordamiento a 320 px.
+- Los paneles incrustados continúan reubicando el nodo canónico y devolviéndolo a su origen; no se duplican formularios ni se modifican OAuth, conexiones, permisos, persistencia o backend.
+- Web y `mobile/www` quedan sincronizados con `smyl-settings-hub.js?v=6`, CSS `v=5` y caché `settings-workspace-v3`. La prueba visual cubre Agenda, Canales, WhatsApp y Automatizaciones en escritorio, tableta, 390 px y 320 px.
+
+## 2026-11-08 — Codex — Centro de evidencia clínica visual v3
+
+- El selector deja de depender del posicionamiento nativo del navegador: en escritorio se abre como una ventana centrada,
+  con márgenes simétricos y altura contenida; en tableta y móvil conserva una hoja inferior anclada, desplazamiento interno y
+  acciones táctiles de al menos 44 px. Se corrigió también el escenario real de la aplicación, cuyo reinicio global elimina
+  el margen predeterminado de `dialog`.
+- Fotografías, Rayos X y documentos ya no comparten pictogramas genéricos. Cada proyección o vista usa una ilustración clínica
+  lineal propia; las radiografías reciben tratamiento visual oscuro y los documentos se agrupan en **Informes clínicos**,
+  **Coordinación y laboratorio** y **Consentimientos y otros** para reducir búsqueda visual.
+- La tarjeta de modalidad se compactó en 320 px, se mantiene el retorno de foco al cerrar con Escape y las animaciones se
+  desactivan cuando el sistema solicita movimiento reducido. No cambian persistencia, contratos clínicos, permisos, modelos,
+  carga de archivos ni lógica de confirmación profesional.
+- Web y `mobile/www` permanecen sincronizados; `app.html` y PWA usan `smyl-evidence-center.*?v=3` y cache
+  `evidence-center-ux-v3`. La suite completa pasa 1,324 pruebas (1,274 aprobadas, 50 omitidas por dependencias opcionales,
+  0 fallos); el recorrido Playwright pasa en 1280×900, 820×1000, 390×844, 360×800 y 320×568, sin desbordes,
+  controles pequeños ni pérdida de foco. Capturas actualizadas en `artifacts/evidence-center-v1/`.
+
+## 2026-11-08 — Codex — Centro de evidencia clínica UX v2
+
+- El centro deja de presentar seis modalidades con el mismo peso. La tarea principal ahora comienza con tres acciones claras:
+  **Tomar fotografías**, **Subir radiografía** o **Agregar documento**; escaneos, evaluaciones y CBCT quedan bajo divulgación
+  progresiva y siguen bloqueados cuando no existe una ruta real de guardado.
+- El asistente pasa de cuatro pantallas a dos: **elige la evidencia** y **confirma el contexto**. Fotografías se agrupan por
+  rostro, intraorales y oclusales; Rayos X muestra primero las proyecciones hoy conectadas. La selección de archivo tiene vista
+  previa, cámara en móvil, nombre/tamaño, fecha, región estructurada y pieza FDI validada.
+- La pantalla principal reduce métricas, elimina tarjetas vacías y coloca la cobertura por objetivo clínico en una sección
+  secundaria colapsable. No se cambió el modelo clínico, la persistencia, los permisos ni las reglas de confirmación profesional.
+- Política visual SMYL aplicada al diálogo real (incluyendo variables cuando vive fuera del contenedor), tipografía mínima de
+  12 px, objetivos táctiles y composición responsive. Web y `mobile/www` quedan sincronizados; recursos y PWA usan `v=2` y
+  cache `evidence-center-ux-v2`.
+- Verificación: 1,320 pruebas del repositorio (1,270 aprobadas, 50 omitidas por dependencias opcionales, 0 fallos); recorrido
+  Playwright en 1280, 820, 390 y 320 px, tanto selector como contexto, sin desbordes ni objetivos táctiles cortos. Capturas en
+  `artifacts/evidence-center-v1/`, incluyendo variantes `*-details.png`.
+
+## 2026-11-08 — Claude: cobro por «No vino» (monto fijo, con confirmación, apagado por omisión)
+
+**Decisiones del dueño:** monto fijo de la clínica; **nunca automático** (recepción confirma).
+
+**Flujo:** Cobros → «Más acciones» → **Cobro por inasistencia** guarda el monto (0 o vacío = apagado, que es el estado inicial). Con monto configurado, al marcar «No vino» la cita aparece en «Pacientes
+pendientes de cargo» con **Cobrar inasistencia · $X** (abre el cargo de siempre con la cita ligada, concepto libre «Inasistencia a cita del …» y el monto) y **Perdonar** (decisión «sin cargo» con motivo `waived`, nota opcional;
+queda en «Cerradas sin cargo» con «Reabrir»). La agenda etiqueta la cita como «Inasistencia por cobrar», «Saldo $X», «Cobrada» o «Perdonada», y el numerito del menú la cuenta. Sin monto no aparece nada.
+
+**Backend (migración `20261108160000_smyl_no_show_fee.sql`, aditiva):** `smyl_finance_settings` (lectura `finance.read`, sin escritura directa) + `smyl_set_no_show_fee` (`finance.manage`, auditoría con antes/después);
+`smyl_mark_appointment_no_charge` acepta citas `no_show` y el motivo `waived`; `smyl_appointment_billing` devuelve `no_show_pending` (o `free` si no hay monto). El workflow de migración aplica ya las **tres** migraciones de esta serie en una corrida.
+**Aplicada en producción el 2026-11-08.** La serie financiera quedó registrada, en orden, como `20261108140000`, `20261108150000` y `20261108160000`.
+
+**Frontend:** `smyl-finance.js?v=26`, `smyl-finance.css?v=21`, `smyl-schedule.js?v=33`, `sw.js` `…-no-show-fee-v1`, `mobile/www` sincronizado.
+Pruebas: `tests/no-show-fee-pglite.test.mjs` (Postgres real, 6), `tests/cobros-no-show-fee.test.mjs` (7), humo en navegador `tests/qa/cobros-no-show-smoke.cjs`.
+
+**Nota legal/operativa (no es asesoría):** el cargo es concepto libre, no facturable por defecto; conviene que el paciente conozca la política (p. ej. en el recordatorio de cita) antes de cobrarla.
+
+## 2026-11-08 — Claude: numerito de «Cobros» en el menú lateral (pacientes pendientes de cargo)
+
+Un círculo con el número de pacientes pendientes de cargo junto a «Cobros» en el menú (ampliado, colapsado y fila «Más» del móvil), sin abrir Cobros. Mismo criterio que la lista de Cobros:
+cita que llegó, sin cargo vigente, sin «sin cargo» y con servicio de precio ≠ $0; se calcula con `smyl_appointment_billing` (sólo lectura, la migración `20261108150000` ya incluida en el workflow de migración).
+Sin `finance.read` la función no devuelve nada y no se muestra; si la función aún no existe, simplemente no aparece (3 fallos seguidos y deja de intentar).
+
+**Cuándo se actualiza:** al iniciar sesión, cada 90 s, al volver a la pestaña, al cambiar de pantalla (máx. 1 cada 15 s), cuando Cobros cambia algo (`smyl:finance-updated`) y cuando la agenda
+cambia el estado de una cita (nuevo evento `smyl:appointments-changed`). Mientras Cobros está abierto lo mantiene al día su propia lista. Sin migración nueva.
+
+**Frontend:** `smyl-finance.js?v=25`, `smyl-schedule.js?v=32`, `sw.js` `…-nav-pending-badge-v1`, `mobile/www` sincronizado. Reusa la clase `.pro-nav-count` del menú (como Mensajes y Notificaciones).
+Pruebas: `tests/cobros-nav-badge.test.mjs` (6) y humo en navegador `tests/qa/cobros-nav-badge-smoke.cjs`.
+
+**Para Codex:** el bloque «Numerito en el menú» está justo antes de `init()` en `smyl-finance.js`. La fila «Más» del móvil se pinta cuando existe en el DOM; se completa en la siguiente actualización.
+
+## 2026-11-08 — Claude: etiqueta de cobro en la Agenda
+
+Cada cita en la que el paciente ya llegó (`arrived` / `in_progress` / `completed`) muestra una etiqueta en Semana, Día y Lista, y una línea «Cobro» en el detalle
+con «Ir a Cobros»: **Por cobrar** (llegó y falta decidir el cobro), **Saldo $X** (hay cargo con saldo), **Cobrada** y **Sin cargo**. Las citas de servicios con precio $0
+(Revisión) no llevan etiqueta. Sólo la ven quienes tienen `finance.read`; los demás no ven nada y la agenda no pide los datos.
+
+**Backend (migración `20261108150000_smyl_appointment_billing_status.sql`, sólo lectura):** `smyl_appointment_billing(uuid[])` devuelve estado y montos (máx. 300 citas por llamada).
+Precedencia: cargo vigente (due/paid) → decisión «sin cargo» → servicio $0 (`free`) → `pending`. Requiere la migración de «pendientes de cargo» (`20261108140000`).
+**Aplicada en producción el 2026-11-08:** el estado de cobro y sus dependencias quedaron activos sin crear cargos ni modificar citas existentes.
+
+**Frontend:** `smyl-schedule.js?v=31` / `.css?v=21`, `smyl-finance.js?v=24` (Cobros avisa con el evento `smyl:finance-updated` para refrescar las etiquetas), `sw.js` `…-agenda-billing-v1`, `mobile/www` sincronizado.
+Pruebas: `tests/appointment-billing-status-pglite.test.mjs` (Postgres real, 5), `tests/agenda-billing-label.test.mjs` (7), humo en navegador `tests/qa/agenda-billing-smoke.cjs`.
+
+**Para Codex:** el bloque «Etiqueta de cobro» está justo antes de `appointmentCard` en `smyl-schedule.js`. En la línea de tiempo del día el estado de la cita está oculto por la altura de la tarjeta; la etiqueta de cobro
+se coloca arriba a la derecha (CSS al final de `smyl-schedule.css`). Pendiente por decisión de alcance: contador en el menú lateral y cobro por «No vino».
+
+## 2026-11-08 — Claude: Cobros · «Pacientes pendientes de cargo» (cita que llegó → se habilita el cobro, sin crear deuda)
+
+**Flujo:** al marcar «Ya llegó» en Agenda, la cita aparece arriba en Cobros → Por cobrar como pendiente (En espera / En consulta /
+Listo para cobrar). **No se crea ningún cargo.** «Agregar cargo» abre el formulario de siempre con paciente, cita y servicio ya elegidos
+(se escogen los servicios del catálogo). «Sin cargo» pide motivo (Revisión, Garantía, Cortesía, Otro) y nota opcional; queda en «Cerradas sin cargo»
+con «Reabrir». Un servicio con **precio $0 (p. ej. Revisión) no genera pendiente**: la persona dueña debe poner la Revisión en $0 en Servicios y tarifas.
+
+**Cómo se calcula (sin estado duplicado):** pendiente = cita `arrived|in_progress|completed` de los últimos 14 días, sin cargo vigente
+(`smyl_finance_charges.appointment_id`, no `voided`), sin decisión «sin cargo» y con servicio de precio ≠ 0. Se refresca al volver a Cobros.
+
+**Backend (migración `20261108140000_smyl_appointment_no_charge.sql`, aditiva):** tabla `smyl_appointment_no_charge` (RLS lectura `finance.read`, sin escritura
+directa) y RPC `smyl_mark_appointment_no_charge` / `smyl_reopen_appointment_charge` (`finance.manage`, auditoría sin la nota libre).
+**Aplicada en producción el 2026-11-08:** la decisión «Sin cargo» y su reapertura quedaron activas con RLS, permisos y auditoría.
+
+**Frontend:** `smyl-finance.js?v=23`, `smyl-finance.css?v=20` (+ sw CACHE_VERSION `…-pending-charges-v1`, `mobile/www` sincronizado).
+Pruebas: `tests/appointment-no-charge-pglite.test.mjs` (Postgres real: permisos, aislamiento, auditoría; con `SMYL_PGLITE_DIR`),
+`tests/cobros-pending-visits.test.mjs`, humo en navegador `tests/qa/cobros-pending-visits-smoke.cjs`.
+
+**Para Codex:** el bloque está al final de `smyl-finance.js` («Pacientes pendientes de cargo») y en `#finance-visits`. Fuera de alcance por simple: etiqueta de cobro
+dentro de la Agenda, contador en el menú lateral, cobro por «No vino».
+
+## 2026-11-08 — Codex — Centro de evidencia clínica multimodal v1
+
+- Se integra en el expediente un centro único que separa fotografías, Rayos X 2D, escaneos/modelos, evaluaciones clínicas,
+  documentos y CBCT/3D. Muestra seis objetivos clínicos sin prescribir estudios ni convertir una fuente faltante en indicación.
+  Reutiliza archivos, radiografías y odontograma canónicos; no crea un segundo mapa ni duplica binarios.
+- UI nueva: `smyl-evidence-center.*`, `smyl-evidence-center-integration.*` y contrato `smyl-evidence-model.js`; `app.html`, PWA
+  y `mobile/www` cargan el mismo paquete. El centro usa la historia completa, aunque los resúmenes heredados conserven su límite
+  compacto. Fotografías, documentos y JPG/PNG radiográficos compatibles abren su editor real; cualquier modalidad sin soporte
+  se bloquea antes del formulario con una explicación honesta.
+- Nueva fundación SQL aislada `20261108120000_smyl_clinical_evidence_center.sql`: originales, vínculos anatómicos/contextuales,
+  hallazgos, decisiones profesionales, informe, versiones, firma, adendas y auditoría. Incluye RLS por tenant/paciente, claves
+  compuestas, CAS, locks ordenados, guardas de estado padre incluso para `service_role`, vínculos revocables, sustitución y firma
+  sólo con original/control de calidad aplicable. Los contextos se verifican por expediente; los tipos sin almacén canónico se
+  rechazan. La IA nunca confirma y el navegador no puede atribuirse una respuesta de modelo.
+- Migración adicional `20261108130000_smyl_clinical_team_compatibility.sql`: el expediente/radiografías heredados separan clínica
+  y actor; lectura usa `clinical.read`, carga/guardado `clinical.write`, y solicitud/decisión de IA `clinical.write+clinical.approve`.
+  Conserva cuarentena, originales inmutables, alcance del paciente, QC, topes e idempotencia. Validadores aceptan `updated_by`
+  como UUID del actor, no como identidad de la clínica.
+- Criterio y límites documentados en `docs/CLINICAL_EVIDENCE_CENTER_V1.md`. CBCT/DICOM y STL/PLY/OBJ continúan sólo como contrato:
+  carga y visor permanecen deshabilitados hasta tener almacenamiento y motor especializados. El endpoint IA genérico atestado,
+  el adaptador/backfill heredado y los revisores/Edge heredados que aún son owner-only permanecen pendientes; no se relajaron.
+- Activación SQL directa completada en el proyecto SMYL `rpxshsiwoxdbuevjjpfw`: el historial remoto registra
+  `20261108120000` y `20261108130000`. El primer intento detectó un cierre sobrante en el `CHECK` anatómico y PostgreSQL
+  revirtió toda la transacción; se corrigió, se validó de nuevo y el segundo intento aplicó ambas migraciones sin arrastrar
+  `20261024090000`, que continúa fuera del historial remoto.
+- Verificación posterior: existen las 10 tablas `smyl_clinical_evidence_*`, todas vacías al instalar; la regresión focalizada
+  de centro, modelo, esquema, integración y permisos pasa 48/48. La revisión visual cubre escritorio, tableta, móvil y 320 px,
+  sin desbordamiento ni objetivos táctiles cortos. Capturas en `artifacts/evidence-center-v1/`.
+- No se desplegaron Edge Functions ni se publicó la interfaz en esta activación SQL. Antes de habilitar candidatos automáticos
+  falta el backend IA atestado; también permanecen pendientes el adaptador/backfill heredado y la prueba funcional de la matriz
+  owner/equipo/sin alcance/otra clínica/cuarentena con sesiones reales.
+
+## 2026-11-08 — Claude: revisión de respaldos y correcciones del paquete cifrado
+
+**Hallazgos (no se pudo consultar el proyecto de producción desde la sesión):** el respaldo cifrado nunca se había
+ejecutado ni restaurado; el simulacro estaba "pendiente". Dos defectos reales en `scripts/create-encrypted-backup.mjs`:
+(1) faltaban los buckets `smyl-professional-public` y `mila-audio`; (2) `abort()` usaba `process.exit`, que no ejecuta
+`finally`, así que si algo fallaba quedaban volcados y fotos clínicas **en claro** en el temporal.
+
+**Cambios:** `abort()` lanza y el `finally` limpia; 11 buckets; falla cerrado si el proyecto tiene buckets fuera de la lista
+(`SMYL_BACKUP_ALLOW_UNLISTED=1` para saltarlo); hash por bloques (paquetes de varios GB); manifiesto con la lista de buckets.
+Nuevo `scripts/verify-encrypted-backup.mjs` (hash + descifrado real + contenido, incl. `auth.users`, + objetos por bucket).
+Guía `docs/SMYL_RESPALDOS.md` y plantilla `docs/restore-evidence.example.json`.
+Pruebas: `tests/backup-behaviour.test.mjs` (6; usan una CLI de Supabase simulada y `age` real; fallan con el script anterior).
+
+**Pendiente (requiere a la persona dueña):** revisar Database → Backups en el panel, ejecutar el primer respaldo real, y el
+simulacro en un proyecto desechable. Ninguno se puede hacer desde la sesión de Claude.
+
+## REGLA PERMANENTE — Aviso de privacidad y herramientas que envían datos fuera de SMYL
+
+**Antes de fusionar o activar** cualquier cambio que haga que datos salgan de SMYL hacia un tercero, hay que
+actualizar `privacidad.html` (y su copia en `mobile/www/`) **en el mismo cambio**. Un aviso inexacto puede
+hacer que Google rechace la verificación de la marca y es una declaración falsa frente a pacientes.
+
+Cuenta como «datos que salen» y obliga a revisar el aviso:
+- Un proveedor nuevo o un cambio de proveedor: IA, mensajería, pagos, correo, calendario, monitoreo, almacenamiento.
+- Analítica, píxeles, mapas de calor, chat de soporte, fuentes o scripts externos que carguen en la app.
+- Activar un DSN o una clave que estaba apagada (ejemplo: Sentry, #95).
+- Enviar un dato nuevo a un proveedor que ya existe (por ejemplo, el nombre del paciente a la IA, o más campos a Sentry).
+- Permisos nuevos de Google (`calendar.events`, Gmail u otros): actualizar también la sección de Google y la
+  configuración OAuth en Google Cloud.
+- Activar funciones que hoy están apagadas y que el aviso declara apagadas: casos públicos de antes y después.
+- Cambiar plazos de conservación, la región de los datos o los respaldos.
+
+Qué revisar en `privacidad.html`: tabla de proveedores (quién, para qué, dónde), sección de datos que se tratan,
+sección 11 (rastreo y monitoreo), conservación y la fecha de «Última actualización». Si cambia algo que afecte los
+Términos, revisar también `terminos.html`.
+
+**Quién lo hace:** quien haga el cambio técnico, en el mismo PR. Una prueba o revisión de PR debería preguntar:
+«¿este cambio manda datos a un tercero que el aviso no menciona?». Estado de las promesas hoy: ver las entradas
+de «Aviso de privacidad y Términos» más abajo (pendientes: contrato clínica–SMYL, contrato con LANA, consentimiento
+por paciente, borrado automático del audio de MILA y evidencia de no entrenamiento de los proveedores de IA).
+
+## 2026-11-08 — Codex — Revisión visual v4 del cobro guiado
+
+- `Cobrar a paciente` ahora es progresivo: primero muestra únicamente el
+  buscador y, al elegir a la persona, sustituye el selector por una ficha
+  compacta con `Cambiar`, saldos y la decisión financiera.
+- La ventana adopta la personalidad v4: cabecera azul marino, Open Sans,
+  superficies sin bordes repetidos, sombra difusa, radios del sistema e iconos
+  lineales propios. Todo texto funcional de esta ruta queda en 12 px o más.
+- Las cuatro rutas muestran consecuencia y contexto: saldo pendiente con
+  importe, servicio del día, cotización aceptada y anticipo como saldo a favor.
+  Una ruta sin saldo conserva contraste y comunica `Sin saldo`.
+- Se revisó el reflujo en 1440×900, 390×844 y 320×568 sin desplazamiento
+  horizontal ni empalmes; cabecera y pie permanecen visibles en móvil.
+- No cambian RPC, permisos, movimientos, recibos ni reglas fiscales. Web, PWA
+  y `mobile/www` quedan sincronizados en `smyl-finance.js?v=19`, CSS `v=15` y
+  cachés con sufijo `collection-visual-v1`.
+
+## 2026-11-08 — Claude — Nueva landing pública (`index.html`) con bloques de 21st.dev
+
+- `index.html` se reescribe como página pública de SMYL (clínica completa, no solo carillas):
+  menú fijo, hero con mockups CSS del panel y de WhatsApp (datos de ejemplo), seis pilares en
+  bento, cómo funciona en 4 pasos, «La IA propone, el profesional aprueba», testimonios (ocultos
+  hasta tener reales y autorizados; lista vacía en el script), planes, FAQ, CTA y pie con Legal.
+- Bloques de 21st.dev portados a HTML/CSS sin librerías: Pricing Section 1 (shadcnstore) y
+  Testimonial Section 3 (solaceui) desde su código; Centered Nav Header, Hero with Device Mockups,
+  Feature Section with Bento Grid, Vertical How It Works Timeline, Basic Accordion y Footer Two
+  desde sus vistas previas (la cuota gratuita de 21st.dev solo permitió 2 descargas ese día).
+- Sesión: en `app.smyldesign.ai`, si existe `sb-rpxshsiwoxdbuevjjpfw-auth-token` en localStorage
+  redirige al panel; si no, muestra la landing. `?landing=1` fuerza la landing. `inicio.html`
+  queda como redirección a `./?landing=1` (la URL ya estaba puesta en Google Cloud).
+- `app.html`: `?registro=1` abre la pestaña de registro y `?plan=esencial|profesional|premium`
+  preselecciona el plan. Copia móvil sincronizada.
+- Pendientes del dueño: confirmar qué incluye cada plan (las listas son propuesta), capturas
+  reales para el hero si se prefieren a los mockups, testimonios reales. `index.html` no debe
+  mencionar el motor de mensajería por nombre (prueba de branding).
+- Google Cloud: la página principal debe ser `https://app.smyldesign.ai/` y el nombre de la app
+  «SMYL» (la landing y el pie ya enlazan privacidad y términos).
+
+## 2026-11-08 — Claude: vigilante de congelamientos (Sentry + Worker)
+
+`smyl-freeze-watchdog.js` + `smyl-freeze-watchdog-worker.js`, cargados por `smyl-sentry.js` (v=3) sólo con DSN. Un Worker
+recibe un latido por segundo; si faltan 6 s con la pestaña visible, envía a Sentry "Página congelada" con pantalla activa,
+último clic y tasa de cambios de DOM (detecta bucles de MutationObserver); al recuperarse manda "recovered" en el mismo
+issue. Lista cerrada de datos, sin texto. sw.js precachea ambos (CACHE_VERSION `…-freeze-watchdog-v1`), web y móvil sincronizados.
+También: los fallos de carga de imágenes/scripts ya no se reportan como errores.
+Pruebas: `tests/freeze-watchdog.test.mjs` (11) y humo en navegador `tests/qa/freeze-watchdog-smoke.cjs` (loop/busy/hidden/idle).
+Guía en `docs/SMYL_SENTRY.md`.
+
+## 2026-11-08 — Claude: Sentry activado con el DSN de producción
+
+DSN del proyecto `smyl-web` (org `smyl-a5`, región EE. UU.) puesto en `smyl-sentry.js` → `CONFIG.dsn` (público por diseño).
+`smyl-sentry.js?v=2` en las 5 pantallas y en `sw.js` (CACHE_VERSION `…-sentry-on-v2`), web y `mobile/www` sincronizados.
+`tests/sentry-integration.test.mjs` fija su propio DSN, así que no depende del real. Probar con `SmylSentry.test()`.
+
+## 2026-11-08 — Claude — Borrador de Aviso de privacidad y Términos del servicio
+
+- Páginas nuevas `privacidad.html` y `terminos.html` (estáticas, sin dependencias),
+  con copia en `mobile/www/`, y enlaces «Privacidad · Términos» bajo el login de
+  `app.html`. Se necesitan para verificar la marca del cliente OAuth de Google
+  (Google Cloud → Google Auth Platform → Información de la marca).
+- **Borrador, pendiente de revisión legal antes de publicar.** El contenido sale de
+  lo que el código hace hoy (proveedores de IA, Supabase, Stripe, Meta vía LANA,
+  Google Calendar con `calendar.events` y Gmail para propuestas), incluida la
+  declaración de uso limitado de datos de las API de Google.
+- Segunda versión (8 nov): incorpora las respuestas del dueño (domicilio, retención,
+  menores, regiones, jurisdicción) y la revisión externa. Gmail se quitó del aviso
+  porque la función no está desplegada y solo enviaría desde `apps@smyldesign.ai`.
+- **Pendientes que NO se resuelven con redacción:** consentimiento expreso por paciente
+  con versión y firma; contrato de encargo (DPA) clínica–SMYL y plantilla de aviso para
+  las clínicas; contratos y no entrenamiento con Google (Gemini); clasificar proveedores
+  como encargado o tercero; decidir si se anonimiza antes de enviar a IA; verificar
+  «cifrado en reposo» y la huella de integridad antes de afirmarlos.
+- Tercera iteración (tras segunda revisión externa): se quitó la afirmación de que ya
+  existe un contrato de tratamiento; se retiró la promesa de no entrenamiento de Google;
+  retención corregida (fiscal 5 años, respaldos 90 días, audio 90 días, cuenta cancelada
+  con eliminación tras 30 días); plazos ARCO de 20 y 15 días y responsable de privacidad;
+  se quitó la promesa discrecional de créditos por interrupción.
+- Rastreo: el dueño confirmó que Analytics, Píxel de Meta y Sentry NO están instalados (coincide con el
+  código). El aviso lo declara; **antes de instalar cualquiera hay que actualizar el aviso y pedir elección**.
+- Casos públicos de antes y después: el dueño confirmó que están APAGADOS. El aviso lo declara; no
+  activarlos sin autorización firmada por caso y sin actualizar el aviso.
+- Respaldos: el dueño confirmó que rotan en 90 días o menos; el texto «hasta 90 días» es cierto.
+  Si el plan o la configuración de Supabase cambia, revisar esa línea del aviso.
+- PUBLICADO el 7 nov 2026 (hora de México) sin la evidencia de no entrenamiento de IA, por decisión del
+  dueño: el aviso dice «según las condiciones de sus cuentas». Se quitaron las leyendas de borrador.
+  Sigue pendiente de revisión por un abogado antes de procesar datos clínicos reales.
+- Sentry: ACTIVO desde #95 (DSN región EE. UU.). El aviso se actualizó para declararlo (sección 11 y tabla de
+  proveedores). Si cambia qué se envía, actualizar también esa sección.
+- (Histórico) Antes de publicar: quitar las leyendas «borrador» y «sujeta a revisión legal», poner la
+  fecha real de publicación,. LANA: operador confirmado (Ricardo Salvador Partida Islas, México); falta el contrato de
+  encargo y saber si puede usar conversaciones para sus propios modelos. Falta: evidencia de no entrenamiento
+  con OpenAI/Anthropic, tipo de cuenta de Gemini, dónde están Analytics, Pixel y Sentry, y si
+  los casos públicos están visibles. El audio de MILA sí se guarda en el bucket privado
+  `mila-audio`: falta un borrado automático a 90 días.
+- Dependencia abierta: la retención y el borrado de radiografías y registros de IA
+  siguen pendientes de decisión (ver `RADIOGRAPH_AI_STAGE_0_1.md`); el aviso lo
+  menciona de forma general.
+
+
+## 2026-11-07 — Codex — Cobro guiado por paciente
+
+- La cabecera de Cobros deja una sola acción cotidiana, `Cobrar a paciente`, y
+  mueve `Agregar cargo sin pago`, `Importar cotización` y `Registrar anticipo`
+  a `Más acciones` con una explicación breve de su efecto.
+- El nuevo flujo comienza por el paciente, resume pendiente, vencido, saldo a
+  favor y cita del día, y después permite elegir entre cobrar deuda, registrar
+  un servicio realizado, convertir una cotización aceptada o guardar un
+  anticipo. Cada ruta reutiliza el formulario y RPC canónicos existentes.
+- `Agregar servicio o cargo` distingue `Guardar sin cobrar` de `Guardar y
+  continuar al pago`. Desde la cuenta del paciente, `Cobrar` abre el mismo
+  recorrido guiado para evitar decisiones técnicas distintas según el punto de
+  entrada.
+- Se corrigió el modo anticipo: desmarca explícitamente todos los cargos y no
+  distribuye el importe automáticamente; el resultado queda como saldo a favor.
+  Cambiar después a liquidar o vencido reactiva la aplicación a cargos.
+- No se modificaron migraciones, RPC, RLS, recibos ni reglas fiscales. La
+  escritura sigue usando `smyl_post_charge`, `smyl_post_proposal_charges` y
+  `smyl_post_payment`, con su idempotencia y auditoría actuales.
+- Web, PWA y `mobile/www` sincronizados en `smyl-finance.js?v=18`, CSS `v=14`,
+  sistema de diálogos `v=3` y caché conjunta
+  `smyl-v267-guided-collection-sentry-v1`.
+
+## 2026-11-08 — Claude: integración de Sentry (errores del navegador) sin datos de pacientes
+
+**Qué:** `smyl-sentry.js` + librería vendida `vendor/sentry-browser-10.78.0.min.js` (build mínimo esbuild, MIT).
+Cargado tras `smyl-browser-privacy.js` en app, index, simulacion, simulacion-rapida y editor-v2 (y copias de
+`mobile/www`). **Apagado mientras `CONFIG.dsn` esté vacío**; no descarga nada ni abre conexiones.
+
+**Privacidad:** `scrubEvent` quita usuario/correo/IP/cookies/cabeceras, enmascara correos, teléfonos, tokens y
+`data:`/`blob:`, y recorta `?consulta`/`#fragmento` de toda URL. Sólo ids opacos (usuario, clínica, rol).
+Sin replay, sin tracing, sin migas de consola/inputs. `app.html` llama `SmylSentry.setContext({userId, tenantId, role})`
+tras cargar el tenant (sin correo ni nombre).
+
+**sw.js:** precachea los 2 archivos nuevos y no intercepta `sentry.io`; CACHE_VERSION con sufijo `-sentry-v1`.
+
+**Pruebas:** `tests/sentry-integration.test.mjs` (15). Verificado en Chromium real con un ingest simulado: el evento
+llega sin correo/teléfono/token y con etiqueta de clínica. Guía: `docs/SMYL_SENTRY.md` (activar, probar, alertas).
+
+**Para Codex:** no pegues datos de pacientes en mensajes de error; si lo haces el filtro los enmascara, pero mejor no
+incluirlos. Pendiente de la persona usuaria: pegar el DSN. No cubre Edge Functions ni congelamientos sin excepción.
 ## 2026-11-08 — Claude — «Continuar con Google» en el acceso de `app.html`
 
 - Botón «Continuar con Google» arriba del formulario de login (no en registro).
@@ -10124,3 +10668,220 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - El dictado usa las capacidades de reconocimiento del navegador. SMYL no guarda audio: sólo conserva el texto que la persona decide usar. Si el navegador no ofrece dictado, el campo escrito sigue disponible sin bloquear el flujo.
 - Web y `mobile/www` quedan sincronizados con `visual-simulation.js?v=32`, `smyl-studio.js?v=29`, `smyl-studio.css?v=30` y caché PWA `voice-notes-v12`. No requiere migraciones ni cambios de backend.
 - Pruebas ejecutadas: contrato de cierre, dictado editable, caché PWA, flujo guiado, guías VITA/Bleaches, selector móvil de vistas y paridad con la aplicación móvil (16/16).
+
+## 2026-11-08 — Claude Code — Menú lateral v2 (maqueta aprobada por Ricardo)
+- `smyl-navigation.js` (v20): cabecera única (logo + nombre de la clínica, espejo de `#sb-consultorio`); «Nueva cita» se mueve bajo la cabecera con atajo **N** (ignorado en campos de texto, con modificadores o con diálogos visibles); la tarjeta de usuario baja al pie con menú ⋯ (Mi cuenta y Cerrar sesión: el `.btn-cerrar` original se mueve dentro); nueva sección «Comunicación»; Mensajería y Negocio arrancan cerrados y `syncActive` los abre al entrar y los cierra al salir; la cabecera de un grupo cerrado suma los `.pro-nav-count` de sus opciones (chats sin leer).
+- `smyl-ui-template-v3.css` (v8): el bloque de iconos en baldosa (2026-11-01) se reemplazó por «Menú lateral v2»: iconos sueltos, peso 500 (activa 600), activa con fondo claro translúcido y marca de 3 px, subopciones sangradas sin icono, pie con menú. Colapsado: marca «S», botón +, flyouts con espacio entre icono y texto, avatar y ⋯ con menú hacia la derecha.
+- `smyl-ui-datta-v4.css` (v2): **solo** cambia el fondo de la opción activa de `rgba(0,0,0,.22)` a `rgba(255,255,255,.1)` (la maqueta aprobada pedía que la activa se distinga en lo oscuro). Lo demás de la etapa 1 v4 queda igual.
+- No existe selector de clínicas, así que la cabecera no lleva flecha de cambio. El rol del usuario no está disponible en el shell: el pie muestra «Mi cuenta».
+- `app.html`, `sw.js` (CACHE `...-sidebar-v2`), copias en `mobile/www/`; prueba nueva `tests/smyl-sidebar-v2.test.mjs`; versiones fijadas actualizadas en pruebas. Móvil sin cambios (el menú lateral no se muestra ≤768 px).
+
+## 2026-11-08 — Claude Code — Cobros: se quita la pestaña «Plantillas»
+- `smyl-finance.js` (v20) / `smyl-finance.css` (v16): fuera la pestaña y el panel «Plantillas» de Cobros, con su código (`paintTemplates`, `renderTemplates`, `tplData`) y estilos `.finance-template-*`. Las plantillas de cobro siguen en **Mensajería → Plantillas WhatsApp** (grupo `pagos` del catálogo) y `SmylTemplates.summary('pagos')` sigue exportado.
+- `tests/cobros-chat-link.test.mjs` ahora afirma que la pestaña ya no existe. CACHE `...-finance-tabs-v1`, copias en `mobile/www/`.
+- Pendiente (propuesta enviada a Ricardo, sin implementar): reorganizar las pestañas restantes de Cobros.
+
+## 2026-11-08 — Claude Code — Cobros v2: 4 pestañas, «Por cobrar» unificada y cifras como accesos directos (maqueta aprobada por Ricardo)
+- `smyl-finance.js` (v21) / `smyl-finance.css` (v17): pestañas **Por cobrar · Pagos · Caja · Facturación** (los ids `accounts`/`payments`/`cash`/`fiscal` no cambian: Configuración enlaza a `payments`, `cash` y `fiscal`). Desaparece la pestaña «Por cobrar hoy»: es el filtro **Vencidas** de Por cobrar y conserva su lista (último aviso, enviar recordatorio por el chat, No contactar/Permitir); el resto de filtros (Por atender, Con saldo, **Saldo a favor** nuevo, Liquidadas, Todas) usa la tabla de cuentas. Chips y pestaña muestran contadores (la pestaña = «Por atender»). La búsqueda aplica también a Vencidas.
+- Las 4 cifras son accesos directos (`role="button"`, Enter/Espacio): Por cobrar → filtro Con saldo, Cobrado hoy → Pagos, Saldo a favor → filtro Saldo a favor, Caja → Caja.
+- La tarjeta «Seguimiento financiero» (lista de pendientes) se sustituye por una franja de una línea (`.finance-alert`) que solo aparece si hay cartera vencida, saldo a favor sin aplicar o corte atrasado; «Revisar» lleva a Vencidas (o a Caja si solo hay corte).
+- Corregido: al quitar Plantillas (PR #102) se habían borrado los estilos `.finance-template-summary` que usaba el resumen de «Por cobrar hoy»; ahora se llama `.finance-list-summary`.
+- Prueba nueva `tests/smyl-finance-tabs-v2.test.mjs`; pruebas existentes ajustadas. CACHE `...-finance-tabs-v2`, copias en `mobile/www/`. Verificado en Chromium con datos simulados (escritorio 1180 px; en 390 px hay un desborde horizontal del encabezado que ya existía en `main`, sin tocar).
+
+## 2026-11-08 — Claude Code — Cobros compacto: sin encabezado ni leyenda, acciones junto a las pestañas
+- Ricardo tachó la leyenda del encabezado y pidió optimizar el espacio. `smyl-finance.js` (v22) / `smyl-finance.css` (v18): fuera el encabezado (eyebrow «CONTROL FINANCIERO DENTAL», párrafo y la leyenda «Separado de la suscripción de SMYL», con `markFinanceBoundary`); el `<h1>Cobros</h1>` sigue en el DOM pero oculto visualmente (la barra superior ya dice «Cobros»). Los botones «Cobrar a paciente» / «Más acciones» pasan a la misma fila que las pestañas (`.finance-bar`; en celular quedan encima de las pestañas).
+- Se quitó el título repetido del panel «Por cobrar» (queda una línea de ayuda), el aviso verde fijo «Saldos calculados…» (la carga correcta solo limpia el aviso; los avisos de éxito se cierran solos a los 6 s, los de error no), el borde del encabezado, y se redujo el relleno de la página, las cifras (88 px) y los márgenes. Resultado medido a 1866 px: la tarjeta de contenido empieza en y=377 en vez de y=664.
+- En celular las cuatro cifras van en 2×2 (antes una columna de ~450 px).
+- El «desborde en celular» que se había reportado era un artefacto de mi arnés de pruebas (le faltaba `box-sizing`); en la app real no hay desborde a 360, 390, 768 ni 1280 px. No requirió arreglo.
+- Pruebas ajustadas (`finance-stage5`, `smyl-clinical-workspace-finance-reports-v33` y su navegador `.cjs`) y ampliada `smyl-finance-tabs-v2`. CACHE `...-finance-tabs-v3`, copias en `mobile/www/`.
+
+## 2026-11-08 — Claude Code — Ancho único de 1440 px en los módulos con tablas (decisión de Ricardo)
+- Revisión del contenedor general: `.smyl-management-v3 .contenido` topaba a 1320 px y cada módulo ponía su propio tope (Pacientes 1240, Agenda 1280, Inicio 1200, Configuración 1180…), con lo que en pantallas de ≥1650 px el contenido quedaba con 150–190 px vacíos a cada lado y con anchos distintos entre pantallas.
+- Ahora `--smyl-page-max: 1440px` (definida en `smyl-professional-v3.css`, v8) gobierna `.contenido`, Agenda (`smyl-schedule.css` v20), Pacientes (`smyl-patients-directory.css` v2), Reportes (`smyl-reports.css` v6) y Cobros (`smyl-finance.css` v19). Reportes y Cobros quitaron su relleno horizontal propio (con `overflow-clip-margin:16px` para no recortar sombras) para que su contenido mida lo mismo que el de los demás: 1384 px útiles (1440 menos el relleno del contenedor).
+- **No cambian a propósito:** Inicio (1200), Configuración (1180), Mensajería/Correo/Campañas (1240) y Conexiones (1120), que se leen mejor angostos; el Chat (ya ocupaba todo el ancho). Quedan sin tocar también Plantillas, Preparación operativa y Directorio profesional (sus topes 1560–1680 ya los recorta el contenedor a 1440; conservan su relleno propio de 30 px, así que miden ~60 px menos).
+- Por debajo de ~1750 px de ancho de ventana no hay cambio visible (el contenedor ya llenaba el espacio). Medido sin desborde a 1280, 1536, 1866 y 2400 px. Pruebas con versiones fijadas actualizadas; CACHE `...-page-width-v1`, copias en `mobile/www/`.
+
+## 2026-11-08 — Claude Code — Cobrar a paciente v2: un solo paso, opción sugerida, datos útiles y aviso de caja (maqueta aprobada por Ricardo)
+- `smyl-finance.js` (v27) / `smyl-finance.css` (v22), solo `openGuidedCollection`: fuera «Paso x de 2», el subtítulo y los números 1/2; el selector del paciente se oculta de verdad al elegirlo (antes `[hidden]` lo anulaba un `display:grid`, por eso se veía duplicado) y su tarjeta pasa a mostrar cita de hoy + servicio, chips de estado de la cuenta y de **caja cerrada con «Abrir»** (abre el diálogo `openCash`), y 4 cifras (Por cobrar, Vencido, A favor, **Último pago**).
+- Opciones: una **sugerida** (saldo > 0 → Cobrar saldo con el importe; si no, cita de hoy → Servicio de hoy; si no, ninguna) en tarjeta grande con insignia; el resto bajo «Otras opciones» con datos en lugar de verbos (cargos vencidos, servicio y precio de lista, N cotizaciones aprobadas por convertir y su total, saldo a favor al que se suma el anticipo); lo que no aplica (Cobrar saldo sin saldo) baja a «No disponible ahora». Ya no se enfoca la primera opción si no hay sugerida (el anillo azul parecía una selección). Las rutas a `openPayment`/`openCharge`/`openProposalCharge` no cambian.
+- **No incluido:** «Aplicar saldo a favor». La base no tiene una función para aplicar un saldo ya existente a un cargo (`smyl_post_payment` solo crea pagos nuevos con sus aplicaciones), así que requiere una migración SQL con una RPC y revisión contable; queda propuesto aparte.
+- Pruebas: `tests/smyl-finance-tabs-v2.test.mjs` ampliada; `financial-followup-professional-stage5` ajustada. CACHE `...-guided-collection-v2`, copias en `mobile/www/`. Verificado en Chromium con datos simulados (con saldo, sin saldo y 390 px).
+
+## 2026-11-08 — Claude Code — Cuenta del paciente v2 (maqueta aprobada por Ricardo)
+- `smyl-finance.js` (v28) / `smyl-finance.css` (v23), solo `openAccount`: arreglado el texto pegado de los cargos («Extracción simple7 nov 2026», «$696.00$696.00 pagado»: faltaba `display:block`); encabezado con chip de estado (Al corriente / Con saldo / Con vencido / Sin cargos) y último pago; cifras «Total cargado» (antes «Total de tratamiento»), Pagado, Pendiente y **A favor** como tarjeta propia; cargos pendientes primero (vencimiento más próximo arriba) y **Liquidados plegados** en un `<details>` (abierto si no hay pendientes); insignia Pagado/Pendiente/Vencido y el vencimiento solo si existe (fuera «Sin fecha de vencimiento»).
+- Nueva pestaña **Pagos y recibos** dentro de la cuenta: pagos y reembolsos del paciente con método, referencia, aplicado, saldo a favor generado, **Recibo 0000NN** (imprime con `printReceipt`) y **Compartir** (nueva `shareReceipt`, que ahora usa también `paymentSuccess`).
+- Botón principal según la cuenta: con saldo → «Cobrar» (guiado); sin saldo → «Registrar anticipo».
+- No incluido (propuesto): «Cobrar» desde cada cargo, Abrir chat, Estado de cuenta (impresión/WhatsApp), último aviso de cobro y detalle/cancelación de cargo (la base ya tiene `smyl_void_charge`, sin pantalla).
+- La regla global `[role="tab"][aria-selected="true"]` de `smyl-ui-template-v3.css` pinta las pestañas activas de oscuro; las de la cuenta la superan con mayor especificidad. Prueba `smyl-finance-tabs-v2` ampliada; CACHE `...-account-v2`; copias en `mobile/www/`.
+
+## 2026-11-08 — Claude Code — Servicios y tarifas v2: página y «Editar servicio» (maqueta aprobada por Ricardo)
+- `smyl-service-catalog.js` (v4) / `smyl-service-catalog-stage1.css` (v2). **Página:** encabezado mínimo (el título queda como `<h1>` oculto; una línea de ayuda y «+ Servicio personalizado»); una sola franja de estado («N servicios sin precio · M con revisión fiscal pendiente» + «X de Y listos» y barra) en lugar de «Configuración del catálogo» + cuatro cifras; filtros Todos · Activos · **Sin precio N** · **Falta fiscal N** (reemplazan «Por completar» y «Fiscal pendiente»); fuera el aviso amarillo del SAT (su texto pasa a la ventana de edición). **Filas:** sin la especialidad repetida ni la clave SAT, con marcas «Falta precio» / «Falta fiscal» / «Listo para operar» / «Disponible», interruptor activo/inactivo en lugar de «Desactivar» y «Editar» siempre con el mismo nombre; si falta el precio, se escribe en la misma fila (`savePrice` solo actualiza `reference_price`, con el mismo rango del modelo).
+- **Ventana:** nombre del servicio (el paciente lo ve) con «Usar otro nombre interno» (se muestra solo si ya difiere); precio grande y duración; Especialidad / Se aplica a / Cómo se cobra; descripción opcional; **Facturación (SAT)** plegada con «Falta revisar», las tres claves, «Sugerida» en ClaveProdServ y la confirmación del contador; los errores de validación se muestran dentro de la ventana (antes salían detrás, en la página). Se quitó «VERSIÓN n» y los placeholders «Validar con contador/PAC». Mismos nombres de campos y misma lógica de guardado.
+- Corregido de paso: el texto de «Activar y configurar» salía invisible (una regla global lo pintaba de oscuro sobre azul) y los campos de precio/duración se anidaban en cajas; se superó con más especificidad.
+- Copy: no se afirma que lo fiscal «solo sirve para facturar»: las cotizaciones también avisan «Revisar información fiscal». Se dice «La revisión fiscal se necesita para facturar» y «Pon precio a los servicios que vas a cotizar».
+- Sin cambios de datos. No incluido (propuesto): precios en lote, primer uso guiado, duplicar, ajuste por porcentaje, «dónde se usa». Pruebas ajustadas (`service-catalog-*`, `professional-foundation-stage1`) y ampliada `smyl-finance-tabs-v2`; CACHE `...-catalog-v2`; copias en `mobile/www/`.
+
+## 2026-11-09 — Claude Code — Servicios y tarifas: ventana alineada y permiso «Cambiar precios» por rol (primera pieza de la política de roles)
+- **Ventana «Editar servicio» descuadrada:** las etiquetas con insignia («Sugerida», «Opcional») partían en dos líneas y empujaban los campos fiscales. Ahora el texto va en `<span class="catalog-label">` (alto fijo) y los campos tienen la misma altura; medido: todos los campos de una fila quedan a la misma altura. `smyl-service-catalog.js` (v5) / `smyl-service-catalog-stage1.css` (v3).
+- **Dos funciones de rol nuevas** (Mi clínica → Equipo → Editar rol, grupo «Servicios y tarifas»; `smyl-clinic-admin.js` v9): `catalog.manage` «Gestionar servicios» (crear, activar/desactivar, editar nombre, duración, especialidad y claves) y `catalog.prices` «Cambiar precios».
+- **Pantalla:** quien no tiene «Cambiar precios» ve el precio sin editar («Lo define quien administra precios»), el campo del precio bloqueado en la ventana y el guardado nunca envía `reference_price`. El dueño siempre puede todo.
+- **Base (migración `20261109090000_smyl_catalog_price_permission.sql`, manual por el workflow `smyl-catalogo-precios-migracion.yml`):** amplía la restricción de claves, reparte ambas funciones a todo rol que hoy tiene `settings.manage` (nadie pierde acceso), siembra Propietario/Administrador en clínicas nuevas, deja que `catalog.manage` gestione `smyl_services` (RLS) y añade el disparador `smyl_services_price_guard`, que rechaza (42501) cambiar o definir un precio sin `catalog.prices` aunque se llame a la API directo. Sin sesión de usuario (consola, migraciones) no bloquea. Verificada en PGlite.
+- **Antes de aplicar la migración** la pantalla sigue funcionando: un rol con `settings.manage` y sin claves `catalog.*` conserva el acceso a precios.
+- **Valor por omisión:** solo los roles con `settings.manage` reciben ambas funciones; Recepción/Odontólogo no tienen ninguna hasta que la clínica se las dé.
+- **Propuesto, no hecho:** extender la política a descuentos, reembolsos, cancelar cargos, revisión fiscal y precios en lote.
+- Pruebas: `smyl-finance-tabs-v2` ampliada y versiones fijadas actualizadas. CACHE `...-catalog-roles-v1`, copias en `mobile/www/`.
+
+## 2026-11-09 — Claude Code — Política de roles, pieza 2: «Reembolsar y cancelar cargos»
+- Nueva función de rol `finance.refund` «Reembolsar y cancelar cargos» (Mi clínica → Equipo → Editar rol, grupo «Caja e inventario»; `smyl-clinic-admin.js` v10). Antes quien podía cobrar (`finance.manage`) también podía devolver dinero o anular un cargo.
+- **Pantalla** (`smyl-finance.js` v29): el botón «Reembolsar» de Pagos solo aparece con `finance.manage` + `finance.refund`; `openRefund` también lo comprueba. Si ningún rol de la clínica tiene aún `finance.refund` (migración sin aplicar), quien tiene `finance.manage` conserva el acceso. La anulación de cargos (`smyl_void_charge`) no tiene botón en la interfaz; queda protegida en la base.
+- **Base** (migración `20261109100000_smyl_finance_refund_permission.sql`, manual por `smyl-reembolsos-permiso-migracion.yml`): amplía la restricción de claves, reparte `finance.refund` a todo rol con `finance.manage`, suma la clave a la siembra de Propietario/Administrador de clínicas nuevas (`smyl_seed_catalog_permissions`, requiere la migración de catálogo previa) y añade los disparadores `smyl_finance_refund_guard` (antes de insertar un reembolso) y `smyl_finance_void_guard` (antes de pasar un cargo a `voided`). Rechazan con 42501; no reescriben `smyl_refund_payment` ni `smyl_void_charge`. Sin sesión de usuario (consola, migraciones) no bloquean. Verificado en PGlite.
+- Propuesto, no hecho: descuentos con tope por rol, revisión fiscal como función propia, precios en lote.
+- Pruebas: `smyl-finance-tabs-v2` ampliada y versiones fijadas actualizadas. CACHE `...-refund-roles-v1`, copias en `mobile/www/`.
+
+## 2026-11-09 — Claude Code — Servicios y tarifas: precio editable en la fila para todos los servicios activos
+- Antes el campo «Escribir precio» solo salía en servicios activos **sin** precio; los que ya tenían precio lo mostraban como texto, y la diferencia confundía. Ahora todo servicio activo muestra su precio como campo editable (`smyl-service-catalog.js` v6 / `smyl-service-catalog-stage1.css` v4) cuando el usuario tiene «Gestionar servicios» + «Cambiar precios».
+- Con precio escrito el campo es normal (sin el punteado ámbar de «falta»); vacío mantiene el punteado. Dejarlo vacío en un servicio que ya tenía precio restaura el valor (no lo borra); escribir el mismo valor no guarda; cambiarlo guarda solo `reference_price`.
+- Quien no tiene «Cambiar precios» sigue viendo texto. Sin cambios de base de datos. CACHE `...-catalog-inline-price-v1`, copias en `mobile/www/`.
+
+## 2026-11-09 — Codex — Dashboard Operativo SMYL v2
+
+- Inicio deja de repetir «requiere atención» en la cabecera, una franja métrica y la tarjeta de prioridades. La cabecera resume la jornada una sola vez y `Atención requerida` conserva el contador y el detalle accionable.
+- Se fijan cuatro señales estables —`Citas hoy`, `En clínica`, `Solicitudes` y `Mensajes`— para que los ceros también informen. Ya no aparece una tarjeta enorme de pendiente genérico cuando las demás métricas están vacías.
+- La composición pasa a una mesa de trabajo: cabecera de mando compacta, rail de indicadores, `Mi jornada` y `Atención requerida` en dos columnas, conversaciones recientes a todo el ancho y resumen mensual secundario.
+- La agenda vacía ocupa una sola franja con `Crear cita`; una caída temporal de Mensajes se muestra como estado recuperable con `Reintentar`, sin parecer un módulo roto.
+- Se añade `smyl-dashboard-v2.css?v=1` como capa aislada posterior a la plantilla global. No modifica otros módulos, datos, permisos ni backend. `smyl-daily-home.js` sube a v15 y el caché PWA termina en `dashboard-operativo-v2`.
+- La nueva capa no añade microtexto inferior a 12 px, mantiene foco visible, controles táctiles y layouts específicos para escritorio, tableta y móvil. `mobile/www` queda sincronizado mediante `mobile/scripts/sync-web.js`.
+- QA visual aprobada en Chromium a 1440, 1024, 820, 390 y 320 px, más un escenario de agenda vacía/inbox no disponible. Suite completa: 1,337 pruebas; 1,287 aprobadas, 50 omitidas, 0 fallidas.
+
+## 2026-11-11 — Codex — Alta de pacientes v3: captura breve, contexto y guardado íntegro
+
+- `Nuevo paciente` prioriza únicamente nombre, apellidos, WhatsApp y correo. Asignación, alerta para el equipo y datos adicionales pasan a divulgación progresiva para reducir carga visual.
+- La cabecera muestra la clínica y, cuando corresponde, la sucursal seleccionada. La acción principal se renombra a `Crear y abrir expediente` y explica que la historia clínica puede completarse después.
+- La autorización de WhatsApp vive junto al número, permanece bloqueada hasta disponer de un teléfono válido y aclara que debe registrarse sólo después de confirmación del paciente.
+- Se añade aviso al cerrar con cambios, cierre con Escape, contención de foco dentro del diálogo y apertura automática de las secciones opcionales que ya contienen información al editar.
+- Se elimina el fallback que, ante columnas no disponibles (`PGRST204`), guardaba sólo los datos básicos y descartaba silenciosamente asignación, alertas y consentimiento. Ahora el alta falla cerrada y conserva el formulario para reintentar.
+- No se modificaron migraciones, RLS ni funciones de Supabase. Queda pendiente de backend convertir el consentimiento en historial inmutable de concesión/revocación y, si se decide, encapsular el alta completa en una operación transaccional del servidor.
+- Archivos: `app.html`, `smyl-clinic.css` v10, `smyl-clinic.js` v21, `sw.js`, pruebas y fixture visual; copias sincronizadas en `mobile/www/`.
+
+## 2026-11-11 — Codex — Alta de pacientes v3.1: acordeón sin recortes
+
+- El cuerpo desplazable deja de usar una cuadrícula que permitía comprimir paneles abiertos; ahora es una columna flexible y cada sección opcional conserva su altura natural.
+- `Asignación y seguimiento`, `Alerta para la atención` y `Datos adicionales` funcionan como un acordeón: al abrir una se cierran las demás y la sección activa se lleva al área visible.
+- Las tres secciones empiezan cerradas tanto en alta como en edición. Sus encabezados resumen el contenido existente —asignación, número de alertas o cantidad de datos— para evitar abrirlas sólo para comprobar si están completas.
+- No se modificaron datos, permisos, Supabase ni flujos de guardado. Web y `mobile/www` quedan sincronizados con `smyl-clinic.css?v=11` y `smyl-clinic.js?v=22`.
+
+## 2026-11-11 — Codex — Revisión radiográfica PWA v17: una señal, una decisión
+
+- La revisión móvil deja de superponer controles, avisos y pie de acciones sobre la radiografía. El pie vuelve al flujo normal, la imagen ocupa todo el ancho útil y el gesto de ampliación conserva la superficie completa.
+- En PWA se muestra únicamente la señal activa; las demás quedan como contexto en escritorio. Se compactan cabecera, selector Original/Señales, ajuste de imagen y calidad, y se elimina el círculo amarillo grande de selección.
+- La acción clínica queda inequívoca: `Descartar` o `Confirmar y continuar`. La confirmación muestra un aviso breve, guarda la decisión y abre la siguiente señal; el aviso se retira solo.
+- El expediente móvil simplifica filtros y estudios radiográficos: una sola fila desplazable, filtros sin resultados ocultos y estudios en lista vertical compacta, sin tarjetas horizontales recortadas.
+- Versiones integradas: `smyl-radiograph-workbench.css?v=19`, `smyl-radiograph-review.js?v=24`, `smyl-case-workspace.css?v=25` y `smyl-case-workspace.js?v=33`; caché `radiograph-mobile-flow-v17`; copias sincronizadas en `mobile/www/`.
+- QA: 30 pruebas estáticas aprobadas y recorrido real en Chromium a 1280, 820, 390 y 320 px, sin desborde ni controles cubriendo contenido.
+
+## 2026-11-11 — Codex — Selector de evidencia radiográfica v2
+
+- Se reemplaza la iconografía oscura y genérica de Periapical, Aleta de mordida y Panorámica por una familia SVG clínica propia: mismo marco, escala, grosor y color, con anatomía diferenciada y sin recursos externos.
+- Las tarjetas ahora muestran nombre, explicación breve y chevrón de avance. `Bitewing` queda como término secundario; la modalidad visible se llama `Radiografías 2D` y el selector usa `Tipo de radiografía`.
+- Los estudios sin editor conectado quedan bajo `Otros tipos de radiografía`, con cantidad y estado `Próximamente`; sus controles están realmente deshabilitados y ya no entran en la navegación por teclado.
+- Se elimina la semántica de selección persistente que no llegaba a mostrarse porque la tarjeta avanza en un clic. Al abrir, cambiar modalidad, avanzar o regresar, el foco se coloca en la siguiente tarea y el diálogo expone una descripción accesible.
+- La cuadrícula queda fija en 3 columnas para escritorio, 2 para tableta y 1 para celular. No hay desbordamiento ni controles menores a 44 px en móvil.
+- Archivos: `smyl-evidence-center.js` v5, `smyl-evidence-center.css` v4, `app.html`, `sw.js`, pruebas y capturas de regresión; copias sincronizadas en `mobile/www/`.
+- Sin cambios en datos, backend, Supabase, almacenamiento ni rutas clínicas. Periapical, Aleta de mordida y Panorámica siguen siendo los únicos subtipos habilitados desde este flujo.
+- QA: 52 pruebas de evidencia aprobadas; recorrido visual y funcional aprobado en 1280, 820, 390, 360 y 320 px, más entrega al cargador radiográfico canónico.
+
+## 2026-11-11 — Codex — Prevención local de radiografías duplicadas
+
+- El cargador radiográfico calcula la huella SHA-256 antes de crear el UUID, la ruta privada o el registro del estudio. Si encuentra el mismo original entre los estudios activos del paciente, no crea otra copia.
+- El aviso dirige el foco al estudio existente para que el profesional pueda abrirlo desde la lista. Las radiografías archivadas no se consideran duplicados activos.
+- Se conservan los mismos permisos clínicos, validación de formato/tamaño, RLS, almacenamiento y RPC; no se modificaron migraciones ni backend.
+- Web y `mobile/www` quedan sincronizados en `smyl-dental-record.js`. La prueba `smyl-radiograph-upload-dedupe-v1.test.mjs` cubre el orden seguro: huella → comprobación → identidad/ruta sólo si es nuevo.
+
+## 2026-11-11 — Codex — Ingreso radiográfico único desde Evidencia
+
+- Evidencia es la única puerta de carga de originales radiográficos. El botón contextual de Valoración ahora dice `Ir a Evidencia`, preselecciona Rayos X y nunca abre un segundo cargador.
+- El editor radiográfico canónico quedó montado dentro de la tarea Evidencia; Valoración conserva únicamente el odontograma, la lectura del estudio y las decisiones profesionales.
+- La carga radiográfica ya no pide región ni pieza FDI: esos vínculos se registran durante la valoración para evitar capturar datos que el modelo anterior no persistía.
+- Se actualizaron versiones de recursos, caché PWA y copias de `mobile/www`, además de contratos específicos para ruta única, ubicación clínica y bloqueo de duplicados.
+
+## 2026-11-12 — Codex — Odontograma FDI acoplado a la mesa radiográfica
+
+- El selector de pieza deja de abrirse como una ventana centrada sobre la radiografía. Ahora se despliega como un panel anatómico acoplado **debajo de la imagen**, por lo que nunca cubre dientes ni señales clínicas.
+- En escritorio conserva la radiografía y el panel de validación visibles; en tableta y móvil pasa al flujo vertical inmediatamente después de la imagen. Incluye orientación derecha/izquierda del paciente, cuatro cuadrantes FDI, sugerencia de IA, pieza seleccionada, leyenda y acción para dejarla sin indicar.
+- Se compactó el disparador de pieza, se devuelve el foco al cerrarlo, Escape lo cierra de forma segura y los atajos clínicos no se activan mientras se navega el odontograma.
+- La mesa incorpora navegación anterior/siguiente entre señales, contador visible, calidad de imagen, lista desplegable de señales y controles de imagen con etiquetas más claras (`Ajustar`, `Restablecer`, zoom actual).
+- Se corrigió el estado cuando la señal seleccionada deja de existir y se añadieron relaciones accesibles entre el control y el panel acoplado.
+- Versiones integradas: `smyl-radiograph-workbench.css?v=20`, `smyl-radiograph-review.js?v=25`; caché PWA renovada y copias sincronizadas en `mobile/www/`.
+- QA focal: 41 pruebas ejecutadas, 40 aprobadas y 1 omitida porque PGlite no está disponible. Regresión radiográfica ampliada: 187 pruebas, 168 aprobadas, 19 omitidas por PGlite/Playwright no disponibles y 0 fallidas (se excluyó únicamente el contrato de regeneración del bundle de `radiograph-analyze`, una desincronización previa del backend fuera de este cambio). `node --check` y `git diff --check` aprobados. La comprobación visual local confirmó que el odontograma no cubre la radiografía. El último refresco visual automatizado fue detenido manualmente por el usuario, sin afectar las pruebas ni los archivos.
+- Estado de entrega: incluido en la publicación de producción del 12 de noviembre de 2026.
+
+## 2026-11-13 — Claude Code — «Agregar servicio o cargo»: sin «· sin datos fiscales» en el selector
+- Ricardo pidió quitar la leyenda « · sin datos fiscales» de cada servicio en el selector de `openCharge` (`smyl-finance.js` v33). El aviso informativo al elegir un servicio («Se puede cobrar, pero aún no facturar…») se mantiene. Sin cambios de datos. Copias en `mobile/www/`.
+
+## 2026-11-12 — Codex — Evaluación clínica separada por responsabilidad
+
+- La evaluación del expediente se simplifica a tres responsabilidades visibles: **Contexto**, **Revisión profesional** y **Conclusión**. Cada pantalla muestra una sola tarea principal y conserva el avance al cambiar de etapa.
+- Contexto concentra antecedentes y alertas. Revisión profesional reúne los archivos clínicos, fotografías, radiografías y sugerencias de IA que requieren decisión humana. Conclusión muestra únicamente los hallazgos confirmados y el odontograma clínico.
+- Se elimina la repetición visual de una misma radiografía entre el archivo general y la bandeja radiográfica. La deduplicación canónica conserva categorías, vínculos y alias sin mezclar por accidente fotografías y radiografías con identificadores iguales.
+- El paso a Conclusión queda protegido: un estudio sin confirmar, no utilizable o todavía pendiente de revisión continúa abierto. Una valoración manual válida sí puede completarse aunque no exista una simulación de sonrisa.
+- La versión móvil reduce textos y tarjetas, evita desbordamiento global y deja el desplazamiento horizontal sólo en filtros o carruseles intencionales. Web y `mobile/www/` quedan sincronizados.
+- Versiones integradas: `smyl-case-workspace.css?v=27`, `smyl-case-workspace.js?v=35`, `smyl-clinical-photo-review.js?v=2`, `smyl-evidence-center.js?v=10`, `smyl-evidence-center-integration.js?v=7` y caché PWA `evaluation-separation-v79`.
+- QA: 78 pruebas focales/estáticas aprobadas, 11 recorridos en navegador real aprobados y revisión visual en 1280×900, 834×1000, 390×844 y 320×760. Sin cambios de backend, migraciones ni publicación en esta etapa.
+
+## 2026-11-13 — Codex — Hallazgos dentales visuales por pieza y cara
+
+- Valoración conserva un solo odontograma. Al elegir una pieza aparece un selector ampliado de caras —Vestibular, Mesial, Distal, Lingual/Palatina, Oclusal o Incisal según FDI— y después una lista breve de condiciones. La revisión final se resume en tres chips antes de agregar al borrador.
+- Tacto y dictado alimentan el mismo borrador canónico; la voz sólo prepara `Pieza · cara · condición`, nunca guarda automáticamente y no persiste audio ni transcripción provisional. Los campos completos aparecen únicamente para corregir una ambigüedad.
+- Cada pieza muestra sus caras con actividad y un `Historial de la pieza`. El hallazgo vigente y los registros anteriores se distinguen visualmente; las notas de texto legadas permanecen separadas bajo `Notas anteriores` y no se reinterpretan.
+- El documento conserva `schema:1` y añade opcionalmente `findings:{schema:2,events:[]}`. Cada evento registra pieza, cara, condición, estado, origen táctil/voz y una sustitución opcional. Las correcciones son append-only: no borran ni reordenan eventos, no pueden bifurcar una corrección y conservan la misma pieza/cara.
+- Se añadió la migración **no aplicada** `20261113120000_smyl_dental_findings_v2.sql`. Debe desplegarse antes del frontend porque el RPC anterior rechaza el nuevo bloque `findings`. Antes de producción también debe ejecutarse la prueba PostgreSQL funcional con PGlite o contra staging.
+- Archivos principales: `smyl-dental-finding-editor.js/css` nuevos; `smyl-dental-model.js?v=2`, `smyl-dental-dictation.js/css?v=2`, `smyl-dental-record.js?v=29` / CSS v6, `smyl-tooth-map.js?v=3`, `smyl-case-workspace.js?v=38` / CSS v29, `app.html` y `sw.js`. Web y `mobile/www` están sincronizados.
+- QA de esta entrega: 55 pruebas focales aprobadas; `node --check`, contratos de migración y política tipográfica aprobados. Recorrido visual/funcional en 1280×900, 834×1000, 390×844 y 320×760, sin desbordamiento y con controles táctiles de al menos 44 px en móvil. La suite global más reciente ejecutó 1,474 pruebas: 1,414 aprobadas, 59 omitidas y 1 fallo ajeno en `smyl-finance-tabs-v2.test.mjs`, causado por cambios financieros simultáneos del worktree. Esta etapa no se publicó.
+
+## 2026-11-13 — Claude Code — «Agregar servicio o cargo»: total a la vista y campos sin doble borde
+- Corrección: en la revisión previa dije que el precio y el IVA no se llenaban solos al elegir un servicio; **sí se llenan** (precio del catálogo y, con política fiscal revisada, IVA automático). La leyenda «Servicio sin política fiscal revisada: indica si lleva IVA» y el casillero «Agregar IVA 16%» salen solo cuando el servicio no tiene política fiscal revisada. No se cambió esa lógica.
+- Arreglado de verdad (`smyl-finance.js` v34 / `smyl-finance.css` v27, solo `openCharge`): el campo de **Descuento** (y el de precio) eran una caja dentro de otra porque una regla global pintaba el borde del input; ahora un solo borde, misma altura que los demás campos. El **Total a cobrar** quedaba fuera de vista (hay que bajar el formulario); ahora aparece siempre en el pie, junto a los botones.
+- Sin cambios de datos. CACHE `...-charge-dialog-v2`, copias en `mobile/www/`.
+
+## 2026-11-14 — Claude Code — Inventario v2, paso 1: pantalla principal y primer uso (maqueta aprobada por Ricardo)
+- `smyl-inventory.js` (v9) / `smyl-inventory.css` (v8). **Encabezado:** el título repetido tres veces queda en uno (el de la barra superior; el `<h1>` es «Inventario» y se oculta visualmente) con una línea de ayuda y los botones. Se eliminan la tarjeta «Control operativo» y las cuatro tarjetas de cifras (`renderMetrics`), y el banner verde «Existencias calculadas…» (la carga correcta solo limpia el aviso).
+- **Alertas en chips** (`#inventory-alerts`, misma lógica de antes): bajo mínimo, lotes caducados, caducan en 30 días y compras por recibir; solo aparecen si hay algo y filtran/abren la pestaña como las tarjetas anteriores.
+- **Primer uso** (`renderFirstUse`): sin insumos en el catálogo, en vez de «Sin resultados en este filtro» se muestra una guía de 4 pasos (ubicación, insumos, proveedor, primera compra) con botones que abren los diálogos existentes; sin permiso de administrar muestra una nota. Con insumos y el filtro «Por atender» vacío: «Todo en orden» con «Ver todo el inventario».
+- **No incluido (pasos siguientes de la propuesta):** diálogo «Registrar movimiento» por tipo, orden de compra con varias líneas, consumo desde la cita con el kit, permisos de inventario (migración), «Crear pedidos sugeridos» e «Importar insumos». El ancho ya era el del contenedor general (1440 px): medido, la página llena el contenedor; el hueco a la izquierda en pantallas anchas es el contenedor centrado, igual que Cobros.
+- Pruebas: `smyl-finance-tabs-v2` ampliada y versiones fijadas actualizadas. CACHE `...-inventory-v2`, copias en `mobile/www/`. Verificado en Chromium (vacío, con datos, celular 390 px, solo lectura).
+
+## 2026-11-14 — Claude Code — Inventario v2, paso 2: «Registrar movimiento» por tipo, buscador de pacientes y confirmaciones propias
+- `smyl-inventory.js` (v10) / `smyl-inventory.css` (v9). **Registrar movimiento:** primero se elige qué pasó (Consumo, Merma, Traslado, Ajuste) y solo se ven los campos que aplican. Consumo: ubicación, insumo, lote, cantidad, paciente (buscador), cita (filtrada por el paciente; elegirla completa paciente y profesional) y motivo. Merma y Ajuste: motivo en lista (Caducado / Dañado o contaminado / Pérdida o extravío / Otro; Conteo físico / Corrección de captura / Devolución a proveedor / Otro) con nota opcional que se guarda como «Motivo — nota». Ajuste elige «Suma / Resta existencias» (`adjustment_in` / `adjustment_out`). Traslado: Desde/Hacia (deben ser distintos). Mismos parámetros del RPC `smyl_post_inventory_movement`; el tipo interno sigue siendo el de siempre.
+- **Error que ya existía y se corrigió:** el diálogo anterior leía `form.elements.item.value`, pero `form.elements.item` es el método `item()` de la colección del formulario, no el campo «Insumo». Resultado: la lista de lotes y el cuadro de trazabilidad nunca se actualizaban al elegir un insumo, y con insumos que llevan lote no había lote que elegir. Ahora se usa el `<select>` directo; si el insumo lleva lote se preselecciona el primero vigente.
+- **Buscador de pacientes** (`mountPatientPicker`): busca en el servidor con `smyl_search_patients` (nombre, apellido, teléfono o correo, sin acentos) y cae a los pacientes ya conocidos si falla. Texto escrito sin elegir de la lista bloquea el envío. También se usa en el diálogo «Material utilizado» (kit). Inventario **ya no descarga a todos los pacientes** al entrar: `ensurePatients` pide solo los nombres de las citas y movimientos visibles, en lotes de 100 (se actualizó `tests/smyl-patients-list.test.mjs`, que exigía la descarga paginada).
+- **Confirmaciones propias** (`confirmAction`, `<dialog id="inventory-confirm">`): cancelar pedido, corregir movimiento (motivo obligatorio) y retirar insumo de un kit ya no usan `window.confirm/prompt`.
+- «Obligatorio» deja de mostrarse en los diálogos de Inventario (lo añade `smyl-dialog-system.js` a todo campo requerido; solo se oculta con CSS aquí); los opcionales dicen «(opcional)».
+- No incluido (pasos siguientes): orden de compra con varias líneas, consumo propuesto al cerrar la cita, permisos de inventario (migración), «Crear pedidos sugeridos». Pruebas: `smyl-finance-tabs-v2` ampliada; versiones fijadas actualizadas. CACHE `...-inventory-v2-movement-v1`, copias en `mobile/www/`. Verificado en Chromium (los 4 tipos, buscador, bloqueo sin elegir, payloads, confirmaciones, 0 diálogos nativos).
+
+## 2026-11-14 — Claude Code — Inventario v2, paso 3: orden de compra con varias líneas
+- `smyl-inventory.js` (v11) / `smyl-inventory.css` (v10), solo `openOrder`. **Varias líneas:** cada línea tiene insumo, cantidad y costo unitario; «+ Agregar otro insumo» y × para quitar (el insumo ya elegido no se ofrece en otra línea). El RPC `smyl_create_purchase_order` ya aceptaba hasta 100 líneas (y suma los repetidos); no cambia.
+- **Total estimado** en el pie (suma cantidad × costo; indica cuántos insumos van sin costo). **«Agregar faltantes (N)»:** añade los insumos bajo mínimo del destino elegido con la cantidad sugerida (`suggestedPurchase`).
+- **Proveedor sin salir del diálogo:** «+ Nuevo proveedor» abre un recuadro (empresa y contacto) que inserta en `smyl_inventory_suppliers` y lo deja seleccionado; si no hay proveedores el recuadro ya viene abierto. Con un único proveedor, viene preseleccionado.
+- Errores dentro del diálogo (antes salían en el aviso de fondo, tapados por el diálogo). `openOrder` ya no se usa directamente como manejador de clic (recibiría el evento): se llama con `function(){openOrder();}`.
+- Sin cambios de base de datos. No incluido: botón «Reponer» por fila y «Crear pedidos sugeridos» agrupados por proveedor, consumo al cerrar la cita, permisos de inventario. CACHE `...-order-v1`, copias en `mobile/www/`. Verificado en Chromium (escritorio y 390 px: varias líneas, faltantes, sin duplicados, proveedor inline, payload).
+
+## 2026-11-14 — Claude Code — Inventario v2: consumo al cerrar la cita
+- **Aviso al terminar la cita** (`smyl-schedule.js` v34 → evento `smyl:appointment-completed` tras `smyl_transition_appointment` a `completed`; `smyl-inventory.js` v12 lo escucha en cualquier pantalla): si el usuario puede administrar inventario, el tratamiento tiene kit (`smyl_service_materials`) y la cita aún no tiene un movimiento de consumo, aparece un aviso «Cita terminada · ¿Registras lo que se usó?» con «Registrar material» (abre el diálogo «Material utilizado» ya existente con paciente, cita, profesional y el kit) y «Después» (se cierra solo a los 30 s).
+- **Ficha de la cita** (Agenda): en citas «En consulta» o «Terminada» con kit, fila **Material** con «Pendiente» + «Registrar material», o «Registrado». Se llena de forma asíncrona con `SmylInventory.consumptionStatus(cita)`; sin permiso o sin kit la fila no aparece.
+- **Red de seguridad en Inventario:** chip «N citas sin material» (citas terminadas en 14 días con kit y sin consumo; solo con permiso de administrar) que abre la lista «Citas sin material registrado» con «Registrar material» y «No se usó». «No se usó» se guarda **por dispositivo** en `localStorage` (`smyl-inventory-no-material-<tenant>`); no hay tabla en la base para eso.
+- `ensureAccess()` carga los permisos de rol por su cuenta para que el aviso funcione sin haber abierto Inventario. Los diálogos sin formulario usan `data-plain` para centrarse.
+- Sin cambios de base de datos. La prueba `cobros-nav-badge` fija el orden `appointments-changed` → `remindersChanged()` en `transition`; el evento nuevo va después. CACHE `...-material-v1`, copias en `mobile/www/`. Verificado en Chromium (ficha pendiente/registrado, aviso, diálogo con la cita y el kit, lista, «No se usó»).
+
+## 2026-11-14 — Claude Code — Inventario v2: «Reponer» por fila y «Crear pedidos sugeridos»
+- `smyl-inventory.js` (v13) / `smyl-inventory.css` (v12). Lo que quedaba de la parte de compras de la maqueta. **Reponer N:** botón en cada fila bajo mínimo (con permiso de administrar) que abre la orden de compra con ese insumo, la cantidad sugerida, el destino de la fila y el proveedor habitual. **Crear pedidos sugeridos:** barra sobre la tabla («N insumos por reponer») que abre un diálogo con los faltantes agrupados por proveedor habitual y destino; cada grupo tiene «Crear pedido» (abre `openOrder` prellenado para revisarlo; no crea nada solo).
+- **Proveedor habitual** (`usualSupplier`): el del pedido más reciente no cancelado que incluyó el insumo, si sigue activo; sin historial → «Sin proveedor habitual». No hay campo de proveedor en el insumo; se infiere de los pedidos.
+- **En camino** (`incomingQuantity`): lo pedido y aún no recibido en pedidos abiertos al mismo destino se descuenta de la sugerencia (`suggestedPurchase` ahora es meta − existencia − en camino) y se muestra en la fila («En camino 3»), para no sugerir dos veces lo mismo. Esto también corrige «Sugerido pedir» en la lista y «Agregar faltantes» del pedido.
+- Sin cambios de base de datos. CACHE `...-reponer-v1`, copias en `mobile/www/`. Verificado en Chromium (fila, barra, grupos por proveedor/destino, prellenado, descuento de lo que viene en camino).
+
+## 2026-11-14 — Claude Code — Permisos de Inventario por rol
+- Tres funciones nuevas (Mi clínica → Equipo → Editar rol, grupo «Inventario»; `smyl-clinic-admin.js` v12): **`inventory.consume` «Registrar consumo»** (registrar el material de una atención sin administrar el inventario; se suma a «Consultar inventario»; quien administra ya puede), **`inventory.adjust` «Ajustar inventario»** (mermas, ajustes de existencia y correcciones de movimientos) e **`inventory.purchase` «Comprar y recibir»** (crear, cancelar y recibir pedidos de compra). El traslado entre ubicaciones y el catálogo (insumos, proveedores, ubicaciones, kits, mínimos) siguen con `inventory.manage`.
+- **Pantalla** (`smyl-inventory.js` v14): `capabilities()` calcula `canConsume`, `canAdjust` y `canPurchase`. Ocultan/ajustan: «Nueva compra», «Reponer» y «Crear pedidos sugeridos», Recibir/Cancelar pedido (compra); «Corregir» y los tipos Merma/Ajuste del diálogo de movimiento (ajustar); el diálogo de movimiento solo ofrece los tipos permitidos (con un solo tipo no muestra el selector); el aviso al cerrar cita, la fila «Material» y el chip de citas sin material funcionan con «registrar consumo». Si ningún rol de la clínica tiene aún ajustar/comprar (migración sin aplicar), quien administra conserva el acceso.
+- **Base** (migración `20261114120000_smyl_inventory_role_permissions.sql`, manual por `smyl-inventario-permisos-migracion.yml`): amplía la restricción de claves **partiendo de la lista vigente de la migración de finanzas profesionales** (incluye `finance.cash`, `finance.cash.supervise`, `finance.invoice`; el workflow exige que esa migración ya esté aplicada, porque si se aplicara después recrearía la restricción sin las claves nuevas y fallaría), reparte ajustar y comprar a todo rol con `inventory.manage`, conserva la siembra de clínicas nuevas (catálogo y finanzas) y suma ajustar/comprar a Propietario, Administrador e Inventario, **reescribe `smyl_post_inventory_movement`** (copia exacta de la versión de costos; solo cambia la línea de permiso para aceptar `inventory.consume` en movimientos de tipo consumo) y añade los disparadores `smyl_inventory_movement_guard` (merma, ajustes y correcciones exigen `inventory.adjust`; recibir una compra exige `inventory.purchase`) y `smyl_purchase_order_guard` (crear/cancelar pedidos exigen `inventory.purchase`). Rechazan con 42501; sin sesión de usuario no bloquean.
+- **Verificado en PGlite** aplicando las migraciones reales de inventario (300000, 310000, 320000, costos) y luego esta: reparto, siembra, y una matriz de intentos (solo consumo, gestor sin/con ajustar, sin/con comprar; consumo, traslado, merma, ajuste, corrección, crear/recibir/cancelar pedido).
+- **No incluido a propósito:** «Ver costos». Los costos viven en `smyl_inventory_movement_lines.unit_cost` y `smyl_purchase_order_lines.unit_cost`, legibles con `inventory.read`; ocultarlos solo en pantalla no sería un control real y restringirlos en la base exige cambiar cómo se leen (vistas o permisos por columna). **Valor por omisión:** Odontólogo y Asistente siguen solo con «Consultar inventario»; hay que darles «Registrar consumo» en Editar rol si se quiere que registren material.
+- Pruebas: `smyl-finance-tabs-v2` ampliada; versiones fijadas actualizadas. CACHE `...-inventory-roles-v1`, copias en `mobile/www/`.

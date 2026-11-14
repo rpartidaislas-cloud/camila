@@ -71,7 +71,7 @@ const { chromium } = loadPlaywright();
           })
           .filter(item => item.left < item.hostLeft - 1 || item.right > item.hostRight + 1);
         const pairs = moduleName === 'finance'
-          ? [['.finance-head>div:first-child', '.finance-head-actions'], ['.finance-metrics article:nth-child(1)', '.finance-metrics article:nth-child(2)']]
+          ? [['.finance-tabs', '.finance-head-actions'], ['.finance-metrics article:nth-child(1)', '.finance-metrics article:nth-child(2)']]
           : [['.reports-head>div:first-child', '.reports-filter-shell'], ['.reports-grid .reports-card', '.reports-grid aside']];
         const overlaps = pairs.flatMap(([aSelector, bSelector]) => {
           const a = root.querySelector(aSelector); const b = root.querySelector(bSelector);

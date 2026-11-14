@@ -17,33 +17,22 @@ const fs = require('node:fs');
   const report = [];
   for (const item of cases) {
     const page = await browser.newPage({ viewport: { width: item.width, height: item.height } });
+    page.on('pageerror',error=>console.error('PAGE ERROR',item.name,error.message));
     await page.goto(base);
     await page.locator('#open').click();
-    await page.locator('.rr-dialog[open] .rr-workspace').waitFor();
-    const metrics = await page.evaluate(() => {
-      const visible = selector => Array.from(document.querySelectorAll(selector)).filter(element => element.getClientRects().length);
-      const workspace = document.querySelector('.rr-workspace')?.getBoundingClientRect();
-      const canvas = document.querySelector('.rr-canvas')?.getBoundingClientRect();
-      const panel = document.querySelector('.rr-signal-panel')?.getBoundingClientRect();
-      const footer = document.querySelector('.rr-save')?.getBoundingClientRect();
-      const controls = visible('.rr-dialog button');
-      return {
-        rootOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
-        dialogOverflow: document.querySelector('.rr-dialog').scrollWidth > document.querySelector('.rr-dialog').clientWidth + 1,
-        sameRow: Math.abs((canvas?.top || 0) - (panel?.top || 0)) < 2,
-        workspaceUse: workspace ? workspace.width / document.querySelector('.rr-dialog').clientWidth : 0,
-        canvasRatio: workspace && canvas ? canvas.width / workspace.width : 0,
-        signals: visible('.rr-item').length,
-        expandedSignals: visible('.rr-item-body').length,
-        filters: visible('.rr-filter').length,
-        tools: visible('.rr-view-tools input').length,
-        cleanSavePosition: getComputedStyle(document.querySelector('.rr-save')).position,
-        layoutOrder: Boolean(workspace&&canvas&&panel&&footer&&panel.bottom<=workspace.bottom+1&&workspace.bottom<=footer.top+1&&(Math.abs(canvas.top-panel.top)<2||canvas.bottom<=panel.top+1)),
-        minButtonHeight: Math.min(...controls.map(element => element.getBoundingClientRect().height).concat([44]))
-      };
-    });
-    const expectedSameRow = item.width >= 960;
-    report.push({ name: item.name, width: item.width, ...metrics, expectedSameRow });
+    await page.locator('.rr-dialog[open] .rr-image-check-workspace').waitFor();
+    const initial=await page.evaluate(()=>({
+      marks:Array.from(document.querySelectorAll('.rr-mark')).filter(element=>element.getClientRects().length).length,
+      viewSwitch:document.querySelectorAll('.rr-view-switch').length,
+      adjustmentOpen:document.querySelector('.rr-image-adjustments')?.open,
+      visibleTools:Array.from(document.querySelectorAll('.rr-view-tools input')).filter(element=>element.getClientRects().length).length
+    }));
+    if(initial.marks||initial.viewSwitch||initial.adjustmentOpen||initial.visibleTools) throw new Error(`Image check exposed review controls at ${item.width}px: ${JSON.stringify(initial)}`);
+    await page.screenshot({ path: path.join(output, `${item.name}-image.png`), fullPage: false });
+    await page.locator('.rr-image-adjustments > summary').click();
+    const tools=page.locator('.rr-view-tools input');
+    if(await tools.count()!==2) throw new Error('Expected contrast and brightness sliders under More settings');
+    if(!await page.locator('.rr-view-tools input[aria-label="Contraste"]').isVisible()) throw new Error('Collapsed image controls did not open');
     if (item.name === 'desktop') {
       const zoom = page.locator('.rr-tool-range input[aria-label="Ampliar radiografía"]');
       const viewport = page.locator('.rr-image-wrap');
@@ -54,55 +43,184 @@ const fs = require('node:fs');
       const box = await viewport.boundingBox();
       await page.mouse.move(box.x+box.width*.62,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.38,box.y+box.height*.5,{steps:4});await page.mouse.up();
       if (await viewport.evaluate(element=>element.scrollLeft) <= centered.left+5) throw new Error('Assisted-review horizontal drag did not pan');
-      await page.getByRole('button', { name: 'Vista original', exact: true }).click();
+      await page.getByRole('button', { name: 'Restablecer', exact: true }).click();
       await page.waitForTimeout(40);
       if (await viewport.evaluate(element=>element.scrollLeft>2||element.classList.contains('is-zoomed'))) throw new Error('Assisted-review original view did not reset');
-      await page.locator('.rr-mark').click();
+    }
+    if (item.name === 'mobile') {
+      const viewport=page.locator('.rr-image-wrap'),zoom=page.locator('.rr-tool-range input[aria-label="Ampliar radiografía"]');
+      await viewport.evaluate(element=>{const event=(type,touches)=>{const value=new Event(type,{bubbles:true,cancelable:true});Object.defineProperty(value,'touches',{value:touches});element.dispatchEvent(value);};event('touchstart',[{clientX:100,clientY:320},{clientX:210,clientY:320}]);event('touchmove',[{clientX:65,clientY:320},{clientX:245,clientY:320}]);event('touchend',[]);});
+      await page.waitForTimeout(40);
+      const pinch=await viewport.evaluate(element=>({left:element.scrollLeft,zoomed:element.classList.contains('is-zoomed')}));
+      if (!pinch.zoomed||Number(await zoom.inputValue())<=1||pinch.left<=0) throw new Error('Assisted-review pinch gesture did not zoom');
+      await page.getByRole('button',{name:'Restablecer',exact:true}).click();
+    }
+    await page.locator('.rr-image-adjustments > summary').click();
+    await page.getByRole('button',{name:'Revisar 3 señales',exact:true}).click();
+    await page.locator('.rr-signal-panel').waitFor();
+    const metrics = await page.evaluate(() => {
+      const visible = selector => Array.from(document.querySelectorAll(selector)).filter(element => element.getClientRects().length);
+      const workspace = document.querySelector('.rr-workspace')?.getBoundingClientRect();
+      const canvas = document.querySelector('.rr-canvas')?.getBoundingClientRect();
+      const panel = document.querySelector('.rr-signal-panel')?.getBoundingClientRect();
+      const footer = document.querySelector('.rr-save')?.getBoundingClientRect();
+      // Las marcas usan un pseudo-elemento transparente para ampliar el área táctil;
+      // mide aquí sólo los controles con caja visual propia.
+      const controls = visible('.rr-dialog button:not(.rr-mark)');
+      const dialog = document.querySelector('.rr-dialog')?.getBoundingClientRect();
+      const reject = document.querySelector('[data-rr-decision="reject"]')?.getBoundingClientRect();
+      const confirm = document.querySelector('[data-rr-decision="confirm"]')?.getBoundingClientRect();
+      const visualTop = Math.max(0, dialog?.top || 0);
+      const visualBottom = Math.min(innerHeight, dialog?.bottom || innerHeight);
+      const actionInsideViewport = rect => Boolean(rect && rect.width && rect.height && rect.top >= visualTop - 1 && rect.bottom <= visualBottom + 1);
+      const toothTrigger = document.querySelector('.rr-item[aria-current="true"] .rr-tooth-picker-trigger');
+      return {
+        rootOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        dialogOverflow: document.querySelector('.rr-dialog').scrollWidth > document.querySelector('.rr-dialog').clientWidth + 1,
+        sameRow: Math.abs((canvas?.top || 0) - (panel?.top || 0)) < 2,
+        workspaceUse: workspace ? workspace.width / document.querySelector('.rr-dialog').clientWidth : 0,
+        canvasRatio: workspace && canvas ? canvas.width / workspace.width : 0,
+        signals: visible('.rr-item').length,
+        expandedSignals: visible('.rr-item-body').length,
+        filters: visible('.rr-filter').length,
+        queue: visible('.rr-signal-queue').length,
+        tools: visible('.rr-view-tools input').length,
+        cleanSavePosition: getComputedStyle(document.querySelector('.rr-save')).position,
+        layoutOrder: Boolean(workspace&&canvas&&panel&&footer&&document.querySelector('.rr-signal-panel')?.contains(document.querySelector('.rr-save'))&&footer.bottom<=panel.bottom+1&&(Math.abs(canvas.top-panel.top)<2?panel.bottom<=workspace.bottom+1:canvas.bottom<=panel.top+1)),
+        minButtonHeight: Math.min(...controls.map(element => element.getBoundingClientRect().height).concat([44])),
+        minButton: controls.map(element=>({text:(element.textContent||'').trim(),className:element.className,height:element.getBoundingClientRect().height})).sort((a,b)=>a.height-b.height)[0],
+        decisionVisibleWithoutScroll: actionInsideViewport(reject) && actionInsideViewport(confirm),
+        initialHostScroll: document.querySelector('.rr-host')?.scrollTop || 0,
+        initialItemsScroll: document.querySelector('.rr-items')?.scrollTop || 0,
+        toothTriggerCount: toothTrigger ? 1 : 0,
+        toothTriggerExpanded: toothTrigger?.getAttribute('aria-expanded') === 'true',
+        toothTriggerHeight: toothTrigger?.getBoundingClientRect().height || 0,
+        toothDockCount: document.querySelectorAll('.rr-tooth-dock').length
+      };
+    });
+    const expectedSameRow = item.width >= 720;
+    report.push({ name: item.name, width: item.width, ...metrics, expectedSameRow });
+    if (item.name.startsWith('mobile')) {
+      const trigger = page.locator('.rr-item[aria-current="true"] .rr-tooth-picker-trigger');
+      await trigger.click();
+      const dock = page.locator('.rr-tooth-dock');
+      await dock.waitFor();
+      if (await trigger.getAttribute('aria-expanded') !== 'true') throw new Error(`Docked FDI picker did not open at ${item.width}px`);
+      const openPicker = await dock.evaluate(element => {
+        const rect = element.getBoundingClientRect();
+        const canvas = element.closest('.rr-canvas')?.getBoundingClientRect();
+        const image = element.closest('.rr-canvas')?.querySelector('.rr-image-wrap')?.getBoundingClientRect();
+        const toothOptions = Array.from(element.querySelectorAll('.rr-tooth-option[role="radio"]'));
+        const toothChart = element.querySelector('.rr-tooth-chart');
+        const quadrants = Array.from(element.querySelectorAll('.rr-tooth-row[data-quadrant]'));
+        const verticalDivider = toothChart ? getComputedStyle(toothChart, '::before') : null;
+        const horizontalDivider = toothChart ? getComputedStyle(toothChart, '::after') : null;
+        return {
+          horizontalFit: Boolean(canvas && rect.left >= canvas.left - 1 && rect.right <= canvas.right + 1),
+          overflow: element.scrollWidth > element.clientWidth + 1,
+          visibleOptions: toothOptions.filter(option => option.getClientRects().length).length,
+          visibleGlyphs: Array.from(element.querySelectorAll('.rr-tooth-glyph')).filter(glyph => glyph.getClientRects().length).length,
+          visibleQuadrants: quadrants.filter(quadrant => quadrant.getClientRects().length).length,
+          quadrantSizes: quadrants.map(quadrant => quadrant.querySelectorAll('.rr-tooth-option').length),
+          quadrantOrder: quadrants.map(quadrant => quadrant.dataset.quadrant).join(','),
+          quadrantLabels: new Set(quadrants.map(quadrant => quadrant.getAttribute('aria-label'))).size,
+          quadrantCrossVisible: Boolean(verticalDivider && horizontalDivider && parseFloat(verticalDivider.width) >= 2 && parseFloat(verticalDivider.height) > 0 && parseFloat(horizontalDivider.height) >= 2 && parseFloat(horizontalDivider.width) > 0),
+          radioLabels: new Set(toothOptions.map(option => option.getAttribute('aria-label'))).size,
+          tabStops: toothOptions.filter(option => option.tabIndex === 0).length,
+          families: Array.from(new Set(toothOptions.map(option => option.dataset.kind))).sort().join(','),
+          selectedTooth: toothOptions.find(option => option.getAttribute('aria-checked') === 'true')?.textContent?.trim() || '',
+          nativeSelects: element.querySelectorAll('select').length,
+          doesNotCoverImage: Boolean(image && rect.top >= image.bottom - 1)
+        };
+      });
+      if (!openPicker.horizontalFit || openPicker.overflow || openPicker.visibleOptions !== 32 || openPicker.visibleGlyphs !== 32 || openPicker.visibleQuadrants !== 4 || openPicker.quadrantOrder !== '1,2,4,3' || openPicker.quadrantSizes.some(size => size !== 8) || openPicker.quadrantLabels !== 4 || !openPicker.quadrantCrossVisible || openPicker.radioLabels !== 32 || openPicker.tabStops !== 1 || openPicker.families !== 'canine,incisor,molar,premolar' || openPicker.selectedTooth !== '46' || openPicker.nativeSelects || !openPicker.doesNotCoverImage) throw new Error(`Docked anatomical FDI picker failed at ${item.width}px: ${JSON.stringify(openPicker)}`);
+      await page.screenshot({ path: path.join(output, `${item.name}-tooth-picker.png`), fullPage: false });
+      await dock.getByRole('button', { name: 'Cerrar selector de pieza', exact: true }).click();
+      if (await page.locator('.rr-tooth-dock').count() || await trigger.getAttribute('aria-expanded') !== 'false') throw new Error(`Docked FDI picker did not close at ${item.width}px`);
+    }
+    if (item.name === 'desktop') {
+      const trigger = page.locator('.rr-item[aria-current="true"] .rr-tooth-picker-trigger');
+      await trigger.click();
+      const dock = page.locator('.rr-tooth-dock');
+      await dock.waitFor();
+      if (await trigger.getAttribute('aria-expanded') !== 'true') throw new Error('Docked FDI picker did not open from its trigger');
+      const noOverlap = await dock.evaluate(element => { const dock = element.getBoundingClientRect(), image = element.closest('.rr-canvas')?.querySelector('.rr-image-wrap')?.getBoundingClientRect(); return Boolean(image && dock.top >= image.bottom - 1); });
+      if (!noOverlap) throw new Error('Docked FDI picker obscured the radiograph');
+      const selected = dock.getByRole('radio', { name: 'Pieza FDI 46', exact: true });
+      if (await selected.getAttribute('aria-checked') !== 'true') throw new Error('Compact FDI picker did not expose the current piece as selected');
+      await selected.focus();
+      await selected.press('ArrowUp');
+      let focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
+      if (focusedLabel !== 'Pieza FDI 16') throw new Error(`Anatomical FDI vertical navigation failed: ${focusedLabel}`);
+      await page.keyboard.press('ArrowDown');
+      focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
+      if (focusedLabel !== 'Pieza FDI 46') throw new Error(`Anatomical FDI vertical return failed: ${focusedLabel}`);
+      const upperMidline = dock.getByRole('radio', { name: 'Pieza FDI 11', exact: true });
+      await upperMidline.focus();
+      await upperMidline.press('ArrowRight');
+      focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
+      if (focusedLabel !== 'Pieza FDI 21') throw new Error(`Upper FDI midline crossing failed: ${focusedLabel}`);
+      const lowerMidline = dock.getByRole('radio', { name: 'Pieza FDI 41', exact: true });
+      await lowerMidline.focus();
+      await lowerMidline.press('ArrowRight');
+      focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
+      if (focusedLabel !== 'Pieza FDI 31') throw new Error(`Lower FDI midline crossing failed: ${focusedLabel}`);
+      await selected.focus();
+      await selected.press('ArrowLeft');
+      focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
+      if (focusedLabel !== 'Pieza FDI 47') throw new Error(`Compact FDI keyboard navigation failed: ${focusedLabel}`);
+      await page.keyboard.press('Enter');
+      await trigger.waitFor();
+      if (await page.locator('.rr-tooth-dock').count()) throw new Error('Docked FDI picker remained open after choosing a piece');
+      if (!(await page.locator('.rr-tooth-current').textContent()).includes('47')) throw new Error('Compact FDI picker did not synchronize the selected piece');
+    }
+    if (item.name === 'desktop') {
+      await page.locator('.rr-mark:not(.is-selected)').first().click();
       const selected = await page.locator('.rr-item[aria-current="true"] .rr-number').textContent();
       if (selected.trim() !== '2') throw new Error('Marker and signal card are not correlated');
-      await page.getByRole('button', { name: 'Confirmadas', exact: true }).click();
-      if (await page.locator('.rr-item').count() !== 1) throw new Error('Confirmed filter did not isolate one signal');
-      await page.getByRole('button', { name: 'Todas', exact: true }).click();
+      await page.locator('.rr-signal-queue > summary').click();
+      await page.getByRole('button',{name:/^1\. Densidad/}).click();
+      if(await page.locator('.rr-item').count()!==1||await page.locator('.rr-item .rr-number').textContent()!=='1') throw new Error('The queue did not open the requested signal');
+      await page.locator('.rr-image-adjustments > summary').click();
       await page.locator('.rr-tool-range input[aria-label="Contraste"]').fill('150');
       await page.getByRole('button', { name: 'Invertir', exact: true }).click();
-      await page.getByRole('button', { name: 'Vista original', exact: true }).click();
+      await page.getByRole('button', { name: 'Restablecer', exact: true }).click();
       const style = await page.locator('.rr-image-stage img').getAttribute('style');
       if (!style.includes('brightness(100%)') || !style.includes('contrast(100%)') || !style.includes('invert(0)')) throw new Error('Original view reset failed');
+      await page.locator('.rr-image-adjustments > summary').click();
     }
     if (item.width < 960) {
-      if (item.name === 'mobile') {
-        const viewport=page.locator('.rr-image-wrap'),zoom=page.locator('.rr-tool-range input[aria-label="Ampliar radiografía"]');
-        await viewport.evaluate(element=>{const event=(type,touches)=>{const value=new Event(type,{bubbles:true,cancelable:true});Object.defineProperty(value,'touches',{value:touches});element.dispatchEvent(value);};event('touchstart',[{clientX:100,clientY:320},{clientX:210,clientY:320}]);event('touchmove',[{clientX:65,clientY:320},{clientX:245,clientY:320}]);event('touchend',[]);});
-        await page.waitForTimeout(40);
-        const pinch=await viewport.evaluate(element=>({left:element.scrollLeft,zoomed:element.classList.contains('is-zoomed')}));
-        if (!pinch.zoomed||Number(await zoom.inputValue())<=1||pinch.left<=0) throw new Error('Assisted-review pinch gesture did not zoom');
-        await page.getByRole('button',{name:'Vista original',exact:true}).click();
-      }
-      const last = page.locator('.rr-item').last();
-      await last.scrollIntoViewIfNeeded();
+      const finalAction=page.getByRole('button',{name:'Confirmar y continuar',exact:true});
+      await finalAction.scrollIntoViewIfNeeded();
       const reachable = await page.evaluate(() => {
-        const dialog=document.querySelector('.rr-dialog').getBoundingClientRect(),signal=document.querySelector('.rr-item:last-child').getBoundingClientRect(),save=document.querySelector('.rr-save').getBoundingClientRect();
-        return signal.top>=dialog.top-1&&signal.bottom<=dialog.bottom+1&&!(signal.top<save.bottom&&signal.bottom>save.top);
+        const action=document.querySelector('[data-rr-decision="confirm"]'),host=document.querySelector('.rr-host');
+        if(!action||!host)return false;const box=action.getBoundingClientRect(),viewport=window.innerHeight||document.documentElement.clientHeight;return box.top>=0&&box.bottom<=viewport;
       });
-      if (!reachable) throw new Error(`Last signal is not reachable at ${item.width}px`);
+      if (!reachable) throw new Error(`Signal decision is not reachable at ${item.width}px`);
       await page.locator('.rr-host').evaluate(element=>{element.scrollTop=0;});
     }
     await page.screenshot({ path: path.join(output, `${item.name}.png`), fullPage: false });
     if (item.name === 'desktop') {
-      await page.getByRole('button', { name: 'Por revisar', exact: true }).click();
       if (await page.locator('.rr-item-body').count() !== 1) throw new Error('Filtered signal did not become the active task');
       const text = page.locator('.rr-item-body textarea');
       await text.fill('Cambio de densidad por comprobar con revisión profesional.');
-      await page.getByRole('button', { name: 'Confirmar señal', exact: true }).click();
+      await page.getByRole('button', { name: 'Confirmar y continuar', exact: true }).click();
       if (!(await page.locator('.rr-feedback').textContent()).includes('Ubica la señal')) throw new Error('Placement guidance disappeared after rendering');
-      await page.getByRole('button', { name: 'Volver al expediente', exact: true }).click();
-      await page.locator('.rr-confirm-dialog[open]').waitFor();
-      await page.getByRole('button', { name: 'Continuar revisando', exact: true }).click();
-      if (!await page.locator('.rr-dialog[open]').count()) throw new Error('Custom close confirmation dismissed the review');
+      await page.locator('.rr-image-stage > img').click({position:{x:220,y:250}});
+      await page.getByRole('button', { name: 'Confirmar y continuar', exact: true }).click();
+      await page.waitForFunction(()=>document.querySelector('.rr-feedback')?.textContent.includes('Señal 1 guardada'));
+      const saved=await page.evaluate(()=>({count:window.__reviewSaves.length,state:window.__reviewSaves.at(-1)?.items[0]?.state,text:window.__reviewSaves.at(-1)?.items[0]?.text}));
+      if(saved.count!==1||saved.state!=='confirmed'||!saved.text.includes('revisión profesional')) throw new Error('The explicit decision was not verified by the store');
+      if(!await page.getByRole('button',{name:'Ver resumen',exact:true}).count()) throw new Error('Completed review did not expose its summary step');
+      await page.getByRole('button',{name:'Ver resumen',exact:true}).click();
+      if(!await page.locator('.rr-review-summary').count()) throw new Error('The verified summary did not open');
+      await page.screenshot({path:path.join(output,'desktop-summary.png'),fullPage:false});
+      await page.getByRole('button', { name: 'Cerrar y volver al expediente', exact: true }).click();
+      if(await page.locator('.rr-confirm-dialog[open]').count()) throw new Error('A verified review still appeared as unsaved');
     }
     await page.close();
   }
   await browser.close();
   console.log(JSON.stringify(report, null, 2));
-  if (report.some(item => item.rootOverflow || item.dialogOverflow || item.sameRow !== item.expectedSameRow || !item.layoutOrder || item.workspaceUse < .9 || item.signals !== 3 || item.expandedSignals !== 1 || item.filters !== 4 || item.tools !== 3 || (item.width < 960 && item.cleanSavePosition === 'sticky') || item.minButtonHeight < (item.name.startsWith('mobile') ? 44 : 38) || (item.expectedSameRow && (item.canvasRatio < .62 || item.canvasRatio > .75)))) process.exitCode = 1;
+  if (report.some(item => item.rootOverflow || item.dialogOverflow || item.sameRow !== item.expectedSameRow || !item.layoutOrder || item.workspaceUse < .9 || item.signals !== 1 || item.expandedSignals !== 1 || item.filters !== 0 || item.queue !== 1 || item.tools !== 0 || (item.width >= 640 && !item.decisionVisibleWithoutScroll) || item.initialHostScroll || item.initialItemsScroll || item.toothTriggerCount !== 1 || item.toothTriggerExpanded || item.toothTriggerHeight < 36 || item.toothTriggerHeight > 60 || item.toothDockCount !== 0 || (item.width < 960 && item.cleanSavePosition === 'sticky') || item.minButtonHeight < (item.name.startsWith('mobile') ? 44 : 36) || (item.width >= 960 && (item.canvasRatio < .62 || item.canvasRatio > .75)))) process.exitCode = 1;
 })().catch(error => { console.error(error); process.exitCode = 1; });

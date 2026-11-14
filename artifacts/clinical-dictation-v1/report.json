@@ -1,0 +1,130 @@
+[
+  {
+    "name": "desktop",
+    "ready": {
+      "overflow": false,
+      "open": true,
+      "privacy": "Al escuchar, el navegador procesa tu voz. SMYL no guarda el audio ni el texto provisional.",
+      "reviewHidden": true,
+      "closeHeight": 44,
+      "dialogWidth": 560,
+      "viewportWidth": 1280
+    },
+    "review": {
+      "overflow": false,
+      "tooth": "16",
+      "surface": "O",
+      "finding": "Caries",
+      "primaryCount": 1,
+      "actionHeight": 42,
+      "dialogBottom": 744.375,
+      "viewportHeight": 900
+    },
+    "applied": {
+      "dialog": false,
+      "value": {
+        "tooth": "16",
+        "surface": "O",
+        "condition": "Caries",
+        "observation": "Oclusal: Caries."
+      },
+      "result": "Pieza 16 · Oclusal: Caries. · pendiente de guardar"
+    }
+  },
+  {
+    "name": "tablet",
+    "ready": {
+      "overflow": false,
+      "open": true,
+      "privacy": "Al escuchar, el navegador procesa tu voz. SMYL no guarda el audio ni el texto provisional.",
+      "reviewHidden": true,
+      "closeHeight": 44,
+      "dialogWidth": 560,
+      "viewportWidth": 834
+    },
+    "review": {
+      "overflow": false,
+      "tooth": "16",
+      "surface": "O",
+      "finding": "Caries",
+      "primaryCount": 1,
+      "actionHeight": 42,
+      "dialogBottom": 794.375,
+      "viewportHeight": 1000
+    },
+    "applied": {
+      "dialog": false,
+      "value": {
+        "tooth": "16",
+        "surface": "O",
+        "condition": "Caries",
+        "observation": "Oclusal: Caries."
+      },
+      "result": "Pieza 16 · Oclusal: Caries. · pendiente de guardar"
+    }
+  },
+  {
+    "name": "mobile",
+    "ready": {
+      "overflow": false,
+      "open": true,
+      "privacy": "Al escuchar, el navegador procesa tu voz. SMYL no guarda el audio ni el texto provisional.",
+      "reviewHidden": true,
+      "closeHeight": 44,
+      "dialogWidth": 390,
+      "viewportWidth": 390
+    },
+    "review": {
+      "overflow": false,
+      "tooth": "16",
+      "surface": "O",
+      "finding": "Caries",
+      "primaryCount": 1,
+      "actionHeight": 44,
+      "dialogBottom": 844,
+      "viewportHeight": 844
+    },
+    "applied": {
+      "dialog": false,
+      "value": {
+        "tooth": "16",
+        "surface": "O",
+        "condition": "Caries",
+        "observation": "Oclusal: Caries."
+      },
+      "result": "Pieza 16 · Oclusal: Caries. · pendiente de guardar"
+    }
+  },
+  {
+    "name": "mobile-320",
+    "ready": {
+      "overflow": false,
+      "open": true,
+      "privacy": "Al escuchar, el navegador procesa tu voz. SMYL no guarda el audio ni el texto provisional.",
+      "reviewHidden": true,
+      "closeHeight": 44,
+      "dialogWidth": 320,
+      "viewportWidth": 320
+    },
+    "review": {
+      "overflow": false,
+      "tooth": "16",
+      "surface": "O",
+      "finding": "Caries",
+      "primaryCount": 1,
+      "actionHeight": 44,
+      "dialogBottom": 760,
+      "viewportHeight": 760
+    },
+    "applied": {
+      "dialog": false,
+      "value": {
+        "tooth": "16",
+        "surface": "O",
+        "condition": "Caries",
+        "observation": "Oclusal: Caries."
+      },
+      "result": "Pieza 16 · Oclusal: Caries. · pendiente de guardar"
+    }
+  }
+]

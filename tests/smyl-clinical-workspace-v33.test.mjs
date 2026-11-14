@@ -37,7 +37,9 @@ test('Inicio usa una sola fuente de prioridades y nunca anuncia Todo al día si 
   const home = read('smyl-daily-home.js');
   assert.match(home, /function resolvePriorityTasks\(\)/);
   assert.match(home, /renderMetrics\(tasks\); renderPriorities\(tasks\)/);
-  assert.match(home, /if\(!tiles\.length&&priorityTasks&&priorityTasks\.length\)tiles\.push/);
+  assert.match(home, /if\(summary\)summary\.textContent=tasks\.length\?/);
+  for (const kind of ['appointments','clinic','requests','messages']) assert.match(home, new RegExp(`'${kind}'`));
+  assert.doesNotMatch(home, /if\(!tiles\.length&&priorityTasks&&priorityTasks\.length\)tiles\.push/, 'los pendientes viven en Atención requerida, no en una métrica duplicada');
   assert.doesNotMatch(home, /data-go="agenda">Abrir agenda/);
 });
 

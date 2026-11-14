@@ -36,9 +36,9 @@ test('la barra lateral se adapta al marcado real y respeta el colapsado', () => 
 
 test('se carga la última, con Open Sans y precache; web, PWA y copia móvil sincronizadas', () => {
   const links = [...app.matchAll(/<link rel="stylesheet" href="([^"]+)">/g)].map((m) => m[1]);
-  assert.equal(links.at(-1), 'smyl-ui-datta-v4.css?v=1');
+  assert.equal(links.at(-1), 'smyl-ui-datta-v4.css?v=2');
   assert.match(app, /family=Open\+Sans:wght@400;500;600;700/);
-  assert.match(sw, /'\/camila\/smyl-ui-datta-v4\.css\?v=1'/);
+  assert.match(sw, /'\/camila\/smyl-ui-datta-v4\.css\?v=2'/);
   for (const f of ['smyl-ui-datta-v4.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
 

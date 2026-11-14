@@ -1,6 +1,6 @@
 name: SMYL Cotizaciones - seguimiento de cotizaciones (migración)
 
-# Aplica en el proyecto de producción de SMYL la migración 20261108120000_smyl_proposal_followups.sql:
+# Aplica en el proyecto de producción de SMYL la migración 20261114130000_smyl_proposal_followups.sql:
 #   - smyl_proposal_followups: registro de cada seguimiento dado a una cotización presentada (3, 7 y 15 días).
 #   - Función smyl_log_proposal_followup (única vía de escritura; permiso proposal.followup, versión aprobada vigente).
 # Manual a propósito (sólo workflow_dispatch). Requiere el secreto SUPABASE_ACCESS_TOKEN. Es idempotente.
@@ -23,8 +23,8 @@ jobs:
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       PROJECT_REF: rpxshsiwoxdbuevjjpfw
-      SEGUIMIENTO_VERSION: "20261108120000"
-      SEGUIMIENTO_FILE: supabase/migrations/20261108120000_smyl_proposal_followups.sql
+      SEGUIMIENTO_VERSION: "20261114130000"
+      SEGUIMIENTO_FILE: supabase/migrations/20261114130000_smyl_proposal_followups.sql
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

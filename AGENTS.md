@@ -50,3 +50,9 @@ nativa envuelta con Capacitor en `mobile/`.
 - Cambios pequeños y enfocados; evita tocar módulos fuera de lo pedido.
 - Antes de dar por terminado: revisa visualmente en escritorio, tablet y
   celular.
+
+## Skills del proyecto
+
+- Para dictado, captura rápida o nuevas entradas dentro de Valoración y el
+  odontograma, lee y aplica `skills/smyl-clinical-input/SKILL.md`. Su regla
+  principal es conservar un único borrador clínico y exigir revisión humana.
