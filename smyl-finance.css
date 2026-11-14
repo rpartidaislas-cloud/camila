@@ -927,3 +927,55 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
   .finance-accounts-card .finance-row:not(.finance-row-head),.finance-today-row{grid-template-columns:minmax(0,1fr) minmax(104px,auto)}
   .finance-account-amount>strong{font-size:14px}
 }
+
+/* Facturación v2 · el recibo es la entrada visible al ciclo fiscal. */
+.finance-fiscal-card>header{padding-bottom:15px;border-bottom:1px solid #e5ebf0}
+.finance-fiscal-card .pro-eyebrow{font-size:12px!important;line-height:1.35}
+.finance-fiscal-note{margin:0 0 14px;border-color:#d8e5e1;background:#f5faf8;color:#315e57}
+.finance-fiscal-receipts{margin-bottom:18px;border:1px solid #dce5eb;border-radius:14px;overflow:hidden;background:#fff}
+.finance-fiscal-receipts>header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:0;padding:15px 16px;border-bottom:1px solid #e5ebf0;background:#f8fbfa}
+.finance-fiscal-receipts>header .pro-eyebrow{color:#347b70;font-size:12px;font-weight:800;letter-spacing:.09em}
+.finance-fiscal-receipts>header h3{margin:3px 0 2px;font-size:18px;color:#17363d}
+.finance-fiscal-receipts>header p{max-width:720px;margin:0;color:#667a80;font-size:12px;line-height:1.45}
+.finance-fiscal-receipts>header>strong{flex:none;padding:7px 10px;border-radius:999px;background:#e5f4ef;color:#236e60;font-size:12px}
+.finance-fiscal-receipt-filters{display:flex;gap:5px;padding:9px 12px;border-bottom:1px solid #e7edf1;overflow-x:auto;scrollbar-width:thin}
+.finance-fiscal-receipt-filters button{flex:0 0 auto;min-height:38px;padding:0 12px;border:0;border-radius:9px;background:transparent;color:#607286;font-size:12px;font-weight:750;white-space:nowrap}
+.finance-fiscal-receipt-filters button[aria-pressed=true]{background:#e8f3f1;color:#17675d}
+.finance-fiscal-receipt-filters em{display:inline-grid;place-items:center;min-width:22px;height:22px;margin-left:4px;padding:0 6px;border-radius:999px;background:#e8edf2;color:#526779;font-size:12px;font-style:normal}
+.finance-fiscal-receipt-filters button[aria-pressed=true] em{background:#fff;color:#17675d}
+.finance-fiscal-receipt-list{display:grid}
+.finance-fiscal-receipt-list>article{display:grid;grid-template-columns:88px minmax(190px,1fr) minmax(150px,.55fr) auto;align-items:center;gap:14px;min-height:76px;padding:12px 15px;border-top:1px solid #e8edf1}
+.finance-fiscal-receipt-list>article:first-child{border-top:0}
+.finance-fiscal-receipt-folio{display:grid;gap:2px}
+.finance-fiscal-receipt-folio span{color:#748493;font-size:12px;font-weight:750;letter-spacing:.06em}
+.finance-fiscal-receipt-folio strong{color:#183d49;font-size:14px;font-variant-numeric:tabular-nums}
+.finance-fiscal-receipt-copy strong,.finance-fiscal-receipt-copy small{display:block}
+.finance-fiscal-receipt-copy strong{font-size:13px;color:#172f43}
+.finance-fiscal-receipt-copy small{margin-top:3px;color:#738294;font-size:12px;line-height:1.4}
+.finance-fiscal-receipt-amount{display:grid;justify-items:start;gap:5px}
+.finance-fiscal-receipt-amount>strong{font-size:15px;font-variant-numeric:tabular-nums}
+.finance-fiscal-receipt-actions{display:flex;justify-content:flex-end;gap:7px;white-space:nowrap}
+.finance-fiscal-receipt-actions button{min-height:40px}
+.finance-fiscal-receipts+.finance-drafts{margin-top:0}
+.finance-fiscal-readiness{margin-top:18px}
+.finance-fiscal-receivers{margin-top:18px}
+
+@media screen and (max-width:980px){
+  .finance-fiscal-receipt-list>article{grid-template-columns:78px minmax(170px,1fr) minmax(145px,.5fr)}
+  .finance-fiscal-receipt-actions{grid-column:2/-1;justify-content:flex-start}
+}
+
+@media screen and (max-width:720px){
+  .finance-fiscal-card{padding:14px}
+  .finance-fiscal-receipts>header{display:grid;gap:8px;padding:14px}
+  .finance-fiscal-receipts>header>strong{justify-self:start}
+  .finance-fiscal-receipt-filters{scroll-snap-type:x proximity;scrollbar-width:none}
+  .finance-fiscal-receipt-filters::-webkit-scrollbar{display:none}
+  .finance-fiscal-receipt-filters button{min-height:44px;scroll-snap-align:start}
+  .finance-fiscal-receipt-list>article{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"folio amount" "copy copy" "actions actions";gap:9px 12px;padding:13px}
+  .finance-fiscal-receipt-folio{grid-area:folio}
+  .finance-fiscal-receipt-copy{grid-area:copy;padding-top:9px;border-top:1px solid #edf1f4}
+  .finance-fiscal-receipt-amount{grid-area:amount;justify-items:end;text-align:right}
+  .finance-fiscal-receipt-actions{grid-area:actions;display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .finance-fiscal-receipt-actions button{width:100%;min-height:44px}
+}

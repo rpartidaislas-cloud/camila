@@ -1,5 +1,13 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-13 — Codex — Recibos como entrada de Facturación
+
+- **Facturación** comienza con una bandeja de recibos internos vinculados a pagos confirmados. Cada fila conserva folio, paciente, fecha y hora, método, referencia e importe, y separa claramente **Por facturar**, **En preparación**, **Facturados** y **Todos**.
+- El siguiente paso se deriva del estado real: **Preparar factura** cuando pago, aplicación, receptor y emisor están completos; **Completar datos** si falta el receptor; **Configurar emisor** si falta la clínica; **Revisar cuenta** ante reembolso o aplicación incompleta; y **Ver proceso** cuando ya existe borrador. Un recibo vinculado a borrador o factura nunca vuelve a ofrecer preparación duplicada.
+- El recibo no se convierte ni se pierde: permanece como comprobante del pago y la factura conserva su ciclo fiscal independiente. La preparación reutiliza el RPC fiscal protegido existente y la restricción única por pago; no se añadieron migraciones ni escrituras directas desde el navegador.
+- Web y `mobile/www` quedan sincronizados con `smyl-finance.js?v=36`, CSS `v=29` y caché `fiscal-receipts-v1`. En PWA los filtros permanecen en una fila desplazable, los controles miden al menos 44 px, el texto visible es de 12 px o más y no hay desbordamiento a 390 ni 320 px.
+- Verificación: `107/107` pruebas financieras focalizadas aprobadas; sintaxis, paridad web/PWA y recorrido real en Chrome aprobados en escritorio, 390 px y 320 px. Esta entrega forma parte del lanzamiento de producción solicitado el 13 de noviembre de 2026.
+
 ## 2026-11-13 — Codex — Cobros como espacio de trabajo orientado a tareas
 
 - **Cobros** deja de presentar indicadores, citas y cuentas como bloques equivalentes. La cabecera usa una franja compacta de cuatro indicadores y la alerta superior se convierte en una bandeja de tareas separadas para vencimientos, saldos a favor y corte de caja.
