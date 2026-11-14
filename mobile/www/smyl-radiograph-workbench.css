@@ -2166,6 +2166,78 @@
 .dr-viewer-footer-actions .dr-danger-action:hover { border-color: #e5b7b7; background: var(--smyl-ui-danger-soft, #fff0f0); }
 .dr-viewer-footer-actions .dr-primary:disabled { border-color: #d7e0e9; background: #e8edf2; color: #7d8997; cursor: default; }
 
+/* Revisión clínica unificada v25 · el criterio profesional es principal y MILA es apoyo opcional. */
+.dr-signal-pane { grid-template-rows: auto minmax(0, 1fr); }
+.dr-review-body {
+  display: grid;
+  min-height: 0;
+  align-content: start;
+  gap: 12px;
+  padding: 0 12px 12px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.dr-review-body > .dr-mark-list { min-height: 210px; margin: 0 -12px; overflow: visible; }
+.dr-review-body .dr-panel-empty { min-height: 210px; }
+.dr-ai-support {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--smyl-ui-border, #d9e2ec);
+  border-radius: 12px;
+  background: var(--smyl-ui-surface-soft, #f8fafc);
+}
+.dr-ai-support-copy { display: grid; grid-template-columns: 36px minmax(0, 1fr); align-items: start; gap: 10px; }
+.dr-ai-support-copy > div { display: grid; gap: 2px; }
+.dr-ai-support-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid #b9ddd7;
+  border-radius: 10px;
+  background: var(--smyl-ui-accent-soft, #e8f7f4);
+  color: var(--smyl-ui-accent-strong, #087b72);
+  font-size: 16px;
+}
+.dr-ai-support-label { color: var(--smyl-ui-accent-strong, #087b72); font-size: 10px; font-weight: 800; letter-spacing: .08em; line-height: 14px; }
+.dr-ai-support strong { color: var(--smyl-ui-ink, #0b1b2e); font-size: 14px; line-height: 19px; }
+.dr-ai-support p { margin: 0; color: var(--smyl-ui-ink-secondary, #526174); font-size: 12px; line-height: 17px; }
+.dr-ai-support > .dr-assisted-action { width: 100%; min-height: 40px; margin: 0; border-color: #87bdb6; background: #fff; color: var(--smyl-ui-primary, #0b1b2e); font-weight: 750; }
+.dr-ai-support > .dr-assisted-action:hover { border-color: var(--smyl-ui-accent-strong, #087b72); background: var(--smyl-ui-accent-soft, #e8f7f4); }
+.dr-ai-support > .dr-action-feedback { margin: 0; }
+.dr-ai-support > .dr-help { padding: 0; }
+.dr-study-notes { overflow: hidden; border: 1px solid var(--smyl-ui-border, #d9e2ec); border-radius: 12px; background: #fff; }
+.dr-study-notes > summary {
+  display: flex;
+  min-height: 44px;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  color: var(--smyl-ui-ink, #0b1b2e);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+.dr-study-notes > summary::-webkit-details-marker { display: none; }
+.dr-study-notes > summary::after { color: var(--smyl-ui-ink-secondary, #526174); content: '+'; font-size: 18px; font-weight: 500; }
+.dr-study-notes[open] > summary::after { content: '−'; }
+.dr-study-notes > summary small { margin-left: auto; color: var(--smyl-ui-ink-secondary, #526174); font-size: 11px; font-weight: 500; }
+.dr-study-notes[open] > summary { border-bottom: 1px solid var(--smyl-ui-border, #d9e2ec); }
+.dr-study-notes > .dr-field { margin: 0; padding: 12px; }
+.dr-study-notes > .dr-field textarea { min-height: 96px; resize: vertical; }
+.dr-study-notes > .dr-help { margin: 0; padding: 0 12px 12px; color: var(--smyl-ui-ink-secondary, #526174); font-size: 11px; line-height: 16px; }
+
+@media (max-width: 639px) {
+  .dr-review-body { gap: 10px; padding: 0 10px 10px; }
+  .dr-review-body > .dr-mark-list { margin: 0 -10px; }
+  .dr-ai-support { padding: 12px; }
+  .dr-ai-support > .dr-assisted-action { min-height: 44px; }
+}
+
 /* Inicio de revisión asistida: imagen primero, decisión y privacidad en un panel propio. */
 .rr-intro {
   display: grid;

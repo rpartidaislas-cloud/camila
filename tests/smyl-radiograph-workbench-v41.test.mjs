@@ -13,7 +13,7 @@ const css = read('../smyl-radiograph-workbench.css');
 
 assert.match(app, /smyl-radiograph-workbench\.css\?v=25/);
 assert.match(app, /smyl-radiograph-review\.js\?v=31/);
-assert.match(app, /smyl-dental-record\.js\?v=31/);
+assert.match(app, /smyl-dental-record\.js\?v=32/);
 assert.match(worker, /radiograph-navigation-v43/);
 assert.match(worker, /smyl-radiograph-workbench\.css\?v=25/);
 assert.match(worker, /radiograph-guided-process-v15/);
@@ -65,7 +65,7 @@ assert.match(dental, /if\(!ctx\.canWrite\|\|!adding\)return/);
 assert.match(dental, /Pendiente de describir/);
 assert.match(dental, /Registrar señal clínica/);
 assert.match(dental, /dr-action-feedback/);
-assert.match(dental, /La revisión asistida no terminó de cargar/);
+assert.match(dental, /Las sugerencias de MILA no terminaron de cargar/);
 assert.match(dental, /viewportNavigation/);
 assert.doesNotMatch(dental, /Posición horizontal \(%\)|Posición vertical \(%\)/);
 

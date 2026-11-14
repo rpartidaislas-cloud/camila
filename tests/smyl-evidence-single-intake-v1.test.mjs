@@ -72,7 +72,7 @@ test('web y PWA publican las versiones del flujo único', () => {
   const app = read('app.html');
   const sw = read('sw.js');
   for (const tag of [
-    'smyl-dental-record.js?v=31',
+    'smyl-dental-record.js?v=32',
     'smyl-evidence-center.js?v=11',
     'smyl-evidence-center.css?v=7',
     'smyl-evidence-center-integration.js?v=11',

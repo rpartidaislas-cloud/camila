@@ -59,13 +59,13 @@ test('integración mínima en el expediente: botón oculto hasta que la clínica
   assert.match(record, /const perPiece=button\('Revisión por pieza \(v2\)'/);
   assert.match(record, /perPiece\.hidden=true;/);
   assert.match(record, /SmylRadiographReviewV2\?\.available\?\.\(window\.sb\)\.then\(ok=>\{perPiece\.hidden=!\(ctx\.canWrite&&ctx\.canApprove&&ok\);\}\)/);
-  assert.match(record, /aiPanel\.append\(aiIntro,assisted,perPiece,actionFeedback,/);
-  assert.match(record, /panel\.append\(panelHead,tabs,findingsPanel,aiPanel,notesPanel\)/);
-  assert.match(record, /assisted=button\('Revisar con apoyo de IA'/, 'el flujo v1 sigue disponible');
+  assert.match(record, /aiSupport\.append\(aiCopy,assisted,perPiece,actionFeedback,/);
+  assert.match(record, /panel\.append\(panelHead,reviewBody\)/);
+  assert.match(record, /assisted=button\('Buscar sugerencias con MILA'/, 'el apoyo opcional de MILA sigue disponible');
 });
 
 test('cableado web, PWA y copia móvil sincronizados', () => {
-  for (const tag of ['smyl-radiograph-workbench.css?v=25', 'smyl-radiograph-review-v2.css?v=3', 'smyl-radiograph-contracts.js?v=2', 'smyl-radiograph-review-model-v2.js?v=1', 'smyl-radiograph-review-v2.js?v=6', 'smyl-radiograph-review.js?v=31', 'smyl-dental-record.js?v=31']) {
+  for (const tag of ['smyl-radiograph-workbench.css?v=25', 'smyl-radiograph-review-v2.css?v=3', 'smyl-radiograph-contracts.js?v=2', 'smyl-radiograph-review-model-v2.js?v=1', 'smyl-radiograph-review-v2.js?v=6', 'smyl-radiograph-review.js?v=31', 'smyl-dental-record.js?v=32']) {
     assert.ok(app.includes(tag), 'app.html ' + tag);
     assert.ok(sw.includes('/camila/' + tag), 'sw.js ' + tag);
   }

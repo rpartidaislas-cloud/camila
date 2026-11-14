@@ -63,8 +63,7 @@ const fs = require('node:fs');
       return {rootOverflow:document.documentElement.scrollWidth>document.documentElement.clientWidth+1,dialogOverflow:dialog.scrollWidth>dialog.clientWidth+1,sameRow:Math.abs((viewer?.top||0)-(panel?.top||0))<2,stackGap:panel&&viewer?panel.top-viewer.bottom:0,viewerRatio:workspace&&viewer?viewer.width/workspace.width:0,signals:document.querySelectorAll('.dr-signal-card').length,minButtonHeight:Math.min(...controls.map(element=>element.getBoundingClientRect().height).concat([44]))};
     });
     if (item.name === 'manual-desktop') {
-      await page.getByRole('tab', { name: 'IA', exact: true }).click();
-      await page.getByRole('button', { name: 'Revisar con apoyo de IA', exact: true }).click();
+      await page.getByRole('button', { name: 'Buscar sugerencias con MILA', exact: true }).click();
       if (!await page.evaluate(() => window.__aiOpened)) throw new Error('AI review action did not open the assisted review');
       if (await page.locator('.dr-radiograph-dialog[open]').count()) throw new Error('Manual viewer remained open after launching AI review');
       await page.getByRole('button', { name: 'Abrir archivo' }).click();
@@ -75,8 +74,7 @@ const fs = require('node:fs');
       await page.getByRole('button', { name: 'Agregar al borrador' }).click();
       if (await page.locator('.dr-radiograph-dialog .dr-mark').count() !== 3) throw new Error('Explicit placement did not create one signal');
       if (await page.locator('.dr-mark-dialog[open]').count()) throw new Error('Signal editor did not close');
-      await page.getByRole('tab', { name: 'IA', exact: true }).click();
-      await page.getByRole('button', { name: 'Revisar con apoyo de IA', exact: true }).click();
+      await page.getByRole('button', { name: 'Buscar sugerencias con MILA', exact: true }).click();
       const feedback = await page.locator('.dr-action-feedback').textContent();
       if (!feedback.includes('Guarda primero') || !await page.locator('.dr-radiograph-dialog[open]').count()) throw new Error('Unsaved-state AI blocker was not visible in the viewer');
     }
