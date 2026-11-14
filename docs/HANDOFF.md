@@ -7,7 +7,7 @@
 - Cuando MILA detecta ambigüedad, abre **Ver texto reconocido** y muestra los puntos que el profesional debe revisar. Audio, transcripción y comparación siguen siendo efímeros; sólo el texto que el dentista confirma entra al expediente.
 - El consumo suma los tokens de transcripción y redacción, conserva el tiempo real y registra el modelo de mejora sin guardar contenido clínico en metadatos. Web y `mobile/www` quedan sincronizados con revisión `js?v=31`, mesa `css?v=25` y caché `radiograph-professional-writing-v2`.
 - Verificación: contratos integrados `32/32` aprobados y `1` omitido por dependencia opcional; sintaxis JS/TS y flujo real de navegador aprobados en escritorio y 390 px, sin desbordamiento y con controles táctiles de 44 px.
-- Pendiente: desplegar la Edge Function actualizada y publicar cuando Ricardo lo autorice.
+- La Edge Function actualizada quedó desplegada y la publicación web fue autorizada para este lote.
 
 ## 2026-11-14 — Codex — Dictado con MILA en la conclusión radiográfica
 
