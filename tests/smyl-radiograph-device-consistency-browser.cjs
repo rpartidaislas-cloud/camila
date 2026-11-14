@@ -79,12 +79,12 @@ async function assertZoomControls(browser) {
     await controls.waitFor({ state: 'visible' });
     const zoomOut = controls.getByRole('button', { name: 'Alejar radiografía', exact: true });
     const zoomIn = controls.getByRole('button', { name: 'Ampliar radiografía', exact: true });
-    const fit = controls.getByRole('button', { name: 'Encajar radiografía en la pantalla', exact: true });
+    const crop = controls.getByRole('button', { name: 'Recortar radiografía', exact: true });
     const percentage = controls.getByText(/^\d+%$/).first();
     for (const [name, locator] of [['alejar', zoomOut], ['ampliar', zoomIn], ['porcentaje', percentage]]) {
       if (!await locator.isVisible()) throw new Error(`The visible zoom toolbar is missing ${name}`);
     }
-    if (await fit.isVisible()) throw new Error('Fit must stay hidden while the radiograph is already fitted');
+    if (!await crop.isVisible()) throw new Error('Crop must be available without changing zoom');
     const compact = await page.evaluate(() => {
       const row = document.querySelector('.rr-image-control-row');
       const rowRect = row?.getBoundingClientRect();
@@ -107,10 +107,13 @@ async function assertZoomControls(browser) {
     await zoomIn.click();
     await page.waitForFunction(value => Array.from(document.querySelectorAll('.rr-zoom-quick *')).some(element => /^\d+%$/.test(element.textContent?.trim() || '') && element.textContent.trim() !== value), initial);
     if (!await page.locator('.rr-image-wrap').evaluate(element => element.classList.contains('is-zoomed'))) throw new Error('The + control did not zoom the radiograph');
-    if (!await fit.isVisible()) throw new Error('Fit did not appear after zooming the radiograph');
-    await fit.click();
-    if ((await percentage.textContent()).trim() !== '100%') throw new Error('Fit did not restore 100%');
-    if (await page.locator('.rr-image-wrap').evaluate(element => element.classList.contains('is-zoomed'))) throw new Error('Fit left the radiograph in a zoomed state');
+    await crop.click();
+    const cropDialog = page.locator('.rr-crop-dialog');
+    await cropDialog.waitFor({ state: 'visible' });
+    if (!await cropDialog.getByRole('button', { name: 'Aplicar recorte', exact: true }).isVisible()) throw new Error('Crop editor does not expose its primary action');
+    await cropDialog.getByRole('button', { name: 'Aplicar recorte', exact: true }).click();
+    await page.locator('.rr-image-stage.is-cropped').waitFor({ state: 'visible' });
+    if (!await controls.getByRole('button', { name: 'Editar recorte de la radiografía', exact: true }).isVisible()) throw new Error('Applied crop cannot be edited');
   } finally {
     await page.close();
   }
