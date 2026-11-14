@@ -133,7 +133,7 @@ test('el inspector de pieza reutiliza el mismo odontograma y deriva a la revisi�
 });
 
 test('web, móvil y PWA publican la misma versión', () => {
-  assert.match(app, /smyl-dental-record\.js\?v=30/);
+  assert.match(app, /smyl-dental-record\.js\?v=31/);
   assert.match(app, /smyl-case-workspace\.css\?v=29/);
   assert.match(app, /smyl-case-workspace\.js\?v=40/);
   assert.match(worker, /evaluation-separation-v79/);

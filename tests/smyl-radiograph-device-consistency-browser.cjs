@@ -36,11 +36,38 @@ async function assertFreshSessionsShareCursor(browser) {
     }
     const context = {
       marks: await visibleCount(mobile.locator('.rr-image-stage > .rr-mark.is-context')),
-      boxes: await visibleCount(mobile.locator('.rr-image-stage > .rr-box.is-context'))
+      boxes: await visibleCount(mobile.locator('.rr-image-stage > .rr-box.is-context')),
+      activeLabels: await visibleCount(mobile.locator('.rr-active-signal'))
     };
-    if (context.marks < 1) throw new Error(`Mobile must preserve a visible marker for every located non-active signal: ${JSON.stringify(context)}`);
+    if (context.marks !== 0 || context.boxes !== 0 || context.activeLabels !== 0) {
+      throw new Error(`Mobile must keep non-active signals and duplicate labels off the clinical image: ${JSON.stringify(context)}`);
+    }
   } finally {
     await Promise.all([desktop.close(), mobile.close()]);
+  }
+}
+
+async function assertMarkerUsesBoxCenter(browser) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  try {
+    await openSignals(page);
+    const geometry = await page.evaluate(() => {
+      const box = document.querySelector('.rr-image-stage > .rr-box.is-context[data-rr-box]');
+      const mark = box && document.querySelector(`.rr-image-stage > .rr-mark[data-rr-mark="${box.dataset.rrBox}"]`);
+      const boxRect = box?.getBoundingClientRect();
+      const markRect = mark?.getBoundingClientRect();
+      return {
+        boxId: box?.dataset.rrBox || '',
+        markId: mark?.dataset.rrMark || '',
+        centerDeltaX: boxRect && markRect ? Math.abs((boxRect.left + boxRect.width / 2) - (markRect.left + markRect.width / 2)) : null,
+        centerDeltaY: boxRect && markRect ? Math.abs((boxRect.top + boxRect.height / 2) - (markRect.top + markRect.height / 2)) : null
+      };
+    });
+    if (!geometry.boxId || geometry.boxId !== geometry.markId || geometry.centerDeltaX > 2 || geometry.centerDeltaY > 2) {
+      throw new Error(`Signal number is not anchored to the clinical box center: ${JSON.stringify(geometry)}`);
+    }
+  } finally {
+    await page.close();
   }
 }
 
@@ -52,10 +79,28 @@ async function assertZoomControls(browser) {
     await controls.waitFor({ state: 'visible' });
     const zoomOut = controls.getByRole('button', { name: 'Alejar radiografía', exact: true });
     const zoomIn = controls.getByRole('button', { name: 'Ampliar radiografía', exact: true });
-    const fit = controls.getByRole('button', { name: 'Ajustar', exact: true });
+    const fit = controls.getByRole('button', { name: 'Ajustar radiografía a la pantalla', exact: true });
     const percentage = controls.getByText(/^\d+%$/).first();
-    for (const [name, locator] of [['−', zoomOut], ['+', zoomIn], ['porcentaje', percentage], ['Ajustar', fit]]) {
+    for (const [name, locator] of [['alejar', zoomOut], ['ampliar', zoomIn], ['porcentaje', percentage], ['ajustar', fit]]) {
       if (!await locator.isVisible()) throw new Error(`The visible zoom toolbar is missing ${name}`);
+    }
+    const compact = await page.evaluate(() => {
+      const row = document.querySelector('.rr-image-control-row');
+      const rowRect = row?.getBoundingClientRect();
+      const canvasRect = row?.closest('.rr-canvas')?.getBoundingClientRect();
+      const controls = Array.from(row?.querySelectorAll('button, summary') || []).filter(element => element.getClientRects().length);
+      return {
+        rowHeight: rowRect?.height || 0,
+        fitsCanvas: Boolean(rowRect && canvasRect && rowRect.left >= canvasRect.left - 1 && rowRect.right <= canvasRect.right + 1),
+        minTarget: Math.min(...controls.map(element => element.getBoundingClientRect().height).concat([Infinity])),
+        maxTarget: Math.max(...controls.map(element => element.getBoundingClientRect().height).concat([0])),
+        iconControls: controls.filter(element => element.querySelector('.rr-icon')).length,
+        visibleControls: controls.length,
+        overflowing: Boolean(row && row.scrollWidth > row.clientWidth + 1)
+      };
+    });
+    if (!compact.fitsCanvas || compact.overflowing || compact.rowHeight > 64 || compact.minTarget < 44 || compact.maxTarget > 56 || compact.iconControls < 4) {
+      throw new Error(`Mobile image controls are not a compact icon dock: ${JSON.stringify(compact)}`);
     }
     const initial = (await percentage.textContent()).trim();
     await zoomIn.click();
@@ -63,8 +108,8 @@ async function assertZoomControls(browser) {
     if (!await page.locator('.rr-image-wrap').evaluate(element => element.classList.contains('is-zoomed'))) throw new Error('The + control did not zoom the radiograph');
     await zoomOut.click();
     await fit.click();
-    if ((await percentage.textContent()).trim() !== '100%') throw new Error('Ajustar did not restore 100%');
-    if (await page.locator('.rr-image-wrap').evaluate(element => element.classList.contains('is-zoomed'))) throw new Error('Ajustar left the radiograph in a zoomed state');
+    if ((await percentage.textContent()).trim() !== '100%') throw new Error('Fit did not restore 100%');
+    if (await page.locator('.rr-image-wrap').evaluate(element => element.classList.contains('is-zoomed'))) throw new Error('Fit left the radiograph in a zoomed state');
   } finally {
     await page.close();
   }
@@ -107,6 +152,7 @@ async function assertPassiveRemoteRefresh(browser) {
   const browser = await chromium.launch({ headless: true, executablePath: chrome });
   try {
     await assertFreshSessionsShareCursor(browser);
+    await assertMarkerUsesBoxCenter(browser);
     await assertZoomControls(browser);
     await assertPassiveRemoteRefresh(browser);
     console.log('Radiograph device consistency: OK');

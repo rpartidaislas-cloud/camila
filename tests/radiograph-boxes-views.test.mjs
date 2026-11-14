@@ -37,8 +37,10 @@ test('el visor dibuja cuadros punteados y ofrece dos vistas sin tocar la imagen'
   assert.match(js, /function marksToggle\(stage\)/);
   assert.match(js, /button\('Original'/);
   assert.match(js, /button\('Señales'/);
-  assert.match(js, /item\.x===null\|\|item\.state==='rejected'\)return;/, 'las descartadas no se dibujan');
+  assert.match(js, /item\.state==='rejected'\|\|!locationReady\(item\)\)return;/, 'las descartadas o con ubicación automática incoherente no se dibujan');
   assert.match(js, /n\('div','rr-box rr-box-'\+item\.state/);
+  assert.match(js, /mark\.style\.left=item\.x\*100\+'%';mark\.style\.top=item\.y\*100\+'%'/, 'el número se dibuja en el centro clínico, no en la esquina del recuadro');
+  assert.match(js, /mark\.style\.left=\(rect\.left\+rect\.width\/2\)\*100\+'%';mark\.style\.top=\(rect\.top\+rect\.height\/2\)\*100\+'%'/, 'al ajustar el recuadro el número sigue centrado');
   assert.match(js, /if\(run\.placing\)run\.view\.marks=true;/, 'ubicar una señal fuerza la vista con marcas');
   assert.match(js, /marks:false\}/, 'la comprobación inicial abre sin marcas de IA');
   assert.doesNotMatch(js, /querySelector\('\.rr-actions'\)\?\.scrollIntoView/, 'cambiar de señal no desplaza la mesa de trabajo');
@@ -161,6 +163,16 @@ test('coherencia entre la pieza y su ubicación en una panorámica (derecha del 
   assert.equal(check('panoramic', '99', 0.9, 0.2), '');
 });
 
+test('la ubicación automática exige una zona anatómica plausible para la pieza, no sólo el cuadrante', () => {
+  assert.equal(typeof M.automaticPositionIssue, 'function');
+  const check = M.automaticPositionIssue;
+  assert.equal(check('panoramic', '16', 0.3, 0.3), '', 'acepta una posición plausible del primer molar superior derecho');
+  assert.equal(check('panoramic', '46', 0.3, 0.7), '', 'acepta una posición plausible del primer molar inferior derecho');
+  assert.notEqual(check('panoramic', '16', 0.18, 0.08), '', 'rechaza una marca pegada al borde superior aunque coincida el cuadrante');
+  assert.notEqual(check('panoramic', '46', 0.18, 0.97), '', 'rechaza una marca pegada al borde inferior aunque coincida el cuadrante');
+  assert.equal(check('periapical', '16', 0.18, 0.08), '', 'la plantilla panorámica no se impone a otros tipos de estudio');
+});
+
 test('el visor avisa cuando la pieza no coincide con la posición, sin cambiar los datos', () => {
   const js = read('smyl-radiograph-review.js');
   assert.match(js, /SmylRadiographReviewModel\.positionIssue\(study\.type,item\.tooth,item\.x,item\.y\)/);
@@ -172,7 +184,7 @@ test('el visor avisa cuando la pieza no coincide con la posición, sin cambiar l
 test('mesa de luz: la imagen ocupa el campo oscuro y los controles flotan encima', () => {
   const js = read('smyl-radiograph-review.js');
   assert.match(js, /n\('details','rr-qpop rr-qpop-'\+report\.quality\)/, 'la calidad vive en un chip');
-  assert.match(js, /canvas\.append\(qualityPopover\(report\)\)/, 'el chip flota sobre la imagen');
+  assert.match(js, /controlRow\.append\(imageControls\.quick,adjustments,qualityPopover\(doc\.analysis\.report\)\)/, 'zoom, ajustes y calidad comparten una sola barra de herramientas');
   assert.match(js, /LIMITACIONES DEL ANÁLISIS/);
   assert.doesNotMatch(js, /rr-safety-note|rr-review-head|Ver limitaciones del análisis/);
   assert.match(js, /head\.append\(copy\);if\(clickable\)head\.append\(marksToggle\(stage\)\)/, 'el interruptor sólo aparece durante la revisión de señales');
@@ -186,6 +198,20 @@ test('mesa de luz: la imagen ocupa el campo oscuro y los controles flotan encima
   assert.match(css, /clamp\(420px, 27vw, 450px\)/);
   assert.match(css, /@media \(min-width: 960px\)/);
   for (const match of css.matchAll(/font-size:\s*([0-9.]+)px/g)) assert.ok(Number(match[1]) >= 10, 'Texto menor de 10 px: ' + match[0]);
+});
+
+test('los ajustes móviles usan iconos accesibles y una sola barra compacta', () => {
+  const js = read('smyl-radiograph-review.js');
+  const css = read('smyl-radiograph-workbench.css');
+  assert.match(js, /function svgIcon|const svgIcon=/);
+  assert.match(js, /iconButton\('Alejar radiografía','minus'/);
+  assert.match(js, /iconButton\('Ampliar radiografía','plus'/);
+  assert.match(js, /iconButton\('Ajustar radiografía a la pantalla','fit'/);
+  assert.match(js, /adjustmentSummary\.setAttribute\('aria-label','Ajustes de imagen'\)/);
+  assert.match(css, /\.rr-icon\s*\{[^}]*width:\s*(?:18|19|20)px;[^}]*height:\s*(?:18|19|20)px/s);
+  assert.match(css, /@media \(max-width: 639px\)[\s\S]*\.rr-image-control-row\s*\{/);
+  assert.match(css, /@media \(max-width: 639px\)[\s\S]*\.rr-active-signal,[\s\S]*\.rr-panel-quality \{ display: none; \}/);
+  assert.match(css, /@media \(max-width: 639px\)[\s\S]*\.rr-image-stage > \.rr-box\.is-context,[\s\S]*\.rr-image-stage > \.rr-mark\.is-context,[\s\S]*\.rr-image-stage > \.rr-mark\.is-selected \{ display: none; \}/);
 });
 
 test('barra superior con tres pasos y una sola señal activa', () => {

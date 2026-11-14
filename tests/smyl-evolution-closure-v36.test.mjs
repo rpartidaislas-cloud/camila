@@ -15,7 +15,7 @@ test('el seguimiento reutiliza notas, citas y odontograma existentes', () => {
   assert.match(patient, /window\.SmylPatientProgress=Object\.freeze/);
   assert.match(patient, /notes:\{total:s\.notes\.length,signed:signed\.length,drafts:drafts\.length/);
   assert.match(patient, /appointments:\{total:s\.appointments\.length,completed:completed\.length/);
-  assert.match(dental, /teeth:\{total:toothNotes\.length,pending:/);
+  assert.match(dental, /teeth:\{total:new Set\(\[\.\.\.Object\.keys\(ctx\.doc\.teeth\|\|\{\}\),\.\.\.findingTeeth\]\)\.size,pending:/);
   assert.match(workspace, /renderEvolution\(ctx,progress,dental,clinical\)/);
 });
 
@@ -53,7 +53,7 @@ test('la política visual cubre escritorio y móvil sin saturar el flujo', () =>
 
 test('web, móvil y PWA publican la etapa 3.6', () => {
   assert.match(app, /smyl-patient-360\.js\?v=26/);
-  assert.match(app, /smyl-dental-record\.js\?v=30/);
+  assert.match(app, /smyl-dental-record\.js\?v=31/);
   assert.match(app, /smyl-case-workspace\.css\?v=29/);
   assert.match(app, /smyl-case-workspace\.js\?v=40/);
   assert.match(worker, /evolution-closure-v36/);

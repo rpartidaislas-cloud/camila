@@ -84,18 +84,26 @@
    row.forEach((tooth,i)=>{if(!keep.has(i)){dropped++;byFdi.delete(tooth.fdi);}});
   });
   byFdi.forEach(tooth=>{
-   const issue=window.SmylRadiographReviewModel?.positionIssue?.(studyType,tooth.fdi,tooth.x,tooth.y);
+   const issue=(window.SmylRadiographReviewModel?.automaticPositionIssue||window.SmylRadiographReviewModel?.positionIssue)?.(studyType,tooth.fdi,tooth.x,tooth.y);
    if(issue){dropped++;return;}
    teeth.push(tooth);
   });
   teeth.sort((a,b)=>Number(a.fdi)-Number(b.fdi));
   return {teeth,dropped};
  }
- // Las observaciones que nombran una pieza del mapa usan la caja del mapa (acotada a una o dos piezas).
+ // El mapa sirve como comprobación y respaldo, no como reemplazo ciego de la ubicación concreta de una señal. Si
+ // ambas pasadas discrepan de forma importante, la señal queda sin ubicar y el profesional decide sobre el original.
  function applyToothMap(report,locations,map){
   if(!map||!map.teeth.length||!report||!Array.isArray(report.observations))return locations;
   const byFdi=new Map(map.teeth.map(tooth=>[tooth.fdi,tooth])),r3=v=>Math.round(v*1000)/1000,next=Object.assign({},locations);
-  report.observations.forEach(o=>{const tooth=o&&typeof o.tooth==='string'?byFdi.get(o.tooth):null;if(tooth)next[o.id]={x:r3(tooth.x),y:r3(tooth.y),w:r3(Math.min(tooth.w,MAX_BOX.w)),h:r3(Math.min(tooth.h,MAX_BOX.h))};});
+  report.observations.forEach(o=>{
+   const tooth=o&&typeof o.tooth==='string'?byFdi.get(o.tooth):null;if(!tooth)return;
+   const proposed=next[o.id];
+   if(!proposed){next[o.id]={x:r3(tooth.x),y:r3(tooth.y),w:r3(Math.min(tooth.w,MAX_BOX.w)),h:r3(Math.min(tooth.h,MAX_BOX.h))};return;}
+   const toleranceX=Math.max(.08,Math.min(.16,tooth.w*1.75)),toleranceY=Math.max(.12,Math.min(.24,tooth.h*1.25));
+   if(Math.abs(proposed.x-tooth.x)>toleranceX||Math.abs(proposed.y-tooth.y)>toleranceY){delete next[o.id];return;}
+   next[o.id]=Object.assign({},proposed,typeof proposed.w==='number'?{w:r3(Math.min(proposed.w,MAX_BOX.w))}:{},typeof proposed.h==='number'?{h:r3(Math.min(proposed.h,MAX_BOX.h))}:{});
+  });
   return next;
  }
  // Rejilla de referencia para la primera pasada: líneas cada 10 % con la fracción escrita en los bordes.

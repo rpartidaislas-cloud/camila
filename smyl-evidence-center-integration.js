@@ -286,7 +286,10 @@
       || global.SmylPatient360?.allFiles?.(tenant, patient)
       || global.SmylPatient360?.files?.(tenant, patient);
     const caseId = global.SmylCaseWorkspace?.context?.(tenant, patient)?.caseId;
-    const dental = caseId ? global.SmylDentalProgress?.status?.(tenant, patient, caseId) : null;
+    // El archivo radiográfico pertenece al paciente, incluso antes de que exista un caso.
+    // No condicionamos su lectura al plan para evitar que la navegación cuente un estudio
+    // mientras Archivos clínicos todavía comunica un estado vacío.
+    const dental = global.SmylDentalProgress?.status?.(tenant, patient, caseId) || null;
     const items = [];
     const canonicalPhotos = (Array.isArray(photoStudies) ? photoStudies : []).map(photoStudyItem);
     const indexedFiles = new Set(canonicalPhotos.map(item => item.patientFileId).filter(Boolean));
@@ -500,8 +503,17 @@
     }
     if (intake.shellTitle?.isConnected) intake.shellTitle.textContent = intake.shellTitleLabel;
     if (intake.shellToggle?.isConnected) intake.shellToggle.textContent = intake.shellToggleLabel;
+    if (intake.shell?.isConnected) {
+      intake.shell.open = false;
+      intake.shell.hidden = true;
+      intake.shell.classList.remove('is-open');
+    }
     state.pendingRadiographIntake = null;
     state.root.hidden = false;
+    if (current(state)) {
+      state.fingerprint = '';
+      refresh(state);
+    }
     if (options?.focusArchive) requestAnimationFrame(() => state.centerHost?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
   }
 
@@ -658,7 +670,7 @@
 
   function routeRadiograph(state, payload) {
     const caseId = global.SmylCaseWorkspace?.context?.(state.tenant, state.patient)?.caseId;
-    const status = caseId ? global.SmylDentalProgress?.status?.(state.tenant, state.patient, caseId) : null;
+    const status = global.SmylDentalProgress?.status?.(state.tenant, state.patient, caseId) || null;
     const before = new Set((status?.studyItems || []).map(item => String(item.id)));
     if (payload.categoryIds?.length) {
       state.pendingRadiographCategory = {
@@ -687,7 +699,7 @@
       return;
     }
     const caseId = global.SmylCaseWorkspace?.context?.(state.tenant, state.patient)?.caseId;
-    const status = caseId ? global.SmylDentalProgress?.status?.(state.tenant, state.patient, caseId) : null;
+    const status = global.SmylDentalProgress?.status?.(state.tenant, state.patient, caseId) || null;
     const created = (status?.studyItems || []).find(item => !pending.before.has(String(item.id)));
     if (!created) return;
     state.pendingRadiographCategory = null;

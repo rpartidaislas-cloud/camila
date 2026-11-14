@@ -1,5 +1,13 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-14 — Codex — Carga clínica con una sola puerta visible
+
+- **Agregar archivo** queda como única entrada para fotografías, radiografías y documentos. Al elegir una radiografía, el archivo pasa al editor canónico y sus campos de carga permanecen ocultos; no se crea ni se conserva un segundo selector.
+- Al guardar, descartar o fallar, el editor radiográfico se cierra y se oculta antes de restaurar **Archivos clínicos**. La pantalla ya no puede mostrar simultáneamente el estado vacío y el formulario especializado usado en el paso anterior.
+- Las radiografías del paciente se incorporan al archivo aunque todavía no exista un caso o plan seleccionado. El contador de Revisión profesional y el archivo leen el mismo registro dental; al terminar se invalida la vista y se vuelve a leer inmediatamente la fuente canónica.
+- No cambian originales, persistencia, permisos, backend, esquema, decisiones profesionales ni historial. Web y `mobile/www` quedan sincronizados con integración de Evidencia `js?v=11` y caché `evidence-single-entry-fix-v1`.
+- Verificación previa a la integración: `45/45` contratos focalizados aprobados y QA visual aprobado en 1280, 820, 390, 360 y 320 px, sin desbordes ni controles cortos. La entrega se integró conservando Inventario v2, Finanzas profesionales y sus versiones de producción.
+
 ## 2026-11-13 — Codex — Recibos, caja por responsable y permisos financieros
 
 - **Recibos** pasa a ser la primera vista de Cobros y queda separado de **Facturación**. Cada fila conserva una sola acción, **Abrir recibo**, y su detalle presenta los servicios cobrados, cantidades, descuentos, importe aplicado, forma de pago, referencia, sucursal, fecha, hora y usuario que registró el movimiento.
