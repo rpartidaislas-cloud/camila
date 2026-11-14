@@ -231,3 +231,74 @@
 .inventory-first-note{margin:12px 0 0;color:#6b778c;font-size:12.5px}
 .inventory-empty[data-good="true"] button{margin-top:12px}
 @media(max-width:620px){.inventory-first-use{padding:18px 14px}.inventory-first-use li{grid-template-columns:28px 1fr}.inventory-first-use li>:last-child{grid-column:1/-1;justify-self:start}}
+
+/* Inventario v2 · paso 2: «Registrar movimiento» por tipo, buscador de pacientes y confirmaciones propias. */
+.inventory-dialog .smyl-field-label i{display:none}
+.inventory-optional{color:#8a99a6;font-weight:500;font-size:12px}
+.inventory-kinds{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:2px 0 14px}.inventory-kinds[hidden]{display:none}
+.inventory-kinds button{display:grid;gap:2px;padding:10px 8px;border:1px solid #d9dfe7;border-radius:10px;background:#fff;color:#16243a;font:inherit;text-align:center;cursor:pointer}
+.inventory-kinds button b{font-size:13px}.inventory-kinds button small{color:#6b778c;font-size:12px;font-weight:500}
+.inventory-kinds button[aria-checked="true"]{border-color:#0f766e;background:#e6f5f2;box-shadow:0 0 0 2px rgba(15,118,110,.15)}
+.inventory-kinds button:focus-visible,.inventory-segment button:focus-visible{outline:2px solid #0f766e;outline-offset:2px}
+.inventory-segment{display:flex;gap:3px;padding:3px;margin:0 0 12px;background:#edf1f4;border-radius:9px;width:max-content;max-width:100%}.inventory-segment[hidden]{display:none}
+.inventory-segment button{padding:6px 12px;border:0;border-radius:6px;background:transparent;color:#526465;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.inventory-segment button[aria-checked="true"]{background:#fff;color:#0f766e;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.inventory-movement-form [hidden]{display:none!important}
+.inventory-patient-picker{position:relative;display:block;margin-top:4px}
+.inventory-patient-picker input[type=search]{width:100%}
+.inventory-patient-results{position:absolute;z-index:30;left:0;right:0;top:calc(100% + 4px);margin:0;padding:4px;list-style:none;background:#fff;border:1px solid #d7dee8;border-radius:10px;box-shadow:0 12px 30px rgba(16,34,57,.14);max-height:260px;overflow:auto}
+.inventory-patient-results li{padding:8px 10px;border-radius:8px;cursor:pointer;display:grid;gap:2px}.inventory-patient-results li small{color:#6b778c}
+.inventory-patient-results li:hover,.inventory-patient-results li[aria-selected="true"]{background:#eef3f9}
+.inventory-patient-results .inventory-patient-empty{cursor:default;color:#6b778c}
+.inventory-confirm{width:min(440px,calc(100vw - 32px));height:fit-content;position:fixed;inset:0;margin:auto;padding:0;border:0;border-radius:14px;box-shadow:0 18px 50px rgba(11,27,46,.28);overflow:visible}
+.inventory-confirm-body{display:grid;gap:12px;padding:22px}
+.inventory-confirm-body h2{margin:0;font-size:18px}.inventory-confirm-body p{margin:0;color:#526273;font-size:14px;line-height:1.5}
+.inventory-confirm-body label{display:grid;gap:6px;font-size:13px;color:#33465f}.inventory-confirm-body textarea{width:100%;border:1px solid #d7dee8;border-radius:8px;padding:9px 11px;font:inherit;resize:vertical}
+.inventory-confirm-error{color:#b42318;font-size:12.5px}
+.inventory-confirm .inventory-actions{justify-content:flex-end;margin-top:4px}
+.inventory-confirm .btn[data-danger="true"]{background:#b42318!important;border-color:#b42318!important;color:#fff!important}
+@media(max-width:520px){.inventory-kinds{grid-template-columns:1fr 1fr}}
+
+/* Inventario v2 · paso 3: orden de compra con varias líneas y proveedor sin salir del diálogo. */
+.inventory-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.inventory-link{justify-self:start;padding:2px 0;border:0;background:none;color:#0f766e;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+.inventory-link:hover{text-decoration:underline}.inventory-link:focus-visible{outline:2px solid #0f766e;outline-offset:2px;border-radius:4px}
+.inventory-order-form [hidden]{display:none!important}
+.inventory-inline-supplier{display:grid;gap:8px;padding:12px;border:1px dashed #9fcfc8;border-radius:10px;background:#f0faf8}
+.inventory-inline-supplier>b{font-size:13px}.inventory-inline-supplier .inventory-form-grid{margin-top:0}
+.inventory-inline-supplier .inventory-actions{justify-content:flex-end;margin-top:0}
+.inventory-order-lines{margin:14px 0 0;border:1px solid #e1e7ef;border-radius:10px;padding:10px 12px;display:grid;gap:8px}
+.inventory-order-lines-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.inventory-order-lines-head b{font-size:13px}
+.inventory-order-line{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,.7fr) minmax(0,.8fr) 30px;gap:8px;align-items:center}
+.inventory-order-line-head{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6b778c}
+.inventory-order-line label{display:block;margin:0}
+.inventory-order-line select,.inventory-order-line input{width:100%;box-sizing:border-box;height:38px;border:1px solid #dbe2ec;border-radius:9px;background:#fff;padding:0 10px;font:inherit;font-size:13px}
+.inventory-money{display:flex;align-items:center;border:1px solid #dbe2ec;border-radius:9px;background:#fff;height:38px;overflow:hidden}.inventory-money i{padding:0 0 0 10px;color:#6b778c;font-style:normal}
+body.smyl-ui-governed .contenido .inventory-order-line .inventory-money input{border:0!important;box-shadow:none!important;height:100%!important;background:transparent!important}
+.inventory-line-remove{width:30px;height:30px;border:0;border-radius:8px;background:#f2f5f9;color:#526273;font-size:18px;line-height:1;cursor:pointer}
+.inventory-line-remove:hover:not(:disabled){background:#fdecea;color:#b42318}.inventory-line-remove:disabled{opacity:.35;cursor:not-allowed}
+.inventory-order-notes{display:grid;gap:6px;margin-top:12px}.inventory-order-notes textarea{width:100%;box-sizing:border-box;border:1px solid #dbe2ec;border-radius:9px;padding:9px 10px;font:inherit;font-size:13px;resize:vertical}
+.inventory-form-error{margin:10px 0 0;padding:9px 12px;border-radius:9px;background:#fdecea;color:#b42318;font-size:13px}
+.inventory-order-form .inventory-actions{align-items:center}
+.inventory-order-total{margin-right:auto;display:grid;gap:1px;line-height:1.2}
+.inventory-order-total span{font-size:12px;color:#6b778c}.inventory-order-total b{font-size:17px;color:#16243a;font-variant-numeric:tabular-nums}
+@media(max-width:560px){.inventory-order-line{grid-template-columns:1fr 1fr 30px}.inventory-order-line>label:first-child{grid-column:1/-1}.inventory-order-line-head{display:none}.inventory-order-line .inventory-line-remove{justify-self:end}.inventory-order-total{flex:1 0 100%}}
+.inventory-label-row{display:flex!important;justify-content:space-between;align-items:baseline;gap:8px}
+.inventory-label-row .inventory-link{padding:0}
+.inventory-order-form .inventory-form-grid{align-items:start}
+.inventory-label-row{min-height:18px;line-height:18px}.inventory-label-row .inventory-link{line-height:18px;padding:0}
+.inventory-dialog .inventory-link{min-height:0!important;height:auto!important;background:none!important;border:0!important;box-shadow:none!important;color:#0f766e!important}
+
+/* Consumo al cerrar la cita: aviso al terminar y lista de citas sin material. */
+.inventory-toast{position:fixed;right:20px;bottom:20px;z-index:2147483000;display:flex;align-items:center;gap:16px;max-width:min(520px,calc(100vw - 32px));padding:14px 16px;border:1px solid #bfe3dc;border-radius:14px;background:#fff;box-shadow:0 14px 40px rgba(11,27,46,.22);color:#16243a}
+.inventory-toast>div:first-child{display:grid;gap:2px;font-size:13px;line-height:1.4}.inventory-toast b{font-size:14px}.inventory-toast span{color:#526273}
+.inventory-toast-actions{display:flex;align-items:center;gap:10px;flex:none}
+@media(max-width:560px){.inventory-toast{left:16px;right:16px;flex-direction:column;align-items:stretch}.inventory-toast-actions{justify-content:flex-end}}
+.inventory-pending{display:grid;gap:12px}.inventory-pending h2{margin:0}.inventory-pending>p{margin:0;color:#6b778c;font-size:13px;line-height:1.5}
+.inventory-pending ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;max-height:52vh;overflow:auto}
+.inventory-pending li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid #e1e7ef;border-radius:10px}
+.inventory-pending li b{display:block;font-size:13.5px}.inventory-pending li small{color:#6b778c;font-size:12.5px}
+.inventory-pending li>span{display:flex;align-items:center;gap:12px;flex:none}
+.inventory-pending-empty{justify-content:center!important;color:#6b778c}
+@media(max-width:560px){.inventory-pending li{flex-direction:column;align-items:flex-start}}
+.inventory-dialog[data-plain]{position:fixed;inset:0;margin:auto;height:fit-content;width:min(560px,calc(100vw - 28px));padding:22px;overflow:auto}

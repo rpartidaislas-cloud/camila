@@ -9,13 +9,13 @@ const js = read('smyl-finance.js');
 const css = read('smyl-finance.css');
 const nav = js.slice(js.indexOf('<nav class="finance-tabs"'), js.indexOf('</nav>', js.indexOf('<nav class="finance-tabs"')));
 
-test('quedan cuatro pestañas con nombres cortos y los mismos identificadores que enlaza Configuración', () => {
-  const ids = [...nav.matchAll(/data-finance-tab="(\w+)"/g)].map((m) => m[1]);
-  assert.deepEqual(ids, ['accounts', 'payments', 'cash', 'fiscal']);
-  for (const label of ['>Por cobrar<em hidden></em>', '>Pagos<', '>Caja<', '>Facturación<']) assert.ok(nav.includes(label), label);
+test('quedan cuatro pestañas con Recibos primero y los mismos identificadores que enlaza Configuración', () => {
+  assert.match(js, /nav\.prepend\(receiptTab\)/);
+  assert.match(js, /if\(paymentTab\)paymentTab\.remove\(\)/);
+  for (const label of ['Recibos', '>Por cobrar<em hidden></em>', '>Caja<', '>Facturación<']) assert.ok(js.includes(label), label);
   for (const old of ['Por cobrar hoy', 'Cuentas por cobrar', 'Pagos y recibos', 'Corte de caja', 'Preparación CFDI', 'Plantillas']) assert.ok(!nav.includes(old), old);
   const hub = read('smyl-settings-hub.js');
-  for (const id of ['fiscal', 'payments', 'cash']) assert.match(hub, new RegExp('data-finance-tab="' + id + '"'));
+  for (const id of ['fiscal', 'receipts', 'cash']) assert.match(hub, new RegExp('data-finance-tab="' + id + '"'));
 });
 
 test('«Por cobrar» reúne los filtros, con «Vencidas» en lugar de la pestaña «Por cobrar hoy»', () => {
@@ -31,7 +31,7 @@ test('«Por cobrar» reúne los filtros, con «Vencidas» en lugar de la pestañ
 });
 
 test('cada cifra abre la pestaña o el filtro que la explica y es operable con teclado', () => {
-  assert.match(js, /var METRIC_GO=\[\['accounts','open'[^\]]*\],\['payments',''[^\]]*\],\['accounts','credit'[^\]]*\],\['cash',''[^\]]*\]\]/);
+  assert.match(js, /var METRIC_GO=\[\['accounts','open'[^\]]*\],\['receipts',''[^\]]*\],\['accounts','credit'[^\]]*\],\['cash',''[^\]]*\]\]/);
   assert.match(js, /role="button" tabindex="0" data-metric-tab=/);
   assert.match(js, /e\.key==='Enter'\|\|e\.key===' '/);
   assert.match(css, /\.finance-metrics article\[role=button\]:focus-visible/);
@@ -146,7 +146,7 @@ test('Cobros: «Reembolsar y cancelar cargos» es una función de rol aplicada e
   assert.match(fin, /finance-row-menu/);
   assert.match(fin, /function openRefund\(payment\)\{if\(!state\.canRefund\)/);
   assert.match(admin, /'finance\.refund': 'Reembolsar y cancelar cargos'/);
-  assert.match(admin, /'finance\.manage', 'finance\.refund'/);
+  assert.match(admin, /'finance\.manage', 'finance\.cash', 'finance\.cash\.supervise', 'finance\.refund'/);
   assert.match(sql, /smyl_finance_refund_guard/);
   assert.match(sql, /smyl_finance_void_guard/);
   assert.match(sql, /where rp\.permission_key = 'finance\.manage'/);
@@ -198,4 +198,57 @@ test('Inventario v2: un solo título, alertas en chips, primer uso guiado y sin 
   assert.match(css, /\.inventory-first-use\{/);
   assert.match(css, /\.inventory-chip\[data-tone="danger"\]/);
   for (const f of ['smyl-inventory.js', 'smyl-inventory.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
+});
+
+test('Inventario v2 paso 2: movimiento por tipo, buscador de pacientes y confirmaciones propias', () => {
+  const js = fs.readFileSync(new URL('../smyl-inventory.js', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../smyl-inventory.css', import.meta.url), 'utf8');
+  assert.match(js, /var MOVEMENT_KINDS=/);
+  assert.match(js, /role="radiogroup" aria-label="Qué pasó"/);
+  assert.match(js, /WASTE_REASONS=\['Caducado'/);
+  assert.match(js, /itemSel=d\.querySelector\('select\[name="item"\]'\)/);
+  assert.doesNotMatch(js, /form\.elements\.item\b/);
+  assert.match(js, /function mountPatientPicker\(form,initialId\)/);
+  assert.match(js, /Elige al paciente de la lista o borra el campo/);
+  assert.match(js, /function confirmAction\(o\)/);
+  assert.doesNotMatch(js, /window\.confirm\(|window\.prompt\(/);
+  assert.match(js, /id="inventory-confirm"/);
+  assert.match(css, /\.inventory-kinds\{/);
+  assert.match(css, /\.inventory-patient-results\{/);
+  assert.match(css, /\.inventory-confirm \.btn\[data-danger="true"\]/);
+  for (const f of ['smyl-inventory.js', 'smyl-inventory.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
+});
+
+test('Inventario v2 paso 3: orden de compra con varias líneas, total y proveedor sin salir del diálogo', () => {
+  const js = fs.readFileSync(new URL('../smyl-inventory.js', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../smyl-inventory.css', import.meta.url), 'utf8');
+  assert.match(js, /function openOrder\(opts\)/);
+  assert.match(js, /data-add-line/);
+  assert.match(js, /data-add-missing/);
+  assert.match(js, /data-new-supplier/);
+  assert.match(js, /from\('smyl_inventory_suppliers'\)\.insert\(\{tenant_id:state\.tenant,name:name/);
+  assert.match(js, /p_lines:lines/);
+  assert.match(js, /onclick=function\(\)\{openOrder\(\);\}/);
+  assert.doesNotMatch(js, /onclick=openOrder/);
+  assert.match(css, /\.inventory-order-line\{display:grid/);
+  assert.match(css, /\.inventory-order-total\{/);
+  for (const f of ['smyl-inventory.js', 'smyl-inventory.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
+});
+
+test('Inventario v2: consumo al cerrar la cita (aviso, estado en la ficha y lista de citas sin material)', () => {
+  const inv = fs.readFileSync(new URL('../smyl-inventory.js', import.meta.url), 'utf8');
+  const sch = fs.readFileSync(new URL('../smyl-schedule.js', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../smyl-inventory.css', import.meta.url), 'utf8');
+  assert.match(sch, /status==='completed'\)window\.dispatchEvent\(new CustomEvent\('smyl:appointment-completed'/);
+  assert.match(sch, /data-material-row/);
+  assert.match(sch, /window\.SmylInventory\.consumptionStatus\(a\)/);
+  assert.match(inv, /window\.addEventListener\('smyl:appointment-completed'/);
+  assert.match(inv, /async function consumptionStatus\(app\)/);
+  assert.match(inv, /async function loadPendingMaterial\(\)/);
+  assert.match(inv, /function openPendingMaterial\(\)/);
+  assert.match(inv, /MATERIAL PENDIENTE/);
+  assert.match(inv, /consumptionStatus:consumptionStatus/);
+  assert.match(css, /\.inventory-toast\{/);
+  assert.match(css, /\.inventory-dialog\[data-plain\]/);
+  for (const f of ['smyl-inventory.js', 'smyl-inventory.css', 'smyl-schedule.js', 'smyl-schedule.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });

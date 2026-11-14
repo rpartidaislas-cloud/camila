@@ -69,7 +69,13 @@ test('los demás módulos tampoco se quedan en 1,000 pacientes', () => {
   assert.match(home, /async function namesFor\(tenant,ids\)/);
   assert.match(home, /\.in\('id',unique\.slice\(i,i\+100\)\)/);
   // Los selectores que sí necesitan la lista completa la piden por páginas.
-  for (const file of ['smyl-inventory.js', 'smyl-clinic.js', 'smyl-case-client.js']) {
+  // Inventario tampoco descarga a todos: pide solo los nombres de citas y movimientos (lotes de 100) y busca pacientes en el servidor.
+  const inventory = read('smyl-inventory.js');
+  assert.doesNotMatch(inventory, /async function patientPages/);
+  assert.match(inventory, /async function ensurePatients\(\)/);
+  assert.match(inventory, /\.in\('id',ids\.slice\(i,i\+100\)\)/);
+  assert.match(inventory, /smyl_search_patients/);
+  for (const file of ['smyl-clinic.js', 'smyl-case-client.js']) {
     const source = read(file);
     assert.match(source, /\.range\(page ?\* ?1000,\s*page ?\* ?1000 ?\+ ?999\)/, `${file} debe paginar`);
     assert.match(source, /page ?< ?10/, `${file} debe limitar las páginas`);
