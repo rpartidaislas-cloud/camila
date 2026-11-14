@@ -30,3 +30,19 @@ test('caducidad: separa vencidos, 30 y 31–90 días', () => {
   const b = h.expiryBuckets([{ on_hand: 1, days_to_expiry: -1 }, { on_hand: 1, days_to_expiry: 10 }, { on_hand: 1, days_to_expiry: 60 }, { on_hand: 1, days_to_expiry: 200 }, { on_hand: 0, days_to_expiry: 5 }]);
   assert.deepEqual(b, { expired: 1, d30: 1, d90: 1 });
 });
+
+test('sin movimiento: solo existencia con último movimiento anterior al límite', () => {
+  const stale = new Function(src.match(/function staleRows\([^\n]*\n/)[0] + ';return staleRows;')();
+  const now = Date.parse('2026-11-14T00:00:00Z'), day = 86400000;
+  const snap = [
+    { location_id: 'L', item_id: 'viejo', on_hand: 3 }, { location_id: 'L', item_id: 'reciente', on_hand: 3 },
+    { location_id: 'L', item_id: 'vacio', on_hand: 0 }, { location_id: 'L', item_id: 'sin-dato', on_hand: 2 },
+  ];
+  const moves = [
+    { location_id: 'L', item_id: 'viejo', last_moved_at: new Date(now - 120 * day).toISOString() },
+    { location_id: 'L', item_id: 'reciente', last_moved_at: new Date(now - 10 * day).toISOString() },
+    { location_id: 'L', item_id: 'vacio', last_moved_at: new Date(now - 300 * day).toISOString() },
+  ];
+  assert.deepEqual(stale(snap, moves, now, 90).map((x) => x.item_id), ['viejo']);
+  assert.deepEqual(stale(snap, [], now, 90), []);
+});
