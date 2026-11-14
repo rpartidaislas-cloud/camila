@@ -40,7 +40,7 @@
       { title: 'Probar al asistente', desc: 'Revisa respuestas antes de activar cambios.', group: 'Atención automática', icon: 'lab', action: 'Probar', route: 'conexiones', target: '[data-connection-tab="lab"]' }
     ] },
     { id: 'cobros', title: 'Cobros', blurb: 'Pagos, caja y datos fiscales.', icon: 'payments', items: [
-      { title: 'Cobros y pagos', desc: 'Pagos recibidos, recibos y reembolsos.', group: 'Operación diaria', icon: 'payments', action: 'Abrir', route: 'caja', embed: true, target: '[data-finance-tab="payments"]' },
+      { title: 'Recibos', desc: 'Comprobantes, servicios cobrados y seguimiento fiscal.', group: 'Operación diaria', icon: 'payments', action: 'Abrir', route: 'caja', embed: true, target: '[data-finance-tab="receipts"]' },
       { title: 'Corte de caja', desc: 'Cierra el día y cuadra lo cobrado.', group: 'Operación diaria', icon: 'cash', action: 'Revisar', route: 'caja', embed: true, target: '[data-finance-tab="cash"]' },
       { title: 'Facturación', desc: 'Datos fiscales y preparación de facturas.', group: 'Facturación y reglas', icon: 'template', action: 'Configurar', route: 'caja', embed: true, target: '[data-finance-tab="fiscal"]' },
       { title: 'Formas de pago y anticipo', desc: 'Métodos aceptados y anticipos de la clínica.', group: 'Facturación y reglas', icon: 'payments', soon: true }

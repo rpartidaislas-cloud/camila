@@ -68,34 +68,51 @@ const server = http.createServer((req, res) => {
   });
   await page.evaluate(() => ir('caja'));
   await page.waitForTimeout(1800);
-  await page.click('[data-finance-tab="fiscal"]');
+  await page.click('[data-finance-tab="receipts"]');
   await page.waitForTimeout(400);
 
-  const pending = await page.$$eval('.finance-fiscal-receipt-list>article', rows => rows.map(row => ({
+  const receipts = await page.$$eval('[data-finance-panel="receipts"] .finance-fiscal-receipt-list>article', rows => rows.map(row => ({
     folio: row.querySelector('.finance-fiscal-receipt-folio strong').textContent,
     state: row.querySelector('.finance-badge').textContent,
+    service: row.querySelector('.finance-fiscal-receipt-copy p').textContent,
     actions: [...row.querySelectorAll('button')].map(button => button.textContent.trim())
   })));
-  console.log('1) por facturar:', JSON.stringify(pending));
-  check(pending.length === 2, 'debe mostrar dos recibos pendientes');
-  check(pending.some(row => row.actions.includes('Preparar factura')), 'el recibo listo debe permitir preparar factura');
-  check(pending.some(row => row.actions.includes('Completar datos')), 'el recibo sin receptor debe pedir datos fiscales');
+  console.log('1) recibos:', JSON.stringify(receipts));
+  check(receipts.length === 3, 'debe mostrar los tres recibos sin mezclarlos con Facturación');
+  check(receipts.every(row => row.actions.length === 1 && row.actions[0] === 'Abrir recibo'), 'cada recibo debe tener una sola acción principal');
+  check(receipts.some(row => row.service === 'Consulta'), 'el recibo debe anticipar el servicio cobrado');
+
+  await page.click('[data-open-receipt="r-draft"]');
+  await page.waitForTimeout(250);
+  const detail = await page.$eval('.finance-receipt-detail', dialog => ({
+    service: dialog.querySelector('.finance-receipt-services article strong').textContent,
+    applied: dialog.querySelector('.finance-receipt-services article>div:last-child strong').textContent,
+    fiscal: [...dialog.querySelectorAll('footer button')].map(button => button.textContent.trim())
+  }));
+  console.log('2) detalle:', JSON.stringify(detail));
+  check(detail.service === 'Consulta', 'el detalle debe mostrar el servicio cobrado');
+  check(detail.applied.includes('300'), 'el detalle debe mostrar el importe aplicado');
+  check(detail.fiscal.includes('Ir a Facturación'), 'un recibo con borrador debe continuar hacia Facturación');
+  await page.click('.finance-receipt-detail [data-close]');
   await page.screenshot({ path: path.join(shots, 'cobros-recibos-escritorio.png'), fullPage: true });
 
-  await page.click('[data-receipt-filter="draft"]');
-  const draft = await page.$eval('.finance-fiscal-receipt-list>article', row => ({
-    state: row.querySelector('.finance-badge').textContent,
-    actions: [...row.querySelectorAll('button')].map(button => button.textContent.trim())
+  await page.click('[data-finance-tab="fiscal"]');
+  await page.waitForTimeout(250);
+  const fiscal = await page.$eval('[data-finance-panel="fiscal"]', panel => ({
+    receiptLists: panel.querySelectorAll('.finance-fiscal-receipt-list').length,
+    drafts: panel.querySelectorAll('.finance-drafts article').length,
+    note: panel.querySelector('.finance-fiscal-note').textContent.trim()
   }));
-  console.log('2) en preparación:', JSON.stringify(draft));
-  check(draft.state === 'En preparación', 'el recibo vinculado debe mostrar En preparación');
-  check(draft.actions.includes('Ver proceso') && !draft.actions.includes('Preparar factura'), 'no debe duplicar la preparación fiscal');
+  console.log('3) facturación separada:', JSON.stringify(fiscal));
+  check(fiscal.receiptLists === 0, 'Facturación no debe repetir la bandeja de recibos');
+  check(fiscal.drafts === 1, 'Facturación debe conservar sus borradores');
+  check(fiscal.note.includes('Proceso fiscal independiente'), 'Facturación debe explicar su alcance');
 
-  await page.click('[data-receipt-filter="pending"]');
+  await page.click('[data-finance-tab="receipts"]');
   for (const viewport of [{ width: 390, height: 844, label: 'movil-390' }, { width: 320, height: 760, label: 'movil-320' }]) {
     await page.setViewportSize(viewport); await page.waitForTimeout(250);
     const metrics = await page.evaluate(() => {
-      const root = document.querySelector('[data-finance-panel="fiscal"]');
+      const root = document.querySelector('[data-finance-panel="receipts"]');
       const visible = element => { const style = getComputedStyle(element); return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0; };
       const under12 = [...root.querySelectorAll('p,span,small,label,button,strong,em')].filter(visible).filter(element => element.textContent.trim() && parseFloat(getComputedStyle(element).fontSize) < 11.99).map(element => element.textContent.trim().slice(0, 35));
       const shortTargets = [...root.querySelectorAll('button')].filter(visible).map(element => ({ text: element.textContent.trim(), rect: element.getBoundingClientRect() })).filter(item => item.rect.height < 43.5 || item.rect.width < 43.5).map(item => item.text);
@@ -107,7 +124,7 @@ const server = http.createServer((req, res) => {
         filterRows: Math.round(filters.scrollHeight / filters.querySelector('button').getBoundingClientRect().height)
       };
     });
-    console.log(`3) ${viewport.label}:`, JSON.stringify(metrics));
+    console.log(`4) ${viewport.label}:`, JSON.stringify(metrics));
     check(!metrics.overflow, `${viewport.label} no debe desbordar horizontalmente`);
     check(metrics.under12.length === 0, `${viewport.label} no debe mostrar microtexto`);
     check(metrics.shortTargets.length === 0, `${viewport.label} debe conservar objetivos táctiles`);

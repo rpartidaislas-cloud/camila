@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-13 — Codex — Recibos, caja por responsable y permisos financieros
+
+- **Recibos** pasa a ser la primera vista de Cobros y queda separado de **Facturación**. Cada fila conserva una sola acción, **Abrir recibo**, y su detalle presenta los servicios cobrados, cantidades, descuentos, importe aplicado, forma de pago, referencia, sucursal, fecha, hora y usuario que registró el movimiento.
+- El recibo conserva su identidad como comprobante interno. Desde su detalle puede imprimirse, compartirse o iniciar/continuar el proceso fiscal correspondiente. **Facturación** ya no repite los recibos: concentra únicamente borradores, prevalidación, emisor, PAC y cancelaciones.
+- **Caja** se organiza por responsable. Cada usuario abre y opera su propia caja; el equipo autorizado ve las cajas abiertas y sólo el rol con supervisión puede revisar o cerrar una caja ajena. El sistema conserva quién abrió, quién cerró y los horarios de la sesión.
+- Se añaden permisos independientes `finance.cash`, `finance.cash.supervise` y `finance.invoice`, con migración compatible que conserva el acceso actual y aplica validación también en base de datos. Mi clínica muestra las funciones como **Abrir y operar su caja**, **Supervisar cajas del equipo** y **Preparar facturas**.
+- Web y `mobile/www` quedan sincronizados con finanzas `js?v=37`/`css?v=30`, administración de clínica `js?v=11`, configuración `js?v=7` y caché `professional-finance-v1`. En PWA no hay desbordamiento horizontal ni microtexto a 390 o 320 px; los controles táctiles conservan 44 px.
+- Verificación focalizada: `89/89` contratos financieros y de integración aprobados; QA real en Chrome para Recibos/Facturación y corte de caja aprobado en escritorio y móvil. Publicación autorizada el 13 de noviembre de 2026.
+
 ## 2026-11-13 — Codex — Revisión clínica con una sola entrada de evidencia
 
 - La tarea **Revisión profesional** conserva **Archivos clínicos** como única puerta de entrada. Se retiró el resumen duplicado de “Fuentes para revisar” y el estado vacío deja una sola acción, **Agregar archivo**.
