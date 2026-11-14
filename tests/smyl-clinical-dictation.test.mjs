@@ -76,13 +76,14 @@ test('el reconocimiento sólo prepara la vista previa y nunca guarda', () => {
 
 test('confirmar alimenta el borrador canónico y conserva el único guardado versionado', () => {
   const voice = record.slice(record.indexOf('openVoice(tenant,patient'), record.indexOf('},openStudy(tenant,patient'));
-  assert.match(voice, /ctx\.doc\.teeth\[tooth\]=\{\.\.\.old,observation\}/);
-  assert.match(voice, /dirty\(ctx\);renderTeeth\(ctx\)/);
-  assert.match(voice, /reason:'draft'/);
+  assert.match(voice, /appendFinding\(ctx,\{/);
+  assert.match(voice, /capture:'voice'/);
   assert.doesNotMatch(voice, /smyl_save_dental_record|\.rpc\(|save\(ctx\)/);
   assert.match(record, /smyl_save_dental_record/);
   assert.match(record, /p_expected_revision:ctx\.revision/);
-  assert.match(record, /ctx\.doc\.teeth\[tooth\]=\{\.\.\.old,observation\}/);
+  assert.match(record, /findings\.events\.push\(event\)/);
+  assert.match(record, /dirty\(ctx\);renderTeeth\(ctx\)/);
+  assert.match(record, /reason:'draft'/);
 });
 
 test('la voz aparece como una sola acción secundaria dentro del odontograma', () => {
@@ -108,7 +109,7 @@ test('la interfaz conserva accesibilidad, móvil y movimiento reducido', () => {
 });
 
 test('web, PWA y móvil incluyen la misma integración', () => {
-  for (const asset of ['smyl-dental-dictation.css?v=2', 'smyl-dental-dictation.js?v=2', 'smyl-dental-record.js?v=30', 'smyl-case-workspace.css?v=29', 'smyl-case-workspace.js?v=40']) {
+  for (const asset of ['smyl-dental-dictation.css?v=2', 'smyl-dental-dictation.js?v=2', 'smyl-dental-record.js?v=31', 'smyl-case-workspace.css?v=29', 'smyl-case-workspace.js?v=40']) {
     assert.match(app, new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     assert.match(worker, new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
