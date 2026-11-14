@@ -60,7 +60,7 @@ test('web y PWA distribuyen el mismo flujo y fuerzan una caché nueva', () => {
     'smyl-radiograph-review.js?v=27',
     'smyl-dental-record.js?v=30',
     'smyl-case-workspace.js?v=40',
-    'smyl-evidence-center-integration.js?v=10',
+    'smyl-evidence-center-integration.js?v=11',
     'smyl-evidence-center-integration.css?v=6'
   ]) {
     assert.match(app, new RegExp(tag.replaceAll('.', '\\.').replace('?', '\\?')));

@@ -44,8 +44,18 @@ test('guardar, descartar o fallar restaura el archivo sin borrar historia previa
   assert.match(dental, /ctx\.dirty=!SmylCaseModel\.same\(ctx\.doc,ctx\.savedDoc\)/);
   assert.match(integration, /function finishRadiographIntake/);
   assert.match(integration, /state\.root\.hidden = false/);
+  assert.match(integration, /intake\.shell\.open = false/);
+  assert.match(integration, /intake\.shell\.hidden = true/);
+  assert.match(integration, /state\.fingerprint = '';/);
+  assert.match(integration, /refresh\(state\)/);
   assert.match(integration, /active\.pendingRadiographIntake/);
   assert.match(integration, /event\.detail\?\.reason === 'saved'/);
+});
+
+test('el archivo muestra radiografías del paciente aunque todavía no exista un caso', () => {
+  assert.match(integration, /const dental = global\.SmylDentalProgress\?\.status\?\.\(tenant, patient, caseId\) \|\| null/);
+  assert.doesNotMatch(integration, /const dental = caseId \? global\.SmylDentalProgress/);
+  assert.equal((integration.match(/const status = global\.SmylDentalProgress\?\.status\?\.\(state\.tenant, state\.patient, caseId\) \|\| null/g) || []).length, 2);
 });
 
 test('web y PWA publican las versiones del flujo único', () => {
@@ -55,13 +65,14 @@ test('web y PWA publican las versiones del flujo único', () => {
     'smyl-dental-record.js?v=30',
     'smyl-evidence-center.js?v=10',
     'smyl-evidence-center.css?v=7',
-    'smyl-evidence-center-integration.js?v=10',
+    'smyl-evidence-center-integration.js?v=11',
     'smyl-evidence-center-integration.css?v=6'
   ]) {
     assert.match(app, new RegExp(tag.replaceAll('.', '\\.').replace('?', '\\?')));
     assert.match(sw, new RegExp(tag.replaceAll('.', '\\.').replace('?', '\\?')));
   }
   assert.match(sw, /evidence-single-intake-v1/);
+  assert.match(sw, /evidence-single-entry-fix-v1/);
 });
 
 test('la vista de control reproduce el modo enfocado en escritorio y móvil', () => {

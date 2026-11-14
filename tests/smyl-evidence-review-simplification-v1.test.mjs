@@ -43,7 +43,7 @@ test('web, móvil y PWA distribuyen la simplificación con versiones nuevas', ()
   assert.match(app, /smyl-case-workspace\.js\?v=40/);
   assert.match(app, /smyl-clinical-photo-review\.js\?v=4/);
   assert.match(app, /smyl-evidence-center\.css\?v=7/);
-  assert.match(app, /smyl-evidence-center-integration\.js\?v=10/);
+  assert.match(app, /smyl-evidence-center-integration\.js\?v=11/);
   for (const file of [
     'app.html',
     'sw.js',

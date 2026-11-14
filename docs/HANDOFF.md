@@ -1,5 +1,13 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-13 — Codex — Carga clínica con una sola puerta visible
+
+- **Agregar archivo** queda como única entrada para fotografías, radiografías y documentos. Al elegir una radiografía, el archivo pasa al editor canónico y sus campos de carga permanecen ocultos; no se crea ni se conserva un segundo selector.
+- Al guardar, descartar o fallar, el editor radiográfico se cierra y se oculta antes de restaurar **Archivos clínicos**. La pantalla ya no puede mostrar simultáneamente el estado vacío y el formulario especializado usado en el paso anterior.
+- Las radiografías del paciente ahora se incorporan al archivo aunque todavía no exista un caso o plan seleccionado. El contador de Revisión profesional y el archivo leen el mismo registro dental; al terminar se invalida la vista y se vuelve a leer inmediatamente la fuente canónica.
+- No cambian originales, persistencia, permisos, backend, esquema, decisiones profesionales ni historial. Web y `mobile/www` quedan sincronizados con integración de Evidencia `js?v=11` y caché `evidence-single-entry-fix-v1`.
+- Verificación: `45/45` contratos focalizados aprobados y QA visual aprobado en 1280, 820, 390, 360 y 320 px, sin desbordes ni controles cortos. Suite general: `1,463` pruebas, `1,404` aprobadas, `56` omitidas y `3` fallos ajenos al cambio: comparación de saltos de línea de un bundle radiográfico generado y dos aserciones estáticas antiguas de dictado/cierre clínico.
+
 ## 2026-11-13 — Codex — Revisión clínica con una sola entrada de evidencia
 
 - La tarea **Revisión profesional** conserva **Archivos clínicos** como única puerta de entrada. Se retiró el resumen duplicado de “Fuentes para revisar” y el estado vacío deja una sola acción, **Agregar archivo**.
