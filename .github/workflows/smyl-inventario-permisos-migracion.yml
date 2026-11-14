@@ -1,0 +1,120 @@
+name: SMYL Roles - quién consume, ajusta y compra en Inventario (migración)
+
+# Aplica supabase/migrations/20261114120000_smyl_inventory_role_permissions.sql en el proyecto de producción de SMYL:
+# las funciones de rol «Registrar consumo» (inventory.consume), «Ajustar inventario» (inventory.adjust) y «Comprar y recibir»
+# (inventory.purchase), las reglas que impiden mermas/ajustes/correcciones y compras sin ellas, y el reparto inicial
+# (todo rol que hoy tiene inventory.manage recibe ajustar y comprar, así que nadie pierde acceso).
+# Manual a propósito (sólo workflow_dispatch). Requiere el secreto de repositorio SUPABASE_ACCESS_TOKEN.
+# La migración es idempotente y, antes de aplicar, se comprueba que existan las piezas de las que depende
+# (incluida la migración de finanzas profesionales 20261113123000: amplía su lista de claves y conserva su siembra).
+# Mientras no se aplique, Inventario sigue funcionando con inventory.manage.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smyl-inventario-permisos-produccion
+  cancel-in-progress: false
+
+jobs:
+  migracion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: rpxshsiwoxdbuevjjpfw
+      MIGRATION_VERSION: "20261114120000"
+      MIGRATION_FILE: supabase/migrations/20261114120000_smyl_inventory_role_permissions.sql
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Comprobar el secreto
+        shell: bash
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::error::Falta el secreto SUPABASE_ACCESS_TOKEN en Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Aplicar los permisos de inventario
+        id: esquema
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import { appendFileSync } from 'node:fs';
+
+          const consultar = async query => {
+            const response = await fetch(`https://api.supabase.com/v1/projects/${process.env.PROJECT_REF}/database/query`, {
+              method: 'POST',
+              headers: { authorization: `Bearer ${process.env.SUPABASE_ACCESS_TOKEN}`, 'content-type': 'application/json' },
+              body: JSON.stringify({ query }),
+            });
+            const body = await response.text();
+            if (!response.ok) throw new Error(`Consulta rechazada (${response.status}): ${body}`);
+            return JSON.parse(body);
+          };
+
+          const prerequisitos = async () => (await consultar(`select
+            exists(select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'smyl_has_permission') as permiso_fn_ok,
+            exists(select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'smyl_seed_catalog_permissions') as siembra_fn_ok,
+            exists(select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'smyl_post_inventory_movement') as movimiento_fn_ok,
+            to_regclass('public.smyl_role_permissions') is not null as permisos_ok,
+            to_regclass('public.smyl_inventory_movements') is not null as movimientos_ok,
+            to_regclass('public.smyl_purchase_orders') is not null as pedidos_ok,
+            coalesce((select pg_get_constraintdef(c.oid) like '%finance.cash.supervise%' from pg_constraint c where c.conrelid = 'public.smyl_role_permissions'::regclass and c.conname = 'smyl_role_permissions_permission_key_check'), false) as finanzas_profesionales_ok`))?.[0] || {};
+
+          const inspeccionar = async () => (await consultar(`select
+            exists(select 1 from pg_constraint c where c.conrelid = 'public.smyl_role_permissions'::regclass
+              and c.conname = 'smyl_role_permissions_permission_key_check' and pg_get_constraintdef(c.oid) like '%inventory.purchase%') as clave_ok,
+            exists(select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'smyl_post_inventory_movement' and p.prosrc like '%inventory.consume%') as consumo_ok,
+            exists(select 1 from pg_trigger t where t.tgrelid = 'public.smyl_inventory_movements'::regclass and t.tgname = 'smyl_inventory_movement_guard' and not t.tgisinternal) as movimientos_guard_ok,
+            exists(select 1 from pg_trigger t where t.tgrelid = 'public.smyl_purchase_orders'::regclass and t.tgname = 'smyl_purchase_order_guard' and not t.tgisinternal) as pedidos_guard_ok,
+            exists(select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'smyl_seed_catalog_permissions' and p.prosrc like '%inventory.purchase%') as siembra_ok,
+            not exists(
+              select 1 from public.smyl_role_permissions rp
+              where rp.permission_key = 'inventory.manage'
+                and not exists(select 1 from public.smyl_role_permissions x where x.tenant_id = rp.tenant_id and x.role_id = rp.role_id and x.permission_key = 'inventory.adjust')
+            ) as reparto_ok,
+            exists(select 1 from supabase_migrations.schema_migrations where version = '${process.env.MIGRATION_VERSION}') as historial_ok`))?.[0] || {};
+
+          // «reparto_ok» solo se exige al aplicar: después, la clínica puede quitar las funciones a un rol sin que esto la revierta.
+          const completo = e => e.clave_ok && e.consumo_ok && e.movimientos_guard_ok && e.pedidos_guard_ok && e.siembra_ok;
+
+          const req = await prerequisitos();
+          console.log('Prerrequisitos:', JSON.stringify(req));
+          if (!Object.values(req).every(Boolean)) throw new Error(`Faltan piezas de SMYL; no se aplicó nada: ${JSON.stringify(req)}`);
+
+          const antes = await inspeccionar();
+          console.log('Antes:', JSON.stringify(antes));
+          if (!completo(antes)) {
+            await consultar(fs.readFileSync(process.env.MIGRATION_FILE, 'utf8'));
+            console.log('Permisos de inventario aplicados.');
+          } else {
+            console.log('Los permisos de inventario ya estaban aplicados.');
+          }
+
+          const despues = await inspeccionar();
+          console.log('Después:', JSON.stringify(despues));
+          if (!completo(despues)) throw new Error(`Verificacion incompleta: ${JSON.stringify(despues)}`);
+          appendFileSync(process.env.GITHUB_OUTPUT, `reparar=${!despues.historial_ok}\n`);
+          NODE
+
+      - name: Registrar versión aplicada
+        if: steps.esquema.outputs.reparar == 'true'
+        shell: bash
+        run: |
+          supabase link --project-ref "$PROJECT_REF"
+          # La CLI nueva apunta por omisión al stack local (--remote para el proyecto enlazado) y exige --yes sin terminal; la anterior usaba --linked.
+          REPAIR_FLAG=--linked
+          if supabase migration repair --help 2>&1 | grep -q -- '--remote'; then REPAIR_FLAG="--remote --yes"; fi
+          supabase migration repair $REPAIR_FLAG --status applied "$MIGRATION_VERSION"

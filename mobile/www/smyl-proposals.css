@@ -391,3 +391,7 @@
 .proposal-quick-dialog form{display:grid;gap:12px}.proposal-quick-dialog h3{margin:0}.proposal-quick-dialog p{margin:0;color:#5b6b7c;font-size:13px}
 .proposal-quick-dialog label{display:grid;gap:6px;font-weight:600;font-size:13px}.proposal-quick-dialog select,.proposal-quick-dialog textarea{width:100%;font:inherit;padding:8px 10px;border:1px solid #d7dee8;border-radius:8px}
 .proposal-quick-actions{display:flex;gap:8px;justify-content:flex-end}.proposal-quick-error{color:#9b2c2c;font-weight:600}
+
+.proposal-followup-banner{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:0 0 18px;padding:14px 16px;border:1px solid #f0d9a8;background:#fff8e8;border-radius:14px}
+.proposal-followup-banner small{display:block;margin-top:3px;color:#6f5a2a}
+.proposal-followup-banner[hidden]{display:none}

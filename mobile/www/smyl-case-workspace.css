@@ -526,6 +526,18 @@
 .cw-enhanced .cw-radiograph-more{position:relative;min-width:0}
 .cw-enhanced .cw-radiograph-more>summary{display:flex;align-items:center;justify-content:center;min-height:38px;padding:7px 10px;border:1px solid #cfdbe5;border-radius:8px;background:#fff;color:var(--cw-ink);font-size:12px;font-weight:750;line-height:1.2;list-style:none;cursor:pointer;white-space:nowrap}
 .cw-enhanced .cw-radiograph-more>summary::-webkit-details-marker{display:none}
+
+/* Evidencia v27 · carga e historial forman una sola biblioteca clínica. */
+.cw-enhanced .cw-evaluation-panel .cw-clinical-files-source{gap:0;padding:0;overflow:hidden}
+.cw-enhanced .cw-evaluation-panel .cw-clinical-files-source-body{gap:0}
+.cw-enhanced .cw-clinical-files-source-body>.cw-advanced-editor{margin:0;border:0;border-radius:0;background:#fff;box-shadow:none}
+.cw-enhanced .cw-clinical-files-source-body>.cw-advanced-editor>summary{padding-inline:16px}
+.cw-enhanced .cw-clinical-files-source-body>.cw-radiograph-shelf{margin:0;border:0;border-top:1px solid #d9e4eb;border-radius:0;background:#f8fafb;box-shadow:none}
+.cw-enhanced .cw-clinical-files-source-body>.cw-radiograph-shelf:first-child{border-top:0}
+.cw-enhanced .cw-clinical-files-source-body>.cw-evidence-history{border:0;border-bottom:1px solid #e1e8ee;border-radius:0}
+.cw-enhanced .cw-clinical-files-source-body>.cw-evidence-history:empty{display:none}
+.cw-enhanced .cw-clinical-files-source-body>.cw-radiograph-shelf .cw-radiograph-shelf-head{padding:15px 16px 10px}
+.cw-enhanced .cw-clinical-files-source-body>.cw-radiograph-shelf .cw-radiograph-grid{padding-bottom:16px}
 .cw-enhanced .cw-radiograph-more[open]>summary{border-color:#afc7d5;background:#f5f8fa}
 .cw-enhanced .cw-radiograph-more>button{position:absolute;right:0;z-index:4;min-width:142px;margin-top:5px;padding:9px 11px;border-radius:8px;box-shadow:0 10px 28px rgba(11,27,46,.16)}
 
