@@ -8,6 +8,8 @@ const centerCss = read('smyl-evidence-center.css');
 const integration = read('smyl-evidence-center-integration.js');
 const integrationCss = read('smyl-evidence-center-integration.css');
 const dental = read('smyl-dental-record.js');
+const workspace = read('smyl-case-workspace.js');
+const workspaceCss = read('smyl-case-workspace.css');
 const fixture = read('tests/fixtures/smyl-evidence-single-intake-preview.html');
 
 test('el archivo vacío ofrece una sola entrada y distingue filtros sin resultados', () => {
@@ -32,6 +34,14 @@ test('la radiografía elegida entra a un único modo enfocado de revisión y gua
   assert.match(integrationCss, /data-evidence-intake[^}]+\.dr-upload-fields/);
   assert.match(integrationCss, /\.dr-study:not\(\.is-evidence-intake\)\{display:none\}/);
   assert.match(integrationCss, /max-width:760px/);
+});
+
+test('la carga y el historial radiográfico comparten una sola biblioteca', () => {
+  assert.match(workspace, /ctx\.evidencePart\.body\.append\(ctx\.radiographShelf\)/);
+  assert.doesNotMatch(workspace, /ctx\.reviewPart\.body\.append\(ctx\.radiographShelf\)/);
+  assert.match(workspace, /if\(studies\.length>=4\)/);
+  assert.match(workspaceCss, /carga e historial forman una sola biblioteca clínica/);
+  assert.match(workspaceCss, /cw-clinical-files-source-body>\.cw-radiograph-shelf/);
 });
 
 test('guardar, descartar o fallar restaura el archivo sin borrar historia previa', () => {
@@ -63,7 +73,7 @@ test('web y PWA publican las versiones del flujo único', () => {
   const sw = read('sw.js');
   for (const tag of [
     'smyl-dental-record.js?v=31',
-    'smyl-evidence-center.js?v=10',
+    'smyl-evidence-center.js?v=11',
     'smyl-evidence-center.css?v=7',
     'smyl-evidence-center-integration.js?v=11',
     'smyl-evidence-center-integration.css?v=6'

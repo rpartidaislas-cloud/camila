@@ -206,7 +206,8 @@ test('los ajustes móviles usan iconos accesibles y una sola barra compacta', ()
   assert.match(js, /function svgIcon|const svgIcon=/);
   assert.match(js, /iconButton\('Alejar radiografía','minus'/);
   assert.match(js, /iconButton\('Ampliar radiografía','plus'/);
-  assert.match(js, /iconButton\('Ajustar radiografía a la pantalla','fit'/);
+  assert.match(js, /iconButton\('Encajar radiografía en la pantalla','fit'/);
+  assert.match(js, /fit\.hidden=value<=1\.01/);
   assert.match(js, /adjustmentSummary\.setAttribute\('aria-label','Ajustes de imagen'\)/);
   assert.match(css, /\.rr-icon\s*\{[^}]*width:\s*(?:18|19|20)px;[^}]*height:\s*(?:18|19|20)px/s);
   assert.match(css, /@media \(max-width: 639px\)[\s\S]*\.rr-image-control-row\s*\{/);

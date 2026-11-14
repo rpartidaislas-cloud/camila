@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="../../smyl-case-workspace.css">
   <link rel="stylesheet" href="../../smyl-evidence-center-integration.css">
   <style>
-    *{box-sizing:border-box}body{margin:0;background:#f2f6f8;color:#173334;font-family:"Open Sans",Arial,sans-serif}.preview{width:min(980px,calc(100% - 36px));margin:36px auto}.preview>header{margin-bottom:18px}.preview h1{margin:0;font-size:26px}.preview>header p{margin:5px 0 0;color:#64777d;font-size:13px}.cw-advanced-editor{--cw-line:#d9e4e8;--cw-ink:#10283b;--cw-muted:#647487;--cw-primary:#0c2035}.queue-preview{margin-top:28px}.queue-preview .cw-workspace{max-width:none}.queue-preview .cw-radiograph-shelf{overflow:hidden;border-radius:14px}body:has(.queue-preview:target) .preview>header,body:has(.queue-preview:target) .cw-advanced-editor{display:none}.queue-preview:target{margin-top:0}@media(max-width:600px){.preview{width:100%;margin:0;padding:12px}.preview>header{padding:8px 2px}.preview h1{font-size:21px}.queue-preview{margin-top:18px}}
+    *{box-sizing:border-box}body{margin:0;background:#f2f6f8;color:#173334;font-family:"Open Sans",Arial,sans-serif}.preview{width:min(980px,calc(100% - 36px));margin:36px auto}.preview>header{margin-bottom:18px}.preview h1{margin:0;font-size:26px}.preview>header p{margin:5px 0 0;color:#64777d;font-size:13px}.preview .cw-workspace{max-width:none}.cw-advanced-editor{--cw-line:#d9e4e8;--cw-ink:#10283b;--cw-muted:#647487;--cw-primary:#0c2035}@media(max-width:600px){.preview{width:100%;margin:0;padding:12px}.preview>header{padding:8px 2px}.preview h1{font-size:21px}}
   </style>
 </head>
 <body>
@@ -17,6 +17,10 @@
       <h1>Evidencia clínica</h1>
       <p>Una sola carga, una revisión y un guardado.</p>
     </header>
+    <section class="cw-enhanced" aria-label="Biblioteca radiográfica unificada">
+      <div class="cw-workspace">
+        <section class="cw-clinical-files-source">
+          <div class="cw-clinical-files-source-body">
     <details class="cw-advanced-editor" data-active-part="radiograph" data-evidence-intake="ready" open>
       <summary>
         <span class="cw-source-icon" aria-hidden="true">RX</span>
@@ -49,13 +53,10 @@
         </fieldset>
       </section>
     </details>
-    <section id="queue" class="queue-preview cw-enhanced" aria-label="Vista de control de estudios guardados">
-      <div class="cw-workspace">
-        <section class="cw-radiograph-shelf">
+        <section id="queue" class="cw-radiograph-shelf" aria-label="Vista de control de estudios guardados">
           <header class="cw-radiograph-shelf-head">
             <div><span class="cw-kicker">ESTUDIOS RADIOGRÁFICOS</span><strong>2 estudios · 2 hallazgos pendientes</strong><p>Cada tarjeta muestra únicamente la siguiente acción clínica.</p></div>
           </header>
-          <div class="cw-radiograph-queue-filters" role="group" aria-label="Filtrar estudios radiográficos"><button aria-pressed="true">Todos</button><button aria-pressed="false">Pendientes</button><button aria-pressed="false">Revisados</button></div>
           <div class="cw-radiograph-grid" role="list">
             <article class="cw-radiograph-card" data-related="true" data-next-action="not-started" role="listitem">
               <div class="cw-radiograph-media"><span class="cw-radiograph-placeholder">RX</span></div>
@@ -65,6 +66,8 @@
               <div class="cw-radiograph-media"><span class="cw-radiograph-placeholder">RX</span></div>
               <div class="cw-radiograph-card-body"><strong>Panorámica de control</strong><div class="cw-radiograph-card-meta"><span>Panorámica · 13 nov 2026</span><span>Piezas 16, 26, 36, 46</span></div><div class="cw-radiograph-badges"><span class="cw-radiograph-status" data-tone="pending">2 hallazgos por revisar</span><span class="cw-radiograph-status" data-tone="done">Imagen utilizable</span></div><div class="cw-radiograph-progress"><span>1 de 3 revisados</span><span class="cw-radiograph-progress-track"><i style="width:33%"></i></span></div><div class="cw-radiograph-card-actions"><button>Revisar 2 hallazgos</button></div></div>
             </article>
+          </div>
+          </section>
           </div>
         </section>
       </div>

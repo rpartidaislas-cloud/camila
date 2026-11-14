@@ -62,7 +62,7 @@ test('web y PWA usan la misma versión del flujo multiescala', () => {
   const app = read('app.html');
   const worker = read('sw.js');
   assert.match(app, /smyl-radiograph-analysis-client\.js\?v=13/);
-  assert.match(app, /smyl-radiograph-review\.js\?v=28/);
+  assert.match(app, /smyl-radiograph-review\.js\?v=29/);
   assert.match(app, /smyl-radiograph-workbench\.css\?v=23/);
   assert.match(app, /smyl-dental-record\.js\?v=31/);
   assert.match(worker, /radiograph-multiscale-abstention-v16/);

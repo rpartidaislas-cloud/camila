@@ -832,26 +832,6 @@
       }));
       form.append(summary, error);
 
-      const activeClinicalCategories = this.clinicalCategories.filter(entry => !entry.archived);
-      if (activeClinicalCategories.length) {
-        const categoryField = element('fieldset', 'sec-upload-categories');
-        categoryField.append(element('legend', '', 'Categorías clínicas · opcional'), element('p', '', 'Sirven para encontrar este archivo después; puedes elegir varias.'));
-        const categoryChoices = element('div', 'sec-upload-category-chips');
-        activeClinicalCategories.forEach(entry => {
-          const label = element('label', 'sec-upload-category-chip');
-          const input = Object.assign(element('input'), {
-            type: 'checkbox',
-            name: 'clinicalCategory',
-            value: entry.id,
-            checked: (this.draft.categoryIds || []).includes(entry.id)
-          });
-          label.append(input, element('span', '', entry.name));
-          categoryChoices.append(label);
-        });
-        categoryField.append(categoryChoices);
-        form.append(categoryField);
-      }
-
       const layout = element('div', 'sec-details-layout');
       const media = element('section', 'sec-media-panel');
       media.append(element('span', 'sec-panel-label', 'ARCHIVO ORIGINAL'));

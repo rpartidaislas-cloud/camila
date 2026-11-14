@@ -79,11 +79,12 @@ async function assertZoomControls(browser) {
     await controls.waitFor({ state: 'visible' });
     const zoomOut = controls.getByRole('button', { name: 'Alejar radiografía', exact: true });
     const zoomIn = controls.getByRole('button', { name: 'Ampliar radiografía', exact: true });
-    const fit = controls.getByRole('button', { name: 'Ajustar radiografía a la pantalla', exact: true });
+    const fit = controls.getByRole('button', { name: 'Encajar radiografía en la pantalla', exact: true });
     const percentage = controls.getByText(/^\d+%$/).first();
-    for (const [name, locator] of [['alejar', zoomOut], ['ampliar', zoomIn], ['porcentaje', percentage], ['ajustar', fit]]) {
+    for (const [name, locator] of [['alejar', zoomOut], ['ampliar', zoomIn], ['porcentaje', percentage]]) {
       if (!await locator.isVisible()) throw new Error(`The visible zoom toolbar is missing ${name}`);
     }
+    if (await fit.isVisible()) throw new Error('Fit must stay hidden while the radiograph is already fitted');
     const compact = await page.evaluate(() => {
       const row = document.querySelector('.rr-image-control-row');
       const rowRect = row?.getBoundingClientRect();
@@ -99,14 +100,14 @@ async function assertZoomControls(browser) {
         overflowing: Boolean(row && row.scrollWidth > row.clientWidth + 1)
       };
     });
-    if (!compact.fitsCanvas || compact.overflowing || compact.rowHeight > 64 || compact.minTarget < 44 || compact.maxTarget > 56 || compact.iconControls < 4) {
+    if (!compact.fitsCanvas || compact.overflowing || compact.rowHeight > 64 || compact.minTarget < 44 || compact.maxTarget > 56 || compact.iconControls < 3) {
       throw new Error(`Mobile image controls are not a compact icon dock: ${JSON.stringify(compact)}`);
     }
     const initial = (await percentage.textContent()).trim();
     await zoomIn.click();
     await page.waitForFunction(value => Array.from(document.querySelectorAll('.rr-zoom-quick *')).some(element => /^\d+%$/.test(element.textContent?.trim() || '') && element.textContent.trim() !== value), initial);
     if (!await page.locator('.rr-image-wrap').evaluate(element => element.classList.contains('is-zoomed'))) throw new Error('The + control did not zoom the radiograph');
-    await zoomOut.click();
+    if (!await fit.isVisible()) throw new Error('Fit did not appear after zooming the radiograph');
     await fit.click();
     if ((await percentage.textContent()).trim() !== '100%') throw new Error('Fit did not restore 100%');
     if (await page.locator('.rr-image-wrap').evaluate(element => element.classList.contains('is-zoomed'))) throw new Error('Fit left the radiograph in a zoomed state');

@@ -27,10 +27,11 @@ test('las sugerencias son optativas y se activan con un clic', () => {
   assert.doesNotMatch(serviceSource, /insert\(/);
 });
 
-test('las categorías clínicas no reemplazan el tipo técnico', () => {
+test('las categorías clínicas no interrumpen la carga ni reemplazan el tipo técnico', () => {
   assert.match(center, /categoryIds/);
   assert.match(center, /modality:/);
-  assert.match(center, /Categorías clínicas · opcional/);
+  assert.doesNotMatch(center, /Categorías clínicas · opcional/);
+  assert.doesNotMatch(center, /sec-upload-category-chips/);
   assert.match(integration, /applyCategoryAssignments/);
   assert.match(integration, /modality: 'radiograph_2d'/);
   assert.match(migration, /La modalidad técnica del archivo permanece/);
