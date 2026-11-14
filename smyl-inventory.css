@@ -316,3 +316,29 @@ body.smyl-ui-governed .contenido .inventory-order-line .inventory-money input{bo
 .inventory-suggested-group li{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0}
 .inventory-suggested-empty{text-align:center;color:#6b778c}
 @media(max-width:560px){.inventory-suggest-bar{flex-direction:column;align-items:stretch}.inventory-suggested-group header{flex-direction:column;align-items:stretch}}
+
+/* Insumos: costo, presentación, existencia inicial y reporte de consumo */
+.inventory-item-form .inventory-form-section{margin:8px 0 -2px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-text-tertiary,#6b7a8c)}
+.inventory-pack{display:flex;gap:8px;align-items:center}
+.inventory-pack input[name="packLabel"]{flex:1 1 90px;min-width:0}.inventory-pack input[name="packQty"]{flex:0 0 84px}
+.inventory-money{display:flex;align-items:center;border:1px solid var(--color-border,#d7dee8);border-radius:8px;overflow:hidden;background:#fff}
+.inventory-money>span{padding:0 10px;color:#6b7a8c;font-weight:600}.inventory-money input{border:0!important;flex:1;min-width:0;box-shadow:none!important}
+.inventory-cost-hint{margin:-4px 0 0;font-size:13px;color:#33465f}
+.inventory-form-error{margin:8px 0 0;color:#9b2c2c;font-weight:600}
+.inventory-item-form [hidden]{display:none!important}
+.inventory-initial-stock{padding:12px;border-radius:10px;background:#f6f8fb}
+.inventory-valuation{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:12px 16px;border:1px solid var(--color-border,#e3e8ef);border-radius:12px;background:#fff}
+.inventory-valuation span{display:block;font-size:12px;letter-spacing:.08em;color:#6b7a8c}.inventory-valuation strong{font-size:22px}.inventory-valuation small{color:#6b7a8c}
+.inventory-usage{margin-top:24px;padding-top:20px;border-top:1px solid var(--color-border,#e3e8ef)}
+.inventory-usage-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px}
+.inventory-usage-head span{font-size:12px;letter-spacing:.08em;color:#6b7a8c}.inventory-usage-head h2{margin:2px 0}.inventory-usage-head p{margin:0;color:#5b6b7c;font-size:13px;max-width:60ch}
+.inventory-usage-head label{display:grid;gap:4px;font-size:12px;font-weight:600}
+.inventory-usage-total{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:12px}.inventory-usage-total strong{font-size:24px}.inventory-usage-total span{color:#5b6b7c;font-size:13px}
+.inventory-usage-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}@media(max-width:900px){.inventory-usage-grid{grid-template-columns:1fr}}
+.inventory-usage-grid h3{margin:0 0 8px;font-size:14px}
+.inventory-usage-row{border:1px solid var(--color-border,#e3e8ef);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#fff}
+.inventory-usage-row summary,.inventory-usage-row:not(details){display:flex;justify-content:space-between;gap:10px;align-items:center;cursor:pointer;list-style:none}
+.inventory-usage-row small{display:block;color:#6b7a8c;margin-top:2px}
+.inventory-usage-row ul{margin:8px 0 0;padding:8px 0 0;border-top:1px solid #eef1f5;list-style:none;display:grid;gap:6px;font-size:13px}.inventory-usage-row li{display:flex;justify-content:space-between;gap:8px}
+.inventory-item-form .wide{grid-column:1/-1}
+.inventory-item-form label{display:grid;gap:6px;align-content:start}
