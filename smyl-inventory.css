@@ -302,3 +302,17 @@ body.smyl-ui-governed .contenido .inventory-order-line .inventory-money input{bo
 .inventory-pending-empty{justify-content:center!important;color:#6b778c}
 @media(max-width:560px){.inventory-pending li{flex-direction:column;align-items:flex-start}}
 .inventory-dialog[data-plain]{position:fixed;inset:0;margin:auto;height:fit-content;width:min(560px,calc(100vw - 28px));padding:22px;overflow:auto}
+
+/* Reponer y pedidos sugeridos. */
+.inventory-suggest-bar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:0 0 10px;padding:12px 16px;border:1px solid #bfe3dc;border-radius:12px;background:#f0faf8}
+.inventory-suggest-bar>div{display:grid;gap:2px}.inventory-suggest-bar b{font-size:14px}.inventory-suggest-bar span{color:#526273;font-size:13px}
+.inventory-reponer{min-height:0!important;height:30px;padding:0 12px!important;border:1px solid #0b1b2e!important;border-radius:8px!important;background:#0b1b2e!important;color:#fff!important;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+.inventory-reponer:focus-visible{outline:2px solid #0f766e;outline-offset:2px}
+.inventory-suggested{display:grid;gap:12px}.inventory-suggested h2{margin:0}.inventory-suggested>p{margin:0;color:#6b778c;font-size:13px;line-height:1.5}
+.inventory-suggested-group{border:1px solid #e1e7ef;border-radius:10px;overflow:hidden}
+.inventory-suggested-group header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;background:#f5f7fb}
+.inventory-suggested-group header>div{display:grid;gap:2px}.inventory-suggested-group header small{color:#6b778c;font-size:12.5px}
+.inventory-suggested-group ul{list-style:none;margin:0;padding:6px 12px 10px;display:grid;gap:4px}
+.inventory-suggested-group li{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0}
+.inventory-suggested-empty{text-align:center;color:#6b778c}
+@media(max-width:560px){.inventory-suggest-bar{flex-direction:column;align-items:stretch}.inventory-suggested-group header{flex-direction:column;align-items:stretch}}
