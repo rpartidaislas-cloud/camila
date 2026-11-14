@@ -182,3 +182,20 @@ test('Agregar servicio o cargo: el total queda junto a los botones y el descuent
   assert.match(css, /body\.smyl-ui-governed \.contenido \.finance-charge-form :is\(\.finance-discount-input,\.finance-money-input\) input\{border:0!important/);
   assert.match(css, /\.finance-actions-total\{margin-right:auto/);
 });
+
+test('Inventario v2: un solo título, alertas en chips, primer uso guiado y sin aviso fijo', () => {
+  const js = fs.readFileSync(new URL('../smyl-inventory.js', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../smyl-inventory.css', import.meta.url), 'utf8');
+  assert.match(js, /<h1>Inventario<\/h1>/);
+  assert.doesNotMatch(js, /Inventario, compras y trazabilidad/);
+  assert.doesNotMatch(js, /id="inventory-metrics"|renderMetrics/);
+  assert.match(js, /id="inventory-alerts"/);
+  assert.match(js, /inventory-chip/);
+  assert.match(js, /function renderFirstUse\(host\)/);
+  assert.match(js, /Aún no tienes insumos/);
+  assert.match(js, /Todo en orden/);
+  assert.doesNotMatch(js, /notify\('Existencias calculadas/);
+  assert.match(css, /\.inventory-first-use\{/);
+  assert.match(css, /\.inventory-chip\[data-tone="danger"\]/);
+  for (const f of ['smyl-inventory.js', 'smyl-inventory.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
+});
