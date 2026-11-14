@@ -52,11 +52,11 @@ test('web y PWA publican las versiones del flujo único', () => {
   const app = read('app.html');
   const sw = read('sw.js');
   for (const tag of [
-    'smyl-dental-record.js?v=28',
+    'smyl-dental-record.js?v=30',
     'smyl-evidence-center.js?v=10',
-    'smyl-evidence-center.css?v=6',
-    'smyl-evidence-center-integration.js?v=8',
-    'smyl-evidence-center-integration.css?v=5'
+    'smyl-evidence-center.css?v=7',
+    'smyl-evidence-center-integration.js?v=10',
+    'smyl-evidence-center-integration.css?v=6'
   ]) {
     assert.match(app, new RegExp(tag.replaceAll('.', '\\.').replace('?', '\\?')));
     assert.match(sw, new RegExp(tag.replaceAll('.', '\\.').replace('?', '\\?')));

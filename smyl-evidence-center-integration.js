@@ -342,35 +342,7 @@
     const host = document.querySelector('#p-paciente-detalle.activa .cw-valuation-evidence');
     if (!host) return;
     host.replaceChildren();
-    const categories = state.categorySnapshot?.categories || [];
-    const head = el('header', 'seci-valuation-head');
-    const copy = el('div');
-    copy.append(el('span', 'seci-kicker', 'ARCHIVOS CLÍNICOS'), el('h3', '', 'Fuentes para revisar'), el('p', '', 'Consulta los originales antes de registrar una conclusión profesional.'));
-    const openArchive = el('button', 'seci-open-archive', 'Ver archivos clínicos');
-    openArchive.type = 'button';
-    openArchive.onclick = () => {
-      if (typeof global.SmylPatient360?.open === 'function') global.SmylPatient360.open('files');
-      else global.SmylCaseWorkspace?.open?.('files');
-    };
-    head.append(copy, openArchive);
-    host.append(head);
-    const categoryCounts = categories.filter(category => !category.archived).map(category => ({
-      ...category,
-      count: items.filter(item => item.categoryIds?.includes(category.id)).length
-    })).filter(category => category.count > 0);
-    if (categoryCounts.length) {
-      const chips = el('div', 'seci-valuation-categories');
-      categoryCounts.forEach(category => {
-        const chip = el('span', 'seci-valuation-category');
-        chip.append(el('span', '', category.name), el('b', '', String(category.count)));
-        chips.append(chip);
-      });
-      host.append(chips);
-    }
-    const summary = el('p', 'seci-valuation-empty', items.length
-      ? `${items.length} ${items.length === 1 ? 'archivo clínico disponible' : 'archivos clínicos disponibles'}. Los originales se administran en Archivos.`
-      : 'Aún no hay archivos clínicos. Puedes continuar con la revisión manual.');
-    host.append(summary);
+    host.hidden = true;
   }
 
   async function assignMany(state, sourceType, sourceId, categoryIds) {

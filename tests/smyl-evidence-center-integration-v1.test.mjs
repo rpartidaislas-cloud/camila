@@ -214,16 +214,16 @@ test('sólo oculta el listado legado después de montar el centro', () => {
   assert.match(source, /if \(state\.legacy\?\.isConnected\) state\.legacy\.hidden = false/);
 });
 
-test('Revisión profesional resume los archivos clínicos sin duplicar el repositorio', () => {
+test('Revisión profesional usa el centro canónico sin duplicar un segundo resumen', () => {
   assert.match(styles, /@media\(max-width:600px\)/);
   assert.match(styles, /overflow-x:auto/);
-  assert.match(styles, /seci-valuation-item/);
-  assert.match(source, /ARCHIVOS CL[IÍ]NICOS/);
-  assert.match(source, /Ver archivos cl[ií]nicos/);
   const valuationStart = source.indexOf('function renderValuationArchive');
   const valuationEnd = source.indexOf('\n  function ', valuationStart + 1);
   const valuation = source.slice(valuationStart, valuationEnd);
+  assert.match(valuation, /host\.replaceChildren\(\)/);
+  assert.match(valuation, /host\.hidden = true/);
   assert.doesNotMatch(valuation, /openAdd/);
+  assert.doesNotMatch(valuation, /Ver archivos cl[ií]nicos/);
   assert.doesNotMatch(valuation, /slice\(0,\s*3\)\.forEach/, 'no debe reconstruir una segunda lista de archivos dentro de Revisión');
   assert.ok(source.indexOf('centerHost, pathways') > -1);
   assert.match(fixture, /smyl-evidence-center-integration\.js/);

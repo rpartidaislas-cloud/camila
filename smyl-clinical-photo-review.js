@@ -173,21 +173,9 @@
     state.batchButton.textContent = `Analizar serie${candidates.length > 2 ? ` (${Math.min(candidates.length, 4)})` : ''}`;
   }
 
-  function renderEmpty(state) {
-    const empty = el('section', 'scpr-empty');
-    const copy = el('div');
-    copy.append(el('strong', '', 'Aún no hay fotografías clínicas clasificadas'), el('p', '', 'Agrega la toma una sola vez en Archivos clínicos. Después aparecerá aquí para revisión y decisión profesional.'));
-    const action = button('Ver archivos clínicos', () => {
-      if (typeof global.SmylPatient360?.open === 'function') global.SmylPatient360.open('files');
-      else global.SmylCaseWorkspace?.open?.('photos');
-    }, 'scpr-primary');
-    empty.append(photoIcon('scpr-empty-icon scpr-photo-icon'), copy, action);
-    state.list.append(empty);
-  }
-
   function renderStudies(state) {
     state.list.replaceChildren();
-    if (!state.studies.length) return renderEmpty(state);
+    if (!state.studies.length) return;
     for (const study of state.studies) {
       const card = el('article', 'scpr-study-card');
       const media = el('div', 'scpr-study-media');
@@ -223,6 +211,7 @@
       if (!current(state)) return;
       state.studies = Array.isArray(response) ? response : Array.isArray(response?.studies) ? response.studies : [];
       if (response?.available === false) throw new Error(response.reason || 'La valoración fotográfica profesional aún no está activada en esta clínica.');
+      state.root.hidden = state.studies.length === 0;
       renderSummary(state);
       renderStudies(state);
       announce(state, '', 'neutral');
@@ -239,6 +228,7 @@
       }}));
     } catch (error) {
       if (!current(state)) return;
+      state.root.hidden = false;
       announce(state, /PGRST|42P01|42883|no existe|not found/i.test(String(error?.message || error)) ? 'La valoración fotográfica profesional aún no está activada en esta clínica.' : (error?.message || 'No se pudieron cargar las valoraciones fotográficas.'), 'error');
       renderSummary(state);
       state.list.replaceChildren();
@@ -714,6 +704,7 @@
     if (current(active)) return;
     dispose(active);
     const root = el('section', 'scpr-root smyl-evidence-workspace');
+    root.hidden = true;
     evidenceWorkspace()?.decorate?.(root, 'photograph');
     root.dataset.patientId = value.patient;
     const head = el('header', 'scpr-head'), copy = el('div');

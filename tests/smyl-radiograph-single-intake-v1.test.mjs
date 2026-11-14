@@ -7,10 +7,10 @@ const workspace = read('../smyl-case-workspace.js');
 const integration = read('../smyl-evidence-center-integration.js');
 
 test('Revisión profesional conserva una sola carga radiográfica canónica', () => {
-  assert.ok(/Agrega el original una sola vez en Archivos clínicos/.test(workspace));
+  assert.ok(/ctx\.radiographShelf\.hidden=!studies\.length/.test(workspace));
   assert.equal(/btn\('Agregar radiografía',\(\)=>reviewPart\(ctx,1\)/.test(workspace), false, 'Valoración no debe abrir el cargador directamente');
   assert.equal(/label='Agregar radiografía';action=\(\)=>reviewPart\(ctx,1\)/.test(workspace), false, 'la acción contextual tampoco debe cargar desde Valoración');
-  assert.ok(/No hay radiografías para revisar/.test(workspace));
+  assert.equal(/No hay radiografías para revisar/.test(workspace), false, 'una cola vacía no debe competir con el archivo clínico');
   assert.ok(/openRadiographEvidence\(ctx\)/.test(workspace));
   assert.equal(/openStudy\?\.\([^)]*\)\)reviewPart\(ctx,1\)/.test(workspace), false,
     'si un estudio no abre, el flujo no debe apuntar a un editor oculto en Valoración');

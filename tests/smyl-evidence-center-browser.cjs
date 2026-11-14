@@ -93,7 +93,7 @@ const fs = require('node:fs');
         hasFileAction: visibleControls.some(node => node.textContent?.trim() === 'Elegir archivo'),
         overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
         shortTargets: visibleControls
-          .filter(node => node.type !== 'file' && node.getBoundingClientRect().height < (innerWidth <= 820 ? 44 : 34))
+          .filter(node => !['file', 'checkbox', 'radio'].includes(node.type) && node.getBoundingClientRect().height < (innerWidth <= 820 ? 44 : 34))
           .map(node => node.className || node.type)
       };
     });
@@ -103,7 +103,20 @@ const fs = require('node:fs');
       closed: !document.querySelector('.sec-dialog')?.open,
       focusReturned: document.activeElement?.classList.contains('sec-primary') === true
     }));
-    report.push({ name, ...snapshot, photoVisuals, xrayVisuals, documentVisuals, details, closeState });
+    await page.evaluate(() => center.setItems([]));
+    const emptyState = await page.evaluate(() => {
+      const visible = node => node instanceof Element && !node.closest('[hidden]') && getComputedStyle(node).display !== 'none' && node.getClientRects().length > 0;
+      const actions = [...document.querySelectorAll('.sec-root button')].filter(visible);
+      return {
+        title: document.querySelector('.sec-empty h3')?.textContent.trim(),
+        categoriesVisible: [...document.querySelectorAll('.sec-clinical-categories')].filter(visible).length,
+        summaryVisible: [...document.querySelectorAll('.sec-summary')].filter(visible).length,
+        actions: actions.map(node => node.textContent.trim()),
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
+      };
+    });
+    await page.screenshot({ path: path.join(output, `${name}-empty.png`), fullPage: true });
+    report.push({ name, ...snapshot, photoVisuals, xrayVisuals, documentVisuals, details, closeState, emptyState });
     await page.close();
   }
   await browser.close();
@@ -135,7 +148,12 @@ const fs = require('node:fs');
     || item.details.overflow
     || item.details.shortTargets.length
     || !item.closeState.closed
-    || !item.closeState.focusReturned);
+    || !item.closeState.focusReturned
+    || item.emptyState.title !== 'Aún no hay archivos clínicos'
+    || item.emptyState.categoriesVisible !== 0
+    || item.emptyState.summaryVisible !== 0
+    || item.emptyState.actions.join('|') !== 'Agregar archivo'
+    || item.emptyState.overflow);
   console.log(JSON.stringify(report, null, 2));
   if (failures.length) process.exitCode = 1;
 })().catch(error => {
