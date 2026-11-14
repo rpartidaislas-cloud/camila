@@ -199,3 +199,22 @@ test('Inventario v2: un solo título, alertas en chips, primer uso guiado y sin 
   assert.match(css, /\.inventory-chip\[data-tone="danger"\]/);
   for (const f of ['smyl-inventory.js', 'smyl-inventory.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
+
+test('Inventario v2 paso 2: movimiento por tipo, buscador de pacientes y confirmaciones propias', () => {
+  const js = fs.readFileSync(new URL('../smyl-inventory.js', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../smyl-inventory.css', import.meta.url), 'utf8');
+  assert.match(js, /var MOVEMENT_KINDS=/);
+  assert.match(js, /role="radiogroup" aria-label="Qué pasó"/);
+  assert.match(js, /WASTE_REASONS=\['Caducado'/);
+  assert.match(js, /itemSel=d\.querySelector\('select\[name="item"\]'\)/);
+  assert.doesNotMatch(js, /form\.elements\.item\b/);
+  assert.match(js, /function mountPatientPicker\(form,initialId\)/);
+  assert.match(js, /Elige al paciente de la lista o borra el campo/);
+  assert.match(js, /function confirmAction\(o\)/);
+  assert.doesNotMatch(js, /window\.confirm\(|window\.prompt\(/);
+  assert.match(js, /id="inventory-confirm"/);
+  assert.match(css, /\.inventory-kinds\{/);
+  assert.match(css, /\.inventory-patient-results\{/);
+  assert.match(css, /\.inventory-confirm \.btn\[data-danger="true"\]/);
+  for (const f of ['smyl-inventory.js', 'smyl-inventory.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
+});
