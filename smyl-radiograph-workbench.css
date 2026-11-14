@@ -169,7 +169,7 @@
 .rr-input-method-head { display: grid; gap: 8px; }
 .rr-input-method-label { color: var(--rr-ink); font-size: 12px; font-weight: 750; line-height: 16px; }
 .rr-input-modes { display: grid; grid-template-columns: minmax(0, .78fr) minmax(0, 1.22fr); gap: 6px; padding: 3px; border: 1px solid #d6e0e8; border-radius: 10px; background: #edf2f5; }
-.rr-input-mode { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 7px 10px; border: 0; border-radius: 7px; background: transparent; color: #526477; font: 750 12px/1.15 var(--smyl-ui-font, Inter, system-ui, sans-serif); letter-spacing: .02em; cursor: pointer; }
+.rr-input-mode { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 7px 10px; border: 0; border-radius: 7px; background: transparent; color: #526477; font: 750 12px/1.15 var(--smyl-ui-font, Inter, system-ui, sans-serif); letter-spacing: .02em; cursor: pointer; }
 .rr-input-mode.is-active { background: #fff; color: var(--rr-ink); box-shadow: 0 1px 5px rgba(11,27,46,.09); }
 .rr-input-mode-mila.is-active { background: #0b1b2e; color: #fff; }
 .rr-input-mode:disabled { cursor: wait; opacity: .68; }
@@ -180,7 +180,15 @@
 .rr-mila-disclosure strong { color: #263b4f; }
 .rr-mila-status { min-height: 15px; color: #0f766e; }
 .rr-input-method[data-state="recording"] { border-color: #69bdb5; background: #f0f8f7; }
+.rr-input-method[data-state="warning"] { border-color: #e5c06a; background: #fffaf0; }
+.rr-input-method[data-state="warning"] .rr-mila-status { color: #8a5a00; }
 .rr-input-method[data-state="error"] .rr-mila-status { color: #9d302b; }
+.rr-mila-comparison { border-top: 1px solid #dbe4ea; color: #405469; font-size: 12px; }
+.rr-mila-comparison[hidden] { display: none; }
+.rr-mila-comparison summary { padding-top: 8px; color: #184f6b; font-weight: 750; cursor: pointer; }
+.rr-mila-comparison-body { display: grid; gap: 6px; padding-top: 8px; }
+.rr-mila-comparison-body p,.rr-mila-comparison-body ul { margin: 0; }
+.rr-mila-comparison-body ul { padding-left: 18px; color: #8a5a00; }
 .rr-input-method button:focus-visible { outline: 3px solid rgba(15,118,110,.25); outline-offset: 2px; }
 .rr-item.is-saving { border-color: var(--rr-accent); box-shadow: 0 0 0 3px var(--rr-accent-soft); }
 .rr-item.is-saving .rr-clinical-decision { opacity: .72; }

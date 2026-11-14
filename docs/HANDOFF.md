@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-14 — Codex — Redacción clínica profesional en el dictado de MILA
+
+- **DICTAR CON MILA** ahora prepara una redacción clínica profesional en el mismo borrador: corrige puntuación, concordancia, repeticiones y orden, sin crear otra nota ni confirmar la decisión.
+- La instrucción prohíbe inventar o inferir hallazgos, diagnósticos, piezas, tratamientos, recomendaciones o causalidad; conserva incertidumbre y negaciones. Además, un control determinista rechaza cualquier cambio en cifras, medidas o números de pieza y usa la transcripción literal como respaldo seguro.
+- Cuando MILA detecta ambigüedad, abre **Ver texto reconocido** y muestra los puntos que el profesional debe revisar. Audio, transcripción y comparación siguen siendo efímeros; sólo el texto que el dentista confirma entra al expediente.
+- El consumo suma los tokens de transcripción y redacción, conserva el tiempo real y registra el modelo de mejora sin guardar contenido clínico en metadatos. Web y `mobile/www` quedan sincronizados con revisión `js?v=31`, mesa `css?v=25` y caché `radiograph-professional-writing-v2`.
+- Verificación: contratos integrados `32/32` aprobados y `1` omitido por dependencia opcional; sintaxis JS/TS y flujo real de navegador aprobados en escritorio y 390 px, sin desbordamiento y con controles táctiles de 44 px.
+- Pendiente: desplegar la Edge Function actualizada y publicar cuando Ricardo lo autorice.
+
 ## 2026-11-14 — Codex — Dictado con MILA en la conclusión radiográfica
 
 - **Conclusión profesional** conserva un único borrador clínico y ahora ofrece dos entradas visibles: **Escribir** o **DICTAR CON MILA**. El dictado se agrega al mismo campo, permanece editable y nunca confirma ni guarda la decisión por sí solo.
