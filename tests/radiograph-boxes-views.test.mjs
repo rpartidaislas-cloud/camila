@@ -39,10 +39,11 @@ test('el visor dibuja cuadros punteados y ofrece dos vistas sin tocar la imagen'
   assert.match(js, /button\('Señales'/);
   assert.match(js, /item\.state==='rejected'\|\|!locationReady\(item\)\)return;/, 'las descartadas o con ubicación automática incoherente no se dibujan');
   assert.match(js, /n\('div','rr-box rr-box-'\+item\.state/);
-  assert.match(js, /mark\.style\.left=item\.x\*100\+'%';mark\.style\.top=item\.y\*100\+'%'/, 'el número se dibuja en el centro clínico, no en la esquina del recuadro');
+  assert.match(js, /point=displayRect\(item\.x,item\.y,0,0\)/, 'el centro clínico se traduce a la vista recortada');
+  assert.match(js, /mark\.style\.left=point\.left\*100\+'%';mark\.style\.top=point\.top\*100\+'%'/, 'el número se dibuja en el centro clínico, no en la esquina del recuadro');
   assert.match(js, /mark\.style\.left=\(rect\.left\+rect\.width\/2\)\*100\+'%';mark\.style\.top=\(rect\.top\+rect\.height\/2\)\*100\+'%'/, 'al ajustar el recuadro el número sigue centrado');
   assert.match(js, /if\(run\.placing\)run\.view\.marks=true;/, 'ubicar una señal fuerza la vista con marcas');
-  assert.match(js, /marks:false\}/, 'la comprobación inicial abre sin marcas de IA');
+  assert.match(js, /marks:false,crop:null/, 'la comprobación inicial abre sin marcas de IA y sin alterar el original');
   assert.doesNotMatch(js, /querySelector\('\.rr-actions'\)\?\.scrollIntoView/, 'cambiar de señal no desplaza la mesa de trabajo');
   const css = read('smyl-radiograph-workbench.css');
   assert.match(css, /\.rr-box \{[^}]*border: 2px dashed/);
@@ -206,8 +207,9 @@ test('los ajustes móviles usan iconos accesibles y una sola barra compacta', ()
   assert.match(js, /function svgIcon|const svgIcon=/);
   assert.match(js, /iconButton\('Alejar radiografía','minus'/);
   assert.match(js, /iconButton\('Ampliar radiografía','plus'/);
-  assert.match(js, /iconButton\('Encajar radiografía en la pantalla','fit'/);
-  assert.match(js, /fit\.hidden=value<=1\.01/);
+  assert.match(js, /iconButton\(run\.view\.crop\?'Editar recorte de la radiografía':'Recortar radiografía','crop'/);
+  assert.match(js, /button\('Aplicar recorte'/);
+  assert.match(js, /button\('Quitar recorte'/);
   assert.match(js, /adjustmentSummary\.setAttribute\('aria-label','Ajustes de imagen'\)/);
   assert.match(css, /\.rr-icon\s*\{[^}]*width:\s*(?:18|19|20)px;[^}]*height:\s*(?:18|19|20)px/s);
   assert.match(css, /@media \(max-width: 639px\)[\s\S]*\.rr-image-control-row\s*\{/);
@@ -268,7 +270,7 @@ test('el cuadro de la señal abierta se mueve y cambia de tamaño (ratón, tacto
   assert.match(js, /event\.stopPropagation\(\)/, 'arrastrar el cuadro no desplaza la imagen');
   assert.match(js, /event\.key==='ArrowLeft'/);
   assert.match(js, /event\.shiftKey\)apply\(/, 'Mayús + flechas cambian el tamaño');
-  assert.match(js, /item\.x=round\(rect\.left\+rect\.width\/2\);item\.y=round\(rect\.top\+rect\.height\/2\);item\.w=round\(rect\.width\);item\.h=round\(rect\.height\)/);
+  assert.match(js, /const saved=view\.toOriginal\?view\.toOriginal\(rect\):rect;item\.x=round\(saved\.left\+saved\.width\/2\)/, 'el recorte visual se convierte de vuelta a coordenadas del original');
   assert.match(js, /markDirty\(item\);if\(issue!==issueBefore\)/, 'queda como cambio del dentista y se revisa la coherencia pieza-posición');
   assert.match(js, /Ajusta el recuadro directamente sobre la radiografía/);
   const css = read('smyl-radiograph-workbench.css');
@@ -276,6 +278,19 @@ test('el cuadro de la señal abierta se mueve y cambia de tamaño (ratón, tacto
   assert.match(css, /\.rr-handle\[data-handle="se"\] \{[^}]*cursor: nwse-resize;/);
   assert.match(css, /@media \(pointer: coarse\) \{ \.rr-handle \{ width: 20px; height: 20px; \}/, 'asas más grandes al tacto');
   assert.match(css, /\.rr-image-stage > \.rr-mark \{[^}]*min-height: 26px;/, 'el número es un círculo, no un óvalo');
+});
+
+test('recortar crea una vista no destructiva y conserva el archivo clínico original', () => {
+  const js = read('smyl-radiograph-review.js');
+  const css = read('smyl-radiograph-workbench.css');
+  assert.match(js, /function openCropEditor\(\)/);
+  assert.match(js, /El archivo clínico original no se modifica/);
+  assert.match(js, /run\.view\.crop=next/);
+  assert.doesNotMatch(js, /run\.blob\s*=|study\.blob\s*=/, 'el recorte no reemplaza el blob ni el estudio fuente');
+  assert.match(js, /function displayRect\(left,top,width,height\)/);
+  assert.match(js, /function originalRect\(rect\)/);
+  assert.match(css, /\.rr-image-stage\.is-cropped \{ overflow: hidden; \}/);
+  assert.match(css, /\.rr-crop-selection \{[^}]*box-shadow: 0 0 0 9999px/s);
 });
 
 test('un cuadro editado sigue siendo una revisión válida', () => {
