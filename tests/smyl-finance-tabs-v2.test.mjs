@@ -234,3 +234,21 @@ test('Inventario v2 paso 3: orden de compra con varias líneas, total y proveedo
   assert.match(css, /\.inventory-order-total\{/);
   for (const f of ['smyl-inventory.js', 'smyl-inventory.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
+
+test('Inventario v2: consumo al cerrar la cita (aviso, estado en la ficha y lista de citas sin material)', () => {
+  const inv = fs.readFileSync(new URL('../smyl-inventory.js', import.meta.url), 'utf8');
+  const sch = fs.readFileSync(new URL('../smyl-schedule.js', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../smyl-inventory.css', import.meta.url), 'utf8');
+  assert.match(sch, /status==='completed'\)window\.dispatchEvent\(new CustomEvent\('smyl:appointment-completed'/);
+  assert.match(sch, /data-material-row/);
+  assert.match(sch, /window\.SmylInventory\.consumptionStatus\(a\)/);
+  assert.match(inv, /window\.addEventListener\('smyl:appointment-completed'/);
+  assert.match(inv, /async function consumptionStatus\(app\)/);
+  assert.match(inv, /async function loadPendingMaterial\(\)/);
+  assert.match(inv, /function openPendingMaterial\(\)/);
+  assert.match(inv, /MATERIAL PENDIENTE/);
+  assert.match(inv, /consumptionStatus:consumptionStatus/);
+  assert.match(css, /\.inventory-toast\{/);
+  assert.match(css, /\.inventory-dialog\[data-plain\]/);
+  for (const f of ['smyl-inventory.js', 'smyl-inventory.css', 'smyl-schedule.js', 'smyl-schedule.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
+});
