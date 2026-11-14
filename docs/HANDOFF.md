@@ -1,5 +1,13 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-13 — Codex — Revisión clínica con una sola entrada de evidencia
+
+- La tarea **Revisión profesional** conserva **Archivos clínicos** como única puerta de entrada. Se retiró el resumen duplicado de “Fuentes para revisar” y el estado vacío deja una sola acción, **Agregar archivo**.
+- Las categorías configurables continúan disponibles cuando hay archivos, pero se ocultan durante el estado vacío junto con sus métricas en cero. El original, su clasificación y el historial no cambian.
+- **Revisión de fotografías** y **Estudios radiográficos** ya no muestran tarjetas vacías ni acciones de carga competidoras. Cada herramienta aparece automáticamente sólo cuando existe material de su tipo; los errores reales siguen visibles y recuperables.
+- No se modificaron persistencia, permisos, backend, esquema, decisiones clínicas, odontograma ni guardado versionado. Web y `mobile/www` quedan sincronizados con workspace `js?v=40`, fotografía clínica `js?v=4`, centro `css?v=7`, integración `js?v=10`/`css?v=6` y caché `evidence-review-simple-v1`.
+- Verificación focalizada: `49/49` contratos aprobados. QA real en Chrome aprobado en 1280, 820, 390, 360 y 320 px: una sola acción en vacío, categorías y métricas ocultas, sin desbordamiento horizontal ni controles cortos. Suite general: `1,462` pruebas, `1,404` aprobadas, `56` omitidas y `2` fallos estáticos preexistentes ajenos a este cambio (`smyl-clinical-dictation` y `smyl-evolution-closure`). No se publicó desde esta entrega.
+
 ## 2026-11-13 — Codex — Correcciones, resoluciones y evidencia vinculada en el odontograma
 
 - Cada hallazgo vigente ofrece una sola acción compacta, **Actualizar**, que separa **Corregir** y **Marcar resuelto**. La corrección mantiene pieza y cara, exige un cambio real de condición y agrega una nueva versión; resolver agrega otro evento y conserva el registro anterior visible. No se edita ni se borra historia clínica.

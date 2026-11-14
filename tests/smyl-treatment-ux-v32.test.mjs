@@ -6,6 +6,7 @@ const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const app = read('../app.html');
 const worker = read('../sw.js');
 const workspace = read('../smyl-case-workspace.js');
+const photoReview = read('../smyl-clinical-photo-review.js');
 const clinic = read('../smyl-clinic.js');
 const styles = read('../smyl-case-workspace.css');
 const fixture = read('./fixtures/smyl-clinical-flow-preview.html');
@@ -57,10 +58,9 @@ test('el tenant retoma etapa y tarea sin persistir datos clínicos en el navegad
 });
 
 test('la evaluación permite continuar sin fotografías y conserva el odontograma longitudinal', () => {
-  assert.match(workspace, /Sin fotografías clínicas\. Puedes continuar con el odontograma/);
+  assert.match(photoReview, /state\.root\.hidden = state\.studies\.length === 0/);
   assert.match(workspace, /Seleccionar una pieza/);
   assert.match(workspace, /Analizar fotografías/);
-  assert.match(workspace, /Agrega el original una sola vez en Archivos clínicos/);
   assert.match(workspace, /Cada original se conserva una sola vez/);
   assert.match(workspace, /cw-clinical-files-source/);
   assert.match(workspace, /Archivos clínicos consultados en esta revisión/);
@@ -132,8 +132,8 @@ test('web, móvil y PWA distribuyen la misma implementación', () => {
   assert.match(app, /smyl-patient-360\.css\?v=18/);
   assert.match(app, /smyl-clinic\.js\?v=23/);
   assert.match(app, /smyl-patient-360\.js\?v=26/);
-  assert.match(app, /smyl-case-workspace\.css\?v=28/);
-  assert.match(app, /smyl-case-workspace\.js\?v=37/);
+  assert.match(app, /smyl-case-workspace\.css\?v=29/);
+  assert.match(app, /smyl-case-workspace\.js\?v=40/);
   assert.match(worker, /evaluation-separation-v79/);
   for (const file of ['app.html', 'sw.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css', 'smyl-patient-360.js', 'smyl-patient-360.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));

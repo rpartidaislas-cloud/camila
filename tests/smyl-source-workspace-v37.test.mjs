@@ -28,8 +28,8 @@ test('fotografías y radiografías habilitan su propio flujo de archivo', () => 
   assert.match(evidenceIntegration, /routeClinicalPhoto/);
   assert.match(evidenceIntegration, /indexPatientFile/);
   assert.match(photoReview, /Los originales se cargan únicamente en Archivos clínicos/);
-  assert.match(workspace, /No hay radiografías para revisar/);
-  assert.match(workspace, /Agrega el original una sola vez en Archivos clínicos/);
+  assert.match(workspace, /ctx\.radiographShelf\.hidden=!studies\.length/);
+  assert.doesNotMatch(workspace, /No hay radiografías para revisar/);
   assert.match(workspace, /openRadiographEvidence\(ctx\)/);
   assert.match(workspace, /openAdd\?\.\('radiograph_2d'\)/);
   assert.doesNotMatch(workspace, /btn\('Agregar radiografía',\(\)=>reviewPart\(ctx,1\)/);
@@ -58,9 +58,9 @@ test('la nueva superficie concentra mapa, inspector y contexto con respuesta mó
 
 test('web, móvil y PWA comparten la implementación de la evaluación simplificada', () => {
   assert.match(app, /smyl-patient-360\.js\?v=26/);
-  assert.match(app, /smyl-case-workspace\.css\?v=28/);
-  assert.match(app, /smyl-case-workspace\.js\?v=37/);
-  assert.match(app, /smyl-clinical-photo-review\.js\?v=2/);
+  assert.match(app, /smyl-case-workspace\.css\?v=29/);
+  assert.match(app, /smyl-case-workspace\.js\?v=40/);
+  assert.match(app, /smyl-clinical-photo-review\.js\?v=4/);
   assert.match(worker, /evaluation-separation-v79/);
   for (const file of [
     'app.html',

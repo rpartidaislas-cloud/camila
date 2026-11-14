@@ -45,13 +45,15 @@ test('la clasificación conserva historial y nunca elimina el original', () => {
   assert.doesNotMatch(migration, /delete from public\.smyl_evidence_category/);
 });
 
-test('Evidencia es archivo y Valoración sólo consulta', () => {
+test('Evidencia es el archivo único y Valoración no repite su resumen', () => {
   assert.match(center, /EXPEDIENTE DEL PACIENTE/);
   assert.match(center, /Archivos clínicos/);
-  assert.match(integration, /Consulta los originales antes de registrar una conclusión profesional\./);
-  assert.match(integration, /Los originales se administran en Archivos\./);
   assert.match(integration, /cw-valuation-evidence/);
-  assert.match(integration, /seci-open-archive/);
+  const start = integration.indexOf('function renderValuationArchive');
+  const end = integration.indexOf('\n  function ', start + 1);
+  const valuation = integration.slice(start, end);
+  assert.match(valuation, /host\.hidden = true/);
+  assert.doesNotMatch(valuation, /seci-open-archive|seci-valuation-categories/);
 });
 
 test('web y móvil comparten el mismo servicio de categorías', () => {
