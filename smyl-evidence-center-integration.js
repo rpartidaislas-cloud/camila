@@ -738,6 +738,43 @@
     throw new Error(`El guardado de ${labels[payload.modality] || 'este archivo clínico'} todavía no está habilitado. No se guardó ningún dato.`);
   }
 
+  function openPhotoFinding(state, studyId, findingId) {
+    const value = context();
+    if (!state || !studyId || value?.tenant !== state.tenant || value.patient !== state.patient) return false;
+    global.SmylCaseWorkspace?.open?.('review');
+    requestAnimationFrame(() => {
+      document.getElementById('cw-evaluation-task-findings')?.click();
+      Promise.resolve(global.SmylClinicalPhotoReview?.refresh?.()).finally(() => {
+        const section = document.querySelector('.scpr-root');
+        section?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+        dispatchEvent(new CustomEvent('smyl:clinical-photo-open-request', { detail: {
+          tenant: state.tenant,
+          patient: state.patient,
+          studyId,
+          ...(findingId ? { findingId } : {})
+        }}));
+      });
+    });
+    if (current(state)) announce(state, 'Abriendo la valoración de la fotografía original.', 'neutral');
+    return true;
+  }
+
+  async function openFinding(tenantValue, patientValue, findingId) {
+    const value = context();
+    const tenant = String(tenantValue || ''), patient = String(patientValue || '');
+    if (!value || value.tenant !== tenant || value.patient !== patient || !global.SmylClinicalPhotoService?.findingSource) return false;
+    const state = current(active) ? active : { tenant, patient };
+    try {
+      const source = await global.SmylClinicalPhotoService.findingSource(tenant, patient, findingId, { force: true });
+      const latest = context();
+      if (!latest || latest.tenant !== tenant || latest.patient !== patient || !source || source.modality !== 'photograph' || !source.studyId) return false;
+      return openPhotoFinding(state, source.studyId, source.findingId);
+    } catch (error) {
+      if (current(state)) announce(state, error?.message || 'No se pudo abrir la evidencia vinculada.', 'error');
+      return false;
+    }
+  }
+
   function openItem(state, item) {
     if (!current(state)) return;
     // SmylEvidenceCenter normaliza los elementos antes de devolverlos en onOpen.
@@ -748,20 +785,7 @@
       return;
     }
     if (origin.source === 'clinical_photo_study') {
-      global.SmylCaseWorkspace?.open?.('review');
-      requestAnimationFrame(() => {
-        document.getElementById('cw-evaluation-task-findings')?.click();
-        Promise.resolve(global.SmylClinicalPhotoReview?.refresh?.()).finally(() => {
-          const section = document.querySelector('.scpr-root');
-          section?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-          dispatchEvent(new CustomEvent('smyl:clinical-photo-open-request', { detail: {
-            tenant: state.tenant,
-            patient: state.patient,
-            studyId: origin.id
-          }}));
-        });
-      });
-      announce(state, 'Abriendo la valoración de la fotografía original.', 'neutral');
+      openPhotoFinding(state, origin.id, '');
       return;
     }
     if (origin.source === 'dental_record') {
@@ -940,6 +964,7 @@
     legacyFileItem,
     photoStudyItem,
     radiographItem,
+    openFinding,
     mount,
     openAdd(modality) {
       if (!current(active)) mount();

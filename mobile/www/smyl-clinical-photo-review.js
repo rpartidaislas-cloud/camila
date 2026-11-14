@@ -341,7 +341,7 @@
     return [header, steps];
   }
 
-  async function openReview(state, initialStudy) {
+  async function openReview(state, initialStudy, requestedContext = {}) {
     if (!current(state) || state.dialog) return;
     const dialog = el('dialog', 'scpr-dialog smyl-evidence-workspace');
     evidenceWorkspace()?.decorate?.(dialog, 'photograph');
@@ -359,7 +359,7 @@
     try {
       const url = await originalUrl(state, initialStudy);
       if (!current(state) || state.dialog !== dialog) return;
-      renderReview(state, initialStudy.id, url, body);
+      renderReview(state, initialStudy.id, url, body, requestedContext.findingId);
     } catch (error) {
       setReviewProgress(state, initialStudy, { failed: true });
       const problem = el('p', 'scpr-error');
@@ -581,7 +581,7 @@
     host.append(source, form);
   }
 
-  function renderFindings(state, study, host) {
+  function renderFindings(state, study, host, requestedFindingId = '') {
     setReviewProgress(state, study);
     const findings = study.findings || [];
     const pending = findings.filter(finding => findingState(finding) === 'pending');
@@ -623,6 +623,7 @@
           detail.append(summary);
         }
       }, 'scpr-finding-item');
+      item.dataset.findingId = String(finding.id || '');
       item.dataset.state = stateName;
       item.append(el('span', '', String(index + 1)), el('div', '', null));
       item.children[1].append(el('strong', '', cleanText(finding.label, 100) || CATEGORY_LABELS[finding.category] || 'Observación'), el('small', '', stateName === 'pending' ? 'Por revisar' : stateName === 'rejected' ? 'Descartada' : 'Decisión guardada'));
@@ -630,7 +631,8 @@
     });
     const add = button('Agregar observación manual', () => renderManualForm(state, study, detail), 'scpr-secondary');
     list.append(add); layout.append(list, detail); host.append(layout);
-    const firstPending = list.querySelector('button[data-state="pending"]') || list.querySelector('.scpr-finding-item');
+    const requested = Array.from(list.querySelectorAll('.scpr-finding-item')).find(item => item.dataset.findingId === String(requestedFindingId || ''));
+    const firstPending = requested || list.querySelector('button[data-state="pending"]') || list.querySelector('.scpr-finding-item');
     firstPending?.click();
     if (!pending.length) detail.prepend(el('p', 'scpr-all-reviewed', 'Todas las sugerencias de esta toma tienen una decisión registrada.'));
   }
@@ -685,7 +687,7 @@
     form.append(categoryLabel, scopeLabel, regionLabel, toothLabel, textLabel, verify, feedback, actions); host.append(form); text.focus({ preventScroll: true });
   }
 
-  function renderReview(state, studyId, url, host) {
+  function renderReview(state, studyId, url, host, requestedFindingId = '') {
     const study = currentStudy(state, studyId);
     if (!study || !host) return;
     setReviewProgress(state, study);
@@ -693,7 +695,7 @@
     const layout = el('div', 'scpr-review-layout'), original = renderOriginal(study, url), decision = el('section', 'scpr-review-work');
     layout.append(original, decision); host.append(layout);
     if (!studyDisposition(study) && qualityOf(study) === 'pending' && !(study.findings || []).length) renderAnalyze(state, study, decision);
-    else renderFindings(state, study, decision);
+    else renderFindings(state, study, decision, requestedFindingId);
   }
 
   function dispose(state) {
@@ -753,7 +755,7 @@
     if (!study) return false;
     state.root.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (state.dialog) closeDialog(state);
-    await openReview(state, study);
+    await openReview(state, study, requestedContext || {});
     return true;
   }
 

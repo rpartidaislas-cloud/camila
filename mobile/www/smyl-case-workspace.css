@@ -584,3 +584,8 @@
  .cw-enhanced .cw-clinical-map-layout{padding:8px}
  .cw-enhanced .cw-map-stage{min-height:340px}
 }
+
+/* Valoración visual v2 · odontograma general y editor ampliado de una sola pieza. */
+.cw-enhanced .cw-clinical-map-layout{grid-template-columns:minmax(440px,1.6fr) minmax(330px,1fr)}
+.cw-enhanced .cw-map-inspector>.cw-help{flex:0}.cw-enhanced .cw-map-finding-editor[hidden]{display:none!important}.cw-enhanced .cw-map-finding-editor{margin-top:2px}
+@media(max-width:1024px){.cw-enhanced .cw-clinical-map-layout{grid-template-columns:minmax(0,1fr)}}

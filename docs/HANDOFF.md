@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-13 — Codex — Correcciones, resoluciones y evidencia vinculada en el odontograma
+
+- Cada hallazgo vigente ofrece una sola acción compacta, **Actualizar**, que separa **Corregir** y **Marcar resuelto**. La corrección mantiene pieza y cara, exige un cambio real de condición y agrega una nueva versión; resolver agrega otro evento y conserva el registro anterior visible. No se edita ni se borra historia clínica.
+- Las correcciones y resoluciones heredan exactamente la misma `sourceRef`. El modelo y el RPC rechazan desprender, cambiar o ramificar la evidencia durante una sustitución. La migración `20261113120000_smyl_dental_findings_v2.sql` quedó aplicada, verificada y registrada en Supabase SMYL antes de distribuir el frontend.
+- Cuando una pieza tiene una observación fotográfica ya confirmada o corregida, el editor muestra **Evidencia relacionada** como selección opcional. Sólo vincula el ID canónico de `smyl_clinical_evidence_findings`; no copia el original, no crea otro cargador y no usa IDs de las revisiones radiográficas heredadas.
+- **Ver evidencia** resuelve nombre y estado al leer, abre la valoración fotográfica existente y enfoca el hallazgo exacto. Si la fuente ya no está disponible, el vínculo se conserva y la interfaz falla cerrado. La información descriptiva no se congela dentro del odontograma.
+- Web y `mobile/www` quedan sincronizados con modelo dental `v3`, editor `js/css?v=2`, expediente `v30`, workspace `v39`, servicio fotográfico `v2`, revisión fotográfica `v3`, integración de Evidencia `v9` y caché `dental-history-evidence-v3`.
+- Verificación final integrada con Cobros y Facturación: suite completa `1,487` pruebas, `1,427` aprobadas, `60` omitidas por dependencias opcionales y `0` fallidas; contratos focalizados y sintaxis aprobados; recorrido Playwright en 1280, 834, 390 y 320 px sin desbordamiento, con corrección, resolución, vínculo y apertura de evidencia. Capturas en `artifacts/dental-finding-editor-v2/`. Publicación autorizada el 13 de noviembre de 2026.
+
 ## 2026-11-13 — Codex — Recibos como entrada de Facturación
 
 - **Facturación** comienza con una bandeja de recibos internos vinculados a pagos confirmados. Cada fila conserva folio, paciente, fecha y hora, método, referencia e importe, y separa claramente **Por facturar**, **En preparación**, **Facturados** y **Todos**.
@@ -10793,6 +10802,16 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - La versión móvil reduce textos y tarjetas, evita desbordamiento global y deja el desplazamiento horizontal sólo en filtros o carruseles intencionales. Web y `mobile/www/` quedan sincronizados.
 - Versiones integradas: `smyl-case-workspace.css?v=27`, `smyl-case-workspace.js?v=35`, `smyl-clinical-photo-review.js?v=2`, `smyl-evidence-center.js?v=10`, `smyl-evidence-center-integration.js?v=7` y caché PWA `evaluation-separation-v79`.
 - QA: 78 pruebas focales/estáticas aprobadas, 11 recorridos en navegador real aprobados y revisión visual en 1280×900, 834×1000, 390×844 y 320×760. Sin cambios de backend, migraciones ni publicación en esta etapa.
+
+## 2026-11-13 — Codex — Hallazgos dentales visuales por pieza y cara
+
+- Valoración conserva un solo odontograma. Al elegir una pieza aparece un selector ampliado de caras —Vestibular, Mesial, Distal, Lingual/Palatina, Oclusal o Incisal según FDI— y después una lista breve de condiciones. La revisión final se resume en tres chips antes de agregar al borrador.
+- Tacto y dictado alimentan el mismo borrador canónico; la voz sólo prepara `Pieza · cara · condición`, nunca guarda automáticamente y no persiste audio ni transcripción provisional. Los campos completos aparecen únicamente para corregir una ambigüedad.
+- Cada pieza muestra sus caras con actividad y un `Historial de la pieza`. El hallazgo vigente y los registros anteriores se distinguen visualmente; las notas de texto legadas permanecen separadas bajo `Notas anteriores` y no se reinterpretan.
+- El documento conserva `schema:1` y añade opcionalmente `findings:{schema:2,events:[]}`. Cada evento registra pieza, cara, condición, estado, origen táctil/voz y una sustitución opcional. Las correcciones son append-only: no borran ni reordenan eventos, no pueden bifurcar una corrección y conservan la misma pieza/cara.
+- Se añadió la migración **no aplicada** `20261113120000_smyl_dental_findings_v2.sql`. Debe desplegarse antes del frontend porque el RPC anterior rechaza el nuevo bloque `findings`. Antes de producción también debe ejecutarse la prueba PostgreSQL funcional con PGlite o contra staging.
+- Archivos principales: `smyl-dental-finding-editor.js/css` nuevos; `smyl-dental-model.js?v=2`, `smyl-dental-dictation.js/css?v=2`, `smyl-dental-record.js?v=29` / CSS v6, `smyl-tooth-map.js?v=3`, `smyl-case-workspace.js?v=38` / CSS v29, `app.html` y `sw.js`. Web y `mobile/www` están sincronizados.
+- QA de esta entrega: 55 pruebas focales aprobadas; `node --check`, contratos de migración y política tipográfica aprobados. Recorrido visual/funcional en 1280×900, 834×1000, 390×844 y 320×760, sin desbordamiento y con controles táctiles de al menos 44 px en móvil. La suite global más reciente ejecutó 1,474 pruebas: 1,414 aprobadas, 59 omitidas y 1 fallo ajeno en `smyl-finance-tabs-v2.test.mjs`, causado por cambios financieros simultáneos del worktree. Esta etapa no se publicó.
 
 ## 2026-11-13 — Claude Code — «Agregar servicio o cargo»: total a la vista y campos sin doble borde
 - Corrección: en la revisión previa dije que el precio y el IVA no se llenaban solos al elegir un servicio; **sí se llenan** (precio del catálogo y, con política fiscal revisada, IVA automático). La leyenda «Servicio sin política fiscal revisada: indica si lleva IVA» y el casillero «Agregar IVA 16%» salen solo cuando el servicio no tiene política fiscal revisada. No se cambió esa lógica.

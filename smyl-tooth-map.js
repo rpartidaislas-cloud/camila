@@ -27,6 +27,8 @@
    b.setAttribute('aria-label','Diente '+id+' · '+(s.label||'Sin evaluar'));b.onclick=()=>onSelect(String(id));host.append(b);
    if(s.selected!==undefined)b.setAttribute('aria-pressed',String(!!s.selected));
    if(s.count>1){const count=document.createElement('span');count.className='pr-tooth-count';count.textContent=String(s.count);b.append(count);}
+    const surfaceEntries=Object.entries(s.surfaces||{}).filter(([,value])=>value&&Number(value.count)>0).slice(0,5);
+    if(surfaceEntries.length){const summary=document.createElement('span');summary.className='dr-tooth-surface-summary';summary.setAttribute('aria-hidden','true');for(const [surface,value] of surfaceEntries){const mark=document.createElement('i');mark.dataset.surface=surface;mark.dataset.tone=value.tone||'condition';mark.textContent=surface==='whole'?'P':surface;summary.append(mark);}b.append(summary);}
   });
  }
  window.SmylToothMap={render,teeth:[...upper,...lower].map(String)};

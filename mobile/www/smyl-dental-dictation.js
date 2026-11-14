@@ -34,6 +34,14 @@
   const numberPatterns=Object.entries(wordNumbers).map(([number,words])=>({number,tokens:words.split(' ')})).sort((a,b)=>b.tokens.length-a.tokens.length);
   const sameAt=(tokens,index,pattern)=>pattern.every((part,offset)=>tokens[index+offset]?.norm===part);
 
+  function surfaceAllowed(tooth,surface){
+    tooth=String(tooth||'');surface=String(surface||'');
+    if(!toothSet.has(tooth)||!surfaces.some(item=>item.value===surface))return false;
+    if(surface==='O')return Number(tooth[1])>=4;
+    if(surface==='I')return Number(tooth[1])<=3;
+    return true;
+  }
+
   function parse(transcript){
     const original=tidy(transcript),tokens=tokenize(original),matches=[],prefixes=new Set(['pieza','diente','fdi','numero']);
     const addMatch=(number,start,end)=>{
@@ -64,14 +72,14 @@
     const condition=tokens.filter((_,index)=>!removed.has(index)).map(token=>token.raw).join(' ');
     const tooth=candidates.length===1?candidates[0]:'';
     const result={transcript:original,tooth,toothCandidates:candidates,surface:matchedSurface?.value||'',surfaceLabel:matchedSurface?.label||'',condition:capitalize(condition)};
-    result.complete=!!(result.tooth&&result.surface&&result.condition);
+    result.complete=!!(result.tooth&&result.surface&&result.condition&&surfaceAllowed(result.tooth,result.surface));
     result.ambiguous=candidates.length>1;
     return result;
   }
 
   function format(value){
     const tooth=String(value?.tooth||''),surface=surfaces.find(item=>item.value===value?.surface),condition=capitalize(value?.condition);
-    if(!toothSet.has(tooth)||!surface||!condition)return '';
+    if(!toothSet.has(tooth)||!surface||!condition||!surfaceAllowed(tooth,surface.value))return '';
     return surface.label+': '+condition.replace(/[.!?]+$/,'')+'.';
   }
 
@@ -93,28 +101,38 @@
     const listening=node('section','dvd-listening'),listen=control('','dvd-listen'),mic=node('span','dvd-mic'),listenLabel=node('span','','Escuchar'),waves=node('span','dvd-waves'),status=node('p','dvd-status','Activa el micrófono cuando estés listo.');
     mic.setAttribute('aria-hidden','true');waves.setAttribute('aria-hidden','true');waves.append(node('i'),node('i'),node('i'),node('i'));listen.append(mic,listenLabel);listen.setAttribute('aria-pressed','false');status.setAttribute('role','status');status.setAttribute('aria-live','polite');listening.append(listen,waves,status);
     const heard=node('p','dvd-heard');heard.hidden=true;heard.setAttribute('aria-label','Texto reconocido');
+    const summary=node('section','dvd-summary');summary.hidden=true;summary.tabIndex=-1;summary.setAttribute('aria-label','Hallazgo preparado');
+    const summaryCopy=node('div','dvd-summary-copy'),summaryKicker=node('span','dvd-summary-kicker','HALLAZGO PREPARADO'),chips=node('div','dvd-chips');
+    const toothChip=node('span','dvd-chip'),surfaceChip=node('span','dvd-chip'),conditionChip=node('span','dvd-chip dvd-chip-condition'),correct=control('Corregir','dvd-correct');
+    chips.append(toothChip,surfaceChip,conditionChip);summaryCopy.append(summaryKicker,chips);summary.append(summaryCopy,correct);
     const review=node('fieldset','dvd-review');review.hidden=true;const legend=node('legend','','Revisa antes de agregar');review.append(legend);
     const toothLabel=node('label','dvd-field'),toothCopy=node('span','','Pieza'),tooth=node('select');tooth.setAttribute('aria-label','Pieza FDI');tooth.add(new Option('Seleccionar…',''));teeth.forEach(value=>tooth.add(new Option('Pieza '+value,value)));tooth.value=toothSet.has(String(options.initialTooth||''))?String(options.initialTooth):'';toothLabel.append(toothCopy,tooth);
     const surfaceLabel=node('label','dvd-field'),surfaceCopy=node('span','','Superficie'),surface=node('select');surface.setAttribute('aria-label','Superficie dental');surface.add(new Option('Seleccionar…',''));surfaces.forEach(item=>surface.add(new Option(item.label,item.value)));surfaceLabel.append(surfaceCopy,surface);
     const findingLabel=node('label','dvd-field dvd-condition'),findingCopy=node('span','','Hallazgo'),finding=node('input');finding.type='text';finding.maxLength=180;finding.autocomplete='off';finding.placeholder='Ej. caries';finding.setAttribute('aria-label','Hallazgo clínico');findingLabel.append(findingCopy,finding);review.append(toothLabel,surfaceLabel,findingLabel);
     const feedback=node('p','dvd-feedback');feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');
     const actions=node('footer','dvd-actions'),cancel=control('Cancelar','dvd-secondary'),apply=control('Agregar al borrador','dvd-primary');apply.disabled=true;actions.append(cancel,apply);
-    dialog.append(header,intro,privacy,listening,heard,review,feedback,actions);root.document.body.append(dialog);
+    dialog.append(header,intro,privacy,listening,heard,summary,review,feedback,actions);root.document.body.append(dialog);
     let recognition=null,listeningNow=false,closed=false,hadError=false,applying=false;
     const initialTooth=tooth.value;
 
     const setListening=value=>{listeningNow=!!value;dialog.dataset.listening=String(listeningNow);listen.setAttribute('aria-pressed',String(listeningNow));listenLabel.textContent=listeningNow?'Detener':'Volver a dictar';};
-    const valid=()=>toothSet.has(tooth.value)&&surfaces.some(item=>item.value===surface.value)&&!!tidy(finding.value);
-    const validate=()=>{apply.disabled=applying||!valid();feedback.textContent='';};
+    const candidate=()=>({tooth:tooth.value,surface:surface.value,condition:tidy(finding.value)});
+    const valid=()=>toothSet.has(tooth.value)&&surfaces.some(item=>item.value===surface.value)&&surfaceAllowed(tooth.value,surface.value)&&!!tidy(finding.value);
+    const paintSummary=()=>{const item=surfaces.find(value=>value.value===surface.value);toothChip.textContent='Pieza '+tooth.value;surfaceChip.textContent=item?.label||'Superficie pendiente';conditionChip.textContent=tidy(finding.value)||'Hallazgo pendiente';};
+    const notifyPreview=()=>{if(!valid()||typeof options.onPreview!=='function')return;try{options.onPreview(candidate());}catch(_){ }};
+    const validate=()=>{apply.disabled=applying||!valid();feedback.textContent='';paintSummary();notifyPreview();};
     [tooth,surface,finding].forEach(element=>element.addEventListener('input',validate));
     const fill=result=>{
       heard.hidden=!result.transcript;heard.textContent=result.transcript?'“'+result.transcript+'”':'';
-      review.hidden=false;
       tooth.value=result.tooth||(!result.ambiguous?initialTooth:'');surface.value='';finding.value='';
       if(result.surface)surface.value=result.surface;if(result.condition)finding.value=result.condition;
       validate();
+      const incompatible=!!(result.tooth&&result.surface&&!surfaceAllowed(result.tooth,result.surface));
+      const compact=result.complete&&valid();summary.hidden=!compact;review.hidden=compact;
       if(result.ambiguous)feedback.textContent='Escuché más de una pieza. Selecciona la correcta.';
+      else if(incompatible)feedback.textContent=result.surface==='O'?'La cara oclusal sólo corresponde a premolares y molares. Corrige la pieza o la superficie.':'La cara incisal sólo corresponde a incisivos y caninos. Corrige la pieza o la superficie.';
       else if(!result.complete)feedback.textContent='Completa o corrige los datos que faltan.';
+      if(compact)requestAnimationFrame(()=>summary.focus({preventScroll:true}));
     };
     const destroy=()=>{
       if(closed)return;closed=true;
@@ -147,16 +165,17 @@
       try{recognition.start();}catch(_){recognition=null;setListening(false);status.textContent='No pude iniciar el micrófono. Intenta de nuevo.';status.dataset.state='attention';}
     };
     listen.onclick=()=>{if(listeningNow){try{recognition?.stop();}catch(_){setListening(false);}return;}start();};
+    correct.onclick=()=>{summary.hidden=true;review.hidden=false;feedback.textContent='Corrige sólo lo necesario.';(tooth.value?surface:tooth).focus({preventScroll:true});};
     close.onclick=destroy;cancel.onclick=destroy;dialog.addEventListener('cancel',event=>{event.preventDefault();destroy();});
     apply.onclick=()=>{
       if(applying||!valid())return;
-      const candidate={tooth:tooth.value,surface:surface.value,condition:tidy(finding.value)},observation=format(candidate);if(!observation)return;
+      const prepared=candidate();if(!format(prepared))return;
       applying=true;apply.disabled=true;feedback.textContent='Agregando al borrador…';
-      try{const accepted=options.onApply({...candidate,observation});if(accepted===false)throw new Error('No se pudo preparar el borrador.');destroy();}
+      try{const accepted=options.onApply(prepared);if(accepted===false)throw new Error('No se pudo preparar el borrador.');destroy();}
       catch(error){applying=false;validate();feedback.textContent=error?.message||'No se pudo preparar el borrador.';}
     };
     dialog.showModal();return {close:destroy,dialog};
   }
 
-  return Object.freeze({teeth,surfaces,parse,format,supported,open});
+  return Object.freeze({teeth,surfaces,surfaceAllowed,parse,format,supported,open});
 });

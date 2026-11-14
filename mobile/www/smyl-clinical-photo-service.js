@@ -159,6 +159,33 @@
       return output;
     }
 
+    async function findingSource(tenantValue,patientValue,findingValue,{force=false}={}){
+      const tenant=uuid(tenantValue,'tenant'),patient=uuid(patientValue,'paciente'),findingId=uuid(findingValue,'hallazgo');
+      const response=await list(tenant,patient,{fresh:force,force});
+      if(!response?.available)return null;
+      for(const study of response.studies||[]){
+        const finding=(study.findings||[]).find(item=>item.id===findingId);
+        if(!finding)continue;
+        const decision=finding.latestDecision||finding.decision||null,correction=decision?.state==='corrected'&&decision.correction&&typeof decision.correction==='object'?decision.correction:{};
+        const anatomy=correction.anatomy&&typeof correction.anatomy==='object'?correction.anatomy:(finding.anatomy&&typeof finding.anatomy==='object'?finding.anatomy:{});
+        return Object.freeze({
+          findingId,
+          label:text(correction.label||finding.label||'Observación clínica',160)||'Observación clínica',
+          description:text(correction.description||finding.description||'',2000),
+          state:String(decision?.state||finding.initial_state||'pending'),
+          anatomy:structured(anatomy),
+          tooth:String(anatomy.fdi||'').slice(0,2),
+          studyId:String(study.id||''),
+          studyLabel:text(study.display_name||study.label||study.viewLabel||'Fotografía clínica',180)||'Fotografía clínica',
+          modality:String(study.modality||'photograph'),
+          subtype:String(study.subtype||''),
+          acquiredAt:String(study.acquired_at||study.created_at||''),
+          patientFileId:String(study.original?.id||study.original?.patientFileId||study.asset?.patient_file_id||'')
+        });
+      }
+      return null;
+    }
+
     function configuredUrl(){
       const edge=options.edgeUrl||root.EDGE_URL,base=options.supabaseUrl||root.SUPA_URL;
       if(!edge||!base)throw fail('La conexión de análisis no está configurada.','not_configured');
@@ -240,7 +267,7 @@
       return {blob,url,sha256:file.sha256,revoke:()=>{if(url)URL.revokeObjectURL(url);}};
     }
 
-    return Object.freeze({indexPatientFile,list,analyze,decide,createManual,setDisposition,loadOriginal,invalidate});
+    return Object.freeze({indexPatientFile,list,findingSource,analyze,decide,createManual,setDisposition,loadOriginal,invalidate});
   }
 
   let singleton=null,singletonClient=null;
@@ -255,7 +282,7 @@
   return Object.freeze({
     taxonomy:TAXONOMY,views:Object.freeze(Object.keys(TAXONOMY)),label:view=>TAXONOMY[subtype(view)].label,
     family:view=>TAXONOMY[subtype(view)].family,isSubtype:value=>Object.hasOwn(TAXONOMY,String(value||'')),normalizeRegion,
-    create,indexPatientFile:delegate('indexPatientFile'),list:delegate('list'),analyze:delegate('analyze'),decide:delegate('decide'),
+    create,indexPatientFile:delegate('indexPatientFile'),list:delegate('list'),findingSource:delegate('findingSource'),analyze:delegate('analyze'),decide:delegate('decide'),
     createManual:delegate('createManual'),setDisposition:delegate('setDisposition'),loadOriginal:delegate('loadOriginal'),invalidate:delegate('invalidate')
   });
 });
