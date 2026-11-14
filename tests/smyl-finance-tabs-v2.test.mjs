@@ -218,3 +218,19 @@ test('Inventario v2 paso 2: movimiento por tipo, buscador de pacientes y confirm
   assert.match(css, /\.inventory-confirm \.btn\[data-danger="true"\]/);
   for (const f of ['smyl-inventory.js', 'smyl-inventory.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
+
+test('Inventario v2 paso 3: orden de compra con varias líneas, total y proveedor sin salir del diálogo', () => {
+  const js = fs.readFileSync(new URL('../smyl-inventory.js', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../smyl-inventory.css', import.meta.url), 'utf8');
+  assert.match(js, /function openOrder\(opts\)/);
+  assert.match(js, /data-add-line/);
+  assert.match(js, /data-add-missing/);
+  assert.match(js, /data-new-supplier/);
+  assert.match(js, /from\('smyl_inventory_suppliers'\)\.insert\(\{tenant_id:state\.tenant,name:name/);
+  assert.match(js, /p_lines:lines/);
+  assert.match(js, /onclick=function\(\)\{openOrder\(\);\}/);
+  assert.doesNotMatch(js, /onclick=openOrder/);
+  assert.match(css, /\.inventory-order-line\{display:grid/);
+  assert.match(css, /\.inventory-order-total\{/);
+  for (const f of ['smyl-inventory.js', 'smyl-inventory.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
+});
