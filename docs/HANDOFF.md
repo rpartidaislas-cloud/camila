@@ -1,5 +1,13 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-14 — Codex — Dictado con MILA en la conclusión radiográfica
+
+- **Conclusión profesional** conserva un único borrador clínico y ahora ofrece dos entradas visibles: **Escribir** o **DICTAR CON MILA**. El dictado se agrega al mismo campo, permanece editable y nunca confirma ni guarda la decisión por sí solo.
+- Antes de activar el micrófono se informa que cada dictado consume MILA; la escritura manual no consume. Los estados listo, escuchando, procesando, revisión y error son recuperables, el micrófono se detiene al cambiar de señal o cerrar la mesa y el profesional sigue obligado a revisar y pulsar **Confirmar y continuar**.
+- Se agregó la función privada `mila-clinical-dictation`: exige sesión y `clinical.write`, transcribe sólo una frase, no guarda audio, transcripción ni una nota paralela, y registra mediante `smyl_consume` los segundos reales y los tokens técnicos que reporte el proveedor. El historial identifica el movimiento como **MILA · Dictado clínico**.
+- Web y `mobile/www` quedan sincronizados con revisión radiográfica `js?v=28`, mesa `css?v=22` y caché `radiograph-mila-dictation-v1`. No se modificaron el modelo radiográfico, el expediente versionado ni el contrato de confirmación.
+- Verificación: contratos focalizados `30/30` aprobados y `1` omitido por dependencia opcional; sintaxis JS/TS y flujo Playwright de dictado aprobados. QA visual aprobado en 1280, 820, 390 y 320 px sin desbordamiento y con controles táctiles de 44 px. La suite general conserva fallos estáticos preexistentes ajenos a esta entrega (entre ellos `smyl-evolution-closure-v36`). Pendiente: desplegar la nueva Edge Function y publicar cuando Ricardo lo autorice.
+
 ## 2026-11-14 — Codex — Carga clínica con una sola puerta visible
 
 - **Agregar archivo** queda como única entrada para fotografías, radiografías y documentos. Al elegir una radiografía, el archivo pasa al editor canónico y sus campos de carga permanecen ocultos; no se crea ni se conserva un segundo selector.

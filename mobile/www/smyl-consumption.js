@@ -13,7 +13,7 @@
     meta_messages:{label:'Mensajes de Meta',short:'Meta',unit:'mensajes disponibles',icon:'message',description:'WhatsApp, Instagram y Messenger consolidados por el servidor.'},
     whatsapp_messages:{label:'Mensajes de Meta',short:'WhatsApp',unit:'mensajes disponibles',icon:'message',description:'Medición histórica de WhatsApp durante la transición.'}
   };
-  var sourceLabels={mila_transcribe:'MILA · Transcripción',mila_conversa:'MILA · Consulta',mila_session:'MILA · Sesión',meta_send:'WhatsApp · Mensaje enviado',photo_analysis:'IA · Análisis fotográfico',analizar_foto:'IA · Análisis fotográfico',paquete_piloto:'Paquete piloto',package_purchase:'Compra de paquete'};
+  var sourceLabels={mila_transcribe:'MILA · Transcripción',mila_clinical_dictation:'MILA · Dictado clínico',mila_conversa:'MILA · Consulta',mila_session:'MILA · Sesión',meta_send:'WhatsApp · Mensaje enviado',photo_analysis:'IA · Análisis fotográfico',analizar_foto:'IA · Análisis fotográfico',paquete_piloto:'Paquete piloto',package_purchase:'Compra de paquete'};
   var kindLabels={debit:'Consumo',meter_only:'Medición piloto',credit:'Crédito',refund:'Reembolso',adjustment:'Ajuste'};
 
   function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}

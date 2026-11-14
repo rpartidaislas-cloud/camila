@@ -165,6 +165,23 @@
 .rr-decision-actions { display: grid; margin: 0; grid-template-columns: minmax(0, .8fr) minmax(0, 1.35fr); gap: 8px; }
 .rr-decision-actions .rr-tertiary { border-color: #edc9c5; background: #fff; }
 .rr-decision-note { margin: 0; color: var(--rr-meta); font-size: 12px; line-height: 16px; text-align: center; }
+.rr-input-method { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--rr-line); border-radius: 12px; background: #f7fafb; }
+.rr-input-method-head { display: grid; gap: 8px; }
+.rr-input-method-label { color: var(--rr-ink); font-size: 12px; font-weight: 750; line-height: 16px; }
+.rr-input-modes { display: grid; grid-template-columns: minmax(0, .78fr) minmax(0, 1.22fr); gap: 6px; padding: 3px; border: 1px solid #d6e0e8; border-radius: 10px; background: #edf2f5; }
+.rr-input-mode { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 7px 10px; border: 0; border-radius: 7px; background: transparent; color: #526477; font: 750 12px/1.15 var(--smyl-ui-font, Inter, system-ui, sans-serif); letter-spacing: .02em; cursor: pointer; }
+.rr-input-mode.is-active { background: #fff; color: var(--rr-ink); box-shadow: 0 1px 5px rgba(11,27,46,.09); }
+.rr-input-mode-mila.is-active { background: #0b1b2e; color: #fff; }
+.rr-input-mode:disabled { cursor: wait; opacity: .68; }
+.rr-mila-mic { position: relative; width: 9px; height: 13px; box-sizing: border-box; border: 1.6px solid currentColor; border-radius: 6px; }
+.rr-mila-mic::before { content: ''; position: absolute; left: 50%; bottom: -5px; width: 13px; height: 7px; box-sizing: border-box; border: 1.6px solid currentColor; border-top: 0; border-radius: 0 0 8px 8px; transform: translateX(-50%); }
+.rr-mila-disclosure,.rr-mila-status { margin: 0; font-size: 12px; line-height: 17px; }
+.rr-mila-disclosure { color: #5a6877; }
+.rr-mila-disclosure strong { color: #263b4f; }
+.rr-mila-status { min-height: 15px; color: #0f766e; }
+.rr-input-method[data-state="recording"] { border-color: #69bdb5; background: #f0f8f7; }
+.rr-input-method[data-state="error"] .rr-mila-status { color: #9d302b; }
+.rr-input-method button:focus-visible { outline: 3px solid rgba(15,118,110,.25); outline-offset: 2px; }
 .rr-item.is-saving { border-color: var(--rr-accent); box-shadow: 0 0 0 3px var(--rr-accent-soft); }
 .rr-item.is-saving .rr-clinical-decision { opacity: .72; }
 .rr-panel-empty { display: grid; gap: 4px; padding: 20px; border: 1px dashed var(--rr-line-strong); border-radius: 12px; background: var(--rr-soft); text-align: center; }
@@ -268,6 +285,10 @@
   .rr-confirm-dialog { padding: 20px; }
   .rr-confirm-actions { align-items: stretch; flex-direction: column-reverse; }
   .rr-confirm-actions > * { width: 100%; min-height: 44px; }
+}
+
+@media (max-width: 639px) {
+  .rr-input-mode { min-height: 44px; }
 }
 
 @media (max-width: 359px) {
@@ -1780,6 +1801,8 @@
 }
 
 @media (max-width: 359px) {
+  .rr-input-modes { grid-template-columns: 1fr; }
+  .rr-input-mode { min-height: 44px; }
   .rr-zoom-quick { width: calc(100% - 20px); }
   .rr-zoom-quick .rr-tool-range { display: none; }
 }
