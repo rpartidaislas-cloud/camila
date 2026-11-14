@@ -76,9 +76,9 @@ test('la configuración se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-settings-hub.js', 'smyl-settings-hub.css', 'smyl-navigation.js', 'smyl-clinic-setup.js', 'smyl-professional-v3.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=6/);
+  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=7/);
   assert.match(read('app.html'), /smyl-settings-hub\.css\?v=5/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=6/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=7/);
   assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=5/);
 });
 
@@ -120,7 +120,7 @@ test('cada tarjeta abre la pestaña exacta de su pantalla y las pantallas ofrece
 
 test('Profesionales, Facturación y Recordatorios se muestran dentro de Configuración sin copiarse', () => {
   const embedded = Object.fromEntries(hub.SECTIONS.flatMap(s => s.items).filter(i => i.embed).map(i => [i.title, i]));
-  assert.deepEqual(Object.keys(embedded).sort(), ['Cobros y pagos', 'Corte de caja', 'Facturación', 'Profesionales y roles', 'Recordatorios de cita', 'Sucursales y espacios']);
+  assert.deepEqual(Object.keys(embedded).sort(), ['Corte de caja', 'Facturación', 'Profesionales y roles', 'Recibos', 'Recordatorios de cita', 'Sucursales y espacios']);
   assert.equal(embedded['Recordatorios de cita'].element, '#schedule-reminders-card');
   assert.equal(embedded['Profesionales y roles'].route, 'clinica');
   const source = read('smyl-settings-hub.js');
