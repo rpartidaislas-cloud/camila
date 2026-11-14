@@ -288,3 +288,17 @@ body.smyl-ui-governed .contenido .inventory-order-line .inventory-money input{bo
 .inventory-order-form .inventory-form-grid{align-items:start}
 .inventory-label-row{min-height:18px;line-height:18px}.inventory-label-row .inventory-link{line-height:18px;padding:0}
 .inventory-dialog .inventory-link{min-height:0!important;height:auto!important;background:none!important;border:0!important;box-shadow:none!important;color:#0f766e!important}
+
+/* Consumo al cerrar la cita: aviso al terminar y lista de citas sin material. */
+.inventory-toast{position:fixed;right:20px;bottom:20px;z-index:2147483000;display:flex;align-items:center;gap:16px;max-width:min(520px,calc(100vw - 32px));padding:14px 16px;border:1px solid #bfe3dc;border-radius:14px;background:#fff;box-shadow:0 14px 40px rgba(11,27,46,.22);color:#16243a}
+.inventory-toast>div:first-child{display:grid;gap:2px;font-size:13px;line-height:1.4}.inventory-toast b{font-size:14px}.inventory-toast span{color:#526273}
+.inventory-toast-actions{display:flex;align-items:center;gap:10px;flex:none}
+@media(max-width:560px){.inventory-toast{left:16px;right:16px;flex-direction:column;align-items:stretch}.inventory-toast-actions{justify-content:flex-end}}
+.inventory-pending{display:grid;gap:12px}.inventory-pending h2{margin:0}.inventory-pending>p{margin:0;color:#6b778c;font-size:13px;line-height:1.5}
+.inventory-pending ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;max-height:52vh;overflow:auto}
+.inventory-pending li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border:1px solid #e1e7ef;border-radius:10px}
+.inventory-pending li b{display:block;font-size:13.5px}.inventory-pending li small{color:#6b778c;font-size:12.5px}
+.inventory-pending li>span{display:flex;align-items:center;gap:12px;flex:none}
+.inventory-pending-empty{justify-content:center!important;color:#6b778c}
+@media(max-width:560px){.inventory-pending li{flex-direction:column;align-items:flex-start}}
+.inventory-dialog[data-plain]{position:fixed;inset:0;margin:auto;height:fit-content;width:min(560px,calc(100vw - 28px));padding:22px;overflow:auto}

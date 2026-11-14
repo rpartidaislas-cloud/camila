@@ -614,3 +614,6 @@ body.smyl-ui-governed #p-agenda .schedule-dialog :is(input,select,textarea){min-
 .sched-billing-row strong{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .schedule-agenda-row span i.schedule-billing{display:inline-block;margin-top:5px}
 .schedule-timeline-event .schedule-appointment i.schedule-billing{display:inline-block;position:absolute;top:6px;right:8px;z-index:2;margin:0}
+
+.sched-material-row strong{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sched-material-row i{font-style:normal}
