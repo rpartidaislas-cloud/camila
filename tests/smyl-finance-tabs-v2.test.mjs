@@ -252,3 +252,19 @@ test('Inventario v2: consumo al cerrar la cita (aviso, estado en la ficha y list
   assert.match(css, /\.inventory-dialog\[data-plain\]/);
   for (const f of ['smyl-inventory.js', 'smyl-inventory.css', 'smyl-schedule.js', 'smyl-schedule.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
+
+test('Inventario v2: «Reponer» por fila y «Crear pedidos sugeridos» sin duplicar lo que ya viene en camino', () => {
+  const js = fs.readFileSync(new URL('../smyl-inventory.js', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../smyl-inventory.css', import.meta.url), 'utf8');
+  assert.match(js, /function incomingQuantity\(x\)/);
+  assert.match(js, /reorderTarget\(x\)-Number\(x\.on_hand\|\|0\)-incomingQuantity\(x\)/);
+  assert.match(js, /function usualSupplier\(itemId\)/);
+  assert.match(js, /function openSuggestedOrders\(\)/);
+  assert.match(js, /data-reponer=/);
+  assert.match(js, /data-suggest-orders/);
+  assert.match(js, /Sin proveedor habitual/);
+  assert.match(js, /En camino /);
+  assert.match(css, /\.inventory-suggest-bar\{/);
+  assert.match(css, /\.inventory-reponer\{/);
+  for (const f of ['smyl-inventory.js', 'smyl-inventory.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
+});
