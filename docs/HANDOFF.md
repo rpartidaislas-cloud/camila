@@ -1,5 +1,13 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-15 — Claude Code — Rediseño del diálogo «Entrevista con MILA» (computadora)
+
+- El diálogo ahora queda centrado (antes podía quedar pegado arriba a la izquierda por el `dialog{margin:0}` global), con cabecera azul marino: iniciales y nombre completo del paciente, estado en vivo con indicador animado y botón de minimizar.
+- Avance en 4 pasos (Escanear → Consentimiento → Entrevista → Revisar) según el estado real de la sesión; el contenido cambia por fase: QR grande con instrucciones e íconos, «Celular conectado», «Entrevista en curso» con onda animada, «Código vencido» con botón para generar otro.
+- Nuevo: **Usar esta computadora** abre la entrevista en una pestaña nueva (mismo enlace de un solo uso, con confirmación). Cuenta regresiva «vence en N min».
+- Consumo en tres indicadores (minutos, tokens de entrada, tokens de salida). Historia con barra de avance «N de 7 secciones», chips por sección y lista de lo que falta preguntar; exploración con número de pieza destacado, cara y cita. Pie con «Generar código nuevo» y «Terminar y borrar sesión» (en rojo).
+- Solo cambia la vista (`smyl-mila-interview.js`/`.css` `v=3`, caché `mila-dialog-v3`); sin cambios de backend. Respeta `prefers-reduced-motion`, objetivos táctiles de 44 px y texto ≥ 12 px. QA Playwright a 1280 y 390 px: centrado, sin desbordamiento, 0 textos menores de 12 px.
+
 ## 2026-11-15 — Claude Code — MILA entrevista por voz, alertas inmediatas y modo de grabación más rápido
 
 - **«MILA hace las preguntas»** (nuevo, predeterminado en el celular): conversación por voz con OpenAI Realtime (WebRTC, mismo patrón que `mila-realtime-session`). MILA saluda al paciente por su primer nombre, abre con motivo de consulta y dolor (inicio, intensidad 0-10, qué lo empeora), sigue la guía una pregunta a la vez, repregunta, hace un resumen en voz alta para confirmarlo y se despide. Instrucciones en `buildInterviewerInstructions()` (`_shared/mila-interview-contract.mjs`): sin diagnósticos, consejos, precios ni datos fuera de la guía; «Eso lo revisará el doctor».
