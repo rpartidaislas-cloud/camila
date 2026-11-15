@@ -228,3 +228,11 @@ test('voz femenina latina configurable y pantalla en vivo con orbe', () => {
   assert.match(phone, /prefers-reduced-motion: reduce/);
   assert.match(phone, /id="live-pause"/);
 });
+
+test('ahorro sin perder calidad: ruido, intervenciones breves y cierre por silencio', () => {
+  assert.match(read('../supabase/functions/mila-interview/index.ts'), /noise_reduction: \{ type: "far_field" \}/);
+  assert.match(buildInterviewerInstructions('Ana'), /como máximo dos frases breves/);
+  const phone = read('../mila-movil.html');
+  assert.match(phone, /limit=rt\.muted\?300000:60000/);
+  assert.match(phone, /se cerrará en/);
+});

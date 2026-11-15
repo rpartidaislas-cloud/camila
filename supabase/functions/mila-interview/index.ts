@@ -402,6 +402,8 @@ Deno.serve(async (req: Request) => {
       audio: {
         input: {
           transcription: { model: REALTIME_TRANSCRIBE_MODEL, languages: ["es"] },
+          // Filtra ruido del consultorio (compresor, succión, música); far_field porque el celular queda sobre la mesa, no pegado a la boca.
+          noise_reduction: { type: "far_field" },
           turn_detection: { type: "server_vad", threshold: 0.5, prefix_padding_ms: 300, silence_duration_ms: 800, create_response: true },
         },
         output: { voice: REALTIME_VOICE },

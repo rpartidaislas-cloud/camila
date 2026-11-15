@@ -1,5 +1,12 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-15 — Claude Code — Entrevista por voz: ahorro sin cambiar modelo ni voz
+
+- `noise_reduction: far_field` en la sesión Realtime (el celular queda sobre la mesa): menos respuestas disparadas por ruido del consultorio.
+- Instrucción de intervenciones de máximo dos frases (salvo el resumen final): menos audio de salida, que es lo más caro.
+- Cierre automático en el celular: 60 s sin conversación o 5 min en pausa → `realtime_finish` (aviso «se cerrará en N s» desde los 45 s).
+- Se mantiene `gpt-realtime-2.1` y la voz; no se probó la versión mini por pedido del usuario (sin perder calidad). **Requiere volver a desplegar `mila-interview`.** Pruebas 17/17.
+
 ## 2026-11-15 — Claude Code — Entrevista por voz: pantalla en vivo con orbe y voz latina
 
 - `mila-movil.html`: al iniciar «MILA hace las preguntas» se abre una pantalla completa con un **orbe animado** (canvas) que reacciona al audio real: se expande con la voz de MILA (análisis de la pista remota), muestra ondas cuando habla el paciente (micrófono), late lento cuando MILA piensa y se apaga en pausa. Estados por eventos Realtime (`output_audio_buffer.started/stopped`, `input_audio_buffer.speech_started/stopped`).

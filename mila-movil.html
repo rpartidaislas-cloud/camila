@@ -362,7 +362,7 @@
   function closeLive(){$('live').hidden=true;stopOrb();}
   function renderLiveAlert(){var items=alertItems(),b=$('live-alert');b.hidden=!items.length;b.textContent=items.length?'⚠ '+items[items.length-1]+(items.length>1?' (+'+(items.length-1)+')':''):'';}
   $('live-log').onclick=function(){var open=$('live-sheet').hidden;$('live-sheet').hidden=!open;this.setAttribute('aria-pressed',String(open));if(open)$('live-sheet').scrollTop=$('live-sheet').scrollHeight;};
-  $('live-pause').onclick=function(){var rt=st.rt;if(!rt.stream)return;rt.muted=!rt.muted;rt.stream.getAudioTracks().forEach(function(t){t.enabled=!rt.muted;});this.setAttribute('aria-pressed',String(rt.muted));this.querySelector('span').textContent=rt.muted?'Reanudar':'Pausar';setOrb(rt.muted?'paused':'idle');};
+  $('live-pause').onclick=function(){var rt=st.rt;if(!rt.stream)return;rt.muted=!rt.muted;rt.pausedAt=Date.now();if(!rt.muted)rt.last=Date.now();rt.stream.getAudioTracks().forEach(function(t){t.enabled=!rt.muted;});this.setAttribute('aria-pressed',String(rt.muted));this.querySelector('span').textContent=rt.muted?'Reanudar':'Pausar';setOrb(rt.muted?'paused':'idle');};
   $('live-end').onclick=function(){finishRealtime();};
   $('live-alert').onclick=function(){$('live-log').click();};
 
@@ -387,7 +387,13 @@
       $('rec').dataset.on='true';$('rec').setAttribute('aria-pressed','true');updateDock();
       try{if(navigator.wakeLock)st.wake=await navigator.wakeLock.request('screen');}catch(_){}
       setOrb('idle');
-      rt.timer=setInterval(function(){var s=Math.round((Date.now()-rt.started)/1000);$('live-timer').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');status('MILA está entrevistando · '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0'),'Pulsa «Terminar» cuando acabe o si el paciente quiere detenerse.');},1000);
+      rt.last=Date.now();rt.pausedAt=0;
+      rt.timer=setInterval(function(){var s=Math.round((Date.now()-rt.started)/1000);$('live-timer').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+        // Cierre automático para no consumir de más: 60 s sin voz o 5 min en pausa.
+        var quiet=Date.now()-(rt.muted?rt.pausedAt:rt.last),limit=rt.muted?300000:60000;
+        if(rt.active&&quiet>=limit){finishRealtime();return;}
+        if(rt.active&&!rt.muted&&quiet>=45000)$('live-state').textContent='Sin conversación · se cerrará en '+Math.ceil((limit-quiet)/1000)+' s';
+        else if(rt.active&&quiet<45000&&/se cerrará/.test($('live-state').textContent))$('live-state').textContent=STATE_TEXT[ORB.state]||'';status('MILA está entrevistando · '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0'),'Pulsa «Terminar» cuando acabe o si el paciente quiere detenerse.');},1000);
     }catch(e){
       stopRealtime(false);closeLive();
       status(e&&e.name==='NotAllowedError'?'Sin acceso al micrófono':'No se pudo iniciar la entrevista',e&&e.name==='NotAllowedError'?'Permite el micrófono en el navegador.':(e.message||''),true);
@@ -395,6 +401,7 @@
   }
   function onRealtimeEvent(message){
     var e;try{e=JSON.parse(message.data);}catch(_){return;}
+    if(/^(input_audio_buffer\.speech_started|output_audio_buffer\.started|response\.output_audio_transcript\.delta|response\.audio_transcript\.delta|conversation\.item\.input_audio_transcription\.completed)$/.test(e.type))st.rt.last=Date.now();
     if(e.type==='session.created'||e.type==='session.updated'){if(!st.rt.greeted){st.rt.greeted=true;sendRt({type:'response.create',response:{instructions:'Empieza: saluda al paciente por su nombre, preséntate y explica en una frase lo que harás. Luego haz la primera pregunta.'}});}}
     if(e.type==='input_audio_buffer.speech_started'&&!st.rt.muted)setOrb('listening');
     if(e.type==='input_audio_buffer.speech_stopped'&&!st.rt.muted)setOrb('thinking');
