@@ -1109,3 +1109,17 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
 }
 @media(max-width:700px){#p-caja .finance-issuer-card{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}#p-caja .finance-issuer-card .finance-badge{justify-self:start}}
 @media(max-width:700px){#p-caja .finance-fiscal-receipt-filters{display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow:visible}#p-caja .finance-fiscal-receipt-filters button{justify-content:center;min-height:40px}}
+
+/* Cobros · paso 3: cobro directo en la fila, lista de cuentas más corta y aviso con el siguiente pendiente. */
+#p-caja .finance-metrics article small .finance-metric-cut{display:inline-flex;align-items:center;min-height:26px;padding:0 10px;border:1px solid #e4b66f;border-radius:8px;background:#fff7e8;color:#8a4b00;font-weight:700;text-decoration:none}
+#p-caja .finance-visit-row small b{color:#12233f}
+#p-caja .finance-row-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+#p-caja .finance-row-pay{min-height:32px;padding:0 12px;font-size:12px}
+#p-caja .finance-empty-fold{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-top:1px solid #e8edf2;background:#f8fafb;color:#5b6b78;font-size:13px;line-height:18px}
+#p-caja .finance-empty-fold button{padding:0;border:0;background:transparent;color:#0f766e;font:700 13px/18px Inter,system-ui,sans-serif;cursor:pointer}
+#p-caja .finance-empty-fold button:hover{text-decoration:underline}
+#p-caja .finance-notice-action{padding:0 4px;border:0;background:transparent;color:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
+@media(max-width:700px){#p-caja .finance-row-actions{justify-content:stretch}#p-caja .finance-row-pay{flex:1 1 auto;min-height:40px}}
+#p-caja .finance-toolbar>input{max-width:250px}
+#p-caja .finance-account-filters button{white-space:nowrap}
+#p-caja .finance-account-filters .finance-more-filters{max-width:112px}

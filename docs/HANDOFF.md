@@ -11052,3 +11052,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Desde Cobros:** `window.SmylSchedule.openWalkIn({returnTo:'caja'})` abre la Agenda (el diálogo vive en su pantalla), espera a que cargue y al terminar regresa a Cobros. El botón solo se muestra con `finance.manage` + `schedule.manage` (el propietario siempre).
 - **Archivos:** `smyl-schedule.js` v39, `smyl-schedule.css` v28, `smyl-finance.js` v41, `app.html`, `sw.js` (caché `…-llego-sin-cita-v1`), copias en `mobile/www/`, prueba nueva `tests/smyl-walk-in-v1.test.mjs`.
 - **Pendiente (con aprobación):** el resto de la maqueta de Cobros paso 3 (precio sugerido, «Con movimientos», «Cobrar $» en la fila, aviso con el siguiente pendiente, botón de corte, recordar filtro).
+
+## 2026-11-15 — Claude Code — Cobros paso 3 (resto): cobro más directo y listas más limpias
+- **Qué cambia (solo frontend, lectura/RPC existentes):**
+  - «Pendientes de registrar» muestra el **precio de lista** del servicio («Precio de lista $500.00»). No se puso el monto en el botón porque el total real puede incluir impuestos; se confirma en el diálogo de cargo.
+  - Filas de cuentas con saldo: botón **«Cobrar $X»** que abre el cobro de saldo existente (`openPayment(id,{mode:'balance'})`) junto a «Abrir cuenta».
+  - El filtro «Todas» pasa a **«Con movimientos»** (cuentas con cargos o saldo a favor). Las vacías quedan en una línea («N pacientes sin movimientos» + «Ver») y aparecen siempre al buscar por nombre.
+  - **Aviso con el siguiente pendiente** después de registrar un cargo desde una visita o cerrarla sin cargo («Cargo registrado por $850.00. Quedan 2 pendientes. Siguiente: Carlos Rivera →»). `notify()` acepta ahora una acción opcional.
+  - «Abierta hace más de 18 h · Hacer corte» pasa a botón ámbar en el indicador de Caja.
+  - **Último filtro recordado** por dispositivo y clínica (`smyl_finance_filter_<tenant>`).
+- **Archivos:** `smyl-finance.js` v42, `smyl-finance.css` v34, `app.html`, `sw.js` (caché `…-cobros-directo-v1`), copias en `mobile/www/`, pruebas ajustadas y una nueva en `tests/smyl-finance-tabs-v2.test.mjs`. Sin cambios de permisos, datos ni RPC.
