@@ -24,7 +24,7 @@ test('nunca se cobra sola: «Cobrar inasistencia» abre el formulario de cargo y
   assert.match(js, /openCharge\(a\.patient_id,\{due:'0',appointmentId:a\.id,noShow:true\}\)/);
   assert.match(js, /openNoCharge\(b\.dataset\.visitWaive,true\)/);
   assert.match(js, /<input type="hidden" name="reason" value="waived">/);
-  assert.match(js, /await reload\(waive\?'Inasistencia perdonada\.':'Visita cerrada sin cargo\.'\)/);
+  assert.match(js, /await reload\(\);notifyNextVisit\(waive\?'Inasistencia perdonada\.':'Visita cerrada sin cargo\.'\)/);
 });
 
 test('el cargo se abre con la cita ligada, concepto libre «Inasistencia a cita del …» y el monto de la clínica', () => {
@@ -59,8 +59,8 @@ test('la migración y las versiones quedan publicadas y sincronizadas con la app
   assert.ok(fs.existsSync(path.join(root, 'supabase/migrations/20261108160000_smyl_no_show_fee.sql')));
   assert.match(read('.github/workflows/smyl-pendientes-cargo-migracion.yml'), /20261108160000_smyl_no_show_fee\.sql/);
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-finance\.js\?v=41/);
-    assert.match(read(file), /smyl-finance\.css\?v=33/);
+    assert.match(read(file), /smyl-finance\.js\?v=42/);
+    assert.match(read(file), /smyl-finance\.css\?v=34/);
     assert.match(read(file), /smyl-schedule\.js\?v=39/);
   }
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-schedule.js', 'app.html', 'sw.js']) {

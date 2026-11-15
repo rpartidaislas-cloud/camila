@@ -57,7 +57,7 @@ test('el módulo es compacto: sin encabezado ni leyenda, acciones junto a las pe
   assert.doesNotMatch(js, /<header class="finance-head">/);
   assert.match(js, /<div class="finance-bar"><nav class="finance-tabs"[\s\S]*?<\/nav><div class="finance-head-actions">/);
   assert.match(js, /render\(\);notify\(''\);\}catch\(e\)/, 'al cargar bien se limpia el aviso de carga');
-  assert.match(js, /notify\.timer=setTimeout\(function\(\)\{h\.replaceChildren\(\);\},6000\)/);
+  assert.match(js, /notify\.timer=setTimeout\(function\(\)\{h\.replaceChildren\(\);\},action\?15000:6000\)/);
   assert.match(css, /\.finance-page>h1\{position:absolute/);
   assert.match(css, /\.finance-bar\{display:flex/);
   assert.match(css, /@media screen and \(max-width:420px\)\{[\s\S]*?\.finance-metrics\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
@@ -321,4 +321,25 @@ test('Cobros paso 2: la ayuda de caja vive en «Mi turno» y los botones sin cla
   assert.match(js, /class="btn btn-secondary" data-supervise-cash=/);
   assert.match(css, /#p-caja \.finance-issuer-card\{display:grid/);
   assert.match(css, /#p-caja \.finance-fiscal-receipt-filters\{display:grid;grid-template-columns:1fr 1fr/);
+});
+
+test('Cobros paso 3: precio de lista, cobro en la fila, «Con movimientos», siguiente pendiente, corte visible y filtro recordado', () => {
+  // Precio de lista del servicio en cada pendiente (el total real, con impuestos, se confirma en el diálogo).
+  assert.match(js, /function visitPrice\(a\)\{var sv=by\(state\.services,a\.service_id\),price=sv&&Number\(sv\.reference_price\);return price>0&&a\.status!=='no_show'\?' · Precio de lista <b>'/);
+  // «Cobrar $» en la fila reutiliza el cobro de saldo existente.
+  assert.match(js, /data-account-pay="'\+x\.p\.id\+'">Cobrar '\+money\(s\.due\)/);
+  assert.match(js, /openPayment\(button\.dataset\.accountPay,\{mode:'balance'\}\)/);
+  // «Todas» pasa a «Con movimientos»: las cuentas vacías quedan en una línea y aparecen al buscar.
+  assert.match(js, /if\(f==='all'\)return Boolean\(search\)\|\|state\.showEmptyAccounts\|\|x\.s\.charges\.length>0\|\|x\.s\.credit>0/);
+  assert.match(js, /all:'Con movimientos'/);
+  assert.match(js, /data-toggle-empty/);
+  // Aviso con el siguiente pendiente después de cobrar o cerrar sin cargo.
+  assert.match(js, /function notifyNextVisit\(text\)/);
+  assert.match(js, /label:'Siguiente: '\+name\(a\.patient_id\)\+' →'/);
+  assert.match(js, /fromVisit\)\{await reload\(\);notifyNextVisit\(chargeText\);\}/);
+  // Corte visible y último filtro recordado por dispositivo y clínica.
+  assert.match(js, /<u class="finance-metric-cut">Abierta hace más de 18 h · Hacer corte<\/u>/);
+  assert.match(js, /smyl_finance_filter_'\+\(state\.tenant\|\|''\)/);
+  assert.match(css, /\.finance-metric-cut\{/);
+  assert.doesNotMatch(js, /\.from\('smyl_finance_[a-z_]*'\)\.insert|\.update\(/);
 });
