@@ -10992,3 +10992,9 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **No cambia:** permisos, datos, RPC, recibos, caja ni facturación.
 - **Archivos:** `smyl-finance.js` v40, `smyl-finance.css` v32, `smyl-professional-v3.css` v9, `app.html`, `sw.js` (caché `…-cobros-hoy-v1`), copias en `mobile/www/`, pruebas actualizadas (`smyl-finance-tabs-v2`, `smyl-finance-workspace-v4`, `financial-followup-professional-stage5`, `smyl-fiscal-receipts-v1`, `cobros-pending-visits`, `professional-management-v3`).
 - **Pendiente (con aprobación):** paso 2 de la maqueta (pulido móvil adicional y ayuda integrada en «Caja»).
+
+## 2026-11-15 — Claude Code — Cobros paso 2: ayuda de caja integrada y pulido del celular
+- **Caja:** se quita la tarjeta lateral «Reglas de caja»; sus tres reglas pasan a un desplegable «¿Cómo funciona la caja?» dentro de «Mi turno» (una sola columna).
+- **Botones sin clase** de Facturación y Caja («Configurar emisor», «Preparar PAC sandbox», «Entrada / salida», «Revisar corte») se veían como los del navegador (borde negro de 2 px, fondo gris): ahora `btn btn-secondary` con estilo ligero en `#p-caja`.
+- **Celular:** tarjeta «Emisor» ya no corta el estado «PENDIENTE»; los filtros de Recibos pasan de tira que se desplaza a cuadrícula 2×2; «Sin cargo» no se estira en las citas pendientes.
+- **Archivos:** `smyl-finance.js`, `smyl-finance.css` v33, `app.html`, `sw.js` (caché `…-cobros-caja-v1`), copias en `mobile/www/`, prueba nueva en `tests/smyl-finance-tabs-v2.test.mjs`. Sin cambios de permisos, datos ni RPC.
