@@ -620,3 +620,16 @@ body.smyl-ui-governed #p-agenda .schedule-dialog :is(input,select,textarea){min-
 .sched-material-row i{font-style:normal}
 
 .schedule-pending-chip{display:inline-block;justify-self:start;margin:2px 0;padding:1px 8px;border-radius:999px;background:#fff4d6;color:#7a5200;font-size:12px;font-weight:600;line-height:1.5}
+
+/* Nueva cita: formulario a la izquierda y resumen fijo a la derecha; el resumen es neutro hasta que haya un problema real. */
+.schedule-booking-check[data-tone=pending]{border-color:#d9e2ec;background:#f6f8fb}
+.schedule-booking-check[data-tone=pending] .schedule-booking-head i{background:#e6ecf3;color:#5b6b7e}
+.schedule-custom-time{grid-column:1/-1}
+.schedule-custom-time>summary{cursor:pointer;color:#33607f;font-size:13px;font-weight:600;padding:4px 0}
+.schedule-custom-time[open]>summary{margin-bottom:8px}
+@media(min-width:900px){
+  dialog[data-smyl-dialog-size=large] #schedule-appointment-form .schedule-form-grid{position:relative;padding-right:324px;align-items:start}
+  dialog[data-smyl-dialog-size=large] #schedule-appointment-form .schedule-form-grid>.schedule-booking-check{position:absolute;top:0;right:0;width:300px;box-sizing:border-box;grid-column:auto}
+  dialog[data-smyl-dialog-size=large] #schedule-appointment-form .schedule-form-grid>.schedule-patient{grid-column:1/-1}
+  dialog[data-smyl-dialog-size=large] #schedule-appointment-form .schedule-booking-summary{grid-template-columns:1fr 1fr}
+}
