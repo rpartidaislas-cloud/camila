@@ -262,3 +262,10 @@ test('el resumen final no se corta: tope amplio, reanudación y actividad mientr
   assert.match(phone, /reason==='max_output_tokens'/);
   assert.match(phone, /if\(ORB\.state==='mila'\|\|ORB\.state==='listening'\|\|ORB\.state==='thinking'\)rt\.last=Date\.now\(\);/);
 });
+
+test('orbe v3: cintas de luz que siguen la voz, sin filtros de desenfoque', () => {
+  const phone = read('../mila-movil.html');
+  assert.match(phone, /Orbe v3: esfera de vidrio con cintas de luz/);
+  assert.doesNotMatch(phone, /CANVAS_BLUR/);
+  assert.match(phone, /paintOrb\(g,ORB\.size,t,ORB\.state/);
+});
