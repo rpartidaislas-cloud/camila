@@ -1,5 +1,21 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-15 — Claude — Paciente por registrar, fase 2: la persona completa sus datos por enlace
+
+- En Pacientes, las fichas «Por registrar» tienen **Enviar enlace de registro**: crea un enlace de un solo uso (vence en 7 días) y abre WhatsApp con el mensaje listo; sin teléfono válido lo copia. Renovar el enlace anula el anterior.
+- La persona abre `registro-paciente.html?token=…` (página pública, `noindex`), escribe nombre, apellidos, correo, fecha de nacimiento y género (opcionales salvo el nombre) y acepta el aviso de privacidad. Eso actualiza **solo su ficha** y la deja `completo`. No puede leer nada de la clínica.
+- Sin Edge Function ni Actions: la página llama por RPC con la clave publicable a `smyl_registration_link_info` y `smyl_submit_registration`; el personal usa `smyl_create_registration_link` (exige `patients.manage` y el tenant de la sesión). Token de 256 bits, en la base solo su hash SHA-256; la tabla `smyl_patient_registration_links` no tiene acceso directo para anon/authenticated.
+- Migración `20261115120000_smyl_patient_registration_links.sql`, **aplicar a mano en el SQL Editor antes de usar el botón** (sin ella el botón avisa que falta la migración). Probada en Postgres 16 desechable: permisos, otro tenant, ficha ya completa, consentimiento, validaciones, un solo uso, renovación y bloqueo directo a la tabla.
+- Pendiente: los datos que escribe la persona no pasan por revisión del personal antes de quedar `completo`; si se quiere verificar, agregar un estado intermedio.
+
+## 2026-11-15 — Claude — Paciente «por registrar» al agendar (fase 1)
+
+- En Agenda → Nueva cita se puede agendar a alguien que nunca ha ido sin darlo de alta completo: en el alta rápida **solo el teléfono es obligatorio**; el nombre es opcional. Sin nombre, el paciente se guarda como `Por registrar · <teléfono>` con `registro_estado='pendiente'` (`camila_pacientes.nombre` es NOT NULL y `smyl_appointments.patient_id` también, por eso se crea una ficha mínima).
+- La agenda (lista y semana) muestra la marca «Por registrar»; Pacientes la muestra como estado. Al completar el registro con **Editar** se exige un nombre real y el estado pasa a `completo`.
+- Migración aditiva `20261115090000_smyl_patient_pending_registration.sql` (columna + índice parcial, sin RLS ni grants) con workflow manual `smyl-paciente-por-registrar-migracion.yml`. **Aplicar la migración ANTES de publicar la web**; si no está aplicada, el alta reintenta sin la columna y la marca se deduce del prefijo del nombre.
+- Web y `mobile/www` sincronizados: `smyl-schedule.js?v=35`, `smyl-schedule.css?v=23`, caché `paciente-por-registrar-v1`. Pruebas nuevas en `tests/smyl-paciente-por-registrar.test.mjs` (de contrato sobre el código fuente; no ejecutan el navegador). Sin cambios en los fallos preexistentes de la suite.
+- Fase 2 pendiente (opcional): que la persona complete sus datos desde un enlace/QR por WhatsApp.
+
 ## 2026-11-14 — Codex — Redacción clínica profesional en el dictado de MILA
 
 - **DICTAR CON MILA** ahora prepara una redacción clínica profesional en el mismo borrador: corrige puntuación, concordancia, repeticiones y orden, sin crear otra nota ni confirmar la decisión.
@@ -10922,3 +10938,10 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - La integración conserva `pendingSuggestions`, avance y calidad del estudio. Una propuesta de IA se llama `sugerencia` hasta que el profesional la confirma como hallazgo.
 - Versiones: `smyl-evidence-center.js?v=12`, CSS v8, integración v12, `smyl-case-workspace.js?v=42`, CSS v31 y caché `clinical-file-layout-v28`. Web y `mobile/www` sincronizados.
 - QA: validación sintáctica aprobada; 62 pruebas focales ejecutadas (el único fallo inicial fue una versión antigua en la prueba de precarga, corregido); repetición final de 27 contratos aprobada, incluido espejo web/PWA. El recorrido visual automatizado local no estuvo disponible porque Playwright no está instalado y el navegador controlado no pudo validar la URL local.
+
+## 2026-11-15 — Claude Code — AVISO DE COORDINACIÓN: viene el permiso «Ver costos» de Inventario (no ampliar el esquema de costos sin coordinar)
+- **Decisión de Ricardo:** habrá una función de rol `inventory.costs` «Ver costos» **aplicada en la base de datos** (no solo ocultar en pantalla). Por omisión la tendrán **Propietario, Administrador e Inventario**; Odontólogo, Asistente y Recepción no verán costos. Se hará **después** de que termine y se fusione el trabajo de costos en curso (commit `ef2d4a9`, migración `20261114140000_smyl_inventory_item_costs.sql`), para no reescribir el mismo esquema a la vez.
+- **Por qué hace falta:** hoy todo costo se lee con solo `inventory.read`. Lugares donde existe: `smyl_inventory_items.reference_cost` (y presentación/proveedor preferido), `smyl_inventory_movement_lines.unit_cost`, `smyl_purchase_order_lines.unit_cost`, el «valor del inventario» y las funciones `smyl_inventory_consumption_report` / `smyl_inventory_consumption_totals`. Una política de filas (RLS) no limita columnas y `select('*')` falla si se retira el permiso de una columna, así que el diseño será mover los costos a tablas/vistas protegidas por `inventory.costs`, con migración y cambios en pantalla (insumos, pedidos, valor, reporte).
+- **Pedido a quien trabaje costos en Inventario ahora:** si vas a añadir **columnas, funciones o pantallas nuevas que lean o muestren costos**, deja aquí una línea con el nombre y dónde se muestran, para incluirlas en el diseño. Mientras sea posible, concentra las lecturas de costo en pocas funciones/consultas (no `select('*')` repartido) y evita exponer el costo en datos que se muestran a todos los roles (p. ej. listas de insumos para consumo o recepción).
+- **Ya aplicado en producción (no lo pises):** migración `20261114120000_smyl_inventory_role_permissions.sql` (aplicada a mano): claves `inventory.consume`, `inventory.adjust`, `inventory.purchase`; `smyl_post_inventory_movement` acepta `inventory.consume` solo para consumo; disparadores `smyl_inventory_movement_guard` y `smyl_purchase_order_guard`. Si reescribes `smyl_post_inventory_movement`, conserva esa línea de permiso. La restricción `smyl_role_permissions_permission_key_check` debe partir siempre de la lista vigente (incluye claves de finanzas, catálogo e inventario); una migración que la recree con una lista vieja falla o borra claves.
+- Sin cambios de código en este commit; solo documentación.
