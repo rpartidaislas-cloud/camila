@@ -849,12 +849,12 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-clinic-admin.js?v=12"></script>
 <link rel="stylesheet" href="smyl-professional-directory.css?v=12">
 <script defer src="smyl-professional-directory.js?v=12"></script>
-<link rel="stylesheet" href="smyl-schedule.css?v=22">
+<link rel="stylesheet" href="smyl-schedule.css?v=23">
 <link rel="stylesheet" href="smyl-google-calendar.css?v=2">
 <link rel="stylesheet" href="smyl-schedule-setup.css?v=2">
 <script defer src="smyl-schedule-grid.js?v=2"></script>
 <script defer src="smyl-schedule-slots.js?v=1"></script>
-<script defer src="smyl-schedule.js?v=34"></script>
+<script defer src="smyl-schedule.js?v=35"></script>
 <script defer src="smyl-google-calendar.js?v=2"></script>
 <script defer src="smyl-schedule-message.js?v=2"></script>
 <script defer src="smyl-schedule-setup.js?v=2"></script>
@@ -3547,7 +3547,7 @@ function renderTablaPacientes(lista) {
     copy.append(name, age); identity.append(avatar, copy);
     var contact = document.createElement('div'); contact.className = 'patient-contact';
     var contactText = document.createElement('div'); contactText.className = 'patient-meta'; contactText.textContent = p.telefono || p.email || 'Sin datos de contacto';
-    var complete = !!(p.telefono && p.email), status = document.createElement('span'); status.className = 'patient-status'; status.dataset.complete = String(complete); status.textContent = complete ? 'Datos completos' : 'Contacto por completar';
+    var complete = !!(p.telefono && p.email), status = document.createElement('span'); status.className = 'patient-status'; status.dataset.complete = String(complete); var porRegistrar = p.registro_estado === 'pendiente' || String(p.nombre || '').indexOf('Por registrar · ') === 0; status.textContent = porRegistrar ? 'Por registrar' : complete ? 'Datos completos' : 'Contacto por completar'; if (porRegistrar) status.dataset.complete = 'false';
     contact.append(contactText, status);
     var actions = document.createElement('div'); actions.className = 'patient-actions';
     var open = document.createElement('button'); open.type = 'button'; open.className = 'btn btn-primary btn-sm'; open.textContent = 'Continuar expediente'; open.addEventListener('click', function(){ verPaciente(p.id); });
@@ -3663,6 +3663,7 @@ function cerrarModalPaciente() { document.getElementById('modal-paciente').class
 async function guardarPaciente() {
   var nombre = document.getElementById('mp-nombre').value.trim();
   if (!nombre) { alert('El nombre es obligatorio'); return; }
+  if (nombre.indexOf('Por registrar · ') === 0) { alert('Escribe el nombre real de la persona para completar su registro.'); return; }
   var datos = {
     tenant_id: tenantId,
     nombre: nombre,
@@ -3674,6 +3675,8 @@ async function guardarPaciente() {
     notas: document.getElementById('mp-notas').value.trim(),
     updated_at: new Date().toISOString(),
   };
+  var previo = editandoPacienteId ? (todosLosPacientes || []).find(function(x) { return x.id === editandoPacienteId; }) : null;
+  if (previo && previo.registro_estado === 'pendiente') datos.registro_estado = 'completo';
   try {
     var writeResult;
     if (editandoPacienteId) {
