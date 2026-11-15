@@ -601,3 +601,11 @@
 .cw-enhanced .cw-clinical-map-layout{grid-template-columns:minmax(440px,1.6fr) minmax(330px,1fr)}
 .cw-enhanced .cw-map-inspector>.cw-help{flex:0}.cw-enhanced .cw-map-finding-editor[hidden]{display:none!important}.cw-enhanced .cw-map-finding-editor{margin-top:2px}
 @media(max-width:1024px){.cw-enhanced .cw-clinical-map-layout{grid-template-columns:minmax(0,1fr)}}
+
+/* Evaluación v4.4 · los controles responden al panel y no se recortan. */
+.cw-enhanced .cw-module[data-active=true]{overflow:visible}
+.cw-enhanced .cw-evaluation-flow{border-radius:0 0 14px 14px}
+.cw-enhanced .cw-evaluation-panels{min-width:0;overflow-x:clip}
+.cw-enhanced .cw-evaluation-panel,.cw-enhanced .cw-evaluation-panel-body,.cw-enhanced .cw-clinical-files-source,.cw-enhanced .cw-clinical-files-source-body{min-width:0;max-width:100%}
+.cw-enhanced .cw-evaluation-panel .cw-clinical-files-source{overflow:visible}
+.cw-enhanced .cw-clinical-files-source-body>.cw-radiograph-shelf[data-canonical-evidence=true]{display:none!important}

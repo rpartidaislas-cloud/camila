@@ -246,6 +246,9 @@
         superseded: 'superseded'
       })[item?.status] || 'draft',
       findings: Math.max(0, Number(item?.findings) || 0),
+      pendingSuggestions: Math.max(0, Number(item?.pendingSuggestions ?? item?.pending) || 0),
+      reviewedSuggestions: Math.max(0, Number(item?.reviewedSuggestions ?? item?.reviewed) || 0),
+      quality: ['usable', 'limited', 'unusable'].includes(item?.quality) ? item.quality : '',
       categoryIds: [...new Set((Array.isArray(item?.categoryIds) ? item.categoryIds : []).map(String).filter(Boolean))]
     }));
   }
@@ -410,7 +413,7 @@
       const create = button('Nueva categoría', 'sec-category-create', () => this.openCreateCategory());
       head.append(copy, create);
       const chips = element('div', 'sec-category-chips');
-      chips.setAttribute('role', 'tablist');
+      chips.setAttribute('role', 'group');
       chips.setAttribute('aria-label', 'Filtrar archivos por categoría clínica');
       const options = [
         { id: 'all', name: 'Todo', count: this.items.length },
@@ -421,22 +424,34 @@
           count: this.items.filter(item => item.categoryIds.includes(category.id)).length
         }))
       ];
-      options.forEach(option => {
+      const visibleOptions = options.filter((option, index) => index === 0 || option.count > 0 || this.filter === option.id);
+      const primaryOptions = visibleOptions.slice(0, 4);
+      const overflowOptions = visibleOptions.slice(4);
+      const renderCategoryControl = (option, host, compact = false) => {
         const tab = button('', 'sec-category-chip', () => {
           this.filter = option.id;
           this.renderFilters();
           this.renderList();
         });
-        tab.setAttribute('role', 'tab');
-        tab.setAttribute('aria-selected', String(this.filter === option.id));
+        if (compact) tab.classList.add('sec-category-chip-overflow');
+        tab.setAttribute('aria-pressed', String(this.filter === option.id));
         tab.append(element('span', '', option.name), element('b', '', String(option.count)));
-        chips.append(tab);
-      });
+        host.append(tab);
+      };
+      primaryOptions.forEach(option => renderCategoryControl(option, chips));
       this.filters.append(head, chips);
+      if (overflowOptions.length) {
+        const more = element('details', 'sec-category-more');
+        more.append(element('summary', '', `Más categorías (${overflowOptions.length})`));
+        const moreList = element('div', 'sec-category-more-list');
+        overflowOptions.forEach(option => renderCategoryControl(option, moreList, true));
+        more.append(moreList);
+        this.filters.append(more);
+      }
       if (suggestions.length) {
-        const suggested = element('div', 'sec-suggested-categories');
-        const suggestedCopy = element('div');
-        suggestedCopy.append(element('strong', '', 'Sugeridas'), element('small', '', 'Haz clic para activar una en tu clínica.'));
+        const suggested = element('details', 'sec-suggested-categories');
+        const suggestedCopy = element('summary');
+        suggestedCopy.append(element('strong', '', 'Categorías sugeridas'), element('small', '', `${suggestions.length} disponibles`));
         const suggestedChips = element('div', 'sec-suggested-chips');
         suggestions.forEach(category => {
           const control = button(`+ ${category.name}`, 'sec-suggested-chip', () => this.activateSuggestion(category, control));
@@ -495,11 +510,36 @@
         if (assigned.length) assigned.forEach(entry => categoryRow.append(element('span', 'sec-study-category-chip', entry.name)));
         else categoryRow.append(element('span', 'sec-study-category-chip is-empty', 'Sin categoría'));
         copy.append(categoryRow);
+        if (item.modality === 'radiograph_2d') {
+          const reviewCopy = item.pendingSuggestions > 0
+            ? `${item.pendingSuggestions} ${item.pendingSuggestions === 1 ? 'sugerencia pendiente' : 'sugerencias pendientes'} de revisión profesional`
+            : item.status === 'signed'
+              ? 'Revisión profesional completada'
+              : 'Lista para iniciar revisión profesional';
+          const progress = element('span', 'sec-study-review', reviewCopy);
+          if (item.quality) progress.dataset.quality = item.quality;
+          copy.append(progress);
+        }
         main.append(copy);
         const state = element('span', 'sec-status', statusLabel(item.status));
         state.dataset.tone = item.status;
         const actions = element('div', 'sec-study-actions');
-        actions.append(button('Clasificar', 'sec-link sec-classify', () => this.openAssignment(item)), button('Abrir', 'sec-link', () => this.options.onOpen?.(item)));
+        const primaryLabel = item.modality === 'radiograph_2d'
+          ? item.pendingSuggestions > 0
+            ? `Revisar ${item.pendingSuggestions} ${item.pendingSuggestions === 1 ? 'sugerencia' : 'sugerencias'}`
+            : item.status === 'signed' ? 'Ver revisión' : 'Iniciar revisión'
+          : 'Abrir';
+        const primary = button(primaryLabel, 'sec-link sec-study-primary', () => this.options.onOpen?.(item));
+        const more = element('details', 'sec-study-more');
+        const moreSummary = element('summary', '', 'Más acciones');
+        moreSummary.setAttribute('aria-label', `Más acciones para ${item.title || typeLabel(category, item.subtype)}`);
+        const moreMenu = element('div', 'sec-study-more-menu');
+        moreMenu.append(button('Clasificar', 'sec-study-menu-action', () => {
+          more.open = false;
+          this.openAssignment(item);
+        }));
+        more.append(moreSummary, moreMenu);
+        actions.append(primary, more);
         card.append(main, state, actions);
         this.list.append(card);
       });
