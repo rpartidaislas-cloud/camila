@@ -1,5 +1,13 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-15 — Claude — Paciente «por registrar» al agendar (fase 1)
+
+- En Agenda → Nueva cita se puede agendar a alguien que nunca ha ido sin darlo de alta completo: en el alta rápida **solo el teléfono es obligatorio**; el nombre es opcional. Sin nombre, el paciente se guarda como `Por registrar · <teléfono>` con `registro_estado='pendiente'` (`camila_pacientes.nombre` es NOT NULL y `smyl_appointments.patient_id` también, por eso se crea una ficha mínima).
+- La agenda (lista y semana) muestra la marca «Por registrar»; Pacientes la muestra como estado. Al completar el registro con **Editar** se exige un nombre real y el estado pasa a `completo`.
+- Migración aditiva `20261115090000_smyl_patient_pending_registration.sql` (columna + índice parcial, sin RLS ni grants) con workflow manual `smyl-paciente-por-registrar-migracion.yml`. **Aplicar la migración ANTES de publicar la web**; si no está aplicada, el alta reintenta sin la columna y la marca se deduce del prefijo del nombre.
+- Web y `mobile/www` sincronizados: `smyl-schedule.js?v=35`, `smyl-schedule.css?v=23`, caché `paciente-por-registrar-v1`. Pruebas nuevas en `tests/smyl-paciente-por-registrar.test.mjs` (de contrato sobre el código fuente; no ejecutan el navegador). Sin cambios en los fallos preexistentes de la suite.
+- Fase 2 pendiente (opcional): que la persona complete sus datos desde un enlace/QR por WhatsApp.
+
 ## 2026-11-14 — Codex — Redacción clínica profesional en el dictado de MILA
 
 - **DICTAR CON MILA** ahora prepara una redacción clínica profesional en el mismo borrador: corrige puntuación, concordancia, repeticiones y orden, sin crear otra nota ni confirmar la decisión.
