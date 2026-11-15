@@ -1,5 +1,11 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-15 — Claude — Paciente por registrar, fase 2b: estado «por verificar»
+
+- Lo que la persona envía por el enlace ya no deja la ficha en `completo`: queda `por_verificar`. En Pacientes aparece como **Por verificar** con el botón **Confirmar datos** (pasa a `completo`; usa el permiso normal de editar pacientes). Guardar la ficha con **Editar** también la confirma.
+- Migración `20261115150000_smyl_patient_registration_verify.sql` (amplía la restricción de `registro_estado` y reemplaza `smyl_submit_registration`). **Aplicar a mano ANTES de publicar la web.** Probada en Postgres 16 desechable encadenada sobre las dos anteriores, incluida la reaplicación.
+- Un enlace nuevo solo se puede crear para fichas `pendiente`; una ficha `por_verificar` no recibe otro enlace.
+
 ## 2026-11-15 — Claude Code — MILA en el celular: entrevista de historia clínica y exploración dictada (QR)
 
 - **Historia clínica** suma **Entrevista con MILA** (y el odontograma, **Exploración con MILA**). La computadora muestra un QR de un solo uso; el celular del dentista lo escanea (`mila-movil.html`, sin login), registra el **consentimiento del paciente** y graba por segmentos de 2 min. El celular muestra la **guía de preguntas** por sección y marca en vivo qué ya se cubrió y qué falta preguntar.

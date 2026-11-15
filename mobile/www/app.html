@@ -3487,16 +3487,30 @@ function renderTablaPacientes(lista) {
     copy.append(name, age); identity.append(avatar, copy);
     var contact = document.createElement('div'); contact.className = 'patient-contact';
     var contactText = document.createElement('div'); contactText.className = 'patient-meta'; contactText.textContent = p.telefono || p.email || 'Sin datos de contacto';
-    var complete = !!(p.telefono && p.email), status = document.createElement('span'); status.className = 'patient-status'; status.dataset.complete = String(complete); var porRegistrar = p.registro_estado === 'pendiente' || String(p.nombre || '').indexOf('Por registrar · ') === 0; status.textContent = porRegistrar ? 'Por registrar' : complete ? 'Datos completos' : 'Contacto por completar'; if (porRegistrar) status.dataset.complete = 'false';
+    var complete = !!(p.telefono && p.email), status = document.createElement('span'); status.className = 'patient-status'; status.dataset.complete = String(complete); var porRegistrar = p.registro_estado === 'pendiente' || String(p.nombre || '').indexOf('Por registrar · ') === 0; var porVerificar = p.registro_estado === 'por_verificar'; status.textContent = porRegistrar ? 'Por registrar' : porVerificar ? 'Por verificar' : complete ? 'Datos completos' : 'Contacto por completar'; if (porRegistrar || porVerificar) status.dataset.complete = 'false';
     contact.append(contactText, status);
     var actions = document.createElement('div'); actions.className = 'patient-actions';
     var open = document.createElement('button'); open.type = 'button'; open.className = 'btn btn-primary btn-sm'; open.textContent = 'Continuar expediente'; open.addEventListener('click', function(){ verPaciente(p.id); });
     var edit = document.createElement('button'); edit.type = 'button'; edit.className = 'btn btn-secondary btn-sm btn-icon'; edit.textContent = 'Editar'; edit.setAttribute('aria-label','Editar datos de ' + name.textContent); edit.addEventListener('click', function(){ abrirModalPaciente(p.id); });
     actions.append(open, edit);
     if (porRegistrar && p.registro_estado === 'pendiente') { var link = document.createElement('button'); link.type = 'button'; link.className = 'btn btn-secondary btn-sm'; link.textContent = 'Enviar enlace de registro'; link.addEventListener('click', function(){ enviarEnlaceRegistro(p, link); }); actions.append(link); }
+    if (porVerificar) { var ok = document.createElement('button'); ok.type = 'button'; ok.className = 'btn btn-secondary btn-sm'; ok.textContent = 'Confirmar datos'; ok.setAttribute('aria-label', 'Confirmar los datos que envió ' + name.textContent); ok.addEventListener('click', function(){ confirmarDatosPaciente(p, ok); }); actions.append(ok); }
     row.append(identity, contact, actions); directory.append(row);
   });
   el.replaceChildren(directory);
+}
+
+async function confirmarDatosPaciente(p, boton) {
+  boton.disabled = true;
+  try {
+    var res = await sbTimeout(sb.from('camila_pacientes').update({ registro_estado: 'completo', updated_at: new Date().toISOString() }).eq('id', p.id).eq('tenant_id', tenantId).eq('registro_estado', 'por_verificar').select('id').single());
+    if (res.error || !res.data) throw res.error || new Error('La confirmación no fue registrada.');
+    await cargarPacientes();
+  } catch(e) {
+    console.error('[SMYL] No se pudo confirmar los datos del paciente:', e);
+    alert('No se pudo confirmar. Puede que otra persona ya lo hiciera o que tu rol no lo permita; recarga la lista e inténtalo de nuevo.');
+    boton.disabled = false;
+  }
 }
 
 async function enviarEnlaceRegistro(p, boton) {
@@ -3640,7 +3654,7 @@ async function guardarPaciente() {
     updated_at: new Date().toISOString(),
   };
   var previo = editandoPacienteId ? (todosLosPacientes || []).find(function(x) { return x.id === editandoPacienteId; }) : null;
-  if (previo && previo.registro_estado === 'pendiente') datos.registro_estado = 'completo';
+  if (previo && (previo.registro_estado === 'pendiente' || previo.registro_estado === 'por_verificar')) datos.registro_estado = 'completo';
   try {
     var writeResult;
     if (editandoPacienteId) {
