@@ -543,7 +543,18 @@
   }
   async function openPatient(id) {
     var p = todosLosPacientes.find(function (row) { return row.id === id; });
-    if (!p || !leave()) return;
+    if (!p && id && tenantId) {
+      try {
+        p = await checked(sb.from('camila_pacientes').select('*').eq('tenant_id', tenantId).eq('id', id).maybeSingle());
+        if (p && !todosLosPacientes.some(function (row) { return row.id === p.id; })) todosLosPacientes.push(p);
+      } catch (_) { p = null; }
+    }
+    if (!p) {
+      try { sessionStorage.removeItem('smyl_patient_id'); } catch (_) {}
+      return false;
+    }
+    if (!leave()) return false;
+    try { sessionStorage.setItem('smyl_patient_id', p.id); } catch (_) {}
     pacienteActual = p;
     window.ir('paciente-detalle');
     var ctx = { tenant: tenantId, patient: p.id, ready: false, canRead: false, canWrite: false, canApprove: false, row: null, services: [], dirty: false, saving: false, aiBusy: false, aiAbort: null, aiDraft: null }; current = ctx;
@@ -574,30 +585,31 @@
     if (p._local) {
       state.textContent = 'Solo en este dispositivo';
       feedback.append(notice('Este registro antiguo no está sincronizado. No se creará un expediente en nube ni se asociará por nombre. Su traslado requiere revisión.'));
-      versions.hidden = true; return;
+      versions.hidden = true; return true;
     }
     content.append(notice('Cargando el expediente…'));
     try {
       var access = await clinicalCapabilities(ctx.tenant);
-      if (current !== ctx || sequence !== token || tenantId !== ctx.tenant || !content.isConnected) return;
+      if (current !== ctx || sequence !== token || tenantId !== ctx.tenant || !content.isConnected) return true;
       ctx.canRead = access.canRead; ctx.canWrite = access.canWrite; ctx.canApprove = access.canApprove;
       if (!ctx.canRead) {
         state.textContent = 'Acceso limitado'; content.replaceChildren();
         feedback.append(notice('Tu rol no tiene permiso para consultar información clínica. Solicita acceso al administrador de la clínica.'));
-        versions.hidden = true; return;
+        versions.hidden = true; return true;
       }
       var loaded = await Promise.all([
         checked(sb.from('smyl_clinical_plans').select('*').eq('tenant_id', ctx.tenant).eq('patient_id', p.id).maybeSingle()),
         checked(sb.from('smyl_services').select('*').eq('tenant_id',ctx.tenant).order('name'))
       ]), data=loaded[0];ctx.services=loaded[1]||[];
-      if (current !== ctx || sequence !== token || tenantId !== ctx.tenant || !content.isConnected) return;
+      if (current !== ctx || sequence !== token || tenantId !== ctx.tenant || !content.isConnected) return true;
       ctx.row = data; ctx.ready = true; renderEditor();
       if (!ctx.canWrite) feedback.append(notice('Consulta de solo lectura. Tu rol no puede modificar este plan.'));
     } catch (error) {
-      if (current !== ctx || sequence !== token || !content.isConnected) return;
+      if (current !== ctx || sequence !== token || !content.isConnected) return true;
       state.textContent = 'No disponible'; content.replaceChildren();
       feedback.append(notice(model.errorMessage(error), true), button('Intentar de nuevo', function () { verPaciente(p.id); })); versions.hidden = true;
     }
+    return true;
   }
   async function loadPatients() {
     var tenant = tenantId, token = ++patientSequence;
@@ -1118,6 +1130,8 @@
     actions.append(button('Volver a la propuesta', function () { dialog.close(); }), approve);
     var summary = el('section','clinic-review-summary'); summary.id = 'clinic-review-summary';
     dialog.append(reviewTitle, el('p', '', 'Comprueba el contenido antes de confirmar. Se conservarán las versiones anteriores. No se enviará nada al paciente.'), summary, label, actions); document.body.append(dialog);
+    window.SmylClinicReady = true;
+    window.dispatchEvent(new CustomEvent('smyl:clinic-ready'));
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
