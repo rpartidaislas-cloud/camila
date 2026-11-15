@@ -10,7 +10,7 @@ test('nueva cita: el resumen es neutro hasta elegir tratamiento y profesional, y
   assert.match(css, /\.schedule-booking-check\[data-tone=pending\]\{/);
 });
 test('nueva cita: los horarios libres son lo principal y la fecha manual queda como opción', () => {
-  assert.match(js, /<details class="schedule-custom-time" data-custom-time><summary>Escribir otra fecha u hora<\/summary><label>Día y hora<input name="starts"/);
+  assert.match(js, /<details class="schedule-custom-time" data-custom-time'\+\(walkIn\?' hidden':''\)\+'><summary>Escribir otra fecha u hora<\/summary><label>Día y hora<input name="starts"/);
   assert.match(js, /if\(!list\.length&&custom\)custom\.open=true/);
   assert.match(js, /if\(custom\)custom\.open=true;host\.innerHTML=head\+/);
 });

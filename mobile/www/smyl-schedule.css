@@ -669,3 +669,6 @@ body.smyl-ui-governed #p-agenda .schedule-head p{display:none}
 .schedule-month-day.is-drop{background:#e3f1ec;box-shadow:inset 0 0 0 2px #2f7469}
 .schedule-month-number:focus-visible{outline:2px solid #2f7469;outline-offset:2px}
 .schedule-move-confirm p{margin:0 0 12px;line-height:1.5}
+
+/* «Llegó sin cita»: la hora es «ahora», así que no se muestran los horarios libres ni el selector de otra hora. */
+#schedule-appointment-form[data-walk-in] :is([data-slots],[data-custom-time]){display:none!important}
