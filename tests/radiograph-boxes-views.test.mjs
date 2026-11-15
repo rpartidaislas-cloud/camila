@@ -208,8 +208,8 @@ test('los ajustes móviles usan iconos accesibles y una sola barra compacta', ()
   assert.match(js, /iconButton\('Alejar radiografía','minus'/);
   assert.match(js, /iconButton\('Ampliar radiografía','plus'/);
   assert.match(js, /iconButton\(run\.view\.crop\?'Editar recorte de la radiografía':'Recortar radiografía','crop'/);
-  assert.match(js, /button\('Aplicar recorte'/);
-  assert.match(js, /button\('Quitar recorte'/);
+  assert.match(js, /button\('Aplicar a la vista'/);
+  assert.match(js, /button\('Usar imagen completa'/);
   assert.match(js, /adjustmentSummary\.setAttribute\('aria-label','Ajustes de imagen'\)/);
   assert.match(css, /\.rr-icon\s*\{[^}]*width:\s*(?:18|19|20)px;[^}]*height:\s*(?:18|19|20)px/s);
   assert.match(css, /@media \(max-width: 639px\)[\s\S]*\.rr-image-control-row\s*\{/);
@@ -223,6 +223,8 @@ test('barra superior con tres pasos y una sola señal activa', () => {
   assert.match(js, /run\.phase==='image'\?1:run\.phase==='summary'\?3:2/);
   assert.match(js, /list\.append\(editItem\(selected,selectedIndex\)\)/, 'sólo monta la señal activa');
   assert.match(js, /n\('details','rr-signal-queue'\)/, 'la cola completa es secundaria y plegable');
+  assert.match(js, /Señales encontradas/);
+  assert.match(js, /rr-signal-origin','IA'/, 'cada tarjeta diferencia el origen de la sugerencia');
   assert.doesNotMatch(js, /'rr-filter rr-tab'/);
   assert.match(js, /decided\+' de '\+items\.length\+' revisadas'/);
   assert.match(js, /run\.phase='summary'/);
@@ -284,13 +286,20 @@ test('recortar crea una vista no destructiva y conserva el archivo clínico orig
   const js = read('smyl-radiograph-review.js');
   const css = read('smyl-radiograph-workbench.css');
   assert.match(js, /function openCropEditor\(\)/);
-  assert.match(js, /El archivo clínico original no se modifica/);
+  assert.match(js, /el original permanece intacto/);
+  assert.match(js, /initial=run\.view\.crop\|\|\{x:0,y:0,w:1,h:1\}/, 'sin recorte previo comienza con la imagen completa');
+  assert.match(js, /Área visible · /);
+  assert.match(js, /isFull\(rect\)\?null:\{\.\.\.rect\}/, 'imagen completa no guarda un recorte redundante');
   assert.match(js, /run\.view\.crop=next/);
   assert.doesNotMatch(js, /run\.blob\s*=|study\.blob\s*=/, 'el recorte no reemplaza el blob ni el estudio fuente');
   assert.match(js, /function displayRect\(left,top,width,height\)/);
   assert.match(js, /function originalRect\(rect\)/);
   assert.match(css, /\.rr-image-stage\.is-cropped \{ overflow: hidden; \}/);
   assert.match(css, /\.rr-crop-selection \{[^}]*box-shadow: 0 0 0 9999px/s);
+  assert.match(css, /\.rr-crop-dialog \{[^}]*--rr-primary:[^}]*position: fixed;[^}]*inset: 0;[^}]*margin: auto;/s, 'el diálogo fuera de la mesa conserva tokens y centrado');
+  assert.match(css, /\.rr-crop-toolbar \{/);
+  assert.match(css, /\.rr-crop-action-note \{/);
+  assert.match(css, /\.rr-crop-handle\[data-handle="nw"\] \{ top: 4px; left: 4px;/, 'las asas quedan dentro de la imagen y no se recortan');
 });
 
 test('un cuadro editado sigue siendo una revisión válida', () => {

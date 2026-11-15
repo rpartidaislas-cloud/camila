@@ -10903,6 +10903,16 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **No incluido a propósito:** «Ver costos». Los costos viven en `smyl_inventory_movement_lines.unit_cost` y `smyl_purchase_order_lines.unit_cost`, legibles con `inventory.read`; ocultarlos solo en pantalla no sería un control real y restringirlos en la base exige cambiar cómo se leen (vistas o permisos por columna). **Valor por omisión:** Odontólogo y Asistente siguen solo con «Consultar inventario»; hay que darles «Registrar consumo» en Editar rol si se quiere que registren material.
 - Pruebas: `smyl-finance-tabs-v2` ampliada; versiones fijadas actualizadas. CACHE `...-inventory-roles-v1`, copias en `mobile/www/`.
 
+## 2026-11-14 — Codex — Recorte radiográfico claro y señales plegables
+
+- El recortador deja de aplicar un margen silencioso de 4%: una vista nueva comienza con la imagen completa. `Usar imagen completa` revierte el encuadre y un recorte completo se guarda como `null`, sin estado redundante ni modificación del original.
+- Se corrigió el botón principal invisible. El diálogo vive fuera de `.rr-dialog`, por lo que ahora declara sus propios tokens visuales, queda centrado explícitamente pese al reset global y presenta `Aplicar a la vista` con contraste estable.
+- La ventana incorpora porcentaje del área visible, ayuda para ratón/tacto/teclado, ocho asas dentro de la imagen para que no se recorten y un pie adaptado a móvil con acciones siempre visibles.
+- La cola lateral de sugerencias se presenta como tarjetas plegables compactas con número, pieza, estado y origen `IA`; sólo la señal seleccionada abre su editor clínico completo.
+- No se añadió todavía creación manual de señales dentro de esta revisión. El validador vigente exige que cada `sourceId` proceda del reporte de IA; para permitir cuadros creados por el profesional se necesita ampliar primero el contrato y el guardado con un origen auditable `professional`, sin hacer pasar anotaciones manuales como resultados de IA.
+- Versiones: `smyl-radiograph-review.js?v=32`, `smyl-radiograph-workbench.css?v=26`; caché PWA `radiograph-crop-editor-v29`. Web y `mobile/www` sincronizados.
+- QA: sintaxis aprobada, `git diff --check` aprobado y 43 pruebas focales aprobadas. La inspección visual automatizada local no pudo abrir el servidor de la máquina desde el navegador aislado; queda recomendada una comprobación visual manual en escritorio y PWA antes de publicar.
+
 ## 2026-11-14 — Codex — Archivo clínico adaptable y radiografía sin duplicación visual
 
 - `Archivos clínicos` responde al ancho real del panel interno mediante consultas de contenedor; cabecera, categorías, estado y acciones se reacomodan antes de recortarse. Se elimina el desbordamiento que ocultaba `Agregar archivo`, `Nueva categoría` y las acciones de cada estudio.
