@@ -10,7 +10,7 @@
     { id: 'template', title: 'Solicita tu primera plantilla', hint: 'Meta debe aprobarla para poder recordar citas.', action: 'Ver plantillas', route: 'plantillas' },
     { id: 'reminders', title: 'Activa los recordatorios de cita', hint: 'Avisan 24 horas antes y reducen las inasistencias.', action: 'Configurar', route: 'agenda' }
   ];
-  var state = { loading: false, tenant: null, results: null, loadedAt: 0, collapsed: false };
+  var state = { loading: false, tenant: null, results: null, loadedAt: 0, collapsed: false, operating: false };
 
   function el(tag, cls, text) { var node = document.createElement(tag); if (cls) node.className = cls; if (text != null) node.textContent = text; return node; }
   function route(name) { if (typeof window.ir === 'function') window.ir(name); }
@@ -26,6 +26,11 @@
   function readHeight() { try { return Math.max(0, Math.min(900, Number(window.localStorage.getItem(HEIGHT_KEY)) || 0)); } catch (_) { return 0; } }
   function saveHeight(value) { try { window.localStorage.setItem(HEIGHT_KEY, String(Math.round(value))); } catch (_) {} }
   function isOwner() { return window.miRolEquipo === 'dueño'; }
+  // «Ocultar por hoy»: por dispositivo y solo hasta que cambie el día.
+  function today() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function hiddenKey() { return 'smyl_clinic_setup_hidden_' + (window.tenantId || ''); }
+  function hiddenToday() { try { return window.localStorage.getItem(hiddenKey()) === today(); } catch (_) { return false; } }
+  function hideToday() { try { window.localStorage.setItem(hiddenKey(), today()); } catch (_) {} }
 
   async function count(builder) {
     var result = await Promise.resolve(typeof window.sbTimeout === 'function' ? window.sbTimeout(builder) : builder);
@@ -82,7 +87,9 @@
         settle(count(window.sb.from('camila_pacientes').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant))),
         settle(whatsappConnected()),
         settle(templateState()),
-        settle(reminderState())
+        settle(reminderState()),
+        settle(count(window.sb.from('smyl_services').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant).eq('active', true))),
+        settle(count(window.sb.from('smyl_appointments').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant).eq('status', 'completed')))
       ]);
       state.results = {
         hours: rows[0].ok ? { done: rows[0].value > 0 } : { unknown: true },
@@ -91,6 +98,8 @@
         template: rows[3].ok ? { done: rows[3].value === 'done', waiting: rows[3].value === 'pending' } : { unknown: true },
         reminders: rows[4].ok ? { done: rows[4].value } : { unknown: true }
       };
+      // Clínica «en marcha»: horario, al menos un servicio activo y una cita ya terminada. Entonces la lista deja de estorbar.
+      state.operating = rows[0].ok && rows[0].value > 0 && rows[5].ok && rows[5].value > 0 && rows[6].ok && rows[6].value > 0;
       state.loadedAt = Date.now();
     } finally { state.loading = false; render(); }
   }
@@ -106,7 +115,7 @@
     var existing = document.getElementById('smyl-clinic-setup');
     var results = state.results;
     var pending = results ? STEPS.filter(function (step) { return !results[step.id].done; }) : [];
-    if (!host || !isOwner() || !results || !pending.length) { if (existing) existing.remove(); if (host && results) saveHeight(0); return; }
+    if (!host || !isOwner() || !results || !pending.length || state.operating || hiddenToday()) { if (existing) existing.remove(); if (host && results) saveHeight(0); return; }
     var done = STEPS.length - pending.length;
     var section = existing || el('section', 'clinic-setup');
     section.id = 'smyl-clinic-setup'; section.setAttribute('aria-labelledby', 'clinic-setup-title'); section.style.minHeight = ''; section.style.visibility = ''; section.removeAttribute('aria-hidden');
@@ -124,7 +133,9 @@
     var toggle = el('button', 'clinic-setup-toggle', state.collapsed ? 'Ver los ' + STEPS.length + ' pasos' : 'Mostrar solo el siguiente'); toggle.type = 'button';
     toggle.setAttribute('aria-expanded', String(!state.collapsed));
     toggle.onclick = function () { state.collapsed = !state.collapsed; saveCollapsed(state.collapsed); render(); };
-    head.append(copy, bar, toggle);
+    var dismiss = el('button', 'clinic-setup-toggle clinic-setup-dismiss', 'Ocultar por hoy'); dismiss.type = 'button';
+    dismiss.onclick = function () { hideToday(); render(); };
+    head.append(copy, bar, toggle, dismiss);
     section.append(head);
 
     var list = el('ol', 'clinic-setup-steps');
@@ -148,9 +159,14 @@
       list.append(item);
     });
     section.append(list);
-    // La configuración acompaña al propietario sin desplazar la operación del día.
-    if (!existing) host.append(section);
+    // En una clínica nueva la configuración va primero; cuando la clínica ya opera, la tarjeta ni se muestra.
+    if (!existing) place(host, section);
     saveHeight(section.offsetHeight);
+  }
+
+  function place(host, section) {
+    var bar = host.querySelector('.daily-home-bar');
+    if (bar) bar.after(section); else host.prepend(section);
   }
 
   // Marcador de posición sincrónico: ocupa el hueco de la tarjeta antes de que lleguen los datos.
@@ -159,7 +175,7 @@
     var height = readHeight();
     if (!host || !height || document.getElementById('smyl-clinic-setup') || !isOwner()) return Boolean(host);
     var spacer = el('section', 'clinic-setup'); spacer.id = 'smyl-clinic-setup'; spacer.setAttribute('aria-hidden', 'true'); spacer.style.minHeight = height + 'px'; spacer.style.visibility = 'hidden';
-    host.append(spacer);
+    place(host, spacer);
     return true;
   }
 
