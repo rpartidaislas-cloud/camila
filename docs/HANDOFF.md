@@ -1,5 +1,13 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-15 — Claude Code — Entrevista por voz v2: inicio, anillo de temas, karaoke, terminado y continuar
+
+- `mila-movil.html`: cabecera con iniciales y nombre; selector compacto «MILA pregunta / Yo pregunto»; inicio con orbe en reposo y recordatorios (volumen, celular en la mesa, ~5 min).
+- En vivo (sin la etiqueta «MILA»): esfera oscura con luz interna que se mueve con la voz real y borde de luz; **anillo de 8 temas** detectado en el celular por lo que pregunta MILA (sin costo ni latencia extra); subtítulo tipo karaoke (~2.6 palabras/s desde `output_audio_buffer.started`); última frase del paciente en una pastilla; texto del paciente en vivo con `conversation.item.input_audio_transcription.delta`; botones redondos.
+- Al terminar: pantalla «Entrevista terminada» con duración, alertas, «N de 8 temas» y conversación plegada; **Enviar a la computadora** y **Continuar la entrevista**.
+- Servidor: `realtime {continuar:true}` agrega a las instrucciones lo ya cubierto y lo pendiente (MILA no se presenta de nuevo ni repite); cada conversación se mide con su propio `request_id`/idempotencia (`<sesión>:rt<inicio>`). **Requiere volver a desplegar `mila-interview`.**
+- Pruebas `tests/smyl-mila-interview.test.mjs` 18/18; Playwright 390 px con WebRTC simulado. Caché `mila-live-v2`.
+
 ## 2026-11-15 — Claude Code — Entrevista por voz: ahorro sin cambiar modelo ni voz
 
 - `noise_reduction: far_field` en la sesión Realtime (el celular queda sobre la mesa): menos respuestas disparadas por ruido del consultorio.

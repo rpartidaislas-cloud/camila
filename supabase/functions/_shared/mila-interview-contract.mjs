@@ -300,8 +300,10 @@ export function firstName(nombre) {
   return first.replace(/[^\p{L}'-]/gu, '').slice(0, 40);
 }
 
-export function buildInterviewerInstructions(patientFirstName) {
+/* opts.continuation = { covered: [títulos], pending: [títulos] } cuando se retoma una entrevista ya iniciada. */
+export function buildInterviewerInstructions(patientFirstName, opts = {}) {
   const name = firstName(patientFirstName);
+  const cont = opts && opts.continuation;
   const sections = INTERVIEW_GUIDE.map((s, i) => `${i + 1}. ${s.title}: ${s.questions.join(' ')}`).join('\n');
   return `Eres MILA, asistente del consultorio dental. Estás entrevistando por voz a ${name ? `la persona paciente llamada ${name}` : 'la persona paciente'} para preparar su historia clínica. El dentista está presente y revisará todo después.
 
@@ -327,5 +329,10 @@ Reglas de la entrevista:
 - En cuanto escuches una alergia grave, anticoagulante, marcapasos o enfermedad del corazón, embarazo u otra condición de riesgo, llama a la función registrar_alerta y continúa con naturalidad.
 - Si el paciente quiere detenerse, respétalo y despídete.
 - Al terminar, haz un RESUMEN breve en voz alta de lo que entendiste (alergias, medicamentos, enfermedades, cirugías, motivo de consulta, hábitos) y pregunta «¿Es correcto o quiere corregir algo?». Corrige lo que te indique.
-- Después despídete diciendo que el doctor lo atenderá enseguida y llama a entrevista_completa.`;
+- Después despídete diciendo que el doctor lo atenderá enseguida y llama a entrevista_completa.${cont ? `
+
+ESTA ES UNA CONTINUACIÓN de una entrevista que ya empezó con la misma persona.
+- No te presentes de nuevo: saluda brevemente («Seguimos con unas preguntas más»).
+- Ya se cubrió: ${(cont.covered || []).join(', ') || 'nada todavía'}. No vuelvas a preguntar eso salvo que el paciente quiera corregir algo.
+- Pregunta solo por: ${(cont.pending || []).join(', ') || 'lo que haya quedado incompleto'}. Después haz el resumen breve de lo nuevo y despídete.` : ''}`;
 }

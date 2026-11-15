@@ -199,7 +199,7 @@ test('las funciones de la entrevistadora son estrictas', () => {
 test('el modo por voz y la interpretación en segundo plano miden el consumo en el servidor', () => {
   const fn = read('../supabase/functions/mila-interview/index.ts');
   assert.match(fn, /api\.openai\.com\/v1\/realtime\/calls/);
-  assert.match(fn, /buildInterviewerInstructions\(firstName\(patient\?\.nombre\)\)/);
+  assert.match(fn, /buildInterviewerInstructions\(firstName\(patient\?\.nombre\)/);
   assert.match(fn, /Date\.now\(\) - Date\.parse\(rt\.started_at\)/, 'los segundos de voz los mide el servidor');
   assert.match(fn, /MAX_REALTIME_SECONDS/);
   assert.match(fn, /usage_source: "client_reported_openai_response_done"/);
@@ -235,4 +235,21 @@ test('ahorro sin perder calidad: ruido, intervenciones breves y cierre por silen
   const phone = read('../mila-movil.html');
   assert.match(phone, /limit=rt\.muted\?300000:60000/);
   assert.match(phone, /se cerrará en/);
+});
+
+test('pantalla v2: anillo de temas, karaoke, pantalla de terminado y continuar entrevista', () => {
+  const phone = read('../mila-movil.html');
+  assert.doesNotMatch(phone, /class="live-badge"/, 'sin la etiqueta MILA arriba');
+  assert.match(phone, /id="ring"/);
+  assert.match(phone, /function detectTopic/);
+  assert.match(phone, /function karaoke/);
+  assert.match(phone, /id="rt-done"/);
+  assert.match(phone, /continuar:!!continuar/);
+  const text = buildInterviewerInstructions('Ana', { continuation: { covered: ['Alergias'], pending: ['Hábitos'] } });
+  assert.match(text, /ESTA ES UNA CONTINUACIÓN/);
+  assert.match(text, /Pregunta solo por: Hábitos/);
+  assert.doesNotMatch(buildInterviewerInstructions('Ana'), /CONTINUACIÓN/);
+  const fn = read('../supabase/functions/mila-interview/index.ts');
+  assert.match(fn, /field\("continuar"\) === "true"/);
+  assert.match(fn, /:rt\$\{Date\.parse\(rt\.started_at\)\}/, 'cada conversación se mide por separado');
 });

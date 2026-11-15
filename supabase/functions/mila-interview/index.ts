@@ -394,10 +394,21 @@ Deno.serve(async (req: Request) => {
     }
     const { data: patient } = await admin.from("camila_pacientes").select("nombre")
       .eq("tenant_id", row.tenant_id).eq("id", row.patient_id).maybeSingle();
+    // «Continuar la entrevista»: MILA solo pregunta lo que faltó según el borrador ya interpretado.
+    let continuation: { covered: string[]; pending: string[] } | null = null;
+    if (field("continuar") === "true" && result.history?.coverage) {
+      const cov = result.history.coverage as Record<string, string>;
+      const covered: string[] = [], pending: string[] = [];
+      for (const sec of INTERVIEW_GUIDE) {
+        const done = sec.key === "emergency_contact" ? !!result.history?.document?.emergency_contact : (cov[sec.key] || "not_asked") !== "not_asked";
+        (done ? covered : pending).push(sec.title);
+      }
+      continuation = { covered, pending };
+    }
     const session = {
       type: "realtime",
       model: REALTIME_MODEL,
-      instructions: buildInterviewerInstructions(firstName(patient?.nombre)),
+      instructions: buildInterviewerInstructions(firstName(patient?.nombre), continuation ? { continuation } : {}),
       max_output_tokens: 600,
       audio: {
         input: {
@@ -468,7 +479,8 @@ Deno.serve(async (req: Request) => {
     // Tokens de voz que reporta OpenAI en cada response.done; los suma el celular (se marcan como reportados por el cliente).
     const reported = body.usage && typeof body.usage === "object" ? body.usage : {};
     const voiceUsage: Usage = { input_tokens: tokenCount(reported.input_tokens), output_tokens: tokenCount(reported.output_tokens) };
-    const key = `${row.id}:rt`;
+    // Cada conversación (incluida una continuación) se mide por separado.
+    const key = `${row.id}:rt${Date.parse(rt.started_at)}`;
     const accepted = await consumeSeconds(row.tenant_id, "history", key, seconds, REALTIME_MODEL, {
       context: "history_realtime_interview",
       token_usage: {

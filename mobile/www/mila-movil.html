@@ -93,8 +93,8 @@
     #orb{width:min(78vw,320px);height:min(78vw,320px)}
     .live-state{margin:0;font-size:14px;letter-spacing:.02em;color:var(--muted);min-height:20px;text-align:center}
     .live-caption{min-height:118px;max-height:30vh;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;text-align:center;padding:0 6px;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 28%)}
-    .live-caption span{font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--teal);text-transform:uppercase}
-    .live-caption span[data-who="patient"]{color:#9fc4e8}
+    .live-caption #live-who{font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--teal);text-transform:uppercase}
+    .live-caption #live-who[data-who="patient"]{color:#9fc4e8}
     .live-caption p{margin:6px 0 0;font-size:21px;line-height:1.35;font-weight:600;transition:opacity .35s ease,transform .35s ease}
     .live-caption p.enter{opacity:0;transform:translateY(8px)}
     .live-caption p[data-who="patient"]{color:#cfe2f2;font-weight:500}
@@ -107,12 +107,78 @@
     .live-btn.danger{background:linear-gradient(145deg,#ff6b78,#c43a4a);border-color:transparent;color:#fff}
     .live-btn:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
     @media (prefers-reduced-motion:reduce){.dock.ai .rec::before{animation:none}.live-caption p{transition:none}}
+    /* ---- v2: cabecera, inicio, en vivo y terminado ---- */
+    header.top .mark{width:46px;height:46px;border-radius:15px;font-size:16px;background:linear-gradient(145deg,#5fe0d2,#55aaf0)}
+    .kick{margin:0;font-size:11.5px;font-weight:800;letter-spacing:.14em;color:var(--teal)}
+    header.top h1{font-size:22px;margin:2px 0 0;letter-spacing:-.01em}
+    .choices{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:rgba(0,0,0,.28);border:1px solid var(--line)}
+    .choice{min-height:44px;justify-content:center;align-items:center;text-align:center;padding:10px 6px;border:0;border-radius:10px;background:transparent;color:var(--muted);font-weight:700;font-size:14px}
+    .choice .dot,.choice small{display:none}
+    .choice strong{font-size:14px}
+    .choice[aria-pressed="true"]{background:rgba(63,211,195,.16);color:var(--text);border:0}
+    .hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:8px 0 4px}
+    #orb-idle{width:180px;height:180px}
+    .hero h2{font-size:25px;margin:6px 0 0;letter-spacing:-.02em}
+    .hero p{margin:0;color:var(--muted);font-size:15px}
+    .checks{width:100%;display:grid;gap:10px;margin-top:10px;text-align:left}
+    .chk{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--line);font-size:15px}
+    .chk span{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:rgba(63,211,195,.14);flex:none}
+    .chk svg,.done-mark svg,.rt-alert svg{fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .chk svg{width:20px;height:20px;stroke:var(--teal);stroke-width:1.8}
+    #ai-panel{background:transparent;border:0;padding:4px 0}
+    .orbwrap{position:relative;width:min(78vw,320px);height:min(78vw,320px);display:grid;place-items:center}
+    .orbwrap #orb{position:absolute;inset:0;width:100%;height:100%}
+    .orbwrap .ring{position:absolute;inset:0;width:100%;height:100%}
+    .live-topic{margin:0;font-size:15px;font-weight:700}
+    .live-topic small{font-weight:600;color:var(--muted)}
+    .live-state{display:flex;align-items:center;justify-content:center;gap:8px}
+    .live-state::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 4px rgba(63,211,195,.18)}
+    .live-state[data-state="listening"]::before{background:#9fd8ff;box-shadow:0 0 0 4px rgba(159,216,255,.2)}
+    .live-state[data-state="paused"]::before{background:#7f93a6;box-shadow:none}
+    .live-caption{-webkit-mask-image:none;gap:8px}
+    .live-caption #live-who{margin-top:4px}
+    .live-caption p{margin:0;font-size:22px;letter-spacing:-.01em}
+    .live-caption p.long{font-size:18px}
+    .live-caption .dim{color:rgba(245,251,255,.32)}
+    .live-pat{align-self:center;max-width:94%;font-size:14px;color:#a9c6df;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:14px;padding:8px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .live-pat b{font-size:11px;letter-spacing:.14em;color:#9fc4e8;margin-right:6px}
+    .live-controls{display:flex;justify-content:space-around;align-items:flex-start;margin-top:18px}
+    .live-btn{min-height:0;border:0;background:transparent;backdrop-filter:none;font-size:12.5px;font-weight:600;color:#c9d9e6;gap:8px;padding:0;width:96px}
+    .live-btn .circ{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px)}
+    .live-btn svg{width:26px;height:26px;stroke:#fff}
+    .live-btn[aria-pressed="true"]{background:transparent;color:#ffd584}
+    .live-btn[aria-pressed="true"] .circ{background:rgba(244,189,91,.2);border-color:rgba(244,189,91,.55)}
+    .live-btn.danger{background:transparent;color:#c9d9e6}
+    .live-btn.danger .circ{background:linear-gradient(145deg,#ff7a86,#d03f50);border-color:transparent;box-shadow:0 10px 26px rgba(255,107,120,.35)}
+    .rt-done{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:6px 0}
+    .done-mark{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.5),transparent 55%),linear-gradient(145deg,#3fd3c3,#55aaf0);box-shadow:0 0 60px rgba(63,211,195,.4)}
+    .done-mark svg{width:44px;height:44px;stroke:#04202a;stroke-width:3}
+    .rt-done h2{font-size:26px;margin:0;letter-spacing:-.02em}
+    .rt-done>p{margin:-6px 0 0;color:var(--muted);font-size:15px}
+    .rt-alert{width:100%;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;background:rgba(255,107,120,.13);border:1px solid rgba(255,107,120,.45);color:#ffd0d4;font-size:14px;font-weight:600;text-align:left}
+    .rt-alert svg{width:18px;height:18px;flex:none;stroke:#ff8f99;stroke-width:2}
+    .rt-card{width:100%;text-align:left;padding:14px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+    .rt-card h3{display:flex;justify-content:space-between;margin:0 0 10px;font-size:12.5px;letter-spacing:.08em;color:var(--muted)}
+    .rt-card h3 b{color:#8fe6dc}
+    .rt-bar{height:6px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:12px}.rt-bar i{display:block;height:100%;background:linear-gradient(90deg,#3fd3c3,#55aaf0)}
+    .rt-chips{display:flex;flex-wrap:wrap;gap:6px}
+    .rt-chips span{font-size:12.5px;padding:6px 10px;border-radius:999px;background:rgba(63,211,195,.14);color:#8fe6dc;font-weight:600}
+    .rt-chips span.no{background:rgba(244,189,91,.14);color:#ffd584}
+    .rt-fold{width:100%;text-align:left;border:1px dashed rgba(255,255,255,.14);border-radius:14px;padding:0 14px}
+    .rt-fold summary{min-height:48px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;color:#c9d9e6;list-style:none}
+    .rt-fold summary::-webkit-details-marker{display:none}
+    .rt-fold summary::after{content:'⌄'}
+    .rt-fold[open] summary::after{content:'⌃'}
+    .rt-fold .chat{max-height:50vh;padding-bottom:12px}
+    .btn-grad{height:60px;border-radius:999px;border:0;font-size:16.5px;font-weight:800;color:#04202a;background:linear-gradient(120deg,#3fd3c3,#55aaf0 55%,#8b7cf6);box-shadow:0 14px 34px rgba(63,211,195,.28)}
+    .btn-line{height:52px;border-radius:999px;background:transparent;border:1px solid rgba(255,255,255,.16)}
+
 
   </style>
 </head>
 <body>
 <div class="shell">
-  <header class="top"><div class="mark" aria-hidden="true">M</div><div><h1>MILA · Entrevista clínica</h1><p id="patient">Conectando…</p></div></header>
+  <header class="top"><div class="mark" id="avatar" aria-hidden="true">M</div><div><p class="kick">ENTREVISTA CLÍNICA · MILA</p><h1 id="patient">Conectando…</h1></div></header>
 
   <section class="card" id="v-loading" aria-live="polite"><p>Vinculando este celular…</p></section>
 
@@ -145,13 +211,30 @@
     </div>
     <section id="p-history" role="tabpanel" aria-labelledby="tab-history">
       <div class="choices" role="group" aria-label="¿Quién hace las preguntas?">
-        <button class="choice" id="choice-ai" aria-pressed="true"><span class="dot" aria-hidden="true"></span><span><strong>MILA hace las preguntas</strong><small>Conversa con el paciente por voz. Tú solo escuchas.</small></span></button>
-        <button class="choice" id="choice-me" aria-pressed="false"><span class="dot" aria-hidden="true"></span><span><strong>Yo pregunto, MILA escucha</strong><small>Usa la guía y graba la conversación.</small></span></button>
+        <button class="choice" id="choice-ai" aria-pressed="true"><strong>MILA pregunta</strong></button>
+        <button class="choice" id="choice-me" aria-pressed="false"><strong>Yo pregunto</strong></button>
       </div>
       <section class="card" id="ai-panel">
-        <h3>Conversación</h3>
-        <p class="muted" id="ai-help">Coloca el celular cerca del paciente, con volumen alto. MILA saludará, hará las preguntas una por una y al final repetirá un resumen para confirmarlo.</p>
-        <div class="chat" id="chat" aria-live="polite"></div>
+        <div class="hero" id="ai-hero">
+          <canvas id="orb-idle" aria-hidden="true"></canvas>
+          <h2>MILA hará las preguntas</h2>
+          <p>Conversa con el paciente por voz y llena el borrador de su historia clínica.</p>
+          <div class="checks">
+            <div class="chk"><span><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11"/></svg></span>Volumen alto</div>
+            <div class="chk"><span><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></span>Celular sobre la mesa, cerca del paciente</div>
+            <div class="chk"><span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>Dura unos 5 minutos</div>
+          </div>
+        </div>
+        <div class="rt-done" id="rt-done" hidden>
+          <div class="done-mark"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+          <h2>Entrevista terminada</h2>
+          <p id="rt-done-meta"></p>
+          <div class="rt-alert" id="rt-done-alert" hidden><svg viewBox="0 0 24 24"><path d="M12 3.5l9 16H3z"/><path d="M12 10v4M12 17v.4"/></svg><span></span></div>
+          <div class="rt-card" id="rt-done-card"></div>
+          <details class="rt-fold"><summary id="rt-done-fold">Ver conversación</summary><div class="chat" id="chat" aria-live="polite"></div></details>
+          <button class="btn btn-grad" id="rt-send">Enviar a la computadora</button>
+          <button class="btn btn-line" id="rt-continue">Continuar la entrevista</button>
+        </div>
       </section>
       <section class="card" id="guide-panel" hidden>
         <h3>Guía de preguntas</h3>
@@ -190,15 +273,15 @@
   </div>
 </div>
 <section class="live" id="live" hidden aria-label="Entrevista con MILA en curso">
-  <header class="live-top"><div><span class="live-badge">MILA</span><strong id="live-patient"></strong></div><span class="live-timer" id="live-timer">0:00</span></header>
+  <header class="live-top"><div><strong id="live-patient"></strong></div><span class="live-timer" id="live-timer">0:00</span></header>
   <button class="live-alert" id="live-alert" hidden></button>
-  <div class="live-stage"><canvas id="orb" aria-hidden="true"></canvas><p class="live-state" id="live-state" aria-live="polite">Conectando…</p></div>
-  <div class="live-caption" aria-live="polite"><span id="live-who"></span><p id="live-text"></p></div>
+  <div class="live-stage"><div class="orbwrap"><canvas id="orb" aria-hidden="true"></canvas><svg class="ring" id="ring" viewBox="0 0 300 300" aria-hidden="true"></svg></div><p class="live-topic" id="live-topic"></p><p class="live-state" id="live-state" aria-live="polite">Conectando…</p></div>
+  <div class="live-caption" aria-live="polite"><div class="live-pat" id="live-pat" hidden></div><span id="live-who"></span><p id="live-text"></p></div>
   <div class="live-sheet" id="live-sheet" hidden><div class="chat" id="live-chat"></div></div>
   <footer class="live-controls">
-    <button class="live-btn" id="live-log" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Conversación</button>
-    <button class="live-btn" id="live-pause" aria-pressed="false"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21"/></svg><span>Pausar</span></button>
-    <button class="live-btn danger" id="live-end"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>Terminar</button>
+    <button class="live-btn" id="live-log" aria-pressed="false"><span class="circ"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>Conversación</button>
+    <button class="live-btn" id="live-pause" aria-pressed="false"><span class="circ"><svg viewBox="0 0 24 24"><rect x="7" y="5" width="3.5" height="14" rx="1"/><rect x="13.5" y="5" width="3.5" height="14" rx="1"/></svg></span><span class="lbl">Pausar</span></button>
+    <button class="live-btn danger" id="live-end"><span class="circ"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/></svg></span>Terminar</button>
   </footer>
 </section>
 <audio id="mila-audio" autoplay playsinline></audio>
@@ -245,7 +328,7 @@
       store();$('confirm-name').textContent=st.patient;show('v-confirm');
     }catch(e){fail(e.message);}
   }
-  function setPatient(name){st.patient=name;$('patient').textContent=name?'Paciente: '+name:'';}
+  function setPatient(name){st.patient=name;$('patient').textContent=name||'Paciente';$('avatar').textContent=String(name||'P').trim().split(/\s+/).slice(0,2).map(function(w){return w.charAt(0);}).join('').toUpperCase()||'P';}
   $('confirm-yes').onclick=function(){show('v-consent');};
   $('confirm-no').onclick=function(){try{sessionStorage.removeItem('mila-movil');}catch(_){}fail('El código no corresponde a este paciente. En la computadora abre la ficha correcta y pulsa «Nuevo código».');};
   $('consent-check').onchange=function(){$('consent-btn').disabled=!this.checked;};
@@ -271,6 +354,9 @@
   function updateDock(){
     var rec=$('rec');
     $('dock').classList.toggle('ai',st.mode==='history'&&st.who==='ai'&&!st.rt.active);
+    $('dock').hidden=$('v-main').hidden||(st.mode==='history'&&st.who==='ai'&&!!st.rtDone);
+    $('finish-btn').closest('.card').hidden=st.mode==='history'&&st.who==='ai'&&!!st.rtDone;
+    setTimeout(startIdleOrb,0);
     if(st.mode==='history'&&st.who==='ai'){rec.textContent=st.rt.active?'Terminar':'Iniciar entrevista con MILA';if(!st.rt.active)status('Listo','MILA saludará al paciente y empezará a preguntar.');}
     else{rec.textContent=st.recording?'Detener':'Grabar';if(!st.recording)status('Listo para grabar',st.mode==='history'?'Graba la conversación con el paciente.':'Dicta cada hallazgo en voz alta.');}
   }
@@ -284,7 +370,7 @@
     if(doc){(doc.allergy_records||[]).forEach(function(r){if(r.severity==='high')out.push('Alergia grave: '+r.substance+(r.reaction?' ('+r.reaction+')':''));});(doc.alerts||[]).forEach(function(a){var low=String(a).toLowerCase();if(!out.some(function(x){return x.toLowerCase().indexOf(low)>=0;}))out.push(a);});}
     return out.filter(function(v,i,a){return a.indexOf(v)===i;});
   }
-  function renderAlerts(){var items=alertItems();$('alerts').hidden=!items.length;$('alerts-list').innerHTML=items.map(function(t){return '<li>'+esc(t)+'</li>';}).join('');}
+  function renderAlerts(){var items=alertItems();$('alerts').hidden=!items.length||!!st.rtDone;$('alerts-list').innerHTML=items.map(function(t){return '<li>'+esc(t)+'</li>';}).join('');}
   function renderGuide(target,withQuestions){
     var cov=(st.history&&st.history.coverage)||{},nextMarked=false;
     $(target).innerHTML=GUIDE.map(function(sec){
@@ -293,7 +379,7 @@
       var label={yes:'Cubierto',no:'Negado',unknown:'No sabe',not_asked:'Falta'}[v]||'Falta';
       return '<li data-state="'+(withQuestions?state:(done?'done':''))+'"><div class="head"><span>'+esc(sec.title)+'</span><span class="chip'+(done?' ok':'')+'">'+label+'</span></div>'+(withQuestions&&!done?'<ul>'+sec.questions.map(function(q){return '<li>'+esc(q)+'</li>';}).join('')+'</ul>':'')+'</li>';
     }).join('');
-    $('coverage-panel').hidden=!(st.history&&st.who==='ai');
+    $('coverage-panel').hidden=!(st.history&&st.who==='ai'&&!st.rtDone&&$('rt-done').hidden&&false);
     var follow=(st.history&&st.history.follow_ups)||[];
     $('history-follow').innerHTML=follow.length?'<h3 style="margin-top:14px">Falta confirmar</h3><ul class="muted" style="padding-left:18px;font-size:14px">'+follow.map(function(f){return '<li>'+esc(f)+'</li>';}).join('')+'</ul>':'';
   }
@@ -315,58 +401,95 @@
   var ORB={ctx:null,ac:null,inA:null,outA:null,buf:null,raf:0,state:'connecting',lvl:0,lvlIn:0,lvlOut:0,t0:0,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches};
   var PALETTE={connecting:['#55aaf0','#3fd3c3','#8b7cf6'],mila:['#3fd3c3','#55aaf0','#8b7cf6'],listening:['#9fd8ff','#55aaf0','#e9f6ff'],thinking:['#8b7cf6','#55aaf0','#3fd3c3'],paused:['#5d7184','#3b4f62','#7f93a6'],idle:['#3fd3c3','#55aaf0','#8b7cf6']};
   var STATE_TEXT={connecting:'Conectando con MILA…',mila:'MILA está hablando',listening:'Escuchando al paciente…',thinking:'MILA está pensando…',paused:'En pausa · el micrófono está apagado',idle:'MILA te escucha'};
-  function setOrb(state){if(ORB.state===state)return;ORB.state=state;$('live-state').textContent=STATE_TEXT[state]||'';}
+  function setOrb(state){if(ORB.state===state)return;ORB.state=state;$('live-state').textContent=STATE_TEXT[state]||'';$('live-state').dataset.state=state;}
   function analyser(stream){try{var src=ORB.ac.createMediaStreamSource(stream),a=ORB.ac.createAnalyser();a.fftSize=512;a.smoothingTimeConstant=.7;src.connect(a);return a;}catch(_){return null;}}
   function level(a){if(!a)return 0;if(!ORB.buf||ORB.buf.length!==a.fftSize)ORB.buf=new Uint8Array(a.fftSize);a.getByteTimeDomainData(ORB.buf);var sum=0;for(var i=0;i<ORB.buf.length;i++){var v=(ORB.buf[i]-128)/128;sum+=v*v;}return Math.min(1,Math.sqrt(sum/ORB.buf.length)*4.2);}
-  function startOrb(){
-    var c=$('orb'),dpr=Math.min(window.devicePixelRatio||1,2),size=c.getBoundingClientRect().width||300;
-    c.width=size*dpr;c.height=size*dpr;ORB.ctx=c.getContext('2d');ORB.ctx.setTransform(dpr,0,0,dpr,0,0);ORB.size=size;ORB.t0=performance.now();
-    cancelAnimationFrame(ORB.raf);ORB.raf=requestAnimationFrame(drawOrb);
-  }
+  function sizeCanvas(c){var dpr=Math.min(window.devicePixelRatio||1,2),size=c.getBoundingClientRect().width||300;c.width=size*dpr;c.height=size*dpr;var g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);return {g:g,size:size};}
+  function startOrb(){var o=sizeCanvas($('orb'));ORB.ctx=o.g;ORB.size=o.size;ORB.t0=performance.now();cancelAnimationFrame(ORB.raf);ORB.raf=requestAnimationFrame(drawOrb);}
   function hexA(hex,a){var n=parseInt(hex.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';}
-  function drawOrb(now){
-    var g=ORB.ctx,S=ORB.size,cx=S/2,cy=S/2,t=(now-ORB.t0)/1000;if(!g)return;
-    var inL=level(ORB.inA),outL=level(ORB.outA);
-    ORB.lvlIn+= (inL-ORB.lvlIn)*.25;ORB.lvlOut+=(outL-ORB.lvlOut)*.25;
-    var target=ORB.state==='mila'?Math.max(ORB.lvlOut,.18):ORB.state==='listening'?Math.max(ORB.lvlIn,.12):ORB.state==='thinking'?.12+.06*Math.sin(t*3):ORB.state==='paused'?0:.06;
-    ORB.lvl+=(target-ORB.lvl)*.15;var L=ORB.reduced?ORB.lvl*.5:ORB.lvl;
-    var pal=PALETTE[ORB.state]||PALETTE.idle,speed=ORB.reduced?0:(ORB.state==='thinking'?1.8:ORB.state==='paused'?.25:1),R=S*.27*(1+L*.22)+(ORB.reduced?0:Math.sin(t*1.3)*S*.006);
+  var CANVAS_BLUR=(function(){try{var t=document.createElement('canvas').getContext('2d');t.filter='blur(2px)';return t.filter==='blur(2px)';}catch(_){return false;}})();
+  /* Esfera oscura con luz que se mueve por dentro, borde de luz y brillo; L = nivel de voz 0..1. */
+  function paintOrb(g,S,t,state,L,speed){
+    var cx=S/2,cy=S/2,pal=PALETTE[state]||PALETTE.idle,R=S*.34*(1+L*.12)+(ORB.reduced?0:Math.sin(t*1.3)*S*.004);
     g.clearRect(0,0,S,S);
-    // halo
-    var halo=g.createRadialGradient(cx,cy,R*.4,cx,cy,S*.5);halo.addColorStop(0,hexA(pal[0],.28+L*.25));halo.addColorStop(1,hexA(pal[0],0));g.fillStyle=halo;g.fillRect(0,0,S,S);
-    // ondas cuando habla el paciente
-    if(ORB.state==='listening'&&!ORB.reduced){for(var r=0;r<3;r++){var ph=((t*.7+r/3)%1);g.beginPath();g.arc(cx,cy,R*(1.05+ph*.6),0,Math.PI*2);g.strokeStyle=hexA(pal[0],(1-ph)*.35*(.4+L));g.lineWidth=2;g.stroke();}}
-    g.globalCompositeOperation='lighter';
-    for(var k=0;k<3;k++){
+    var halo=g.createRadialGradient(cx,cy,R*.6,cx,cy,S*.5);halo.addColorStop(0,hexA(pal[0],.26+L*.3));halo.addColorStop(1,hexA(pal[0],0));g.fillStyle=halo;g.fillRect(0,0,S,S);
+    if(state==='listening'&&!ORB.reduced){for(var r=0;r<3;r++){var ph=((t*.6+r/3)%1);g.beginPath();g.arc(cx,cy,R*(1.04+ph*.42),0,Math.PI*2);g.strokeStyle=hexA('#9fd8ff',(1-ph)*.4*(.5+L));g.lineWidth=1.6;g.stroke();}}
+    var base=g.createRadialGradient(cx-R*.2,cy-R*.25,R*.1,cx,cy,R);base.addColorStop(0,'#133b5c');base.addColorStop(1,'#061524');
+    g.beginPath();g.arc(cx,cy,R,0,Math.PI*2);g.fillStyle=base;g.fill();
+    g.save();g.beginPath();g.arc(cx,cy,R,0,Math.PI*2);g.clip();g.globalCompositeOperation='lighter';
+    if(CANVAS_BLUR)g.filter='blur('+Math.round(S*.022)+'px)';
+    for(var k=0;k<4;k++){
+      var ox=Math.cos(t*speed*.6+k*1.6)*R*(.22+L*.12),oy=Math.sin(t*speed*.8+k*1.9)*R*(.2+L*.1);
       g.beginPath();
-      for(var i=0;i<=72;i++){var a=i/72*Math.PI*2,rr=R*(.86+.055*Math.sin(3*a+t*speed*(1.1+k*.3)+k*2)+.045*Math.sin(5*a-t*speed*(1.6-k*.2)+k)+L*.16*Math.sin(2*a+t*speed*3+k*1.7));var x=cx+Math.cos(a)*rr*(1+.04*k),y=cy+Math.sin(a)*rr;if(i)g.lineTo(x,y);else g.moveTo(x,y);}
-      g.closePath();
-      var gr=g.createRadialGradient(cx-R*.3,cy-R*.35,R*.1,cx,cy,R*1.1);gr.addColorStop(0,hexA(pal[k],.62));gr.addColorStop(.6,hexA(pal[k],.36));gr.addColorStop(1,hexA(pal[k],.05));
-      g.fillStyle=gr;g.fill();
+      for(var i=0;i<=80;i++){var a=i/80*Math.PI*2,rr=R*(.5+L*.22+.1*Math.sin(3*a+t*speed*(1+k*.4)+k*2)+.07*Math.sin(5*a-t*speed*1.7+k));var x=cx+ox+Math.cos(a)*rr,y=cy+oy+Math.sin(a)*rr*.88;if(i)g.lineTo(x,y);else g.moveTo(x,y);}
+      g.closePath();var col=pal[k%3],gr=g.createRadialGradient(cx+ox,cy+oy,0,cx+ox,cy+oy,R*.9);gr.addColorStop(0,hexA(col,.6+L*.25));gr.addColorStop(1,hexA(col,0));g.fillStyle=gr;g.fill();
     }
-    g.globalCompositeOperation='source-over';
-    var gloss=g.createRadialGradient(cx-R*.35,cy-R*.4,0,cx-R*.35,cy-R*.4,R*.75);gloss.addColorStop(0,'rgba(255,255,255,.32)');gloss.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gloss;g.beginPath();g.arc(cx,cy,R*.9,0,Math.PI*2);g.fill();
+    g.filter='none';g.restore();g.globalCompositeOperation='source-over';
+    var rim=g.createLinearGradient(cx-R,cy-R,cx+R,cy+R);rim.addColorStop(0,'rgba(255,255,255,.85)');rim.addColorStop(.5,hexA(pal[1],.55));rim.addColorStop(1,hexA(pal[2],.85));
+    g.beginPath();g.arc(cx,cy,R,0,Math.PI*2);g.strokeStyle=rim;g.lineWidth=1.8;g.stroke();
+    var gl=g.createRadialGradient(cx-R*.38,cy-R*.45,0,cx-R*.38,cy-R*.45,R*.55);gl.addColorStop(0,'rgba(255,255,255,.4)');gl.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gl;g.beginPath();g.arc(cx,cy,R*.97,0,Math.PI*2);g.fill();
+  }
+  function drawOrb(now){
+    var g=ORB.ctx,t=(now-ORB.t0)/1000;if(!g)return;
+    ORB.lvlIn+=(level(ORB.inA)-ORB.lvlIn)*.25;ORB.lvlOut+=(level(ORB.outA)-ORB.lvlOut)*.25;
+    var target=ORB.state==='mila'?Math.max(ORB.lvlOut,.22):ORB.state==='listening'?Math.max(ORB.lvlIn,.14):ORB.state==='thinking'?.12+.06*Math.sin(t*3):ORB.state==='paused'?0:.06;
+    ORB.lvl+=(target-ORB.lvl)*.15;
+    paintOrb(g,ORB.size,t,ORB.state,ORB.reduced?ORB.lvl*.5:ORB.lvl,ORB.reduced?0:(ORB.state==='thinking'?1.8:ORB.state==='paused'?.25:1));
+    karaoke(now);
     ORB.raf=requestAnimationFrame(drawOrb);
+  }
+  // Orbe en reposo de la pantalla de inicio
+  var IDLE={raf:0};
+  function startIdleOrb(){
+    var c=$('orb-idle');if(!c||IDLE.raf||$('ai-hero').hidden||$('ai-panel').hidden||$('v-main').hidden)return;
+    var o=sizeCanvas(c),t0=performance.now();
+    (function loop(now){if($('ai-hero').hidden||$('ai-panel').hidden||$('v-main').hidden||!$('live').hidden){IDLE.raf=0;return;}paintOrb(o.g,o.size,(now-t0)/1000,'idle',.08+.05*Math.sin((now-t0)/900),ORB.reduced?0:.7);IDLE.raf=requestAnimationFrame(loop);})(t0);
+  }
+  // Temas de la entrevista (anillo): se detectan por lo que pregunta MILA, sin costo extra.
+  var TOPICS=[['dental','Motivo y dental',/le trae|motivo|dolor|duele|dentista|anestesia|sangr|sensibil/],['allergies','Alergias',/alerg/],['alerts','Alertas médicas',/anticoagul|aspirina|marcapasos|coraz[oó]n|coagula|embaraz|lactan/],['conditions','Condiciones',/diabet|presi[oó]n|asma|tiroid|enfermedad|padecimiento/],['medications','Medicamentos',/medicament|pastilla|tratamiento m[eé]dico|toma algo|dosis/],['surgeries','Cirugías',/oper|cirug|hospital/],['habits','Hábitos',/fuma|alcohol|cepill|hilo dental|aprieta|rechin/],['emergency_contact','Contacto',/emergencia/]];
+  function detectTopic(text){
+    var low=String(text||'').toLowerCase();if(!/\?/.test(low))return;
+    for(var i=0;i<TOPICS.length;i++)if(TOPICS[i][2].test(low)){if(st.rt.topic!==i){st.rt.topic=i;st.rt.visited[i]=true;renderRing();}return;}
+  }
+  function renderRing(){
+    var n=TOPICS.length,cx=150,cy=150,r=146,gap=.07,cur=st.rt.topic,h='<defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3fd3c3"/><stop offset="1" stop-color="#55aaf0"/></linearGradient></defs>';
+    for(var i=0;i<n;i++){var a0=-Math.PI/2+i*2*Math.PI/n+gap,a1=-Math.PI/2+(i+1)*2*Math.PI/n-gap,x0=cx+r*Math.cos(a0),y0=cy+r*Math.sin(a0),x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
+      var now=i===cur,col=now?'#ffffff':st.rt.visited[i]?'url(#rg)':'rgba(255,255,255,.14)';
+      h+='<path d="M'+x0.toFixed(1)+' '+y0.toFixed(1)+' A'+r+' '+r+' 0 0 1 '+x1.toFixed(1)+' '+y1.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+(now?5:4)+'" stroke-linecap="round"'+(now?' style="filter:drop-shadow(0 0 6px #3fd3c3)"':'')+'/>';}
+    $('ring').innerHTML=h;
+    var done=Object.keys(st.rt.visited).length;$('live-topic').innerHTML=cur>=0?esc(TOPICS[cur][1])+' <small>· '+done+' de '+n+'</small>':'';
+  }
+  // Subtítulo tipo karaoke: se iluminan las palabras al ritmo aproximado de la voz de MILA.
+  function karaoke(now){
+    var rt=st.rt,p=$('live-text');if(!rt.speakingAt||ORB.state!=='mila'||!rt.partial||p.dataset.who!=='mila')return;
+    var words=rt.partial.split(/\s+/).filter(Boolean),n=ORB.reduced?words.length:Math.min(words.length,Math.floor((now-rt.speakingAt)/1000*2.6)+1);
+    if(n===rt.kn&&words.length===rt.kw)return;rt.kn=n;rt.kw=words.length;
+    p.innerHTML=esc(words.slice(0,n).join(' '))+(n<words.length?' <span class="dim">'+esc(words.slice(n).join(' '))+'</span>':'');
+    p.classList.toggle('long',rt.partial.length>90);
   }
   function stopOrb(){cancelAnimationFrame(ORB.raf);ORB.raf=0;ORB.inA=ORB.outA=null;if(ORB.ac){try{ORB.ac.close();}catch(_){}ORB.ac=null;}}
   function caption(role,text){
     var p=$('live-text'),who=$('live-who');if(!p)return;
+    if(role==='mila'){detectTopic(text);if(p.dataset.who==='mila'&&st.rt.partial){p.textContent=text;p.classList.toggle('long',text.length>90);return;}}
+    if(role==='patient'){var pat=$('live-pat');pat.innerHTML='<b>PACIENTE</b>'+esc(text);pat.hidden=false;if(ORB.state!=='listening')return;}
+    p.classList.toggle('long',text.length>90);
     who.textContent=role==='mila'?'MILA':'Paciente';who.dataset.who=role;p.dataset.who=role;p.textContent=text;
     p.classList.add('enter');requestAnimationFrame(function(){requestAnimationFrame(function(){p.classList.remove('enter');});});
   }
   function openLive(){
     $('live-patient').textContent=st.patient||'';$('live-text').textContent='';$('live-who').textContent='';$('live-chat').innerHTML='';
-    $('live-sheet').hidden=true;$('live-log').setAttribute('aria-pressed','false');$('live-pause').setAttribute('aria-pressed','false');$('live-pause').querySelector('span').textContent='Pausar';
-    $('live').hidden=false;setOrb('connecting');startOrb();renderLiveAlert();
+    $('live-sheet').hidden=true;$('live-log').setAttribute('aria-pressed','false');$('live-pause').setAttribute('aria-pressed','false');$('live-pause').querySelector('.lbl').textContent='Pausar';
+    $('live-pat').hidden=true;st.rt.topic=-1;st.rt.visited={};st.rt.partial='';st.rt.speakingAt=0;renderRing();
+    $('live').hidden=false;ORB.state='';setOrb('connecting');startOrb();renderLiveAlert();
   }
-  function closeLive(){$('live').hidden=true;stopOrb();}
+  function closeLive(){$('live').hidden=true;stopOrb();setTimeout(startIdleOrb,0);}
   function renderLiveAlert(){var items=alertItems(),b=$('live-alert');b.hidden=!items.length;b.textContent=items.length?'⚠ '+items[items.length-1]+(items.length>1?' (+'+(items.length-1)+')':''):'';}
   $('live-log').onclick=function(){var open=$('live-sheet').hidden;$('live-sheet').hidden=!open;this.setAttribute('aria-pressed',String(open));if(open)$('live-sheet').scrollTop=$('live-sheet').scrollHeight;};
-  $('live-pause').onclick=function(){var rt=st.rt;if(!rt.stream)return;rt.muted=!rt.muted;rt.pausedAt=Date.now();if(!rt.muted)rt.last=Date.now();rt.stream.getAudioTracks().forEach(function(t){t.enabled=!rt.muted;});this.setAttribute('aria-pressed',String(rt.muted));this.querySelector('span').textContent=rt.muted?'Reanudar':'Pausar';setOrb(rt.muted?'paused':'idle');};
+  $('live-pause').onclick=function(){var rt=st.rt;if(!rt.stream)return;rt.muted=!rt.muted;rt.pausedAt=Date.now();if(!rt.muted)rt.last=Date.now();rt.stream.getAudioTracks().forEach(function(t){t.enabled=!rt.muted;});this.setAttribute('aria-pressed',String(rt.muted));this.querySelector('.lbl').textContent=rt.muted?'Reanudar':'Pausar';setOrb(rt.muted?'paused':'idle');};
   $('live-end').onclick=function(){finishRealtime();};
   $('live-alert').onclick=function(){$('live-log').click();};
 
-  async function startRealtime(){
+  async function startRealtime(continuar){
     if(!window.RTCPeerConnection||!navigator.mediaDevices){status('Este navegador no permite la entrevista por voz','Usa «Yo pregunto, MILA escucha».',true);return;}
     var rt=st.rt;$('rec').disabled=true;status('Conectando con MILA…','');
     try{ORB.ac=new (window.AudioContext||window.webkitAudioContext)();if(ORB.ac.state==='suspended')ORB.ac.resume();}catch(_){ORB.ac=null;}
@@ -381,7 +504,7 @@
       rt.channel.onmessage=onRealtimeEvent;
       rt.channel.onclose=function(){if(rt.active)finishRealtime();};
       var offer=await rt.peer.createOffer();await rt.peer.setLocalDescription(offer);await waitIce(rt.peer);
-      var out=await call('realtime',{sdp:rt.peer.localDescription.sdp});
+      var out=await call('realtime',{sdp:rt.peer.localDescription.sdp,continuar:!!continuar});
       await rt.peer.setRemoteDescription({type:'answer',sdp:out.answer_sdp});
       rt.active=true;rt.started=Date.now();rt.usage={input:0,output:0};rt.calls={};
       $('rec').dataset.on='true';$('rec').setAttribute('aria-pressed','true');updateDock();
@@ -405,10 +528,13 @@
     if(e.type==='session.created'||e.type==='session.updated'){if(!st.rt.greeted){st.rt.greeted=true;sendRt({type:'response.create',response:{instructions:'Empieza: saluda al paciente por su nombre, preséntate y explica en una frase lo que harás. Luego haz la primera pregunta.'}});}}
     if(e.type==='input_audio_buffer.speech_started'&&!st.rt.muted)setOrb('listening');
     if(e.type==='input_audio_buffer.speech_stopped'&&!st.rt.muted)setOrb('thinking');
+    if(e.type==='output_audio_buffer.started'){st.rt.speakingAt=performance.now();st.rt.kn=-1;}
     if(e.type==='output_audio_buffer.started'||e.type==='response.output_audio.delta'||e.type==='response.audio.delta')setOrb('mila');
-    if((e.type==='output_audio_buffer.stopped'||e.type==='output_audio_buffer.cleared')&&!st.rt.muted)setOrb('idle');
-    if(e.type==='response.output_audio_transcript.delta'||e.type==='response.audio_transcript.delta'){st.rt.partial=(st.rt.partial||'')+(e.delta||'');var tp=$('live-text');if(tp&&!$('live').hidden){$('live-who').textContent='MILA';$('live-who').dataset.who='mila';tp.dataset.who='mila';tp.textContent=st.rt.partial;}}
-    if(e.type==='response.created')st.rt.partial='';
+    if(e.type==='conversation.item.input_audio_transcription.delta'&&ORB.state==='listening'){st.rt.heard=(st.rt.heard||'')+(e.delta||'');var hp=$('live-text');$('live-who').textContent='Paciente';$('live-who').dataset.who='patient';hp.dataset.who='patient';hp.textContent=st.rt.heard;}
+    if(e.type==='input_audio_buffer.speech_started')st.rt.heard='';
+    if(e.type==='output_audio_buffer.stopped'||e.type==='output_audio_buffer.cleared'){st.rt.speakingAt=0;var fp=$('live-text');if(st.rt.partial&&fp.dataset.who==='mila')fp.textContent=st.rt.partial;if(!st.rt.muted)setOrb('idle');}
+    if(e.type==='response.output_audio_transcript.delta'||e.type==='response.audio_transcript.delta'){st.rt.partial=(st.rt.partial||'')+(e.delta||'');var tp=$('live-text');if(tp&&!$('live').hidden){$('live-who').textContent='MILA';$('live-who').dataset.who='mila';tp.dataset.who='mila';if(!st.rt.speakingAt){tp.textContent=st.rt.partial;}detectTopic(st.rt.partial);}}
+    if(e.type==='response.created'){st.rt.partial='';st.rt.speakingAt=0;}
     if(e.type==='conversation.item.input_audio_transcription.completed')chat('patient',(e.transcript||'').trim());
     if(e.type==='response.output_audio_transcript.done'||e.type==='response.audio_transcript.done')chat('mila',(e.transcript||'').trim());
     if(e.type==='response.done'&&e.response&&e.response.usage){var u=e.response.usage,ui=u.input_token_details||{},uo=u.output_token_details||{},b=st.rt.usage;b.input+=Number(u.input_tokens)||0;b.output+=Number(u.output_tokens)||0;b.cached=(b.cached||0)+(Number(ui.cached_tokens)||0);b.in_audio=(b.in_audio||0)+(Number(ui.audio_tokens)||0);b.in_text=(b.in_text||0)+(Number(ui.text_tokens)||0);b.out_audio=(b.out_audio||0)+(Number(uo.audio_tokens)||0);b.out_text=(b.out_text||0)+(Number(uo.text_tokens)||0);}
@@ -442,10 +568,24 @@
       await st.rt.turnQueue;
       var out=await call('realtime_finish',{usage:usage});
       if(out.history)st.history=out.history;if(out.alerts)st.alerts=out.alerts;if(out.tokens)st.tokens=out.tokens;st.seconds+=out.seconds||0;
-      renderAll();status('Entrevista terminada','Revisa abajo lo que MILA tiene y pulsa «Terminar y enviar».');
+      st.rtDone={seconds:out.seconds||0,messages:$('chat').children.length};renderAll();showDone();
     }catch(e){status('No se pudo cerrar la entrevista',e.message,true);}
     finally{$('rec').disabled=false;}
   }
+
+  function showDone(){
+    var d=st.rtDone;if(!d)return;
+    $('ai-hero').hidden=true;$('rt-done').hidden=false;
+    var m=Math.floor(d.seconds/60),sg=d.seconds%60;
+    $('rt-done-meta').textContent=(m?m+' min ':'')+sg+' s · el borrador está listo para revisar';
+    var al=alertItems();$('rt-done-alert').hidden=!al.length;$('rt-done-alert').querySelector('span').textContent=al.length===1?al[0]:al.length+' alertas: '+al.map(function(a){return a.split(':')[0].toLowerCase();}).join(' · ');
+    var cov=(st.history&&st.history.coverage)||{},doc=(st.history&&st.history.document)||{},items=TOPICS.map(function(tp){var ok=tp[0]==='emergency_contact'?!!doc.emergency_contact:(cov[tp[0]]||'not_asked')!=='not_asked';return {t:tp[1],ok:ok};}),ok=items.filter(function(i){return i.ok;}).length;
+    $('rt-done-card').innerHTML='<h3><span>LO QUE MILA OBTUVO</span><b>'+ok+' de '+items.length+' temas</b></h3><div class="rt-bar"><i style="width:'+Math.round(ok/Math.max(1,items.length)*100)+'%"></i></div><div class="rt-chips">'+items.map(function(i){return '<span'+(i.ok?'':' class="no"')+'>'+esc(i.t)+(i.ok?'':' · falta')+'</span>';}).join('')+'</div>';
+    $('rt-done-fold').textContent='Ver conversación · '+$('chat').children.length+' mensajes';
+    $('rt-continue').hidden=ok>=items.length;$('alerts').hidden=true;$('choice-ai').parentNode.hidden=true;updateDock();
+  }
+  $('rt-send').onclick=function(){$('finish-btn').click();};
+  $('rt-continue').onclick=function(){$('rt-done').hidden=true;$('ai-hero').hidden=false;$('choice-ai').parentNode.hidden=false;st.rtDone=null;renderAlerts();updateDock();startRealtime(true);};
 
   // ------------------------------------------------------------ «Yo pregunto»: grabación por segmentos
   function pickMime(){
