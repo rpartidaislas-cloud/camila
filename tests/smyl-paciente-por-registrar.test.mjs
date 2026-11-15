@@ -44,3 +44,57 @@ test('copias móviles idénticas', () => {
   for (const file of ['smyl-schedule.js', 'smyl-schedule.css', 'app.html', 'sw.js'])
     assert.equal(read('../' + file), read('../mobile/www/' + file), file);
 });
+
+// ── Fase 2: enlace para que la persona complete sus datos ──
+const links = read('../supabase/migrations/20261115120000_smyl_patient_registration_links.sql');
+const page = read('../registro-paciente.html');
+
+test('fase 2 · el token nunca se guarda en claro y es de 256 bits', () => {
+  assert.match(links, /token_hash text not null unique/);
+  assert.match(links, /encode\(sha256\(convert_to\(v_token, 'utf8'\)\), 'hex'\)/);
+  assert.match(links, /gen_random_uuid\(\)::text, '-', ''\) \|\| replace\(gen_random_uuid/);
+  const insert = links.match(/insert into public\.smyl_patient_registration_links[^;]*;/)[0];
+  assert.equal((insert.match(/v_token/g) || []).length, (insert.match(/convert_to\(v_token/g) || []).length, 'el token solo entra por convert_to dentro del hash');
+});
+
+test('fase 2 · la tabla del enlace no es accesible directamente', () => {
+  assert.match(links, /enable row level security/);
+  assert.match(links, /revoke all on public\.smyl_patient_registration_links from public, anon, authenticated/);
+  assert.doesNotMatch(links, /create policy/i);
+});
+
+test('fase 2 · solo el personal autorizado crea enlaces y solo de fichas pendientes', () => {
+  assert.match(links, /smyl_has_permission\(v_tenant, 'patients\.manage'\)/);
+  assert.match(links, /smyl_current_tenant\(\)/);
+  assert.match(links, /registro_estado = 'pendiente'\) then\s+raise exception 'Este paciente ya tiene su registro completo/);
+  assert.match(links, /revoke all on function public\.smyl_create_registration_link\(uuid\) from public, anon/);
+  assert.match(links, /grant execute on function public\.smyl_create_registration_link\(uuid\) to authenticated/);
+});
+
+test('fase 2 · enviar es de un solo uso, vence a los 7 días y solo toca la ficha ligada', () => {
+  assert.match(links, /interval '7 days'/);
+  assert.match(links, /used_at is null and expires_at > now\(\)\s+for update/);
+  assert.match(links, /where id = v_link\.patient_id and tenant_id = v_link\.tenant_id and registro_estado = 'pendiente'/);
+  assert.match(links, /set used_at = now\(\) where id = v_link\.id/);
+});
+
+test('fase 2 · exige consentimiento y valida lo que escribe la persona', () => {
+  assert.match(links, /coalesce\(p_consent, false\) is not true/);
+  assert.match(links, /'femenino', 'masculino', 'otro'/);
+  assert.match(links, /p_fecha_nacimiento > current_date/);
+});
+
+test('fase 2 · la página pública solo usa las dos funciones y escapa textos', () => {
+  assert.match(page, /smyl_registration_link_info/);
+  assert.match(page, /smyl_submit_registration/);
+  assert.doesNotMatch(page, /\/rest\/v1\/(?!rpc\/)/);
+  assert.match(page, /name="robots" content="noindex,nofollow"/);
+  assert.match(page, /esc\(info\.clinic_name\)/);
+  assert.match(page, /\^\[0-9a-f\]\{64\}\$/);
+});
+
+test('fase 2 · Pacientes ofrece «Enviar enlace de registro» solo si está pendiente', () => {
+  assert.match(app, /porRegistrar && p\.registro_estado === 'pendiente'/);
+  assert.match(app, /sb\.rpc\('smyl_create_registration_link'/);
+  assert.match(app, /wa\.me\//);
+});
