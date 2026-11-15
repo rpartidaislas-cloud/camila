@@ -58,3 +58,5 @@
 .p360-mila-evidence li{background:#fff;border-radius:8px;padding:8px 10px}
 .p360-mila-evidence q{display:block;font-size:12px;color:var(--smyl-text-muted,#5b6b7a);margin-top:2px}
 .p360-mila-evidence em{font-size:12px;color:#8a5a00}
+.mila-iv-alerts{border:2px solid var(--smyl-danger,#b42318);background:#fdecea;color:#7a1a12;border-radius:12px;padding:12px 14px;margin:0 0 12px;font-size:14px}
+.mila-iv-alerts ul{margin:6px 0 0;padding-left:18px}
