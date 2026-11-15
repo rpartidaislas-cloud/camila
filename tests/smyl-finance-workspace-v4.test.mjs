@@ -11,12 +11,10 @@ const css = read('smyl-finance.css');
 
 test('Cobros abre en saldos pendientes y separa las tareas por destino', () => {
   assert.match(js, /accountFilter:'open'/);
-  for (const filter of ['overdue', 'credit', 'cash']) {
-    assert.match(js, new RegExp(`data-finance-alert-filter=\\"${filter}\\"`));
-  }
-  assert.match(js, /Corte pendiente/);
+  assert.match(js, /data-metric-sub="overdue">Ver vencidas/);
+  assert.match(js, /Hacer corte/);
+  assert.match(js, /Aplicar a una cuenta/);
   assert.match(js, /Saldos? a favor/);
-  assert.match(js, /Cuentas? vencidas?/);
 });
 
 test('la cartera distingue deuda, crédito y liquidación con una sola acción principal', () => {
@@ -53,7 +51,7 @@ test('web y PWA publican los mismos archivos y versiones del workspace', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'app.html', 'sw.js']) {
     assert.equal(read('mobile/www/' + file), read(file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=31/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=39/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=32/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=40/);
   assert.match(read('sw.js'), /finance-workspace-v4/);
 });
