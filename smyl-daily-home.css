@@ -356,3 +356,11 @@ body.smyl-ui-governed #smyl-daily-home .daily-home-month .daily-home-metrics-mon
 }
 /* Con la jornada en una columna, en anchos medios (menú lateral + contenido) las dos tarjetas se apilan para que nada quede truncado. */
 @media(max-width:1100px){body.smyl-ui-governed #smyl-daily-home .daily-home-workbench{grid-template-columns:minmax(0,1fr)}}
+
+/* Inicio por rol: lo que el rol no puede usar se oculta; «Solo mis citas» es un interruptor dentro de los chips de la jornada. */
+#smyl-daily-home [hidden]{display:none!important}
+body.smyl-ui-governed #smyl-daily-home .daily-home-workbench.is-solo{grid-template-columns:minmax(0,1fr)}
+#smyl-daily-home .daily-home-chip.is-toggle{margin-left:auto;border:1px solid var(--home-line,#dce5ec);background:#fff;color:var(--home-ink,#102439);cursor:pointer}
+#smyl-daily-home .daily-home-chip.is-toggle:hover{border-color:#91b8b4}
+#smyl-daily-home .daily-home-chip.is-toggle[aria-pressed="true"]{border-color:var(--home-teal,#0f766e);background:var(--home-teal-soft,#e8f6f3);color:#0b6b64}
+#smyl-daily-home .daily-home-chip.is-toggle:focus-visible{outline:2px solid var(--home-teal,#0f766e);outline-offset:2px}
