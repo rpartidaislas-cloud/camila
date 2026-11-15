@@ -25,7 +25,7 @@ test('el asistente organiza datos sin diagnosticar ni modificar el expediente',(
 });
 
 test('la historia clínica abre en lectura y edita sólo bajo demanda',()=>{
-  assert.match(patient,/function historyForm\(s,editing\)/);
+  assert.match(patient,/function historyForm\(s,editing(?:,mila)?\)/);
   assert.match(patient,/data-history-edit/);
   assert.match(patient,/data-history-cancel/);
   assert.match(patient,/historyForm\(s,false\)/);

@@ -90,7 +90,7 @@ test('Plan y consumo muestra la medición y usa la función de resumen', () => {
   assert.match(read('consumos.html'), /id="radiograph-usage"/);
   const js = read('smyl-consumption.js');
   assert.match(js, /sb\.rpc\('smyl_ai_usage_summary',\{p_feature:'radiograph_analysis',p_days:30\}\)/);
-  assert.match(js, /loadRadiographUsage\(\);\}/);
+  assert.match(js, /loadRadiographUsage\(\);(?:loadMilaInterviewUsage\(\);)?\}/);
   assert.match(read('smyl-consumption.css'), /\.usage-ai-measure-grid/);
 });
 
