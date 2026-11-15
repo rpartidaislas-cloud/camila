@@ -8,7 +8,7 @@
 - **Consentimiento** registrado en `mila_audit_log` (`mila_interview_consent`: entrevista, tipo, método, fecha) y mostrado en el borrador.
 - **Seguimiento**: si el paciente ya tiene historia, MILA recibe lo registrado (`summarizeKnownHistory`) y solo confirma «¿sigue igual?» y pregunta lo nuevo.
 - Migración `20261116120000_smyl_mila_previsit.sql` (columnas `kind`, `previsit_mode`, `appointment_*`, `sent_via`, `identity_*`, `submitted_at`). **Requiere aplicar la migración y volver a desplegar `mila-interview`.** Versiones: MILA `v4`, ficha 360 `v28`, historia lectura `v4`, catálogo `v5`, caché `mila-previsit-v1`.
-- Verificación: `tests/smyl-mila-interview.test.mjs` 22/22; suite completa con los mismos 15 fallos que `main`; `deno check` OK; Playwright: paciente (fecha, aviso, elegir, formulario, gracias; y por voz con WebRTC simulado) y computadora (pestaña, envío con plantilla no aprobada, aviso de pendientes). Pendiente: agenda con marca «Historia previa lista».
+- Verificación: `tests/smyl-mila-interview.test.mjs` 21/21; suite completa con los mismos 15 fallos que `main`; `deno check` OK; Playwright: paciente (fecha, aviso, elegir, formulario, gracias; y por voz con WebRTC simulado) y computadora (pestaña, envío con plantilla no aprobada, aviso de pendientes). Pendiente: agenda con marca «Historia previa lista».
 
 ## 2026-11-15 — Claude — Migraciones P1 de seguridad aplicadas en producción (SMYL)
 
