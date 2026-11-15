@@ -79,7 +79,7 @@ test('la Agenda configura los recordatorios y dispara la entrega al cambiar cita
   assert.match(ui, /Recordatorios por WhatsApp/);
   assert.doesNotMatch(ui, /localStorage/);
   assert.match(schedule, /function remindersChanged\(\)\{if\(window\.SmylReminders\)window\.SmylReminders\.dispatch\(true\);\}/);
-  assert.equal((schedule.match(/remindersChanged\(\);/g) || []).length, 5); // crear, confirmar negociación, cambiar horario, transición y mover arrastrando
+  assert.equal((schedule.match(/remindersChanged\(\);/g) || []).length, 6); // crear, confirmar negociación, cambiar horario, transición, mover arrastrando en el día y mover en el mes
   assert.match(schedule, /select\('id,appointment_id,reminder_type,scheduled_for,status/);
   assert.match(inbox, /window\.SmylReminders\.dispatch\(true\)/);
 });
