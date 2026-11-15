@@ -1,5 +1,15 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-16 — Claude Code — MILA: entrevista previa a la cita (WhatsApp, voz o formulario), seguimiento, consentimiento y borradores sin guardar
+
+- **Entrevista previa**: «Entrevista con MILA → Antes de la cita» (o el botón «Enviar antes de la cita» en Historia clínica). La clínica elige **Que el paciente elija / MILA por voz / Formulario** y la envía **por WhatsApp** con la plantilla nueva `entrevista_previa_v1` (catálogo + bundle regenerados; hay que solicitarla a Meta desde Configuración) o copia el enlace. Sin conversación de WhatsApp o sin plantilla aprobada, ofrece abrir WhatsApp con el mensaje (`wa.me`).
+- El paciente abre `mila-movil.html#s=…&t=…`: confirma su **fecha de nacimiento** si la ficha la tiene (5 intentos), acepta el aviso y responde **por voz** (MILA con instrucciones para paciente solo: urgencias → llamar a la clínica/911 y alerta `urgencia`; máx. 15 min, una conversación) o con el **formulario** (`buildFromForm`, sin IA, sin costo). Termina en «¡Gracias!».
+- **Borradores pendientes**: la Historia clínica muestra arriba las entrevistas previas respondidas o enviadas sin respuesta, y los borradores de consultorio sin guardar, con **Revisar y llenar historia** / **Descartar**. Al guardar la historia, la sesión se cierra y se borra la transcripción (`smyl:mila-history-saved`); salir del editor con un borrador avisa. Aviso flotante cuando el borrador del celular está listo. Cambiar de paciente ya no borra un borrador sin guardar.
+- **Consentimiento** registrado en `mila_audit_log` (`mila_interview_consent`: entrevista, tipo, método, fecha) y mostrado en el borrador.
+- **Seguimiento**: si el paciente ya tiene historia, MILA recibe lo registrado (`summarizeKnownHistory`) y solo confirma «¿sigue igual?» y pregunta lo nuevo.
+- Migración `20261116120000_smyl_mila_previsit.sql` (columnas `kind`, `previsit_mode`, `appointment_*`, `sent_via`, `identity_*`, `submitted_at`). **Requiere aplicar la migración y volver a desplegar `mila-interview`.** Versiones: MILA `v4`, ficha 360 `v28`, historia lectura `v4`, catálogo `v5`, caché `mila-previsit-v1`.
+- Verificación: `tests/smyl-mila-interview.test.mjs` 22/22; suite completa con los mismos 15 fallos que `main`; `deno check` OK; Playwright: paciente (fecha, aviso, elegir, formulario, gracias; y por voz con WebRTC simulado) y computadora (pestaña, envío con plantilla no aprobada, aviso de pendientes). Pendiente: agenda con marca «Historia previa lista».
+
 ## 2026-11-15 — Claude — Migraciones P1 de seguridad aplicadas en producción (SMYL)
 
 - Se aplicaron a mano en el SQL Editor del proyecto de SMYL (sin Actions, que no arranca) las dos migraciones de la auditoría P1 del 2026-10-30: `20261030100000_smyl_retention_purge_schedule.sql` y `20261030110000_smyl_membership_reads_to_permissions.sql`. Ambas son idempotentes. No quedan registradas en el historial de migraciones de Supabase (no se usó la CLI): si se usa `supabase db push`, hay que saltarlas o marcarlas como aplicadas.

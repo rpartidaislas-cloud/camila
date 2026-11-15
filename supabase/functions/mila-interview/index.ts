@@ -20,10 +20,13 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requirePermission, requireUser } from "../_shared/auth.ts";
 import { makeCors } from "../_shared/cors.ts";
+import { lanaRequest } from "../_shared/lana-linked.ts";
 import {
   ALERT_LABELS,
   ALERT_TYPES,
+  buildFromForm,
   buildInterviewerInstructions,
+  summarizeKnownHistory,
   EXAM_PROMPT,
   EXAM_SCHEMA,
   firstName,
@@ -59,6 +62,11 @@ const SESSION_MINUTES = 90;
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_SEGMENT_SECONDS = 180;
 const MAX_REALTIME_SECONDS = 45 * 60;
+// Entrevista previa (el paciente solo): una conversación de voz, máx. 15 min; el enlace vence 1 día después de la cita o en 7 días.
+const MAX_PREVISIT_REALTIME_SECONDS = 15 * 60;
+const PREVISIT_TEMPLATE = "entrevista_previa_v1";
+const APP_BASE = Deno.env.get("SMYL_APP_BASE_URL") || "https://app.smyldesign.ai";
+const CLINIC_TZ = "America/Mexico_City";
 const MAX_TRANSCRIPT = 60000;
 const ALLOWED_MIME = new Set(["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav", "audio/x-m4a", "audio/aac"]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -253,6 +261,8 @@ async function publicStatus(row: Row) {
     status: row.status,
     paired: !!row.device_hash,
     consent: !!row.consent_at,
+    consent_at: row.consent_at,
+    kind: row.kind || "clinic",
     segments: row.segments,
     audio_seconds: row.audio_seconds,
     tokens: await sessionTokens(row.tenant_id, row.id),
@@ -265,6 +275,77 @@ async function publicStatus(row: Row) {
     processing: !!(row.busy_until && Date.parse(row.busy_until) > Date.now()),
     expires_at: row.expires_at,
   };
+}
+
+// ---------------------------------------------------------------- entrevista previa (helpers)
+async function clinicName(tenantId: string): Promise<string> {
+  const { data } = await admin.from("camila_tenants").select("nombre,config").eq("id", tenantId).maybeSingle();
+  const config = data?.config && typeof data.config === "object" ? data.config as Record<string, unknown> : {};
+  return cleanText(config.consultorio, 120) || cleanText(data?.nombre, 120) || "tu clínica";
+}
+function appointmentLabel(startsAt: string): string {
+  const d = new Date(startsAt);
+  if (Number.isNaN(d.getTime())) return "";
+  const day = new Intl.DateTimeFormat("es-MX", { weekday: "long", day: "numeric", month: "long", timeZone: CLINIC_TZ }).format(d).replace(",", "");
+  const hour = new Intl.DateTimeFormat("es-MX", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: CLINIC_TZ }).format(d)
+    .replace(/\s*([ap])\.?\s?m\.?/i, (_m, x) => ` ${x.toLowerCase()}m`);
+  return `${day} a las ${hour}`;
+}
+async function nextAppointment(tenantId: string, patientId: string, appointmentId: string) {
+  let q = admin.from("smyl_appointments").select("id,starts_at,status").eq("tenant_id", tenantId).eq("patient_id", patientId);
+  if (UUID.test(appointmentId)) q = q.eq("id", appointmentId);
+  else q = q.gte("starts_at", new Date().toISOString()).order("starts_at", { ascending: true });
+  const { data } = await q.limit(5);
+  return (data || []).find((r: Row) => !/cancel/i.test(String(r.status || ""))) || null;
+}
+async function whatsappConversation(tenantId: string, patientId: string): Promise<string | null> {
+  const { data } = await admin.from("camila_lana_handoffs").select("lana_conversation_id")
+    .eq("tenant_id", tenantId).eq("patient_id", patientId).eq("lana_channel", "whatsapp")
+    .order("updated_at", { ascending: false }).limit(1);
+  return data && data[0] ? String(data[0].lana_conversation_id) : null;
+}
+/* Envía la plantilla aprobada «entrevista_previa_v1» por la conversación de WhatsApp del paciente (vía LANA). */
+async function sendPrevisitWhatsApp(tenantId: string, patientId: string, user: { id: string; email?: string }, variables: string[], idempotency: string) {
+  const conversation = await whatsappConversation(tenantId, patientId);
+  if (!conversation) return { sent: false, reason: "no_conversation" };
+  const actor = new Headers({
+    "X-SMYL-Actor-Id": user.id,
+    "X-SMYL-Actor-Role": user.id === tenantId ? "owner" : "staff",
+    "X-SMYL-Actor-Name-Encoded": encodeURIComponent(cleanText(user.email, 160).split("@")[0] || "Equipo"),
+  });
+  try {
+    const list = await lanaRequest(tenantId, "/inbox/whatsapp/templates", { method: "GET", headers: actor }, 12000);
+    const templates = Array.isArray(list.body.templates) ? list.body.templates as Row[] : [];
+    const template = templates.find((t) => String(t.name || "") === PREVISIT_TEMPLATE && !/reject|rechaz|pending|pendiente|paused|disabled/i.test(String(t.status || "")));
+    if (!template?.id) return { sent: false, reason: "template_not_approved" };
+    const headers = new Headers(actor);
+    headers.set("Idempotency-Key", idempotency);
+    const remote = await lanaRequest(tenantId, `/inbox/conversations/${conversation}/scheduled`, {
+      method: "POST", headers,
+      body: JSON.stringify({ type: "template", send_at: new Date(Date.now() + 60_000).toISOString(), template_id: template.id, template_variables: variables.map((v) => v.slice(0, 1000)) }),
+    }, 15000);
+    if (!remote.response.ok) return { sent: false, reason: "lana_error", detail: cleanText(remote.body.error, 200) };
+    return { sent: true, reason: "" };
+  } catch (error) {
+    console.warn("[mila-interview:previsit-whatsapp]", error instanceof Error ? error.message : error);
+    return { sent: false, reason: "lana_unavailable" };
+  }
+}
+async function auditConsent(row: Row, method: string) {
+  // Constancia del consentimiento en el expediente: quién, cuándo, cómo. Sin contenido clínico.
+  await admin.from("mila_audit_log").insert({
+    tenant_id: row.tenant_id, user_id: row.kind === "previsit" ? null : row.created_by,
+    event_type: "mila_interview_consent", entity_type: "patient", entity_id: row.patient_id,
+    metadata: { interview_id: row.id, kind: row.kind || "clinic", method, at: new Date().toISOString() },
+  }).then(({ error }) => { if (error) console.error("[mila-interview:consent-audit]", error.message); });
+}
+async function knownHistory(tenantId: string, patientId: string): Promise<string[]> {
+  const { data } = await admin.from("smyl_patient_histories").select("document").eq("tenant_id", tenantId).eq("patient_id", patientId).maybeSingle();
+  return data?.document ? summarizeKnownHistory(data.document) : [];
+}
+function sameDob(input: string, stored: unknown): boolean {
+  const a = String(input || "").trim(), b = String(stored || "").slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(a) && a === b;
 }
 
 Deno.serve(async (req: Request) => {
@@ -290,7 +371,7 @@ Deno.serve(async (req: Request) => {
   const id = field("id");
 
   // -------------------------------------------------------------- computadora (dentista)
-  if (action === "create" || action === "status" || action === "close") {
+  if (["create", "status", "close", "previsit_create", "pending"].includes(action)) {
     const auth = await requireUser(req, CORS);
     if (auth.response) return auth.response;
     const denied = await requirePermission(auth, CORS, "clinical.write");
@@ -306,9 +387,9 @@ Deno.serve(async (req: Request) => {
         .eq("tenant_id", tenantId).eq("id", patientId).maybeSingle();
       if (!patient) return json(404, { error: "El paciente no pertenece a tu clínica." });
       await purgeExpired();
-      // Una sola sesión abierta por paciente y profesional: la anterior se cierra y se vacía.
+      // Las sesiones de este profesional que nunca empezaron se descartan; un borrador sin guardar se conserva (aparece en la Historia clínica).
       await admin.from("smyl_mila_interviews").delete()
-        .eq("tenant_id", tenantId).eq("patient_id", patientId).eq("created_by", userId).neq("status", "closed");
+        .eq("tenant_id", tenantId).eq("patient_id", patientId).eq("created_by", userId).eq("kind", "clinic").is("consent_at", null);
       const token = randomToken();
       const expires = new Date(Date.now() + SESSION_MINUTES * 60_000).toISOString();
       const { data: row, error } = await admin.from("smyl_mila_interviews").insert({
@@ -319,9 +400,64 @@ Deno.serve(async (req: Request) => {
       return json(200, { id: row.id, token, expires_at: row.expires_at });
     }
 
+    // Entrevista previa: la clínica elige voz, formulario o que el paciente decida; se envía por WhatsApp o se copia el enlace.
+    if (action === "previsit_create") {
+      const patientId = field("patient_id");
+      const mode = ["voice", "form", "choice"].includes(field("mode")) ? field("mode") : "choice";
+      const via = field("via") === "whatsapp" ? "whatsapp" : "link";
+      if (!UUID.test(patientId)) return json(400, { error: "Paciente inválido." });
+      const { data: patient } = await admin.from("camila_pacientes").select("id,nombre")
+        .eq("tenant_id", tenantId).eq("id", patientId).maybeSingle();
+      if (!patient) return json(404, { error: "El paciente no pertenece a tu clínica." });
+      if (mode !== "form" && !OPENAI_API_KEY) return json(503, { error: "MILA no está configurada todavía; usa el formulario." });
+      await purgeExpired();
+      const appt = await nextAppointment(tenantId, patientId, field("appointment_id"));
+      const label = appt ? appointmentLabel(appt.starts_at) : "";
+      const apptEnd = appt ? Date.parse(appt.starts_at) + 24 * 3600_000 : 0;
+      const expires = new Date(Math.max(Date.now() + 2 * 3600_000, Math.min(apptEnd || Infinity, Date.now() + 7 * 24 * 3600_000))).toISOString();
+      // Un solo envío vigente por paciente: el anterior sin responder se reemplaza.
+      await admin.from("smyl_mila_interviews").delete()
+        .eq("tenant_id", tenantId).eq("patient_id", patientId).eq("kind", "previsit").is("submitted_at", null);
+      const token = randomToken();
+      const { data: created, error } = await admin.from("smyl_mila_interviews").insert({
+        tenant_id: tenantId, patient_id: patientId, created_by: userId, kind: "previsit", previsit_mode: mode,
+        appointment_id: appt?.id || null, appointment_label: label || null, sent_via: via,
+        pair_token_hash: await sha256(token), expires_at: expires,
+      }).select("id,expires_at").single();
+      if (error || !created) return json(500, { error: "No se pudo crear la entrevista previa." });
+      const url = `${APP_BASE}/mila-movil.html#s=${created.id}&t=${encodeURIComponent(token)}`;
+      let delivery = { sent: false, reason: via === "link" ? "link" : "" } as Row;
+      if (via === "whatsapp") {
+        delivery = await sendPrevisitWhatsApp(tenantId, patientId, auth.user!,
+          [firstName(patient.nombre) || "paciente", label || "tu próxima cita", await clinicName(tenantId), url], `mila-previsit:${created.id}`);
+      }
+      return json(200, { id: created.id, url, expires_at: created.expires_at, appointment: label, mode, ...delivery });
+    }
+
+    // Borradores de MILA de este paciente que nadie ha guardado (consultorio terminado o entrevista previa respondida).
+    if (action === "pending") {
+      const patientId = field("patient_id");
+      if (!UUID.test(patientId)) return json(400, { error: "Paciente inválido." });
+      const { data: rows } = await admin.from("smyl_mila_interviews")
+        .select("id,kind,previsit_mode,appointment_label,sent_via,created_by,consent_at,submitted_at,result,expires_at,created_at")
+        .eq("tenant_id", tenantId).eq("patient_id", patientId).neq("status", "closed")
+        .gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(5);
+      const items = (rows || []).filter((r: Row) => r.kind === "previsit" || r.created_by === userId).map((r: Row) => {
+        const res = r.result || {};
+        return {
+          id: r.id, kind: r.kind, mode: r.previsit_mode, appointment: r.appointment_label, sent_via: r.sent_via,
+          consent_at: r.consent_at, submitted_at: r.submitted_at, created_at: r.created_at, expires_at: r.expires_at,
+          has_history: !!res.history, finished: !!(res.finished_at || r.submitted_at || res.realtime?.finished_at),
+          alerts: alertsOf(res), coverage: res.history?.coverage || null, source: res.history?.source || (res.realtime ? "voice" : "recording"),
+        };
+      });
+      return json(200, { items });
+    }
+
     if (!UUID.test(id)) return json(400, { error: "Sesión inválida." });
-    const { data: row } = await admin.from("smyl_mila_interviews").select("*")
-      .eq("id", id).eq("tenant_id", tenantId).eq("created_by", userId).maybeSingle();
+    const { data: found } = await admin.from("smyl_mila_interviews").select("*")
+      .eq("id", id).eq("tenant_id", tenantId).maybeSingle();
+    const row = found && (found.created_by === userId || found.kind === "previsit") ? found : null;
     if (!row) return json(404, { error: "La sesión de MILA ya no existe o venció." });
 
     if (action === "close") {
@@ -342,16 +478,27 @@ Deno.serve(async (req: Request) => {
   if (action === "pair") {
     const token = field("token");
     if (!token || !sameHash(await sha256(token), row.pair_token_hash)) return json(403, { error: "Código QR inválido." });
-    if (row.device_hash) return json(409, { error: "Este código ya se usó en otro celular. Genera uno nuevo." });
+    if (row.device_hash) return json(409, { error: row.kind === "previsit" ? "Este enlace ya se abrió en otro dispositivo. Ábrelo en el mismo celular o pide a tu clínica uno nuevo." : "Este código ya se usó en otro celular. Genera uno nuevo." });
     const device = randomToken();
     const { data: updated } = await admin.from("smyl_mila_interviews")
       .update({ device_hash: await sha256(device), status: "paired", updated_at: new Date().toISOString() })
       .eq("id", row.id).is("device_hash", null).select("id").maybeSingle();
     if (!updated) return json(409, { error: "Este código ya se usó en otro celular. Genera uno nuevo." });
-    const { data: patient } = await admin.from("camila_pacientes").select("nombre,apellido")
+    const { data: patient } = await admin.from("camila_pacientes").select("nombre,apellido,fecha_nacimiento")
       .eq("tenant_id", row.tenant_id).eq("id", row.patient_id).maybeSingle();
+    if (row.kind === "previsit") {
+      // El enlace pudo reenviarse: solo el primer nombre y, si la ficha tiene fecha de nacimiento, se pide antes de seguir.
+      const needsDob = !!patient?.fecha_nacimiento;
+      if (!needsDob) await admin.from("smyl_mila_interviews").update({ identity_verified_at: new Date().toISOString() }).eq("id", row.id);
+      return json(200, {
+        device, kind: "previsit", patient: firstName(patient?.nombre) || "Paciente", clinic: await clinicName(row.tenant_id),
+        appointment: row.appointment_label || "", mode: row.previsit_mode || "choice", needs_dob: needsDob,
+        submitted: !!row.submitted_at, guide: INTERVIEW_GUIDE, expires_at: row.expires_at,
+        voice_available: !!OPENAI_API_KEY, max_voice_seconds: MAX_PREVISIT_REALTIME_SECONDS,
+      });
+    }
     const full = [patient?.nombre, patient?.apellido].map((v) => cleanText(v, 80)).filter(Boolean).join(" ") || "Paciente";
-    return json(200, { device, patient: full, guide: INTERVIEW_GUIDE, expires_at: row.expires_at, max_segment_seconds: MAX_SEGMENT_SECONDS });
+    return json(200, { device, kind: "clinic", patient: full, guide: INTERVIEW_GUIDE, expires_at: row.expires_at, max_segment_seconds: MAX_SEGMENT_SECONDS });
   }
 
   const device = field("device");
@@ -360,12 +507,42 @@ Deno.serve(async (req: Request) => {
   }
   const result: Row = row.result || {};
 
+  if (action === "verify") {
+    if (row.kind !== "previsit" || row.identity_verified_at) return json(200, { verified: true });
+    if ((Number(row.identity_attempts) || 0) >= 5) return json(429, { error: "Demasiados intentos. Pide a tu clínica un enlace nuevo." });
+    const { data: patient } = await admin.from("camila_pacientes").select("fecha_nacimiento").eq("tenant_id", row.tenant_id).eq("id", row.patient_id).maybeSingle();
+    if (!sameDob(field("dob"), patient?.fecha_nacimiento)) {
+      await admin.from("smyl_mila_interviews").update({ identity_attempts: (Number(row.identity_attempts) || 0) + 1 }).eq("id", row.id);
+      return json(403, { error: "La fecha no coincide con la que tiene tu clínica. Revisa e intenta de nuevo." });
+    }
+    await admin.from("smyl_mila_interviews").update({ identity_verified_at: new Date().toISOString() }).eq("id", row.id);
+    return json(200, { verified: true });
+  }
+  if (row.kind === "previsit" && !row.identity_verified_at && action !== "state") return json(403, { error: "Primero confirma tu fecha de nacimiento." });
+  if (row.kind === "previsit" && row.submitted_at && action !== "state") return json(409, { error: "Esta entrevista ya fue enviada. ¡Gracias! Tu dentista la revisará en tu cita." });
+
   if (action === "consent") {
-    await admin.from("smyl_mila_interviews").update({ consent_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", row.id);
+    if (!row.consent_at) {
+      await admin.from("smyl_mila_interviews").update({ consent_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", row.id);
+      await auditConsent(row, row.kind === "previsit" ? "paciente_en_enlace" : "dentista_en_celular");
+    }
     return json(200, { consent: true });
   }
+  if (action === "form_submit") {
+    if (row.kind !== "previsit" || row.previsit_mode === "voice") return json(400, { error: "Esta entrevista no usa formulario." });
+    if (!row.consent_at) return json(409, { error: "Primero acepta el aviso de privacidad." });
+    const answers = body.answers && typeof body.answers === "object" ? body.answers : {};
+    if (JSON.stringify(answers).length > 30000) return json(413, { error: "Respuestas demasiado largas." });
+    const history = { ...buildFromForm(answers), updated_at: new Date().toISOString() };
+    const now = new Date().toISOString();
+    await admin.from("smyl_mila_interviews").update({
+      result: { ...result, history, finished_at: now }, submitted_at: now, updated_at: now,
+    }).eq("id", row.id);
+    return json(200, { submitted: true, coverage: history.coverage });
+  }
   if (action === "finish") {
-    await admin.from("smyl_mila_interviews").update({ result: { ...result, finished_at: new Date().toISOString() }, updated_at: new Date().toISOString() }).eq("id", row.id);
+    const now = new Date().toISOString();
+    await admin.from("smyl_mila_interviews").update({ result: { ...result, finished_at: now }, updated_at: now, ...(row.kind === "previsit" && result.history ? { submitted_at: now } : {}) }).eq("id", row.id);
     return json(200, { finished: true });
   }
   if (action === "state") {
@@ -375,6 +552,7 @@ Deno.serve(async (req: Request) => {
       alerts: alertsOf(result), interpreting: !!(pending.history || pending.exam), tokens: await sessionTokens(row.tenant_id, row.id),
       audio_seconds: row.audio_seconds,
       realtime_active: !!(result.realtime?.started_at && !result.realtime?.finished_at),
+      verified: row.kind !== "previsit" || !!row.identity_verified_at, submitted: !!row.submitted_at,
     });
   }
   if (!row.consent_at) return json(409, { error: "Primero registra el consentimiento del paciente." });
@@ -384,6 +562,8 @@ Deno.serve(async (req: Request) => {
     if (!OPENAI_API_KEY) return json(503, { error: "MILA no está configurada todavía." });
     const sdp = field("sdp");
     if (!sdp || sdp.length > 100_000) return json(400, { error: "Falta la oferta de audio." });
+    if (row.kind === "previsit" && row.previsit_mode === "form") return json(400, { error: "Esta entrevista es por formulario." });
+    if (row.kind === "previsit" && result.realtime?.finished_at) return json(409, { error: "Ya platicaste con MILA. Si falta algo puedes completarlo con el formulario." });
     if (result.realtime?.started_at && !result.realtime?.finished_at) {
       return json(409, { error: "Ya hay una entrevista de MILA en curso en esta sesión." });
     }
@@ -408,7 +588,11 @@ Deno.serve(async (req: Request) => {
     const session = {
       type: "realtime",
       model: REALTIME_MODEL,
-      instructions: buildInterviewerInstructions(firstName(patient?.nombre), continuation ? { continuation } : {}),
+      instructions: buildInterviewerInstructions(firstName(patient?.nombre), {
+        ...(continuation ? { continuation } : {}),
+        known: await knownHistory(row.tenant_id, row.patient_id),
+        ...(row.kind === "previsit" ? { previsit: { clinic: await clinicName(row.tenant_id), appointment: row.appointment_label || "" } } : {}),
+      }),
       // Sin tope por respuesta: la voz consume muchos tokens y con un límite el resumen final se cortaba a media frase.
       max_output_tokens: "inf",
       audio: {
@@ -476,7 +660,7 @@ Deno.serve(async (req: Request) => {
     if (rt.finished_at) {
       return json(200, { history: result.history || null, alerts: alertsOf(result), tokens: await sessionTokens(row.tenant_id, row.id), seconds: rt.seconds || 0 });
     }
-    const seconds = Math.max(1, Math.min(MAX_REALTIME_SECONDS, Math.ceil((Date.now() - Date.parse(rt.started_at)) / 1000)));
+    const seconds = Math.max(1, Math.min(row.kind === "previsit" ? MAX_PREVISIT_REALTIME_SECONDS : MAX_REALTIME_SECONDS, Math.ceil((Date.now() - Date.parse(rt.started_at)) / 1000)));
     // Tokens de voz que reporta OpenAI en cada response.done; los suma el celular (se marcan como reportados por el cliente).
     const reported = body.usage && typeof body.usage === "object" ? body.usage : {};
     const voiceUsage: Usage = { input_tokens: tokenCount(reported.input_tokens), output_tokens: tokenCount(reported.output_tokens) };
@@ -500,7 +684,8 @@ Deno.serve(async (req: Request) => {
     const { data: fresh } = await admin.from("smyl_mila_interviews").select("result,transcript_history,audio_seconds").eq("id", row.id).maybeSingle();
     const finishedAt = new Date().toISOString();
     await admin.from("smyl_mila_interviews").update({
-      result: { ...(fresh?.result || {}), realtime: { ...rt, finished_at: finishedAt, seconds } },
+      result: { ...(fresh?.result || {}), realtime: { ...rt, finished_at: finishedAt, seconds }, ...(row.kind === "previsit" ? { finished_at: finishedAt } : {}) },
+      ...(row.kind === "previsit" ? { submitted_at: finishedAt } : {}),
       audio_seconds: (Number(fresh?.audio_seconds) || 0) + seconds,
       updated_at: finishedAt,
     }).eq("id", row.id);
@@ -511,6 +696,7 @@ Deno.serve(async (req: Request) => {
   }
 
   if (action !== "segment" || !form) return json(400, { error: "Acción no válida." });
+  if (row.kind === "previsit") return json(400, { error: "La entrevista previa no usa grabación por segmentos." });
 
   // ---- modo «Yo pregunto»: segmento de audio
   if (!OPENAI_API_KEY) return json(503, { error: "MILA no está configurada todavía." });
