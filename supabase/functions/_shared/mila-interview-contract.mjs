@@ -1,0 +1,264 @@
+// MILA · Entrevista (historia clínica) y exploración dictada desde el celular.
+// Contrato puro (sin red ni Deno) para que se pueda probar en Node: esquemas que se piden al modelo,
+// prompts y normalización/validación de lo que devuelve. Lo que el modelo diga NUNCA se guarda en el
+// expediente directamente: se convierte en un borrador que el dentista revisa en la computadora.
+
+export const HISTORY_SECTIONS = ['alerts', 'allergies', 'conditions', 'medications', 'surgeries', 'dental', 'habits'];
+export const SECTION_LABELS = {
+  alerts: 'Alertas médicas', allergies: 'Alergias', conditions: 'Condiciones médicas', medications: 'Medicamentos',
+  surgeries: 'Cirugías y hospitalizaciones', dental: 'Antecedentes dentales', habits: 'Hábitos', emergency_contact: 'Contacto de emergencia',
+};
+export const TEETH = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28, 48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38].map(String);
+export const SURFACES = ['whole', 'M', 'D', 'V', 'L', 'O', 'I'];
+export const CONDITION_CODES = ['caries', 'restoration', 'crown', 'endodontics', 'missing', 'implant', 'fracture', 'sealant', 'other'];
+const STATUS = ['yes', 'no', 'unknown', 'not_asked'];
+const SEVERITY = ['', 'low', 'moderate', 'high'];
+const COND_STATUS = ['', 'active', 'controlled', 'resolved', 'unknown'];
+const MAX_RECORDS = 20;
+
+const str = { type: 'string' };
+const statusProp = { type: 'string', enum: STATUS };
+function obj(properties) {
+  return { type: 'object', properties, required: Object.keys(properties), additionalProperties: false };
+}
+function list(items) { return { type: 'array', items }; }
+
+export const HISTORY_SCHEMA = obj({
+  alerts: obj({ status: statusProp, items: list(obj({ text: str, quote: str })) }),
+  allergies: obj({ status: statusProp, records: list(obj({ substance: str, reaction: str, severity: { type: 'string', enum: SEVERITY }, quote: str })) }),
+  conditions: obj({ status: statusProp, records: list(obj({ name: str, diagnosed_at: str, status: { type: 'string', enum: COND_STATUS }, quote: str })) }),
+  medications: obj({ status: statusProp, records: list(obj({ name: str, dose: str, frequency: str, changed_at: str, quote: str })) }),
+  surgeries: obj({ status: statusProp, records: list(obj({ procedure: str, date: str, quote: str })) }),
+  dental: obj({ status: statusProp, history_text: str, last_visit: str, quote: str }),
+  habits: obj({ status: statusProp, text: str, quote: str }),
+  emergency_contact: obj({ text: str, quote: str }),
+  notes: str,
+  follow_ups: list(str),
+});
+
+export const EXAM_SCHEMA = obj({
+  findings: list(obj({
+    tooth: str,
+    surface: { type: 'string', enum: SURFACES },
+    condition_code: { type: 'string', enum: CONDITION_CODES },
+    condition_text: str,
+    quote: str,
+    uncertain: { type: 'boolean' },
+  })),
+  general_notes: list(obj({ text: str, quote: str })),
+  follow_ups: list(str),
+});
+
+export const HISTORY_PROMPT = `Eres MILA, asistente de documentación odontológica en español de México. Recibes la TRANSCRIPCIÓN COMPLETA de una entrevista entre un dentista y su paciente (puede estar desordenada, con interrupciones y sin indicar quién habla).
+Tu tarea es llenar el borrador de la historia clínica SOLO con lo que el paciente afirmó o el dentista confirmó en voz alta.
+
+Reglas obligatorias:
+- No inventes, no infieras y no completes con conocimiento general. Si un dato no se dijo, déjalo vacío.
+- status por sección: "yes" si refirió tenerlo; "no" si lo negó explícitamente ("no tomo nada", "ninguna alergia"); "unknown" si dijo que no sabe o no recuerda; "not_asked" si el tema no apareció.
+- Si en una pregunta posterior el paciente corrige lo que dijo, usa la versión corregida.
+- Un registro por elemento (una alergia, un medicamento, una cirugía…). Usa el nombre tal como se dijo, con ortografía correcta.
+- Alergias: severity "high" solo si describe anafilaxia, dificultad para respirar, hinchazón de garganta o hospitalización; "moderate"/"low" solo si se describe; si no, "".
+- Medicamentos: dosis y frecuencia solo si se dijeron (ej. "500 mg", "cada 12 horas").
+- Fechas: formato AAAA-MM-DD, o AAAA-MM si solo se dijo mes y año. Si solo hay un año o una fecha relativa ("hace 3 años"), escribe el texto tal cual dicho (ej. "2019", "hace 3 años").
+- alerts: condiciones que cambian la atención dental (anticoagulantes, marcapasos, embarazo, bifosfonatos, diabetes descontrolada, hipertensión, problemas de coagulación, cardiopatía, etc.) SOLO si se mencionaron.
+- dental.history_text: tratamientos dentales previos, complicaciones con anestesia, sensibilidad, sangrado, dolor actual, motivo de consulta, en una o dos frases clínicas.
+- habits.text: tabaco, alcohol, bruxismo, respiración oral, onicofagia, dieta azucarada, higiene (frecuencia de cepillado, hilo dental) SOLO si se mencionaron.
+- quote: fragmento textual breve (máx. 160 caracteres) de la transcripción que respalda el dato. Copia las palabras exactas.
+- follow_ups: máximo 6 preguntas concretas que el dentista aún debería hacer o confirmar (ej. "Confirmar dosis del anticoagulante", "Preguntar por alergia a anestésicos locales"). Prioriza la seguridad clínica.
+- notes: solo información clínica relevante que no cabe en otra sección; si no hay, "".`;
+
+export const EXAM_PROMPT = `Eres MILA, asistente de documentación odontológica en español de México. Recibes la TRANSCRIPCIÓN de lo que el dentista dictó en voz alta mientras exploraba la boca del paciente.
+Convierte el dictado en hallazgos del odontograma con notación FDI (11-18, 21-28, 31-38, 41-48).
+
+Reglas obligatorias:
+- Registra SOLO lo dictado. No inventes piezas, superficies ni hallazgos y no hagas diagnósticos propios.
+- Convierte números hablados a FDI ("dieciséis" o "uno seis" = 16; "treinta y seis" o "tres seis" = 36). Si la pieza no es clara o no es un número FDI válido, no inventes: usa tooth "" y marca uncertain=true.
+- surface: O oclusal, M mesial, D distal, V vestibular/bucal/labial, L lingual/palatina, I incisal, whole si se refiere a toda la pieza o no se dijo la cara. Si se dictan varias caras (ej. "mesio-oclusal"), crea un hallazgo por cara.
+- condition_code: caries, restoration (resina, amalgama, obturación), crown, endodontics, missing (ausente), implant, fracture, sealant u other. condition_text: frase breve y clínica tal como se dictó (ej. "Caries oclusal profunda", "Resina desadaptada").
+- Si el dentista corrige ("no, perdón, era la 26"), usa la corrección y descarta lo anterior.
+- Negaciones ("la 11 sin caries") NO son hallazgos.
+- general_notes: observaciones que no son de una pieza (ej. "gingivitis generalizada", "cálculo en sector anteroinferior", "higiene deficiente").
+- quote: fragmento textual breve (máx. 160 caracteres) que respalda el hallazgo.
+- uncertain=true si hay cualquier ambigüedad.
+- follow_ups: máximo 4 puntos que el dentista debería confirmar.`;
+
+// ---------------------------------------------------------------- normalización
+
+function text(v, max = 400) { return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, max); }
+export function plain(v) {
+  return String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9ñ]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+/* La cita debe salir de la transcripción: si no aparece (o casi), el dato queda marcado para revisar. */
+export function quoteFound(quote, transcript) {
+  const q = plain(quote), t = plain(transcript);
+  if (!q) return false;
+  if (t.includes(q)) return true;
+  const words = q.split(' ').filter((w) => w.length > 2);
+  if (!words.length) return false;
+  const hits = words.filter((w) => t.includes(w)).length;
+  return hits / words.length >= 0.8;
+}
+function status(v) { return STATUS.includes(v) ? v : 'not_asked'; }
+function oneOf(v, allowed) { return allowed.includes(v) ? v : ''; }
+const DAY = /^\d{4}-\d{2}-\d{2}$/, MONTH = /^\d{4}-\d{2}$/;
+function validCalendar(value) {
+  const [y, m, d] = value.split('-').map(Number);
+  if (y < 1900 || y > 2100 || m < 1 || m > 12) return false;
+  if (d === undefined) return true;
+  const probe = new Date(Date.UTC(y, m - 1, d));
+  return probe.getUTCMonth() === m - 1 && probe.getUTCDate() === d;
+}
+/* Devuelve [valorParaElCampo, textoSobrante]. Un campo <input type=date|month> solo acepta su formato exacto. */
+export function splitDate(value, kind) {
+  const v = text(value, 40);
+  if (!v) return ['', ''];
+  if (kind === 'month') {
+    if (MONTH.test(v) && validCalendar(v)) return [v, ''];
+    if (DAY.test(v) && validCalendar(v)) return [v.slice(0, 7), ''];
+    return ['', v];
+  }
+  if (DAY.test(v) && validCalendar(v)) return [v, ''];
+  return ['', v];
+}
+function withExtra(primary, extra) { return extra ? `${primary} (${extra})` : primary; }
+
+/* Convierte la salida del modelo en: documento sugerido (mismas claves que smyl-history-model) + evidencias + pendientes. */
+export function normalizeHistory(raw, transcript) {
+  const r = raw && typeof raw === 'object' ? raw : {};
+  const evidence = [];
+  const needsReview = [];
+  const doc = {};
+  const coverage = {};
+  function note(section, label, quote) {
+    const q = text(quote, 160);
+    const found = quoteFound(q, transcript);
+    evidence.push({ section, label: text(label, 200), quote: q, verified: found });
+    if (!found) needsReview.push(`${SECTION_LABELS[section]}: "${text(label, 80)}" no se encontró textual en la conversación.`);
+  }
+  function rows(section, input, build) {
+    const out = [];
+    for (const item of Array.isArray(input) ? input : []) {
+      if (out.length >= MAX_RECORDS || !item || typeof item !== 'object') continue;
+      const row = build(item);
+      if (!row) continue;
+      out.push(row);
+    }
+    return out;
+  }
+  const docStatus = (s, n) => (n ? 'yes' : s === 'not_asked' ? 'pending' : s === 'yes' ? 'pending' : s);
+
+  const alerts = r.alerts || {};
+  const alertItems = rows('alerts', alerts.items, (it) => { const t = text(it.text, 120); if (!t) return null; note('alerts', t, it.quote); return t; });
+  doc.alerts = alertItems; doc.alerts_status = docStatus(status(alerts.status), alertItems.length);
+  coverage.alerts = status(alerts.status);
+
+  const al = r.allergies || {};
+  doc.allergy_records = rows('allergies', al.records, (it) => {
+    const substance = text(it.substance, 120); if (!substance) return null;
+    note('allergies', substance, it.quote);
+    return { substance, reaction: text(it.reaction, 160), severity: oneOf(it.severity, SEVERITY) };
+  });
+  doc.allergies_status = docStatus(status(al.status), doc.allergy_records.length);
+  coverage.allergies = status(al.status);
+
+  const co = r.conditions || {};
+  doc.condition_records = rows('conditions', co.records, (it) => {
+    const name = text(it.name, 120); if (!name) return null;
+    const [diagnosed_at, extra] = splitDate(it.diagnosed_at, 'month');
+    note('conditions', name, it.quote);
+    return { name: withExtra(name, extra), diagnosed_at, status: oneOf(it.status, COND_STATUS) };
+  });
+  doc.conditions_status = docStatus(status(co.status), doc.condition_records.length);
+  coverage.conditions = status(co.status);
+
+  const me = r.medications || {};
+  doc.medication_records = rows('medications', me.records, (it) => {
+    const name = text(it.name, 120); if (!name) return null;
+    const [changed_at, extra] = splitDate(it.changed_at, 'date');
+    note('medications', name, it.quote);
+    return { name: withExtra(name, extra && `desde ${extra}`), dose: text(it.dose, 60), frequency: text(it.frequency, 80), changed_at };
+  });
+  doc.medications_status = docStatus(status(me.status), doc.medication_records.length);
+  coverage.medications = status(me.status);
+
+  const su = r.surgeries || {};
+  doc.surgery_records = rows('surgeries', su.records, (it) => {
+    const procedure = text(it.procedure, 160); if (!procedure) return null;
+    const [date, extra] = splitDate(it.date, 'date');
+    note('surgeries', procedure, it.quote);
+    return { procedure: withExtra(procedure, extra), date };
+  });
+  doc.surgeries_status = docStatus(status(su.status), doc.surgery_records.length);
+  coverage.surgeries = status(su.status);
+
+  const de = r.dental || {};
+  const [lastVisit, visitExtra] = splitDate(de.last_visit, 'date');
+  let dentalText = text(de.history_text, 1200);
+  if (visitExtra) dentalText = [dentalText, `Última visita referida: ${visitExtra}.`].filter(Boolean).join(' ');
+  doc.dental_history = dentalText; doc.last_dental_visit = lastVisit;
+  doc.dental_status = docStatus(status(de.status), dentalText || lastVisit);
+  if (dentalText || lastVisit) note('dental', dentalText || lastVisit, de.quote);
+  coverage.dental = status(de.status);
+
+  const ha = r.habits || {};
+  doc.habits = text(ha.text, 600);
+  doc.habits_status = docStatus(status(ha.status), doc.habits);
+  if (doc.habits) note('habits', doc.habits, ha.quote);
+  coverage.habits = status(ha.status);
+
+  const ec = r.emergency_contact || {};
+  doc.emergency_contact = text(ec.text, 160);
+  if (doc.emergency_contact) note('emergency_contact', doc.emergency_contact, ec.quote);
+  doc.notes = text(r.notes, 1500);
+
+  const followUps = (Array.isArray(r.follow_ups) ? r.follow_ups : []).map((v) => text(v, 200)).filter(Boolean).slice(0, 6);
+  return { document: doc, evidence: evidence.slice(0, 120), needs_review: needsReview.slice(0, 20), follow_ups: followUps, coverage };
+}
+
+export function surfaceAllowed(tooth, surface) {
+  if (!TEETH.includes(String(tooth)) || !SURFACES.includes(surface)) return false;
+  const unit = Number(String(tooth)[1]);
+  if (surface === 'O') return unit >= 4;
+  if (surface === 'I') return unit <= 3;
+  return true;
+}
+
+export function normalizeExam(raw, transcript) {
+  const r = raw && typeof raw === 'object' ? raw : {};
+  const findings = [];
+  const unplaced = [];
+  const seen = new Set();
+  for (const it of Array.isArray(r.findings) ? r.findings : []) {
+    if (!it || typeof it !== 'object' || findings.length >= 60) continue;
+    const condition = text(it.condition_text, 160);
+    const quote = text(it.quote, 160);
+    const tooth = String(it.tooth || '').replace(/\D/g, '');
+    const code = CONDITION_CODES.includes(it.condition_code) ? it.condition_code : 'other';
+    if (!condition) continue;
+    if (!TEETH.includes(tooth)) { unplaced.push({ text: condition, quote, reason: 'Pieza no identificada' }); continue; }
+    let surface = SURFACES.includes(it.surface) ? it.surface : 'whole';
+    let uncertain = it.uncertain === true;
+    if (!surfaceAllowed(tooth, surface)) { surface = 'whole'; uncertain = true; }
+    const key = `${tooth}|${surface}|${plain(condition)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const verified = quoteFound(quote, transcript);
+    findings.push({ tooth, surface, condition_code: code, condition, quote, verified, uncertain: uncertain || !verified });
+  }
+  const general = (Array.isArray(r.general_notes) ? r.general_notes : [])
+    .map((g) => ({ text: text(g && g.text, 240), quote: text(g && g.quote, 160) })).filter((g) => g.text).slice(0, 20);
+  const followUps = (Array.isArray(r.follow_ups) ? r.follow_ups : []).map((v) => text(v, 200)).filter(Boolean).slice(0, 4);
+  return { findings, unplaced: unplaced.slice(0, 20), general_notes: general, follow_ups: followUps };
+}
+
+/* Guía que ve el dentista en el celular. */
+export const INTERVIEW_GUIDE = [
+  { key: 'allergies', title: 'Alergias', questions: ['¿Es alérgico a algún medicamento, anestesia, látex o alimento?', 'Si sí: ¿qué le pasó? ¿Tuvo que ir a urgencias?'] },
+  { key: 'alerts', title: 'Alertas médicas', questions: ['¿Toma anticoagulantes o aspirina?', '¿Tiene marcapasos, problemas del corazón o de coagulación?', '¿Está embarazada o en lactancia?'] },
+  { key: 'conditions', title: 'Condiciones médicas', questions: ['¿Tiene diabetes, presión alta, asma, tiroides u otra enfermedad?', '¿Desde cuándo? ¿Está controlada?'] },
+  { key: 'medications', title: 'Medicamentos', questions: ['¿Qué medicamentos toma actualmente?', '¿Qué dosis y cada cuánto?'] },
+  { key: 'surgeries', title: 'Cirugías y hospitalizaciones', questions: ['¿Lo han operado u hospitalizado?', '¿De qué y cuándo?'] },
+  { key: 'dental', title: 'Antecedentes dentales', questions: ['¿Cuál es el motivo de su consulta?', '¿Cuándo fue su última visita al dentista?', '¿Ha tenido problemas con la anestesia, sangrado o sensibilidad?'] },
+  { key: 'habits', title: 'Hábitos', questions: ['¿Fuma o toma alcohol?', '¿Aprieta o rechina los dientes?', '¿Cuántas veces se cepilla al día? ¿Usa hilo dental?'] },
+  { key: 'emergency_contact', title: 'Contacto de emergencia', questions: ['¿A quién llamamos en caso de emergencia? Nombre y teléfono.'] },
+];

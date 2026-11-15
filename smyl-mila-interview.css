@@ -1,0 +1,60 @@
+/* SMYL · MILA en el celular (diálogo de la computadora + borrador en el editor de historia). */
+.mila-iv{width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;border:1px solid var(--smyl-border,#dfe5ea);border-radius:var(--smyl-radius-dialog,16px);padding:24px;background:var(--smyl-surface,#fff);color:var(--smyl-ink,#0b2238);box-shadow:var(--shadow-dialog,0 24px 64px rgba(11,34,56,.24));font-family:var(--smyl-font,inherit)}
+.mila-iv::backdrop{background:var(--smyl-backdrop,rgba(11,34,56,.45))}
+.mila-iv-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px}
+.mila-iv-head h2{margin:4px 0 0;font-size:22px;line-height:1.2}
+.mila-iv-kicker{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--smyl-accent,#0f8a8a)}
+.mila-iv-pair{display:grid;grid-template-columns:220px 1fr;gap:24px;align-items:center;padding:16px;border-radius:var(--smyl-radius-panel,12px);background:var(--smyl-surface-subtle,#f5f8fa)}
+.mila-iv-qr{width:220px;height:220px;display:grid;place-items:center;background:#fff;border-radius:12px;border:1px solid var(--smyl-border,#dfe5ea)}
+.mila-iv-qr svg{width:100%;height:100%}
+.mila-iv-howto{margin:0 0 12px;padding-left:20px;display:grid;gap:6px;font-size:14px}
+.mila-iv-note{margin:8px 0 0;font-size:12px;color:var(--smyl-text-muted,#5b6b7a)}
+.mila-iv-steps{list-style:none;margin:16px 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.mila-iv-steps li{font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--smyl-border,#dfe5ea);color:var(--smyl-text-secondary,#40556a)}
+.mila-iv-steps li::before{content:'○ '}
+.mila-iv-steps li[data-done="true"]{border-color:var(--smyl-accent,#0f8a8a);color:var(--smyl-accent,#0f8a8a);background:var(--smyl-accent-subtle,#e6f5f5)}
+.mila-iv-steps li[data-done="true"]::before{content:'✓ '}
+.mila-iv-usage{font-size:13px;color:var(--smyl-text-secondary,#40556a);margin:0 0 12px}
+.mila-iv-block{border:1px solid var(--smyl-border,#dfe5ea);border-radius:var(--smyl-radius-panel,12px);padding:16px;margin-top:12px}
+.mila-iv-block h3{margin:0 0 10px;font-size:16px}
+.mila-iv-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.mila-iv-chips span{font-size:12px;padding:4px 10px;border-radius:999px;background:#fff6dd;color:#7a5a00;border:1px solid #f1dc9b}
+.mila-iv-chips span[data-state="yes"],.mila-iv-chips span[data-state="no"]{background:var(--smyl-accent-subtle,#e6f5f5);color:var(--smyl-accent,#0f8a8a);border-color:transparent}
+.mila-iv-chips span[data-state="unknown"]{background:#eef1f4;color:#40556a;border-color:transparent}
+.mila-iv-follow{font-size:13px;margin:8px 0;color:var(--smyl-text-secondary,#40556a)}
+.mila-iv-findings{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:6px}
+.mila-iv-findings label{display:flex;gap:10px;align-items:flex-start;min-height:44px;padding:8px;border-radius:10px;background:var(--smyl-surface-subtle,#f5f8fa);cursor:pointer}
+.mila-iv-findings input{width:18px;height:18px;margin-top:2px;flex:none}
+.mila-iv-findings small{display:block;font-size:12px;color:var(--smyl-text-muted,#5b6b7a);margin-top:2px}
+.mila-iv-flag{font-style:normal;font-size:12px;color:#8a5a00;background:#fff3cd;border-radius:6px;padding:1px 6px}
+.mila-iv-ok{font-style:normal;font-size:12px;color:var(--smyl-accent,#0f8a8a)}
+.mila-iv-error{color:var(--smyl-danger,#b42318);background:#fdecea;border-radius:10px;padding:10px 12px;font-size:14px}
+.mila-iv-notice{font-size:13px;background:var(--smyl-surface-subtle,#f5f8fa);border-radius:10px;padding:10px 12px}
+.mila-iv-foot{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:16px}
+.mila-iv .btn{min-height:44px}
+@media (max-width:640px){
+  .mila-iv{padding:16px}
+  .mila-iv-pair{grid-template-columns:1fr;justify-items:center}
+  .mila-iv-foot .btn,.mila-iv-block .btn{width:100%}
+}
+
+/* Botón en la cabecera de la historia */
+.p360-hc-mila span{color:var(--smyl-accent,#0f8a8a);margin-right:4px}
+
+/* Borrador de MILA sobre el editor de historia */
+.p360-mila-draft{border:1px solid var(--smyl-accent,#0f8a8a);background:var(--smyl-accent-subtle,#e6f5f5);border-radius:var(--smyl-radius-panel,12px);padding:16px;margin:0 0 16px;font-size:14px}
+.p360-mila-draft header{display:flex;gap:12px;align-items:flex-start}
+.p360-mila-draft header p{margin:4px 0 0;color:var(--smyl-text-secondary,#40556a)}
+.p360-mila-badge{font-size:12px;font-weight:800;letter-spacing:.06em;color:#fff;background:var(--smyl-accent,#0f8a8a);border-radius:999px;padding:3px 10px}
+.p360-mila-added{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:12px 0 0;padding:0}
+.p360-mila-added li{background:#fff;border-radius:999px;padding:4px 10px;font-size:12px}
+.p360-mila-warn,.p360-mila-follow{margin-top:12px;border-radius:10px;padding:10px 12px;background:#fff}
+.p360-mila-warn{border-left:4px solid #d39b00}
+.p360-mila-follow{border-left:4px solid var(--smyl-primary,#0b2238)}
+.p360-mila-warn ul,.p360-mila-follow ul{margin:6px 0 0;padding-left:18px}
+.p360-mila-evidence{margin-top:12px}
+.p360-mila-evidence summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;align-items:center}
+.p360-mila-evidence ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.p360-mila-evidence li{background:#fff;border-radius:8px;padding:8px 10px}
+.p360-mila-evidence q{display:block;font-size:12px;color:var(--smyl-text-muted,#5b6b7a);margin-top:2px}
+.p360-mila-evidence em{font-size:12px;color:#8a5a00}

@@ -222,7 +222,46 @@
     });
   }
 
+  /* MILA (entrevista desde el celular): mezcla un borrador sugerido con la historia vigente SIN borrar nada.
+   * Los registros nuevos se agregan (sin duplicar por su campo principal); un "No" o "No se sabe" solo reemplaza
+   * un apartado pendiente; el texto libre se agrega al final si no estaba. Devuelve {document, added} para la vista. */
+  function mergeSuggestion(current,suggested){
+    var base=Object.assign(defaultHistory(),current||{}),s=suggested||{},out=JSON.parse(JSON.stringify(base)),added=[];
+    function same(a,b){return text(a).toLocaleLowerCase('es-MX')===text(b).toLocaleLowerCase('es-MX');}
+    var blocks=[['allergy','allergies_status','Alergia'],['condition','conditions_status','Condición'],['medication','medications_status','Medicamento'],['surgery','surgeries_status','Cirugía']];
+    blocks.forEach(function(block){
+      var spec=RECORD_KINDS[block[0]],existing=recordsOf(base,block[0]),incoming=arr(s[spec.records]).filter(function(row){return row&&text(row[spec.primary]);});
+      var rows=existing.slice();
+      incoming.forEach(function(row){
+        if(rows.length>=MAX_RECORDS)return;
+        if(rows.some(function(old){return same(old[spec.primary],row[spec.primary]);}))return;
+        var clean={};spec.fields.forEach(function(field){clean[field]=text(row[field]);});rows.push(clean);added.push(block[2]+': '+clean[spec.primary]);
+      });
+      out[spec.records]=rows;
+      var mine=String(base[block[1]]||'pending'),theirs=String(s[block[1]]||'pending');
+      out[block[1]]=rows.length?'yes':(mine==='pending'&&(theirs==='no'||theirs==='unknown')?theirs:mine);
+      if(!rows.length&&out[block[1]]!==mine)added.push(block[2]+': '+statusText(theirs));
+    });
+    out.allergies=out.allergy_records.map(function(row){return row.substance;});
+    out.conditions=out.condition_records.map(function(row){return row.name;});
+    out.medications=out.medication_records.map(function(row){return row.name;});
+    out.surgeries=out.surgery_records.map(function(row){return row.procedure;}).join('; ');
+    var alerts=arr(base.alerts).map(text).filter(Boolean);
+    arr(s.alerts).map(text).filter(Boolean).forEach(function(value){if(alerts.length<MAX_ALERTS&&!alerts.some(function(old){return same(old,value);})){alerts.push(value);added.push('Alerta: '+value);}});
+    out.alerts=alerts;out.alerts_status=alerts.length?'yes':(String(base.alerts_status||'pending')==='pending'&&['no','unknown'].indexOf(s.alerts_status)>=0?s.alerts_status:String(base.alerts_status||'pending'));
+    function appendText(key,label){var mine=text(base[key]),theirs=text(s[key]);if(!theirs||plainIncludes(mine,theirs))return;out[key]=mine?mine+'\n'+theirs:theirs;added.push(label);}
+    function plainIncludes(a,b){return text(a).toLocaleLowerCase('es-MX').indexOf(text(b).toLocaleLowerCase('es-MX'))>=0;}
+    appendText('dental_history','Antecedentes dentales');appendText('habits','Hábitos');appendText('notes','Notas');
+    if(!text(base.last_dental_visit)&&text(s.last_dental_visit)){out.last_dental_visit=text(s.last_dental_visit);added.push('Última visita dental');}
+    if(!text(base.emergency_contact)&&text(s.emergency_contact)){out.emergency_contact=text(s.emergency_contact);added.push('Contacto de emergencia');}
+    [['dental_status',out.dental_history||out.last_dental_visit],['habits_status',out.habits]].forEach(function(pair){
+      var mine=String(base[pair[0]]||'pending'),theirs=String(s[pair[0]]||'pending');
+      out[pair[0]]=pair[1]?'yes':(mine==='pending'&&(theirs==='no'||theirs==='unknown')?theirs:mine);
+    });
+    return {document:out,added:added};
+  }
+
   return {RECORD_KINDS:RECORD_KINDS,MAX_RECORDS:MAX_RECORDS,inputName:inputName,arr:arr,csv:csv,date:date,defaultHistory:defaultHistory,records:records,recordsOf:recordsOf,
     severityLabel:severityLabel,conditionStatusLabel:conditionStatusLabel,summaries:summaries,status:status,statusText:statusText,needsDetail:needsDetail,reviewed:reviewed,
-    pendingLabels:pendingLabels,coverage:coverage,missing:missing,conciseValue:conciseValue,formRecords:formRecords,formStatus:formStatus,buildDocument:buildDocument,readModel:readModel,diff:diff,versionEntries:versionEntries,VERSION_LIMIT:VERSION_LIMIT};
+    pendingLabels:pendingLabels,coverage:coverage,missing:missing,conciseValue:conciseValue,formRecords:formRecords,formStatus:formStatus,buildDocument:buildDocument,readModel:readModel,diff:diff,versionEntries:versionEntries,VERSION_LIMIT:VERSION_LIMIT,mergeSuggestion:mergeSuggestion};
 });

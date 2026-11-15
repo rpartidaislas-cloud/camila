@@ -89,3 +89,9 @@ verify_jwt = true
 
 [functions.radiograph-analyze]
 verify_jwt = true
+
+# MILA en el celular (QR): la computadora llama con sesión (requireUser + clinical.write dentro
+# del handler); el celular no tiene sesión y se autentica con el token de un solo uso del QR y
+# después con el secreto de dispositivo (hash SHA-256 en tiempo constante). Las sesiones vencen a los 90 min.
+[functions.mila-interview]
+verify_jwt = false

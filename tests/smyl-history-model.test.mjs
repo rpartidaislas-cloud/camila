@@ -196,7 +196,7 @@ test('el modelo es puro y la ficha lo carga antes que la vista y la ficha, tambi
   assert.doesNotMatch(model.replace(/root\.SmylHistoryModel/, ''), /\bdocument\.|\bwindow\.|\bfetch\(|XMLHttpRequest|localStorage|\.innerHTML/, 'sin DOM ni red');
   const order = ['smyl-history-model.js', 'smyl-history-read.js', 'smyl-patient-360.js'].map((f) => app.indexOf(`src="${f}?v=`));
   assert.ok(order.every((i) => i > 0) && order[0] < order[1] && order[1] < order[2], 'el modelo se carga antes que la vista y la ficha');
-  assert.match(sw, /\/camila\/smyl-history-model\.js\?v=2/);
+  assert.match(sw, /\/camila\/smyl-history-model\.js\?v=3/);
   for (const f of ['smyl-history-model.js', 'smyl-history-read.js', 'smyl-patient-360.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), `${f}: copia móvil`);
   for (const gone of ['historyRecords', 'historyStatus', 'historyCoverage', 'historyPendingLabels', 'historyMissing', 'historyFormRecords', 'historyFormStatus', 'historyReadModel', 'defaultHistory', 'allergySummary'])
     assert.doesNotMatch(patient, new RegExp(`function ${gone}\\(`), `${gone}: ya no se redefine en la ficha, se toma del modelo`);
