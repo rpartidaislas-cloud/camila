@@ -7,6 +7,10 @@ import {
   EXAM_SCHEMA,
   HISTORY_SCHEMA,
   INTERVIEW_GUIDE,
+  INTERVIEWER_TOOLS,
+  buildInterviewerInstructions,
+  firstName,
+  ALERT_TYPES,
   normalizeExam,
   normalizeHistory,
   quoteFound,
@@ -163,8 +167,48 @@ test('la función protege la sesión: QR de un solo uso, dispositivo, consentimi
 test('la app carga MILA y la copia móvil está sincronizada', () => {
   const app = read('../app.html');
   assert.match(app, /vendor\/qrcode-generator-1\.4\.4\.js/);
-  assert.match(app, /smyl-mila-interview\.js\?v=1/);
+  assert.match(app, /smyl-mila-interview\.js\?v=2/);
   for (const file of ['app.html', 'mila-movil.html', 'smyl-mila-interview.js', 'smyl-mila-interview.css', 'smyl-history-model.js', 'smyl-history-read.js', 'smyl-patient-360.js', 'smyl-case-workspace.js', 'sw.js', 'vendor/qrcode-generator-1.4.4.js']) {
     assert.equal(read(`../mobile/www/${file}`), read(`../${file}`), `${file} sincronizado`);
   }
+});
+
+test('la entrevistadora por voz saluda por el primer nombre y tiene reglas de seguridad', () => {
+  assert.equal(firstName('  Ana María '), 'Ana');
+  assert.equal(firstName('<script>'), 'script');
+  const text = buildInterviewerInstructions('Ana María');
+  assert.match(text, /llamada Ana /);
+  assert.doesNotMatch(text, /María/, 'solo el primer nombre');
+  assert.match(text, /No das diagnósticos/);
+  assert.match(text, /Eso lo revisará el doctor/);
+  assert.match(text, /UNA pregunta a la vez/);
+  assert.match(text, /RESUMEN breve en voz alta/);
+  assert.match(text, /registrar_alerta/);
+  assert.match(text, /Qué le trae hoy/);
+  for (const section of INTERVIEW_GUIDE) assert.ok(text.includes(section.title), section.title);
+  assert.ok(buildInterviewerInstructions('').includes('la persona paciente'));
+});
+
+test('las funciones de la entrevistadora son estrictas', () => {
+  assert.deepEqual(INTERVIEWER_TOOLS.map((t) => t.name), ['registrar_alerta', 'entrevista_completa']);
+  const alert = INTERVIEWER_TOOLS[0].parameters;
+  assert.deepEqual(alert.properties.tipo.enum, ALERT_TYPES);
+  assert.equal(alert.additionalProperties, false);
+});
+
+test('el modo por voz y la interpretación en segundo plano miden el consumo en el servidor', () => {
+  const fn = read('../supabase/functions/mila-interview/index.ts');
+  assert.match(fn, /api\.openai\.com\/v1\/realtime\/calls/);
+  assert.match(fn, /buildInterviewerInstructions\(firstName\(patient\?\.nombre\)\)/);
+  assert.match(fn, /Date\.now\(\) - Date\.parse\(rt\.started_at\)/, 'los segundos de voz los mide el servidor');
+  assert.match(fn, /MAX_REALTIME_SECONDS/);
+  assert.match(fn, /usage_source: "client_reported_openai_response_done"/);
+  assert.match(fn, /EdgeRuntime!\.waitUntil/);
+  assert.match(fn, /source_chars/, 'un borrador viejo no pisa uno más nuevo');
+  assert.match(fn, /\.eq\("tenant_id", tenantId\)\.like\("request_id"/);
+  assert.match(fn, /if \(!row\.consent_at\) return json\(409/);
+  const phone = read('../mila-movil.html');
+  assert.match(phone, /id="v-confirm"/);
+  assert.match(phone, /realtime_finish/);
+  assert.match(phone, /SEGMENT_MS=60000/);
 });

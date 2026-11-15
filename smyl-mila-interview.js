@@ -45,13 +45,14 @@
     var s=session;if(!s||!s.dialog)return;
     var d=s.data||{},h=d.history,x=d.exam;
     var steps=[[!!d.paired,'Celular vinculado'],[!!d.consent,'Consentimiento del paciente'],[(d.segments||0)>0,(d.segments||0)+' segmento'+(d.segments===1?'':'s')+' procesado'+(d.segments===1?'':'s')]];
-    var html='<header class="mila-iv-head"><div><span class="mila-iv-kicker">MILA EN TU CELULAR</span><h2 id="mila-iv-title">Entrevista y exploración por voz</h2></div><button type="button" class="btn btn-secondary" data-mila-hide>Minimizar</button></header>';
+    var html='<header class="mila-iv-head"><div><span class="mila-iv-kicker">MILA EN TU CELULAR</span><h2 id="mila-iv-title">Entrevista de '+esc(s.patientName||'paciente')+'</h2></div><button type="button" class="btn btn-secondary" data-mila-hide>Minimizar</button></header>';
     if(s.error)html+='<p class="mila-iv-error" role="alert">'+esc(s.error)+'</p>';
+    var alerts=alertItems(d);if(alerts.length)html+='<section class="mila-iv-alerts" role="alert"><strong>⚠ Alerta para la atención</strong><ul>'+alerts.map(function(a){return '<li>'+esc(a)+'</li>';}).join('')+'</ul></section>';
     if(!d.paired){
-      html+='<div class="mila-iv-pair"><div class="mila-iv-qr" aria-label="Código QR para abrir MILA en el celular">'+(s.url?qrSvg(s.url):'<span>Generando…</span>')+'</div><div><ol class="mila-iv-howto"><li>Abre la cámara de tu celular y escanea el código.</li><li>Pide al paciente su consentimiento para grabar.</li><li>Haz las preguntas de la guía; MILA llena el borrador aquí.</li><li>Después dicta la exploración diente por diente.</li></ol>'+(s.url?'<button type="button" class="btn btn-secondary" data-mila-copy>Copiar enlace</button>':'')+'<p class="mila-iv-note">El código sirve para un solo celular y vence a los 90 minutos. No se guarda el audio.</p></div></div>';
+      html+='<div class="mila-iv-pair"><div class="mila-iv-qr" aria-label="Código QR para abrir MILA en el celular">'+(s.url?qrSvg(s.url):'<span>Generando…</span>')+'</div><div><ol class="mila-iv-howto"><li>Abre la cámara de tu celular y escanea el código.</li><li>Confirma el paciente y pide su consentimiento para grabar.</li><li>Elige: MILA hace las preguntas por voz, o tú preguntas y MILA escucha.</li><li>Después dicta la exploración diente por diente.</li></ol>'+(s.url?'<button type="button" class="btn btn-secondary" data-mila-copy>Copiar enlace</button>':'')+'<p class="mila-iv-note">El código sirve para un solo celular y vence a los 90 minutos. No se guarda el audio.</p></div></div>';
     }
     html+='<ul class="mila-iv-steps">'+steps.map(function(st){return '<li data-done="'+st[0]+'">'+esc(st[1])+'</li>';}).join('')+'</ul>';
-    if(d.paired)html+='<p class="mila-iv-usage" aria-live="polite">Consumo de esta sesión: <strong>'+fmt(Math.ceil((d.audio_seconds||0)/60))+' min</strong> de MILA · <strong>'+fmt((d.tokens&&d.tokens.input)||0)+'</strong> tokens de entrada · <strong>'+fmt((d.tokens&&d.tokens.output)||0)+'</strong> de salida'+(d.processing?' · <em>procesando…</em>':'')+'</p>';
+    if(d.paired)html+='<p class="mila-iv-usage" aria-live="polite">Consumo de esta sesión: <strong>'+fmt(Math.ceil((d.audio_seconds||0)/60))+' min</strong> de MILA · <strong>'+fmt((d.tokens&&d.tokens.input)||0)+'</strong> tokens de entrada · <strong>'+fmt((d.tokens&&d.tokens.output)||0)+'</strong> de salida'+(d.realtime&&d.realtime.active?' · <em>MILA está entrevistando…</em>':'')+(d.processing||d.interpreting?' · <em>procesando…</em>':'')+'</p>';
     // Historia
     if(h){
       var cov=h.coverage||{};
@@ -72,6 +73,12 @@
     s.dialog.innerHTML=html;bind(s);
   }
 
+  function alertItems(d){
+    var out=(d.alerts||[]).map(function(a){return (a.label||'Alerta')+(a.detalle?': '+a.detalle:'');});
+    var doc=d.history&&d.history.document;
+    if(doc){(doc.allergy_records||[]).forEach(function(r){if(r.severity==='high')out.push('Alergia grave: '+r.substance+(r.reaction?' ('+r.reaction+')':''));});(doc.alerts||[]).forEach(function(a){var low=String(a).toLowerCase();if(!out.some(function(x){return x.toLowerCase().indexOf(low)>=0;}))out.push(a);});}
+    return out.filter(function(v,i,a){return a.indexOf(v)===i;});
+  }
   function bind(s){
     var d=s.dialog;
     d.querySelector('[data-mila-hide]').onclick=function(){d.close();};
@@ -111,7 +118,8 @@
     var dialog=ensureDialog();
     if(session&&!force&&session.patient===patient&&session.tenant===tenant){session.returnFocus=returnFocus;if(!dialog.open)dialog.showModal();render();return;}
     if(session)await end(false);
-    var s={tenant:tenant,patient:patient,dialog:dialog,applied:new Set(),data:{},returnFocus:returnFocus,error:'',notice:''};
+    var p=window.pacienteActual&&window.pacienteActual.id===patient?window.pacienteActual:null;
+    var s={patientName:p?[p.nombre,p.apellido].filter(Boolean).join(' '):'',tenant:tenant,patient:patient,dialog:dialog,applied:new Set(),data:{},returnFocus:returnFocus,error:'',notice:''};
     session=s;if(!dialog.open)dialog.showModal();render();
     try{
       var created=await call({action:'create',patient_id:patient});
