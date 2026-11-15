@@ -35,26 +35,22 @@
     if(!home||document.getElementById('smyl-daily-home'))return;
     home.classList.add('has-daily-home');
     var section=el('section','daily-home'); section.id='smyl-daily-home';
-    section.innerHTML='<header class="daily-home-hero"><div class="daily-home-hero-copy"><span class="daily-home-eyebrow">HOY · <b data-home-date></b></span><h1><span data-home-greeting></span>.</h1><p data-home-summary>Preparando el resumen de tu clínica…</p></div><div class="daily-home-hero-meta"><span data-home-day-state>Jornada en revisión</span><small data-home-updated aria-live="polite">Actualizando…</small></div></header><section class="daily-home-kpi-section" aria-label="Indicadores de la jornada"><div class="daily-home-metrics" data-home-metrics aria-live="polite"></div></section><div class="daily-home-workbench"><section class="daily-home-card daily-home-now-card" aria-labelledby="daily-home-now-title"><header><div><span>HOY</span><h2 id="daily-home-now-title">Mi jornada</h2></div><button type="button" data-home-open-agenda>Ver agenda</button></header><div data-home-next></div></section><section class="daily-home-card daily-home-priorities" aria-labelledby="daily-home-priorities-title"><header><div><span>ENFOQUE</span><h2 id="daily-home-priorities-title" data-home-priority-title>Atención requerida</h2></div><span class="daily-home-count" data-home-priority-count aria-label="Pendientes">0</span></header><div data-home-priorities></div></section></div><section class="daily-home-card daily-home-chats" aria-labelledby="daily-home-chats-title"><header><div><span>CONVERSACIONES</span><h2 id="daily-home-chats-title">Mensajes recientes</h2></div><button type="button" data-home-open-inbox>Ver bandeja</button></header><div class="daily-home-chat-strip" data-home-chats aria-live="polite"></div></section><section class="daily-home-month" aria-labelledby="daily-home-month-title"><header><h2 id="daily-home-month-title">Resumen del mes</h2><button type="button" data-home-open-reports>Ver reportes <span aria-hidden="true">→</span></button></header><div class="daily-home-metrics daily-home-metrics-month" data-home-month aria-live="polite"></div></section>';
+    section.innerHTML='<header class="daily-home-bar"><div class="daily-home-bar-copy"><h1 data-home-greeting></h1><p><span data-home-date></span> · <small data-home-updated aria-live="polite">Actualizando…</small></p></div><div class="daily-home-bar-actions"><span class="daily-home-state" data-home-day-state data-tone="clear">Revisando…</span><button type="button" class="daily-home-bar-btn" data-home-open-agenda>Ver agenda</button><button type="button" class="daily-home-bar-btn is-primary" data-home-new-appointment>+ Nueva cita</button></div></header><div class="daily-home-workbench"><section class="daily-home-card daily-home-now-card" aria-labelledby="daily-home-now-title"><header><div><span>HOY</span><h2 id="daily-home-now-title">Mi jornada</h2></div><span class="daily-home-day-count" data-home-day-count></span></header><div class="daily-home-chips" data-home-metrics aria-live="polite"></div><div data-home-next></div></section><section class="daily-home-card daily-home-priorities" aria-labelledby="daily-home-priorities-title"><header><div><span>ATENCIÓN REQUERIDA</span><h2 id="daily-home-priorities-title" data-home-priority-title>Revisando…</h2></div></header><div data-home-priorities></div><div class="daily-home-inbox-line" data-home-inbox-line hidden></div></section></div><section class="daily-home-card daily-home-chats" aria-labelledby="daily-home-chats-title"><header><div><span>CONVERSACIONES</span><h2 id="daily-home-chats-title">Mensajes recientes</h2></div><button type="button" data-home-open-inbox>Ver bandeja</button></header><div class="daily-home-chat-strip" data-home-chats aria-live="polite"></div></section><section class="daily-home-month" aria-labelledby="daily-home-month-title"><header><h2 id="daily-home-month-title">Resumen del mes</h2><button type="button" data-home-open-reports>Ver reportes <span aria-hidden="true">→</span></button></header><div class="daily-home-metrics daily-home-metrics-month" data-home-month aria-live="polite"></div></section>';
     var monthSection=section.querySelector('.daily-home-month');
     if(flag('month')==='1')section.querySelector('[data-home-month]').innerHTML='<div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div>'; else monthSection.hidden=true;
     section.querySelector('[data-home-date]').textContent=capitalize(fmtDate(new Date()));
     section.querySelector('[data-home-greeting]').textContent=greeting();
     section.querySelector('[data-home-open-agenda]').onclick=function(){route('agenda');};
+    section.querySelector('[data-home-new-appointment]').onclick=function(){if(window.SmylCareTasks&&typeof window.SmylCareTasks.open==='function')window.SmylCareTasks.open('appointment');else route('agenda');};
     section.querySelector('[data-home-open-inbox]').onclick=function(){route('inbox');};
     section.querySelector('[data-home-open-reports]').onclick=function(){route('reportes');};
     home.prepend(section);
     renderLoading();
   }
 
-  function metric(value,label,detail,routeName,tone,kind) {
-    var empty=value===0||value==='0'||value==='—';
-    return '<button type="button" class="daily-home-metric" data-route="'+routeName+'" data-kind="'+esc(kind||'general')+'" data-empty="'+(empty?'1':'0')+'" data-tone="'+(tone||'neutral')+'"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(detail)+'</small><i aria-hidden="true">→</i></button>';
-  }
-
   function renderLoading() {
     var metrics=document.querySelector('[data-home-metrics]'), priorities=document.querySelector('[data-home-priorities]'), next=document.querySelector('[data-home-next]');
-    if(metrics)metrics.innerHTML='<div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div>';
+    if(metrics)metrics.innerHTML='';
     if(priorities)priorities.innerHTML='<div class="daily-home-loading"><i></i><i></i><i></i></div>';
     if(next)next.innerHTML='<div class="daily-home-loading compact"><i></i><i></i><i></i></div>';
     renderChats();
@@ -73,20 +69,33 @@
     return tasks.sort(function(a,b){return a.rank-b.rank;});
   }
 
+  // Resumen de la jornada en chips dentro de «Mi jornada»: sin tarjetas aparte que repitan la lista de atención.
+  // El tipo de cada chip ('appointments','clinic','requests','messages') se conserva para pruebas y lectores de pantalla.
+  function chip(kind,count,one,many,tone) {
+    return '<span class="daily-home-chip" data-kind="'+kind+'" data-tone="'+tone+'"><i aria-hidden="true"></i>'+count+' '+(count===1?one:many)+'</span>';
+  }
+
   function renderMetrics() {
-    var rows=activeAppointments(), clinic=rows.filter(function(a){return a.status==='arrived'||a.status==='in_progress';}).length, pending=state.requests.filter(function(r){return r.status==='pending';}).length;
-    var messagesReady=Boolean(state.messages&&state.messages.loaded), unread=messagesReady?Number(state.messages.unread||state.messages.total||0):'—';
     var host=document.querySelector('[data-home-metrics]'); if(!host)return;
-    var confirmed=rows.filter(function(a){return a.status==='confirmed';}).length;
-    var tiles=[
-      metric(rows.length,'Citas hoy',confirmed?confirmed+(confirmed===1?' por llegar':' por llegar'):'Agenda disponible','agenda',rows.length?'active':'neutral','appointments'),
-      metric(clinic,'En clínica',clinic===1?'1 paciente en atención':'Pacientes en atención','agenda',clinic?'active':'neutral','clinic'),
-      metric(pending,'Solicitudes',pending===1?'1 cita por confirmar':'Citas por confirmar','agenda',pending?'attention':'neutral','requests'),
-      metric(unread,'Mensajes',messagesReady?'Sin leer o por atender':'Estado por actualizar','inbox',Number(unread)?'attention':'neutral','messages')
-    ];
-    host.dataset.count=String(tiles.length);
-    host.innerHTML=tiles.join('');
-    host.querySelectorAll('[data-route]').forEach(function(button){button.onclick=function(){route(button.dataset.route);};});
+    var rows=activeAppointments(), now=Date.now();
+    var clinic=rows.filter(function(a){return a.status==='arrived'||a.status==='in_progress';}).length;
+    var waiting=rows.filter(function(a){return a.status==='confirmed';}).length;
+    var done=rows.filter(function(a){return a.status==='completed';}).length;
+    var chips=[];
+    if(clinic)chips.push(chip('clinic',clinic,'en clínica','en clínica','active'));
+    if(waiting)chips.push(chip('appointments',waiting,'por llegar','por llegar','neutral'));
+    if(done)chips.push(chip('completed',done,'terminada','terminadas','neutral'));
+    host.innerHTML=chips.join('');
+    host.hidden=!chips.length;
+    var total=document.querySelector('[data-home-day-count]');
+    if(total)total.textContent=rows.length?rows.length+(rows.length===1?' cita':' citas'):'Sin citas';
+    var inboxLine=document.querySelector('[data-home-inbox-line]');
+    if(inboxLine){
+      var ready=Boolean(state.messages&&state.messages.loaded), unread=ready?Number(state.messages.unread||state.messages.total||0):0;
+      inboxLine.hidden=!ready;
+      inboxLine.innerHTML=ready?'<span>Mensajes: '+(unread?unread+' sin leer':'0 sin leer')+'</span><button type="button" data-home-open-inbox-line>Ver bandeja</button>':'';
+      var go=inboxLine.querySelector('button'); if(go)go.onclick=function(){route('inbox');};
+    }
   }
 
   function taskItems() {
@@ -106,36 +115,43 @@
   function renderPriorities(tasks) {
     var host=document.querySelector('[data-home-priorities]'); if(!host)return;
     tasks=tasks||resolvePriorityTasks();
-    var summary=document.querySelector('[data-home-summary]'),title=document.querySelector('[data-home-priority-title]'),count=document.querySelector('[data-home-priority-count]'),dayState=document.querySelector('[data-home-day-state]');
-    if(summary)summary.textContent=tasks.length?tasks.length+(tasks.length===1?' acción necesita':' acciones necesitan')+' tu atención hoy.':'La jornada está al día.';
-    if(title)title.textContent='Atención requerida';
-    if(count){count.textContent=String(tasks.length);count.dataset.empty=tasks.length?'0':'1';count.setAttribute('aria-label',tasks.length+(tasks.length===1?' pendiente':' pendientes'));}
-    if(dayState){dayState.textContent=tasks.length?tasks.length+(tasks.length===1?' pendiente':' pendientes'):'Todo al día';dayState.dataset.tone=tasks.length?'attention':'clear';}
-    if(!tasks.length){host.innerHTML='<div class="daily-home-empty"><span>✓</span><div><strong>Todo al día</strong><p>No tienes pendientes por ahora.</p></div></div>';return;}
+    var title=document.querySelector('[data-home-priority-title]'),dayState=document.querySelector('[data-home-day-state]');
+    var label=tasks.length?tasks.length+(tasks.length===1?' pendiente':' pendientes'):'Sin pendientes';
+    if(title)title.textContent=label;
+    if(dayState){dayState.textContent=tasks.length?tasks.length+(tasks.length===1?' requiere atención':' requieren atención'):'Todo al día';dayState.dataset.tone=tasks.length?'attention':'clear';}
+    if(!tasks.length){host.innerHTML='<div class="daily-home-empty"><span>✓</span><div><p>No tienes pendientes por ahora.</p></div></div>';return;}
     var shown=tasks.slice(0,5);
     host.innerHTML='<div class="daily-home-priority-list">'+shown.map(function(task,index){return '<article data-urgent="'+(task.urgent?'1':'0')+'"><i></i><div><span>'+esc(task.label)+'</span><strong>'+esc(task.name)+'</strong><small>'+esc(task.detail)+'</small></div><button type="button" data-index="'+index+'">'+esc(task.action)+'</button></article>';}).join('')+(tasks.length>shown.length?'<button type="button" class="daily-home-more" data-home-more-alerts>Ver todas las acciones <span aria-hidden="true">→</span></button>':'')+'</div>';
     host.querySelectorAll('button[data-index]').forEach(function(button){button.onclick=function(){var task=shown[Number(button.dataset.index)];route(task.route||'agenda');if(task.open==='operations'&&window.SmylInbox)setTimeout(window.SmylInbox.openOperations,0);};});
     var more=host.querySelector('[data-home-more-alerts]'); if(more)more.onclick=function(){route('notificaciones');};
   }
 
+  // Jornada en una sola columna y en orden: lo pendiente por hora, «ahora» marcado y lo terminado plegado en una línea.
   function renderNext() {
     var host=document.querySelector('[data-home-next]'); if(!host)return;
-    var now=Date.now(), rows=activeAppointments().filter(function(a){return a.status==='arrived'||a.status==='in_progress'||(a.status==='confirmed'&&new Date(a.ends_at||a.starts_at).getTime()>=now);}).sort(function(a,b){var pa=a.status==='in_progress'?0:a.status==='arrived'?1:2,pb=b.status==='in_progress'?0:b.status==='arrived'?1:2;return pa-pb||new Date(a.starts_at)-new Date(b.starts_at);});
-    if(!rows.length){
+    var now=Date.now(), all=activeAppointments();
+    var rows=all.filter(function(a){return a.status==='arrived'||a.status==='in_progress'||(a.status==='confirmed'&&new Date(a.ends_at||a.starts_at).getTime()>=now);}).sort(function(a,b){return new Date(a.starts_at)-new Date(b.starts_at);});
+    var finished=all.filter(function(a){return a.status==='completed';}).sort(function(a,b){return new Date(b.starts_at)-new Date(a.starts_at);});
+    if(!rows.length&&!finished.length){
       host.innerHTML='<div class="daily-home-next-empty"><span aria-hidden="true">＋</span><div><strong>Tu agenda está libre por ahora</strong><p>Crea una cita cuando necesites reservar un espacio.</p></div><button type="button" data-go="new">Crear cita</button></div>';
       host.querySelector('[data-go="new"]').onclick=function(){if(window.SmylCareTasks)window.SmylCareTasks.open('appointment');else route('agenda');};
       return;
     }
     var upcoming=rows.find(function(a){return new Date(a.starts_at).getTime()>=now&&a.status==='confirmed';});
-    var shown=rows.slice(0,4), marked=false, html='';
+    var shown=rows.slice(0,6), marked=false, html='';
     shown.forEach(function(a){
       var start=new Date(a.starts_at).getTime();
       if(!marked&&start>=now){marked=true;html+='<div class="daily-home-now" role="separator"><span>Ahora · '+esc(fmtTime(now))+'</span></div>';}
       html+='<button type="button" data-status="'+esc(a.status)+'"'+(upcoming&&upcoming.id===a.id?' data-next="1"':'')+'><time>'+esc(fmtTime(a.starts_at))+'</time><span><strong>'+esc(patientName(a.patient_id))+'</strong><small>'+esc(serviceName(a.service_id))+'</small></span><em>'+esc(upcoming&&upcoming.id===a.id?'Próxima':(STATUS[a.status]||'Programada'))+'</em></button>';
     });
-    if(!marked)html+='<div class="daily-home-now" role="separator"><span>Ahora · '+esc(fmtTime(now))+'</span></div>';
+    if(rows.length&&!marked)html+='<div class="daily-home-now" role="separator"><span>Ahora · '+esc(fmtTime(now))+'</span></div>';
     if(rows.length>shown.length)html+='<button type="button" class="daily-home-more" data-go-agenda>Ver toda la agenda <span aria-hidden="true">→</span></button>';
-    host.innerHTML='<div class="daily-home-next-list daily-home-timeline">'+html+'</div>';
+    var fold='';
+    if(finished.length){
+      var last=finished[0], text=finished.length===1?'1 cita terminada hoy ('+fmtTime(last.starts_at)+' · '+patientName(last.patient_id)+')':finished.length+' citas terminadas hoy';
+      fold='<div class="daily-home-fold"><span><b aria-hidden="true">✓</b> '+esc(text)+'</span><button type="button" data-go-agenda>Ver</button></div>';
+    }
+    host.innerHTML=(rows.length?'<div class="daily-home-next-list daily-home-timeline">'+html+'</div>':'<div class="daily-home-next-empty"><strong>No quedan citas por atender hoy</strong></div>')+fold;
     host.querySelectorAll('button').forEach(function(button){button.onclick=function(){route('agenda');};});
   }
 
@@ -189,15 +205,15 @@
 
   function trend(current,previous,unit) {
     if(previous==null||current==null)return '';
-    if(unit==='pts'){var diff=Math.round((current-previous)*10)/10;if(!diff)return '<span class="trend">Igual que el mes anterior</span>';return '<span class="trend '+(diff>0?'up':'down')+'">'+(diff>0?'▲ ':'▼ ')+Math.abs(diff)+' pts vs mes anterior</span>';}
+    if(unit==='pts'){var diff=Math.round((current-previous)*10)/10;if(!diff)return '<span class="trend">= igual que el mes anterior</span>';return '<span class="trend '+(diff>0?'up':'down')+'">'+(diff>0?'▲ ':'▼ ')+Math.abs(diff)+' pts vs. mes anterior</span>';}
     if(!previous)return '';
     var pct=Math.round((current-previous)*100/previous);
-    if(!pct)return '<span class="trend">Igual que el mes anterior</span>';
-    return '<span class="trend '+(pct>0?'up':'down')+'">'+(pct>0?'▲ ':'▼ ')+Math.abs(pct)+'% vs mes anterior</span>';
+    if(!pct)return '<span class="trend">= igual que el mes anterior</span>';
+    return '<span class="trend '+(pct>0?'up':'down')+'">'+(pct>0?'▲ ':'▼ ')+Math.abs(pct)+'% vs. mes anterior</span>';
   }
 
   function monthTile(label,value,detail,routeName) {
-    return '<button type="button" class="daily-home-metric" data-route="'+routeName+'" data-tone="neutral"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+detail+'</small></button>';
+    return '<button type="button" class="daily-home-stat" data-route="'+routeName+'"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+detail+'</small></button>';
   }
 
   function renderMonth() {
@@ -208,7 +224,7 @@
     var tiles=[];
     if(data.finance){
       tiles.push(monthTile('Cobrado este mes',money(data.collected),trend(data.collected,data.prevCollected)||'Ingresos confirmados','caja'));
-      tiles.push(monthTile('Por cobrar',money(data.outstanding),'Saldo pendiente de pacientes','caja'));
+      tiles.push(monthTile('Por cobrar',money(data.outstanding),'Saldo de pacientes','caja'));
     }
     tiles.push(monthTile('Pacientes nuevos',String(data.newPatients),trend(data.newPatients,data.prevNewPatients)||'Registrados este mes','pacientes'));
     if(data.attendance!=null)tiles.push(monthTile('Asistencia',data.attendance+'%',trend(data.attendance,data.prevAttendance,'pts')||(data.attended+' de '+data.closed+' citas cerradas'),'reportes'));

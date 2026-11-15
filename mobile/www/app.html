@@ -871,7 +871,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-inventory.css?v=13">
 <script defer src="smyl-inventory.js?v=19"></script>
 <link rel="stylesheet" href="smyl-finance.css?v=31">
-<script defer src="smyl-finance.js?v=38"></script>
+<script defer src="smyl-finance.js?v=39"></script>
 <link rel="stylesheet" href="smyl-reports.css?v=6">
 <script defer src="smyl-reports.js?v=4"></script>
 <link rel="stylesheet" href="smyl-readiness.css?v=2">
@@ -882,14 +882,14 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-lana-handoff.js?v=5"></script>
 <link rel="stylesheet" href="smyl-lana-attention.css?v=1">
 <script defer src="smyl-lana-attention.js?v=4"></script>
-<link rel="stylesheet" href="smyl-daily-home.css?v=14">
-<script defer src="smyl-daily-home.js?v=15"></script>
-<link rel="stylesheet" href="smyl-clinic-setup.css?v=3">
-<script defer src="smyl-clinic-setup.js?v=5"></script>
+<link rel="stylesheet" href="smyl-daily-home.css?v=15">
+<script defer src="smyl-daily-home.js?v=16"></script>
+<link rel="stylesheet" href="smyl-clinic-setup.css?v=4">
+<script defer src="smyl-clinic-setup.js?v=6"></script>
 <link rel="stylesheet" href="smyl-settings-hub.css?v=5">
 <script defer src="smyl-settings-hub.js?v=7"></script>
 <link rel="stylesheet" href="smyl-task-center.css?v=1">
-<script defer src="smyl-task-center.js?v=5"></script>
+<script defer src="smyl-task-center.js?v=6"></script>
 <link rel="stylesheet" href="smyl-resilience.css?v=1">
 <script defer src="smyl-resilience.js?v=1"></script>
 <link rel="stylesheet" href="smyl-design-system-v2.css?v=2">
@@ -3445,106 +3445,8 @@ document.addEventListener('keydown', function(e) {
 // DASHBOARD
 // ══════════════════════════════════════════
 async function cargarDashboard() {
-  var usado = tenantData.diagnosticos_usados || 0;
-  var limite = tenantData.limite_diagnosticos || 40;
-  var plan = tenantData.plan || 'profesional';
-
-  document.getElementById('st-disp').textContent = Math.max(0, limite - usado);
-  document.getElementById('st-usados').textContent = usado;
-
-  // Pacientes count
-  try {
-    var resPac = await sbTimeout(sb.from('camila_pacientes').select('id', {count:'exact'}).eq('tenant_id', tenantId));
-    if (resPac.error) throw resPac.error;
-    document.getElementById('st-pacientes').textContent = resPac.count || 0;
-  } catch(e) {
-    document.getElementById('st-pacientes').textContent = '—';
-  }
-
-  // Casos count — la tabla camila_casos no tiene columna "status" (cada
-  // fila ya es un caso guardado/completado), el filtro .eq('status',...)
-  // hacía que Supabase regresara error siempre y el conteo cayera al
-  // fallback de localStorage, que en el navegador del doctor casi
-  // siempre está vacío porque los casos se guardan desde el celular del
-  // paciente, no desde el panel del doctor.
-  try {
-    var resCasos = await sbTimeout(sb.from('camila_casos').select('id', {count:'exact'}).eq('tenant_id', tenantId));
-    if (resCasos.error) throw resCasos.error;
-    document.getElementById('st-casos').textContent = resCasos.count || 0;
-  } catch(e) {
-    document.getElementById('st-casos').textContent = '—';
-  }
-
-  // Últimos casos — rows estilo Linear
-  var cots = [];
-  try {
-    var recentCases = await sbTimeout(sb.from('camila_casos')
-      .select('id,nombre_paciente,score,total_cotizacion,created_at')
-      .eq('tenant_id', tenantId)
-      .order('created_at', {ascending:false})
-      .limit(5));
-    if (recentCases.error) throw recentCases.error;
-    cots = (recentCases.data || []).map(function(c) {
-      return {nombre:c.nombre_paciente, score:c.score, total:c.total_cotizacion, fecha:c.created_at ? new Date(c.created_at).toLocaleDateString('es-MX') : '—'};
-    });
-  } catch(e) {
-    console.error('[SMYL] No se pudieron cargar los casos recientes:', e);
-  }
-  var ulEl = document.getElementById('dash-ultimos-casos');
-  if (!cots.length) {
-    ulEl.innerHTML = '<div class="dashboard-empty">' +
-      '<div class="dashboard-empty-visual" aria-hidden="true"><svg width="74" height="74" viewBox="0 0 80 80" fill="none"><rect x="15" y="18" width="50" height="44" rx="12" fill="white" stroke="currentColor" stroke-width="2"/><path d="M26 43c3.8 6.2 8.4 9.2 14 9.2 5.7 0 10.3-3 14-9.2" stroke="#0F766E" stroke-width="3" stroke-linecap="round"/><circle cx="31" cy="34" r="2.5" fill="currentColor"/><circle cx="49" cy="34" r="2.5" fill="currentColor"/><path d="M25 18v-3M55 18v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>' +
-      '<div><div class="dashboard-empty-kicker">Tu primer caso</div><h3>Convierte fotografías en una presentación clínica</h3>' +
-      '<p>Documenta al paciente, genera el análisis y prepara una propuesta visual lista para consulta.</p>' +
-      '<div class="dashboard-empty-actions"><button class="btn btn-primary" onclick="window.location.href=\'simulacion-rapida.html?workspace=professional\'">Nueva simulación</button><button class="btn btn-secondary" onclick="ir(\'pacientes\')">Ver pacientes</button></div></div></div>';
-  } else {
-    ulEl.innerHTML = cots.slice(-5).reverse().map(function(c) {
-      var score = smylNum(c.score);
-      var scoreColor = score >= 7 ? 'var(--color-success)' : score >= 5 ? 'var(--color-warning)' : 'var(--color-error)';
-      var scoreBg = score >= 7 ? 'var(--color-success-subtle)' : score >= 5 ? 'var(--color-warning-subtle)' : 'var(--color-error-subtle)';
-      var ini = (c.nombre||'?').charAt(0).toUpperCase();
-      return '<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--color-border);cursor:pointer;transition:background 150ms" onmouseover="this.style.background=\'var(--color-surface-raised)\'" onmouseout="this.style.background=\'\'" onclick="ir(\'historial\')">' +
-        '<div style="width:28px;height:28px;border-radius:50%;background:var(--color-surface-raised);border:1px solid var(--color-border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--color-text-secondary);flex-shrink:0">' + smylEsc(ini) + '</div>' +
-        '<div style="flex:1;min-width:0">' +
-        '<div style="font-size:14px;font-weight:500;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + smylEsc(c.nombre || 'Sin nombre') + '</div>' +
-        '<div style="font-size:12px;color:var(--color-text-tertiary);margin-top:1px">' + smylEsc(c.fecha) + ' · <span style="background:' + scoreBg + ';color:' + scoreColor + ';padding:1px 6px;border-radius:99px;font-size:11px;font-weight:500">' + score + '/10</span></div>' +
-        '</div>' +
-        '<div style="text-align:right;flex-shrink:0">' +
-        '<div style="font-size:14px;font-weight:600;font-family:monospace;color:var(--color-text-primary)">$' + smylNum(c.total).toLocaleString() + '</div>' +
-        '<div style="font-size:11px;color:var(--color-text-tertiary)">MXN</div>' +
-        '</div></div>';
-    }).join('') + '<div style="padding-bottom:2px"></div>';
-  }
-
-  // Suscripción — nuevo diseño
-  var vence = new Date(tenantData.vence_en || Date.now() + 30*86400000);
-  var planInfo = PLANES[plan] || PLANES.profesional;
-  var dashPlanNombre = document.getElementById('dash-plan-nombre');
-  var dashPlanPrecio = document.getElementById('dash-plan-precio');
-  var dashPlanVence = document.getElementById('dash-plan-vence');
-  if (dashPlanNombre) dashPlanNombre.textContent = planInfo.label;
-  if (dashPlanPrecio) dashPlanPrecio.innerHTML = planInfo.precio + ' <span style="font-size:13px;font-weight:400;color:var(--color-text-tertiary)">/mes</span>';
-  if (dashPlanVence) dashPlanVence.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Renovación: ' + vence.toLocaleDateString('es-MX', {day:'numeric', month:'long', year:'numeric'});
-  // Legacy element (hidden but keep for compatibility)
-  var infoSus = document.getElementById('info-suscripcion');
-  if (infoSus) infoSus.innerHTML = '';
-
-  // Progreso
-  var pct = Math.min(100, Math.round(usado / limite * 100));
-  var progBar = document.getElementById('dash-prog-bar');
-  var progPct = document.getElementById('dash-prog-pct');
-  var progEl = document.getElementById('dash-progreso');
-  if (progBar) progBar.style.width = pct + '%';
-  if (progPct) progPct.textContent = pct + '%';
-  if (progEl && !progBar) {
-    progEl.innerHTML =
-      '<div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:8px">' + usado + ' de ' + limite + ' diagnósticos usados</div>' +
-      '<div style="background:var(--color-border);border-radius:99px;height:6px;overflow:hidden"><div style="background:var(--color-primary);height:100%;border-radius:99px;width:' + pct + '%"></div></div>' +
-      '<div style="font-size:12px;color:var(--color-text-tertiary);margin-top:5px;text-align:right">' + pct + '%</div>';
-  } else if (progEl && progBar) {
-    var progTxt = progEl.querySelector('div:first-child');
-    if (progTxt) progTxt.textContent = usado + ' de ' + limite + ' diagnósticos usados';
-  }
+  // El Inicio lo arma smyl-daily-home.js con sus propias consultas (jornada, solicitudes, mensajes y mes).
+  // Las tarjetas y listas del tablero anterior ya no se muestran, así que aquí no se consulta nada para ellas.
   if (window.SmylLanaAttention) window.SmylLanaAttention.load(true);
 }
 
