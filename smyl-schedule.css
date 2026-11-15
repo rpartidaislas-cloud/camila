@@ -96,7 +96,8 @@
 .schedule-patient-new{margin-top:4px;padding:14px;border:1px solid #c7d9d0;border-radius:12px;background:#f2f7f3}
 .schedule-patient-new[hidden]{display:none}
 .schedule-patient-new-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;font-size:13px;color:#203b3b}
-.schedule-patient-new-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.schedule-patient-new-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end}
+.schedule-patient-new-grid label small{display:block;font-weight:500;color:#6b7f79;font-size:12px;line-height:1.25}
 .schedule-patient-new-grid label{display:flex;flex-direction:column;gap:7px;color:#48625c;font-size:11px;font-weight:650}
 .schedule-patient-new-actions{display:flex;justify-content:flex-end;margin-top:12px}
 .schedule-patient-dups{display:flex;flex-direction:column;gap:8px;margin-top:12px;padding:12px;border:1px solid #e4cfb3;border-radius:10px;background:#fff8ed;color:#6b4a1c;font-size:13px}
