@@ -1091,3 +1091,21 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
   #p-caja .finance-tabs{display:flex;width:100%}
   #p-caja .finance-tabs button{flex:1 1 auto;padding-left:8px;padding-right:8px;white-space:nowrap}
 }
+
+/* Cobros · paso 2: la ayuda de caja vive dentro de «Mi turno» y los botones sin clase dejan de verse como los del navegador. */
+#p-caja .finance-cash-card{max-width:860px}
+#p-caja .finance-cash-help{margin:14px 0 0;padding:10px 0 0;border-top:1px solid #e8edf2;color:#5b6b78;font-size:13px;line-height:20px}
+#p-caja .finance-cash-help summary{cursor:pointer;font-weight:700;color:#0f766e;list-style:none}
+#p-caja .finance-cash-help summary::-webkit-details-marker{display:none}
+#p-caja .finance-cash-help summary::after{content:" ▾"}
+#p-caja .finance-cash-help[open] summary::after{content:" ▴"}
+#p-caja .finance-cash-help ul{margin:8px 0 0 18px}
+#p-caja .finance-cash-help li{margin-top:3px}
+#p-caja .finance-fiscal-readiness .btn-secondary,#p-caja .finance-actions .btn-secondary,#p-caja .finance-team-cash .btn-secondary{min-height:36px;padding:0 14px;border:1px solid #cdd8e0;background:#fff;color:#10283b;font-weight:700;box-shadow:none}
+#p-caja .finance-fiscal-readiness .btn-secondary:hover,#p-caja .finance-actions .btn-secondary:hover,#p-caja .finance-team-cash .btn-secondary:hover{border-color:#91b8b4;background:#f1faf8}
+@media(max-width:700px){
+  #p-caja .finance-visit-row .finance-row-actions .finance-link-action{flex:0 0 auto;padding:0 14px}
+  #p-caja .finance-fiscal-readiness .btn-secondary{flex:1 1 100%}
+}
+@media(max-width:700px){#p-caja .finance-issuer-card{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}#p-caja .finance-issuer-card .finance-badge{justify-self:start}}
+@media(max-width:700px){#p-caja .finance-fiscal-receipt-filters{display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow:visible}#p-caja .finance-fiscal-receipt-filters button{justify-content:center;min-height:40px}}

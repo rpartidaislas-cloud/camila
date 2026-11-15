@@ -313,3 +313,12 @@ test('Cobros paso 1: abre en Por cobrar con un solo contador, 4 filtros, accione
   assert.match(app, /new MutationObserver\(function\(\)\{place\(\);\}\)/, 'el pie de derechos siempre queda al final del contenido');
   assert.match(shell, /\.contenido>#app-copyright\{position:static[^}]*height:0/);
 });
+
+test('Cobros paso 2: la ayuda de caja vive en «Mi turno» y los botones sin clase usan el estilo de la app', () => {
+  assert.doesNotMatch(js, /<h2>Reglas de caja<\/h2>/);
+  assert.match(js, /<details class="finance-cash-help"><summary>¿Cómo funciona la caja\?<\/summary>/);
+  for (const id of ['finance-adjust', 'finance-issuer', 'finance-pac']) assert.match(js, new RegExp(`<button class="btn btn-secondary" id="${id}">`));
+  assert.match(js, /class="btn btn-secondary" data-supervise-cash=/);
+  assert.match(css, /#p-caja \.finance-issuer-card\{display:grid/);
+  assert.match(css, /#p-caja \.finance-fiscal-receipt-filters\{display:grid;grid-template-columns:1fr 1fr/);
+});
