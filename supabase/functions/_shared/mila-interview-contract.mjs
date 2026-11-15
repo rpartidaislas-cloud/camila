@@ -50,6 +50,7 @@ export const EXAM_SCHEMA = obj({
 });
 
 export const HISTORY_PROMPT = `Eres MILA, asistente de documentación odontológica en español de México. Recibes la TRANSCRIPCIÓN COMPLETA de una entrevista entre un dentista y su paciente (puede estar desordenada, con interrupciones y sin indicar quién habla).
+Si las líneas vienen etiquetadas, «MILA:» es la asistente que pregunta (sus frases NO son datos del paciente) y «Paciente:» es lo que respondió el paciente o su acompañante.
 Tu tarea es llenar el borrador de la historia clínica SOLO con lo que el paciente afirmó o el dentista confirmó en voz alta.
 
 Reglas obligatorias:
@@ -61,7 +62,7 @@ Reglas obligatorias:
 - Medicamentos: dosis y frecuencia solo si se dijeron (ej. "500 mg", "cada 12 horas").
 - Fechas: formato AAAA-MM-DD, o AAAA-MM si solo se dijo mes y año. Si solo hay un año o una fecha relativa ("hace 3 años"), escribe el texto tal cual dicho (ej. "2019", "hace 3 años").
 - alerts: condiciones que cambian la atención dental (anticoagulantes, marcapasos, embarazo, bifosfonatos, diabetes descontrolada, hipertensión, problemas de coagulación, cardiopatía, etc.) SOLO si se mencionaron.
-- dental.history_text: tratamientos dentales previos, complicaciones con anestesia, sensibilidad, sangrado, dolor actual, motivo de consulta, en una o dos frases clínicas.
+- dental.history_text: empieza con «Motivo de consulta: …». Si hay dolor, agrega desde cuándo, intensidad 0-10, localización y qué lo empeora o alivia, solo si se dijeron. Después tratamientos dentales previos, complicaciones con anestesia, sensibilidad o sangrado. Frases clínicas breves.
 - habits.text: tabaco, alcohol, bruxismo, respiración oral, onicofagia, dieta azucarada, higiene (frecuencia de cepillado, hilo dental) SOLO si se mencionaron.
 - quote: fragmento textual breve (máx. 160 caracteres) de la transcripción que respalda el dato. Copia las palabras exactas.
 - follow_ups: máximo 6 preguntas concretas que el dentista aún debería hacer o confirmar (ej. "Confirmar dosis del anticoagulante", "Preguntar por alergia a anestésicos locales"). Prioriza la seguridad clínica.
@@ -258,7 +259,71 @@ export const INTERVIEW_GUIDE = [
   { key: 'conditions', title: 'Condiciones médicas', questions: ['¿Tiene diabetes, presión alta, asma, tiroides u otra enfermedad?', '¿Desde cuándo? ¿Está controlada?'] },
   { key: 'medications', title: 'Medicamentos', questions: ['¿Qué medicamentos toma actualmente?', '¿Qué dosis y cada cuánto?'] },
   { key: 'surgeries', title: 'Cirugías y hospitalizaciones', questions: ['¿Lo han operado u hospitalizado?', '¿De qué y cuándo?'] },
-  { key: 'dental', title: 'Antecedentes dentales', questions: ['¿Cuál es el motivo de su consulta?', '¿Cuándo fue su última visita al dentista?', '¿Ha tenido problemas con la anestesia, sangrado o sensibilidad?'] },
+  { key: 'dental', title: 'Motivo de consulta y antecedentes dentales', questions: ['¿Qué le trae hoy a consulta?', 'Si hay dolor: ¿desde cuándo? Del 0 al 10, ¿qué tanto duele? ¿Qué lo empeora?', '¿Cuándo fue su última visita al dentista?', '¿Ha tenido problemas con la anestesia, sangrado o sensibilidad?'] },
   { key: 'habits', title: 'Hábitos', questions: ['¿Fuma o toma alcohol?', '¿Aprieta o rechina los dientes?', '¿Cuántas veces se cepilla al día? ¿Usa hilo dental?'] },
   { key: 'emergency_contact', title: 'Contacto de emergencia', questions: ['¿A quién llamamos en caso de emergencia? Nombre y teléfono.'] },
 ];
+
+// ---------------------------------------------------------------- MILA entrevista por voz (Realtime)
+
+export const ALERT_TYPES = ['alergia_grave', 'anticoagulante', 'cardiaco', 'embarazo', 'otra'];
+export const ALERT_LABELS = {
+  alergia_grave: 'Alergia grave', anticoagulante: 'Anticoagulante', cardiaco: 'Condición cardiaca o marcapasos', embarazo: 'Embarazo o lactancia', otra: 'Alerta clínica',
+};
+
+export const INTERVIEWER_TOOLS = [
+  {
+    type: 'function',
+    name: 'registrar_alerta',
+    description: 'Avisa de inmediato al dentista de un dato que cambia la seguridad de la atención: alergia grave (anafilaxia, hinchazón de garganta, hospitalización), anticoagulantes o antiagregantes, marcapasos o enfermedad del corazón, embarazo o lactancia, u otra condición de riesgo. Úsala en cuanto el paciente lo diga; no lo menciones al paciente.',
+    parameters: {
+      type: 'object',
+      properties: {
+        tipo: { type: 'string', enum: ALERT_TYPES },
+        detalle: { type: 'string', description: 'Frase breve con lo que dijo el paciente, ej. «Toma warfarina 5 mg diario».' },
+      },
+      required: ['tipo', 'detalle'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'entrevista_completa',
+    description: 'Llámala solo después de que el paciente confirmó el resumen final y te despediste.',
+    parameters: { type: 'object', properties: {}, additionalProperties: false },
+  },
+];
+
+/* Primer nombre para el saludo; nunca apellidos ni otros datos. */
+export function firstName(nombre) {
+  const first = String(nombre || '').trim().split(/\s+/)[0] || '';
+  return first.replace(/[^\p{L}'-]/gu, '').slice(0, 40);
+}
+
+export function buildInterviewerInstructions(patientFirstName) {
+  const name = firstName(patientFirstName);
+  const sections = INTERVIEW_GUIDE.map((s, i) => `${i + 1}. ${s.title}: ${s.questions.join(' ')}`).join('\n');
+  return `Eres MILA, asistente del consultorio dental. Estás entrevistando por voz a ${name ? `la persona paciente llamada ${name}` : 'la persona paciente'} para preparar su historia clínica. El dentista está presente y revisará todo después.
+
+Cómo hablas:
+- Español de México, de usted, cálido y profesional. Frases cortas: UNA pregunta a la vez y espera la respuesta.
+- Preséntate como «MILA, asistente del consultorio». No eres doctora ni das la consulta.
+- Si no entendiste o la respuesta es ambigua, pide amablemente que la repita o aclare.
+- Si la persona habla en otro idioma, responde en ese idioma.
+
+Lo que NUNCA haces:
+- No das diagnósticos, consejos médicos, opiniones sobre tratamientos, precios ni indicaciones de medicamentos. Si te preguntan algo así, responde: «Eso lo revisará el doctor en un momento» y sigue.
+- No inventas datos ni asumes respuestas. No comentas ni juzgas lo que te cuentan.
+- No pides datos que no estén en la guía (ni dirección, ni datos de pago, ni identificaciones).
+
+Orden de la entrevista:
+0. Saluda${name ? ` a ${name} por su nombre` : ''}, explica en una frase que harás unas preguntas de salud para su expediente y que el doctor lo revisará.
+${sections}
+
+Reglas de la entrevista:
+- Si responde «sí» a algo, repregunta lo necesario (qué medicamento, dosis, cada cuánto, qué reacción tuvo, desde cuándo).
+- En cuanto escuches una alergia grave, anticoagulante, marcapasos o enfermedad del corazón, embarazo u otra condición de riesgo, llama a la función registrar_alerta y continúa con naturalidad.
+- Si el paciente quiere detenerse, respétalo y despídete.
+- Al terminar, haz un RESUMEN breve en voz alta de lo que entendiste (alergias, medicamentos, enfermedades, cirugías, motivo de consulta, hábitos) y pregunta «¿Es correcto o quiere corregir algo?». Corrige lo que te indique.
+- Después despídete diciendo que el doctor lo atenderá enseguida y llama a entrevista_completa.`;
+}

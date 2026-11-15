@@ -2,31 +2,40 @@
 //
 // Computadora (sesión de usuario + clinical.write):
 //   create {patient_id}        → crea la sesión y devuelve el token del QR (una sola vez).
-//   status {id}                → estado, consentimiento, borrador interpretado y consumo (sondeo).
-//   close  {id}                → vacía transcripción y borrador (al aplicar o descartar).
+//   status {id}                → estado, consentimiento, alertas, borrador interpretado y consumo (sondeo).
+//   close  {id}                → borra la sesión (transcripción y borrador) al aplicar o descartar.
 // Celular (sin login; capacidad = token del QR y luego secreto de dispositivo):
 //   pair    {id, token}        → vincula UN dispositivo; el token deja de servir para otro.
 //   consent {id, device}       → registra que el paciente aceptó la grabación.
-//   segment (multipart) {id, device, mode: history|exam, audio, duracion_segundos}
-//                              → transcribe, reinterpreta todo lo dicho en ese modo y guarda el borrador.
-//   finish  {id, device}       → el celular terminó; la computadora ya tiene el borrador.
+//   segment (multipart)        → modo «Yo pregunto»: transcribe y responde de inmediato; la interpretación
+//                                corre en segundo plano (EdgeRuntime.waitUntil) y el celular la sondea con state.
+//   realtime {id, device, sdp} → modo «MILA entrevista»: abre la conversación de voz con OpenAI Realtime.
+//   realtime_turn / realtime_alert / realtime_finish → guardan los turnos, las alertas inmediatas y cierran.
+//   state / finish
 //
 // No se guarda audio. La transcripción y el borrador viven solo en smyl_mila_interviews hasta que el
-// dentista aplica o descarta, o hasta que vence (90 min). Cada segmento registra segundos de MILA
-// (smyl_consume) y los tokens reales de transcripción + interpretación (smyl_ai_usage_log).
+// dentista aplica o descarta, o hasta que vence (90 min). El consumo se mide en el servidor: segundos de
+// MILA (smyl_consume) y tokens por llamada (smyl_ai_usage_log, request_id = "<sesión>:<paso>").
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requirePermission, requireUser } from "../_shared/auth.ts";
 import { makeCors } from "../_shared/cors.ts";
 import {
+  ALERT_LABELS,
+  ALERT_TYPES,
+  buildInterviewerInstructions,
   EXAM_PROMPT,
   EXAM_SCHEMA,
+  firstName,
   HISTORY_PROMPT,
   HISTORY_SCHEMA,
   INTERVIEW_GUIDE,
+  INTERVIEWER_TOOLS,
   normalizeExam,
   normalizeHistory,
 } from "../_shared/mila-interview-contract.mjs";
+
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_SERVICE_ROLE_KEY =
@@ -35,6 +44,11 @@ const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
 const TRANSCRIBE_MODEL = Deno.env.get("OPENAI_TRANSCRIBE_MODEL") || "gpt-transcribe";
 const EXTRACT_MODEL =
   Deno.env.get("OPENAI_MILA_INTERVIEW_MODEL") || Deno.env.get("OPENAI_MILA_NOTE_MODEL") || "gpt-5-mini";
+// Menos razonamiento = respuesta más rápida. Vacío = no se envía (para modelos que no lo aceptan).
+const EXTRACT_REASONING = Deno.env.get("OPENAI_MILA_INTERVIEW_REASONING") ?? "low";
+const REALTIME_MODEL = Deno.env.get("OPENAI_REALTIME_MODEL") || "gpt-realtime-2.1";
+const REALTIME_VOICE = Deno.env.get("OPENAI_REALTIME_VOICE") || "marin";
+const REALTIME_TRANSCRIBE_MODEL = Deno.env.get("OPENAI_REALTIME_TRANSCRIBE_MODEL") || "gpt-transcribe";
 const CONSUMABLES_ENFORCED = (Deno.env.get("SMYL_CONSUMABLES_ENFORCED") || "false") === "true";
 // Tarifas opcionales (USD por millón de tokens) para estimar costo. Sin configurar, el costo queda vacío.
 const PRICE_IN = Number(Deno.env.get("MILA_INTERVIEW_USD_PER_MTOK_IN") || "");
@@ -43,6 +57,7 @@ const PRICE_OUT = Number(Deno.env.get("MILA_INTERVIEW_USD_PER_MTOK_OUT") || "");
 const SESSION_MINUTES = 90;
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_SEGMENT_SECONDS = 180;
+const MAX_REALTIME_SECONDS = 45 * 60;
 const MAX_TRANSCRIPT = 60000;
 const ALLOWED_MIME = new Set(["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav", "audio/x-m4a", "audio/aac"]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -50,6 +65,7 @@ const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 
 type Row = Record<string, any>;
 type Usage = { input_tokens: number; output_tokens: number };
+type Mode = "history" | "exam";
 
 function randomToken(bytes = 32): string {
   const raw = crypto.getRandomValues(new Uint8Array(bytes));
@@ -68,10 +84,13 @@ function sameHash(a: string, b: string): boolean {
 function extensionFor(mime: string): string {
   return ({ "audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "m4a", "audio/mpeg": "mp3", "audio/wav": "wav", "audio/x-m4a": "m4a", "audio/aac": "aac" } as Record<string, string>)[mime] || "audio";
 }
+function tokenCount(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? Math.min(Math.round(n), 50_000_000) : 0;
+}
 function usageOf(raw: Row): Usage {
   const u = raw && typeof raw.usage === "object" && raw.usage ? raw.usage : {};
-  const n = (v: unknown) => (Number.isFinite(Number(v)) && Number(v) >= 0 ? Math.round(Number(v)) : 0);
-  return { input_tokens: n(u.input_tokens ?? u.prompt_tokens), output_tokens: n(u.output_tokens ?? u.completion_tokens) };
+  return { input_tokens: tokenCount(u.input_tokens ?? u.prompt_tokens), output_tokens: tokenCount(u.output_tokens ?? u.completion_tokens) };
 }
 function extractOutputText(payload: Row): string {
   if (typeof payload.output_text === "string") return payload.output_text;
@@ -86,38 +105,42 @@ function cost(u: Usage): number | null {
   if (!Number.isFinite(PRICE_IN) || !Number.isFinite(PRICE_OUT)) return null;
   return Math.round(((u.input_tokens * PRICE_IN + u.output_tokens * PRICE_OUT) / 1e6) * 1e5) / 1e5;
 }
-function patientLabel(p: Row | null): string {
-  if (!p) return "Paciente";
-  const first = String(p.nombre || "").trim().split(/\s+/)[0] || "Paciente";
-  const last = String(p.apellido || "").trim();
-  return last ? `${first} ${last.charAt(0).toUpperCase()}.` : first;
+function cleanText(v: unknown, max: number): string {
+  return String(v == null ? "" : v).replace(/\s+/g, " ").trim().slice(0, max);
+}
+const HAS_WAIT_UNTIL = typeof EdgeRuntime !== "undefined" && typeof EdgeRuntime?.waitUntil === "function";
+function background(task: Promise<unknown>) {
+  const safe = task.catch((e) => console.error("[mila-interview:background]", e instanceof Error ? e.message : e));
+  EdgeRuntime!.waitUntil(safe);
 }
 
 async function purgeExpired() {
   await admin.from("smyl_mila_interviews").delete().lt("expires_at", new Date().toISOString());
 }
 
-async function interpret(mode: "history" | "exam", transcript: string): Promise<{ result: Row; usage: Usage }> {
+async function interpret(mode: Mode, transcript: string): Promise<{ result: Row; usage: Usage }> {
+  const body: Row = {
+    model: EXTRACT_MODEL,
+    store: false,
+    max_output_tokens: 6000,
+    input: [
+      { role: "system", content: [{ type: "input_text", text: mode === "history" ? HISTORY_PROMPT : EXAM_PROMPT }] },
+      { role: "user", content: [{ type: "input_text", text: `TRANSCRIPCIÓN:\n${transcript}` }] },
+    ],
+    text: {
+      format: {
+        type: "json_schema",
+        name: mode === "history" ? "mila_history_interview" : "mila_exam_dictation",
+        strict: true,
+        schema: mode === "history" ? HISTORY_SCHEMA : EXAM_SCHEMA,
+      },
+    },
+  };
+  if (EXTRACT_REASONING) body.reasoning = { effort: EXTRACT_REASONING };
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: EXTRACT_MODEL,
-      store: false,
-      max_output_tokens: 6000,
-      input: [
-        { role: "system", content: [{ type: "input_text", text: mode === "history" ? HISTORY_PROMPT : EXAM_PROMPT }] },
-        { role: "user", content: [{ type: "input_text", text: `TRANSCRIPCIÓN:\n${transcript}` }] },
-      ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: mode === "history" ? "mila_history_interview" : "mila_exam_dictation",
-          strict: true,
-          schema: mode === "history" ? HISTORY_SCHEMA : EXAM_SCHEMA,
-        },
-      },
-    }),
+    body: JSON.stringify(body),
   });
   const payload = await response.json().catch(() => ({})) as Row;
   if (!response.ok) throw new Error(`Interpretación ${response.status}`);
@@ -126,7 +149,7 @@ async function interpret(mode: "history" | "exam", transcript: string): Promise<
   return { result, usage: usageOf(payload) };
 }
 
-async function transcribe(audio: File, mime: string, mode: "history" | "exam"): Promise<{ text: string; seconds: number | null; usage: Usage }> {
+async function transcribe(audio: File, mime: string, mode: Mode): Promise<{ text: string; seconds: number | null; usage: Usage }> {
   const form = new FormData();
   form.set("file", audio, `segmento.${extensionFor(mime)}`);
   form.set("model", TRANSCRIBE_MODEL);
@@ -146,8 +169,84 @@ async function transcribe(audio: File, mime: string, mode: "history" | "exam"): 
   return { text: typeof raw.text === "string" ? raw.text.trim() : "", seconds: Number.isFinite(seconds) ? seconds : null, usage: usageOf(raw) };
 }
 
-function publicStatus(row: Row) {
+async function logUsage(tenantId: string, mode: Mode, model: string, requestId: string, usage: Usage, seconds: number, outcome: "ok" | "incomplete" | "error") {
+  const { error } = await admin.from("smyl_ai_usage_log").insert({
+    tenant_id: tenantId,
+    feature: mode === "history" ? "mila_history_interview" : "mila_exam_dictation",
+    model: model.slice(0, 80),
+    request_id: requestId.slice(0, 120),
+    outcome,
+    input_tokens: usage.input_tokens,
+    output_tokens: usage.output_tokens,
+    duration_ms: seconds * 1000,
+    estimated_cost_usd: cost(usage),
+  });
+  if (error) console.error("[mila-interview:usage-log]", requestId, error.message);
+}
+
+async function consumeSeconds(tenantId: string, mode: Mode, key: string, seconds: number, model: string, metadata: Row) {
+  const { data, error } = await admin.rpc("smyl_consume", {
+    p_tenant_id: tenantId,
+    p_resource: "mila_seconds",
+    p_quantity_units: Math.max(1, seconds),
+    p_idempotency_key: `mila-interview:${key}`,
+    p_source_type: mode === "history" ? "mila_history_interview" : "mila_exam_dictation",
+    p_source_id: key,
+    p_provider: "openai",
+    p_provider_model: model,
+    p_metadata: metadata,
+    p_enforce: CONSUMABLES_ENFORCED,
+  });
+  if (error) console.error("[mila-interview:consume]", key, error.message);
+  const row = Array.isArray(data) ? data[0] : data;
+  return !(row && row.accepted === false);
+}
+
+/* Interpreta lo transcrito y guarda el borrador sin pisar uno más reciente (dos segmentos pueden terminar en otro orden). */
+async function interpretAndStore(rowId: string, tenantId: string, mode: Mode, transcript: string, requestId: string) {
+  let outcome: "ok" | "error" = "ok";
+  let usage: Usage = { input_tokens: 0, output_tokens: 0 };
+  let result: Row | null = null;
+  try {
+    const out = await interpret(mode, transcript);
+    result = out.result;
+    usage = out.usage;
+  } catch (error) {
+    outcome = "error";
+    console.warn("[mila-interview:interpret]", requestId, error instanceof Error ? error.message : error);
+  }
+  await logUsage(tenantId, mode, EXTRACT_MODEL, `${requestId}-int`, usage, 0, outcome);
+  const { data: fresh } = await admin.from("smyl_mila_interviews").select("result").eq("id", rowId).maybeSingle();
+  if (!fresh) return null;
+  const current = fresh.result || {};
+  const prior = current[mode];
+  const pending = { ...(current.pending || {}) };
+  if (Number(pending[mode] || 0) <= transcript.length) delete pending[mode];
+  const next: Row = { ...current, pending };
+  if (result && (!prior || Number(prior.source_chars || 0) <= transcript.length)) {
+    next[mode] = { ...result, source_chars: transcript.length, updated_at: new Date().toISOString() };
+  } else if (!result) {
+    next.interpret_error = { mode, at: new Date().toISOString() };
+  }
+  await admin.from("smyl_mila_interviews").update({ result: next, updated_at: new Date().toISOString() }).eq("id", rowId);
+  return next;
+}
+
+async function sessionTokens(tenantId: string, id: string): Promise<{ input: number; output: number }> {
+  const { data } = await admin.from("smyl_ai_usage_log").select("input_tokens,output_tokens")
+    .eq("tenant_id", tenantId).like("request_id", `${id}:%`).limit(1000);
+  let input = 0, output = 0;
+  for (const r of data || []) { input += Number(r.input_tokens) || 0; output += Number(r.output_tokens) || 0; }
+  return { input, output };
+}
+
+function alertsOf(result: Row): Row[] {
+  return Array.isArray(result?.alerts) ? result.alerts : [];
+}
+
+async function publicStatus(row: Row) {
   const result = row.result || {};
+  const pending = result.pending || {};
   return {
     id: row.id,
     status: row.status,
@@ -155,10 +254,13 @@ function publicStatus(row: Row) {
     consent: !!row.consent_at,
     segments: row.segments,
     audio_seconds: row.audio_seconds,
-    tokens: { input: Number(row.input_tokens) || 0, output: Number(row.output_tokens) || 0 },
+    tokens: await sessionTokens(row.tenant_id, row.id),
     finished: !!result.finished_at,
     history: result.history || null,
     exam: result.exam || null,
+    alerts: alertsOf(result),
+    realtime: result.realtime ? { active: !!result.realtime.started_at && !result.realtime.finished_at, finished: !!result.realtime.finished_at } : null,
+    interpreting: !!(pending.history || pending.exam),
     processing: !!(row.busy_until && Date.parse(row.busy_until) > Date.now()),
     expires_at: row.expires_at,
   };
@@ -226,7 +328,7 @@ Deno.serve(async (req: Request) => {
       return json(200, { closed: true });
     }
     if (Date.parse(row.expires_at) < Date.now()) return json(410, { error: "La sesión de MILA venció." });
-    return json(200, publicStatus(row));
+    return json(200, await publicStatus(row));
   }
 
   // -------------------------------------------------------------- celular
@@ -247,30 +349,147 @@ Deno.serve(async (req: Request) => {
     if (!updated) return json(409, { error: "Este código ya se usó en otro celular. Genera uno nuevo." });
     const { data: patient } = await admin.from("camila_pacientes").select("nombre,apellido")
       .eq("tenant_id", row.tenant_id).eq("id", row.patient_id).maybeSingle();
-    return json(200, { device, patient: patientLabel(patient), guide: INTERVIEW_GUIDE, expires_at: row.expires_at, max_segment_seconds: MAX_SEGMENT_SECONDS });
+    const full = [patient?.nombre, patient?.apellido].map((v) => cleanText(v, 80)).filter(Boolean).join(" ") || "Paciente";
+    return json(200, { device, patient: full, guide: INTERVIEW_GUIDE, expires_at: row.expires_at, max_segment_seconds: MAX_SEGMENT_SECONDS });
   }
 
   const device = field("device");
   if (!device || !row.device_hash || !sameHash(await sha256(device), row.device_hash)) {
     return json(403, { error: "Este celular no está vinculado a la sesión." });
   }
+  const result: Row = row.result || {};
 
   if (action === "consent") {
     await admin.from("smyl_mila_interviews").update({ consent_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", row.id);
     return json(200, { consent: true });
   }
   if (action === "finish") {
-    const result = { ...(row.result || {}), finished_at: new Date().toISOString() };
-    await admin.from("smyl_mila_interviews").update({ result, updated_at: new Date().toISOString() }).eq("id", row.id);
+    await admin.from("smyl_mila_interviews").update({ result: { ...result, finished_at: new Date().toISOString() }, updated_at: new Date().toISOString() }).eq("id", row.id);
     return json(200, { finished: true });
   }
-  if (action === "state") return json(200, { consent: !!row.consent_at, segments: row.segments, history: row.result?.history || null, exam: row.result?.exam || null });
+  if (action === "state") {
+    const pending = result.pending || {};
+    return json(200, {
+      consent: !!row.consent_at, segments: row.segments, history: result.history || null, exam: result.exam || null,
+      alerts: alertsOf(result), interpreting: !!(pending.history || pending.exam), tokens: await sessionTokens(row.tenant_id, row.id),
+      audio_seconds: row.audio_seconds,
+      realtime_active: !!(result.realtime?.started_at && !result.realtime?.finished_at),
+    });
+  }
+  if (!row.consent_at) return json(409, { error: "Primero registra el consentimiento del paciente." });
+
+  // ---- MILA entrevista: abrir la conversación de voz
+  if (action === "realtime") {
+    if (!OPENAI_API_KEY) return json(503, { error: "MILA no está configurada todavía." });
+    const sdp = field("sdp");
+    if (!sdp || sdp.length > 100_000) return json(400, { error: "Falta la oferta de audio." });
+    if (result.realtime?.started_at && !result.realtime?.finished_at) {
+      return json(409, { error: "Ya hay una entrevista de MILA en curso en esta sesión." });
+    }
+    if (CONSUMABLES_ENFORCED) {
+      const { data: wallet } = await admin.from("smyl_wallets").select("balance_units")
+        .eq("tenant_id", row.tenant_id).eq("resource", "mila_seconds").maybeSingle();
+      if (!wallet || Number(wallet.balance_units) < 120) return json(402, { error: "No hay tiempo de MILA suficiente para una entrevista." });
+    }
+    const { data: patient } = await admin.from("camila_pacientes").select("nombre")
+      .eq("tenant_id", row.tenant_id).eq("id", row.patient_id).maybeSingle();
+    const session = {
+      type: "realtime",
+      model: REALTIME_MODEL,
+      instructions: buildInterviewerInstructions(firstName(patient?.nombre)),
+      max_output_tokens: 600,
+      audio: {
+        input: {
+          transcription: { model: REALTIME_TRANSCRIBE_MODEL, languages: ["es"] },
+          turn_detection: { type: "server_vad", threshold: 0.5, prefix_padding_ms: 300, silence_duration_ms: 800, create_response: true },
+        },
+        output: { voice: REALTIME_VOICE },
+      },
+      tools: INTERVIEWER_TOOLS,
+      tool_choice: "auto",
+    };
+    try {
+      const provider = new FormData();
+      provider.set("sdp", sdp);
+      provider.set("session", JSON.stringify(session));
+      const resp = await fetch("https://api.openai.com/v1/realtime/calls", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
+        body: provider,
+      });
+      const answer = await resp.text();
+      if (!resp.ok) {
+        console.error("[mila-interview:realtime]", row.id, resp.status, answer.slice(0, 400));
+        return json(502, { error: "No se pudo abrir la conversación de voz." });
+      }
+      const startedAt = new Date().toISOString();
+      const { data: fresh } = await admin.from("smyl_mila_interviews").select("result").eq("id", row.id).maybeSingle();
+      await admin.from("smyl_mila_interviews").update({
+        result: { ...(fresh?.result || {}), realtime: { started_at: startedAt } },
+        updated_at: startedAt,
+      }).eq("id", row.id);
+      return json(200, { answer_sdp: answer, started_at: startedAt });
+    } catch (error) {
+      console.error("[mila-interview:realtime]", row.id, error instanceof Error ? error.message : error);
+      return json(502, { error: "No se pudo conectar con el servicio de voz." });
+    }
+  }
+
+  if (action === "realtime_turn") {
+    const role = field("role") === "mila" ? "MILA" : "Paciente";
+    const text = cleanText(field("text"), 2000);
+    if (!text) return json(200, { ok: true });
+    const fullTranscript = `${row.transcript_history ? `${row.transcript_history}\n` : ""}${role}: ${text}`.slice(-MAX_TRANSCRIPT);
+    await admin.from("smyl_mila_interviews").update({ transcript_history: fullTranscript, updated_at: new Date().toISOString() }).eq("id", row.id);
+    return json(200, { ok: true });
+  }
+
+  if (action === "realtime_alert") {
+    const tipo = ALERT_TYPES.includes(field("tipo")) ? field("tipo") : "otra";
+    const detalle = cleanText(field("detalle"), 240);
+    const { data: fresh } = await admin.from("smyl_mila_interviews").select("result").eq("id", row.id).maybeSingle();
+    const current = fresh?.result || {};
+    const alerts = alertsOf(current).slice(0, 19);
+    alerts.push({ tipo, label: (ALERT_LABELS as Record<string, string>)[tipo], detalle, at: new Date().toISOString() });
+    await admin.from("smyl_mila_interviews").update({ result: { ...current, alerts }, updated_at: new Date().toISOString() }).eq("id", row.id);
+    return json(200, { ok: true, alerts });
+  }
+
+  if (action === "realtime_finish") {
+    const rt = result.realtime || {};
+    if (!rt.started_at) return json(409, { error: "No hay una entrevista de MILA en curso." });
+    if (rt.finished_at) {
+      return json(200, { history: result.history || null, alerts: alertsOf(result), tokens: await sessionTokens(row.tenant_id, row.id), seconds: rt.seconds || 0 });
+    }
+    const seconds = Math.max(1, Math.min(MAX_REALTIME_SECONDS, Math.ceil((Date.now() - Date.parse(rt.started_at)) / 1000)));
+    // Tokens de voz que reporta OpenAI en cada response.done; los suma el celular (se marcan como reportados por el cliente).
+    const reported = body.usage && typeof body.usage === "object" ? body.usage : {};
+    const voiceUsage: Usage = { input_tokens: tokenCount(reported.input_tokens), output_tokens: tokenCount(reported.output_tokens) };
+    const key = `${row.id}:rt`;
+    const accepted = await consumeSeconds(row.tenant_id, "history", key, seconds, REALTIME_MODEL, {
+      context: "history_realtime_interview",
+      token_usage: { ...voiceUsage, total_tokens: voiceUsage.input_tokens + voiceUsage.output_tokens, usage_source: "client_reported_openai_response_done" },
+      extract_model: EXTRACT_MODEL,
+    });
+    await logUsage(row.tenant_id, "history", REALTIME_MODEL, key, voiceUsage, seconds, "ok");
+    const { data: fresh } = await admin.from("smyl_mila_interviews").select("result,transcript_history,audio_seconds").eq("id", row.id).maybeSingle();
+    const finishedAt = new Date().toISOString();
+    await admin.from("smyl_mila_interviews").update({
+      result: { ...(fresh?.result || {}), realtime: { ...rt, finished_at: finishedAt, seconds } },
+      audio_seconds: (Number(fresh?.audio_seconds) || 0) + seconds,
+      updated_at: finishedAt,
+    }).eq("id", row.id);
+    const transcript = String(fresh?.transcript_history || "");
+    const next = transcript ? await interpretAndStore(row.id, row.tenant_id, "history", transcript, key) : fresh?.result;
+    if (!accepted) return json(402, { error: "Se agotó el tiempo de MILA de la clínica." });
+    return json(200, { history: next?.history || null, alerts: alertsOf(next || {}), tokens: await sessionTokens(row.tenant_id, row.id), seconds });
+  }
+
   if (action !== "segment" || !form) return json(400, { error: "Acción no válida." });
 
-  // ---- segmento de audio
-  if (!row.consent_at) return json(409, { error: "Primero registra el consentimiento del paciente." });
+  // ---- modo «Yo pregunto»: segmento de audio
   if (!OPENAI_API_KEY) return json(503, { error: "MILA no está configurada todavía." });
-  const mode = field("mode") === "exam" ? "exam" : "history";
+  const mode: Mode = field("mode") === "exam" ? "exam" : "history";
   const audio = form.get("audio");
   if (!(audio instanceof File)) return json(400, { error: "Falta el audio." });
   const mime = audio.type.split(";")[0].toLowerCase();
@@ -281,7 +500,7 @@ Deno.serve(async (req: Request) => {
   // Un segmento a la vez por sesión (evita que dos envíos pisen la transcripción).
   const now = new Date();
   const { data: locked } = await admin.from("smyl_mila_interviews")
-    .update({ busy_until: new Date(now.getTime() + 120_000).toISOString() })
+    .update({ busy_until: new Date(now.getTime() + 90_000).toISOString() })
     .eq("id", row.id).or(`busy_until.is.null,busy_until.lt.${now.toISOString()}`).select("*").maybeSingle();
   if (!locked) return json(429, { error: "MILA todavía procesa el segmento anterior. Intenta en unos segundos." });
 
@@ -296,7 +515,6 @@ Deno.serve(async (req: Request) => {
 
   const segmentNo = (Number(locked.segments) || 0) + 1;
   const requestId = `${row.id}:${segmentNo}`;
-  const started = Date.now();
   try {
     const heard = await transcribe(audio, mime, mode);
     const seconds = Math.max(1, Math.min(MAX_SEGMENT_SECONDS, Math.ceil(heard.seconds ?? clientSeconds)));
@@ -304,88 +522,36 @@ Deno.serve(async (req: Request) => {
     const fullTranscript = heard.text
       ? `${locked[key] ? `${locked[key]}\n` : ""}${heard.text}`.slice(-MAX_TRANSCRIPT)
       : String(locked[key] || "");
-
-    let interpreted: Row | null = null;
-    let interpretUsage: Usage = { input_tokens: 0, output_tokens: 0 };
-    let interpretError = false;
-    if (heard.text) {
-      try {
-        const out = await interpret(mode, fullTranscript);
-        interpreted = out.result;
-        interpretUsage = out.usage;
-      } catch (error) {
-        interpretError = true;
-        console.warn("[mila-interview:interpret]", requestId, error instanceof Error ? error.message : error);
-      }
-    }
-    const usage: Usage = {
-      input_tokens: heard.usage.input_tokens + interpretUsage.input_tokens,
-      output_tokens: heard.usage.output_tokens + interpretUsage.output_tokens,
-    };
-
-    // Consumo: segundos de MILA (saldo) + tokens reales (auditoría de IA).
-    const { data: consumed, error: consumeError } = await admin.rpc("smyl_consume", {
-      p_tenant_id: row.tenant_id,
-      p_resource: "mila_seconds",
-      p_quantity_units: seconds,
-      p_idempotency_key: `mila-interview:${requestId}`,
-      p_source_type: mode === "history" ? "mila_history_interview" : "mila_exam_dictation",
-      p_source_id: requestId,
-      p_provider: "openai",
-      p_provider_model: TRANSCRIBE_MODEL,
-      p_metadata: {
-        context: mode,
-        bytes: audio.size,
-        extract_model: EXTRACT_MODEL,
-        token_usage: {
-          transcription_input_tokens: heard.usage.input_tokens,
-          transcription_output_tokens: heard.usage.output_tokens,
-          interpretation_input_tokens: interpretUsage.input_tokens,
-          interpretation_output_tokens: interpretUsage.output_tokens,
-          input_tokens: usage.input_tokens,
-          output_tokens: usage.output_tokens,
-          total_tokens: usage.input_tokens + usage.output_tokens,
-        },
-      },
-      p_enforce: CONSUMABLES_ENFORCED,
+    const accepted = await consumeSeconds(row.tenant_id, mode, requestId, seconds, TRANSCRIBE_MODEL, {
+      context: mode, bytes: audio.size, token_usage: { ...heard.usage, total_tokens: heard.usage.input_tokens + heard.usage.output_tokens },
     });
-    if (consumeError) console.error("[mila-interview:consume]", requestId, consumeError.message);
-    const consumedRow = Array.isArray(consumed) ? consumed[0] : consumed;
-    await admin.from("smyl_ai_usage_log").insert({
-      tenant_id: row.tenant_id,
-      feature: mode === "history" ? "mila_history_interview" : "mila_exam_dictation",
-      model: EXTRACT_MODEL,
-      request_id: requestId,
-      outcome: interpretError ? "incomplete" : "ok",
-      input_tokens: usage.input_tokens,
-      output_tokens: usage.output_tokens,
-      duration_ms: seconds * 1000,
-      estimated_cost_usd: cost(usage),
-    }).then(({ error }) => { if (error) console.error("[mila-interview:usage-log]", requestId, error.message); });
-
-    const result = { ...(locked.result || {}) };
-    if (interpreted) result[mode] = { ...interpreted, updated_at: new Date().toISOString() };
+    await logUsage(row.tenant_id, mode, TRANSCRIBE_MODEL, requestId, heard.usage, seconds, "ok");
+    const nextResult = { ...(locked.result || {}) };
+    if (heard.text) nextResult.pending = { ...(nextResult.pending || {}), [mode]: fullTranscript.length };
     await admin.from("smyl_mila_interviews").update({
       [key]: fullTranscript,
-      result,
+      result: nextResult,
       segments: segmentNo,
       audio_seconds: (Number(locked.audio_seconds) || 0) + seconds,
-      input_tokens: (Number(locked.input_tokens) || 0) + usage.input_tokens,
-      output_tokens: (Number(locked.output_tokens) || 0) + usage.output_tokens,
       busy_until: null,
       updated_at: new Date().toISOString(),
     }).eq("id", row.id);
 
-    if (consumedRow && consumedRow.accepted === false) return json(402, { error: "Se agotó el tiempo de MILA de la clínica." });
+    // La interpretación no bloquea al celular: corre después de responder.
+    if (heard.text) {
+      const job = interpretAndStore(row.id, row.tenant_id, mode, fullTranscript, requestId);
+      if (HAS_WAIT_UNTIL) background(job);
+      else await job;
+    }
+
+    if (!accepted) return json(402, { error: "Se agotó el tiempo de MILA de la clínica." });
     return json(200, {
       heard: heard.text,
       seconds,
-      tokens: { input: usage.input_tokens, output: usage.output_tokens },
-      interpreted: !!interpreted,
-      warning: !heard.text ? "No se reconoció voz en este segmento." : interpretError ? "Se guardó lo escuchado, pero MILA no pudo interpretarlo. Se reintentará con el siguiente segmento." : "",
-      history: result.history || null,
-      exam: result.exam || null,
-      elapsed_ms: Date.now() - started,
+      interpreting: !!heard.text,
+      warning: heard.text ? "" : "No se reconoció voz en este segmento.",
+      history: nextResult.history || null,
+      exam: nextResult.exam || null,
     });
   } catch (error) {
     await admin.from("smyl_mila_interviews").update({ busy_until: null }).eq("id", row.id);

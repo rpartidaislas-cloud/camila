@@ -1,41 +1,118 @@
-/* SMYL · MILA en el celular (diálogo de la computadora + borrador en el editor de historia). */
-.mila-iv{width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;border:1px solid var(--smyl-border,#dfe5ea);border-radius:var(--smyl-radius-dialog,16px);padding:24px;background:var(--smyl-surface,#fff);color:var(--smyl-ink,#0b2238);box-shadow:var(--shadow-dialog,0 24px 64px rgba(11,34,56,.24));font-family:var(--smyl-font,inherit)}
-.mila-iv::backdrop{background:var(--smyl-backdrop,rgba(11,34,56,.45))}
-.mila-iv-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px}
-.mila-iv-head h2{margin:4px 0 0;font-size:22px;line-height:1.2}
-.mila-iv-kicker{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--smyl-accent,#0f8a8a)}
-.mila-iv-pair{display:grid;grid-template-columns:220px 1fr;gap:24px;align-items:center;padding:16px;border-radius:var(--smyl-radius-panel,12px);background:var(--smyl-surface-subtle,#f5f8fa)}
-.mila-iv-qr{width:220px;height:220px;display:grid;place-items:center;background:#fff;border-radius:12px;border:1px solid var(--smyl-border,#dfe5ea)}
-.mila-iv-qr svg{width:100%;height:100%}
-.mila-iv-howto{margin:0 0 12px;padding-left:20px;display:grid;gap:6px;font-size:14px}
-.mila-iv-note{margin:8px 0 0;font-size:12px;color:var(--smyl-text-muted,#5b6b7a)}
-.mila-iv-steps{list-style:none;margin:16px 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
-.mila-iv-steps li{font-size:13px;padding:6px 12px;border-radius:999px;border:1px solid var(--smyl-border,#dfe5ea);color:var(--smyl-text-secondary,#40556a)}
-.mila-iv-steps li::before{content:'○ '}
-.mila-iv-steps li[data-done="true"]{border-color:var(--smyl-accent,#0f8a8a);color:var(--smyl-accent,#0f8a8a);background:var(--smyl-accent-subtle,#e6f5f5)}
-.mila-iv-steps li[data-done="true"]::before{content:'✓ '}
-.mila-iv-usage{font-size:13px;color:var(--smyl-text-secondary,#40556a);margin:0 0 12px}
-.mila-iv-block{border:1px solid var(--smyl-border,#dfe5ea);border-radius:var(--smyl-radius-panel,12px);padding:16px;margin-top:12px}
-.mila-iv-block h3{margin:0 0 10px;font-size:16px}
-.mila-iv-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-.mila-iv-chips span{font-size:12px;padding:4px 10px;border-radius:999px;background:#fff6dd;color:#7a5a00;border:1px solid #f1dc9b}
-.mila-iv-chips span[data-state="yes"],.mila-iv-chips span[data-state="no"]{background:var(--smyl-accent-subtle,#e6f5f5);color:var(--smyl-accent,#0f8a8a);border-color:transparent}
-.mila-iv-chips span[data-state="unknown"]{background:#eef1f4;color:#40556a;border-color:transparent}
-.mila-iv-follow{font-size:13px;margin:8px 0;color:var(--smyl-text-secondary,#40556a)}
-.mila-iv-findings{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:6px}
-.mila-iv-findings label{display:flex;gap:10px;align-items:flex-start;min-height:44px;padding:8px;border-radius:10px;background:var(--smyl-surface-subtle,#f5f8fa);cursor:pointer}
-.mila-iv-findings input{width:18px;height:18px;margin-top:2px;flex:none}
-.mila-iv-findings small{display:block;font-size:12px;color:var(--smyl-text-muted,#5b6b7a);margin-top:2px}
-.mila-iv-flag{font-style:normal;font-size:12px;color:#8a5a00;background:#fff3cd;border-radius:6px;padding:1px 6px}
-.mila-iv-ok{font-style:normal;font-size:12px;color:var(--smyl-accent,#0f8a8a)}
-.mila-iv-error{color:var(--smyl-danger,#b42318);background:#fdecea;border-radius:10px;padding:10px 12px;font-size:14px}
-.mila-iv-notice{font-size:13px;background:var(--smyl-surface-subtle,#f5f8fa);border-radius:10px;padding:10px 12px}
-.mila-iv-foot{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-top:16px}
+/* SMYL · MILA en el celular: diálogo de la computadora + borrador en el editor de historia. */
+.mila-iv{--iv-ink:var(--smyl-ink,#0b2238);--iv-muted:var(--smyl-text-muted,#5b6b7a);--iv-line:var(--smyl-border,#dfe5ea);--iv-soft:var(--smyl-surface-subtle,#f5f8fa);--iv-teal:var(--smyl-accent,#0f8a8a);--iv-teal-soft:var(--smyl-accent-subtle,#e6f5f5);--iv-navy:var(--smyl-primary,#0b2238);--iv-danger:var(--smyl-danger,#b42318);
+  position:fixed;inset:0;margin:auto!important;box-sizing:border-box;width:min(760px,calc(100vw - 32px));max-height:calc(100dvh - 32px);height:fit-content;display:flex;flex-direction:column;overflow:hidden;
+  border:1px solid var(--iv-line);border-radius:var(--smyl-radius-dialog,18px);padding:0;background:var(--smyl-surface,#fff);color:var(--iv-ink);box-shadow:var(--shadow-dialog,0 24px 64px rgba(11,34,56,.24));font-family:var(--smyl-font,inherit)}
+.mila-iv:not([open]){display:none}
+.mila-iv::backdrop{background:var(--smyl-backdrop,rgba(11,34,56,.5));backdrop-filter:blur(2px)}
+.mila-iv svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .mila-iv .btn{min-height:44px}
+
+/* Cabecera */
+.mila-iv-head{display:flex;align-items:center;gap:14px;padding:20px 24px 16px;background:linear-gradient(135deg,#0b2238 0%,#123a5a 100%);color:#fff}
+.mila-iv-avatar{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-weight:800;font-size:17px;color:#06202b;background:linear-gradient(145deg,#5fe0d2,#55aaf0);flex:none}
+.mila-iv-title{flex:1;min-width:0}
+.mila-iv-kicker{font-size:12px;font-weight:700;letter-spacing:.08em;color:#8fe6dc}
+.mila-iv-head h2{margin:2px 0 4px;font-size:22px;line-height:1.2;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mila-iv-status{margin:0;font-size:13px;color:#c9d9e6;display:flex;align-items:center;gap:8px}
+.mila-iv-pulse{width:8px;height:8px;border-radius:50%;background:#8aa3b6;flex:none}
+.mila-iv-status[data-live="true"] .mila-iv-pulse{background:#5fe0d2;box-shadow:0 0 0 0 rgba(95,224,210,.6);animation:mila-iv-ping 1.6s infinite}
+@keyframes mila-iv-ping{70%{box-shadow:0 0 0 8px rgba(95,224,210,0)}100%{box-shadow:0 0 0 0 rgba(95,224,210,0)}}
+.mila-iv-icon-btn{width:44px;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;display:grid;place-items:center;cursor:pointer;flex:none}
+.mila-iv-icon-btn:hover{background:rgba(255,255,255,.16)}
+
+/* Avance */
+.mila-iv-stepper{list-style:none;margin:0;padding:14px 24px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;border-bottom:1px solid var(--iv-line);background:var(--smyl-surface,#fff)}
+.mila-iv-stepper li{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--iv-muted);position:relative}
+.mila-iv-step-dot{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--iv-line);background:var(--iv-soft);font-size:13px;font-weight:800;flex:none}
+.mila-iv-step-dot svg{width:16px;height:16px}
+.mila-iv-stepper li[data-state="done"]{color:var(--iv-teal)}
+.mila-iv-stepper li[data-state="done"] .mila-iv-step-dot{background:var(--iv-teal);border-color:var(--iv-teal);color:#fff}
+.mila-iv-stepper li[data-state="current"]{color:var(--iv-ink);font-weight:700}
+.mila-iv-stepper li[data-state="current"] .mila-iv-step-dot{border-color:var(--iv-navy);background:var(--iv-navy);color:#fff}
+
+/* Cuerpo */
+.mila-iv-body{padding:20px 24px;overflow:auto;display:grid;gap:14px}
+.mila-iv-pair{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:center}
+.mila-iv-qr-frame{padding:12px;border-radius:18px;background:linear-gradient(145deg,#e6f5f5,#eaf3fd);border:1px solid var(--iv-line)}
+.mila-iv-qr{width:212px;height:212px;display:grid;place-items:center;background:#fff;border-radius:12px;overflow:hidden}
+.mila-iv-qr svg{width:100%;height:100%;stroke:none}
+.mila-iv-skeleton{font-size:13px;color:var(--iv-muted)}
+.mila-iv-pair-copy h3{margin:0 0 12px;font-size:17px}
+.mila-iv-howto{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:10px}
+.mila-iv-howto li{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.4}
+.mila-iv-howto svg{color:var(--iv-teal);margin-top:1px}
+.mila-iv-pair-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.mila-iv-ghost{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--iv-line);background:#fff;color:var(--iv-ink);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.mila-iv-ghost:hover{border-color:var(--iv-teal);color:var(--iv-teal)}
+.mila-iv-note{margin:0;font-size:12px;color:var(--iv-muted);line-height:1.4}
+
+.mila-iv-live,.mila-iv-empty{display:flex;gap:16px;align-items:center;padding:18px;border-radius:14px;background:var(--iv-soft);border:1px solid var(--iv-line)}
+.mila-iv-empty{flex-direction:column;align-items:flex-start}
+.mila-iv-live h3,.mila-iv-empty h3{margin:0 0 4px;font-size:16px}
+.mila-iv-live p,.mila-iv-empty p{margin:0;font-size:14px;color:var(--iv-muted)}
+.mila-iv-wave{display:flex;align-items:center;gap:4px;height:40px;padding:0 6px;flex:none}
+.mila-iv-wave i{width:5px;height:12px;border-radius:3px;background:var(--iv-teal);opacity:.45}
+.mila-iv-wave.is-on i{opacity:1;animation:mila-iv-wave 1.1s ease-in-out infinite}
+.mila-iv-wave.is-on i:nth-child(2){animation-delay:.15s}.mila-iv-wave.is-on i:nth-child(3){animation-delay:.3s}.mila-iv-wave.is-on i:nth-child(4){animation-delay:.45s}.mila-iv-wave.is-on i:nth-child(5){animation-delay:.6s}
+@keyframes mila-iv-wave{50%{height:34px}}
+
+.mila-iv-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0}
+.mila-iv-stats div{padding:10px 12px;border-radius:12px;border:1px solid var(--iv-line);background:#fff}
+.mila-iv-stats dt{font-size:12px;color:var(--iv-muted)}
+.mila-iv-stats dd{margin:2px 0 0;font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+
+.mila-iv-alerts{display:flex;gap:12px;align-items:flex-start;border:1.5px solid var(--iv-danger);background:#fdecea;color:#7a1a12;border-radius:14px;padding:14px 16px;font-size:14px}
+.mila-iv-alerts-icon{color:var(--iv-danger);margin-top:1px}
+.mila-iv-alerts ul{margin:4px 0 0;padding-left:18px}
+
+.mila-iv-card{border:1px solid var(--iv-line);border-radius:14px;padding:16px;display:grid;gap:12px;background:#fff}
+.mila-iv-card>header{display:flex;gap:12px;align-items:center}
+.mila-iv-card-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--iv-teal-soft);color:var(--iv-teal);flex:none}
+.mila-iv-card h3{margin:0;font-size:16px}
+.mila-iv-card header p{margin:2px 0 0;font-size:13px;color:var(--iv-muted)}
+.mila-iv-progress{height:6px;border-radius:999px;background:var(--iv-soft);overflow:hidden}
+.mila-iv-progress span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#0f8a8a,#55aaf0)}
+.mila-iv-chips{display:flex;flex-wrap:wrap;gap:6px}
+.mila-iv-chips span{display:inline-flex;gap:6px;align-items:center;font-size:12px;padding:5px 10px;border-radius:999px;background:#fff6dd;color:#7a5a00;border:1px solid #f1dc9b}
+.mila-iv-chips b{font-weight:700}
+.mila-iv-chips span[data-state="yes"],.mila-iv-chips span[data-state="no"]{background:var(--iv-teal-soft);color:var(--iv-teal);border-color:transparent}
+.mila-iv-chips span[data-state="unknown"]{background:#eef1f4;color:#40556a;border-color:transparent}
+.mila-iv-follow{font-size:13px;border-left:3px solid var(--iv-navy);padding:8px 12px;background:var(--iv-soft);border-radius:0 10px 10px 0}
+.mila-iv-follow ul{margin:4px 0 0;padding-left:18px}
+.mila-iv-card-actions{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.mila-iv-findings{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.mila-iv-findings label{display:flex;gap:12px;align-items:center;min-height:52px;padding:8px 12px;border-radius:12px;background:var(--iv-soft);cursor:pointer}
+.mila-iv-findings input{width:18px;height:18px;flex:none;accent-color:var(--iv-teal)}
+.mila-iv-tooth{min-width:40px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--iv-navy);color:#fff;font-weight:800;font-size:14px;font-variant-numeric:tabular-nums;flex:none}
+.mila-iv-finding-copy{flex:1;min-width:0}
+.mila-iv-finding-copy strong{display:block;font-size:14px}
+.mila-iv-finding-copy small{display:block;font-size:12px;color:var(--iv-muted);margin-top:1px}
+.mila-iv-flag{font-style:normal;font-size:12px;color:#8a5a00;background:#fff3cd;border-radius:6px;padding:2px 8px;flex:none}
+.mila-iv-ok{font-style:normal;font-size:12px;color:var(--iv-teal);font-weight:700;flex:none}
+.mila-iv-error{margin:0;color:var(--iv-danger);background:#fdecea;border-radius:10px;padding:10px 12px;font-size:14px}
+.mila-iv-notice{margin:0;font-size:13px;background:var(--iv-teal-soft);color:#0b4f4f;border-radius:10px;padding:10px 12px}
+
+/* Pie */
+.mila-iv-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 24px;border-top:1px solid var(--iv-line);background:var(--iv-soft)}
+.mila-iv-link,.mila-iv-danger{min-height:44px;padding:0 12px;border-radius:10px;border:0;background:transparent;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.mila-iv-link{color:var(--iv-navy)}
+.mila-iv-danger{color:var(--iv-danger)}
+.mila-iv-link:hover,.mila-iv-danger:hover{background:rgba(11,34,56,.06)}
+.mila-iv button:focus-visible{outline:3px solid var(--iv-teal);outline-offset:2px}
+
+@media (prefers-reduced-motion:reduce){.mila-iv-status[data-live="true"] .mila-iv-pulse,.mila-iv-wave.is-on i{animation:none}}
 @media (max-width:640px){
-  .mila-iv{padding:16px}
-  .mila-iv-pair{grid-template-columns:1fr;justify-items:center}
-  .mila-iv-foot .btn,.mila-iv-block .btn{width:100%}
+  .mila-iv{width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}
+  .mila-iv-head{padding:16px}
+  .mila-iv-head h2{font-size:19px}
+  .mila-iv-stepper{padding:12px 16px;gap:4px}
+  .mila-iv-stepper li{flex-direction:column;text-align:center;font-size:12px;gap:4px}
+  .mila-iv-body{padding:16px}
+  .mila-iv-pair{grid-template-columns:1fr;justify-items:center;text-align:left}
+  .mila-iv-pair-copy{width:100%}
+  .mila-iv-stats dd{font-size:16px}
+  .mila-iv-card-actions .btn{width:100%}
+  .mila-iv-foot{padding:10px 16px}
 }
 
 /* Botón en la cabecera de la historia */
@@ -58,3 +135,4 @@
 .p360-mila-evidence li{background:#fff;border-radius:8px;padding:8px 10px}
 .p360-mila-evidence q{display:block;font-size:12px;color:var(--smyl-text-muted,#5b6b7a);margin-top:2px}
 .p360-mila-evidence em{font-size:12px;color:#8a5a00}
+.mila-iv:focus,.mila-iv:focus-visible{outline:none}

@@ -1,5 +1,22 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-15 — Claude Code — Rediseño del diálogo «Entrevista con MILA» (computadora)
+
+- El diálogo ahora queda centrado (antes podía quedar pegado arriba a la izquierda por el `dialog{margin:0}` global), con cabecera azul marino: iniciales y nombre completo del paciente, estado en vivo con indicador animado y botón de minimizar.
+- Avance en 4 pasos (Escanear → Consentimiento → Entrevista → Revisar) según el estado real de la sesión; el contenido cambia por fase: QR grande con instrucciones e íconos, «Celular conectado», «Entrevista en curso» con onda animada, «Código vencido» con botón para generar otro.
+- Nuevo: **Usar esta computadora** abre la entrevista en una pestaña nueva (mismo enlace de un solo uso, con confirmación). Cuenta regresiva «vence en N min».
+- Consumo en tres indicadores (minutos, tokens de entrada, tokens de salida). Historia con barra de avance «N de 7 secciones», chips por sección y lista de lo que falta preguntar; exploración con número de pieza destacado, cara y cita. Pie con «Generar código nuevo» y «Terminar y borrar sesión» (en rojo).
+- Solo cambia la vista (`smyl-mila-interview.js`/`.css` `v=3`, caché `mila-dialog-v3`); sin cambios de backend. Respeta `prefers-reduced-motion`, objetivos táctiles de 44 px y texto ≥ 12 px. QA Playwright a 1280 y 390 px: centrado, sin desbordamiento, 0 textos menores de 12 px.
+
+## 2026-11-15 — Claude Code — MILA entrevista por voz, alertas inmediatas y modo de grabación más rápido
+
+- **«MILA hace las preguntas»** (nuevo, predeterminado en el celular): conversación por voz con OpenAI Realtime (WebRTC, mismo patrón que `mila-realtime-session`). MILA saluda al paciente por su primer nombre, abre con motivo de consulta y dolor (inicio, intensidad 0-10, qué lo empeora), sigue la guía una pregunta a la vez, repregunta, hace un resumen en voz alta para confirmarlo y se despide. Instrucciones en `buildInterviewerInstructions()` (`_shared/mila-interview-contract.mjs`): sin diagnósticos, consejos, precios ni datos fuera de la guía; «Eso lo revisará el doctor».
+- **Alertas inmediatas**: la función `registrar_alerta` (alergia grave, anticoagulante, cardiaco/marcapasos, embarazo, otra) pone un recuadro rojo en el celular y en la computadora al momento. También se marcan en rojo las alergias graves y alertas del borrador del modo «Yo pregunto».
+- **Paciente**: el celular muestra y pide confirmar nombre completo antes del consentimiento; el diálogo de la computadora se titula «Entrevista de <nombre completo>».
+- **Más rápido** («Yo pregunto, MILA escucha»): segmentos de 60 s; el servidor responde en cuanto transcribe y la interpretación corre en segundo plano (`EdgeRuntime.waitUntil`) con `reasoning.effort=low` (configurable con `OPENAI_MILA_INTERVIEW_REASONING`, vacío = no se envía). Un borrador más viejo no pisa uno más nuevo (`source_chars`).
+- **Consumo**: segundos de voz medidos por el servidor (inicio→fin, máx. 45 min) en `smyl_consume`; tokens de voz de `response.done` reportados por el celular (marcados `client_reported_openai_response_done`) y tokens de transcripción/interpretación medidos por el servidor, todos en `smyl_ai_usage_log` con `request_id` `<sesión>:<paso>`. Los tokens de la sesión se suman desde ese registro.
+- Sin migraciones nuevas. **Requiere volver a desplegar** `mila-interview` (`supabase functions deploy mila-interview --no-verify-jwt`). Versiones: MILA `v2`, consumo `v9`, caché `mila-voice-interview-v1`. Web y `mobile/www` sincronizados.
+- Verificación: `tests/smyl-mila-interview.test.mjs` 15/15; suite completa con los mismos 15 fallos que `main` (ninguno nuevo); `deno check` OK; Playwright 390 px con WebRTC simulado (confirmar paciente → consentimiento → MILA entrevista → alerta roja → terminar → cobertura) y modo grabación con sondeo de la interpretación. Falta prueba real con OpenAI Realtime y celular físico.
 ## 2026-11-15 — Claude — Paciente por registrar, fase 2b: estado «por verificar»
 
 - Lo que la persona envía por el enlace ya no deja la ficha en `completo`: queda `por_verificar`. En Pacientes aparece como **Por verificar** con el botón **Confirmar datos** (pasa a `completo`; usa el permiso normal de editar pacientes). Guardar la ficha con **Editar** también la confirma.

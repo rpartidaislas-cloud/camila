@@ -662,3 +662,10 @@ body.smyl-ui-governed #p-agenda .schedule-head p{display:none}
   .schedule-month-event{min-height:8px;height:8px;margin-top:2px;padding:0;border-left-width:0;border-radius:4px;background:var(--schedule-accent)}
   .schedule-month-event>i,.schedule-month-event span,.schedule-month-event strong,.schedule-month-closed{display:none}
 }
+
+/* Mes: arrastrar y soltar */
+.schedule-month-event[draggable=true]{cursor:grab}
+.schedule-month-event.is-dragging{opacity:.45}
+.schedule-month-day.is-drop{background:#e3f1ec;box-shadow:inset 0 0 0 2px #2f7469}
+.schedule-month-number:focus-visible{outline:2px solid #2f7469;outline-offset:2px}
+.schedule-move-confirm p{margin:0 0 12px;line-height:1.5}
