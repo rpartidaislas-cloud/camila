@@ -617,3 +617,5 @@ body.smyl-ui-governed #p-agenda .schedule-dialog :is(input,select,textarea){min-
 
 .sched-material-row strong{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .sched-material-row i{font-style:normal}
+
+.schedule-pending-chip{display:inline-block;justify-self:start;margin:2px 0;padding:1px 8px;border-radius:999px;background:#fff4d6;color:#7a5200;font-size:12px;font-weight:600;line-height:1.5}
