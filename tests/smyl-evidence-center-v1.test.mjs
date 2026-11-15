@@ -109,14 +109,22 @@ test('el flujo conserva contexto mínimo sin inventar una interpretación', () =
 });
 
 test('la navegación expone semántica y foco accesibles', () => {
-  assert.match(source, /setAttribute\('role', 'tablist'\)/);
-  assert.match(source, /setAttribute\('role', 'tab'\)/);
-  assert.match(source, /setAttribute\('aria-selected'/);
+  assert.match(source, /setAttribute\('role', 'group'\)/);
+  assert.match(source, /setAttribute\('aria-pressed'/);
   assert.match(source, /setAttribute\('aria-labelledby', 'sec-dialog-title'\)/);
   assert.match(source, /setAttribute\('aria-label', `Paso \$\{this\.step \+ 1\} de 2`\)/);
   assert.match(source, /this\.returnFocus\?\.focus\?\.\(\)/);
   assert.match(styles, /@media\s*\(max-width:\s*820px\)/);
   assert.match(styles, /min-height:\s*44px/);
+});
+
+test('el archivo ofrece una sola acción principal y adapta su composición al contenedor', () => {
+  assert.match(source, /Revisar \$\{item\.pendingSuggestions\}/);
+  assert.match(source, /Más acciones/);
+  assert.match(source, /sec-study-menu-action/);
+  assert.match(styles, /container:evidence-center\/inline-size/);
+  assert.match(styles, /@container evidence-center \(max-width:860px\)/);
+  assert.match(styles, /@container evidence-center \(max-width:560px\)/);
 });
 
 test('el diálogo se centra de forma explícita y conserva la hoja inferior móvil', () => {

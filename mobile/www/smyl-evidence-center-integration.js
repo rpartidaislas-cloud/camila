@@ -167,6 +167,8 @@
     const subtype = ['panoramic', 'periapical', 'bitewing'].includes(study?.type) ? study.type : 'other';
     const id = String(study?.id || '');
     const patientFileId = String(study?.patientFileId || study?.patient_file_id || study?.original?.patientFileId || study?.asset?.patient_file_id || '');
+    const pendingSuggestions = Math.max(0, Number(study?.pending) || 0);
+    const reviewedSuggestions = Math.max(0, Number(study?.confirmed) || 0) + Math.max(0, Number(study?.rejected) || 0);
     return {
       id,
       modality: 'radiograph_2d',
@@ -174,8 +176,11 @@
       title: String(study?.label || 'Radiografía dental'),
       date: String(study?.date || '').slice(0, 10),
       region: '',
-      status: Number(study?.pending) > 0 ? 'review' : 'draft',
-      findings: Math.max(0, Number(study?.pending) || 0) + Math.max(0, Number(study?.confirmed) || 0),
+      status: study?.workflow === 'completed' && pendingSuggestions === 0 ? 'signed' : pendingSuggestions > 0 ? 'review' : 'draft',
+      findings: pendingSuggestions + Math.max(0, Number(study?.confirmed) || 0),
+      pendingSuggestions,
+      reviewedSuggestions,
+      quality: String(study?.quality || ''),
       source: 'dental_record',
       patientFileId,
       linkedStudyId: id,
@@ -818,6 +823,10 @@
     clearInterval(state.photoTimer);
     finishRadiographIntake(state);
     state.center?.destroy?.();
+    if (state.radiographShelf) {
+      delete state.radiographShelf.dataset.canonicalEvidence;
+      state.radiographShelf.hidden = false;
+    }
     if (state.legacy?.isConnected) state.legacy.hidden = false;
     state.root?.remove();
     if (active === state) active = null;
@@ -838,9 +847,14 @@
     feedback.setAttribute('aria-live', 'polite');
     root.append(centerHost, pathways, feedback);
     legacy.before(root);
-    const state = { token: ++sequence, root, pathways, centerHost, feedback, legacy, tenant: value.tenant, patient: value.patient, fingerprint: '', origins: new Map(), center: null, timer: null, photoTimer: null, photoStudies: [], photoAvailable: null, photoLoading: false, categoryLoading: false, categoryPromise: null, categorySnapshot: { available: false, categories: [], assignments: [], suggestions: global.SmylEvidenceCategories?.suggestions || [] }, pendingRadiographCategory: null, pendingRadiographIntake: null };
+    const radiographShelf = legacy.parentElement?.querySelector('.cw-radiograph-shelf') || null;
+    const state = { token: ++sequence, root, pathways, centerHost, feedback, legacy, radiographShelf, tenant: value.tenant, patient: value.patient, fingerprint: '', origins: new Map(), center: null, timer: null, photoTimer: null, photoStudies: [], photoAvailable: null, photoLoading: false, categoryLoading: false, categoryPromise: null, categorySnapshot: { available: false, categories: [], assignments: [], suggestions: global.SmylEvidenceCategories?.suggestions || [] }, pendingRadiographCategory: null, pendingRadiographIntake: null };
     active = state;
     try {
+      if (radiographShelf) {
+        radiographShelf.dataset.canonicalEvidence = 'true';
+        radiographShelf.hidden = true;
+      }
       state.center = global.SmylEvidenceCenter.mount(centerHost, {
         items: [],
         creationAvailability: modality => {

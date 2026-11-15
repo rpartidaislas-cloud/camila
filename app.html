@@ -849,12 +849,12 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-clinic-admin.js?v=12"></script>
 <link rel="stylesheet" href="smyl-professional-directory.css?v=12">
 <script defer src="smyl-professional-directory.js?v=12"></script>
-<link rel="stylesheet" href="smyl-schedule.css?v=22">
+<link rel="stylesheet" href="smyl-schedule.css?v=23">
 <link rel="stylesheet" href="smyl-google-calendar.css?v=2">
 <link rel="stylesheet" href="smyl-schedule-setup.css?v=2">
 <script defer src="smyl-schedule-grid.js?v=2"></script>
 <script defer src="smyl-schedule-slots.js?v=1"></script>
-<script defer src="smyl-schedule.js?v=34"></script>
+<script defer src="smyl-schedule.js?v=35"></script>
 <script defer src="smyl-google-calendar.js?v=2"></script>
 <script defer src="smyl-schedule-message.js?v=2"></script>
 <script defer src="smyl-schedule-setup.js?v=2"></script>
@@ -903,7 +903,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-clinical-model.js?v=3"></script>
 <script defer src="smyl-treatment-plan-model.js?v=1"></script>
 <script defer src="smyl-treatment-plan-client.js?v=1"></script>
-<script defer src="smyl-clinic.js?v=23"></script>
+<script defer src="smyl-clinic.js?v=24"></script>
 <link rel="stylesheet" href="smyl-patient-360.css?v=18">
 <link rel="stylesheet" href="smyl-mila-interview.css?v=1">
 <script defer src="smyl-history-model.js?v=3"></script>
@@ -966,19 +966,19 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-photo-review.js?v=5"></script>
 <script defer src="smyl-photo-analysis-client.js?v=3"></script>
 <script defer src="smyl-photo-analysis.js?v=5"></script>
-<link rel="stylesheet" href="smyl-evidence-center.css?v=7">
+<link rel="stylesheet" href="smyl-evidence-center.css?v=8">
 <link rel="stylesheet" href="smyl-evidence-center-integration.css?v=6">
 <link rel="stylesheet" href="smyl-evidence-workspace.css?v=1">
 <script defer src="smyl-evidence-model.js?v=2"></script>
 <script defer src="smyl-evidence-workspace.js?v=1"></script>
 <script defer src="smyl-evidence-categories.js?v=1"></script>
-<script defer src="smyl-evidence-center.js?v=11"></script>
+<script defer src="smyl-evidence-center.js?v=12"></script>
 <script defer src="smyl-clinical-photo-service.js?v=2"></script>
 <link rel="stylesheet" href="smyl-clinical-photo-review.css?v=2">
-<link rel="stylesheet" href="smyl-case-workspace.css?v=30">
-<script defer src="smyl-case-workspace.js?v=42"></script>
+<link rel="stylesheet" href="smyl-case-workspace.css?v=31">
+<script defer src="smyl-case-workspace.js?v=43"></script>
 <script defer src="smyl-clinical-photo-review.js?v=4"></script>
-<script defer src="smyl-evidence-center-integration.js?v=11"></script>
+<script defer src="smyl-evidence-center-integration.js?v=12"></script>
 <link rel="stylesheet" href="smyl-professional-v3.css?v=8">
 <script defer src="smyl-professional-v3.js?v=9"></script>
 <link rel="stylesheet" href="smyl-dialog-system.css?v=2">
@@ -2611,6 +2611,41 @@ var editandoPacienteId = null;
 var todosLosPacientes = [];
 var pasoActual = 1;
 
+// Una recarga puede conservar la ruta "paciente-detalle", pero esa pantalla
+// sólo es válida cuando también se conoce el paciente y el módulo clínico ya
+// sustituyó el visor anterior. El identificador vive únicamente en esta
+// pestaña; no se guarda información clínica ni datos de contacto.
+function smylPacienteGuardadoEnSesion() {
+  try { return sessionStorage.getItem('smyl_patient_id') || ''; } catch (_) { return ''; }
+}
+function smylEsperarModuloPacientes() {
+  if (window.SmylClinicReady === true) return Promise.resolve(true);
+  return new Promise(function(resolve) {
+    var settled = false;
+    function finish(ready) {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener('smyl:clinic-ready', onReady);
+      clearTimeout(timer);
+      resolve(ready);
+    }
+    function onReady() { finish(true); }
+    window.addEventListener('smyl:clinic-ready', onReady, { once: true });
+    var timer = setTimeout(function() { finish(window.SmylClinicReady === true); }, 5000);
+  });
+}
+async function smylRestaurarRutaGuardada(route) {
+  if (route !== 'paciente-detalle') { ir(route); return true; }
+  var patientId = smylPacienteGuardadoEnSesion();
+  if (!patientId || !(await smylEsperarModuloPacientes()) || typeof window.verPaciente !== 'function') {
+    ir('pacientes');
+    return false;
+  }
+  var restored = await window.verPaciente(patientId);
+  if (restored !== true) ir('pacientes');
+  return restored === true;
+}
+
 var PRECIOS_DEFAULT = [
   {id:'carilla_porcelana', nombre:'Carilla de porcelana feldespática', unidad:'por pieza', precio:8000},
   {id:'carilla_emax', nombre:'Carilla de disilicato de litio (e.max)', unidad:'por pieza', precio:10000},
@@ -2805,7 +2840,7 @@ async function continuarConUsuario(authUser) {
   } else {
     var rutaGuardada = null;
     try { rutaGuardada = sessionStorage.getItem('smyl_route'); } catch (_) {}
-    if (rutaGuardada && rutaGuardada !== 'dashboard' && rutaGuardada !== 'bienvenida' && document.getElementById('p-' + rutaGuardada)) ir(rutaGuardada);
+    if (rutaGuardada && rutaGuardada !== 'dashboard' && rutaGuardada !== 'bienvenida' && document.getElementById('p-' + rutaGuardada)) await smylRestaurarRutaGuardada(rutaGuardada);
   }
   await cargarDashboard();
   renderPrecios();
@@ -3550,14 +3585,38 @@ function renderTablaPacientes(lista) {
     copy.append(name, age); identity.append(avatar, copy);
     var contact = document.createElement('div'); contact.className = 'patient-contact';
     var contactText = document.createElement('div'); contactText.className = 'patient-meta'; contactText.textContent = p.telefono || p.email || 'Sin datos de contacto';
-    var complete = !!(p.telefono && p.email), status = document.createElement('span'); status.className = 'patient-status'; status.dataset.complete = String(complete); status.textContent = complete ? 'Datos completos' : 'Contacto por completar';
+    var complete = !!(p.telefono && p.email), status = document.createElement('span'); status.className = 'patient-status'; status.dataset.complete = String(complete); var porRegistrar = p.registro_estado === 'pendiente' || String(p.nombre || '').indexOf('Por registrar · ') === 0; status.textContent = porRegistrar ? 'Por registrar' : complete ? 'Datos completos' : 'Contacto por completar'; if (porRegistrar) status.dataset.complete = 'false';
     contact.append(contactText, status);
     var actions = document.createElement('div'); actions.className = 'patient-actions';
     var open = document.createElement('button'); open.type = 'button'; open.className = 'btn btn-primary btn-sm'; open.textContent = 'Continuar expediente'; open.addEventListener('click', function(){ verPaciente(p.id); });
     var edit = document.createElement('button'); edit.type = 'button'; edit.className = 'btn btn-secondary btn-sm btn-icon'; edit.textContent = 'Editar'; edit.setAttribute('aria-label','Editar datos de ' + name.textContent); edit.addEventListener('click', function(){ abrirModalPaciente(p.id); });
-    actions.append(open, edit); row.append(identity, contact, actions); directory.append(row);
+    actions.append(open, edit);
+    if (porRegistrar && p.registro_estado === 'pendiente') { var link = document.createElement('button'); link.type = 'button'; link.className = 'btn btn-secondary btn-sm'; link.textContent = 'Enviar enlace de registro'; link.addEventListener('click', function(){ enviarEnlaceRegistro(p, link); }); actions.append(link); }
+    row.append(identity, contact, actions); directory.append(row);
   });
   el.replaceChildren(directory);
+}
+
+async function enviarEnlaceRegistro(p, boton) {
+  boton.disabled = true;
+  try {
+    var res = await sbTimeout(sb.rpc('smyl_create_registration_link', { p_patient_id: p.id }));
+    if (res.error || !res.data) throw res.error || new Error('Sin respuesta.');
+    var base = location.origin + location.pathname.replace(/[^/]*$/, '');
+    var url = base + 'registro-paciente.html?token=' + encodeURIComponent(res.data);
+    var texto = 'Hola, para tener tu expediente listo antes de tu cita, completa tus datos aquí (vence en 7 días): ' + url;
+    var d = String(p.telefono || '').replace(/\D/g, '');
+    if (d.length === 10) d = '52' + d;
+    if (d.length >= 11) { window.open('https://wa.me/' + d + '?text=' + encodeURIComponent(texto), '_blank', 'noopener'); }
+    else {
+      try { await navigator.clipboard.writeText(url); alert('Enlace copiado. Envíalo a la persona por el medio que prefieras.'); }
+      catch(e) { window.prompt('Copia este enlace y envíalo a la persona:', url); }
+    }
+  } catch(e) {
+    console.error('[SMYL] No se pudo crear el enlace de registro:', e);
+    var code = e && e.code, msg = String(e && e.message || '');
+    alert(code === '42501' ? 'Tu rol no permite enviar enlaces de registro.' : /PGRST202|42883|schema cache/i.test(code + ' ' + msg) ? 'Falta aplicar la migración de enlaces de registro en la base de datos.' : 'No se pudo crear el enlace. Inténtalo de nuevo.');
+  } finally { boton.disabled = false; }
 }
 
 function filtrarPacientes() {
@@ -3666,6 +3725,7 @@ function cerrarModalPaciente() { document.getElementById('modal-paciente').class
 async function guardarPaciente() {
   var nombre = document.getElementById('mp-nombre').value.trim();
   if (!nombre) { alert('El nombre es obligatorio'); return; }
+  if (nombre.indexOf('Por registrar · ') === 0) { alert('Escribe el nombre real de la persona para completar su registro.'); return; }
   var datos = {
     tenant_id: tenantId,
     nombre: nombre,
@@ -3677,6 +3737,8 @@ async function guardarPaciente() {
     notas: document.getElementById('mp-notas').value.trim(),
     updated_at: new Date().toISOString(),
   };
+  var previo = editandoPacienteId ? (todosLosPacientes || []).find(function(x) { return x.id === editandoPacienteId; }) : null;
+  if (previo && previo.registro_estado === 'pendiente') datos.registro_estado = 'completo';
   try {
     var writeResult;
     if (editandoPacienteId) {

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Completa tu registro · SMYL</title>
+  <meta name="theme-color" content="#173f3d">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#f3f2ed;color:#173a38;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+    .top{height:60px;display:flex;align-items:center;padding:0 20px;background:#173f3d;color:#fff;font-weight:700;letter-spacing:.12em}
+    main{max-width:520px;margin:0 auto;padding:24px 16px 48px}
+    .card{background:#fff;border-radius:12px;box-shadow:0 1px 20px rgba(11,27,46,.08);padding:24px}
+    h1{font-size:22px;margin:0 0 6px}
+    p{line-height:1.5;margin:0 0 16px;color:#3d5a57}
+    label{display:block;font-weight:600;font-size:14px;margin:0 0 14px}
+    label small{font-weight:400;color:#5b7370}
+    input,select{display:block;width:100%;margin-top:6px;height:46px;padding:0 12px;border:1px solid #b9c7c4;border-radius:8px;font:inherit;font-size:16px;background:#fff;color:#173a38}
+    input:focus,select:focus,button:focus-visible{outline:3px solid #2aa6a0;outline-offset:1px}
+    .check{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:14px}
+    .check input{width:20px;height:20px;margin:2px 0 0;flex:none}
+    .btn{width:100%;height:48px;border:0;border-radius:8px;background:#173f3d;color:#fff;font:inherit;font-weight:600;font-size:16px;cursor:pointer}
+    .btn[disabled]{opacity:.6;cursor:wait}
+    .error{background:#fde8e6;color:#8a1c12;border-radius:8px;padding:10px 12px;margin:0 0 14px;font-size:14px}
+    .state{text-align:center;padding:12px 0}.mark{font-size:36px}
+    .hp{position:absolute;left:-9999px}
+  </style>
+</head>
+<body>
+  <header class="top">SMYL</header>
+  <main><div class="card" id="card"><p>Cargando…</p></div></main>
+  <script>
+  (function(){'use strict';
+    var URL_BASE='https://rpxshsiwoxdbuevjjpfw.supabase.co',KEY='sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo';
+    var card=document.getElementById('card'),token=new URLSearchParams(location.search).get('token')||'';
+    function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
+    function state(mark,title,text){card.innerHTML='<div class="state"><div class="mark" aria-hidden="true">'+mark+'</div><h1>'+esc(title)+'</h1><p>'+esc(text)+'</p></div>';}
+    async function rpc(name,args){
+      var r=await fetch(URL_BASE+'/rest/v1/rpc/'+name,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:'Bearer '+KEY},body:JSON.stringify(args)});
+      var body=await r.json().catch(function(){return{};});
+      if(!r.ok)throw new Error(body&&body.message?body.message:'No pudimos completar la operación.');
+      return body;
+    }
+    function render(info){
+      card.innerHTML='<h1>Completa tu registro</h1><p>'+esc(info.clinic_name)+' te espera. Con estos datos tendremos tu expediente listo cuando llegues.</p>'
+        +'<form id="f" novalidate><div id="err" role="alert"></div>'
+        +'<label>Nombre(s)<input name="nombre" maxlength="150" autocomplete="given-name" required></label>'
+        +'<label>Apellidos<input name="apellido" maxlength="150" autocomplete="family-name"></label>'
+        +'<label>Correo <small>(opcional)</small><input name="email" type="email" maxlength="254" autocomplete="email" inputmode="email"></label>'
+        +'<label>Fecha de nacimiento <small>(opcional)</small><input name="fnac" type="date" autocomplete="bday"></label>'
+        +'<label>Género <small>(opcional)</small><select name="genero"><option value="">Prefiero no decirlo</option><option value="femenino">Femenino</option><option value="masculino">Masculino</option><option value="otro">Otro</option></select></label>'
+        +'<input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">'
+        +'<label class="check"><input type="checkbox" name="consent" required><span>Acepto que la clínica use estos datos para mi atención, según su <a href="privacidad.html" target="_blank" rel="noopener">aviso de privacidad</a>.</span></label>'
+        +'<button class="btn" type="submit">Enviar mis datos</button></form>';
+      document.getElementById('f').addEventListener('submit',submit);
+    }
+    async function submit(e){
+      e.preventDefault();
+      var form=e.currentTarget,err=document.getElementById('err'),btn=form.querySelector('.btn'),d=new FormData(form);
+      err.innerHTML='';
+      if(d.get('website'))return state('✓','Listo','Recibimos tus datos.');
+      if(!String(d.get('nombre')||'').trim()){err.innerHTML='<div class="error">Escribe tu nombre.</div>';form.nombre.focus();return;}
+      if(!d.get('consent')){err.innerHTML='<div class="error">Debes aceptar el aviso de privacidad para continuar.</div>';return;}
+      btn.disabled=true;btn.textContent='Enviando…';
+      try{
+        await rpc('smyl_submit_registration',{p_token:token,p_nombre:d.get('nombre'),p_apellido:d.get('apellido')||'',p_email:d.get('email')||'',p_fecha_nacimiento:d.get('fnac')||null,p_genero:d.get('genero')||null,p_consent:true});
+        state('✓','¡Gracias!','Recibimos tus datos. Te esperamos en tu cita.');
+      }catch(x){err.innerHTML='<div class="error">'+esc(x.message)+'</div>';btn.disabled=false;btn.textContent='Enviar mis datos';}
+    }
+    async function init(){
+      if(!/^[0-9a-f]{64}$/.test(token))return state('!','Enlace no disponible','Pide a la clínica un enlace nuevo.');
+      try{var info=await rpc('smyl_registration_link_info',{p_token:token});
+        if(!info||!info.available)return state('!','Enlace no disponible','Este enlace ya se usó o venció. Pide a la clínica uno nuevo.');
+        render(info);}
+      catch(x){state('!','Enlace no disponible',x.message);}
+    }
+    init();
+  })();
+  </script>
+</body>
+</html>

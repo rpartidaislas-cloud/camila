@@ -146,7 +146,7 @@ test('un "no" de MILA no reemplaza un estado ya confirmado', () => {
 test('la función protege la sesión: QR de un solo uso, dispositivo, consentimiento y medición', () => {
   const fn = read('../supabase/functions/mila-interview/index.ts');
   const config = read('../supabase/config.toml');
-  const sql = read('../supabase/migrations/20261115120000_smyl_mila_interview.sql');
+  const sql = read('../supabase/migrations/20261115130000_smyl_mila_interview.sql');
   assert.match(config, /\[functions\.mila-interview\]\nverify_jwt = false/);
   assert.match(fn, /requirePermission\(auth, CORS, "clinical\.write"\)/);
   assert.match(fn, /\.is\("device_hash", null\)/, 'el token se canjea una sola vez');

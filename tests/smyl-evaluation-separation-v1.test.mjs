@@ -9,6 +9,7 @@ const dental = read('smyl-dental-record.js');
 const mobileDental = read('mobile/www/smyl-dental-record.js');
 const photoReview = read('smyl-clinical-photo-review.js');
 const evidenceCenter = read('smyl-evidence-center.js');
+const evidenceIntegration = read('smyl-evidence-center-integration.js');
 const fixture = read('tests/fixtures/smyl-clinical-flow-preview.html');
 
 test('Evaluación presenta tres tareas clínicas con responsabilidades distintas', () => {
@@ -64,6 +65,13 @@ test('las radiografías se muestran una sola vez en su cola dedicada', () => {
   assert.doesNotMatch(history, /studyItems\.forEach/, 'el historial general no debe volver a dibujar cada estudio');
   assert.match(history, /hasRadiographs&&file\.category==='radiograph'/, 'el espejo Patient360 tampoco debe duplicar una radiografía ya indexada');
   assert.match(history, /cola dedicada, sin duplicarlos aqu[ií]/);
+});
+
+test('el archivo clínico canónico reemplaza la cola radiográfica duplicada', () => {
+  assert.match(evidenceIntegration, /radiographShelf\.dataset\.canonicalEvidence = 'true'/);
+  assert.match(evidenceIntegration, /radiographShelf\.hidden = true/);
+  assert.match(workspace, /dataset\.canonicalEvidence==='true'/);
+  assert.match(evidenceCenter, /pendingSuggestions/);
 });
 
 test('una radiografía incierta o no utilizable no puede cerrar la evaluación', () => {
