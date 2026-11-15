@@ -9,6 +9,11 @@
 - **Consumo**: segundos de voz medidos por el servidor (inicio→fin, máx. 45 min) en `smyl_consume`; tokens de voz de `response.done` reportados por el celular (marcados `client_reported_openai_response_done`) y tokens de transcripción/interpretación medidos por el servidor, todos en `smyl_ai_usage_log` con `request_id` `<sesión>:<paso>`. Los tokens de la sesión se suman desde ese registro.
 - Sin migraciones nuevas. **Requiere volver a desplegar** `mila-interview` (`supabase functions deploy mila-interview --no-verify-jwt`). Versiones: MILA `v2`, consumo `v9`, caché `mila-voice-interview-v1`. Web y `mobile/www` sincronizados.
 - Verificación: `tests/smyl-mila-interview.test.mjs` 15/15; suite completa con los mismos 15 fallos que `main` (ninguno nuevo); `deno check` OK; Playwright 390 px con WebRTC simulado (confirmar paciente → consentimiento → MILA entrevista → alerta roja → terminar → cobertura) y modo grabación con sondeo de la interpretación. Falta prueba real con OpenAI Realtime y celular físico.
+## 2026-11-15 — Claude — Paciente por registrar, fase 2b: estado «por verificar»
+
+- Lo que la persona envía por el enlace ya no deja la ficha en `completo`: queda `por_verificar`. En Pacientes aparece como **Por verificar** con el botón **Confirmar datos** (pasa a `completo`; usa el permiso normal de editar pacientes). Guardar la ficha con **Editar** también la confirma.
+- Migración `20261115150000_smyl_patient_registration_verify.sql` (amplía la restricción de `registro_estado` y reemplaza `smyl_submit_registration`). **Aplicar a mano ANTES de publicar la web.** Probada en Postgres 16 desechable encadenada sobre las dos anteriores, incluida la reaplicación.
+- Un enlace nuevo solo se puede crear para fichas `pendiente`; una ficha `por_verificar` no recibe otro enlace.
 
 ## 2026-11-15 — Claude Code — MILA en el celular: entrevista de historia clínica y exploración dictada (QR)
 
@@ -10979,3 +10984,20 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **`cargarDashboard()` (app.html):** ya no consulta `camila_pacientes`, `camila_casos` ni «últimos casos» y no escribe en `#st-*`, plan ni progreso (todo estaba oculto por `has-daily-home`). Solo llama `SmylLanaAttention.load(true)`; el Inicio carga sus propios datos. Son 3 consultas menos cada vez que se abre Inicio.
 - **Se dejó a propósito:** el HTML estático del tablero anterior (`.stats-grid`, `.dashboard-grid`), la construcción de «Continúa donde lo dejaste» / acciones en `smyl-panel.js` (el test `professional-panel-stage1` lo fija y `smyl-panel.js` depende de esas anclas) y las reglas CSS huérfanas (`smyl-dashboard-v2.css`, `smyl-professional-v3.css`, `smyl-ui-template-v3.css`). Quitarlos es un paso aparte que toca `smyl-panel.js` y sus pruebas.
 - **Archivos:** `smyl-finance.js` v39, `smyl-task-center.js` v6, `app.html`, `sw.js` (caché `…-inicio-cobros-v1`), copias en `mobile/www/`, prueba nueva en `tests/task-center-continuity.test.mjs`.
+
+## 2026-11-15 — Claude Code — Inicio paso 3: Inicio por rol
+- **Qué cambia (solo frontend, lectura):** `smyl-daily-home.js` v17 / CSS v16 lee los permisos de la persona (`smyl_member_roles` + `smyl_role_permissions`, mismo criterio que Agenda y Cobros: dueño = todo) y su profesional vinculado (`smyl_professionals.user_id`). Sin `schedule.read` se oculta «Mi jornada» y «Ver agenda»; sin `schedule.manage` se oculta «+ Nueva cita» y no se listan solicitudes de cita; sin `messages.read` se oculta «Mensajes recientes» (y no se consultan). Con tarjeta de jornada oculta, «Atención requerida» ocupa todo el ancho.
+- **«Mis citas»:** quien está vinculado a un profesional y **no** tiene `schedule.manage` ve solo sus citas (`professional_id`) en jornada, chips y pendientes locales. Quien sí administra la agenda y está vinculado ve el interruptor «Solo mis citas» (por dispositivo, `smyl_home_mine_<tenant>`).
+- **Seguridad:** es solo presentación; la base de datos (RLS) sigue decidiendo qué filas llegan. Si no se pueden leer los permisos, se muestra todo (como hasta ahora). Las tareas del Centro de alertas (campana) no se filtran por profesional.
+- **Archivos:** `smyl-daily-home.js` v17, `smyl-daily-home.css` v16, `app.html`, `sw.js` (caché `…-inicio-por-rol-v1`), copias en `mobile/www/`, prueba nueva en `tests/daily-home-continuity.test.mjs`.
+
+## 2026-11-15 — Claude Code — Cobros paso 1: abre en «Por cobrar», sin números repetidos y con acciones ligeras
+- **Qué cambia (solo frontend):** Cobros abre en «Por cobrar» (antes «Recibos», ahora segunda pestaña). Desaparece la franja «Por revisar» (`renderCollectionFocus` y `#finance-focus`): cada indicador lleva su siguiente paso como enlace («Ver vencidas», «Aplicar a una cuenta», «Abrir mi caja» / «Hacer corte» si la caja lleva más de 18 h). Las acciones (`Cobrar a paciente`, `Más acciones`) suben encima de los indicadores (`.finance-page-head`).
+- **Un solo contador:** el número de la pestaña «Por cobrar» es el mismo del menú (pacientes pendientes de cargo, `pendingVisits()`); las cuentas con saldo llevan su total en el encabezado de la sección.
+- **Filtros de cuentas:** 4 visibles (Pendientes, Vencidas, A favor, Todas) + `Más filtros` (select con «Requieren acción» y «Liquidadas»; el elegido se muestra como botón mientras está activo).
+- **Acciones ligeras:** «Sin cargo»/«Perdonar» (`.finance-link-action`) y «Abrir cuenta →» pasan a enlaces; «Agregar cargo» de citas aún en espera/consulta es secundario. La barra de avance solo aparece si hubo abonos («Sin abonos todavía» si no). Vacío único «Todo cobrado por ahora» con «Cobrar a paciente».
+- **Pie de derechos:** `#app-copyright` ya no es `position:fixed` encima del contenido; un script en `app.html` lo mantiene como último hijo de `.contenido` con altura 0 (cae en el margen inferior, sin añadir scroll). Oculto en móvil como antes. Regla en `smyl-professional-v3.css`.
+- **Móvil:** acción principal arriba, pestañas que caben completas, «Saldo a favor» y «Caja» como tarjetas compactas.
+- **No cambia:** permisos, datos, RPC, recibos, caja ni facturación.
+- **Archivos:** `smyl-finance.js` v40, `smyl-finance.css` v32, `smyl-professional-v3.css` v9, `app.html`, `sw.js` (caché `…-cobros-hoy-v1`), copias en `mobile/www/`, pruebas actualizadas (`smyl-finance-tabs-v2`, `smyl-finance-workspace-v4`, `financial-followup-professional-stage5`, `smyl-fiscal-receipts-v1`, `cobros-pending-visits`, `professional-management-v3`).
+- **Pendiente (con aprobación):** paso 2 de la maqueta (pulido móvil adicional y ayuda integrada en «Caja»).

@@ -45,15 +45,15 @@ test('Mensajería publica solo su resumen operativo al Inicio', () => {
 });
 
 test('La mesa de trabajo se distribuye en web, PWA y vista de QA', () => {
-  assert.match(app, /smyl-daily-home\.css\?v=15/);
-  assert.match(app, /smyl-daily-home\.js\?v=16/);
+  assert.match(app, /smyl-daily-home\.css\?v=16/);
+  assert.match(app, /smyl-daily-home\.js\?v=17/);
   assert.match(app, /smyl-dashboard-v2\.css\?v=1/);
   assert.ok(app.indexOf('smyl-dashboard-v2.css?v=1') > app.indexOf('smyl-ui-template-v3.css?v=8'), 'la capa del dashboard debe gobernar después de la plantilla global');
   assert.match(app, /smyl-clinic-setup\.js\?v=6/);
   assert.match(app, /smyl-lana-attention\.js\?v=4/);
   assert.match(worker, /meta-cards-v13/);
   assert.match(worker, /patient-simulations-v70/);
-  assert.match(worker, /smyl-daily-home\.js\?v=16/);
+  assert.match(worker, /smyl-daily-home\.js\?v=17/);
   assert.match(worker, /smyl-dashboard-v2\.css\?v=1/);
   assert.match(worker, /dashboard-operativo-v2/);
   assert.match(styles, /daily-home-metrics/);
@@ -168,4 +168,22 @@ test('Inicio paso 1: barra compacta, chips en la jornada, una columna y «Config
   assert.match(setup, /!pending\.length \|\| state\.operating \|\| hiddenToday\(\)/, 'la tarjeta se oculta cuando la clínica ya opera o se ocultó hoy');
   assert.match(setup, /Ocultar por hoy/);
   assert.match(setup, /smyl_clinic_setup_hidden_/);
+});
+
+test('Inicio por rol: oculta lo que el rol no puede usar y limita la jornada a las citas propias si no administra la agenda', () => {
+  assert.match(script, /function can\(key\)/);
+  assert.match(script, /from\('smyl_member_roles'\)\.select\('role_id'\)/);
+  assert.match(script, /from\('smyl_role_permissions'\)\.select\('permission_key'\)/);
+  assert.match(script, /from\('smyl_professionals'\)\.select\('id'\)\.eq\('tenant_id',tenant\)\.eq\('user_id',uid\)/);
+  assert.match(script, /professional_id/);
+  assert.match(script, /function mineOnly\(\)[\s\S]*?can\('schedule\.manage'\)\?flag\('mine'\)==='1':true/);
+  assert.match(script, /now\.hidden=!read/);
+  assert.match(script, /create\.hidden=!can\('schedule\.manage'\)/);
+  assert.match(script, /chats\.hidden=!messages/);
+  assert.match(script, /if\(!can\('schedule\.read'\)\)return tasks;/);
+  assert.match(script, /Solo mis citas/);
+  // Si no se pueden leer los permisos se muestra todo: la base de datos (RLS) sigue siendo la que decide qué datos llegan.
+  assert.match(script, /catch\(_\) \{ state\.access=null; \}/);
+  assert.match(styles, /\.daily-home-workbench\.is-solo/);
+  assert.doesNotMatch(script, /insert\(|update\(|delete\(/);
 });

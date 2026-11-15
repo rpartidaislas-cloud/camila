@@ -849,12 +849,12 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-clinic-admin.js?v=12"></script>
 <link rel="stylesheet" href="smyl-professional-directory.css?v=12">
 <script defer src="smyl-professional-directory.js?v=12"></script>
-<link rel="stylesheet" href="smyl-schedule.css?v=23">
+<link rel="stylesheet" href="smyl-schedule.css?v=26">
 <link rel="stylesheet" href="smyl-google-calendar.css?v=2">
 <link rel="stylesheet" href="smyl-schedule-setup.css?v=2">
 <script defer src="smyl-schedule-grid.js?v=2"></script>
 <script defer src="smyl-schedule-slots.js?v=1"></script>
-<script defer src="smyl-schedule.js?v=35"></script>
+<script defer src="smyl-schedule.js?v=37"></script>
 <script defer src="smyl-google-calendar.js?v=2"></script>
 <script defer src="smyl-schedule-message.js?v=2"></script>
 <script defer src="smyl-schedule-setup.js?v=2"></script>
@@ -870,8 +870,8 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-service-catalog.js?v=6"></script>
 <link rel="stylesheet" href="smyl-inventory.css?v=13">
 <script defer src="smyl-inventory.js?v=19"></script>
-<link rel="stylesheet" href="smyl-finance.css?v=31">
-<script defer src="smyl-finance.js?v=39"></script>
+<link rel="stylesheet" href="smyl-finance.css?v=32">
+<script defer src="smyl-finance.js?v=40"></script>
 <link rel="stylesheet" href="smyl-reports.css?v=6">
 <script defer src="smyl-reports.js?v=4"></script>
 <link rel="stylesheet" href="smyl-readiness.css?v=2">
@@ -882,8 +882,8 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-lana-handoff.js?v=5"></script>
 <link rel="stylesheet" href="smyl-lana-attention.css?v=1">
 <script defer src="smyl-lana-attention.js?v=4"></script>
-<link rel="stylesheet" href="smyl-daily-home.css?v=15">
-<script defer src="smyl-daily-home.js?v=16"></script>
+<link rel="stylesheet" href="smyl-daily-home.css?v=16">
+<script defer src="smyl-daily-home.js?v=17"></script>
 <link rel="stylesheet" href="smyl-clinic-setup.css?v=4">
 <script defer src="smyl-clinic-setup.js?v=6"></script>
 <link rel="stylesheet" href="smyl-settings-hub.css?v=5">
@@ -979,10 +979,10 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-case-workspace.js?v=43"></script>
 <script defer src="smyl-clinical-photo-review.js?v=4"></script>
 <script defer src="smyl-evidence-center-integration.js?v=12"></script>
-<link rel="stylesheet" href="smyl-professional-v3.css?v=8">
+<link rel="stylesheet" href="smyl-professional-v3.css?v=9">
 <script defer src="smyl-professional-v3.js?v=9"></script>
 <link rel="stylesheet" href="smyl-dialog-system.css?v=2">
-<script defer src="smyl-dialog-system.js?v=3"></script>
+<script defer src="smyl-dialog-system.js?v=4"></script>
 <!-- SMYL UI v3 se carga al final: gobierna el shell y los componentes compartidos
      sin depender del orden histórico de cada módulo. -->
 <link rel="stylesheet" href="smyl-ui-template-v3.css?v=8">
@@ -2283,6 +2283,14 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 
 <!-- ═══ COPYRIGHT ═══ -->
 <div id="app-copyright">© 2025 Dr. Hernán Partida Islas · Propiedad Intelectual</div>
+<script>
+// El pie de derechos vive al final de .contenido (siempre el último hijo, aunque cada módulo agregue su pantalla después).
+(function(){
+  function place(){var main=document.querySelector('.contenido'),foot=document.getElementById('app-copyright');if(!main||!foot)return false;if(main.lastElementChild!==foot)main.appendChild(foot);return true;}
+  function start(){if(!place())return;var main=document.querySelector('.contenido');new MutationObserver(function(){place();}).observe(main,{childList:true});}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();
+</script>
 
 <script>
 // Preserve browser zoom for accessibility; editor gestures are scoped to their canvas.
@@ -3487,16 +3495,30 @@ function renderTablaPacientes(lista) {
     copy.append(name, age); identity.append(avatar, copy);
     var contact = document.createElement('div'); contact.className = 'patient-contact';
     var contactText = document.createElement('div'); contactText.className = 'patient-meta'; contactText.textContent = p.telefono || p.email || 'Sin datos de contacto';
-    var complete = !!(p.telefono && p.email), status = document.createElement('span'); status.className = 'patient-status'; status.dataset.complete = String(complete); var porRegistrar = p.registro_estado === 'pendiente' || String(p.nombre || '').indexOf('Por registrar · ') === 0; status.textContent = porRegistrar ? 'Por registrar' : complete ? 'Datos completos' : 'Contacto por completar'; if (porRegistrar) status.dataset.complete = 'false';
+    var complete = !!(p.telefono && p.email), status = document.createElement('span'); status.className = 'patient-status'; status.dataset.complete = String(complete); var porRegistrar = p.registro_estado === 'pendiente' || String(p.nombre || '').indexOf('Por registrar · ') === 0; var porVerificar = p.registro_estado === 'por_verificar'; status.textContent = porRegistrar ? 'Por registrar' : porVerificar ? 'Por verificar' : complete ? 'Datos completos' : 'Contacto por completar'; if (porRegistrar || porVerificar) status.dataset.complete = 'false';
     contact.append(contactText, status);
     var actions = document.createElement('div'); actions.className = 'patient-actions';
     var open = document.createElement('button'); open.type = 'button'; open.className = 'btn btn-primary btn-sm'; open.textContent = 'Continuar expediente'; open.addEventListener('click', function(){ verPaciente(p.id); });
     var edit = document.createElement('button'); edit.type = 'button'; edit.className = 'btn btn-secondary btn-sm btn-icon'; edit.textContent = 'Editar'; edit.setAttribute('aria-label','Editar datos de ' + name.textContent); edit.addEventListener('click', function(){ abrirModalPaciente(p.id); });
     actions.append(open, edit);
     if (porRegistrar && p.registro_estado === 'pendiente') { var link = document.createElement('button'); link.type = 'button'; link.className = 'btn btn-secondary btn-sm'; link.textContent = 'Enviar enlace de registro'; link.addEventListener('click', function(){ enviarEnlaceRegistro(p, link); }); actions.append(link); }
+    if (porVerificar) { var ok = document.createElement('button'); ok.type = 'button'; ok.className = 'btn btn-secondary btn-sm'; ok.textContent = 'Confirmar datos'; ok.setAttribute('aria-label', 'Confirmar los datos que envió ' + name.textContent); ok.addEventListener('click', function(){ confirmarDatosPaciente(p, ok); }); actions.append(ok); }
     row.append(identity, contact, actions); directory.append(row);
   });
   el.replaceChildren(directory);
+}
+
+async function confirmarDatosPaciente(p, boton) {
+  boton.disabled = true;
+  try {
+    var res = await sbTimeout(sb.from('camila_pacientes').update({ registro_estado: 'completo', updated_at: new Date().toISOString() }).eq('id', p.id).eq('tenant_id', tenantId).eq('registro_estado', 'por_verificar').select('id').single());
+    if (res.error || !res.data) throw res.error || new Error('La confirmación no fue registrada.');
+    await cargarPacientes();
+  } catch(e) {
+    console.error('[SMYL] No se pudo confirmar los datos del paciente:', e);
+    alert('No se pudo confirmar. Puede que otra persona ya lo hiciera o que tu rol no lo permita; recarga la lista e inténtalo de nuevo.');
+    boton.disabled = false;
+  }
 }
 
 async function enviarEnlaceRegistro(p, boton) {
@@ -3640,7 +3662,7 @@ async function guardarPaciente() {
     updated_at: new Date().toISOString(),
   };
   var previo = editandoPacienteId ? (todosLosPacientes || []).find(function(x) { return x.id === editandoPacienteId; }) : null;
-  if (previo && previo.registro_estado === 'pendiente') datos.registro_estado = 'completo';
+  if (previo && (previo.registro_estado === 'pendiente' || previo.registro_estado === 'por_verificar')) datos.registro_estado = 'completo';
   try {
     var writeResult;
     if (editandoPacienteId) {

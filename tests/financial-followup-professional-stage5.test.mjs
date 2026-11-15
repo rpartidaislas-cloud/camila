@@ -10,11 +10,10 @@ const styles = read('../smyl-finance.css');
 const dialogSystem = read('../smyl-dialog-system.js');
 
 test('la cartera prioriza vencimientos, créditos y cortes verificables', () => {
-  assert.match(finance, /Cuenta vencida/);
+  assert.match(finance, /Ver vencidas/);
   assert.match(finance, /Saldo a favor/);
-  assert.match(finance, /sin aplicar/);
-  assert.match(finance, /Corte pendiente/);
-  assert.match(finance, /finance-alert/);
+  assert.match(finance, /Aplicar a una cuenta/);
+  assert.match(finance, /Hacer corte/);
   assert.match(finance, /accountSnapshot/);
   assert.match(finance, /dueLabel/);
   assert.match(finance, /ningún cobro se ejecuta automáticamente/i);
@@ -80,8 +79,8 @@ test('el cobro cotidiano parte del paciente y decide la operación sin mezclar m
 });
 
 test('web, móvil y PWA publican la etapa cinco sincronizada', () => {
-  assert.match(app, /smyl-finance\.css\?v=31/);
-  assert.match(app, /smyl-finance\.js\?v=39/);
+  assert.match(app, /smyl-finance\.css\?v=32/);
+  assert.match(app, /smyl-finance\.js\?v=40/);
   assert.match(worker, /collection-visual-v1/);
   assert.match(worker, /smyl-v267-guided-collection-sentry-v1/);
   for (const file of ['app.html', 'sw.js', 'smyl-finance.js', 'smyl-finance.css', 'smyl-dialog-system.js']) {
