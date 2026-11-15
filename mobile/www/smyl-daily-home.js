@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var state = { loading:false, loaded:false, tenant:null, appointments:[], requests:[], patients:[], services:[], messages:null, error:'', chats:null, chatsError:false, chatsLoading:false, chatsAt:0, tasks:null, month:null, monthLoading:false, monthAt:0 };
+  var state = { loading:false, loaded:false, tenant:null, appointments:[], requests:[], patients:[], services:[], messages:null, error:'', chats:null, chatsError:false, chatsLoading:false, chatsAt:0, tasks:null, month:null, monthLoading:false, monthAt:0, access:null, accessTenant:null };
 
   function el(tag, cls, text) { var node=document.createElement(tag); if(cls)node.className=cls; if(text!=null)node.textContent=text; return node; }
   function esc(value) { return String(value==null?'':value).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
@@ -14,7 +14,10 @@
   function byId(rows,id) { return rows.find(function(row){return row.id===id;}); }
   function patientName(id) { var p=byId(state.patients,id); return p?[p.nombre,p.apellido].filter(Boolean).join(' '):'Paciente'; }
   function serviceName(id) { var s=byId(state.services,id); return s&&s.name?s.name:'Cita dental'; }
-  function activeAppointments() { return state.appointments.filter(function(row){return row.status!=='cancelled';}); }
+  // Inicio por rol: lo que el rol puede ver/hacer. Si no se pudo leer (access=null) se muestra todo; quien manda siempre es la base de datos (RLS).
+  function can(key) { var a=state.access; return !a||a.owner||a.perms.indexOf(key)!==-1; }
+  function mineOnly() { var a=state.access; if(!a||!a.professionalId)return false; return can('schedule.manage')?flag('mine')==='1':true; }
+  function activeAppointments() { var mine=mineOnly()?state.access.professionalId:null; return state.appointments.filter(function(row){return row.status!=='cancelled'&&(!mine||row.professional_id===mine);}); }
   function query(builder) { return Promise.resolve(typeof window.sbTimeout==='function'?window.sbTimeout(builder):builder).then(function(result){if(result&&result.error)throw result.error;return result&&result.data||[];}); }
   var STATUS={confirmed:'Confirmada',arrived:'Ya llegó',in_progress:'En consulta',completed:'Terminada',no_show:'No vino'};
   function ymd(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -48,6 +51,35 @@
     renderLoading();
   }
 
+  function applyAccess() {
+    var root=document.getElementById('smyl-daily-home'); if(!root)return;
+    var pick=function(sel){return root.querySelector(sel);};
+    var read=can('schedule.read'), messages=can('messages.read');
+    var now=pick('.daily-home-now-card'), chats=pick('.daily-home-chats'), agenda=pick('[data-home-open-agenda]'), create=pick('[data-home-new-appointment]'), bench=pick('.daily-home-workbench'), inboxLine=pick('[data-home-inbox-line]');
+    if(now)now.hidden=!read; if(agenda)agenda.hidden=!read; if(create)create.hidden=!can('schedule.manage');
+    if(chats)chats.hidden=!messages; if(inboxLine&&!messages)inboxLine.hidden=true;
+    if(bench)bench.classList.toggle('is-solo',!read);
+    root.dataset.scope=mineOnly()?'mine':'all';
+  }
+
+  // Permisos del rol y, si la persona está vinculada a un profesional, su id (para «Mis citas»). Solo lectura.
+  async function loadAccess() {
+    state.accessTenant=state.tenant;
+    try {
+      var owner=window.miRolEquipo==='dueño';
+      var user=await window.sb.auth.getUser(), uid=user&&user.data&&user.data.user&&user.data.user.id;
+      if(!uid){state.access=null;return;}
+      var tenant=state.tenant;
+      var res=await Promise.all([
+        query(window.sb.from('smyl_member_roles').select('role_id').eq('tenant_id',tenant).eq('user_id',uid)),
+        query(window.sb.from('smyl_professionals').select('id').eq('tenant_id',tenant).eq('user_id',uid).eq('active',true).limit(1))
+      ]);
+      var ids=(res[0]||[]).map(function(r){return r.role_id;}), perms=[];
+      if(ids.length)perms=(await query(window.sb.from('smyl_role_permissions').select('permission_key').eq('tenant_id',tenant).in('role_id',ids))).map(function(r){return r.permission_key;});
+      state.access={owner:owner,perms:perms,professionalId:res[1]&&res[1][0]?res[1][0].id:null};
+    } catch(_) { state.access=null; }
+  }
+
   function renderLoading() {
     var metrics=document.querySelector('[data-home-metrics]'), priorities=document.querySelector('[data-home-priorities]'), next=document.querySelector('[data-home-next]');
     if(metrics)metrics.innerHTML='';
@@ -58,6 +90,7 @@
 
   function priorityRows() {
     var now=Date.now(), tasks=[];
+    if(!can('schedule.read'))return tasks;
     activeAppointments().forEach(function(a){
       var time=new Date(a.starts_at).getTime();
       if(a.status==='in_progress')tasks.push({rank:1,label:'EN CONSULTA',name:patientName(a.patient_id),detail:fmtTime(a.starts_at)+' · '+serviceName(a.service_id),action:'Abrir cita'});
@@ -65,7 +98,7 @@
       else if(a.status==='confirmed'&&time<now)tasks.push({rank:3,label:'¿YA LLEGÓ?',name:patientName(a.patient_id),detail:fmtTime(a.starts_at)+' · ya pasó su hora',action:'Abrir cita'});
       else if(a.status==='no_show')tasks.push({rank:6,label:'NO VINO',name:patientName(a.patient_id),detail:fmtTime(a.starts_at)+' · ofrécele otra cita',action:'Ver cita'});
     });
-    state.requests.filter(function(r){return r.status==='pending';}).forEach(function(r){tasks.push({rank:4,label:'PIDIÓ CITA',name:patientName(r.patient_id),detail:r.requested_start?'Prefiere '+fmtTime(r.requested_start):'Horario por acordar',action:'Revisar solicitud'});});
+    if(can('schedule.manage'))state.requests.filter(function(r){return r.status==='pending';}).forEach(function(r){tasks.push({rank:4,label:'PIDIÓ CITA',name:patientName(r.patient_id),detail:r.requested_start?'Prefiere '+fmtTime(r.requested_start):'Horario por acordar',action:'Revisar solicitud'});});
     return tasks.sort(function(a,b){return a.rank-b.rank;});
   }
 
@@ -85,14 +118,18 @@
     if(clinic)chips.push(chip('clinic',clinic,'en clínica','en clínica','active'));
     if(waiting)chips.push(chip('appointments',waiting,'por llegar','por llegar','neutral'));
     if(done)chips.push(chip('completed',done,'terminada','terminadas','neutral'));
+    var a=state.access, canToggle=Boolean(a&&a.professionalId&&can('schedule.manage'));
+    if(canToggle)chips.push('<button type="button" class="daily-home-chip is-toggle" data-home-mine aria-pressed="'+(mineOnly()?'true':'false')+'">Solo mis citas</button>');
     host.innerHTML=chips.join('');
     host.hidden=!chips.length;
+    var toggle=host.querySelector('[data-home-mine]');
+    if(toggle)toggle.onclick=function(){flag('mine',mineOnly()?'0':'1');applyAccess();renderMetrics();renderNext();};
     var total=document.querySelector('[data-home-day-count]');
     if(total)total.textContent=rows.length?rows.length+(rows.length===1?' cita':' citas'):'Sin citas';
     var inboxLine=document.querySelector('[data-home-inbox-line]');
     if(inboxLine){
       var ready=Boolean(state.messages&&state.messages.loaded), unread=ready?Number(state.messages.unread||state.messages.total||0):0;
-      inboxLine.hidden=!ready;
+      inboxLine.hidden=!ready||!can('messages.read');
       inboxLine.innerHTML=ready?'<span>Mensajes: '+(unread?unread+' sin leer':'0 sin leer')+'</span><button type="button" data-home-open-inbox-line>Ver bandeja</button>':'';
       var go=inboxLine.querySelector('button'); if(go)go.onclick=function(){route('inbox');};
     }
@@ -133,8 +170,8 @@
     var rows=all.filter(function(a){return a.status==='arrived'||a.status==='in_progress'||(a.status==='confirmed'&&new Date(a.ends_at||a.starts_at).getTime()>=now);}).sort(function(a,b){return new Date(a.starts_at)-new Date(b.starts_at);});
     var finished=all.filter(function(a){return a.status==='completed';}).sort(function(a,b){return new Date(b.starts_at)-new Date(a.starts_at);});
     if(!rows.length&&!finished.length){
-      host.innerHTML='<div class="daily-home-next-empty"><span aria-hidden="true">＋</span><div><strong>Tu agenda está libre por ahora</strong><p>Crea una cita cuando necesites reservar un espacio.</p></div><button type="button" data-go="new">Crear cita</button></div>';
-      host.querySelector('[data-go="new"]').onclick=function(){if(window.SmylCareTasks)window.SmylCareTasks.open('appointment');else route('agenda');};
+      host.innerHTML='<div class="daily-home-next-empty"><span aria-hidden="true">＋</span><div><strong>Tu agenda está libre por ahora</strong><p>'+(can('schedule.manage')?'Crea una cita cuando necesites reservar un espacio.':'Cuando tengas citas aparecerán aquí.')+'</p></div>'+(can('schedule.manage')?'<button type="button" data-go="new">Crear cita</button>':'')+'</div>';
+      var createButton=host.querySelector('[data-go="new"]'); if(createButton)createButton.onclick=function(){if(window.SmylCareTasks)window.SmylCareTasks.open('appointment');else route('agenda');};
       return;
     }
     var upcoming=rows.find(function(a){return new Date(a.starts_at).getTime()>=now&&a.status==='confirmed';});
@@ -188,7 +225,7 @@
 
   async function loadChats(force) {
     var inbox=window.SmylInbox;
-    if(!inbox||typeof inbox.fetchRecent!=='function'||state.chatsLoading)return;
+    if(!inbox||typeof inbox.fetchRecent!=='function'||state.chatsLoading||!can('messages.read'))return;
     if(!force&&state.chats&&Date.now()-state.chatsAt<30000)return;
     state.chatsLoading=true; state.chatsError=false; if(!state.chats)renderChats();
     try {
@@ -281,13 +318,13 @@
     if(priorities&&priorities.querySelector('button'))priorities.querySelector('button').onclick=function(){load(true);};
     if(next)next.innerHTML='<div class="daily-home-next-empty"><strong>Agenda no disponible</strong><p>Ábrela desde el menú para continuar.</p></div>';
     if(updated)updated.textContent='Actualización pendiente';
-    renderMetrics(); loadChats(false); loadMonth(false);
+    applyAccess(); renderMetrics(); if(can('messages.read'))loadChats(false); loadMonth(false);
   }
 
   function render() {
     if(state.error){renderError();return;}
     var tasks=resolvePriorityTasks();
-    renderMetrics(tasks); renderPriorities(tasks); renderNext(); loadChats(false); loadMonth(false);
+    applyAccess(); renderMetrics(tasks); renderPriorities(tasks); renderNext(); if(can('messages.read'))loadChats(false); loadMonth(false);
     var updated=document.querySelector('[data-home-updated]'); if(updated)updated.textContent='Actualizado '+new Intl.DateTimeFormat('es-MX',{hour:'2-digit',minute:'2-digit'}).format(new Date());
   }
 
@@ -304,11 +341,12 @@
     var start=startDay(new Date()), end=new Date(start); end.setDate(end.getDate()+1);
     try {
       var rows=await Promise.all([
-        query(window.sb.from('smyl_appointments').select('id,patient_id,service_id,starts_at,ends_at,status').eq('tenant_id',state.tenant).gte('starts_at',iso(start)).lt('starts_at',iso(end)).order('starts_at')),
+        query(window.sb.from('smyl_appointments').select('id,patient_id,service_id,professional_id,starts_at,ends_at,status').eq('tenant_id',state.tenant).gte('starts_at',iso(start)).lt('starts_at',iso(end)).order('starts_at')),
         query(window.sb.from('smyl_appointment_requests').select('id,patient_id,requested_start,status').eq('tenant_id',state.tenant).eq('status','pending').order('created_at')),
         query(window.sb.from('smyl_services').select('id,name').eq('tenant_id',state.tenant).eq('active',true).order('name'))
       ]);
       state.appointments=rows[0]||[]; state.requests=rows[1]||[]; state.services=rows[2]||[];
+      if(!state.access||state.accessTenant!==state.tenant)await loadAccess();
       state.patients=await namesFor(state.tenant,state.appointments.concat(state.requests).map(function(r){return r.patient_id;}));
       state.loaded=true;
       if(window.SmylLanaAttention&&typeof window.SmylLanaAttention.getSummary==='function')state.messages=window.SmylLanaAttention.getSummary();
