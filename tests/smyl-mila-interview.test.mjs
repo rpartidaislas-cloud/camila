@@ -253,3 +253,12 @@ test('pantalla v2: anillo de temas, karaoke, pantalla de terminado y continuar e
   assert.match(fn, /field\("continuar"\) === "true"/);
   assert.match(fn, /:rt\$\{Date\.parse\(rt\.started_at\)\}/, 'cada conversación se mide por separado');
 });
+
+test('el resumen final no se corta: tope amplio, reanudación y actividad mientras MILA habla', () => {
+  const fn = read('../supabase/functions/mila-interview/index.ts');
+  assert.match(fn, /max_output_tokens: "inf"/);
+  assert.doesNotMatch(fn, /max_output_tokens: 600,/);
+  const phone = read('../mila-movil.html');
+  assert.match(phone, /reason==='max_output_tokens'/);
+  assert.match(phone, /if\(ORB\.state==='mila'\|\|ORB\.state==='listening'\|\|ORB\.state==='thinking'\)rt\.last=Date\.now\(\);/);
+});

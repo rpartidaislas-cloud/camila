@@ -409,13 +409,14 @@ Deno.serve(async (req: Request) => {
       type: "realtime",
       model: REALTIME_MODEL,
       instructions: buildInterviewerInstructions(firstName(patient?.nombre), continuation ? { continuation } : {}),
-      max_output_tokens: 600,
+      // Sin tope por respuesta: la voz consume muchos tokens y con un límite el resumen final se cortaba a media frase.
+      max_output_tokens: "inf",
       audio: {
         input: {
           transcription: { model: REALTIME_TRANSCRIBE_MODEL, languages: ["es"] },
           // Filtra ruido del consultorio (compresor, succión, música); far_field porque el celular queda sobre la mesa, no pegado a la boca.
           noise_reduction: { type: "far_field" },
-          turn_detection: { type: "server_vad", threshold: 0.5, prefix_padding_ms: 300, silence_duration_ms: 800, create_response: true },
+          turn_detection: { type: "server_vad", threshold: 0.62, prefix_padding_ms: 300, silence_duration_ms: 800, create_response: true, interrupt_response: true },
         },
         output: { voice: REALTIME_VOICE },
       },

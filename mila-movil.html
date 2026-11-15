@@ -513,6 +513,7 @@
       rt.last=Date.now();rt.pausedAt=0;
       rt.timer=setInterval(function(){var s=Math.round((Date.now()-rt.started)/1000);$('live-timer').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
         // Cierre automático para no consumir de más: 60 s sin voz o 5 min en pausa.
+        if(ORB.state==='mila'||ORB.state==='listening'||ORB.state==='thinking')rt.last=Date.now();
         var quiet=Date.now()-(rt.muted?rt.pausedAt:rt.last),limit=rt.muted?300000:60000;
         if(rt.active&&quiet>=limit){finishRealtime();return;}
         if(rt.active&&!rt.muted&&quiet>=45000)$('live-state').textContent='Sin conversación · se cerrará en '+Math.ceil((limit-quiet)/1000)+' s';
@@ -537,6 +538,7 @@
     if(e.type==='response.created'){st.rt.partial='';st.rt.speakingAt=0;}
     if(e.type==='conversation.item.input_audio_transcription.completed')chat('patient',(e.transcript||'').trim());
     if(e.type==='response.output_audio_transcript.done'||e.type==='response.audio_transcript.done')chat('mila',(e.transcript||'').trim());
+    if(e.type==='response.done'&&e.response&&e.response.status==='incomplete'&&!st.rt.resumed){var reason=e.response.status_details&&e.response.status_details.reason;if(reason==='max_output_tokens'){st.rt.resumed=true;sendRt({type:'response.create',response:{instructions:'Tu respuesta anterior se cortó. Continúa exactamente donde te quedaste, sin repetir lo ya dicho.'}});setTimeout(function(){st.rt.resumed=false;},4000);}}
     if(e.type==='response.done'&&e.response&&e.response.usage){var u=e.response.usage,ui=u.input_token_details||{},uo=u.output_token_details||{},b=st.rt.usage;b.input+=Number(u.input_tokens)||0;b.output+=Number(u.output_tokens)||0;b.cached=(b.cached||0)+(Number(ui.cached_tokens)||0);b.in_audio=(b.in_audio||0)+(Number(ui.audio_tokens)||0);b.in_text=(b.in_text||0)+(Number(ui.text_tokens)||0);b.out_audio=(b.out_audio||0)+(Number(uo.audio_tokens)||0);b.out_text=(b.out_text||0)+(Number(uo.text_tokens)||0);}
     if(e.type==='response.output_item.done'&&e.item&&e.item.type==='function_call')onTool(e.item.name,e.item.arguments,e.item.call_id);
     if(e.type==='response.function_call_arguments.done')onTool(e.name,e.arguments,e.call_id);
