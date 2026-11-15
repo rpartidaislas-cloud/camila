@@ -47,7 +47,8 @@ const EXTRACT_MODEL =
 // Menos razonamiento = respuesta más rápida. Vacío = no se envía (para modelos que no lo aceptan).
 const EXTRACT_REASONING = Deno.env.get("OPENAI_MILA_INTERVIEW_REASONING") ?? "low";
 const REALTIME_MODEL = Deno.env.get("OPENAI_REALTIME_MODEL") || "gpt-realtime-2.1";
-const REALTIME_VOICE = Deno.env.get("OPENAI_REALTIME_VOICE") || "marin";
+// Voz femenina por defecto; se puede probar otra sin tocar código (ej. coral, shimmer, sage).
+const REALTIME_VOICE = Deno.env.get("OPENAI_MILA_INTERVIEW_VOICE") || Deno.env.get("OPENAI_REALTIME_VOICE") || "marin";
 const REALTIME_TRANSCRIBE_MODEL = Deno.env.get("OPENAI_REALTIME_TRANSCRIBE_MODEL") || "gpt-transcribe";
 const CONSUMABLES_ENFORCED = (Deno.env.get("SMYL_CONSUMABLES_ENFORCED") || "false") === "true";
 // Tarifas opcionales (USD por millón de tokens) para estimar costo. Sin configurar, el costo queda vacío.
@@ -401,6 +402,8 @@ Deno.serve(async (req: Request) => {
       audio: {
         input: {
           transcription: { model: REALTIME_TRANSCRIBE_MODEL, languages: ["es"] },
+          // Filtra ruido del consultorio (compresor, succión, música); far_field porque el celular queda sobre la mesa, no pegado a la boca.
+          noise_reduction: { type: "far_field" },
           turn_detection: { type: "server_vad", threshold: 0.5, prefix_padding_ms: 300, silence_duration_ms: 800, create_response: true },
         },
         output: { voice: REALTIME_VOICE },
@@ -468,7 +471,16 @@ Deno.serve(async (req: Request) => {
     const key = `${row.id}:rt`;
     const accepted = await consumeSeconds(row.tenant_id, "history", key, seconds, REALTIME_MODEL, {
       context: "history_realtime_interview",
-      token_usage: { ...voiceUsage, total_tokens: voiceUsage.input_tokens + voiceUsage.output_tokens, usage_source: "client_reported_openai_response_done" },
+      token_usage: {
+        ...voiceUsage,
+        total_tokens: voiceUsage.input_tokens + voiceUsage.output_tokens,
+        cached_input_tokens: tokenCount(reported.cached_input_tokens),
+        input_audio_tokens: tokenCount(reported.input_audio_tokens),
+        input_text_tokens: tokenCount(reported.input_text_tokens),
+        output_audio_tokens: tokenCount(reported.output_audio_tokens),
+        output_text_tokens: tokenCount(reported.output_text_tokens),
+        usage_source: "client_reported_openai_response_done",
+      },
       extract_model: EXTRACT_MODEL,
     });
     await logUsage(row.tenant_id, "history", REALTIME_MODEL, key, voiceUsage, seconds, "ok");

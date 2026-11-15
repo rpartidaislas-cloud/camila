@@ -1,5 +1,20 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-15 — Claude Code — Entrevista por voz: ahorro sin cambiar modelo ni voz
+
+- `noise_reduction: far_field` en la sesión Realtime (el celular queda sobre la mesa): menos respuestas disparadas por ruido del consultorio.
+- Instrucción de intervenciones de máximo dos frases (salvo el resumen final): menos audio de salida, que es lo más caro.
+- Cierre automático en el celular: 60 s sin conversación o 5 min en pausa → `realtime_finish` (aviso «se cerrará en N s» desde los 45 s).
+- Se mantiene `gpt-realtime-2.1` y la voz; no se probó la versión mini por pedido del usuario (sin perder calidad). **Requiere volver a desplegar `mila-interview`.** Pruebas 17/17.
+
+## 2026-11-15 — Claude Code — Entrevista por voz: pantalla en vivo con orbe y voz latina
+
+- `mila-movil.html`: al iniciar «MILA hace las preguntas» se abre una pantalla completa con un **orbe animado** (canvas) que reacciona al audio real: se expande con la voz de MILA (análisis de la pista remota), muestra ondas cuando habla el paciente (micrófono), late lento cuando MILA piensa y se apaga en pausa. Estados por eventos Realtime (`output_audio_buffer.started/stopped`, `input_audio_buffer.speech_started/stopped`).
+- Subtítulo grande de la última frase (MILA en vivo con `response.output_audio_transcript.delta`), botón **Conversación** (hoja con el chat completo), **Pausar/Reanudar** (silencia el micrófono) y **Terminar**. Alertas rojas arriba. Botón de inicio en forma de píldora con mini-orbe. Respeta `prefers-reduced-motion`.
+- Voz: instrucción de acento mexicano/latinoamericano femenino en `buildInterviewerInstructions`; voz configurable solo para la entrevista con `OPENAI_MILA_INTERVIEW_VOICE` (por defecto `marin`).
+- Consumo: el celular ahora reporta también tokens en caché y el desglose audio/texto de entrada y salida (`metadata.token_usage` de `smyl_consume`), para poder calcular el costo real.
+- **Requiere volver a desplegar `mila-interview`.** Caché `mila-live-orb-v1`. Pruebas `tests/smyl-mila-interview.test.mjs` 16/16; Playwright 390 px con WebRTC simulado (hablando, conversación, pausa).
+
 ## 2026-11-15 — Claude Code — Rediseño del diálogo «Entrevista con MILA» (computadora)
 
 - El diálogo ahora queda centrado (antes podía quedar pegado arriba a la izquierda por el `dialog{margin:0}` global), con cabecera azul marino: iniciales y nombre completo del paciente, estado en vivo con indicador animado y botón de minimizar.

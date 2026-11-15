@@ -212,3 +212,27 @@ test('el modo por voz y la interpretación en segundo plano miden el consumo en 
   assert.match(phone, /realtime_finish/);
   assert.match(phone, /SEGMENT_MS=60000/);
 });
+
+test('voz femenina latina configurable y pantalla en vivo con orbe', () => {
+  const text = buildInterviewerInstructions('Ana');
+  assert.match(text, /mujer latinoamericana: acento mexicano/);
+  const fn = read('../supabase/functions/mila-interview/index.ts');
+  assert.match(fn, /OPENAI_MILA_INTERVIEW_VOICE/);
+  assert.match(fn, /cached_input_tokens/);
+  const phone = read('../mila-movil.html');
+  assert.match(phone, /id="live"/);
+  assert.match(phone, /<canvas id="orb"/);
+  assert.match(phone, /createAnalyser/);
+  assert.match(phone, /output_audio_buffer\.started/);
+  assert.match(phone, /input_audio_buffer\.speech_started/);
+  assert.match(phone, /prefers-reduced-motion: reduce/);
+  assert.match(phone, /id="live-pause"/);
+});
+
+test('ahorro sin perder calidad: ruido, intervenciones breves y cierre por silencio', () => {
+  assert.match(read('../supabase/functions/mila-interview/index.ts'), /noise_reduction: \{ type: "far_field" \}/);
+  assert.match(buildInterviewerInstructions('Ana'), /como máximo dos frases breves/);
+  const phone = read('../mila-movil.html');
+  assert.match(phone, /limit=rt\.muted\?300000:60000/);
+  assert.match(phone, /se cerrará en/);
+});
