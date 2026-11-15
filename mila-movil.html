@@ -399,7 +399,7 @@
   function waitIce(pc){return new Promise(function(resolve){if(pc.iceGatheringState==='complete')return resolve();var done=function(){if(pc.iceGatheringState==='complete'){pc.removeEventListener('icegatheringstatechange',done);resolve();}};pc.addEventListener('icegatheringstatechange',done);setTimeout(resolve,3000);});}
   // ---- Orbe en vivo: reacciona a la voz real (MILA = salida, paciente = micrófono) ----
   var ORB={ctx:null,ac:null,inA:null,outA:null,buf:null,raf:0,state:'connecting',lvl:0,lvlIn:0,lvlOut:0,t0:0,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches};
-  var PALETTE={connecting:['#55aaf0','#3fd3c3','#8b7cf6'],mila:['#3fd3c3','#55aaf0','#8b7cf6'],listening:['#9fd8ff','#55aaf0','#e9f6ff'],thinking:['#8b7cf6','#55aaf0','#3fd3c3'],paused:['#5d7184','#3b4f62','#7f93a6'],idle:['#3fd3c3','#55aaf0','#8b7cf6']};
+  var PALETTE={connecting:['#55aaf0','#3fd3c3','#8b7cf6'],mila:['#3fd3c3','#5fb8ff','#a78bfa'],listening:['#e6f6ff','#7cc8ff','#55aaf0'],thinking:['#a78bfa','#5fb8ff','#3fd3c3'],paused:['#6b7f93','#4d6378','#8899aa'],idle:['#3fd3c3','#5fb8ff','#a78bfa']};
   var STATE_TEXT={connecting:'Conectando con MILA…',mila:'MILA está hablando',listening:'Escuchando al paciente…',thinking:'MILA está pensando…',paused:'En pausa · el micrófono está apagado',idle:'MILA te escucha'};
   function setOrb(state){if(ORB.state===state)return;ORB.state=state;$('live-state').textContent=STATE_TEXT[state]||'';$('live-state').dataset.state=state;}
   function analyser(stream){try{var src=ORB.ac.createMediaStreamSource(stream),a=ORB.ac.createAnalyser();a.fftSize=512;a.smoothingTimeConstant=.7;src.connect(a);return a;}catch(_){return null;}}
@@ -407,34 +407,50 @@
   function sizeCanvas(c){var dpr=Math.min(window.devicePixelRatio||1,2),size=c.getBoundingClientRect().width||300;c.width=size*dpr;c.height=size*dpr;var g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);return {g:g,size:size};}
   function startOrb(){var o=sizeCanvas($('orb'));ORB.ctx=o.g;ORB.size=o.size;ORB.t0=performance.now();cancelAnimationFrame(ORB.raf);ORB.raf=requestAnimationFrame(drawOrb);}
   function hexA(hex,a){var n=parseInt(hex.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';}
-  var CANVAS_BLUR=(function(){try{var t=document.createElement('canvas').getContext('2d');t.filter='blur(2px)';return t.filter==='blur(2px)';}catch(_){return false;}})();
-  /* Esfera oscura con luz que se mueve por dentro, borde de luz y brillo; L = nivel de voz 0..1. */
-  function paintOrb(g,S,t,state,L,speed){
-    var cx=S/2,cy=S/2,pal=PALETTE[state]||PALETTE.idle,R=S*.34*(1+L*.12)+(ORB.reduced?0:Math.sin(t*1.3)*S*.004);
+  /* Orbe v3: esfera de vidrio con cintas de luz que fluyen y crecen con la voz real (L = nivel 0..1). */
+  function paintOrb(g,S,t,state,L,reduced){
+    var cx=S/2,cy=S/2,pal=PALETTE[state]||PALETTE.idle,breath=reduced?0:Math.sin(t*1.2)*.012,R=S*.34*(1+L*.08+breath);
     g.clearRect(0,0,S,S);
-    var halo=g.createRadialGradient(cx,cy,R*.6,cx,cy,S*.5);halo.addColorStop(0,hexA(pal[0],.26+L*.3));halo.addColorStop(1,hexA(pal[0],0));g.fillStyle=halo;g.fillRect(0,0,S,S);
-    if(state==='listening'&&!ORB.reduced){for(var r=0;r<3;r++){var ph=((t*.6+r/3)%1);g.beginPath();g.arc(cx,cy,R*(1.04+ph*.42),0,Math.PI*2);g.strokeStyle=hexA('#9fd8ff',(1-ph)*.4*(.5+L));g.lineWidth=1.6;g.stroke();}}
-    var base=g.createRadialGradient(cx-R*.2,cy-R*.25,R*.1,cx,cy,R);base.addColorStop(0,'#133b5c');base.addColorStop(1,'#061524');
-    g.beginPath();g.arc(cx,cy,R,0,Math.PI*2);g.fillStyle=base;g.fill();
-    g.save();g.beginPath();g.arc(cx,cy,R,0,Math.PI*2);g.clip();g.globalCompositeOperation='lighter';
-    if(CANVAS_BLUR)g.filter='blur('+Math.round(S*.022)+'px)';
-    for(var k=0;k<4;k++){
-      var ox=Math.cos(t*speed*.6+k*1.6)*R*(.22+L*.12),oy=Math.sin(t*speed*.8+k*1.9)*R*(.2+L*.1);
+    // halo exterior que respira con la voz
+    var halo=g.createRadialGradient(cx,cy,R*.7,cx,cy,S*.5);halo.addColorStop(0,hexA(pal[0],.22+L*.35));halo.addColorStop(1,hexA(pal[0],0));g.fillStyle=halo;g.fillRect(0,0,S,S);
+    // ondas cuando habla el paciente
+    if(state==='listening'&&!reduced){for(var r=0;r<3;r++){var ph=((t*.55+r/3)%1);g.beginPath();g.arc(cx,cy,R*(1.03+ph*.4),0,Math.PI*2);g.strokeStyle=hexA('#cfeaff',(1-ph)*.45*(.45+L));g.lineWidth=1.5;g.stroke();}}
+    // cuerpo de vidrio
+    var body=g.createRadialGradient(cx-R*.25,cy-R*.3,R*.05,cx,cy,R);body.addColorStop(0,'#16446a');body.addColorStop(.55,'#0b2740');body.addColorStop(1,'#04111d');
+    g.beginPath();g.arc(cx,cy,R,0,Math.PI*2);g.fillStyle=body;g.fill();
+    g.save();g.beginPath();g.arc(cx,cy,R*.985,0,Math.PI*2);g.clip();
+    // giro lento al pensar
+    g.translate(cx,cy);g.rotate(state==='thinking'&&!reduced?t*.9:Math.sin(t*.25)*.12);g.translate(-cx,-cy);
+    g.globalCompositeOperation='lighter';
+    var waves=state==='paused'?1:5,speed=reduced?0:(state==='paused'?.2:1);
+    for(var k=0;k<waves;k++){
+      var col=pal[k%3],amp=R*(state==='paused'?.02:(.08+.5*L)*(1-k*.12)),freq=1.4+k*.35,ph=t*speed*(1.6+k*.45)+k*1.7,thick=R*(.05+.16*L+.03*Math.sin(t*1.3+k));
+      var x0=cx-R*1.05,x1=cx+R*1.05,N=64;
+      // banda (relleno) con borde superior e inferior
       g.beginPath();
-      for(var i=0;i<=80;i++){var a=i/80*Math.PI*2,rr=R*(.5+L*.22+.1*Math.sin(3*a+t*speed*(1+k*.4)+k*2)+.07*Math.sin(5*a-t*speed*1.7+k));var x=cx+ox+Math.cos(a)*rr,y=cy+oy+Math.sin(a)*rr*.88;if(i)g.lineTo(x,y);else g.moveTo(x,y);}
-      g.closePath();var col=pal[k%3],gr=g.createRadialGradient(cx+ox,cy+oy,0,cx+ox,cy+oy,R*.9);gr.addColorStop(0,hexA(col,.6+L*.25));gr.addColorStop(1,hexA(col,0));g.fillStyle=gr;g.fill();
+      for(var i=0;i<=N;i++){var u=i/N,x=x0+(x1-x0)*u,env=Math.pow(Math.sin(Math.PI*u),1.6),y=cy+Math.sin(u*Math.PI*2*freq+ph)*amp*env+Math.sin(u*Math.PI*5+ph*1.3)*amp*.18*env-thick*env;if(i)g.lineTo(x,y);else g.moveTo(x,y);}
+      for(var j=N;j>=0;j--){var u2=j/N,xx=x0+(x1-x0)*u2,env2=Math.pow(Math.sin(Math.PI*u2),1.6),yy=cy+Math.sin(u2*Math.PI*2*freq+ph)*amp*env2+Math.sin(u2*Math.PI*5+ph*1.3)*amp*.18*env2+thick*env2;g.lineTo(xx,yy);}
+      g.closePath();
+      var lg=g.createLinearGradient(x0,0,x1,0);lg.addColorStop(0,hexA(col,0));lg.addColorStop(.5,hexA(col,.42+L*.3));lg.addColorStop(1,hexA(col,0));g.fillStyle=lg;g.fill();
+      // línea central brillante
+      g.beginPath();
+      for(var m=0;m<=N;m++){var u3=m/N,x3=x0+(x1-x0)*u3,env3=Math.pow(Math.sin(Math.PI*u3),1.6),y3=cy+Math.sin(u3*Math.PI*2*freq+ph)*amp*env3+Math.sin(u3*Math.PI*5+ph*1.3)*amp*.18*env3;if(m)g.lineTo(x3,y3);else g.moveTo(x3,y3);}
+      var lc=g.createLinearGradient(x0,0,x1,0);lc.addColorStop(0,'rgba(255,255,255,0)');lc.addColorStop(.5,'rgba(255,255,255,'+(.35+L*.45)+')');lc.addColorStop(1,'rgba(255,255,255,0)');g.strokeStyle=lc;g.lineWidth=1.2+L*1.4;g.stroke();
     }
-    g.filter='none';g.restore();g.globalCompositeOperation='source-over';
-    var rim=g.createLinearGradient(cx-R,cy-R,cx+R,cy+R);rim.addColorStop(0,'rgba(255,255,255,.85)');rim.addColorStop(.5,hexA(pal[1],.55));rim.addColorStop(1,hexA(pal[2],.85));
-    g.beginPath();g.arc(cx,cy,R,0,Math.PI*2);g.strokeStyle=rim;g.lineWidth=1.8;g.stroke();
-    var gl=g.createRadialGradient(cx-R*.38,cy-R*.45,0,cx-R*.38,cy-R*.45,R*.55);gl.addColorStop(0,'rgba(255,255,255,.4)');gl.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gl;g.beginPath();g.arc(cx,cy,R*.97,0,Math.PI*2);g.fill();
+    // núcleo de luz al centro
+    var core=g.createRadialGradient(cx,cy,0,cx,cy,R*(.45+L*.3));core.addColorStop(0,hexA(pal[1],.28+L*.35));core.addColorStop(1,hexA(pal[1],0));g.fillStyle=core;g.fillRect(cx-R,cy-R,R*2,R*2);
+    g.restore();g.globalCompositeOperation='source-over';
+    // borde de luz y brillo de vidrio
+    var rim=g.createLinearGradient(cx-R,cy-R,cx+R,cy+R);rim.addColorStop(0,'rgba(255,255,255,.75)');rim.addColorStop(.5,hexA(pal[1],.35));rim.addColorStop(1,hexA(pal[2],.75));
+    g.beginPath();g.arc(cx,cy,R,0,Math.PI*2);g.strokeStyle=rim;g.lineWidth=1.6;g.stroke();
+    var gl=g.createRadialGradient(cx-R*.4,cy-R*.5,0,cx-R*.4,cy-R*.5,R*.6);gl.addColorStop(0,'rgba(255,255,255,.16)');gl.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gl;g.beginPath();g.ellipse(cx-R*.25,cy-R*.42,R*.55,R*.32,-.5,0,Math.PI*2);g.fill();
   }
   function drawOrb(now){
     var g=ORB.ctx,t=(now-ORB.t0)/1000;if(!g)return;
     ORB.lvlIn+=(level(ORB.inA)-ORB.lvlIn)*.25;ORB.lvlOut+=(level(ORB.outA)-ORB.lvlOut)*.25;
     var target=ORB.state==='mila'?Math.max(ORB.lvlOut,.22):ORB.state==='listening'?Math.max(ORB.lvlIn,.14):ORB.state==='thinking'?.12+.06*Math.sin(t*3):ORB.state==='paused'?0:.06;
     ORB.lvl+=(target-ORB.lvl)*.15;
-    paintOrb(g,ORB.size,t,ORB.state,ORB.reduced?ORB.lvl*.5:ORB.lvl,ORB.reduced?0:(ORB.state==='thinking'?1.8:ORB.state==='paused'?.25:1));
+    paintOrb(g,ORB.size,t,ORB.state,ORB.reduced?ORB.lvl*.5:ORB.lvl,ORB.reduced);
     karaoke(now);
     ORB.raf=requestAnimationFrame(drawOrb);
   }
@@ -443,7 +459,7 @@
   function startIdleOrb(){
     var c=$('orb-idle');if(!c||IDLE.raf||$('ai-hero').hidden||$('ai-panel').hidden||$('v-main').hidden)return;
     var o=sizeCanvas(c),t0=performance.now();
-    (function loop(now){if($('ai-hero').hidden||$('ai-panel').hidden||$('v-main').hidden||!$('live').hidden){IDLE.raf=0;return;}paintOrb(o.g,o.size,(now-t0)/1000,'idle',.08+.05*Math.sin((now-t0)/900),ORB.reduced?0:.7);IDLE.raf=requestAnimationFrame(loop);})(t0);
+    (function loop(now){if($('ai-hero').hidden||$('ai-panel').hidden||$('v-main').hidden||!$('live').hidden){IDLE.raf=0;return;}paintOrb(o.g,o.size,(now-t0)/1000,'idle',.1+.06*Math.sin((now-t0)/900),ORB.reduced);IDLE.raf=requestAnimationFrame(loop);})(t0);
   }
   // Temas de la entrevista (anillo): se detectan por lo que pregunta MILA, sin costo extra.
   var TOPICS=[['dental','Motivo y dental',/le trae|motivo|dolor|duele|dentista|anestesia|sangr|sensibil/],['allergies','Alergias',/alerg/],['alerts','Alertas médicas',/anticoagul|aspirina|marcapasos|coraz[oó]n|coagula|embaraz|lactan/],['conditions','Condiciones',/diabet|presi[oó]n|asma|tiroid|enfermedad|padecimiento/],['medications','Medicamentos',/medicament|pastilla|tratamiento m[eé]dico|toma algo|dosis/],['surgeries','Cirugías',/oper|cirug|hospital/],['habits','Hábitos',/fuma|alcohol|cepill|hilo dental|aprieta|rechin/],['emergency_contact','Contacto',/emergencia/]];

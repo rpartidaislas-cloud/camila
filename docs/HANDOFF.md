@@ -1,5 +1,10 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-15 — Claude Code — Orbe de MILA v3 (animación)
+
+- `paintOrb` en `mila-movil.html`: esfera de vidrio con 5 cintas de luz (ondas con extremos afilados, línea central brillante, mezcla aditiva) cuya amplitud y grosor siguen el nivel real de la voz; núcleo de luz al centro, borde y reflejo. Estados: MILA (turquesa/azul/violeta), escuchando (blanco-azul con ondas externas), pensando (gira lento), pausa (línea tenue). Sin `ctx.filter` (mejor rendimiento en iPhone). Respeta `prefers-reduced-motion`.
+- Solo cambia la página del celular; no requiere desplegar la función. Caché `mila-orb-v3`.
+
 ## 2026-11-15 — Claude Code — Arreglo: el resumen final de MILA se cortaba
 
 - Causa principal: `max_output_tokens: 600` por respuesta en la sesión Realtime; el audio de un resumen de 30–40 s lo rebasa y la respuesta queda `incomplete`. Ahora sin tope (`"inf"`), a pedido del usuario.
