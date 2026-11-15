@@ -37,11 +37,11 @@ test('cada cifra abre la pestaña o el filtro que la explica y es operable con t
   assert.match(css, /\.finance-metrics article\[role=button\]:focus-visible/);
 });
 
-test('la tarjeta «Seguimiento financiero» se sustituye por una franja de una línea que solo aparece con pendientes', () => {
-  assert.doesNotMatch(js, /finance-focus-list|SEGUIMIENTO FINANCIERO|Cartera al día/);
-  assert.match(js, /class="finance-alert-host"[^>]*hidden/);
-  assert.match(js, /if\(!total\)\{host\.innerHTML='';host\.hidden=true;return;\}/);
-  assert.match(css, /\.finance-alert\{display:flex/);
+test('la franja «Por revisar» desapareció: cada indicador lleva su siguiente paso como enlace', () => {
+  assert.doesNotMatch(js, /finance-focus-list|SEGUIMIENTO FINANCIERO|Cartera al día|id="finance-focus"|renderCollectionFocus|POR REVISAR/);
+  assert.match(js, /data-metric-sub="overdue">Ver vencidas/);
+  assert.match(js, /Abrir mi caja/);
+  assert.match(js, /Abierta hace más de 18 h/);
 });
 
 test('los tamaños de letra nuevos respetan el mínimo de 12 px y la web y el contenedor móvil coinciden', () => {
@@ -294,4 +294,22 @@ test('Inventario: «Registrar consumo», «Ajustar inventario» y «Comprar y re
   assert.match(wf, /finance\.cash\.supervise/);
   assert.doesNotMatch(wf, /pull_request|push:/);
   for (const f of ['smyl-inventory.js', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
+});
+
+test('Cobros paso 1: abre en Por cobrar con un solo contador, 4 filtros, acciones ligeras y vacío único', () => {
+  assert.match(js, /actor:null,tab:'accounts'/);
+  // El contador de la pestaña es el mismo del menú: pacientes pendientes de cargo.
+  assert.match(js, /var tabBadge=document\.querySelector\('\[data-finance-tab="accounts"\] em'\);if\(tabBadge\)\{tabBadge\.textContent=String\(rows\.length\)/);
+  assert.doesNotMatch(js, /tabCount\.textContent=String\(openCount\)/);
+  assert.match(js, /accountTab\.after\(receiptTab\)/, 'Recibos queda después de Por cobrar');
+  assert.match(js, /var MORE_FILTERS=\['attention','settled'\]/);
+  assert.match(js, /<option value="attention">Requieren acción<\/option><option value="settled">Liquidadas<\/option>/);
+  assert.match(js, /class="finance-link-action" data-visit-nocharge=/);
+  assert.match(js, /Sin abonos todavía/);
+  assert.match(js, /Todo cobrado por ahora/);
+  assert.match(js, /pageHead=el\('div','finance-page-head'\)/);
+  assert.match(css, /#p-caja \.finance-account-open::after\{content:" →"\}/);
+  const app = read('app.html'), shell = read('smyl-professional-v3.css');
+  assert.match(app, /new MutationObserver\(function\(\)\{place\(\);\}\)/, 'el pie de derechos siempre queda al final del contenido');
+  assert.match(shell, /\.contenido>#app-copyright\{position:static[^}]*height:0/);
 });
