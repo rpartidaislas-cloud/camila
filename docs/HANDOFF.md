@@ -1,5 +1,12 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-15 — Claude Code — Arreglo: el resumen final de MILA se cortaba
+
+- Causa principal: `max_output_tokens: 600` por respuesta en la sesión Realtime; el audio de un resumen de 30–40 s lo rebasa y la respuesta queda `incomplete`. Ahora sin tope (`"inf"`), a pedido del usuario.
+- El celular reanuda automáticamente una respuesta cortada por `max_output_tokens` («continúa donde te quedaste»), y el cierre por silencio ya no corre mientras MILA habla, escucha o piensa (el audio puede durar más que el texto).
+- `server_vad` un poco menos sensible (`threshold 0.62`) para que el eco de su propia voz con volumen alto o el ruido no la interrumpan.
+- **Requiere volver a desplegar `mila-interview`.** Pruebas 19/19.
+
 ## 2026-11-15 — Claude Code — Entrevista por voz v2: inicio, anillo de temas, karaoke, terminado y continuar
 
 - `mila-movil.html`: cabecera con iniciales y nombre; selector compacto «MILA pregunta / Yo pregunto»; inicio con orbe en reposo y recordatorios (volumen, celular en la mesa, ~5 min).
