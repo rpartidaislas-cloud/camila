@@ -11,8 +11,8 @@ const css = read('smyl-finance.css');
 const draftMigration = read('supabase/migrations/20261013020000_smyl_proposal_finance_v1.sql');
 const financeSchema = read('supabase/migrations/20261012330000_smyl_finance.sql');
 
-test('Recibos es el inicio y Facturación conserva un espacio independiente', () => {
-  assert.match(js, /tab:'receipts'/);
+test('Por cobrar es el inicio, Recibos es la segunda pestaña y Facturación conserva un espacio independiente', () => {
+  assert.match(js, /tab:'accounts'/);
   assert.match(js, /dataset\.financeTab='receipts'/);
   assert.match(js, /dataset\.financePanel='receipts'/);
   assert.match(js, /<h2>Facturación<\/h2>/);
@@ -75,8 +75,8 @@ test('web y PWA publican la misma bandeja versionada', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) {
     assert.equal(read('mobile/www/' + file), read(file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=31/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=39/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=32/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=40/);
   assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=12/);
   assert.match(read('sw.js'), /professional-finance-v1/);
 });
