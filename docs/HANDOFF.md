@@ -1,5 +1,13 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-15 — Claude — Paciente por registrar, fase 2: la persona completa sus datos por enlace
+
+- En Pacientes, las fichas «Por registrar» tienen **Enviar enlace de registro**: crea un enlace de un solo uso (vence en 7 días) y abre WhatsApp con el mensaje listo; sin teléfono válido lo copia. Renovar el enlace anula el anterior.
+- La persona abre `registro-paciente.html?token=…` (página pública, `noindex`), escribe nombre, apellidos, correo, fecha de nacimiento y género (opcionales salvo el nombre) y acepta el aviso de privacidad. Eso actualiza **solo su ficha** y la deja `completo`. No puede leer nada de la clínica.
+- Sin Edge Function ni Actions: la página llama por RPC con la clave publicable a `smyl_registration_link_info` y `smyl_submit_registration`; el personal usa `smyl_create_registration_link` (exige `patients.manage` y el tenant de la sesión). Token de 256 bits, en la base solo su hash SHA-256; la tabla `smyl_patient_registration_links` no tiene acceso directo para anon/authenticated.
+- Migración `20261115120000_smyl_patient_registration_links.sql`, **aplicar a mano en el SQL Editor antes de usar el botón** (sin ella el botón avisa que falta la migración). Probada en Postgres 16 desechable: permisos, otro tenant, ficha ya completa, consentimiento, validaciones, un solo uso, renovación y bloqueo directo a la tabla.
+- Pendiente: los datos que escribe la persona no pasan por revisión del personal antes de quedar `completo`; si se quiere verificar, agregar un estado intermedio.
+
 ## 2026-11-15 — Claude — Paciente «por registrar» al agendar (fase 1)
 
 - En Agenda → Nueva cita se puede agendar a alguien que nunca ha ido sin darlo de alta completo: en el alta rápida **solo el teléfono es obligatorio**; el nombre es opcional. Sin nombre, el paciente se guarda como `Por registrar · <teléfono>` con `registro_estado='pendiente'` (`camila_pacientes.nombre` es NOT NULL y `smyl_appointments.patient_id` también, por eso se crea una ficha mínima).

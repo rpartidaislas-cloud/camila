@@ -3587,9 +3587,33 @@ function renderTablaPacientes(lista) {
     var actions = document.createElement('div'); actions.className = 'patient-actions';
     var open = document.createElement('button'); open.type = 'button'; open.className = 'btn btn-primary btn-sm'; open.textContent = 'Continuar expediente'; open.addEventListener('click', function(){ verPaciente(p.id); });
     var edit = document.createElement('button'); edit.type = 'button'; edit.className = 'btn btn-secondary btn-sm btn-icon'; edit.textContent = 'Editar'; edit.setAttribute('aria-label','Editar datos de ' + name.textContent); edit.addEventListener('click', function(){ abrirModalPaciente(p.id); });
-    actions.append(open, edit); row.append(identity, contact, actions); directory.append(row);
+    actions.append(open, edit);
+    if (porRegistrar && p.registro_estado === 'pendiente') { var link = document.createElement('button'); link.type = 'button'; link.className = 'btn btn-secondary btn-sm'; link.textContent = 'Enviar enlace de registro'; link.addEventListener('click', function(){ enviarEnlaceRegistro(p, link); }); actions.append(link); }
+    row.append(identity, contact, actions); directory.append(row);
   });
   el.replaceChildren(directory);
+}
+
+async function enviarEnlaceRegistro(p, boton) {
+  boton.disabled = true;
+  try {
+    var res = await sbTimeout(sb.rpc('smyl_create_registration_link', { p_patient_id: p.id }));
+    if (res.error || !res.data) throw res.error || new Error('Sin respuesta.');
+    var base = location.origin + location.pathname.replace(/[^/]*$/, '');
+    var url = base + 'registro-paciente.html?token=' + encodeURIComponent(res.data);
+    var texto = 'Hola, para tener tu expediente listo antes de tu cita, completa tus datos aquí (vence en 7 días): ' + url;
+    var d = String(p.telefono || '').replace(/\D/g, '');
+    if (d.length === 10) d = '52' + d;
+    if (d.length >= 11) { window.open('https://wa.me/' + d + '?text=' + encodeURIComponent(texto), '_blank', 'noopener'); }
+    else {
+      try { await navigator.clipboard.writeText(url); alert('Enlace copiado. Envíalo a la persona por el medio que prefieras.'); }
+      catch(e) { window.prompt('Copia este enlace y envíalo a la persona:', url); }
+    }
+  } catch(e) {
+    console.error('[SMYL] No se pudo crear el enlace de registro:', e);
+    var code = e && e.code, msg = String(e && e.message || '');
+    alert(code === '42501' ? 'Tu rol no permite enviar enlaces de registro.' : /PGRST202|42883|schema cache/i.test(code + ' ' + msg) ? 'Falta aplicar la migración de enlaces de registro en la base de datos.' : 'No se pudo crear el enlace. Inténtalo de nuevo.');
+  } finally { boton.disabled = false; }
 }
 
 function filtrarPacientes() {
