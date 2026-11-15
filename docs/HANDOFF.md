@@ -1,5 +1,13 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-15 — Claude — Migraciones P1 de seguridad aplicadas en producción (SMYL)
+
+- Se aplicaron a mano en el SQL Editor del proyecto de SMYL (sin Actions, que no arranca) las dos migraciones de la auditoría P1 del 2026-10-30: `20261030100000_smyl_retention_purge_schedule.sql` y `20261030110000_smyl_membership_reads_to_permissions.sql`. Ambas son idempotentes. No quedan registradas en el historial de migraciones de Supabase (no se usó la CLI): si se usa `supabase db push`, hay que saltarlas o marcarlas como aplicadas.
+- Verificado por consulta: las políticas de `camila_conversaciones`, `camila_lana_handoffs` y `camila_lana_clinical_links` exigen `messages.read`; `camila_mensajes` lo exige vía su conversación; `mila_sessions` y `mila_clinical_notes` exigen `clinical.read`. No se consultaron las políticas de actualización de conversaciones ni las de las otras tablas de MILA.
+- `pg_cron` estaba activo: `smyl-purga-intakes-publicos` (03:17) y `smyl-purga-asistente-publico` (03:23) quedaron programados cada día.
+- Efecto vigente: recepción conserva el chat y pierde MILA; finanzas e inventario dejan de leer ambos; `smyl_has_permission` exige clínica activa, incluso para el dueño.
+- **Pendiente:** prueba en pantalla con recepción y dueño; y el paso manual de S7: Storage → `camila-analisis` → Edit → desmarcar *Public*, solo si `analizar-foto` ya está desplegada.
+
 ## 2026-11-15 — Claude Code — Orbe de MILA v3 (animación)
 
 - `paintOrb` en `mila-movil.html`: esfera de vidrio con 5 cintas de luz (ondas con extremos afilados, línea central brillante, mezcla aditiva) cuya amplitud y grosor siguen el nivel real de la voz; núcleo de luz al centro, borde y reflejo. Estados: MILA (turquesa/azul/violeta), escuchando (blanco-azul con ondas externas), pensando (gira lento), pausa (línea tenue). Sin `ctx.filter` (mejor rendimiento en iPhone). Respeta `prefers-reduced-motion`.
