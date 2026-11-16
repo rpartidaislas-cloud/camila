@@ -11139,3 +11139,14 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
   - «Abierta hace más de 18 h · Hacer corte» pasa a botón ámbar en el indicador de Caja.
   - **Último filtro recordado** por dispositivo y clínica (`smyl_finance_filter_<tenant>`).
 - **Archivos:** `smyl-finance.js` v42, `smyl-finance.css` v34, `app.html`, `sw.js` (caché `…-cobros-directo-v1`), copias en `mobile/www/`, pruebas ajustadas y una nueva en `tests/smyl-finance-tabs-v2.test.mjs`. Sin cambios de permisos, datos ni RPC.
+
+## 2026-11-16 — Claude Code — Chat limpio (paso 1 de la maqueta de Mensajes)
+- **Qué cambia (solo frontend, `smyl-inbox.js` v45 / `smyl-inbox.css` v39):**
+  - **Encabezado del hilo:** una sola acción principal, «Agendar cita» (si hay permiso). Se quitó «Nueva acción» (esas acciones ya estaban en «⋯») y el botón verde «Enviar plantilla» del encabezado. En celular «Agendar cita» queda a la vista. El meta del encabezado muestra «Ventana 24 h: quedan X h» en WhatsApp.
+  - **Plantilla:** un solo punto de entrada, el aviso de ventana vencida del compositor («Elegir plantilla», o «Programar plantilla» si está por vencer). El botón Enviar se oculta en modo plantilla.
+  - **«Archivos»** salió de la franja «SMYL te pone al día» (sigue en «⋯» como «Archivos compartidos»).
+  - **Mensajes:** «Responder | Más» ya no ocupa una fila por burbuja: aparece como píldora flotante al pasar el cursor **y con `:focus-within`** (se mantiene alcanzable con teclado); en celular, al tocar la burbuja.
+  - **Filtros** segmentados con el contador siempre visible (antes el del filtro activo era blanco sobre blanco). La conversación abierta **se queda en la lista** aunque el filtro «Sin leer»/«Por atender» ya no la incluya. «IA activa» deja de repetirse en cada fila (solo «Por atender» / «Con el equipo»).
+  - Tipografía del buscador y del selector de canal unificada; aviso de ventana vencida en ámbar.
+- **No se tocó:** la barra superior (Avisos / Revisar operación), el compositor (iconos) ni el backend. Pendientes de la maqueta: calendario mensual de «Agendar», Ficha 360 v2, almacenamiento y Nube (cada uno con su PR).
+- **Archivos:** `smyl-inbox.js`, `smyl-inbox.css`, `app.html`, `sw.js` (caché `…-chat-limpio-v1`), copias en `mobile/www/`; pruebas ajustadas (`smyl-inbox-clean-header`, `smyl-inbox-queue-focus-stage3` y versiones fijadas).

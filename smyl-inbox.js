@@ -291,8 +291,9 @@
     var query = state.search.toLocaleLowerCase('es-MX').trim();
     return state.conversations.filter(function (item) {
       if (state.channel && item.channel !== state.channel) return false;
-      if (state.filter === 'unread' && !item.unread_count) return false;
-      if (state.filter === 'attention' && !item.needs_human) return false;
+      var keepOpen = item.id === state.selectedId;
+      if (state.filter === 'unread' && !item.unread_count && !keepOpen) return false;
+      if (state.filter === 'attention' && !item.needs_human && !keepOpen) return false;
       if (state.filter === 'mine' && (!item.assignment || item.assignment.actor_id !== (state.actor && state.actor.id))) return false;
       if (state.filter === 'pinned' && !item.pinned) return false;
       if (state.filter === 'paused' && !item.paused) return false;
@@ -458,7 +459,6 @@
       var meta = node('span', 'smyl-inbox-row-meta');
       if (item.needs_human) meta.append(node('span', 'smyl-inbox-attention', 'Por atender'));
       else if (item.paused) meta.append(node('span', 'smyl-inbox-state is-paused', 'Con el equipo'));
-      else meta.append(node('span', 'smyl-inbox-state', 'IA activa'));
       if (item.assignment) meta.append(node('span', 'smyl-inbox-assignee', item.assignment.name));
       var currentStage = stageName(item.stage_id);
       copy.append(top, preview, meta);
@@ -913,7 +913,7 @@
         : 'Ventana de WhatsApp abierta · ' + durationLabel(windowState.remaining_seconds) + ' disponibles para texto libre.');
       notice.append(noticeText);
       if (windowState.status !== 'open' && canRespond) {
-        var templateAction = node('button', 'smyl-inbox-window-action', 'Enviar plantilla');
+        var templateAction = node('button', 'smyl-inbox-window-action', windowState.status === 'expired' ? 'Elegir plantilla' : 'Programar plantilla');
         templateAction.type = 'button'; templateAction.onclick = openTemplateDialog; notice.append(templateAction);
       }
     }
@@ -926,7 +926,7 @@
     var templateOnly = Boolean(isWhatsapp && !freeformAllowed);
     form.dataset.mode = templateOnly ? 'template' : 'message';
     input.disabled = !canRespond || !freeformAllowed; send.disabled = !canRespond;
-    send.textContent = templateOnly ? 'Elegir plantilla' : 'Enviar';
+    send.textContent = 'Enviar'; send.hidden = templateOnly;
     attach.disabled = !canRespond || !freeformAllowed; location.disabled = !canRespond || !freeformAllowed || !isWhatsapp;
     record.hidden = !isWhatsapp; record.disabled = !canRespond || !freeformAllowed;
     copilot.disabled = !canRespond || !freeformAllowed;
@@ -1959,7 +1959,9 @@
   function primaryCareAction(conversation, actions) {
     var canRespond = canOperate(conversation, 'messages.respond');
     var windowState = liveWhatsappWindow(conversation);
-    if (canRespond && windowState && !windowState.freeform_allowed) return { id: 'template', label: 'Enviar plantilla', run: openTemplateDialog };
+    // La plantilla vive solo en el compositor (aviso de ventana vencida); el encabezado tiene una sola acción principal.
+    var scheduleAction = actions.find(function (action) { return action.id === 'schedule'; });
+    if (scheduleAction) return scheduleAction;
     if (canRespond && (conversation.needs_human || conversation.unread_count)) return { id: 'respond', label: 'Responder ahora', run: focusComposer };
     var stage = stageName(conversation.stage_id).toLowerCase();
     var preferred = /cobr|pag|factur|caja/.test(stage) ? 'payment' : /cotiz|valor|plan|propuest/.test(stage) ? 'quote' : 'schedule';
@@ -1998,26 +2000,9 @@
     if (!conversation) return;
     var actions = permittedCareActions(conversation);
     var primary = primaryCareAction(conversation, actions);
-    var secondaryActions = actions.filter(function (action) { return !primary || action.id !== primary.id; });
     if (primary) {
       var primaryButton = node('button', 'smyl-inbox-care-action is-primary', primary.label);
       primaryButton.type = 'button'; primaryButton.dataset.threadPrimaryAction = primary.id; primaryButton.onclick = primary.run; host.append(primaryButton);
-    }
-    if (secondaryActions.length) {
-      var menuWrap = node('div', 'smyl-inbox-new-action');
-      var menuButton = node('button', 'smyl-inbox-care-action smyl-inbox-new-action-trigger', 'Nueva acción');
-      menuButton.type = 'button'; menuButton.dataset.threadActionMenu = ''; menuButton.setAttribute('aria-haspopup', 'menu'); menuButton.setAttribute('aria-expanded', 'false'); menuButton.setAttribute('aria-controls', 'smyl-inbox-new-action-menu');
-      var actionMenu = node('div', 'smyl-inbox-new-action-menu'); actionMenu.id = 'smyl-inbox-new-action-menu'; actionMenu.dataset.threadActionMenuList = ''; actionMenu.setAttribute('role', 'menu'); actionMenu.setAttribute('aria-label', 'Nueva acción para el paciente'); actionMenu.hidden = true;
-      secondaryActions.forEach(function (action) {
-        var item = node('button', '', action.label); item.type = 'button'; item.setAttribute('role', 'menuitem'); item.dataset.careAction = action.id;
-        item.onclick = function () { closeActionMenu(false); action.run(); }; actionMenu.append(item);
-      });
-      menuButton.onclick = function () {
-        var open = actionMenu.hidden; closeThreadMenu(false); actionMenu.hidden = !open; menuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
-        if (open) setTimeout(function () { var first = menuItems(actionMenu)[0]; if (first) first.focus(); }, 0);
-      };
-      actionMenu.addEventListener('keydown', function (event) { menuKeydown(event, actionMenu, closeActionMenu); });
-      menuWrap.append(menuButton, actionMenu); host.append(menuWrap);
     }
     // Acciones con permiso también quedan disponibles en ••• cuando la cabecera es angosta.
     actions.forEach(function (action) {
@@ -2074,7 +2059,9 @@
     var continuityLabel = state.patientLinking[conversation.id] ? 'Identificando paciente' : threadFicha && threadFicha.linked ? 'Paciente vinculado' : 'Identidad por revisar';
     var patientSummary = document.querySelector('[data-inbox-context]');
     patientSummary.setAttribute('aria-label', 'Abrir paciente y atención · ' + continuityLabel + (actorRole ? ' · ' + actorRole : ''));
+    var headerWindow = liveWhatsappWindow(conversation);
     var threadMeta = [channelLabel(conversation.channel), conversation.assignment ? conversation.assignment.name : 'Sin asignar'];
+    if (headerWindow && headerWindow.status !== 'expired') threadMeta.push('Ventana 24 h: quedan ' + durationLabel(headerWindow.remaining_seconds));
     document.querySelector('[data-thread-meta]').textContent = threadMeta.join(' · ');
     // Un solo interruptor sustituye al chip de estado y al botón Tomar control / Reanudar IA.
     var stateLabel = document.querySelector('[data-thread-state]');
@@ -2172,8 +2159,6 @@
       var resolve = node('button', 'smyl-inbox-briefing-resolve', 'Marcar resuelta'); resolve.type = 'button';
       resolve.onclick = function () { mutateConversation('resolve'); }; bar.append(resolve);
     }
-    var files = node('button', 'smyl-inbox-briefing-files', 'Archivos'); files.type = 'button';
-    files.onclick = openSharedItems; bar.append(files);
     host.append(bar);
   }
 

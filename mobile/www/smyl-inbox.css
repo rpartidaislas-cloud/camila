@@ -1674,3 +1674,29 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 }
 .smyl-inbox-account-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .smyl-inbox-account-blocked{color:#9b3d2e;font-weight:600}
+
+/* Chat · paso 1: más limpio. Filtros segmentados con contador siempre visible, acciones del mensaje al pasar el cursor
+   (siguen siendo alcanzables con el teclado: aparecen con :focus-within) y un solo aviso de plantilla en el compositor. */
+#p-inbox .smyl-inbox-filters{display:flex;gap:1px;margin:0 8px 8px;padding:3px;border-radius:10px;background:#eef2f6;overflow:visible}
+#p-inbox .smyl-inbox-filters button{flex:1 1 auto;min-width:0;min-height:30px;padding:0 4px;border:0;border-radius:8px;background:transparent;color:#526477;font:700 12px/1 Inter,sans-serif;gap:3px;overflow:visible;text-overflow:clip;justify-content:center;white-space:nowrap}
+#p-inbox .smyl-inbox-filters button.active{background:#fff;color:#10283b;box-shadow:0 1px 2px rgba(16,40,59,.14)}
+#p-inbox .smyl-inbox-filters button b{min-width:16px;height:16px;padding:0 4px;background:#dfe6ec;color:#46596a;font-size:11px}
+#p-inbox .smyl-inbox-filters button.active b{background:#0b1b2e;color:#fff}
+#p-inbox .smyl-inbox-search input,#p-inbox .smyl-inbox-filter-panel select{font:600 13px/1.3 Inter,sans-serif}
+#p-inbox .smyl-inbox-composer [data-compose-send][hidden]{display:none!important}
+#p-inbox .smyl-inbox-window[data-state="expired"]{border-color:#f1d9a6;background:#fff4e0;color:#7a4a00}
+#p-inbox .smyl-inbox-window[data-state="expired"] .smyl-inbox-window-action{border-color:#0b1b2e;background:#0b1b2e;color:#fff}
+@media(min-width:761px){
+  #p-inbox .smyl-inbox-message .smyl-inbox-message-actions{position:absolute;top:-30px;right:8px;left:auto;width:auto;min-height:0;margin:0;padding:3px;border:1px solid #dce5eb;border-radius:10px;background:#fff;box-shadow:0 6px 18px rgba(16,40,59,.14);opacity:0;pointer-events:none;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease;z-index:6}
+  #p-inbox .smyl-inbox-message:hover .smyl-inbox-message-actions,
+  #p-inbox .smyl-inbox-message:focus-within .smyl-inbox-message-actions,
+  #p-inbox .smyl-inbox-message.show-actions .smyl-inbox-message-actions{opacity:1;pointer-events:auto;transform:none}
+  #p-inbox .smyl-inbox-message .smyl-inbox-bubble .smyl-inbox-message-actions>button{min-height:28px;min-width:0}
+}
+@media(max-width:760px){#p-inbox .smyl-inbox-message:not(.show-actions) .smyl-inbox-message-actions{display:none}}
+/* En celular «Agendar cita» sigue a la vista en el encabezado (antes se escondía dentro de «⋯»). */
+@container smyl-thread-head (max-width:600px){
+  #p-inbox .smyl-inbox-carebar{display:flex}
+  #p-inbox .smyl-inbox-carebar .smyl-inbox-care-action.is-primary{min-height:40px;padding:0 11px;white-space:nowrap;font-size:13px}
+  #p-inbox .smyl-inbox-thread-menu-care .is-primary{display:none}
+}
