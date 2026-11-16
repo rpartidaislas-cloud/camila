@@ -51,8 +51,8 @@ test('la pantalla llega a web, PWA y móvil, usa solo RPC con permisos y registr
   for (const file of ['smyl-cloud.js', 'smyl-cloud.css', 'smyl-clinic-admin.js', 'smyl-navigation.js', 'app.html', 'sw.js']) {
     assert.equal(read(file), read(`mobile/www/${file}`), file);
   }
-  assert.match(read('app.html'), /smyl-cloud\.js\?v=1/);
-  assert.match(read('sw.js'), /smyl-cloud\.js\?v=1/);
+  assert.match(read('app.html'), /smyl-cloud\.js\?v=2/);
+  assert.match(read('sw.js'), /smyl-cloud\.js\?v=2/);
   assert.match(read('smyl-navigation.js'), /\['Nube', 'nube', 'cloud'\]/);
   assert.match(read('smyl-clinic-admin.js'), /'cloud\.read': 'Ver la Nube'/);
   const src = read('smyl-cloud.js');

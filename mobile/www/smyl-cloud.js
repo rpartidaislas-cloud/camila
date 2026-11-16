@@ -14,7 +14,7 @@
   var CATEGORIES = [['photo', 'Foto'], ['xray', 'Rayos X'], ['document', 'Documento'], ['consent', 'Consentimiento'], ['other', 'Otro']];
   var CATEGORY_LABEL = { photo: 'Foto', xray: 'Rayos X', document: 'Documento', consent: 'Consentimiento', other: 'Otro' };
   var state = { summary: null, files: [], view: { kind: 'all', value: '' }, search: '', selectedId: '', mode: 'grid', loading: false, error: '', tenant: null,
-    patients: {}, thumbs: {}, appointments: {}, uploading: false, notice: null, listToken: 0 };
+    patients: {}, thumbs: {}, appointments: {}, uploading: false, notice: null, listToken: 0, shares: {}, sharedIds: [], sharesReady: null };
 
   function formatBytes(value) {
     var bytes = Math.max(0, Number(value) || 0);
@@ -72,6 +72,7 @@
     else if (view.kind === 'nopatient') query = query.is('patient_id', null);
     else if (view.kind === 'folder') query = query.eq('folder_id', view.value);
     else if (view.kind === 'patient') query = query.eq('patient_id', view.value);
+    else if (view.kind === 'shared') { if (!state.sharedIds.length) { state.files = []; return; } query = query.in('id', state.sharedIds); }
     var term = escapeLike(state.search); if (term) query = query.ilike('display_name', '%' + term + '%');
     var result = await query; if (result.error) throw result.error;
     if (token !== state.listToken) return;
@@ -101,7 +102,7 @@
   async function refresh(opts) {
     if (!sb() || !win.tenantId) return;
     state.tenant = win.tenantId; state.loading = true; state.error = ''; render();
-    try { await loadSummary(); await loadFiles(); }
+    try { await loadSummary(); await loadShares(); await loadFiles(); }
     catch (error) { state.error = friendly(error, 'No se pudo cargar la Nube.'); }
     finally { state.loading = false; render(); }
   }
@@ -170,6 +171,78 @@
     if (result.error) throw result.error;
     (result.data || []).forEach(function (person) { state.patients[person.id] = patientLabel(person); });
     return result.data || [];
+  }
+
+
+  // ---------- compartir con enlace ----------
+  function shareState(share) {
+    if (share.revoked_at) return 'revoked';
+    if (Date.parse(share.expires_at) <= Date.now()) return 'expired';
+    if ((share.failed_attempts || 0) >= 5) return 'locked';
+    return 'active';
+  }
+  async function loadShares() {
+    state.shares = {}; state.sharedIds = [];
+    if (!perms().share) { state.sharesReady = null; return; }
+    try {
+      var result = await sb().from('smyl_cloud_shares').select('id,file_id,requires_code,expires_at,revoked_at,failed_attempts,view_count,last_viewed_at,created_at')
+        .eq('tenant_id', state.tenant).order('created_at', { ascending: false }).limit(500);
+      if (result.error) throw result.error;
+      state.sharesReady = true;
+      (result.data || []).forEach(function (share) { (state.shares[share.file_id] = state.shares[share.file_id] || []).push(share); });
+      state.sharedIds = Object.keys(state.shares).filter(function (id) { return state.shares[id].some(function (share) { return shareState(share) === 'active'; }); });
+    } catch (_) { state.sharesReady = false; }
+  }
+  async function invokeShare(body) {
+    var result = await sb().functions.invoke('cloud-share', { body: body });
+    if (result.error) {
+      var message = 'No se pudo completar la acción.';
+      try { var detail = await result.error.context.json(); if (detail && detail.error) message = detail.error; } catch (_) {}
+      throw new Error(message);
+    }
+    return result.data;
+  }
+  async function copyText(text) {
+    try { await win.navigator.clipboard.writeText(text); return true; } catch (_) {}
+    try { var area = document.createElement('textarea'); area.value = text; document.body.append(area); area.select(); var ok = document.execCommand('copy'); area.remove(); return ok; } catch (_) { return false; }
+  }
+  function openShare(file) {
+    var dialog = el('dialog', 'cloud-dialog'); var form = el('form'); form.method = 'dialog';
+    form.append(el('h3', '', 'Compartir «' + file.display_name + '»'), el('p', 'cloud-dialog-copy', 'Crea un enlace privado para que otra persona vea el archivo sin entrar a SMYL. Solo puede verlo, no cambiarlo.'));
+    var access = el('div', 'cloud-radios'); access.setAttribute('role', 'radiogroup'); access.setAttribute('aria-label', 'Quién puede abrirlo');
+    [['link', 'Solo con el enlace', 'Quien tenga el enlace puede abrirlo.'], ['code', 'Con código de acceso', 'Además pide un código de 6 dígitos que le envías por separado.']].forEach(function (option, index) {
+      var label = el('label', 'cloud-radio'); var radio = document.createElement('input'); radio.type = 'radio'; radio.name = 'access'; radio.value = option[0]; radio.checked = index === 0;
+      var copy = el('span'); copy.append(el('b', '', option[1]), el('small', '', option[2])); label.append(radio, copy); access.append(label);
+    });
+    var daysLabel = el('label', 'cloud-field-label', 'El enlace vence'); var days = document.createElement('select');
+    [['1', 'En 1 día'], ['7', 'En 7 días'], ['30', 'En 30 días']].forEach(function (option) { days.append(new Option(option[1], option[0])); }); days.value = '7'; daysLabel.append(days);
+    var warn = el('p', 'cloud-warn', (file.patient_id || ['photo', 'xray', 'consent'].indexOf(file.category) !== -1) ? 'Es un archivo clínico: queda registrado cuántas veces se abre y puedes revocar el enlace cuando quieras.' : 'Puedes revocar el enlace cuando quieras; queda registrado cuántas veces se abre.');
+    var result = el('div', 'cloud-share-result'); result.setAttribute('role', 'status');
+    var actions = el('div', 'cloud-dialog-actions'); var close = btn('Cerrar', 'btn btn-secondary', function () { dialog.close(); });
+    var create = btn('Crear enlace', 'btn btn-primary'); create.type = 'submit'; actions.append(close, create);
+    form.append(access, daysLabel, warn, result, actions); dialog.append(form); document.body.append(dialog);
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault(); create.disabled = true; result.textContent = 'Creando enlace…';
+      try {
+        var withCode = form.querySelector('input[name="access"]:checked').value === 'code';
+        var data = await invokeShare({ action: 'create', file_id: file.id, days: Number(days.value), with_code: withCode });
+        result.textContent = '';
+        var field = document.createElement('input'); field.type = 'text'; field.readOnly = true; field.value = data.url; field.setAttribute('aria-label', 'Enlace para compartir'); field.className = 'cloud-share-url';
+        var copyButton = btn('Copiar enlace', 'btn btn-primary btn-sm', async function () { copyButton.textContent = (await copyText(data.url)) ? 'Enlace copiado' : 'Selecciona y copia'; field.select(); });
+        result.append(field, copyButton);
+        if (data.code) result.append(el('p', 'cloud-share-code', 'Código: ' + data.code), el('small', '', 'Envíalo por otro medio. Solo se muestra ahora; si lo pierdes, crea otro enlace.'));
+        result.append(el('small', '', 'Vence el ' + dateLabel(data.expires_at) + '.'));
+        create.remove(); await loadShares(); render();
+      } catch (error) { result.textContent = error.message || 'No se pudo crear el enlace.'; create.disabled = false; }
+    });
+    dialog.addEventListener('close', function () { dialog.remove(); });
+    dialog.showModal();
+  }
+  async function revokeShare(share) {
+    if (!win.confirm('¿Revocar este enlace? Quien lo tenga dejará de poder abrir el archivo.')) return;
+    try { await invokeShare({ action: 'revoke', share_id: share.id }); await loadShares(); notice('Enlace revocado.', 'success'); }
+    catch (error) { notice(error.message, 'error'); }
+    render();
   }
 
   // ---------- subir ----------
@@ -287,6 +360,7 @@
     }
     var nav = el('nav', 'cloud-views'); nav.setAttribute('aria-label', 'Vistas de la Nube');
     nav.append(item('Todos los archivos', 'all', '', counts.total), item('Recientes', 'recent', '', counts.recent), item('Sin clasificar', 'unclassified', '', counts.unclassified), item('Sin paciente', 'nopatient', '', counts.no_patient));
+    if (can.share && state.sharesReady) nav.append(item('Compartidos', 'shared', '', state.sharedIds.length));
     host.append(nav);
     var types = el('nav', 'cloud-views'); types.setAttribute('aria-label', 'Tipos de archivo'); types.append(el('h4', '', 'Tipos'));
     [['photo', 'Fotos'], ['xray', 'Rayos X'], ['document', 'Documentos'], ['consent', 'Consentimientos']].forEach(function (entry) { types.append(item(entry[1], 'category', entry[0], counts[entry[0]])); });
@@ -313,6 +387,7 @@
     var chips = el('span', 'cloud-chips');
     chips.append(el('i', 'cloud-chip' + (file.category ? '' : ' is-warn'), file.category ? CATEGORY_LABEL[file.category] : 'Sin clasificar'));
     chips.append(file.patient_id ? el('i', 'cloud-chip is-ok', state.patients[file.patient_id] || 'Paciente') : el('i', 'cloud-chip is-warn', 'Sin paciente'));
+    if (state.sharedIds.indexOf(file.id) !== -1) chips.append(el('i', 'cloud-chip is-share', 'Compartido'));
     body.append(chips); tile.append(preview, body);
     tile.onclick = function () { state.selectedId = state.selectedId === file.id ? '' : file.id; if (file.patient_id) loadAppointments(file.patient_id); render(); };
     return tile;
@@ -363,7 +438,18 @@
     notes.onchange = function () { patchFile(file.id, { notes: notes.value }); };
     var notesLabel = el('label', '', 'Notas'); notesLabel.append(notes); fields.append(notesLabel);
     host.append(fields);
+    if (can.share && state.sharesReady) {
+      var shareBlock = el('div', 'cloud-field'); shareBlock.append(el('label', '', 'Enlaces para compartir'));
+      var mine = (state.shares[file.id] || []).filter(function (share) { return shareState(share) === 'active'; });
+      if (!mine.length) shareBlock.append(el('small', '', 'Este archivo no está compartido.'));
+      mine.forEach(function (share) {
+        var row = el('div', 'cloud-linked'); var info = el('span'); info.append(el('b', '', 'Vence ' + dateLabel(share.expires_at) + (share.requires_code ? ' · con código' : '')), el('small', '', share.view_count ? share.view_count + (share.view_count === 1 ? ' vez abierto' : ' veces abierto') : 'Sin abrir todavía'));
+        row.append(info, btn('Revocar', 'cloud-link cloud-danger', function () { revokeShare(share); })); shareBlock.append(row);
+      });
+      host.append(shareBlock);
+    }
     var actions = el('div', 'cloud-detail-actions'); actions.append(btn('Descargar', 'btn btn-secondary btn-sm', function () { download(file); }));
+    if (can.share && state.sharesReady) actions.append(btn('Compartir', 'btn btn-primary btn-sm', function () { openShare(file); }));
     if (can.manage) {
       actions.append(btn('Renombrar', 'btn btn-secondary btn-sm', function () { var name = win.prompt('Nuevo nombre', file.display_name); if (name && name.trim()) patchFile(file.id, { display_name: name.trim() }); }));
       actions.append(btn('Mover a la papelera', 'btn btn-secondary btn-sm cloud-danger', function () { trash([file.id], true); }));
@@ -389,7 +475,7 @@
     var timer = null; search.oninput = function () { state.search = search.value; clearTimeout(timer); timer = setTimeout(function () { reloadList().then(function () { var again = document.querySelector('#p-nube .cloud-search'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } }); }, 300); };
     var modeBtn = btn(state.mode === 'grid' ? '☰ Lista' : '▦ Cuadrícula', 'btn btn-secondary btn-sm', function () { state.mode = state.mode === 'grid' ? 'list' : 'grid'; render(); });
     tools.append(search, modeBtn); main.append(tools);
-    var title = { all: 'Todos los archivos', recent: 'Recientes', unclassified: 'Sin clasificar', nopatient: 'Sin paciente', trash: 'Papelera', category: 'Tipo: ' + (CATEGORY_LABEL[state.view.value] || ''), folder: 'Carpeta', patient: 'Paciente' }[state.view.kind];
+    var title = { all: 'Todos los archivos', recent: 'Recientes', unclassified: 'Sin clasificar', nopatient: 'Sin paciente', trash: 'Papelera', shared: 'Compartidos', category: 'Tipo: ' + (CATEGORY_LABEL[state.view.value] || ''), folder: 'Carpeta', patient: 'Paciente' }[state.view.kind];
     if (state.view.kind === 'folder') { var folder = ((state.summary.folders) || []).find(function (f) { return f.id === state.view.value; }); title = 'Carpeta: ' + (folder ? folder.name : ''); }
     if (state.view.kind === 'patient') title = 'Paciente: ' + (state.patients[state.view.value] || '');
     var head = el('div', 'cloud-head'); head.append(el('h2', '', title));

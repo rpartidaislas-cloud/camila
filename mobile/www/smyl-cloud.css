@@ -54,6 +54,7 @@
 .cloud-fields label,.cloud-field>label,.cloud-upload-meta label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:#38505f}
 .cloud-fields select,.cloud-fields input,.cloud-fields textarea,.cloud-upload-meta select,.cloud-upload-meta input,.cloud-upload-row select{width:100%;min-height:36px;padding:6px 9px;border:1px solid #d6dfe8;border-radius:9px;background:#fff;font:500 12.5px Inter,sans-serif;color:#12233f}
 .cloud-linked{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid #cfe3dd;border-radius:9px;background:#f4fbf9;font-size:12.5px}
+.cloud-linked>span{display:flex;flex-direction:column;gap:2px;min-width:0}.cloud-linked small{color:#6b7b8a}
 .cloud-hits{display:flex;flex-direction:column;gap:4px;margin-top:4px}
 .cloud-hit{padding:7px 9px;border:1px solid #e1e8ef;border-radius:8px;background:#fff;text-align:left;font:600 12px Inter,sans-serif;cursor:pointer}
 .cloud-detail-actions{display:flex;flex-wrap:wrap;gap:6px}
@@ -75,6 +76,18 @@
 .cloud-upload-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .cloud-upload-status{margin:0;min-height:18px;font-size:12px;color:#38505f}
 .cloud-dialog-actions{display:flex;justify-content:flex-end;gap:8px}
+.cloud-chip.is-share{background:#e8f0fd;color:#1d4ed8}
+.cloud-radios{display:grid;gap:7px}
+.cloud-radio{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #e1e8ef;border-radius:10px;cursor:pointer;font-size:13px}
+.cloud-radio:has(input:checked){border-color:#0f766e;background:#e6f5f2}
+.cloud-radio span{display:flex;flex-direction:column;gap:2px}
+.cloud-radio small{color:#6b7b8a;font-size:12px}
+.cloud-field-label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:#38505f}
+.cloud-field-label select{min-height:36px;padding:6px 9px;border:1px solid #d6dfe8;border-radius:9px;background:#fff;font:500 13px Inter,sans-serif}
+.cloud-warn{margin:0;padding:9px 11px;border-radius:9px;background:#fff4e0;color:#8a4b00;font-size:12px;line-height:1.5}
+.cloud-share-result{display:flex;flex-direction:column;gap:8px;min-height:18px;font-size:12px;color:#38505f}
+.cloud-share-url{width:100%;min-height:38px;padding:6px 10px;border:1px solid #d6dfe8;border-radius:9px;font:500 12px ui-monospace,Menlo,monospace}
+.cloud-share-code{margin:0;font:700 20px ui-monospace,Menlo,monospace;letter-spacing:.2em;color:#12233f}
 @media(max-width:1100px){.cloud-layout{grid-template-columns:200px minmax(0,1fr)}.cloud-detail{position:fixed;left:0;right:0;bottom:0;z-index:60;max-height:72dvh;border:1px solid #dfe6ef;border-radius:18px 18px 0 0;box-shadow:0 -14px 40px rgba(16,40,59,.22);transform:translateY(105%);transition:transform .2s ease;background:#fff}.cloud-detail.is-open{transform:translateY(0)}.cloud-detail{padding-bottom:96px}.cloud-detail-close{display:block}}
 @media(max-width:760px){.cloud-page{padding:16px 12px 100px}.cloud-layout{display:flex;flex-direction:column;height:auto;min-height:0}.cloud-side{flex-direction:row;align-items:center;flex-wrap:nowrap;overflow-x:auto;border-right:0;border-bottom:1px solid #edf1f4;gap:6px;padding:10px}.cloud-side>*{flex:none}.cloud-upload-btn{width:auto;margin:0}.cloud-views{flex-direction:row;align-items:center}.cloud-views h4{display:none}.cloud-nav{width:auto;white-space:nowrap;background:#eef2f6;border-radius:99px;padding:7px 12px}.cloud-nav.is-active{background:#0b1b2e;color:#fff}.cloud-nav em{color:inherit;opacity:.7}.cloud-meter{margin:0;border:0;padding:0 8px;justify-content:center}.cloud-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cloud-upload-meta{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.cloud-detail{transition:none}}
