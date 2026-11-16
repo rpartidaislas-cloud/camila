@@ -11195,3 +11195,9 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Lo que NO mide todavía:** los archivos que llegan por chat se cuentan cuando se guardan en el expediente (LANA no entrega tamaños); los buckets `mila-audio` y `smyl-professional-public` no pasan por `smyl_file_security`. No hay aviso por correo (no hay remitente implementado; por eso no se puso el interruptor).
 - **Pendiente de decidir con el dueño:** límites por plan en GB (el 10 GB de la maqueta es solo ejemplo) y si las simulaciones de IA cuentan (hoy sí: `smyl-case-photos` entra en «Fotos y simulaciones»).
 - **Archivos:** `supabase/migrations/20261116140000_smyl_storage_metering.sql`, `smyl-storage.js`, `smyl-storage.css`, `smyl-settings-hub.js`, `smyl-navigation.js`, `app.html`, `sw.js` (caché `…-almacenamiento-v1`), copias en `mobile/www/`, prueba nueva `tests/smyl-storage-metering.test.mjs`.
+
+## 2026-11-16 — Claude Code — Mensajes: la pantalla ya no se corre de lado
+- **Bug:** al abrir una conversación, la lista quedaba cortada a la izquierda (~110 px) y la Ficha 360 asomaba fuera de la pantalla a la derecha. Causa: tras pintar la Ficha 360 (cerrada, trasladada fuera de la vista), `smyl-inbox.js` llamaba `scrollIntoView` sobre la pestaña activa, y eso desplazaba horizontalmente `#p-inbox` (que tenía `overflow:hidden`, desplazable por código).
+- **Arreglo:** ahora solo se desplaza la tira de pestañas (`.smyl-f360-tabs`). En CSS, `#p-inbox` y `.smyl-inbox-workspace` usan `overflow:clip` (con `hidden` de respaldo) y la ficha cerrada queda `visibility:hidden` (tampoco recibe foco ni tab).
+- **Archivos:** `smyl-inbox.js` v49, `smyl-inbox.css` v42, `app.html`, `sw.js` (caché `…-chat-sin-desplazamiento-v1`), copias en `mobile/www/`; versiones fijadas actualizadas en pruebas.
+- **Nota:** varias pruebas ya fallaban antes de este cambio (p. ej. `smyl-inbox-clean-header` paso 3, `smyl-ui-v3` deuda tipográfica, radiografías); no se tocaron.
