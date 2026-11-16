@@ -9,6 +9,13 @@
 - **Seguimiento**: si el paciente ya tiene historia, MILA recibe lo registrado (`summarizeKnownHistory`) y solo confirma «¿sigue igual?» y pregunta lo nuevo.
 - Migración `20261116120000_smyl_mila_previsit.sql` (columnas `kind`, `previsit_mode`, `appointment_*`, `sent_via`, `identity_*`, `submitted_at`). **Requiere aplicar la migración y volver a desplegar `mila-interview`.** Versiones: MILA `v4`, ficha 360 `v28`, historia lectura `v4`, catálogo `v5`, caché `mila-previsit-v1`.
 - Verificación: `tests/smyl-mila-interview.test.mjs` 21/21; suite completa con los mismos 15 fallos que `main`; `deno check` OK; Playwright: paciente (fecha, aviso, elegir, formulario, gracias; y por voz con WebRTC simulado) y computadora (pestaña, envío con plantilla no aprobada, aviso de pendientes). Pendiente: agenda con marca «Historia previa lista».
+## 2026-11-15 — Claude — Agenda, vista Día: las tarjetas caben en su bloque
+
+- Causa medida en navegador con las hojas reales de `app.html`: la vista Día dibuja 1 px por minuto pero la tarjeta medía 72–84 px como mínimo, así que una cita de 60 min desbordaba 12 px sobre la siguiente y una de 30 min, 38 px. Además la regla de `#p-agenda` (padding 10 px) borraba el hueco de 43 px del círculo de iniciales, que tapaba el inicio de la hora ("0 a 11:15 am" en vez de "10:00 a 11:15 am"). Los horarios no se empalmaban: eran citas seguidas.
+- `renderDayTimeline` marca cada cita con `data-size` (`SmylScheduleGrid.size`, el mismo criterio que la semana: s <46 px, m <84 px, l el resto). CSS en `smyl-schedule.css`: la tarjeta mide lo que su bloque, recorta su contenido, restituye el hueco del círculo; `m` oculta profesional/sillón y deja visible el estado si no es «Confirmada» (y no hay etiqueta de cobro); `s` pasa a una línea (hora + nombre). El contenedor no recorta, para no cortar la burbuja de arrastre.
+- Sin cambios de comportamiento ni de datos. En tamaño `l` ya se ocultaban profesional y estado por el diseño anterior; no se tocó.
+- Pruebas: `tests/smyl-agenda-day-cards.test.mjs` (mide 7 casos en `tests/fixtures/smyl-agenda-day-cards-preview.html`: desborde, hora tapada, tamaños; se omite sin Chromium; comprobada con mutación) y agregada al trabajo `navegador` de `pruebas.yml`. Web y `mobile/www` sincronizados: `smyl-schedule.js?v=40`, `smyl-schedule.css?v=29`, caché `agenda-tarjetas-v1`.
+- Siguen propuestos (no hechos): vista general con todos los dentistas y agrupar por sillón; vista propia del dentista sin selector de otros.
 
 ## 2026-11-15 — Claude — Migraciones P1 de seguridad aplicadas en producción (SMYL)
 
