@@ -62,8 +62,8 @@ test('la barra «SMYL te pone al día» resume lo pendiente sin consultas extra 
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=50/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=44/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=51/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=45/);
 });
 
 test('la cabecera grande se reemplaza por una barra delgada y los contadores viven en las pestañas', () => {

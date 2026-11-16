@@ -340,6 +340,59 @@ function actorHeaders(actor: Actor, idempotencyKey?: string | null): Headers {
   return headers;
 }
 
+type MedicalAlert = { kind: "alert" | "allergy"; label: string; detail: string; severity: string };
+
+const ALLERGY_SEVERITY: Record<string, string> = { low: "Baja", moderate: "Moderada", high: "Alta" };
+const HISTORY_STATUSES = ["yes", "no", "unknown", "pending"];
+
+function historyText(value: unknown, max = 120): string {
+  return String(value ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+// Misma lógica que smyl-history-model.js: registros con detalle y, si no hay, las listas antiguas.
+function historyAllergies(document: Record<string, unknown>): Array<{ substance: string; reaction: string; severity: string }> {
+  const rows = Array.isArray(document.allergy_records)
+    ? document.allergy_records.filter((row) => row && typeof row === "object").map((row) => {
+      const record = row as Record<string, unknown>;
+      return { substance: historyText(record.substance), reaction: historyText(record.reaction), severity: historyText(record.severity, 20) };
+    }).filter((row) => row.substance || row.reaction)
+    : [];
+  if (rows.length) return rows;
+  return (Array.isArray(document.allergies) ? document.allergies : [])
+    .map((value) => ({ substance: historyText(value), reaction: "", severity: "" })).filter((row) => row.substance);
+}
+
+function historyReviewed(document: Record<string, unknown>, key: string, count: number): boolean {
+  if (count) return true;
+  const value = String(document[key] || "");
+  const status = HISTORY_STATUSES.includes(value) ? value : "pending";
+  return status === "no";
+}
+
+// Alertas médicas para la cabecera de la Ficha 360: etiquetas del alta del paciente + historia clínica vigente.
+// Solo se arma después de comprobar el alcance clínico del rol (accessiblePatient … "clinical").
+function medicalAlerts(patientTags: unknown, history: { document?: unknown; updated_at?: string | null } | null) {
+  const document = history && history.document && typeof history.document === "object" ? history.document as Record<string, unknown> : {};
+  const items: MedicalAlert[] = []; const seen = new Set<string>();
+  const push = (item: MedicalAlert) => {
+    const key = item.label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (!item.label || seen.has(key) || items.length >= 12) return;
+    seen.add(key); items.push(item);
+  };
+  const allergies = historyAllergies(document);
+  allergies.forEach((row) => push({
+    kind: "allergy", label: row.substance || "Alergia sin sustancia", severity: row.severity in ALLERGY_SEVERITY ? row.severity : "",
+    detail: [row.reaction ? `Reacción: ${row.reaction}` : "", ALLERGY_SEVERITY[row.severity] ? `Gravedad: ${ALLERGY_SEVERITY[row.severity]}` : ""].filter(Boolean).join(" · "),
+  }));
+  const historyAlerts = (Array.isArray(document.alerts) ? document.alerts : []).map((value) => historyText(value)).filter(Boolean);
+  historyAlerts.forEach((label) => push({ kind: "alert", label, detail: "", severity: "" }));
+  (Array.isArray(patientTags) ? patientTags : []).map((value) => historyText(value, 80)).filter(Boolean)
+    .forEach((label) => push({ kind: "alert", label, detail: "", severity: "" }));
+  items.sort((a, b) => Number(b.severity === "high") - Number(a.severity === "high") || Number(b.kind === "allergy") - Number(a.kind === "allergy"));
+  const reviewed = historyReviewed(document, "alerts_status", historyAlerts.length) && historyReviewed(document, "allergies_status", allergies.length);
+  return { items, reviewed, has_history: Boolean(history), history_updated_at: history?.updated_at || null };
+}
+
 async function clinicalContext(actor: Actor, tenantId: string, conversationId: string): Promise<Response> {
   const { data: handoff, error } = await admin.from("camila_lana_handoffs")
     .select("id,patient_id,case_id,lana_channel,created_at")
@@ -357,11 +410,13 @@ async function clinicalContext(actor: Actor, tenantId: string, conversationId: s
     ? admin.from("camila_lana_clinical_links").select("id,lana_message_id,media_type,status,label,created_at")
       .eq("tenant_id", tenantId).eq("case_id", handoff.case_id).order("created_at", { ascending: false }).limit(50)
     : Promise.resolve({ data: [], error: null });
-  const [{ data: patient }, { data: caseRow }, { data: links }] = await Promise.all([
-    admin.from("camila_pacientes").select("id,nombre,apellido,email,telefono,fecha_nacimiento,genero,notas,updated_at,consentimiento_whatsapp")
+  const [{ data: patient }, { data: caseRow }, { data: links }, { data: history }] = await Promise.all([
+    admin.from("camila_pacientes").select("id,nombre,apellido,email,telefono,fecha_nacimiento,genero,notas,updated_at,consentimiento_whatsapp,alertas_medicas")
       .eq("tenant_id", tenantId).eq("id", handoff.patient_id).maybeSingle(),
     caseQuery,
     linksQuery,
+    admin.from("smyl_patient_histories").select("document,updated_at")
+      .eq("tenant_id", tenantId).eq("patient_id", handoff.patient_id).maybeSingle(),
   ]);
   return json(200, {
     ok: true,
@@ -372,6 +427,7 @@ async function clinicalContext(actor: Actor, tenantId: string, conversationId: s
       email: patient.email || "", phone: patient.telefono || "", birth_date: patient.fecha_nacimiento || null,
       gender: patient.genero || null, notes: patient.notas || "", updated_at: patient.updated_at || null,
       whatsapp_consent: typeof patient.consentimiento_whatsapp === "boolean" ? patient.consentimiento_whatsapp : null,
+      medical_alerts: medicalAlerts(patient.alertas_medicas, history),
     } : null,
     case: caseRow ? {
       id: caseRow.id, name: caseRow.nombre_paciente || "", score: caseRow.score ?? null,
