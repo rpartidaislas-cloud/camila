@@ -168,3 +168,18 @@
 .mila-pending-item .btn{min-height:44px}
 .mila-pending-item .mila-iv-link{min-height:44px;padding:0 12px;border:0;border-radius:10px;background:transparent;font:inherit;font-size:14px;font-weight:600;color:var(--smyl-text-secondary,#40556a);cursor:pointer}
 @media (max-width:640px){.mila-iv-tabs{margin:12px 16px 0}.mila-pending-item .btn{width:100%}}
+/* Envío automático de la entrevista previa */
+.mila-iv-auto>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;margin:-4px 0}
+.mila-iv-auto>summary::-webkit-details-marker{display:none}
+.mila-iv-auto>summary::after{content:"";width:9px;height:9px;border-right:2px solid var(--iv-muted);border-bottom:2px solid var(--iv-muted);transform:rotate(45deg);transition:transform .2s;flex:none;margin-right:4px}
+.mila-iv-auto[open]>summary::after{transform:rotate(-135deg)}
+.mila-iv-auto>summary span{display:grid;gap:2px}
+.mila-iv-auto>summary strong{font-size:15px}
+.mila-iv-auto>summary small{font-size:13px;color:var(--iv-muted)}
+.mila-iv-auto-form{border:0;margin:0;padding:0;display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.mila-iv-auto-form label{display:grid;gap:6px;font-size:13px;font-weight:600;color:var(--iv-muted)}
+.mila-iv-auto-form select{min-height:44px;border:1px solid var(--iv-line);border-radius:10px;padding:0 10px;font:inherit;font-weight:500;color:inherit;background:#fff}
+.mila-iv-auto-form .mila-iv-switch{grid-column:1/-1;display:flex;align-items:center;gap:10px;font-size:14px;color:inherit;min-height:44px;cursor:pointer}
+.mila-iv-auto-form .mila-iv-switch input{width:20px;height:20px;accent-color:var(--iv-teal)}
+.mila-iv-auto-form[disabled]{opacity:.65}
+.mila-iv-warn{margin:0;font-size:13px;background:#fff5e6;color:#7a4a0e;border-radius:10px;padding:10px 12px}
