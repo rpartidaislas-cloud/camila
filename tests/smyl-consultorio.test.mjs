@@ -36,9 +36,9 @@ const registro = (page, nombre) => page.evaluate((n) => window.__log.filter((x) 
 // ── Contrato del código (no necesita navegador) ──
 test('app.html carga el módulo puro antes que el Consultorio y arranca en él solo en la app instalada', () => {
   const app = read('app.html');
-  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=2', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=3'].map((f) => app.indexOf(f));
+  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=3', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=4'].map((f) => app.indexOf(f));
   assert.ok(orden[0] > 0 && orden[0] < orden[1] && orden[1] < orden[2] && orden[2] < orden[3], 'los módulos puros cargan antes que la pantalla');
-  assert.match(app, /smyl-consultorio\.css\?v=3/);
+  assert.match(app, /smyl-consultorio\.css\?v=4/);
   assert.match(app, /else if \(smylEsAppInstalada\(\) && document\.getElementById\('p-consultorio'\)\) ir\('consultorio'\)/);
   assert.match(app, /display-mode: standalone/);
   assert.match(app, /window\.navigator\.standalone === true/);
@@ -57,7 +57,7 @@ test('el simulador y el manifiesto llevan al Consultorio y el simulador sigue ac
 
 test('se precarga y las copias móviles son idénticas', () => {
   const sw = read('sw.js');
-  for (const f of ['smyl-consultorio.js?v=3', 'smyl-consultorio.css?v=3', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=2', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
+  for (const f of ['smyl-consultorio.js?v=4', 'smyl-consultorio.css?v=4', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=3', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
   for (const f of ['smyl-consultorio.js', 'smyl-consultorio.css', 'smyl-patient-quick.js', 'smyl-visit-model.js', 'smyl-history-interview.js', 'smyl-studio.js', 'simulacion-rapida.html', 'manifest-app.json', 'app.html', 'sw.js']) assert.equal(read(f), read('mobile/www/' + f), f);
 });
 
@@ -327,8 +327,10 @@ probar('la visita en curso se recuerda: aviso al volver, botón fijo en otras pa
   assert.match(await page.textContent('.co-resume-btn'), /Visita en curso\s*Cristian Partida/);
   await page.click('.co-resume-btn');
   await page.waitForSelector('.co-step');
+  await page.click('.co-close');
   await page.click('.co-end');
   assert.equal(await page.isVisible('.co-resume-btn'), false);
+  assert.equal(await page.textContent('[data-co-flash]'), 'Visita terminada.');
   await page.evaluate(() => window.ir('pacientes'));
   assert.equal(await page.isVisible('#smyl-co-pill'), false);
   await page.close();
@@ -491,5 +493,102 @@ probar('las preguntas y la revisión caben en 390 px y los botones son táctiles
   await page.waitForSelector('[data-co-save]');
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
   await page.screenshot({ path: process.env.SMYL_CAPTURA_REVISION || '/tmp/consultorio-revision.png', fullPage: true });
+  await page.close();
+});
+
+// ── Cierre de la visita ──
+async function cierre(query = '', quien = 0) {
+  const r = await visita(query, quien);
+  await r.page.click('.co-close');
+  await r.page.waitForSelector('[data-co-close] .co-qtitle');
+  return r;
+}
+
+probar('el cierre resume lo hecho y lo que falta, sin bloquear nada', async () => {
+  const { page, errores } = await cierre();
+  assert.equal(await page.textContent('[data-co-close] .co-qtitle'), 'Cerrar la visita');
+  const filas = await page.$$eval('.co-closing li', (n) => n.map((x) => [x.dataset.state, x.querySelector('b').textContent]));
+  assert.deepEqual(filas, [['done', 'Datos del paciente'], ['todo', 'Historia clínica'], ['done', 'Fotos y radiografía']]);
+  assert.match(await page.textContent('[data-co-close] .co-hint'), /Quedó pendiente 1 cosa\. Puedes terminar la visita igual/);
+  assert.equal(await page.isEnabled('.co-end'), true, 'terminar siempre se puede');
+  assert.deepEqual(errores, []);
+  await page.close();
+});
+
+probar('cierre con todo listo, o con lo que no se pudo comprobar, lo dice sin inventar', async () => {
+  let { page } = await cierre('h=completa&f=algunos');
+  assert.match(await page.textContent('[data-co-close] .co-hint'), /Todo lo de esta visita quedó listo/);
+  await page.close();
+  ({ page } = await cierre('h=error&f=error'));
+  assert.match(await page.textContent('[data-co-close] .co-hint'), /No pude comprobar todo/);
+  assert.deepEqual(await page.$$eval('.co-closing li', (n) => n.map((x) => x.dataset.state)), ['done', 'unknown', 'unknown']);
+  await page.close();
+});
+
+probar('próxima cita: se muestra la agendada, o se ofrece agendar con el paciente ya puesto', async () => {
+  let { page } = await cierre('prox=si');
+  assert.match(await page.textContent('[data-co-close] .co-csec'), /Próxima cita[\s\S]*\d+ de \w+ a las \d+:\d\d [ap]m/);
+  assert.equal(await page.textContent('[data-co-book]'), 'Agendar otra cita');
+  await page.close();
+  ({ page } = await cierre('prox=no'));
+  assert.match(await page.textContent('[data-co-close] .co-csec'), /Todavía no tiene una agendada/);
+  await page.click('[data-co-book]');
+  assert.deepEqual(await registro(page, 'bookFor'), [['bookFor', 'p1', 'Cristian', '+52 3312345678']]);
+  await page.close();
+  ({ page } = await cierre('prox=error'));
+  assert.match(await page.textContent('[data-co-close] .co-csec'), /No se pudo comprobar/);
+  await page.close();
+});
+
+probar('Ir a Cobros abre Cobros', async () => {
+  const { page } = await cierre();
+  await page.evaluate(() => document.querySelector('[data-co-pay]').click());
+  assert.equal((await page.evaluate(() => window.__rutas)).pop(), 'caja');
+  await page.close();
+});
+
+probar('la despedida por WhatsApp solo lleva cortesía y la próxima cita, y se abre con el teléfono del paciente', async () => {
+  const { page } = await cierre('prox=si');
+  const mensaje = await page.textContent('[data-co-msg]');
+  assert.match(mensaje, /^Hola Cristian, gracias por tu visita\. Tu próxima cita es el .+\. ¡Hasta pronto!$/);
+  assert.doesNotMatch(mensaje, /alerg|diagn|medic|radiograf|saldo|cobro|historia/i);
+  await page.click('[data-co-send]');
+  const abierto = (await registro(page, 'open'))[0][1];
+  assert.ok(abierto.startsWith('https://wa.me/523312345678?text='), abierto);
+  assert.equal(decodeURIComponent(abierto.split('?text=')[1]), mensaje);
+  await page.close();
+});
+
+probar('sin teléfono no se puede enviar y se explica; una ficha por registrar no se saluda con su teléfono', async () => {
+  let { page } = await cierre('', 1);   // María: sin teléfono
+  assert.equal(await page.isDisabled('[data-co-send]'), true);
+  assert.match(await page.textContent('[data-co-close]'), /Falta un teléfono válido/);
+  await page.close();
+  ({ page } = await cierre('', 3));     // por registrar, con teléfono
+  assert.match(await page.textContent('[data-co-msg]'), /^Hola, gracias por tu visita\./);
+  assert.equal(await page.isEnabled('[data-co-send]'), true);
+  await page.close();
+});
+
+probar('sin permiso para agendar ni cobrar esos botones no aparecen, y volver y terminar funcionan', async () => {
+  const { page } = await cierre('rol=staff');
+  assert.equal(await page.locator('[data-co-book]').count(), 0);
+  assert.equal(await page.locator('[data-co-pay]').count(), 0);
+  await page.click('text=‹ Volver a la visita');
+  await page.waitForSelector('.co-step');
+  await page.click('.co-close');
+  await page.click('.co-end');
+  await page.waitForSelector('[data-co-flash]:not([hidden])');
+  assert.equal(await page.textContent('[data-co-flash]'), 'Visita terminada.');
+  assert.equal(await page.isVisible('.co-resume-btn'), false);
+  await page.close();
+});
+
+probar('el cierre cabe en 390 px', async () => {
+  const { page } = await cierre('prox=no');
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
+  const medidas = await page.$$eval('[data-co-close] .co-sgo, [data-co-close] .co-sec', (n) => n.map((x) => Math.round(x.getBoundingClientRect().height)));
+  assert.ok(medidas.every((h) => h >= 44), 'objetivos táctiles: ' + medidas);
+  await page.screenshot({ path: process.env.SMYL_CAPTURA_CIERRE || '/tmp/consultorio-cierre.png', fullPage: true });
   await page.close();
 });
