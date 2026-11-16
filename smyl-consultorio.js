@@ -4,7 +4,7 @@
  * Se abre con ir('consultorio'), con ?ir=consultorio y, en la app instalada, es la pantalla de arranque. */
 (function () {
   'use strict';
-  var Q = window.SmylPatientQuick, V = window.SmylVisitModel, I = window.SmylHistoryInterview;
+  var Q = window.SmylPatientQuick, V = window.SmylVisitModel, I = window.SmylHistoryInterview, PN = window.SmylPrivacyNotice;
   if (!Q || !V) { console.error('[SMYL] consultorio: faltan smyl-patient-quick.js o smyl-visit-model.js'); return; }
 
   var STATUS = { in_progress: 'En consulta', arrived: 'En sala', confirmed: 'Por llegar' };
@@ -225,35 +225,43 @@
   /* ── Recorrido de la visita ── */
   var STEP_MARK = { done: '✓', todo: '', unknown: '', optional: '' };
   function showView(which) {
-    var home = $('[data-co-home]'), visit = $('[data-co-visit]'), iv = $('[data-co-interview]'), cl = $('[data-co-close]');
+    var home = $('[data-co-home]'), visit = $('[data-co-visit]'), iv = $('[data-co-interview]'), cl = $('[data-co-close]'), cs = $('[data-co-consent]');
     if (home) home.hidden = which !== 'home';
     if (visit) visit.hidden = which !== 'visit';
     if (iv) iv.hidden = which !== 'interview';
     if (cl) cl.hidden = which !== 'close';
+    if (cs) cs.hidden = which !== 'consent';
     var r = root(); if (r && r.scrollIntoView) { try { r.scrollIntoView({ block: 'start' }); } catch (e) {} }
+  }
+  function fmtDay(v) { return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(v)); }
+  function canSignConsent() { return !!PN && (can('patients.manage') || can('clinical.write')); }
+  function modelFor(v) {
+    return V.build({ patient: v.patient, history: v.history, files: v.files, historyModel: window.SmylHistoryModel, canManage: can('patients.manage'), canWriteClinical: !!I && can('clinical.write'),
+      consent: v.consent, consentSummary: PN ? PN.statusText(v.consent, fmtDay) : '', canSignConsent: canSignConsent(), canViewConsent: can('clinical.read') });
   }
   function appointmentOf(patientId) { return state.rows.filter(function (r) { return r.patient_id === patientId && ORDER.indexOf(r.status) >= 0; })[0] || null; }
   async function loadVisit(id) {
-    var v = state.visit = { id: id, loading: true, error: '', patient: null, history: undefined, files: undefined, revision: 0, rawDoc: null, next: undefined };
+    var v = state.visit = { id: id, loading: true, error: '', patient: null, history: undefined, files: undefined, revision: 0, rawDoc: null, next: undefined, consent: undefined };
     renderVisit();
     try {
       var res = await Promise.all([
         query(window.sb.from('camila_pacientes').select('*').eq('tenant_id', state.tenant).eq('id', id).maybeSingle()),
         query(window.sb.from('smyl_patient_histories').select('revision,document').eq('tenant_id', state.tenant).eq('patient_id', id).maybeSingle()).then(function (row) { v.revision = row ? Number(row.revision) || 0 : 0; v.rawDoc = row ? row.document : null; return row ? Object.assign(window.SmylHistoryModel ? window.SmylHistoryModel.defaultHistory() : {}, row.document) : null; }).catch(function () { return undefined; }),
         query(window.sb.from('smyl_patient_files').select('category').eq('tenant_id', state.tenant).eq('patient_id', id).eq('status', 'active').limit(300)).catch(function () { return undefined; }),
+        rpc('smyl_patient_consent_status', { p_patient_id: id }).catch(function () { return undefined; }),
         query(window.sb.from('smyl_appointments').select('starts_at').eq('tenant_id', state.tenant).eq('patient_id', id).eq('status', 'confirmed').gt('starts_at', new Date().toISOString()).order('starts_at').limit(1)).then(function (rows) { return rows && rows[0] ? rows[0].starts_at : null; }).catch(function () { return undefined; })
       ]);
       if (state.visit !== v) return;
       if (!res[0]) throw new Error('No encontré a este paciente.');
       if (!state.access || state.accessTenant !== state.tenant) await loadAccess();
-      v.patient = res[0]; v.history = res[1]; v.files = res[2]; v.next = res[3]; v.loading = false;
+      v.patient = res[0]; v.history = res[1]; v.files = res[2]; v.consent = res[3]; v.next = res[4]; v.loading = false;
       remember(id, Q.listName(v.patient) === 'Por registrar' ? (v.patient.telefono || 'Por registrar') : Q.displayName(v.patient));
     } catch (e) { if (state.visit !== v) return; v.loading = false; v.error = errorText(e); }
     renderVisit();
   }
   function openVisit(id) { showView('visit'); loadVisit(id); }
-  function closeVisit() { state.visit = null; state.interview = null; showView('home'); renderResume(); }
-  function endVisit() { forget(); state.visit = null; state.interview = null; state.flash = 'Visita terminada.'; showView('home'); renderResume(); renderFlash(); renderPill('consultorio'); }
+  function closeVisit() { state.visit = null; state.interview = null; stopConsent(); showView('home'); renderResume(); }
+  function endVisit() { forget(); state.visit = null; state.interview = null; stopConsent(); state.flash = 'Visita terminada.'; showView('home'); renderResume(); renderFlash(); renderPill('consultorio'); }
   function renderFlash() { var f = $('[data-co-flash]'); if (!f) return; f.textContent = state.flash || ''; f.hidden = !state.flash; state.flash = ''; }
   function visitAction(id, step, button) {
     var v = state.visit, patient = v && v.patient; if (!patient) return;
@@ -262,6 +270,8 @@
     else if (id === 'link') { if (typeof window.enviarEnlaceRegistro === 'function') window.enviarEnlaceRegistro({ id: patient.id, telefono: patient.telefono }, button); }
     else if (id === 'confirm') confirmData(patient, button);
     else if (id === 'interview') startInterview(step.state === 'done');
+    else if (id === 'consent') startConsent();
+    else if (id === 'consent-view') viewConsent();
     else if (id === 'history') openSection(patient.id, 'history');
     else if (id === 'files') openSection(patient.id, 'files');
     else if (id === 'simulator') location.href = simulatorUrl(patient.id);
@@ -291,7 +301,7 @@
     var back = el('button', 'co-link-btn co-back', '‹ Consultorio'); back.type = 'button'; back.onclick = closeVisit; host.append(back);
     if (v.loading) { host.append(el('p', 'co-note', 'Cargando al paciente…')); return; }
     if (v.error) { var retry = el('button', 'co-retry', 'Intentar de nuevo'); retry.type = 'button'; retry.onclick = function () { loadVisit(v.id); }; host.append(el('p', 'co-note', v.error), retry); return; }
-    var p = v.patient, appt = appointmentOf(p.id), label = Q.listName(p), model = V.build({ patient: p, history: v.history, files: v.files, historyModel: window.SmylHistoryModel, canManage: can('patients.manage'), canWriteClinical: !!I && can('clinical.write') });
+    var p = v.patient, appt = appointmentOf(p.id), label = Q.listName(p), model = modelFor(v);
     var head = el('div', 'co-vhead'), who = el('div', 'co-q');
     who.append(el('h1', 'co-vname', label), el('small', '', [p.telefono, appt ? STATUS[appt.status] + ', ' + fmtTime(appt.starts_at) : ''].filter(Boolean).join('. ')));
     head.append(el('span', 'co-av co-av-lg', Q.initials(Q.isPending(p) ? '' : Q.displayName(p))), who); host.append(head);
@@ -454,7 +464,7 @@
     var p = v.patient, name = Q.isPending(p) ? 'Por registrar' : Q.displayName(p);
     var top = el('div', 'co-ivtop'); top.append(ivButton('‹ Volver a la visita', 'co-link-btn', backToVisit), el('span', 'co-ivname', name)); host.append(top);
     var title = el('h1', 'co-qtitle', 'Cerrar la visita'); title.tabIndex = -1; host.append(title);
-    var model = V.build({ patient: p, history: v.history, files: v.files, historyModel: window.SmylHistoryModel, canManage: can('patients.manage'), canWriteClinical: !!I && can('clinical.write') }), sum = V.closing(model);
+    var model = modelFor(v), sum = V.closing(model);
     host.append(el('p', 'co-hint', sum.missing ? 'Quedó pendiente ' + (sum.missing === 1 ? '1 cosa' : sum.missing + ' cosas') + '. Puedes terminar la visita igual y retomarlo después.' : sum.unchecked ? 'No pude comprobar todo con tu rol, revisa lo que aparece como «sin comprobar».' : 'Todo lo de esta visita quedó listo.'));
     var list = el('ul', 'co-review co-closing');
     sum.items.forEach(function (it) {
@@ -564,6 +574,139 @@
     }
   }
 
+
+  /* ── Firma del aviso de privacidad ──
+   * El paciente lee el aviso, firma con el dedo y se guarda con smyl_record_patient_consent: la base conserva el TEXTO EXACTO que
+   * se mostró (y calcula su huella), su versión, si era el modelo provisional, quién firmó y la imagen. La firma solo vive en memoria
+   * hasta guardar; no se guarda nada en el navegador. */
+  state.consent = null;
+  function stopConsent() { if (state.consent && state.consent.onResize) window.removeEventListener('resize', state.consent.onResize); state.consent = null; }
+  async function clinicName() {
+    if (state.clinicName !== undefined) return state.clinicName;
+    try { var row = await query(window.sb.from('camila_tenants').select('nombre').eq('id', state.tenant).maybeSingle()); state.clinicName = row && row.nombre ? String(row.nombre) : ''; }
+    catch (e) { state.clinicName = ''; }
+    return state.clinicName;
+  }
+  async function startConsent() {
+    var v = state.visit; if (!v || !v.patient || !PN) return;
+    var name = await clinicName();
+    if (state.visit !== v) return;
+    state.consent = { patientId: v.patient.id, notice: PN.render(name), clinic: name, strokes: [], relation: 'patient', checked: false, read: false, name: Q.isPending(v.patient) ? '' : Q.displayName(v.patient), saving: false, error: '', onResize: null };
+    showView('consent'); renderConsent();
+  }
+  function consentInk(c) { var cv = c.canvas; return PN.inkOf(c.strokes.map(function (st) { return st.map(function (pt) { return { x: pt.x * cv.clientWidth, y: pt.y * cv.clientHeight }; }); })); }
+  function consentCheck(c) { return PN.validate({ name: c.name, relation: c.relation, read: c.read, checked: c.checked, ink: c.canvas ? consentInk(c) : { ok: false } }); }
+  function syncConsent() {
+    var c = state.consent; if (!c) return;
+    var res = consentCheck(c), save = $('[data-co-consent-save]'), hint = $('[data-co-consent-hint]'), clear = $('[data-co-consent-clear]');
+    var cbx = $('[data-co-consent-check]'); if (cbx) cbx.disabled = !c.read;
+    if (save) save.disabled = c.saving || !res.ok;
+    if (hint) hint.textContent = c.saving ? '' : res.ok ? '' : res.message;
+    if (clear) clear.disabled = !c.strokes.length;
+  }
+  function paintSignature(c) {
+    var cv = c.canvas, ctx = cv.getContext('2d'), dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+    ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#0F2236';
+    c.strokes.forEach(function (st) {
+      ctx.beginPath();
+      st.forEach(function (pt, i) { if (i) ctx.lineTo(pt.x * w, pt.y * h); else ctx.moveTo(pt.x * w, pt.y * h); });
+      if (st.length === 1) ctx.lineTo(st[0].x * w + 0.1, st[0].y * h);
+      ctx.stroke();
+    });
+  }
+  /* PNG de la firma sobre fondo blanco y de tamaño acotado (la base acepta hasta ~120 KB). */
+  function signatureImage(c) {
+    var out = document.createElement('canvas'), cv = c.canvas, tries = [[600, 200], [450, 150], [300, 100]], png = '';
+    for (var i = 0; i < tries.length; i++) {
+      out.width = tries[i][0]; out.height = tries[i][1];
+      var ctx = out.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, out.width, out.height);
+      ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#0F2236';
+      c.strokes.forEach(function (st) { ctx.beginPath(); st.forEach(function (pt, k) { var x = pt.x * out.width, y = pt.y * out.height; if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); }); if (st.length === 1) ctx.lineTo(st[0].x * out.width + 0.1, st[0].y * out.height); ctx.stroke(); });
+      png = out.toDataURL('image/png');
+      if (png.length <= 110000) break;
+    }
+    return png;
+  }
+  function leaveConsent() {
+    var c = state.consent;
+    if (c && c.strokes.length && !window.confirm('¿Salir sin guardar la firma? Se perderá lo que dibujó.')) return;
+    stopConsent(); showView('visit'); renderVisit();
+  }
+  function renderConsent() {
+    var c = state.consent, host = $('[data-co-consent]'), v = state.visit; if (!host || !c) return;
+    if (c.onResize) window.removeEventListener('resize', c.onResize);
+    host.replaceChildren();
+    var top = el('div', 'co-ivtop'); top.append(ivButton('‹ Volver a la visita', 'co-link-btn', leaveConsent), el('span', 'co-ivname', v && v.patient ? (Q.isPending(v.patient) ? 'Por registrar' : Q.displayName(v.patient)) : '')); host.append(top);
+    if (c.notice.provisional) { var warn = el('p', 'co-warn', 'Texto modelo provisional. Revísalo con tu asesor legal antes de usarlo con pacientes.'); warn.dataset.coProvisional = ''; host.append(warn); }
+    var title = el('h1', 'co-qtitle', c.notice.title); title.tabIndex = -1; host.append(title);
+    host.append(el('p', 'co-hint', 'Pásale el celular al paciente para que lea y firme.'));
+    var box = el('div', 'co-notice'); box.tabIndex = 0; box.setAttribute('role', 'region'); box.setAttribute('aria-label', 'Texto del aviso de privacidad');
+    c.notice.text.split('\n\n').forEach(function (par) { box.append(el('p', '', par)); }); host.append(box);
+    var more = el('p', 'co-note', 'Desliza el texto hasta el final para poder aceptarlo.'); more.dataset.coConsentMore = ''; host.append(more);
+    function checkRead() { if (!c.read && box.scrollTop + box.clientHeight >= box.scrollHeight - 4) { c.read = true; more.hidden = true; syncConsent(); } }
+    box.addEventListener('scroll', checkRead);
+    var who = labeledInput('Nombre de quien firma', 'Nombre completo', c.name, function (value) { c.name = value; });
+    who.querySelector('input').autocomplete = 'name'; host.append(who);
+    var rel = el('div', 'co-choice'); rel.setAttribute('role', 'group'); rel.setAttribute('aria-label', 'Quién firma');
+    [['patient', 'Firma el paciente'], ['guardian', 'Firma su tutor']].forEach(function (o) {
+      var b = ivButton(o[1], 'co-ch co-ch-sm', function () { c.relation = o[0]; rel.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', String(x.dataset.value === c.relation)); }); syncConsent(); });
+      b.dataset.value = o[0]; b.setAttribute('aria-pressed', String(c.relation === o[0])); rel.append(b);
+    });
+    host.append(rel);
+    var ok = el('label', 'co-check'), cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = c.checked; cb.dataset.coConsentCheck = '';
+    cb.addEventListener('change', function () { c.checked = cb.checked; syncConsent(); });
+    ok.append(cb, el('span', '', 'Leí el aviso de privacidad y doy mi consentimiento.')); host.append(ok);
+    host.append(el('span', 'co-fieldlabel', 'Firma con el dedo'));
+    var pad = el('div', 'co-pad'), cv = document.createElement('canvas'); cv.className = 'co-canvas'; cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', 'Espacio para firmar'); c.canvas = cv; pad.append(cv);
+    var clear = ivButton('Borrar', 'co-link-btn co-padclear', function () { c.strokes = []; paintSignature(c); syncConsent(); }); clear.dataset.coConsentClear = ''; pad.append(clear); host.append(pad);
+    var err = el('p', 'co-error-box', c.error); err.setAttribute('role', 'alert'); err.hidden = !c.error; err.dataset.coConsentError = ''; host.append(err);
+    var hint = el('p', 'co-note', ''); hint.dataset.coConsentHint = ''; host.append(hint);
+    var save = ivButton(c.saving ? 'Guardando…' : 'Guardar firma', 'co-sgo co-endfull', saveConsent); save.dataset.coConsentSave = ''; host.append(save);
+    /* Dibujo con el dedo o el lápiz: los puntos se guardan normalizados al tamaño del lienzo (sobreviven a girar el celular). */
+    var drawing = null;
+    function at(e) { var r = cv.getBoundingClientRect(); return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) }; }
+    cv.addEventListener('pointerdown', function (e) { if (c.saving) return; e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (x) {} drawing = [at(e)]; c.strokes.push(drawing); paintSignature(c); syncConsent(); });
+    cv.addEventListener('pointermove', function (e) { if (!drawing) return; e.preventDefault(); drawing.push(at(e)); paintSignature(c); });
+    function end() { if (!drawing) return; drawing = null; syncConsent(); }
+    cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+    c.onResize = function () { paintSignature(c); syncConsent(); }; window.addEventListener('resize', c.onResize);
+    paintSignature(c); checkRead(); more.hidden = c.read; syncConsent();
+    title.focus({ preventScroll: false });
+  }
+  async function saveConsent() {
+    var c = state.consent, v = state.visit; if (!c || c.saving || !v) return;
+    var res = consentCheck(c); if (!res.ok) { c.error = res.message; renderConsent(); return; }
+    c.saving = true; c.error = ''; syncConsent();
+    try {
+      var png = signatureImage(c);
+      await rpc('smyl_record_patient_consent', PN.payload({ patientId: c.patientId, clinicName: c.clinic, name: c.name, relation: c.relation, signaturePng: png }));
+      var id = c.patientId; stopConsent(); state.notice = 'Firma guardada.'; showView('visit'); loadVisit(id);
+    } catch (e) {
+      c.saving = false;
+      c.error = e && e.code === '42501' ? 'Tu rol no permite registrar firmas.' : /PGRST202|42883|schema cache/i.test((e && e.code || '') + ' ' + (e && e.message || '')) ? 'Falta aplicar la migración de firmas en la base de datos.' : e && e.code === '22023' ? String(e.message || 'Los datos de la firma no son válidos.') : errorText(e);
+      var box = $('[data-co-consent-error]'); if (box) { box.textContent = c.error; box.hidden = false; } syncConsent();
+    }
+  }
+  /* Ver la firma guardada (solo con clinical.read): imagen, quién y cuándo firmó, y el texto exacto que se firmó. */
+  async function viewConsent() {
+    var v = state.visit, d = dialog(); if (!v || !v.consent || !v.consent.id || !d) return;
+    d.innerHTML = '<div class="co-form co-sigview"><header><h2>Aviso firmado</h2><button type="button" class="co-x" data-co-cancel aria-label="Cerrar">×</button></header><div data-co-sig-body><p class="co-note-dark">Cargando…</p></div></div>';
+    d.querySelector('[data-co-cancel]').onclick = closeDialog; if (!d.open) d.showModal();
+    var body = d.querySelector('[data-co-sig-body]');
+    try {
+      var row = await rpc('smyl_get_patient_consent', { p_consent_id: v.consent.id });
+      body.replaceChildren();
+      var img = document.createElement('img'); img.className = 'co-sigimg'; img.alt = 'Firma de ' + row.signer_name; img.src = /^data:image\/png;base64,[A-Za-z0-9+\/=]+$/.test(row.signature_png || '') ? row.signature_png : '';
+      body.append(img, el('p', 'co-ok', ''));
+      var meta = body.lastChild; meta.append(el('b', '', row.signer_name + (row.signer_relation === 'guardian' ? ' (tutor)' : '')), el('span', '', fmtDay(row.signed_at) + '. Versión ' + row.notice_version + (row.provisional ? ', texto modelo provisional.' : '.')));
+      var det = document.createElement('details'); det.className = 'co-sigtext'; var sum = el('summary', '', 'Ver el texto que firmó'); det.append(sum);
+      String(row.notice_text || '').split('\n\n').forEach(function (par) { det.append(el('p', '', par)); }); det.append(el('small', '', 'Huella del texto: ' + String(row.notice_sha256 || '').slice(0, 16) + '…'));
+      body.append(det, (function () { var b = el('button', 'co-ghost', 'Cerrar'); b.type = 'button'; b.onclick = closeDialog; return b; })());
+    } catch (e) { body.replaceChildren(el('p', 'co-error', e && e.code === '42501' ? 'Tu rol no permite ver firmas.' : 'No se pudo cargar la firma.')); }
+  }
+
   /* Mientras haya una visita sin terminar y se esté en otra pantalla (p. ej. el expediente), un botón fijo permite regresar a ella. */
   function renderPill(route) {
     var pill = document.getElementById('smyl-co-pill'), m = remembered();
@@ -601,7 +744,7 @@
       + '<ul class="co-results" data-co-results hidden></ul>'
       + '<h2 class="co-heading">En el consultorio</h2><div data-co-list></div>'
       + '<footer class="co-foot"><button type="button" class="co-link-btn" data-co-logout>Cerrar sesión</button></footer></div>'
-      + '<div data-co-visit hidden></div><div data-co-interview hidden></div><div data-co-close hidden></div></div>'
+      + '<div data-co-visit hidden></div><div data-co-interview hidden></div><div data-co-close hidden></div><div data-co-consent hidden></div></div>'
       + '<dialog id="co-dialog" class="co-dialog"></dialog>';
     host.append(page);
     page.querySelector('[data-co-new]').onclick = function () { openNew(); };
@@ -615,7 +758,7 @@
     build();
     if (window.TITULOS) window.TITULOS.consultorio = 'Consultorio';
     var previous = window.ir;
-    if (typeof previous === 'function') window.ir = function (name) { var result = previous(name); if (name === 'consultorio') { var q = $('[data-co-q]'); if (q) { q.value = ''; renderResults(null); } state.visit = null; state.interview = null; stopQr(); showView('home'); renderResume(); load(true); } renderPill(name); return result; };
+    if (typeof previous === 'function') window.ir = function (name) { var result = previous(name); if (name === 'consultorio') { var q = $('[data-co-q]'); if (q) { q.value = ''; renderResults(null); } state.visit = null; state.interview = null; stopQr(); stopConsent(); showView('home'); renderResume(); load(true); } renderPill(name); return result; };
     window.addEventListener('smyl:appointments-changed', function () { if (state.loaded) load(true); });
   }
   window.SmylConsultorio = { reload: function () { return load(true); }, openVisit: openVisit };
