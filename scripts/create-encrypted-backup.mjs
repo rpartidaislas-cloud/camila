@@ -11,7 +11,7 @@ const BUCKETS = [
   'camila-fotos', 'camila-masks', 'camila-analisis',
   'smyl-case-photos', 'smyl-radiographs', 'smyl-clinical-files',
   'smyl-proposal-photos', 'smyl-professional-cv', 'smyl-professional-cases',
-  'smyl-professional-public', 'mila-audio',
+  'smyl-professional-public', 'mila-audio', 'smyl-cloud',
 ];
 const STORAGE_ATTEMPTS = 4;
 const RETRY_WAIT_MS = Number.isFinite(Number(process.env.SMYL_BACKUP_RETRY_WAIT_MS)) ? Number(process.env.SMYL_BACKUP_RETRY_WAIT_MS) : 5000;

@@ -325,7 +325,7 @@ test('Cobros paso 2: la ayuda de caja vive en «Mi turno» y los botones sin cla
 
 test('Cobros paso 3: precio de lista, cobro en la fila, «Con movimientos», siguiente pendiente, corte visible y filtro recordado', () => {
   // Precio de lista del servicio en cada pendiente (el total real, con impuestos, se confirma en el diálogo).
-  assert.match(js, /function visitPrice\(a\)\{var sv=by\(state\.services,a\.service_id\),price=sv&&Number\(sv\.reference_price\);return price>0&&a\.status!=='no_show'\?' · Precio de lista <b>'/);
+  assert.match(js, /function visitPrice\(a\)\{var sv=by\(state\.services,a\.service_id\),price=sv&&Number\(priceFor\(sv,a\.branch_id\)\);return price>0&&a\.status!=='no_show'\?' · Precio de lista <b>'/);
   // «Cobrar $» en la fila reutiliza el cobro de saldo existente.
   assert.match(js, /data-account-pay="'\+x\.p\.id\+'">Cobrar '\+money\(s\.due\)/);
   assert.match(js, /openPayment\(button\.dataset\.accountPay,\{mode:'balance'\}\)/);

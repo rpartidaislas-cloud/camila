@@ -99,7 +99,6 @@
 #p-consultorio .co-sec{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff}
 #p-consultorio .co-sgo:disabled,#p-consultorio .co-sec:disabled{opacity:.6;cursor:wait}
 #p-consultorio .co-full{width:100%;margin-top:14px}
-#p-consultorio .co-end{display:block;margin:12px auto 0;color:var(--co-apagado);font-weight:500}
 #p-consultorio .co-resume-btn{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 14px;padding:12px 14px;border:1px solid rgba(111,211,195,.5);border-radius:13px;background:rgba(111,211,195,.08);color:#fff;text-align:left;cursor:pointer}
 #p-consultorio .co-resume-btn small{display:block;color:var(--co-menta);font-size:12.5px;font-weight:600}
 #p-consultorio .co-resume-btn b{display:block;font-size:16px}
@@ -109,3 +108,56 @@
 .smyl-co-pill{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:900;max-width:calc(100% - 32px);padding:11px 18px;border:0;border-radius:999px;background:#0F2236;color:#fff;font:600 14px var(--smyl-ui-font,"Open Sans",Inter,system-ui,sans-serif);box-shadow:0 8px 24px rgba(10,22,38,.35);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .smyl-co-pill[hidden]{display:none}
 .smyl-co-pill:focus-visible{outline:3px solid #6FD3C3;outline-offset:2px}
+
+/* Historia por preguntas */
+#p-consultorio .co-ivtop{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}
+#p-consultorio .co-ivname{color:var(--co-apagado);font-size:14px}
+#p-consultorio .co-seg{display:flex;gap:5px}
+#p-consultorio .co-seg i{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.14)}
+#p-consultorio .co-seg i[data-on=true]{background:var(--co-menta)}
+#p-consultorio .co-qtitle{margin:6px 0 8px;font-size:26px;line-height:1.18;font-weight:600;outline:0}
+#p-consultorio .co-hint{margin:0 0 16px;color:var(--co-apagado);font-size:14px;line-height:1.5}
+#p-consultorio .co-hint[data-safety=true]{padding:10px 12px;border-radius:11px;background:rgba(243,194,107,.14);color:#F6D79B}
+#p-consultorio .co-choice{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:10px;margin-bottom:10px}
+#p-consultorio .co-ch{min-height:60px;border:1.5px solid rgba(255,255,255,.28);border-radius:14px;background:rgba(255,255,255,.06);color:#fff;font-size:18px;font-weight:600;cursor:pointer}
+#p-consultorio .co-ch[aria-pressed=true]{border-color:var(--co-menta);background:rgba(111,211,195,.18);color:var(--co-menta)}
+#p-consultorio .co-ch[data-value=yes][aria-pressed=true]{border-color:#F3C26B;background:rgba(243,194,107,.16);color:#F6D79B}
+#p-consultorio .co-ch:disabled{opacity:.45;cursor:not-allowed}
+#p-consultorio .co-later{width:100%;margin-bottom:6px}
+#p-consultorio .co-editor{margin-top:14px}
+#p-consultorio .co-rowcard{margin:0 0 12px;padding:12px 14px 6px;border:1px solid rgba(255,255,255,.2);border-radius:14px;background:rgba(255,255,255,.05)}
+#p-consultorio .co-rowcard legend{padding:0 6px;color:var(--co-apagado);font-size:13px;font-weight:600}
+#p-consultorio .co-field{display:block;margin:0 0 12px}
+#p-consultorio .co-field>span,#p-consultorio .co-fieldlabel{display:block;margin:0 0 5px;color:#fff;font-size:13.5px;font-weight:600}
+#p-consultorio .co-field input,#p-consultorio .co-field textarea{display:block;width:100%;box-sizing:border-box;min-height:48px;padding:10px 13px;border:1px solid #B6C5CD;border-radius:10px;background:#fff;color:var(--co-tinta);font:inherit;font-size:16px}
+#p-consultorio .co-field textarea{resize:vertical}
+#p-consultorio .co-sev{display:flex;gap:8px;margin:0 0 12px}
+#p-consultorio .co-chipbtn{min-height:44px;padding:0 16px;border:1px solid rgba(255,255,255,.3);border-radius:999px;background:none;color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+#p-consultorio .co-chipbtn[aria-pressed=true]{border-color:#F3C26B;background:rgba(243,194,107,.18);color:#F6D79B}
+#p-consultorio .co-remove{display:block;margin:0 0 6px auto;color:var(--co-apagado)}
+#p-consultorio .co-addrow{width:100%}
+#p-consultorio .co-ivnav{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
+#p-consultorio .co-ivnav .co-sec,#p-consultorio .co-ivnav .co-sgo{min-height:52px;font-size:16px}
+#p-consultorio .co-review{list-style:none;margin:0 0 6px;padding:0}
+#p-consultorio .co-review li{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 0;border-top:1px solid var(--co-linea)}
+#p-consultorio .co-review li:first-child{border-top:0}
+#p-consultorio .co-review .co-q b{font-size:15px}
+#p-consultorio .co-review .co-q small{white-space:normal}
+#p-consultorio .co-problem{color:#F6B8AE!important}
+#p-consultorio .co-error-box{margin:10px 0 0;padding:10px 12px;border-radius:11px;background:rgba(180,64,47,.22);color:#FBD3CC;font-size:14px}
+#p-consultorio .co-success,#p-consultorio .co-flash{margin:0 0 12px;padding:10px 12px;border-radius:11px;background:rgba(111,211,195,.16);color:var(--co-menta);font-size:14px;font-weight:600}
+
+/* Cierre de la visita */
+#p-consultorio .co-closing li{align-items:center}
+#p-consultorio .co-cmark{display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.3);color:var(--co-apagado);font-size:13px;font-weight:700}
+#p-consultorio .co-cmark[data-state=done]{border-color:var(--co-menta);background:var(--co-menta);color:#08241f}
+#p-consultorio .co-cmark[data-state=todo]{border-color:#F3C26B;color:#F6D79B}
+#p-consultorio .co-closing li{gap:12px;justify-content:flex-start}
+#p-consultorio .co-closing .co-q{flex:1}
+#p-consultorio .co-csec{display:grid;gap:6px;margin:14px 0 0;padding:14px;border:1px solid rgba(255,255,255,.16);border-radius:14px;background:rgba(255,255,255,.04)}
+#p-consultorio .co-csec b{font-size:16px}
+#p-consultorio .co-csec small{color:var(--co-apagado);font-size:13.5px;line-height:1.45}
+#p-consultorio .co-csec .co-sgo,#p-consultorio .co-csec .co-sec{min-height:48px;margin-top:4px}
+#p-consultorio .co-msg{margin:2px 0 4px;padding:10px 12px;border-radius:11px;background:rgba(255,255,255,.08);color:#fff;font-size:14.5px;line-height:1.5}
+#p-consultorio .co-endfull{width:100%;min-height:54px;margin-top:18px;font-size:16px}
+#p-consultorio .co-close{width:100%;min-height:52px;margin-top:10px;font-size:16px}

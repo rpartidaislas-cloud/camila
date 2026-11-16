@@ -152,7 +152,7 @@ test('la bandeja de Mensajes se precarga y no abre una conversación en segundo 
   const inbox = read('../smyl-inbox.js');
   assert.match(inbox, /function autoOpenFirst\(\)/);
   assert.match(inbox, /classList\.contains\('activa'\)/);
-  assert.match(inbox, /loadList\(true\); loadTeam\(\); loadStages\(\); loadQuickReplies\(\);\s*\}, 2500\)/);
+  assert.match(inbox, /loadList\(true\); loadTeam\(\); loadBranches\(\); loadStages\(\); loadQuickReplies\(\);\s*\}, 2500\)/);
   assert.match(inbox, /else \{ sync\(\); loadOperations\(false\); autoOpenFirst\(\); \}/);
 });
 

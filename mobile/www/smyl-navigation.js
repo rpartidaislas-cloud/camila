@@ -28,6 +28,7 @@
     campaign: '<path d="M4 13v-2l12-5v12L4 13Z"/><path d="M8 14v5a2 2 0 0 0 2 2h1v-6M18 9a3 3 0 0 1 0 6"/>',
     settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>',
     more: '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',
+    cloud: '<path d="M18 10a6 6 0 0 0-11.7-1.8A4.5 4.5 0 0 0 7 17h11a3.5 3.5 0 0 0 0-7z"/>',
     plus: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>'
   };
 
@@ -54,11 +55,12 @@
     ['Servicios y tarifas', 'precios', 'pricing'],
     ['Inventario', 'inventario', 'inventory'],
     ['Reportes', 'reportes', 'reports'],
+    ['Nube', 'nube', 'cloud'],
     ['Simulaciones', 'historial', 'history']
   ];
   // Todos los ajustes viven ahora en la pantalla Configuración (smyl-settings-hub.js), ordenada como el panel de LANA.
   // El menú solo tiene ese acceso; se marca mientras estás en cualquiera de las pantallas a las que lleva.
-  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'mi-cuenta'];
+  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'mi-cuenta', 'almacenamiento'];
   var SETTINGS = [['Configuración', 'configuracion', 'settings']];
   // Otros módulos agregan su propio botón al menú cuando no lo encuentran. Estas rutas ya no tienen botón visible,
   // pero se dejan registradas (ocultas) para que no reaparezcan sueltas en el menú.
@@ -71,6 +73,7 @@
     ['Seguridad', 'seguridad', 'shield'],
     ['Marca y simulación', 'sim-config', 'brand'],
     ['Mi cuenta', 'mi-cuenta', 'account'],
+    ['Almacenamiento', 'almacenamiento', 'account'],
     // La ruta permanece registrada para impedir que otros módulos agreguen un acceso duplicado.
     ['Plantillas de WhatsApp', 'plantillas', 'templates']
   ];

@@ -11,11 +11,11 @@ const review = read('../smyl-radiograph-review.js');
 const dental = read('../smyl-dental-record.js');
 const css = read('../smyl-radiograph-workbench.css');
 
-assert.match(app, /smyl-radiograph-workbench\.css\?v=25/);
-assert.match(app, /smyl-radiograph-review\.js\?v=31/);
+assert.match(app, /smyl-radiograph-workbench\.css\?v=26/);
+assert.match(app, /smyl-radiograph-review\.js\?v=32/);
 assert.match(app, /smyl-dental-record\.js\?v=32/);
 assert.match(worker, /radiograph-navigation-v43/);
-assert.match(worker, /smyl-radiograph-workbench\.css\?v=25/);
+assert.match(worker, /smyl-radiograph-workbench\.css\?v=26/);
 assert.match(worker, /radiograph-guided-process-v15/);
 assert.match(worker, /radiograph-mobile-reading-v18/);
 assert.match(worker, /radiograph-anatomic-odontogram-v20/);

@@ -314,3 +314,37 @@
   .clinic-admin-page{font-size:14px}.clinic-admin-head h1{font-size:28px}.clinic-admin-team-actions{display:grid;grid-template-columns:1fr;width:100%}
   .clinic-admin-tabs{width:100%}.clinic-admin-tab{flex:1;padding-inline:12px}.clinic-admin-form-grid{gap:12px}
 }
+
+/* Sucursales como proceso: pasos, un panel a la vez y parte superior compacta. */
+.settings-hub-embed .clinic-admin-head{display:none}
+.settings-hub-embed .clinic-admin-tabs{display:none}
+.clinic-admin-back-ops{display:none;margin-bottom:12px}
+.settings-hub-embed .clinic-admin-back-ops{display:inline-flex}
+.clinic-admin-readiness-fold{border:1px solid #cdded5;border-radius:14px;background:#f5faf6}
+.clinic-admin-readiness-fold>summary{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;list-style:none}
+.clinic-admin-readiness-fold>summary::-webkit-details-marker{display:none}
+.clinic-admin-readiness-fold>summary strong{font-size:14px;color:#234e49}
+.clinic-admin-readiness-fold>summary small{color:#5b6b66;font-size:12px}
+.clinic-admin-readiness-more{margin-left:auto;color:#33607f;font-size:13px;font-weight:600}
+.clinic-admin-readiness-fold[open] .clinic-admin-readiness-more{display:none}
+.clinic-admin-readiness-icon{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#f4e3c9;color:#98632f;font-weight:800;font-size:13px}
+.clinic-admin-readiness-icon[data-ready=true]{background:#d9ebe1;color:#2a6d5f}
+.clinic-admin-readiness-body{display:grid;grid-template-columns:minmax(250px,.72fr) minmax(0,1.5fr);gap:12px 18px;margin:0 16px 14px}
+.clinic-admin-readiness-body>.clinic-admin-readiness-note{grid-column:1/-1}
+.clinic-admin-metrics{display:flex;flex-wrap:wrap;gap:8px 18px;margin:12px 2px 14px}
+.clinic-admin-metrics .clinic-admin-metric{display:inline;padding:0;border:0;background:none;color:#4b5f5d;font-size:14px}
+.clinic-admin-metrics .clinic-admin-metric strong{display:inline;margin:0;color:#183335;font-size:16px}
+.clinic-admin-steps{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 16px;padding:0;list-style:none}
+.clinic-admin-steps button{display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 6px;border:1px solid #d7e0dd;border-radius:999px;background:#fff;color:#4b5f5d;font-size:13px;font-weight:600;cursor:pointer}
+.clinic-admin-steps button b{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#e8eeec;color:#4b5f5d;font-size:12px}
+.clinic-admin-steps button[data-state=current]{border-color:#2b7873;color:#183335}
+.clinic-admin-steps button[data-state=current] b{background:#2b7873;color:#fff}
+.clinic-admin-steps button[data-state=done] b{background:#2f8a62;color:#fff}
+.clinic-admin-step-panel{min-height:200px}
+.clinic-admin-step-panel .clinic-admin-subsection{margin:0;border:0;padding:0}
+.clinic-admin-step-nav{display:flex;justify-content:space-between;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid #e3e9e6}
+.clinic-admin-presets{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px;font-size:13px;color:#4b5f5d}
+.clinic-admin-presets button{padding:5px 12px;border:1px solid #cad8d1;border-radius:999px;background:#fff;color:#215d60;font-size:13px;font-weight:600;cursor:pointer}
+.clinic-admin-presets button:hover{background:#f3f8f6}
+@media(max-width:1100px){.clinic-admin-readiness-body{grid-template-columns:1fr}}
+.clinic-admin-readiness{display:block;padding:0;border:0;background:none;box-shadow:none;margin-bottom:0}

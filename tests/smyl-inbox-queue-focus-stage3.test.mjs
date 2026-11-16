@@ -37,7 +37,8 @@ test('los filtros comunican conteos y conservan canales y selección múltiple',
 test('cada conversación muestra un único estado operativo y la etapa en segundo nivel', () => {
   assert.match(inbox, /if \(item\.needs_human\).*'Por atender'/s);
   assert.match(inbox, /else if \(item\.paused\).*'Con el equipo'/s);
-  assert.match(inbox, /else meta\.append\(node\('span', 'smyl-inbox-state', 'IA activa'\)\)/);
+  // «IA activa» es lo normal y ya no se repite en cada fila: solo se rotulan las excepciones.
+  assert.doesNotMatch(inbox, /meta\.append\(node\('span', 'smyl-inbox-state', 'IA activa'\)\)/);
   assert.match(inbox, /smyl-inbox-row-stage-line/);
 });
 
@@ -45,7 +46,7 @@ test('la etapa final publica recursos nuevos con paridad web y móvil', () => {
   assert.equal(mobileInbox, inbox);
   assert.equal(mobileCss, css);
   assert.equal(mobileApp, app);
-  assert.match(app, /smyl-inbox\.css\?v=38/);
-  assert.match(app, /smyl-inbox\.js\?v=44/);
-  assert.match(worker, /smyl-inbox\.js\?v=44/);
+  assert.match(app, /smyl-inbox\.css\?v=44/);
+  assert.match(app, /smyl-inbox\.js\?v=50/);
+  assert.match(worker, /smyl-inbox\.js\?v=50/);
 });

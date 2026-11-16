@@ -49,7 +49,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Ejecutar pruebas de navegador
         shell: bash
-        run: node --test tests/smyl-history-roundtrip.test.mjs tests/smyl-agenda-day-cards.test.mjs tests/smyl-consultorio.test.mjs tests/smyl-visit-model.test.mjs
+        run: node --test tests/smyl-history-roundtrip.test.mjs tests/smyl-agenda-day-cards.test.mjs tests/smyl-consultorio.test.mjs tests/smyl-visit-model.test.mjs tests/smyl-history-interview.test.mjs
 
   cargador-radiografico:
     runs-on: ubuntu-latest
