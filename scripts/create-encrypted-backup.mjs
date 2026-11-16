@@ -144,9 +144,13 @@ try {
       // Algunas versiones crean <bucket>/<bucket>/…: se aplana para que el respaldo quede como <bucket>/<objeto>.
       const top = fs.readdirSync(destination, { withFileTypes: true });
       if (top.length === 1 && top[0].isDirectory() && top[0].name === bucket) {
+        // El bucket puede tener dentro una carpeta con su mismo nombre (<bucket>/<bucket>/<bucket>/…): mover sus hijos
+        // directo chocaría con la carpeta que se está vaciando (EPERM). Se aparta primero con un nombre que no existe.
         const nested = path.join(destination, bucket);
-        for (const entry of fs.readdirSync(nested)) fs.renameSync(path.join(nested, entry), path.join(destination, entry));
-        fs.rmdirSync(nested);
+        const parked = path.join(destination, `.aplanar-${process.pid}`);
+        fs.renameSync(nested, parked);
+        for (const entry of fs.readdirSync(parked)) fs.renameSync(path.join(parked, entry), path.join(destination, entry));
+        fs.rmdirSync(parked);
       }
       const files = listFiles(destination);
       storageCounts[bucket] = { objects: files.length, bytes: files.reduce((sum, file) => sum + fs.statSync(file).size, 0) };
