@@ -47,6 +47,7 @@
     ] },
     { id: 'cuenta', title: 'Cuenta y seguridad', blurb: 'Plan, protección y preparación operativa.', icon: 'security', items: [
       { title: 'Plan y consumo', desc: 'Uso del plan y capacidad disponible.', group: 'Suscripción', icon: 'plan', action: 'Consultar', route: 'mi-cuenta' },
+      { title: 'Almacenamiento', desc: 'Espacio usado por fotos, radiografías y documentos.', group: 'Suscripción', icon: 'plan', action: 'Consultar', route: 'almacenamiento' },
       { title: 'Seguridad', desc: 'Accesos, señales y revisiones de la cuenta.', group: 'Protección', icon: 'security', action: 'Revisar', route: 'seguridad' },
       { title: 'Preparación operativa', desc: 'Controles pendientes antes de atender pacientes.', group: 'Protección', icon: 'launch', action: 'Revisar', route: 'lanzamiento' }
     ] }
