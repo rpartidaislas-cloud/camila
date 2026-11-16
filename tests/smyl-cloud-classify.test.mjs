@@ -53,7 +53,7 @@ test('la función exige sesión, cloud.manage y poder ver el archivo; solo sugie
   assert.doesNotMatch(fn, /\.update\(|\.delete\(|smyl_cloud_update_file/);
   assert.doesNotMatch(fn, /display_name|patient_id/);
   assert.match(read('supabase/config.toml'), /\[functions\.cloud-classify\]\s+verify_jwt = true/);
-  assert.match(read('supabase/migrations/20261116190000_smyl_cloud_classify.sql'), /'mila_exam_dictation', 'cloud_classify'/);
+  assert.match(read('supabase/migrations/20261116200000_smyl_cloud_classify.sql'), /'mila_exam_dictation', 'cloud_classify'/);
 });
 
 test('la pantalla solo sugiere: confirmar es una acción explícita y la pista de paciente no vincula sola', () => {
