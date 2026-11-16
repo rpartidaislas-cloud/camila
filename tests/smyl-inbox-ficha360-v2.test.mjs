@@ -9,9 +9,9 @@ test('la Ficha 360 v2 llega igual a web, PWA y móvil, cargada antes del chat', 
     assert.equal(read(file), read(`mobile/www/${file}`), file);
   }
   const html = read('app.html');
-  assert.match(html, /smyl-inbox-ficha\.js\?v=2/);
+  assert.match(html, /smyl-inbox-ficha\.js\?v=3/);
   assert.ok(html.indexOf('smyl-inbox-ficha.js') < html.indexOf('smyl-inbox.js?v='));
-  assert.match(read('sw.js'), /smyl-inbox-ficha\.js\?v=2/);
+  assert.match(read('sw.js'), /smyl-inbox-ficha\.js\?v=3/);
 });
 
 test('el módulo visual no consulta datos ni conoce el tenant y expone pestañas accesibles', () => {
@@ -38,7 +38,7 @@ test('las pestañas respetan los permisos del rol', () => {
 
 test('el consentimiento de WhatsApp se lee en servidor y llega como booleano opcional', () => {
   const edge = read('supabase/functions/lana-inbox/index.ts');
-  assert.match(edge, /updated_at,consentimiento_whatsapp"/);
+  assert.match(edge, /updated_at,consentimiento_whatsapp[,"]/);
   assert.match(edge, /whatsapp_consent: typeof patient\.consentimiento_whatsapp === "boolean"/);
   assert.match(read('smyl-inbox.js'), /typeof patient\.whatsapp_consent === 'boolean'/);
 });
