@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
 import { lanaRequest } from "../_shared/lana-linked.ts";
+import { matchBranch, matchBranchInMessages } from "../_shared/branch-match.ts";
 import { makeCors } from "../_shared/cors.ts";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
@@ -176,6 +177,23 @@ async function filterConversationPayload(actor: Actor, tenantId: string, body: R
   const ids = sliced.map((value) => value && typeof value === "object" ? uuid((value as Record<string, unknown>).id) : null).filter(Boolean) as string[];
   const [assignments, branches] = await Promise.all([branchAssignments(tenantId, ids), activeBranches(tenantId)]);
   const names = new Map(branches.map((branch) => [branch.id, branch.name]));
+  // Si el paciente acaba de decir en qué sucursal quiere atenderse, la conversación queda asignada sin esperar a una persona.
+  if (branches.length > 1) {
+    const inferred: Record<string, unknown>[] = [];
+    for (const value of sliced) {
+      if (!value || typeof value !== "object") continue;
+      const conversation = value as Record<string, unknown>;
+      const id = uuid(conversation.id);
+      if (!id || assignments.has(id) || conversation.last_message_role !== "patient") continue;
+      const hit = matchBranch(text(conversation.last_message, 600), branches);
+      if (!hit) continue;
+      assignments.set(id, { branch_id: hit.id, source: "ai" });
+      inferred.push({ tenant_id: tenantId, conversation_id: id, branch_id: hit.id, source: "ai" });
+    }
+    if (inferred.length) {
+      await admin.from("smyl_conversation_branches").upsert(inferred, { onConflict: "tenant_id,conversation_id", ignoreDuplicates: true });
+    }
+  }
   const clinicWide = (actor.scopes.messages || "own") === "clinic";
   const allowed: unknown[] = [];
   for (const value of sliced) {
@@ -188,6 +206,27 @@ async function filterConversationPayload(actor: Actor, tenantId: string, body: R
   }
   const page = body.page && typeof body.page === "object" ? { ...(body.page as Record<string, unknown>), total: allowed.length } : body.page;
   return clinicWide ? { ...body, conversations: allowed } : { ...body, conversations: allowed, removed: [], page };
+}
+
+// Al abrir una conversación: muestra su sucursal y, si aún no tiene, la deduce de lo que dijo el paciente.
+async function attachThreadBranch(tenantId: string, body: Record<string, unknown>): Promise<void> {
+  const conversation = body.conversation && typeof body.conversation === "object" ? body.conversation as Record<string, unknown> : null;
+  const id = conversation ? uuid(conversation.id) : null;
+  if (!conversation || !id) return;
+  const [assignments, branches] = await Promise.all([branchAssignments(tenantId, [id]), activeBranches(tenantId)]);
+  let assigned = assignments.get(id);
+  if (!assigned && branches.length > 1 && Array.isArray(body.messages)) {
+    const hit = matchBranchInMessages(body.messages as { role?: string; content?: string }[], branches);
+    if (hit) {
+      assigned = { branch_id: hit.id, source: "ai" };
+      await admin.from("smyl_conversation_branches").upsert(
+        { tenant_id: tenantId, conversation_id: id, branch_id: hit.id, source: "ai" },
+        { onConflict: "tenant_id,conversation_id", ignoreDuplicates: true },
+      );
+    }
+  }
+  const name = assigned ? branches.find((branch) => branch.id === assigned!.branch_id)?.name : "";
+  conversation.branch = assigned ? { id: assigned.branch_id, name: name || "Sucursal", source: assigned.source } : null;
 }
 
 function forbiddenConversation(): Response {
@@ -800,6 +839,7 @@ Deno.serve(async (req: Request) => {
       const scopedBody = ["list", "sync"].includes(action)
         ? await filterConversationPayload(actor, auth.tenantId, remote.body)
         : remote.body;
+      if (action === "messages") { try { await attachThreadBranch(auth.tenantId, scopedBody); } catch (_) { /* la sucursal es informativa: no debe romper la conversación */ } }
       return json(remote.response.status, { ...scopedBody, actor });
     }
 
