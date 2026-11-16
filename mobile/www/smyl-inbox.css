@@ -1836,3 +1836,8 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 #p-inbox .smyl-f360-event small{display:block;color:var(--inbox-muted);font:700 10px/1.3 var(--inbox-font);letter-spacing:.04em;text-transform:uppercase}
 #p-inbox .smyl-f360-event strong{display:block;margin-top:2px;color:var(--inbox-ink);font:600 12px/1.4 var(--inbox-font)}
 @media(max-width:760px){#p-inbox .smyl-f360-gallery{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* La página de Mensajes nunca se desplaza de lado: el panel de la Ficha 360 cerrado vive fuera del área visible. */
+#p-inbox.smyl-inbox-page,#p-inbox .smyl-inbox-workspace{overflow:hidden;overflow:clip}
+#p-inbox:not(.context-open) .smyl-inbox-context{visibility:hidden;transition:transform .2s ease,visibility 0s linear .2s}
+#p-inbox.context-open .smyl-inbox-context{visibility:visible;transition:transform .2s ease}
