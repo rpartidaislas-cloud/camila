@@ -37,7 +37,7 @@
     if(d)return d;
     d=document.createElement('dialog');d.id='smyl-mila-interview';d.className='mila-iv';d.setAttribute('aria-labelledby','mila-iv-title');
     document.body.append(d);
-    d.addEventListener('close',function(){if(session&&session.returnFocus&&session.returnFocus.focus)session.returnFocus.focus();});
+    d.addEventListener('close',function(){if(session){session.previsitOnly=false;session.appointmentId='';if(session.pv&&!session.id)session.pv=null;}if(session&&session.returnFocus&&session.returnFocus.focus)session.returnFocus.focus();});
     return d;
   }
 
@@ -70,13 +70,13 @@
   function statusLine(phase,d){
     return ({scan:'Esperando que escanees el código con el celular…',consent:'Celular conectado · falta el consentimiento del paciente',ready:'Listo · inicia la entrevista desde el celular',live:'MILA está entrevistando al paciente',review:d.interpreting||d.processing?'MILA está ordenando la información…':'Borrador listo para revisar',expired:'El código venció'})[phase];
   }
-  function tabs(s){return '<div class="mila-iv-tabs" role="tablist"><button type="button" role="tab" data-mila-view="clinic" aria-selected="'+(s.view!=='previsit')+'">En consultorio</button><button type="button" role="tab" data-mila-view="previsit" aria-selected="'+(s.view==='previsit')+'">Antes de la cita</button></div>';}
+  function tabs(s){if(s.previsitOnly)return '';return '<div class="mila-iv-tabs" role="tablist"><button type="button" role="tab" data-mila-view="clinic" aria-selected="'+(s.view!=='previsit')+'">En consultorio</button><button type="button" role="tab" data-mila-view="previsit" aria-selected="'+(s.view==='previsit')+'">Antes de la cita</button></div>';}
   function renderPrevisit(s){
     var pv=s.pv||(s.pv={mode:'choice'}),r=pv.result,html='<header class="mila-iv-head"><span class="mila-iv-avatar" aria-hidden="true">'+esc(initials(s.patientName))+'</span><div class="mila-iv-title"><span class="mila-iv-kicker">MILA · ANTES DE LA CITA</span><h2 id="mila-iv-title">'+esc(s.patientName||'Paciente')+'</h2><p class="mila-iv-status">El paciente responde desde su celular antes de llegar.</p></div><button type="button" class="mila-iv-icon-btn" data-mila-hide aria-label="Cerrar" title="Cerrar">'+ICON.close+'</button></header>'+tabs(s)+'<div class="mila-iv-body">';
     if(!r){
       var modes=[['choice','Que el paciente elija','Puede platicar con MILA o llenar el formulario.'],['voice','MILA por voz','MILA le hace las preguntas. ~US$0.33 por entrevista.'],['form','Formulario','Responde escribiendo. Sin costo de IA.']];
       html+='<section class="mila-iv-card"><h3>¿Cómo responderá?</h3><div class="mila-iv-modes" role="radiogroup">'+modes.map(function(m){return '<label class="mila-iv-mode"><input type="radio" name="mila-pv-mode" value="'+m[0]+'"'+(pv.mode===m[0]?' checked':'')+'><span><strong>'+esc(m[1])+'</strong><small>'+esc(m[2])+'</small></span></label>';}).join('')+'</div>'
-        +'<p class="mila-iv-note">Se usa la próxima cita del paciente. El enlace es personal, pide su fecha de nacimiento si la ficha la tiene y vence un día después de la cita. Lo que responda llega aquí como borrador para revisar.</p>'
+        +'<p class="mila-iv-note">'+(s.appointmentId?'Se envía para esta cita.':'Se usa la próxima cita del paciente.')+' El enlace es personal, pide su fecha de nacimiento si la ficha la tiene y vence un día después de la cita. Lo que responda llega aquí como borrador para revisar.</p>'
         +'<div class="mila-iv-card-actions"><button type="button" class="btn btn-primary" data-mila-pv-send="whatsapp"'+(pv.busy?' disabled':'')+'>Enviar por WhatsApp</button><button type="button" class="mila-iv-ghost" data-mila-pv-send="link"'+(pv.busy?' disabled':'')+'>'+ICON.link+'Solo copiar enlace</button></div></section>';
     }else{
       var ok=r.sent,reason=r.reason,msg=ok?'Enviada por WhatsApp con la plantilla «Entrevista previa». Saldrá en menos de un minuto.':reason==='link'?'Enlace listo. Cópialo y envíaselo al paciente.':reason==='no_conversation'?'Este paciente aún no tiene conversación de WhatsApp con la clínica, así que no se puede usar la plantilla. Envíale el enlace por WhatsApp normal.':reason==='template_not_approved'?'La plantilla «entrevista_previa_v1» todavía no está aprobada por Meta. Solicítala en Configuración → WhatsApp → Plantillas. Mientras tanto, envía el enlace por WhatsApp normal.':'No se pudo enviar por WhatsApp ('+esc(r.detail||reason||'error')+'). Envía el enlace por WhatsApp normal.';
@@ -86,23 +86,68 @@
     }
     if(pv.error)html+='<p class="mila-iv-error" role="alert">'+esc(pv.error)+'</p>';
     if(pv.notice)html+='<p class="mila-iv-notice" role="status">'+esc(pv.notice)+'</p>';
+    html+=autoSection(s);
     html+='</div><footer class="mila-iv-foot"><span></span><button type="button" class="mila-iv-link" data-mila-hide>Listo</button></footer>';
     s.dialog.innerHTML=html;
     s.dialog.querySelectorAll('[data-mila-hide]').forEach(function(b){b.onclick=function(){s.dialog.close();};});
     bindTabs(s);
     s.dialog.querySelectorAll('[name="mila-pv-mode"]').forEach(function(i){i.onchange=function(){pv.mode=i.value;};});
     s.dialog.querySelectorAll('[data-mila-pv-send]').forEach(function(b){b.onclick=function(){sendPrevisit(s,b.dataset.milaPvSend);};});
+    bindAuto(s);
     var cp=s.dialog.querySelector('[data-mila-pv-copy]');if(cp)cp.onclick=function(){if(navigator.clipboard)navigator.clipboard.writeText(r.url).then(function(){pv.notice='Enlace copiado.';renderPrevisit(s);});else window.prompt('Copia el enlace:',r.url);};
   }
+  /* Envío automático (Configuración de la clínica): se guarda en el servidor y se aplica a todas las citas. */
+  var auto={loaded:false,loading:false,data:null,error:'',saving:false,notice:''};
+  function autoSection(s){
+    if(!auto.loaded&&!auto.loading)loadAuto(s);
+    var d=auto.data,st=d&&d.settings||{},can=d&&d.can_configure;
+    var html='<details class="mila-iv-card mila-iv-auto"'+(s.autoOpen?' open':'')+'><summary><span><strong>Envío automático</strong><small>'+esc(!d?(auto.error||'Cargando…'):st.enabled?'Activo · '+st.hours_before+' h antes de cada cita':'Apagado')+'</small></span></summary>';
+    if(d){
+      var hours=[24,48,72];if(hours.indexOf(st.hours_before)<0)hours.push(st.hours_before);
+      html+='<p class="mila-iv-note">La entrevista previa sale sola por WhatsApp antes de cada cita confirmada. Nunca se envía dos veces para la misma cita ni más de una vez al mes al mismo paciente.</p>'
+        +(d.template_ready===false?'<p class="mila-iv-warn">La plantilla «entrevista_previa_v1» aún no está aprobada por Meta: el envío automático empezará en cuanto lo esté (Configuración → WhatsApp → Plantillas).</p>':'')
+        +'<fieldset class="mila-iv-auto-form"'+(can?'':' disabled')+'>'
+        +'<label class="mila-iv-switch"><input type="checkbox" data-auto="enabled"'+(st.enabled?' checked':'')+'><span>Enviar automáticamente</span></label>'
+        +'<label>Cuándo<select data-auto="hours_before">'+hours.sort(function(a,b){return a-b;}).map(function(h){return '<option value="'+h+'"'+(h===st.hours_before?' selected':'')+'>'+h+' horas antes</option>';}).join('')+'</select></label>'
+        +'<label>Cómo responde<select data-auto="mode">'+[['choice','El paciente elige'],['voice','MILA por voz'],['form','Formulario']].map(function(m){return '<option value="'+m[0]+'"'+(m[0]===st.mode?' selected':'')+'>'+m[1]+'</option>';}).join('')+'</select></label>'
+        +'<label>A quién<select data-auto="audience">'+[['stale','Sin historia o con historia de más de un año'],['no_history','Solo pacientes sin historia'],['all','A todos los pacientes']].map(function(m){return '<option value="'+m[0]+'"'+(m[0]===st.audience?' selected':'')+'>'+m[1]+'</option>';}).join('')+'</select></label>'
+        +'</fieldset>'
+        +(can?'<div class="mila-iv-card-actions"><button type="button" class="btn btn-primary" data-auto-save'+(auto.saving?' disabled':'')+'>'+(auto.saving?'Guardando…':'Guardar')+'</button></div>':'<p class="mila-iv-note">Solo quien administra la agenda puede cambiar esto.</p>')
+        +(auto.notice?'<p class="mila-iv-notice" role="status">'+esc(auto.notice)+'</p>':'');
+    }
+    return html+'</details>';
+  }
+  async function loadAuto(s){
+    auto.loading=true;auto.error='';
+    try{auto.data=await call({action:'previsit_settings'});auto.loaded=true;}catch(e){auto.error=e.message;}
+    auto.loading=false;if(session===s&&s.view==='previsit')renderPrevisit(s);
+  }
+  function bindAuto(s){
+    var box=s.dialog.querySelector('.mila-iv-auto');if(!box)return;
+    box.addEventListener('toggle',function(){s.autoOpen=box.open;});
+    var btn=box.querySelector('[data-auto-save]');if(!btn)return;
+    btn.onclick=async function(){
+      var v=function(k){var el=box.querySelector('[data-auto="'+k+'"]');return el.type==='checkbox'?el.checked:el.value;};
+      var body={action:'previsit_settings_save',enabled:v('enabled'),hours_before:Number(v('hours_before')),mode:v('mode'),audience:v('audience')};
+      auto.saving=true;auto.notice='';renderPrevisit(s);
+      try{
+        var r=await call(body);auto.data.settings=Object.assign({},auto.data.settings,r.settings);
+        var sum=r.summary||{};
+        auto.notice=!r.settings.enabled?'Envío automático apagado.':sum.skipped==='template_not_approved'?'Guardado. Empezará a enviarse cuando Meta apruebe la plantilla.':'Guardado.'+(sum.sent?' Se enviaron '+sum.sent+' entrevista'+(sum.sent>1?'s':'')+' a citas próximas.':'');
+        dispatchEvent(new CustomEvent('smyl:mila-pending-changed',{detail:{auto:true}}));
+      }catch(e){auto.notice=e.message;}
+      auto.saving=false;renderPrevisit(s);
+    };
+  }
   function waLink(s,r){
-    var p=window.pacienteActual||{},d=String(p.telefono||'').replace(/\D/g,'');if(d.length===10)d='52'+d;
+    var p=s.info||window.pacienteActual||{},d=String(p.telefono||'').replace(/\D/g,'');if(d.length===10)d='52'+d;
     var first=String(p.nombre||'').trim().split(/\s+/)[0]||'';
     var text='Hola'+(first?' '+first:'')+', para preparar tu cita'+(r.appointment?' del '+r.appointment:'')+' te pedimos responder unas preguntas para tu expediente (5 minutos): '+r.url+' El enlace es personal.';
     return (d.length>=11?'https://wa.me/'+d:'https://wa.me/')+'?text='+encodeURIComponent(text);
   }
   async function sendPrevisit(s,via){
     var pv=s.pv;pv.busy=true;pv.error='';pv.notice='';renderPrevisit(s);
-    try{pv.result=await call({action:'previsit_create',patient_id:s.patient,mode:pv.mode,via:via});dispatchEvent(new CustomEvent('smyl:mila-pending-changed',{detail:{patient:s.patient}}));}
+    try{pv.result=await call({action:'previsit_create',patient_id:s.patient,mode:pv.mode,via:via,appointment_id:s.appointmentId||''});dispatchEvent(new CustomEvent('smyl:mila-pending-changed',{detail:{patient:s.patient,appointment:s.appointmentId||''}}));}
     catch(e){pv.error=e.message;}
     pv.busy=false;renderPrevisit(s);
   }
@@ -192,12 +237,12 @@
   }
   function stop(s){if(s&&s.timer){clearInterval(s.timer);s.timer=null;}}
 
-  async function start(tenant,patient,returnFocus,force,view){
+  async function start(tenant,patient,returnFocus,force,view,info,extra){
     var dialog=ensureDialog();
-    if(session&&!force&&session.patient===patient&&session.tenant===tenant){session.returnFocus=returnFocus;if(view)session.view=view;if(!dialog.open)dialog.showModal();render();if(session.view==='clinic')createClinic(session);return;}
+    if(session&&!force&&session.patient===patient&&session.tenant===tenant){session.returnFocus=returnFocus;session.appointmentId=extra&&extra.appointmentId||'';session.previsitOnly=!!(extra&&extra.previsitOnly);if(info&&!session.info)session.info=info;if(view)session.view=view;if(!dialog.open)dialog.showModal();render();if(session.view==='clinic')createClinic(session);return;}
     if(session)await end(false);
-    var p=window.pacienteActual&&window.pacienteActual.id===patient?window.pacienteActual:null;
-    var s={view:'clinic',patientName:p?[p.nombre,p.apellido].filter(Boolean).join(' '):'',tenant:tenant,patient:patient,dialog:dialog,applied:new Set(),data:{},returnFocus:returnFocus,error:'',notice:''};
+    var p=info||(window.pacienteActual&&window.pacienteActual.id===patient?window.pacienteActual:null);
+    var s={view:'clinic',info:p,appointmentId:extra&&extra.appointmentId||'',previsitOnly:!!(extra&&extra.previsitOnly),patientName:p?[p.nombre,p.apellido].filter(Boolean).join(' '):'',tenant:tenant,patient:patient,dialog:dialog,applied:new Set(),data:{},returnFocus:returnFocus,error:'',notice:''};
     if(view)s.view=view;session=s;if(!dialog.open)dialog.showModal();render();
     if(s.view!=='previsit')await createClinic(s);
   }
@@ -276,7 +321,9 @@
       opts=opts||{};
       var tenant=opts.tenant||window.tenantId,patient=opts.patient||(window.pacienteActual&&window.pacienteActual.id);
       if(!tenant||!patient||!window.sb||!window.SUPA_URL)return false;
-      start(tenant,patient,opts.returnFocus||document.activeElement,false,opts.view||null);return true;
+      // Desde la agenda no se interrumpe una entrevista en consultorio de otro paciente.
+      if(opts.previsitOnly&&session&&session.id&&session.patient!==patient){toast('Hay una entrevista de MILA en curso en consultorio. Termínala antes de enviar otra.');return false;}
+      start(tenant,patient,opts.returnFocus||document.activeElement,false,opts.view||null,opts.patientInfo||null,{appointmentId:opts.appointmentId||'',previsitOnly:!!opts.previsitOnly});return true;
     },
     end:function(){return end(true);},
     renderPending:renderPending

@@ -151,3 +151,20 @@ Nunca pegues el secreto en el código, en el repositorio ni en un chat.
   modo cron.
 - **No se probó contra LANA real.** Falta validar en piloto que LANA acepte
   el programado con la plantilla y que reporte `enviado`.
+
+## Entrevista previa automática (MILA)
+
+Usa el mismo secreto que los recordatorios. Se activa por clínica en MILA → Antes de la cita →
+«Envío automático». Para que salga aunque nadie abra la agenda, programa también:
+
+```sql
+select cron.schedule('smyl-mila-entrevista-previa', '7,37 * * * *', $$
+  select net.http_post(
+    url := 'https://rpxshsiwoxdbuevjjpfw.supabase.co/functions/v1/mila-interview',
+    headers := jsonb_build_object('Content-Type', 'application/json',
+      'x-smyl-cron-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'smyl_reminders_cron_secret')),
+    body := '{}'::jsonb, timeout_milliseconds := 60000);
+$$);
+```
+
+Para detenerlo: `select cron.unschedule('smyl-mila-entrevista-previa');`.
