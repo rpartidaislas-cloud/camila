@@ -8,6 +8,38 @@
 - Migración `20261116150000_smyl_mila_previsit_auto.sql` (`smyl_mila_previsit_settings`, `smyl_mila_previsit_dispatches`; RLS sin políticas). Los envíos manuales también quedan registrados en la cita; al guardar o descartar la entrevista se marca `reviewed`. **Requiere aplicar la migración y volver a desplegar `mila-interview`.**
 - Versiones: agenda `js v41 / css v30`, MILA `v5`, caché `previsit-agenda-v1`. Siete pruebas antiguas limitaban `smyl-schedule.css` a `v<30`; se ampliaron a dos dígitos. Pruebas: `smyl-mila-interview` 23/23; suite con los mismos 15 fallos que `main`; `deno check` OK; vista previa en 390 px de las marcas y del panel.
 
+## 2026-11-16 — Claude: respaldo — Storage con destino relativo (CLI 2.x rechaza `C:\...`)
+
+En el primer respaldo real (Windows, CLI 2.110.0) la copia de Storage falló con «Unsupported operation»: la CLI interpreta una ruta con letra de unidad (`C:\Users\…`) como URL y no la reconoce como local.
+Reproducido con la CLI 2.110.0 real. `create-encrypted-backup.mjs` ahora ejecuta `storage cp` **desde la carpeta de Storage con destino relativo** (`<bucket>`) y `--workdir` apuntando al repo (donde está el enlace con el proyecto), y aplana
+`<bucket>/<bucket>/…` si la CLI anida el bucket. Pruebas nuevas en `tests/backup-behaviour.test.mjs` (17): el doble de la CLI rechaza rutas con `:` como la real. Guía actualizada.
+## 2026-11-16 — Claude — Consultorio, etapa 2: el recorrido de la visita
+
+- Tocar a un paciente en «En el consultorio», en la búsqueda, o crearlo con «Paciente nuevo» ahora abre su **visita** (antes abría el expediente): nombre y estado de la cita arriba, barra de avance y cuatro pasos. Es una lista, no un candado: todo se puede abrir en cualquier orden.
+  1. **Datos del paciente**: completos / por registrar (completar datos con el formulario del panel o enviar el enlace) / por verificar (Confirmar datos si hay `patients.manage`, si no solo revisar).
+  2. **Historia clínica**: «x de 6 confirmadas, falta: …» calculado con `SmylHistoryModel` sobre `smyl_patient_histories`.
+  3. **Fotos y radiografía**: cuenta `smyl_patient_files` activos (`clinical_photo`, `radiograph`).
+  4. **Simulación**: abre el simulador con el paciente ya ligado (solo cuenta dueña, como en la ficha).
+  El avance cuenta los tres pasos de captura; la simulación es opcional. Lo que no se puede leer (permisos) queda «desconocido», nunca se da por hecho ni por faltante.
+- La lógica de pasos es pura: `smyl-visit-model.js` (8 pruebas con el modelo real de la historia). La pantalla solo la pinta.
+- **Se recuerda la visita**: al volver al Consultorio aparece «Visita en curso» y, mientras haya una sin terminar y se esté en otra pantalla (p. ej. el expediente), un botón fijo «Volver a la visita de …». Se guarda en `sessionStorage` (`smyl_visit`, 6 h) y se quita con «Terminar la visita». No se tocó el menú lateral (muchas pruebas lo fijan).
+- «Abrir historia» y «Subir o ver estudios» abren el expediente y pulsan los accesos reales de «Más del expediente» (`[data-p360-domain="history"|"files"]`, también funcionan plegados); si no aparecen en ~8 s la persona se queda en el expediente. El formulario de datos es el del panel (`abrirModalPaciente`, `#modal-paciente.visible`); al cerrarlo se vuelve a leer al paciente.
+- Pruebas: `tests/smyl-consultorio.test.mjs` ahora 23 (navegador, módulo real contra Supabase simulado; mutaciones comprobadas). Web y `mobile/www` sincronizados: `smyl-consultorio.js?v=2`, `.css?v=2`, `smyl-visit-model.js?v=1`, caché `visita-v1`. Sin migración.
+- **No probado en el panel real** (exige sesión): el salto a la historia y a estudios depende del expediente real, y el formulario de datos del panel real. Probar en el celular con un paciente.
+- Sigue: etapa 3 (historia por preguntas y cierre de la visita) y etapa 4 (código QR y firma del aviso de privacidad).
+## 2026-11-16 — Claude Code — Botón «Enlace de pago» oculto hasta activar el cobro en línea
+
+- `smyl-finance.js` solo muestra **Enlace de pago** si `window.SMYL_ONLINE_PAY===true` (por defecto no). Motivo: `smyl-pay` y la migración de pagos aún no están desplegados, así que el botón fallaría. Para activarlo, tras desplegar y probar en sandbox, definir `window.SMYL_ONLINE_PAY=true` (p. ej. desde la config de la clínica) y subir la versión del script. Versión `smyl-finance.js?v=44`.
+
+## 2026-11-16 — Claude Code — Cobro en línea de saldos de pacientes con OpenPay (vía LANA)
+
+- **Idea**: SMYL es dueño de la deuda y del recibo; LANA solo cobra con la cuenta OpenPay de la propia clínica (el dinero no pasa por LANA). Staff genera un enlace desde la cuenta del paciente (botón **Enlace de pago**, `smyl-finance.js`, junto a «Cobrar»); el paciente abre `pagar.html#t=<token>`, ve su recibo con los conceptos y paga con **tarjeta (3D Secure)** o **SPEI**. Al confirmarse, se registra el pago y se emite el recibo interno (canal `online`).
+- **Backend**: migración `20261116130000_smyl_payment_links.sql` (tabla `smyl_payment_links` solo service_role; `smyl_open_charges_for_link` y `smyl_post_online_payment`, idempotente por enlace; si un cargo cambió antes del pago, el sobrante queda como saldo a favor). Edge Function `smyl-pay` (`verify_jwt=false`): personal (`create|list|cancel`, JWT + `finance.manage`, saldo calculado en el servidor), público (`view` por token) y `POST …/callback` (HMAC de LANA, siempre se confirma con GET a LANA antes de registrar). `_shared/smyl-pay-core.mjs` es la parte pura. `lana-contract.mjs` permite la raíz `/payments`.
+- **Seguridad**: el navegador nunca fija monto ni paciente; token de 256 bits (solo se guarda su SHA-256); `pagar.html` sin `innerHTML`, con CSP y `noindex`; el token viaja en el fragmento y se guarda en `sessionStorage` solo para regresar de 3DS.
+- **Privacidad**: `privacidad.html` (y `smyl-site/privacidad.html`) ahora listan a OpenPay/LANA como proveedor opcional y ya no dicen que SMYL no procesa pagos de pacientes. Mantener ambas copias iguales.
+- **Verificación**: `tests/smyl-pay-core.test.mjs` (10); migración probada en Postgres 16 real (pago, cargo anulado → saldo a favor, idempotencia, permisos cerrados); suite completa sin fallas nuevas frente a `main`. Bundles `appointment-reminders` y `whatsapp-templates` regenerados por el cambio en `lana-contract.mjs`.
+- **Para activar (pendiente de despliegue)**: aplicar la migración en el proyecto SMYL; desplegar `smyl-pay`; en LANA aplicar `20261115130000_pagos_solicitudes` (ya aplicada) y desplegar `pago-publico`, `openpay-*` y `camila-api` (rama `claude/pasarela-pagos-general`, PR 1439). La clínica necesita OpenPay conectado y activo en su tenant de LANA (modo pruebas por defecto; producción solo con `openpay_modo='produccion'`). Aún no probado de punta a punta con OpenPay real.
+- **Fase 2 (no hecho)**: Paynet/OXXO, MSI, envío automático del recibo, reembolsos que actualicen la solicitud, anticipos.
 ## 2026-11-16 — Claude — Consultorio, etapa 1: la mesa de trabajo cuando el paciente está presente
 
 - Pantalla nueva `p-consultorio` (`smyl-consultorio.js` + `.css`, módulo puro `smyl-patient-quick.js`), azul noche como el simulador y pensada para el celular: **Paciente nuevo** (solo teléfono; el nombre es opcional y sin él queda «por registrar»), accesos a **Simulador** y **Agenda**, búsqueda de paciente (`smyl_search_patients`) y **En el consultorio** (citas de hoy: en consulta, en sala, por llegar; tocar abre el expediente con `verPaciente`). Tras el alta ofrece abrir el expediente, enviar el enlace de registro (`enviarEnlaceRegistro`) y abrir el simulador. Detecta teléfonos repetidos y reintenta sin `registro_estado` si la columna no existe. Sin migración.
@@ -11115,3 +11147,38 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
   - «Abierta hace más de 18 h · Hacer corte» pasa a botón ámbar en el indicador de Caja.
   - **Último filtro recordado** por dispositivo y clínica (`smyl_finance_filter_<tenant>`).
 - **Archivos:** `smyl-finance.js` v42, `smyl-finance.css` v34, `app.html`, `sw.js` (caché `…-cobros-directo-v1`), copias en `mobile/www/`, pruebas ajustadas y una nueva en `tests/smyl-finance-tabs-v2.test.mjs`. Sin cambios de permisos, datos ni RPC.
+
+## 2026-11-16 — Claude Code — Chat limpio (paso 1 de la maqueta de Mensajes)
+- **Qué cambia (solo frontend, `smyl-inbox.js` v45 / `smyl-inbox.css` v39):**
+  - **Encabezado del hilo:** una sola acción principal, «Agendar cita» (si hay permiso). Se quitó «Nueva acción» (esas acciones ya estaban en «⋯») y el botón verde «Enviar plantilla» del encabezado. En celular «Agendar cita» queda a la vista. El meta del encabezado muestra «Ventana 24 h: quedan X h» en WhatsApp.
+  - **Plantilla:** un solo punto de entrada, el aviso de ventana vencida del compositor («Elegir plantilla», o «Programar plantilla» si está por vencer). El botón Enviar se oculta en modo plantilla.
+  - **«Archivos»** salió de la franja «SMYL te pone al día» (sigue en «⋯» como «Archivos compartidos»).
+  - **Mensajes:** «Responder | Más» ya no ocupa una fila por burbuja: aparece como píldora flotante al pasar el cursor **y con `:focus-within`** (se mantiene alcanzable con teclado); en celular, al tocar la burbuja.
+  - **Filtros** segmentados con el contador siempre visible (antes el del filtro activo era blanco sobre blanco). La conversación abierta **se queda en la lista** aunque el filtro «Sin leer»/«Por atender» ya no la incluya. «IA activa» deja de repetirse en cada fila (solo «Por atender» / «Con el equipo»).
+  - Tipografía del buscador y del selector de canal unificada; aviso de ventana vencida en ámbar.
+- **No se tocó:** la barra superior (Avisos / Revisar operación), el compositor (iconos) ni el backend. Pendientes de la maqueta: calendario mensual de «Agendar», Ficha 360 v2, almacenamiento y Nube (cada uno con su PR).
+- **Archivos:** `smyl-inbox.js`, `smyl-inbox.css`, `app.html`, `sw.js` (caché `…-chat-limpio-v1`), copias en `mobile/www/`; pruebas ajustadas (`smyl-inbox-clean-header`, `smyl-inbox-queue-focus-stage3` y versiones fijadas).
+
+## 2026-11-16 — Claude Code — Agendar desde el chat con calendario mensual (paso 2 de la maqueta de Mensajes)
+- **Qué cambia (solo frontend, sin migración ni cambios de edge function):**
+  - «Agendar cita» abre el diálogo de disponibilidad con **vista Calendario por defecto** (alterna con «Lista», la vista de antes). Mes de 6 semanas (lunes primero) con el nivel de cada día: muchos horarios (≥5), pocos (1–4), sin horarios, pasado, hoy y seleccionado, más leyenda. Al elegir un día salen los horarios en «Mañana / Tarde» (con el profesional cuando hay más de uno).
+  - **Confirmar cita sin salir del chat:** con exactamente 1 horario elegido y `schedule.manage`, el botón «Confirmar cita» pide confirmación y llama `appointment_request` + `appointment_confirm` (el servidor vuelve a comprobar la disponibilidad), refresca el contexto de cita y los recordatorios. La casilla «Preparar el mensaje de confirmación en el chat» solo **prepara** el texto en el compositor; nunca se envía solo, y se oculta si la ventana de 24 h de WhatsApp no permite texto libre.
+  - **Atajo «Ver agenda del día»** (lista de solo lectura) y «Abrir Agenda completa ↗».
+  - La consulta por día usa `availability` con `limit` 30 (tope del servidor), con un máximo de 5 consultas en paralelo y caché por servicio/sucursal/profesional/día.
+- **Arquitectura:** `smyl-inbox-calendar.js` (nuevo, `window.SmylInboxCalendar = {render, invalidate}`) no toca datos ni tenant. La agenda del día la lee `window.SmylSchedule.dayAppointments(key)` (nuevo, en `smyl-schedule.js`), porque `tests/cobros-chat-link.test.mjs` exige que el chat no consulte tablas ni el tenant.
+- **Archivos:** `smyl-inbox-calendar.js` v1 (nuevo), `smyl-inbox.js` v47, `smyl-inbox.css` v40, `smyl-schedule.js` v41, `app.html`, `sw.js` (caché `…-chat-calendario-v2`), copias en `mobile/www/`; prueba nueva `tests/smyl-inbox-calendar.test.mjs` y versiones fijadas ajustadas en pruebas existentes.
+- **Pendiente de la maqueta:** Ficha 360 v2, almacenamiento medido (requiere migración, con autorización) y la Nube.
+
+## 2026-11-16 — Claude Code — Ficha 360 v2 en el chat (paso 3 de la maqueta de Mensajes)
+- **Qué cambia (frontend + una línea en la edge function, sin migración):** el panel «Ficha 360 del paciente» del chat deja de ser una pila de acordeones y pasa a: cabecera (avatar, teléfono/correo, chips de identidad, origen y **consentimiento de WhatsApp**), acciones **Agendar / Cobrar / Expediente ↗** (solo las que el rol permite) y pestañas con permisos:
+  - **Resumen** (siempre): tarjetas Etapa, Próxima cita, Por cobrar (`finance.read`) y Cotización (`clinical.read`); «Intervención solicitada», «Siguiente acción» y Copilot.
+  - **Citas** (`schedule.read`): cita del chat y «Buscar horarios».
+  - **Archivos**: galería de lo que el paciente mandó por el chat (acción `shared` existente), filtros Fotos/Documentos/Audios, detalle con «Enviar a revisión clínica» (acción `clinical_link` existente, `clinical.write`; muestra ✓ si ya está en revisión) y «Abrir / descargar».
+  - **Cobros** (`finance.read`): la tarjeta de cuenta que ya existía.
+  - **Clínico** (`clinical.read`): expediente, caso, score, simulación, cotización.
+  - **Línea de tiempo** (paciente identificado + `clinical.read`): `rpc('smyl_patient_timeline')` (mismo RPC de la Ficha 360 de Pacientes; el servidor decide qué ve cada rol).
+  - **Atención**: Responsable, Organización, SMYL Asistente, ventana de WhatsApp, reactivación y programados (todo lo de antes, sin quitar nada).
+- **Carga perezosa:** archivos al abrir la ficha (caché 30 s); línea de tiempo solo al entrar a su pestaña.
+- **Edge function `lana-inbox`** (`clinicalContext`): ahora lee `camila_pacientes.consentimiento_whatsapp` y devuelve `patient.whatsapp_consent` (booleano o `null`). **Requiere volver a desplegar `lana-inbox`**; mientras tanto el chip simplemente no aparece.
+- **Quedó fuera a propósito (depende del paso 4 y 5):** «Guardar en expediente», «Clasificar», tamaño por archivo/paciente y «Ver en la Nube» necesitan medición de almacenamiento (migración, con autorización) y la Nube. Las etiquetas, las notas internas con @mención y «Última visita» de la maqueta tampoco tienen fuente de datos todavía.
+- **Archivos:** `smyl-inbox-ficha.js` v1 (nuevo, piezas visuales sin datos), `smyl-inbox.js` v48, `smyl-inbox.css` v41, `supabase/functions/lana-inbox/index.ts`, `app.html`, `sw.js` (caché `…-ficha360-v1`), copias en `mobile/www/`; prueba nueva `tests/smyl-inbox-ficha360-v2.test.mjs`.

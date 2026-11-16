@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://resources.openpay.mx; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https://rpxshsiwoxdbuevjjpfw.supabase.co https://lgjdzaqjrmmzyrenevfm.supabase.co https://api.openpay.mx https://sandbox-api.openpay.mx; frame-src https://*.openpay.mx; base-uri 'none'; form-action 'none'">
+<title>Pago seguro · SMYL</title>
+<link rel="icon" href="icons/smyl_pwa.png">
+<style>
+:root{--ink:#1F2937;--muted:#6B7280;--line:#E5E7EB;--blue:#2563EB;--blue-d:#1D4ED8;--bg:#F3F6FB;--ok:#047857;--okbg:#ECFDF5;--bad:#B91C1C;--badbg:#FEF2F2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:480px;margin:0 auto;padding:20px 16px 48px}
+.brand{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 0 18px;color:var(--muted);font-size:14px}
+.brand img{height:24px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 4px 14px rgba(16,34,57,.06);padding:22px}
+.eyebrow{font-size:12px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+h1{font-size:22px;line-height:1.25;margin:4px 0 2px}
+.sub{color:var(--muted);font-size:14px;margin:0 0 16px}
+.lines{border-top:1px solid var(--line);margin:12px 0}
+.line{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
+.line span:last-child{white-space:nowrap;font-variant-numeric:tabular-nums}
+.total{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-size:20px;margin:10px 0 18px}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tab{flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;font:inherit;font-weight:600;cursor:pointer;color:var(--ink)}
+.tab[aria-selected=true]{border-color:var(--blue);color:var(--blue);background:#EFF6FF}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input{width:100%;border:1px solid #CBD5E1;border-radius:10px;padding:12px;font:inherit;background:#fff}
+input:focus{outline:2px solid #93C5FD;border-color:var(--blue)}
+.row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.btn{width:100%;margin-top:16px;border:0;border-radius:12px;background:var(--blue);color:#fff;font:inherit;font-weight:700;padding:14px;cursor:pointer}
+.btn:hover{background:var(--blue-d)}
+.btn:disabled{opacity:.6;cursor:default}
+.btn.ghost{background:#fff;color:var(--blue);border:1px solid var(--blue);margin-top:10px}
+.msg{border-radius:10px;padding:12px 14px;font-size:14px;margin:12px 0}
+.msg.err{background:var(--badbg);color:var(--bad)}
+.msg.ok{background:var(--okbg);color:var(--ok)}
+.msg.info{background:#EFF6FF;color:#1E3A8A}
+.clabe{font:600 22px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em;word-break:break-all;margin:6px 0}
+.fine{color:var(--muted);font-size:12px;margin-top:16px;text-align:center}
+.done{text-align:center;padding:10px 0}
+.done .tick{width:56px;height:56px;border-radius:50%;background:var(--okbg);color:var(--ok);display:grid;place-items:center;font-size:30px;margin:0 auto 10px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><img src="icons/smyl_pwa.png" alt="" width="24" height="24"><span>Pago seguro</span></div>
+  <section class="card" id="card" aria-live="polite"><p class="sub">Cargando…</p></section>
+  <p class="fine">El pago lo procesa OpenPay. Ni SMYL ni tu clínica guardan los datos de tu tarjeta.</p>
+</main>
+<script src="https://resources.openpay.mx/lib/openpay-js/1.2.38/openpay.v1.min.js"></script>
+<script src="https://resources.openpay.mx/lib/openpay-data-js/1.2.38/openpay-data.v1.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var SMYL_PAY = 'https://rpxshsiwoxdbuevjjpfw.supabase.co/functions/v1/smyl-pay';
+  var LANA_PAY = 'https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v1/pago-publico';
+  var KEY = 'smyl-pay-token';
+  var card = document.getElementById('card');
+  var token = '', cfg = null, view = null, poll = null;
+
+  // El token llega en el fragmento (#t=…) para no viajar al servidor; se guarda solo en esta pestaña porque el regreso de 3D Secure no lo trae.
+  try {
+    var m = /[#&]t=([a-f0-9]{64})/.exec(location.hash);
+    if (m) { sessionStorage.setItem(KEY, m[1]); history.replaceState(null, '', location.pathname + location.search); }
+    token = sessionStorage.getItem(KEY) || '';
+  } catch (e) { var m2 = /[#&]t=([a-f0-9]{64})/.exec(location.hash); token = m2 ? m2[1] : ''; }
+
+  function el(tag, props, kids) {
+    var n = document.createElement(tag);
+    Object.keys(props || {}).forEach(function (k) { if (k === 'text') n.textContent = props[k]; else n.setAttribute(k, props[k]); });
+    (kids || []).forEach(function (c) { if (c) n.appendChild(c); });
+    return n;
+  }
+  function money(v) { return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(v) || 0); }
+  function dateTime(v) { try { return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v)); } catch (e) { return ''; } }
+  function clear() { card.textContent = ''; }
+  function post(url, body) {
+    return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; }); });
+  }
+
+  function head(v) {
+    return [
+      el('div', { 'class': 'eyebrow', text: 'Recibo de pago' }),
+      el('h1', { text: v.clinic || 'Tu clínica' }),
+      el('p', { 'class': 'sub', text: v.patient ? 'Para ' + v.patient : '' })
+    ];
+  }
+  function lines(v) {
+    var box = el('div', { 'class': 'lines' });
+    (v.lines || []).forEach(function (l) { box.appendChild(el('div', { 'class': 'line' }, [el('span', { text: l.concept }), el('span', { text: money(l.amount) })])); });
+    return [box, el('div', { 'class': 'total' }, [el('span', { text: 'Total a pagar' }), el('span', { text: money(v.amount) })])];
+  }
+  function appendAll(parent, nodes) { nodes.forEach(function (n) { if (n) parent.appendChild(n); }); }
+
+  function showMessage(title, text, tone) {
+    clear();
+    appendAll(card, [el('h1', { text: title }), el('div', { 'class': 'msg ' + (tone || 'info'), text: text })]);
+  }
+
+  function showPaid(v) {
+    stopPoll(); try { sessionStorage.removeItem(KEY); } catch (e) {}
+    clear();
+    var done = el('div', { 'class': 'done' }, [
+      el('div', { 'class': 'tick', text: '✓' }),
+      el('h1', { text: 'Pago recibido' }),
+      el('p', { 'class': 'sub', text: v.receipt_folio ? 'Recibo interno #' + v.receipt_folio + (v.paid_at ? ' · ' + dateTime(v.paid_at) : '') : 'Tu pago se registró correctamente.' })
+    ]);
+    card.appendChild(done);
+    appendAll(card, lines(v));
+    card.appendChild(el('p', { 'class': 'sub', text: 'Comprobante interno de ' + (v.clinic || 'tu clínica') + '; no sustituye una factura. Puedes cerrar esta página.' }));
+  }
+
+  function stopPoll() { if (poll) { clearInterval(poll); poll = null; } }
+  function startPoll() {
+    stopPoll();
+    var tries = 0;
+    poll = setInterval(function () {
+      if (++tries > 90) {
+        stopPoll();
+        showMessage('Seguimos esperando tu pago', 'Si ya pagaste, tu clínica verá el pago en cuanto el banco lo confirme. Si aún no pagaste, recarga la página para intentarlo de nuevo.', 'info');
+        return;
+      }
+      post(SMYL_PAY, { action: 'view', token: token }).then(function (v) { if (v.status === 'paid') showPaid(v); }).catch(function () {});
+    }, 8000);
+  }
+
+  function renderForm(v) {
+    clear();
+    appendAll(card, head(v)); appendAll(card, lines(v));
+    var methods = cfg.metodos || {};
+    var tabs = el('div', { 'class': 'tabs', role: 'tablist' });
+    var panel = el('div');
+    var current = methods.tarjeta !== false ? 'card' : 'spei';
+    function paint() {
+      Array.prototype.forEach.call(tabs.children, function (t) { t.setAttribute('aria-selected', String(t.getAttribute('data-m') === current)); });
+      panel.textContent = '';
+      panel.appendChild(current === 'card' ? cardPanel(v) : speiPanel(v));
+    }
+    [['card', 'Tarjeta', methods.tarjeta !== false], ['spei', 'Transferencia SPEI', methods.spei !== false]].forEach(function (m) {
+      if (!m[2]) return;
+      var b = el('button', { type: 'button', 'class': 'tab', role: 'tab', 'data-m': m[0], text: m[1] });
+      b.onclick = function () { current = m[0]; paint(); };
+      tabs.appendChild(b);
+    });
+    if (!tabs.children.length) { showMessage('Pago no disponible', 'Esta clínica aún no tiene métodos de pago en línea activos.', 'err'); return; }
+    card.appendChild(tabs); card.appendChild(panel); paint();
+    if (v.expires_at) card.appendChild(el('p', { 'class': 'sub', text: 'Este enlace vence el ' + dateTime(v.expires_at) + '.' }));
+  }
+
+  function field(label, name, attrs) {
+    var a = Object.assign({ name: name, id: 'f-' + name, required: 'required', autocomplete: 'off' }, attrs || {});
+    return [el('label', { 'for': a.id, text: label }), el('input', a)];
+  }
+
+  function cardPanel() {
+    var form = el('form', { id: 'pay-form', novalidate: 'novalidate' });
+    var err = el('div', { 'class': 'msg err', hidden: 'hidden' });
+    appendAll(form, field('Nombre en la tarjeta', 'holder', { 'data-openpay-card': 'holder_name', autocomplete: 'cc-name', maxlength: '80' }));
+    appendAll(form, field('Número de tarjeta', 'number', { 'data-openpay-card': 'card_number', inputmode: 'numeric', autocomplete: 'cc-number', maxlength: '19' }));
+    var row = el('div', { 'class': 'row' });
+    [['Mes', 'month', 'expiration_month', 'cc-exp-month', '2', 'MM'], ['Año', 'year', 'expiration_year', 'cc-exp-year', '2', 'AA'], ['CVV', 'cvv', 'cvv2', 'cc-csc', '4', '']].forEach(function (f) {
+      var c = el('div'); appendAll(c, field(f[0], f[1], { 'data-openpay-card': f[2], inputmode: 'numeric', autocomplete: f[3], maxlength: f[4], placeholder: f[5] })); row.appendChild(c);
+    });
+    form.appendChild(row);
+    form.appendChild(err);
+    var btn = el('button', { 'class': 'btn', type: 'submit', text: 'Pagar ' + money(view.amount) });
+    form.appendChild(btn);
+    form.appendChild(el('input', { type: 'hidden', id: 'deviceIdHiddenFieldName', name: 'deviceIdHiddenFieldName' }));
+    var devId = '';
+    try { devId = OpenPay.deviceData.setup('pay-form', 'deviceIdHiddenFieldName'); } catch (e) {}
+    form.onsubmit = function (ev) {
+      ev.preventDefault();
+      err.hidden = true; btn.disabled = true; btn.textContent = 'Procesando…';
+      function fail(msg) { err.textContent = msg; err.hidden = false; btn.disabled = false; btn.textContent = 'Pagar ' + money(view.amount); }
+      var ds = devId || document.getElementById('deviceIdHiddenFieldName').value;
+      if (!ds) return fail('No se pudo validar tu dispositivo. Recarga la página e inténtalo de nuevo.');
+      OpenPay.token.extractFormAndCreate('pay-form', function (res) {
+        post(LANA_PAY, { accion: 'tarjeta', token: token, token_id: res.data.id, device_session_id: ds }).then(function (d) {
+          if (d.status === '3ds' && d.redirect_url) { location.href = d.redirect_url; return; }
+          if (d.status === 'pagada') { return post(SMYL_PAY, { action: 'view', token: token }).then(function (v) { v.status === 'paid' ? showPaid(v) : waiting(); }); }
+          fail(d.error || 'No se pudo completar el pago. Revisa los datos de tu tarjeta.');
+        }).catch(function () { fail('No pudimos conectar. Revisa tu conexión e inténtalo de nuevo.'); });
+      }, function (e) {
+        var data = e && e.data; var d = data && data.description;
+        fail(d ? 'La tarjeta no es válida: ' + d : 'Revisa los datos de tu tarjeta.');
+      });
+    };
+    return form;
+  }
+
+  function waiting() {
+    showMessage('Confirmando tu pago…', 'Estamos confirmando tu pago con el banco. No cierres esta página; se actualizará sola.', 'info');
+    startPoll();
+  }
+
+  function speiPanel(v) {
+    var box = el('div');
+    var btn = el('button', { 'class': 'btn', type: 'button', text: 'Generar CLABE para transferir' });
+    var err = el('div', { 'class': 'msg err', hidden: 'hidden' });
+    btn.onclick = function () {
+      btn.disabled = true; err.hidden = true;
+      post(LANA_PAY, { accion: 'spei', token: token }).then(function (d) {
+        if (d.status === 'spei') return showSpei(box, d);
+        if (d.status === 'pagada') return waiting();
+        btn.disabled = false; err.textContent = d.error || 'No se pudo generar la CLABE.'; err.hidden = false;
+      }).catch(function () { btn.disabled = false; err.textContent = 'No pudimos conectar. Inténtalo de nuevo.'; err.hidden = false; });
+    };
+    box.appendChild(el('p', { 'class': 'sub', text: 'Genera una CLABE exclusiva para este pago y transfiere el monto exacto desde tu banca en línea. Se acredita en minutos.' }));
+    box.appendChild(err); box.appendChild(btn);
+    return box;
+  }
+
+  function showSpei(box, d) {
+    box.textContent = '';
+    box.appendChild(el('div', { 'class': 'msg info', text: 'Transfiere exactamente ' + money(d.monto) + ' a esta CLABE' + (d.banco ? ' (' + d.banco + ')' : '') + '.' }));
+    box.appendChild(el('div', { 'class': 'clabe', text: d.clabe }));
+    var copy = el('button', { 'class': 'btn ghost', type: 'button', text: 'Copiar CLABE' });
+    copy.onclick = function () { try { navigator.clipboard.writeText(d.clabe); copy.textContent = 'Copiada'; } catch (e) {} };
+    box.appendChild(copy);
+    if (d.vence) box.appendChild(el('p', { 'class': 'sub', text: 'Vigente hasta el ' + dateTime(d.vence) + '. Esta página se actualiza sola cuando llegue tu pago.' }));
+    startPoll();
+  }
+
+  function init() {
+    if (!/^[a-f0-9]{64}$/.test(token)) return showMessage('Enlace no válido', 'Abre el enlace completo que te envió tu clínica.', 'err');
+    post(SMYL_PAY, { action: 'view', token: token }).then(function (v) {
+      if (v._status === 404) return showMessage('Enlace no disponible', 'Este enlace no existe o ya no está disponible. Pide uno nuevo a tu clínica.', 'err');
+      view = v;
+      if (v.status === 'paid') return showPaid(v);
+      if (v.status === 'expired') return showMessage('Enlace vencido', 'Este enlace de pago venció. Pide uno nuevo a tu clínica.', 'err');
+      if (v.status === 'cancelled') return showMessage('Enlace cancelado', 'Tu clínica canceló este enlace. Pide uno nuevo si aún tienes saldo.', 'err');
+      var returned = /[?&]pago=retorno/.test(location.search);
+      return post(LANA_PAY, { accion: 'config', token: token }).then(function (c) {
+        if (!c.openpay) return showMessage('Pago no disponible', c.error || 'El pago en línea no está disponible por ahora.', 'err');
+        cfg = c;
+        try { OpenPay.setId(c.openpay.merchant_id); OpenPay.setApiKey(c.openpay.public_key); OpenPay.setSandboxMode(c.openpay.sandbox !== false); } catch (e) {}
+        if (returned) return waiting();
+        renderForm(v);
+      });
+    }).catch(function () { showMessage('Sin conexión', 'No pudimos cargar tu recibo. Revisa tu conexión y vuelve a intentarlo.', 'err'); });
+  }
+  init();
+})();
+</script>
+</body>
+</html>

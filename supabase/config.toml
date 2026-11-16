@@ -27,6 +27,11 @@ verify_jwt = true
 verify_jwt = true
 
 # Webhook de consumibles: sólo Stripe, autenticado por firma (STRIPE_CONSUMABLES_WEBHOOK_SECRET).
+# Cobro en línea (OpenPay vía LANA). verify_jwt=false porque convive: acciones de personal (la función exige JWT y finance.manage),
+# vista pública por token opaco y aviso de LANA firmado con HMAC. Nada se confía al navegador.
+[functions.smyl-pay]
+verify_jwt = false
+
 [functions.smyl-consumables-webhook]
 verify_jwt = false
 

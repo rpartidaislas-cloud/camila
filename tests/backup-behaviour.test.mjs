@@ -24,6 +24,7 @@ function setup() {
   fs.writeFileSync(path.join(bin, 'npx'), `#!/bin/bash
 [ "$1" = "supabase" ] || exit 1; shift
 [ -n "$FAKE_LOG" ] && echo "$@" >> "$FAKE_LOG"
+if [ "$1" = "--workdir" ]; then shift 2; fi
 EXP=""; if [ "$1" = "--experimental" ]; then EXP=1; shift; fi
 bad_flag() {
   if [ "$FAKE_CLI" = "3" ] && [[ "$*" == *"--linked"* ]]; then echo "unknown flag: --linked" >&2; exit 1; fi
@@ -43,6 +44,9 @@ case "$1 $2" in
     else echo "CREATE TABLE public.camila_tenants (id uuid);" > "$f"; fi;;
   "storage cp") bad_flag "$@"
     dest="\${@: -1}"; [ -n "$FAIL_BUCKET" ] && [[ "$*" == *"$FAIL_BUCKET"* ]] && { echo "error de prueba: sin permiso (clave $SUPABASE_DB_PASSWORD)" >&2; exit 1; }
+    # Como la CLI 2.x real: un destino con «:» (C:\…) se toma por URL y se rechaza.
+    if [[ "$dest" == *:* ]]; then echo "Unsupported operation" >&2; exit 1; fi
+    [ -n "$FAKE_CP_NESTED" ] && dest="$dest/$dest"
     mkdir -p "$dest"; echo "objeto uno" > "$dest/a.png"; echo "objeto dos" > "$dest/b.png";;
 esac
 `, { mode: 0o755 });
@@ -199,5 +203,35 @@ test('cuando la CLI falla se muestra el motivo, sin la contraseña', { skip }, (
     assert.doesNotMatch(result.stderr, /secreto123/, 'la contraseña nunca se imprime');
     assert.match(result.stderr, /\*\*\*/);
     assert.deepEqual(fs.readdirSync(ctx.tmp), []);
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('la descarga de Storage usa un destino relativo (sin letra de unidad) y --workdir', { skip }, () => {
+  const ctx = setup();
+  try {
+    const result = runBackup(ctx, path.join(ctx.dir, 'paquete'));
+    assert.equal(result.status, 0, result.stderr);
+    const log = fs.readFileSync(path.join(ctx.dir, 'cli.log'), 'utf8');
+    const cp = log.split('\n').filter((line) => /storage cp/.test(line));
+    assert.equal(cp.length, BUCKETS.length);
+    for (const line of cp) {
+      assert.match(line, /^--workdir \S+ .*storage cp --linked --recursive ss:\/\/\/[a-z-]+ [a-z-]+$/, line);
+      assert.doesNotMatch(line.split(' ').pop(), /[:\\\/]/, 'el destino debe ser relativo');
+    }
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('si la CLI anida el bucket dentro de sí mismo, el respaldo lo aplana', { skip }, () => {
+  const ctx = setup();
+  try {
+    const out = path.join(ctx.dir, 'paquete');
+    const result = runBackup(ctx, out, { env: { FAKE_CP_NESTED: '1' } });
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(fs.readFileSync(path.join(out, 'manifest.json'), 'utf8'));
+    assert.equal(Object.values(manifest.storage).reduce((sum, item) => sum + item.objects, 0), BUCKETS.length * 2);
+    const tarList = spawnSync('bash', ['-c', `age --decrypt -i ${ctx.key} ${out}/storage.tar.age | tar -t`], { encoding: 'utf8' }).stdout;
+    assert.match(tarList, /\.\/camila-fotos\/a\.png/);
+    assert.doesNotMatch(tarList, /camila-fotos\/camila-fotos/, 'sin anidación');
+    assert.equal(verify(ctx, out).status, 0);
   } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
 });

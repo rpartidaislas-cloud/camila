@@ -26,7 +26,7 @@ test('un interruptor de IA sustituye al chip de estado y al botón Tomar control
   assert.match(js, /conversation\.paused \? prepareResume\(\) : mutateConversation\('pause'\)/);
 });
 
-test('la cabecera muestra una sola acción contextual y Nueva acción respeta permisos', () => {
+test('la cabecera muestra una sola acción principal (Agendar cita) y las demás acciones, con permisos, viven en «⋯»', () => {
   const start = js.indexOf('function permittedCareActions');
   const end = js.indexOf('function closeThreadMenu', start);
   assert.ok(start >= 0 && end > start);
@@ -38,7 +38,8 @@ test('la cabecera muestra una sola acción contextual y Nueva acción respeta pe
   assert.match(actions, /function primaryCareAction\(conversation, actions\)/);
   assert.equal((actions.match(/host\.append\(primaryButton\)/g) || []).length, 1);
   assert.match(actions, /primaryButton\.dataset\.threadPrimaryAction/);
-  assert.match(actions, /'Nueva acción'/);
+  assert.match(actions, /action\.id === 'schedule'/, 'Agendar cita es la acción principal cuando hay permiso');
+  assert.doesNotMatch(actions, /'Nueva acción'|id: 'template'/, 'sin botón «Nueva acción» ni plantilla en el encabezado');
   assert.match(actions, /setAttribute\('role', 'menu'\)/);
   assert.match(actions, /setAttribute\('role', 'menuitem'\)/);
 });
@@ -58,8 +59,8 @@ test('la barra «SMYL te pone al día» resume lo pendiente sin consultas extra 
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=44/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=38/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=48/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=41/);
 });
 
 test('la cabecera grande se reemplaza por una barra delgada y los contadores viven en las pestañas', () => {
@@ -89,4 +90,15 @@ test('el compositor tiene una sola fila de herramientas y el aviso de ventana so
   assert.match(js, /<button type="button" data-compose-attach>Adjuntar<\/button><button type="button" data-compose-quick>Respuesta rápida<\/button><button type="button" class="smyl-inbox-compose-copilot" data-compose-copilot aria-label="Sugerir con Copilot">Sugerir<\/button>/);
   assert.equal((js.match(/data-compose-file accept/g) || []).length, 1);
   assert.match(js, /notice\.hidden = !isWhatsapp \|\| windowState\.status === 'open'/);
+});
+
+test('Chat limpio: un solo aviso de plantilla, conversación abierta que no desaparece y acciones del mensaje alcanzables con teclado', () => {
+  assert.match(js, /windowState\.status === 'expired' \? 'Elegir plantilla' : 'Programar plantilla'/);
+  assert.match(js, /send\.textContent = 'Enviar'; send\.hidden = templateOnly;/);
+  assert.match(js, /var keepOpen = item\.id === state\.selectedId;/);
+  assert.match(js, /Ventana 24 h: quedan /);
+  assert.doesNotMatch(js, /smyl-inbox-briefing-files/, '«Archivos» ya no vive en la franja de resumen');
+  const css = fs.readFileSync(new URL('../smyl-inbox.css', import.meta.url), 'utf8');
+  assert.match(css, /smyl-inbox-message:focus-within \.smyl-inbox-message-actions/, 'las acciones también aparecen con el foco del teclado');
+  assert.match(css, /#p-inbox \.smyl-inbox-filters button\.active b\{background:#0b1b2e;color:#fff\}/, 'el contador del filtro activo se ve');
 });
