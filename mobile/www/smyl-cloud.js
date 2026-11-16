@@ -14,7 +14,7 @@
   var CATEGORIES = [['photo', 'Foto'], ['xray', 'Rayos X'], ['document', 'Documento'], ['consent', 'Consentimiento'], ['other', 'Otro']];
   var CATEGORY_LABEL = { photo: 'Foto', xray: 'Rayos X', document: 'Documento', consent: 'Consentimiento', other: 'Otro' };
   var state = { summary: null, files: [], view: { kind: 'all', value: '' }, search: '', selectedId: '', mode: 'grid', loading: false, error: '', tenant: null,
-    patients: {}, thumbs: {}, appointments: {}, uploading: false, notice: null, listToken: 0, shares: {}, sharedIds: [], sharesReady: null };
+    patients: {}, thumbs: {}, appointments: {}, uploading: false, notice: null, listToken: 0, shares: {}, sharedIds: [], sharesReady: null, suggestions: {}, suggesting: {}, patientHints: {} };
 
   function formatBytes(value) {
     var bytes = Math.max(0, Number(value) || 0);
@@ -193,8 +193,9 @@
       state.sharedIds = Object.keys(state.shares).filter(function (id) { return state.shares[id].some(function (share) { return shareState(share) === 'active'; }); });
     } catch (_) { state.sharesReady = false; }
   }
-  async function invokeShare(body) {
-    var result = await sb().functions.invoke('cloud-share', { body: body });
+  async function invokeShare(body) { return invokeFn('cloud-share', body); }
+  async function invokeFn(name, body) {
+    var result = await sb().functions.invoke(name, { body: body });
     if (result.error) {
       var message = 'No se pudo completar la acción.';
       try { var detail = await result.error.context.json(); if (detail && detail.error) message = detail.error; } catch (_) {}
@@ -245,6 +246,63 @@
     render();
   }
 
+
+  // ---------- sugerencias con IA (solo sugiere; la persona confirma) ----------
+  var STOP = /^(panoramica|radiografia|periapical|foto|fotos|imagen|image|img|frontal|lateral|derecho|izquierdo|consentimiento|firmado|estudio|documento|scan|escaneo|whatsapp|final|copia|nuevo|nueva|archivo)$/i;
+  function nameTokens(name) {
+    var base = String(name || '').replace(/\.[a-z0-9]{2,4}$/i, '');
+    return Array.from(new Set(base.split(/[^\p{L}]+/u).filter(function (t) { return t.length >= 4 && !STOP.test(t.normalize('NFD').replace(/[̀-ͯ]/g, '')); }))).slice(0, 4);
+  }
+  function plain(text) { return String(text || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+  // Pista por el nombre del archivo: ¿hay pacientes que coincidan? Solo propone; nunca vincula sola.
+  async function hintPatients(file) {
+    if (state.patientHints[file.id] !== undefined || file.patient_id || !perms().clinical) return;
+    state.patientHints[file.id] = [];
+    var tokens = nameTokens(file.display_name); if (!tokens.length) return;
+    try {
+      var filter = tokens.map(function (t) { var safe = escapeLike(t); return 'nombre.ilike.%' + safe + '%,apellido.ilike.%' + safe + '%'; }).join(',');
+      var result = await sb().from('camila_pacientes').select('id,nombre,apellido').eq('tenant_id', state.tenant).or(filter).limit(12);
+      var scored = (result.data || []).map(function (person) {
+        var label = plain(patientLabel(person)); var score = tokens.filter(function (t) { return label.indexOf(plain(t)) !== -1; }).length;
+        state.patients[person.id] = patientLabel(person); return { id: person.id, name: patientLabel(person), score: score };
+      }).filter(function (hit) { return hit.score > 0; }).sort(function (a, b) { return b.score - a.score; }).slice(0, 3);
+      state.patientHints[file.id] = scored;
+      if (scored.length && state.selectedId === file.id) render();
+    } catch (_) {}
+  }
+  // Copia reducida (JPEG, lado mayor 1024 px): la IA no recibe el original, el nombre ni datos del paciente.
+  async function reducedJpeg(url) {
+    var response = await win.fetch(url); if (!response.ok) throw new Error('No se pudo leer la imagen.');
+    var bitmap = await win.createImageBitmap(await response.blob());
+    var scale = Math.min(1, 1024 / Math.max(bitmap.width, bitmap.height)); var canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale)); canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    var quality = 0.8; var data = canvas.toDataURL('image/jpeg', quality).split(',')[1];
+    while (data.length > 850000 && quality > 0.4) { quality -= 0.15; data = canvas.toDataURL('image/jpeg', quality).split(',')[1]; }
+    return data;
+  }
+  async function suggestType(file, silent) {
+    if (file.mime_type === 'application/pdf' || state.suggesting[file.id]) return;
+    state.suggesting[file.id] = true; if (!silent) render();
+    try {
+      if (!state.thumbs[file.id]) await loadThumbs();
+      var url = state.thumbs[file.id]; if (!url) throw new Error('No se pudo preparar la imagen.');
+      var data = await invokeFn('cloud-classify', { file_id: file.id, image_base64: await reducedJpeg(url) });
+      state.suggestions[file.id] = data;
+    } catch (error) { if (!silent) notice(error.message || 'No se pudo sugerir el tipo.', 'error'); else throw error; }
+    finally { state.suggesting[file.id] = false; if (!silent) render(); }
+  }
+  async function suggestMany() {
+    var targets = state.files.filter(function (f) { return f.status === 'active' && !f.category && f.mime_type !== 'application/pdf' && !state.suggestions[f.id]; }).slice(0, 10);
+    if (!targets.length) { notice('No hay imágenes sin clasificar para sugerir.', 'info'); return; }
+    var done = 0;
+    for (var i = 0; i < targets.length; i++) {
+      notice('Sugiriendo ' + (i + 1) + ' de ' + targets.length + '…', 'info');
+      try { await suggestType(targets[i], true); done++; } catch (error) { notice(error.message || 'No se pudo sugerir.', 'error'); break; }
+    }
+    if (done) notice(done + (done === 1 ? ' sugerencia lista.' : ' sugerencias listas.') + ' Revisa cada archivo y confirma el tipo.', 'success');
+    render();
+  }
   // ---------- subir ----------
   function openUpload(initialFiles) {
     var dialog = el('dialog', 'cloud-dialog'); dialog.setAttribute('aria-labelledby', 'cloud-upload-title');
@@ -387,6 +445,7 @@
     var chips = el('span', 'cloud-chips');
     chips.append(el('i', 'cloud-chip' + (file.category ? '' : ' is-warn'), file.category ? CATEGORY_LABEL[file.category] : 'Sin clasificar'));
     chips.append(file.patient_id ? el('i', 'cloud-chip is-ok', state.patients[file.patient_id] || 'Paciente') : el('i', 'cloud-chip is-warn', 'Sin paciente'));
+    if (!file.category && state.suggestions[file.id]) chips.append(el('i', 'cloud-chip is-ai', '✦ ' + CATEGORY_LABEL[state.suggestions[file.id].category] + '?'));
     if (state.sharedIds.indexOf(file.id) !== -1) chips.append(el('i', 'cloud-chip is-share', 'Compartido'));
     body.append(chips); tile.append(preview, body);
     tile.onclick = function () { state.selectedId = state.selectedId === file.id ? '' : file.id; if (file.patient_id) loadAppointments(file.patient_id); render(); };
@@ -438,6 +497,24 @@
     notes.onchange = function () { patchFile(file.id, { notes: notes.value }); };
     var notesLabel = el('label', '', 'Notas'); notesLabel.append(notes); fields.append(notesLabel);
     host.append(fields);
+    if (can.manage && file.mime_type !== 'application/pdf') {
+      var ai = el('div', 'cloud-ai'); var suggestion = state.suggestions[file.id];
+      if (state.suggesting[file.id]) ai.append(el('b', '', '✦ Analizando la imagen…'));
+      else if (suggestion && suggestion.category !== file.category) {
+        ai.append(el('b', '', '✦ Sugerencia de la IA'), el('span', '', 'Parece: ' + CATEGORY_LABEL[suggestion.category] + ' (confianza ' + ({ high: 'alta', medium: 'media', low: 'baja' }[suggestion.confidence] || '') + ').' + (suggestion.reason ? ' ' + suggestion.reason : '')), el('small', '', 'La IA solo sugiere. Nada cambia hasta que lo confirmes.'));
+        var row = el('div', 'cloud-detail-actions'); row.append(btn('Confirmar: ' + CATEGORY_LABEL[suggestion.category], 'btn btn-primary btn-sm', function () { patchFile(file.id, { category: suggestion.category }); }), btn('Descartar', 'btn btn-secondary btn-sm', function () { delete state.suggestions[file.id]; render(); })); ai.append(row);
+      } else if (!file.category) {
+        ai.append(el('small', '', 'Sin clasificar. La IA puede sugerir el tipo mirando una copia reducida de la imagen (sin nombre ni datos del paciente).'), btn('✦ Sugerir tipo con IA', 'btn btn-secondary btn-sm', function () { suggestType(file); }));
+      }
+      if (ai.childNodes.length) host.insertBefore(ai, fields);
+    }
+    if (can.manage && can.clinical && !file.patient_id) {
+      hintPatients(file); var hints = state.patientHints[file.id] || [];
+      if (hints.length) {
+        var hintBox = el('div', 'cloud-ai is-patient'); hintBox.append(el('b', '', 'Posible paciente por el nombre del archivo'), el('small', '', 'Es solo una pista. Elige a la persona correcta o ignórala.'));
+        var hintRow = el('div', 'cloud-detail-actions'); hints.forEach(function (hit) { hintRow.append(btn('Vincular a ' + hit.name, 'btn btn-secondary btn-sm', function () { patchFile(file.id, { patient_id: hit.id }); })); }); hintBox.append(hintRow); host.insertBefore(hintBox, fields);
+      }
+    }
     if (can.share && state.sharesReady) {
       var shareBlock = el('div', 'cloud-field'); shareBlock.append(el('label', '', 'Enlaces para compartir'));
       var mine = (state.shares[file.id] || []).filter(function (share) { return shareState(share) === 'active'; });
@@ -480,6 +557,7 @@
     if (state.view.kind === 'patient') title = 'Paciente: ' + (state.patients[state.view.value] || '');
     var head = el('div', 'cloud-head'); head.append(el('h2', '', title));
     if (state.view.kind === 'folder' && perms().manage) { head.append(btn('Renombrar', 'cloud-link', function () { saveFolder(state.view.value); }), btn('Eliminar carpeta', 'cloud-link cloud-danger', function () { deleteFolder(state.view.value); })); }
+    if (state.view.kind === 'unclassified' && perms().manage && state.files.length) head.append(btn('✦ Sugerir tipos con IA (hasta 10)', 'cloud-link', suggestMany));
     if (state.view.kind === 'trash' && perms().manage && state.files.length) head.append(btn('Vaciar papelera', 'cloud-link cloud-danger', function () { deleteForever(state.files.map(function (f) { return f.id; })); }));
     main.append(head);
     var live = el('div', 'cloud-notice'); live.id = 'cloud-notice'; live.hidden = true; main.append(live);

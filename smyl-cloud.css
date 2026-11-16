@@ -76,6 +76,10 @@
 .cloud-upload-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .cloud-upload-status{margin:0;min-height:18px;font-size:12px;color:#38505f}
 .cloud-dialog-actions{display:flex;justify-content:flex-end;gap:8px}
+.cloud-chip.is-ai{background:#f1ecfd;color:#5a3fc0}
+.cloud-ai{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid #d9cdf6;border-radius:11px;background:#f3effd;color:#3d2a8a;font-size:12px;line-height:1.45}
+.cloud-ai b{font-size:12px}.cloud-ai small{color:#6b57b5;font-size:12px}
+.cloud-ai.is-patient{border-color:#cfe3dd;background:#f4fbf9;color:#0d4f49}.cloud-ai.is-patient small{color:#4f7f77}
 .cloud-chip.is-share{background:#e8f0fd;color:#1d4ed8}
 .cloud-radios{display:grid;gap:7px}
 .cloud-radio{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid #e1e8ef;border-radius:10px;cursor:pointer;font-size:13px}
