@@ -1,5 +1,10 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-16 — Claude: respaldo — Storage con destino relativo (CLI 2.x rechaza `C:\...`)
+
+En el primer respaldo real (Windows, CLI 2.110.0) la copia de Storage falló con «Unsupported operation»: la CLI interpreta una ruta con letra de unidad (`C:\Users\…`) como URL y no la reconoce como local.
+Reproducido con la CLI 2.110.0 real. `create-encrypted-backup.mjs` ahora ejecuta `storage cp` **desde la carpeta de Storage con destino relativo** (`<bucket>`) y `--workdir` apuntando al repo (donde está el enlace con el proyecto), y aplana
+`<bucket>/<bucket>/…` si la CLI anida el bucket. Pruebas nuevas en `tests/backup-behaviour.test.mjs` (17): el doble de la CLI rechaza rutas con `:` como la real. Guía actualizada.
 ## 2026-11-16 — Claude — Consultorio, etapa 2: el recorrido de la visita
 
 - Tocar a un paciente en «En el consultorio», en la búsqueda, o crearlo con «Paciente nuevo» ahora abre su **visita** (antes abría el expediente): nombre y estado de la cita arriba, barra de avance y cuatro pasos. Es una lista, no un candado: todo se puede abrir en cualquier orden.

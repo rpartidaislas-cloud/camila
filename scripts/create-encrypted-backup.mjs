@@ -81,7 +81,8 @@ try {
   const TARGET = /--linked\b/.test(dumpHelpText) ? '--linked' : /--remote\b/.test(dumpHelpText) ? '--remote' : '--linked';
   // Los comandos de Storage son «experimentales» en algunas versiones: si fallan sin la bandera, se reintenta con ella.
   let experimental = false;
-  const storageCmd = (...rest) => ['supabase', ...(experimental ? ['--experimental'] : []), 'storage', ...rest];
+  // --workdir apunta al repo (ahí está el enlace con el proyecto) porque la descarga se ejecuta desde la carpeta temporal.
+  const storageCmd = (...rest) => ['supabase', '--workdir', ROOT, ...(experimental ? ['--experimental'] : []), 'storage', ...rest];
   let listing = exec('npx', storageCmd('ls', TARGET, 'ss:///'));
   if (listing.status !== 0) {
     experimental = true;
@@ -121,7 +122,16 @@ try {
     for (const bucket of BUCKETS) {
       const destination = path.join(storageDir, bucket);
       fs.mkdirSync(destination, { recursive: true });
-      run('npx', storageCmd('cp', TARGET, '--recursive', `ss:///${bucket}`, destination));
+      // La CLI 2.x toma una ruta con letra de unidad (C:\...) por una URL y rechaza la copia («Unsupported operation»):
+      // se ejecuta desde la carpeta de Storage con un destino relativo, sin dos puntos.
+      run('npx', storageCmd('cp', TARGET, '--recursive', `ss:///${bucket}`, bucket), { cwd: storageDir });
+      // Algunas versiones crean <bucket>/<bucket>/…: se aplana para que el respaldo quede como <bucket>/<objeto>.
+      const top = fs.readdirSync(destination, { withFileTypes: true });
+      if (top.length === 1 && top[0].isDirectory() && top[0].name === bucket) {
+        const nested = path.join(destination, bucket);
+        for (const entry of fs.readdirSync(nested)) fs.renameSync(path.join(nested, entry), path.join(destination, entry));
+        fs.rmdirSync(nested);
+      }
       const files = listFiles(destination);
       storageCounts[bucket] = { objects: files.length, bytes: files.reduce((sum, file) => sum + fs.statSync(file).size, 0) };
     }
