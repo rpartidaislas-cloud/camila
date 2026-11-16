@@ -2868,6 +2868,7 @@
       toggle: toggleAvailabilityOption,
       time: availabilityTime,
       loadAgenda: loadAvailabilityAgendaDay,
+      canReadAgenda: hasPermission('schedule.read') || hasPermission('schedule.manage'),
       openAgenda: function () { dialog.close(); if (typeof window.ir === 'function') window.ir('agenda'); },
     };
   }

@@ -5,8 +5,9 @@
   'use strict';
 
   var MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  var STATUS_LABEL = { arrived: 'Ya llegó', in_progress: 'En consulta', completed: 'Terminada', no_show: 'No vino' };
   var WEEKDAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-  var state = { host: null, ctx: null, month: null, day: null, key: '', cache: Object.create(null), token: 0, queue: [], running: 0, agenda: Object.create(null), agendaOpen: false, paint: 0 };
+  var state = { host: null, ctx: null, month: null, day: null, key: '', cache: Object.create(null), token: 0, queue: [], running: 0, agenda: Object.create(null), agendaOpen: true, paint: 0 };
 
   function el(tag, cls, text) { var node = document.createElement(tag); if (cls) node.className = cls; if (text != null) node.textContent = text; return node; }
   function pad(value) { return String(value).padStart(2, '0'); }
@@ -96,7 +97,7 @@
       if (!slots) { cell.classList.add('is-loading'); cell.setAttribute('aria-label', date.getDate() + ' de ' + MONTHS[date.getMonth()] + ', consultando'); }
       else { cell.classList.add('is-' + level(slots.length)); cell.setAttribute('aria-label', date.getDate() + ' de ' + MONTHS[date.getMonth()] + ', ' + (slots.length ? (slots.length >= 30 ? '30 o más horarios libres' : slots.length + (slots.length === 1 ? ' horario libre' : ' horarios libres')) : 'sin horarios')); }
       if (key === state.day) { cell.classList.add('is-selected'); cell.setAttribute('aria-pressed', 'true'); } else cell.setAttribute('aria-pressed', 'false');
-      cell.onclick = (function (value) { return function () { state.day = value; state.agendaOpen = false; paint(); }; })(key);
+      cell.onclick = (function (value) { return function () { state.day = value; paint(); }; })(key);
       grid.append(cell);
     }
     section.append(grid);
@@ -140,12 +141,16 @@
     }
     if (entry.loading) { box.append(el('p', 'smyl-cal-note', 'Consultando la agenda…')); return box; }
     if (entry.error) { box.append(el('p', 'smyl-cal-note', 'No pudimos consultar la agenda de este día con tu rol.')); return box; }
+    var title = el('h4', 'smyl-cal-agenda-title', entry.rows.length ? 'Citas del día · ' + entry.rows.length : 'Citas del día');
+    box.append(title);
     if (!entry.rows.length) { box.append(el('p', 'smyl-cal-note', 'No hay citas registradas este día.')); return box; }
     var list = el('ol', 'smyl-cal-agenda-list');
-    entry.rows.forEach(function (row) {
+    entry.rows.slice().sort(function (left, right) { return new Date(left.starts_at) - new Date(right.starts_at); }).forEach(function (row) {
       var item = el('li'); item.dataset.status = row.status || '';
       item.append(el('time', '', ctx.time(row.starts_at) + ' – ' + ctx.time(row.ends_at)));
-      var copy = el('span'); copy.append(el('strong', '', row.patient || 'Paciente'), el('small', '', [row.service, row.professional].filter(Boolean).join(' · ')));
+      var copy = el('span'); var name = el('strong', '', row.patient || 'Paciente');
+      if (STATUS_LABEL[row.status]) name.append(el('em', 'smyl-cal-agenda-status', STATUS_LABEL[row.status]));
+      copy.append(name, el('small', '', [row.service, row.professional].filter(Boolean).join(' · ')));
       item.append(copy); list.append(item);
     });
     box.append(list);
@@ -157,12 +162,18 @@
     var key = state.day; var slots = slotsFor(key); var entry = state.cache[cacheKey(key)];
     var head = el('header'); var copy = el('div');
     copy.append(el('strong', '', longDay(key)));
-    copy.append(el('small', '', !slots ? 'Consultando horarios…' : entry && entry.error ? 'No pudimos consultar este día' : slots.length ? (slots.length >= 30 ? '30 o más horarios libres' : slots.length + (slots.length === 1 ? ' horario libre' : ' horarios libres')) : 'Sin horarios libres'));
+    var booked = state.agenda[key] && state.agenda[key].rows ? state.agenda[key].rows.length : null;
+    var freeText = !slots ? 'Consultando horarios…' : entry && entry.error ? 'No pudimos consultar este día' : slots.length ? (slots.length >= 30 ? '30 o más horarios libres' : slots.length + (slots.length === 1 ? ' horario libre' : ' horarios libres')) : 'Sin horarios libres';
+    copy.append(el('small', '', freeText + (booked !== null && slots ? ' · ' + (booked ? booked + (booked === 1 ? ' cita agendada' : ' citas agendadas') : 'sin citas') : '')));
     var actions = el('div', 'smyl-cal-actions');
-    var agendaButton = el('button', 'smyl-cal-btn', state.agendaOpen ? 'Ocultar agenda del día' : 'Ver agenda del día'); agendaButton.type = 'button'; agendaButton.setAttribute('aria-expanded', String(state.agendaOpen));
-    agendaButton.onclick = function () { state.agendaOpen = !state.agendaOpen; paint(); };
+    var agendaAllowed = ctx.canReadAgenda !== false;
     var full = el('button', 'smyl-cal-link', 'Abrir Agenda completa ↗'); full.type = 'button'; full.onclick = function () { ctx.openAgenda(key); };
-    actions.append(agendaButton, full);
+    if (agendaAllowed) {
+      var agendaButton = el('button', 'smyl-cal-btn', state.agendaOpen ? 'Ocultar citas del día' : 'Ver citas del día'); agendaButton.type = 'button'; agendaButton.setAttribute('aria-expanded', String(state.agendaOpen));
+      agendaButton.onclick = function () { state.agendaOpen = !state.agendaOpen; paint(); };
+      actions.append(agendaButton);
+    }
+    actions.append(full);
     head.append(copy, actions); section.append(head);
     if (!slots) { var loading = el('div', 'smyl-cal-loading'); loading.append(el('i'), el('i'), el('i'), el('i')); section.append(loading); }
     else if (entry && entry.error) {
@@ -176,7 +187,7 @@
       section.append(emptyNote);
       if (nextDay) { var jump = el('button', 'btn btn-primary btn-sm', 'Ir al siguiente día con horarios · ' + longDay(nextDay)); jump.type = 'button'; jump.onclick = function () { state.day = nextDay; paint(); }; section.append(jump); }
     } else section.append(buildSlots(ctx, slots));
-    if (state.agendaOpen) section.append(buildAgenda(ctx, key));
+    if (state.agendaOpen && ctx.canReadAgenda !== false) section.append(buildAgenda(ctx, key));
     return section;
   }
 
