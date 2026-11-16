@@ -1,5 +1,11 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-16 — Claude Code — MILA por voz: respuestas más ágiles (paso 4)
+
+- **Instrucciones de la entrevista** (`buildInterviewerInstructions`, regla «Agilidad»): contesta de inmediato sin pensar en voz alta; acuse de 1–3 palabras y variado; frases de ~15 palabras; no anuncia lo que va a preguntar ni explica por qué; ante un «no»/«ninguna» pasa directo; si el paciente piensa en voz alta («mmm», «déjeme ver») espera sin llenar el silencio. Se conserva «máximo dos frases breves». No toca el resumen final ni las alertas.
+- **Velocidad de la voz** (`audio.output.speed`): por defecto **1.06** (antes 1.0, rango 0.8–1.25); `OPENAI_MILA_VOICE_SPEED=1` la deja como antes. Si OpenAI rechazara el parámetro, `realtime` reintenta sin él (queda en el log `speed rechazado`) para que la entrevista nunca falle por eso.
+- **Requiere volver a desplegar `mila-interview`.** Pruebas: `smyl-mila-interview` 25/25; `deno check` OK. Sin voz real: ajustar 1.06 según el oído (si se siente atropellada, bajar a 1.0–1.03).
+
 ## 2026-11-16 — Claude Code — MILA por voz: ya no se corta con un «ajá», una «o» o ruido
 
 - **Causa**: la sesión usaba `server_vad` (por volumen) con `interrupt_response: true`: cualquier sonido de ~0.1 s cortaba a MILA y luego retomaba (se sentía trabada).
