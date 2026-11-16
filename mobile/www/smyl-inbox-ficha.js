@@ -78,6 +78,12 @@
 
   // Alertas médicas en la cabecera: lo primero que ve el equipo antes de agendar o tratar.
   function medicalAlerts(medical, onCompleteHistory) {
+    if (medical.unlinked) {
+      var unlinked = node('div', 'smyl-f360-med is-pending'); unlinked.setAttribute('role', 'note');
+      unlinked.append(node('span', 'smyl-f360-med-icon', '!'), node('p', '', 'Vincula este chat a un paciente para ver sus alergias y alertas médicas'));
+      if (medical.onLink) unlinked.append(button('Resolver identidad', 'smyl-f360-link', medical.onLink));
+      return unlinked;
+    }
     var items = medical.items || [];
     if (!items.length) {
       var quiet = node('div', 'smyl-f360-med is-' + (medical.reviewed ? 'clear' : 'pending'));
@@ -179,6 +185,12 @@
       var skeleton = node('div', 'smyl-f360-skeleton'); skeleton.setAttribute('aria-hidden', 'true');
       skeleton.append(node('i'), node('i'), node('i'));
       card.append(node('p', 'smyl-inbox-sr', 'Resumiendo la conversación…'), skeleton);
+      return card;
+    }
+    if (ctx.needsTraining && !data) {
+      card.append(node('p', 'smyl-f360-summary-text is-muted', 'El resumen usa SMYL Copilot, que necesita la capacitación dental publicada (servicios, precios y políticas de la clínica).'));
+      if (ctx.onOpenTraining) card.append(button('Publicar capacitación', 'smyl-f360-action is-primary', ctx.onOpenTraining));
+      else card.append(notice('Pide a quien administra la clínica que publique la capacitación en Configuración → Canales y asistente.'));
       return card;
     }
     if (ctx.error && !data) {

@@ -2079,6 +2079,8 @@
         data: entry.data || null, loading: Boolean(entry.loading), error: entry.error || '', at: entry.at,
         stale: Boolean(entry.data && entry.basis !== summaryBasis(conversation)),
         onRefresh: function () { requestConversationSummary(id, true); },
+        needsTraining: Boolean(!entry.data && entry.error && isTrainingMissing(entry)),
+        onOpenTraining: hasPermission('settings.manage') ? openAssistantTraining : null,
         onCopy: entry.data ? function (event) { copyConversationSummary(entry.data, event && event.currentTarget); } : null,
       }));
     }
@@ -2109,7 +2111,8 @@
 
     return F.shell({
       initials: initials(conversation.contact_name), subtitle: subtitle, meta: meta, chips: chips,
-      medical: patient && patient.medical_alerts && typeof patient.medical_alerts === 'object' ? patient.medical_alerts : null,
+      medical: patient && patient.medical_alerts && typeof patient.medical_alerts === 'object' ? patient.medical_alerts
+        : hasPermission('clinical.read') && !(ficha && ficha.linked) && !state.patientLinking[conversation.id] ? { unlinked: true, onLink: function () { openPatientContext(conversation.id); } } : null,
       onCompleteHistory: function () { openPatientContext(conversation.id); }, actions: actions, tabs: tabs,
       active: state.f360Tab[id] || 'summary',
       onSelect: function (tab, focusTab) {
@@ -2153,10 +2156,26 @@
       var data = await request('POST', {}, { action: 'copilot', conversation_id: conversationId, mode: 'summary' }, null, 35000);
       state.f360Summary[conversationId] = { data: data, basis: basis, at: new Date().toISOString(), loading: false, error: '' };
     } catch (error) {
-      state.f360Summary[conversationId] = Object.assign({}, state.f360Summary[conversationId], { loading: false, error: (error && error.message) || 'No se pudo resumir la conversación.' });
+      state.f360Summary[conversationId] = Object.assign({}, state.f360Summary[conversationId], { loading: false, error: (error && error.message) || 'No se pudo resumir la conversación.', code: (error && error.code) || '' });
     }
     if (state.selectedId === conversationId && state.contextOpen) renderContext();
     return state.f360Summary[conversationId].data || null;
+  }
+
+  // LANA rechaza Copilot sin capacitación publicada; se reconoce por código o, si no viene, por el texto del error.
+  function isTrainingMissing(entry) {
+    return /training/i.test(String(entry.code || '')) || /capacitaci[oó]n/i.test(String(entry.error || ''));
+  }
+
+  function openAssistantTraining() {
+    closeContext(false);
+    window.ir('conexiones');
+    setTimeout(function () {
+      var tab = document.querySelector('#p-conexiones [data-connection-tab="assistant"]');
+      if (tab && tab.getAttribute('aria-selected') !== 'true') tab.click();
+      var target = document.getElementById('lana-training-title');
+      if (target) { target.scrollIntoView({ block: 'start' }); target.setAttribute('tabindex', '-1'); target.focus({ preventScroll: true }); }
+    }, 350);
   }
 
   function freshConversationSummary(conversation) {
