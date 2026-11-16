@@ -45,7 +45,7 @@
     { key: 'clinical', label: 'Expediente clínico' }, { key: 'messages', label: 'Mensajes' },
     { key: 'finance', label: 'Finanzas' }
   ];
-  var state = {
+  var state = { branchStep: {},
     tenant: null, actor: null, loading: false, loaded: false, mutating: false,
     tab: 'operacion', selectedBranch: null, branches: [], rooms: [], hours: [],
     users: [], roles: [], permissions: [], roleScopes: [], memberRoles: [], memberBranches: [],
@@ -156,11 +156,16 @@
   function branchReadiness(branch) {
     var rooms = state.rooms.filter(function (row) { return row.active && row.branch_id === branch.id; });
     var hours = state.hours.filter(function (row) { return row.active && row.branch_id === branch.id; });
+    var address = Boolean(String(branch.address_line || '').trim() && String(branch.city || '').trim());
+    var team = state.memberBranches.filter(function (row) { return row.branch_id === branch.id; }).length +
+      state.professionalBranches.filter(function (row) { return row.branch_id === branch.id; }).length;
     return {
       rooms: rooms.length,
       blocks: hours.length,
       weekdays: new Set(hours.map(function (row) { return row.weekday; })).size,
-      ready: rooms.length > 0 && hours.length > 0
+      address: address,
+      team: team,
+      ready: address && rooms.length > 0 && hours.length > 0
     };
   }
 
@@ -205,12 +210,12 @@
       return row.branch_id + ':' + row.weekday;
     })).size;
     host.innerHTML = [
-      ['Sucursales', branchCount, branchCount === 1 ? 'Sede operativa' : 'Sedes operativas'],
-      ['Espacios clínicos', roomCount, 'Sillones y consultorios'],
-      ['Equipo activo', memberCount, state.professionals.filter(function (row) { return row.active; }).length + ' profesionales en agenda'],
-      ['Cobertura semanal', coverage, 'Días configurados por sede']
+      [branchCount, branchCount === 1 ? 'sucursal' : 'sucursales'],
+      [roomCount, roomCount === 1 ? 'espacio clínico' : 'espacios clínicos'],
+      [memberCount, memberCount === 1 ? 'persona en el equipo' : 'personas en el equipo'],
+      [coverage, 'días con horario por sede']
     ].map(function (item) {
-      return '<article class="clinic-admin-metric"><span>' + item[0] + '</span><strong>' + item[1] + '</strong><small>' + esc(item[2]) + '</small></article>';
+      return '<span class="clinic-admin-metric"><strong>' + item[0] + '</strong> ' + esc(item[1]) + '</span>';
     }).join('');
   }
 
@@ -218,9 +223,12 @@
     var host = document.getElementById('clinic-admin-readiness');
     if (!host) return;
     var snapshot = readinessSnapshot();
-    host.innerHTML = '<div class="clinic-admin-readiness-summary"><span class="pro-eyebrow">PREPARACIÓN OPERATIVA</span><div class="clinic-admin-readiness-score"><strong>' + snapshot.percent + '%</strong><span>' + snapshot.completed + ' de ' + snapshot.checks.length + ' áreas listas</span></div><div class="clinic-admin-progress" aria-label="' + snapshot.percent + '% de preparación operativa"><i style="width:' + snapshot.percent + '%"></i></div><p>Completa la configuración mínima para coordinar agenda, espacios y responsables con menos improvisación.</p></div><div class="clinic-admin-checklist">' + snapshot.checks.map(function (item) {
+    var foldBody = '<div class="clinic-admin-readiness-summary"><span class="pro-eyebrow">PREPARACIÓN OPERATIVA</span><div class="clinic-admin-readiness-score"><strong>' + snapshot.percent + '%</strong><span>' + snapshot.completed + ' de ' + snapshot.checks.length + ' áreas listas</span></div><div class="clinic-admin-progress" aria-label="' + snapshot.percent + '% de preparación operativa"><i style="width:' + snapshot.percent + '%"></i></div><p>Completa la configuración mínima para coordinar agenda, espacios y responsables con menos improvisación.</p></div><div class="clinic-admin-checklist">' + snapshot.checks.map(function (item) {
       return '<button type="button" class="clinic-admin-check" data-ca-readiness="' + item.key + '" data-ca-tab-target="' + item.tab + '"' + (item.branch ? ' data-ca-branch-target="' + item.branch + '"' : '') + '><span class="clinic-admin-check-icon" data-ready="' + item.done + '">' + (item.done ? '✓' : '!') + '</span><span><strong>' + esc(item.title) + '</strong><small>' + esc(item.detail) + '</small></span><b>' + (item.done ? 'Listo' : 'Revisar') + '</b></button>';
     }).join('') + '</div><p class="clinic-admin-readiness-note">Este indicador refleja únicamente la configuración visible en SMYL; no sustituye validaciones clínicas, laborales, fiscales ni sanitarias.</p>';
+    var allDone = snapshot.percent >= 100;
+    var missing = snapshot.checks.filter(function (row) { return !row.done; }).map(function (row) { return row.title; });
+    host.innerHTML = '<details class="clinic-admin-readiness-fold" data-done="' + allDone + '"' + '' + '><summary><span class="clinic-admin-readiness-icon" data-ready="' + allDone + '">' + (allDone ? '✓' : '!') + '</span><strong>' + (allDone ? 'Todo listo para operar' : 'Falta: ' + esc(missing.join(', '))) + '</strong><small>' + snapshot.completed + ' de ' + snapshot.checks.length + ' áreas listas</small><span class="clinic-admin-readiness-more">Ver detalle</span></summary><div class="clinic-admin-readiness-body">' + foldBody + '</div></details>';
     host.querySelectorAll('[data-ca-readiness]').forEach(function (button) {
       button.addEventListener('click', function () {
         if (button.dataset.caBranchTarget) state.selectedBranch = button.dataset.caBranchTarget;
@@ -270,7 +278,7 @@
       '</div>' +
       (state.canClinic ? '<div class="clinic-admin-actions">' +
         (!branch.is_default ? '<button type="button" class="btn btn-secondary" data-ca-default>Hacer principal</button><button type="button" class="btn btn-secondary danger" data-ca-deactivate-branch>Desactivar</button>' : '') +
-        '<button type="submit" class="btn btn-primary">Guardar sucursal</button></div>' : '') +
+        '<button type="submit" class="btn btn-primary">Guardar y continuar</button></div>' : '') +
     '</form>';
   }
 
@@ -293,7 +301,54 @@
         (state.canClinic ? '<button type="button" data-ca-hour-off="' + row.id + '">Quitar</button>' : '') + '</div>';
     }).join('') : '<div class="clinic-admin-empty">Aún no hay horario de atención. La agenda no ofrecerá disponibilidad hasta configurarlo.</div>';
     var form = state.canClinic ? '<form id="clinic-admin-hours-form" class="clinic-admin-compact-form hours"><div class="clinic-admin-field"><label for="ca-hours-day">Día</label><select id="ca-hours-day" name="weekday">' + DAYS.map(function (day, index) { return '<option value="' + index + '"' + (index === 1 ? ' selected' : '') + '>' + day + '</option>'; }).join('') + '</select></div><div class="clinic-admin-field"><label for="ca-hours-start">Abre</label><input id="ca-hours-start" name="starts_at" type="time" value="09:00" required></div><div class="clinic-admin-field"><label for="ca-hours-end">Cierra</label><input id="ca-hours-end" name="ends_at" type="time" value="18:00" required></div><button class="btn btn-secondary" type="submit">Agregar</button></form>' : '';
-    return '<section class="clinic-admin-subsection"><h3>Horario de atención</h3><p>Puedes crear dos bloques en un día; SMYL impide que se encimen.</p><div class="clinic-admin-list">' + rows + '</div>' + form + '</section>';
+    var presets = state.canClinic ? '<div class="clinic-admin-presets"><span>Atajos:</span><button type="button" data-ca-hours-preset="1,2,3,4,5|09:00|18:00">Lun–Vie 9:00–18:00</button><button type="button" data-ca-hours-preset="1,2,3,4,5,6|09:00|14:00">Lun–Sáb 9:00–14:00</button></div>' : '';
+    return '<section class="clinic-admin-subsection"><h3>Horario de atención</h3><p>Puedes crear dos bloques en un día; SMYL impide que se encimen.</p>' + presets + '<div class="clinic-admin-list">' + rows + '</div>' + form + '</section>';
+  }
+
+  var STEPS = [
+    { key: 'datos', label: 'Datos y dirección' },
+    { key: 'espacios', label: 'Espacios' },
+    { key: 'horarios', label: 'Horarios' },
+    { key: 'equipo', label: 'Equipo' },
+    { key: 'resumen', label: 'Resumen' }
+  ];
+  function stepDone(readiness, key) {
+    return key === 'datos' ? readiness.address : key === 'espacios' ? readiness.rooms > 0 : key === 'horarios' ? readiness.blocks > 0 : key === 'equipo' ? readiness.team > 0 : readiness.ready;
+  }
+  function firstPendingStep(readiness) {
+    var found = STEPS.find(function (step) { return step.key !== 'equipo' && step.key !== 'resumen' && !stepDone(readiness, step.key); });
+    return found ? found.key : 'resumen';
+  }
+  function goStep(branchId, key) { state.branchStep[branchId] = key; renderBranchDetail(); }
+
+  function teamSection(branch) {
+    var people = [];
+    state.memberBranches.filter(function (row) { return row.branch_id === branch.id; }).forEach(function (row) {
+      var user = state.users.find(function (candidate) { return candidate.id === row.user_id; });
+      if (user && user.activo) people.push({ name: user.nombre || user.email || 'Integrante', kind: professionalForMember(user.id) ? 'Doctor' : 'Equipo', primary: row.is_primary });
+    });
+    state.professionalBranches.filter(function (row) { return row.branch_id === branch.id; }).forEach(function (row) {
+      var professional = state.professionals.find(function (candidate) { return candidate.id === row.professional_id && candidate.active; });
+      if (professional && !people.some(function (item) { return item.name === professional.display_name; })) people.push({ name: professional.display_name, kind: 'Doctor' });
+    });
+    var rows = people.length ? people.map(function (person) {
+      return '<div class="clinic-admin-row"><div class="clinic-admin-row-main"><strong>' + esc(person.name) + '</strong><small>' + esc(person.kind) + (person.primary ? ' · Sede principal' : '') + '</small></div></div>';
+    }).join('') : '<div class="clinic-admin-empty">Todavía no hay personas asignadas a esta sede. Asígnalas en «Equipo y roles»: eso define quién atiende aquí y qué mensajes y cobros ve cada rol.</div>';
+    return '<section class="clinic-admin-subsection"><h3>Equipo de esta sede</h3><p>Quién atiende en esta sucursal. Es opcional para activarla, pero necesario para agendar con alguien.</p><div class="clinic-admin-list">' + rows + '</div>' +
+      (state.canClinic ? '<div class="clinic-admin-actions"><button type="button" class="btn btn-secondary" data-ca-go-team>Asignar personas</button></div>' : '') + '</section>';
+  }
+
+  function summarySection(branch, readiness) {
+    var items = [
+      ['datos', 'Datos y dirección', readiness.address ? [branch.address_line, branch.city].filter(Boolean).join(', ') : 'Falta la dirección y la ciudad'],
+      ['espacios', 'Espacios', readiness.rooms ? readiness.rooms + (readiness.rooms === 1 ? ' espacio activo' : ' espacios activos') : 'Agrega al menos un sillón o consultorio'],
+      ['horarios', 'Horarios', readiness.blocks ? readiness.weekdays + (readiness.weekdays === 1 ? ' día' : ' días') + ' con horario' : 'Define cuándo atiende esta sede'],
+      ['equipo', 'Equipo', readiness.team ? readiness.team + (readiness.team === 1 ? ' persona asignada' : ' personas asignadas') : 'Sin personas asignadas todavía (opcional)']
+    ];
+    return '<section class="clinic-admin-subsection"><h3>' + (readiness.ready ? 'Esta sucursal está lista para agenda' : 'Falta poco para activar esta sucursal') + '</h3><p>' + (readiness.ready ? 'Ya aparece con disponibilidad en la agenda. Puedes ajustar cualquier paso cuando quieras.' : 'Completa los pasos marcados para que la agenda pueda ofrecer citas aquí.') + '</p><div class="clinic-admin-list">' + items.map(function (item) {
+      var done = stepDone(readiness, item[0]);
+      return '<div class="clinic-admin-row"><span class="clinic-admin-check-icon" data-ready="' + done + '">' + (done ? '✓' : '!') + '</span><div class="clinic-admin-row-main"><strong>' + item[1] + '</strong><small>' + esc(item[2]) + '</small></div><button type="button" data-ca-step-go="' + item[0] + '">' + (done ? 'Editar' : 'Completar') + '</button></div>';
+    }).join('') + '</div></section>';
   }
 
   function renderBranchDetail() {
@@ -305,8 +360,19 @@
       return;
     }
     var readiness = branchReadiness(branch);
-    host.innerHTML = '<article class="clinic-admin-card"><div class="clinic-admin-section-head"><div><h2>' + esc(branch.name) + '</h2><p class="clinic-admin-card-intro">Datos operativos de esta sede.</p></div><div class="clinic-admin-badges">' + (branch.is_default ? '<span class="clinic-admin-pill">Sucursal principal</span>' : '') + '<span class="clinic-admin-pill" data-ready="' + readiness.ready + '">' + (readiness.ready ? 'Configuración mínima lista' : 'Configuración pendiente') + '</span></div></div><div class="clinic-admin-branch-overview"><span><strong>' + readiness.rooms + '</strong> espacios activos</span><span><strong>' + readiness.weekdays + '</strong> días con horario</span><span><strong>' + readiness.blocks + '</strong> bloques de atención</span></div>' + branchForm(branch) + '</article>' +
-      '<article class="clinic-admin-card">' + roomSection(branch) + hoursSection(branch) + '</article>';
+    var current = state.branchStep[branch.id] || firstPendingStep(readiness);
+    var index = Math.max(0, STEPS.findIndex(function (step) { return step.key === current; }));
+    current = STEPS[index].key;
+    var steps = '<ol class="clinic-admin-steps" aria-label="Pasos de la sucursal">' + STEPS.map(function (step, i) {
+      var done = step.key !== 'resumen' && stepDone(readiness, step.key);
+      return '<li><button type="button" data-ca-step-go="' + step.key + '" data-state="' + (step.key === current ? 'current' : done ? 'done' : 'pending') + '"' + (step.key === current ? ' aria-current="step"' : '') + '><b>' + (done && step.key !== current ? '✓' : (i + 1)) + '</b><span>' + step.label + '</span></button></li>';
+    }).join('') + '</ol>';
+    var body = current === 'datos' ? branchForm(branch) : current === 'espacios' ? roomSection(branch) : current === 'horarios' ? hoursSection(branch) : current === 'equipo' ? teamSection(branch) : summarySection(branch, readiness);
+    var nav = '<div class="clinic-admin-step-nav">' + (index > 0 ? '<button type="button" class="btn btn-secondary" data-ca-step-go="' + STEPS[index - 1].key + '">← Atrás</button>' : '<span></span>') +
+      (current !== 'datos' && index < STEPS.length - 1 ? '<button type="button" class="btn btn-primary" data-ca-step-go="' + STEPS[index + 1].key + '">' + (current === 'equipo' ? 'Ver resumen →' : 'Continuar →') + '</button>' : '') + '</div>';
+    host.innerHTML = '<article class="clinic-admin-card clinic-admin-wizard"><div class="clinic-admin-section-head"><div><h2>' + esc(branch.name) + '</h2></div><div class="clinic-admin-badges">' + (branch.is_default ? '<span class="clinic-admin-pill">Sucursal principal</span>' : '') + '<span class="clinic-admin-pill" data-ready="' + readiness.ready + '">' + (readiness.ready ? 'Lista para agenda' : 'Configuración pendiente') + '</span></div></div>' + steps + '<div class="clinic-admin-step-panel">' + body + '</div>' + nav + '</article>';
+    host.querySelectorAll('[data-ca-step-go]').forEach(function (button) { button.addEventListener('click', function () { goStep(branch.id, button.dataset.caStepGo); }); });
+    host.querySelector('[data-ca-go-team]')?.addEventListener('click', function () { setTab('equipo'); });
     bindBranchActions(branch);
   }
 
@@ -571,7 +637,7 @@
           state: String(data.get('state') || '').trim(), postal_code: String(data.get('postal_code') || '').trim(),
           timezone: String(data.get('timezone') || 'America/Mexico_City')
         }).eq('tenant_id', state.tenant).eq('id', branch.id).select('id').single());
-      }, 'Sucursal actualizada.');
+      }, 'Sucursal actualizada.').then(function (ok) { if (ok) { state.branchStep[branch.id] = 'espacios'; renderBranchDetail(); } });
     });
     document.querySelector('[data-ca-default]')?.addEventListener('click', function () {
       mutate(function () { return query(window.sb.rpc('smyl_set_default_branch', { p_branch_id: branch.id })); }, 'Sucursal principal actualizada.');
@@ -590,6 +656,19 @@
     document.getElementById('clinic-admin-hours-form')?.addEventListener('submit', function (event) {
       event.preventDefault(); var form = event.currentTarget; var data = new FormData(form);
       mutate(function () { return query(window.sb.from('smyl_clinic_hours').insert({ tenant_id: state.tenant, branch_id: branch.id, weekday: Number(data.get('weekday')), starts_at: data.get('starts_at'), ends_at: data.get('ends_at'), created_by: state.actor }).select('id').single()); }, 'Horario agregado.');
+    });
+    document.querySelectorAll('[data-ca-hours-preset]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var parts = button.dataset.caHoursPreset.split('|');
+        var taken = new Set(state.hours.filter(function (row) { return row.branch_id === branch.id && row.active; }).map(function (row) { return row.weekday; }));
+        var days = parts[0].split(',').map(Number).filter(function (day) { return !taken.has(day); });
+        if (!days.length) { feedback('Esos días ya tienen horario. Quita un bloque si quieres reemplazarlo.', 'error'); return; }
+        mutate(function () {
+          return query(window.sb.from('smyl_clinic_hours').insert(days.map(function (day) {
+            return { tenant_id: state.tenant, branch_id: branch.id, weekday: day, starts_at: parts[1], ends_at: parts[2], created_by: state.actor };
+          })).select('id'));
+        }, days.length === 1 ? 'Horario agregado.' : 'Horario agregado a ' + days.length + ' días.');
+      });
     });
     document.querySelectorAll('[data-ca-hour-off]').forEach(function (button) {
       button.addEventListener('click', function () { mutate(function () { return query(window.sb.from('smyl_clinic_hours').update({ active: false }).eq('tenant_id', state.tenant).eq('id', button.dataset.caHourOff).select('id').single()); }, 'Bloque de horario retirado.'); });
@@ -772,7 +851,7 @@
 
   function buildPage() {
     var page = el('section', 'pantalla clinic-admin-page'); page.id = 'p-clinica';
-    page.innerHTML = '<header class="clinic-admin-head"><div><span class="pro-eyebrow">OPERACIÓN DE LA CLÍNICA</span><h1>Mi clínica</h1><p>Organiza sedes, espacios, horarios y responsabilidades con una guía clara para preparar la operación diaria.</p></div><div class="clinic-admin-head-actions"><span class="clinic-admin-status">Datos protegidos en SMYL</span><button type="button" class="btn btn-secondary" id="clinic-admin-refresh">Actualizar</button></div></header><div id="clinic-admin-feedback" class="clinic-admin-feedback" aria-live="polite"></div><section id="clinic-admin-readiness" class="clinic-admin-readiness" aria-label="Preparación operativa"></section><section id="clinic-admin-metrics" class="clinic-admin-metrics" aria-label="Resumen de la clínica"></section><div class="clinic-admin-tabs" role="tablist" aria-label="Áreas de Mi clínica"><button type="button" class="clinic-admin-tab" role="tab" data-ca-tab="operacion" aria-selected="true">Sucursales y horarios</button><button type="button" class="clinic-admin-tab" role="tab" data-ca-tab="equipo" aria-label="Equipo, roles y profesionales" aria-selected="false">Equipo y roles</button></div><section class="clinic-admin-panel" data-ca-panel="operacion"><div class="clinic-admin-layout"><aside class="clinic-admin-sidebar"><div class="clinic-admin-sidebar-head"><h2>Sucursales</h2><button type="button" class="clinic-admin-icon-button" id="clinic-admin-add-branch" aria-label="Agregar sucursal">+</button></div><div id="clinic-admin-branch-list" class="clinic-admin-branch-list"></div></aside><div id="clinic-admin-branch-detail" class="clinic-admin-main"><div class="clinic-admin-loading">Abre Mi clínica para cargar la operación.</div></div></div></section><section class="clinic-admin-panel clinic-admin-team-panel" data-ca-panel="equipo" hidden><header class="clinic-admin-team-hero"><div><span class="pro-eyebrow">PERSONAS Y ACCESO</span><h2>Equipo de la clínica</h2><p>Administra cada persona desde una sola ficha: define su acceso, su rol y la sede donde trabaja.</p></div><div class="clinic-admin-team-actions"><button type="button" class="btn btn-secondary" id="clinic-admin-add-member">Invitar integrante</button><button type="button" class="btn btn-primary" id="clinic-admin-add-professional">Agregar doctor</button></div></header><div class="clinic-admin-team-grid"><article class="clinic-admin-card clinic-admin-people-card"><div class="clinic-admin-section-head"><div><h2>Personas con acceso</h2><p class="clinic-admin-card-intro">Rol y sede se guardan al cambiarlos. Los doctores vinculados se identifican en la misma lista.</p></div><span class="clinic-admin-section-count" id="clinic-admin-member-count" aria-live="polite">0 personas</span></div><div id="clinic-admin-members" class="clinic-admin-people-list"></div></article><aside class="clinic-admin-card clinic-admin-pending-card"><div class="clinic-admin-section-head"><div><h2>Por completar</h2><p class="clinic-admin-card-intro">Invitaciones pendientes o perfiles profesionales sin acceso.</p></div><span class="clinic-admin-section-count" id="clinic-admin-pending-count" aria-live="polite">0 pendientes</span></div><div id="clinic-admin-professionals"></div></aside><article class="clinic-admin-card clinic-admin-role-card"><div class="clinic-admin-section-head"><div><h2>Roles y funciones</h2><p class="clinic-admin-card-intro">Plantillas editables para configurar qué puede hacer cada rol y hasta dónde llega su acceso a la información.</p></div><div class="clinic-admin-role-actions"><span class="clinic-admin-section-count" id="clinic-admin-role-count-summary" aria-live="polite">0 roles</span><button type="button" class="btn btn-secondary" id="clinic-admin-add-role">Crear rol</button></div></div><div id="clinic-admin-role-guide"></div></article></div></section><dialog id="clinic-admin-dialog" class="clinic-admin-dialog smyl-v2-dialog"></dialog>';
+    page.innerHTML = '<header class="clinic-admin-head"><div><span class="pro-eyebrow">OPERACIÓN DE LA CLÍNICA</span><h1>Mi clínica</h1><p>Organiza sedes, espacios, horarios y responsabilidades con una guía clara para preparar la operación diaria.</p></div><div class="clinic-admin-head-actions"><span class="clinic-admin-status">Datos protegidos en SMYL</span><button type="button" class="btn btn-secondary" id="clinic-admin-refresh">Actualizar</button></div></header><div id="clinic-admin-feedback" class="clinic-admin-feedback" aria-live="polite"></div><section id="clinic-admin-readiness" class="clinic-admin-readiness" aria-label="Preparación operativa"></section><section id="clinic-admin-metrics" class="clinic-admin-metrics" aria-label="Resumen de la clínica"></section><div class="clinic-admin-tabs" role="tablist" aria-label="Áreas de Mi clínica"><button type="button" class="clinic-admin-tab" role="tab" data-ca-tab="operacion" aria-selected="true">Sucursales y horarios</button><button type="button" class="clinic-admin-tab" role="tab" data-ca-tab="equipo" aria-label="Equipo, roles y profesionales" aria-selected="false">Equipo y roles</button></div><section class="clinic-admin-panel" data-ca-panel="operacion"><div class="clinic-admin-layout"><aside class="clinic-admin-sidebar"><div class="clinic-admin-sidebar-head"><h2>Sucursales</h2><button type="button" class="clinic-admin-icon-button" id="clinic-admin-add-branch" aria-label="Agregar sucursal">+</button></div><div id="clinic-admin-branch-list" class="clinic-admin-branch-list"></div></aside><div id="clinic-admin-branch-detail" class="clinic-admin-main"><div class="clinic-admin-loading">Abre Mi clínica para cargar la operación.</div></div></div></section><section class="clinic-admin-panel clinic-admin-team-panel" data-ca-panel="equipo" hidden><button type="button" class="btn btn-secondary clinic-admin-back-ops" data-ca-tab="operacion">← Sucursales</button><header class="clinic-admin-team-hero"><div><span class="pro-eyebrow">PERSONAS Y ACCESO</span><h2>Equipo de la clínica</h2><p>Administra cada persona desde una sola ficha: define su acceso, su rol y la sede donde trabaja.</p></div><div class="clinic-admin-team-actions"><button type="button" class="btn btn-secondary" id="clinic-admin-add-member">Invitar integrante</button><button type="button" class="btn btn-primary" id="clinic-admin-add-professional">Agregar doctor</button></div></header><div class="clinic-admin-team-grid"><article class="clinic-admin-card clinic-admin-people-card"><div class="clinic-admin-section-head"><div><h2>Personas con acceso</h2><p class="clinic-admin-card-intro">Rol y sede se guardan al cambiarlos. Los doctores vinculados se identifican en la misma lista.</p></div><span class="clinic-admin-section-count" id="clinic-admin-member-count" aria-live="polite">0 personas</span></div><div id="clinic-admin-members" class="clinic-admin-people-list"></div></article><aside class="clinic-admin-card clinic-admin-pending-card"><div class="clinic-admin-section-head"><div><h2>Por completar</h2><p class="clinic-admin-card-intro">Invitaciones pendientes o perfiles profesionales sin acceso.</p></div><span class="clinic-admin-section-count" id="clinic-admin-pending-count" aria-live="polite">0 pendientes</span></div><div id="clinic-admin-professionals"></div></aside><article class="clinic-admin-card clinic-admin-role-card"><div class="clinic-admin-section-head"><div><h2>Roles y funciones</h2><p class="clinic-admin-card-intro">Plantillas editables para configurar qué puede hacer cada rol y hasta dónde llega su acceso a la información.</p></div><div class="clinic-admin-role-actions"><span class="clinic-admin-section-count" id="clinic-admin-role-count-summary" aria-live="polite">0 roles</span><button type="button" class="btn btn-secondary" id="clinic-admin-add-role">Crear rol</button></div></div><div id="clinic-admin-role-guide"></div></article></div></section><dialog id="clinic-admin-dialog" class="clinic-admin-dialog smyl-v2-dialog"></dialog>';
     document.querySelector('.contenido').append(page);
     page.querySelectorAll('[data-ca-tab]').forEach(function (button) { button.addEventListener('click', function () { setTab(button.dataset.caTab); }); });
     page.querySelector('#clinic-admin-refresh').addEventListener('click', function () { load(true); });
