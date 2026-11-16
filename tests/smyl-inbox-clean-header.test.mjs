@@ -40,7 +40,10 @@ test('la cabecera muestra una sola acción principal (Agendar cita) y las demás
   assert.match(actions, /primaryButton\.dataset\.threadPrimaryAction/);
   assert.match(actions, /action\.id === 'schedule'/, 'Agendar cita es la acción principal cuando hay permiso');
   assert.doesNotMatch(actions, /'Nueva acción'|id: 'template'/, 'sin botón «Nueva acción» ni plantilla en el encabezado');
-  assert.match(actions, /setAttribute\('role', 'menu'\)/);
+  // El menú «⋯» está en el marcado de la cabecera; las acciones con permiso se agregan ahí como menuitem.
+  assert.match(js, /data-thread-menu role="menu"/);
+  assert.match(js, /data-thread-menu-care role="group"/);
+  assert.match(actions, /document\.querySelector\('\[data-thread-menu-care\]'\)/);
   assert.match(actions, /setAttribute\('role', 'menuitem'\)/);
 });
 

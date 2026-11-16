@@ -11201,3 +11201,10 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Arreglo:** ahora solo se desplaza la tira de pestañas (`.smyl-f360-tabs`). En CSS, `#p-inbox` y `.smyl-inbox-workspace` usan `overflow:clip` (con `hidden` de respaldo) y la ficha cerrada queda `visibility:hidden` (tampoco recibe foco ni tab).
 - **Archivos:** `smyl-inbox.js` v49, `smyl-inbox.css` v42, `app.html`, `sw.js` (caché `…-chat-sin-desplazamiento-v1`), copias en `mobile/www/`; versiones fijadas actualizadas en pruebas.
 - **Nota:** varias pruebas ya fallaban antes de este cambio (p. ej. `smyl-inbox-clean-header` paso 3, `smyl-ui-v3` deuda tipográfica, radiografías); no se tocaron.
+
+## 2026-11-16 — Claude Code — Suite de pruebas en verde (281/281)
+- **Versiones fijadas viejas (15 pruebas):** apuntaban a versiones anteriores de `smyl-case-workspace.css`, `smyl-dental-record.js`, `smyl-radiograph-review.js`, `smyl-radiograph-workbench.css`, `smyl-evidence-center(.css|-integration.js)`; se actualizaron a las que publica `app.html`. Sin cambios de código.
+- **Microtexto (`smyl-ui-v3`, `agenda-billing-label`):** los PR #156, #157 y #159 añadieron 5 textos de 11–11,5 px. Se subieron a 12 px: contador de filtros del chat, días de la semana, «Mañana/Tarde» y hora del horario en el calendario del chat (`smyl-inbox.css`), y la etiqueta de entrevista previa en la agenda (`smyl-schedule.css`). La deuda vuelve a 938.
+- **`smyl-inbox-clean-header`:** desde «Chat limpio» el `role="menu"` del menú «⋯» vive en el marcado de la cabecera; la prueba ahora verifica ahí y que las acciones con permiso se agregan en `[data-thread-menu-care]`.
+- **Versiones:** `smyl-inbox.css` v43, `smyl-schedule.css` v31, caché `…-microtexto-12px-v1`; copias en `mobile/www/`.
+- **Regla para ambos agentes:** al subir `?v=` de un archivo, buscar en `tests/` la versión anterior y actualizarla; texto nuevo siempre ≥ 12 px.
