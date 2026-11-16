@@ -322,7 +322,7 @@ async function clinicalContext(actor: Actor, tenantId: string, conversationId: s
       .eq("tenant_id", tenantId).eq("case_id", handoff.case_id).order("created_at", { ascending: false }).limit(50)
     : Promise.resolve({ data: [], error: null });
   const [{ data: patient }, { data: caseRow }, { data: links }] = await Promise.all([
-    admin.from("camila_pacientes").select("id,nombre,apellido,email,telefono,fecha_nacimiento,genero,notas,updated_at")
+    admin.from("camila_pacientes").select("id,nombre,apellido,email,telefono,fecha_nacimiento,genero,notas,updated_at,consentimiento_whatsapp")
       .eq("tenant_id", tenantId).eq("id", handoff.patient_id).maybeSingle(),
     caseQuery,
     linksQuery,
@@ -335,6 +335,7 @@ async function clinicalContext(actor: Actor, tenantId: string, conversationId: s
       id: patient.id, name: `${patient.nombre || ""} ${patient.apellido || ""}`.trim(),
       email: patient.email || "", phone: patient.telefono || "", birth_date: patient.fecha_nacimiento || null,
       gender: patient.genero || null, notes: patient.notas || "", updated_at: patient.updated_at || null,
+      whatsapp_consent: typeof patient.consentimiento_whatsapp === "boolean" ? patient.consentimiento_whatsapp : null,
     } : null,
     case: caseRow ? {
       id: caseRow.id, name: caseRow.nombre_paciente || "", score: caseRow.score ?? null,

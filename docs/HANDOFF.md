@@ -11160,3 +11160,17 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Arquitectura:** `smyl-inbox-calendar.js` (nuevo, `window.SmylInboxCalendar = {render, invalidate}`) no toca datos ni tenant. La agenda del día la lee `window.SmylSchedule.dayAppointments(key)` (nuevo, en `smyl-schedule.js`), porque `tests/cobros-chat-link.test.mjs` exige que el chat no consulte tablas ni el tenant.
 - **Archivos:** `smyl-inbox-calendar.js` v1 (nuevo), `smyl-inbox.js` v47, `smyl-inbox.css` v40, `smyl-schedule.js` v41, `app.html`, `sw.js` (caché `…-chat-calendario-v2`), copias en `mobile/www/`; prueba nueva `tests/smyl-inbox-calendar.test.mjs` y versiones fijadas ajustadas en pruebas existentes.
 - **Pendiente de la maqueta:** Ficha 360 v2, almacenamiento medido (requiere migración, con autorización) y la Nube.
+
+## 2026-11-16 — Claude Code — Ficha 360 v2 en el chat (paso 3 de la maqueta de Mensajes)
+- **Qué cambia (frontend + una línea en la edge function, sin migración):** el panel «Ficha 360 del paciente» del chat deja de ser una pila de acordeones y pasa a: cabecera (avatar, teléfono/correo, chips de identidad, origen y **consentimiento de WhatsApp**), acciones **Agendar / Cobrar / Expediente ↗** (solo las que el rol permite) y pestañas con permisos:
+  - **Resumen** (siempre): tarjetas Etapa, Próxima cita, Por cobrar (`finance.read`) y Cotización (`clinical.read`); «Intervención solicitada», «Siguiente acción» y Copilot.
+  - **Citas** (`schedule.read`): cita del chat y «Buscar horarios».
+  - **Archivos**: galería de lo que el paciente mandó por el chat (acción `shared` existente), filtros Fotos/Documentos/Audios, detalle con «Enviar a revisión clínica» (acción `clinical_link` existente, `clinical.write`; muestra ✓ si ya está en revisión) y «Abrir / descargar».
+  - **Cobros** (`finance.read`): la tarjeta de cuenta que ya existía.
+  - **Clínico** (`clinical.read`): expediente, caso, score, simulación, cotización.
+  - **Línea de tiempo** (paciente identificado + `clinical.read`): `rpc('smyl_patient_timeline')` (mismo RPC de la Ficha 360 de Pacientes; el servidor decide qué ve cada rol).
+  - **Atención**: Responsable, Organización, SMYL Asistente, ventana de WhatsApp, reactivación y programados (todo lo de antes, sin quitar nada).
+- **Carga perezosa:** archivos al abrir la ficha (caché 30 s); línea de tiempo solo al entrar a su pestaña.
+- **Edge function `lana-inbox`** (`clinicalContext`): ahora lee `camila_pacientes.consentimiento_whatsapp` y devuelve `patient.whatsapp_consent` (booleano o `null`). **Requiere volver a desplegar `lana-inbox`**; mientras tanto el chip simplemente no aparece.
+- **Quedó fuera a propósito (depende del paso 4 y 5):** «Guardar en expediente», «Clasificar», tamaño por archivo/paciente y «Ver en la Nube» necesitan medición de almacenamiento (migración, con autorización) y la Nube. Las etiquetas, las notas internas con @mención y «Última visita» de la maqueta tampoco tienen fuente de datos todavía.
+- **Archivos:** `smyl-inbox-ficha.js` v1 (nuevo, piezas visuales sin datos), `smyl-inbox.js` v48, `smyl-inbox.css` v41, `supabase/functions/lana-inbox/index.ts`, `app.html`, `sw.js` (caché `…-ficha360-v1`), copias en `mobile/www/`; prueba nueva `tests/smyl-inbox-ficha360-v2.test.mjs`.
