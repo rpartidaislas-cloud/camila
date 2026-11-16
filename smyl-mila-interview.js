@@ -70,12 +70,51 @@
   function statusLine(phase,d){
     return ({scan:'Esperando que escanees el código con el celular…',consent:'Celular conectado · falta el consentimiento del paciente',ready:'Listo · inicia la entrevista desde el celular',live:'MILA está entrevistando al paciente',review:d.interpreting||d.processing?'MILA está ordenando la información…':'Borrador listo para revisar',expired:'El código venció'})[phase];
   }
+  function tabs(s){return '<div class="mila-iv-tabs" role="tablist"><button type="button" role="tab" data-mila-view="clinic" aria-selected="'+(s.view!=='previsit')+'">En consultorio</button><button type="button" role="tab" data-mila-view="previsit" aria-selected="'+(s.view==='previsit')+'">Antes de la cita</button></div>';}
+  function renderPrevisit(s){
+    var pv=s.pv||(s.pv={mode:'choice'}),r=pv.result,html='<header class="mila-iv-head"><span class="mila-iv-avatar" aria-hidden="true">'+esc(initials(s.patientName))+'</span><div class="mila-iv-title"><span class="mila-iv-kicker">MILA · ANTES DE LA CITA</span><h2 id="mila-iv-title">'+esc(s.patientName||'Paciente')+'</h2><p class="mila-iv-status">El paciente responde desde su celular antes de llegar.</p></div><button type="button" class="mila-iv-icon-btn" data-mila-hide aria-label="Cerrar" title="Cerrar">'+ICON.close+'</button></header>'+tabs(s)+'<div class="mila-iv-body">';
+    if(!r){
+      var modes=[['choice','Que el paciente elija','Puede platicar con MILA o llenar el formulario.'],['voice','MILA por voz','MILA le hace las preguntas. ~US$0.33 por entrevista.'],['form','Formulario','Responde escribiendo. Sin costo de IA.']];
+      html+='<section class="mila-iv-card"><h3>¿Cómo responderá?</h3><div class="mila-iv-modes" role="radiogroup">'+modes.map(function(m){return '<label class="mila-iv-mode"><input type="radio" name="mila-pv-mode" value="'+m[0]+'"'+(pv.mode===m[0]?' checked':'')+'><span><strong>'+esc(m[1])+'</strong><small>'+esc(m[2])+'</small></span></label>';}).join('')+'</div>'
+        +'<p class="mila-iv-note">Se usa la próxima cita del paciente. El enlace es personal, pide su fecha de nacimiento si la ficha la tiene y vence un día después de la cita. Lo que responda llega aquí como borrador para revisar.</p>'
+        +'<div class="mila-iv-card-actions"><button type="button" class="btn btn-primary" data-mila-pv-send="whatsapp"'+(pv.busy?' disabled':'')+'>Enviar por WhatsApp</button><button type="button" class="mila-iv-ghost" data-mila-pv-send="link"'+(pv.busy?' disabled':'')+'>'+ICON.link+'Solo copiar enlace</button></div></section>';
+    }else{
+      var ok=r.sent,reason=r.reason,msg=ok?'Enviada por WhatsApp con la plantilla «Entrevista previa». Saldrá en menos de un minuto.':reason==='link'?'Enlace listo. Cópialo y envíaselo al paciente.':reason==='no_conversation'?'Este paciente aún no tiene conversación de WhatsApp con la clínica, así que no se puede usar la plantilla. Envíale el enlace por WhatsApp normal.':reason==='template_not_approved'?'La plantilla «entrevista_previa_v1» todavía no está aprobada por Meta. Solicítala en Configuración → WhatsApp → Plantillas. Mientras tanto, envía el enlace por WhatsApp normal.':'No se pudo enviar por WhatsApp ('+esc(r.detail||reason||'error')+'). Envía el enlace por WhatsApp normal.';
+      html+='<section class="mila-iv-card"><h3>'+(ok?'Entrevista enviada':'Entrevista lista')+'</h3><p class="mila-iv-note" style="font-size:14px;color:inherit">'+esc(msg)+'</p>'
+        +'<p class="mila-iv-note">'+(r.appointment?'Cita: '+esc(r.appointment)+' · ':'Sin cita próxima registrada · ')+'modo: '+esc({choice:'el paciente elige',voice:'MILA por voz',form:'formulario'}[r.mode]||r.mode)+'</p>'
+        +'<div class="mila-iv-card-actions">'+(ok?'':'<a class="btn btn-primary" data-mila-pv-wa target="_blank" rel="noopener" href="'+esc(waLink(s,r))+'">Abrir WhatsApp con el mensaje</a>')+'<button type="button" class="mila-iv-ghost" data-mila-pv-copy>'+ICON.link+'Copiar enlace</button></div></section>';
+    }
+    if(pv.error)html+='<p class="mila-iv-error" role="alert">'+esc(pv.error)+'</p>';
+    if(pv.notice)html+='<p class="mila-iv-notice" role="status">'+esc(pv.notice)+'</p>';
+    html+='</div><footer class="mila-iv-foot"><span></span><button type="button" class="mila-iv-link" data-mila-hide>Listo</button></footer>';
+    s.dialog.innerHTML=html;
+    s.dialog.querySelectorAll('[data-mila-hide]').forEach(function(b){b.onclick=function(){s.dialog.close();};});
+    bindTabs(s);
+    s.dialog.querySelectorAll('[name="mila-pv-mode"]').forEach(function(i){i.onchange=function(){pv.mode=i.value;};});
+    s.dialog.querySelectorAll('[data-mila-pv-send]').forEach(function(b){b.onclick=function(){sendPrevisit(s,b.dataset.milaPvSend);};});
+    var cp=s.dialog.querySelector('[data-mila-pv-copy]');if(cp)cp.onclick=function(){if(navigator.clipboard)navigator.clipboard.writeText(r.url).then(function(){pv.notice='Enlace copiado.';renderPrevisit(s);});else window.prompt('Copia el enlace:',r.url);};
+  }
+  function waLink(s,r){
+    var p=window.pacienteActual||{},d=String(p.telefono||'').replace(/\D/g,'');if(d.length===10)d='52'+d;
+    var first=String(p.nombre||'').trim().split(/\s+/)[0]||'';
+    var text='Hola'+(first?' '+first:'')+', para preparar tu cita'+(r.appointment?' del '+r.appointment:'')+' te pedimos responder unas preguntas para tu expediente (5 minutos): '+r.url+' El enlace es personal.';
+    return (d.length>=11?'https://wa.me/'+d:'https://wa.me/')+'?text='+encodeURIComponent(text);
+  }
+  async function sendPrevisit(s,via){
+    var pv=s.pv;pv.busy=true;pv.error='';pv.notice='';renderPrevisit(s);
+    try{pv.result=await call({action:'previsit_create',patient_id:s.patient,mode:pv.mode,via:via});dispatchEvent(new CustomEvent('smyl:mila-pending-changed',{detail:{patient:s.patient}}));}
+    catch(e){pv.error=e.message;}
+    pv.busy=false;renderPrevisit(s);
+  }
+  function bindTabs(s){s.dialog.querySelectorAll('[data-mila-view]').forEach(function(b){b.onclick=function(){s.view=b.dataset.milaView;render();if(s.view==='clinic')createClinic(s);};});}
+
   function render(){
     var s=session;if(!s||!s.dialog)return;
+    if(s.view==='previsit'){renderPrevisit(s);return;}
     var d=s.data||{},h=d.history,x=d.exam,phase=phaseOf(d,s),left=minutesLeft(s);
     var live=phase==='live'||d.interpreting||d.processing;
     var html='<header class="mila-iv-head"><span class="mila-iv-avatar" aria-hidden="true">'+esc(initials(s.patientName))+'</span><div class="mila-iv-title"><span class="mila-iv-kicker">MILA · ENTREVISTA CLÍNICA</span><h2 id="mila-iv-title">'+esc(s.patientName||'Paciente')+'</h2><p class="mila-iv-status" data-live="'+(live?'true':'false')+'" aria-live="polite"><span class="mila-iv-pulse" aria-hidden="true"></span>'+esc(statusLine(phase,d))+'</p></div><button type="button" class="mila-iv-icon-btn" data-mila-hide aria-label="Minimizar; la sesión sigue activa" title="Minimizar">'+ICON.close+'</button></header>';
-    html+=stepper(phase);
+    html+=tabs(s)+stepper(phase);
     html+='<div class="mila-iv-body">';
     if(s.error)html+='<p class="mila-iv-error" role="alert">'+esc(s.error)+'</p>';
     var alerts=alertItems(d);if(alerts.length)html+='<section class="mila-iv-alerts" role="alert"><span class="mila-iv-alerts-icon">'+ICON.alert+'</span><div><strong>Alerta para la atención</strong><ul>'+alerts.map(function(a){return '<li>'+esc(a)+'</li>';}).join('')+'</ul></div></section>';
@@ -105,7 +144,7 @@
     }
     if(s.notice)html+='<p class="mila-iv-notice" role="status">'+esc(s.notice)+'</p>';
     html+='</div><footer class="mila-iv-foot"><button type="button" class="mila-iv-link" data-mila-new>Generar código nuevo</button><button type="button" class="mila-iv-danger" data-mila-end>Terminar y borrar sesión</button></footer>';
-    s.dialog.innerHTML=html;bind(s);
+    s.dialog.innerHTML=html;bind(s);bindTabs(s);
   }
 
   function alertItems(d){
@@ -123,7 +162,7 @@
     d.querySelector('[data-mila-end]').onclick=function(){if(window.confirm('¿Terminar la sesión de MILA? Lo que no hayas aplicado se borrará.'))end(true);};
     var hist=d.querySelector('[data-mila-history]');if(hist)hist.onclick=function(){
       var api=window.SmylPatientHistoryMila;
-      if(!api||!api.apply(s.tenant,s.patient,s.data.history)){s.notice='No se pudo abrir el editor de historia. Abre la ficha del paciente y vuelve a intentar.';render();return;}
+      if(!api||!api.apply(s.tenant,s.patient,s.data.history,{interviewId:s.id,consentAt:s.data.consent_at||null})){s.notice='No se pudo abrir el editor de historia. Abre la ficha del paciente y vuelve a intentar.';render();return;}
       d.close();
     };
     var exam=d.querySelector('[data-mila-exam]');if(exam)exam.onclick=function(){
@@ -144,44 +183,105 @@
 
   async function poll(s){
     if(!stillCurrent(s)){end(true);return;}
-    try{s.data=await call({action:'status',id:s.id});s.error='';}
+    try{s.data=await call({action:'status',id:s.id});s.error='';
+      var ready=(s.data.finished||(s.data.realtime&&s.data.realtime.finished))&&s.data.history;
+      if(ready&&!s.toasted&&!s.dialog.open){s.toasted=true;toast('El borrador de MILA está listo','Revisar',function(){s.view='clinic';s.dialog.showModal();render();});}
+      if(ready)dispatchEvent(new CustomEvent('smyl:mila-pending-changed',{detail:{patient:s.patient}}));}
     catch(e){if(e.status===404||e.status===410){s.expired=true;s.data=s.data||{};stop(s);}else s.error=e.message;}
     if(session===s){render();}
   }
   function stop(s){if(s&&s.timer){clearInterval(s.timer);s.timer=null;}}
 
-  async function start(tenant,patient,returnFocus,force){
+  async function start(tenant,patient,returnFocus,force,view){
     var dialog=ensureDialog();
-    if(session&&!force&&session.patient===patient&&session.tenant===tenant){session.returnFocus=returnFocus;if(!dialog.open)dialog.showModal();render();return;}
+    if(session&&!force&&session.patient===patient&&session.tenant===tenant){session.returnFocus=returnFocus;if(view)session.view=view;if(!dialog.open)dialog.showModal();render();if(session.view==='clinic')createClinic(session);return;}
     if(session)await end(false);
     var p=window.pacienteActual&&window.pacienteActual.id===patient?window.pacienteActual:null;
-    var s={patientName:p?[p.nombre,p.apellido].filter(Boolean).join(' '):'',tenant:tenant,patient:patient,dialog:dialog,applied:new Set(),data:{},returnFocus:returnFocus,error:'',notice:''};
-    session=s;if(!dialog.open)dialog.showModal();render();
+    var s={view:'clinic',patientName:p?[p.nombre,p.apellido].filter(Boolean).join(' '):'',tenant:tenant,patient:patient,dialog:dialog,applied:new Set(),data:{},returnFocus:returnFocus,error:'',notice:''};
+    if(view)s.view=view;session=s;if(!dialog.open)dialog.showModal();render();
+    if(s.view!=='previsit')await createClinic(s);
+  }
+  // La sesión del QR solo se crea cuando se usa «En consultorio».
+  async function createClinic(s){
+    if(s.id||s.creating)return;s.creating=true;
     try{
-      var created=await call({action:'create',patient_id:patient});
+      var created=await call({action:'create',patient_id:s.patient});
       if(session!==s)return;
       s.id=created.id;s.url=phoneUrl(created.id,created.token);s.expires=created.expires_at;
       s.timer=setInterval(function(){poll(s);},POLL_MS);
     }catch(e){if(session===s)s.error=e.message;}
-    render();
+    s.creating=false;if(session===s)render();
   }
 
-  async function end(notify){
+  async function end(notify,keepDraft){
     var s=session;if(!s)return;session=null;stop(s);
     if(s.dialog&&s.dialog.open&&notify)s.dialog.close();
-    if(s.id){try{await call({action:'close',id:s.id});}catch(_){}}
+    var hasDraft=s.data&&(s.data.history||s.data.exam);
+    if(s.id&&!(keepDraft&&hasDraft)){try{await call({action:'close',id:s.id});}catch(_){}}
   }
+
+  // ---- Aviso flotante
+  function toast(title,action,onClick){
+    var t=document.createElement('div');t.className='mila-iv-toast';t.setAttribute('role','status');
+    t.innerHTML='<span class="mila-iv-toast-dot" aria-hidden="true"></span><strong>'+esc(title)+'</strong>'+(action?'<button type="button">'+esc(action)+'</button>':'')+'<button type="button" class="x" aria-label="Cerrar aviso">×</button>';
+    document.body.append(t);var b=t.querySelector('button:not(.x)');if(b)b.onclick=function(){t.remove();onClick&&onClick();};t.querySelector('.x').onclick=function(){t.remove();};
+    setTimeout(function(){t.remove();},20000);
+  }
+
+  // ---- Borradores pendientes en la Historia clínica (consultorio sin guardar o entrevista previa respondida)
+  var pendingCache={};
+  function fmtDate(v){try{return new Intl.DateTimeFormat('es-MX',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}).format(new Date(v));}catch(_){return '';}}
+  async function renderPending(host,tenant,patient){
+    if(!host||!tenant||!patient||!window.sb)return;
+    var key=tenant+'|'+patient,cached=pendingCache[key],items;
+    try{
+      if(cached&&Date.now()-cached.at<15000)items=cached.items;
+      else{items=(await call({action:'pending',patient_id:patient})).items||[];pendingCache[key]={at:Date.now(),items:items};}
+    }catch(_){return;}
+    items=items.filter(function(it){return it.kind==='previsit'||(it.has_history&&it.finished);});
+    var old=host.querySelector('.mila-pending');if(old)old.remove();
+    if(!host.isConnected||!items.length||(window.pacienteActual&&window.pacienteActual.id!==patient))return;
+    var box=document.createElement('section');box.className='mila-pending';box.setAttribute('aria-label','Respuestas de MILA pendientes');
+    box.innerHTML=items.map(function(it){
+      var ready=it.has_history&&it.finished,cov=it.coverage||{},n=Object.keys(cov).filter(function(k){return cov[k]&&cov[k]!=='not_asked';}).length;
+      var src=it.kind==='previsit'?(it.source==='form'?'Formulario previo a la cita':'Entrevista previa con MILA'):'Entrevista con MILA en consultorio';
+      var line=ready?(n+' de 7 temas'+(it.alerts&&it.alerts.length?' · <b class="mila-pending-alert">'+it.alerts.length+' alerta'+(it.alerts.length>1?'s':'')+'</b>':'')+(it.consent_at?' · consentimiento '+esc(fmtDate(it.consent_at)):'')):(it.kind==='previsit'?'Enviada '+esc(fmtDate(it.created_at))+(it.appointment?' para la cita del '+esc(it.appointment):'')+' · aún sin responder':'En curso');
+      return '<div class="mila-pending-item" data-ready="'+ready+'"><span class="mila-pending-ic" aria-hidden="true">'+(ready?ICON.doc:ICON.phone)+'</span><div><strong>'+esc(ready?(it.kind==='previsit'?'El paciente respondió: '+src:'Borrador de MILA sin guardar'):src)+'</strong><p>'+line+'</p></div>'
+        +(ready?'<button type="button" class="btn btn-primary" data-mila-review="'+esc(it.id)+'">Revisar y llenar historia</button>':'')
+        +'<button type="button" class="mila-iv-link" data-mila-discard="'+esc(it.id)+'">'+(ready?'Descartar':'Cancelar envío')+'</button></div>';
+    }).join('');
+    var article=host.querySelector('.p360-hc')||host;article.insertBefore(box,article.children[1]||null);
+    box.querySelectorAll('[data-mila-review]').forEach(function(b){b.onclick=async function(){
+      b.disabled=true;
+      try{var st=await call({action:'status',id:b.dataset.milaReview});var api=window.SmylPatientHistoryMila;
+        if(!st.history||!api||!api.apply(tenant,patient,st.history,{interviewId:b.dataset.milaReview,consentAt:st.consent_at||null}))throw new Error('No se pudo abrir el editor.');}
+      catch(e){b.disabled=false;alert(e.message);}
+    };});
+    box.querySelectorAll('[data-mila-discard]').forEach(function(b){b.onclick=async function(){
+      if(!window.confirm('¿Descartar estas respuestas de MILA? No se podrán recuperar.'))return;
+      try{await call({action:'close',id:b.dataset.milaDiscard});}catch(_){}
+      delete pendingCache[key];renderPending(host,tenant,patient);
+    };});
+  }
+  addEventListener('smyl:mila-pending-changed',function(e){if(e.detail&&e.detail.patient){Object.keys(pendingCache).forEach(function(k){if(k.indexOf(e.detail.patient)>=0)delete pendingCache[k];});}});
+  // Al guardar la historia con un borrador de MILA, la sesión se cierra y se borra la transcripción.
+  addEventListener('smyl:mila-history-saved',async function(e){var id=e.detail&&e.detail.interviewId;if(!id)return;
+    try{await call({action:'close',id:id});}catch(_){}
+    if(session&&session.id===id){stop(session);session.id=null;session=null;}
+    Object.keys(pendingCache).forEach(function(k){delete pendingCache[k];});
+  });
 
   window.SmylMilaInterview=Object.freeze({
     open:function(opts){
       opts=opts||{};
       var tenant=opts.tenant||window.tenantId,patient=opts.patient||(window.pacienteActual&&window.pacienteActual.id);
       if(!tenant||!patient||!window.sb||!window.SUPA_URL)return false;
-      start(tenant,patient,opts.returnFocus||document.activeElement,false);return true;
+      start(tenant,patient,opts.returnFocus||document.activeElement,false,opts.view||null);return true;
     },
-    end:function(){return end(true);}
+    end:function(){return end(true);},
+    renderPending:renderPending
   });
   // Al cambiar de paciente o cerrar la pestaña, la sesión se vacía en el servidor.
-  addEventListener('smyl:patient-context-updated',function(e){if(session&&e.detail&&e.detail.patient!==session.patient)end(true);});
+  addEventListener('smyl:patient-context-updated',function(e){if(session&&e.detail&&e.detail.patient!==session.patient)end(true,true);});
   addEventListener('pagehide',function(){var s=session;if(!s||!s.id)return;stop(s);});
 })();

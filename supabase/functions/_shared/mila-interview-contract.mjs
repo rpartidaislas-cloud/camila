@@ -266,9 +266,9 @@ export const INTERVIEW_GUIDE = [
 
 // ---------------------------------------------------------------- MILA entrevista por voz (Realtime)
 
-export const ALERT_TYPES = ['alergia_grave', 'anticoagulante', 'cardiaco', 'embarazo', 'otra'];
+export const ALERT_TYPES = ['alergia_grave', 'anticoagulante', 'cardiaco', 'embarazo', 'urgencia', 'otra'];
 export const ALERT_LABELS = {
-  alergia_grave: 'Alergia grave', anticoagulante: 'Anticoagulante', cardiaco: 'Condición cardiaca o marcapasos', embarazo: 'Embarazo o lactancia', otra: 'Alerta clínica',
+  alergia_grave: 'Alergia grave', anticoagulante: 'Anticoagulante', cardiaco: 'Condición cardiaca o marcapasos', embarazo: 'Embarazo o lactancia', urgencia: 'Síntoma urgente', otra: 'Alerta clínica',
 };
 
 export const INTERVIEWER_TOOLS = [
@@ -300,18 +300,22 @@ export function firstName(nombre) {
   return first.replace(/[^\p{L}'-]/gu, '').slice(0, 40);
 }
 
-/* opts.continuation = { covered: [títulos], pending: [títulos] } cuando se retoma una entrevista ya iniciada. */
+/* opts.continuation = { covered: [títulos], pending: [títulos] } cuando se retoma una entrevista ya iniciada.
+ * opts.known = [frases] con lo que ya está registrado en la historia (paciente de seguimiento).
+ * opts.previsit = { clinic, appointment } cuando el paciente responde solo, antes de su cita. */
 export function buildInterviewerInstructions(patientFirstName, opts = {}) {
   const name = firstName(patientFirstName);
   const cont = opts && opts.continuation;
+  const known = (opts && Array.isArray(opts.known) ? opts.known : []).filter(Boolean).slice(0, 20);
+  const pre = opts && opts.previsit;
   const sections = INTERVIEW_GUIDE.map((s, i) => `${i + 1}. ${s.title}: ${s.questions.join(' ')}`).join('\n');
-  return `Eres MILA, asistente del consultorio dental. Estás entrevistando por voz a ${name ? `la persona paciente llamada ${name}` : 'la persona paciente'} para preparar su historia clínica. El dentista está presente y revisará todo después.
+  return `Eres MILA, asistente del consultorio dental. Estás entrevistando por voz a ${name ? `la persona paciente llamada ${name}` : 'la persona paciente'} para preparar su historia clínica. ${pre ? `La persona responde SOLA desde su celular, antes de su cita${pre.appointment ? ` (${pre.appointment})` : ''}${pre.clinic ? ` en ${pre.clinic}` : ''}; el dentista NO está presente y revisará todo después.` : 'El dentista está presente y revisará todo después.'}
 
 Cómo hablas:
 - Tu voz es la de una mujer latinoamericana: acento mexicano natural y cálido, sin sonar a doblaje ni a español de España. Entonación amable y cercana, ritmo pausado y claro, como una asistente de consultorio en México.
 - Español de México, de usted, cálido y profesional. Frases cortas: UNA pregunta a la vez y espera la respuesta.
 - Cada intervención tuya dura como máximo dos frases breves (por ejemplo, un acuse corto y la siguiente pregunta). No repitas lo que el paciente acaba de decir salvo para aclarar. La única excepción es el resumen final.
-- Preséntate como «MILA, asistente del consultorio». No eres doctora ni das la consulta.
+- Preséntate como «MILA, asistente del consultorio${pre && pre.clinic ? ` de ${pre.clinic}` : ''}». No eres doctora ni das la consulta.
 - Si no entendiste o la respuesta es ambigua, pide amablemente que la repita o aclare.
 - Si la persona habla en otro idioma, responde en ese idioma.
 
@@ -329,10 +333,130 @@ Reglas de la entrevista:
 - En cuanto escuches una alergia grave, anticoagulante, marcapasos o enfermedad del corazón, embarazo u otra condición de riesgo, llama a la función registrar_alerta y continúa con naturalidad.
 - Si el paciente quiere detenerse, respétalo y despídete.
 - Al terminar, haz un RESUMEN breve en voz alta de lo que entendiste (alergias, medicamentos, enfermedades, cirugías, motivo de consulta, hábitos) y pregunta «¿Es correcto o quiere corregir algo?». Corrige lo que te indique.
-- Después despídete diciendo que el doctor lo atenderá enseguida y llama a entrevista_completa.${cont ? `
+- Después despídete diciendo ${pre ? 'que sus respuestas quedaron enviadas y el doctor las revisará en su cita' : 'que el doctor lo atenderá enseguida'} y llama a entrevista_completa.${pre ? `
+
+ENTREVISTA PREVIA (el paciente está solo):
+- Si menciona un síntoma que podría ser urgente (dolor en el pecho, falta de aire, hinchazón grande de cara o cuello, fiebre alta con hinchazón, sangrado que no se detiene, dolor intenso que no cede), dile con calma que no espere a su cita: que llame al consultorio${pre.clinic ? ` (${pre.clinic})` : ''} o, si es grave, al 911. Llama a registrar_alerta con tipo «urgencia». Después pregunta si quiere continuar.
+- No confirmes ni cambies citas, no des precios y no prometas tratamientos: «Eso lo verá con el doctor en su cita».` : ''}${known.length ? `
+
+PACIENTE DE SEGUIMIENTO. Esto ya está registrado en su historia:
+${known.map((k) => `- ${k}`).join('\n')}
+- No repitas toda la guía. Por cada tema, confirma en una frase si sigue igual («La última vez nos dijo que es alérgica a la penicilina, ¿sigue igual?») y pregunta si hay algo nuevo. Pregunta completo solo los temas que no aparecen arriba.` : ''}${cont ? `
 
 ESTA ES UNA CONTINUACIÓN de una entrevista que ya empezó con la misma persona.
 - No te presentes de nuevo: saluda brevemente («Seguimos con unas preguntas más»).
 - Ya se cubrió: ${(cont.covered || []).join(', ') || 'nada todavía'}. No vuelvas a preguntar eso salvo que el paciente quiera corregir algo.
 - Pregunta solo por: ${(cont.pending || []).join(', ') || 'lo que haya quedado incompleto'}. Después haz el resumen breve de lo nuevo y despídete.` : ''}`;
+}
+
+/* Frases cortas con lo que ya está en la historia, para que MILA confirme en vez de preguntar todo. */
+export function summarizeKnownHistory(doc) {
+  const d = doc && typeof doc === 'object' ? doc : {};
+  const list = (v) => (Array.isArray(v) ? v : []);
+  const t = (v, max = 120) => text(v, max);
+  const out = [];
+  const allergies = list(d.allergy_records).map((r) => t(r && r.substance)).filter(Boolean);
+  if (allergies.length) out.push(`Alergias: ${allergies.join(', ')}`);
+  else if (d.allergies_status === 'no') out.push('Alergias: negó tener');
+  const alerts = list(d.alerts).map((a) => t(a)).filter(Boolean);
+  if (alerts.length) out.push(`Alertas médicas: ${alerts.join(', ')}`);
+  const conditions = list(d.condition_records).map((r) => t(r && r.name)).filter(Boolean);
+  if (conditions.length) out.push(`Condiciones: ${conditions.join(', ')}`);
+  else if (d.conditions_status === 'no') out.push('Condiciones médicas: negó tener');
+  const meds = list(d.medication_records).map((r) => [t(r && r.name), t(r && r.dose, 40), t(r && r.frequency, 60)].filter(Boolean).join(' ')).filter(Boolean);
+  if (meds.length) out.push(`Medicamentos: ${meds.join('; ')}`);
+  else if (d.medications_status === 'no') out.push('Medicamentos: negó tomar');
+  const surgeries = list(d.surgery_records).map((r) => t(r && r.procedure)).filter(Boolean);
+  if (surgeries.length) out.push(`Cirugías: ${surgeries.join(', ')}`);
+  else if (d.surgeries_status === 'no') out.push('Cirugías: negó tener');
+  if (t(d.habits)) out.push(`Hábitos: ${t(d.habits, 200)}`);
+  return out.slice(0, 12);
+}
+
+// ---------------------------------------------------------------- Formulario previo a la cita
+/* Opciones de alertas del formulario (casillas) → texto que entra en «Alertas médicas». */
+export const FORM_ALERT_OPTIONS = [
+  ['anticoagulante', 'Toma anticoagulantes o aspirina diaria'],
+  ['marcapasos', 'Usa marcapasos'],
+  ['corazon', 'Enfermedad del corazón'],
+  ['coagulacion', 'Problemas de coagulación o sangrado'],
+  ['embarazo', 'Embarazo o lactancia'],
+  ['bifosfonatos', 'Toma bifosfonatos (para huesos/osteoporosis)'],
+];
+export const FORM_HABIT_OPTIONS = [
+  ['fuma', 'Fuma'], ['alcohol', 'Toma alcohol con frecuencia'], ['bruxismo', 'Aprieta o rechina los dientes'],
+  ['respiracion_oral', 'Respira por la boca'], ['unas', 'Se muerde las uñas'], ['azucar', 'Consume dulces o refrescos a diario'],
+];
+const YNU = ['yes', 'no', 'unknown'];
+
+/* Convierte las respuestas del formulario en el mismo borrador que produce la entrevista por voz (sin IA, sin costo). */
+export function buildFromForm(raw) {
+  const a = raw && typeof raw === 'object' ? raw : {};
+  const st = (v) => (YNU.includes(v) ? v : 'not_asked');
+  const rows = (v, build) => (Array.isArray(v) ? v : []).slice(0, MAX_RECORDS).map((r) => (r && typeof r === 'object' ? build(r) : null)).filter(Boolean);
+  const doc = {};
+  const coverage = {};
+  const evidence = [];
+  const from = 'Respondido por el paciente en el formulario previo a la cita';
+  const docStatus = (s, n) => (n ? 'yes' : s === 'not_asked' || s === 'yes' ? 'pending' : s);
+
+  const alertKeys = (Array.isArray(a.alerts) ? a.alerts : []).filter((k) => FORM_ALERT_OPTIONS.some((o) => o[0] === k));
+  const alertOther = text(a.alerts_other, 160);
+  doc.alerts = alertKeys.map((k) => FORM_ALERT_OPTIONS.find((o) => o[0] === k)[1]).concat(alertOther ? [alertOther] : []);
+  coverage.alerts = doc.alerts.length ? 'yes' : st(a.alerts_status);
+  doc.alerts_status = docStatus(coverage.alerts, doc.alerts.length);
+
+  doc.allergy_records = rows(a.allergies, (r) => { const substance = text(r.substance, 120); return substance ? { substance, reaction: text(r.reaction, 160), severity: ['low', 'moderate', 'high'].includes(r.severity) ? r.severity : '' } : null; });
+  coverage.allergies = doc.allergy_records.length ? 'yes' : st(a.allergies_status);
+  doc.allergies_status = docStatus(coverage.allergies, doc.allergy_records.length);
+
+  doc.condition_records = rows(a.conditions, (r) => { const name = text(r.name, 120); const since = text(r.since, 40); return name ? { name: since ? `${name} (desde ${since})` : name, diagnosed_at: '', status: '' } : null; });
+  coverage.conditions = doc.condition_records.length ? 'yes' : st(a.conditions_status);
+  doc.conditions_status = docStatus(coverage.conditions, doc.condition_records.length);
+
+  doc.medication_records = rows(a.medications, (r) => { const name = text(r.name, 120); return name ? { name, dose: text(r.dose, 60), frequency: text(r.frequency, 80), changed_at: '' } : null; });
+  coverage.medications = doc.medication_records.length ? 'yes' : st(a.medications_status);
+  doc.medications_status = docStatus(coverage.medications, doc.medication_records.length);
+
+  doc.surgery_records = rows(a.surgeries, (r) => { const procedure = text(r.procedure, 160); const when = text(r.when, 40); return procedure ? { procedure: when ? `${procedure} (${when})` : procedure, date: '' } : null; });
+  coverage.surgeries = doc.surgery_records.length ? 'yes' : st(a.surgeries_status);
+  doc.surgeries_status = docStatus(coverage.surgeries, doc.surgery_records.length);
+
+  const reason = text(a.reason, 300);
+  const painLevel = Number.isFinite(Number(a.pain_level)) && a.pain_level !== '' && a.pain_level != null ? Math.max(0, Math.min(10, Math.round(Number(a.pain_level)))) : null;
+  const dentalParts = [];
+  if (reason) dentalParts.push(`Motivo de consulta: ${reason}.`);
+  if (a.pain === 'yes') dentalParts.push(`Refiere dolor${painLevel != null ? ` ${painLevel}/10` : ''}${text(a.pain_since, 60) ? ` (inicio: ${text(a.pain_since, 60)})` : ''}${text(a.pain_trigger, 120) ? `; empeora con ${text(a.pain_trigger, 120)}` : ''}.`);
+  if (a.pain === 'no') dentalParts.push('Niega dolor actual.');
+  if (a.anesthesia_problems === 'yes') dentalParts.push(`Refiere problemas previos con anestesia${text(a.anesthesia_detail, 160) ? `: ${text(a.anesthesia_detail, 160)}` : ''}.`);
+  const lastVisit = text(a.last_visit, 60);
+  if (lastVisit) dentalParts.push(`Última visita al dentista: ${lastVisit}.`);
+  doc.dental_history = dentalParts.join(' ').slice(0, 1200);
+  doc.last_dental_visit = '';
+  coverage.dental = doc.dental_history ? 'yes' : 'not_asked';
+  doc.dental_status = doc.dental_history ? 'yes' : 'pending';
+
+  const habitKeys = (Array.isArray(a.habits) ? a.habits : []).filter((k) => FORM_HABIT_OPTIONS.some((o) => o[0] === k));
+  const brushing = text(a.brushing, 40);
+  const habitParts = habitKeys.map((k) => FORM_HABIT_OPTIONS.find((o) => o[0] === k)[1]);
+  if (brushing) habitParts.push(`Cepillado: ${brushing}`);
+  if (a.floss === 'yes') habitParts.push('Usa hilo dental');
+  if (a.floss === 'no') habitParts.push('No usa hilo dental');
+  doc.habits = habitParts.join('; ').slice(0, 600);
+  coverage.habits = doc.habits ? 'yes' : a.habits_none ? 'no' : 'not_asked';
+  doc.habits_status = doc.habits ? 'yes' : a.habits_none ? 'no' : 'pending';
+
+  const ecName = text(a.emergency_name, 80), ecPhone = text(a.emergency_phone, 30).replace(/[^\d+ ()-]/g, '');
+  doc.emergency_contact = [ecName, ecPhone].filter(Boolean).join(' · ');
+  doc.notes = text(a.notes, 800);
+
+  for (const [section, label] of [['allergies', 'Alergias'], ['alerts', 'Alertas médicas'], ['conditions', 'Condiciones'], ['medications', 'Medicamentos'], ['surgeries', 'Cirugías'], ['dental', 'Motivo y antecedentes dentales'], ['habits', 'Hábitos']]) {
+    if (coverage[section] && coverage[section] !== 'not_asked') evidence.push({ section, label, quote: from, verified: true });
+  }
+  const followUps = [];
+  if (doc.medication_records.some((m) => !m.dose)) followUps.push('Confirmar dosis de los medicamentos que refirió');
+  if (doc.allergy_records.some((r) => !r.reaction)) followUps.push('Preguntar qué reacción tuvo en sus alergias');
+  for (const k of HISTORY_SECTIONS) if (!coverage[k] || coverage[k] === 'not_asked') followUps.push(`Preguntar en consulta: ${SECTION_LABELS[k]}`);
+  const urgent = a.pain === 'yes' && painLevel != null && painLevel >= 8;
+  return { document: doc, evidence, needs_review: urgent ? ['Refiere dolor intenso (8/10 o más): valorar prioridad de la cita.'] : [], follow_ups: followUps.slice(0, 6), coverage, source: 'form' };
 }

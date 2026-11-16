@@ -172,6 +172,34 @@
     .rt-fold .chat{max-height:50vh;padding-bottom:12px}
     .btn-grad{height:60px;border-radius:999px;border:0;font-size:16.5px;font-weight:800;color:#04202a;background:linear-gradient(120deg,#3fd3c3,#55aaf0 55%,#8b7cf6);box-shadow:0 14px 34px rgba(63,211,195,.28)}
     .btn-line{height:52px;border-radius:999px;background:transparent;border:1px solid rgba(255,255,255,.16)}
+    /* ---- Entrevista previa (el paciente responde solo) ---- */
+    .pv-choices{display:grid;gap:12px;margin-top:14px}
+    .pv-choice{display:flex;gap:14px;align-items:center;text-align:left;min-height:88px;padding:16px;border-radius:20px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);font:inherit;cursor:pointer}
+    .pv-choice:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+    .pv-choice .ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;flex:none;background:rgba(63,211,195,.14)}
+    .pv-choice .ic.orb{border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,rgba(255,255,255,.4) 30%,transparent 60%),conic-gradient(#3fd3c3,#a78bfa,#5fb8ff,#3fd3c3)}
+    .pv-choice svg{width:26px;height:26px;fill:none;stroke:var(--teal);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .pv-choice strong{display:block;font-size:17px}.pv-choice small{display:block;color:var(--muted);font-size:14px;margin-top:2px}
+    .pv-form fieldset{border:1px solid var(--line);border-radius:18px;padding:14px;margin:0 0 12px;background:rgba(255,255,255,.04)}
+    .pv-form legend{font-weight:800;font-size:16px;padding:0 6px}
+    .pv-form label{display:block;font-size:14px;color:#dbe8f1;margin:10px 0 6px}
+    .pv-form input[type=text],.pv-form input[type=tel],.pv-form input[type=date],.pv-form textarea,.pv-form select{width:100%;min-height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.25);color:var(--text);font:inherit;font-size:16px;padding:10px 12px}
+    .pv-form textarea{min-height:76px;resize:vertical}
+    .seg3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+    .seg3.two{grid-template-columns:1fr 1fr}
+    .seg3 label{margin:0}
+    .seg3 input{position:absolute;opacity:0;pointer-events:none}
+    .seg3 span{display:grid;place-items:center;min-height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.16);font-weight:700;font-size:14px;color:var(--muted)}
+    .seg3 input:checked+span{background:rgba(63,211,195,.16);border-color:var(--teal);color:var(--text)}
+    .seg3 input:focus-visible+span{outline:3px solid var(--teal);outline-offset:2px}
+    .ck{display:flex!important;gap:10px;align-items:center;min-height:44px;margin:4px 0!important}
+    .ck input{width:22px;height:22px;accent-color:var(--teal);flex:none}
+    .rows{display:grid;gap:8px;margin-top:8px}
+    .rowx{display:grid;gap:6px;padding:10px;border-radius:14px;background:rgba(0,0,0,.18)}
+    .add{min-height:44px;margin-top:8px;border-radius:12px;border:1px dashed rgba(255,255,255,.2);background:transparent;color:var(--teal);font:inherit;font-weight:700;width:100%}
+    .pv-form input[type=range]{width:100%;accent-color:var(--teal)}
+    .pv-help{font-size:13px;color:var(--muted);margin:6px 0 0}
+
 
 
   </style>
@@ -259,6 +287,82 @@
     </section>
   </div>
 
+  <section class="card" id="v-dob" hidden>
+    <h2>Confirma que eres tú</h2>
+    <p class="muted">Para proteger tu información, escribe tu fecha de nacimiento.</p>
+    <form id="dob-form"><label class="consent" style="display:block"><input type="date" id="dob" required style="width:100%;min-height:48px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.25);color:var(--text);font:inherit;padding:10px 12px"></label>
+    <p class="error" id="dob-error" hidden></p>
+    <button class="btn btn-primary" type="submit">Continuar</button></form>
+  </section>
+
+  <section class="card" id="v-choose" hidden>
+    <h2>¿Cómo prefieres responder?</h2>
+    <p class="muted" id="choose-sub">Son unas preguntas de salud para tu expediente. Toma unos 5 minutos.</p>
+    <div class="pv-choices">
+      <button class="pv-choice" id="pv-voice"><span class="ic orb" aria-hidden="true"></span><span><strong>Platicar con MILA</strong><small>Te hace las preguntas por voz. Ten a la mano tus recetas.</small></span></button>
+      <button class="pv-choice" id="pv-form"><span class="ic"><svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></svg></span><span><strong>Llenar formulario</strong><small>Respondes escribiendo, a tu ritmo.</small></span></button>
+    </div>
+  </section>
+
+  <section id="v-form" hidden>
+    <form class="pv-form" id="pv-form-el" novalidate>
+      <fieldset><legend>Motivo de tu visita</legend>
+        <label for="f-reason">¿Qué te trae a consulta?</label><textarea id="f-reason" name="reason" maxlength="300" placeholder="Ej. me duele una muela, limpieza, revisión"></textarea>
+        <label>¿Tienes dolor ahora?</label><div class="seg3 two" data-yn="pain"></div>
+        <div id="pain-more" hidden>
+          <label for="f-pain-level">¿Qué tan fuerte? <b id="pain-val">5</b> de 10</label><input type="range" id="f-pain-level" name="pain_level" min="0" max="10" value="5">
+          <label for="f-pain-since">¿Desde cuándo?</label><input type="text" id="f-pain-since" name="pain_since" maxlength="60" placeholder="Ej. hace 3 días">
+          <label for="f-pain-trigger">¿Qué lo empeora?</label><input type="text" id="f-pain-trigger" name="pain_trigger" maxlength="120" placeholder="Ej. lo frío, al morder">
+        </div>
+      </fieldset>
+      <fieldset><legend>Alergias</legend>
+        <label>¿Eres alérgico(a) a algún medicamento, anestesia, látex o alimento?</label><div class="seg3" data-ynu="allergies_status"></div>
+        <div class="rows" data-rows="allergies" hidden></div><button type="button" class="add" data-add="allergies" hidden>+ Agregar alergia</button>
+      </fieldset>
+      <fieldset><legend>Para tu seguridad</legend>
+        <p class="pv-help">Marca lo que aplique:</p><div id="alert-opts"></div>
+        <label for="f-alerts-other">Otra condición importante</label><input type="text" id="f-alerts-other" name="alerts_other" maxlength="160">
+        <label class="ck"><input type="checkbox" id="f-alerts-none"> Ninguna de las anteriores</label>
+      </fieldset>
+      <fieldset><legend>Enfermedades</legend>
+        <label>¿Tienes alguna enfermedad (diabetes, presión alta, asma, tiroides…)?</label><div class="seg3" data-ynu="conditions_status"></div>
+        <div class="rows" data-rows="conditions" hidden></div><button type="button" class="add" data-add="conditions" hidden>+ Agregar</button>
+      </fieldset>
+      <fieldset><legend>Medicamentos</legend>
+        <label>¿Tomas algún medicamento actualmente?</label><div class="seg3" data-ynu="medications_status"></div>
+        <div class="rows" data-rows="medications" hidden></div><button type="button" class="add" data-add="medications" hidden>+ Agregar medicamento</button>
+      </fieldset>
+      <fieldset><legend>Cirugías u hospitalizaciones</legend>
+        <label>¿Te han operado u hospitalizado?</label><div class="seg3" data-ynu="surgeries_status"></div>
+        <div class="rows" data-rows="surgeries" hidden></div><button type="button" class="add" data-add="surgeries" hidden>+ Agregar</button>
+      </fieldset>
+      <fieldset><legend>Dientes</legend>
+        <label for="f-last">¿Cuándo fue tu última visita al dentista?</label><input type="text" id="f-last" name="last_visit" maxlength="60" placeholder="Ej. hace un año">
+        <label>¿Has tenido problemas con la anestesia dental?</label><div class="seg3 two" data-yn="anesthesia_problems"></div>
+        <input type="text" id="f-anes" name="anesthesia_detail" maxlength="160" placeholder="¿Qué pasó?" hidden style="margin-top:8px">
+      </fieldset>
+      <fieldset><legend>Hábitos</legend>
+        <div id="habit-opts"></div><label class="ck"><input type="checkbox" id="f-habits-none"> Ninguno de los anteriores</label>
+        <label for="f-brush">¿Cuántas veces te cepillas al día?</label><select id="f-brush" name="brushing"><option value="">Elegir</option><option>1 vez al día</option><option>2 veces al día</option><option>3 o más veces al día</option><option>Menos de una vez al día</option></select>
+        <label>¿Usas hilo dental?</label><div class="seg3 two" data-yn="floss"></div>
+      </fieldset>
+      <fieldset><legend>Contacto de emergencia</legend>
+        <label for="f-ec-name">Nombre</label><input type="text" id="f-ec-name" name="emergency_name" maxlength="80">
+        <label for="f-ec-phone">Teléfono</label><input type="tel" id="f-ec-phone" name="emergency_phone" maxlength="30">
+      </fieldset>
+      <fieldset><legend>¿Algo más que quieras contarnos?</legend><textarea name="notes" maxlength="800"></textarea></fieldset>
+      <p class="error" id="form-error" hidden></p>
+      <button class="btn btn-grad" type="submit" id="form-send">Enviar mis respuestas</button>
+      <p class="pv-help" style="text-align:center;margin:10px 0 20px">Tu dentista revisará tus respuestas en tu cita.</p>
+    </form>
+  </section>
+
+  <section class="card" id="v-thanks" hidden>
+    <div class="rt-done"><div class="done-mark"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <h2 id="thanks-title">¡Gracias!</h2><p id="thanks-sub">Tus respuestas se enviaron a tu clínica. Tu dentista las revisará en tu cita.</p>
+    <p class="pv-help">Si antes de tu cita tienes dolor muy fuerte, hinchazón de cara o fiebre, llama a tu clínica. En una emergencia, marca al 911.</p></div>
+  </section>
+
   <section class="card" id="v-done" hidden>
     <h2>Listo</h2>
     <p>El borrador ya está en la computadora. Revísalo con el paciente y guárdalo desde ahí. Puedes cerrar esta pestaña.</p>
@@ -295,7 +399,7 @@
     rt:{peer:null,channel:null,stream:null,active:false,started:0,usage:{input:0,output:0},calls:{},turnQueue:Promise.resolve(),timer:null,muted:false}};
   var $=function(id){return document.getElementById(id);};
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
-  function show(view){['v-loading','v-error','v-confirm','v-consent','v-main','v-done'].forEach(function(id){$(id).hidden=id!==view;});$('dock').hidden=view!=='v-main';}
+  function show(view){['v-loading','v-error','v-confirm','v-consent','v-main','v-done','v-dob','v-choose','v-form','v-thanks'].forEach(function(id){$(id).hidden=id!==view;});$('dock').hidden=view!=='v-main'||!!st.pv;}
   function fail(msg){$('error-msg').textContent=msg;show('v-error');stopRecording(true);stopRealtime(false);closeLive();}
   function status(title,copy,isError){$('status').innerHTML='<strong'+(isError?' class="error"':'')+'>'+esc(title)+'</strong>'+esc(copy||'');}
   async function api(body){
@@ -304,7 +408,7 @@
     if(!res.ok){var e=new Error(data.error||'MILA no respondió.');e.status=res.status;throw e;}
     return data;
   }
-  function store(){try{sessionStorage.setItem('mila-movil',JSON.stringify({id:st.id,device:st.device,guide:GUIDE,patient:st.patient}));}catch(_){}}
+  function store(){try{sessionStorage.setItem('mila-movil',JSON.stringify({id:st.id,device:st.device,guide:GUIDE,patient:st.patient,pv:st.pv||null}));}catch(_){}}
   function call(action,extra){var b={action:action,id:st.id,device:st.device};for(var k in extra)b[k]=extra[k];return api(b);}
 
   // ------------------------------------------------------------ vincular
@@ -314,16 +418,19 @@
     var saved=null;try{saved=JSON.parse(sessionStorage.getItem('mila-movil')||'null');}catch(_){}
     try{
       if(saved&&saved.id&&saved.device&&(!id||saved.id===id)){
-        st.id=saved.id;st.device=saved.device;GUIDE=saved.guide||[];setPatient(saved.patient||'');
+        st.id=saved.id;st.device=saved.device;GUIDE=saved.guide||[];st.pv=saved.pv||null;setPatient(saved.patient||'');if(st.pv)pvHeader();
         var state=await call('state');applyState(state);
+        if(st.pv&&state.submitted){showThanks();return;}
         // Si la página se recargó a mitad de una entrevista por voz, se cierra y se cobra lo usado.
         if(state.realtime_active){try{var closed=await call('realtime_finish',{usage:{}});applyState(closed);}catch(_){}}
+        if(st.pv){if(state.realtime_active)return showThanks();if(!state.verified)return show('v-dob');if(!state.consent)return pvConsent();return pvChoose();}
         if(state.consent)enterMain();else show('v-consent');
         return;
       }
       if(!id||!token){fail('Abre esta página escaneando el código QR que aparece en la computadora.');return;}
       var paired=await api({action:'pair',id:id,token:token});
       st.id=id;st.device=paired.device;GUIDE=paired.guide||[];setPatient(paired.patient);
+      if(paired.kind==='previsit'){st.pv={clinic:paired.clinic,appointment:paired.appointment,mode:paired.mode,voice:paired.voice_available!==false};store();pvHeader();if(paired.submitted)return showThanks();if(paired.needs_dob)return show('v-dob');return pvConsent();}
       if(paired.max_segment_seconds)SEGMENT_MS=Math.min(SEGMENT_MS,(paired.max_segment_seconds-10)*1000);
       store();$('confirm-name').textContent=st.patient;show('v-confirm');
     }catch(e){fail(e.message);}
@@ -334,7 +441,7 @@
   $('consent-check').onchange=function(){$('consent-btn').disabled=!this.checked;};
   $('consent-btn').onclick=async function(){
     this.disabled=true;
-    try{await call('consent');enterMain();}catch(e){fail(e.message);}
+    try{await call('consent');if(st.pv)pvChoose();else enterMain();}catch(e){fail(e.message);}
   };
   function enterMain(){show('v-main');setWho(st.who);renderAll();}
   function applyState(s){if(!s)return;if(s.history)st.history=s.history;if(s.exam)st.exam=s.exam;if(s.alerts)st.alerts=s.alerts;if(s.tokens)st.tokens=s.tokens;if(s.audio_seconds!=null)st.seconds=s.audio_seconds;}
@@ -536,6 +643,7 @@
         else if(rt.active&&quiet<45000&&/se cerrará/.test($('live-state').textContent))$('live-state').textContent=STATE_TEXT[ORB.state]||'';status('MILA está entrevistando · '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0'),'Pulsa «Terminar» cuando acabe o si el paciente quiere detenerse.');},1000);
     }catch(e){
       stopRealtime(false);closeLive();
+      if(st.pv){alert(e&&e.name==='NotAllowedError'?'Necesitamos permiso para usar el micrófono. Puedes llenar el formulario en su lugar.':'No se pudo iniciar la conversación. Puedes llenar el formulario en su lugar.');st.pv.mode='choice';pvChoose();if(st.pv.mode==='choice')show('v-choose');}
       status(e&&e.name==='NotAllowedError'?'Sin acceso al micrófono':'No se pudo iniciar la entrevista',e&&e.name==='NotAllowedError'?'Permite el micrófono en el navegador.':(e.message||''),true);
     }finally{$('rec').disabled=false;}
   }
@@ -582,12 +690,14 @@
     if(!st.rt.active)return;
     var b=st.rt.usage,usage={input_tokens:b.input,output_tokens:b.output,cached_input_tokens:b.cached||0,input_audio_tokens:b.in_audio||0,input_text_tokens:b.in_text||0,output_audio_tokens:b.out_audio||0,output_text_tokens:b.out_text||0};
     stopRealtime();closeLive();$('rec').disabled=true;status('MILA está preparando el borrador…','Suele tardar unos segundos.');
+    if(st.pv){show('v-loading');$('v-loading').querySelector('p').textContent='Enviando tus respuestas…';}
     try{
       await st.rt.turnQueue;
       var out=await call('realtime_finish',{usage:usage});
       if(out.history)st.history=out.history;if(out.alerts)st.alerts=out.alerts;if(out.tokens)st.tokens=out.tokens;st.seconds+=out.seconds||0;
+      if(st.pv){showThanks();return;}
       st.rtDone={seconds:out.seconds||0,messages:$('chat').children.length};renderAll();showDone();
-    }catch(e){status('No se pudo cerrar la entrevista',e.message,true);}
+    }catch(e){if(st.pv){fail('No se pudieron enviar tus respuestas. Abre de nuevo el enlace o avisa a tu clínica.');return;}status('No se pudo cerrar la entrevista',e.message,true);}
     finally{$('rec').disabled=false;}
   }
 
@@ -604,6 +714,80 @@
   }
   $('rt-send').onclick=function(){$('finish-btn').click();};
   $('rt-continue').onclick=function(){$('rt-done').hidden=true;$('ai-hero').hidden=false;$('choice-ai').parentNode.hidden=false;st.rtDone=null;renderAlerts();updateDock();startRealtime(true);};
+
+
+  // ------------------------------------------------------------ Entrevista previa (el paciente solo)
+  var FORM_ALERTS=[['anticoagulante','Tomo anticoagulantes o aspirina diaria'],['marcapasos','Uso marcapasos'],['corazon','Tengo una enfermedad del corazón'],['coagulacion','Tengo problemas de coagulación o sangrado'],['embarazo','Estoy embarazada o lactando'],['bifosfonatos','Tomo bifosfonatos (para huesos/osteoporosis)']];
+  var FORM_HABITS=[['fuma','Fumo'],['alcohol','Tomo alcohol con frecuencia'],['bruxismo','Aprieto o rechino los dientes'],['respiracion_oral','Respiro por la boca'],['unas','Me muerdo las uñas'],['azucar','Consumo dulces o refrescos a diario']];
+  function pvHeader(){document.querySelector('header.top .kick').textContent='ANTES DE TU CITA'+(st.pv&&st.pv.clinic?' · '+st.pv.clinic.toUpperCase():'');}
+  function pvConsent(){
+    $('v-consent').querySelector('h2').textContent='Antes de empezar';
+    $('v-consent').querySelector('p').textContent='Tu clínica te pide responder unas preguntas de salud para preparar tu cita'+(st.pv.appointment?' del '+st.pv.appointment:'')+'.';
+    $('v-consent').querySelector('ul').innerHTML='<li>Tus respuestas solo las verá tu clínica y tu dentista las revisará contigo.</li><li>Si platicas con MILA, el audio <strong>no se guarda</strong>; solo el texto de tus respuestas.</li><li>MILA es una asistente: no da diagnósticos ni consejos médicos.</li>';
+    $('consent-check').parentNode.lastChild.textContent=' Acepto responder y que mis respuestas se envíen a mi clínica.';
+    show('v-consent');
+  }
+  function pvChoose(){
+    var m=st.pv.mode;if(m==='form'||(!st.pv.voice&&m!=='voice'))return openForm();if(m==='voice')return pvVoice();
+    $('choose-sub').textContent='Son unas preguntas de salud para tu expediente'+(st.pv.appointment?' antes de tu cita del '+st.pv.appointment:'')+'. Toma unos 5 minutos.';
+    show('v-choose');
+  }
+  function pvVoice(){st.mode='history';st.who='ai';show('v-main');$('v-main').hidden=true;startRealtime(false);}
+  $('pv-voice').onclick=pvVoice;$('pv-form').onclick=function(){openForm();};
+  $('dob-form').onsubmit=async function(e){e.preventDefault();var err=$('dob-error');err.hidden=true;
+    try{await call('verify',{dob:$('dob').value});pvConsent();}catch(x){err.textContent=x.message;err.hidden=false;if(x.status===429)fail(x.message);}};
+  function showThanks(){
+    closeLive();$('dock').hidden=true;
+    $('thanks-title').textContent='¡Gracias'+(st.patient&&st.patient!=='Paciente'?', '+st.patient:'')+'!';
+    $('thanks-sub').textContent='Tus respuestas se enviaron'+(st.pv&&st.pv.clinic?' a '+st.pv.clinic:'')+'. Tu dentista las revisará '+(st.pv&&st.pv.appointment?'en tu cita del '+st.pv.appointment:'en tu cita')+'.';
+    show('v-thanks');try{sessionStorage.removeItem('mila-movil');}catch(_){}
+  }
+  // ---- formulario
+  function seg(el,opts){var name=el.dataset.yn||el.dataset.ynu;el.innerHTML=opts.map(function(o){return '<label><input type="radio" name="'+name+'" value="'+o[0]+'"><span>'+o[1]+'</span></label>';}).join('');}
+  function rowHtml(kind){
+    var f={allergies:[['substance','¿A qué?','Ej. penicilina'],['reaction','¿Qué te pasó?','Ej. ronchas'],['severity','sev']],conditions:[['name','Enfermedad','Ej. diabetes'],['since','¿Desde cuándo?','Ej. 2019']],medications:[['name','Medicamento','Nombre'],['dose','Dosis','Ej. 500 mg'],['frequency','¿Cada cuánto?','Ej. cada 12 horas']],surgeries:[['procedure','¿De qué?','Ej. apéndice'],['when','¿Cuándo?','Ej. 2018']]}[kind];
+    return '<div class="rowx">'+f.map(function(x){return x[1]==='sev'?'<select data-k="severity" aria-label="Gravedad"><option value="">¿Qué tan grave fue?</option><option value="low">Leve</option><option value="moderate">Moderada</option><option value="high">Grave (fui a urgencias o me costó respirar)</option></select>':'<input type="text" data-k="'+x[0]+'" placeholder="'+x[1]+(x[2]?' · '+x[2]:'')+'" aria-label="'+x[1]+'" maxlength="160">';}).join('')+'</div>';
+  }
+  var formReady=false;
+  function openForm(){
+    if(!formReady){formReady=true;
+      document.querySelectorAll('[data-yn]').forEach(function(el){seg(el,[['yes','Sí'],['no','No']]);});
+      document.querySelectorAll('[data-ynu]').forEach(function(el){seg(el,[['yes','Sí'],['no','No'],['unknown','No sé']]);});
+      $('alert-opts').innerHTML=FORM_ALERTS.map(function(o){return '<label class="ck"><input type="checkbox" name="alerts" value="'+o[0]+'"> '+esc(o[1])+'</label>';}).join('');
+      $('habit-opts').innerHTML=FORM_HABITS.map(function(o){return '<label class="ck"><input type="checkbox" name="habits" value="'+o[0]+'"> '+esc(o[1])+'</label>';}).join('');
+      var f=$('pv-form-el');
+      f.addEventListener('change',function(e){var t=e.target;
+        if(t.name==='pain')$('pain-more').hidden=t.value!=='yes';
+        if(t.name==='anesthesia_problems')$('f-anes').hidden=t.value!=='yes';
+        if(/_status$/.test(t.name)){var kind=t.name.replace('_status','');var rows=f.querySelector('[data-rows="'+kind+'"]'),add=f.querySelector('[data-add="'+kind+'"]');rows.hidden=add.hidden=t.value!=='yes';if(t.value==='yes'&&!rows.children.length)rows.insertAdjacentHTML('beforeend',rowHtml(kind));}
+        if(t.id==='f-alerts-none'&&t.checked)f.querySelectorAll('[name=alerts]').forEach(function(c){c.checked=false;});
+        if(t.name==='alerts'&&t.checked)$('f-alerts-none').checked=false;
+        if(t.id==='f-habits-none'&&t.checked)f.querySelectorAll('[name=habits]').forEach(function(c){c.checked=false;});
+        if(t.name==='habits'&&t.checked)$('f-habits-none').checked=false;});
+      $('f-pain-level').oninput=function(){$('pain-val').textContent=this.value;};
+      f.querySelectorAll('[data-add]').forEach(function(b){b.onclick=function(){var rows=f.querySelector('[data-rows="'+b.dataset.add+'"]');if(rows.children.length<10)rows.insertAdjacentHTML('beforeend',rowHtml(b.dataset.add));};});
+      f.onsubmit=sendForm;
+    }
+    show('v-form');window.scrollTo(0,0);
+  }
+  function radio(name){var c=document.querySelector('#pv-form-el [name="'+name+'"]:checked');return c?c.value:'';}
+  function collectRows(kind){return Array.from(document.querySelectorAll('[data-rows="'+kind+'"] .rowx')).map(function(r){var o={};r.querySelectorAll('[data-k]').forEach(function(i){o[i.dataset.k]=i.value.trim();});return o;});}
+  async function sendForm(e){
+    e.preventDefault();var f=$('pv-form-el'),err=$('form-error');err.hidden=true;
+    var answers={reason:f.reason.value.trim(),pain:radio('pain'),pain_level:radio('pain')==='yes'?$('f-pain-level').value:'',pain_since:$('f-pain-since').value.trim(),pain_trigger:$('f-pain-trigger').value.trim(),
+      allergies_status:radio('allergies_status'),allergies:radio('allergies_status')==='yes'?collectRows('allergies'):[],
+      alerts:Array.from(f.querySelectorAll('[name=alerts]:checked')).map(function(c){return c.value;}),alerts_other:$('f-alerts-other').value.trim(),alerts_status:$('f-alerts-none').checked?'no':'',
+      conditions_status:radio('conditions_status'),conditions:radio('conditions_status')==='yes'?collectRows('conditions'):[],
+      medications_status:radio('medications_status'),medications:radio('medications_status')==='yes'?collectRows('medications'):[],
+      surgeries_status:radio('surgeries_status'),surgeries:radio('surgeries_status')==='yes'?collectRows('surgeries'):[],
+      last_visit:$('f-last').value.trim(),anesthesia_problems:radio('anesthesia_problems'),anesthesia_detail:$('f-anes').value.trim(),
+      habits:Array.from(f.querySelectorAll('[name=habits]:checked')).map(function(c){return c.value;}),habits_none:$('f-habits-none').checked,brushing:$('f-brush').value,floss:radio('floss'),
+      emergency_name:$('f-ec-name').value.trim(),emergency_phone:$('f-ec-phone').value.trim(),notes:f.notes.value.trim()};
+    var missing=['allergies_status','medications_status'].filter(function(k){return !answers[k];});
+    if(missing.length){err.textContent='Por favor responde al menos si tienes alergias y si tomas medicamentos: es lo más importante para tu seguridad.';err.hidden=false;err.scrollIntoView({block:'center'});return;}
+    var b=$('form-send');b.disabled=true;b.textContent='Enviando…';
+    try{await call('form_submit',{answers:answers});showThanks();}catch(x){err.textContent=x.message;err.hidden=false;b.disabled=false;b.textContent='Enviar mis respuestas';}
+  }
 
   // ------------------------------------------------------------ «Yo pregunto»: grabación por segmentos
   function pickMime(){

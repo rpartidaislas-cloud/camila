@@ -167,7 +167,7 @@ test('la función protege la sesión: QR de un solo uso, dispositivo, consentimi
 test('la app carga MILA y la copia móvil está sincronizada', () => {
   const app = read('../app.html');
   assert.match(app, /vendor\/qrcode-generator-1\.4\.4\.js/);
-  assert.match(app, /smyl-mila-interview\.js\?v=3/);
+  assert.match(app, /smyl-mila-interview\.js\?v=4/);
   for (const file of ['app.html', 'mila-movil.html', 'smyl-mila-interview.js', 'smyl-mila-interview.css', 'smyl-history-model.js', 'smyl-history-read.js', 'smyl-patient-360.js', 'smyl-case-workspace.js', 'sw.js', 'vendor/qrcode-generator-1.4.4.js']) {
     assert.equal(read(`../mobile/www/${file}`), read(`../${file}`), `${file} sincronizado`);
   }
@@ -268,4 +268,54 @@ test('orbe v3: cintas de luz que siguen la voz, sin filtros de desenfoque', () =
   assert.match(phone, /Orbe v3: esfera de vidrio con cintas de luz/);
   assert.doesNotMatch(phone, /CANVAS_BLUR/);
   assert.match(phone, /paintOrb\(g,ORB\.size,t,ORB\.state/);
+});
+
+test('entrevista previa: formulario sin IA, identidad, plantilla y seguimiento', async () => {
+  const m = await import('../supabase/functions/_shared/mila-interview-contract.mjs');
+  const r = m.buildFromForm({
+    allergies_status: 'yes', allergies: [{ substance: 'Penicilina', reaction: 'ronchas', severity: 'high' }],
+    alerts: ['anticoagulante', 'inventado'], medications_status: 'no', conditions_status: 'unknown', surgeries_status: '',
+    reason: 'Dolor de muela', pain: 'yes', pain_level: 9, habits: ['fuma'], brushing: '2 veces al día', floss: 'no',
+    emergency_name: 'Luis', emergency_phone: '55 1234 5678',
+  });
+  assert.equal(r.source, 'form');
+  assert.equal(r.document.allergy_records[0].severity, 'high');
+  assert.deepEqual(r.document.alerts, ['Toma anticoagulantes o aspirina diaria'], 'opciones desconocidas se ignoran');
+  assert.equal(r.document.medications_status, 'no');
+  assert.equal(r.document.conditions_status, 'unknown');
+  assert.equal(r.coverage.surgeries, 'not_asked');
+  assert.match(r.document.dental_history, /Motivo de consulta: Dolor de muela\. Refiere dolor 9\/10/);
+  assert.match(r.needs_review[0], /dolor intenso/);
+  assert.equal(r.document.emergency_contact, 'Luis · 55 1234 5678');
+  assert.ok(m.summarizeKnownHistory(r.document).some((l) => /Alergias: Penicilina/.test(l)));
+  const pre = m.buildInterviewerInstructions('Ana', { previsit: { clinic: 'Clínica Sonríe', appointment: 'martes 18 a las 10:00 am' }, known: ['Alergias: Penicilina'] });
+  assert.match(pre, /responde SOLA desde su celular/);
+  assert.match(pre, /911/);
+  assert.match(pre, /tipo «urgencia»/);
+  assert.match(pre, /PACIENTE DE SEGUIMIENTO/);
+  assert.ok(m.ALERT_TYPES.includes('urgencia'));
+  // las casillas del formulario del celular coinciden con las del servidor
+  const phone = read('../mila-movil.html');
+  for (const [key] of m.FORM_ALERT_OPTIONS) assert.match(phone, new RegExp(`\\['${key}',`));
+  for (const [key] of m.FORM_HABIT_OPTIONS) assert.match(phone, new RegExp(`\\['${key}',`));
+  assert.match(phone, /id="v-dob"/);
+  assert.match(phone, /id="v-form"/);
+  assert.match(phone, /call\('form_submit'/);
+  const fn = read('../supabase/functions/mila-interview/index.ts');
+  assert.match(fn, /action === "previsit_create"/);
+  assert.match(fn, /sameDob\(field\("dob"\)/);
+  assert.match(fn, /identity_attempts\) \|\| 0\) >= 5/);
+  assert.match(fn, /event_type: "mila_interview_consent"/);
+  assert.match(fn, /PREVISIT_TEMPLATE = "entrevista_previa_v1"/);
+  assert.match(fn, /MAX_PREVISIT_REALTIME_SECONDS = 15 \* 60/);
+  const catalog = await import('../supabase/functions/_shared/whatsapp-template-catalog.mjs');
+  const tpl = catalog.TEMPLATES.find((t) => t.id === 'entrevista_previa_v1');
+  assert.ok(tpl, 'la plantilla está en el catálogo');
+  assert.deepEqual(catalog.validate(tpl), []);
+  const sql = read('../supabase/migrations/20261116120000_smyl_mila_previsit.sql');
+  assert.match(sql, /check \(kind in \('clinic', 'previsit'\)\)/);
+  const desk = read('../smyl-mila-interview.js');
+  assert.match(desk, /renderPending/);
+  assert.match(desk, /smyl:mila-history-saved/);
+  assert.match(read('../smyl-patient-360.js'), /smyl:mila-history-saved/);
 });

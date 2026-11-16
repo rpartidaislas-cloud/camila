@@ -169,6 +169,7 @@
     var host=s.historyHost,buttons=Array.from(host.querySelectorAll('[data-hc-goto]')),bands=Array.from(host.querySelectorAll('.p360-hc-band'));
     host.querySelectorAll('[data-hc-versions]').forEach(function(button){button.onclick=function(){openHistoryVersions(s);};});
     host.querySelectorAll('[data-history-edit]').forEach(function(button){button.onclick=function(){openHistoryEditor(s,0);};});
+    host.querySelectorAll('[data-hc-mila-previsit]').forEach(function(button){button.hidden=!window.SmylMilaInterview;button.onclick=function(){if(window.SmylMilaInterview)window.SmylMilaInterview.open({tenant:s.tenant,patient:s.patient,view:'previsit',returnFocus:button});};});
     host.querySelectorAll('[data-hc-mila]').forEach(function(button){button.hidden=!window.SmylMilaInterview;button.onclick=function(){if(window.SmylMilaInterview)window.SmylMilaInterview.open({tenant:s.tenant,patient:s.patient,mode:'history',returnFocus:button});};});
     host.querySelectorAll('[data-hc-edit]').forEach(function(button){button.onclick=function(){openHistoryEditor(s,Number(button.dataset.hcStep||0));};});
     host.querySelectorAll('[data-hc-add]').forEach(function(button){button.onclick=function(){openHistoryEditor(s,0,button.dataset.hcAdd);};});
@@ -181,18 +182,21 @@
    * Nada se guarda hasta que el profesional revisa y pulsa "Guardar historia" (mismo guardado versionado de siempre). */
   function milaBanner(mila){
     var added=(mila.added||[]).slice(0,30),evidence=(mila.evidence||[]).slice(0,40),follow=(mila.follow_ups||[]).slice(0,6),review=(mila.needs_review||[]).slice(0,8);
-    return '<section class="p360-mila-draft" role="status"><header><span class="p360-mila-badge">MILA</span><div><strong>Borrador sugerido por MILA'+(added.length?' · '+added.length+(added.length===1?' dato nuevo':' datos nuevos'):'')+'</strong><p>Revisa cada sección con el paciente antes de guardar. Nada se guarda automáticamente; lo que ya estaba registrado se conserva.</p></div></header>'
+    return '<section class="p360-mila-draft" role="status"><header><span class="p360-mila-badge">MILA</span><div><strong>Borrador sugerido por MILA'+(added.length?' · '+added.length+(added.length===1?' dato nuevo':' datos nuevos'):'')+'</strong><p>Revisa cada sección con el paciente antes de guardar. Nada se guarda automáticamente; lo que ya estaba registrado se conserva.'+(mila.source==='form'?' Origen: formulario que llenó el paciente antes de su cita.':'')+(mila.consentAt?' Consentimiento registrado el '+esc(date(mila.consentAt,true))+'.':'')+'</p></div></header>'
       +(added.length?'<ul class="p360-mila-added">'+added.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>':'<p>MILA no encontró datos nuevos para agregar.</p>')
       +(review.length?'<div class="p360-mila-warn"><strong>Verifica</strong><ul>'+review.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>':'')
       +(follow.length?'<div class="p360-mila-follow"><strong>Falta preguntar o confirmar</strong><ul>'+follow.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>':'')
       +(evidence.length?'<details class="p360-mila-evidence"><summary>Ver de dónde salió cada dato</summary><ul>'+evidence.map(function(x){return '<li><strong>'+esc(x.label)+'</strong><q>'+esc(x.quote||'Sin cita')+'</q>'+(x.verified?'':'<em>Cita no encontrada textual</em>')+'</li>';}).join('')+'</ul></details>':'')
       +'</section>';
   }
-  function applyMilaSuggestion(tenant,patient,suggestion){
+  function applyMilaSuggestion(tenant,patient,suggestion,meta){
     var s=state;if(!current(s)||s.tenant!==tenant||s.patient!==patient||!s.canWrite||!suggestion||!suggestion.document)return false;
     var merged=H.mergeSuggestion(s.history?s.history.document:{},suggestion.document);
+    s.milaInterviewId=meta&&meta.interviewId||null;
     showSection(s,'history');
-    historyForm(s,true,{document:merged.document,added:merged.added,evidence:suggestion.evidence,follow_ups:suggestion.follow_ups,needs_review:suggestion.needs_review});
+    historyForm(s,true,{document:merged.document,added:merged.added,evidence:suggestion.evidence,follow_ups:suggestion.follow_ups,needs_review:suggestion.needs_review,consentAt:meta&&meta.consentAt||null,source:suggestion.source||''});
+    // Si se sale sin guardar, el navegador avisa: el borrador de MILA no está en el expediente todavía.
+    window.onbeforeunload=function(){var f=s.historyHost&&s.historyHost.querySelector('.p360-mila-draft');return f?'Hay un borrador de MILA sin guardar.':undefined;};
     var banner=s.historyHost.querySelector('.p360-mila-draft');if(banner&&banner.scrollIntoView)banner.scrollIntoView({block:'start'});
     return true;
   }
@@ -206,6 +210,7 @@
       if(!window.SmylHistoryRead){s.historyHost.textContent='No se pudo cargar la vista de la historia clínica. Recarga la página.';return;}
       s.historyHost.innerHTML=window.SmylHistoryRead.render(H.readModel(d,{updated:updated,revision:revision,canWrite:!!s.canWrite}));
       bindHistoryRead(s);
+      if(s.canWrite&&window.SmylMilaInterview&&window.SmylMilaInterview.renderPending)window.SmylMilaInterview.renderPending(s.historyHost,s.tenant,s.patient);
     }else{
       var safetyFields=historyStatusEditor('alerts','¿Hay alertas médicas relevantes?',alertsStatus,historyField('Alertas médicas','alerts',alerts.join(', '),'Ej. anticoagulantes, marcapasos',true,''))+historyStatusEditor('allergies','¿Tiene alergias conocidas?',allergiesStatus,historyRepeater('allergy','Alergias','Registra sustancia, reacción y gravedad.',allergyRecords));
       var medicalFields=historyStatusEditor('conditions','¿Tiene condiciones médicas?',conditionsStatus,historyRepeater('condition','Condiciones médicas','Una fila por diagnóstico.',conditionRecords))+historyStatusEditor('medications','¿Toma medicamentos actualmente?',medicationsStatus,historyRepeater('medication','Medicamentos actuales','Una fila por medicamento.',medicationRecords))+historyStatusEditor('surgeries','¿Tiene cirugías u hospitalizaciones previas?',surgeriesStatus,historyRepeater('surgery','Cirugías y hospitalizaciones','Registra únicamente eventos confirmados.',surgeryRecords));
@@ -215,7 +220,7 @@
       var stepper='<nav class="p360-history-stepper" aria-label="Secciones de la historia clínica"><button type="button" data-history-step="attention"><span>Atención</span><small>Alertas y alergias</small></button><button type="button" data-history-step="medical"><span>Salud</span><small>Condiciones y medicamentos</small></button><button type="button" data-history-step="dental"><span>Dental</span><small>Antecedentes</small></button><button type="button" data-history-step="habits"><span>Hábitos</span><small>Factores de riesgo</small></button><button type="button" data-history-step="extra"><span>Complementaria</span><small>Contacto y notas</small></button></nav>';
       var panels=historyEditPanel('attention','Alertas para la atención','Confirma primero lo que puede modificar la atención.',safetyFields,true,'priority')+historyEditPanel('medical','Salud médica','Registra únicamente datos confirmados.',medicalFields,false,'clinical')+historyEditPanel('dental','Antecedentes dentales','Resume lo relevante para la atención odontológica.',dentalFields,false,'clinical')+historyEditPanel('habits','Hábitos y factores de riesgo','Incluye sólo lo que aporta contexto clínico.',contextFields,false,'clinical')+historyEditPanel('extra','Información complementaria','Datos de apoyo separados de las alertas clínicas.',extraFields,false,'administrative');
       s.historyHost.innerHTML='<article class="p360-history-workspace p360-history-edit"><header class="p360-history-header"><div><h2>Historia clínica</h2><p><span data-history-progress>Sección 1 de 5</span> · Última confirmación: '+esc(updated)+'</p></div></header>'+(mila&&editing?milaBanner(mila):'')+'<form id="p360-history-form"><div class="p360-history-editor-shell">'+stepper+'<div class="p360-history-panels">'+panels+'</div></div><div class="p360-actions p360-history-actions"><p>Al guardar se crea una nueva versión del expediente.</p><button type="button" class="btn btn-secondary" data-history-cancel>Cancelar</button><button type="button" class="btn btn-secondary" data-history-prev hidden>Anterior</button><button type="button" class="btn btn-secondary" data-history-next>Continuar</button><button type="submit" class="btn btn-primary" data-history-save>Guardar historia</button></div></form></article>';
-      s.historyHost.querySelectorAll('[data-history-cancel]').forEach(function(button){button.onclick=function(){var dirty=s.historyHost.querySelector('form');if(dirty&&dirty.dataset.dirty==='1'&&!window.confirm('Hay cambios sin guardar. ¿Descartarlos?'))return;historyForm(s,false);};});
+      s.historyHost.querySelectorAll('[data-history-cancel]').forEach(function(button){button.onclick=function(){var dirty=s.historyHost.querySelector('form');if(dirty&&dirty.dataset.dirty==='1'&&!window.confirm(s.milaInterviewId?'El borrador de MILA no se ha guardado. Seguirá disponible arriba de la historia para revisarlo después. ¿Salir del editor?':'Hay cambios sin guardar. ¿Descartarlos?'))return;s.milaInterviewId=null;window.onbeforeunload=null;historyForm(s,false);};});
       var form=s.historyHost.querySelector('form');
       bindHistoryEditor(form);if(mila)form.dataset.dirty='1';
       form.onsubmit=function(e){e.preventDefault();if(validateHistoryEditor(form))saveHistory(s,new FormData(form));};
@@ -225,7 +230,8 @@
   }
   async function saveHistory(s,f){
     var doc=H.buildDocument(f);
-    try{s.history=await rpc('smyl_save_patient_history',{p_patient_id:s.patient,p_expected_revision:s.history?s.history.revision:0,p_document:doc});await reloadTimeline(s);historyForm(s,false);renderOverview(s);announcePatientContext(s);notify(s,'Historia clínica actualizada.','success');}catch(e){notify(s,msg(e),'error');}
+    try{s.history=await rpc('smyl_save_patient_history',{p_patient_id:s.patient,p_expected_revision:s.history?s.history.revision:0,p_document:doc});
+      if(s.milaInterviewId){dispatchEvent(new CustomEvent('smyl:mila-history-saved',{detail:{interviewId:s.milaInterviewId,patient:s.patient}}));s.milaInterviewId=null;}window.onbeforeunload=null;await reloadTimeline(s);historyForm(s,false);renderOverview(s);announcePatientContext(s);notify(s,'Historia clínica actualizada.','success');}catch(e){notify(s,msg(e),'error');}
   }
   function noteTitle(row){return NOTE_TYPES[row.note_type]||'Nota clínica';}
   function noteSummary(row){var d=row.document||{};return d.assessment||d.subjective||d.objective||d.plan||'Borrador sin contenido';}
