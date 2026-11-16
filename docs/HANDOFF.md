@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-16 — Claude — Consultorio, etapa 4a: código QR de registro
+
+- En el paso «Datos del paciente» de una ficha por registrar, **Mostrar código QR** (acción principal si hay `patients.manage`; sin ese permiso se conservan Completar datos y Enviar enlace) crea un enlace de un solo uso con `smyl_create_registration_link` (vence en 7 días, el que usa `registro-paciente.html`) y lo dibuja con el generador ya incluido (`vendor/qrcode-generator-1.4.4.js`, el mismo de MILA). La ventana ofrece mandar el enlace por WhatsApp, copiarlo (con respaldo seleccionable) y cerrar.
+- **Espera automática:** mientras el código está abierto se vuelve a leer la ficha cada 4 s (máx. ~10 min); al pasar de «pendiente» a «por verificar» (o completa) dice «✓ Ya llenó sus datos. Falta que los confirmes.» y **Ver sus datos** refresca la visita, donde queda **Confirmar datos**. Al cerrar la ventana o salir del Consultorio se deja de preguntar. Si la columna `registro_estado` no existe todavía se deduce del nombre.
+- Errores explicados: sin permiso (`42501`), función sin migrar (`PGRST202`), ficha ya completa (`22023`) y falta de conexión; en ninguno se dibuja un código.
+- Verificado con un lector de QR independiente (jsQR) que el código dibujado decodifica **exactamente** al enlace mostrado. Pruebas: 6 nuevas en `tests/smyl-consultorio.test.mjs` (46 en total; mutación del cierre comprobada) y 1 del modelo. Web y `mobile/www` sincronizados: `smyl-consultorio.js?v=5`, `.css?v=5`, `smyl-visit-model.js?v=4`, caché `qr-registro-v1`. Sin migración (usa las de `registro-paciente`, ya aplicadas).
+- **No probado en el panel real:** que el celular del paciente abra el enlace y termine el registro mientras la pantalla espera (necesita tu base y un celular).
+- **Pendiente, etapa 4b (firma del aviso de privacidad):** requiere decidir el texto del aviso de cada clínica (hoy el repo solo guarda una casilla de «aviso revisado» en preparación operativa, no su texto ni su URL) y una migración nueva. No se empezó.
+
 ## 2026-11-16 — Claude Code — MILA por voz: ya no se corta con un «ajá», una «o» o ruido
 
 - **Causa**: la sesión usaba `server_vad` (por volumen) con `interrupt_response: true`: cualquier sonido de ~0.1 s cortaba a MILA y luego retomaba (se sentía trabada).
