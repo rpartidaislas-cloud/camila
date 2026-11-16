@@ -251,7 +251,7 @@ return { TOPES_RADIOGRAFIA_PREDETERMINADOS, leerTopesRadiografia, evaluarTope, i
 })();
 
 // ── _shared/cloud-classify-core.mjs ──
-const { CLOUD_CLASSIFY_MODEL, CLOUD_CLASSIFY_MAX_TOKENS, CLOUD_CLASSIFY_TIMEOUT_MS, MAX_IMAGE_BASE64, TOPES_PREDETERMINADOS, CATEGORIAS, CONFIANZAS, UUID_RE, CLASSIFY_SCHEMA, CLASSIFY_SYSTEM, topesDeEntorno, evaluarTope, imagenValida, leerSugerencia } = (() => {
+const { CLOUD_CLASSIFY_MODEL, CLOUD_CLASSIFY_MAX_TOKENS, CLOUD_CLASSIFY_TIMEOUT_MS, MAX_IMAGE_BASE64, TOPES_PREDETERMINADOS, CATEGORIAS, CONFIANZAS, UUID_RE, CLASSIFY_SCHEMA, CLASSIFY_SYSTEM, topesDeEntorno, evaluarTopeClasificacion, imagenValida, leerSugerencia } = (() => {
 // Lógica pura de la sugerencia de tipo de archivo de la Nube (sin Deno ni red).
 // La IA SOLO sugiere: no escribe nada. La persona confirma desde la pantalla y recién ahí se guarda el tipo.
 const CLOUD_CLASSIFY_MODEL = "claude-haiku-5-5";
@@ -288,7 +288,7 @@ function topesDeEntorno(env: any) {
     mensual: entero(env.get("CLOUD_CLASSIFY_MONTHLY_LIMIT"), TOPES_PREDETERMINADOS.mensual),
   };
 }
-function evaluarTope(usoDiario: any, usoMensual: any, topes: any) {
+function evaluarTopeClasificacion(usoDiario: any, usoMensual: any, topes: any) {
   if (usoDiario >= topes.diario) return { permitido: false, mensaje: `Tu clínica llegó al límite diario de ${topes.diario} sugerencias de la IA. Podrás continuar mañana.` };
   if (usoMensual >= topes.mensual) return { permitido: false, mensaje: `Tu clínica llegó al límite mensual de ${topes.mensual} sugerencias de la IA.` };
   return { permitido: true };
@@ -311,7 +311,7 @@ function leerSugerencia(texto: any) {
   return { category: datos.category, confidence: datos.confidence, reason: razon };
 }
 
-return { CLOUD_CLASSIFY_MODEL, CLOUD_CLASSIFY_MAX_TOKENS, CLOUD_CLASSIFY_TIMEOUT_MS, MAX_IMAGE_BASE64, TOPES_PREDETERMINADOS, CATEGORIAS, CONFIANZAS, UUID_RE, CLASSIFY_SCHEMA, CLASSIFY_SYSTEM, topesDeEntorno, evaluarTope, imagenValida, leerSugerencia };
+return { CLOUD_CLASSIFY_MODEL, CLOUD_CLASSIFY_MAX_TOKENS, CLOUD_CLASSIFY_TIMEOUT_MS, MAX_IMAGE_BASE64, TOPES_PREDETERMINADOS, CATEGORIAS, CONFIANZAS, UUID_RE, CLASSIFY_SCHEMA, CLASSIFY_SYSTEM, topesDeEntorno, evaluarTopeClasificacion, imagenValida, leerSugerencia };
 })();
 
 // ── cloud-classify/index.ts ──
@@ -369,7 +369,7 @@ Deno.serve(async (req: Request) => {
     [inicioDiaUTC(ahora), inicioMesUTC(ahora)].map((desde) =>
       admin.from("smyl_ai_usage_log").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("feature", "cloud_classify").gte("created_at", desde)),
   );
-  const tope = evaluarTope(dia.count || 0, mes.count || 0, topesDeEntorno(Deno.env));
+  const tope = evaluarTopeClasificacion(dia.count || 0, mes.count || 0, topesDeEntorno(Deno.env));
   if (!tope.permitido) return json(CORS, 429, { error: tope.mensaje });
 
   const key = Deno.env.get("ANTHROPIC_API_KEY");

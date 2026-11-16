@@ -245,8 +245,9 @@ function estadoDelEnlace(enlace: any, ahora = Date.now()) {
 // Un enlace caducado, revocado o bloqueado se ve igual que uno que no existe: no se revela nada.
 const enlaceDisponible = (enlace, ahora) => estadoDelEnlace(enlace, ahora) === "active";
 
-function vistaPublica({ nombre, mime: any, size: any, clinica: any, url: any, expires_at }) {
-  return { name: nombre, mime_type: mime, size_bytes: size, clinic: clinica || "", url, expires_at };
+// Un solo parámetro (sin desestructurar): el generador de bundles para el panel convierte cada parámetro en `x: any`.
+function vistaPublica(datos: any) {
+  return { name: datos.nombre, mime_type: datos.mime, size_bytes: datos.size, clinic: datos.clinica || "", url: datos.url, expires_at: datos.expires_at };
 }
 
 return { DIAS_PERMITIDOS, DIAS_POR_DEFECTO, MAX_INTENTOS_CODIGO, MAX_ENLACES_ACTIVOS_POR_ARCHIVO, TOKEN_RE, UUID_RE, CODIGO_RE, aleatorioHex, sha256Hex, codigoAleatorio, hashDeCodigo, diasValidos, venceEn, estadoDelEnlace, enlaceDisponible, vistaPublica };

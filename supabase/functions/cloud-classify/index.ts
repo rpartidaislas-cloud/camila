@@ -7,7 +7,7 @@ import { makeCors } from "../_shared/cors.ts";
 import { inicioDiaUTC, inicioMesUTC } from "../_shared/ai-quota.ts";
 import {
   CLOUD_CLASSIFY_MODEL, CLOUD_CLASSIFY_MAX_TOKENS, CLOUD_CLASSIFY_TIMEOUT_MS, CLASSIFY_SCHEMA, CLASSIFY_SYSTEM, UUID_RE,
-  topesDeEntorno, evaluarTope, imagenValida, leerSugerencia,
+  topesDeEntorno, evaluarTopeClasificacion, imagenValida, leerSugerencia,
 } from "../_shared/cloud-classify-core.mjs";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
@@ -60,7 +60,7 @@ Deno.serve(async (req: Request) => {
     [inicioDiaUTC(ahora), inicioMesUTC(ahora)].map((desde) =>
       admin.from("smyl_ai_usage_log").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("feature", "cloud_classify").gte("created_at", desde)),
   );
-  const tope = evaluarTope(dia.count || 0, mes.count || 0, topesDeEntorno(Deno.env));
+  const tope = evaluarTopeClasificacion(dia.count || 0, mes.count || 0, topesDeEntorno(Deno.env));
   if (!tope.permitido) return json(CORS, 429, { error: tope.mensaje });
 
   const key = Deno.env.get("ANTHROPIC_API_KEY");

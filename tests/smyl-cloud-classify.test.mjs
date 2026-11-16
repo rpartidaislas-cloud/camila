@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  CLOUD_CLASSIFY_MODEL, CLASSIFY_SCHEMA, CATEGORIAS, topesDeEntorno, evaluarTope, imagenValida, leerSugerencia,
+  CLOUD_CLASSIFY_MODEL, CLASSIFY_SCHEMA, CATEGORIAS, topesDeEntorno, evaluarTopeClasificacion, imagenValida, leerSugerencia,
 } from '../supabase/functions/_shared/cloud-classify-core.mjs';
 
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
@@ -39,9 +39,9 @@ test('la respuesta del modelo se valida; lo que no cumple el contrato se descart
 test('los topes diario y mensual se leen del entorno y frenan el gasto', () => {
   const topes = topesDeEntorno({ get: (k) => ({ CLOUD_CLASSIFY_DAILY_LIMIT: '5' }[k]) });
   assert.deepEqual(topes, { diario: 5, mensual: 3000 });
-  assert.equal(evaluarTope(4, 10, topes).permitido, true);
-  assert.equal(evaluarTope(5, 10, topes).permitido, false);
-  assert.equal(evaluarTope(1, 3000, topes).permitido, false);
+  assert.equal(evaluarTopeClasificacion(4, 10, topes).permitido, true);
+  assert.equal(evaluarTopeClasificacion(5, 10, topes).permitido, false);
+  assert.equal(evaluarTopeClasificacion(1, 3000, topes).permitido, false);
 });
 
 test('la función exige sesión, cloud.manage y poder ver el archivo; solo sugiere y mide el consumo', () => {
@@ -53,7 +53,7 @@ test('la función exige sesión, cloud.manage y poder ver el archivo; solo sugie
   assert.doesNotMatch(fn, /\.update\(|\.delete\(|smyl_cloud_update_file/);
   assert.doesNotMatch(fn, /display_name|patient_id/);
   assert.match(read('supabase/config.toml'), /\[functions\.cloud-classify\]\s+verify_jwt = true/);
-  assert.match(read('supabase/migrations/20261116200000_smyl_cloud_classify.sql'), /'mila_exam_dictation', 'cloud_classify'/);
+  assert.match(read('supabase/migrations/20261116230000_smyl_cloud_classify.sql'), /'mila_exam_dictation', 'cloud_classify'/);
 });
 
 test('la pantalla solo sugiere: confirmar es una acción explícita y la pista de paciente no vincula sola', () => {
