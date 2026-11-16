@@ -4,12 +4,13 @@
  * Se abre con ir('consultorio'), con ?ir=consultorio y, en la app instalada, es la pantalla de arranque. */
 (function () {
   'use strict';
-  var Q = window.SmylPatientQuick;
-  if (!Q) { console.error('[SMYL] consultorio: falta smyl-patient-quick.js'); return; }
+  var Q = window.SmylPatientQuick, V = window.SmylVisitModel;
+  if (!Q || !V) { console.error('[SMYL] consultorio: faltan smyl-patient-quick.js o smyl-visit-model.js'); return; }
 
   var STATUS = { in_progress: 'En consulta', arrived: 'En sala', confirmed: 'Por llegar' };
   var ORDER = ['in_progress', 'arrived', 'confirmed'];
-  var state = { tenant: null, loaded: false, loading: false, error: '', rows: [], names: {}, services: {}, access: null, accessTenant: null, done: 0, seq: 0, timer: null };
+  var state = { tenant: null, loaded: false, loading: false, error: '', rows: [], names: {}, services: {}, access: null, accessTenant: null, done: 0, seq: 0, timer: null, visit: null };
+  var MEMORY_KEY = 'smyl_visit', MEMORY_HOURS = 6;
 
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
@@ -29,6 +30,25 @@
     return url;
   }
   function openPatient(id) { if (typeof window.verPaciente === 'function') window.verPaciente(id); else if (typeof window.ir === 'function') window.ir('pacientes'); }
+  /* Abre el expediente y salta a una de sus secciones (history, files, ...). Usa los mismos accesos que el expediente
+   * («Más del expediente», data-p360-domain); como se arman al terminar de cargar, se espera hasta ~8 s. Si no aparecen,
+   * la persona se queda en el expediente. Un clic por código funciona aunque ese bloque esté plegado. */
+  async function openSection(id, key) {
+    if (typeof window.verPaciente !== 'function') return openPatient(id);
+    try { await window.verPaciente(id); } catch (e) { return; }
+    var selector = '#p-paciente-detalle [data-p360-domain="' + key + '"], #p-paciente-detalle [data-record-tab="' + key + '"]';
+    for (var i = 0; i < 80; i++) {
+      var tab = document.querySelector(selector);
+      if (tab) { tab.click(); return; }
+      await new Promise(function (r) { setTimeout(r, 100); });
+    }
+  }
+  function remember(id, name) { try { sessionStorage.setItem(MEMORY_KEY, JSON.stringify({ id: id, name: name, at: Date.now() })); } catch (e) {} }
+  function forget() { try { sessionStorage.removeItem(MEMORY_KEY); } catch (e) {} }
+  function remembered() {
+    try { var m = JSON.parse(sessionStorage.getItem(MEMORY_KEY) || 'null'); if (m && m.id && Date.now() - m.at < MEMORY_HOURS * 3600000) return m; } catch (e) {}
+    return null;
+  }
   function errorText(err) {
     var code = err && err.code, msg = String(err && err.message || '');
     if (code === '42501' || /permission|row-level security/i.test(msg)) return 'Tu rol no permite registrar pacientes. Pide al propietario que active «Pacientes · gestionar».';
@@ -83,6 +103,7 @@
     var inRoom = live.filter(function (r) { return r.status === 'in_progress'; }).length;
     if (sub) sub.textContent = state.loaded ? (state.rows.length ? 'Hoy: ' + state.rows.length + (state.rows.length === 1 ? ' cita' : ' citas') + (inRoom ? ', ' + inRoom + ' en consulta.' : '.') : 'Hoy no hay citas en la agenda.') : '';
     var newBtn = $('[data-co-new]'); if (newBtn) newBtn.hidden = !can('patients.manage');
+    renderResume();
     renderList();
   }
   function renderList() {
@@ -95,10 +116,10 @@
     var list = el('ul', 'co-people');
     live.forEach(function (r) {
       var p = state.names[r.patient_id], name = p ? Q.listName(p) : 'Paciente', li = el('li');
-      var btn = el('button', 'co-person'); btn.type = 'button'; btn.dataset.status = r.status; btn.setAttribute('aria-label', 'Abrir expediente de ' + name + ', ' + STATUS[r.status]);
+      var btn = el('button', 'co-person'); btn.type = 'button'; btn.dataset.status = r.status; btn.setAttribute('aria-label', 'Empezar la visita de ' + name + ', ' + STATUS[r.status]);
       var info = el('span', 'co-q'); info.append(el('b', '', name), el('small', '', fmtTime(r.starts_at) + (p && Q.isPending(p) && p.telefono ? ', ' + p.telefono : state.services[r.service_id] ? ', ' + state.services[r.service_id] : '')));
       btn.append(el('span', 'co-av', Q.initials(p && Q.isPending(p) ? '' : name)), info, el('span', 'co-chip', STATUS[r.status]));
-      btn.onclick = function () { openPatient(r.patient_id); };
+      btn.onclick = function () { openVisit(r.patient_id); };
       li.append(btn); list.append(li);
     });
     host.append(list);
@@ -115,7 +136,7 @@
       var li = el('li'), b = el('button', 'co-hit'); b.type = 'button';
       var info = el('span', 'co-q'); info.append(el('b', '', Q.listName(p)), el('small', '', p.telefono || p.email || 'Sin teléfono ni correo'));
       b.append(el('span', 'co-av', Q.initials(Q.isPending(p) ? '' : Q.displayName(p))), info);
-      b.onclick = function () { openPatient(p.id); };
+      b.onclick = function () { openVisit(p.id); };
       li.append(b); host.append(li);
     });
     if (!rows.length) {
@@ -180,7 +201,7 @@
     var box = el('div', 'co-dups'); box.setAttribute('role', 'alert'); box.append(el('strong', '', 'Ya existe alguien con ese teléfono'));
     hits.slice(0, 3).forEach(function (h) {
       var row = el('div', 'co-dup'); row.append(el('span', '', (h.name || 'Paciente') + (h.phone ? ', ' + h.phone : '')));
-      var use = el('button', 'co-link-btn', 'Abrir expediente'); use.type = 'button'; use.onclick = function () { closeDialog(); openPatient(h.id); };
+      var use = el('button', 'co-link-btn', 'Empezar su visita'); use.type = 'button'; use.onclick = function () { closeDialog(); openVisit(h.id); };
       row.append(use); box.append(row);
     });
     var again = el('button', 'co-link-btn', 'Es otra persona, crear de todos modos'); again.type = 'button'; again.onclick = other; box.append(again);
@@ -193,10 +214,119 @@
     d.querySelector('[data-co-cancel]').onclick = closeDialog;
     var actions = d.querySelector('.co-actions');
     function act(text, cls, fn) { var b = el('button', cls || 'co-secondary', text); b.type = 'button'; b.onclick = fn; actions.append(b); return b; }
-    act('Abrir expediente', 'co-submit', function () { closeDialog(); openPatient(row.id); });
+    act('Empezar la visita', 'co-submit', function () { closeDialog(); openVisit(row.id); });
     if (pending && typeof window.enviarEnlaceRegistro === 'function') act('Enviar enlace para que llene sus datos', 'co-secondary', function (e) { window.enviarEnlaceRegistro({ id: row.id, telefono: row.telefono }, e.currentTarget); });
-    act('Abrir el simulador', 'co-secondary', function () { location.href = simulatorUrl(row.id); });
     act('Listo', 'co-ghost', closeDialog);
+  }
+
+
+  /* ── Recorrido de la visita ── */
+  var STEP_MARK = { done: '✓', todo: '', unknown: '', optional: '' };
+  function showView(which) {
+    var home = $('[data-co-home]'), visit = $('[data-co-visit]');
+    if (home) home.hidden = which !== 'home';
+    if (visit) visit.hidden = which !== 'visit';
+    var r = root(); if (r && r.scrollIntoView) { try { r.scrollIntoView({ block: 'start' }); } catch (e) {} }
+  }
+  function appointmentOf(patientId) { return state.rows.filter(function (r) { return r.patient_id === patientId && ORDER.indexOf(r.status) >= 0; })[0] || null; }
+  async function loadVisit(id) {
+    var v = state.visit = { id: id, loading: true, error: '', patient: null, history: undefined, files: undefined };
+    renderVisit();
+    try {
+      var res = await Promise.all([
+        query(window.sb.from('camila_pacientes').select('*').eq('tenant_id', state.tenant).eq('id', id).maybeSingle()),
+        query(window.sb.from('smyl_patient_histories').select('document').eq('tenant_id', state.tenant).eq('patient_id', id).maybeSingle()).then(function (row) { return row ? Object.assign(window.SmylHistoryModel ? window.SmylHistoryModel.defaultHistory() : {}, row.document) : null; }).catch(function () { return undefined; }),
+        query(window.sb.from('smyl_patient_files').select('category').eq('tenant_id', state.tenant).eq('patient_id', id).eq('status', 'active').limit(300)).catch(function () { return undefined; })
+      ]);
+      if (state.visit !== v) return;
+      if (!res[0]) throw new Error('No encontré a este paciente.');
+      if (!state.access || state.accessTenant !== state.tenant) await loadAccess();
+      v.patient = res[0]; v.history = res[1]; v.files = res[2]; v.loading = false;
+      remember(id, Q.listName(v.patient) === 'Por registrar' ? (v.patient.telefono || 'Por registrar') : Q.displayName(v.patient));
+    } catch (e) { if (state.visit !== v) return; v.loading = false; v.error = errorText(e); }
+    renderVisit();
+  }
+  function openVisit(id) { showView('visit'); loadVisit(id); }
+  function closeVisit() { state.visit = null; showView('home'); renderResume(); }
+  function endVisit() { forget(); state.visit = null; showView('home'); renderResume(); renderPill('consultorio'); }
+  function visitAction(id, step, button) {
+    var v = state.visit, patient = v && v.patient; if (!patient) return;
+    if (id === 'complete') { if (typeof window.abrirModalPaciente === 'function') { window.abrirModalPaciente(patient.id); watchModal(patient.id); } }
+    else if (id === 'link') { if (typeof window.enviarEnlaceRegistro === 'function') window.enviarEnlaceRegistro({ id: patient.id, telefono: patient.telefono }, button); }
+    else if (id === 'confirm') confirmData(patient, button);
+    else if (id === 'history') openSection(patient.id, 'history');
+    else if (id === 'files') openSection(patient.id, 'files');
+    else if (id === 'simulator') location.href = simulatorUrl(patient.id);
+  }
+  async function confirmData(patient, button) {
+    button.disabled = true;
+    try {
+      var row = await query(window.sb.from('camila_pacientes').update({ registro_estado: 'completo', updated_at: new Date().toISOString() }).eq('id', patient.id).eq('tenant_id', state.tenant).eq('registro_estado', 'por_verificar').select('id').single());
+      if (!row) throw new Error('La confirmación no fue registrada.');
+      loadVisit(patient.id);
+    } catch (e) { button.disabled = false; var note = $('[data-co-visit-note]'); if (note) note.textContent = 'No se pudo confirmar. Puede que otra persona ya lo hiciera o que tu rol no lo permita; actualiza e inténtalo de nuevo.'; }
+  }
+  /* El formulario de datos es el del panel: al cerrarse, se vuelve a leer al paciente. */
+  function watchModal(id) {
+    var modal = document.getElementById('modal-paciente'), seen = false, ticks = 0;
+    if (!modal) return;
+    var timer = setInterval(function () {
+      var open = modal.classList.contains('visible'); // así abre y cierra el formulario del panel (abrirModalPaciente / cerrarModalPaciente)
+      ticks++;
+      if (open) seen = true;
+      if ((seen && !open) || ticks > 900) { clearInterval(timer); if (seen && state.visit && state.visit.id === id) loadVisit(id); }
+    }, 800);
+  }
+  function renderVisit() {
+    var host = $('[data-co-visit]'), v = state.visit; if (!host || !v) return;
+    host.replaceChildren();
+    var back = el('button', 'co-link-btn co-back', '‹ Consultorio'); back.type = 'button'; back.onclick = closeVisit; host.append(back);
+    if (v.loading) { host.append(el('p', 'co-note', 'Cargando al paciente…')); return; }
+    if (v.error) { var retry = el('button', 'co-retry', 'Intentar de nuevo'); retry.type = 'button'; retry.onclick = function () { loadVisit(v.id); }; host.append(el('p', 'co-note', v.error), retry); return; }
+    var p = v.patient, appt = appointmentOf(p.id), label = Q.listName(p), model = V.build({ patient: p, history: v.history, files: v.files, historyModel: window.SmylHistoryModel, canManage: can('patients.manage') });
+    var head = el('div', 'co-vhead'), who = el('div', 'co-q');
+    who.append(el('h1', 'co-vname', label), el('small', '', [p.telefono, appt ? STATUS[appt.status] + ', ' + fmtTime(appt.starts_at) : ''].filter(Boolean).join('. ')));
+    head.append(el('span', 'co-av co-av-lg', Q.initials(Q.isPending(p) ? '' : Q.displayName(p))), who); host.append(head);
+    var bar = el('div', 'co-bar'); bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', String(model.total)); bar.setAttribute('aria-valuenow', String(model.done)); bar.setAttribute('aria-label', 'Avance de la visita');
+    var fill = el('i'); fill.style.width = Math.round(model.done / model.total * 100) + '%'; bar.append(fill);
+    host.append(bar, el('p', 'co-vprogress', model.done === model.total ? 'Todo listo para esta visita.' : model.done + ' de ' + model.total + ' pasos listos.'));
+    var list = el('ol', 'co-steps');
+    model.steps.forEach(function (step, i) {
+      var li = el('li', 'co-step'); li.dataset.state = step.state; li.dataset.key = step.key; if (step.current) li.dataset.current = 'true';
+      var mark = el('span', 'co-mark', step.state === 'done' ? STEP_MARK.done : String(i + 1)); mark.setAttribute('aria-hidden', 'true');
+      var body = el('div', 'co-sbody'), t = el('b', '', step.title); body.append(t, el('small', '', step.text));
+      var acts = el('div', 'co-sacts');
+      step.actions.forEach(function (a) { var b = el('button', a.primary ? 'co-sgo' : 'co-sec', a.label); b.type = 'button'; b.onclick = function () { visitAction(a.id, step, b); }; acts.append(b); });
+      body.append(acts); li.append(mark, body); list.append(li);
+    });
+    host.append(list);
+    host.append(el('p', 'co-note', ''));
+    host.lastChild.dataset.coVisitNote = '';
+    var full = el('button', 'co-tile co-full', 'Abrir expediente completo'); full.type = 'button'; full.onclick = function () { openPatient(p.id); };
+    var done = el('button', 'co-link-btn co-end', 'Terminar la visita'); done.type = 'button'; done.onclick = endVisit;
+    host.append(full, done);
+  }
+  /* Mientras haya una visita sin terminar y se esté en otra pantalla (p. ej. el expediente), un botón fijo permite regresar a ella. */
+  function renderPill(route) {
+    var pill = document.getElementById('smyl-co-pill'), m = remembered();
+    if (!m || route === 'consultorio') { if (pill) pill.hidden = true; return; }
+    if (!pill) {
+      pill = el('button', 'smyl-co-pill'); pill.id = 'smyl-co-pill'; pill.type = 'button';
+      pill.onclick = function () { var again = remembered(); if (!again) return; if (typeof window.ir === 'function') window.ir('consultorio'); openVisit(again.id); };
+      document.body.append(pill);
+    }
+    pill.textContent = 'Volver a la visita de ' + m.name; pill.hidden = false;
+  }
+  /* Cuando se vuelve al Consultorio con una visita sin terminar, se ofrece retomarla (no se fuerza). */
+  function renderResume() {
+    var host = $('[data-co-resume]'); if (!host) return;
+    host.replaceChildren();
+    var m = remembered(); if (!m) { host.hidden = true; return; }
+    host.hidden = false;
+    var b = el('button', 'co-resume-btn'); b.type = 'button';
+    var info = el('span', 'co-q'); info.append(el('small', '', 'Visita en curso'), el('b', '', m.name));
+    b.append(info, el('span', 'co-chip', 'Continuar')); b.onclick = function () { openVisit(m.id); };
+    host.append(b);
   }
 
   /* ── Montaje ── */
@@ -205,14 +335,15 @@
     if (!host || root()) return;
     var page = el('section', 'pantalla consultorio'); page.id = 'p-consultorio'; page.setAttribute('aria-labelledby', 'co-title');
     page.innerHTML = '<div class="co-wrap"><header class="co-head"><span class="co-logo">SMYL</span><button type="button" class="co-link-btn" data-co-panel>Panel completo</button></header>'
-      + '<h1 id="co-title" data-co-greeting>Consultorio</h1><p class="co-sub" data-co-sub></p>'
+      + '<div data-co-home><h1 id="co-title" data-co-greeting>Consultorio</h1><p class="co-sub" data-co-sub></p><div data-co-resume hidden></div>'
       + '<button type="button" class="co-primary" data-co-new><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M3 20c0-3.5 3-6 7-6M18 8v6M15 11h6"/></svg>Paciente nuevo</button>'
       + '<div class="co-pair"><a class="co-tile" data-co-sim href="' + esc(simulatorUrl()) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/></svg>Simulador</a>'
       + '<button type="button" class="co-tile" data-co-agenda><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>Agenda</button></div>'
       + '<div class="co-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" data-co-q placeholder="Buscar paciente" aria-label="Buscar paciente" autocomplete="off" spellcheck="false"></div>'
       + '<ul class="co-results" data-co-results hidden></ul>'
-      + '<h2 class="co-sec">En el consultorio</h2><div data-co-list></div>'
+      + '<h2 class="co-heading">En el consultorio</h2><div data-co-list></div>'
       + '<footer class="co-foot"><button type="button" class="co-link-btn" data-co-logout>Cerrar sesión</button></footer></div>'
+      + '<div data-co-visit hidden></div></div>'
       + '<dialog id="co-dialog" class="co-dialog"></dialog>';
     host.append(page);
     page.querySelector('[data-co-new]').onclick = function () { openNew(); };
@@ -226,9 +357,9 @@
     build();
     if (window.TITULOS) window.TITULOS.consultorio = 'Consultorio';
     var previous = window.ir;
-    if (typeof previous === 'function') window.ir = function (name) { var result = previous(name); if (name === 'consultorio') { var q = $('[data-co-q]'); if (q) { q.value = ''; renderResults(null); } load(true); } return result; };
+    if (typeof previous === 'function') window.ir = function (name) { var result = previous(name); if (name === 'consultorio') { var q = $('[data-co-q]'); if (q) { q.value = ''; renderResults(null); } state.visit = null; showView('home'); renderResume(); load(true); } renderPill(name); return result; };
     window.addEventListener('smyl:appointments-changed', function () { if (state.loaded) load(true); });
   }
-  window.SmylConsultorio = { reload: function () { return load(true); } };
+  window.SmylConsultorio = { reload: function () { return load(true); }, openVisit: openVisit };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

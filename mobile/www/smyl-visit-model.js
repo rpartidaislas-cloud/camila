@@ -1,0 +1,47 @@
+/* SMYL · Recorrido de la visita: qué pasos tiene una visita y en qué estado está cada uno.
+ * Función pura (sin DOM ni red): recibe lo ya leído del paciente, su historia y sus archivos, y devuelve los pasos.
+ * Es una lista, no un candado: ningún paso bloquea a otro. El progreso cuenta solo los pasos de captura (no la simulación). */
+(function(root,factory){var api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SmylVisitModel=api;})(globalThis,function(){
+  'use strict';
+  var PENDING_PREFIX='Por registrar · ';
+  function plural(n,one,many){return n+' '+(n===1?one:many);}
+  function isPending(p){return !!p&&(p.registro_estado==='pendiente'||String(p.nombre||'').indexOf(PENDING_PREFIX)===0);}
+
+  function dataStep(p,canManage){
+    var base={key:'datos',title:'Datos del paciente',counts:true};
+    if(isPending(p))return Object.assign(base,{state:'todo',text:'Falta su nombre y sus datos.',actions:[{id:'complete',label:'Completar datos',primary:true},{id:'link',label:'Enviar enlace'}]});
+    if(p&&p.registro_estado==='por_verificar')return Object.assign(base,{state:'todo',text:'Los llenó el paciente. Falta confirmarlos.',actions:(canManage?[{id:'confirm',label:'Confirmar datos',primary:true}]:[]).concat([{id:'complete',label:'Revisar y editar',primary:!canManage}])});
+    return Object.assign(base,{state:'done',text:'Completos.',actions:[{id:'complete',label:'Editar datos'}]});
+  }
+
+  /* history: undefined = no se pudo leer, null = aún no existe, objeto = el documento de la historia. H = SmylHistoryModel. */
+  function historyStep(history,H){
+    var base={key:'historia',title:'Historia clínica',counts:true,actions:[{id:'history',label:'Abrir historia clínica',primary:true}]};
+    if(history===undefined||!H)return Object.assign(base,{state:'unknown',text:'Ábrela para ver cómo va.'});
+    if(history===null)return Object.assign(base,{state:'todo',text:'Todavía no se empieza.'});
+    var pending=H.pendingLabels(history),done=H.coverage(history),total=done+pending.length;
+    if(!pending.length)return Object.assign(base,{state:'done',text:'Completa: ' + done + ' de ' + total + ' confirmadas.',actions:[{id:'history',label:'Abrir historia clínica'}]});
+    return Object.assign(base,{state:'todo',text:done+' de '+total+' confirmadas. Falta: '+pending.slice(0,3).join(', ')+(pending.length>3?' y '+(pending.length-3)+' más':'')+'.'});
+  }
+
+  /* files: undefined = no se pudo leer, o la lista de {category}. */
+  function studiesStep(files){
+    var base={key:'estudios',title:'Fotos y radiografía',counts:true,actions:[{id:'files',label:'Subir o ver estudios',primary:true}]};
+    if(!Array.isArray(files))return Object.assign(base,{state:'unknown',text:'Ábrelos para ver qué hay.'});
+    var photos=files.filter(function(f){return f&&f.category==='clinical_photo';}).length,xrays=files.filter(function(f){return f&&f.category==='radiograph';}).length;
+    if(!photos&&!xrays)return Object.assign(base,{state:'todo',text:'Todavía no hay fotos ni radiografías.'});
+    return Object.assign(base,{state:'done',text:[photos?plural(photos,'foto','fotos'):'',xrays?plural(xrays,'radiografía','radiografías'):''].filter(Boolean).join(' y ')+'.',actions:[{id:'files',label:'Subir o ver estudios'}]});
+  }
+
+  function simulationStep(){return {key:'simulacion',title:'Simulación',counts:false,state:'optional',text:'Para mostrársela al paciente.',actions:[{id:'simulator',label:'Abrir el simulador'}]};}
+
+  function build(input){
+    input=input||{};
+    var steps=[dataStep(input.patient,!!input.canManage),historyStep(input.history,input.historyModel),studiesStep(input.files),simulationStep()];
+    var counted=steps.filter(function(s){return s.counts;}),done=counted.filter(function(s){return s.state==='done';}).length;
+    var current=counted.filter(function(s){return s.state!=='done';})[0];
+    steps.forEach(function(s){s.current=!!current&&s.key===current.key;});
+    return {steps:steps,done:done,total:counted.length,current:current?current.key:null};
+  }
+  return {build:build,isPending:isPending};
+});
