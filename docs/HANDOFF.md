@@ -1,5 +1,12 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-16 — Claude Code — MILA por voz: ya no se corta con un «ajá», una «o» o ruido
+
+- **Causa**: la sesión usaba `server_vad` (por volumen) con `interrupt_response: true`: cualquier sonido de ~0.1 s cortaba a MILA y luego retomaba (se sentía trabada).
+- **Cambio** (`mila-interview`, acción `realtime`): `semantic_vad` (`eagerness` `medium` por defecto) con `create_response:false` e `interrupt_response:false`. El servidor solo avisa cuándo terminó una idea; el celular decide (`mila-movil.html`, bloque `MARK:turns`): si MILA habla y el paciente dice algo corto o sin texto (ajá, mm, o, tos) **no se corta**; si dice una frase (≥3 palabras reales) se cancela (`response.cancel` + `output_audio_buffer.clear`) y se responde. Con MILA callada responde al terminar el paciente sin esperar la transcripción; ruidos de <0.45 s sin texto no generan respuesta. La respuesta de `realtime` trae `turn_control: client|server`.
+- **Configurable sin tocar código** (secretos de la función): `OPENAI_MILA_TURN_MODE=server` vuelve al esquema anterior (el celular no interviene); `OPENAI_MILA_VAD_EAGERNESS=low|medium|high|auto`. «low» espera más (menos cortes, más lento); «high» responde antes.
+- **Pendiente de validar con voz real** (no hay clave de OpenAI en este entorno): que `semantic_vad` con `create_response:false` siga emitiendo `speech_stopped`, la latencia del turno y si 3 palabras es el umbral correcto. Respaldo: si `speech_stopped` no llega, responde al llegar la transcripción. Comparar con audífonos y con altavoz (el eco es otra causa posible).
+- **Requiere volver a desplegar `mila-interview`.** En el celular solo cambia `mila-movil.html` (caché `mila-turnos-v1`). Pruebas: `smyl-mila-interview` 24/24 (simula 7 casos del control de turnos); suite con las mismas fallas que `main`; `deno check` OK.
 ## 2026-11-16 — Claude — Consultorio, etapa 3b: cierre de la visita
 
 - En el recorrido de la visita, el botón **Cerrar la visita** abre una pantalla de cierre. No bloquea nada: se puede terminar con pasos pendientes, que siguen en «Te falta resolver».

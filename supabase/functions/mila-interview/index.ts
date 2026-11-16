@@ -52,6 +52,12 @@ const EXTRACT_REASONING = Deno.env.get("OPENAI_MILA_INTERVIEW_REASONING") ?? "lo
 const REALTIME_MODEL = Deno.env.get("OPENAI_REALTIME_MODEL") || "gpt-realtime-2.1";
 // Voz femenina por defecto; se puede probar otra sin tocar código (ej. coral, shimmer, sage).
 const REALTIME_VOICE = Deno.env.get("OPENAI_MILA_INTERVIEW_VOICE") || Deno.env.get("OPENAI_REALTIME_VOICE") || "marin";
+// Turnos de la conversación. «semantic» (por defecto): detector semántico —entiende cuándo terminó una idea, no solo si hay
+// sonido— y el celular decide cuándo interrumpir a MILA (un «ajá», «o» o una tos no la cortan). «server»: el esquema anterior
+// (VAD por volumen que corta a MILA con cualquier sonido); sirve de regreso rápido sin tocar el celular.
+const TURN_MODE = (Deno.env.get("OPENAI_MILA_TURN_MODE") || "semantic").toLowerCase() === "server" ? "server" : "semantic";
+const VAD_EAGERNESS = ["low", "medium", "high", "auto"].includes((Deno.env.get("OPENAI_MILA_VAD_EAGERNESS") || "").toLowerCase())
+  ? (Deno.env.get("OPENAI_MILA_VAD_EAGERNESS") || "").toLowerCase() : "medium";
 const REALTIME_TRANSCRIBE_MODEL = Deno.env.get("OPENAI_REALTIME_TRANSCRIBE_MODEL") || "gpt-transcribe";
 const CONSUMABLES_ENFORCED = (Deno.env.get("SMYL_CONSUMABLES_ENFORCED") || "false") === "true";
 // Tarifas opcionales (USD por millón de tokens) para estimar costo. Sin configurar, el costo queda vacío.
@@ -796,7 +802,9 @@ Deno.serve(async (req: Request) => {
           transcription: { model: REALTIME_TRANSCRIBE_MODEL, languages: ["es"] },
           // Filtra ruido del consultorio (compresor, succión, música); far_field porque el celular queda sobre la mesa, no pegado a la boca.
           noise_reduction: { type: "far_field" },
-          turn_detection: { type: "server_vad", threshold: 0.62, prefix_padding_ms: 300, silence_duration_ms: 800, create_response: true, interrupt_response: true },
+          turn_detection: TURN_MODE === "semantic"
+            ? { type: "semantic_vad", eagerness: VAD_EAGERNESS, create_response: false, interrupt_response: false }
+            : { type: "server_vad", threshold: 0.62, prefix_padding_ms: 300, silence_duration_ms: 800, create_response: true, interrupt_response: true },
         },
         output: { voice: REALTIME_VOICE },
       },
@@ -823,7 +831,7 @@ Deno.serve(async (req: Request) => {
         result: { ...(fresh?.result || {}), realtime: { started_at: startedAt } },
         updated_at: startedAt,
       }).eq("id", row.id);
-      return json(200, { answer_sdp: answer, started_at: startedAt });
+      return json(200, { answer_sdp: answer, started_at: startedAt, turn_control: TURN_MODE === "semantic" ? "client" : "server" });
     } catch (error) {
       console.error("[mila-interview:realtime]", row.id, error instanceof Error ? error.message : error);
       return json(502, { error: "No se pudo conectar con el servicio de voz." });
