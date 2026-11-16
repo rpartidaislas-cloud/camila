@@ -26,7 +26,7 @@
 #p-consultorio .co-hit,#p-consultorio .co-person{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border:0;background:none;color:#fff;text-align:left;cursor:pointer}
 #p-consultorio .co-hit:hover,#p-consultorio .co-person:hover{background:rgba(255,255,255,.07)}
 #p-consultorio .co-none{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;color:var(--co-apagado);font-size:14px}
-#p-consultorio .co-sec{margin:24px 0 4px;font-size:16px;font-weight:600}
+#p-consultorio .co-heading{margin:24px 0 4px;font-size:16px;font-weight:600}
 #p-consultorio .co-people{list-style:none;margin:0;padding:0}
 #p-consultorio .co-people li{border-top:1px solid var(--co-linea)}
 #p-consultorio .co-people li:first-child{border-top:0}
@@ -72,3 +72,40 @@
 #p-consultorio .co-dialog .co-link-btn{color:#176B63}
 @media(max-width:520px){#p-consultorio .co-wrap{padding:16px 16px 22px;border-radius:14px}#p-consultorio h1{font-size:27px}}
 @media(prefers-reduced-motion:reduce){#p-consultorio *{transition:none!important}}
+
+/* Recorrido de la visita */
+#p-consultorio [hidden]{display:none!important}
+#p-consultorio .co-back{display:block;margin:0 0 6px -2px}
+#p-consultorio .co-vhead{display:flex;align-items:center;gap:14px;margin:6px 0 14px}
+#p-consultorio .co-av-lg{width:48px;height:48px;font-size:15px}
+#p-consultorio .co-vname{margin:0;font-size:24px;line-height:1.15}
+#p-consultorio .co-vhead small{display:block;margin-top:2px;color:var(--co-apagado);font-size:13.5px}
+#p-consultorio .co-bar{height:6px;border-radius:3px;background:rgba(255,255,255,.14);overflow:hidden}
+#p-consultorio .co-bar i{display:block;height:100%;background:var(--co-menta);transition:width .25s}
+#p-consultorio .co-vprogress{margin:8px 0 12px;color:var(--co-apagado);font-size:13.5px}
+#p-consultorio .co-steps{list-style:none;margin:0;padding:0}
+#p-consultorio .co-step{display:flex;gap:14px;padding:14px 0;border-top:1px solid var(--co-linea)}
+#p-consultorio .co-step:first-child{border-top:0}
+#p-consultorio .co-step[data-current=true]{margin:2px -12px;padding:14px 12px;border:1px solid rgba(111,211,195,.55);border-radius:14px;background:rgba(111,211,195,.07)}
+#p-consultorio .co-mark{display:grid;place-items:center;flex:none;width:28px;height:28px;margin-top:1px;border:2px solid rgba(255,255,255,.3);border-radius:50%;color:var(--co-apagado);font-size:13px;font-weight:700}
+#p-consultorio .co-step[data-state=done] .co-mark{border-color:var(--co-menta);background:var(--co-menta);color:#08241f}
+#p-consultorio .co-step[data-current=true] .co-mark{border-color:var(--co-menta);color:var(--co-menta)}
+#p-consultorio .co-sbody{flex:1;min-width:0}
+#p-consultorio .co-sbody b{display:block;font-size:17px;font-weight:600}
+#p-consultorio .co-sbody small{display:block;margin-top:2px;color:var(--co-apagado);font-size:13.5px;line-height:1.45}
+#p-consultorio .co-sacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+#p-consultorio .co-sgo,#p-consultorio .co-sec{min-height:40px;padding:0 14px;border-radius:11px;font-size:14px;font-weight:600;cursor:pointer}
+#p-consultorio .co-sgo{border:0;background:var(--co-menta);color:#08241f}
+#p-consultorio .co-sec{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff}
+#p-consultorio .co-sgo:disabled,#p-consultorio .co-sec:disabled{opacity:.6;cursor:wait}
+#p-consultorio .co-full{width:100%;margin-top:14px}
+#p-consultorio .co-end{display:block;margin:12px auto 0;color:var(--co-apagado);font-weight:500}
+#p-consultorio .co-resume-btn{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 14px;padding:12px 14px;border:1px solid rgba(111,211,195,.5);border-radius:13px;background:rgba(111,211,195,.08);color:#fff;text-align:left;cursor:pointer}
+#p-consultorio .co-resume-btn small{display:block;color:var(--co-menta);font-size:12.5px;font-weight:600}
+#p-consultorio .co-resume-btn b{display:block;font-size:16px}
+#p-consultorio .co-resume-btn .co-chip{background:var(--co-menta);color:#08241f}
+
+/* Botón fijo «Volver a la visita» (fuera de la pantalla, por eso no lleva el prefijo #p-consultorio) */
+.smyl-co-pill{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:900;max-width:calc(100% - 32px);padding:11px 18px;border:0;border-radius:999px;background:#0F2236;color:#fff;font:600 14px var(--smyl-ui-font,"Open Sans",Inter,system-ui,sans-serif);box-shadow:0 8px 24px rgba(10,22,38,.35);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.smyl-co-pill[hidden]{display:none}
+.smyl-co-pill:focus-visible{outline:3px solid #6FD3C3;outline-offset:2px}

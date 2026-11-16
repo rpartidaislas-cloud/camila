@@ -1,5 +1,19 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-16 — Claude — Consultorio, etapa 2: el recorrido de la visita
+
+- Tocar a un paciente en «En el consultorio», en la búsqueda, o crearlo con «Paciente nuevo» ahora abre su **visita** (antes abría el expediente): nombre y estado de la cita arriba, barra de avance y cuatro pasos. Es una lista, no un candado: todo se puede abrir en cualquier orden.
+  1. **Datos del paciente**: completos / por registrar (completar datos con el formulario del panel o enviar el enlace) / por verificar (Confirmar datos si hay `patients.manage`, si no solo revisar).
+  2. **Historia clínica**: «x de 6 confirmadas, falta: …» calculado con `SmylHistoryModel` sobre `smyl_patient_histories`.
+  3. **Fotos y radiografía**: cuenta `smyl_patient_files` activos (`clinical_photo`, `radiograph`).
+  4. **Simulación**: abre el simulador con el paciente ya ligado (solo cuenta dueña, como en la ficha).
+  El avance cuenta los tres pasos de captura; la simulación es opcional. Lo que no se puede leer (permisos) queda «desconocido», nunca se da por hecho ni por faltante.
+- La lógica de pasos es pura: `smyl-visit-model.js` (8 pruebas con el modelo real de la historia). La pantalla solo la pinta.
+- **Se recuerda la visita**: al volver al Consultorio aparece «Visita en curso» y, mientras haya una sin terminar y se esté en otra pantalla (p. ej. el expediente), un botón fijo «Volver a la visita de …». Se guarda en `sessionStorage` (`smyl_visit`, 6 h) y se quita con «Terminar la visita». No se tocó el menú lateral (muchas pruebas lo fijan).
+- «Abrir historia» y «Subir o ver estudios» abren el expediente y pulsan los accesos reales de «Más del expediente» (`[data-p360-domain="history"|"files"]`, también funcionan plegados); si no aparecen en ~8 s la persona se queda en el expediente. El formulario de datos es el del panel (`abrirModalPaciente`, `#modal-paciente.visible`); al cerrarlo se vuelve a leer al paciente.
+- Pruebas: `tests/smyl-consultorio.test.mjs` ahora 23 (navegador, módulo real contra Supabase simulado; mutaciones comprobadas). Web y `mobile/www` sincronizados: `smyl-consultorio.js?v=2`, `.css?v=2`, `smyl-visit-model.js?v=1`, caché `visita-v1`. Sin migración.
+- **No probado en el panel real** (exige sesión): el salto a la historia y a estudios depende del expediente real, y el formulario de datos del panel real. Probar en el celular con un paciente.
+- Sigue: etapa 3 (historia por preguntas y cierre de la visita) y etapa 4 (código QR y firma del aviso de privacidad).
 ## 2026-11-16 — Claude Code — Botón «Enlace de pago» oculto hasta activar el cobro en línea
 
 - `smyl-finance.js` solo muestra **Enlace de pago** si `window.SMYL_ONLINE_PAY===true` (por defecto no). Motivo: `smyl-pay` y la migración de pagos aún no están desplegados, así que el botón fallaría. Para activarlo, tras desplegar y probar en sandbox, definir `window.SMYL_ONLINE_PAY=true` (p. ej. desde la config de la clínica) y subir la versión del script. Versión `smyl-finance.js?v=44`.
