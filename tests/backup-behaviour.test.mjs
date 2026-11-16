@@ -46,6 +46,8 @@ case "$1 $2" in
     dest="\${@: -1}"; [ -n "$FAIL_BUCKET" ] && [[ "$*" == *"$FAIL_BUCKET"* ]] && { echo "error de prueba: sin permiso (clave $SUPABASE_DB_PASSWORD)" >&2; exit 1; }
     # Como la CLI 2.x real: un destino con «:» (C:\…) se toma por URL y se rechaza.
     if [[ "$dest" == *:* ]]; then echo "Unsupported operation" >&2; exit 1; fi
+    if [ -n "$FAKE_FLAKY_FILE" ]; then n=$(cat "$FAKE_FLAKY_FILE" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "$FAKE_FLAKY_FILE"
+      if [ "$n" -le "$FAKE_FLAKY_FAILS" ]; then mkdir -p "$dest"; echo "parcial" > "$dest/parcial.tmp"; echo "failed to execute http request: HttpClientError: Transport error" >&2; exit 1; fi; fi
     [ -n "$FAKE_CP_NESTED" ] && dest="$dest/$dest"
     mkdir -p "$dest"; echo "objeto uno" > "$dest/a.png"; echo "objeto dos" > "$dest/b.png";;
 esac
@@ -63,7 +65,7 @@ function runBackup(ctx, out, extraEnv = {}) {
   return spawnSync(process.execPath, [backupScript, `--out=${out}`, ...(extraEnv.args || [])], {
     encoding: 'utf8',
     env: { ...process.env, PATH: `${ctx.bin}:${process.env.PATH}`, TMPDIR: ctx.tmp, FAKE_BUCKETS: BUCKETS.join(' '),
-      SMYL_BACKUP_CONFIRM: 'EXPORT_ENCRYPTED_CLINICAL_BACKUP', SMYL_BACKUP_AGE_RECIPIENT: ctx.recipient, SUPABASE_DB_PASSWORD: 'secreto123', FAKE_LOG: path.join(ctx.dir, 'cli.log'), FAKE_CLI: '', FAKE_STORAGE_EXPERIMENTAL: '', FAKE_DOCKER_DOWN: '', ...extraEnv.env }
+      SMYL_BACKUP_CONFIRM: 'EXPORT_ENCRYPTED_CLINICAL_BACKUP', SMYL_BACKUP_AGE_RECIPIENT: ctx.recipient, SUPABASE_DB_PASSWORD: 'secreto123', FAKE_LOG: path.join(ctx.dir, 'cli.log'), FAKE_CLI: '', FAKE_STORAGE_EXPERIMENTAL: '', FAKE_DOCKER_DOWN: '', SMYL_BACKUP_RETRY_WAIT_MS: '0', ...extraEnv.env }
   });
 }
 const verify = (ctx, bundle, key = ctx.key) => spawnSync(process.execPath, [verifyScript, `--bundle=${bundle}`, `--identity=${key}`], { encoding: 'utf8', env: { ...process.env, TMPDIR: ctx.tmp } });
@@ -233,5 +235,28 @@ test('si la CLI anida el bucket dentro de sí mismo, el respaldo lo aplana', { s
     assert.match(tarList, /\.\/camila-fotos\/a\.png/);
     assert.doesNotMatch(tarList, /camila-fotos\/camila-fotos/, 'sin anidación');
     assert.equal(verify(ctx, out).status, 0);
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('un corte de red en la descarga se reintenta y no deja restos parciales', { skip }, () => {
+  const ctx = setup();
+  try {
+    const out = path.join(ctx.dir, 'paquete');
+    const result = runBackup(ctx, out, { env: { FAKE_FLAKY_FILE: path.join(ctx.dir, 'flaky.count'), FAKE_FLAKY_FAILS: '2' } });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stderr, /se reintenta/);
+    const manifest = JSON.parse(fs.readFileSync(path.join(out, 'manifest.json'), 'utf8'));
+    assert.equal(Object.values(manifest.storage).reduce((sum, item) => sum + item.objects, 0), BUCKETS.length * 2, 'sin el archivo parcial');
+    assert.equal(verify(ctx, out).status, 0);
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('si la red falla en todos los intentos, aborta y limpia lo temporal', { skip }, () => {
+  const ctx = setup();
+  try {
+    const result = runBackup(ctx, path.join(ctx.dir, 'paquete'), { env: { FAKE_FLAKY_FILE: path.join(ctx.dir, 'flaky.count'), FAKE_FLAKY_FAILS: '99' } });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /falló tras 4 intentos/);
+    assert.deepEqual(fs.readdirSync(ctx.tmp), []);
   } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
 });

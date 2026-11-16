@@ -13,6 +13,9 @@ const BUCKETS = [
   'smyl-proposal-photos', 'smyl-professional-cv', 'smyl-professional-cases',
   'smyl-professional-public', 'mila-audio',
 ];
+const STORAGE_ATTEMPTS = 4;
+const RETRY_WAIT_MS = Number.isFinite(Number(process.env.SMYL_BACKUP_RETRY_WAIT_MS)) ? Number(process.env.SMYL_BACKUP_RETRY_WAIT_MS) : 5000;
+const sleep = (ms) => { if (ms > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); };
 const dryRun = process.argv.includes('--dry-run');
 const outputArg = process.argv.find((arg) => arg.startsWith('--out='));
 const recipient = String(process.env.SMYL_BACKUP_AGE_RECIPIENT || '').trim();
@@ -124,7 +127,17 @@ try {
       fs.mkdirSync(destination, { recursive: true });
       // La CLI 2.x toma una ruta con letra de unidad (C:\...) por una URL y rechaza la copia («Unsupported operation»):
       // se ejecuta desde la carpeta de Storage con un destino relativo, sin dos puntos.
-      run('npx', storageCmd('cp', TARGET, '--recursive', `ss:///${bucket}`, bucket), { cwd: storageDir });
+      // Un corte de red momentáneo («Transport error») no debe tirar un respaldo de horas: se reintenta el bucket completo
+      // desde cero (se vacía lo parcial para no mezclar descargas) y sólo se aborta si falla todas las veces.
+      for (let attempt = 1; ; attempt += 1) {
+        const result = exec('npx', storageCmd('cp', TARGET, '--recursive', `ss:///${bucket}`, bucket), { cwd: storageDir });
+        if (result.status === 0) break;
+        if (attempt >= STORAGE_ATTEMPTS) abort(`npx supabase storage cp ${bucket} falló tras ${STORAGE_ATTEMPTS} intentos.\n${failureDetail(result)}`);
+        console.error(`Aviso · la descarga de «${bucket}» falló (intento ${attempt} de ${STORAGE_ATTEMPTS}); se reintenta.`);
+        fs.rmSync(destination, { recursive: true, force: true });
+        fs.mkdirSync(destination, { recursive: true });
+        sleep(RETRY_WAIT_MS * attempt);
+      }
       // Algunas versiones crean <bucket>/<bucket>/…: se aplana para que el respaldo quede como <bucket>/<objeto>.
       const top = fs.readdirSync(destination, { withFileTypes: true });
       if (top.length === 1 && top[0].isDirectory() && top[0].name === bucket) {
