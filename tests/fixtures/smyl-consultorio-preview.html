@@ -78,6 +78,8 @@
   window.abrirModalPaciente=function(id){window.__log.push(['abrirModal',id]);var m=document.getElementById('modal-paciente');if(!m){m=document.createElement('div');m.id='modal-paciente';document.body.append(m);}m.className='modal-bg visible';m.textContent='modal';window.__cerrarModal=function(){m.classList.remove('visible');};};
   window.enviarEnlaceRegistro=function(p){window.__log.push(['enlace',p.id,p.telefono]);};
   window.cerrarSesion=function(){window.__log.push(['cerrarSesion']);};
+  window.SmylSchedule={bookFor:function(p){window.__log.push(['bookFor',p.id,p.nombre,p.telefono]);}};
+  window.open=function(u){window.__log.push(['open',u]);return null;};
   window.sbTimeout=function(x){return x;};
   var now=new Date();function at(h,m){var d=new Date(now);d.setHours(h,m,0,0);return d.toISOString();}
   var h=q.get('h')||'parcial',f=q.get('f')||'algunos';
@@ -89,6 +91,7 @@
   function builder(table){
     var b={_t:table,_ins:null};
     ['select','gte','lt','in','order','limit','single'].forEach(function(m){b[m]=function(){return b;};});
+    b.gt=function(){b._gt=true;return b;};
     b.eq=function(c,v){if(c==='id'||c==='patient_id')b._id=v;return b;};
     b.maybeSingle=function(){b._one=true;return b;};
     b.update=function(v){b._upd=v;window.__updates.push(Object.assign({table:table},v));return b;};
@@ -96,6 +99,7 @@
     b.then=function(ok,fail){
       var r;
       if(caso==='error'&&table==='smyl_appointments')r={data:null,error:{message:'Sin conexión con el servidor.'}};
+      else if(table==='smyl_appointments'&&b._gt){var prox=q.get('prox')||'si';r=prox==='error'?{data:null,error:{message:'sin permiso'}}:{data:prox==='no'?[]:[{starts_at:new Date(Date.now()+3*86400000).toISOString()}],error:null};}
       else if(b._upd)r={data:{id:'x'},error:null};
       else if(table==='smyl_patient_histories'){if(h==='error')r={data:null,error:{message:'sin permiso'}};else r={data:h==='ninguna'?null:{revision:3,document:h==='completa'?{allergies_status:'no',conditions_status:'no',medications_status:'no',surgeries_status:'no',dental_status:'no',habits_status:'no'}:{allergies_status:'no'}},error:null};}
       else if(table==='smyl_patient_files'){if(f==='error')r={data:null,error:{message:'sin permiso'}};else r={data:f==='ninguno'?[]:[{category:'clinical_photo'},{category:'radiograph'},{category:'radiograph'}],error:null};}

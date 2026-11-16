@@ -99,7 +99,6 @@
 #p-consultorio .co-sec{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff}
 #p-consultorio .co-sgo:disabled,#p-consultorio .co-sec:disabled{opacity:.6;cursor:wait}
 #p-consultorio .co-full{width:100%;margin-top:14px}
-#p-consultorio .co-end{display:block;margin:12px auto 0;color:var(--co-apagado);font-weight:500}
 #p-consultorio .co-resume-btn{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 14px;padding:12px 14px;border:1px solid rgba(111,211,195,.5);border-radius:13px;background:rgba(111,211,195,.08);color:#fff;text-align:left;cursor:pointer}
 #p-consultorio .co-resume-btn small{display:block;color:var(--co-menta);font-size:12.5px;font-weight:600}
 #p-consultorio .co-resume-btn b{display:block;font-size:16px}
@@ -146,4 +145,19 @@
 #p-consultorio .co-review .co-q small{white-space:normal}
 #p-consultorio .co-problem{color:#F6B8AE!important}
 #p-consultorio .co-error-box{margin:10px 0 0;padding:10px 12px;border-radius:11px;background:rgba(180,64,47,.22);color:#FBD3CC;font-size:14px}
-#p-consultorio .co-success{margin:0 0 12px;padding:10px 12px;border-radius:11px;background:rgba(111,211,195,.16);color:var(--co-menta);font-size:14px;font-weight:600}
+#p-consultorio .co-success,#p-consultorio .co-flash{margin:0 0 12px;padding:10px 12px;border-radius:11px;background:rgba(111,211,195,.16);color:var(--co-menta);font-size:14px;font-weight:600}
+
+/* Cierre de la visita */
+#p-consultorio .co-closing li{align-items:center}
+#p-consultorio .co-cmark{display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.3);color:var(--co-apagado);font-size:13px;font-weight:700}
+#p-consultorio .co-cmark[data-state=done]{border-color:var(--co-menta);background:var(--co-menta);color:#08241f}
+#p-consultorio .co-cmark[data-state=todo]{border-color:#F3C26B;color:#F6D79B}
+#p-consultorio .co-closing li{gap:12px;justify-content:flex-start}
+#p-consultorio .co-closing .co-q{flex:1}
+#p-consultorio .co-csec{display:grid;gap:6px;margin:14px 0 0;padding:14px;border:1px solid rgba(255,255,255,.16);border-radius:14px;background:rgba(255,255,255,.04)}
+#p-consultorio .co-csec b{font-size:16px}
+#p-consultorio .co-csec small{color:var(--co-apagado);font-size:13.5px;line-height:1.45}
+#p-consultorio .co-csec .co-sgo,#p-consultorio .co-csec .co-sec{min-height:48px;margin-top:4px}
+#p-consultorio .co-msg{margin:2px 0 4px;padding:10px 12px;border-radius:11px;background:rgba(255,255,255,.08);color:#fff;font-size:14.5px;line-height:1.5}
+#p-consultorio .co-endfull{width:100%;min-height:54px;margin-top:18px;font-size:16px}
+#p-consultorio .co-close{width:100%;min-height:52px;margin-top:10px;font-size:16px}

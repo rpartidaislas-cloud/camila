@@ -87,3 +87,22 @@ test('la entrevista de historia solo se ofrece a quien puede escribir datos clí
   assert.deepEqual(ids({ patient: completo, history: undefined, historyModel: H, canWriteClinical: true }), ['history*'], 'si no se pudo leer, no se escribe a ciegas');
   assert.equal(V.build({ patient: completo, history: medias, historyModel: H, canWriteClinical: true }).steps[1].actions[0].label, 'Completar la historia');
 });
+
+test('cierre: lista lo hecho, lo que falta y lo que no se pudo comprobar', () => {
+  const medias = H.defaultHistory(); medias.allergies_status = 'no';
+  const c = V.closing(V.build({ patient: completo, history: medias, files: undefined, historyModel: H }));
+  assert.deepEqual(c.items.map((i) => [i.key, i.state]), [['datos', 'done'], ['historia', 'todo'], ['estudios', 'unknown']]);
+  assert.equal(c.missing, 1);
+  assert.equal(c.unchecked, 1);
+  assert.ok(!c.items.some((i) => i.key === 'simulacion'), 'la simulación es opcional y no cuenta');
+  const todo = V.closing(V.build({ patient: completo, history: historiaConfirmada(), files: [{ category: 'radiograph' }], historyModel: H }));
+  assert.deepEqual([todo.missing, todo.unchecked], [0, 0]);
+});
+
+test('mensaje de despedida: cortesía y próxima cita, nunca datos clínicos', () => {
+  assert.equal(V.farewell({ name: 'Cristian Partida', nextText: 'martes 17 de noviembre a las 4:00 pm' }), 'Hola Cristian, gracias por tu visita. Tu próxima cita es el martes 17 de noviembre a las 4:00 pm. ¡Hasta pronto!');
+  assert.equal(V.farewell({ name: 'Ana', nextText: '' }), 'Hola Ana, gracias por tu visita. Cuando quieras agendar tu próxima cita, escríbenos por aquí. ¡Hasta pronto!');
+  assert.equal(V.farewell({ name: 'Por registrar · +52 3312345678', nextText: '' }).startsWith('Hola, gracias por tu visita.'), true, 'una ficha por registrar no se saluda con su teléfono');
+  assert.equal(V.farewell({}).startsWith('Hola, gracias por tu visita.'), true);
+  assert.doesNotMatch(V.farewell({ name: 'Ana', nextText: 'x' }), /alerg|diagn|medic|radiograf|saldo|cobro|\$/i);
+});
