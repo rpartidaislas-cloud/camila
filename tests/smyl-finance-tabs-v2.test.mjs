@@ -86,7 +86,7 @@ test('la cuenta del paciente separa el texto, muestra estado y último pago, y o
   assert.match(acc, /data-account-tab="payments"[^>]*>Historial/);
   assert.match(acc, /<summary>Liquidados \(/);
   assert.match(acc, /id="account-advance">Registrar anticipo/);
-  assert.match(acc, /snapshot\.due>0\?'<button type="button" id="account-link">Enlace de pago<\/button><button type="button" class="btn btn-primary" id="account-pay">Cobrar/);
+  assert.match(acc, /snapshot\.due>0\?\(window\.SMYL_ONLINE_PAY===true\?'<button type="button" id="account-link">Enlace de pago<\/button>':''\)\+'<button type="button" class="btn btn-primary" id="account-pay">Cobrar/);
   assert.match(acc, /data-account-receipt/);
   assert.match(acc, /shareReceipt\(/);
   assert.doesNotMatch(acc, /Sin fecha de vencimiento/);
