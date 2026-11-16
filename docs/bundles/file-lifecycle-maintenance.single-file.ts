@@ -178,6 +178,7 @@ const FILE_RULES: Record<string, FileRule> = {
   'smyl-proposal-photos': { max: 8 * 1024 * 1024, mime: ['image/jpeg'] },
   'smyl-professional-cv': { max: 10 * 1024 * 1024, mime: ['application/pdf'] },
   'smyl-professional-cases': { max: 10 * 1024 * 1024, mime: ['image/jpeg','image/png','image/webp','application/pdf'] },
+  'smyl-cloud': { max: 20 * 1024 * 1024, mime: ['image/jpeg','image/png','image/webp','application/pdf'] },
 };
 function bytesHex(bytes: Uint8Array): string { return Array.from(bytes).map((x)=>x.toString(16).padStart(2,'0')).join(''); }
 function detectMime(bytes: Uint8Array): string | null {
@@ -280,6 +281,21 @@ Deno.serve(async(req:Request)=>{
         const removedRow=await admin.from('mila_recordings').delete().eq('id',recording.id).eq('tenant_id',tenant);
         if(removedRow.error)throw removedRow.error;deleted++;
       }catch(error){errors++;console.error('[file-lifecycle] mila-audio',error instanceof Error?error.message:'error');}
+    }
+
+    // Papelera de la Nube: a los 30 días se elimina el archivo definitivamente (primero el objeto, luego la fila y su registro).
+    const cutoff=new Date(Date.now()-30*24*60*60*1000).toISOString();
+    const expiredCloud=await admin.from('smyl_cloud_files').select('id,storage_path').eq('tenant_id',tenant).eq('status','trashed').lte('trashed_at',cutoff).limit(50);
+    if(expiredCloud.error)throw expiredCloud.error;
+    for(const file of expiredCloud.data||[]){
+      try{
+        const removedCloud=await admin.storage.from('smyl-cloud').remove([file.storage_path]);
+        if(removedCloud.error)throw removedCloud.error;
+        const removedCloudRow=await admin.from('smyl_cloud_files').delete().eq('id',file.id).eq('tenant_id',tenant).eq('status','trashed');
+        if(removedCloudRow.error)throw removedCloudRow.error;
+        const loggedCloud=await admin.rpc('smyl_record_file_deletion',{p_tenant:tenant,p_bucket:'smyl-cloud',p_path:file.storage_path,p_reason:'cloud_trash_expired',p_existed:Array.isArray(removedCloud.data)&&removedCloud.data.length>0,p_actor:actor});
+        if(loggedCloud.error)throw loggedCloud.error;deleted++;
+      }catch(error){errors++;console.error('[file-lifecycle] smyl-cloud',error instanceof Error?error.message:'error');}
     }
 
     const legacy=await admin.rpc('smyl_file_legacy_candidates',{p_tenant:tenant,p_limit:3});

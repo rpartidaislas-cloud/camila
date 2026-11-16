@@ -4,13 +4,14 @@
  * Se abre con ir('consultorio'), con ?ir=consultorio y, en la app instalada, es la pantalla de arranque. */
 (function () {
   'use strict';
-  var Q = window.SmylPatientQuick, V = window.SmylVisitModel;
+  var Q = window.SmylPatientQuick, V = window.SmylVisitModel, I = window.SmylHistoryInterview;
   if (!Q || !V) { console.error('[SMYL] consultorio: faltan smyl-patient-quick.js o smyl-visit-model.js'); return; }
 
   var STATUS = { in_progress: 'En consulta', arrived: 'En sala', confirmed: 'Por llegar' };
   var ORDER = ['in_progress', 'arrived', 'confirmed'];
   var state = { tenant: null, loaded: false, loading: false, error: '', rows: [], names: {}, services: {}, access: null, accessTenant: null, done: 0, seq: 0, timer: null, visit: null };
   var MEMORY_KEY = 'smyl_visit', MEMORY_HOURS = 6;
+  state.interview = null; state.notice = '';
 
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
@@ -104,6 +105,7 @@
     if (sub) sub.textContent = state.loaded ? (state.rows.length ? 'Hoy: ' + state.rows.length + (state.rows.length === 1 ? ' cita' : ' citas') + (inRoom ? ', ' + inRoom + ' en consulta.' : '.') : 'Hoy no hay citas en la agenda.') : '';
     var newBtn = $('[data-co-new]'); if (newBtn) newBtn.hidden = !can('patients.manage');
     renderResume();
+    renderFlash();
     renderList();
   }
   function renderList() {
@@ -223,37 +225,42 @@
   /* ── Recorrido de la visita ── */
   var STEP_MARK = { done: '✓', todo: '', unknown: '', optional: '' };
   function showView(which) {
-    var home = $('[data-co-home]'), visit = $('[data-co-visit]');
+    var home = $('[data-co-home]'), visit = $('[data-co-visit]'), iv = $('[data-co-interview]'), cl = $('[data-co-close]');
     if (home) home.hidden = which !== 'home';
     if (visit) visit.hidden = which !== 'visit';
+    if (iv) iv.hidden = which !== 'interview';
+    if (cl) cl.hidden = which !== 'close';
     var r = root(); if (r && r.scrollIntoView) { try { r.scrollIntoView({ block: 'start' }); } catch (e) {} }
   }
   function appointmentOf(patientId) { return state.rows.filter(function (r) { return r.patient_id === patientId && ORDER.indexOf(r.status) >= 0; })[0] || null; }
   async function loadVisit(id) {
-    var v = state.visit = { id: id, loading: true, error: '', patient: null, history: undefined, files: undefined };
+    var v = state.visit = { id: id, loading: true, error: '', patient: null, history: undefined, files: undefined, revision: 0, rawDoc: null, next: undefined };
     renderVisit();
     try {
       var res = await Promise.all([
         query(window.sb.from('camila_pacientes').select('*').eq('tenant_id', state.tenant).eq('id', id).maybeSingle()),
-        query(window.sb.from('smyl_patient_histories').select('document').eq('tenant_id', state.tenant).eq('patient_id', id).maybeSingle()).then(function (row) { return row ? Object.assign(window.SmylHistoryModel ? window.SmylHistoryModel.defaultHistory() : {}, row.document) : null; }).catch(function () { return undefined; }),
-        query(window.sb.from('smyl_patient_files').select('category').eq('tenant_id', state.tenant).eq('patient_id', id).eq('status', 'active').limit(300)).catch(function () { return undefined; })
+        query(window.sb.from('smyl_patient_histories').select('revision,document').eq('tenant_id', state.tenant).eq('patient_id', id).maybeSingle()).then(function (row) { v.revision = row ? Number(row.revision) || 0 : 0; v.rawDoc = row ? row.document : null; return row ? Object.assign(window.SmylHistoryModel ? window.SmylHistoryModel.defaultHistory() : {}, row.document) : null; }).catch(function () { return undefined; }),
+        query(window.sb.from('smyl_patient_files').select('category').eq('tenant_id', state.tenant).eq('patient_id', id).eq('status', 'active').limit(300)).catch(function () { return undefined; }),
+        query(window.sb.from('smyl_appointments').select('starts_at').eq('tenant_id', state.tenant).eq('patient_id', id).eq('status', 'confirmed').gt('starts_at', new Date().toISOString()).order('starts_at').limit(1)).then(function (rows) { return rows && rows[0] ? rows[0].starts_at : null; }).catch(function () { return undefined; })
       ]);
       if (state.visit !== v) return;
       if (!res[0]) throw new Error('No encontré a este paciente.');
       if (!state.access || state.accessTenant !== state.tenant) await loadAccess();
-      v.patient = res[0]; v.history = res[1]; v.files = res[2]; v.loading = false;
+      v.patient = res[0]; v.history = res[1]; v.files = res[2]; v.next = res[3]; v.loading = false;
       remember(id, Q.listName(v.patient) === 'Por registrar' ? (v.patient.telefono || 'Por registrar') : Q.displayName(v.patient));
     } catch (e) { if (state.visit !== v) return; v.loading = false; v.error = errorText(e); }
     renderVisit();
   }
   function openVisit(id) { showView('visit'); loadVisit(id); }
-  function closeVisit() { state.visit = null; showView('home'); renderResume(); }
-  function endVisit() { forget(); state.visit = null; showView('home'); renderResume(); renderPill('consultorio'); }
+  function closeVisit() { state.visit = null; state.interview = null; showView('home'); renderResume(); }
+  function endVisit() { forget(); state.visit = null; state.interview = null; state.flash = 'Visita terminada.'; showView('home'); renderResume(); renderFlash(); renderPill('consultorio'); }
+  function renderFlash() { var f = $('[data-co-flash]'); if (!f) return; f.textContent = state.flash || ''; f.hidden = !state.flash; state.flash = ''; }
   function visitAction(id, step, button) {
     var v = state.visit, patient = v && v.patient; if (!patient) return;
     if (id === 'complete') { if (typeof window.abrirModalPaciente === 'function') { window.abrirModalPaciente(patient.id); watchModal(patient.id); } }
     else if (id === 'link') { if (typeof window.enviarEnlaceRegistro === 'function') window.enviarEnlaceRegistro({ id: patient.id, telefono: patient.telefono }, button); }
     else if (id === 'confirm') confirmData(patient, button);
+    else if (id === 'interview') startInterview(step.state === 'done');
     else if (id === 'history') openSection(patient.id, 'history');
     else if (id === 'files') openSection(patient.id, 'files');
     else if (id === 'simulator') location.href = simulatorUrl(patient.id);
@@ -283,13 +290,14 @@
     var back = el('button', 'co-link-btn co-back', '‹ Consultorio'); back.type = 'button'; back.onclick = closeVisit; host.append(back);
     if (v.loading) { host.append(el('p', 'co-note', 'Cargando al paciente…')); return; }
     if (v.error) { var retry = el('button', 'co-retry', 'Intentar de nuevo'); retry.type = 'button'; retry.onclick = function () { loadVisit(v.id); }; host.append(el('p', 'co-note', v.error), retry); return; }
-    var p = v.patient, appt = appointmentOf(p.id), label = Q.listName(p), model = V.build({ patient: p, history: v.history, files: v.files, historyModel: window.SmylHistoryModel, canManage: can('patients.manage') });
+    var p = v.patient, appt = appointmentOf(p.id), label = Q.listName(p), model = V.build({ patient: p, history: v.history, files: v.files, historyModel: window.SmylHistoryModel, canManage: can('patients.manage'), canWriteClinical: !!I && can('clinical.write') });
     var head = el('div', 'co-vhead'), who = el('div', 'co-q');
     who.append(el('h1', 'co-vname', label), el('small', '', [p.telefono, appt ? STATUS[appt.status] + ', ' + fmtTime(appt.starts_at) : ''].filter(Boolean).join('. ')));
     head.append(el('span', 'co-av co-av-lg', Q.initials(Q.isPending(p) ? '' : Q.displayName(p))), who); host.append(head);
     var bar = el('div', 'co-bar'); bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', String(model.total)); bar.setAttribute('aria-valuenow', String(model.done)); bar.setAttribute('aria-label', 'Avance de la visita');
     var fill = el('i'); fill.style.width = Math.round(model.done / model.total * 100) + '%'; bar.append(fill);
     host.append(bar, el('p', 'co-vprogress', model.done === model.total ? 'Todo listo para esta visita.' : model.done + ' de ' + model.total + ' pasos listos.'));
+    if (state.notice) { var ok = el('p', 'co-success', state.notice); ok.setAttribute('role', 'status'); host.append(ok); state.notice = ''; }
     var list = el('ol', 'co-steps');
     model.steps.forEach(function (step, i) {
       var li = el('li', 'co-step'); li.dataset.state = step.state; li.dataset.key = step.key; if (step.current) li.dataset.current = 'true';
@@ -303,9 +311,186 @@
     host.append(el('p', 'co-note', ''));
     host.lastChild.dataset.coVisitNote = '';
     var full = el('button', 'co-tile co-full', 'Abrir expediente completo'); full.type = 'button'; full.onclick = function () { openPatient(p.id); };
-    var done = el('button', 'co-link-btn co-end', 'Terminar la visita'); done.type = 'button'; done.onclick = endVisit;
-    host.append(full, done);
+    var close = el('button', 'co-sgo co-close', 'Cerrar la visita'); close.type = 'button'; close.onclick = openClose;
+    host.append(full, close);
   }
+
+  /* ── Historia por preguntas ──
+   * Una pregunta a la vez, con el mismo documento y el mismo guardado que el editor del expediente (SmylHistoryInterview arma el
+   * documento con SmylHistoryModel). El borrador vive solo en memoria; lo único que guarda es «Guardar historia» al final. */
+  var ROW_FIELDS = {
+    allergy: [['substance', 'Alergia a', 'Ej. penicilina'], ['reaction', 'Reacción (opcional)', 'Ej. urticaria']],
+    alert: [['text', 'Qué debe saberse', 'Ej. toma anticoagulantes']],
+    condition: [['name', 'Condición', 'Ej. hipertensión']],
+    medication: [['name', 'Medicamento', 'Ej. losartán'], ['dose', 'Dosis (opcional)', 'Ej. 50 mg'], ['frequency', 'Frecuencia (opcional)', 'Ej. cada 24 horas']],
+    surgery: [['procedure', 'Cirugía u hospitalización', 'Ej. apendicectomía']]
+  };
+  var SEVERITY = [['low', 'Baja'], ['moderate', 'Moderada'], ['high', 'Alta']];
+  function startInterview(all) {
+    var v = state.visit, H = window.SmylHistoryModel;
+    if (!I || !H || !v || !v.patient || v.history === undefined) return;
+    var keys = all ? I.QUESTIONS.map(function (q) { return q.key; }) : I.pendingKeys(v.rawDoc, H);
+    if (!keys.length) keys = I.QUESTIONS.map(function (q) { return q.key; });
+    state.interview = { patientId: v.patient.id, draft: I.create(v.rawDoc, H), keys: keys, index: 0, phase: 'question', saving: false, error: '' };
+    showView('interview'); renderInterview();
+  }
+  function interviewDirty() { var iv = state.interview, v = state.visit; return !!(iv && I.isDirty(iv.draft, v && v.rawDoc)); }
+  function leaveInterview() {
+    if (interviewDirty() && !window.confirm('¿Salir sin guardar? Las respuestas de esta entrevista se perderán.')) return;
+    state.interview = null; showView('visit'); renderVisit();
+  }
+  function questionIndex(key) { return I.QUESTIONS.map(function (q) { return q.key; }).indexOf(key); }
+  function syncInterviewNav() {
+    var iv = state.interview; if (!iv || iv.phase !== 'question') return;
+    var next = $('[data-co-next]'); if (next) next.disabled = !I.isAnswered(iv.draft, iv.keys[iv.index]);
+  }
+  function ivButton(text, cls, fn) { var b = el('button', cls, text); b.type = 'button'; b.onclick = fn; return b; }
+  function renderInterview() {
+    var iv = state.interview, host = $('[data-co-interview]'), v = state.visit; if (!host || !iv) return;
+    host.replaceChildren();
+    var name = v && v.patient ? (Q.isPending(v.patient) ? 'Por registrar' : Q.displayName(v.patient)) : '';
+    var top = el('div', 'co-ivtop'); top.append(ivButton('‹ Salir', 'co-link-btn', leaveInterview), el('span', 'co-ivname', name)); host.append(top);
+    if (iv.phase === 'review') { renderReview(host); return; }
+    var key = iv.keys[iv.index], q = I.question(key), a = iv.draft.answers[key];
+    var seg = el('div', 'co-seg'); seg.setAttribute('role', 'progressbar'); seg.setAttribute('aria-valuemin', '1'); seg.setAttribute('aria-valuemax', String(iv.keys.length)); seg.setAttribute('aria-valuenow', String(iv.index + 1)); seg.setAttribute('aria-label', 'Pregunta ' + (iv.index + 1) + ' de ' + iv.keys.length);
+    iv.keys.forEach(function (k, i) { var s2 = el('i'); if (i <= iv.index) s2.dataset.on = 'true'; seg.append(s2); });
+    host.append(seg, el('p', 'co-vprogress', 'Pregunta ' + (iv.index + 1) + ' de ' + iv.keys.length));
+    var title = el('h1', 'co-qtitle', q.title); title.tabIndex = -1; host.append(title);
+    if (q.hint) { var hint = el('p', 'co-hint', q.hint); if (q.safety) hint.dataset.safety = 'true'; host.append(hint); }
+    var locked = q.kind === 'text' ? !!a.text.trim() : a.rows.some(function (r) { return Object.keys(r).some(function (f) { return String(r[f] || '').trim(); }); });
+    var choice = el('div', 'co-choice'); choice.setAttribute('role', 'group'); choice.setAttribute('aria-label', q.label);
+    [['no', 'No'], ['yes', 'Sí']].concat(q.safety ? [] : [['unknown', 'No lo sé']]).forEach(function (c) {
+      var b = ivButton(c[1], 'co-ch', function () { iv.draft = I.setStatus(iv.draft, key, c[0]); renderInterview(); });
+      b.setAttribute('aria-pressed', String(a.status === c[0])); b.dataset.value = c[0];
+      if (locked && c[0] !== 'yes') { b.disabled = true; b.title = 'Quita primero lo que ya está registrado'; }
+      choice.append(b);
+    });
+    host.append(choice);
+    if (q.safety && !locked) host.append(ivButton('No lo sé, confirmarlo después', 'co-sec co-later', function () { iv.draft = I.setStatus(iv.draft, key, 'unknown'); renderInterview(); }));
+    if (a.status === 'unknown' && !locked) host.append(el('p', 'co-note', 'Quedará como «no se sabe» y la historia seguirá pendiente de confirmar.'));
+    if (a.status === 'yes' || locked) host.append(q.kind === 'text' ? textEditor(iv, q, a) : rowsEditor(iv, q, a));
+    var nav = el('div', 'co-ivnav');
+    nav.append(ivButton('Anterior', 'co-sec', function () { if (iv.index > 0) { iv.index--; renderInterview(); } else leaveInterview(); }));
+    var next = ivButton(iv.index === iv.keys.length - 1 ? 'Revisar' : 'Siguiente', 'co-sgo', function () { if (iv.index < iv.keys.length - 1) iv.index++; else iv.phase = 'review'; renderInterview(); });
+    next.dataset.coNext = ''; next.disabled = !I.isAnswered(iv.draft, key); nav.append(next); host.append(nav);
+    title.focus({ preventScroll: false });
+  }
+  function labeledInput(label, placeholder, value, onInput, tag) {
+    var wrap = el('label', 'co-field'), input = document.createElement(tag || 'input');
+    if (!tag) input.type = 'text'; else input.rows = 3;
+    input.value = value || ''; input.placeholder = placeholder || ''; input.maxLength = tag ? 600 : 150; input.autocomplete = 'off';
+    input.addEventListener('input', function () { onInput(input.value); syncInterviewNav(); });
+    wrap.append(el('span', '', label), input); return wrap;
+  }
+  function textEditor(iv, q, a) {
+    var box = el('div', 'co-editor');
+    box.append(labeledInput(q.primaryLabel, q.primaryHint, a.text, function (value) { iv.draft = I.setText(iv.draft, q.key, value); }, 'textarea'));
+    return box;
+  }
+  function rowsEditor(iv, q, a) {
+    var box = el('div', 'co-editor'), record = q.kind === 'alert' ? 'alert' : q.record;
+    a.rows.forEach(function (row, i) {
+      var card = el('fieldset', 'co-rowcard'); if (a.rows.length > 1) card.append(el('legend', '', q.primaryLabel + ' ' + (i + 1)));
+      ROW_FIELDS[record].forEach(function (f) { card.append(labeledInput(f[1], f[2], row[f[0]], function (value) { iv.draft = I.setField(iv.draft, q.key, i, f[0], value); })); });
+      if (record === 'allergy') {
+        var sev = el('div', 'co-sev'); sev.setAttribute('role', 'group'); sev.setAttribute('aria-label', 'Gravedad');
+        SEVERITY.forEach(function (c) { var b = ivButton(c[1], 'co-chipbtn', function () { iv.draft = I.setField(iv.draft, q.key, i, 'severity', row.severity === c[0] ? '' : c[0]); renderInterview(); }); b.setAttribute('aria-pressed', String(row.severity === c[0])); sev.append(b); });
+        card.append(el('span', 'co-fieldlabel', 'Gravedad (opcional)'), sev);
+      }
+      var empty = !Object.keys(row).some(function (f) { return String(row[f] || '').trim(); });
+      if (a.rows.length > 1 || !empty) card.append(ivButton('Quitar', 'co-link-btn co-remove', function () { iv.draft = I.removeRow(iv.draft, q.key, i); renderInterview(); }));
+      box.append(card);
+    });
+    if (a.rows.length < (window.SmylHistoryModel.MAX_RECORDS || 20)) box.append(ivButton('+ ' + q.add, 'co-sec co-addrow', function () { iv.draft = I.addRow(iv.draft, q.key); renderInterview(); }));
+    return box;
+  }
+  function renderReview(host) {
+    var iv = state.interview, probs = I.problems(iv.draft), dirty = interviewDirty();
+    var title = el('h1', 'co-qtitle', 'Revisa y guarda'); title.tabIndex = -1;
+    host.append(title, el('p', 'co-hint', 'Esto es lo que quedará en la historia clínica. Puedes cambiar cualquier respuesta.'));
+    var list = el('ul', 'co-review');
+    I.QUESTIONS.forEach(function (q) {
+      var li = el('li'), lines = I.summary(iv.draft, q.key), problem = probs.filter(function (p) { return p.key === q.key; })[0];
+      var info = el('div', 'co-q'); info.append(el('b', '', q.label)); lines.forEach(function (l) { info.append(el('small', '', l)); });
+      if (problem) { var pe = el('small', 'co-problem', problem.message); info.append(pe); }
+      li.append(info, ivButton('Cambiar', 'co-link-btn', function () { iv.keys = I.QUESTIONS.map(function (x) { return x.key; }); iv.index = questionIndex(q.key); iv.phase = 'question'; renderInterview(); }));
+      list.append(li);
+    });
+    host.append(list);
+    var err = el('p', 'co-error-box', iv.error); err.setAttribute('role', 'alert'); err.hidden = !iv.error; host.append(err);
+    if (!dirty) host.append(el('p', 'co-note', 'No hay cambios que guardar.'));
+    var save = ivButton(iv.saving ? 'Guardando…' : 'Guardar historia', 'co-sgo co-save', saveInterview); save.disabled = iv.saving || !dirty || probs.length > 0; save.dataset.coSave = '';
+    var back = ivButton('Volver', 'co-sec', function () { iv.phase = 'question'; iv.index = Math.min(iv.index, iv.keys.length - 1); renderInterview(); });
+    var nav = el('div', 'co-ivnav'); nav.append(back, save); host.append(nav);
+    title.focus({ preventScroll: false });
+  }
+  async function saveInterview() {
+    var iv = state.interview, v = state.visit; if (!iv || iv.saving || !v) return;
+    if (I.problems(iv.draft).length) return;
+    iv.saving = true; iv.error = ''; renderInterview();
+    try {
+      await rpc('smyl_save_patient_history', { p_patient_id: iv.patientId, p_expected_revision: v.revision, p_document: I.toDocument(iv.draft) });
+      state.interview = null; state.notice = 'Historia guardada.'; showView('visit'); loadVisit(iv.patientId);
+    } catch (e) {
+      iv.saving = false;
+      iv.error = e && e.code === '40001' ? 'La historia cambió en otra sesión y tus respuestas no se guardaron. Sal y vuelve a empezar para ver lo último.'
+        : e && e.code === '42501' ? 'Tu rol no permite guardar datos clínicos.' : errorText(e);
+      renderInterview();
+    }
+  }
+
+
+  /* ── Cierre de la visita ──
+   * Resumen de lo que quedó hecho y lo que falta, y los pasos que suelen seguir: agendar, cobrar y despedirse. No bloquea nada:
+   * se puede terminar con pasos pendientes (siguen en «Te falta resolver» del expediente). Cobros y la agenda se abren en sus
+   * pantallas; el mensaje de WhatsApp solo lleva cortesía y la próxima cita. */
+  function fmtLong(v) { return new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(v)) + ' a las ' + fmtTime(v); }
+  function openClose() { if (!state.visit || !state.visit.patient) return; showView('close'); renderClose(); }
+  function backToVisit() { showView('visit'); renderVisit(); }
+  function renderClose() {
+    var host = $('[data-co-close]'), v = state.visit; if (!host || !v || !v.patient) return;
+    host.replaceChildren();
+    var p = v.patient, name = Q.isPending(p) ? 'Por registrar' : Q.displayName(p);
+    var top = el('div', 'co-ivtop'); top.append(ivButton('‹ Volver a la visita', 'co-link-btn', backToVisit), el('span', 'co-ivname', name)); host.append(top);
+    var title = el('h1', 'co-qtitle', 'Cerrar la visita'); title.tabIndex = -1; host.append(title);
+    var model = V.build({ patient: p, history: v.history, files: v.files, historyModel: window.SmylHistoryModel, canManage: can('patients.manage'), canWriteClinical: !!I && can('clinical.write') }), sum = V.closing(model);
+    host.append(el('p', 'co-hint', sum.missing ? 'Quedó pendiente ' + (sum.missing === 1 ? '1 cosa' : sum.missing + ' cosas') + '. Puedes terminar la visita igual y retomarlo después.' : sum.unchecked ? 'No pude comprobar todo con tu rol, revisa lo que aparece como «sin comprobar».' : 'Todo lo de esta visita quedó listo.'));
+    var list = el('ul', 'co-review co-closing');
+    sum.items.forEach(function (it) {
+      var li = el('li'), info = el('div', 'co-q'), mark = el('span', 'co-cmark', it.state === 'done' ? '✓' : it.state === 'todo' ? '!' : '?');
+      mark.dataset.state = it.state; mark.setAttribute('aria-hidden', 'true');
+      info.append(el('b', '', it.title), el('small', '', it.state === 'unknown' ? 'Sin comprobar.' : it.text));
+      li.dataset.state = it.state; li.append(mark, info);
+      if (it.state !== 'done') li.append(ivButton(it.state === 'todo' ? 'Completar' : 'Ver', 'co-link-btn', backToVisit));
+      list.append(li);
+    });
+    host.append(list);
+    /* Próxima cita */
+    var next = v.next, nextText = next ? fmtLong(next) : '';
+    var sec = el('div', 'co-csec');
+    sec.append(el('b', '', 'Próxima cita'), el('small', '', next === undefined ? 'No se pudo comprobar.' : next ? nextText : 'Todavía no tiene una agendada.'));
+    if (can('schedule.manage') && window.SmylSchedule && typeof window.SmylSchedule.bookFor === 'function') {
+      var book = ivButton(next ? 'Agendar otra cita' : 'Agendar cita', next ? 'co-sec' : 'co-sgo', function () { window.SmylSchedule.bookFor({ id: p.id, nombre: p.nombre, apellido: p.apellido, telefono: p.telefono, email: p.email }); });
+      book.dataset.coBook = ''; sec.append(book);
+    }
+    host.append(sec);
+    /* Cobro */
+    if (can('finance.read')) {
+      var pay = el('div', 'co-csec'); pay.append(el('b', '', 'Cobro'), el('small', '', 'Abre Cobros, donde aparece el cargo pendiente de esta visita.'));
+      var go = ivButton('Ir a Cobros', 'co-sec', function () { if (typeof window.ir === 'function') window.ir('caja'); }); go.dataset.coPay = ''; pay.append(go); host.append(pay);
+    }
+    /* Despedida por WhatsApp */
+    var message = V.farewell({ name: Q.isPending(p) ? '' : Q.displayName(p), nextText: nextText }), url = Q.whatsappUrl(p.telefono, message);
+    var wa = el('div', 'co-csec'); wa.append(el('b', '', 'Despedida'), el('small', '', 'Mensaje que se enviará (puedes editarlo en WhatsApp):'));
+    var box = el('p', 'co-msg', message); box.dataset.coMsg = ''; wa.append(box);
+    var send = ivButton('Enviar por WhatsApp', 'co-sec', function () { window.open(url, '_blank', 'noopener'); }); send.dataset.coSend = '';
+    if (!url) { send.disabled = true; wa.append(send, el('small', '', 'Falta un teléfono válido para enviarlo.')); } else wa.append(send);
+    host.append(wa);
+    var end = ivButton('Terminar la visita', 'co-sgo co-end co-endfull', endVisit);
+    host.append(end);
+    title.focus({ preventScroll: false });
+  }
+
   /* Mientras haya una visita sin terminar y se esté en otra pantalla (p. ej. el expediente), un botón fijo permite regresar a ella. */
   function renderPill(route) {
     var pill = document.getElementById('smyl-co-pill'), m = remembered();
@@ -335,7 +520,7 @@
     if (!host || root()) return;
     var page = el('section', 'pantalla consultorio'); page.id = 'p-consultorio'; page.setAttribute('aria-labelledby', 'co-title');
     page.innerHTML = '<div class="co-wrap"><header class="co-head"><span class="co-logo">SMYL</span><button type="button" class="co-link-btn" data-co-panel>Panel completo</button></header>'
-      + '<div data-co-home><h1 id="co-title" data-co-greeting>Consultorio</h1><p class="co-sub" data-co-sub></p><div data-co-resume hidden></div>'
+      + '<div data-co-home><h1 id="co-title" data-co-greeting>Consultorio</h1><p class="co-sub" data-co-sub></p><p class="co-flash" data-co-flash role="status" hidden></p><div data-co-resume hidden></div>'
       + '<button type="button" class="co-primary" data-co-new><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M3 20c0-3.5 3-6 7-6M18 8v6M15 11h6"/></svg>Paciente nuevo</button>'
       + '<div class="co-pair"><a class="co-tile" data-co-sim href="' + esc(simulatorUrl()) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/></svg>Simulador</a>'
       + '<button type="button" class="co-tile" data-co-agenda><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>Agenda</button></div>'
@@ -343,7 +528,7 @@
       + '<ul class="co-results" data-co-results hidden></ul>'
       + '<h2 class="co-heading">En el consultorio</h2><div data-co-list></div>'
       + '<footer class="co-foot"><button type="button" class="co-link-btn" data-co-logout>Cerrar sesión</button></footer></div>'
-      + '<div data-co-visit hidden></div></div>'
+      + '<div data-co-visit hidden></div><div data-co-interview hidden></div><div data-co-close hidden></div></div>'
       + '<dialog id="co-dialog" class="co-dialog"></dialog>';
     host.append(page);
     page.querySelector('[data-co-new]').onclick = function () { openNew(); };
@@ -357,7 +542,7 @@
     build();
     if (window.TITULOS) window.TITULOS.consultorio = 'Consultorio';
     var previous = window.ir;
-    if (typeof previous === 'function') window.ir = function (name) { var result = previous(name); if (name === 'consultorio') { var q = $('[data-co-q]'); if (q) { q.value = ''; renderResults(null); } state.visit = null; showView('home'); renderResume(); load(true); } renderPill(name); return result; };
+    if (typeof previous === 'function') window.ir = function (name) { var result = previous(name); if (name === 'consultorio') { var q = $('[data-co-q]'); if (q) { q.value = ''; renderResults(null); } state.visit = null; state.interview = null; showView('home'); renderResume(); load(true); } renderPill(name); return result; };
     window.addEventListener('smyl:appointments-changed', function () { if (state.loaded) load(true); });
   }
   window.SmylConsultorio = { reload: function () { return load(true); }, openVisit: openVisit };

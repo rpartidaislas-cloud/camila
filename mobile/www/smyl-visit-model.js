@@ -14,14 +14,16 @@
     return Object.assign(base,{state:'done',text:'Completos.',actions:[{id:'complete',label:'Editar datos'}]});
   }
 
-  /* history: undefined = no se pudo leer, null = aún no existe, objeto = el documento de la historia. H = SmylHistoryModel. */
-  function historyStep(history,H){
-    var base={key:'historia',title:'Historia clínica',counts:true,actions:[{id:'history',label:'Abrir historia clínica',primary:true}]};
-    if(history===undefined||!H)return Object.assign(base,{state:'unknown',text:'Ábrela para ver cómo va.'});
-    if(history===null)return Object.assign(base,{state:'todo',text:'Todavía no se empieza.'});
+  /* history: undefined = no se pudo leer, null = aún no existe, objeto = el documento de la historia. H = SmylHistoryModel.
+   * canWrite: puede guardar datos clínicos (clinical.write); solo entonces se ofrece la entrevista. */
+  function historyStep(history,H,canWrite){
+    var base={key:'historia',title:'Historia clínica',counts:true};
+    var open=function(primary,label){return {id:'history',label:label||'Abrir historia clínica',primary:!!primary};};
+    if(history===undefined||!H)return Object.assign(base,{state:'unknown',text:'Ábrela para ver cómo va.',actions:[open(true)]});
+    if(history===null)return Object.assign(base,{state:'todo',text:'Todavía no se empieza.',actions:canWrite?[{id:'interview',label:'Empezar la historia',primary:true},open(false,'Abrir historia completa')]:[open(true)]});
     var pending=H.pendingLabels(history),done=H.coverage(history),total=done+pending.length;
-    if(!pending.length)return Object.assign(base,{state:'done',text:'Completa: ' + done + ' de ' + total + ' confirmadas.',actions:[{id:'history',label:'Abrir historia clínica'}]});
-    return Object.assign(base,{state:'todo',text:done+' de '+total+' confirmadas. Falta: '+pending.slice(0,3).join(', ')+(pending.length>3?' y '+(pending.length-3)+' más':'')+'.'});
+    if(!pending.length)return Object.assign(base,{state:'done',text:'Completa: '+done+' de '+total+' confirmadas.',actions:canWrite?[{id:'interview',label:'Revisar de nuevo'},open(false)]:[open(false)]});
+    return Object.assign(base,{state:'todo',text:done+' de '+total+' confirmadas. Falta: '+pending.slice(0,3).join(', ')+(pending.length>3?' y '+(pending.length-3)+' más':'')+'.',actions:canWrite?[{id:'interview',label:'Completar la historia',primary:true},open(false,'Abrir historia completa')]:[open(true)]});
   }
 
   /* files: undefined = no se pudo leer, o la lista de {category}. */
@@ -37,11 +39,27 @@
 
   function build(input){
     input=input||{};
-    var steps=[dataStep(input.patient,!!input.canManage),historyStep(input.history,input.historyModel),studiesStep(input.files),simulationStep()];
+    var steps=[dataStep(input.patient,!!input.canManage),historyStep(input.history,input.historyModel,!!input.canWriteClinical),studiesStep(input.files),simulationStep()];
     var counted=steps.filter(function(s){return s.counts;}),done=counted.filter(function(s){return s.state==='done';}).length;
     var current=counted.filter(function(s){return s.state!=='done';})[0];
     steps.forEach(function(s){s.current=!!current&&s.key===current.key;});
     return {steps:steps,done:done,total:counted.length,current:current?current.key:null};
   }
-  return {build:build,isPending:isPending};
+  /* Cierre de la visita: qué quedó hecho y qué falta de los pasos de captura. «unknown» = no se pudo comprobar (no se da por hecho ni por faltante). */
+  function closing(model){
+    var counted=(model&&model.steps||[]).filter(function(st){return st.counts;});
+    return {items:counted.map(function(st){return {key:st.key,title:st.title,state:st.state,text:st.text};}),
+      missing:counted.filter(function(st){return st.state==='todo';}).length,
+      unchecked:counted.filter(function(st){return st.state==='unknown';}).length};
+  }
+  /* Mensaje de despedida para el paciente. Solo cortesía y la próxima cita: nunca datos clínicos, diagnósticos ni cobros.
+   * name: nombre completo o vacío (una ficha por registrar no tiene nombre). nextText: «martes 17 de noviembre a las 4:00 pm» o vacío. */
+  function farewell(o){
+    o=o||{};
+    var first=String(o.name||'').trim().split(/\s+/)[0]||'';
+    var hello=first&&!isPending({nombre:o.name})?'Hola '+first+', gracias por tu visita.':'Hola, gracias por tu visita.';
+    var next=String(o.nextText||'').trim();
+    return hello+' '+(next?'Tu próxima cita es el '+next+'.':'Cuando quieras agendar tu próxima cita, escríbenos por aquí.')+' ¡Hasta pronto!';
+  }
+  return {build:build,closing:closing,farewell:farewell,isPending:isPending};
 });

@@ -40,7 +40,10 @@ test('la cabecera muestra una sola acción principal (Agendar cita) y las demás
   assert.match(actions, /primaryButton\.dataset\.threadPrimaryAction/);
   assert.match(actions, /action\.id === 'schedule'/, 'Agendar cita es la acción principal cuando hay permiso');
   assert.doesNotMatch(actions, /'Nueva acción'|id: 'template'/, 'sin botón «Nueva acción» ni plantilla en el encabezado');
-  assert.match(actions, /setAttribute\('role', 'menu'\)/);
+  // El menú «⋯» está en el marcado de la cabecera; las acciones con permiso se agregan ahí como menuitem.
+  assert.match(js, /data-thread-menu role="menu"/);
+  assert.match(js, /data-thread-menu-care role="group"/);
+  assert.match(actions, /document\.querySelector\('\[data-thread-menu-care\]'\)/);
   assert.match(actions, /setAttribute\('role', 'menuitem'\)/);
 });
 
@@ -59,8 +62,8 @@ test('la barra «SMYL te pone al día» resume lo pendiente sin consultas extra 
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=48/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=41/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=50/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=44/);
 });
 
 test('la cabecera grande se reemplaza por una barra delgada y los contadores viven en las pestañas', () => {

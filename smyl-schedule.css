@@ -690,7 +690,7 @@ body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=s]>.schedule-
 body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=s]>.schedule-appointment :is(em,small,i:not(.schedule-billing)){display:none}
 
 /* Entrevista previa de MILA (historia clínica antes de la cita) */
-.schedule-calendar i.schedule-previsit,.schedule-agenda-row i.schedule-previsit,.sched-ficha-previsit i.schedule-previsit{display:inline-block;justify-self:start;border-radius:999px;padding:2px 8px;font-size:11px;font-style:normal;font-weight:750;letter-spacing:0;white-space:nowrap;line-height:1.5;margin-top:2px;background:#eef1f4;color:#4f5d6c}
+.schedule-calendar i.schedule-previsit,.schedule-agenda-row i.schedule-previsit,.sched-ficha-previsit i.schedule-previsit{display:inline-block;justify-self:start;border-radius:999px;padding:2px 8px;font-size:12px;font-style:normal;font-weight:750;letter-spacing:0;white-space:nowrap;line-height:1.5;margin-top:2px;background:#eef1f4;color:#4f5d6c}
 .schedule-calendar i.schedule-previsit[data-previsit=sent],.schedule-calendar i.schedule-previsit[data-previsit=link],i.schedule-previsit[data-previsit=sent],i.schedule-previsit[data-previsit=link]{background:#eaf1fb;color:#2c5282}
 .schedule-calendar i.schedule-previsit[data-previsit=in_progress],i.schedule-previsit[data-previsit=in_progress]{background:#e6f5f5;color:#0b6262}
 .schedule-calendar i.schedule-previsit[data-previsit=answered],i.schedule-previsit[data-previsit=answered]{background:#e3f6ec;color:#1c6a4c}
