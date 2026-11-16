@@ -104,6 +104,7 @@ El validador sólo lee el JSON: **la evidencia vale tanto como la honestidad de 
 | Síntoma | Causa probable | Qué hacer |
 |---|---|---|
 | `ABORTADO · Docker no responde` | Docker Desktop cerrado | Ábrelo y espera «Engine running» |
+| `Transport error` al descargar Storage | Corte de red momentáneo | El script reintenta cada bucket hasta 4 veces. Si aun así aborta, revisa tu conexión, borra la carpeta de salida y repite |
 | `Unsupported operation` al copiar Storage | La CLI 2.x rechaza rutas con letra de unidad (`C:\\`) | Ya está resuelto en el script (destino relativo). Si lo ves en otro comando, usa rutas relativas |
 | `Unsupported operation` al copiar Storage | La CLI 2.x rechaza rutas con letra de unidad (`C:\`) | Ya está resuelto en el script (destino relativo). Si lo ves en otro comando, usa rutas relativas |
 | `ABORTADO · supabase storage ls falló` | Proyecto no enlazado o sesión vencida | `npx supabase login` y `npx supabase link --project-ref rpxshsiwoxdbuevjjpfw` (en `projects list` Smyl debe tener ●) |

@@ -354,3 +354,83 @@ test('entrevista previa: envío automático y marcas en la agenda', () => {
     assert.equal(read('../mobile/www/' + f), read('../' + f), f + ' sincronizado con la app móvil');
   }
 });
+
+test('turnos de voz: el detector semántico no se corta con un «ajá» ni con ruido', async () => {
+  const fn = read('../supabase/functions/mila-interview/index.ts');
+  assert.match(fn, /type: "semantic_vad", eagerness: VAD_EAGERNESS, create_response: false, interrupt_response: false/);
+  assert.match(fn, /OPENAI_MILA_TURN_MODE/);
+  assert.match(fn, /turn_control: TURN_MODE === "semantic" \? "client" : "server"/);
+  assert.match(fn, /type: "server_vad", threshold: 0.62/, 'el esquema anterior queda como regreso rápido');
+
+  const html = read('../mila-movil.html');
+  const block = html.slice(html.indexOf('// MARK:turns'), html.indexOf('// MARK:/turns'));
+  assert.ok(block.length > 200, 'bloque de turnos presente');
+  const vm = await import('node:vm');
+  const sent = [];
+  const ctx = { st: { rt: { ctl: true, muted: false } }, sendRt: (e) => sent.push(e.type), performance: { now: () => ctx.now } , now: 0 };
+  vm.createContext(ctx);
+  vm.runInContext(block, ctx);
+  const ev = (e, at) => { if (at != null) ctx.now = at; vm.runInContext('onTurnEvent(' + JSON.stringify(e) + ')', ctx); };
+  const reset = () => { sent.length = 0; Object.assign(ctx.st.rt, { respActive: false, pendingReply: false, duringMila: false, interrupted: false, heardText: '' }); };
+
+  // 1) MILA habla y el paciente dice «ajá»: no se cancela ni se responde.
+  reset();
+  ev({ type: 'response.created' });
+  ev({ type: 'input_audio_buffer.speech_started' }, 1000);
+  ev({ type: 'conversation.item.input_audio_transcription.delta', delta: 'Ajá' });
+  ev({ type: 'input_audio_buffer.speech_stopped' }, 1300);
+  ev({ type: 'conversation.item.input_audio_transcription.completed', transcript: 'Ajá.' });
+  assert.deepEqual(sent, [], '«ajá» no interrumpe');
+  assert.equal(ctx.st.rt.respActive, true);
+
+  // 2) MILA habla y el paciente dice «o»/ruido sin texto.
+  reset();
+  ev({ type: 'response.created' });
+  ev({ type: 'input_audio_buffer.speech_started' }, 0);
+  ev({ type: 'input_audio_buffer.speech_stopped' }, 200);
+  ev({ type: 'conversation.item.input_audio_transcription.completed', transcript: 'o' });
+  assert.deepEqual(sent, []);
+
+  // 3) Interrupción de verdad: una frase mientras MILA habla la corta y se responde después.
+  reset();
+  ev({ type: 'response.created' });
+  ev({ type: 'input_audio_buffer.speech_started' }, 0);
+  ev({ type: 'conversation.item.input_audio_transcription.delta', delta: 'Espera, tengo una duda' });
+  assert.deepEqual(sent, ['response.cancel', 'output_audio_buffer.clear']);
+  ev({ type: 'input_audio_buffer.speech_stopped' }, 2000);
+  ev({ type: 'conversation.item.input_audio_transcription.completed', transcript: 'Espera, tengo una duda' });
+  assert.deepEqual(sent, ['response.cancel', 'output_audio_buffer.clear', 'response.create']);
+
+  // 4) MILA callada: responde en cuanto el paciente termina, sin esperar la transcripción.
+  reset();
+  ev({ type: 'input_audio_buffer.speech_started' }, 0);
+  ev({ type: 'input_audio_buffer.speech_stopped' }, 1500);
+  assert.deepEqual(sent, ['response.create']);
+  ev({ type: 'response.created' });
+  ev({ type: 'conversation.item.input_audio_transcription.completed', transcript: 'No tengo alergias' });
+  assert.deepEqual(sent, ['response.create'], 'no responde dos veces');
+
+  // 5) MILA callada y un ruido muy corto sin texto: no responde.
+  reset();
+  ev({ type: 'input_audio_buffer.speech_started' }, 0);
+  ev({ type: 'input_audio_buffer.speech_stopped' }, 200);
+  ev({ type: 'conversation.item.input_audio_transcription.completed', transcript: '' });
+  assert.deepEqual(sent, []);
+
+  // 6) Un «sí» corto cuando MILA ya terminó de hablar sí se contesta.
+  reset();
+  ev({ type: 'response.created' });
+  ev({ type: 'input_audio_buffer.speech_started' }, 0);
+  ev({ type: 'response.done' });
+  ev({ type: 'input_audio_buffer.speech_stopped' }, 300);
+  ev({ type: 'conversation.item.input_audio_transcription.completed', transcript: 'Sí.' });
+  assert.deepEqual(sent, ['response.create']);
+
+  // 7) Con turn_control del servidor, el celular no interviene.
+  reset();
+  ctx.st.rt.ctl = false;
+  ev({ type: 'input_audio_buffer.speech_started' }, 0);
+  ev({ type: 'input_audio_buffer.speech_stopped' }, 1500);
+  assert.deepEqual(sent, []);
+  ctx.st.rt.ctl = true;
+});

@@ -258,6 +258,7 @@
   function visitAction(id, step, button) {
     var v = state.visit, patient = v && v.patient; if (!patient) return;
     if (id === 'complete') { if (typeof window.abrirModalPaciente === 'function') { window.abrirModalPaciente(patient.id); watchModal(patient.id); } }
+    else if (id === 'qr') openQr(patient);
     else if (id === 'link') { if (typeof window.enviarEnlaceRegistro === 'function') window.enviarEnlaceRegistro({ id: patient.id, telefono: patient.telefono }, button); }
     else if (id === 'confirm') confirmData(patient, button);
     else if (id === 'interview') startInterview(step.state === 'done');
@@ -491,6 +492,78 @@
     title.focus({ preventScroll: false });
   }
 
+
+  /* ── Código QR de registro ──
+   * La persona escanea el código y llena sus datos en su propio celular (registro-paciente.html, enlace de un solo uso que
+   * vence a los 7 días). Mientras el código está abierto, la pantalla revisa cada pocos segundos si ya terminó. */
+  var QR_POLL_MS = Number(window.SMYL_QR_POLL_MS) || 4000, QR_MAX_POLLS = 150;
+  state.qr = null;
+  function qrSvg(text) {
+    if (typeof window.qrcode !== 'function') return '';
+    try { var code = window.qrcode(0, 'M'); code.addData(text); code.make(); return code.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); } catch (e) { return ''; }
+  }
+  function registrationUrl(token) { return location.origin + location.pathname.replace(/[^/]*$/, '') + 'registro-paciente.html?token=' + encodeURIComponent(token); }
+  function stopQr() { if (state.qr) { clearInterval(state.qr.timer); state.qr = null; } }
+  function qrError(err) {
+    var code = err && err.code, msg = String(err && err.message || '');
+    if (code === '42501') return 'Tu rol no permite crear enlaces de registro.';
+    if (/PGRST202|42883|schema cache/i.test(code + ' ' + msg)) return 'Falta aplicar la migración de enlaces de registro en la base de datos.';
+    if (code === '22023') return 'Este paciente ya tiene su registro completo.';
+    return 'No se pudo crear el código. Revisa tu conexión e inténtalo de nuevo.';
+  }
+  async function readRegistration(id) {
+    var row;
+    try { row = await query(window.sb.from('camila_pacientes').select('registro_estado,nombre').eq('tenant_id', state.tenant).eq('id', id).maybeSingle()); }
+    catch (e) { row = await query(window.sb.from('camila_pacientes').select('nombre').eq('tenant_id', state.tenant).eq('id', id).maybeSingle()); }   // sin la columna aún: se deduce del nombre
+    return row;
+  }
+  async function openQr(patient) {
+    var d = dialog(); if (!d) return;
+    stopQr();
+    var q = state.qr = { id: patient.id, timer: null, polls: 0 };
+    d.innerHTML = '<div class="co-form co-qr"><header><h2>Que llene sus datos</h2><button type="button" class="co-x" data-co-cancel aria-label="Cerrar">×</button></header><div data-co-qr-body><p class="co-ok"><span>Preparando el código…</span></p></div></div>';
+    d.querySelector('[data-co-cancel]').onclick = closeDialog;
+    d.addEventListener('close', function () { if (state.qr === q) stopQr(); }, { once: true });
+    if (!d.open) d.showModal();
+    var body = d.querySelector('[data-co-qr-body]');
+    try {
+      var token = await rpc('smyl_create_registration_link', { p_patient_id: patient.id });
+      if (state.qr !== q) return;
+      if (!/^[0-9a-f]{64}$/.test(String(token || ''))) throw new Error('Respuesta inesperada.');
+      var url = registrationUrl(token), svg = qrSvg(url);
+      body.replaceChildren();
+      var box = el('div', 'co-qrbox'); box.setAttribute('role', 'img'); box.setAttribute('aria-label', 'Código QR para que el paciente llene sus datos');
+      if (svg) box.innerHTML = svg; else box.append(el('p', 'co-note-dark', 'No se pudo dibujar el código. Usa el enlace de abajo.'));
+      var hint = el('p', 'co-qrhint', 'Que lo escanee con la cámara de su celular. El enlace sirve una sola vez y vence en 7 días.');
+      var status = el('p', 'co-qrstatus'); status.setAttribute('role', 'status'); status.dataset.coQrStatus = '';
+      var dot = el('i', 'co-pulse'); dot.setAttribute('aria-hidden', 'true'); status.append(dot, el('span', '', 'Esperando a que termine…'));
+      var field = document.createElement('input'); field.className = 'co-qrlink'; field.readOnly = true; field.value = url; field.setAttribute('aria-label', 'Enlace de registro'); field.onfocus = function () { field.select(); };
+      var acts = el('div', 'co-actions'), wa = Q.whatsappUrl(patient.telefono, 'Hola, para tener tu expediente listo antes de tu cita, completa tus datos aquí (vence en 7 días): ' + url);
+      function act(text, cls, fn) { var b = el('button', cls, text); b.type = 'button'; b.onclick = fn; acts.append(b); return b; }
+      if (wa) act('Enviarlo por WhatsApp', 'co-secondary', function () { window.open(wa, '_blank', 'noopener'); }).dataset.coQrWa = '';
+      var copy = act('Copiar enlace', 'co-secondary', async function () { try { await navigator.clipboard.writeText(url); copy.textContent = 'Enlace copiado'; } catch (e) { field.focus(); field.select(); copy.textContent = 'Selecciona y copia el enlace'; } });
+      act('Cerrar', 'co-ghost', closeDialog);
+      body.append(box, hint, status, field, acts);
+      q.timer = setInterval(async function () {
+        if (state.qr !== q) return;
+        q.polls++;
+        if (q.polls > QR_MAX_POLLS) { clearInterval(q.timer); status.replaceChildren(el('span', '', 'Dejé de esperar. Cierra y vuelve a abrir el código si hace falta.')); return; }
+        try {
+          var row = await readRegistration(patient.id);
+          if (state.qr !== q || !row) return;
+          if (!Q.isPending(row)) {
+            clearInterval(q.timer);
+            status.replaceChildren(el('span', 'co-qrdone', '✓ Ya llenó sus datos.'), el('small', '', row.registro_estado === 'por_verificar' ? ' Falta que los confirmes.' : ''));
+            acts.replaceChildren(); act('Ver sus datos', 'co-submit', function () { closeDialog(); loadVisit(patient.id); });
+          }
+        } catch (e) { /* sin conexión un momento: se sigue intentando */ }
+      }, QR_POLL_MS);
+    } catch (err) {
+      if (state.qr !== q) return;
+      body.replaceChildren(el('p', 'co-error', qrError(err)), (function () { var b = el('button', 'co-ghost', 'Cerrar'); b.type = 'button'; b.onclick = closeDialog; return b; })());
+    }
+  }
+
   /* Mientras haya una visita sin terminar y se esté en otra pantalla (p. ej. el expediente), un botón fijo permite regresar a ella. */
   function renderPill(route) {
     var pill = document.getElementById('smyl-co-pill'), m = remembered();
@@ -542,7 +615,7 @@
     build();
     if (window.TITULOS) window.TITULOS.consultorio = 'Consultorio';
     var previous = window.ir;
-    if (typeof previous === 'function') window.ir = function (name) { var result = previous(name); if (name === 'consultorio') { var q = $('[data-co-q]'); if (q) { q.value = ''; renderResults(null); } state.visit = null; state.interview = null; showView('home'); renderResume(); load(true); } renderPill(name); return result; };
+    if (typeof previous === 'function') window.ir = function (name) { var result = previous(name); if (name === 'consultorio') { var q = $('[data-co-q]'); if (q) { q.value = ''; renderResults(null); } state.visit = null; state.interview = null; stopQr(); showView('home'); renderResume(); load(true); } renderPill(name); return result; };
     window.addEventListener('smyl:appointments-changed', function () { if (state.loaded) load(true); });
   }
   window.SmylConsultorio = { reload: function () { return load(true); }, openVisit: openVisit };

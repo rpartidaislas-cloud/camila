@@ -630,7 +630,7 @@
       var offer=await rt.peer.createOffer();await rt.peer.setLocalDescription(offer);await waitIce(rt.peer);
       var out=await call('realtime',{sdp:rt.peer.localDescription.sdp,continuar:!!continuar});
       await rt.peer.setRemoteDescription({type:'answer',sdp:out.answer_sdp});
-      rt.active=true;rt.started=Date.now();rt.usage={input:0,output:0};rt.calls={};
+      rt.active=true;rt.started=Date.now();rt.usage={input:0,output:0};rt.calls={};rt.ctl=out.turn_control==='client';rt.respActive=false;rt.pendingReply=false;rt.duringMila=false;rt.interrupted=false;rt.heardText='';rt.speechAt=0;
       $('rec').dataset.on='true';$('rec').setAttribute('aria-pressed','true');updateDock();
       try{if(navigator.wakeLock)st.wake=await navigator.wakeLock.request('screen');}catch(_){}
       setOrb('idle');
@@ -648,8 +648,46 @@
       status(e&&e.name==='NotAllowedError'?'Sin acceso al micrófono':'No se pudo iniciar la entrevista',e&&e.name==='NotAllowedError'?'Permite el micrófono en el navegador.':(e.message||''),true);
     }finally{$('rec').disabled=false;}
   }
+  /* Turnos controlados por el celular (turn_control='client'): el servidor solo detecta cuándo termina una idea; aquí se decide
+     si lo que dijo el paciente interrumpe a MILA o es un «ajá», un «o» o una tos que no debe cortarla. */
+  // MARK:turns
+  var NOISE_WORDS={a:1,e:1,o:1,u:1,eh:1,ah:1,uh:1,um:1,hm:1,mm:1,mmm:1,mhm:1,aja:1,ujum:1,ay:1};
+  function realWords(text){
+    return String(text||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zñ0-9\s]/g,' ').split(/\s+/).filter(function(w){return w&&!NOISE_WORDS[w];}).length;
+  }
+  function isRealSpeech(text){return realWords(text)>=3;}
+  function replyNow(rt){
+    rt.pendingReply=false;rt.interrupted=false;
+    if(rt.respActive){sendRt({type:'response.cancel'});sendRt({type:'output_audio_buffer.clear'});rt.respActive=false;}
+    sendRt({type:'response.create'});
+  }
+  function onTurnEvent(e){
+    var rt=st.rt;if(!rt.ctl||rt.muted)return;
+    if(e.type==='response.created')rt.respActive=true;
+    else if(e.type==='response.done'||e.type==='output_audio_buffer.stopped'||e.type==='output_audio_buffer.cleared')rt.respActive=false;
+    else if(e.type==='input_audio_buffer.speech_started'){rt.duringMila=rt.respActive;rt.pendingReply=true;rt.interrupted=false;rt.heardText='';rt.speechAt=performance.now();}
+    else if(e.type==='conversation.item.input_audio_transcription.delta'){
+      rt.heardText+=(e.delta||'');
+      // Interrupción de verdad: el paciente ya dijo una frase mientras MILA hablaba.
+      if(rt.duringMila&&rt.respActive&&!rt.interrupted&&isRealSpeech(rt.heardText)){rt.interrupted=true;sendRt({type:'response.cancel'});sendRt({type:'output_audio_buffer.clear'});rt.respActive=false;}
+    }
+    else if(e.type==='input_audio_buffer.speech_stopped'){
+      // Camino rápido: MILA estaba callada y el paciente habló lo suficiente → responde sin esperar la transcripción.
+      if(rt.pendingReply&&!rt.duringMila&&!rt.respActive&&performance.now()-rt.speechAt>=450)replyNow(rt);
+    }
+    else if(e.type==='conversation.item.input_audio_transcription.completed'){
+      var text=(e.transcript||'').trim();
+      if(!rt.pendingReply)return;
+      if(!text){rt.pendingReply=false;return;}
+      // MILA sigue hablando y fue un «ajá»/«o»/tos: no se le corta.
+      if(rt.duringMila&&rt.respActive&&!rt.interrupted&&!isRealSpeech(text)){rt.pendingReply=false;return;}
+      replyNow(rt);
+    }
+  }
+  // MARK:/turns
   function onRealtimeEvent(message){
     var e;try{e=JSON.parse(message.data);}catch(_){return;}
+    onTurnEvent(e);
     if(/^(input_audio_buffer\.speech_started|output_audio_buffer\.started|response\.output_audio_transcript\.delta|response\.audio_transcript\.delta|conversation\.item\.input_audio_transcription\.completed)$/.test(e.type))st.rt.last=Date.now();
     if(e.type==='session.created'||e.type==='session.updated'){if(!st.rt.greeted){st.rt.greeted=true;sendRt({type:'response.create',response:{instructions:'Empieza: saluda al paciente por su nombre, preséntate y explica en una frase lo que harás. Luego haz la primera pregunta.'}});}}
     if(e.type==='input_audio_buffer.speech_started'&&!st.rt.muted)setOrb('listening');

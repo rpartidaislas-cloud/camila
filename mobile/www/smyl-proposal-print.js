@@ -5,7 +5,7 @@
   function targetLabel(item){var parts=[];if(item.teeth.length)parts.push('Piezas '+item.teeth.join(', '));if(item.surfaces.length)parts.push('Superficies '+item.surfaces.join(', '));return parts.join(' · ')||item.area||'Tratamiento general';}
   function render(row,assets,approved){
     var model=SmylProposalModel,doc=model.normalize(row.document),paper=n('article','proposal-paper');
-    var top=n('header','proposal-paper-top');top.append(n('strong','',row.clinic_name||'Tu clínica dental'),n('span','proposal-brand','smyl'));
+    var top=n('header','proposal-paper-top');top.append(n('strong','',(row.clinic_name||'Tu clínica dental')+(row.branch_label?' · '+row.branch_label:'')),n('span','proposal-brand','smyl'));
     paper.append(top,n('p','proposal-kicker',approved?'PROPUESTA PERSONALIZADA':'BORRADOR - PENDIENTE DE REVISIÓN'),n('h1','',doc.title));
     var who=n('div','proposal-paper-meta');who.append(n('div','','Para '+row.patient_name),n('div','',row.professional_name||'Equipo de la clínica'));
     paper.append(who);
