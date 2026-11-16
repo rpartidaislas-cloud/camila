@@ -883,7 +883,10 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-lana-attention.css?v=1">
 <script defer src="smyl-lana-attention.js?v=4"></script>
 <link rel="stylesheet" href="smyl-daily-home.css?v=16">
+<link rel="stylesheet" href="smyl-consultorio.css?v=1">
 <script defer src="smyl-daily-home.js?v=17"></script>
+<script defer src="smyl-patient-quick.js?v=1"></script>
+<script defer src="smyl-consultorio.js?v=1"></script>
 <link rel="stylesheet" href="smyl-clinic-setup.css?v=4">
 <script defer src="smyl-clinic-setup.js?v=6"></script>
 <link rel="stylesheet" href="smyl-settings-hub.css?v=5">
@@ -2642,6 +2645,16 @@ function smylEsperarModuloPacientes() {
     var timer = setTimeout(function() { finish(window.SmylClinicReady === true); }, 5000);
   });
 }
+// ¿Se abrió desde el ícono instalado (PWA, también iPhone) o dentro de la app nativa?
+function smylEsAppInstalada() {
+  try {
+    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+    if (window.navigator.standalone === true) return true;
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return true;
+  } catch (_) {}
+  return false;
+}
+
 async function smylRestaurarRutaGuardada(route) {
   if (route !== 'paciente-detalle') { ir(route); return true; }
   var patientId = smylPacienteGuardadoEnSesion();
@@ -2849,6 +2862,8 @@ async function continuarConUsuario(authUser) {
     var rutaGuardada = null;
     try { rutaGuardada = sessionStorage.getItem('smyl_route'); } catch (_) {}
     if (rutaGuardada && rutaGuardada !== 'dashboard' && rutaGuardada !== 'bienvenida' && document.getElementById('p-' + rutaGuardada)) await smylRestaurarRutaGuardada(rutaGuardada);
+    // La app instalada (ícono en la pantalla de inicio o app nativa) abre en el Consultorio; el navegador y la computadora siguen igual.
+    else if (smylEsAppInstalada() && document.getElementById('p-consultorio')) ir('consultorio');
   }
   await cargarDashboard();
   renderPrecios();
