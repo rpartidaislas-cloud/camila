@@ -11257,3 +11257,7 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Ficha anclada (≥ 1440 px):** se vuelve tercera columna (`#p-inbox.context-docked`), sin oscurecer el chat, `role="complementary"` sin `aria-modal` ni trampa de foco (Escape sigue cerrando). Si la dejas abierta, sigue abierta al cambiar de chat (preferencia en memoria; `smyl-inbox.js` no usa `localStorage`). Debajo de 1440 px sigue como cajón.
 - **Visual:** la identidad muestra teléfono/correo o «Sin teléfono ni correo registrados» en gris, más «Escribe por {canal} · último mensaje …»; «Línea de tiempo» pasa a «Historial» (con `title`); la tira de pestañas se difumina al final para indicar que se desliza.
 - **Archivos:** `smyl-inbox-ficha.js` v2 (`conversationSummary`), `smyl-inbox.js` v50, `smyl-inbox.css` v44, `app.html`, `sw.js` (caché `…-ficha360-v3`), copias en `mobile/www/`; prueba nueva `tests/smyl-inbox-ficha360-v3.test.mjs`.
+
+## 2026-11-16 — Claude Code — Respaldos: reintento ante cortes de red en Storage
+- **Qué cambia:** `scripts/create-encrypted-backup.mjs` reintenta la descarga de cada bucket hasta 4 veces (vacía lo parcial entre intentos; espera `SMYL_BACKUP_RETRY_WAIT_MS`, 5 s por defecto). Antes un `Transport error` aislado abortaba todo el respaldo.
+- **Archivos:** `scripts/create-encrypted-backup.mjs`, `tests/backup-behaviour.test.mjs` (2 pruebas nuevas), `docs/SMYL_RESPALDOS.md`. Sin cambios de app, Supabase ni permisos.
