@@ -76,3 +76,14 @@ test('cada paso lleva una acción principal, salvo los ya completos', () => {
   const r = V.build({ patient: { nombre: 'Por registrar · 1' }, history: null, files: [], historyModel: H });
   r.steps.filter((s) => s.state === 'todo').forEach((s) => assert.equal(s.actions.filter((a) => a.primary).length, 1, s.key));
 });
+
+test('la entrevista de historia solo se ofrece a quien puede escribir datos clínicos y cuando la historia se pudo leer', () => {
+  const ids = (input) => V.build(input).steps[1].actions.map((a) => a.id + (a.primary ? '*' : ''));
+  const medias = H.defaultHistory(); medias.allergies_status = 'no';
+  assert.deepEqual(ids({ patient: completo, history: null, historyModel: H, canWriteClinical: true }), ['interview*', 'history']);
+  assert.deepEqual(ids({ patient: completo, history: medias, historyModel: H, canWriteClinical: true }), ['interview*', 'history']);
+  assert.deepEqual(ids({ patient: completo, history: historiaConfirmada(), historyModel: H, canWriteClinical: true }), ['interview', 'history']);
+  assert.deepEqual(ids({ patient: completo, history: medias, historyModel: H, canWriteClinical: false }), ['history*'], 'sin permiso solo puede abrirla');
+  assert.deepEqual(ids({ patient: completo, history: undefined, historyModel: H, canWriteClinical: true }), ['history*'], 'si no se pudo leer, no se escribe a ciegas');
+  assert.equal(V.build({ patient: completo, history: medias, historyModel: H, canWriteClinical: true }).steps[1].actions[0].label, 'Completar la historia');
+});

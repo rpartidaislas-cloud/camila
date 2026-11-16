@@ -36,9 +36,9 @@ const registro = (page, nombre) => page.evaluate((n) => window.__log.filter((x) 
 // ── Contrato del código (no necesita navegador) ──
 test('app.html carga el módulo puro antes que el Consultorio y arranca en él solo en la app instalada', () => {
   const app = read('app.html');
-  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=1', 'smyl-consultorio.js?v=2'].map((f) => app.indexOf(f));
-  assert.ok(orden[0] > 0 && orden[0] < orden[1] && orden[1] < orden[2], 'los módulos puros cargan antes que la pantalla');
-  assert.match(app, /smyl-consultorio\.css\?v=2/);
+  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=2', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=3'].map((f) => app.indexOf(f));
+  assert.ok(orden[0] > 0 && orden[0] < orden[1] && orden[1] < orden[2] && orden[2] < orden[3], 'los módulos puros cargan antes que la pantalla');
+  assert.match(app, /smyl-consultorio\.css\?v=3/);
   assert.match(app, /else if \(smylEsAppInstalada\(\) && document\.getElementById\('p-consultorio'\)\) ir\('consultorio'\)/);
   assert.match(app, /display-mode: standalone/);
   assert.match(app, /window\.navigator\.standalone === true/);
@@ -57,8 +57,8 @@ test('el simulador y el manifiesto llevan al Consultorio y el simulador sigue ac
 
 test('se precarga y las copias móviles son idénticas', () => {
   const sw = read('sw.js');
-  for (const f of ['smyl-consultorio.js?v=2', 'smyl-consultorio.css?v=2', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
-  for (const f of ['smyl-consultorio.js', 'smyl-consultorio.css', 'smyl-patient-quick.js', 'smyl-visit-model.js', 'smyl-studio.js', 'simulacion-rapida.html', 'manifest-app.json', 'app.html', 'sw.js']) assert.equal(read(f), read('mobile/www/' + f), f);
+  for (const f of ['smyl-consultorio.js?v=3', 'smyl-consultorio.css?v=3', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=2', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
+  for (const f of ['smyl-consultorio.js', 'smyl-consultorio.css', 'smyl-patient-quick.js', 'smyl-visit-model.js', 'smyl-history-interview.js', 'smyl-studio.js', 'simulacion-rapida.html', 'manifest-app.json', 'app.html', 'sw.js']) assert.equal(read(f), read('mobile/www/' + f), f);
 });
 
 test('los datos de pacientes se pintan con textContent o escapados', () => {
@@ -248,7 +248,7 @@ probar('sin historia ni estudios y con la historia ilegible, el recorrido no inv
 
 probar('Historia y Estudios abren el expediente y saltan a su sección (accesos reales del expediente, aunque estén plegados)', async () => {
   const { page } = await visita();
-  await page.click('.co-step[data-key=historia] .co-sgo');
+  await page.click('.co-step[data-key=historia] .co-sec');   // «Abrir historia completa»; el botón principal ahora es la entrevista
   await page.waitForFunction(() => window.__log.some((x) => x[0] === 'tab'));
   assert.deepEqual(await registro(page, 'tab'), [['tab', 'history', 'p1']]);
   await page.evaluate(() => window.ir('consultorio'));
@@ -338,5 +338,158 @@ probar('el recorrido cabe en un celular de 390 px', async () => {
   const { page } = await visita('h=parcial&f=algunos');
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
   await page.screenshot({ path: process.env.SMYL_CAPTURA || '/tmp/consultorio-visita.png', fullPage: true });
+  await page.close();
+});
+
+// ── Historia por preguntas ──
+const elegir = (page, valor) => page.click('.co-ch[data-value=' + valor + ']');
+const titulo = (page) => page.textContent('.co-qtitle');
+const siguiente = (page) => page.click('[data-co-next]');
+async function entrevista(query = '', preparar) {
+  const r = await abrir(query, preparar);
+  await r.page.click('.co-person >> nth=0');
+  await r.page.waitForSelector('.co-step');
+  await r.page.click('.co-step[data-key=historia] .co-sgo');
+  await r.page.waitForSelector('.co-qtitle');
+  return r;
+}
+
+probar('solo se preguntan las secciones pendientes y «Siguiente» espera a que se responda', async () => {
+  const { page, errores } = await entrevista();
+  assert.equal(await titulo(page), '¿Hay algo que deba saberse antes de atender?', 'las alergias ya estaban confirmadas, empieza por las alertas');
+  assert.equal(await page.textContent('[data-co-interview] .co-vprogress'), 'Pregunta 1 de 6');
+  assert.equal(await page.isDisabled('[data-co-next]'), true);
+  await elegir(page, 'yes');
+  assert.equal(await page.isDisabled('[data-co-next]'), true, '«Sí» sin decir cuál no basta');
+  await page.fill('.co-field input', 'toma anticoagulantes');
+  assert.equal(await page.isDisabled('[data-co-next]'), false);
+  assert.deepEqual(errores, []);
+  await page.close();
+});
+
+probar('la pregunta de alergias va primero, lleva la advertencia de seguridad y no deja posponerla con «No lo sé» suelto', async () => {
+  const { page } = await entrevista('h=ninguna');
+  assert.match(await titulo(page), /alérgico/);
+  assert.equal(await page.getAttribute('.co-hint', 'data-safety'), 'true');
+  assert.deepEqual(await page.$$eval('.co-ch', (n) => n.map((x) => x.textContent)), ['No', 'Sí']);
+  assert.equal(await page.locator('text=No lo sé, confirmarlo después').count(), 1);
+  assert.equal(await page.evaluate(() => document.activeElement.className), 'co-qtitle', 'el foco pasa al título de cada pregunta');
+  await page.close();
+});
+
+probar('contestar todo y guardar envía UN solo guardado con el documento del editor y la revisión vigente', async () => {
+  const { page } = await entrevista();
+  await elegir(page, 'yes'); await page.fill('.co-field input', 'toma anticoagulantes'); await siguiente(page);   // alertas
+  await elegir(page, 'no'); await siguiente(page);                                                                  // condiciones
+  await elegir(page, 'yes');                                                                                         // medicamentos
+  const campos = await page.$$('.co-field input');
+  await campos[0].fill('losartán'); await campos[1].fill('50 mg'); await siguiente(page);
+  await elegir(page, 'no'); await siguiente(page);                                                                  // cirugías
+  await elegir(page, 'yes'); await page.fill('.co-field textarea', 'ortodoncia hace 5 años'); await siguiente(page);   // dental
+  await elegir(page, 'no');                                                                                          // hábitos
+  assert.equal(await page.textContent('[data-co-next]'), 'Revisar');
+  await siguiente(page);
+  assert.equal(await titulo(page), 'Revisa y guarda');
+  assert.match(await page.textContent('.co-review'), /Alertas médicas\s*toma anticoagulantes/);
+  assert.match(await page.textContent('.co-review'), /Medicamentos\s*losartán, 50 mg/);
+  assert.equal((await page.evaluate(() => window.__guardados || [])).length, 0, 'nada se guarda antes de confirmar');
+  await page.click('[data-co-save]');
+  await page.waitForSelector('.co-success');
+  const guardados = await page.evaluate(() => window.__guardados);
+  assert.equal(guardados.length, 1);
+  assert.equal(guardados[0].p_patient_id, 'p1');
+  assert.equal(guardados[0].p_expected_revision, 3);
+  const doc = guardados[0].p_document;
+  assert.deepEqual(doc.alerts, ['toma anticoagulantes']);
+  assert.equal(doc.medication_records[0].name, 'losartán');
+  assert.equal(doc.medication_records[0].dose, '50 mg');
+  assert.equal(doc.allergies_status, 'no', 'lo que ya estaba confirmado se conserva');
+  assert.equal(doc.habits_status, 'no');
+  assert.equal(doc.dental_history, 'ortodoncia hace 5 años');
+  assert.equal(await page.textContent('.co-success'), 'Historia guardada.');
+  await page.close();
+});
+
+probar('una alergia con detalle y gravedad queda como en el editor', async () => {
+  const { page } = await entrevista('h=ninguna');
+  await elegir(page, 'yes');
+  await page.fill('.co-field >> nth=0 >> input', 'penicilina'); await page.fill('.co-field >> nth=1 >> input', 'urticaria');
+  await page.click('.co-chipbtn >> text=Alta');
+  await page.click('text=+ Agregar otra alergia');
+  const campos = await page.$$('.co-field input');
+  await campos[2].fill('látex');
+  for (let i = 0; i < 6; i++) { await siguiente(page); await elegir(page, 'no'); }   // el resto: «No»
+  await siguiente(page);
+  await page.click('[data-co-save]');
+  await page.waitForSelector('.co-success');
+  const doc = (await page.evaluate(() => window.__guardados))[0].p_document;
+  assert.deepEqual(doc.allergy_records, [{ substance: 'penicilina', reaction: 'urticaria', severity: 'high' }, { substance: 'látex', reaction: '', severity: '' }]);
+  assert.equal((await page.evaluate(() => window.__guardados))[0].p_expected_revision, 0, 'sin historia previa, revisión 0');
+  await page.close();
+});
+
+probar('si la historia cambió en otra sesión se avisa, no se pierde lo contestado y se puede reintentar', async () => {
+  const { page } = await entrevista('', () => { window.__falla40001 = true; });
+  await elegir(page, 'no'); await siguiente(page);
+  for (let i = 0; i < 4; i++) { await elegir(page, 'no'); await siguiente(page); }
+  await elegir(page, 'no'); await siguiente(page);
+  await page.click('[data-co-save]');
+  await page.waitForSelector('.co-error-box:not([hidden])');
+  assert.match(await page.textContent('.co-error-box'), /cambió en otra sesión y tus respuestas no se guardaron/);
+  assert.equal(await page.isDisabled('[data-co-save]'), false);
+  assert.equal(await page.locator('.co-success').count(), 0);
+  await page.close();
+});
+
+probar('«Salir» pide confirmación solo si hay respuestas sin guardar', async () => {
+  let { page } = await entrevista();
+  let preguntas = 0; page.on('dialog', (d) => { preguntas++; d.dismiss(); });
+  await elegir(page, 'no');
+  await page.click('text=‹ Salir');
+  assert.equal(preguntas, 1);
+  assert.equal(await page.isVisible('.co-qtitle'), true, 'al cancelar se queda');
+  page.removeAllListeners('dialog'); page.on('dialog', (d) => { preguntas++; d.accept(); });
+  await page.click('text=‹ Salir');
+  await page.waitForSelector('.co-step');
+  assert.equal(await page.isVisible('.co-step[data-key=historia]'), true);
+  await page.close();
+  ({ page } = await entrevista());
+  let sinPregunta = 0; page.on('dialog', (d) => { sinPregunta++; d.accept(); });
+  await page.click('text=‹ Salir');
+  await page.waitForSelector('.co-step');
+  assert.equal(sinPregunta, 0, 'sin cambios no pregunta');
+  await page.close();
+});
+
+probar('sin permiso de escritura clínica, o con la historia ilegible, no se ofrece la entrevista', async () => {
+  let { page } = await visita('rol=staff');
+  assert.deepEqual((await pasos(page))[1].a, ['Abrir historia clínica']);
+  await page.close();
+  ({ page } = await visita('h=error'));
+  assert.deepEqual((await pasos(page))[1].a, ['Abrir historia clínica']);
+  await page.close();
+});
+
+probar('ninguna respuesta se guarda en el navegador', async () => {
+  const { page } = await entrevista();
+  await elegir(page, 'yes'); await page.fill('.co-field input', 'dato clínico confidencial');
+  const guardado = await page.evaluate(() => JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]));
+  assert.doesNotMatch(guardado, /confidencial|anticoagulantes/);
+  assert.deepEqual(await page.evaluate(() => Object.keys(sessionStorage)), ['smyl_visit']);
+  await page.close();
+});
+
+probar('las preguntas y la revisión caben en 390 px y los botones son táctiles', async () => {
+  const { page } = await entrevista();
+  await elegir(page, 'yes');
+  const medidas = await page.$$eval('.co-ch, .co-ivnav button, .co-field input', (n) => n.map((x) => Math.round(x.getBoundingClientRect().height)));
+  assert.ok(medidas.every((h) => h >= 44), 'objetivos táctiles de 44 px o más: ' + medidas);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
+  await page.screenshot({ path: process.env.SMYL_CAPTURA_PREGUNTA || '/tmp/consultorio-pregunta.png', fullPage: true });
+  await page.fill('.co-field input', 'toma anticoagulantes');
+  for (let i = 0; i < 6; i++) { await siguiente(page); if (i < 5) await elegir(page, 'no'); }
+  await page.waitForSelector('[data-co-save]');
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
+  await page.screenshot({ path: process.env.SMYL_CAPTURA_REVISION || '/tmp/consultorio-revision.png', fullPage: true });
   await page.close();
 });
