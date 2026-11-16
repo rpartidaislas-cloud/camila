@@ -293,3 +293,46 @@ button.connections-tool-card:hover{border-color:#88b3aa;background:#f3f8f6}
   .connections-whatsapp-modes{margin-top:14px;padding-top:16px}
   .connections-whatsapp-mode{padding:17px}
 }
+
+/* Canales: una tarjeta principal, pasos claros y herramientas solo cuando el canal está conectado. */
+.connections-steps{display:flex;flex-wrap:wrap;gap:8px 10px;margin:0 0 16px;padding:0;list-style:none}
+.connections-steps li{display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;border:1px solid #d7e0dd;border-radius:999px;background:#fff;color:#4b5f5d;font-size:13px;font-weight:600}
+.connections-steps li b{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#e8eeec;color:#4b5f5d;font-size:12px;font-weight:700}
+.connections-steps li[data-state=current]{border-color:#2b7873;color:#183335}
+.connections-steps li[data-state=current] b{background:#2b7873;color:#fff}
+.connections-steps li[data-state=done] b{background:#2f8a62;color:#fff}
+.connections-steps li[data-state=done] b::before{content:"✓"}
+.connections-steps li[data-state=done] b{font-size:0}
+.connections-steps li[data-state=done] b::before{font-size:13px}
+.connections-channel-account{grid-template-columns:1fr;gap:16px;padding:24px}
+.connections-channel-account>header h3{font-size:20px}
+.connections-channel-account>header p,.connections-channel-scope p{font-size:14px;color:#4b5f5d}
+.connections-channel-account .connections-channel-list small,.connections-channel-list small{font-size:13px;color:#4b5f5d}
+.connections-channel-account .connections-channel-list strong{font-size:15px}
+/* Sin conectar y con la mensajería activa: el encabezado de la tarjeta ya dice qué hacer, la fila de WhatsApp solo muestra las opciones. */
+.connections-channel-pane[data-lana=true][data-channel-state=pending] [data-channel-row=whatsapp]{grid-template-columns:1fr}
+.connections-channel-pane[data-lana=true][data-channel-state=pending] [data-channel-row=whatsapp]>:is(.connections-channel-icon,p){display:none}
+.connections-channel-pane[data-lana=true][data-channel-state=pending] .connections-whatsapp-modes{margin-top:0;padding-top:0;border-top:0}
+.connections-channel-pane[data-lana=true][data-channel-state=pending] .connections-whatsapp-modes>header{display:none}
+/* Alcance y herramientas: solo con el canal conectado */
+.connections-channel-pane:not([data-channel-state=connected]) .connections-channel-scope,
+.connections-channel-pane:not([data-channel-state=connected]) .connections-channel-tools{display:none}
+.connections-channel-next{margin:14px 2px 0;color:#4b5f5d;font-size:14px;line-height:1.5}
+.connections-channel-pane[data-channel-state=connected] .connections-channel-next{display:none}
+/* Opciones de WhatsApp: requisitos siempre visibles */
+.connections-whatsapp-mode{min-height:0}
+.connections-whatsapp-mode h4{font-size:18px}
+.connections-whatsapp-mode>p{font-size:14px;color:#4b5f5d}
+.connections-mode-reqs{margin:0 0 18px;font-size:13px;color:#3f5251}
+.connections-mode-reqs strong{display:block;margin-bottom:6px;color:#183335;font-size:13px}
+.connections-mode-reqs ul{margin:0;padding-left:18px;display:grid;gap:5px;line-height:1.45}
+.connections-whatsapp-mode-label{font-size:12px}
+.connections-whatsapp-mode .btn{margin-top:auto;min-height:44px;justify-content:center}
+.connections-tool-card p{font-size:13px;color:#4b5f5d}
+.connections-tool-card small{font-size:12px}
+.connections-pane-head p{font-size:14px;color:#4b5f5d}
+/* Menú lateral: punto de estado por canal */
+.connections-tabs button{position:relative}
+.connections-tab-dot{position:absolute;top:50%;right:12px;width:9px;height:9px;transform:translateY(-50%);border-radius:50%;background:#c3cdca}
+.connections-tab-dot[data-state=connected]{background:#2f8a62;box-shadow:0 0 0 3px rgba(47,138,98,.18)}
+.connections-mode-reqs li{color:#3f5251}
