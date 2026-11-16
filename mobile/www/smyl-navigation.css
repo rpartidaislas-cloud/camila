@@ -336,3 +336,14 @@ button.connections-tool-card:hover{border-color:#88b3aa;background:#f3f8f6}
 .connections-tab-dot{position:absolute;top:50%;right:12px;width:9px;height:9px;transform:translateY(-50%);border-radius:50%;background:#c3cdca}
 .connections-tab-dot[data-state=connected]{background:#2f8a62;box-shadow:0 0 0 3px rgba(47,138,98,.18)}
 .connections-mode-reqs li{color:#3f5251}
+
+/* Logotipos de Instagram y Messenger (los mismos de LANA, sin recolorear) */
+.connections-channel-icon--brand{display:grid;place-items:center;border:1px solid #dde6e2!important;background:#fff!important;padding:8px;box-shadow:none!important}
+.connections-channel-icon--brand img{display:block;width:100%;height:100%;object-fit:contain}
+.connections-workspace .connections-tabs .connections-tab-icon--brand{overflow:hidden;border-color:#dde6e2;background:#fff}
+.connections-workspace .connections-tabs .connections-tab-icon--brand img{display:block;width:18px;height:18px}
+.connections-workspace .connections-tabs button[aria-selected=true]>.connections-tab-icon--brand{border-color:rgba(255,255,255,.2);background:#fff}
+.connections-channel-brand--meta{box-shadow:0 0 0 1px #dde6e2,0 6px 16px rgba(17,52,47,.06)}
+.connections-channel-brand--meta img{width:30px;height:30px}
+.connections-channel-reqs{margin:14px 0 0}
+.connections-channel-pane[data-channel-state=connected] .connections-channel-reqs{display:none}

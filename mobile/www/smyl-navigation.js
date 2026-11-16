@@ -345,8 +345,8 @@
     var entries = [
       ['channels','Estado','R','general'],
       ['whatsapp','WhatsApp','<img src="icons/brands/whatsapp.svg" alt="">','channels'],
-      ['messenger','Messenger','M','channels'],
-      ['instagram','Instagram','I','channels'],
+      ['messenger','Messenger','<img src="icons/brands/messenger.svg" alt="">','channels'],
+      ['instagram','Instagram','<img src="icons/brands/instagram.svg" alt="">','channels'],
       ['assistant','SMYL Asistente','A','tools'],
       ['templates','Plantillas','P','tools'],
       ['automations','Automatizaciones','⌁','tools'],
@@ -367,7 +367,7 @@
       button.dataset.connectionTab = entry[0];
       button.dataset.connectionGroup = entry[3];
       button.setAttribute('aria-selected', String(index === 0));
-      button.innerHTML = '<span class="connections-tab-icon' + (entry[0] === 'whatsapp' ? ' connections-tab-icon--whatsapp' : '') + '" aria-hidden="true">' + entry[2] + '</span><strong>' + entry[1] + '</strong>' + (entry[3] === 'channels' && entry[0] !== 'channels' ? '<i class="connections-tab-dot" data-tab-dot="' + entry[0] + '" data-state="pending" aria-hidden="true"></i>' : '');
+      button.innerHTML = '<span class="connections-tab-icon' + (entry[0] === 'whatsapp' ? ' connections-tab-icon--whatsapp' : (entry[0] === 'messenger' || entry[0] === 'instagram' ? ' connections-tab-icon--brand' : '')) + '" aria-hidden="true">' + entry[2] + '</span><strong>' + entry[1] + '</strong>' + (entry[3] === 'channels' && entry[0] !== 'channels' ? '<i class="connections-tab-dot" data-tab-dot="' + entry[0] + '" data-state="pending" aria-hidden="true"></i>' : '');
       tabs.append(button);
     });
 
@@ -390,6 +390,10 @@
       messenger: ['Messenger', 'Mensajes de Facebook y entrega de conversaciones al equipo.'],
       instagram: ['Instagram', 'Mensajes directos y reglas de respuesta para la cuenta conectada.']
     };
+    var channelReqs = {
+      messenger: ['Debes ser administrador de la página de Facebook de la clínica.', 'Al conectar, Meta te pedirá elegir la página y aceptar los permisos.'],
+      instagram: ['La cuenta debe ser profesional (negocio o creador).', 'Debe estar vinculada a una página de Facebook de la clínica.', 'Debes ser administrador de esa página.']
+    };
     var connectTitles = { whatsapp: 'Conecta tu WhatsApp', messenger: 'Conecta tu página de Facebook', instagram: 'Conecta tu cuenta de Instagram' };
     Object.keys(channelCopy).forEach(function (name) {
       var copy = channelCopy[name];
@@ -397,12 +401,10 @@
       pane.className = 'connections-pane connections-channel-pane';
       pane.dataset.connectionPane = name;
       pane.hidden = true;
-      var brand = name === 'whatsapp'
-        ? '<span class="connections-channel-brand" aria-hidden="true"><img src="icons/brands/whatsapp.svg" alt=""></span>'
-        : '<span class="connections-channel-brand connections-channel-brand--letter" aria-hidden="true">' + name.charAt(0).toUpperCase() + '</span>';
+      var brand = '<span class="connections-channel-brand' + (name === 'whatsapp' ? '' : ' connections-channel-brand--meta') + '" aria-hidden="true"><img src="icons/brands/' + name + '.svg" alt=""></span>';
       pane.innerHTML = '<header class="connections-pane-head connections-channel-head"><div class="connections-channel-identity">' + brand + '<div><h2>' + copy[0] + '</h2><p>' + copy[1] + '</p></div></div><span class="connections-platform-label" data-channel-pane-status data-state="pending">Sin conectar</span></header>' +
         '<ol class="connections-steps" data-channel-steps aria-label="Pasos para usar el canal"><li data-step="activate" data-state="pending"><b>1</b><span>Activar mensajería</span></li><li data-step="connect" data-state="pending"><b>2</b><span>Conectar canal</span></li><li data-step="configure" data-state="pending"><b>3</b><span>Configurar</span></li></ol>' +
-        '<section class="connections-channel-control"><div class="connections-channel-account"><header><h3>' + connectTitles[name] + '</h3><p>La conexión se autoriza en Meta. SMYL no recibe contraseñas.</p></header><div class="connections-channel-list" data-channel-slot="' + name + '"></div></div>' +
+        '<section class="connections-channel-control"><div class="connections-channel-account"><header><h3>' + connectTitles[name] + '</h3><p>La conexión se autoriza en Meta. SMYL no recibe contraseñas.</p>' + (channelReqs[name] ? '<div class="connections-mode-reqs connections-channel-reqs"><strong>Antes de conectar</strong><ul>' + channelReqs[name].map(function (item) { return '<li>' + item + '</li>'; }).join('') + '</ul></div>' : '') + '</header><div class="connections-channel-list" data-channel-slot="' + name + '"></div></div>' +
         '<aside class="connections-channel-scope"><div><span>ALCANCE</span><h3 data-channel-scope-title>Se configura al conectar</h3><p data-channel-scope-copy>Primero conecta la cuenta. Después podrás revisar su alcance y herramientas.</p></div><dl><div><dt>Modo</dt><dd data-channel-mode>Pendiente</dd></div><div><dt>Historial</dt><dd data-channel-history>Pendiente</dd></div></dl></aside></section>' +
         '<section class="connections-channel-tools"><header><div><span>HERRAMIENTAS</span><h3>¿Qué quieres configurar?</h3></div><p>Cada ajuste tiene su propio espacio.</p></header><div data-channel-tools="' + name + '"></div></section>' +
         '<p class="connections-channel-next">Al conectar el canal podrás configurar plantillas, el asistente y las automatizaciones.</p>';

@@ -22,3 +22,21 @@ test('canales: requisitos de WhatsApp siempre visibles, sin desplegable', () => 
   assert.doesNotMatch(con, /Requisitos y límites<\/summary>/);
   assert.match(con, /connections-mode-reqs/);
 });
+
+test('canales: logotipos de Instagram y Messenger en menú, encabezado, fila, diálogo y caché sin conexión', () => {
+  for (const f of ['icons/brands/instagram.svg', 'icons/brands/messenger.svg', 'mobile/www/icons/brands/instagram.svg', 'mobile/www/icons/brands/messenger.svg']) {
+    const svg = fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
+    assert.match(svg, /^<svg[\s\S]*<path fill="url\(#(ig|mg)-grad\)" d="M/);
+  }
+  assert.match(con, /icons\/brands\/messenger\.svg/); assert.match(con, /icons\/brands\/instagram\.svg/);
+  assert.match(nav, /icons\/brands\/messenger\.svg/); assert.match(nav, /icons\/brands\/' \+ name \+ '\.svg/);
+  for (const sw of ['sw.js', 'mobile/www/sw.js']) {
+    const t = fs.readFileSync(new URL('../' + sw, import.meta.url), 'utf8');
+    assert.match(t, /icons\/brands\/instagram\.svg/); assert.match(t, /icons\/brands\/messenger\.svg/);
+  }
+});
+test('canales: Messenger e Instagram explican qué se necesita antes de conectar', () => {
+  assert.match(nav, /La cuenta debe ser profesional/);
+  assert.match(nav, /administrador de la página de Facebook/);
+  assert.match(css, /\.connections-channel-pane\[data-channel-state=connected\] \.connections-channel-reqs\{display:none\}/);
+});
