@@ -1,5 +1,13 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-16 — Claude Code — MILA: entrevista previa en la agenda y envío automático
+
+- **Agenda**: cada cita (día, semana y lista) muestra la marca de la entrevista previa: «Historia enviada», «Respondiendo», «Historia lista», «⚠ Alerta en historia», «No se envió» o «Sin responder». En el detalle de la cita, la fila **Historia previa** permite **Enviar entrevista / Reenviar** (abre el diálogo de MILA solo en «Antes de la cita», ligado a esa cita) o **Revisar** (abre la ficha, donde está el borrador). Los datos vienen de `mila-interview` → `previsit_overview` (permiso `schedule.read`; sin `clinical.write` no se ofrece enviar).
+- **Envío automático** (diálogo de MILA → Antes de la cita → «Envío automático», lo cambia quien tiene `schedule.manage`): activar, horas antes (24/48/72), modo (el paciente elige / voz / formulario) y a quién (sin historia o historia de más de un año — por defecto —, solo sin historia, todos). Solo citas **confirmadas** entre 1 h y N h adelante; nunca dos veces por cita (`unique (tenant_id, appointment_id)`) ni más de una vez en 30 días por paciente; máx. 25 por vuelta. Sin plantilla aprobada no se registra nada y empieza sola cuando Meta la apruebe; sin conversación de WhatsApp queda «No se envió».
+- Corre con el cron (`x-smyl-cron-secret` = `SMYL_REMINDERS_CRON_SECRET`, ver `docs/RECORDATORIOS_CITA.md` → «Entrevista previa automática») y también cuando alguien abre la agenda (como mucho cada 10 min).
+- Migración `20261116150000_smyl_mila_previsit_auto.sql` (`smyl_mila_previsit_settings`, `smyl_mila_previsit_dispatches`; RLS sin políticas). Los envíos manuales también quedan registrados en la cita; al guardar o descartar la entrevista se marca `reviewed`. **Requiere aplicar la migración y volver a desplegar `mila-interview`.**
+- Versiones: agenda `js v41 / css v30`, MILA `v5`, caché `previsit-agenda-v1`. Siete pruebas antiguas limitaban `smyl-schedule.css` a `v<30`; se ampliaron a dos dígitos. Pruebas: `smyl-mila-interview` 23/23; suite con los mismos 15 fallos que `main`; `deno check` OK; vista previa en 390 px de las marcas y del panel.
+
 ## 2026-11-16 — Claude: respaldo — Storage con destino relativo (CLI 2.x rechaza `C:\...`)
 
 En el primer respaldo real (Windows, CLI 2.110.0) la copia de Storage falló con «Unsupported operation»: la CLI interpreta una ruta con letra de unidad (`C:\Users\…`) como URL y no la reconoce como local.

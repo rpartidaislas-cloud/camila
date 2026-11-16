@@ -167,7 +167,7 @@ test('la función protege la sesión: QR de un solo uso, dispositivo, consentimi
 test('la app carga MILA y la copia móvil está sincronizada', () => {
   const app = read('../app.html');
   assert.match(app, /vendor\/qrcode-generator-1\.4\.4\.js/);
-  assert.match(app, /smyl-mila-interview\.js\?v=4/);
+  assert.match(app, /smyl-mila-interview\.js\?v=5/);
   for (const file of ['app.html', 'mila-movil.html', 'smyl-mila-interview.js', 'smyl-mila-interview.css', 'smyl-history-model.js', 'smyl-history-read.js', 'smyl-patient-360.js', 'smyl-case-workspace.js', 'sw.js', 'vendor/qrcode-generator-1.4.4.js']) {
     assert.equal(read(`../mobile/www/${file}`), read(`../${file}`), `${file} sincronizado`);
   }
@@ -324,4 +324,33 @@ test('el orbe siempre es circular aunque el subtítulo sea largo', () => {
   const phone = read('../mila-movil.html');
   assert.match(phone, /\.orbwrap\{position:relative;flex:none;width:min\(78vw,320px,38vh\);height:auto;aspect-ratio:1\/1;/);
   assert.match(phone, /Math\.abs\(w-ORB\.size\)>2/, 'el lienzo se ajusta si cambia el tamaño');
+});
+
+test('entrevista previa: envío automático y marcas en la agenda', () => {
+  const sql = read('../supabase/migrations/20261116150000_smyl_mila_previsit_auto.sql');
+  assert.match(sql, /hours_before integer not null default 48 check \(hours_before between 12 and 168\)/);
+  assert.match(sql, /audience in \('no_history', 'stale', 'all'\)/);
+  assert.match(sql, /unique \(tenant_id, appointment_id\)/, 'una sola entrevista previa por cita');
+  assert.match(sql, /enable row level security[\s\S]*revoke all on public\.smyl_mila_previsit_dispatches from public, anon, authenticated/);
+  const fn = read('../supabase/functions/mila-interview/index.ts');
+  assert.match(fn, /x-smyl-cron-secret/);
+  assert.match(fn, /SMYL_REMINDERS_CRON_SECRET/);
+  assert.match(fn, /action === "previsit_overview"[\s\S]{0,300}"schedule\.read"/);
+  assert.match(fn, /action === "previsit_settings_save"[\s\S]{0,200}"schedule\.manage"/);
+  assert.match(fn, /AUTO_RESEND_DAYS = 30/);
+  assert.match(fn, /AUTO_STALE_DAYS = 365/);
+  assert.match(fn, /\.eq\("status", "confirmed"\)/, 'solo citas confirmadas');
+  assert.match(fn, /if \(!templateId\) return \{ skipped: "template_not_approved" \}/, 'sin plantilla aprobada no se registra nada');
+  assert.match(fn, /status: "reviewed"/, 'al revisar o descartar se marca la cita');
+  const agenda = read('../smyl-schedule.js');
+  assert.match(agenda, /previsitChip\(a\)\+'<\/button>'/);
+  assert.match(agenda, /action:'previsit_overview'/);
+  assert.match(agenda, /data-previsit-send/);
+  assert.match(agenda, /previsitOnly:true,appointmentId:a\.id/);
+  const desk = read('../smyl-mila-interview.js');
+  assert.match(desk, /action:'previsit_settings_save'/);
+  assert.match(desk, /appointment_id:s\.appointmentId/);
+  for (const f of ['smyl-schedule.js', 'smyl-schedule.css', 'smyl-mila-interview.js', 'smyl-mila-interview.css']) {
+    assert.equal(read('../mobile/www/' + f), read('../' + f), f + ' sincronizado con la app móvil');
+  }
 });

@@ -66,6 +66,7 @@ const MAX_REALTIME_SECONDS = 45 * 60;
 const MAX_PREVISIT_REALTIME_SECONDS = 15 * 60;
 const PREVISIT_TEMPLATE = "entrevista_previa_v1";
 const APP_BASE = Deno.env.get("SMYL_APP_BASE_URL") || "https://app.smyldesign.ai";
+const CRON_SECRET = (Deno.env.get("SMYL_REMINDERS_CRON_SECRET") || "").trim();
 const CLINIC_TZ = "America/Mexico_City";
 const MAX_TRANSCRIPT = 60000;
 const ALLOWED_MIME = new Set(["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav", "audio/x-m4a", "audio/aac"]);
@@ -305,19 +306,29 @@ async function whatsappConversation(tenantId: string, patientId: string): Promis
   return data && data[0] ? String(data[0].lana_conversation_id) : null;
 }
 /* Envía la plantilla aprobada «entrevista_previa_v1» por la conversación de WhatsApp del paciente (vía LANA). */
-async function sendPrevisitWhatsApp(tenantId: string, patientId: string, user: { id: string; email?: string }, variables: string[], idempotency: string) {
-  const conversation = await whatsappConversation(tenantId, patientId);
-  if (!conversation) return { sent: false, reason: "no_conversation" };
-  const actor = new Headers({
+type Actor = { id: string; email?: string };
+function actorHeaders(tenantId: string, user: Actor): Headers {
+  return new Headers({
     "X-SMYL-Actor-Id": user.id,
     "X-SMYL-Actor-Role": user.id === tenantId ? "owner" : "staff",
     "X-SMYL-Actor-Name-Encoded": encodeURIComponent(cleanText(user.email, 160).split("@")[0] || "Equipo"),
   });
+}
+/* Id de la plantilla «entrevista_previa_v1» si ya está aprobada en LANA; null si no existe o no está aprobada. */
+async function previsitTemplateId(tenantId: string, user: Actor): Promise<string | null> {
+  const list = await lanaRequest(tenantId, "/inbox/whatsapp/templates", { method: "GET", headers: actorHeaders(tenantId, user) }, 12000);
+  const templates = Array.isArray(list.body.templates) ? list.body.templates as Row[] : [];
+  const template = templates.find((t) => String(t.name || "") === PREVISIT_TEMPLATE && !/reject|rechaz|pending|pendiente|paused|disabled/i.test(String(t.status || "")));
+  return template?.id ? String(template.id) : null;
+}
+async function sendPrevisitWhatsApp(tenantId: string, patientId: string, user: Actor, variables: string[], idempotency: string, knownTemplate?: string | null) {
+  const conversation = await whatsappConversation(tenantId, patientId);
+  if (!conversation) return { sent: false, reason: "no_conversation" };
+  const actor = actorHeaders(tenantId, user);
   try {
-    const list = await lanaRequest(tenantId, "/inbox/whatsapp/templates", { method: "GET", headers: actor }, 12000);
-    const templates = Array.isArray(list.body.templates) ? list.body.templates as Row[] : [];
-    const template = templates.find((t) => String(t.name || "") === PREVISIT_TEMPLATE && !/reject|rechaz|pending|pendiente|paused|disabled/i.test(String(t.status || "")));
-    if (!template?.id) return { sent: false, reason: "template_not_approved" };
+    const templateId = knownTemplate || await previsitTemplateId(tenantId, user);
+    if (!templateId) return { sent: false, reason: "template_not_approved" };
+    const template = { id: templateId };
     const headers = new Headers(actor);
     headers.set("Idempotency-Key", idempotency);
     const remote = await lanaRequest(tenantId, `/inbox/conversations/${conversation}/scheduled`, {
@@ -348,6 +359,150 @@ function sameDob(input: string, stored: unknown): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(a) && a === b;
 }
 
+// ---------------------------------------------------------------- entrevista previa: envío, registro por cita y envío automático
+const AUTO_ACTOR = (tenantId: string): Actor => ({ id: tenantId, email: "MILA" });
+const AUTO_MAX_PER_RUN = 25;
+const AUTO_RESEND_DAYS = 30;
+const AUTO_STALE_DAYS = 365;
+const AUTO_THROTTLE_MS = 10 * 60_000;
+
+/* Crea la entrevista previa (una vigente por paciente), la envía y deja constancia en la cita. */
+async function createPrevisit(o: {
+  tenantId: string; patient: Row; appt: Row | null; mode: string; via: "whatsapp" | "link";
+  actor: Actor; origin: "manual" | "auto"; templateId?: string | null;
+}): Promise<Row> {
+  const { tenantId, patient, appt, mode, via, actor, origin } = o;
+  const label = appt ? appointmentLabel(appt.starts_at) : "";
+  const apptEnd = appt ? Date.parse(appt.starts_at) + 24 * 3600_000 : 0;
+  const expires = new Date(Math.max(Date.now() + 2 * 3600_000, Math.min(apptEnd || Infinity, Date.now() + 7 * 24 * 3600_000))).toISOString();
+  // Un solo envío vigente por paciente: el anterior sin responder se reemplaza.
+  await admin.from("smyl_mila_interviews").delete()
+    .eq("tenant_id", tenantId).eq("patient_id", patient.id).eq("kind", "previsit").is("submitted_at", null);
+  const token = randomToken();
+  const { data: created, error } = await admin.from("smyl_mila_interviews").insert({
+    tenant_id: tenantId, patient_id: patient.id, created_by: actor.id, kind: "previsit", previsit_mode: mode,
+    appointment_id: appt?.id || null, appointment_label: label || null, sent_via: via,
+    pair_token_hash: await sha256(token), expires_at: expires,
+  }).select("id,expires_at").single();
+  if (error || !created) return { error: "No se pudo crear la entrevista previa." };
+  const url = `${APP_BASE}/mila-movil.html#s=${created.id}&t=${encodeURIComponent(token)}`;
+  let delivery = { sent: false, reason: via === "link" ? "link" : "" } as Row;
+  if (via === "whatsapp") {
+    delivery = await sendPrevisitWhatsApp(tenantId, patient.id, actor,
+      [firstName(patient.nombre) || "paciente", label || "tu próxima cita", await clinicName(tenantId), url], `mila-previsit:${created.id}`, o.templateId);
+  }
+  if (appt?.id) await recordDispatch(tenantId, appt.id, patient.id, created.id, origin,
+    via === "link" ? "link" : delivery.sent ? "sent" : "failed", via === "link" ? null : (delivery.reason || null), origin === "auto" ? null : actor.id);
+  return { id: created.id, url, expires_at: created.expires_at, appointment: label, mode, ...delivery };
+}
+
+async function recordDispatch(tenantId: string, appointmentId: string, patientId: string, interviewId: string | null,
+  origin: "manual" | "auto", status: "sent" | "link" | "failed" | "skipped" | "reviewed", reason: string | null, createdBy: string | null) {
+  const { error } = await admin.from("smyl_mila_previsit_dispatches").upsert({
+    tenant_id: tenantId, appointment_id: appointmentId, patient_id: patientId, interview_id: interviewId,
+    origin, status, reason: reason ? reason.slice(0, 60) : null, created_by: createdBy, updated_at: new Date().toISOString(),
+  }, { onConflict: "tenant_id,appointment_id" });
+  if (error) console.error("[mila-interview:dispatch-log]", error.message);
+}
+
+type PrevisitSettings = { enabled: boolean; hours_before: number; mode: string; audience: string; last_dispatch_at: string | null };
+const DEFAULT_SETTINGS: PrevisitSettings = { enabled: false, hours_before: 48, mode: "choice", audience: "stale", last_dispatch_at: null };
+async function previsitSettings(tenantId: string): Promise<PrevisitSettings> {
+  const { data } = await admin.from("smyl_mila_previsit_settings")
+    .select("enabled,hours_before,mode,audience,last_dispatch_at").eq("tenant_id", tenantId).maybeSingle();
+  return data ? data as PrevisitSettings : { ...DEFAULT_SETTINGS };
+}
+
+/* Envío automático: citas confirmadas dentro de la ventana, a pacientes sin historia (o vieja), sin envío reciente. */
+async function dispatchPrevisits(tenantId: string, settings: PrevisitSettings): Promise<Row> {
+  await admin.from("smyl_mila_previsit_settings").update({ last_dispatch_at: new Date().toISOString() }).eq("tenant_id", tenantId);
+  if (!settings.enabled) return { skipped: "disabled" };
+  if (settings.mode !== "form" && !OPENAI_API_KEY) return { skipped: "mila_unconfigured" };
+  const now = Date.now();
+  const { data: appts } = await admin.from("smyl_appointments").select("id,patient_id,starts_at,status")
+    .eq("tenant_id", tenantId).eq("status", "confirmed")
+    .gt("starts_at", new Date(now + 3600_000).toISOString())
+    .lte("starts_at", new Date(now + settings.hours_before * 3600_000).toISOString())
+    .order("starts_at", { ascending: true }).limit(300);
+  if (!appts?.length) return { sent: 0, failed: 0, skipped: 0 };
+  const apptIds = appts.map((a: Row) => a.id);
+  const patientIds = [...new Set(appts.map((a: Row) => String(a.patient_id)))];
+  const [{ data: done }, { data: recent }, { data: histories }, { data: open }] = await Promise.all([
+    admin.from("smyl_mila_previsit_dispatches").select("appointment_id").eq("tenant_id", tenantId).in("appointment_id", apptIds),
+    admin.from("smyl_mila_previsit_dispatches").select("patient_id").eq("tenant_id", tenantId).in("patient_id", patientIds)
+      .gt("created_at", new Date(now - AUTO_RESEND_DAYS * 86400_000).toISOString()),
+    admin.from("smyl_patient_histories").select("patient_id,updated_at").eq("tenant_id", tenantId).in("patient_id", patientIds),
+    admin.from("smyl_mila_interviews").select("patient_id").eq("tenant_id", tenantId).eq("kind", "previsit")
+      .in("patient_id", patientIds).gt("expires_at", new Date().toISOString()),
+  ]);
+  const doneAppts = new Set((done || []).map((r: Row) => String(r.appointment_id)));
+  const busy = new Set([...(recent || []), ...(open || [])].map((r: Row) => String(r.patient_id)));
+  const historyAt = new Map((histories || []).map((r: Row) => [String(r.patient_id), Date.parse(r.updated_at) || 0]));
+  const due = appts.filter((a: Row) => {
+    if (doneAppts.has(String(a.id)) || busy.has(String(a.patient_id))) return false;
+    const at = historyAt.get(String(a.patient_id));
+    if (settings.audience === "no_history") return at === undefined;
+    if (settings.audience === "stale") return at === undefined || at < now - AUTO_STALE_DAYS * 86400_000;
+    return true;
+  });
+  if (!due.length) return { sent: 0, failed: 0, skipped: 0 };
+  const actor = AUTO_ACTOR(tenantId);
+  let templateId: string | null = null;
+  try { templateId = await previsitTemplateId(tenantId, actor); } catch { return { skipped: "lana_unavailable" }; }
+  // Sin plantilla aprobada no se registra nada: en cuanto Meta la apruebe, sale en la siguiente vuelta.
+  if (!templateId) return { skipped: "template_not_approved" };
+  const summary = { sent: 0, failed: 0, skipped: 0 };
+  const seen = new Set<string>();
+  for (const appt of due) {
+    if (summary.sent + summary.failed >= AUTO_MAX_PER_RUN) break;
+    const pid = String(appt.patient_id);
+    if (seen.has(pid)) { summary.skipped++; continue; }
+    seen.add(pid);
+    if (!await whatsappConversation(tenantId, pid)) {
+      await recordDispatch(tenantId, appt.id, pid, null, "auto", "failed", "no_conversation", null);
+      summary.failed++;
+      continue;
+    }
+    const { data: patient } = await admin.from("camila_pacientes").select("id,nombre").eq("tenant_id", tenantId).eq("id", pid).maybeSingle();
+    if (!patient) { summary.skipped++; continue; }
+    const out = await createPrevisit({ tenantId, patient, appt, mode: settings.mode, via: "whatsapp", actor, origin: "auto", templateId });
+    if (out.sent) summary.sent++; else summary.failed++;
+  }
+  return summary;
+}
+
+/* Estado de la entrevista previa por cita, para las marcas de la agenda. */
+async function previsitOverview(tenantId: string, appointmentIds: string[], withAlerts: boolean) {
+  const ids = appointmentIds.filter((v) => UUID.test(v)).slice(0, 400);
+  if (!ids.length) return {};
+  const { data: rows } = await admin.from("smyl_mila_previsit_dispatches")
+    .select("appointment_id,interview_id,origin,status,reason,created_at").eq("tenant_id", tenantId).in("appointment_id", ids);
+  const interviewIds = (rows || []).map((r: Row) => r.interview_id).filter(Boolean);
+  const { data: interviews } = interviewIds.length
+    ? await admin.from("smyl_mila_interviews").select("id,consent_at,submitted_at,result,expires_at,previsit_mode").in("id", interviewIds)
+    : { data: [] as Row[] };
+  const byId = new Map((interviews || []).map((r: Row) => [String(r.id), r]));
+  const out: Record<string, Row> = {};
+  for (const r of rows || []) {
+    const iv = r.interview_id ? byId.get(String(r.interview_id)) : null;
+    let state = r.status as string;
+    let alerts = 0;
+    if (r.status === "failed" || r.status === "skipped") state = "failed";
+    else if (r.status === "reviewed") state = "reviewed";
+    else if (iv) {
+      const res = iv.result || {};
+      const answered = !!(iv.submitted_at || res.history || res.finished_at || res.realtime?.finished_at);
+      state = answered ? "answered" : iv.consent_at ? "in_progress" : "sent";
+      alerts = alertsOf(res).length;
+    } else state = "expired";
+    out[r.appointment_id] = {
+      state, origin: r.origin, reason: r.reason || "", sent_at: r.created_at, interview_id: r.interview_id || null,
+      ...(withAlerts ? { alerts } : { alerts: alerts ? 1 : 0 }),
+    };
+  }
+  return out;
+}
+
 Deno.serve(async (req: Request) => {
   const CORS = makeCors(req);
   const json = (status: number, body: unknown) => new Response(JSON.stringify(body), {
@@ -356,6 +511,19 @@ Deno.serve(async (req: Request) => {
   });
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json(405, { error: "Método no permitido." });
+
+  // Cron (pg_cron + pg_net, mismo secreto que los recordatorios): envío automático de la entrevista previa.
+  const cronSecret = req.headers.get("x-smyl-cron-secret") || "";
+  if (cronSecret) {
+    if (!CRON_SECRET || !sameHash(await sha256(cronSecret), await sha256(CRON_SECRET))) return json(401, { error: "Secreto de cron no válido." });
+    const { data: enabled } = await admin.from("smyl_mila_previsit_settings")
+      .select("tenant_id,enabled,hours_before,mode,audience,last_dispatch_at").eq("enabled", true).limit(200);
+    const results: Record<string, Row> = {};
+    for (const row of enabled || []) {
+      results[row.tenant_id] = await dispatchPrevisits(row.tenant_id, row as PrevisitSettings).catch((e) => ({ error: e instanceof Error ? e.message : "error" }));
+    }
+    return json(200, { tenants: Object.keys(results).length, results });
+  }
 
   const isMultipart = (req.headers.get("content-type") || "").toLowerCase().includes("multipart/form-data");
   let form: FormData | null = null;
@@ -371,13 +539,54 @@ Deno.serve(async (req: Request) => {
   const id = field("id");
 
   // -------------------------------------------------------------- computadora (dentista)
-  if (["create", "status", "close", "previsit_create", "pending"].includes(action)) {
+  // -------------------------------------------------------------- agenda (marcas de entrevista previa)
+  if (action === "previsit_overview") {
+    const auth = await requireUser(req, CORS);
+    if (auth.response) return auth.response;
+    const denied = await requirePermission(auth, CORS, "schedule.read");
+    if (denied) return denied;
+    const tenantId = auth.tenantId!;
+    const clinical = (await requirePermission(auth, CORS, "clinical.write")) === null;
+    const ids = Array.isArray(body.appointment_ids) ? body.appointment_ids.map(String) : [];
+    const settings = await previsitSettings(tenantId);
+    // La agenda abierta también dispara el envío automático (como los recordatorios), como mucho cada 10 min.
+    const stale = !settings.last_dispatch_at || Date.now() - Date.parse(settings.last_dispatch_at) > AUTO_THROTTLE_MS;
+    if (settings.enabled && stale && HAS_WAIT_UNTIL) background(dispatchPrevisits(tenantId, settings));
+    return json(200, { items: await previsitOverview(tenantId, ids, clinical), can_send: clinical, auto: settings.enabled });
+  }
+
+  if (["create", "status", "close", "previsit_create", "pending", "previsit_settings", "previsit_settings_save"].includes(action)) {
     const auth = await requireUser(req, CORS);
     if (auth.response) return auth.response;
     const denied = await requirePermission(auth, CORS, "clinical.write");
     if (denied) return denied;
     const tenantId = auth.tenantId!;
     const userId = auth.user!.id;
+
+    if (action === "previsit_settings") {
+      const settings = await previsitSettings(tenantId);
+      const canConfigure = (await requirePermission(auth, CORS, "schedule.manage")) === null;
+      let templateReady: boolean | null = null;
+      try { templateReady = !!(await previsitTemplateId(tenantId, auth.user!)); } catch { templateReady = null; }
+      return json(200, { settings, can_configure: canConfigure, template_ready: templateReady, voice_available: !!OPENAI_API_KEY });
+    }
+    if (action === "previsit_settings_save") {
+      const denied2 = await requirePermission(auth, CORS, "schedule.manage");
+      if (denied2) return denied2;
+      const hours = Math.round(Number(body.hours_before));
+      const next = {
+        tenant_id: tenantId,
+        enabled: body.enabled === true,
+        hours_before: Number.isFinite(hours) ? Math.min(168, Math.max(12, hours)) : 48,
+        mode: ["voice", "form", "choice"].includes(String(body.mode)) ? String(body.mode) : "choice",
+        audience: ["no_history", "stale", "all"].includes(String(body.audience)) ? String(body.audience) : "stale",
+        updated_by: userId, updated_at: new Date().toISOString(),
+      };
+      const { error } = await admin.from("smyl_mila_previsit_settings").upsert(next, { onConflict: "tenant_id" });
+      if (error) return json(500, { error: "No se pudo guardar la configuración." });
+      const summary = next.enabled ? await dispatchPrevisits(tenantId, { ...next, last_dispatch_at: null }).catch(() => null) : null;
+      return json(200, { ok: true, settings: next, summary });
+    }
 
     if (action === "create") {
       if (!OPENAI_API_KEY) return json(503, { error: "MILA no está configurada todavía." });
@@ -412,26 +621,9 @@ Deno.serve(async (req: Request) => {
       if (mode !== "form" && !OPENAI_API_KEY) return json(503, { error: "MILA no está configurada todavía; usa el formulario." });
       await purgeExpired();
       const appt = await nextAppointment(tenantId, patientId, field("appointment_id"));
-      const label = appt ? appointmentLabel(appt.starts_at) : "";
-      const apptEnd = appt ? Date.parse(appt.starts_at) + 24 * 3600_000 : 0;
-      const expires = new Date(Math.max(Date.now() + 2 * 3600_000, Math.min(apptEnd || Infinity, Date.now() + 7 * 24 * 3600_000))).toISOString();
-      // Un solo envío vigente por paciente: el anterior sin responder se reemplaza.
-      await admin.from("smyl_mila_interviews").delete()
-        .eq("tenant_id", tenantId).eq("patient_id", patientId).eq("kind", "previsit").is("submitted_at", null);
-      const token = randomToken();
-      const { data: created, error } = await admin.from("smyl_mila_interviews").insert({
-        tenant_id: tenantId, patient_id: patientId, created_by: userId, kind: "previsit", previsit_mode: mode,
-        appointment_id: appt?.id || null, appointment_label: label || null, sent_via: via,
-        pair_token_hash: await sha256(token), expires_at: expires,
-      }).select("id,expires_at").single();
-      if (error || !created) return json(500, { error: "No se pudo crear la entrevista previa." });
-      const url = `${APP_BASE}/mila-movil.html#s=${created.id}&t=${encodeURIComponent(token)}`;
-      let delivery = { sent: false, reason: via === "link" ? "link" : "" } as Row;
-      if (via === "whatsapp") {
-        delivery = await sendPrevisitWhatsApp(tenantId, patientId, auth.user!,
-          [firstName(patient.nombre) || "paciente", label || "tu próxima cita", await clinicName(tenantId), url], `mila-previsit:${created.id}`);
-      }
-      return json(200, { id: created.id, url, expires_at: created.expires_at, appointment: label, mode, ...delivery });
+      const out = await createPrevisit({ tenantId, patient, appt, mode, via, actor: auth.user!, origin: "manual" });
+      if (out.error) return json(500, { error: out.error });
+      return json(200, out);
     }
 
     // Borradores de MILA de este paciente que nadie ha guardado (consultorio terminado o entrevista previa respondida).
@@ -461,6 +653,10 @@ Deno.serve(async (req: Request) => {
     if (!row) return json(404, { error: "La sesión de MILA ya no existe o venció." });
 
     if (action === "close") {
+      if (row.kind === "previsit") {
+        await admin.from("smyl_mila_previsit_dispatches").update({ status: "reviewed", updated_at: new Date().toISOString() })
+          .eq("tenant_id", tenantId).eq("interview_id", row.id);
+      }
       await admin.from("smyl_mila_interviews").delete().eq("id", row.id);
       return json(200, { closed: true });
     }
