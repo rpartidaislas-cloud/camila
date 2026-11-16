@@ -3,7 +3,7 @@
 
   var state = {
     conversations: [], total: 0, offset: 0, limit: 30, hasMore: false,
-    filter: 'all', channel: '', search: '', selectedId: null, filterPanelOpen: false,
+    filter: 'all', channel: '', search: '', selectedId: null, filterPanelOpen: false, branches: [], branchFilter: '',
     messages: {}, pages: {}, pending: {}, loadingList: false, loadingThread: false,
     listError: '', threadError: '', syncedAt: null, actor: null, team: [], stages: [],
     threadController: null, contextOpen: false, contextSections: {}, contextReturnFocus: null, f360Tab: {}, f360File: {}, f360Filter: {}, f360Shared: {}, f360Timeline: {}, polling: false,
@@ -238,6 +238,7 @@
           '<div class="smyl-inbox-filters" role="tablist" aria-label="Filtrar conversaciones">' +
             '<button type="button" role="tab" aria-selected="true" tabindex="0" data-inbox-filter="all" class="active">Todas</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="unread">Sin leer</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="attention">Por atender</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="mine">Mías</button>' +
           '</div>' +
+          '<div class="smyl-inbox-branchbar" data-inbox-branchbar hidden></div>' +
           '<div class="smyl-inbox-filter-panel" id="smyl-inbox-filter-panel" data-inbox-filter-panel aria-label="Filtros avanzados" hidden><span class="smyl-inbox-filter-label">Mostrar</span><div class="smyl-inbox-secondary-filters"><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="pinned">Fijadas</button></div><label>Canal<select data-inbox-channel aria-label="Filtrar por canal"><option value="">Todos</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option></select></label><div class="smyl-inbox-list-tools"><button type="button" data-inbox-bulk aria-pressed="false">Seleccionar varias</button><button type="button" data-inbox-refresh aria-label="Actualizar bandeja">Actualizar ahora</button></div></div>' +
           '<div class="smyl-inbox-queue-summary" data-inbox-queue-summary role="status" aria-live="polite"></div>' +
           '<div class="smyl-inbox-list" data-inbox-list></div>' +
@@ -247,7 +248,7 @@
         '<main class="smyl-inbox-thread-pane" data-inbox-thread-pane>' +
           '<div class="smyl-inbox-thread-empty" data-inbox-thread-empty><div class="smyl-inbox-empty-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></div><span class="smyl-inbox-eyebrow">CENTRO DE ATENCIÓN</span><h2>Continúa el siguiente caso</h2><p>Abre una conversación para responder, consultar el expediente y coordinar la cita sin cambiar de pantalla.</p><div class="smyl-inbox-empty-steps"><span><b>1</b>Revisa el motivo</span><span><b>2</b>Consulta agenda</span><span><b>3</b>Confirma el seguimiento</span></div><button type="button" class="btn btn-primary" data-inbox-open-next>Abrir siguiente conversación</button></div>' +
           '<div class="smyl-inbox-thread" data-inbox-thread hidden>' +
-            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención" aria-expanded="false" aria-controls="smyl-inbox-context-panel"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div></button><button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Siguiente acción del paciente"></nav><div class="smyl-inbox-thread-menu-wrap"><button type="button" class="smyl-inbox-thread-more" data-thread-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-thread-menu" aria-label="Más acciones de la conversación">•••</button><div class="smyl-inbox-thread-menu" id="smyl-inbox-thread-menu" data-thread-menu role="menu" aria-label="Más acciones de la conversación" hidden><div class="smyl-inbox-thread-menu-care" data-thread-menu-care role="group" aria-label="Acciones del paciente"></div><label class="smyl-inbox-thread-menu-assign" data-thread-menu-assign role="none" hidden>Responsable de atención<select data-thread-assign aria-label="Asignar conversación"></select></label><button type="button" role="menuitem" data-thread-search>Buscar en el hilo</button><button type="button" role="menuitem" data-thread-shared>Archivos compartidos</button><button type="button" role="menuitem" data-thread-pin>Fijar conversación</button><button type="button" role="menuitem" data-thread-details>Paciente y atención</button><button type="button" role="menuitem" data-thread-link-professional hidden>Usar como mi WhatsApp profesional</button><button type="button" role="menuitem" data-thread-resolve hidden>Marcar solicitud resuelta</button></div></div></header>' +
+            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención" aria-expanded="false" aria-controls="smyl-inbox-context-panel"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div></button><button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Siguiente acción del paciente"></nav><div class="smyl-inbox-thread-menu-wrap"><button type="button" class="smyl-inbox-thread-more" data-thread-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-thread-menu" aria-label="Más acciones de la conversación">•••</button><div class="smyl-inbox-thread-menu" id="smyl-inbox-thread-menu" data-thread-menu role="menu" aria-label="Más acciones de la conversación" hidden><div class="smyl-inbox-thread-menu-care" data-thread-menu-care role="group" aria-label="Acciones del paciente"></div><label class="smyl-inbox-thread-menu-assign" data-thread-menu-assign role="none" hidden>Responsable de atención<select data-thread-assign aria-label="Asignar conversación"></select></label><button type="button" role="menuitem" data-thread-search>Buscar en el hilo</button><button type="button" role="menuitem" data-thread-shared>Archivos compartidos</button><button type="button" role="menuitem" data-thread-pin>Fijar conversación</button><button type="button" role="menuitem" data-thread-branch hidden>Cambiar sucursal</button><button type="button" role="menuitem" data-thread-details>Paciente y atención</button><button type="button" role="menuitem" data-thread-link-professional hidden>Usar como mi WhatsApp profesional</button><button type="button" role="menuitem" data-thread-resolve hidden>Marcar solicitud resuelta</button></div></div></header>' +
             '<div class="smyl-inbox-thread-notices" data-thread-notices hidden></div><div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div></div>' +
             '<button type="button" class="smyl-inbox-jump" data-thread-jump hidden>Ir al final</button>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
@@ -297,6 +298,8 @@
       if (state.filter === 'mine' && (!item.assignment || item.assignment.actor_id !== (state.actor && state.actor.id))) return false;
       if (state.filter === 'pinned' && !item.pinned) return false;
       if (state.filter === 'paused' && !item.paused) return false;
+      if (state.branchFilter === 'none' && item.branch) return false;
+      if (state.branchFilter && state.branchFilter !== 'none' && !(item.branch && item.branch.id === state.branchFilter)) return false;
       if (query && !(item.contact_name + ' ' + item.last_message).toLocaleLowerCase('es-MX').includes(query)) return false;
       return true;
     });
@@ -329,7 +332,10 @@
     var move = node('button', 'btn btn-secondary btn-sm', 'Mover'); move.type = 'button';
     move.disabled = !state.bulkSelected.size || state.bulkRunning; move.onclick = function () { if (stage.value) applyBulkAction('stage', stage.value); };
     var clear = node('button', 'smyl-inbox-bulk-clear', 'Limpiar'); clear.type = 'button'; clear.onclick = function () { state.bulkSelected.clear(); renderList(); };
-    bar.append(count, assignee, assign, stage, move, clear);
+    var branchButton = node('button', 'btn btn-secondary btn-sm', 'Sucursal…'); branchButton.type = 'button';
+    branchButton.hidden = !multiBranch(); branchButton.disabled = !state.bulkSelected.size || state.bulkRunning;
+    branchButton.onclick = function () { openBranchDialog(Array.from(state.bulkSelected).map(function (id) { return state.conversations.find(function (item) { return item.id === id; }); })); };
+    bar.append(count, assignee, assign, stage, move, branchButton, clear);
   }
 
   function filterCount(filter) {
@@ -341,6 +347,69 @@
       if (filter === 'pinned') return item.pinned;
       return true;
     }).length;
+  }
+
+  // Sucursales: la barra y los avisos solo aparecen cuando la clínica tiene más de una sede.
+  function multiBranch() { return state.branches.length > 1; }
+  function seesWholeClinic() { return Boolean(state.actor && state.actor.scopes && state.actor.scopes.messages === 'clinic'); }
+  function branchCount(value) {
+    return state.conversations.filter(function (item) {
+      return value === 'none' ? !item.branch : value ? Boolean(item.branch && item.branch.id === value) : true;
+    }).length;
+  }
+  function renderBranchBar() {
+    var host = document.querySelector('[data-inbox-branchbar]');
+    if (!host) return;
+    host.hidden = !multiBranch();
+    if (!multiBranch()) { host.innerHTML = ''; return; }
+    var unassigned = branchCount('none');
+    var options = [['', 'Todas las sucursales · ' + branchCount('')]].concat(state.branches.map(function (branch) { return [branch.id, branch.name + ' · ' + branchCount(branch.id)]; }));
+    if (seesWholeClinic()) options.push(['none', 'Sin asignar · ' + unassigned]);
+    host.dataset.attention = String(seesWholeClinic() && unassigned > 0);
+    host.innerHTML = '<label><span>Sucursal</span><select data-inbox-branch-filter aria-label="Filtrar conversaciones por sucursal">' + options.map(function (option) {
+      return '<option value="' + option[0] + '"' + (option[0] === state.branchFilter ? ' selected' : '') + '>' + option[1].replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</option>';
+    }).join('') + '</select></label>' + (seesWholeClinic() && unassigned ? '<button type="button" class="smyl-inbox-branch-unassigned" data-inbox-branch-show-none>' + unassigned + (unassigned === 1 ? ' sin asignar' : ' sin asignar') + '</button>' : '');
+    var select = host.querySelector('select');
+    select.onchange = function () { state.branchFilter = select.value; renderList(); };
+    var none = host.querySelector('[data-inbox-branch-show-none]');
+    if (none) none.onclick = function () { state.branchFilter = 'none'; renderList(); };
+  }
+  async function loadBranches() {
+    try { var data = await request('GET', { action: 'branches' }); state.branches = data.branches || []; state.actor = data.actor || state.actor; render(); } catch (_) {}
+  }
+  function openBranchDialog(conversations) {
+    var list = conversations.filter(Boolean);
+    if (!list.length || !multiBranch()) return;
+    var dialog = document.createElement('dialog');
+    dialog.className = 'smyl-inbox-branch-dialog';
+    var current = list.length === 1 && list[0].branch ? list[0].branch.id : '';
+    var choices = state.branches.map(function (branch) { return [branch.id, branch.name]; });
+    if (seesWholeClinic()) choices.push(['', 'Sin sucursal (volver a «Sin asignar»)']);
+    dialog.innerHTML = '<form method="dialog"><h2>' + (list.length === 1 ? 'Sucursal de esta conversación' : 'Sucursal para ' + list.length + ' conversaciones') + '</h2><p>Quienes pertenecen a esa sucursal la verán en su bandeja y recibirán sus avisos. Quienes no, dejarán de verla.</p><div class="smyl-inbox-branch-options">' + choices.map(function (choice) {
+      return '<label><input type="radio" name="branch" value="' + choice[0] + '"' + (current && choice[0] === current ? ' checked' : '') + '> <span>' + choice[1].replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span></label>';
+    }).join('') + '</div><p class="smyl-inbox-branch-error" data-branch-error role="alert" hidden></p><footer><button type="button" class="btn btn-secondary" data-branch-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Guardar</button></footer></form>';
+    document.body.append(dialog);
+    dialog.querySelector('[data-branch-cancel]').onclick = function () { dialog.close(); };
+    dialog.addEventListener('close', function () { dialog.remove(); });
+    dialog.querySelector('form').onsubmit = async function (event) {
+      event.preventDefault();
+      var picked = dialog.querySelector('input[name=branch]:checked');
+      var error = dialog.querySelector('[data-branch-error]');
+      if (!picked) { error.textContent = 'Elige una sucursal.'; error.hidden = false; return; }
+      var submit = dialog.querySelector('[type=submit]'); submit.disabled = true;
+      var failed = 0;
+      for (var i = 0; i < list.length; i += 1) {
+        try {
+          var data = await request('POST', {}, { action: 'set_branch', conversation_id: list[i].id, branch_id: picked.value || null }, uuid());
+          list[i].branch = data.branch || null;
+        } catch (err) { failed += 1; error.textContent = (err && err.message) || 'No se pudo asignar la sucursal.'; error.hidden = false; }
+      }
+      submit.disabled = false;
+      if (failed) return;
+      dialog.close(); state.bulkSelected.clear(); state.bulkMode = false;
+      await loadList(true); render();
+    };
+    dialog.showModal();
   }
 
   function renderFilterControls() {
@@ -413,7 +482,7 @@
     var more = document.querySelector('[data-inbox-more]');
     var summary = document.querySelector('[data-inbox-queue-summary]');
     if (!list) return;
-    renderBulkBar(); renderFilterControls();
+    renderBulkBar(); renderFilterControls(); renderBranchBar();
     list.innerHTML = '';
     if (state.loadingList && !state.conversations.length) {
       list.innerHTML = '<div class="smyl-inbox-loading"><i></i><i></i><i></i></div>';
@@ -460,6 +529,7 @@
       if (item.needs_human) meta.append(node('span', 'smyl-inbox-attention', 'Por atender'));
       else if (item.paused) meta.append(node('span', 'smyl-inbox-state is-paused', 'Con el equipo'));
       if (item.assignment) meta.append(node('span', 'smyl-inbox-assignee', item.assignment.name));
+      if (multiBranch()) meta.append(item.branch ? node('span', 'smyl-inbox-branch', item.branch.name) : node('span', 'smyl-inbox-branch is-none', 'Sin sucursal'));
       var currentStage = stageName(item.stage_id);
       copy.append(top, preview, meta);
       if (currentStage !== 'Sin etapa') copy.append(node('span', 'smyl-inbox-row-stage-line', currentStage));
@@ -2180,6 +2250,7 @@
     patientSummary.setAttribute('aria-label', 'Abrir paciente y atención · ' + continuityLabel + (actorRole ? ' · ' + actorRole : ''));
     var headerWindow = liveWhatsappWindow(conversation);
     var threadMeta = [channelLabel(conversation.channel), conversation.assignment ? conversation.assignment.name : 'Sin asignar'];
+    if (multiBranch()) threadMeta.push(conversation.branch ? 'Sede ' + conversation.branch.name : 'Sin sucursal');
     if (headerWindow && headerWindow.status !== 'expired') threadMeta.push('Ventana 24 h: quedan ' + durationLabel(headerWindow.remaining_seconds));
     document.querySelector('[data-thread-meta]').textContent = threadMeta.join(' · ');
     // Un solo interruptor sustituye al chip de estado y al botón Tomar control / Reanudar IA.
@@ -2190,6 +2261,8 @@
     mode.setAttribute('aria-checked', conversation.paused ? 'false' : 'true');
     mode.setAttribute('aria-label', conversation.paused ? 'IA pausada: activar para que SMYL Asistente vuelva a responder' : 'IA activa: desactivar para tomar el control de la conversación');
     mode.disabled = !canOperate(conversation, 'messages.manage') || Boolean(state.copilotLoading[conversation.id]);
+    var branchItem = document.querySelector('[data-thread-branch]');
+    if (branchItem) { branchItem.hidden = !multiBranch() || !hasPermission('messages.manage'); branchItem.onclick = function () { closeThreadMenu(); openBranchDialog([conversation]); }; }
     var pin = document.querySelector('[data-thread-pin]');
     pin.textContent = conversation.pinned ? 'Fijada' : 'Fijar';
     pin.dataset.active = conversation.pinned ? 'true' : 'false';
@@ -3400,7 +3473,7 @@
     window.ir = function (route) {
       previous(route);
       if (route === 'inbox') {
-        if (!state.conversations.length) { loadList(true); loadTeam(); loadStages(); loadQuickReplies(); loadOperations(true); }
+        if (!state.conversations.length) { loadList(true); loadTeam(); loadBranches(); loadStages(); loadQuickReplies(); loadOperations(true); }
         else { sync(); loadOperations(false); autoOpenFirst(); }
       } else { if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(true); closeContext(false); }
     };
@@ -3408,7 +3481,7 @@
     // Precarga en segundo plano para que, al entrar a Mensajes, la bandeja ya esté lista y no se arme a la vista.
     setTimeout(function () {
       if (state.conversations.length || state.loadingList || document.visibilityState !== 'visible') return;
-      loadList(true); loadTeam(); loadStages(); loadQuickReplies();
+      loadList(true); loadTeam(); loadBranches(); loadStages(); loadQuickReplies();
     }, 2500);
     setTimeout(refreshUnreadBadge, 6000);
     setInterval(refreshUnreadBadge, 90000);
