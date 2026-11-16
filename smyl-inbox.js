@@ -748,9 +748,9 @@
     if (!conversation || !canOperate(conversation, 'messages.respond') || state.copilotLoading[conversation.id]) return null;
     state.copilotLoading[conversation.id] = mode; renderCopilotDraft(); renderContext();
     try {
-      var data = await request('POST', {}, { action: 'copilot', conversation_id: conversation.id, mode: mode }, null, 35000);
+      var data = await request('POST', {}, { action: 'copilot', conversation_id: conversation.id, mode: mode, basis_at: mode === 'summary' ? (conversation.last_message_at || null) : undefined }, null, 35000);
       state.copilot[conversation.id] = data;
-      if (mode === 'summary') state.f360Summary[conversation.id] = { data: data, basis: summaryBasis(conversation), at: new Date().toISOString(), loading: false, error: '' };
+      if (mode === 'summary') state.f360Summary[conversation.id] = { data: data, basis: summaryBasis(conversation), at: data.generated_at || new Date().toISOString(), by: data.stored ? (data.generated_by_name || '') : '', loading: false, error: '' };
       return data;
     } catch (error) {
       window.alert(error.message || 'Copilot no pudo preparar una sugerencia.');
@@ -2073,12 +2073,13 @@
     });
 
     var summary = document.createElement('div'); summary.className = 'smyl-f360-body';
-    if (hasPermission('messages.respond') && F.conversationSummary) {
+    if (hasPermission('messages.read') && F.conversationSummary) {
       var entry = state.f360Summary[id] || {};
+      var canGenerate = hasPermission('messages.respond');
       summary.append(F.conversationSummary({
-        data: entry.data || null, loading: Boolean(entry.loading), error: entry.error || '', at: entry.at,
+        data: entry.data || null, loading: Boolean(entry.loading), error: entry.error || '', at: entry.at, by: entry.by || '', canGenerate: canGenerate,
         stale: Boolean(entry.data && entry.basis !== summaryBasis(conversation)),
-        onRefresh: function () { requestConversationSummary(id, true); },
+        onRefresh: canGenerate ? function () { requestConversationSummary(id, true); } : null,
         needsTraining: Boolean(!entry.data && entry.error && isTrainingMissing(entry)),
         onOpenTraining: hasPermission('settings.manage') ? openAssistantTraining : null,
         onCopy: entry.data ? function (event) { copyConversationSummary(entry.data, event && event.currentTarget); } : null,
@@ -2130,7 +2131,7 @@
   function prepareFicha360Data(conversation, ficha) {
     if (!state.contextOpen) return;
     var id = conversation.id; var tab = state.f360Tab[id] || 'summary';
-    if (tab === 'summary' && hasPermission('messages.respond') && !state.f360Summary[id]) requestConversationSummary(id, false);
+    if (tab === 'summary' && hasPermission('messages.read') && !state.f360Summary[id]) loadStoredSummary(id);
     var cache = state.f360Shared[id];
     if (!cache || (tab === 'files' && !cache.loading && Date.now() - (cache.at || 0) > 30000)) loadFicha360Files(id, false);
     if (tab === 'timeline' && ficha && ficha.linked && ficha.patient && ficha.patient.id) {
@@ -2142,7 +2143,29 @@
   // Resumen con IA: se pide solo al abrir la ficha por primera vez en esta sesión; después, solo con «Actualizar».
   // Vive en memoria (no en el navegador) porque contiene datos del paciente.
   function summaryBasis(conversation) {
-    return conversation ? String(conversation.last_message_at || '') : '';
+    return conversation ? storedBasis(conversation.last_message_at) : '';
+  }
+
+  // Primero el resumen guardado en el servidor (lo ve todo el equipo con acceso al chat); si no hay, se genera uno.
+  async function loadStoredSummary(conversationId) {
+    if (state.f360Summary[conversationId]) return;
+    state.f360Summary[conversationId] = { loading: true, error: '' };
+    var stored = null;
+    try { stored = await request('GET', { action: 'conversation_summary', conversation_id: conversationId }); } catch (error) { stored = null; }
+    if (stored && stored.summary && typeof stored.summary === 'object') {
+      state.f360Summary[conversationId] = { data: stored.summary, basis: storedBasis(stored.basis_at), at: stored.generated_at, by: stored.generated_by_name || '', loading: false, error: '' };
+      if (state.selectedId === conversationId && state.contextOpen) renderContext();
+      return;
+    }
+    delete state.f360Summary[conversationId];
+    if (hasPermission('messages.respond')) requestConversationSummary(conversationId, false);
+    else { state.f360Summary[conversationId] = { loading: false, error: '' }; if (state.selectedId === conversationId && state.contextOpen) renderContext(); }
+  }
+
+  // El servidor devuelve la fecha normalizada (ISO); se compara contra last_message_at normalizado igual.
+  function storedBasis(value) {
+    var date = value ? new Date(value) : null;
+    return date && !isNaN(date.getTime()) ? date.toISOString() : '';
   }
 
   async function requestConversationSummary(conversationId, force) {
@@ -2153,8 +2176,8 @@
     state.f360Summary[conversationId] = Object.assign({}, entry, { loading: true, error: '' });
     if (state.selectedId === conversationId && state.contextOpen) renderContext();
     try {
-      var data = await request('POST', {}, { action: 'copilot', conversation_id: conversationId, mode: 'summary' }, null, 35000);
-      state.f360Summary[conversationId] = { data: data, basis: basis, at: new Date().toISOString(), loading: false, error: '' };
+      var data = await request('POST', {}, { action: 'copilot', conversation_id: conversationId, mode: 'summary', basis_at: conversation.last_message_at || null }, null, 35000);
+      state.f360Summary[conversationId] = { data: data, basis: basis, at: data.generated_at || new Date().toISOString(), by: data.stored ? (data.generated_by_name || '') : '', loading: false, error: '' };
     } catch (error) {
       state.f360Summary[conversationId] = Object.assign({}, state.f360Summary[conversationId], { loading: false, error: (error && error.message) || 'No se pudo resumir la conversación.', code: (error && error.code) || '' });
     }

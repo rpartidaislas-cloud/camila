@@ -195,12 +195,12 @@
     }
     if (ctx.error && !data) {
       card.append(notice(ctx.error, 'warn'));
-      card.append(button('Reintentar', 'smyl-f360-link', ctx.onRefresh));
+      if (ctx.onRefresh) card.append(button('Reintentar', 'smyl-f360-link', ctx.onRefresh));
       return card;
     }
     if (!data) {
-      card.append(node('p', 'smyl-f360-summary-text is-muted', 'Obtén en segundos qué pidió el paciente, qué se le respondió y qué falta.'));
-      card.append(button('Resumir conversación', 'smyl-f360-action is-primary', ctx.onRefresh));
+      card.append(node('p', 'smyl-f360-summary-text is-muted', ctx.canGenerate === false ? 'Todavía nadie del equipo ha resumido esta conversación.' : 'Obtén en segundos qué pidió el paciente, qué se le respondió y qué falta.'));
+      if (ctx.onRefresh) card.append(button('Resumir conversación', 'smyl-f360-action is-primary', ctx.onRefresh));
       return card;
     }
     if (data.requires_human) card.append(notice('El asistente detectó algo que requiere atención humana.', 'warn'));
@@ -221,10 +221,12 @@
     if (facts.childNodes.length) card.append(facts);
     if (ctx.stale) card.append(notice('Llegaron mensajes nuevos después de este resumen.', 'warn'));
     var foot = node('div', 'smyl-f360-summary-foot');
-    foot.append(node('small', '', (ctx.loading ? 'Actualizando…' : 'Generado ' + shortDate(ctx.at, true).toLowerCase()) + ' · revísalo antes de usarlo'));
+    foot.append(node('small', '', (ctx.loading ? 'Actualizando…' : 'Generado ' + shortDate(ctx.at, true).toLowerCase() + (ctx.by ? ' por ' + ctx.by : '')) + ' · revísalo antes de usarlo'));
     var tools = node('div', 'smyl-f360-summary-tools');
-    var refresh = button(ctx.loading ? 'Actualizando…' : 'Actualizar', 'smyl-f360-link' + (ctx.stale ? ' is-strong' : ''), ctx.onRefresh); refresh.disabled = Boolean(ctx.loading);
-    tools.append(refresh);
+    if (ctx.onRefresh) {
+      var refresh = button(ctx.loading ? 'Actualizando…' : 'Actualizar', 'smyl-f360-link' + (ctx.stale ? ' is-strong' : ''), ctx.onRefresh); refresh.disabled = Boolean(ctx.loading);
+      tools.append(refresh);
+    }
     if (ctx.onCopy) tools.append(button('Copiar', 'smyl-f360-link', ctx.onCopy));
     foot.append(tools); card.append(foot);
     return card;

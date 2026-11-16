@@ -379,6 +379,69 @@ function actorHeaders(actor: Actor, idempotencyKey?: string | null): Headers {
   return headers;
 }
 
+// Resumen de conversación guardado (tabla smyl_conversation_summaries, sin acceso desde el navegador).
+const SUMMARY_TABLE = "smyl_conversation_summaries";
+
+function summaryList(value: unknown): string[] {
+  return (Array.isArray(value) ? value : []).map((item) => text(item, 300)).filter(Boolean).slice(0, 8);
+}
+
+function cleanSummary(body: Record<string, unknown>): Record<string, unknown> | null {
+  const summary = text(body.summary, 4000);
+  if (!summary) return null;
+  return {
+    summary,
+    next_step: text(body.next_step, 600),
+    open_questions: summaryList(body.open_questions),
+    unconfirmed_facts: summaryList(body.unconfirmed_facts),
+    requires_human: body.requires_human === true,
+  };
+}
+
+function isoDate(value: unknown): string | null {
+  const raw = text(value, 40);
+  if (!raw) return null;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+// Quien tiene clinical.read y alcance clínico sobre el paciente del chat puede ver el resumen hecho con contexto clínico.
+async function clinicalSummaryAllowed(actor: Actor, tenantId: string, conversationId: string): Promise<boolean> {
+  if (!can(actor, "clinical.read")) return false;
+  const { data: handoff } = await admin.from("camila_lana_handoffs").select("patient_id")
+    .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId).maybeSingle();
+  return Boolean(handoff?.patient_id && await accessiblePatient(actor, tenantId, String(handoff.patient_id), "clinical"));
+}
+
+async function storedSummary(actor: Actor, tenantId: string, conversationId: string): Promise<Record<string, unknown>> {
+  const allowClinical = await clinicalSummaryAllowed(actor, tenantId, conversationId);
+  let query = admin.from(SUMMARY_TABLE).select("summary,basis_at,generated_at,generated_by_name,includes_clinical")
+    .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId);
+  if (!allowClinical) query = query.eq("includes_clinical", false);
+  const { data, error } = await query.order("generated_at", { ascending: false }).limit(1);
+  // Sin la migración aplicada la ficha sigue funcionando: simplemente no hay resumen guardado.
+  if (error) return { ok: true, summary: null, storage: "unavailable" };
+  const row = data && data[0];
+  if (!row) return { ok: true, summary: null, storage: "ready" };
+  return {
+    ok: true, storage: "ready", summary: row.summary, basis_at: row.basis_at, generated_at: row.generated_at,
+    generated_by_name: row.generated_by_name || "", includes_clinical: Boolean(row.includes_clinical),
+  };
+}
+
+async function saveSummary(actor: Actor, tenantId: string, conversationId: string, summary: Record<string, unknown>, includesClinical: boolean, basisAt: string | null) {
+  const generatedAt = new Date().toISOString();
+  const { error } = await admin.from(SUMMARY_TABLE).upsert({
+    tenant_id: tenantId, lana_conversation_id: conversationId, includes_clinical: includesClinical,
+    summary, basis_at: basisAt, generated_by: actor.id, generated_by_name: text(actor.name, 120), generated_at: generatedAt,
+  }, { onConflict: "tenant_id,lana_conversation_id,includes_clinical" });
+  if (error) {
+    console.warn("No se guardó el resumen de la conversación", error.code || error.message);
+    return { stored: false };
+  }
+  return { stored: true, generated_at: generatedAt, generated_by_name: text(actor.name, 120), basis_at: basisAt };
+}
+
 type MedicalAlert = { kind: "alert" | "allergy"; label: string; detail: string; severity: string };
 
 const ALLERGY_SEVERITY: Record<string, string> = { low: "Baja", moderate: "Moderada", high: "Alta" };
@@ -811,6 +874,9 @@ Deno.serve(async (req: Request) => {
         const scheduleDenied = requirePermission(actor, "schedule.read", "Tu rol no permite consultar la continuidad de Agenda.");
         return scheduleDenied || await appointmentContext(auth.tenantId, conversationId);
       }
+      if (action === "conversation_summary" && conversationId) {
+        return json(200, await storedSummary(actor, auth.tenantId, conversationId));
+      }
       if (action === "clinical_context" && conversationId) {
         const clinicalDenied = requirePermission(actor, "clinical.read", "Tu rol no permite consultar el expediente clínico.");
         return clinicalDenied || await clinicalContext(actor, auth.tenantId, conversationId);
@@ -966,6 +1032,14 @@ Deno.serve(async (req: Request) => {
         method: "POST", headers: actorHeaders(actor),
         body: JSON.stringify({ mode, clinical_context: clinical }),
       }, 30000);
+      if (mode === "summary" && remote.response.ok && remote.body && typeof remote.body === "object") {
+        const summary = cleanSummary(remote.body as Record<string, unknown>);
+        if (summary) {
+          const includesClinical = clinical.patient_confirmed === true && clinical.clinical_access !== false;
+          const saved = await saveSummary(actor, auth.tenantId, conversationId, summary, includesClinical, isoDate(body.basis_at));
+          return json(remote.response.status, { ...remote.body, ...saved, actor });
+        }
+      }
       return json(remote.response.status, { ...remote.body, actor });
     }
     if (action === "feedback") {
