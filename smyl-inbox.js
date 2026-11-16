@@ -6,7 +6,7 @@
     filter: 'all', channel: '', search: '', selectedId: null, filterPanelOpen: false,
     messages: {}, pages: {}, pending: {}, loadingList: false, loadingThread: false,
     listError: '', threadError: '', syncedAt: null, actor: null, team: [], stages: [],
-    threadController: null, contextOpen: false, contextSections: {}, contextReturnFocus: null, polling: false,
+    threadController: null, contextOpen: false, contextSections: {}, contextReturnFocus: null, f360Tab: {}, f360File: {}, f360Filter: {}, f360Shared: {}, f360Timeline: {}, polling: false,
     replyTo: null, attachment: null, clinical: {}, clinicalLoading: {},
     copilot: {}, copilotLoading: {},
     templates: [], templatesLoaded: false, templatesLoading: false,
@@ -1667,8 +1667,10 @@
     header.append(close); wrap.append(header);
 
     var ficha = state.clinical[conversation.id];
-    var patientZone = document.createDocumentFragment();
-    var careZone = document.createDocumentFragment();
+    var summaryZone = document.createDocumentFragment();
+    var citasZone = document.createDocumentFragment();
+    var cobrosZone = document.createDocumentFragment();
+    var clinicoZone = document.createDocumentFragment();
     var settingsZone = document.createDocumentFragment();
     var next = node('section', 'smyl-inbox-next');
     next.append(node('span', '', 'SIGUIENTE ACCIÓN'));
@@ -1694,7 +1696,7 @@
     if (ficha && ficha.case && ficha.case.lana_appointment_id && hasPermission('schedule.manage') && canOperate(conversation, 'schedule.manage')) {
       var agenda = node('button', 'btn btn-secondary btn-sm', 'Agendar cita'); agenda.type = 'button'; agenda.onclick = openAvailabilityDialog; nextActions.append(agenda);
     }
-    next.append(nextActions); careZone.append(next);
+    next.append(nextActions); summaryZone.append(next);
 
     var status = node('section', 'smyl-inbox-context-card');
     status.append(node('h3', '', 'Responsable'));
@@ -1798,7 +1800,7 @@
     copilot.append(node('h3', '', 'SMYL Copilot'), node('p', '', 'Prepara borradores y resúmenes con la capacitación publicada. Nunca envía ni ejecuta acciones por sí solo.'));
     var suggest = node('button', 'btn btn-secondary btn-sm', state.copilotLoading[conversation.id] === 'draft' ? 'Preparando borrador…' : 'Sugerir respuesta');
     suggest.type = 'button'; suggest.disabled = !canOperate(conversation, 'messages.respond') || Boolean(state.copilotLoading[conversation.id]); suggest.onclick = function () { requestCopilot('draft'); };
-    copilot.append(suggest); careZone.append(copilot);
+    copilot.append(suggest); summaryZone.append(copilot);
 
     if (hasPermission('schedule.read')) {
       var appointmentCard = node('section', 'smyl-inbox-context-card smyl-inbox-appointment-card');
@@ -1825,13 +1827,13 @@
         };
         appointmentCard.append(draftAppointment);
       }
-      careZone.append(appointmentCard);
+      citasZone.append(appointmentCard);
 
       var availability = node('section', 'smyl-inbox-context-card smyl-inbox-availability-card');
       availability.append(node('h3', '', 'Agenda disponible'), node('p', '', 'Consulta espacios reales por servicio, profesional y sede sin salir del chat.'));
       var availabilityButton = node('button', 'btn btn-secondary btn-sm', 'Buscar horarios');
       availabilityButton.type = 'button'; availabilityButton.disabled = !canOperate(conversation, 'schedule.manage'); availabilityButton.onclick = openAvailabilityDialog;
-      availability.append(availabilityButton); careZone.append(availability);
+      availability.append(availabilityButton); citasZone.append(availability);
     }
 
     if (hasPermission('finance.read') && window.SmylFinance && typeof window.SmylFinance.accountSummary === 'function') {
@@ -1889,19 +1891,19 @@
         viewAccount.onclick = function () { window.SmylFinance.account(accountPatient); }; accountActions.append(viewAccount);
         accountCard.append(accountActions);
       }
-      careZone.append(accountCard);
+      cobrosZone.append(accountCard);
     }
 
     if (conversation.needs_human) {
       var attention = node('section', 'smyl-inbox-context-card is-attention');
       attention.append(node('h3', '', 'Intervención solicitada'), node('p', '', 'El asistente marcó esta conversación para seguimiento humano. Resolverla no reactiva la IA.'));
       var resolve = node('button', 'btn btn-primary btn-sm', 'Marcar solicitud resuelta'); resolve.type = 'button'; resolve.disabled = !canOperate(conversation, 'messages.manage'); resolve.onclick = function () { mutateConversation('resolve'); };
-      attention.append(resolve); careZone.append(attention);
+      attention.append(resolve); summaryZone.insertBefore(attention, summaryZone.firstChild);
     }
 
     if (hasPermission('clinical.read')) {
       var clinical = node('section', 'smyl-inbox-context-card smyl-inbox-ficha');
-      clinical.append(node('h3', '', 'Ficha 360 · Resumen del paciente'));
+      clinical.append(node('h3', '', 'Expediente del paciente'));
       if (state.clinicalLoading[conversation.id]) clinical.append(node('p', '', 'Consultando expediente…'));
       else if (ficha && ficha.linked) {
         clinical.append(node('strong', '', ficha.patient && ficha.patient.name || conversation.contact_name));
@@ -1930,13 +1932,130 @@
         var record = node('button', 'btn btn-secondary btn-sm', 'Resolver identidad'); record.type = 'button'; record.onclick = function () { openPatientContext(conversation.id); };
         clinical.append(record);
       }
-      patientZone.append(clinical);
+      clinicoZone.append(clinical);
     }
-    wrap.append(patientZone, careZone);
-    if (settingsZone.childNodes.length) wrap.append(node('p', 'smyl-inbox-context-zone-label', 'CONFIGURACIÓN DE LA CONVERSACIÓN'), settingsZone);
-    organizeContextSections(wrap, conversation, ficha);
+    wrap.append(buildFicha360(conversation, ficha, { summary: summaryZone, citas: citasZone, cobros: cobrosZone, clinico: clinicoZone, atencion: settingsZone }));
+    prepareFicha360Data(conversation, ficha);
+    var activeTab = wrap.querySelector('.smyl-f360-tab.is-active'); if (activeTab && activeTab.scrollIntoView) activeTab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     syncContextAccessibility();
     restoreContextFocus(focusSnapshot);
+  }
+
+  function ficha360Tiles(conversation, ficha) {
+    var tiles = [];
+    tiles.push({ label: 'ETAPA', value: stageName(conversation.stage_id) || 'Sin etapa', sub: conversation.assignment && conversation.assignment.name ? 'Atiende ' + conversation.assignment.name : 'Sin responsable', tone: conversation.assignment ? '' : 'warn' });
+    if (hasPermission('schedule.read')) {
+      var appointments = state.appointmentContext[conversation.id]; var first = appointments && (appointments.items || [])[0];
+      var when = first && ((first.appointment && first.appointment.starts_at) || first.requested_start);
+      tiles.push({ label: 'PRÓXIMA CITA', value: when ? availabilityDate(when) : 'Sin cita', sub: first ? ((first.service && first.service.name) || 'Servicio dental') : 'Agenda desde el botón', tone: when ? '' : 'muted' });
+    }
+    if (hasPermission('finance.read')) {
+      var account = state.accountContext && state.accountContext[conversation.id];
+      if (account && account.data) tiles.push({ label: 'POR COBRAR', value: account.data.due > 0 ? Number(account.data.due).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) : 'Al corriente', sub: account.data.overdueCount > 0 ? account.data.overdueCount + ' vencido(s)' : 'Cuenta del paciente', tone: account.data.overdueCount > 0 ? 'warn' : '' });
+    }
+    if (hasPermission('clinical.read') && ficha && ficha.case && ficha.case.quote_total !== null && ficha.case.quote_total !== undefined && Number.isFinite(Number(ficha.case.quote_total))) {
+      tiles.push({ label: 'COTIZACIÓN', value: Number(ficha.case.quote_total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }), sub: ficha.case.simulation_url ? 'Con simulación' : 'Propuesta registrada' });
+    }
+    return tiles;
+  }
+
+  function buildFicha360(conversation, ficha, zones) {
+    var F = window.SmylInboxFicha; var id = conversation.id; var panelsLoaded = Boolean(F);
+    var linkedFicha = Boolean(ficha && ficha.linked && hasPermission('clinical.read'));
+    var patient = linkedFicha && ficha.patient || null;
+    var chips = [{ text: 'Origen: ' + channelLabel(conversation.channel), tone: 'neutral' }];
+    if (linkedFicha) {
+      chips.unshift({ text: ficha.provisional_contact ? 'Contacto provisional' : 'Paciente identificado', tone: ficha.provisional_contact ? 'warn' : 'ok' });
+      if (patient && typeof patient.whatsapp_consent === 'boolean') chips.push({ text: patient.whatsapp_consent ? '✓ Acepta WhatsApp' : 'Sin consentimiento de WhatsApp', tone: patient.whatsapp_consent ? 'ok' : 'warn' });
+      if (ficha.case) chips.push({ text: 'Caso activo', tone: 'blue' });
+    }
+    var subtitle = patient ? [patient.phone, patient.email].filter(Boolean).join(' · ') : (conversation.contact_phone || '');
+    var careActions = permittedCareActions(conversation); var actions = [];
+    ['schedule', 'payment', 'record'].forEach(function (key) {
+      var action = careActions.find(function (item) { return item.id === key; });
+      if (action) actions.push({ label: key === 'record' ? 'Expediente ↗' : action.label, primary: key === 'schedule', run: action.run });
+    });
+
+    var summary = document.createElement('div'); summary.className = 'smyl-f360-body';
+    summary.append(F.tiles(ficha360Tiles(conversation, ficha)));
+    summary.append(zones.summary);
+
+    var cache = state.f360Shared[id] || {}; var timelineCache = state.f360Timeline[id] || {};
+    var reviewed = {}; ((ficha && ficha.clinical_images) || []).forEach(function (link) { if (link.lana_message_id) reviewed[link.lana_message_id] = true; });
+    var mediaCount = (cache.items || []).filter(function (item) { return ['image', 'document', 'audio', 'video'].indexOf(item.media_type) !== -1; }).length;
+
+    var tabs = [{ id: 'summary', label: 'Resumen', node: summary }];
+    if (hasPermission('schedule.read')) {
+      var appointmentItems = (state.appointmentContext[id] && state.appointmentContext[id].items) || [];
+      tabs.push({ id: 'citas', label: 'Citas', count: appointmentItems.length, node: wrapPanel(zones.citas) });
+    }
+    tabs.push({ id: 'files', label: 'Archivos', count: mediaCount, node: F.files({
+      items: cache.items || [], loading: Boolean(cache.loading) && !cache.items, error: cache.error || '', filter: state.f360Filter[id] || 'all', selectedId: state.f360File[id] || '',
+      reviewed: reviewed, canReview: hasPermission('clinical.write') && canOperate(conversation, 'clinical.write'), channelLabel: channelLabel(conversation.channel),
+      onFilter: function (value) { state.f360Filter[id] = value; state.f360File[id] = ''; renderContext(); },
+      onSelect: function (value) { state.f360File[id] = value; renderContext(); },
+      onReview: function (item) { linkClinicalImage(item); },
+      onRetry: function () { loadFicha360Files(id, true); },
+    }) });
+    if (zones.cobros.childNodes.length) tabs.push({ id: 'cobros', label: 'Cobros', node: wrapPanel(zones.cobros) });
+    if (hasPermission('clinical.read')) tabs.push({ id: 'clinico', label: 'Clínico', node: wrapPanel(zones.clinico) });
+    if (linkedFicha) tabs.push({ id: 'timeline', label: 'Línea de tiempo', node: F.timeline({ rows: timelineCache.rows || [], loading: Boolean(timelineCache.loading) && !timelineCache.rows, error: timelineCache.error || '', onRetry: function () { loadFicha360Timeline(id, patient && patient.id, true); } }) });
+    tabs.push({ id: 'atencion', label: 'Atención', node: wrapPanel(zones.atencion) });
+
+    return F.shell({
+      initials: initials(conversation.contact_name), subtitle: subtitle, chips: chips, actions: actions, tabs: tabs,
+      active: state.f360Tab[id] || 'summary',
+      onSelect: function (tab, focusTab) {
+        state.f360Tab[id] = tab; renderContext();
+        if (focusTab) setTimeout(function () { var next = document.querySelector('[data-f360-tab="' + tab + '"]'); if (next) next.focus(); }, 0);
+      },
+    });
+  }
+
+  function wrapPanel(fragment) {
+    var body = document.createElement('div'); body.className = 'smyl-f360-body'; body.append(fragment); return body;
+  }
+
+  // Carga perezosa: archivos del chat al abrir la ficha y línea de tiempo solo al entrar a su pestaña.
+  function prepareFicha360Data(conversation, ficha) {
+    if (!state.contextOpen) return;
+    var id = conversation.id; var tab = state.f360Tab[id] || 'summary';
+    var cache = state.f360Shared[id];
+    if (!cache || (tab === 'files' && !cache.loading && Date.now() - (cache.at || 0) > 30000)) loadFicha360Files(id, false);
+    if (tab === 'timeline' && ficha && ficha.linked && ficha.patient && ficha.patient.id) {
+      var timelineCache = state.f360Timeline[id];
+      if (!timelineCache || (!timelineCache.loading && Date.now() - (timelineCache.at || 0) > 30000)) loadFicha360Timeline(id, ficha.patient.id, false);
+    }
+  }
+
+  async function loadFicha360Files(conversationId, force) {
+    var cache = state.f360Shared[conversationId];
+    if (cache && cache.loading) return;
+    state.f360Shared[conversationId] = Object.assign({}, cache, { loading: true, error: '', at: Date.now() });
+    if (force && state.selectedId === conversationId) renderContext();
+    try {
+      var data = await request('GET', { action: 'shared', conversation_id: conversationId, limit: 60 });
+      state.f360Shared[conversationId] = { items: data.items || [], loading: false, error: '', at: Date.now() };
+    } catch (error) {
+      state.f360Shared[conversationId] = Object.assign({}, state.f360Shared[conversationId], { loading: false, error: (error && error.message) || 'No se pudieron consultar los archivos.', at: Date.now() });
+    }
+    if (state.selectedId === conversationId && state.contextOpen) renderContext();
+  }
+
+  async function loadFicha360Timeline(conversationId, patientId, force) {
+    if (!patientId || !window.sb || typeof window.sb.rpc !== 'function') return;
+    var cache = state.f360Timeline[conversationId];
+    if (cache && cache.loading) return;
+    state.f360Timeline[conversationId] = Object.assign({}, cache, { loading: true, error: '', at: Date.now() });
+    if (force && state.selectedId === conversationId) renderContext();
+    try {
+      var result = await window.sb.rpc('smyl_patient_timeline', { p_patient_id: patientId, p_limit: 40 });
+      if (result.error) throw result.error;
+      state.f360Timeline[conversationId] = { rows: result.data || [], loading: false, error: '', at: Date.now() };
+    } catch (error) {
+      state.f360Timeline[conversationId] = Object.assign({}, state.f360Timeline[conversationId], { loading: false, error: 'No se pudo cargar la línea de tiempo.', at: Date.now() });
+    }
+    if (state.selectedId === conversationId && state.contextOpen) renderContext();
   }
 
   function openCareTask(type) {
