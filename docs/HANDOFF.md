@@ -11312,3 +11312,7 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Resumen sin capacitación:** LANA rechaza Copilot si la capacitación dental no está publicada. En vez del error crudo con «Reintentar», la tarjeta explica que el resumen necesita la capacitación y ofrece «Publicar capacitación» (con `settings.manage`), que abre Configuración → Canales y asistente → pestaña «SMYL Asistente». Detección: `error.code` con «training» o texto con «capacitación».
 - **Chat sin paciente vinculado:** en lugar de no mostrar nada, la cabecera dice «Vincula este chat a un paciente para ver sus alergias y alertas médicas» con «Resolver identidad» (solo con `clinical.read`).
 - **Archivos:** `smyl-inbox-ficha.js` v4, `smyl-inbox.js` v52, `app.html`, `sw.js` (caché `…-ficha-guias-v1`), copias en `mobile/www/`; pruebas en `tests/smyl-inbox-medical-alerts.test.mjs`.
+
+## 2026-11-16 — Claude Code — Respaldos: el script muestra el avance de cada fase
+- **Qué cambia:** `scripts/create-encrypted-backup.mjs` imprime en stderr una línea con hora por fase (cada volcado de base, cada bucket `n/11`, empaquetado). Antes pasaba media hora en silencio y no se distinguía un respaldo vivo de uno trabado. Sin datos clínicos en esas líneas; el JSON final sigue en stdout.
+- **Archivos:** `scripts/create-encrypted-backup.mjs`. Sin cambios de app ni Supabase.
