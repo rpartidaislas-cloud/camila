@@ -34,7 +34,7 @@ export function topesDeEntorno(env) {
     mensual: entero(env.get("CLOUD_CLASSIFY_MONTHLY_LIMIT"), TOPES_PREDETERMINADOS.mensual),
   };
 }
-export function evaluarTope(usoDiario, usoMensual, topes) {
+export function evaluarTopeClasificacion(usoDiario, usoMensual, topes) {
   if (usoDiario >= topes.diario) return { permitido: false, mensaje: `Tu clínica llegó al límite diario de ${topes.diario} sugerencias de la IA. Podrás continuar mañana.` };
   if (usoMensual >= topes.mensual) return { permitido: false, mensaje: `Tu clínica llegó al límite mensual de ${topes.mensual} sugerencias de la IA.` };
   return { permitido: true };
