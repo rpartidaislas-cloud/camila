@@ -1,5 +1,15 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-16 — Claude Code — Cobro en línea de saldos de pacientes con OpenPay (vía LANA)
+
+- **Idea**: SMYL es dueño de la deuda y del recibo; LANA solo cobra con la cuenta OpenPay de la propia clínica (el dinero no pasa por LANA). Staff genera un enlace desde la cuenta del paciente (botón **Enlace de pago**, `smyl-finance.js`, junto a «Cobrar»); el paciente abre `pagar.html#t=<token>`, ve su recibo con los conceptos y paga con **tarjeta (3D Secure)** o **SPEI**. Al confirmarse, se registra el pago y se emite el recibo interno (canal `online`).
+- **Backend**: migración `20261116130000_smyl_payment_links.sql` (tabla `smyl_payment_links` solo service_role; `smyl_open_charges_for_link` y `smyl_post_online_payment`, idempotente por enlace; si un cargo cambió antes del pago, el sobrante queda como saldo a favor). Edge Function `smyl-pay` (`verify_jwt=false`): personal (`create|list|cancel`, JWT + `finance.manage`, saldo calculado en el servidor), público (`view` por token) y `POST …/callback` (HMAC de LANA, siempre se confirma con GET a LANA antes de registrar). `_shared/smyl-pay-core.mjs` es la parte pura. `lana-contract.mjs` permite la raíz `/payments`.
+- **Seguridad**: el navegador nunca fija monto ni paciente; token de 256 bits (solo se guarda su SHA-256); `pagar.html` sin `innerHTML`, con CSP y `noindex`; el token viaja en el fragmento y se guarda en `sessionStorage` solo para regresar de 3DS.
+- **Privacidad**: `privacidad.html` (y `smyl-site/privacidad.html`) ahora listan a OpenPay/LANA como proveedor opcional y ya no dicen que SMYL no procesa pagos de pacientes. Mantener ambas copias iguales.
+- **Verificación**: `tests/smyl-pay-core.test.mjs` (10); migración probada en Postgres 16 real (pago, cargo anulado → saldo a favor, idempotencia, permisos cerrados); suite completa sin fallas nuevas frente a `main`. Bundles `appointment-reminders` y `whatsapp-templates` regenerados por el cambio en `lana-contract.mjs`.
+- **Para activar (pendiente de despliegue)**: aplicar la migración en el proyecto SMYL; desplegar `smyl-pay`; en LANA aplicar `20261115130000_pagos_solicitudes` (ya aplicada) y desplegar `pago-publico`, `openpay-*` y `camila-api` (rama `claude/pasarela-pagos-general`, PR 1439). La clínica necesita OpenPay conectado y activo en su tenant de LANA (modo pruebas por defecto; producción solo con `openpay_modo='produccion'`). Aún no probado de punta a punta con OpenPay real.
+- **Fase 2 (no hecho)**: Paynet/OXXO, MSI, envío automático del recibo, reembolsos que actualicen la solicitud, anticipos.
+
 ## 2026-11-16 — Claude Code — Arreglo: el orbe de MILA se veía ovalado
 
 - Con subtítulos largos, la columna flexible le quitaba alto al contenedor del orbe pero no ancho y el lienzo se estiraba. Ahora `.orbwrap` no se encoge (`flex:none`), es cuadrado (`aspect-ratio:1/1`) y se adapta al alto disponible (`min(78vw,320px,38vh)`); el lienzo se redimensiona si cambia su tamaño. El subtítulo tiene alto máximo (26vh) y no empuja.

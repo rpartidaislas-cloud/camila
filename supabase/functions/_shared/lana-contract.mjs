@@ -7,6 +7,7 @@ const ALLOWED_ROOTS = new Set([
   "contract",
   "conversations",
   "inbox",
+  "payments",
   "training",
 ]);
 
