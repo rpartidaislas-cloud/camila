@@ -10,9 +10,9 @@ test('el calendario del chat llega igual a web, PWA y móvil', () => {
     assert.equal(read(file), read(`mobile/www/${file}`), file);
   }
   const html = read('app.html');
-  assert.match(html, /smyl-inbox-calendar\.js\?v=1/);
+  assert.match(html, /smyl-inbox-calendar\.js\?v=2/);
   assert.ok(html.indexOf('smyl-inbox-calendar.js') < html.indexOf('smyl-inbox.js?v='));
-  assert.match(read('sw.js'), /smyl-inbox-calendar\.js\?v=1/);
+  assert.match(read('sw.js'), /smyl-inbox-calendar\.js\?v=2/);
 });
 
 test('el módulo del calendario expone render e invalidate, con niveles de disponibilidad y consultas acotadas', () => {
@@ -23,7 +23,7 @@ test('el módulo del calendario expone render e invalidate, con niveles de dispo
   for (const level of ['many', 'few', 'none']) assert.match(src, new RegExp(level));
   assert.match(src, /Mañana/);
   assert.match(src, /Tarde/);
-  assert.match(src, /Ver agenda del día/);
+  assert.match(src, /Ver citas del día/);
   assert.doesNotMatch(src, /tenant_id|window\.tenantId|window\.sb/);
 });
 
