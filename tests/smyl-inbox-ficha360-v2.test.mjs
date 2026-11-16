@@ -9,9 +9,9 @@ test('la Ficha 360 v2 llega igual a web, PWA y móvil, cargada antes del chat', 
     assert.equal(read(file), read(`mobile/www/${file}`), file);
   }
   const html = read('app.html');
-  assert.match(html, /smyl-inbox-ficha\.js\?v=4/);
+  assert.match(html, /smyl-inbox-ficha\.js\?v=5/);
   assert.ok(html.indexOf('smyl-inbox-ficha.js') < html.indexOf('smyl-inbox.js?v='));
-  assert.match(read('sw.js'), /smyl-inbox-ficha\.js\?v=4/);
+  assert.match(read('sw.js'), /smyl-inbox-ficha\.js\?v=5/);
 });
 
 test('el módulo visual no consulta datos ni conoce el tenant y expone pestañas accesibles', () => {
