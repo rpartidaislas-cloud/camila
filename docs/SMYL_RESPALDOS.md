@@ -104,6 +104,7 @@ El validador sólo lee el JSON: **la evidencia vale tanto como la honestidad de 
 | Síntoma | Causa probable | Qué hacer |
 |---|---|---|
 | `ABORTADO · Docker no responde` | Docker Desktop cerrado | Ábrelo y espera «Engine running» |
+| `Unsupported operation` al copiar Storage | La CLI 2.x rechaza rutas con letra de unidad (`C:\\`) | Ya está resuelto en el script (destino relativo). Si lo ves en otro comando, usa rutas relativas |
 | `ABORTADO · supabase storage ls falló` | Proyecto no enlazado o sesión vencida | `npx supabase login` y `npx supabase link --project-ref rpxshsiwoxdbuevjjpfw` (en `projects list` Smyl debe tener ●) |
 | `ABORTADO · Define la contraseña … SUPABASE_DB_PASSWORD` | Falta la variable de la ventana actual | Repite el bloque con `Read-Host` |
 | `ABORTADO · El proyecto tiene buckets sin respaldo: X` | Bucket creado a mano que el script no conoce | Agrégalo a `BUCKETS` en `scripts/create-encrypted-backup.mjs` (o `SMYL_BACKUP_ALLOW_UNLISTED=1` sabiendo que quedará sin respaldo) |
