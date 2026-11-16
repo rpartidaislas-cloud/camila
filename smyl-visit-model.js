@@ -9,7 +9,8 @@
 
   function dataStep(p,canManage){
     var base={key:'datos',title:'Datos del paciente',counts:true};
-    if(isPending(p))return Object.assign(base,{state:'todo',text:'Falta su nombre y sus datos.',actions:[{id:'complete',label:'Completar datos',primary:true},{id:'link',label:'Enviar enlace'}]});
+    /* Con permiso para gestionar pacientes, lo más rápido es que la persona los llene sola desde su celular (código QR). */
+    if(isPending(p))return Object.assign(base,{state:'todo',text:'Falta su nombre y sus datos.',actions:canManage?[{id:'qr',label:'Mostrar código QR',primary:true},{id:'complete',label:'Completar datos'},{id:'link',label:'Enviar enlace'}]:[{id:'complete',label:'Completar datos',primary:true},{id:'link',label:'Enviar enlace'}]});
     if(p&&p.registro_estado==='por_verificar')return Object.assign(base,{state:'todo',text:'Los llenó el paciente. Falta confirmarlos.',actions:(canManage?[{id:'confirm',label:'Confirmar datos',primary:true}]:[]).concat([{id:'complete',label:'Revisar y editar',primary:!canManage}])});
     return Object.assign(base,{state:'done',text:'Completos.',actions:[{id:'complete',label:'Editar datos'}]});
   }
