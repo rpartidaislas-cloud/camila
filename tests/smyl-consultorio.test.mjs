@@ -36,8 +36,9 @@ const registro = (page, nombre) => page.evaluate((n) => window.__log.filter((x) 
 // ── Contrato del código (no necesita navegador) ──
 test('app.html carga el módulo puro antes que el Consultorio y arranca en él solo en la app instalada', () => {
   const app = read('app.html');
-  assert.ok(app.indexOf('smyl-patient-quick.js?v=1') > 0 && app.indexOf('smyl-patient-quick.js?v=1') < app.indexOf('smyl-consultorio.js?v=1'));
-  assert.match(app, /smyl-consultorio\.css\?v=1/);
+  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=1', 'smyl-consultorio.js?v=2'].map((f) => app.indexOf(f));
+  assert.ok(orden[0] > 0 && orden[0] < orden[1] && orden[1] < orden[2], 'los módulos puros cargan antes que la pantalla');
+  assert.match(app, /smyl-consultorio\.css\?v=2/);
   assert.match(app, /else if \(smylEsAppInstalada\(\) && document\.getElementById\('p-consultorio'\)\) ir\('consultorio'\)/);
   assert.match(app, /display-mode: standalone/);
   assert.match(app, /window\.navigator\.standalone === true/);
@@ -56,8 +57,8 @@ test('el simulador y el manifiesto llevan al Consultorio y el simulador sigue ac
 
 test('se precarga y las copias móviles son idénticas', () => {
   const sw = read('sw.js');
-  for (const f of ['smyl-consultorio.js?v=1', 'smyl-consultorio.css?v=1', 'smyl-patient-quick.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
-  for (const f of ['smyl-consultorio.js', 'smyl-consultorio.css', 'smyl-patient-quick.js', 'smyl-studio.js', 'simulacion-rapida.html', 'manifest-app.json', 'app.html', 'sw.js']) assert.equal(read(f), read('mobile/www/' + f), f);
+  for (const f of ['smyl-consultorio.js?v=2', 'smyl-consultorio.css?v=2', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
+  for (const f of ['smyl-consultorio.js', 'smyl-consultorio.css', 'smyl-patient-quick.js', 'smyl-visit-model.js', 'smyl-studio.js', 'simulacion-rapida.html', 'manifest-app.json', 'app.html', 'sw.js']) assert.equal(read(f), read('mobile/www/' + f), f);
 });
 
 test('los datos de pacientes se pintan con textContent o escapados', () => {
@@ -83,10 +84,12 @@ probar('la lista muestra quién está hoy, en orden, sin citas terminadas ni can
   await page.close();
 });
 
-probar('tocar a un paciente abre su expediente', async () => {
+probar('tocar a un paciente empieza su visita, con su nombre y el estado de la cita arriba', async () => {
   const { page } = await abrir();
   await page.click('.co-person >> nth=0');
-  assert.deepEqual(await registro(page, 'verPaciente'), [['verPaciente', 'p1']]);
+  await page.waitForSelector('.co-vname');
+  assert.equal(await page.textContent('.co-vname'), 'Cristian Partida');
+  assert.match(await page.textContent('.co-vhead small'), /\+52 3312345678.*En consulta, 10:00 am/);
   await page.close();
 });
 
@@ -100,8 +103,10 @@ probar('alta con solo el teléfono: ficha por registrar y siguiente paso a la vi
   assert.match(await page.textContent('.co-ok'), /Por registrar.*\+52 3398765432.*Queda por registrar/s);
   await page.click('text=Enviar enlace para que llene sus datos');
   assert.deepEqual(await registro(page, 'enlace'), [['enlace', 'nuevo-1', '+52 3398765432']]);
-  await page.click('text=Abrir expediente');
-  assert.deepEqual(await registro(page, 'verPaciente'), [['verPaciente', 'nuevo-1']]);
+  await page.click('text=Empezar la visita');
+  await page.waitForSelector('.co-vname');
+  assert.equal(await page.textContent('.co-vname'), 'Por registrar');
+  assert.equal(await page.getAttribute('.co-step[data-key=datos]', 'data-current'), 'true', 'el primer paso que falta es sus datos');
   await page.close();
 });
 
@@ -163,7 +168,9 @@ probar('buscar encuentra pacientes y, si no hay, ofrece crearlo', async () => {
   await page.waitForSelector('.co-hit');
   assert.match(await page.textContent('.co-hit'), /María Rodríguez/);
   await page.click('.co-hit');
-  assert.deepEqual(await registro(page, 'verPaciente'), [['verPaciente', 'p2']]);
+  await page.waitForSelector('.co-vname');
+  assert.equal(await page.textContent('.co-vname'), 'María Rodríguez de la Garza');
+  await page.click('.co-back');
   await page.fill('[data-co-q]', 'zzz');
   await page.waitForSelector('.co-none');
   await page.click('.co-none >> text=Crear paciente nuevo');
@@ -198,5 +205,138 @@ probar('sin citas, con todo terminado y con error de carga el texto dice qué ha
   ({ page } = await abrir('caso=error'));
   assert.match(await page.textContent('[data-co-list]'), /Sin conexión con el servidor/);
   assert.equal(await page.locator('.co-retry').count(), 1);
+  await page.close();
+});
+
+// ── Recorrido de la visita ──
+const pasos = (page) => page.$$eval('.co-step', (n) => n.map((x) => ({ k: x.dataset.key, s: x.dataset.state, c: x.dataset.current === 'true', t: x.querySelector('small').textContent, a: [...x.querySelectorAll('button')].map((b) => b.textContent) })));
+async function visita(query = '', quien = 0) {
+  const r = await abrir(query);
+  await r.page.click('.co-person >> nth=' + quien);
+  await r.page.waitForSelector('.co-step');
+  return r;
+}
+
+probar('el recorrido muestra los cuatro pasos con su estado real y marca el que sigue', async () => {
+  const { page, errores } = await visita();
+  const p = await pasos(page);
+  assert.deepEqual(p.map((x) => [x.k, x.s, x.c]), [['datos', 'done', false], ['historia', 'todo', true], ['estudios', 'done', false], ['simulacion', 'optional', false]]);
+  assert.match(p[1].t, /^1 de 6 confirmadas\. Falta: .+\.$/);
+  assert.equal(p[2].t, '1 foto y 2 radiografías.');
+  assert.equal(await page.textContent('.co-vprogress'), '2 de 3 pasos listos.');
+  assert.equal(await page.getAttribute('.co-bar', 'aria-valuenow'), '2');
+  assert.deepEqual(errores, []);
+  await page.close();
+});
+
+probar('sin historia ni estudios y con la historia ilegible, el recorrido no inventa nada', async () => {
+  let { page } = await visita('h=ninguna&f=ninguno');
+  let p = await pasos(page);
+  assert.equal(p[1].t, 'Todavía no se empieza.');
+  assert.equal(p[2].t, 'Todavía no hay fotos ni radiografías.');
+  await page.close();
+  ({ page } = await visita('h=error&f=error'));
+  p = await pasos(page);
+  assert.equal(p[1].s, 'unknown');
+  assert.equal(p[2].s, 'unknown');
+  assert.equal(await page.textContent('.co-vprogress'), '1 de 3 pasos listos.');
+  await page.close();
+  ({ page } = await visita('h=completa&f=algunos'));
+  assert.equal(await page.textContent('.co-vprogress'), 'Todo listo para esta visita.');
+  await page.close();
+});
+
+probar('Historia y Estudios abren el expediente y saltan a su sección (accesos reales del expediente, aunque estén plegados)', async () => {
+  const { page } = await visita();
+  await page.click('.co-step[data-key=historia] .co-sgo');
+  await page.waitForFunction(() => window.__log.some((x) => x[0] === 'tab'));
+  assert.deepEqual(await registro(page, 'tab'), [['tab', 'history', 'p1']]);
+  await page.evaluate(() => window.ir('consultorio'));
+  await page.click('.co-resume-btn');
+  await page.waitForSelector('.co-step');
+  await page.click('.co-step[data-key=estudios] .co-sec');
+  await page.waitForFunction(() => window.__log.filter((x) => x[0] === 'tab').length === 2);
+  assert.deepEqual((await registro(page, 'tab'))[1], ['tab', 'files', 'p1']);
+  await page.close();
+});
+
+probar('un paciente por registrar ofrece completar sus datos y enviar el enlace; al cerrar el formulario se vuelve a leer', async () => {
+  const { page } = await visita('', 3);
+  const p = await pasos(page);
+  assert.equal(p[0].s, 'todo');
+  assert.deepEqual(p[0].a, ['Completar datos', 'Enviar enlace']);
+  await page.click('.co-step[data-key=datos] >> text=Enviar enlace');
+  assert.deepEqual(await registro(page, 'enlace'), [['enlace', 'p4', '+52 3398765432']]);
+  await page.click('.co-step[data-key=datos] >> text=Completar datos');
+  assert.deepEqual(await registro(page, 'abrirModal'), [['abrirModal', 'p4']]);
+  assert.equal((await registro(page, 'leePaciente')).length, 1);
+  await page.waitForTimeout(1000);                       // el formulario sigue abierto: no se vuelve a leer
+  assert.equal((await registro(page, 'leePaciente')).length, 1);
+  await page.evaluate(() => window.__cerrarModal());     // al cerrarlo, se vuelve a leer al paciente
+  await page.waitForFunction(() => window.__log.filter((x) => x[0] === 'leePaciente').length === 2, null, { timeout: 4000 });
+  await page.close();
+});
+
+probar('datos por verificar: confirmar los marca completos; sin permiso solo se puede revisar', async () => {
+  const { page } = await abrir();
+  await page.fill('[data-co-q]', 'luis');
+  await page.click('.co-hit');
+  await page.waitForSelector('.co-step');
+  assert.deepEqual((await pasos(page))[0].a, ['Confirmar datos', 'Revisar y editar']);
+  await page.click('text=Confirmar datos');
+  await page.waitForFunction(() => window.__updates.length === 1);
+  const cambio = (await page.evaluate(() => window.__updates))[0];
+  assert.equal(cambio.table, 'camila_pacientes');
+  assert.equal(cambio.registro_estado, 'completo');
+  await page.close();
+  const staff = await abrir('rol=staff');
+  await staff.page.fill('[data-co-q]', 'luis');
+  await staff.page.click('.co-hit');
+  await staff.page.waitForSelector('.co-step');
+  assert.deepEqual((await pasos(staff.page))[0].a, ['Revisar y editar']);
+  await staff.page.close();
+});
+
+probar('el simulador sale del recorrido con el paciente ya ligado (solo la cuenta dueña)', async () => {
+  let { page } = await visita();
+  let pedida = null;
+  await page.route('**/simulacion-rapida.html*', (route) => { pedida = route.request().url(); route.abort(); });
+  await page.click('.co-step[data-key=simulacion] .co-sec');
+  await page.waitForFunction(() => true);
+  await new Promise((r) => setTimeout(r, 300));
+  assert.match(pedida, /simulacion-rapida\.html\?workspace=professional&patient=p1&clinic=11111111-1111-4111-8111-111111111111$/);
+  await page.close();
+  ({ page } = await visita('rol=staff'));
+  pedida = null;
+  await page.route('**/simulacion-rapida.html*', (route) => { pedida = route.request().url(); route.abort(); });
+  await page.click('.co-step[data-key=simulacion] .co-sec');
+  await new Promise((r) => setTimeout(r, 300));
+  assert.match(pedida, /simulacion-rapida\.html\?workspace=professional$/);
+  await page.close();
+});
+
+probar('la visita en curso se recuerda: aviso al volver, botón fijo en otras pantallas y se quita al terminar', async () => {
+  const { page } = await visita();
+  await page.evaluate(() => window.ir('pacientes'));
+  assert.equal(await page.isVisible('#smyl-co-pill'), true);
+  assert.equal(await page.textContent('#smyl-co-pill'), 'Volver a la visita de Cristian Partida');
+  await page.click('#smyl-co-pill');
+  await page.waitForSelector('.co-step');
+  assert.equal(await page.isVisible('#smyl-co-pill'), false, 'en el Consultorio no hace falta');
+  await page.click('.co-back');
+  assert.match(await page.textContent('.co-resume-btn'), /Visita en curso\s*Cristian Partida/);
+  await page.click('.co-resume-btn');
+  await page.waitForSelector('.co-step');
+  await page.click('.co-end');
+  assert.equal(await page.isVisible('.co-resume-btn'), false);
+  await page.evaluate(() => window.ir('pacientes'));
+  assert.equal(await page.isVisible('#smyl-co-pill'), false);
+  await page.close();
+});
+
+probar('el recorrido cabe en un celular de 390 px', async () => {
+  const { page } = await visita('h=parcial&f=algunos');
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
+  await page.screenshot({ path: process.env.SMYL_CAPTURA || '/tmp/consultorio-visita.png', fullPage: true });
   await page.close();
 });
