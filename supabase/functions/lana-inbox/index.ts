@@ -41,6 +41,13 @@ function messageId(value: unknown): string | null {
   return /^[1-9][0-9]{0,18}$/.test(candidate) ? candidate : null;
 }
 
+// Respuesta JSON para las funciones auxiliares del módulo. Desde el 2026-10-21 la versión con CORS vive dentro del
+// manejador (necesita el Origin de cada petición) y las funciones de afuera fallaban con ReferenceError: la envoltura de
+// Deno.serve (al final del archivo) agrega los encabezados CORS a toda respuesta que no los traiga.
+function json(status: number, body: Record<string, unknown>): Response {
+  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
+}
+
 function text(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
@@ -826,8 +833,8 @@ function queryPath(url: URL, action: string, conversationId: string | null): str
   return `/inbox${params.size ? `?${params}` : ""}`;
 }
 
-Deno.serve(async (req: Request) => {
-  const CORS = { ...makeCors(req, "GET, POST, OPTIONS"), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, idempotency-key" };
+async function handleInbox(req: Request): Promise<Response> {
+  const CORS = inboxCors(req);
   const json = (status: number, body: Record<string, unknown>): Response =>
     new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
   const requirePermission = (actor: Actor, permission: string, message: string): Response | null =>
@@ -1261,4 +1268,17 @@ Deno.serve(async (req: Request) => {
     console.error("[lana-inbox]", error instanceof Error ? error.message : error);
     return json(500, { error: "No se pudo sincronizar el Inbox con LANA." });
   }
+}
+
+function inboxCors(req: Request): Record<string, string> {
+  return { ...makeCors(req, "GET, POST, OPTIONS"), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, idempotency-key" };
+}
+
+Deno.serve(async (req: Request) => {
+  const response = await handleInbox(req);
+  const missing = Object.entries(inboxCors(req)).filter(([name]) => !response.headers.has(name));
+  if (!missing.length) return response;
+  const headers = new Headers(response.headers);
+  for (const [name, value] of missing) headers.set(name, value);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 });

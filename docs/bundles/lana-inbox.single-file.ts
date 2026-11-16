@@ -462,6 +462,13 @@ function messageId(value: unknown): string | null {
   return /^[1-9][0-9]{0,18}$/.test(candidate) ? candidate : null;
 }
 
+// Respuesta JSON para las funciones auxiliares del módulo. Desde el 2026-10-21 la versión con CORS vive dentro del
+// manejador (necesita el Origin de cada petición) y las funciones de afuera fallaban con ReferenceError: la envoltura de
+// Deno.serve (al final del archivo) agrega los encabezados CORS a toda respuesta que no los traiga.
+function json(status: number, body: Record<string, unknown>): Response {
+  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
+}
+
 function text(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
@@ -800,6 +807,122 @@ function actorHeaders(actor: Actor, idempotencyKey?: string | null): Headers {
   return headers;
 }
 
+// Resumen de conversación guardado (tabla smyl_conversation_summaries, sin acceso desde el navegador).
+const SUMMARY_TABLE = "smyl_conversation_summaries";
+
+function summaryList(value: unknown): string[] {
+  return (Array.isArray(value) ? value : []).map((item) => text(item, 300)).filter(Boolean).slice(0, 8);
+}
+
+function cleanSummary(body: Record<string, unknown>): Record<string, unknown> | null {
+  const summary = text(body.summary, 4000);
+  if (!summary) return null;
+  return {
+    summary,
+    next_step: text(body.next_step, 600),
+    open_questions: summaryList(body.open_questions),
+    unconfirmed_facts: summaryList(body.unconfirmed_facts),
+    requires_human: body.requires_human === true,
+  };
+}
+
+function isoDate(value: unknown): string | null {
+  const raw = text(value, 40);
+  if (!raw) return null;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+// Quien tiene clinical.read y alcance clínico sobre el paciente del chat puede ver el resumen hecho con contexto clínico.
+async function clinicalSummaryAllowed(actor: Actor, tenantId: string, conversationId: string): Promise<boolean> {
+  if (!can(actor, "clinical.read")) return false;
+  const { data: handoff } = await admin.from("camila_lana_handoffs").select("patient_id")
+    .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId).maybeSingle();
+  return Boolean(handoff?.patient_id && await accessiblePatient(actor, tenantId, String(handoff.patient_id), "clinical"));
+}
+
+async function storedSummary(actor: Actor, tenantId: string, conversationId: string): Promise<Record<string, unknown>> {
+  const allowClinical = await clinicalSummaryAllowed(actor, tenantId, conversationId);
+  let query = admin.from(SUMMARY_TABLE).select("summary,basis_at,generated_at,generated_by_name,includes_clinical")
+    .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId);
+  if (!allowClinical) query = query.eq("includes_clinical", false);
+  const { data, error } = await query.order("generated_at", { ascending: false }).limit(1);
+  // Sin la migración aplicada la ficha sigue funcionando: simplemente no hay resumen guardado.
+  if (error) return { ok: true, summary: null, storage: "unavailable" };
+  const row = data && data[0];
+  if (!row) return { ok: true, summary: null, storage: "ready" };
+  return {
+    ok: true, storage: "ready", summary: row.summary, basis_at: row.basis_at, generated_at: row.generated_at,
+    generated_by_name: row.generated_by_name || "", includes_clinical: Boolean(row.includes_clinical),
+  };
+}
+
+async function saveSummary(actor: Actor, tenantId: string, conversationId: string, summary: Record<string, unknown>, includesClinical: boolean, basisAt: string | null) {
+  const generatedAt = new Date().toISOString();
+  const { error } = await admin.from(SUMMARY_TABLE).upsert({
+    tenant_id: tenantId, lana_conversation_id: conversationId, includes_clinical: includesClinical,
+    summary, basis_at: basisAt, generated_by: actor.id, generated_by_name: text(actor.name, 120), generated_at: generatedAt,
+  }, { onConflict: "tenant_id,lana_conversation_id,includes_clinical" });
+  if (error) {
+    console.warn("No se guardó el resumen de la conversación", error.code || error.message);
+    return { stored: false };
+  }
+  return { stored: true, generated_at: generatedAt, generated_by_name: text(actor.name, 120), basis_at: basisAt };
+}
+
+type MedicalAlert = { kind: "alert" | "allergy"; label: string; detail: string; severity: string };
+
+const ALLERGY_SEVERITY: Record<string, string> = { low: "Baja", moderate: "Moderada", high: "Alta" };
+const HISTORY_STATUSES = ["yes", "no", "unknown", "pending"];
+
+function historyText(value: unknown, max = 120): string {
+  return String(value ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+// Misma lógica que smyl-history-model.js: registros con detalle y, si no hay, las listas antiguas.
+function historyAllergies(document: Record<string, unknown>): Array<{ substance: string; reaction: string; severity: string }> {
+  const rows = Array.isArray(document.allergy_records)
+    ? document.allergy_records.filter((row) => row && typeof row === "object").map((row) => {
+      const record = row as Record<string, unknown>;
+      return { substance: historyText(record.substance), reaction: historyText(record.reaction), severity: historyText(record.severity, 20) };
+    }).filter((row) => row.substance || row.reaction)
+    : [];
+  if (rows.length) return rows;
+  return (Array.isArray(document.allergies) ? document.allergies : [])
+    .map((value) => ({ substance: historyText(value), reaction: "", severity: "" })).filter((row) => row.substance);
+}
+
+function historyReviewed(document: Record<string, unknown>, key: string, count: number): boolean {
+  if (count) return true;
+  const value = String(document[key] || "");
+  const status = HISTORY_STATUSES.includes(value) ? value : "pending";
+  return status === "no";
+}
+
+// Alertas médicas para la cabecera de la Ficha 360: etiquetas del alta del paciente + historia clínica vigente.
+// Solo se arma después de comprobar el alcance clínico del rol (accessiblePatient … "clinical").
+function medicalAlerts(patientTags: unknown, history: { document?: unknown; updated_at?: string | null } | null) {
+  const document = history && history.document && typeof history.document === "object" ? history.document as Record<string, unknown> : {};
+  const items: MedicalAlert[] = []; const seen = new Set<string>();
+  const push = (item: MedicalAlert) => {
+    const key = item.label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (!item.label || seen.has(key) || items.length >= 12) return;
+    seen.add(key); items.push(item);
+  };
+  const allergies = historyAllergies(document);
+  allergies.forEach((row) => push({
+    kind: "allergy", label: row.substance || "Alergia sin sustancia", severity: row.severity in ALLERGY_SEVERITY ? row.severity : "",
+    detail: [row.reaction ? `Reacción: ${row.reaction}` : "", ALLERGY_SEVERITY[row.severity] ? `Gravedad: ${ALLERGY_SEVERITY[row.severity]}` : ""].filter(Boolean).join(" · "),
+  }));
+  const historyAlerts = (Array.isArray(document.alerts) ? document.alerts : []).map((value) => historyText(value)).filter(Boolean);
+  historyAlerts.forEach((label) => push({ kind: "alert", label, detail: "", severity: "" }));
+  (Array.isArray(patientTags) ? patientTags : []).map((value) => historyText(value, 80)).filter(Boolean)
+    .forEach((label) => push({ kind: "alert", label, detail: "", severity: "" }));
+  items.sort((a, b) => Number(b.severity === "high") - Number(a.severity === "high") || Number(b.kind === "allergy") - Number(a.kind === "allergy"));
+  const reviewed = historyReviewed(document, "alerts_status", historyAlerts.length) && historyReviewed(document, "allergies_status", allergies.length);
+  return { items, reviewed, has_history: Boolean(history), history_updated_at: history?.updated_at || null };
+}
+
 async function clinicalContext(actor: Actor, tenantId: string, conversationId: string): Promise<Response> {
   const { data: handoff, error } = await admin.from("camila_lana_handoffs")
     .select("id,patient_id,case_id,lana_channel,created_at")
@@ -817,11 +940,13 @@ async function clinicalContext(actor: Actor, tenantId: string, conversationId: s
     ? admin.from("camila_lana_clinical_links").select("id,lana_message_id,media_type,status,label,created_at")
       .eq("tenant_id", tenantId).eq("case_id", handoff.case_id).order("created_at", { ascending: false }).limit(50)
     : Promise.resolve({ data: [], error: null });
-  const [{ data: patient }, { data: caseRow }, { data: links }] = await Promise.all([
-    admin.from("camila_pacientes").select("id,nombre,apellido,email,telefono,fecha_nacimiento,genero,notas,updated_at,consentimiento_whatsapp")
+  const [{ data: patient }, { data: caseRow }, { data: links }, { data: history }] = await Promise.all([
+    admin.from("camila_pacientes").select("id,nombre,apellido,email,telefono,fecha_nacimiento,genero,notas,updated_at,consentimiento_whatsapp,alertas_medicas")
       .eq("tenant_id", tenantId).eq("id", handoff.patient_id).maybeSingle(),
     caseQuery,
     linksQuery,
+    admin.from("smyl_patient_histories").select("document,updated_at")
+      .eq("tenant_id", tenantId).eq("patient_id", handoff.patient_id).maybeSingle(),
   ]);
   return json(200, {
     ok: true,
@@ -832,6 +957,7 @@ async function clinicalContext(actor: Actor, tenantId: string, conversationId: s
       email: patient.email || "", phone: patient.telefono || "", birth_date: patient.fecha_nacimiento || null,
       gender: patient.genero || null, notes: patient.notas || "", updated_at: patient.updated_at || null,
       whatsapp_consent: typeof patient.consentimiento_whatsapp === "boolean" ? patient.consentimiento_whatsapp : null,
+      medical_alerts: medicalAlerts(patient.alertas_medicas, history),
     } : null,
     case: caseRow ? {
       id: caseRow.id, name: caseRow.nombre_paciente || "", score: caseRow.score ?? null,
@@ -1128,8 +1254,8 @@ function queryPath(url: URL, action: string, conversationId: string | null): str
   return `/inbox${params.size ? `?${params}` : ""}`;
 }
 
-Deno.serve(async (req: Request) => {
-  const CORS = { ...makeCors(req, "GET, POST, OPTIONS"), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, idempotency-key" };
+async function handleInbox(req: Request): Promise<Response> {
+  const CORS = inboxCors(req);
   const json = (status: number, body: Record<string, unknown>): Response =>
     new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
   const requirePermission = (actor: Actor, permission: string, message: string): Response | null =>
@@ -1175,6 +1301,9 @@ Deno.serve(async (req: Request) => {
       if (action === "appointment_context" && conversationId) {
         const scheduleDenied = requirePermission(actor, "schedule.read", "Tu rol no permite consultar la continuidad de Agenda.");
         return scheduleDenied || await appointmentContext(auth.tenantId, conversationId);
+      }
+      if (action === "conversation_summary" && conversationId) {
+        return json(200, await storedSummary(actor, auth.tenantId, conversationId));
       }
       if (action === "clinical_context" && conversationId) {
         const clinicalDenied = requirePermission(actor, "clinical.read", "Tu rol no permite consultar el expediente clínico.");
@@ -1331,6 +1460,14 @@ Deno.serve(async (req: Request) => {
         method: "POST", headers: actorHeaders(actor),
         body: JSON.stringify({ mode, clinical_context: clinical }),
       }, 30000);
+      if (mode === "summary" && remote.response.ok && remote.body && typeof remote.body === "object") {
+        const summary = cleanSummary(remote.body as Record<string, unknown>);
+        if (summary) {
+          const includesClinical = clinical.patient_confirmed === true && clinical.clinical_access !== false;
+          const saved = await saveSummary(actor, auth.tenantId, conversationId, summary, includesClinical, isoDate(body.basis_at));
+          return json(remote.response.status, { ...remote.body, ...saved, actor });
+        }
+      }
       return json(remote.response.status, { ...remote.body, actor });
     }
     if (action === "feedback") {
@@ -1552,4 +1689,17 @@ Deno.serve(async (req: Request) => {
     console.error("[lana-inbox]", error instanceof Error ? error.message : error);
     return json(500, { error: "No se pudo sincronizar el Inbox con LANA." });
   }
+}
+
+function inboxCors(req: Request): Record<string, string> {
+  return { ...makeCors(req, "GET, POST, OPTIONS"), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, idempotency-key" };
+}
+
+Deno.serve(async (req: Request) => {
+  const response = await handleInbox(req);
+  const missing = Object.entries(inboxCors(req)).filter(([name]) => !response.headers.has(name));
+  if (!missing.length) return response;
+  const headers = new Headers(response.headers);
+  for (const [name, value] of missing) headers.set(name, value);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 });
