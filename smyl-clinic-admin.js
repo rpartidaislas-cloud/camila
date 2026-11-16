@@ -24,7 +24,8 @@
     'inventory.read': 'Consultar inventario', 'inventory.manage': 'Gestionar inventario',
     'inventory.consume': 'Registrar consumo', 'inventory.adjust': 'Ajustar inventario', 'inventory.purchase': 'Comprar y recibir',
     'catalog.manage': 'Gestionar servicios', 'catalog.prices': 'Cambiar precios',
-    'settings.manage': 'Administrar configuración'
+    'settings.manage': 'Administrar configuración',
+    'cloud.read': 'Ver la Nube', 'cloud.upload': 'Subir a la Nube', 'cloud.manage': 'Organizar y borrar en la Nube', 'cloud.share': 'Compartir desde la Nube'
   };
   var PERMISSION_GROUPS = [
     { name: 'Clínica y equipo', keys: ['clinic.read', 'clinic.manage', 'team.read', 'team.manage', 'audit.read', 'settings.manage'] },
@@ -35,7 +36,8 @@
     { name: 'Mensajes', keys: ['messages.read', 'messages.respond', 'messages.manage'] },
     { name: 'Cobros y caja', keys: ['finance.read', 'finance.manage', 'finance.cash', 'finance.cash.supervise', 'finance.refund'] },
     { name: 'Facturación', keys: ['finance.invoice'] },
-    { name: 'Inventario', keys: ['inventory.read', 'inventory.manage', 'inventory.consume', 'inventory.adjust', 'inventory.purchase'] }
+    { name: 'Inventario', keys: ['inventory.read', 'inventory.manage', 'inventory.consume', 'inventory.adjust', 'inventory.purchase'] },
+    { name: 'Nube', keys: ['cloud.read', 'cloud.upload', 'cloud.manage', 'cloud.share'] }
   ];
   var DATA_SCOPES = {
     own: 'Solo propio', care_team: 'Equipo tratante', branches: 'Sucursales asignadas', clinic: 'Toda la clínica'

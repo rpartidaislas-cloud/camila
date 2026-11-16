@@ -11,7 +11,7 @@ const BUCKETS = [
   'camila-fotos', 'camila-masks', 'camila-analisis',
   'smyl-case-photos', 'smyl-radiographs', 'smyl-clinical-files',
   'smyl-proposal-photos', 'smyl-professional-cv', 'smyl-professional-cases',
-  'smyl-professional-public', 'mila-audio',
+  'smyl-professional-public', 'mila-audio', 'smyl-cloud',
 ];
 const dryRun = process.argv.includes('--dry-run');
 const outputArg = process.argv.find((arg) => arg.startsWith('--out='));
