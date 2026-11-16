@@ -1,5 +1,17 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-16 — Claude — Consultorio, etapa 3b: cierre de la visita
+
+- En el recorrido de la visita, el botón **Cerrar la visita** abre una pantalla de cierre. No bloquea nada: se puede terminar con pasos pendientes, que siguen en «Te falta resolver».
+  - **Resumen** de los tres pasos de captura (datos, historia, estudios): ✓ hecho, ! falta, ? sin comprobar (lo que el rol no pudo leer nunca se da por hecho ni por faltante). Lógica pura en `SmylVisitModel.closing`.
+  - **Próxima cita**: la siguiente `confirmed` futura del paciente (`smyl_appointments`, `gt starts_at`). **Agendar cita** abre «Nueva cita» con el paciente puesto vía `SmylSchedule.bookFor`, solo con `schedule.manage`.
+  - **Cobro**: **Ir a Cobros** abre la pantalla `caja` (donde aparece el cargo pendiente de la visita), solo con `finance.read`. No hay API de Cobros para abrir un cargo desde fuera; no se cobra desde aquí.
+  - **Despedida por WhatsApp**: mensaje con `SmylVisitModel.farewell` — cortesía y próxima cita, **nunca** datos clínicos, diagnósticos ni cobros; sin nombre en fichas por registrar. Se muestra completo antes de enviarlo, se abre con `wa.me` y se puede editar en WhatsApp; sin teléfono válido el botón queda desactivado y lo explica.
+  - **Terminar la visita** vive ahora en la pantalla de cierre; quita la visita en curso y el botón fijo «Volver a la visita» y deja el aviso «Visita terminada.» en el inicio.
+- Pruebas: `tests/smyl-visit-model.test.mjs` (11) y `tests/smyl-consultorio.test.mjs` (40, navegador; 8 nuevas del cierre: resumen, sin comprobar, próxima cita, agendar con el paciente puesto, Cobros, mensaje sin datos clínicos y con wa.me, sin teléfono, permisos, 390 px y objetivos táctiles ≥44 px; mutaciones de permisos comprobadas). Web y `mobile/www` sincronizados: `smyl-consultorio.js?v=4`, `.css?v=4`, `smyl-visit-model.js?v=3`, caché `cierre-visita-v1`. Sin migración.
+- **No probado en el panel real**: que `SmylSchedule.bookFor` abra «Nueva cita» con el paciente, que Cobros muestre su cargo y la consulta de próxima cita contra tu base. Probar con un paciente de prueba.
+- No incluye firma del aviso de privacidad ni código QR de registro (etapa 4), ni un resumen de cobro dentro del cierre.
+
 ## 2026-11-16 — Claude — Consultorio, etapa 3a: historia clínica por preguntas
 
 - El paso «Historia clínica» del recorrido de la visita ofrece **Empezar / Completar la historia** (o **Revisar de nuevo** si ya está completa) a quien tiene `clinical.write` y cuando la historia se pudo leer; el acceso al editor completo sigue como «Abrir historia completa». Sin permiso o con la historia ilegible solo se ofrece abrirla: nunca se escribe a ciegas.
