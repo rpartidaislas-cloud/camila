@@ -27,7 +27,9 @@ test('paciente por registrar: el primer paso pide sus datos y es el paso actual'
   const r = V.build({ patient: { nombre: 'Por registrar · +52 3312345678' }, history: null, files: [], historyModel: H });
   assert.equal(r.steps[0].state, 'todo');
   assert.equal(r.current, 'datos');
-  assert.deepEqual(r.steps[0].actions.map((a) => a.id), ['complete', 'link']);
+  assert.deepEqual(r.steps[0].actions.map((a) => a.id), ['complete', 'link'], 'sin permiso para gestionar pacientes no hay QR');
+  const conPermiso = V.build({ patient: { nombre: 'Por registrar · +52 3312345678' }, history: null, files: [], historyModel: H, canManage: true }).steps[0];
+  assert.deepEqual(conPermiso.actions.map((a) => a.id + (a.primary ? '*' : '')), ['qr*', 'complete', 'link']);
 });
 
 test('datos por verificar: quien puede gestionar pacientes ve «Confirmar datos»; quien no, solo revisar', () => {
