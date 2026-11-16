@@ -32,6 +32,11 @@ verify_jwt = true
 [functions.smyl-pay]
 verify_jwt = false
 
+# Compartir archivos de la Nube con enlace privado. verify_jwt=false porque convive: acciones de personal (la función exige JWT, cloud.share
+# y poder ver el archivo) y vista pública por token opaco (solo se guarda su SHA-256; vence, se revoca y deja bitácora).
+[functions.cloud-share]
+verify_jwt = false
+
 [functions.smyl-consumables-webhook]
 verify_jwt = false
 
