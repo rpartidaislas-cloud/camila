@@ -1912,3 +1912,6 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 #p-inbox .smyl-inbox-med-flag{flex:none;align-self:center;max-width:180px;margin-left:8px;padding:3px 8px;overflow:hidden;border-radius:999px;background:#FFEDE8;color:#9A2E12;font:700 12px/1.3 var(--inbox-font);text-overflow:ellipsis;white-space:nowrap}
 #p-inbox .smyl-inbox-med-flag[hidden]{display:none}
 @media (max-width:760px){#p-inbox .smyl-inbox-med-flag{max-width:110px}}
+/* Agendar desde el chat: si falta configurar Agenda, el aviso no necesita un diálogo de pantalla completa. */
+#p-inbox .smyl-inbox-availability-dialog.has-config-issue{height:auto;min-height:0;max-height:calc(100dvh - 36px)}
+#p-inbox .smyl-inbox-availability-dialog.has-config-issue .smyl-inbox-availability-empty{min-height:0;padding:34px 28px 40px}

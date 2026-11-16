@@ -2718,9 +2718,15 @@
       var empty = node('div', 'smyl-inbox-availability-empty');
       var emptyMark = node('div', 'smyl-inbox-availability-empty-mark'); emptyMark.append(node('i'), node('i'), node('i'));
       var emptyActions = node('div', 'smyl-inbox-availability-empty-actions');
+      var noProfessionalsService = null; var alternativeService = null;
+      if (state.availabilityEmptyReason === 'no_professionals' && state.availabilityCatalog) {
+        var currentServiceId = dialog.querySelector('[data-availability-service]').value;
+        noProfessionalsService = (state.availabilityCatalog.services || []).find(function (row) { return row.id === currentServiceId; }) || null;
+        alternativeService = (state.availabilityCatalog.services || []).find(function (row) { return row.id !== currentServiceId && serviceHasProfessionals(state.availabilityCatalog, row.id); }) || null;
+      }
       var emptyTitle = state.availabilityEmptyReason === 'no_services' ? 'Falta configurar los servicios de Agenda'
         : state.availabilityEmptyReason === 'no_branches' ? 'Falta configurar una sucursal'
-        : state.availabilityEmptyReason === 'no_professionals' ? 'Este servicio no tiene profesionales asignados'
+        : state.availabilityEmptyReason === 'no_professionals' ? (noProfessionalsService ? '«' + noProfessionalsService.name + '» no tiene profesionales asignados' : 'Este servicio no tiene profesionales asignados')
         : state.availabilityEmptyReason === 'query_error' ? 'No pudimos consultar la Agenda'
         : state.availabilityEmptyReason === 'no_slots' ? 'No hay espacios en este periodo'
         : state.availabilityError ? 'No hay espacios en este periodo' : 'Preparando la disponibilidad';
@@ -2728,10 +2734,20 @@
       if (state.availabilityEmptyReason === 'no_slots') emptyCopy = 'La agenda puede estar completa, cerrada o bloqueada. Busca el siguiente espacio o amplía el equipo.';
       if (state.availabilityEmptyReason === 'no_services') emptyCopy = 'Agrega al menos un servicio con duración antes de ofrecer una cita.';
       if (state.availabilityEmptyReason === 'no_branches') emptyCopy = 'La clínica necesita una sucursal activa para calcular disponibilidad.';
-      if (state.availabilityEmptyReason === 'no_professionals') emptyCopy = 'Asigna este servicio a un odontólogo o integrante del equipo para mostrar horarios.';
+      if (state.availabilityEmptyReason === 'no_professionals') emptyCopy = alternativeService
+        ? 'Elige otro servicio para ver horarios, o asígnale un odontólogo en la configuración de Agenda.'
+        : 'Asigna este servicio a un odontólogo o integrante del equipo para mostrar horarios.';
       if (['no_services', 'no_branches', 'no_professionals'].indexOf(state.availabilityEmptyReason) >= 0) {
-        var configureAgenda = node('button', 'btn btn-primary btn-sm', 'Abrir configuración de Agenda'); configureAgenda.type = 'button';
+        var configureAgenda = node('button', alternativeService ? 'smyl-inbox-text-action' : 'btn btn-primary btn-sm', 'Abrir configuración de Agenda'); configureAgenda.type = 'button';
         configureAgenda.onclick = function () { dialog.close(); window.ir('agenda'); };
+        if (alternativeService) {
+          var useOther = node('button', 'btn btn-primary btn-sm', 'Ver horarios de ' + alternativeService.name); useOther.type = 'button';
+          useOther.onclick = function () {
+            var serviceSelect = dialog.querySelector('[data-availability-service]'); serviceSelect.value = alternativeService.id;
+            filterAvailabilityProfessionals(); dialog.querySelector('[data-availability-form]').requestSubmit();
+          };
+          emptyActions.append(useOther);
+        }
         emptyActions.append(configureAgenda);
       } else if (state.availabilityEmptyReason === 'query_error') {
         var retry = node('button', 'btn btn-primary btn-sm', 'Volver a intentar'); retry.type = 'button'; retry.onclick = function () { dialog.querySelector('[data-availability-form]').requestSubmit(); };
@@ -2910,6 +2926,16 @@
     finally { state.availabilityAction = ''; renderAvailabilityResults(); }
   }
 
+  // Un servicio solo ofrece horarios si tiene al menos un profesional activo asignado.
+  function serviceProfessionalIds(catalog, serviceId) {
+    var active = new Set(((catalog && catalog.professionals) || []).map(function (row) { return row.id; }));
+    return ((catalog && catalog.professional_services) || []).filter(function (row) { return row.service_id === serviceId && active.has(row.professional_id); }).map(function (row) { return row.professional_id; });
+  }
+
+  function serviceHasProfessionals(catalog, serviceId) {
+    return serviceProfessionalIds(catalog, serviceId).length > 0;
+  }
+
   function filterAvailabilityProfessionals() {
     var dialog = document.querySelector('[data-availability-dialog]'); var catalog = state.availabilityCatalog; if (!dialog || !catalog) return;
     var serviceId = dialog.querySelector('[data-availability-service]').value;
@@ -2972,14 +2998,15 @@
       if (!state.availabilityCatalog) state.availabilityCatalog = await request('GET', { action: 'availability_catalog' });
       await loadAvailabilityRequests();
       var catalog = state.availabilityCatalog; var services = dialog.querySelector('[data-availability-service]'); var branches = dialog.querySelector('[data-availability-branch]');
-      services.innerHTML = '<option value="">Selecciona un servicio</option>'; (catalog.services || []).forEach(function (row) { services.append(new Option(row.name + ' · ' + row.duration_minutes + ' min', row.id)); });
+      var orderedServices = (catalog.services || []).slice().sort(function (left, right) { return Number(serviceHasProfessionals(catalog, right.id)) - Number(serviceHasProfessionals(catalog, left.id)); });
+      services.innerHTML = '<option value="">Selecciona un servicio</option>'; orderedServices.forEach(function (row) { services.append(new Option(row.name + ' · ' + row.duration_minutes + ' min' + (serviceHasProfessionals(catalog, row.id) ? '' : ' · sin profesional'), row.id)); });
       branches.innerHTML = '<option value="">Todas las sucursales</option>'; (catalog.branches || []).forEach(function (row) { branches.append(new Option(row.name, row.id)); });
       if ((catalog.branches || []).length === 1) branches.value = catalog.branches[0].id;
       var start = new Date(); var end = new Date(Date.now() + 6 * 86400000);
       dialog.querySelector('[data-availability-from]').value = availabilityInputDate(start); dialog.querySelector('[data-availability-to]').value = availabilityInputDate(end);
       setAvailabilityCustomDates(false);
       dialog.querySelectorAll('[data-availability-preset]').forEach(function (button) { button.classList.toggle('is-active', button.dataset.availabilityPreset === '7'); });
-      if ((catalog.services || []).length) services.value = catalog.services[0].id;
+      if (orderedServices.length) services.value = orderedServices[0].id;
       filterAvailabilityProfessionals();
       refreshAvailabilityHeading();
       state.availabilityLoading = false;
@@ -2999,7 +3026,7 @@
     refreshAvailabilityHeading();
     if (state.availabilityMode === 'calendar') {
       if (window.SmylInboxCalendar) window.SmylInboxCalendar.invalidate();
-      state.availabilityLoading = false; state.availabilityError = ''; state.availabilityEmptyReason = ''; state.availabilitySlots = []; state.availabilitySelected = []; renderAvailabilityResults();
+      state.availabilityLoading = false; state.availabilityError = ''; state.availabilityEmptyReason = serviceHasProfessionals(state.availabilityCatalog, serviceId) ? '' : 'no_professionals'; state.availabilitySlots = []; state.availabilitySelected = []; renderAvailabilityResults();
       return;
     }
     var from = new Date(form.querySelector('[data-availability-from]').value + 'T00:00:00'); var to = new Date(form.querySelector('[data-availability-to]').value + 'T23:59:59');
