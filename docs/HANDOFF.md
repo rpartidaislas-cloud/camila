@@ -11150,3 +11150,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
   - Tipografía del buscador y del selector de canal unificada; aviso de ventana vencida en ámbar.
 - **No se tocó:** la barra superior (Avisos / Revisar operación), el compositor (iconos) ni el backend. Pendientes de la maqueta: calendario mensual de «Agendar», Ficha 360 v2, almacenamiento y Nube (cada uno con su PR).
 - **Archivos:** `smyl-inbox.js`, `smyl-inbox.css`, `app.html`, `sw.js` (caché `…-chat-limpio-v1`), copias en `mobile/www/`; pruebas ajustadas (`smyl-inbox-clean-header`, `smyl-inbox-queue-focus-stage3` y versiones fijadas).
+
+## 2026-11-16 — Claude Code — Agendar desde el chat con calendario mensual (paso 2 de la maqueta de Mensajes)
+- **Qué cambia (solo frontend, sin migración ni cambios de edge function):**
+  - «Agendar cita» abre el diálogo de disponibilidad con **vista Calendario por defecto** (alterna con «Lista», la vista de antes). Mes de 6 semanas (lunes primero) con el nivel de cada día: muchos horarios (≥5), pocos (1–4), sin horarios, pasado, hoy y seleccionado, más leyenda. Al elegir un día salen los horarios en «Mañana / Tarde» (con el profesional cuando hay más de uno).
+  - **Confirmar cita sin salir del chat:** con exactamente 1 horario elegido y `schedule.manage`, el botón «Confirmar cita» pide confirmación y llama `appointment_request` + `appointment_confirm` (el servidor vuelve a comprobar la disponibilidad), refresca el contexto de cita y los recordatorios. La casilla «Preparar el mensaje de confirmación en el chat» solo **prepara** el texto en el compositor; nunca se envía solo, y se oculta si la ventana de 24 h de WhatsApp no permite texto libre.
+  - **Atajo «Ver agenda del día»** (lista de solo lectura) y «Abrir Agenda completa ↗».
+  - La consulta por día usa `availability` con `limit` 30 (tope del servidor), con un máximo de 5 consultas en paralelo y caché por servicio/sucursal/profesional/día.
+- **Arquitectura:** `smyl-inbox-calendar.js` (nuevo, `window.SmylInboxCalendar = {render, invalidate}`) no toca datos ni tenant. La agenda del día la lee `window.SmylSchedule.dayAppointments(key)` (nuevo, en `smyl-schedule.js`), porque `tests/cobros-chat-link.test.mjs` exige que el chat no consulte tablas ni el tenant.
+- **Archivos:** `smyl-inbox-calendar.js` v1 (nuevo), `smyl-inbox.js` v47, `smyl-inbox.css` v40, `smyl-schedule.js` v41, `app.html`, `sw.js` (caché `…-chat-calendario-v2`), copias en `mobile/www/`; prueba nueva `tests/smyl-inbox-calendar.test.mjs` y versiones fijadas ajustadas en pruebas existentes.
+- **Pendiente de la maqueta:** Ficha 360 v2, almacenamiento medido (requiere migración, con autorización) y la Nube.

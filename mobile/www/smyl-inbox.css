@@ -1700,3 +1700,74 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
   #p-inbox .smyl-inbox-carebar .smyl-inbox-care-action.is-primary{min-height:40px;padding:0 11px;white-space:nowrap;font-size:13px}
   #p-inbox .smyl-inbox-thread-menu-care .is-primary{display:none}
 }
+
+/* Agendar desde el chat: calendario mensual (smyl-inbox-calendar.js). El servidor calcula la disponibilidad; aquí solo se presenta. */
+#p-inbox .smyl-inbox-availability-dialog.is-calendar{width:min(1060px,calc(100vw - 32px));max-width:none}
+#p-inbox .smyl-inbox-availability-dialog.is-calendar .smyl-inbox-availability-period,
+#p-inbox .smyl-inbox-availability-dialog.is-calendar [data-availability-period-label]{display:none}
+#p-inbox .smyl-inbox-availability-modes{display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:#eef2f6}
+#p-inbox .smyl-inbox-availability-modes button{min-height:28px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:#526477;font:700 12px/1 Inter,sans-serif;cursor:pointer}
+#p-inbox .smyl-inbox-availability-modes button[aria-pressed="true"]{background:#fff;color:#10283b;box-shadow:0 1px 2px rgba(16,40,59,.14)}
+#p-inbox .smyl-inbox-availability-notify{display:inline-flex;align-items:center;gap:7px;margin-left:auto;font-size:12.5px;color:#3d4f5c}
+#p-inbox .smyl-inbox-availability-notify[hidden],#p-inbox [data-availability-book][hidden]{display:none}
+#p-inbox .smyl-cal{display:grid;grid-template-columns:minmax(340px,430px) minmax(0,1fr);gap:22px;align-items:start}
+#p-inbox .smyl-cal-month{padding:12px;border:1px solid #dbe3e9;border-radius:14px;background:#fcfdfe}
+#p-inbox .smyl-cal-month>header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+#p-inbox .smyl-cal-month>header strong{font-size:15px}
+#p-inbox .smyl-cal-nav{display:flex;gap:6px}
+#p-inbox .smyl-cal-btn{min-height:30px;padding:0 11px;border:1px solid #dbe3e9;border-radius:8px;background:#fff;color:#10283b;font:700 12px/1 Inter,sans-serif;cursor:pointer}
+#p-inbox .smyl-cal-btn:hover:not(:disabled){border-color:#91b8b4;background:#f1faf8}
+#p-inbox .smyl-cal-btn:disabled{opacity:.45;cursor:default}
+#p-inbox .smyl-cal-icon{width:30px;padding:0;font-size:16px}
+#p-inbox .smyl-cal-link{padding:0;border:0;background:transparent;color:#0f766e;font:700 12px/1 Inter,sans-serif;cursor:pointer}
+#p-inbox .smyl-cal-link:hover{text-decoration:underline}
+#p-inbox .smyl-cal-week,#p-inbox .smyl-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+#p-inbox .smyl-cal-week span{padding:4px 0;text-align:center;font-size:11px;font-weight:800;color:#8493a0}
+#p-inbox .smyl-cal-d{height:52px;padding:5px 6px;border:1px solid #edf1f4;border-radius:10px;background:#fff;color:#10283b;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;font:700 12.5px/1 Inter,sans-serif;cursor:pointer}
+#p-inbox .smyl-cal-d i{display:block;width:100%;height:4px;border-radius:4px;background:#d9e1e7}
+#p-inbox .smyl-cal-d.is-many i{background:#2bb673}#p-inbox .smyl-cal-d.is-few i{background:#f0a23a}#p-inbox .smyl-cal-d.is-none i{background:#e8776b}
+#p-inbox .smyl-cal-d.is-loading i{background:linear-gradient(90deg,#e8eef3,#f6f9fb,#e8eef3);background-size:200% 100%;animation:smyl-cal-pulse 1.1s linear infinite}
+#p-inbox .smyl-cal-d.is-out{visibility:hidden}
+#p-inbox .smyl-cal-d.is-past{background:#f7f9fa;color:#b6c0c8;cursor:default}#p-inbox .smyl-cal-d.is-past i{background:transparent}
+#p-inbox .smyl-cal-d.is-today{border-color:#0f766e;box-shadow:inset 0 0 0 1px #0f766e}
+#p-inbox .smyl-cal-d.is-selected{background:#0b1b2e;border-color:#0b1b2e;color:#fff}
+#p-inbox .smyl-cal-d:focus-visible,#p-inbox .smyl-cal-slot:focus-visible,#p-inbox .smyl-cal-btn:focus-visible{outline:2px solid #0f766e;outline-offset:2px}
+@keyframes smyl-cal-pulse{to{background-position:-200% 0}}
+#p-inbox .smyl-cal-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:12px;color:#5b6b78;font-weight:600}
+#p-inbox .smyl-cal-legend span{display:inline-flex;align-items:center;gap:6px}
+#p-inbox .smyl-cal-legend u{display:block;width:14px;height:4px;border-radius:4px;text-decoration:none}
+#p-inbox .smyl-cal-legend u.is-many{background:#2bb673}#p-inbox .smyl-cal-legend u.is-few{background:#f0a23a}#p-inbox .smyl-cal-legend u.is-none{background:#e8776b}
+#p-inbox .smyl-cal-day{display:flex;flex-direction:column;gap:14px;min-width:0}
+#p-inbox .smyl-cal-day>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+#p-inbox .smyl-cal-day>header strong{display:block;font-size:16px}
+#p-inbox .smyl-cal-day>header small{display:block;margin-top:2px;color:#5b6b78;font-size:12.5px}
+#p-inbox .smyl-cal-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#p-inbox .smyl-cal-part>span{display:block;margin-bottom:6px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8493a0}
+#p-inbox .smyl-cal-slotlist{display:flex;flex-wrap:wrap;gap:8px}
+#p-inbox .smyl-cal-slot{min-width:96px;min-height:40px;padding:4px 12px;border:1px solid #dbe3e9;border-radius:10px;background:#fff;color:#10283b;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+#p-inbox .smyl-cal-slot strong{font-size:13px}#p-inbox .smyl-cal-slot small{font-size:11.5px;color:#5b6b78}
+#p-inbox .smyl-cal-slot:hover{border-color:#91b8b4}
+#p-inbox .smyl-cal-slot.is-selected{background:#0f766e;border-color:#0f766e;color:#fff;box-shadow:0 6px 14px rgba(15,118,110,.25)}
+#p-inbox .smyl-cal-slot.is-selected small{color:#d7f1ed}
+#p-inbox .smyl-cal-note{margin:0;color:#5b6b78;font-size:13px;line-height:1.5}
+#p-inbox .smyl-cal-loading{display:flex;flex-wrap:wrap;gap:8px}
+#p-inbox .smyl-cal-loading i{display:block;width:96px;height:40px;border-radius:10px;background:linear-gradient(90deg,#e8eef3,#f6f9fb,#e8eef3);background-size:200% 100%;animation:smyl-cal-pulse 1.1s linear infinite}
+#p-inbox .smyl-cal-agenda{padding:12px 14px;border:1px solid #dbe3e9;border-radius:12px;background:#fafcfd}
+#p-inbox .smyl-cal-agenda-list{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+#p-inbox .smyl-cal-agenda-list li{display:grid;grid-template-columns:116px minmax(0,1fr);gap:10px;align-items:start;font-size:13px}
+#p-inbox .smyl-cal-agenda-list time{font-weight:700;color:#0f766e;font-variant-numeric:tabular-nums}
+#p-inbox .smyl-cal-agenda-list strong{display:block}#p-inbox .smyl-cal-agenda-list small{display:block;color:#5b6b78;font-size:12px}
+@media(max-width:860px){#p-inbox .smyl-cal{grid-template-columns:minmax(0,1fr);gap:14px}#p-inbox .smyl-cal-d{height:44px}}
+@media(prefers-reduced-motion:reduce){#p-inbox .smyl-cal-d.is-loading i,#p-inbox .smyl-cal-loading i{animation:none}}
+#p-inbox .smyl-inbox-availability-dialog.is-calendar{height:min(820px,calc(100dvh - 24px))}
+#p-inbox .smyl-inbox-availability-dialog.is-calendar .smyl-inbox-availability-board>[data-availability-results]{display:block;overflow:auto}
+#p-inbox .smyl-cal{padding:14px 18px 8px}
+#p-inbox .smyl-cal-d{height:46px}
+
+/* Agendar desde el chat · celular */
+@media (max-width:640px){
+  #p-inbox .smyl-inbox-availability-modes{flex:none}
+  #p-inbox .smyl-inbox-availability-modes button{flex:none;white-space:nowrap;padding:0 10px}
+  #p-inbox .smyl-inbox-availability-dialog.is-calendar{width:calc(100vw - 16px);height:calc(100dvh - 16px)}
+  #p-inbox .smyl-inbox-availability-dialog.is-calendar .smyl-inbox-availability-board{overflow:auto}
+}
