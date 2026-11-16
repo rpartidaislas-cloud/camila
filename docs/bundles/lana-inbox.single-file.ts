@@ -329,6 +329,67 @@ async function lanaRequest(
 return { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin: admin };
 })();
 
+// ── _shared/branch-match.ts ──
+const { tokens, matchBranch, matchBranchInMessages } = (() => {
+// Reconoce a qué sucursal se refiere un paciente cuando contesta «¿en cuál sucursal te atendemos?».
+// Determinístico y auditable: solo asigna cuando el mensaje nombra UNA sucursal sin ambigüedad.
+interface BranchRef { id: string; name: string }
+
+const GENERIC_IN_NAME = new Set(["sucursal", "sede", "clinica", "consultorio", "dental"]);
+const FILLER = new Set(["de", "del", "la", "el", "los", "las", "en", "a", "al", "por", "para", "me", "quiero", "prefiero", "mejor"]);
+
+function tokens(value: string): string[] {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean);
+}
+
+// Palabras que identifican a la sucursal (sin «sucursal», «sede», «clínica»…). Si no queda ninguna, se usa el nombre completo.
+function keyOf(name: string): string[] {
+  const all = tokens(name).filter((word) => !FILLER.has(word));
+  const key = all.filter((word) => !GENERIC_IN_NAME.has(word));
+  return key.length ? key : all;
+}
+
+function containsPhrase(haystack: string[], phrase: string[]): boolean {
+  if (!phrase.length || phrase.length > haystack.length) return false;
+  for (let i = 0; i + phrase.length <= haystack.length; i += 1) {
+    if (phrase.every((word, j) => haystack[i + j] === word)) return true;
+  }
+  return false;
+}
+
+function matchBranch(text: string, branches: BranchRef[]): BranchRef | null {
+  const spoken = tokens(text);
+  const words = spoken.filter((word) => !FILLER.has(word)); // «plaza sol» también reconoce «plaza del sol»
+  const hits = branches
+    .map((branch) => ({ branch, key: keyOf(branch.name) }))
+    .filter(({ key }) => key.length && (containsPhrase(spoken, key) || containsPhrase(words, key)));
+  // «Centro» y «Centro Norte»: si una coincide solo porque está contenida en otra que también coincide, gana la más específica.
+  const specific = hits.filter((hit) => !hits.some((other) => other !== hit && other.key.length > hit.key.length && containsPhrase(other.key, hit.key)));
+  return specific.length === 1 ? specific[0].branch : null;
+}
+
+// Revisa los últimos mensajes del paciente (de más nuevo a más viejo) y devuelve la primera sucursal inequívoca.
+function matchBranchInMessages(messages: { role?: string; content?: string }[], branches: BranchRef[], limit = 15): BranchRef | null {
+  let seen = 0;
+  for (let i = messages.length - 1; i >= 0 && seen < limit; i -= 1) {
+    const message = messages[i];
+    if (!message || message.role !== "user") continue;
+    seen += 1;
+    const hit = matchBranch(String(message.content || ""), branches);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+return { tokens, matchBranch, matchBranchInMessages };
+})();
+
 // ── _shared/cors.ts ──
 const { makeCors, corsPublic, corsHeaders } = (() => {
 // Orígenes autorizados para funciones privadas (autenticadas).
@@ -537,6 +598,23 @@ async function filterConversationPayload(actor: Actor, tenantId: string, body: R
   const ids = sliced.map((value) => value && typeof value === "object" ? uuid((value as Record<string, unknown>).id) : null).filter(Boolean) as string[];
   const [assignments, branches] = await Promise.all([branchAssignments(tenantId, ids), activeBranches(tenantId)]);
   const names = new Map(branches.map((branch) => [branch.id, branch.name]));
+  // Si el paciente acaba de decir en qué sucursal quiere atenderse, la conversación queda asignada sin esperar a una persona.
+  if (branches.length > 1) {
+    const inferred: Record<string, unknown>[] = [];
+    for (const value of sliced) {
+      if (!value || typeof value !== "object") continue;
+      const conversation = value as Record<string, unknown>;
+      const id = uuid(conversation.id);
+      if (!id || assignments.has(id) || conversation.last_message_role !== "patient") continue;
+      const hit = matchBranch(text(conversation.last_message, 600), branches);
+      if (!hit) continue;
+      assignments.set(id, { branch_id: hit.id, source: "ai" });
+      inferred.push({ tenant_id: tenantId, conversation_id: id, branch_id: hit.id, source: "ai" });
+    }
+    if (inferred.length) {
+      await admin.from("smyl_conversation_branches").upsert(inferred, { onConflict: "tenant_id,conversation_id", ignoreDuplicates: true });
+    }
+  }
   const clinicWide = (actor.scopes.messages || "own") === "clinic";
   const allowed: unknown[] = [];
   for (const value of sliced) {
@@ -549,6 +627,27 @@ async function filterConversationPayload(actor: Actor, tenantId: string, body: R
   }
   const page = body.page && typeof body.page === "object" ? { ...(body.page as Record<string, unknown>), total: allowed.length } : body.page;
   return clinicWide ? { ...body, conversations: allowed } : { ...body, conversations: allowed, removed: [], page };
+}
+
+// Al abrir una conversación: muestra su sucursal y, si aún no tiene, la deduce de lo que dijo el paciente.
+async function attachThreadBranch(tenantId: string, body: Record<string, unknown>): Promise<void> {
+  const conversation = body.conversation && typeof body.conversation === "object" ? body.conversation as Record<string, unknown> : null;
+  const id = conversation ? uuid(conversation.id) : null;
+  if (!conversation || !id) return;
+  const [assignments, branches] = await Promise.all([branchAssignments(tenantId, [id]), activeBranches(tenantId)]);
+  let assigned = assignments.get(id);
+  if (!assigned && branches.length > 1 && Array.isArray(body.messages)) {
+    const hit = matchBranchInMessages(body.messages as { role?: string; content?: string }[], branches);
+    if (hit) {
+      assigned = { branch_id: hit.id, source: "ai" };
+      await admin.from("smyl_conversation_branches").upsert(
+        { tenant_id: tenantId, conversation_id: id, branch_id: hit.id, source: "ai" },
+        { onConflict: "tenant_id,conversation_id", ignoreDuplicates: true },
+      );
+    }
+  }
+  const name = assigned ? branches.find((branch) => branch.id === assigned!.branch_id)?.name : "";
+  conversation.branch = assigned ? { id: assigned.branch_id, name: name || "Sucursal", source: assigned.source } : null;
 }
 
 function forbiddenConversation(): Response {
@@ -1105,6 +1204,7 @@ Deno.serve(async (req: Request) => {
       const scopedBody = ["list", "sync"].includes(action)
         ? await filterConversationPayload(actor, auth.tenantId, remote.body)
         : remote.body;
+      if (action === "messages") { try { await attachThreadBranch(auth.tenantId, scopedBody); } catch (_) { /* la sucursal es informativa: no debe romper la conversación */ } }
       return json(remote.response.status, { ...scopedBody, actor });
     }
 

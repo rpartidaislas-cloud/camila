@@ -530,6 +530,7 @@
       else if (item.paused) meta.append(node('span', 'smyl-inbox-state is-paused', 'Con el equipo'));
       if (item.assignment) meta.append(node('span', 'smyl-inbox-assignee', item.assignment.name));
       if (multiBranch()) meta.append(item.branch ? node('span', 'smyl-inbox-branch', item.branch.name) : node('span', 'smyl-inbox-branch is-none', 'Sin sucursal'));
+      if (item.branch && item.branch.source === 'ai') meta.lastChild.title = 'La eligió el paciente en la conversación';
       var currentStage = stageName(item.stage_id);
       copy.append(top, preview, meta);
       if (currentStage !== 'Sin etapa') copy.append(node('span', 'smyl-inbox-row-stage-line', currentStage));
@@ -2323,7 +2324,7 @@
     patientSummary.setAttribute('aria-label', 'Abrir paciente y atención · ' + continuityLabel + (actorRole ? ' · ' + actorRole : ''));
     var headerWindow = liveWhatsappWindow(conversation);
     var threadMeta = [channelLabel(conversation.channel), conversation.assignment ? conversation.assignment.name : 'Sin asignar'];
-    if (multiBranch()) threadMeta.push(conversation.branch ? 'Sede ' + conversation.branch.name : 'Sin sucursal');
+    if (multiBranch()) threadMeta.push(conversation.branch ? 'Sede ' + conversation.branch.name + (conversation.branch.source === 'ai' ? ' (la eligió el paciente)' : '') : 'Sin sucursal');
     if (headerWindow && headerWindow.status !== 'expired') threadMeta.push('Ventana 24 h: quedan ' + durationLabel(headerWindow.remaining_seconds));
     document.querySelector('[data-thread-meta]').textContent = threadMeta.join(' · ');
     // Un solo interruptor sustituye al chip de estado y al botón Tomar control / Reanudar IA.
