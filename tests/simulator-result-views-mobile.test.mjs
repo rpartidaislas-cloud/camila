@@ -29,5 +29,5 @@ test('the visible selector update is cache-busted and mirrored by the service wo
   assert.match(html, /smyl-studio\.css\?v=31/);
   assert.match(sw, /result-views-v11/);
   assert.match(sw, /smyl-studio\.css\?v=31/);
-  assert.match(sw, /smyl-studio\.js\?v=30/);
+  assert.match(sw, /smyl-studio\.js\?v=31/);
 });

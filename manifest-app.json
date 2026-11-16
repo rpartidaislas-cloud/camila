@@ -25,6 +25,13 @@
   ],
   "shortcuts": [
     {
+      "name": "Consultorio",
+      "short_name": "Consultorio",
+      "description": "Dar de alta a un paciente y empezar la visita",
+      "url": "app.html?ir=consultorio",
+      "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
       "name": "Simulación rápida",
       "short_name": "Simular",
       "description": "Tomar fotos y generar una simulación rápida de sonrisa",
