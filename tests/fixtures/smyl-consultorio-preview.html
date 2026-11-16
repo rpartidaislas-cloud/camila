@@ -97,7 +97,7 @@
       var r;
       if(caso==='error'&&table==='smyl_appointments')r={data:null,error:{message:'Sin conexión con el servidor.'}};
       else if(b._upd)r={data:{id:'x'},error:null};
-      else if(table==='smyl_patient_histories'){if(h==='error')r={data:null,error:{message:'sin permiso'}};else r={data:h==='ninguna'?null:{document:h==='completa'?{allergies_status:'no',conditions_status:'no',medications_status:'no',surgeries_status:'no',dental_status:'no',habits_status:'no'}:{allergies_status:'no'}},error:null};}
+      else if(table==='smyl_patient_histories'){if(h==='error')r={data:null,error:{message:'sin permiso'}};else r={data:h==='ninguna'?null:{revision:3,document:h==='completa'?{allergies_status:'no',conditions_status:'no',medications_status:'no',surgeries_status:'no',dental_status:'no',habits_status:'no'}:{allergies_status:'no'}},error:null};}
       else if(table==='smyl_patient_files'){if(f==='error')r={data:null,error:{message:'sin permiso'}};else r={data:f==='ninguno'?[]:[{category:'clinical_photo'},{category:'radiograph'},{category:'radiograph'}],error:null};}
       else if(table==='camila_pacientes'&&b._one){window.__log.push(['leePaciente',b._id]);r={data:pac[b._id]||null,error:null};}
       else if(b._ins){if(window.__fallaColumna&&b._ins.registro_estado)r={data:null,error:{code:'PGRST204',message:"Could not find the 'registro_estado' column in the schema cache"}};else{var nuevo=Object.assign({id:'nuevo-1',apellido:'',email:''},b._ins);pac['nuevo-1']=nuevo;r={data:nuevo,error:null};}}
@@ -115,12 +115,17 @@
     rpc:function(name,args){window.__log.push(['rpc',name,args]);
       if(name==='smyl_search_patients'){var t=String(args.p_query||'').toLowerCase();var rows=Object.keys(pac).map(function(k){return pac[k];}).filter(function(p){return (p.nombre+' '+p.apellido+' '+p.telefono).toLowerCase().indexOf(t)>=0;});return Promise.resolve({data:rows,error:null});}
       if(name==='smyl_patient_duplicates'){var d=String(args.p_telefono||'').replace(/\D/g,'');return Promise.resolve({data:d.slice(-10)==='3312345678'?[{id:'p1',name:'Cristian Partida',phone:'+52 3312345678',match:'telefono'}]:[],error:null});}
+      if(name==='smyl_save_patient_history'){window.__guardados=(window.__guardados||[]);window.__guardados.push(JSON.parse(JSON.stringify(args)));
+        if(window.__falla40001)return Promise.resolve({data:null,error:{code:'40001',message:'Los antecedentes cambiaron en otra sesión.'}});
+        if(window.__falla42501)return Promise.resolve({data:null,error:{code:'42501',message:'No tienes permiso.'}});
+        return Promise.resolve({data:{revision:4},error:null});}
       return Promise.resolve({data:[],error:null});}};
 })();
 </script>
 <script src="../../smyl-history-model.js"></script>
 <script src="../../smyl-patient-quick.js"></script>
 <script src="../../smyl-visit-model.js"></script>
+<script src="../../smyl-history-interview.js"></script>
 <script src="../../smyl-consultorio.js"></script>
 <script>document.addEventListener('DOMContentLoaded',function(){window.ir('consultorio');});</script>
 </body></html>
