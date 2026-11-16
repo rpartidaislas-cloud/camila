@@ -612,6 +612,92 @@
     });
   }
 
+  // Capacitar IA por etapas: el mismo formulario se reparte en 6 pasos; cada paso muestra solo lo suyo y su avance.
+  var TRAIN_STEPS = [
+    { key: 1, title: 'Identidad', hint: 'Cómo se llama y cómo habla tu asistente.' },
+    { key: 2, title: 'Tu clínica', hint: 'Lo que puede decir de tu clínica: solo información confirmada.' },
+    { key: 3, title: 'Sedes y servicios', hint: 'Dónde atiendes y qué ofreces.' },
+    { key: 4, title: 'Preguntas frecuentes', hint: 'Las respuestas que tu equipo repite todos los días.' },
+    { key: 5, title: 'Reglas de atención', hint: 'Cómo agenda, qué cobra, cuándo pasa con una persona.' },
+    { key: 6, title: 'Revisar y publicar', hint: 'Valida el borrador y publícalo cuando esté listo.' }
+  ];
+  var TRAIN_FIELD_STEP = { 'Identidad y voz': 1, 'La clínica': 2, 'Sucursales y operación': 3, 'Servicios confirmados': 3, 'Preguntas frecuentes': 4, 'Flujo de atención': 5, 'Memoria administrativa': 5 };
+  function trainingStepDone(key, form) {
+    var filled = function (name) { return Boolean(form.elements[name] && String(form.elements[name].value || '').trim()); };
+    var rows = function (selector) { return form.querySelectorAll(selector + ' .connections-repeat-row').length; };
+    if (key === 1) return filled('assistant_name') && filled('welcome_message');
+    if (key === 2) return filled('clinic_description') && filled('specialties') && (filled('location') || filled('hours'));
+    if (key === 3) return filled('branches') || rows('[data-service-list]') > 0;
+    if (key === 4) return rows('[data-faq-list]') > 0;
+    if (key === 5) return filled('appointment_policy') && filled('pricing_policy') && filled('emergency_policy');
+    return false;
+  }
+  function goTrainingStep(key) {
+    var form = document.querySelector('[data-lana-training-form]');
+    if (!form) return;
+    state.trainStep = Math.max(1, Math.min(TRAIN_STEPS.length, Number(key) || 1));
+    updateTrainingSteps();
+    var top = document.querySelector('[data-train-steps]');
+    if (top && top.scrollIntoView) top.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  function updateTrainingSteps() {
+    var form = document.querySelector('[data-lana-training-form]'), nav = document.querySelector('[data-train-steps]');
+    if (!form || !nav) return;
+    var current = state.trainStep || 1;
+    form.dataset.step = String(current);
+    nav.querySelectorAll('[data-train-go]').forEach(function (button) {
+      var key = Number(button.dataset.trainGo), done = key < 6 && trainingStepDone(key, form);
+      button.dataset.state = key === current ? 'current' : (done ? 'done' : 'pending');
+      button.querySelector('b').textContent = done && key !== current ? '✓' : String(key);
+      if (key === current) button.setAttribute('aria-current', 'step'); else button.removeAttribute('aria-current');
+    });
+    var info = TRAIN_STEPS[current - 1], intro = document.querySelector('[data-train-intro]');
+    if (intro) intro.innerHTML = '<span>Paso ' + current + ' de ' + TRAIN_STEPS.length + '</span><strong>' + info.title + '</strong><p>' + info.hint + '</p>';
+    var review = form.querySelector('[data-train-review]');
+    if (review) {
+      review.innerHTML = '<h3>Antes de publicar</h3><ul>' + TRAIN_STEPS.slice(0, 5).map(function (step) {
+        var done = trainingStepDone(step.key, form);
+        return '<li data-state="' + (done ? 'done' : 'pending') + '"><span aria-hidden="true">' + (done ? '✓' : '!') + '</span><div><strong>' + step.title + '</strong><small>' + (done ? 'Listo' : 'Falta información en este paso') + '</small></div><button type="button" data-train-go="' + step.key + '">' + (done ? 'Editar' : 'Completar') + '</button></li>';
+      }).join('') + '</ul>';
+    }
+    var back = form.querySelector('[data-train-back]'), next = form.querySelector('[data-train-next]');
+    if (back) { back.hidden = current === 1; back.disabled = false; }
+    if (next) { next.hidden = current === TRAIN_STEPS.length; next.disabled = false; }
+  }
+  function initTrainingSteps(root) {
+    var form = root.querySelector('[data-lana-training-form]');
+    if (!form || form.dataset.stepsReady) return;
+    form.dataset.stepsReady = 'true';
+    form.querySelectorAll('fieldset').forEach(function (fieldset) {
+      var legend = fieldset.querySelector('legend'), key = legend && TRAIN_FIELD_STEP[legend.textContent.trim()];
+      if (key) fieldset.dataset.trainStep = String(key);
+    });
+    var guard = form.querySelector('.connections-context-guard'); if (guard) guard.dataset.trainStep = '5';
+    var validation = form.querySelector('[data-training-validation]'); if (validation) validation.dataset.trainStep = '6';
+    var review = node('div', 'connections-train-review'); review.dataset.trainReview = 'true'; review.dataset.trainStep = '6';
+    if (validation) validation.before(review); else form.append(review);
+    var nav = node('ol', 'connections-train-steps'); nav.dataset.trainSteps = 'true'; nav.setAttribute('aria-label', 'Etapas de la capacitación');
+    TRAIN_STEPS.forEach(function (step) {
+      var item = node('li'), button = node('button'); button.type = 'button'; button.dataset.trainGo = String(step.key);
+      button.append(node('b', '', String(step.key)), node('span', '', step.title)); item.append(button); nav.append(item);
+    });
+    var intro = node('div', 'connections-train-intro'); intro.dataset.trainIntro = 'true'; intro.setAttribute('aria-live', 'polite');
+    form.before(nav, intro);
+    var actions = form.querySelector('.connections-training-actions');
+    var back = node('button', 'btn btn-secondary', '← Atrás'); back.type = 'button'; back.dataset.trainBack = 'true'; back.dataset.trainNav = 'true';
+    var next = node('button', 'btn btn-primary', 'Continuar →'); next.type = 'button'; next.dataset.trainNext = 'true'; next.dataset.trainNav = 'true';
+    if (actions) { actions.prepend(back); actions.querySelector('[data-save-training]').after(next); }
+    root.addEventListener('click', function (event) {
+      var go = event.target.closest && event.target.closest('[data-train-go]');
+      if (go) { goTrainingStep(go.dataset.trainGo); return; }
+      if (event.target.closest && event.target.closest('[data-train-back]')) goTrainingStep((state.trainStep || 1) - 1);
+      else if (event.target.closest && event.target.closest('[data-train-next]')) goTrainingStep((state.trainStep || 1) + 1);
+    });
+    form.addEventListener('input', function () { updateTrainingSteps(); });
+    state.trainStep = 1;
+    updateTrainingSteps();
+  }
+
   function renderTrainingMeta() {
     var badge = document.querySelector('[data-training-state]');
     var version = document.querySelector('[data-training-version]');
@@ -691,6 +777,8 @@
     renderValidation(data.validation || null);
     renderTrainingMeta();
     syncBranchTools();
+    form.querySelectorAll('[data-train-nav]').forEach(function (control) { control.disabled = false; });
+    updateTrainingSteps();
     contextStatus(state.draftRevision ? 'Borrador sincronizado. Publicar es una acción separada.' : 'Completa y guarda tu primer borrador.', state.draftRevision ? 'success' : '');
   }
 
@@ -1012,6 +1100,7 @@
     page.innerHTML = pageMarkup();
     document.querySelector('.contenido').append(page);
     bindBranchTools(page);
+    initTrainingSteps(page);
     loadClinicBranches();
     page.querySelector('[data-lana-form]').addEventListener('submit', connect);
     page.querySelector('[data-provision-lana]').addEventListener('click', provision);
