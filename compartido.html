@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://rpxshsiwoxdbuevjjpfw.supabase.co; connect-src https://rpxshsiwoxdbuevjjpfw.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Archivo compartido · SMYL</title>
+<link rel="icon" href="icons/smyl_pwa.png">
+<style>
+:root{--ink:#1F2937;--muted:#6B7280;--line:#E5E7EB;--teal:#0F766E;--teal-d:#0B5F59;--bg:#F3F6FB;--bad:#B91C1C;--badbg:#FEF2F2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:720px;margin:0 auto;padding:20px 16px 48px}
+.brand{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 0 18px;color:var(--muted);font-size:14px}
+.brand img{height:24px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 4px 14px rgba(16,34,57,.06);padding:22px}
+.eyebrow{font-size:12px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+h1{font-size:20px;line-height:1.3;margin:4px 0 2px;overflow-wrap:anywhere}
+.sub{color:var(--muted);font-size:14px;margin:0 0 16px}
+.preview{margin:14px 0;border:1px solid var(--line);border-radius:12px;background:#0F1C2B;display:grid;place-items:center;overflow:hidden}
+.preview img{display:block;max-width:100%;max-height:70vh;object-fit:contain}
+.file{display:flex;align-items:center;gap:12px;margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:12px;background:#F8FAFC}
+.file b{display:grid;place-items:center;width:44px;height:44px;border-radius:10px;background:#E6F5F2;color:var(--teal);font-size:13px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input{width:100%;border:1px solid #CBD5E1;border-radius:10px;padding:12px;font:inherit;background:#fff;letter-spacing:.3em;text-align:center}
+input:focus{outline:2px solid #5EEAD4;border-color:var(--teal)}
+.btn{display:inline-block;width:100%;margin-top:12px;border:0;border-radius:12px;background:var(--teal);color:#fff;font:inherit;font-weight:700;padding:14px;cursor:pointer;text-align:center;text-decoration:none}
+.btn:hover{background:var(--teal-d)}
+.btn:disabled{opacity:.6;cursor:default}
+.btn.ghost{background:#fff;color:var(--teal);border:1px solid var(--teal)}
+.msg{border-radius:10px;padding:12px 14px;font-size:14px;margin:12px 0;background:var(--badbg);color:var(--bad)}
+.fine{color:var(--muted);font-size:12px;margin-top:16px;text-align:center}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><img src="icons/smyl_pwa.png" alt="" width="24" height="24"><span>Archivo compartido de forma privada</span></div>
+  <section class="card" id="card" aria-live="polite"><p class="sub">Abriendo el archivo…</p></section>
+  <p class="fine">Este enlace es personal y vence solo. Si no lo esperabas, ciérralo; no necesitas hacer nada más.</p>
+</main>
+<script>
+(function () {
+  'use strict';
+  var API = 'https://rpxshsiwoxdbuevjjpfw.supabase.co/functions/v1/cloud-share';
+  var KEY = 'smyl-cloud-share-token';
+  var card = document.getElementById('card');
+  var token = '';
+  // El token llega en el fragmento (#t=…) para no viajar al servidor; se guarda solo en esta pestaña.
+  var m = /[#&]t=([a-f0-9]{64})/.exec(location.hash);
+  try {
+    if (m) { sessionStorage.setItem(KEY, m[1]); history.replaceState(null, '', location.pathname); }
+    token = sessionStorage.getItem(KEY) || '';
+  } catch (e) { token = m ? m[1] : ''; }
+
+  function el(tag, props, kids) {
+    var n = document.createElement(tag);
+    Object.keys(props || {}).forEach(function (k) { if (k === 'text') n.textContent = props[k]; else n.setAttribute(k, props[k]); });
+    (kids || []).forEach(function (c) { if (c) n.appendChild(c); });
+    return n;
+  }
+  function clear() { card.textContent = ''; }
+  function size(bytes) { var b = Number(bytes) || 0; return b < 1048576 ? Math.max(1, Math.round(b / 1024)) + ' KB' : (Math.round(b / 104857.6) / 10) + ' MB'; }
+  function call(code) {
+    return fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'view', token: token, code: code || undefined }) })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; }); });
+  }
+  function unavailable(text) {
+    clear();
+    card.appendChild(el('div', { 'class': 'eyebrow', text: 'Enlace no disponible' }));
+    card.appendChild(el('h1', { text: 'No se pudo abrir este archivo' }));
+    card.appendChild(el('p', { 'class': 'sub', text: text || 'Este enlace no existe, venció o fue revocado. Pide a la clínica que te envíe uno nuevo.' }));
+  }
+  function codeForm(error) {
+    clear();
+    card.appendChild(el('div', { 'class': 'eyebrow', text: 'Archivo protegido' }));
+    card.appendChild(el('h1', { text: 'Escribe tu código' }));
+    card.appendChild(el('p', { 'class': 'sub', text: 'La clínica te envió un código de 6 dígitos por separado.' }));
+    if (error) card.appendChild(el('div', { 'class': 'msg', role: 'alert', text: error }));
+    var form = el('form', { novalidate: '' });
+    var input = el('input', { id: 'code', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: '6', 'aria-label': 'Código de 6 dígitos', placeholder: '••••••' });
+    var button = el('button', { 'class': 'btn', type: 'submit', text: 'Abrir archivo' });
+    form.appendChild(input); form.appendChild(button); card.appendChild(form);
+    input.focus();
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var value = input.value.replace(/\D/g, '');
+      if (value.length !== 6) { codeForm('El código tiene 6 dígitos.'); return; }
+      button.disabled = true; load(value);
+    });
+  }
+  function show(view, code) {
+    clear();
+    card.appendChild(el('div', { 'class': 'eyebrow', text: view.clinic || 'Archivo compartido' }));
+    card.appendChild(el('h1', { text: view.name || 'Archivo' }));
+    card.appendChild(el('p', { 'class': 'sub', text: size(view.size_bytes) }));
+    if (/^image\//.test(view.mime_type || '')) {
+      var wrap = el('div', { 'class': 'preview' });
+      wrap.appendChild(el('img', { src: view.url, alt: view.name || 'Imagen compartida', referrerpolicy: 'no-referrer' }));
+      card.appendChild(wrap);
+    } else {
+      card.appendChild(el('div', { 'class': 'file' }, [el('b', { text: 'PDF' }), el('span', { text: view.name || 'Documento' })]));
+    }
+    card.appendChild(el('a', { 'class': 'btn', href: view.url, target: '_blank', rel: 'noopener noreferrer', text: view.mime_type === 'application/pdf' ? 'Abrir el PDF' : 'Abrir en una pestaña nueva' }));
+    var again = el('button', { 'class': 'btn ghost', type: 'button', text: 'Si el archivo no carga, actualizar' });
+    again.addEventListener('click', function () { load(code); });
+    card.appendChild(again);
+  }
+  function load(code) {
+    if (!token) { unavailable(); return; }
+    call(code).then(function (d) {
+      if (d.needs_code) return codeForm();
+      if (d._status === 403) return codeForm((d.error || 'Código incorrecto.') + (d.attempts_left ? ' Te quedan ' + d.attempts_left + ' intentos.' : ''));
+      if (d._status !== 200 || !d.url) return unavailable();
+      show(d, code);
+    }).catch(function () { unavailable('No se pudo conectar. Revisa tu internet e inténtalo de nuevo.'); });
+  }
+  load();
+})();
+</script>
+</body>
+</html>

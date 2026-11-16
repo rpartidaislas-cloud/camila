@@ -6,16 +6,16 @@ las tres capas y dice qué comprueba cada herramienta.
 | Capa | Qué protege | Quién la hace | Cómo se sabe que funciona |
 |---|---|---|---|
 | 1. Respaldos administrados de Supabase | Base de datos (diario / PITR según plan) | Supabase | Panel → Database → Backups: fecha del último y plan. **Se revisa a mano.** |
-| 2. Paquete cifrado SMYL | Base + 11 buckets de Storage, fuera de Supabase | `create-encrypted-backup.mjs` | `verify-encrypted-backup.mjs` (hash + descifrado + contenido) |
+| 2. Paquete cifrado SMYL | Base + 12 buckets de Storage, fuera de Supabase | `create-encrypted-backup.mjs` | `verify-encrypted-backup.mjs` (hash + descifrado + contenido) |
 | 3. Simulacro de restauración | Que todo lo anterior realmente se puede levantar | Persona responsable | Evidencia validada con `validate-restore-evidence.mjs` |
 
 Estado al 2026-11-08: la capa 2 estaba **sin probar** y tenía dos defectos (faltaban `smyl-professional-public` y
 `mila-audio`; un fallo dejaba datos en claro en el temporal). Corregidos y cubiertos por `tests/backup-behaviour.test.mjs`.
 La capa 3 **nunca se ha ejecutado**.
 
-## Buckets cubiertos (11)
+## Buckets cubiertos (12)
 `camila-fotos`, `camila-masks`, `camila-analisis`, `smyl-case-photos`, `smyl-radiographs`, `smyl-clinical-files`,
-`smyl-proposal-photos`, `smyl-professional-cv`, `smyl-professional-cases`, `smyl-professional-public`, `mila-audio`.
+`smyl-proposal-photos`, `smyl-professional-cv`, `smyl-professional-cases`, `smyl-professional-public`, `mila-audio`, `smyl-cloud`.
 El script **falla cerrado** si el proyecto tiene un bucket que no está en esa lista (se creó a mano en el panel):
 agrégalo a `BUCKETS`, o define `SMYL_BACKUP_ALLOW_UNLISTED=1` sabiendo que quedará sin respaldo.
 
