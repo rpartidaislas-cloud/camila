@@ -169,7 +169,7 @@ return { requireUser, requirePermission };
 })();
 
 // ── _shared/lana-contract.mjs ──
-const { SMYL_LANA_CONTRACT_VERSION, normalizeLanaPath, lanaContractHeaders } = (() => {
+const { SMYL_LANA_CONTRACT_VERSION, normalizeLanaPath, lanaContractHeaders, SMYL_PRODUCT, readLanaContract, decideLanaLink } = (() => {
 const SMYL_LANA_CONTRACT_VERSION = "1.6";
 
 const ALLOWED_ROOTS = new Set([
@@ -179,6 +179,7 @@ const ALLOWED_ROOTS = new Set([
   "contract",
   "conversations",
   "inbox",
+  "payments",
   "training",
 ]);
 
@@ -215,7 +216,39 @@ function lanaContractHeaders() {
   return { "X-SMYL-LANA-Contract-Version": SMYL_LANA_CONTRACT_VERSION };
 }
 
-return { SMYL_LANA_CONTRACT_VERSION, normalizeLanaPath, lanaContractHeaders };
+// ── Aislamiento de contexto SMYL ↔ LANA ─────────────────────────────────────────────────────────────
+// SMYL usa el motor de chat de LANA, pero cada clínica debe vivir en SU PROPIO tenant de LANA, marcado como producto
+// "smyl": así el asistente usa el contexto y las herramientas dentales, nunca el catálogo/pedidos/precios comerciales.
+// LANA declara esa marca en `GET /contract` → `contract.product` (y `contract.tenant_id`).
+const SMYL_PRODUCT = "smyl";
+
+// Interpreta la respuesta de /contract. Devuelve el producto y el id del tenant LANA, o null si LANA aún no los informa.
+function readLanaContract(body: any) {
+  const contract = body && typeof body === "object" && body.contract && typeof body.contract === "object" ? body.contract : null;
+  const product = contract && typeof contract.product === "string" ? contract.product.trim().toLowerCase().slice(0, 40) : null;
+  const rawTenant = contract && typeof contract.tenant_id === "string" ? contract.tenant_id.trim().toLowerCase() : "";
+  const lanaTenantId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(rawTenant) ? rawTenant : null;
+  return { product: product || null, lanaTenantId };
+}
+
+// Decide si un tenant de LANA puede vincularse a una clínica de SMYL.
+//  - strict (código de enlace manual): exige que LANA confirme product === "smyl"; sin confirmación se rechaza.
+//  - no strict (alta automática o verificación de un enlace ya existente): sólo se rechaza un producto distinto de "smyl";
+//    si LANA aún no informa el producto, se acepta pero queda marcado como "sin verificar".
+// Resultado: { ok, verified, code, message }
+function decideLanaLink(info: any, { strict }) {
+  const product = info && info.product ? info.product : null;
+  if (product === SMYL_PRODUCT) return { ok: true, verified: true, code: "", message: "" };
+  if (product) {
+    return { ok: false, verified: false, code: "wrong_product", message: "Este código pertenece a una cuenta comercial de LANA y no se puede usar en SMYL. Usa la activación automática." };
+  }
+  if (strict) {
+    return { ok: false, verified: false, code: "product_unconfirmed", message: "LANA no confirmó que este código sea de una cuenta SMYL. Usa la activación automática o pide soporte." };
+  }
+  return { ok: true, verified: false, code: "", message: "" };
+}
+
+return { SMYL_LANA_CONTRACT_VERSION, normalizeLanaPath, lanaContractHeaders, SMYL_PRODUCT, readLanaContract, decideLanaLink };
 })();
 
 // ── _shared/lana-linked.ts ──
@@ -455,9 +488,38 @@ async function accessiblePatient(actor: Actor, tenantId: string, patientId: stri
   return Boolean(team?.length || appointments?.length);
 }
 
+type BranchAssignment = { branch_id: string; source: string };
+
+async function branchAssignments(tenantId: string, ids: string[]): Promise<Map<string, BranchAssignment>> {
+  const result = new Map<string, BranchAssignment>();
+  const unique = Array.from(new Set(ids.filter(Boolean))).slice(0, 200);
+  if (!unique.length) return result;
+  const { data } = await admin.from("smyl_conversation_branches").select("conversation_id,branch_id,source")
+    .eq("tenant_id", tenantId).in("conversation_id", unique);
+  for (const row of (data || []) as Record<string, unknown>[]) {
+    result.set(String(row.conversation_id), { branch_id: String(row.branch_id), source: text(row.source, 20) || "manual" });
+  }
+  return result;
+}
+
+async function memberBranchIds(actor: Actor, tenantId: string): Promise<string[]> {
+  const { data } = await admin.from("smyl_member_branches").select("branch_id").eq("tenant_id", tenantId).eq("user_id", actor.id);
+  return ((data || []) as Record<string, unknown>[]).map((row) => String(row.branch_id || "")).filter(Boolean);
+}
+
+async function activeBranches(tenantId: string): Promise<{ id: string; name: string; is_default: boolean }[]> {
+  const { data } = await admin.from("smyl_branches").select("id,name,is_default").eq("tenant_id", tenantId).eq("active", true).order("is_default", { ascending: false }).order("name");
+  return ((data || []) as Record<string, unknown>[]).map((row) => ({ id: String(row.id), name: text(row.name, 120), is_default: Boolean(row.is_default) }));
+}
+
 async function canAccessConversation(actor: Actor, tenantId: string, conversationId: string, conversation?: Record<string, unknown>): Promise<boolean> {
   if ((actor.scopes.messages || "own") === "clinic") return true;
   if (conversation && assignedActorId(conversation) === actor.id) return true;
+  if ((actor.scopes.messages || "own") === "branches") {
+    const assigned = (await branchAssignments(tenantId, [conversationId])).get(conversationId);
+    // La sucursal asignada manda: quien no pertenece a ella no ve la conversación, aunque el paciente tenga citas en otra sede.
+    if (assigned) return (await memberBranchIds(actor, tenantId)).includes(assigned.branch_id);
+  }
   const { data: handoff } = await admin.from("camila_lana_handoffs").select("patient_id")
     .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId).maybeSingle();
   if (handoff?.patient_id && await accessiblePatient(actor, tenantId, String(handoff.patient_id))) return true;
@@ -470,16 +532,23 @@ async function canAccessConversation(actor: Actor, tenantId: string, conversatio
 }
 
 async function filterConversationPayload(actor: Actor, tenantId: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
-  if ((actor.scopes.messages || "own") === "clinic" || !Array.isArray(body.conversations)) return body;
+  if (!Array.isArray(body.conversations)) return body;
+  const sliced = body.conversations.slice(0, 100);
+  const ids = sliced.map((value) => value && typeof value === "object" ? uuid((value as Record<string, unknown>).id) : null).filter(Boolean) as string[];
+  const [assignments, branches] = await Promise.all([branchAssignments(tenantId, ids), activeBranches(tenantId)]);
+  const names = new Map(branches.map((branch) => [branch.id, branch.name]));
+  const clinicWide = (actor.scopes.messages || "own") === "clinic";
   const allowed: unknown[] = [];
-  for (const value of body.conversations.slice(0, 100)) {
+  for (const value of sliced) {
     if (!value || typeof value !== "object") continue;
-    const conversation = value as Record<string, unknown>;
+    const conversation = { ...(value as Record<string, unknown>) };
     const id = uuid(conversation.id);
-    if (id && await canAccessConversation(actor, tenantId, id, conversation)) allowed.push(value);
+    const assigned = id ? assignments.get(id) : undefined;
+    conversation.branch = assigned ? { id: assigned.branch_id, name: names.get(assigned.branch_id) || "Sucursal", source: assigned.source } : null;
+    if (clinicWide || (id && await canAccessConversation(actor, tenantId, id, conversation))) allowed.push(conversation);
   }
   const page = body.page && typeof body.page === "object" ? { ...(body.page as Record<string, unknown>), total: allowed.length } : body.page;
-  return { ...body, conversations: allowed, removed: [], page };
+  return clinicWide ? { ...body, conversations: allowed } : { ...body, conversations: allowed, removed: [], page };
 }
 
 function forbiddenConversation(): Response {
@@ -650,7 +719,7 @@ async function clinicalContext(actor: Actor, tenantId: string, conversationId: s
       .eq("tenant_id", tenantId).eq("case_id", handoff.case_id).order("created_at", { ascending: false }).limit(50)
     : Promise.resolve({ data: [], error: null });
   const [{ data: patient }, { data: caseRow }, { data: links }] = await Promise.all([
-    admin.from("camila_pacientes").select("id,nombre,apellido,email,telefono,fecha_nacimiento,genero,notas,updated_at")
+    admin.from("camila_pacientes").select("id,nombre,apellido,email,telefono,fecha_nacimiento,genero,notas,updated_at,consentimiento_whatsapp")
       .eq("tenant_id", tenantId).eq("id", handoff.patient_id).maybeSingle(),
     caseQuery,
     linksQuery,
@@ -663,6 +732,7 @@ async function clinicalContext(actor: Actor, tenantId: string, conversationId: s
       id: patient.id, name: `${patient.nombre || ""} ${patient.apellido || ""}`.trim(),
       email: patient.email || "", phone: patient.telefono || "", birth_date: patient.fecha_nacimiento || null,
       gender: patient.genero || null, notes: patient.notas || "", updated_at: patient.updated_at || null,
+      whatsapp_consent: typeof patient.consentimiento_whatsapp === "boolean" ? patient.consentimiento_whatsapp : null,
     } : null,
     case: caseRow ? {
       id: caseRow.id, name: caseRow.nombre_paciente || "", score: caseRow.score ?? null,
@@ -991,6 +1061,11 @@ Deno.serve(async (req: Request) => {
       const conversationId = url.searchParams.get("conversation_id") ? uuid(url.searchParams.get("conversation_id")) : null;
       if (url.searchParams.get("conversation_id") && !conversationId) return json(400, { error: "Conversación no válida." });
       if (conversationId && !await canAccessConversation(actor, auth.tenantId, conversationId)) return forbiddenConversation();
+      if (action === "branches") {
+        const all = await activeBranches(auth.tenantId);
+        const mine = (actor.scopes.messages || "own") === "branches" ? new Set(await memberBranchIds(actor, auth.tenantId)) : null;
+        return json(200, { branches: mine ? all.filter((branch) => mine.has(branch.id)) : all, actor });
+      }
       if (action === "operations" && actor.scopes.messages !== "clinic") {
         return json(403, { error: "Los indicadores globales requieren alcance de toda la clínica.", code: "conversation_scope_denied" });
       }
@@ -1175,6 +1250,35 @@ Deno.serve(async (req: Request) => {
         }),
       }, 15000);
       return json(remote.response.status, { ...remote.body, actor });
+    }
+    if (action === "set_branch") {
+      const denied = requirePermission(actor, "messages.manage", "Tu rol no permite asignar conversaciones a una sucursal.");
+      if (denied) return denied;
+      const conversationId = uuid(body.conversation_id);
+      if (!conversationId) return json(400, { error: "Falta la conversación." });
+      if (!await canAccessConversation(actor, auth.tenantId, conversationId)) return forbiddenConversation();
+      const target = body.branch_id === null || body.branch_id === undefined || body.branch_id === "" ? null : uuid(body.branch_id);
+      if (body.branch_id && !target) return json(400, { error: "La sucursal indicada no es válida." });
+      if (!target) {
+        // Quitar la sucursal (volver a «Sin asignar») solo con alcance de toda la clínica: una sede no puede esconder una conversación suya.
+        if ((actor.scopes.messages || "own") !== "clinic") return json(403, { error: "Solo quien ve toda la clínica puede devolver una conversación a «Sin asignar».", code: "permission_denied" });
+        await admin.from("smyl_conversation_branches").delete().eq("tenant_id", auth.tenantId).eq("conversation_id", conversationId);
+        return json(200, { ok: true, conversation_id: conversationId, branch: null, actor });
+      }
+      const branches = await activeBranches(auth.tenantId);
+      const branch = branches.find((item) => item.id === target);
+      if (!branch) return json(404, { error: "La sucursal no existe o está inactiva." });
+      if ((actor.scopes.messages || "own") === "branches" && !(await memberBranchIds(actor, auth.tenantId)).includes(target)) {
+        // Transferir a otra sede sí se permite (la conversación sale de su bandeja); asignar a una sede ajena sin pertenecer a ninguna no.
+        const own = await memberBranchIds(actor, auth.tenantId);
+        if (!own.length) return json(403, { error: "No perteneces a ninguna sucursal.", code: "permission_denied" });
+      }
+      const { error } = await admin.from("smyl_conversation_branches").upsert({
+        tenant_id: auth.tenantId, conversation_id: conversationId, branch_id: target, source: "manual",
+        assigned_by: auth.user.id, assigned_at: new Date().toISOString(),
+      }, { onConflict: "tenant_id,conversation_id" });
+      if (error) return json(500, { error: "No se pudo asignar la sucursal." });
+      return json(200, { ok: true, conversation_id: conversationId, branch: { id: branch.id, name: branch.name, source: "manual" }, actor });
     }
     if (action === "resume_with_context") {
       const denied = requirePermission(actor, "messages.manage", "Tu rol no permite reactivar el asistente.");
