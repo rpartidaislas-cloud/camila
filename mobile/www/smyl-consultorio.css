@@ -161,3 +161,16 @@
 #p-consultorio .co-msg{margin:2px 0 4px;padding:10px 12px;border-radius:11px;background:rgba(255,255,255,.08);color:#fff;font-size:14.5px;line-height:1.5}
 #p-consultorio .co-endfull{width:100%;min-height:54px;margin-top:18px;font-size:16px}
 #p-consultorio .co-close{width:100%;min-height:52px;margin-top:10px;font-size:16px}
+
+/* Código QR de registro (ventana clara) */
+#p-consultorio .co-qrbox{width:min(250px,100%);margin:0 auto 12px;padding:12px;border:1px solid #DDE6EA;border-radius:14px;background:#fff}
+#p-consultorio .co-qrbox svg{display:block;width:100%;height:auto}
+#p-consultorio .co-qrhint{margin:0 0 10px;color:#5A6E7E;font-size:14px;line-height:1.5;text-align:center}
+#p-consultorio .co-qrstatus{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 12px;color:#176B63;font-size:14.5px;font-weight:600}
+#p-consultorio .co-qrstatus small{color:#5A6E7E;font-weight:400}
+#p-consultorio .co-qrdone{font-size:16px}
+#p-consultorio .co-pulse{width:9px;height:9px;border-radius:50%;background:#1F8A80;animation:co-pulse 2s ease-out infinite}
+@keyframes co-pulse{70%{box-shadow:0 0 0 9px rgba(31,138,128,0)}0%{box-shadow:0 0 0 0 rgba(31,138,128,.5)}100%{box-shadow:0 0 0 0 rgba(31,138,128,0)}}
+#p-consultorio .co-qrlink{display:block;width:100%;box-sizing:border-box;height:44px;margin:0 0 12px;padding:0 12px;border:1px solid #B6C5CD;border-radius:10px;background:#fff;color:#0F2236;font-size:13px}
+#p-consultorio .co-note-dark{margin:0;color:#5A6E7E;font-size:14px}
+@media(prefers-reduced-motion:reduce){#p-consultorio .co-pulse{animation:none}}

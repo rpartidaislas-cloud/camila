@@ -6,7 +6,7 @@
     filter: 'all', channel: '', search: '', selectedId: null, filterPanelOpen: false, branches: [], branchFilter: '',
     messages: {}, pages: {}, pending: {}, loadingList: false, loadingThread: false,
     listError: '', threadError: '', syncedAt: null, actor: null, team: [], stages: [],
-    threadController: null, contextOpen: false, contextSections: {}, contextReturnFocus: null, f360Tab: {}, f360File: {}, f360Filter: {}, f360Shared: {}, f360Timeline: {}, polling: false,
+    threadController: null, contextOpen: false, contextSections: {}, contextReturnFocus: null, f360Tab: {}, f360File: {}, f360Filter: {}, f360Shared: {}, f360Timeline: {}, f360Summary: {}, contextDockedPreferred: false, polling: false,
     replyTo: null, attachment: null, clinical: {}, clinicalLoading: {},
     copilot: {}, copilotLoading: {},
     templates: [], templatesLoaded: false, templatesLoading: false,
@@ -749,6 +749,7 @@
     try {
       var data = await request('POST', {}, { action: 'copilot', conversation_id: conversation.id, mode: mode }, null, 35000);
       state.copilot[conversation.id] = data;
+      if (mode === 'summary') state.f360Summary[conversation.id] = { data: data, basis: summaryBasis(conversation), at: new Date().toISOString(), loading: false, error: '' };
       return data;
     } catch (error) {
       window.alert(error.message || 'Copilot no pudo preparar una sugerencia.');
@@ -760,7 +761,7 @@
 
   async function prepareResume() {
     var conversation = selectedConversation(); if (!conversation || !conversation.paused) return;
-    var data = await requestCopilot('summary'); if (!data || state.selectedId !== conversation.id) return;
+    var data = freshConversationSummary(conversation) || await requestCopilot('summary'); if (!data || state.selectedId !== conversation.id) return;
     var dialog = document.querySelector('[data-copilot-resume]');
     var summary = dialog.querySelector('[data-resume-summary]'); var notes = dialog.querySelector('[data-resume-notes]');
     summary.value = data.summary || ''; notes.innerHTML = '';
@@ -1625,6 +1626,12 @@
     }, 0);
   }
 
+  // En pantallas anchas la ficha se ancla como tercera columna: no tapa el chat ni atrapa el foco.
+  var CONTEXT_DOCK_QUERY = '(min-width: 1440px)';
+  function contextDocked() {
+    return Boolean(window.matchMedia && window.matchMedia(CONTEXT_DOCK_QUERY).matches);
+  }
+
   function syncContextAccessibility() {
     var page = document.getElementById('p-inbox');
     var panel = document.querySelector('[data-inbox-context-panel]');
@@ -1632,13 +1639,17 @@
     var trigger = document.querySelector('[data-inbox-context]');
     if (!page || !panel) return;
     var open = Boolean(state.contextOpen && selectedConversation());
+    var docked = contextDocked();
     page.classList.toggle('context-open', open);
+    page.classList.toggle('context-docked', open && docked);
+    panel.setAttribute('role', docked ? 'complementary' : 'dialog');
+    if (docked) panel.removeAttribute('aria-modal'); else panel.setAttribute('aria-modal', 'true');
     panel.setAttribute('aria-hidden', open ? 'false' : 'true');
     panel.inert = !open;
     if (open) panel.removeAttribute('inert'); else panel.setAttribute('inert', '');
     if (scrim) {
-      scrim.hidden = !open;
-      scrim.tabIndex = open ? 0 : -1;
+      scrim.hidden = !open || docked;
+      scrim.tabIndex = open && !docked ? 0 : -1;
     }
     if (trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
@@ -1647,6 +1658,7 @@
     if (!selectedConversation()) return;
     state.contextReturnFocus = trigger || document.activeElement;
     state.contextOpen = true;
+    rememberDockedContext(true);
     renderContext();
     setTimeout(function () {
       var panel = document.querySelector('[data-inbox-context-panel]');
@@ -1655,10 +1667,19 @@
     }, 0);
   }
 
+  // Preferencia de vista solo en memoria: si dejaste la ficha abierta en pantalla ancha, sigue abierta al cambiar de chat.
+  function rememberDockedContext(open) {
+    if (contextDocked()) state.contextDockedPreferred = Boolean(open);
+  }
+  function dockedContextPreferred() {
+    return Boolean(state.contextDockedPreferred && contextDocked());
+  }
+
   function closeContext(restoreFocus) {
     var target = state.contextReturnFocus;
     state.contextOpen = false;
     state.contextReturnFocus = null;
+    rememberDockedContext(false);
     renderContext();
     if (restoreFocus !== false && target && document.contains(target) && typeof target.focus === 'function') setTimeout(function () { target.focus(); }, 0);
   }
@@ -1666,7 +1687,7 @@
   function trapContextFocus(event) {
     if (!state.contextOpen) return;
     if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeContext(true); return; }
-    if (event.key !== 'Tab') return;
+    if (event.key !== 'Tab' || contextDocked()) return;
     var panel = event.currentTarget; var items = focusableWithin(panel);
     if (!items.length) { event.preventDefault(); panel.focus(); return; }
     var first = items[0]; var last = items[items.length - 1];
@@ -2042,6 +2063,8 @@
       if (ficha.case) chips.push({ text: 'Caso activo', tone: 'blue' });
     }
     var subtitle = patient ? [patient.phone, patient.email].filter(Boolean).join(' · ') : (conversation.contact_phone || '');
+    var lastSeen = conversation.last_message_at ? F.shortDate(conversation.last_message_at, true) : '';
+    var meta = 'Escribe por ' + channelLabel(conversation.channel) + (lastSeen ? ' · último mensaje ' + lastSeen.toLowerCase() : '');
     var careActions = permittedCareActions(conversation); var actions = [];
     ['schedule', 'payment', 'record'].forEach(function (key) {
       var action = careActions.find(function (item) { return item.id === key; });
@@ -2049,6 +2072,15 @@
     });
 
     var summary = document.createElement('div'); summary.className = 'smyl-f360-body';
+    if (hasPermission('messages.respond') && F.conversationSummary) {
+      var entry = state.f360Summary[id] || {};
+      summary.append(F.conversationSummary({
+        data: entry.data || null, loading: Boolean(entry.loading), error: entry.error || '', at: entry.at,
+        stale: Boolean(entry.data && entry.basis !== summaryBasis(conversation)),
+        onRefresh: function () { requestConversationSummary(id, true); },
+        onCopy: entry.data ? function (event) { copyConversationSummary(entry.data, event && event.currentTarget); } : null,
+      }));
+    }
     summary.append(F.tiles(ficha360Tiles(conversation, ficha)));
     summary.append(zones.summary);
 
@@ -2071,11 +2103,11 @@
     }) });
     if (zones.cobros.childNodes.length) tabs.push({ id: 'cobros', label: 'Cobros', node: wrapPanel(zones.cobros) });
     if (hasPermission('clinical.read')) tabs.push({ id: 'clinico', label: 'Clínico', node: wrapPanel(zones.clinico) });
-    if (linkedFicha) tabs.push({ id: 'timeline', label: 'Línea de tiempo', node: F.timeline({ rows: timelineCache.rows || [], loading: Boolean(timelineCache.loading) && !timelineCache.rows, error: timelineCache.error || '', onRetry: function () { loadFicha360Timeline(id, patient && patient.id, true); } }) });
+    if (linkedFicha) tabs.push({ id: 'timeline', label: 'Historial', title: 'Línea de tiempo del paciente', node: F.timeline({ rows: timelineCache.rows || [], loading: Boolean(timelineCache.loading) && !timelineCache.rows, error: timelineCache.error || '', onRetry: function () { loadFicha360Timeline(id, patient && patient.id, true); } }) });
     tabs.push({ id: 'atencion', label: 'Atención', node: wrapPanel(zones.atencion) });
 
     return F.shell({
-      initials: initials(conversation.contact_name), subtitle: subtitle, chips: chips, actions: actions, tabs: tabs,
+      initials: initials(conversation.contact_name), subtitle: subtitle, meta: meta, chips: chips, actions: actions, tabs: tabs,
       active: state.f360Tab[id] || 'summary',
       onSelect: function (tab, focusTab) {
         state.f360Tab[id] = tab; renderContext();
@@ -2092,12 +2124,51 @@
   function prepareFicha360Data(conversation, ficha) {
     if (!state.contextOpen) return;
     var id = conversation.id; var tab = state.f360Tab[id] || 'summary';
+    if (tab === 'summary' && hasPermission('messages.respond') && !state.f360Summary[id]) requestConversationSummary(id, false);
     var cache = state.f360Shared[id];
     if (!cache || (tab === 'files' && !cache.loading && Date.now() - (cache.at || 0) > 30000)) loadFicha360Files(id, false);
     if (tab === 'timeline' && ficha && ficha.linked && ficha.patient && ficha.patient.id) {
       var timelineCache = state.f360Timeline[id];
       if (!timelineCache || (!timelineCache.loading && Date.now() - (timelineCache.at || 0) > 30000)) loadFicha360Timeline(id, ficha.patient.id, false);
     }
+  }
+
+  // Resumen con IA: se pide solo al abrir la ficha por primera vez en esta sesión; después, solo con «Actualizar».
+  // Vive en memoria (no en el navegador) porque contiene datos del paciente.
+  function summaryBasis(conversation) {
+    return conversation ? String(conversation.last_message_at || '') : '';
+  }
+
+  async function requestConversationSummary(conversationId, force) {
+    var conversation = state.conversations.find(function (item) { return item.id === conversationId; });
+    var entry = state.f360Summary[conversationId];
+    if (!conversation || (entry && entry.loading) || (!force && entry)) return null;
+    var basis = summaryBasis(conversation);
+    state.f360Summary[conversationId] = Object.assign({}, entry, { loading: true, error: '' });
+    if (state.selectedId === conversationId && state.contextOpen) renderContext();
+    try {
+      var data = await request('POST', {}, { action: 'copilot', conversation_id: conversationId, mode: 'summary' }, null, 35000);
+      state.f360Summary[conversationId] = { data: data, basis: basis, at: new Date().toISOString(), loading: false, error: '' };
+    } catch (error) {
+      state.f360Summary[conversationId] = Object.assign({}, state.f360Summary[conversationId], { loading: false, error: (error && error.message) || 'No se pudo resumir la conversación.' });
+    }
+    if (state.selectedId === conversationId && state.contextOpen) renderContext();
+    return state.f360Summary[conversationId].data || null;
+  }
+
+  function freshConversationSummary(conversation) {
+    var entry = conversation && state.f360Summary[conversation.id];
+    return entry && entry.data && !entry.loading && entry.basis === summaryBasis(conversation) ? entry.data : null;
+  }
+
+  function copyConversationSummary(data, trigger) {
+    var parts = [data.summary || ''];
+    if (data.next_step) parts.push('Siguiente paso: ' + data.next_step);
+    if ((data.open_questions || []).length) parts.push('Falta confirmar: ' + data.open_questions.join('; '));
+    if ((data.unconfirmed_facts || []).length) parts.push('No confirmado: ' + data.unconfirmed_facts.join('; '));
+    var textValue = parts.filter(Boolean).join('\n');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(textValue).then(function () { if (trigger) { trigger.textContent = 'Copiado ✓'; setTimeout(function () { if (trigger.isConnected) trigger.textContent = 'Copiar'; }, 1800); } }, function () { window.prompt('Copia el resumen:', textValue); });
+    else window.prompt('Copia el resumen:', textValue);
   }
 
   async function loadFicha360Files(conversationId, force) {
@@ -2975,7 +3046,7 @@
     closeThreadMenu(false); closeActionMenu(false); closeComposerTools();
     var previousId = state.selectedId; var previousInput = document.querySelector('[name="message"]');
     if (previousId && previousInput && previousInput.value.trim()) await persistEncryptedDraft(previousId, previousInput.value.trim()).catch(function () {});
-    state.selectedId = id; state.contextOpen = false; state.contextReturnFocus = null; state.threadError = ''; state.replyTo = null; state.attachment = null;
+    state.selectedId = id; state.contextOpen = dockedContextPreferred(); state.contextReturnFocus = null; state.threadError = ''; state.replyTo = null; state.attachment = null;
     document.getElementById('p-inbox').classList.add('show-thread');
     render(); await restoreEncryptedDraft(id);
     var patientReady = prepareConversationPatient(id); loadScheduled(id); await loadThread(id, false); await patientReady;
@@ -3459,6 +3530,11 @@
     page.querySelector('[data-emoji-close]').addEventListener('click', function () { page.querySelector('[data-emoji-dialog]').close(); });
     page.querySelector('[data-context-close]').addEventListener('click', function () { closeContext(true); });
     page.querySelector('[data-inbox-context-panel]').addEventListener('keydown', trapContextFocus);
+    if (window.matchMedia) {
+      var dockQuery = window.matchMedia(CONTEXT_DOCK_QUERY);
+      var onDockChange = function () { syncContextAccessibility(); };
+      if (dockQuery.addEventListener) dockQuery.addEventListener('change', onDockChange); else if (dockQuery.addListener) dockQuery.addListener(onDockChange);
+    }
     page.querySelector('[data-thread-body]').addEventListener('scroll', function () { if (atThreadBottom()) page.querySelector('[data-thread-jump]').hidden = true; });
     page.addEventListener('pointerdown', function (event) {
       if (!event.target.closest('[data-thread-menu],[data-thread-more]')) closeThreadMenu(false);

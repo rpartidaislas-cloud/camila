@@ -34,8 +34,8 @@
     var identity = node('div', 'smyl-f360-id');
     identity.append(node('span', 'smyl-f360-avatar', ctx.initials || '·'));
     var copy = node('div', 'smyl-f360-id-copy');
-    copy.append(node('strong', '', ctx.subtitle || 'Sin datos de contacto'));
-    if (ctx.name) copy.append(node('small', '', ctx.name));
+    copy.append(node('strong', ctx.subtitle ? '' : 'is-missing', ctx.subtitle || 'Sin teléfono ni correo registrados'));
+    if (ctx.meta) copy.append(node('small', '', ctx.meta));
     identity.append(copy); root.append(identity);
     if ((ctx.chips || []).length) {
       var chips = node('div', 'smyl-f360-chips');
@@ -55,7 +55,7 @@
       element.type = 'button'; element.id = 'smyl-f360-tab-' + tab.id; element.setAttribute('role', 'tab');
       element.setAttribute('aria-selected', tab.id === active ? 'true' : 'false'); element.setAttribute('aria-controls', 'smyl-f360-panel-' + tab.id);
       element.tabIndex = tab.id === active ? 0 : -1; element.dataset.f360Tab = tab.id;
-      element.append(document.createTextNode(tab.label));
+      element.append(document.createTextNode(tab.label)); if (tab.title) element.title = tab.title;
       if (tab.count) element.append(node('em', '', String(tab.count)));
       element.onclick = function () { if (ctx.onSelect) ctx.onSelect(tab.id); };
       tablist.append(element);
@@ -137,6 +137,58 @@
     return root;
   }
 
+  // Resumen de la conversación generado por SMYL Copilot (modo summary). Solo pinta; smyl-inbox.js decide cuándo pedirlo.
+  function conversationSummary(ctx) {
+    var card = node('section', 'smyl-f360-summary' + (ctx.stale ? ' is-stale' : ''));
+    card.setAttribute('aria-labelledby', 'smyl-f360-summary-title'); card.setAttribute('aria-busy', ctx.loading ? 'true' : 'false');
+    var head = node('div', 'smyl-f360-summary-head');
+    var title = node('h3', '', 'Resumen de la conversación'); title.id = 'smyl-f360-summary-title';
+    head.append(title, node('span', 'smyl-f360-ai-badge', 'IA'));
+    card.append(head);
+    var data = ctx.data;
+    if (ctx.loading && !data) {
+      var skeleton = node('div', 'smyl-f360-skeleton'); skeleton.setAttribute('aria-hidden', 'true');
+      skeleton.append(node('i'), node('i'), node('i'));
+      card.append(node('p', 'smyl-inbox-sr', 'Resumiendo la conversación…'), skeleton);
+      return card;
+    }
+    if (ctx.error && !data) {
+      card.append(notice(ctx.error, 'warn'));
+      card.append(button('Reintentar', 'smyl-f360-link', ctx.onRefresh));
+      return card;
+    }
+    if (!data) {
+      card.append(node('p', 'smyl-f360-summary-text is-muted', 'Obtén en segundos qué pidió el paciente, qué se le respondió y qué falta.'));
+      card.append(button('Resumir conversación', 'smyl-f360-action is-primary', ctx.onRefresh));
+      return card;
+    }
+    if (data.requires_human) card.append(notice('El asistente detectó algo que requiere atención humana.', 'warn'));
+    card.append(node('p', 'smyl-f360-summary-text', data.summary || 'Sin contenido suficiente para resumir todavía.'));
+    var facts = node('dl', 'smyl-f360-summary-facts');
+    function fact(label, value, tone) {
+      if (!value || (Array.isArray(value) && !value.length)) return;
+      var row = node('div', tone ? 'is-' + tone : '');
+      row.append(node('dt', '', label));
+      var dd = node('dd');
+      if (Array.isArray(value)) { var list = node('ul'); value.forEach(function (entry) { list.append(node('li', '', entry)); }); dd.append(list); }
+      else dd.textContent = value;
+      row.append(dd); facts.append(row);
+    }
+    fact('Siguiente paso', data.next_step, 'next');
+    fact('Falta confirmar', data.open_questions, '');
+    fact('No confirmado por el paciente', data.unconfirmed_facts, 'warn');
+    if (facts.childNodes.length) card.append(facts);
+    if (ctx.stale) card.append(notice('Llegaron mensajes nuevos después de este resumen.', 'warn'));
+    var foot = node('div', 'smyl-f360-summary-foot');
+    foot.append(node('small', '', (ctx.loading ? 'Actualizando…' : 'Generado ' + shortDate(ctx.at, true).toLowerCase()) + ' · revísalo antes de usarlo'));
+    var tools = node('div', 'smyl-f360-summary-tools');
+    var refresh = button(ctx.loading ? 'Actualizando…' : 'Actualizar', 'smyl-f360-link' + (ctx.stale ? ' is-strong' : ''), ctx.onRefresh); refresh.disabled = Boolean(ctx.loading);
+    tools.append(refresh);
+    if (ctx.onCopy) tools.append(button('Copiar', 'smyl-f360-link', ctx.onCopy));
+    foot.append(tools); card.append(foot);
+    return card;
+  }
+
   var TIMELINE_TONES = { appointment: 'teal', file: 'purple', payment: 'amber', charge: 'amber', proposal: 'blue', note: 'blue' };
 
   function timeline(ctx) {
@@ -155,5 +207,5 @@
     return root;
   }
 
-  window.SmylInboxFicha = Object.freeze({ shell: shell, tiles: tiles, files: files, timeline: timeline, notice: notice, shortDate: shortDate });
+  window.SmylInboxFicha = Object.freeze({ shell: shell, tiles: tiles, files: files, timeline: timeline, conversationSummary: conversationSummary, notice: notice, shortDate: shortDate });
 })();

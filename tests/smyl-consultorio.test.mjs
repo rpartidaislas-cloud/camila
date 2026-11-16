@@ -36,9 +36,9 @@ const registro = (page, nombre) => page.evaluate((n) => window.__log.filter((x) 
 // ── Contrato del código (no necesita navegador) ──
 test('app.html carga el módulo puro antes que el Consultorio y arranca en él solo en la app instalada', () => {
   const app = read('app.html');
-  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=3', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=4'].map((f) => app.indexOf(f));
+  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=4', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=5'].map((f) => app.indexOf(f));
   assert.ok(orden[0] > 0 && orden[0] < orden[1] && orden[1] < orden[2] && orden[2] < orden[3], 'los módulos puros cargan antes que la pantalla');
-  assert.match(app, /smyl-consultorio\.css\?v=4/);
+  assert.match(app, /smyl-consultorio\.css\?v=5/);
   assert.match(app, /else if \(smylEsAppInstalada\(\) && document\.getElementById\('p-consultorio'\)\) ir\('consultorio'\)/);
   assert.match(app, /display-mode: standalone/);
   assert.match(app, /window\.navigator\.standalone === true/);
@@ -57,7 +57,7 @@ test('el simulador y el manifiesto llevan al Consultorio y el simulador sigue ac
 
 test('se precarga y las copias móviles son idénticas', () => {
   const sw = read('sw.js');
-  for (const f of ['smyl-consultorio.js?v=4', 'smyl-consultorio.css?v=4', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=3', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
+  for (const f of ['smyl-consultorio.js?v=5', 'smyl-consultorio.css?v=5', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=4', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
   for (const f of ['smyl-consultorio.js', 'smyl-consultorio.css', 'smyl-patient-quick.js', 'smyl-visit-model.js', 'smyl-history-interview.js', 'smyl-studio.js', 'simulacion-rapida.html', 'manifest-app.json', 'app.html', 'sw.js']) assert.equal(read(f), read('mobile/www/' + f), f);
 });
 
@@ -264,7 +264,7 @@ probar('un paciente por registrar ofrece completar sus datos y enviar el enlace;
   const { page } = await visita('', 3);
   const p = await pasos(page);
   assert.equal(p[0].s, 'todo');
-  assert.deepEqual(p[0].a, ['Completar datos', 'Enviar enlace']);
+  assert.deepEqual(p[0].a, ['Mostrar código QR', 'Completar datos', 'Enviar enlace']);
   await page.click('.co-step[data-key=datos] >> text=Enviar enlace');
   assert.deepEqual(await registro(page, 'enlace'), [['enlace', 'p4', '+52 3398765432']]);
   await page.click('.co-step[data-key=datos] >> text=Completar datos');
@@ -590,5 +590,94 @@ probar('el cierre cabe en 390 px', async () => {
   const medidas = await page.$$eval('[data-co-close] .co-sgo, [data-co-close] .co-sec', (n) => n.map((x) => Math.round(x.getBoundingClientRect().height)));
   assert.ok(medidas.every((h) => h >= 44), 'objetivos táctiles: ' + medidas);
   await page.screenshot({ path: process.env.SMYL_CAPTURA_CIERRE || '/tmp/consultorio-cierre.png', fullPage: true });
+  await page.close();
+});
+
+// ── Código QR de registro ──
+const hex64 = 'ab'.repeat(32);
+async function conQr(query = '') {
+  const r = await visita(query, 3);   // ficha por registrar (p4)
+  await r.page.click('.co-step[data-key=datos] >> text=Mostrar código QR');
+  await r.page.waitForSelector('.co-qrbox');
+  return r;
+}
+
+probar('el QR crea un enlace de un solo uso para ese paciente y lo dibuja de verdad', async () => {
+  const { page, errores } = await conQr();
+  assert.deepEqual(await page.evaluate(() => window.__enlaces), ['p4']);
+  const url = await page.inputValue('.co-qrlink');
+  assert.match(url, new RegExp('registro-paciente\\.html\\?token=' + hex64 + '$'));
+  assert.equal(await page.getAttribute('.co-qrbox', 'role'), 'img');
+  // El dibujo es exactamente el QR de ese enlace (mismo generador que usa MILA en el celular).
+  const igual = await page.evaluate((u) => {
+    const c = window.qrcode(0, 'M'); c.addData(u); c.make();
+    const esperado = new DOMParser().parseFromString(c.createSvgTag({ cellSize: 6, margin: 2, scalable: true }), 'image/svg+xml').querySelector('path').getAttribute('d');
+    return document.querySelector('.co-qrbox path').getAttribute('d') === esperado && esperado.length > 500;
+  }, url);
+  assert.equal(igual, true);
+  assert.match(await page.textContent('.co-qrhint'), /una sola vez y vence en 7 días/);
+  assert.match(await page.textContent('[data-co-qr-status]'), /Esperando a que termine/);
+  assert.deepEqual(errores, []);
+  await page.close();
+});
+
+probar('al terminar el paciente, la pantalla se entera sola y ofrece ver sus datos', async () => {
+  const { page } = await conQr();
+  await page.evaluate(() => { window.__pac.p4 = { id: 'p4', nombre: 'Luis', apellido: 'Gómez', telefono: '+52 3398765432', registro_estado: 'por_verificar' }; });
+  await page.waitForFunction(() => /Ya llenó sus datos/.test(document.querySelector('[data-co-qr-status]').textContent), null, { timeout: 4000 });
+  assert.match(await page.textContent('[data-co-qr-status]'), /Falta que los confirmes/);
+  await page.click('text=Ver sus datos');
+  await page.waitForFunction(() => !document.querySelector('#co-dialog').open);
+  await page.waitForFunction(() => /Los llenó el paciente/.test(document.querySelector('.co-step[data-key=datos]').textContent));
+  assert.deepEqual((await pasos(page))[0].a, ['Confirmar datos', 'Revisar y editar']);
+  await page.close();
+});
+
+probar('al cerrar el código se deja de preguntar', async () => {
+  const { page } = await conQr();
+  await page.waitForTimeout(500);
+  const antes = (await registro(page, 'leePaciente')).length;
+  assert.ok(antes >= 2, 'mientras está abierto, revisa cada pocos segundos');
+  await page.click('#co-dialog .co-ghost');
+  await page.waitForTimeout(100);
+  const alCerrar = (await registro(page, 'leePaciente')).length;
+  await page.waitForTimeout(700);
+  assert.equal((await registro(page, 'leePaciente')).length, alCerrar, 'ya no hay más lecturas');
+  await page.close();
+});
+
+probar('desde el QR se puede mandar el enlace por WhatsApp o copiarlo', async () => {
+  const { page } = await conQr();
+  const url = await page.inputValue('.co-qrlink');
+  await page.click('[data-co-qr-wa]');
+  const abierto = (await registro(page, 'open'))[0][1];
+  assert.ok(abierto.startsWith('https://wa.me/523398765432?text='), abierto);
+  assert.ok(decodeURIComponent(abierto.split('?text=')[1]).includes(url));
+  await page.click('text=Copiar enlace');
+  await page.waitForSelector('text=Enlace copiado');
+  assert.deepEqual(await page.evaluate(() => window.__portapapeles), [url]);
+  await page.close();
+});
+
+probar('si no se puede crear el enlace se explica y no se dibuja ningún código', async () => {
+  for (const [qr, texto] of [['42501', /no permite crear enlaces/], ['falta', /Falta aplicar la migración/]]) {
+    const r = await visita('qr=' + qr, 3);
+    await r.page.click('.co-step[data-key=datos] >> text=Mostrar código QR');
+    await r.page.waitForSelector('#co-dialog .co-error');
+    assert.match(await r.page.textContent('#co-dialog .co-error'), texto);
+    assert.equal(await r.page.locator('.co-qrbox').count(), 0);
+    await r.page.close();
+  }
+});
+
+probar('sin permiso para gestionar pacientes no hay QR; y el código cabe en 390 px', async () => {
+  let { page } = await visita('rol=staff', 3);
+  assert.deepEqual((await pasos(page))[0].a, ['Completar datos', 'Enviar enlace']);
+  await page.close();
+  ({ page } = await conQr());
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
+  const caja = await page.$eval('.co-qrbox', (n) => { const r = n.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; });
+  assert.ok(caja[0] >= 200 && Math.abs(caja[0] - caja[1]) <= 2, 'el código es cuadrado y de tamaño legible: ' + caja);
+  await page.screenshot({ path: process.env.SMYL_CAPTURA_QR || '/tmp/consultorio-qr.png' });
   await page.close();
 });
