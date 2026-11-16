@@ -248,7 +248,7 @@
         '<main class="smyl-inbox-thread-pane" data-inbox-thread-pane>' +
           '<div class="smyl-inbox-thread-empty" data-inbox-thread-empty><div class="smyl-inbox-empty-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></div><span class="smyl-inbox-eyebrow">CENTRO DE ATENCIÓN</span><h2>Continúa el siguiente caso</h2><p>Abre una conversación para responder, consultar el expediente y coordinar la cita sin cambiar de pantalla.</p><div class="smyl-inbox-empty-steps"><span><b>1</b>Revisa el motivo</span><span><b>2</b>Consulta agenda</span><span><b>3</b>Confirma el seguimiento</span></div><button type="button" class="btn btn-primary" data-inbox-open-next>Abrir siguiente conversación</button></div>' +
           '<div class="smyl-inbox-thread" data-inbox-thread hidden>' +
-            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención" aria-expanded="false" aria-controls="smyl-inbox-context-panel"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div></button><button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Siguiente acción del paciente"></nav><div class="smyl-inbox-thread-menu-wrap"><button type="button" class="smyl-inbox-thread-more" data-thread-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-thread-menu" aria-label="Más acciones de la conversación">•••</button><div class="smyl-inbox-thread-menu" id="smyl-inbox-thread-menu" data-thread-menu role="menu" aria-label="Más acciones de la conversación" hidden><div class="smyl-inbox-thread-menu-care" data-thread-menu-care role="group" aria-label="Acciones del paciente"></div><label class="smyl-inbox-thread-menu-assign" data-thread-menu-assign role="none" hidden>Responsable de atención<select data-thread-assign aria-label="Asignar conversación"></select></label><button type="button" role="menuitem" data-thread-search>Buscar en el hilo</button><button type="button" role="menuitem" data-thread-shared>Archivos compartidos</button><button type="button" role="menuitem" data-thread-pin>Fijar conversación</button><button type="button" role="menuitem" data-thread-branch hidden>Cambiar sucursal</button><button type="button" role="menuitem" data-thread-details>Paciente y atención</button><button type="button" role="menuitem" data-thread-link-professional hidden>Usar como mi WhatsApp profesional</button><button type="button" role="menuitem" data-thread-resolve hidden>Marcar solicitud resuelta</button></div></div></header>' +
+            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención" aria-expanded="false" aria-controls="smyl-inbox-context-panel"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><span class="smyl-inbox-med-flag" data-thread-medical hidden></span></button><button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Siguiente acción del paciente"></nav><div class="smyl-inbox-thread-menu-wrap"><button type="button" class="smyl-inbox-thread-more" data-thread-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-thread-menu" aria-label="Más acciones de la conversación">•••</button><div class="smyl-inbox-thread-menu" id="smyl-inbox-thread-menu" data-thread-menu role="menu" aria-label="Más acciones de la conversación" hidden><div class="smyl-inbox-thread-menu-care" data-thread-menu-care role="group" aria-label="Acciones del paciente"></div><label class="smyl-inbox-thread-menu-assign" data-thread-menu-assign role="none" hidden>Responsable de atención<select data-thread-assign aria-label="Asignar conversación"></select></label><button type="button" role="menuitem" data-thread-search>Buscar en el hilo</button><button type="button" role="menuitem" data-thread-shared>Archivos compartidos</button><button type="button" role="menuitem" data-thread-pin>Fijar conversación</button><button type="button" role="menuitem" data-thread-branch hidden>Cambiar sucursal</button><button type="button" role="menuitem" data-thread-details>Paciente y atención</button><button type="button" role="menuitem" data-thread-link-professional hidden>Usar como mi WhatsApp profesional</button><button type="button" role="menuitem" data-thread-resolve hidden>Marcar solicitud resuelta</button></div></div></header>' +
             '<div class="smyl-inbox-thread-notices" data-thread-notices hidden></div><div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div></div>' +
             '<button type="button" class="smyl-inbox-jump" data-thread-jump hidden>Ir al final</button>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
@@ -2107,7 +2107,9 @@
     tabs.push({ id: 'atencion', label: 'Atención', node: wrapPanel(zones.atencion) });
 
     return F.shell({
-      initials: initials(conversation.contact_name), subtitle: subtitle, meta: meta, chips: chips, actions: actions, tabs: tabs,
+      initials: initials(conversation.contact_name), subtitle: subtitle, meta: meta, chips: chips,
+      medical: patient && patient.medical_alerts && typeof patient.medical_alerts === 'object' ? patient.medical_alerts : null,
+      onCompleteHistory: function () { openPatientContext(conversation.id); }, actions: actions, tabs: tabs,
       active: state.f360Tab[id] || 'summary',
       onSelect: function (tab, focusTab) {
         state.f360Tab[id] = tab; renderContext();
@@ -2326,6 +2328,14 @@
     if (multiBranch()) threadMeta.push(conversation.branch ? 'Sede ' + conversation.branch.name : 'Sin sucursal');
     if (headerWindow && headerWindow.status !== 'expired') threadMeta.push('Ventana 24 h: quedan ' + durationLabel(headerWindow.remaining_seconds));
     document.querySelector('[data-thread-meta]').textContent = threadMeta.join(' · ');
+    // Aviso visible aunque la ficha esté cerrada; solo con permiso clínico (el servidor ya filtra el alcance).
+    var medicalFlag = document.querySelector('[data-thread-medical]');
+    var medicalItems = hasPermission('clinical.read') && threadFicha && threadFicha.linked && threadFicha.patient && threadFicha.patient.medical_alerts ? (threadFicha.patient.medical_alerts.items || []) : [];
+    if (medicalFlag) {
+      medicalFlag.hidden = !medicalItems.length;
+      medicalFlag.textContent = medicalItems.length ? '⚠ ' + (medicalItems.length === 1 ? (medicalItems[0].kind === 'allergy' ? 'Alergia: ' : '') + medicalItems[0].label : medicalItems.length + ' alertas médicas') : '';
+      if (medicalItems.length) patientSummary.setAttribute('aria-label', patientSummary.getAttribute('aria-label') + ' · ' + medicalFlag.textContent.replace('⚠ ', 'Alerta médica: '));
+    }
     // Un solo interruptor sustituye al chip de estado y al botón Tomar control / Reanudar IA.
     var stateLabel = document.querySelector('[data-thread-state]');
     var mode = document.querySelector('[data-thread-mode]');
@@ -2476,7 +2486,7 @@
         clinical_restricted: error && error.code === 'patient_scope_denied'
       });
     }
-    finally { state.clinicalLoading[conversationId] = false; if (state.selectedId === conversationId) renderContext(); }
+    finally { state.clinicalLoading[conversationId] = false; if (state.selectedId === conversationId) { renderThreadHeader(); renderContext(); } }
   }
 
   async function autoLinkConversationPatient(conversationId) {

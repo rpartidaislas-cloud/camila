@@ -37,6 +37,7 @@
     copy.append(node('strong', ctx.subtitle ? '' : 'is-missing', ctx.subtitle || 'Sin teléfono ni correo registrados'));
     if (ctx.meta) copy.append(node('small', '', ctx.meta));
     identity.append(copy); root.append(identity);
+    if (ctx.medical) root.append(medicalAlerts(ctx.medical, ctx.onCompleteHistory));
     if ((ctx.chips || []).length) {
       var chips = node('div', 'smyl-f360-chips');
       ctx.chips.forEach(function (chip) { chips.append(node('span', 'smyl-f360-chip is-' + (chip.tone || 'neutral'), chip.text)); });
@@ -73,6 +74,34 @@
     if (current && current.node) panel.append(current.node);
     root.append(panel);
     return root;
+  }
+
+  // Alertas médicas en la cabecera: lo primero que ve el equipo antes de agendar o tratar.
+  function medicalAlerts(medical, onCompleteHistory) {
+    var items = medical.items || [];
+    if (!items.length) {
+      var quiet = node('div', 'smyl-f360-med is-' + (medical.reviewed ? 'clear' : 'pending'));
+      quiet.setAttribute('role', 'note');
+      quiet.append(node('span', 'smyl-f360-med-icon', medical.reviewed ? '✓' : '!'));
+      quiet.append(node('p', '', medical.reviewed ? 'Sin alergias ni alertas médicas conocidas' : 'Alergias y alertas médicas sin confirmar'));
+      if (!medical.reviewed && onCompleteHistory) quiet.append(button('Completar historia', 'smyl-f360-link', onCompleteHistory));
+      return quiet;
+    }
+    var box = node('section', 'smyl-f360-med is-alert'); box.setAttribute('aria-labelledby', 'smyl-f360-med-title');
+    var head = node('div', 'smyl-f360-med-head');
+    head.append(node('span', 'smyl-f360-med-icon', '⚠'));
+    var title = node('h3', '', items.length === 1 ? 'Alerta médica' : items.length + ' alertas médicas'); title.id = 'smyl-f360-med-title';
+    head.append(title); box.append(head);
+    var list = node('ul', 'smyl-f360-med-list');
+    items.forEach(function (item) {
+      var row = node('li', 'smyl-f360-med-item' + (item.kind === 'allergy' ? ' is-allergy' : '') + (item.severity === 'high' ? ' is-high' : ''));
+      row.append(node('strong', '', (item.kind === 'allergy' ? 'Alergia: ' : '') + item.label));
+      if (item.detail) row.append(node('small', '', item.detail));
+      list.append(row);
+    });
+    box.append(list);
+    if (!medical.reviewed) box.append(node('p', 'smyl-f360-med-note', 'La historia clínica aún tiene alergias o alertas sin confirmar.'));
+    return box;
   }
 
   function tiles(list) {
