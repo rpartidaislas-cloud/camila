@@ -49,7 +49,8 @@ case "$1 $2" in
     if [ -n "$FAKE_FLAKY_FILE" ]; then n=$(cat "$FAKE_FLAKY_FILE" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "$FAKE_FLAKY_FILE"
       if [ "$n" -le "$FAKE_FLAKY_FAILS" ]; then mkdir -p "$dest"; echo "parcial" > "$dest/parcial.tmp"; echo "failed to execute http request: HttpClientError: Transport error" >&2; exit 1; fi; fi
     [ -n "$FAKE_CP_NESTED" ] && dest="$dest/$dest"
-    mkdir -p "$dest"; echo "objeto uno" > "$dest/a.png"; echo "objeto dos" > "$dest/b.png";;
+    mkdir -p "$dest"; echo "objeto uno" > "$dest/a.png"; echo "objeto dos" > "$dest/b.png"
+    if [ -n "$FAKE_INNER_SAME" ]; then mkdir -p "$dest/$(basename "$dest")"; echo "objeto tres" > "$dest/$(basename "$dest")/c.png"; fi;;
 esac
 `, { mode: 0o755 });
   fs.writeFileSync(path.join(bin, 'docker'), `#!/bin/bash
@@ -258,5 +259,21 @@ test('si la red falla en todos los intentos, aborta y limpia lo temporal', { ski
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /falló tras 4 intentos/);
     assert.deepEqual(fs.readdirSync(ctx.tmp), []);
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('aplanar funciona aunque el bucket tenga una carpeta con su mismo nombre (EPERM en Windows)', { skip }, () => {
+  const ctx = setup();
+  try {
+    const out = path.join(ctx.dir, 'paquete');
+    const result = runBackup(ctx, out, { env: { FAKE_CP_NESTED: '1', FAKE_INNER_SAME: '1' } });
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(fs.readFileSync(path.join(out, 'manifest.json'), 'utf8'));
+    assert.equal(Object.values(manifest.storage).reduce((sum, item) => sum + item.objects, 0), BUCKETS.length * 3);
+    const tarList = spawnSync('bash', ['-c', `age --decrypt -i ${ctx.key} ${out}/storage.tar.age | tar -t`], { encoding: 'utf8' }).stdout;
+    assert.match(tarList, /\.\/camila-fotos\/camila-fotos\/c\.png/, 'la carpeta real del bucket se conserva');
+    assert.match(tarList, /\.\/camila-fotos\/a\.png/);
+    assert.doesNotMatch(tarList, /aplanar/);
+    assert.equal(verify(ctx, out).status, 0);
   } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
 });
