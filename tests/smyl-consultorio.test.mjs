@@ -36,9 +36,9 @@ const registro = (page, nombre) => page.evaluate((n) => window.__log.filter((x) 
 // ── Contrato del código (no necesita navegador) ──
 test('app.html carga el módulo puro antes que el Consultorio y arranca en él solo en la app instalada', () => {
   const app = read('app.html');
-  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=4', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=5'].map((f) => app.indexOf(f));
-  assert.ok(orden[0] > 0 && orden[0] < orden[1] && orden[1] < orden[2] && orden[2] < orden[3], 'los módulos puros cargan antes que la pantalla');
-  assert.match(app, /smyl-consultorio\.css\?v=5/);
+  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=5', 'smyl-privacy-notice.js?v=1', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=6'].map((f) => app.indexOf(f));
+  assert.ok(orden[0] > 0 && orden.every((x, i) => !i || orden[i - 1] < x), 'los módulos puros cargan antes que la pantalla');
+  assert.match(app, /smyl-consultorio\.css\?v=6/);
   assert.match(app, /else if \(smylEsAppInstalada\(\) && document\.getElementById\('p-consultorio'\)\) ir\('consultorio'\)/);
   assert.match(app, /display-mode: standalone/);
   assert.match(app, /window\.navigator\.standalone === true/);
@@ -57,8 +57,8 @@ test('el simulador y el manifiesto llevan al Consultorio y el simulador sigue ac
 
 test('se precarga y las copias móviles son idénticas', () => {
   const sw = read('sw.js');
-  for (const f of ['smyl-consultorio.js?v=5', 'smyl-consultorio.css?v=5', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=4', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
-  for (const f of ['smyl-consultorio.js', 'smyl-consultorio.css', 'smyl-patient-quick.js', 'smyl-visit-model.js', 'smyl-history-interview.js', 'smyl-studio.js', 'simulacion-rapida.html', 'manifest-app.json', 'app.html', 'sw.js']) assert.equal(read(f), read('mobile/www/' + f), f);
+  for (const f of ['smyl-consultorio.js?v=6', 'smyl-consultorio.css?v=6', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=5', 'smyl-privacy-notice.js?v=1', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
+  for (const f of ['smyl-consultorio.js', 'smyl-consultorio.css', 'smyl-patient-quick.js', 'smyl-visit-model.js', 'smyl-privacy-notice.js', 'smyl-history-interview.js', 'smyl-studio.js', 'simulacion-rapida.html', 'manifest-app.json', 'app.html', 'sw.js']) assert.equal(read(f), read('mobile/www/' + f), f);
 });
 
 test('los datos de pacientes se pintan con textContent o escapados', () => {
@@ -217,14 +217,15 @@ async function visita(query = '', quien = 0) {
   return r;
 }
 
-probar('el recorrido muestra los cuatro pasos con su estado real y marca el que sigue', async () => {
+probar('el recorrido muestra los pasos con su estado real y marca el que sigue', async () => {
   const { page, errores } = await visita();
   const p = await pasos(page);
-  assert.deepEqual(p.map((x) => [x.k, x.s, x.c]), [['datos', 'done', false], ['historia', 'todo', true], ['estudios', 'done', false], ['simulacion', 'optional', false]]);
-  assert.match(p[1].t, /^1 de 6 confirmadas\. Falta: .+\.$/);
-  assert.equal(p[2].t, '1 foto y 2 radiografías.');
-  assert.equal(await page.textContent('.co-vprogress'), '2 de 3 pasos listos.');
-  assert.equal(await page.getAttribute('.co-bar', 'aria-valuenow'), '2');
+  assert.deepEqual(p.map((x) => [x.k, x.s, x.c]), [['datos', 'done', false], ['privacidad', 'done', false], ['historia', 'todo', true], ['estudios', 'done', false], ['simulacion', 'optional', false]]);
+  assert.match(p[2].t, /^1 de 6 confirmadas\. Falta: .+\.$/);
+  assert.equal(p[3].t, '1 foto y 2 radiografías.');
+  assert.match(p[1].t, /^Firmado el 16 de noviembre de 2026 por Ana López\. Con el texto modelo provisional\.$/);
+  assert.equal(await page.textContent('.co-vprogress'), '3 de 4 pasos listos.');
+  assert.equal(await page.getAttribute('.co-bar', 'aria-valuenow'), '3');
   assert.deepEqual(errores, []);
   await page.close();
 });
@@ -232,14 +233,14 @@ probar('el recorrido muestra los cuatro pasos con su estado real y marca el que 
 probar('sin historia ni estudios y con la historia ilegible, el recorrido no inventa nada', async () => {
   let { page } = await visita('h=ninguna&f=ninguno');
   let p = await pasos(page);
-  assert.equal(p[1].t, 'Todavía no se empieza.');
-  assert.equal(p[2].t, 'Todavía no hay fotos ni radiografías.');
+  assert.equal(p[2].t, 'Todavía no se empieza.');
+  assert.equal(p[3].t, 'Todavía no hay fotos ni radiografías.');
   await page.close();
   ({ page } = await visita('h=error&f=error'));
   p = await pasos(page);
-  assert.equal(p[1].s, 'unknown');
   assert.equal(p[2].s, 'unknown');
-  assert.equal(await page.textContent('.co-vprogress'), '1 de 3 pasos listos.');
+  assert.equal(p[3].s, 'unknown');
+  assert.equal(await page.textContent('.co-vprogress'), '2 de 4 pasos listos.');
   await page.close();
   ({ page } = await visita('h=completa&f=algunos'));
   assert.equal(await page.textContent('.co-vprogress'), 'Todo listo para esta visita.');
@@ -465,10 +466,10 @@ probar('«Salir» pide confirmación solo si hay respuestas sin guardar', async 
 
 probar('sin permiso de escritura clínica, o con la historia ilegible, no se ofrece la entrevista', async () => {
   let { page } = await visita('rol=staff');
-  assert.deepEqual((await pasos(page))[1].a, ['Abrir historia clínica']);
+  assert.deepEqual((await pasos(page))[2].a, ['Abrir historia clínica']);
   await page.close();
   ({ page } = await visita('h=error'));
-  assert.deepEqual((await pasos(page))[1].a, ['Abrir historia clínica']);
+  assert.deepEqual((await pasos(page))[2].a, ['Abrir historia clínica']);
   await page.close();
 });
 
@@ -508,7 +509,7 @@ probar('el cierre resume lo hecho y lo que falta, sin bloquear nada', async () =
   const { page, errores } = await cierre();
   assert.equal(await page.textContent('[data-co-close] .co-qtitle'), 'Cerrar la visita');
   const filas = await page.$$eval('.co-closing li', (n) => n.map((x) => [x.dataset.state, x.querySelector('b').textContent]));
-  assert.deepEqual(filas, [['done', 'Datos del paciente'], ['todo', 'Historia clínica'], ['done', 'Fotos y radiografía']]);
+  assert.deepEqual(filas, [['done', 'Datos del paciente'], ['done', 'Aviso de privacidad'], ['todo', 'Historia clínica'], ['done', 'Fotos y radiografía']]);
   assert.match(await page.textContent('[data-co-close] .co-hint'), /Quedó pendiente 1 cosa\. Puedes terminar la visita igual/);
   assert.equal(await page.isEnabled('.co-end'), true, 'terminar siempre se puede');
   assert.deepEqual(errores, []);
@@ -521,7 +522,7 @@ probar('cierre con todo listo, o con lo que no se pudo comprobar, lo dice sin in
   await page.close();
   ({ page } = await cierre('h=error&f=error'));
   assert.match(await page.textContent('[data-co-close] .co-hint'), /No pude comprobar todo/);
-  assert.deepEqual(await page.$$eval('.co-closing li', (n) => n.map((x) => x.dataset.state)), ['done', 'unknown', 'unknown']);
+  assert.deepEqual(await page.$$eval('.co-closing li', (n) => n.map((x) => x.dataset.state)), ['done', 'done', 'unknown', 'unknown']);
   await page.close();
 });
 
@@ -679,5 +680,182 @@ probar('sin permiso para gestionar pacientes no hay QR; y el código cabe en 390
   const caja = await page.$eval('.co-qrbox', (n) => { const r = n.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; });
   assert.ok(caja[0] >= 200 && Math.abs(caja[0] - caja[1]) <= 2, 'el código es cuadrado y de tamaño legible: ' + caja);
   await page.screenshot({ path: process.env.SMYL_CAPTURA_QR || '/tmp/consultorio-qr.png' });
+  await page.close();
+});
+
+// ── Firma del aviso de privacidad ──
+async function abrirFirma(query = 'firma=no', quien = 0) {
+  const r = await visita(query, quien);
+  await r.page.click('.co-step[data-key=privacidad] .co-sgo');
+  await r.page.waitForSelector('[data-co-consent] .co-canvas');
+  return r;
+}
+async function trazar(page, desde = [40, 90]) {
+  await page.locator('.co-canvas').scrollIntoViewIfNeeded();
+  const caja = await page.$eval('.co-canvas', (n) => { const r = n.getBoundingClientRect(); return { x: r.left, y: r.top }; });
+  await page.mouse.move(caja.x + desde[0], caja.y + desde[1]);
+  await page.mouse.down();
+  for (let i = 1; i <= 14; i++) await page.mouse.move(caja.x + desde[0] + i * 14, caja.y + desde[1] + Math.sin(i / 2) * 30);
+  await page.mouse.up();
+}
+const leer = (page) => page.$eval('.co-notice', (n) => { n.scrollTop = n.scrollHeight; n.dispatchEvent(new Event('scroll')); });
+const textoAviso = (page) => page.$$eval('.co-notice p', (n) => n.map((x) => x.textContent).join('\n\n'));
+
+probar('el paso de privacidad dice si falta, quién y cuándo firmó, o que no se pudo comprobar', async () => {
+  let { page } = await visita('firma=no');
+  let p = (await pasos(page))[1];
+  assert.deepEqual([p.k, p.s, p.t, p.a], ['privacidad', 'todo', 'Falta su firma.', ['Pedir firma']]);
+  assert.equal(await page.textContent('.co-vprogress'), '2 de 4 pasos listos.');
+  await page.close();
+  ({ page } = await visita('firma=si'));
+  p = (await pasos(page))[1];
+  assert.deepEqual([p.s, p.a], ['done', ['Ver firma']]);
+  await page.close();
+  ({ page } = await visita('firma=error'));
+  p = (await pasos(page))[1];
+  assert.deepEqual([p.s, p.t], ['unknown', 'Ábrelo para ver si está firmado.']);
+  await page.close();
+});
+
+probar('la pantalla de firma muestra el texto con el nombre de la clínica y avisa que es un modelo provisional', async () => {
+  const { page, errores } = await abrirFirma();
+  assert.equal(await page.isVisible('[data-co-provisional]'), true);
+  assert.match(await page.textContent('[data-co-provisional]'), /Texto modelo provisional\. Revísalo con tu asesor legal/);
+  assert.match(await textoAviso(page), /^Responsable: Diseño de Sonrisas\./);
+  assert.equal(await page.inputValue('[data-co-consent] .co-field input'), 'Cristian Partida', 'propone el nombre del paciente');
+  assert.deepEqual(errores, []);
+  await page.close();
+});
+
+probar('no se puede guardar hasta consentir y firmar de verdad; un toque suelto no es firma', async () => {
+  const { page } = await abrirFirma();
+  assert.equal(await page.isDisabled('[data-co-consent-save]'), true);
+  assert.match(await page.textContent('[data-co-consent-hint]'), /Desliza el aviso hasta el final/);
+  assert.equal(await page.isDisabled('[data-co-consent-check]'), true, 'no se puede aceptar sin llegar al final');
+  assert.equal(await page.isVisible('[data-co-consent-more]'), true);
+  await leer(page);
+  assert.equal(await page.isDisabled('[data-co-consent-check]'), false);
+  assert.equal(await page.isVisible('[data-co-consent-more]'), false);
+  assert.match(await page.textContent('[data-co-consent-hint]'), /Marca que leyó el aviso/);
+  await page.check('[data-co-consent-check]');
+  assert.match(await page.textContent('[data-co-consent-hint]'), /Falta la firma/);
+  await page.locator('.co-canvas').scrollIntoViewIfNeeded();
+  const caja = await page.$eval('.co-canvas', (n) => { const r = n.getBoundingClientRect(); return { x: r.left, y: r.top }; });
+  await page.mouse.click(caja.x + 50, caja.y + 50);   // un toque
+  assert.equal(await page.isDisabled('[data-co-consent-save]'), true, 'un punto no es una firma');
+  await trazar(page);
+  assert.equal(await page.isDisabled('[data-co-consent-save]'), false);
+  assert.equal(await page.textContent('[data-co-consent-hint]'), '');
+  await page.click('[data-co-consent-clear]');
+  assert.equal(await page.isDisabled('[data-co-consent-save]'), true, 'al borrar vuelve a faltar');
+  await page.close();
+});
+
+probar('guardar envía el texto exacto que se leyó, su versión, la marca provisional y una imagen PNG con trazo', async () => {
+  const { page } = await abrirFirma();
+  const mostrado = await textoAviso(page);
+  await leer(page); await page.check('[data-co-consent-check]'); await trazar(page);
+  await page.click('[data-co-consent-save]');
+  await page.waitForSelector('.co-success');
+  assert.equal(await page.textContent('.co-success'), 'Firma guardada.');
+  const [firma] = await page.evaluate(() => window.__firmas);
+  assert.equal(firma.p_patient_id, 'p1');
+  assert.equal(firma.p_notice_text, mostrado, 'lo que se guardó es lo que la persona vio');
+  assert.equal(firma.p_notice_version, 'modelo-provisional-1');
+  assert.equal(firma.p_provisional, true);
+  assert.equal(firma.p_signer_name, 'Cristian Partida');
+  assert.equal(firma.p_signer_relation, 'patient');
+  assert.match(firma.p_signature_png, /^data:image\/png;base64,iVBORw0KGgo/);
+  assert.ok(firma.p_signature_png.length >= 300 && firma.p_signature_png.length <= 120000, 'cabe en lo que acepta la base: ' + firma.p_signature_png.length);
+  const imagen = await page.evaluate((png) => new Promise((ok) => { const i = new Image(); i.onload = () => { const c = document.createElement('canvas'); c.width = i.width; c.height = i.height; const x = c.getContext('2d'); x.drawImage(i, 0, 0); const d = x.getImageData(0, 0, c.width, c.height).data; let tinta = 0; for (let k = 0; k < d.length; k += 4) if (d[k] < 120) tinta++; ok([i.width, i.height, tinta]); }; i.src = png; }), firma.p_signature_png);
+  assert.deepEqual(imagen.slice(0, 2), [600, 200]);
+  assert.ok(imagen[2] > 200, 'la imagen trae el trazo, no está en blanco: ' + imagen[2]);
+  await page.close();
+});
+
+probar('firma de un tutor con otro nombre, y ficha por registrar sin nombre propuesto', async () => {
+  let { page } = await abrirFirma();
+  await page.fill('[data-co-consent] .co-field input', 'Rosa Partida');
+  await page.click('.co-ch[data-value=guardian]');
+  await leer(page); await page.check('[data-co-consent-check]'); await trazar(page);
+  await page.click('[data-co-consent-save]');
+  await page.waitForSelector('.co-success');
+  const [firma] = await page.evaluate(() => window.__firmas);
+  assert.deepEqual([firma.p_signer_name, firma.p_signer_relation], ['Rosa Partida', 'guardian']);
+  await page.close();
+  ({ page } = await abrirFirma('firma=no', 3));   // por registrar
+  assert.equal(await page.inputValue('[data-co-consent] .co-field input'), '');
+  assert.match(await page.textContent('[data-co-consent-hint]'), /Escribe el nombre de quien firma/);
+  await page.close();
+});
+
+probar('si la firma no se guarda se explica y se conserva lo dibujado para reintentar', async () => {
+  for (const [err, texto] of [['42501', /no permite registrar firmas/], ['22023', /La firma no es válida/], ['falta', /Falta aplicar la migración de firmas/]]) {
+    const { page } = await abrirFirma('firma=no&firmaerr=' + err);
+    await leer(page); await page.check('[data-co-consent-check]'); await trazar(page);
+    await page.click('[data-co-consent-save]');
+    await page.waitForSelector('[data-co-consent-error]:not([hidden])');
+    assert.match(await page.textContent('[data-co-consent-error]'), texto);
+    assert.equal(await page.isDisabled('[data-co-consent-save]'), false, 'puede reintentar sin volver a firmar');
+    assert.equal(await page.locator('.co-success').count(), 0);
+    await page.close();
+  }
+});
+
+probar('salir con una firma dibujada pide confirmación; sin dibujar, no', async () => {
+  let { page } = await abrirFirma();
+  let preguntas = 0; page.on('dialog', (d) => { preguntas++; d.dismiss(); });
+  await trazar(page);
+  await page.click('text=‹ Volver a la visita');
+  assert.equal(preguntas, 1);
+  assert.equal(await page.isVisible('.co-canvas'), true);
+  await page.close();
+  ({ page } = await abrirFirma());
+  let sin = 0; page.on('dialog', (d) => { sin++; d.accept(); });
+  await page.click('text=‹ Volver a la visita');
+  await page.waitForSelector('.co-step');
+  assert.equal(sin, 0);
+  await page.close();
+});
+
+probar('la firma no se guarda en el navegador', async () => {
+  const { page } = await abrirFirma();
+  await leer(page); await page.check('[data-co-consent-check]'); await trazar(page);
+  const guardado = await page.evaluate(() => JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]));
+  assert.doesNotMatch(guardado, /iVBOR|data:image/);
+  assert.deepEqual(await page.evaluate(() => Object.keys(sessionStorage)), ['smyl_visit']);
+  await page.close();
+});
+
+probar('Ver firma muestra la imagen, quién y cuándo firmó y el texto exacto; sin acceso clínico no aparece', async () => {
+  let { page } = await visita('firma=si');
+  await page.click('.co-step[data-key=privacidad] >> text=Ver firma');
+  await page.waitForSelector('.co-sigimg');
+  assert.match(await page.getAttribute('.co-sigimg', 'src'), /^data:image\/png;base64,/);
+  assert.equal(await page.getAttribute('.co-sigimg', 'alt'), 'Firma de Ana López');
+  assert.match(await page.textContent('.co-sigview .co-ok'), /Ana López.*16 de noviembre de 2026\. Versión modelo-provisional-1, texto modelo provisional\./);
+  await page.click('.co-sigtext summary');
+  assert.match(await page.textContent('.co-sigtext'), /Párrafo uno del aviso\.[\s\S]*Huella del texto: abababababababab/);
+  assert.deepEqual(await registro(page, 'verFirma'), [['verFirma', 'c1']]);
+  await page.close();
+  ({ page } = await visita('firma=si&rol=staff'));
+  assert.deepEqual((await pasos(page))[1].a, [], 'sin clinical.read no se ve la firma');
+  await page.close();
+});
+
+probar('sin permiso para registrar firmas no hay botón de pedirla', async () => {
+  const { page } = await visita('firma=no&rol=staff');
+  assert.deepEqual((await pasos(page))[1].a, []);
+  await page.close();
+});
+
+probar('la pantalla de firma cabe en 390 px, con objetivos táctiles y lienzo de 180 px', async () => {
+  const { page } = await abrirFirma();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
+  const medidas = await page.$$eval('[data-co-consent] .co-ch, [data-co-consent] .co-sgo, [data-co-consent] .co-check, [data-co-consent] .co-field input', (n) => n.map((x) => Math.round(x.getBoundingClientRect().height)));
+  assert.ok(medidas.every((h) => h >= 44), 'objetivos táctiles: ' + medidas);
+  assert.equal(await page.$eval('.co-canvas', (n) => Math.round(n.getBoundingClientRect().height)), 180);
+  await leer(page); await page.check('[data-co-consent-check]'); await trazar(page);
+  await page.screenshot({ path: process.env.SMYL_CAPTURA_FIRMA || '/tmp/consultorio-firma.png', fullPage: true });
   await page.close();
 });

@@ -61,7 +61,7 @@
   <style>*{box-sizing:border-box;margin:0;padding:0}.pantalla{display:none}.pantalla.activa{display:block}</style>
 </head>
 <body class="smyl-ui-governed smyl-management-v3">
-<!-- Panel mínimo + Supabase simulado. ?caso=normal|vacio|error|terminadas  ?rol=dueno|staff  ?h=ninguna|parcial|completa|error  ?f=ninguno|algunos|error -->
+<!-- Panel mínimo + Supabase simulado. ?caso=normal|vacio|error|terminadas  ?rol=dueno|staff  ?h=ninguna|parcial|completa|error  ?f=ninguno|algunos|error  ?firma=si|no|error  ?firmaerr=42501|22023|falta -->
 <div class="layout"><div class="contenido"><div class="pantalla activa" id="p-dashboard">Inicio</div></div></div>
 <script>
 (function(){
@@ -105,6 +105,7 @@
       else if(b._upd)r={data:{id:'x'},error:null};
       else if(table==='smyl_patient_histories'){if(h==='error')r={data:null,error:{message:'sin permiso'}};else r={data:h==='ninguna'?null:{revision:3,document:h==='completa'?{allergies_status:'no',conditions_status:'no',medications_status:'no',surgeries_status:'no',dental_status:'no',habits_status:'no'}:{allergies_status:'no'}},error:null};}
       else if(table==='smyl_patient_files'){if(f==='error')r={data:null,error:{message:'sin permiso'}};else r={data:f==='ninguno'?[]:[{category:'clinical_photo'},{category:'radiograph'},{category:'radiograph'}],error:null};}
+      else if(table==='camila_tenants'&&b._one)r={data:{nombre:'Diseño de Sonrisas'},error:null};
       else if(table==='camila_pacientes'&&b._one){window.__log.push(['leePaciente',b._id]);r={data:pac[b._id]||null,error:null};}
       else if(b._ins){if(window.__fallaColumna&&b._ins.registro_estado)r={data:null,error:{code:'PGRST204',message:"Could not find the 'registro_estado' column in the schema cache"}};else{var nuevo=Object.assign({id:'nuevo-1',apellido:'',email:''},b._ins);pac['nuevo-1']=nuevo;r={data:nuevo,error:null};}}
       else if(table==='smyl_appointments')r={data:citas,error:null};
@@ -121,6 +122,15 @@
     rpc:function(name,args){window.__log.push(['rpc',name,args]);
       if(name==='smyl_search_patients'){var t=String(args.p_query||'').toLowerCase();var rows=Object.keys(pac).map(function(k){return pac[k];}).filter(function(p){return (p.nombre+' '+p.apellido+' '+p.telefono).toLowerCase().indexOf(t)>=0;});return Promise.resolve({data:rows,error:null});}
       if(name==='smyl_patient_duplicates'){var d=String(args.p_telefono||'').replace(/\D/g,'');return Promise.resolve({data:d.slice(-10)==='3312345678'?[{id:'p1',name:'Cristian Partida',phone:'+52 3312345678',match:'telefono'}]:[],error:null});}
+      if(name==='smyl_patient_consent_status'){var fm=q.get('firma')||'si';
+        if(fm==='error')return Promise.resolve({data:null,error:{message:'sin permiso',code:'42501'}});
+        return Promise.resolve({data:fm==='si'?{signed:true,id:'c1',signed_at:'2026-11-16T18:00:00Z',signer_name:'Ana López',signer_relation:'patient',notice_version:'modelo-provisional-1',provisional:true}:{signed:false},error:null});}
+      if(name==='smyl_record_patient_consent'){window.__firmas=(window.__firmas||[]);window.__firmas.push(JSON.parse(JSON.stringify(args)));var fe=q.get('firmaerr');
+        if(fe==='42501')return Promise.resolve({data:null,error:{code:'42501',message:'No tienes permiso para registrar firmas.'}});
+        if(fe==='22023')return Promise.resolve({data:null,error:{code:'22023',message:'La firma no es válida. Vuelve a firmar.'}});
+        if(fe==='falta')return Promise.resolve({data:null,error:{code:'PGRST202',message:'Could not find the function'}});
+        return Promise.resolve({data:'c-nuevo',error:null});}
+      if(name==='smyl_get_patient_consent'){window.__log.push(['verFirma',args.p_consent_id]);return Promise.resolve({data:{id:'c1',signed_at:'2026-11-16T18:00:00Z',notice_version:'modelo-provisional-1',provisional:true,notice_text:'Párrafo uno del aviso.\n\nPárrafo dos.',notice_sha256:'ab'.repeat(32),signer_name:'Ana López',signer_relation:'patient',signature_png:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='},error:null});}
       if(name==='smyl_create_registration_link'){window.__enlaces=(window.__enlaces||[]);window.__enlaces.push(args.p_patient_id);var qrm=q.get('qr')||'ok';
         if(qrm==='42501')return Promise.resolve({data:null,error:{code:'42501',message:'sin permiso'}});
         if(qrm==='falta')return Promise.resolve({data:null,error:{code:'PGRST202',message:'Could not find the function'}});
@@ -136,6 +146,7 @@
 <script src="../../smyl-history-model.js"></script>
 <script src="../../smyl-patient-quick.js"></script>
 <script src="../../smyl-visit-model.js"></script>
+<script src="../../smyl-privacy-notice.js"></script>
 <script src="../../smyl-history-interview.js"></script>
 <script src="../../smyl-consultorio.js"></script>
 <script>document.addEventListener('DOMContentLoaded',function(){window.ir('consultorio');});</script>
