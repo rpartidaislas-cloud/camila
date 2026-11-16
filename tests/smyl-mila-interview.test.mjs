@@ -319,3 +319,9 @@ test('entrevista previa: formulario sin IA, identidad, plantilla y seguimiento',
   assert.match(desk, /smyl:mila-history-saved/);
   assert.match(read('../smyl-patient-360.js'), /smyl:mila-history-saved/);
 });
+
+test('el orbe siempre es circular aunque el subtítulo sea largo', () => {
+  const phone = read('../mila-movil.html');
+  assert.match(phone, /\.orbwrap\{position:relative;flex:none;width:min\(78vw,320px,38vh\);height:auto;aspect-ratio:1\/1;/);
+  assert.match(phone, /Math\.abs\(w-ORB\.size\)>2/, 'el lienzo se ajusta si cambia el tamaño');
+});

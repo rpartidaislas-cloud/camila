@@ -1,5 +1,10 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-16 — Claude Code — Arreglo: el orbe de MILA se veía ovalado
+
+- Con subtítulos largos, la columna flexible le quitaba alto al contenedor del orbe pero no ancho y el lienzo se estiraba. Ahora `.orbwrap` no se encoge (`flex:none`), es cuadrado (`aspect-ratio:1/1`) y se adapta al alto disponible (`min(78vw,320px,38vh)`); el lienzo se redimensiona si cambia su tamaño. El subtítulo tiene alto máximo (26vh) y no empuja.
+- Verificado a 390×844, 390×664, 320×568 y 430×932 con un resumen largo: orbe cuadrado en todos. Solo `mila-movil.html`; no requiere desplegar la función. Caché `orb-round-v1`.
+
 ## 2026-11-16 — Claude Code — MILA: entrevista previa a la cita (WhatsApp, voz o formulario), seguimiento, consentimiento y borradores sin guardar
 
 - **Entrevista previa**: «Entrevista con MILA → Antes de la cita» (o el botón «Enviar antes de la cita» en Historia clínica). La clínica elige **Que el paciente elija / MILA por voz / Formulario** y la envía **por WhatsApp** con la plantilla nueva `entrevista_previa_v1` (catálogo + bundle regenerados; hay que solicitarla a Meta desde Configuración) o copia el enlace. Sin conversación de WhatsApp o sin plantilla aprobada, ofrece abrir WhatsApp con el mensaje (`wa.me`).
