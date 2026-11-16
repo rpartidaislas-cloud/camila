@@ -60,7 +60,7 @@ test('texto del estado: quién, cuándo y si fue con el texto provisional', () =
 });
 
 test('la migración exige los mismos límites que estas reglas', () => {
-  const sql = fs.readFileSync(new URL('../supabase/migrations/20261116200000_smyl_patient_consents.sql', import.meta.url), 'utf8');
+  const sql = fs.readFileSync(new URL('../supabase/migrations/20261116210000_smyl_patient_consents.sql', import.meta.url), 'utf8');
   assert.match(sql, /char_length\(notice_text\) between 50 and 8000/);
   assert.match(sql, /signer_relation in \('patient', 'guardian'\)/);
   assert.match(sql, /sha256\(convert_to\(p_notice_text, 'utf8'\)\)/, 'la huella la calcula la base');
