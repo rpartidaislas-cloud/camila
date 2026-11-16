@@ -45,5 +45,21 @@
     steps.forEach(function(s){s.current=!!current&&s.key===current.key;});
     return {steps:steps,done:done,total:counted.length,current:current?current.key:null};
   }
-  return {build:build,isPending:isPending};
+  /* Cierre de la visita: qué quedó hecho y qué falta de los pasos de captura. «unknown» = no se pudo comprobar (no se da por hecho ni por faltante). */
+  function closing(model){
+    var counted=(model&&model.steps||[]).filter(function(st){return st.counts;});
+    return {items:counted.map(function(st){return {key:st.key,title:st.title,state:st.state,text:st.text};}),
+      missing:counted.filter(function(st){return st.state==='todo';}).length,
+      unchecked:counted.filter(function(st){return st.state==='unknown';}).length};
+  }
+  /* Mensaje de despedida para el paciente. Solo cortesía y la próxima cita: nunca datos clínicos, diagnósticos ni cobros.
+   * name: nombre completo o vacío (una ficha por registrar no tiene nombre). nextText: «martes 17 de noviembre a las 4:00 pm» o vacío. */
+  function farewell(o){
+    o=o||{};
+    var first=String(o.name||'').trim().split(/\s+/)[0]||'';
+    var hello=first&&!isPending({nombre:o.name})?'Hola '+first+', gracias por tu visita.':'Hola, gracias por tu visita.';
+    var next=String(o.nextText||'').trim();
+    return hello+' '+(next?'Tu próxima cita es el '+next+'.':'Cuando quieras agendar tu próxima cita, escríbenos por aquí.')+' ¡Hasta pronto!';
+  }
+  return {build:build,closing:closing,farewell:farewell,isPending:isPending};
 });
