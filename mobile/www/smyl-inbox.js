@@ -2006,7 +2006,9 @@
     }
     wrap.append(buildFicha360(conversation, ficha, { summary: summaryZone, citas: citasZone, cobros: cobrosZone, clinico: clinicoZone, atencion: settingsZone }));
     prepareFicha360Data(conversation, ficha);
-    var activeTab = wrap.querySelector('.smyl-f360-tab.is-active'); if (activeTab && activeTab.scrollIntoView) activeTab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    // Solo desplaza la tira de pestañas: scrollIntoView movía toda la página de Mensajes hacia el panel oculto.
+    var activeTab = wrap.querySelector('.smyl-f360-tab.is-active'); var tabStrip = activeTab && activeTab.parentElement;
+    if (tabStrip) { var tabLeft = activeTab.offsetLeft - tabStrip.offsetLeft; if (tabLeft < tabStrip.scrollLeft) tabStrip.scrollLeft = tabLeft; else if (tabLeft + activeTab.offsetWidth > tabStrip.scrollLeft + tabStrip.clientWidth) tabStrip.scrollLeft = tabLeft + activeTab.offsetWidth - tabStrip.clientWidth; }
     syncContextAccessibility();
     restoreContextFocus(focusSnapshot);
   }

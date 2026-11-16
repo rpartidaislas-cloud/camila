@@ -49,9 +49,9 @@ test('web, móvil y PWA publican el pipeline', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
   assert.match(app, /smyl-inbox\.js\?v=49/);
-  assert.match(app, /smyl-inbox\.css\?v=42/);
+  assert.match(app, /smyl-inbox\.css\?v=43/);
   assert.match(worker, /smyl-inbox\.js\?v=49/);
-  assert.match(worker, /smyl-inbox\.css\?v=42/);
+  assert.match(worker, /smyl-inbox\.css\?v=43/);
 });
 
 test('sin canales conectados el Inbox muestra una sola explicación en lugar de lista, hilo y compositor vacíos', () => {

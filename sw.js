@@ -174,7 +174,7 @@ const STATIC_FILES = [
   '/camila/smyl-inbox-calendar.js?v=1',
   '/camila/smyl-inbox-ficha.js?v=1',
   '/camila/smyl-inbox.js?v=49',
-  '/camila/smyl-inbox.css?v=42',
+  '/camila/smyl-inbox.css?v=43',
   '/camila/smyl-navigation.js?v=25',
   '/camila/smyl-navigation.css?v=11',
   '/camila/icons/brands/whatsapp.svg',
