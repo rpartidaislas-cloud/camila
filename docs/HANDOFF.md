@@ -1,5 +1,9 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-16 — Claude Code — Botón «Enlace de pago» oculto hasta activar el cobro en línea
+
+- `smyl-finance.js` solo muestra **Enlace de pago** si `window.SMYL_ONLINE_PAY===true` (por defecto no). Motivo: `smyl-pay` y la migración de pagos aún no están desplegados, así que el botón fallaría. Para activarlo, tras desplegar y probar en sandbox, definir `window.SMYL_ONLINE_PAY=true` (p. ej. desde la config de la clínica) y subir la versión del script. Versión `smyl-finance.js?v=44`.
+
 ## 2026-11-16 — Claude Code — Cobro en línea de saldos de pacientes con OpenPay (vía LANA)
 
 - **Idea**: SMYL es dueño de la deuda y del recibo; LANA solo cobra con la cuenta OpenPay de la propia clínica (el dinero no pasa por LANA). Staff genera un enlace desde la cuenta del paciente (botón **Enlace de pago**, `smyl-finance.js`, junto a «Cobrar»); el paciente abre `pagar.html#t=<token>`, ve su recibo con los conceptos y paga con **tarjeta (3D Secure)** o **SPEI**. Al confirmarse, se registra el pago y se emite el recibo interno (canal `online`).
