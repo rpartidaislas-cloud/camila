@@ -227,41 +227,89 @@
     await rpc('smyl_set_cfdi_pac_readiness',{p_provider_name:patch.provider!=null?patch.provider:(pac.provider_name||''),p_authorization_checked:patch.auth!=null?patch.auth:!!pac.provider_authorization_checked_at,p_sandbox_confirmed:patch.sandbox!=null?patch.sandbox:!!pac.sandbox_account_confirmed_at,p_policy_reviewed:patch.policy!=null?patch.policy:!!pac.fiscal_policy_reviewed_at});
   }
   function billingSteps(){
-    var issuer=state.issuer||{},pac=state.pac||{},fp=state.facturapi,checks={};
+    var issuer=state.issuer||{},pac=state.pac||{},fp=state.facturapi||{},checks={};
     ((state.fiscalReadiness&&state.fiscalReadiness.checks)||[]).forEach(function(c){checks[c.id]=c;});
     var pending=checks.services&&Number(checks.services.detail)||0,servicesDone=!!(checks.services&&checks.services.passed);
-    var connected=!!(fp&&fp.status==='connected');
+    var own=fp.mode==='own_key'&&fp.status==='connected',platform=fp.mode==='platform'&&fp.has_organization;
+    var types=(fp.pending_steps||[]).map(function(x){return x.type;}),needsCsd=types.indexOf('certificate')>=0,needsManifest=types.indexOf('manifiesto')>=0;
+    var issuerDone=issuer.fiscal_status==='reviewed',live=fp.environment==='live';
+    var csdText,csdAction,csdRun,csdDone,csdExtra=[];
+    if(own){csdDone=true;csdText='Cuenta propia de Facturapi conectada (pruebas)'+(fp.organization_name?' · '+esc(fp.organization_name):'')+' · llave ····'+esc(String(fp.key_fingerprint||'').slice(-4))+(fp.last_verified_at?' · verificada '+date(fp.last_verified_at,true):'');csdAction='Cambiar llave';csdRun=openFacturapiConnect;csdExtra=[{label:'Verificar',run:function(){facturapiRun('verify');}},{label:'Desconectar',run:function(){if(window.confirm('¿Desconectar Facturapi? Se borrará la llave guardada.'))facturapiRun('disconnect');}}];}
+    else if(platform&&fp.production_ready){csdDone=true;csdText='Facturación activa'+(fp.csd_valid_until?' · CSD vigente hasta '+date(fp.csd_valid_until):'');csdAction='Cambiar CSD';csdRun=openCsdDialog;csdExtra=[{label:'Revisar de nuevo',run:function(){syncOrganization();}}];}
+    else if(platform&&!needsCsd&&needsManifest){csdDone=false;csdText='Tu CSD ya está cargado'+(fp.csd_valid_until?' (vigente hasta '+date(fp.csd_valid_until)+')':'')+'. Falta firmar la Carta Manifiesto: es la autorización del SAT para que Facturapi timbre a nombre de la clínica. Cuando la firmes, pulsa «Revisar de nuevo».';csdAction='Revisar de nuevo';csdRun=syncOrganization;csdExtra=[{label:'Cambiar CSD',run:openCsdDialog}];}
+    else if(platform){csdDone=false;csdText='Falta subir el certificado de sello digital (CSD) de la clínica.';csdAction='Subir CSD';csdRun=openCsdDialog;}
+    else if(fp.status==='unavailable'){csdDone=false;csdText='No se pudo consultar Facturapi: '+esc(fp.error||'')+'.';csdAction='Reintentar';csdRun=function(){loadFacturapi().then(function(){renderBillingSetup();});};}
+    else{csdDone=false;csdText=issuerDone?'SMYL crea tu cuenta de facturación y la liga a tu CSD, que es el certificado que te da el SAT para facturar. No necesitas registrarte en Facturapi.':'Primero completa los datos fiscales de la clínica.';csdAction='Activar y subir CSD';csdRun=issuerDone?openCsdDialog:function(){notify('Primero completa los datos fiscales de la clínica.','info');};csdExtra=issuerDone?[{label:'Tengo mi propia cuenta',run:openFacturapiConnect}]:[];}
+    var basics=issuerDone&&csdDone&&servicesDone&&!!pac.fiscal_policy_reviewed_at;
+    var prodText,prodAction,prodRun,prodDone=live,prodExtra=[];
+    if(live){prodText='Facturando en producción desde '+date(fp.live_enabled_at,true)+' · llave ····'+esc(String(fp.live_key_fingerprint||'').slice(-4))+'. Las facturas se timbran y se envían al SAT.';prodAction='Volver a pruebas';prodRun=function(){if(window.confirm('¿Volver a pruebas? Dejarás de timbrar facturas reales hasta activar producción otra vez.'))facturapiRun('disable_live');};}
+    else if(basics&&platform&&fp.production_ready){prodText='Todo está listo. Al activar producción, las facturas serán reales: se timbran y se envían al SAT, y solo se pueden cancelar, no borrar.';prodAction='Activar producción';prodRun=openLiveDialog;}
+    else{prodText=own?'La producción se activa con la cuenta de SMYL, no con una cuenta propia.':'Disponible cuando completes los pasos anteriores.';prodAction='';prodRun=function(){};}
     return [
-      {id:'issuer',title:'Datos fiscales de la clínica',done:issuer.fiscal_status==='reviewed',
-        text:issuer.fiscal_status==='reviewed'?esc(issuer.legal_name)+' · '+esc(issuer.rfc)+' · régimen '+esc(issuer.fiscal_regime):'Razón social, RFC, régimen y código postal que aparecerán en tus facturas.',
+      {id:'issuer',title:'Datos fiscales de la clínica',done:issuerDone,
+        text:issuerDone?esc(issuer.legal_name)+' · '+esc(issuer.rfc)+' · régimen '+esc(issuer.fiscal_regime):'Razón social, RFC, régimen y código postal que aparecerán en tus facturas.',
         action:issuer.tenant_id?'Editar':'Capturar datos',run:openIssuerFiscal},
-      {id:'facturapi',title:'Conectar Facturapi',done:connected,
-        text:connected?'Conectado'+(fp.organization_name?' · '+esc(fp.organization_name):'')+' · llave de pruebas ····'+esc(String(fp.key_fingerprint||'').slice(-4))+(fp.last_verified_at?' · verificada '+date(fp.last_verified_at,true):''):fp&&fp.status==='error'?'Facturapi rechazó la llave guardada. Cámbiala para continuar.':fp&&fp.status==='unavailable'?'No se pudo consultar Facturapi: '+esc(fp.error):'Es el servicio que timbra tus facturas. Aquí conectas tu cuenta de pruebas.',
-        action:connected?'Cambiar llave':'Conectar',run:openFacturapiConnect,extra:connected?[{label:'Verificar',run:function(){facturapiAction('verify');}},{label:'Desconectar',run:function(){if(window.confirm('¿Desconectar Facturapi? Se borrará la llave guardada.'))facturapiAction('disconnect');}}]:[]},
+      {id:'facturapi',title:'Tu certificado (CSD) y activación',done:csdDone,text:csdText,action:csdAction,run:csdRun,extra:csdExtra},
       {id:'services',title:'Servicios con clave del SAT',done:servicesDone,
         text:servicesDone?'Todos tus servicios activos tienen clave SAT, unidad e impuestos.':pending+(pending===1?' servicio necesita':' servicios necesitan')+' clave SAT, unidad e impuestos para poder facturarse.',
         action:servicesDone?'Ver servicios':'Revisar servicios',run:function(){window.ir('precios');}},
       {id:'policy',title:'Revisión con tu contador',done:!!pac.fiscal_policy_reviewed_at,
-        text:pac.fiscal_policy_reviewed_at?'Confirmada '+date(pac.fiscal_policy_reviewed_at,true)+'.':'Tu contador confirma claves, impuestos y formas de pago.',
-        action:pac.fiscal_policy_reviewed_at?'Quitar confirmación':'Ya lo revisó',run:async function(){try{await setPac({policy:!pac.fiscal_policy_reviewed_at});await reload(pac.fiscal_policy_reviewed_at?'Confirmación retirada.':'Revisión del contador confirmada.');}catch(e){notify(message(e),'error');}}}
+        text:pac.fiscal_policy_reviewed_at?'Confirmada '+date(pac.fiscal_policy_reviewed_at,true):'Tu contador confirma claves, impuestos y formas de pago.',
+        action:pac.fiscal_policy_reviewed_at?'Quitar confirmación':'Ya lo revisó',run:async function(){try{await setPac({policy:!pac.fiscal_policy_reviewed_at});await reload(pac.fiscal_policy_reviewed_at?'Confirmación retirada.':'Revisión del contador confirmada.');}catch(e){notify(message(e),'error');}}},
+      {id:'production',title:'Facturar en producción',done:prodDone,text:prodText,action:prodAction,run:prodRun,extra:prodExtra,muted:!prodDone&&!prodAction}
     ];
   }
-  async function facturapiAction(a){
-    try{await facturapiCall({action:a});if(a==='disconnect')await setPac({sandbox:false});await loadFacturapi();await reload(a==='verify'?'Llave verificada.':'Facturapi desconectado.');}
+  async function syncOrganization(){try{await facturapiCall({action:'sync'});await loadFacturapi();await reload('Estado de Facturapi actualizado.');}catch(e){notify(String(e&&e.message||e),'error');}}
+  function openCsdDialog(){
+    if(!state.canInvoice)return notify('Tu rol no permite configurar la facturación.','error');
+    var fp=state.facturapi||{},hasOrg=!!fp.has_organization;
+    var d=dialog('<form class="billing-csd" autocomplete="off" novalidate><h2>Sube el CSD de la clínica</h2><p>El <strong>CSD</strong> (certificado de sello digital) es el que el SAT te da para facturar. <strong>No es tu e.firma</strong>. Si no lo tienes, genéralo gratis en <a href="https://www.sat.gob.mx/aplicacion/operacion/31274/genera-y-descarga-tus-archivos-a-travez-de-la-aplicacion-certifica" target="_blank" rel="noopener">Certifica del SAT</a>.</p><div class="finance-form-grid"><label class="wide billing-file">Certificado (.cer)<input name="cer" type="file" accept=".cer" required></label><label class="wide billing-file">Llave privada (.key)<input name="key" type="file" accept=".key" required></label><label class="wide">Contraseña de la llave privada<input name="password" type="password" autocomplete="new-password" spellcheck="false" maxlength="200" required></label></div><p class="billing-privacy">Los archivos y la contraseña viajan cifrados directo a Facturapi. SMYL <strong>no los guarda</strong> ni los registra. El RFC del certificado debe ser el de la clínica.</p><div class="finance-form-error" data-form-error hidden></div><div class="finance-actions"><button type="button" data-close>Cancelar</button><button class="btn btn-primary" type="submit">'+(hasOrg?'Subir CSD':'Activar y subir CSD')+'</button></div></form>');
+    var f=d.querySelector('form'),err=f.querySelector('[data-form-error]'),submit=f.querySelector('[type=submit]');
+    function fail(m){err.textContent=m;err.hidden=false;submit.disabled=false;submit.textContent=hasOrg?'Subir CSD':'Activar y subir CSD';}
+    f.onsubmit=async function(e){e.preventDefault();err.hidden=true;
+      var cer=f.elements.cer.files[0],key=f.elements.key.files[0],pw=f.elements.password.value;
+      if(!cer||!/\.cer$/i.test(cer.name))return fail('Sube el archivo del certificado (termina en .cer).');
+      if(!key||!/\.key$/i.test(key.name))return fail('Sube el archivo de la llave privada (termina en .key).');
+      if(cer.size>65536||key.size>65536)return fail('Los archivos son demasiado grandes. Revisa que sean tu CSD.');
+      if(!pw)return fail('Escribe la contraseña de tu llave privada.');
+      submit.disabled=true;
+      try{
+        if(!hasOrg){submit.textContent='Creando tu cuenta de facturación…';await facturapiCall({action:'provision'});try{await setPac({provider:'Facturapi',auth:true,sandbox:true});}catch(pe){}}
+        submit.textContent='Verificando tu certificado…';
+        var fd=new FormData();fd.append('action','upload_csd');fd.append('cer',cer);fd.append('key',key);fd.append('password',pw);
+        await facturapiCall(fd);
+        f.elements.password.value='';close();await loadFacturapi();await reload('Certificado cargado. Revisa si Facturapi pide algún paso más.');
+      }catch(ex){f.elements.password.value='';fail(String(ex&&ex.message||ex));}
+    };
+  }
+  function openLiveDialog(){
+    if(!state.canInvoice)return notify('Tu rol no permite activar producción.','error');
+    var d=dialog('<form class="billing-live" novalidate><h2>Activar facturación en producción</h2><p class="billing-live-warn"><strong>Después de esto, las facturas serán reales.</strong> Se timbran, se envían al SAT y tienen validez fiscal. No se pueden borrar: solo cancelar ante el SAT, con los motivos que él permite.</p><ul class="billing-live-list"><li>Los datos fiscales de la clínica están revisados.</li><li>Tu CSD está cargado y su RFC coincide.</li><li>Tu contador confirmó claves, impuestos y formas de pago.</li></ul><div class="finance-form-grid"><label class="wide">Para confirmar escribe <strong>FACTURAR EN PRODUCCION</strong><input name="confirm" autocomplete="off" spellcheck="false" placeholder="FACTURAR EN PRODUCCION" required></label></div><div class="finance-form-error" data-form-error hidden></div><div class="finance-actions"><button type="button" data-close>Cancelar</button><button class="btn btn-danger" type="submit" disabled>Activar producción</button></div></form>');
+    var f=d.querySelector('form'),err=f.querySelector('[data-form-error]'),submit=f.querySelector('[type=submit]'),want='FACTURAR EN PRODUCCION';
+    f.elements.confirm.addEventListener('input',function(){submit.disabled=this.value.trim().toUpperCase()!==want;});
+    f.onsubmit=async function(e){e.preventDefault();err.hidden=true;submit.disabled=true;submit.textContent='Activando…';
+      try{await facturapiCall({action:'enable_live',confirm_text:f.elements.confirm.value});close();await loadFacturapi();await reload('Producción activada. Las facturas ahora son reales.');}
+      catch(ex){err.textContent=String(ex&&ex.message||ex);err.hidden=false;submit.textContent='Activar producción';submit.disabled=f.elements.confirm.value.trim().toUpperCase()!==want;}};
+  }
+  async function facturapiRun(a){
+    try{await facturapiCall({action:a});if(a==='disconnect')await setPac({sandbox:false});await loadFacturapi();await reload(a==='verify'?'Llave verificada.':a==='disable_live'?'Volviste a pruebas. Ya no se timbran facturas reales.':'Facturapi desconectado.');}
     catch(e){notify(String(e&&e.message||e),'error');await loadFacturapi();renderBillingSetup();}
   }
   function renderBillingSetup(){
     var host=document.getElementById('billing-setup-body');if(!host)return;
-    var steps=billingSteps(),done=steps.filter(function(x){return x.done;}).length,ready=done===steps.length,can=state.canInvoice;
-    host.innerHTML='<header class="billing-setup-head"><div><span class="pro-eyebrow">FACTURACIÓN · SANDBOX</span><h2>'+(ready?'Tu clínica está lista para pruebas':'Prepara tu clínica para facturar')+'</h2><p>'+(ready?'Los cuatro pasos están completos. Aún no se emiten facturas: el timbrado es la siguiente etapa.':'Completa estos cuatro pasos una sola vez. Mientras estés en sandbox no se emite ninguna factura real.')+'</p></div><div class="billing-setup-progress" aria-label="'+done+' de '+steps.length+' pasos completos"><strong>'+done+'/'+steps.length+'</strong><span><i style="width:'+Math.round(done/steps.length*100)+'%"></i></span></div></header><ol class="billing-setup-steps">'+steps.map(function(x,n){return '<li data-done="'+x.done+'" data-step="'+x.id+'" data-wide="'+!!(x.extra&&x.extra.length)+'"><span class="billing-setup-mark" aria-hidden="true">'+(x.done?'✓':(n+1))+'</span><div><strong>'+x.title+'</strong><small>'+x.text+'</small></div>'+(can?'<div class="billing-setup-actions"><button type="button" class="btn '+(x.done?'btn-secondary':'btn-primary')+'" data-bs="'+x.id+'">'+x.action+'</button>'+(x.extra||[]).map(function(e,i){return '<button type="button" class="btn btn-secondary" data-bs="'+x.id+':'+i+'">'+e.label+'</button>';}).join('')+'</div>':'')+'</li>';}).join('')+'</ol>'+(can?'':'<p class="billing-setup-note">Tu rol puede consultar esta configuración, pero no modificarla.</p>')+'<p class="billing-setup-note">Los datos fiscales de cada paciente se capturan desde su recibo o su ficha. SMYL nunca guarda certificados ni contraseñas del SAT.</p>';
+    var steps=billingSteps(),basics=steps.slice(0,4),done=basics.filter(function(x){return x.done;}).length,live=!!(state.facturapi&&state.facturapi.environment==='live'),ready=done===basics.length,can=state.canInvoice;
+    var armed=live&&state.facturapi&&state.facturapi.live_stamping===true;var title=live?(armed?'Estás facturando en producción':'Producción activada · timbrado real pendiente'):ready?'Tu clínica está lista para facturar':'Prepara tu clínica para facturar';
+    var lead=live?(armed?'Las facturas que se emitan son reales: se timbran y se envían al SAT.':'Tu clínica ya está autorizada para producción, pero el servidor aún no permite timbrar facturas reales. Mientras tanto no se puede timbrar: vuelve a pruebas si necesitas probar.'):ready?'Los pasos están completos. Por ahora trabajas en pruebas: no se emite ninguna factura real hasta que actives producción.':'Completa estos pasos una sola vez. Mientras estés en pruebas no se emite ninguna factura real.';
+    host.innerHTML='<header class="billing-setup-head"><div><span class="pro-eyebrow">FACTURACIÓN · '+(live?'PRODUCCIÓN':'PRUEBAS')+'</span><h2>'+title+'</h2><p>'+lead+'</p></div><div class="billing-setup-progress" aria-label="'+done+' de '+basics.length+' pasos completos"><strong>'+done+'/'+basics.length+'</strong><span><i style="width:'+Math.round(done/basics.length*100)+'%"></i></span></div></header><ol class="billing-setup-steps">'+steps.map(function(x,n){return '<li data-done="'+x.done+'" data-step="'+x.id+'" data-muted="'+!!x.muted+'" data-wide="'+!!((x.extra&&x.extra.length)||x.id==='facturapi')+'"><span class="billing-setup-mark" aria-hidden="true">'+(x.done?'✓':(n+1))+'</span><div><strong>'+x.title+'</strong><small>'+x.text+'</small></div>'+(can&&(x.action||(x.extra&&x.extra.length))?'<div class="billing-setup-actions">'+(x.action?'<button type="button" class="btn '+(x.done?'btn-secondary':'btn-primary')+'" data-bs="'+x.id+'">'+x.action+'</button>':'')+(x.extra||[]).map(function(e,i){return '<button type="button" class="btn btn-secondary" data-bs="'+x.id+':'+i+'">'+e.label+'</button>';}).join('')+'</div>':'')+'</li>';}).join('')+'</ol>'+(can?'':'<p class="billing-setup-note">Tu rol puede consultar esta configuración, pero no modificarla.</p>')+'<p class="billing-setup-note">Los datos fiscales de cada paciente se capturan desde su recibo o su ficha. SMYL nunca guarda tu CSD ni su contraseña.</p>';
     host.querySelectorAll('[data-bs]').forEach(function(b){b.onclick=function(){var k=b.dataset.bs.split(':'),st=steps.find(function(x){return x.id===k[0];});if(!st)return;(k[1]!=null?st.extra[Number(k[1])]:st).run();};});
   }
   async function ensureBilling(){await load(false);await loadFacturapi();renderBillingSetup();}
   function buildBillingHolder(){if(document.getElementById('billing-setup'))return;var h=el('div','');h.id='billing-setup-holder';h.hidden=true;var sec=el('section','billing-setup');sec.id='billing-setup';sec.setAttribute('aria-label','Configuración de facturación');var fb=el('div','');fb.id='billing-feedback';fb.setAttribute('aria-live','polite');var body=el('div','billing-setup-body');body.id='billing-setup-body';sec.append(fb,body);h.append(sec);document.body.append(h);}
   function openBillingSetup(){if(window.SmylSettingsHub&&window.SmylSettingsHub.openItem)window.SmylSettingsHub.openItem('cobros','Facturación');else notify('Abre Configuración → Cobros → Facturación.','info');}
+  function st_armed(live){return !!(live&&state.facturapi&&state.facturapi.live_stamping===true);}
   function fiscalStatusStrip(){
-    var steps=billingSteps(),done=steps.filter(function(x){return x.done;}).length,ready=done===steps.length;
-    return '<div class="finance-fiscal-status" data-ready="'+ready+'"><div><strong>'+(ready?'Facturación lista para pruebas':'Falta terminar la configuración fiscal')+'</strong><small>'+(ready?'Emisor, Facturapi sandbox, servicios y revisión del contador completos.':(steps.length-done)+' de '+steps.length+' pasos pendientes.')+'</small></div><button type="button" class="btn btn-secondary" id="finance-open-billing-setup">'+(ready?'Ver configuración':'Terminar configuración')+'</button></div>';
+    var steps=billingSteps().slice(0,4),done=steps.filter(function(x){return x.done;}).length,ready=done===steps.length,live=!!(state.facturapi&&state.facturapi.environment==='live');
+    return '<div class="finance-fiscal-status" data-ready="'+ready+'"><div><strong>'+(live?(st_armed(live)?'Facturando en producción':'Producción activada · timbrado real pendiente'):ready?'Facturación lista · en pruebas':'Falta terminar la configuración fiscal')+'</strong><small>'+(live?(st_armed(live)?'Las facturas que emitas son reales.':'El servidor aún no permite timbrar facturas reales.'):ready?'Aún no se emiten facturas reales: activa producción en Configuración.':(steps.length-done)+' de '+steps.length+' pasos pendientes.')+'</small></div><button type="button" class="btn btn-secondary" id="finance-open-billing-setup">'+(ready?'Ver configuración':'Terminar configuración')+'</button></div>';
   }
   function openFacturapiConnect(){
     if(!state.canInvoice)return notify('Tu rol no permite configurar Facturapi.','error');
