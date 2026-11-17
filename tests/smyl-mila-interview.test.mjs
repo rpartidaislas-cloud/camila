@@ -151,7 +151,7 @@ test('la función protege la sesión: QR de un solo uso, dispositivo, consentimi
   const fn = read('../supabase/functions/mila-interview/index.ts');
   const config = read('../supabase/config.toml');
   const sql = read('../supabase/migrations/20261115130000_smyl_mila_interview.sql');
-  assert.match(config, /\[functions\.mila-interview\]\nverify_jwt = false/);
+  assert.match(config, /\[functions\.mila-interview\]\r?\nverify_jwt = false/);
   assert.match(fn, /requirePermission\(auth, CORS, "clinical\.write"\)/);
   assert.match(fn, /\.is\("device_hash", null\)/, 'el token se canjea una sola vez');
   assert.match(fn, /if \(!row\.consent_at\) return json\(409/);

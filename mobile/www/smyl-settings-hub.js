@@ -42,7 +42,7 @@
     { id: 'cobros', title: 'Cobros', blurb: 'Pagos, caja y datos fiscales.', icon: 'payments', items: [
       { title: 'Recibos', desc: 'Comprobantes, servicios cobrados y seguimiento fiscal.', group: 'Operación diaria', icon: 'payments', action: 'Abrir', route: 'caja', embed: true, target: '[data-finance-tab="receipts"]' },
       { title: 'Corte de caja', desc: 'Cierra el día y cuadra lo cobrado.', group: 'Operación diaria', icon: 'cash', action: 'Revisar', route: 'caja', embed: true, target: '[data-finance-tab="cash"]' },
-      { title: 'Facturación', desc: 'Datos fiscales y preparación de facturas.', group: 'Facturación y reglas', icon: 'template', action: 'Configurar', route: 'caja', embed: true, target: '[data-finance-tab="fiscal"]' },
+      { title: 'Facturación', desc: 'Datos fiscales de la clínica y conexión con Facturapi.', group: 'Facturación y reglas', icon: 'template', action: 'Configurar', route: 'caja', embed: true, element: '#billing-setup', ensure: 'billing' },
       { title: 'Formas de pago y anticipo', desc: 'Métodos aceptados y anticipos de la clínica.', group: 'Facturación y reglas', icon: 'payments', soon: true }
     ] },
     { id: 'cuenta', title: 'Cuenta y seguridad', blurb: 'Plan, protección y preparación operativa.', icon: 'security', items: [
@@ -166,6 +166,7 @@
       node.parentNode.insertBefore(mark, node);
       state.detail = { item: item, node: node, mark: mark, page: !item.element };
       win.ir('configuracion');
+      if (item.ensure === 'billing' && win.SmylFinance && typeof win.SmylFinance.ensureBilling === 'function') Promise.resolve(win.SmylFinance.ensureBilling()).catch(function () {});
       if (item.element && win.SmylReminders && typeof win.SmylReminders.reload === 'function') Promise.resolve(win.SmylReminders.reload()).catch(function () {});
       if (item.target) {
         var tries = 0;
@@ -299,6 +300,11 @@
     render();
     win.SmylSettingsHub = Object.freeze({
       open: function (section) { if (section && SECTIONS.some(function (item) { return item.id === section; })) { state.section = section; save(section); } win.ir('configuracion'); },
+      openItem: function (section, title) {
+        var sec = SECTIONS.filter(function (x) { return x.id === section; })[0]; if (!sec) return;
+        var item = sec.items.filter(function (x) { return x.title === title && !x.soon; })[0]; if (!item) return;
+        state.section = section; save(section); openDetail(item);
+      },
       sections: function () { return SECTIONS.map(function (section) { return section.id; }); },
       refresh: refresh
     });

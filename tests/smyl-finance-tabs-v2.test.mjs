@@ -15,7 +15,9 @@ test('quedan cuatro pestañas con Recibos primero y los mismos identificadores q
   for (const label of ['Recibos', '>Por cobrar<em hidden></em>', '>Caja<', '>Facturación<']) assert.ok(js.includes(label), label);
   for (const old of ['Por cobrar hoy', 'Cuentas por cobrar', 'Pagos y recibos', 'Corte de caja', 'Preparación CFDI', 'Plantillas']) assert.ok(!nav.includes(old), old);
   const hub = read('smyl-settings-hub.js');
-  for (const id of ['fiscal', 'receipts', 'cash']) assert.match(hub, new RegExp('data-finance-tab="' + id + '"'));
+  for (const id of ['receipts', 'cash']) assert.match(hub, new RegExp('data-finance-tab="' + id + '"'));
+  // La configuración fiscal ya no es una pestaña de Cobros: Configuración incrusta #billing-setup.
+  assert.match(hub, /element: '#billing-setup'/);
 });
 
 test('«Por cobrar» reúne los filtros, con «Vencidas» en lugar de la pestaña «Por cobrar hoy»', () => {
@@ -317,9 +319,8 @@ test('Cobros paso 1: abre en Por cobrar con un solo contador, 4 filtros, accione
 test('Cobros paso 2: la ayuda de caja vive en «Mi turno» y los botones sin clase usan el estilo de la app', () => {
   assert.doesNotMatch(js, /<h2>Reglas de caja<\/h2>/);
   assert.match(js, /<details class="finance-cash-help"><summary>¿Cómo funciona la caja\?<\/summary>/);
-  for (const id of ['finance-adjust', 'finance-issuer', 'finance-pac']) assert.match(js, new RegExp(`<button class="btn btn-secondary" id="${id}">`));
+  for (const id of ['finance-adjust']) assert.match(js, new RegExp(`<button class="btn btn-secondary" id="${id}">`));
   assert.match(js, /class="btn btn-secondary" data-supervise-cash=/);
-  assert.match(css, /#p-caja \.finance-issuer-card\{display:grid/);
   assert.match(css, /#p-caja \.finance-fiscal-receipt-filters\{display:grid;grid-template-columns:1fr 1fr/);
 });
 

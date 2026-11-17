@@ -8,6 +8,7 @@
     var top=n('header','proposal-paper-top');top.append(n('strong','',(row.clinic_name||'Tu clínica dental')+(row.branch_label?' · '+row.branch_label:'')),n('span','proposal-brand','smyl'));
     paper.append(top,n('p','proposal-kicker',approved?'PROPUESTA PERSONALIZADA':'BORRADOR - PENDIENTE DE REVISIÓN'),n('h1','',doc.title));
     var who=n('div','proposal-paper-meta');who.append(n('div','','Para '+row.patient_name),n('div','',row.professional_name||'Equipo de la clínica'));
+    if(row.branch_label)who.append(n('div','proposal-paper-branch','Se atenderá en la sede '+row.branch_label+(row.branch_detail?' · '+row.branch_detail:'')));
     paper.append(who);
     if(doc.introduction)paper.append(n('p','proposal-intro',doc.introduction));
     if(doc.photos&&assets&&model.safeImage(assets.before)&&model.safeImage(assets.simulation)){
