@@ -111,7 +111,7 @@ El validador sólo lee el JSON: **la evidencia vale tanto como la honestidad de 
 | `ABORTADO · Define la contraseña … SUPABASE_DB_PASSWORD` | Falta la variable de la ventana actual | Repite el bloque con `Read-Host` |
 | `ABORTADO · El proyecto tiene buckets sin respaldo: X` | Bucket creado a mano que el script no conoce | Agrégalo a `BUCKETS` en `scripts/create-encrypted-backup.mjs` (o `SMYL_BACKUP_ALLOW_UNLISTED=1` sabiendo que quedará sin respaldo) |
 | La verificación dice que falta `auth.users` | El volcado de datos no incluyó cuentas | No confíes en ese paquete; repite con `--schema auth` según la versión de la CLI |
-| `psql` no se reconoce | Falta el cliente de PostgreSQL o no se reinició PowerShell | `winget install PostgreSQL.PostgreSQL`, cierra y abre PowerShell |
+| `psql` no se reconoce | Falta el cliente de PostgreSQL o no se reinició PowerShell | `winget search PostgreSQL` y luego `winget install PostgreSQL.PostgreSQL.17` (usa el Id exacto que salga), cierra y abre PowerShell |
 | `permission denied` al restaurar `schema.sql` | Se restauró sobre un proyecto con datos | Usa un proyecto desechable **nuevo y vacío** |
 
 ## Frecuencia recomendada
