@@ -442,6 +442,7 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 
 /* ── MI CUENTA ── */
 .cuenta-grid{display:grid;grid-template-columns:1fr 2fr;gap:16px}
+.cuenta-grid--una{grid-template-columns:minmax(0,640px)}
 .plan-card{background:linear-gradient(135deg,var(--violeta),var(--azul));border-radius:var(--radius-l);padding:24px;color:#fff}
 .plan-card h3{font-size:22px;font-weight:800;margin-bottom:4px}
 .plan-card p{font-size:13px;opacity:.8}
@@ -900,7 +901,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-clinic-setup.css?v=4">
 <script defer src="smyl-clinic-setup.js?v=6"></script>
 <link rel="stylesheet" href="smyl-settings-hub.css?v=5">
-<script defer src="smyl-settings-hub.js?v=8"></script>
+<script defer src="smyl-settings-hub.js?v=9"></script>
 <link rel="stylesheet" href="smyl-task-center.css?v=1">
 <script defer src="smyl-task-center.js?v=6"></script>
 <link rel="stylesheet" href="smyl-resilience.css?v=1">
@@ -911,7 +912,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-inbox-ficha.js?v=6"></script>
 <script defer src="smyl-inbox.js?v=61"></script>
 <link rel="stylesheet" href="smyl-navigation.css?v=11">
-<script defer src="smyl-navigation.js?v=25"></script>
+<script defer src="smyl-navigation.js?v=26"></script>
 <link rel="stylesheet" href="smyl-command-menu.css?v=3">
 <script defer src="smyl-command-menu.js?v=4"></script>
 <link rel="stylesheet" href="smyl-clinic.css?v=12">
@@ -2032,8 +2033,25 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       </div>
 
 
-      <!-- ═══ MI CUENTA ═══ -->
+      <!-- ═══ MI CUENTA (solo la persona; el consultorio vive en Configuración) ═══ -->
       <div class="pantalla" id="p-mi-cuenta">
+        <div class="cuenta-grid cuenta-grid--una">
+          <div class="card">
+            <div class="card-title">Mis datos</div>
+            <p id="mc-ayuda" style="font-size:12.5px;color:var(--texto2);line-height:1.5;margin:0 0 12px">Estos datos son solo tuyos. El nombre y los datos del consultorio se cambian en Configuración.</p>
+            <div class="form-grid">
+              <div class="fg"><label for="mc-nombre">Nombre completo</label><input type="text" id="mc-nombre" placeholder="Dr. / Dra. ..." autocomplete="name"></div>
+              <div class="fg"><label for="mc-email">Correo con el que entras</label><input type="email" id="mc-email" placeholder="correo@ejemplo.com" readonly style="opacity:.6"></div>
+              <div class="fg"><label for="mc-tel">Teléfono</label><input type="text" id="mc-tel" placeholder="+52 33 ..." autocomplete="tel"></div>
+              <div class="fg"><label for="mc-especialidad">Especialidad</label><input type="text" id="mc-especialidad" placeholder="Ej. Odontología estética"></div>
+            </div>
+            <button class="btn btn-primary" id="mc-guardar" style="margin-top:12px" onclick="guardarPerfil()">💾 Guardar mis datos</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ PLAN Y SUSCRIPCIÓN (solo dueño; el consumo detallado está en consumos.html) ═══ -->
+      <div class="pantalla" id="p-plan">
         <div class="cuenta-grid">
           <div>
             <div class="plan-card" id="plan-card-visual">
@@ -2047,19 +2065,9 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           </div>
           <div>
             <div class="card">
-              <div class="card-title">Información personal</div>
-              <div class="form-grid">
-                <div class="fg"><label>Nombre completo</label><input type="text" id="mc-nombre" placeholder="Dr. / Dra. ..."></div>
-                <div class="fg"><label>Email</label><input type="email" id="mc-email" placeholder="correo@ejemplo.com" readonly style="opacity:.6"></div>
-                <div class="fg"><label>Teléfono</label><input type="text" id="mc-tel" placeholder="+52 33 ..."></div>
-                <div class="fg"><label>Especialidad</label><input type="text" id="mc-especialidad" placeholder="Ej. Odontología estética"></div>
-                <div class="fg full"><label>Consultorio</label><input type="text" id="mc-consultorio2" placeholder="Nombre del consultorio o clínica"></div>
-              </div>
-              <button class="btn btn-primary" style="margin-top:12px" onclick="guardarPerfil()">💾 Guardar perfil</button>
-            </div>
-            <div class="card">
               <div class="card-title">Uso del plan</div>
               <div id="mc-uso-detalle" style="font-size:13px;color:var(--texto2);line-height:2.2"></div>
+              <a class="btn btn-secondary" href="consumos.html" style="margin-top:12px;display:inline-flex;text-decoration:none">Ver consumo de MILA, IA, canales y almacenamiento</a>
             </div>
           </div>
         </div>
@@ -2772,6 +2780,7 @@ function cerrarSesion() {
 // INICIO
 // ══════════════════════════════════════════
 async function continuarConUsuario(authUser) {
+  miUsuario = authUser;
   document.getElementById('auth-gate-overlay').style.display = 'none';
   var layoutEl = document.querySelector('.layout');
   if (layoutEl) layoutEl.classList.add('is-visible');
@@ -3349,7 +3358,7 @@ function mostrarSetPasswordInvitado(authUser) {
 }
 
 function renderSidebar() {
-  var nombre = tenantData.nombre || 'Doctor';
+  var nombre = nombreVisible();
   var plan = tenantData.plan || 'profesional';
   var usado = tenantData.diagnosticos_usados || 0;
   var limite = tenantData.limite_diagnosticos || 40;
@@ -3382,6 +3391,7 @@ var TITULOS = {
   notificaciones: 'Notificaciones',
   precios: 'Servicios y tarifas',
   'mi-cuenta': 'Mi Cuenta',
+  plan: 'Plan y suscripción',
   'sim-config': 'Configuración de Simulación',
 };
 
@@ -3433,7 +3443,8 @@ function ir(p) {
   try { sessionStorage.setItem('smyl_route', p); } catch (_) {}
   document.querySelectorAll('.pantalla').forEach(function(el) { el.classList.remove('activa'); });
   document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('activo'); });
-  var panel = document.getElementById('p-' + p);
+  // «Plan y suscripción» es solo del dueño: para el equipo la pantalla se trata como no disponible.
+  var panel = (p === 'plan' && miRolEquipo !== 'dueño') ? null : document.getElementById('p-' + p);
   if (panel) panel.classList.add('activa');
   else mostrarPanelNoDisponible(p);
   document.querySelectorAll('.nav-item').forEach(function(el) {
@@ -3449,6 +3460,7 @@ function ir(p) {
     pacientes: cargarPacientes,
     notificaciones: cargarNotificaciones,
     'mi-cuenta': renderMiCuenta,
+    plan: renderPlan,
     'nuevo-diseno': resetNuevoDiseno,
     'sim-config': cargarSimConfig,
     bienvenida: renderBienvenida,
@@ -3904,7 +3916,8 @@ function sincBnTab(pantalla) {
     notificaciones:'bn-mas',
     precios:'bn-mas',
     'sim-config':'bn-mas',
-    'mi-cuenta':'bn-mas'
+    'mi-cuenta':'bn-mas',
+    plan:'bn-mas'
   };
   document.querySelectorAll('.bn-tab').forEach(function(t) { t.classList.remove('activo'); });
   if (map[pantalla]) {
@@ -5327,25 +5340,49 @@ function descargarImagen(url, nombre) {
 
 // ══════════════════════════════════════════
 // ══════════════════════════════════════════
+// Perfil de la PERSONA que inició sesión. Vive en sus datos de acceso (user_metadata.perfil), no en la ficha de la
+// clínica: así cada integrante edita lo suyo sin tocar lo del consultorio ni lo del dueño.
+var miUsuario = null;
+function perfilPersonal() {
+  var meta = (miUsuario && miUsuario.user_metadata) || {};
+  var p = meta.perfil || {};
+  var esDueno = miRolEquipo === 'dueño';
+  var config = (tenantData && tenantData.config) || {};
+  var correo = (miUsuario && miUsuario.email) || (tenantData && tenantData.email) || '';
+  return {
+    // Para el dueño se conserva lo que ya tenía guardado en la clínica; el equipo nunca hereda los datos del dueño.
+    // El dueño ve el nombre de su cuenta (el más reciente); el equipo, el que dejó al registrarse o ninguno.
+    nombre: p.nombre || (esDueno ? ((tenantData && tenantData.nombre) || meta.nombre) : meta.nombre) || '',
+    email: correo,
+    tel: p.tel != null ? p.tel : (esDueno ? (config.tel || '') : ''),
+    especialidad: p.especialidad != null ? p.especialidad : (esDueno ? (config.especialidad || '') : '')
+  };
+}
+function nombreVisible() {
+  var p = perfilPersonal();
+  return p.nombre || String(p.email || '').split('@')[0] || (tenantData && tenantData.nombre) || 'Doctor';
+}
+
 function renderMiCuenta() {
+  var perfil = perfilPersonal();
+  document.getElementById('mc-nombre').value = perfil.nombre;
+  document.getElementById('mc-email').value = perfil.email;
+  document.getElementById('mc-tel').value = perfil.tel;
+  document.getElementById('mc-especialidad').value = perfil.especialidad;
+}
+
+function renderPlan() {
   var plan = tenantData.plan || 'profesional';
   var planInfo = PLANES[plan] || PLANES.profesional;
   var usado = tenantData.diagnosticos_usados || 0;
   var limite = tenantData.limite_diagnosticos || 40;
   var vence = new Date(tenantData.vence_en || Date.now() + 30*86400000);
-  var config = tenantData.config || {};
 
   document.getElementById('mc-plan').textContent = planInfo.label;
   document.getElementById('mc-precio').textContent = planInfo.precio + ' MXN/mes';
   document.getElementById('mc-features').innerHTML = planInfo.features.map(function(f) {
     return '<div class="plan-feature">✓ ' + f + '</div>';
   }).join('');
-
-  document.getElementById('mc-nombre').value = tenantData.nombre || '';
-  document.getElementById('mc-email').value = tenantData.email || '';
-  document.getElementById('mc-tel').value = config.tel || '';
-  document.getElementById('mc-especialidad').value = config.especialidad || '';
-  document.getElementById('mc-consultorio2').value = config.consultorio || '';
 
   var pct = Math.min(100, Math.round(usado / limite * 100));
   document.getElementById('mc-uso-detalle').innerHTML =
@@ -5355,20 +5392,32 @@ function renderMiCuenta() {
 }
 
 async function guardarPerfil() {
-  var nombre = document.getElementById('mc-nombre').value.trim();
+  var boton = document.getElementById('mc-guardar');
+  var perfil = {
+    nombre: document.getElementById('mc-nombre').value.trim(),
+    tel: document.getElementById('mc-tel').value.trim(),
+    especialidad: document.getElementById('mc-especialidad').value.trim()
+  };
+  if (boton) boton.disabled = true;
   try {
-    await guardarConfigTenant({
-      tel: document.getElementById('mc-tel').value.trim(),
-      especialidad: document.getElementById('mc-especialidad').value.trim(),
-      consultorio: document.getElementById('mc-consultorio2').value.trim()
-    }, {nombre: nombre});
+    // 1) Datos de la persona: solo los de quien inició sesión.
+    var res = await sbTimeout(sb.auth.updateUser({ data: { perfil: perfil } }));
+    if (res && res.error) throw res.error;
+    if (res && res.data && res.data.user) miUsuario = res.data.user;
+    // 2) El dueño además mantiene el nombre de la cuenta (lo leen la barra lateral y las cotizaciones). El equipo no toca la clínica.
+    var nombre = perfil.nombre;
+    if (miRolEquipo === 'dueño' && nombre && nombre !== tenantData.nombre) {
+      await guardarConfigTenant({}, {nombre: nombre});
+      tenantData.nombre = nombre;
+    }
   } catch(e) {
-    alert('No se pudo guardar el perfil (' + (e.message || 'error de red') + '). Intenta de nuevo.');
+    alert('No se pudieron guardar tus datos (' + (e.message || 'error de red') + '). Intenta de nuevo.');
     return;
+  } finally {
+    if (boton) boton.disabled = false;
   }
-  tenantData.nombre = nombre;
   renderSidebar();
-  alert('Perfil guardado.');
+  alert('Tus datos se guardaron.');
 }
 </script>
 </body>
