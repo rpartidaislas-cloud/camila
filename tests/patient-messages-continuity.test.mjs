@@ -18,10 +18,10 @@ test('Mensajes prioritizes the conversations that need the dental team', () => {
 });
 
 test('each thread exposes a clear next action and patient continuity', () => {
-  assert.match(inbox, /SIGUIENTE ACCIÓN/);
-  assert.match(inbox, /Responder y resolver la solicitud/);
-  assert.match(inbox, /Abrir expediente/);
-  assert.match(inbox, /Resolver identidad/);
+  // Ficha 360 v4: la siguiente acción vive en el encabezado del hilo; la ficha solo consulta.
+  assert.match(inbox, /Intervención solicitada/);
+  assert.match(inbox, /Expediente ↗/);
+  assert.match(fs.readFileSync(new URL('../smyl-inbox-ficha.js', import.meta.url), 'utf8'), /Resolver identidad/);
   assert.match(inbox, /Identificando paciente/);
   assert.match(inbox, /Agendar cita/);
   assert.match(inbox, /Paciente y atención/);
@@ -37,8 +37,8 @@ test('reply tools are understandable and preserve human review', () => {
 });
 
 test('web, mobile and offline bundles ship the same inbox stage', () => {
-  assert.match(app, /smyl-inbox\.css\?v=51/);
-  assert.match(app, /smyl-inbox\.js\?v=60/);
+  assert.match(app, /smyl-inbox\.css\?v=52/);
+  assert.match(app, /smyl-inbox\.js\?v=61/);
 assert.match(worker, /smyl-v263-lana-connection-recovery/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(inbox, read('../mobile/www/smyl-inbox.js'));

@@ -33,9 +33,9 @@ test('lana-inbox guarda el resumen solo tras Copilot y lo lee con permiso y acce
   assert.match(edge, /if \(error\) return \{ ok: true, summary: null, storage: "unavailable" \};/, 'sin migración la ficha sigue funcionando');
 });
 
-test('la ficha lee primero el resumen guardado y solo genera si no existe', () => {
+test('la ficha lee el resumen guardado y generarlo es opcional (a petición del equipo)', () => {
   assert.match(js, /action: 'conversation_summary', conversation_id: conversationId/);
-  assert.match(js, /if \(hasPermission\('messages\.respond'\)\) requestConversationSummary\(conversationId, false\);/);
+  assert.doesNotMatch(js, /if \(hasPermission\('messages\.respond'\)\) requestConversationSummary\(conversationId, false\);/);
   assert.match(js, /basis_at: conversation\.last_message_at \|\| null/);
   assert.doesNotMatch(js, /smyl_conversation_summaries/);
 });

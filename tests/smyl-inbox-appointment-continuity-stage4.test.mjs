@@ -21,7 +21,7 @@ test('the bridge assembles appointment continuity from SMYL-owned records', () =
 });
 
 test('the Inbox explains pending, confirmed and cancelled states', () => {
-  assert.match(inbox, /Cita del paciente/);
+  assert.match(inbox, /Solicitud desde el chat/);
   assert.match(inbox, /Elección pendiente de confirmación/);
   assert.match(inbox, /Cita confirmada/);
   assert.match(inbox, /Cita cancelada/);
@@ -32,7 +32,7 @@ test('appointment communication remains a reviewed draft', () => {
   assert.match(inbox, /Preparar confirmación/);
   assert.match(inbox, /Preparar seguimiento/);
   assert.match(inbox, /setComposerText/);
-  const continuity = inbox.slice(inbox.indexOf("var appointmentCard"), inbox.indexOf("var availability ="));
+  const continuity = inbox.slice(inbox.indexOf("var appointmentCard"), inbox.indexOf("var accountCard"));
   assert.doesNotMatch(continuity, /sendMessage|action:\s*'message'/);
 });
 

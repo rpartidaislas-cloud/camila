@@ -31,9 +31,9 @@ test('el chat no consulta tablas para las alertas y solo las muestra con permiso
 
 test('web, móvil y PWA publican las alertas médicas', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-inbox-ficha\.js\?v=5/);
-    assert.match(read(file), /smyl-inbox\.js\?v=60/);
-    assert.match(read(file), /smyl-inbox\.css\?v=51/);
+    assert.match(read(file), /smyl-inbox-ficha\.js\?v=6/);
+    assert.match(read(file), /smyl-inbox\.js\?v=61/);
+    assert.match(read(file), /smyl-inbox\.css\?v=52/);
   }
   for (const file of ['smyl-inbox.js', 'smyl-inbox-ficha.js', 'smyl-inbox.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);
@@ -45,9 +45,10 @@ test('sin paciente vinculado la ficha invita a resolver la identidad para ver al
   assert.match(ficha, /Vincula este chat a un paciente para ver sus alergias y alertas médicas/);
 });
 
-test('si LANA pide capacitación, el resumen lleva a publicarla en lugar de mostrar el error crudo', () => {
+test('si LANA pide capacitación, el resumen lo explica sin el error crudo y solo ofrece un enlace discreto a quien administra', () => {
   assert.match(js, /function isTrainingMissing\(entry\)/);
   assert.match(js, /onOpenTraining: hasPermission\('settings\.manage'\) \? openAssistantTraining : null/);
   assert.match(js, /\[data-connection-tab="assistant"\]/);
-  assert.match(ficha, /'Publicar capacitación'/);
+  assert.match(ficha, /'Configurar asistente', 'smyl-f360-link'/);
+  assert.doesNotMatch(ficha, /Publicar capacitación/);
 });
