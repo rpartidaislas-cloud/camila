@@ -77,6 +77,27 @@ async function escenario(browser, staff) {
   console.log(`4) [${etiqueta}] Configuración ofrece «Plan y suscripción»:`, hub);
   check(hub === !staff, staff ? 'Configuración no debe ofrecer el plan al equipo' : 'Configuración debe ofrecer el plan al dueño');
 
+  // Mi consultorio: solo el dueño; Precios ya no trae esos datos.
+  await page.evaluate(() => { window.__db.camila_tenants[0].config = Object.assign({}, window.__db.camila_tenants[0].config, { consultorio: 'Clínica Demo', doctor: 'Dra. Demo', ciudad: 'Guadalajara' }); tenantData.config = window.__db.camila_tenants[0].config; });
+  await page.evaluate(() => ir('mi-consultorio')); await page.waitForTimeout(500);
+  const cons = await page.evaluate(() => ({ activa: document.getElementById('p-mi-consultorio').classList.contains('activa'), nombre: document.getElementById('conf-consultorio').value, enPrecios: !!document.querySelector('#p-precios #conf-consultorio'), enlaces: document.querySelectorAll('#p-mi-consultorio .mc-enlace').length }));
+  console.log(`5) [${etiqueta}] Mi consultorio:`, JSON.stringify(cons));
+  check(!cons.enPrecios, 'Precios ya no debe traer los datos del consultorio');
+  if (staff) check(!cons.activa, 'el equipo no debe abrir Mi consultorio');
+  else {
+    check(cons.activa && cons.enlaces === 4, 'el dueño ve Mi consultorio con sus cuatro accesos');
+    await page.fill('#conf-consultorio', 'Clínica Nueva'); await page.fill('#conf-ciudad', 'Zapopan, Jalisco'); await page.click('#btn-guardar-config'); await page.waitForTimeout(800);
+    const gc = await page.evaluate(() => ({ c: window.__db.camila_tenants[0].config, sb: document.getElementById('sb-consultorio').textContent }));
+    console.log(`6) [${etiqueta}] tras guardar:`, JSON.stringify(gc));
+    check(gc.c.consultorio === 'Clínica Nueva' && gc.c.ciudad === 'Zapopan, Jalisco' && gc.c.doctor === 'Dra. Demo', 'guarda sin perder los otros datos');
+    check(gc.sb === 'Clínica Nueva', 'la barra lateral muestra el nombre nuevo');
+  }
+  await page.evaluate(() => ir('configuracion')); await page.waitForTimeout(800);
+  await page.click('.settings-hub-nav-item[data-section="clinica"]'); await page.waitForTimeout(400);
+  const hubCons = await page.evaluate(() => /Datos del consultorio/.test(document.getElementById('p-configuracion').innerText));
+  console.log(`7) [${etiqueta}] Configuración ofrece «Datos del consultorio»:`, hubCons);
+  check(hubCons === !staff, staff ? 'el equipo no debe ver Datos del consultorio' : 'el dueño debe ver Datos del consultorio');
+
   console.log(`errores de página [${etiqueta}]:`, JSON.stringify(errs)); if (errs.length) fails++;
   await ctx.close(); return fails;
 }
