@@ -11475,3 +11475,12 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Falso positivo evitado:** su prueba que prohíbe devolver `key` en respuestas JSON coincidía con el texto «.key» de un mensaje mío; el mensaje se reescribió.
 - **Pruebas:** 1834 aprobadas, 0 fallos; el humo de navegador (`facturacion-configuracion-smoke.cjs`) cubre también los dos estados del interruptor.
 - **Para operar:** secretos `FACTURAPI_ENCRYPTION_KEY`, `FACTURAPI_USER_KEY`, y opcional `FACTURAPI_LIVE_STAMPING` (dejarlo sin definir hasta la primera factura real controlada). Aplicar las dos migraciones (`…150000_smyl_cfdi_stamping` y `…200000_smyl_facturapi_platform`) y redesplegar `facturapi` con `docs/bundles/facturapi.single-file.ts`.
+
+## 2026-11-17 — Claude Code — Mi cuenta es solo de la persona; el plan pasa a «Plan y suscripción» (solo dueño)
+- **Problema:** «Mi cuenta» mostraba y guardaba los datos de la **clínica** (`camila_tenants`): un integrante del equipo veía el correo y el nombre del dueño y, al guardar, escribía en la ficha compartida. Además traía el plan y el campo «Consultorio».
+- **Qué cambia (solo frontend, sin migración ni funciones):**
+  - **Mi cuenta** guarda nombre, teléfono y especialidad de quien inició sesión en `user_metadata.perfil` (`sb.auth.updateUser`). Muestra el correo real con el que entra. El dueño además mantiene `camila_tenants.nombre` (lo leen la barra lateral y las cotizaciones); el equipo ya no toca la clínica y ve su propio nombre en la barra lateral.
+  - Se quitaron de Mi cuenta el plan y el campo «Consultorio» (el nombre del consultorio sigue en Configuración → Marca y experiencia, `conf-consultorio`).
+  - **Plan y suscripción** (`#p-plan`, ruta `plan`): tarjeta del plan, Cambiar plan, Gestionar suscripción y uso mensual, con enlace a `consumos.html` (consumo de MILA, IA, Meta y almacenamiento, que ya existía). Solo para `miRolEquipo === 'dueño'`; para el equipo `ir('plan')` muestra «no disponible» y la tarjeta se oculta en Configuración (`ownerOnly` en `smyl-settings-hub.js`).
+- **Archivos:** `app.html`, `smyl-settings-hub.js` v9, `smyl-navigation.js` v26, `sw.js` (caché `…-mi-cuenta-personal-v1`), copias en `mobile/www/`, `tests/smyl-settings-hub.test.mjs` (versiones) y humo nuevo `tests/qa/mi-cuenta-smoke.cjs` (dueño y equipo).
+- **Pendiente (con aprobación):** pantalla «Mi consultorio» (nombre comercial, logo, teléfono, datos fiscales, sucursales) y completar «Plan y consumo» con tokens/datos cuando se confirme qué se mide.
