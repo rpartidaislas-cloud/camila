@@ -115,6 +115,27 @@
 .connections-train-review li small{color:#4b5f5d;font-size:13px}
 .connections-train-review li button{border:1px solid #cad8d1;border-radius:9px;background:#fff;padding:6px 12px;font-weight:600;cursor:pointer}
 
+/* Traer desde Mi clínica, cambios sin publicar y lista para atender */
+.connections-import-btn{width:auto;margin:10px 0 0 10px}
+.connections-import-note{margin:8px 0 0}
+.connections-import-note:empty{display:none}
+.connections-import-note[data-tone=ok]{color:#286653}
+.connections-import-note[data-tone=error]{color:#8f3b2f}
+.connections-train-review h3:not(:first-child){margin-top:18px}
+.connections-train-review ul.connections-train-changes li{display:block}
+.connections-train-review ul.connections-train-changes small{display:block;margin-top:2px;line-height:1.5}
+.connections-train-review [data-ready-summary]{margin:0 0 10px;font-weight:600}
+.connections-train-review [data-ready-summary][data-state=ready]{color:#286653}
+.connections-train-review [data-ready-summary][data-state=pending]{color:#745f39}
+/* Prueba en el mismo paso */
+.connections-step-test{margin-top:22px;border:1px solid #d7e0dd;border-radius:14px;background:#fff}
+.connections-step-test>summary{display:flex;flex-direction:column;gap:2px;padding:14px 16px;cursor:pointer;list-style:none}
+.connections-step-test>summary::-webkit-details-marker{display:none}
+.connections-step-test>summary strong{font-size:15px}
+.connections-step-test>summary small{font-size:13px;color:#4b5f5d}
+.connections-step-test>summary::after{content:'Abrir ▾';font-size:13px;font-weight:600;color:#33607f}
+.connections-step-test[open]>summary::after{content:'Cerrar ▴'}
+.connections-step-test .connections-preview{margin-top:0;padding:4px 16px 16px;border-top:1px solid #dce2dd}
 .connections-branch-sync{margin:8px 0 0;font-size:12px;line-height:1.5;color:#526465}
 .connections-branch-sync:empty{display:none}
 .connections-branch-sync[data-state=ok]{color:#286653}

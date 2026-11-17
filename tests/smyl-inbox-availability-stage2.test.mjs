@@ -41,7 +41,7 @@ test('the Inbox bridge enforces both messaging and schedule permissions', () => 
 });
 
 test('the dentist can review slots and add a verified shortlist to the draft', () => {
-  assert.match(inbox, /Agenda disponible/);
+  assert.match(inbox, /id: 'schedule', label: 'Agendar cita', run: openAvailabilityDialog/);
   assert.doesNotMatch(inbox, /AGENDA · SIN SALIR DEL CHAT/);
   assert.match(inbox, /<h2 tabindex="-1">Agendar cita<\/h2>/);
   assert.match(inbox, /Agregar opciones al mensaje/);

@@ -16,7 +16,7 @@ test('las funciones auxiliares de lana-inbox tienen un json() de módulo', () =>
 });
 
 test('Deno.serve agrega CORS a toda respuesta que no lo traiga', () => {
-  assert.match(source, /async function handleInbox\(req: Request\): Promise<Response> \{\n  const CORS = inboxCors\(req\);/);
+  assert.match(source, /async function handleInbox\(req: Request\): Promise<Response> \{\r?\n  const CORS = inboxCors\(req\);/);
   const serve = source.slice(source.indexOf('Deno.serve('));
   assert.match(serve, /const response = await handleInbox\(req\);/);
   assert.match(serve, /Object\.entries\(inboxCors\(req\)\)\.filter\(\(\[name\]\) => !response\.headers\.has\(name\)\)/);

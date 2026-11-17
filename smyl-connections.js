@@ -54,7 +54,7 @@
       '<fieldset><legend>La clínica</legend><div class="connections-context-grid"><label class="full">Descripción y enfoque<textarea name="clinic_description" maxlength="1600" rows="3" placeholder="Especialidad, enfoque, tipo de pacientes y qué distingue a la clínica."></textarea></label><label class="full">Especialidades confirmadas<textarea name="specialties" maxlength="1200" rows="2" placeholder="Odontología general, ortodoncia, implantología…"></textarea></label><label>Ubicación principal<input name="location" maxlength="500" placeholder="Dirección o zona de atención"></label><label>Horarios<input name="hours" maxlength="500" placeholder="Lun–Vie 9:00–18:00"></label><label>Idiomas<input name="languages" maxlength="300" placeholder="Español, inglés"></label><label>Canales de contacto<input name="contact_channels" maxlength="700" placeholder="Teléfono y medios autorizados"></label><label class="full">Acceso, estacionamiento y accesibilidad<textarea name="access_info" maxlength="900" rows="2"></textarea></label><label class="full">Política para menores y acompañantes<textarea name="minor_policy" maxlength="900" rows="2"></textarea></label></div></fieldset>' +
       '<fieldset><legend>Sucursales y operación</legend><div class="connections-context-grid"><label class="full">Sucursales, direcciones y cobertura<textarea name="branches" maxlength="2400" rows="4" placeholder="Una sucursal por bloque: dirección, horario, especialidades y profesionales disponibles."></textarea></label>' +
       '<div class="full connections-branch-tools" data-branch-tools hidden><div class="connections-branch-tools-row"><button type="button" class="btn btn-secondary" data-import-branches>Traer mis sucursales</button><label class="connections-inline-check"><input type="checkbox" data-ask-branch> Que el asistente pregunte la sucursal antes de agendar</label></div><p class="connections-branch-sync" data-branch-sync aria-live="polite"></p><p class="connections-fieldset-help">Tu clínica tiene varias sucursales. «Traer mis sucursales» llena este campo con sus direcciones, horarios y dentistas de Mi clínica. Cuando el paciente diga cuál prefiere, la conversación se asigna sola a esa sucursal.</p></div><label class="full">Reglas de agenda<textarea name="scheduling_rules" maxlength="1600" rows="3" placeholder="Anticipación, duración, confirmación, reprogramación y horarios especiales."></textarea></label><label class="full">Promociones autorizadas y vigencia<textarea name="approved_promotions" maxlength="1200" rows="2" placeholder="Sólo promociones aprobadas; indica fecha de vencimiento."></textarea></label></div></fieldset>' +
-      '<fieldset><legend>Servicios confirmados</legend><p class="connections-fieldset-help">Incluye solo servicios reales. Si agregas precio, debe ser información confirmada o indicar que requiere valoración.</p><div class="connections-repeat-list" data-service-list></div><button type="button" class="connections-add-row" data-add-service>+ Agregar servicio</button></fieldset>' +
+      '<fieldset><legend>Servicios confirmados</legend><p class="connections-fieldset-help">Incluye solo servicios reales. Si agregas precio, debe ser información confirmada o indicar que requiere valoración.</p><div class="connections-repeat-list" data-service-list></div><button type="button" class="connections-add-row" data-add-service>+ Agregar servicio</button><button type="button" class="btn btn-secondary connections-import-btn" data-import-services>Traer mis servicios</button><p class="connections-fieldset-help connections-import-note" data-service-sync aria-live="polite"></p></fieldset>' +
       '<fieldset><legend>Preguntas frecuentes</legend><p class="connections-fieldset-help">El asistente respetará estas respuestas y no inventará una política distinta.</p><div class="connections-repeat-list" data-faq-list></div><button type="button" class="connections-add-row" data-add-faq>+ Agregar pregunta</button></fieldset>' +
       '<fieldset><legend>Flujo de atención</legend><div class="connections-context-grid"><label class="full">Objetivo de la conversación<textarea name="attention_objective" maxlength="900" rows="2"></textarea></label><label class="full">Política de citas<textarea name="appointment_policy" maxlength="1200" rows="3" placeholder="Qué puede explicar, qué datos pedir y cuándo debe confirmar una persona."></textarea></label><label class="full">Cancelación e inasistencia<textarea name="cancellation_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Política de precios<textarea name="pricing_policy" maxlength="1200" rows="3" placeholder="Qué precios están confirmados y cuándo se requiere valoración. El asistente nunca inventa importes."></textarea></label><label class="full">Pagos, anticipos y financiamiento<textarea name="payment_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Facturación CFDI<textarea name="invoice_policy" maxlength="1200" rows="2" placeholder="Plazo, canal y datos que solicita el equipo; nunca recopilar contraseñas ni documentos completos."></textarea></label><label class="full">Seguros y reembolsos<textarea name="insurance_policy" maxlength="900" rows="2"></textarea></label><label class="full">Seguimientos y recordatorios<textarea name="followup_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Datos administrativos que puede solicitar<textarea name="intake_questions" maxlength="1600" rows="3" placeholder="Ej. nombre, tratamiento de interés, horario preferido y sucursal. Una o dos preguntas por mensaje."></textarea></label><label class="full">Protocolo administrativo de urgencias<textarea name="emergency_policy" maxlength="1200" rows="3" placeholder="Señales que exigen atención inmediata y texto aprobado por la clínica; nunca diagnosticar ni prescribir."></textarea></label><label class="full">Cuándo pasar la conversación a una persona<textarea name="handoff_rules" maxlength="1600" rows="3" placeholder="Ej. inconformidad, solicitud de hablar con el dentista o excepción administrativa. Dolor, urgencias y dudas clínicas ya escalan siempre."></textarea></label><label class="full">Expectativa de respuesta humana<textarea name="human_response_policy" maxlength="900" rows="2" placeholder="Indica tiempos sólo si la clínica realmente los mide."></textarea></label><label>Autonomía<select name="autonomy_level"><option value="1">1 · Solo bienvenida</option><option value="2">2 · Información y FAQ</option><option value="3">3 · Atención asistida</option><option value="4">4 · Gestión administrativa confirmada</option></select></label></div></fieldset>' +
       '<fieldset><legend>Memoria administrativa</legend><div class="connections-context-grid"><label class="full">Datos que puede recordar<textarea name="allowed_memory" maxlength="1200" rows="2"></textarea></label><label class="full">Datos que nunca debe recordar ni repetir<textarea name="prohibited_memory" maxlength="1200" rows="2"></textarea></label></div></fieldset>' +
@@ -594,6 +594,154 @@
     if (on) lines.push(ASK_BRANCH_LINE);
     return lines.join('\n').trim().slice(0, 1600);
   }
+  // Traer servicios, ubicación y horarios desde Mi clínica (todo es texto editable; nada se publica solo).
+  function escapeHtml(value) { return String(value).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function moneyLabel(value) {
+    var n = Number(value);
+    if (value === null || value === undefined || value === '' || !isFinite(n)) return '';
+    return '$' + n.toLocaleString('es-MX', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
+  }
+  var SERVICE_IMPORT_LIMIT = 30;
+  // services: smyl_services activos; prices: smyl_service_branch_prices; existing: filas ya escritas en el formulario.
+  function importServiceRows(services, prices, branches, existing, makeId) {
+    var names = {}, branchName = {}, rows = [], skipped = 0, over = 0;
+    (existing || []).forEach(function (row) { names[String(row.name || '').trim().toLowerCase()] = true; });
+    (branches || []).forEach(function (b) { branchName[b.id] = b.name; });
+    var room = Math.max(0, SERVICE_IMPORT_LIMIT - (existing || []).length);
+    (services || []).forEach(function (service) {
+      var name = String(service.name || '').trim().slice(0, 120), key = name.toLowerCase();
+      if (!name) return;
+      if (names[key]) { skipped += 1; return; }
+      if (rows.length >= room) { over += 1; return; }
+      names[key] = true;
+      var parts = [];
+      if (service.category && service.category !== 'general') parts.push(String(service.category).charAt(0).toUpperCase() + String(service.category).slice(1) + '.');
+      if (service.duration_minutes) parts.push('Duración aproximada: ' + service.duration_minutes + ' min.');
+      var perBranch = (prices || []).filter(function (row) { return row.service_id === service.id && branchName[row.branch_id] && moneyLabel(row.price); })
+        .map(function (row) { return branchName[row.branch_id] + ' ' + moneyLabel(row.price); });
+      var base = moneyLabel(service.reference_price), note;
+      if (perBranch.length) note = (base ? 'Precio de referencia ' + base + '. ' : '') + 'Por sucursal: ' + perBranch.join('; ') + '. Sujeto a valoración.';
+      else if (base) note = 'Desde ' + base + ' (precio de referencia). Sujeto a valoración.';
+      else note = 'Requiere valoración.';
+      rows.push({ id: makeId ? makeId() : 'service-' + rows.length, name: name, description: parts.join(' ').slice(0, 700), pricing_note: note.slice(0, 350) });
+    });
+    return { rows: rows, skipped: skipped, over: over };
+  }
+  function clinicLocationHours(branches, hours) {
+    var list = branches || [];
+    if (!list.length) return { location: '', hours: '' };
+    var addr = function (b) { return [b.address_line, b.city, b.state].filter(Boolean).join(', '); };
+    var sched = function (b) { return hoursSummary((hours || []).filter(function (row) { return row.branch_id === b.id; })); };
+    if (list.length === 1) return { location: addr(list[0]), hours: sched(list[0]) };
+    return {
+      location: list.map(function (b) { return b.name + (addr(b) ? ': ' + addr(b) : ''); }).join(' · '),
+      hours: list.map(function (b) { var h = sched(b); return h ? b.name + ': ' + h : ''; }).filter(Boolean).join(' · ')
+    };
+  }
+  async function importServicesFromClinic() {
+    var form = document.querySelector('[data-lana-training-form]'), note = document.querySelector('[data-service-sync]'), button = document.querySelector('[data-import-services]');
+    if (!form) return;
+    var say = function (text, tone) { if (note) { note.textContent = text; note.dataset.tone = tone || ''; } };
+    if (button) button.disabled = true;
+    say('Buscando tus servicios…');
+    try {
+      var tenant = window.tenantId;
+      var res = await window.sb.from('smyl_services').select('id,name,category,duration_minutes,reference_price').eq('tenant_id', tenant).eq('active', true).order('name');
+      if (res && res.error) throw res.error;
+      var prices = [];
+      try { var pr = await window.sb.from('smyl_service_branch_prices').select('service_id,branch_id,price').eq('tenant_id', tenant); prices = pr && pr.data || []; } catch (_) { prices = []; }
+      if (!state.clinicBranches) await loadClinicBranches();
+      var result = importServiceRows(res && res.data || [], prices, state.clinicBranches || [], collectRepeatRows('[data-service-list]', 'service'), function () { return rowId('service'); });
+      var list = form.querySelector('[data-service-list]');
+      result.rows.forEach(function (item) { list.append(repeatRow('service', item)); });
+      if (result.rows.length) markTrainingDirty();
+      say(result.rows.length
+        ? 'Se agregaron ' + result.rows.length + ' servicio' + (result.rows.length === 1 ? '' : 's') + ' de Mi clínica' + (result.skipped ? ' (' + result.skipped + ' ya estaban)' : '') + (result.over ? '; ' + result.over + ' no caben (máximo ' + SERVICE_IMPORT_LIMIT + ')' : '') + '. Revisa los precios antes de publicar.'
+        : (res && res.data && res.data.length ? 'Tus servicios ya estaban todos en la lista.' : 'No hay servicios activos en Mi clínica.'), result.rows.length ? 'ok' : '');
+    } catch (_) { say('No se pudieron traer los servicios. Intenta de nuevo.', 'error'); }
+    if (button) button.disabled = false;
+  }
+  async function importLocationHours() {
+    var form = document.querySelector('[data-lana-training-form]'), note = document.querySelector('[data-hours-sync]');
+    if (!form) return;
+    if (!state.clinicBranches) await loadClinicBranches();
+    var data = clinicLocationHours(state.clinicBranches, state.clinicHours);
+    if (!data.location && !data.hours) { if (note) note.textContent = 'No hay sucursales ni horarios cargados en Mi clínica.'; return; }
+    var changed = false;
+    [['location', data.location], ['hours', data.hours]].forEach(function (pair) {
+      var field = form.elements[pair[0]];
+      if (!field || !pair[1]) return;
+      if (String(field.value || '').trim() && String(field.value).trim() !== pair[1] && !window.confirm('Esto reemplaza lo que escribiste en «' + (pair[0] === 'location' ? 'Ubicación' : 'Horarios') + '». ¿Continuar?')) return;
+      field.value = pair[1].slice(0, field.maxLength > 0 ? field.maxLength : pair[1].length);
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      changed = true;
+    });
+    if (note) note.textContent = changed ? 'Ubicación y horarios traídos de Mi clínica.' : '';
+  }
+
+  // Qué cambió desde la última versión publicada.
+  var DIFF_FIELDS = [
+    ['Identidad', 'Nombre', 'assistant.name'], ['Identidad', 'Tono', 'assistant.tone'], ['Identidad', 'Mensaje de bienvenida', 'assistant.welcome_message'],
+    ['Tu clínica', 'Descripción', 'clinic.description'], ['Tu clínica', 'Especialidades', 'clinic.specialties'], ['Tu clínica', 'Ubicación', 'clinic.location'], ['Tu clínica', 'Horarios', 'clinic.hours'],
+    ['Tu clínica', 'Canales de contacto', 'clinic.contact_channels'], ['Tu clínica', 'Acceso', 'clinic.access_info'], ['Tu clínica', 'Menores de edad', 'clinic.minor_policy'], ['Tu clínica', 'Idiomas', 'clinic.languages'],
+    ['Sedes', 'Sucursales', 'operations.branches'], ['Sedes', 'Reglas de agenda', 'operations.scheduling_rules'], ['Sedes', 'Promociones', 'operations.approved_promotions'],
+    ['Reglas de atención', 'Objetivo', 'attention.objective'], ['Reglas de atención', 'Política de citas', 'attention.appointment_policy'], ['Reglas de atención', 'Precios', 'attention.pricing_policy'],
+    ['Reglas de atención', 'Datos que solicita', 'attention.intake_questions'], ['Reglas de atención', 'Pase a una persona', 'attention.handoff_rules'], ['Reglas de atención', 'Cancelación', 'attention.cancellation_policy'], ['Reglas de atención', 'Pagos', 'attention.payment_policy'],
+    ['Reglas de atención', 'Facturación', 'attention.invoice_policy'], ['Reglas de atención', 'Seguros', 'attention.insurance_policy'], ['Reglas de atención', 'Seguimientos', 'attention.followup_policy'], ['Reglas de atención', 'Urgencias', 'attention.emergency_policy'],
+    ['Reglas de atención', 'Memoria permitida', 'operations.allowed_memory'], ['Reglas de atención', 'Memoria prohibida', 'operations.prohibited_memory'], ['Reglas de atención', 'Nivel de autonomía', 'autonomy_level']
+  ];
+  function diffGet(obj, path) {
+    var value = obj;
+    String(path).split('.').forEach(function (part) { value = value && typeof value === 'object' ? value[part] : undefined; });
+    return value === undefined || value === null ? '' : String(value).trim();
+  }
+  function diffList(before, after, keyField, fields) {
+    var norm = function (item) { return String(item && item[keyField] || '').trim().toLowerCase(); };
+    var old = {}, now = {}, out = { added: [], removed: [], edited: [] };
+    (before || []).forEach(function (item) { if (norm(item)) old[norm(item)] = item; });
+    (after || []).forEach(function (item) { if (norm(item)) now[norm(item)] = item; });
+    Object.keys(now).forEach(function (key) {
+      if (!old[key]) out.added.push(String(now[key][keyField]).trim());
+      else if (fields.some(function (field) { return String(old[key][field] || '').trim() !== String(now[key][field] || '').trim(); })) out.edited.push(String(now[key][keyField]).trim());
+    });
+    Object.keys(old).forEach(function (key) { if (!now[key]) out.removed.push(String(old[key][keyField]).trim()); });
+    return out;
+  }
+  // Devuelve [{ section, items: [texto] }]; published null = aún no hay versión publicada.
+  function diffTraining(published, current) {
+    if (!published) return null;
+    var groups = {}, order = [];
+    var add = function (section, text) { if (!groups[section]) { groups[section] = []; order.push(section); } groups[section].push(text); };
+    DIFF_FIELDS.forEach(function (def) {
+      var a = diffGet(published, def[2]), b = diffGet(current, def[2]);
+      if (a === b) return;
+      add(def[0], def[1] + (!a ? ': nuevo' : (!b ? ': se quitó' : ': cambió')));
+    });
+    var listText = function (label, change) {
+      var bits = [];
+      if (change.added.length) bits.push('+ ' + change.added.join(', '));
+      if (change.edited.length) bits.push('editado: ' + change.edited.join(', '));
+      if (change.removed.length) bits.push('quitado: ' + change.removed.join(', '));
+      return bits.length ? label + ' (' + bits.join(' · ') + ')' : '';
+    };
+    var svc = listText('Servicios', diffList(published.services, current.services, 'name', ['description', 'pricing_note']));
+    if (svc) add('Sedes', svc);
+    var faq = listText('Preguntas', diffList(published.faq, current.faq, 'question', ['answer']));
+    if (faq) add('Preguntas frecuentes', faq);
+    return order.map(function (section) { return { section: section, items: groups[section] }; });
+  }
+
+  // «Listo para atender pacientes»: lo que falta, además del texto del entrenamiento.
+  function readinessItems(ctx) {
+    return [
+      { key: 'messaging', label: 'Mensajería activa', done: Boolean(ctx.connected), hint: 'Activa la mensajería en la parte de arriba de esta página.' },
+      { key: 'channel', label: 'Al menos un canal conectado', done: ctx.channels > 0, hint: 'Conecta WhatsApp, Messenger o Instagram en Canales.' },
+      { key: 'branches', label: 'Sucursales cargadas en Mi clínica', done: ctx.branches > 0, hint: 'Agrega tu sucursal en Mi clínica para que el asistente conozca dirección y horarios.' },
+      { key: 'tested', label: 'Prueba hecha con el asistente', done: ctx.previewTurns > 0, hint: 'Escribe como paciente en «Probar asistente» y revisa sus respuestas.' },
+      { key: 'published', label: 'Entrenamiento publicado y al día', done: Boolean(ctx.published) && ctx.changes === 0, hint: ctx.published ? 'Hay cambios sin publicar.' : 'Publica el entrenamiento para que el asistente lo use.' }
+    ];
+  }
+
   async function loadClinicBranches() {
     try {
       var tenant = window.tenantId;
@@ -612,6 +760,7 @@
       } catch (_) { state.clinicTeam = []; }
     } catch (_) { state.clinicBranches = []; state.clinicHours = []; state.clinicTeam = []; }
     syncBranchTools();
+    if (state.trainStep === 6) updateTrainingSteps();
   }
   function syncBranchTools() {
     var tools = document.querySelector('[data-branch-tools]'), form = document.querySelector('[data-lana-training-form]');
@@ -763,6 +912,48 @@
     if (!(form.elements.intake_questions && String(form.elements.intake_questions.value || '').indexOf(ASK_BRANCH_LINE) !== -1)) notes.push(['Pregunta de sucursal', 'El asistente no preguntará a qué sucursal quiere ir el paciente. Actívalo en el paso 3.']);
     return notes.map(function (note) { return '<li data-state="pending"><span aria-hidden="true">!</span><div><strong>' + note[0] + '</strong><small>' + note[1] + '</small></div></li>'; }).join('');
   }
+  // Prueba en el mismo paso: el laboratorio vive junto al formulario y sugiere escenarios del paso en curso.
+  var DEFAULT_SCENARIOS = [
+    ['Precio y horario', '¿Cuánto cuesta una valoración y en qué horarios atienden?'],
+    ['Dolor y urgencia', 'Me duele mucho una muela desde anoche, ¿qué medicamento debo tomar?'],
+    ['Foto y diagnóstico', 'Si les mando una foto, ¿pueden decirme si necesito carillas?']
+  ];
+  var STEP_SCENARIOS = {
+    1: [['Presentación', 'Hola, ¿con quién hablo?'], ['Tono', 'Hola, buenas tardes, necesito ayuda con una cita']],
+    2: [['Ubicación y horario', '¿Dónde están y a qué hora abren?'], ['Especialidades', '¿Qué tratamientos dentales hacen?']],
+    3: [['Servicios y precio', '¿Qué servicios ofrecen y cuánto cuesta una limpieza?'], ['Sucursal', 'Quiero una cita, ¿qué sucursal me queda mejor?']],
+    5: [['Agendar', 'Quiero agendar una cita para mañana'], ['Cancelar', 'Necesito cancelar mi cita de mañana'], ['Urgencia', DEFAULT_SCENARIOS[1][1]]]
+  };
+  // Siempre devuelve 3 escenarios [etiqueta, mensaje]; en el paso de preguntas frecuentes usa las del propio formulario.
+  function stepScenarios(step, faqQuestions) {
+    var list = STEP_SCENARIOS[step] ? STEP_SCENARIOS[step].slice() : [];
+    if (step === 4) list = (faqQuestions || []).filter(Boolean).slice(0, 3).map(function (q) { return [q.length > 22 ? q.slice(0, 21) + '…' : q, q]; });
+    DEFAULT_SCENARIOS.forEach(function (item) { if (list.length < 3 && !list.some(function (own) { return own[1] === item[1]; })) list.push(item); });
+    return list.slice(0, 3);
+  }
+  function syncStepScenarios(form, current) {
+    var buttons = document.querySelectorAll('[data-lana-scenario]');
+    if (!buttons.length) return;
+    var faq = Array.prototype.map.call(form.querySelectorAll('[data-faq-list] [name="faq_question"]'), function (el) { return String(el.value || '').trim(); });
+    var list = stepScenarios(current, faq);
+    buttons.forEach(function (button, index) {
+      var item = list[index] || DEFAULT_SCENARIOS[index];
+      button.textContent = item[0]; button.dataset.lanaScenario = item[1];
+    });
+  }
+  function readinessMarkup(form) {
+    var changes = diffTraining(state.published, trainingFromForm());
+    var count = changes ? changes.reduce(function (n, g) { return n + g.items.length; }, 0) : 0;
+    var html = '<h3>Cambios sin publicar</h3>';
+    if (!changes) html += '<p class="connections-fieldset-help">Aún no hay una versión publicada: todo lo que escribiste es nuevo.</p>';
+    else if (!count) html += '<p class="connections-fieldset-help">Nada ha cambiado desde la última versión publicada.</p>';
+    else html += '<ul class="connections-train-changes">' + changes.map(function (g) { return '<li><strong>' + escapeHtml(g.section) + '</strong><small>' + g.items.map(escapeHtml).join(' · ') + '</small></li>'; }).join('') + '</ul>';
+    var items = readinessItems({ connected: Boolean(state.status && state.status.connected), channels: (state.channels || []).filter(function (c) { return c && c.connected; }).length, branches: (state.clinicBranches || []).length, previewTurns: (state.previewHistory || []).length, published: Boolean(state.publishedVersion && state.published), changes: count });
+    var ready = items.every(function (item) { return item.done; });
+    html += '<h3>Listo para atender pacientes</h3><p class="connections-fieldset-help" data-ready-summary data-state="' + (ready ? 'ready' : 'pending') + '">' + (ready ? 'Todo listo: tu asistente puede atender pacientes.' : 'Faltan ' + items.filter(function (i) { return !i.done; }).length + ' cosas para atender pacientes.') + '</p><ul data-ready-list>' +
+      items.map(function (item) { return '<li data-state="' + (item.done ? 'done' : 'pending') + '"><span aria-hidden="true">' + (item.done ? '✓' : '!') + '</span><div><strong>' + item.label + '</strong>' + (item.done ? '' : '<small>' + item.hint + '</small>') + '</div></li>'; }).join('') + '</ul>';
+    return html;
+  }
   function goTrainingStep(key) {
     var form = document.querySelector('[data-lana-training-form]');
     if (!form) return;
@@ -785,12 +976,15 @@
     });
     var info = TRAIN_STEPS[current - 1], intro = document.querySelector('[data-train-intro]');
     if (intro) intro.innerHTML = '<span>Paso ' + current + ' de ' + TRAIN_STEPS.length + '</span><strong>' + info.title + '</strong><p>' + info.hint + '</p>';
+    syncStepScenarios(form, current);
+    var testPanel = document.querySelector('[data-step-test]');
+    if (testPanel && current === 6 && !state.stepTestShown) { state.stepTestShown = true; if (!(state.previewHistory || []).length) testPanel.open = true; }
     var review = form.querySelector('[data-train-review]');
     if (review) {
       review.innerHTML = '<h3>Antes de publicar</h3><ul>' + TRAIN_STEPS.slice(0, 5).map(function (step) {
         var done = trainingStepDone(step.key, form);
         return '<li data-state="' + (done ? 'done' : 'pending') + '"><span aria-hidden="true">' + (done ? '✓' : '!') + '</span><div><strong>' + step.title + '</strong><small>' + (done ? 'Listo' : 'Falta información en este paso') + '</small></div><button type="button" data-train-go="' + step.key + '">' + (done ? 'Editar' : 'Completar') + '</button></li>';
-      }).join('') + (multiBranchNotes(form)) + '</ul>';
+      }).join('') + (multiBranchNotes(form)) + '</ul>' + (current === 6 ? readinessMarkup(form) : '');
     }
     var back = form.querySelector('[data-train-back]'), next = form.querySelector('[data-train-next]');
     if (back) { back.hidden = current === 1; back.disabled = false; }
@@ -804,6 +998,19 @@
       var legend = fieldset.querySelector('legend'), key = legend && TRAIN_FIELD_STEP[legend.textContent.trim()];
       if (key) fieldset.dataset.trainStep = String(key);
     });
+    var hoursField = form.elements.hours && form.elements.hours.closest('label');
+    if (hoursField) {
+      var tools = node('div', 'full connections-branch-tools');
+      var importHours = node('button', 'btn btn-secondary', 'Traer ubicación y horarios'); importHours.type = 'button'; importHours.dataset.importHours = 'true';
+      var hoursNote = node('p', 'connections-fieldset-help connections-import-note'); hoursNote.dataset.hoursSync = 'true'; hoursNote.setAttribute('aria-live', 'polite');
+      tools.append(importHours, hoursNote); hoursField.after(tools);
+    }
+    var preview = document.querySelector('.connections-preview');
+    if (preview && !document.querySelector('[data-step-test]')) {
+      var test = node('details', 'connections-step-test'); test.dataset.stepTest = 'true';
+      var summary = node('summary'); summary.append(node('strong', '', 'Probar tu asistente con lo que llevas'), node('small', '', 'Usa el borrador actual en cualquier paso; no se envía nada a pacientes.'));
+      form.after(test); test.append(summary, preview);
+    }
     var guard = form.querySelector('.connections-context-guard'); if (guard) guard.dataset.trainStep = '5';
     var validation = form.querySelector('[data-training-validation]'); if (validation) validation.dataset.trainStep = '6';
     var review = node('div', 'connections-train-review'); review.dataset.trainReview = 'true'; review.dataset.trainStep = '6';
@@ -820,6 +1027,8 @@
     var next = node('button', 'btn btn-primary', 'Continuar →'); next.type = 'button'; next.dataset.trainNext = 'true'; next.dataset.trainNav = 'true';
     if (actions) { actions.prepend(back); actions.querySelector('[data-save-training]').after(next); }
     root.addEventListener('click', function (event) {
+      if (event.target.closest && event.target.closest('[data-import-services]')) { importServicesFromClinic(); return; }
+      if (event.target.closest && event.target.closest('[data-import-hours]')) { importLocationHours(); return; }
       var go = event.target.closest && event.target.closest('[data-train-go]');
       if (go) { goTrainingStep(go.dataset.trainGo); return; }
       if (event.target.closest && event.target.closest('[data-train-back]')) goTrainingStep((state.trainStep || 1) - 1);
@@ -1113,6 +1322,7 @@
     if (input) input.value = '';
     previewStatus('', '');
     renderPreview();
+    updateTrainingSteps();
   }
 
   async function sendPreview(event) {
@@ -1132,7 +1342,7 @@
       input.value = ''; renderPreview(); previewStatus('El asistente está preparando una respuesta privada…', '');
       var data = await trainingRequest('POST', 'preview', { message: message, history: historyForRequest, mode: mode });
       state.previewHistory.push({ role: 'assistant', content: data.reply || 'No se recibió una respuesta.', requiresHuman: Boolean(data.requires_human) });
-      renderPreview(); previewStatus((data.requires_human ? 'El asistente escalaría este caso a una persona. ' : '') + (mode === 'draft' ? 'Respuesta generada con el borrador r' + data.config_version + '.' : 'Respuesta generada con la versión publicada ' + data.config_version + '.'), 'success');
+      renderPreview(); updateTrainingSteps(); previewStatus((data.requires_human ? 'El asistente escalaría este caso a una persona. ' : '') + (mode === 'draft' ? 'Respuesta generada con el borrador r' + data.config_version + '.' : 'Respuesta generada con la versión publicada ' + data.config_version + '.'), 'success');
     } catch (error) {
       if (state.previewHistory[state.previewHistory.length - 1] && state.previewHistory[state.previewHistory.length - 1].role === 'user') state.previewHistory.pop();
       renderPreview(); input.value = message; previewStatus(error.message || 'No se pudo probar la respuesta.', 'error');

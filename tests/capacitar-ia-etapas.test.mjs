@@ -11,7 +11,7 @@ test('capacitar IA: 6 etapas que reparten los bloques del formulario existente',
   assert.match(js, /initTrainingSteps\(page\);/);
 });
 test('capacitar IA: avance por etapa según lo capturado y resumen antes de publicar', () => {
-  const fn = new Function(js.match(/function hasPlaceholders\(value\) \{[^\n]*\n/)[0] + js.match(/function trainingStepDone\(key, form\) \{[\s\S]*?\n  \}\n/)[0] + ';return trainingStepDone;')();
+  const fn = new Function(js.match(/function hasPlaceholders\(value\) \{[^\n]*\n/)[0] + js.match(/function trainingStepDone\(key, form\) \{[\s\S]*?\r?\n  \}\r?\n/)[0] + ';return trainingStepDone;')();
   const make = (values, services = 0, faqs = 0) => ({
     elements: Object.fromEntries(Object.entries(values).map(([k, v]) => [k, { value: v }])),
     querySelectorAll: (selector) => (selector.includes('textarea') ? [] : { length: selector.includes('service') ? services : selector.includes('faq') ? faqs : 0 }),

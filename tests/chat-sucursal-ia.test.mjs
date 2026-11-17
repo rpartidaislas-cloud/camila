@@ -51,9 +51,9 @@ test('lana-inbox: deduce la sucursal del último mensaje del paciente y no pisa 
 });
 test('entrenamiento: «Traer mis sucursales» y la instrucción de preguntar la sede, solo con varias sucursales', () => {
   const pure = new Function(
-    con.match(/var ASK_BRANCH_LINE = [^\n]*\n/)[0] + con.match(/var DAY_SHORT = [^\n]*\n/)[0] +
-    con.match(/function hourLabel\(value\)[^\n]*\n/)[0] + con.match(/function hoursSummary\(rows\) \{[\s\S]*?\n  \}\n/)[0] +
-    con.match(/function branchesDescription\(branches, hours, team\) \{[\s\S]*?\n  \}\n/)[0] + con.match(/function branchesSyncState\(current, fresh\) \{[\s\S]*?\n  \}\n/)[0] + con.match(/function setAskBranchLine\(text, on\) \{[\s\S]*?\n  \}\n/)[0] +
+    con.match(/var ASK_BRANCH_LINE = [^\n]*\r?\n/)[0] + con.match(/var DAY_SHORT = [^\n]*\r?\n/)[0] +
+    con.match(/function hourLabel\(value\)[^\n]*\r?\n/)[0] + con.match(/function hoursSummary\(rows\) \{[\s\S]*?\r?\n  \}\r?\n/)[0] +
+    con.match(/function branchesDescription\(branches, hours, team\) \{[\s\S]*?\r?\n  \}\r?\n/)[0] + con.match(/function branchesSyncState\(current, fresh\) \{[\s\S]*?\r?\n  \}\r?\n/)[0] + con.match(/function setAskBranchLine\(text, on\) \{[\s\S]*?\r?\n  \}\r?\n/)[0] +
     ';return {ASK_BRANCH_LINE, hoursSummary, branchesDescription, branchesSyncState, setAskBranchLine};')();
   const hours = [1, 2, 3, 4, 5].map((w) => ({ branch_id: 'a', weekday: w, starts_at: '09:00:00', ends_at: '18:00:00' })).concat([{ branch_id: 'a', weekday: 6, starts_at: '09:00:00', ends_at: '14:00:00' }]);
   assert.equal(pure.hoursSummary(hours), 'Lun–Vie 9:00–18:00; Sáb 9:00–14:00');

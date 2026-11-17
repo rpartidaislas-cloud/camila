@@ -81,10 +81,10 @@ test('Cotizaciones: los indicadores muestran importes y las cotizaciones sin res
 function followupFns() {
   const src = read('smyl-proposals.js');
   const code = [
-    src.match(/function quoteAge\(iso\)\{[^\n]*\n/)[0], src.match(/function quoteAgeLabel\(d\)\{[^\n]*\n/)[0],
-    src.match(/var QUOTE_TIERS=\[3,7,15\],quoteFollowups=new Map\(\);\n/)[0],
-    src.match(/function quoteFollowupState\(stageKey,event,followups\)\{[\s\S]*?\n  \}\n/)[0],
-    src.match(/function quoteNeedsAttention\(stageKey,fu\)\{[^\n]*\n/)[0],
+    src.match(/function quoteAge\(iso\)\{[^\n]*\r?\n/)[0], src.match(/function quoteAgeLabel\(d\)\{[^\n]*\r?\n/)[0],
+    src.match(/var QUOTE_TIERS=\[3,7,15\],quoteFollowups=new Map\(\);\r?\n/)[0],
+    src.match(/function quoteFollowupState\(stageKey,event,followups\)\{[\s\S]*?\r?\n  \}\r?\n/)[0],
+    src.match(/function quoteNeedsAttention\(stageKey,fu\)\{[^\n]*\r?\n/)[0],
   ].join('\n');
   return new Function(code + ';return {quoteFollowupState,quoteNeedsAttention};')();
 }
