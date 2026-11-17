@@ -648,6 +648,92 @@
     });
   }
 
+  // Ejemplos: texto de una clínica dental típica para cada campo difícil. Lo que va entre [corchetes] hay que completarlo con datos reales.
+  var TRAIN_EXAMPLES = {
+    welcome_message: 'Hola, soy el asistente virtual de [nombre de la clínica]. Puedo resolver dudas sobre servicios, horarios y ubicación, y ayudarte a dar el siguiente paso con nuestro equipo. ¿En qué te ayudo?',
+    clinic_description: 'Somos una clínica dental en [ciudad] enfocada en [odontología general, ortodoncia y estética dental]. Nos distinguimos por explicar cada tratamiento con claridad, cuidar la comodidad del paciente y dar seguimiento después de cada visita.',
+    specialties: 'Odontología general, limpieza dental, resinas, endodoncia, ortodoncia y estética dental. [Quita o agrega según lo que realmente ofrezcas].',
+    access_info: 'La clínica está en [calle y número, colonia]. Hay estacionamiento [en la calle / propio / cercano]. El acceso es [a nivel de calle / por elevador] y [sí / no] contamos con acceso para silla de ruedas.',
+    minor_policy: 'Los menores de edad deben venir acompañados por su madre, padre o tutor, quien firma el consentimiento. Para agendar una cita de un menor, pedimos el nombre del tutor y un teléfono de contacto.',
+    scheduling_rules: 'Las citas se agendan con [24 horas] de anticipación. La valoración inicial dura aproximadamente [30 minutos]. Confirmamos la cita por mensaje el día anterior. Para mover una cita, avisar con al menos [12 horas].',
+    approved_promotions: '[Describe solo promociones vigentes, por ejemplo: «Limpieza dental con valoración sin costo en [mes]. Vigente hasta el [fecha]»]. Si no hay promociones, deja este campo vacío.',
+    attention_objective: 'Resolver dudas básicas del paciente, orientarlo sobre servicios y horarios, y ayudarlo a agendar una valoración. Cuando el caso requiera criterio clínico, pasarlo con el equipo.',
+    appointment_policy: 'Para agendar pide nombre completo, teléfono, servicio de interés y horario preferido, una o dos preguntas por mensaje. No confirmes la cita por tu cuenta: ofrece los horarios disponibles y pasa los datos al equipo para confirmarla.',
+    cancellation_policy: 'Pedimos avisar con al menos [12 horas] de anticipación para cancelar o mover una cita. Si no se avisa y el paciente no asiste, el equipo revisa cada caso; no prometas cobros ni exenciones.',
+    pricing_policy: 'Solo comparte los precios que aparecen en la lista de servicios y aclara que son de referencia. El costo final lo define el profesional después de valorar al paciente. Nunca inventes ni redondees importes.',
+    payment_policy: 'Aceptamos [efectivo, transferencia y tarjeta]. Algunos tratamientos pueden pagarse en [parcialidades]; el equipo confirma las condiciones. No pidas datos bancarios por este chat.',
+    invoice_policy: 'La factura se solicita al equipo dentro del mes de la consulta, con [constancia de situación fiscal y uso de CFDI]. Nunca pidas contraseñas ni documentos completos por este chat.',
+    insurance_policy: '[Indica si trabajas con seguros o reembolsos]. Si el paciente pregunta por su seguro, explica que el equipo revisa la cobertura y que no puedes asegurar reembolsos.',
+    followup_policy: 'Después de un tratamiento podemos escribir al paciente para preguntar cómo se siente y recordarle su siguiente cita. Respeta si pide no recibir mensajes.',
+    intake_questions: 'Nombre completo, tratamiento de interés, horario preferido y sucursal. Una o dos preguntas por mensaje; no pidas historial clínico detallado por chat.',
+    emergency_policy: 'Si el paciente describe dolor intenso, inflamación en cara o cuello, sangrado abundante, fiebre o dificultad para respirar, indícale que llame de inmediato a la clínica al [teléfono] o acuda a urgencias, y avisa al equipo. No des diagnósticos ni recetes medicamentos.',
+    handoff_rules: 'Pasa la conversación a una persona cuando el paciente lo pida, cuando hable de síntomas o dolor, cuando haya una queja, cuando pregunte por cobros o facturas específicas, o cuando no tengas la información confirmada.',
+    human_response_policy: 'Nuestro equipo responde de [lunes a viernes de 9:00 a 18:00]. Fuera de ese horario, el asistente avisa que el mensaje quedó registrado y que lo atenderán a la brevedad.',
+    allowed_memory: 'Nombre del paciente, servicio de interés, sucursal elegida y horario preferido, para no volver a preguntarlos en la conversación.',
+    prohibited_memory: 'Datos de salud, diagnósticos, medicamentos, datos bancarios, contraseñas y documentos de identidad.'
+  };
+  var TRAIN_FAQ_EXAMPLES = [
+    { q: '¿Cuáles son sus horarios?', a: 'Atendemos [días] de [hora] a [hora]. Si necesitas otro horario, el equipo te ayuda a revisar opciones.' },
+    { q: '¿Cuánto cuesta una valoración?', a: 'La valoración inicial cuesta [monto]. En ella el profesional revisa tu caso y te explica el plan y su costo.' },
+    { q: '¿Dónde están ubicados?', a: 'Estamos en [dirección]. [Indica referencias y estacionamiento].' },
+    { q: '¿Qué formas de pago aceptan?', a: 'Aceptamos [efectivo, transferencia y tarjeta]. El equipo te confirma si el tratamiento permite pagos parciales.' },
+    { q: '¿Puedo llevar a mi hijo o hija?', a: 'Sí, atendemos niños y niñas. Deben venir acompañados por su madre, padre o tutor.' }
+  ];
+  function hasPlaceholders(value) { return /\[[^\]]{2,}\]/.test(String(value || '')); }
+  function trainingPlaceholders(form) {
+    var found = [];
+    Object.keys(TRAIN_EXAMPLES).concat(['clinic_description', 'specialties']).forEach(function (name) { if (form.elements[name] && hasPlaceholders(form.elements[name].value) && found.indexOf(name) === -1) found.push(name); });
+    form.querySelectorAll('.connections-repeat-row textarea, .connections-repeat-row input').forEach(function (control) { if (hasPlaceholders(control.value) && found.indexOf('rows') === -1) found.push('rows'); });
+    return found;
+  }
+  function initTrainingExamples(root) {
+    var form = root.querySelector('[data-lana-training-form]');
+    if (!form || form.dataset.examplesReady) return;
+    form.dataset.examplesReady = 'true';
+    Object.keys(TRAIN_EXAMPLES).forEach(function (name) {
+      var field = form.elements[name], label = field && field.closest('label');
+      if (!label) return;
+      var wrap = node('div', 'connections-example-wrap'); wrap.dataset.exampleFor = name;
+      var open = node('button', 'connections-example-link', 'Ver ejemplo'); open.type = 'button'; open.dataset.exampleOpen = name;
+      var box = node('div', 'connections-example-box'); box.hidden = true;
+      var text = node('p', '', TRAIN_EXAMPLES[name]);
+      var use = node('button', 'btn btn-secondary', 'Usar este ejemplo'); use.type = 'button'; use.dataset.exampleUse = name;
+      var close = node('button', 'connections-example-link', 'Cerrar'); close.type = 'button'; close.dataset.exampleClose = name;
+      var note = node('small', '', hasPlaceholders(TRAIN_EXAMPLES[name]) ? 'Reemplaza lo que está entre [corchetes] con los datos reales de tu clínica antes de publicar.' : 'Es una guía: edítalo para que suene a tu clínica.');
+      box.append(text, note, node('div', 'connections-example-actions')); box.lastChild.append(use, close);
+      wrap.append(open, box); label.after(wrap);
+    });
+    var faqAdd = form.querySelector('[data-add-faq]');
+    if (faqAdd) {
+      var faqExamples = node('button', 'connections-example-link', 'Agregar preguntas de ejemplo'); faqExamples.type = 'button'; faqExamples.dataset.faqExamples = 'true';
+      faqAdd.after(faqExamples);
+    }
+    form.addEventListener('click', function (event) {
+      var target = event.target.closest && event.target.closest('[data-example-open],[data-example-use],[data-example-close],[data-faq-examples]');
+      if (!target) return;
+      if (target.dataset.faqExamples) {
+        var list = form.querySelector('[data-faq-list]'), current = collectRepeatRows('[data-faq-list]', 'faq');
+        var missing = TRAIN_FAQ_EXAMPLES.filter(function (example) { return !current.some(function (row) { return row.question === example.q; }); }).slice(0, Math.max(0, 20 - current.length));
+        if (!missing.length || !list) return;
+        var rows = current.concat(missing.map(function (example) { return { id: undefined, question: example.q, answer: example.a }; }));
+        renderRepeatRows('[data-faq-list]', 'faq', rows);
+        markTrainingDirty(); updateTrainingSteps();
+        contextStatus('Agregamos ' + missing.length + ' preguntas de ejemplo. Completa lo que está entre [corchetes].', '');
+        return;
+      }
+      var name = target.dataset.exampleOpen || target.dataset.exampleUse || target.dataset.exampleClose;
+      var wrap = form.querySelector('[data-example-for="' + name + '"]'), box = wrap && wrap.querySelector('.connections-example-box');
+      if (!box) return;
+      if (target.dataset.exampleOpen) { box.hidden = !box.hidden; return; }
+      if (target.dataset.exampleClose) { box.hidden = true; return; }
+      var field = form.elements[name];
+      if (String(field.value || '').trim() && !window.confirm('Esto reemplaza lo que ya escribiste en este campo. ¿Usar el ejemplo?')) return;
+      field.value = TRAIN_EXAMPLES[name];
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+      box.hidden = true; field.focus();
+    });
+  }
+
   // Capacitar IA por etapas: el mismo formulario se reparte en 6 pasos; cada paso muestra solo lo suyo y su avance.
   var TRAIN_STEPS = [
     { key: 1, title: 'Identidad', hint: 'Cómo se llama y cómo habla tu asistente.' },
@@ -659,12 +745,12 @@
   ];
   var TRAIN_FIELD_STEP = { 'Identidad y voz': 1, 'La clínica': 2, 'Sucursales y operación': 3, 'Servicios confirmados': 3, 'Preguntas frecuentes': 4, 'Flujo de atención': 5, 'Memoria administrativa': 5 };
   function trainingStepDone(key, form) {
-    var filled = function (name) { return Boolean(form.elements[name] && String(form.elements[name].value || '').trim()); };
+    var filled = function (name) { return Boolean(form.elements[name] && String(form.elements[name].value || '').trim() && !hasPlaceholders(form.elements[name].value)); };
     var rows = function (selector) { return form.querySelectorAll(selector + ' .connections-repeat-row').length; };
     if (key === 1) return filled('assistant_name') && filled('welcome_message');
     if (key === 2) return filled('clinic_description') && filled('specialties') && (filled('location') || filled('hours'));
     if (key === 3) return filled('branches') || rows('[data-service-list]') > 0;
-    if (key === 4) return rows('[data-faq-list]') > 0;
+    if (key === 4) return rows('[data-faq-list]') > 0 && !Array.prototype.some.call(form.querySelectorAll('[data-faq-list] textarea, [data-faq-list] input'), function (control) { return hasPlaceholders(control.value); });
     if (key === 5) return filled('appointment_policy') && filled('pricing_policy') && filled('emergency_policy');
     return false;
   }
@@ -681,6 +767,7 @@
     var form = document.querySelector('[data-lana-training-form]');
     if (!form) return;
     state.trainStep = Math.max(1, Math.min(TRAIN_STEPS.length, Number(key) || 1));
+    if (state.dirty) scheduleTrainingAutosave(true);
     updateTrainingSteps();
     var top = document.querySelector('[data-train-steps]');
     if (top && top.scrollIntoView) top.scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -850,6 +937,8 @@
 
   function markTrainingDirty() {
     state.dirty = true;
+    state.editSeq = (state.editSeq || 0) + 1;
+    scheduleTrainingAutosave();
     state.validation = null;
     renderValidation(null);
     renderTrainingMeta();
@@ -866,25 +955,56 @@
 
   async function saveTrainingDraft(showSuccess) {
     if (!state.dirty && state.draftRevision > 0) return state.training;
+    var seq = state.editSeq || 0;
+    state.savingDraft = true;
     var button = document.querySelector('[data-save-training]');
     if (button) button.disabled = true;
     contextStatus('Guardando borrador…', '');
     try {
       var training = trainingFromForm();
       var data = await trainingRequest('PUT', 'draft', { training: training, expected_revision: state.draftRevision });
-      state.training = data.draft || training; state.draftRevision = Number(data.draft_revision); state.dirty = false; renderValidation(null); resetPreview(); renderTrainingMeta();
+      state.training = data.draft || training; state.draftRevision = Number(data.draft_revision); state.dirty = (state.editSeq || 0) !== seq; renderValidation(null); resetPreview(); renderTrainingMeta();
       if (showSuccess !== false) contextStatus('Borrador guardado. Todavía no cambia las respuestas a pacientes.', 'success');
       return state.training;
     } catch (error) {
       contextStatus(error.message, 'error');
       throw error;
     } finally {
+      state.savingDraft = false;
       if (button) button.disabled = !state.status || !state.status.connected || !state.status.can_manage;
+      if (state.dirty) scheduleTrainingAutosave();
     }
+  }
+
+  // Guardado automático: unos segundos después de dejar de escribir (y al cambiar de etapa) se guarda el borrador, nunca la publicación.
+  var AUTOSAVE_MS = 4000;
+  function canAutosaveTraining() { return Boolean(state.status && state.status.connected && state.status.can_manage && state.trainingLoaded); }
+  function scheduleTrainingAutosave(immediate) {
+    if (!canAutosaveTraining()) return;
+    clearTimeout(state.autosaveTimer);
+    state.autosaveTimer = setTimeout(runTrainingAutosave, immediate ? 200 : AUTOSAVE_MS);
+  }
+  async function runTrainingAutosave() {
+    if (!state.dirty || state.savingDraft || state.autosaveFailed || !canAutosaveTraining()) return;
+    try {
+      await saveTrainingDraft(false);
+      var now = new Date(), hh = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      if (!state.dirty) contextStatus('Guardado automáticamente a las ' + hh + '. Todavía no cambia las respuestas a pacientes.', 'success');
+    } catch (_) {
+      state.autosaveFailed = true;
+      contextStatus('No se pudo guardar automáticamente. Usa «Guardar borrador» para reintentar.', 'error');
+    }
+  }
+  function initTrainingAutosave() {
+    window.addEventListener('beforeunload', function (event) {
+      if (!state.dirty || !canAutosaveTraining()) return;
+      event.preventDefault(); event.returnValue = '';
+    });
   }
 
   async function saveTraining(event) {
     event.preventDefault();
+    state.autosaveFailed = false;
     try { await saveTrainingDraft(true); } catch (error) {}
   }
 
@@ -911,6 +1031,8 @@
     try {
       var validation = await runValidation();
       if (!validation.valid) return;
+      var pending = trainingPlaceholders(document.querySelector('[data-lana-training-form]'));
+      if (pending.length && !window.confirm('Todavía hay textos de ejemplo con [corchetes] sin completar. El asistente podría repetirlos a los pacientes. ¿Publicar de todas formas?')) return;
       if (!window.confirm('¿Publicar esta capacitación? La versión publicada comenzará a usarse en las respuestas nuevas del asistente a pacientes.')) return;
       contextStatus('Publicando la nueva versión…', '');
       var data = await trainingRequest('POST', 'publish', { expected_revision: state.draftRevision }, mutationKey());
@@ -1146,6 +1268,8 @@
     document.querySelector('.contenido').append(page);
     bindBranchTools(page);
     initTrainingSteps(page);
+    initTrainingExamples(page);
+    initTrainingAutosave();
     loadClinicBranches();
     page.querySelector('[data-lana-form]').addEventListener('submit', connect);
     page.querySelector('[data-provision-lana]').addEventListener('click', provision);
