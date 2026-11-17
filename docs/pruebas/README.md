@@ -6,6 +6,8 @@ Datos ficticios para probar Agenda, Mensajes y el asistente sin tocar pacientes 
 |---|---|
 | `equipo-de-prueba.sql` | Crea las sucursales, sillones, dentistas, horarios y servicios. Se puede correr varias veces. |
 | `equipo-de-prueba-limpiar.sql` | Lo borra todo (solo lo que tiene id `7e57…` de esa clínica). |
+| `pacientes-y-citas-de-prueba.sql` | **Después del equipo:** 30 pacientes ficticios, 4 bloqueos y ~300 citas de los 14 días anteriores y los 14 siguientes. Repetible. |
+| `pacientes-y-citas-de-prueba-limpiar.sql` | Borra esos pacientes, citas y bloqueos (córrelo ANTES de `equipo-de-prueba-limpiar.sql`). |
 | `organizacion-del-equipo.html` | Ábrelo en el navegador: horario semanal por sucursal, quién hace cada servicio y las reglas de disponibilidad. |
 
 ## Cómo usarlo
@@ -17,6 +19,15 @@ Datos ficticios para probar Agenda, Mensajes y el asistente sin tocar pacientes 
 5. Cuando termines: `equipo-de-prueba-limpiar.sql` con el mismo id. Si una sucursal o dentista ya tiene cobros, caja, notas clínicas o inventario, **se desactiva en vez de borrarse**.
 
 La clínica nueva trae su propia sucursal («Clínica principal»); queda como cuarta sucursal sin dentistas.
+
+## Pacientes y citas de prueba
+
+Corre `pacientes-y-citas-de-prueba.sql` en la misma clínica **después** de `equipo-de-prueba.sql` (mismo id). Las citas respetan las reglas reales (horario de sucursal y dentista, servicio que hace, sillón libre, bloqueos, sin empalmar al paciente); donde no cabe una, no se crea, así que Plaza Sol (un solo sillón) se ve más saturada. Las pasadas quedan terminadas, con algunas «No vino» y canceladas; las futuras, confirmadas.
+
+- **No crea recordatorios**: nadie recibe mensajes. Los teléfonos son falsos (`3300001xxx`) y los correos `@ejemplo.invalid`.
+- Se calcula a partir de hoy: si lo vuelves a correr otro día, agrega los días nuevos y conserva lo anterior.
+- Con la agenda llena puedes probar: el calendario de «Agendar cita» con días de pocos/ningún horario, el tablero de «Nueva cita» explicando por qué un dentista no está libre (sillón, bloqueo, cita), el día con vacaciones de la Dra. Valeria (a 10–12 días), la junta del Dr. Andrés y el mantenimiento del sillón de Plaza Sol, y cancelar o reagendar citas.
+- Para borrar: `pacientes-y-citas-de-prueba-limpiar.sql` y luego `equipo-de-prueba-limpiar.sql`.
 
 ## Qué probar (todo comprobado con la regla real de disponibilidad)
 
@@ -32,7 +43,6 @@ En «Agendar cita» del chat, con el servicio indicado:
 
 ## Para probar después (no incluido aquí)
 
-- **Pacientes ficticios y citas.** Para ver el calendario con carga real y la saturación de sillones.
-- **Bloqueos** (vacaciones, junta) y **cancelar / reagendar**.
+- **Cancelar / reagendar** citas ya creadas y crear bloqueos nuevos desde la Agenda.
 - **Permisos por sucursal.** Un usuario de recepción con alcance a una sola sucursal debe ver solo los chats y citas de la suya.
 - **Precios por sucursal, inventario por sucursal y recordatorios.** Para los recordatorios usa solo tu propio número.
