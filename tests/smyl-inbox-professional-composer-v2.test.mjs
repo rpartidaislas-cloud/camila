@@ -14,13 +14,14 @@ test('el compositor profesional reúne escritura, herramientas y envío en una s
   assert.match(css, /\.smyl-inbox-composer textarea\s*\{[^}]*border:\s*0/);
 });
 
-test('las acciones frecuentes quedan visibles y las secundarias viven en un menú anclado', () => {
-  for (const marker of ['data-compose-attach', 'data-compose-quick', 'data-compose-emoji', 'data-compose-copilot', 'data-compose-send']) {
+test('todas las herramientas presentes y futuras viven bajo un único lanzador', () => {
+  for (const marker of ['data-compose-copilot', 'data-compose-send', 'data-compose-more']) {
     assert.equal((inbox.match(new RegExp(marker, 'g')) || []).length >= 1, true, marker);
   }
-  for (const marker of ['data-compose-template', 'data-compose-schedule', 'data-compose-record', 'data-compose-location']) {
+  for (const marker of ['data-compose-attach', 'data-compose-quick', 'data-compose-emoji', 'data-compose-template', 'data-compose-schedule', 'data-compose-record', 'data-compose-location']) {
     assert.match(inbox, new RegExp(`<button[^>]+${marker}[^>]+role="menuitem"`));
   }
+  assert.match(inbox, /smyl-inbox-compose-primary"><button[^>]+data-compose-more[^>]*>[\s\S]*?<\/button><\/div><input type="file"/);
   assert.match(inbox, /data-compose-more[^>]+aria-haspopup="menu"/);
   assert.match(inbox, /data-compose-tools[^>]+role="menu"[^>]+hidden/);
   assert.match(inbox, /data-compose-tools[^\n]+addEventListener\('keydown'[\s\S]*menuKeydown/);
@@ -32,7 +33,7 @@ test('los controles usan iconos vectoriales accesibles y no glifos sueltos', () 
   assert.match(inbox, /function composeIcon\(name\)/);
   assert.match(inbox, /<svg class="smyl-inbox-compose-icon"[^>]+aria-hidden="true"/);
   assert.doesNotMatch(inbox, /data-compose-more[^>]*>\+<\/button>/);
-  for (const label of ['Adjuntar archivo', 'Respuesta rápida', 'Agregar emoji', 'Más herramientas', 'Sugerir con MILA']) {
+  for (const label of ['Adjuntar archivo', 'Respuesta rápida', 'Agregar emoji', 'Abrir herramientas de mensaje', 'Sugerir con MILA']) {
     assert.match(inbox, new RegExp(`aria-label="${label}"`));
   }
 });
@@ -48,7 +49,7 @@ test('la ventana vencida de WhatsApp ofrece una sola acción de plantilla sin du
   assert.match(css, /\.smyl-inbox-composer\[data-mode="template"\] \.smyl-inbox-send > span\s*\{[^}]*position:\s*static/);
 });
 
-test('Más sólo aparece con herramientas disponibles y el foco evita controles ocultos', () => {
+test('Herramientas sólo aparece con opciones disponibles y el foco evita controles ocultos', () => {
   const whatsapp = inbox.slice(inbox.indexOf('function renderWhatsappWindow()'), inbox.indexOf('async function loadTemplates()'));
   const focus = inbox.slice(inbox.indexOf('function focusComposer()'), inbox.indexOf('function openPatientContext('));
   const toggle = inbox.slice(inbox.indexOf('function toggleComposerTools()'), inbox.indexOf('function renderThreadHeader()'));

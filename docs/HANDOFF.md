@@ -11445,6 +11445,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **PENDIENTE / a decidir (importante):** el modelo actual es «cada clínica trae su propia cuenta y llave de Facturapi». Para un SaaS con muchas clínicas, lo habitual es una cuenta de plataforma en Facturapi que crea una **organización por clínica** y recibe su CSD (e.firma) por API; eso requiere una llave de plataforma en el servidor y manejar archivos `.cer/.key` + contraseña (sin guardarlos en SMYL). No está hecho; falta además el **timbrado** (borrador → CFDI) y producción (la tabla solo permite `environment='test'`).
 - **Archivos:** `smyl-finance.js` v48, `smyl-finance.css` v35, `smyl-settings-hub.js` v8, `app.html`, `sw.js` (caché `…-facturacion-configuracion-v1`), copias en `mobile/www/`. Pruebas: `tests/billing-setup.test.mjs` (5), humo de navegador `tests/qa/facturacion-configuracion-smoke.cjs` (13 comprobaciones a 1280/834/390 px); se actualizaron `smyl-settings-hub.test.mjs` y `smyl-finance-tabs-v2.test.mjs`.
 
+## 2026-11-17 — Codex — Mensajes v6: caja única de herramientas
+
+- `Adjuntar`, `Respuesta rápida` y `Emoji` dejan de ocupar tres controles permanentes. Se integran con Plantilla, Programar, Nota de voz y Ubicación dentro de un único botón `Herramientas`, preparado para crecer sin ensanchar el compositor.
+- El menú presenta icono, nombre y descripción; oculta herramientas que el canal o el permiso no permiten y mantiene navegación por teclado, Escape, cierre exterior y devolución de foco.
+- `Sugerir con MILA` y `Enviar` permanecen visibles por ser las dos acciones principales. La Ficha 360 continúa como contexto del paciente, independiente de las herramientas del mensaje.
+- Versiones: `smyl-inbox.js?v=61`, `smyl-inbox.css?v=52`, caché `inbox-toolbox-v6`; web y PWA se sincronizan desde la misma fuente.
+
 ## 2026-11-17 — Claude Code — Ficha 360 v4: cuatro bloques plegables, sin pestañas
 - **Qué cambia:** la Ficha 360 del chat deja 7 pestañas (Resumen, Citas, Archivos, Cobros, Clínico, Historial, Atención) y pasa a **4 bloques plegables en orden fijo**: Resumen de la conversación (IA, **opcional**), Cuenta, Citas, Archivos. Cerrados muestran su dato clave («$1,200 pendiente», «Próx: jue 19 nov · 10:00», «2 archivos»). El expediente queda como atajo «Expediente ↗» en las acciones (Agendar cita · Cobrar · Expediente).
 - **Resumen IA opcional:** ya no se genera solo al abrir la ficha; se muestra el guardado si existe y si no, botón «Resumir conversación». Sin capacitación del asistente se muestra una línea discreta y, solo a administradores, el enlace «Configurar asistente» (se quitó el botón principal «Publicar capacitación»).

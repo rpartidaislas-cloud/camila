@@ -88,12 +88,13 @@ test('las burbujas no repiten Paciente / Equipo de la clínica y Responder / Má
   assert.match(css, /\.smyl-inbox-day\{width:max-content[^}]*border-radius:999px/);
 });
 
-test('el compositor tiene una sola fila de herramientas y el aviso de ventana solo aparece si vence', () => {
+test('el compositor tiene un solo lanzador de herramientas y el aviso de ventana solo aparece si vence', () => {
   assert.match(js, /smyl-inbox-compose-bar" title="El borrador se cifra para esta sesión/);
-  assert.match(js, /data-compose-attach aria-label="Adjuntar archivo"/);
-  assert.match(js, /data-compose-quick aria-label="Respuesta rápida"/);
   assert.match(js, /data-compose-copilot aria-label="Sugerir con MILA"/);
   assert.match(js, /data-compose-more[^>]+aria-haspopup="menu"/);
+  assert.match(js, /data-compose-attach role="menuitem"/);
+  assert.match(js, /data-compose-quick role="menuitem"/);
+  assert.match(js, /data-compose-emoji role="menuitem"/);
   assert.equal((js.match(/data-compose-file accept/g) || []).length, 1);
   assert.match(js, /notice\.hidden = !isWhatsapp \|\| windowState\.status === 'open'/);
 });

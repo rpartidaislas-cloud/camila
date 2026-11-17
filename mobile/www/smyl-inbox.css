@@ -2351,9 +2351,6 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 @media (max-width: 1024px) and (min-width: 769px) {
   .smyl-inbox-patient-summary { max-width: 38%; }
   .smyl-inbox-thread-head { padding-inline: 10px; }
-  .smyl-inbox-compose-primary [data-compose-quick] span,
-  .smyl-inbox-compose-primary [data-compose-emoji] span,
-  .smyl-inbox-compose-primary [data-compose-more] span { display: none; }
 }
 
 @media (max-width: 768px) {
@@ -2443,10 +2440,6 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
     white-space: nowrap;
   }
 
-  .smyl-inbox-compose-primary [data-compose-quick] {
-    display: none;
-  }
-
   .smyl-inbox-compose-bar .smyl-inbox-compose-copilot,
   .smyl-inbox-compose-bar .smyl-inbox-send {
     min-width: 44px;
@@ -2473,8 +2466,6 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 
 @media (max-width: 390px) {
   .smyl-inbox-thread-person span { max-width: 160px; }
-  .smyl-inbox-compose-primary [data-compose-emoji] { display: none; }
-  .smyl-inbox-compose-tools { grid-template-columns: 1fr; width: min(260px, calc(100vw - 24px)); }
 }
 
 /* Keep hover actions compact while preserving a reliable desktop click target. */
@@ -2554,6 +2545,96 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
   #p-inbox.context-docked .smyl-inbox-context {
     background: #FBFCFD;
     box-shadow: -1px 0 0 #E4EAF0, -10px 0 28px rgba(16, 34, 57, .035);
+  }
+}
+
+/* ================================================================
+   Unified Composer Toolbox v6
+   One stable launcher for current and future message tools.
+   ================================================================ */
+
+.smyl-inbox-compose-primary {
+  flex: 0 0 auto;
+}
+
+.smyl-inbox-compose-bar .smyl-inbox-compose-more {
+  min-width: 128px;
+  padding-inline: 12px;
+  border: 1px solid #D8E2E8;
+  background: #F8FAFB;
+  color: #29465B;
+}
+
+.smyl-inbox-compose-bar .smyl-inbox-compose-more:hover:not(:disabled),
+.smyl-inbox-compose-bar .smyl-inbox-compose-more:focus-visible,
+.smyl-inbox-compose-bar .smyl-inbox-compose-more[aria-expanded="true"] {
+  border-color: #A9C8C3;
+  background: #EEF7F5;
+  color: #0F6B63;
+}
+
+.smyl-inbox-compose-tools {
+  width: min(420px, calc(100vw - 48px));
+  max-height: min(420px, calc(100dvh - 150px));
+  gap: 6px;
+  padding: 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.smyl-inbox-compose-tools button {
+  min-height: 60px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+}
+
+.smyl-inbox-compose-tools button:hover:not(:disabled),
+.smyl-inbox-compose-tools button:focus-visible {
+  border-color: #DCE7EA;
+  background: #F3F8F7;
+}
+
+.smyl-inbox-compose-tools button:disabled {
+  display: none;
+}
+
+.smyl-inbox-compose-tools .smyl-inbox-compose-icon {
+  width: 34px;
+  height: 34px;
+  padding: 7px;
+  border-radius: 9px;
+  background: #EDF6F4;
+  color: #0F766E;
+}
+
+.smyl-inbox-compose-tools strong {
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.smyl-inbox-compose-tools small {
+  font-size: 12px;
+  line-height: 17px;
+}
+
+@media (max-width: 768px) {
+  .smyl-inbox-compose-bar .smyl-inbox-compose-more {
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+  }
+
+  .smyl-inbox-compose-tools {
+    width: min(360px, calc(100vw - 24px));
+    max-height: min(390px, calc(100dvh - 132px));
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 390px) {
+  .smyl-inbox-compose-tools {
+    width: min(300px, calc(100vw - 24px));
+    grid-template-columns: 1fr;
   }
 }
 

@@ -46,6 +46,21 @@ async function inspect(page, mobile) {
   }, { mobile });
 }
 
+async function inspectToolbox(page) {
+  const primaryButtons = await page.locator('.smyl-inbox-compose-primary > button').count();
+  const nestedTools = await page.locator('[data-compose-tools] [data-compose-attach], [data-compose-tools] [data-compose-quick], [data-compose-tools] [data-compose-emoji]').count();
+  await page.locator('[data-compose-more]').click();
+  const toolbox = await page.locator('[data-compose-tools]').evaluate((menu) => {
+    const rect = menu.getBoundingClientRect();
+    return {
+      open: !menu.hidden && getComputedStyle(menu).display !== 'none',
+      insideViewport: rect.left >= -1 && rect.right <= innerWidth + 1 && rect.top >= -1 && rect.bottom <= innerHeight + 1,
+      labelled: menu.getAttribute('aria-label') === 'Herramientas de mensaje',
+    };
+  });
+  return { primaryButtons, nestedTools, ...toolbox };
+}
+
 (async () => {
   fs.mkdirSync(output, { recursive: true });
   const browser = await chromium.launch({ headless:true, executablePath:process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', args:['--allow-file-access-from-files'] });
@@ -60,13 +75,15 @@ async function inspect(page, mobile) {
       await page.addStyleTag({ content:'*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}' });
       const metrics = await inspect(page, mobile), screenshot = nextPath(`inbox-${width}.png`);
       await page.screenshot({ path:screenshot, fullPage:true });
-      results.push({ width, errors, screenshot:path.relative(root, screenshot).replace(/\\/g, '/'), ...metrics });
+      const toolbox = await inspectToolbox(page), toolboxScreenshot = nextPath(`inbox-toolbox-${width}.png`);
+      await page.screenshot({ path:toolboxScreenshot, fullPage:true });
+      results.push({ width, errors, screenshot:path.relative(root, screenshot).replace(/\\/g, '/'), toolboxScreenshot:path.relative(root, toolboxScreenshot).replace(/\\/g, '/'), toolbox, ...metrics });
       await page.close();
     }
   } finally { await browser.close(); }
   const report = nextPath('report.json'); fs.writeFileSync(report, JSON.stringify(results, null, 2) + '\n');
-  const failed = results.filter((item) => item.errors.length || item.overflow || item.microtext.length || item.undersized.length || item.overlap.length);
-  console.log(JSON.stringify({ report:path.relative(root, report).replace(/\\/g, '/'), passed:results.length-failed.length, failed:failed.length, results:results.map((item) => ({ width:item.width, overflow:item.overflow, microtext:item.microtext.length, undersized:item.undersized.length, overlap:item.overlap.length, errors:item.errors.length })) }, null, 2));
+  const failed = results.filter((item) => item.errors.length || item.overflow || item.microtext.length || item.undersized.length || item.overlap.length || item.toolbox.primaryButtons !== 1 || item.toolbox.nestedTools !== 3 || !item.toolbox.open || !item.toolbox.insideViewport || !item.toolbox.labelled);
+  console.log(JSON.stringify({ report:path.relative(root, report).replace(/\\/g, '/'), passed:results.length-failed.length, failed:failed.length, results:results.map((item) => ({ width:item.width, overflow:item.overflow, microtext:item.microtext.length, undersized:item.undersized.length, overlap:item.overlap.length, toolbox:item.toolbox, errors:item.errors.length })) }, null, 2));
   failed.forEach((item) => { console.error(`\n${item.width}px`); item.microtext.slice(0,10).forEach((x) => console.error(` text ${x.size}px ${x.selector} ${x.text}`)); item.undersized.slice(0,10).forEach((x) => console.error(` target ${x.width}x${x.height} ${x.selector} ${x.label}`)); item.overlap.forEach((x) => console.error(` overlap ${x}`)); });
   if (failed.length) process.exitCode = 1;
 })().catch((error) => { console.error(error); process.exitCode = 1; });
