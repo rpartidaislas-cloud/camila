@@ -3529,6 +3529,8 @@
       // Si el lote quedó truncado durante una interacción, conservamos el cursor anterior para
       // pedir nuevamente el tramo completo cuando ya sea seguro repintar la interfaz.
       if (!(data.truncated && deferVisualRefresh)) state.syncedAt = data.synced_at || new Date().toISOString();
+      // Alguien cambió la sucursal de una conversación: se recarga la lista para que cada sede vea solo lo suyo.
+      if (data.branch_changed && !deferVisualRefresh) { state.syncDelay = 5000; await loadList(true); }
       if (!deferVisualRefresh) { renderList(); renderThreadHeader(); }
       if (data.truncated && !deferVisualRefresh) await loadList(true);
       var latest = latestMessageTime();

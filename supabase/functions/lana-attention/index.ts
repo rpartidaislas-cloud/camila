@@ -1,6 +1,7 @@
 import { requireUser } from "../_shared/auth.ts";
 import { lanaRequest, smylAdmin } from "../_shared/lana-linked.ts";
 import { makeCors } from "../_shared/cors.ts";
+import { messageAccess, visibleConversationIds } from "../_shared/messages-scope.ts";
 
 function uuid(value: unknown): string | null {
   const text = String(value || "").trim();
@@ -39,6 +40,10 @@ Deno.serve(async (req: Request) => {
       return json(200, { ok: true, conversation_id: conversationId, resolved: true });
     }
 
+    // Cada persona recibe solo los avisos de lo que su rol puede ver (por sucursal o por pacientes propios).
+    const access = await messageAccess(smylAdmin, auth.tenantId, auth.user.id);
+    if (!access) return json(403, { error: "Tu acceso a esta clínica no está activo." });
+    if (!access.canRead) return json(200, { ok: true, total: 0, items: [], can_resolve: false, restricted: true, privacy: "metadata_only" });
     const remote = await lanaRequest(auth.tenantId, "/attention?limit=40");
     if (!remote.response.ok) return json(502, { error: String(remote.body.error || "LANA no pudo consultar la atención pendiente.") });
     const remoteItems = Array.isArray(remote.body.items) ? remote.body.items as Array<Record<string, unknown>> : [];
@@ -53,9 +58,10 @@ Deno.serve(async (req: Request) => {
       for (const link of data || []) links.set(String(link.lana_conversation_id), link as Record<string, unknown>);
     }
 
+    const visible = await visibleConversationIds(smylAdmin, auth.tenantId, access, ids);
     const items = remoteItems.flatMap((item) => {
       const id = uuid(item.id);
-      if (!id) return [];
+      if (!id || !visible.has(id)) return [];
       const type = item.attention_type === "patient_replied" ? "patient_replied" : "human_requested";
       const channel = ["whatsapp", "messenger", "instagram"].includes(String(item.channel)) ? String(item.channel) : "lana";
       const link = links.get(id);
@@ -78,7 +84,7 @@ Deno.serve(async (req: Request) => {
     });
     return json(200, {
       ok: true,
-      total: Math.max(items.length, Number(remote.body.total) || 0),
+      total: access.scope === "clinic" ? Math.max(items.length, Number(remote.body.total) || 0) : items.length,
       items,
       can_resolve: canResolve,
       privacy: "metadata_only",
