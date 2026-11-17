@@ -2182,7 +2182,12 @@
   }
 
   function buildFicha360(conversation, ficha, zones) {
-    var F = window.SmylInboxFicha; var id = conversation.id; var panelsLoaded = Boolean(F);
+    var F = window.SmylInboxFicha; var id = conversation.id;
+    if (!F) {
+      var fallback = node('section', 'smyl-inbox-context-card smyl-inbox-ficha-fallback');
+      fallback.append(node('h3', '', 'Paciente y atención'), node('p', '', 'La ficha clínica no está disponible en este momento. La conversación permanece activa.'));
+      return fallback;
+    }
     var linkedFicha = Boolean(ficha && ficha.linked && hasPermission('clinical.read'));
     var patient = linkedFicha && ficha.patient || null;
     var chips = [{ text: 'Origen: ' + channelLabel(conversation.channel), tone: 'neutral' }];
@@ -2192,7 +2197,9 @@
       if (ficha.case) chips.push({ text: 'Caso activo', tone: 'blue' });
     }
     var subtitle = patient ? [patient.phone, patient.email].filter(Boolean).join(' · ') : (conversation.contact_phone || '');
-    var lastSeen = conversation.last_message_at ? F.shortDate(conversation.last_message_at, true) : '';
+    var lastSeen = conversation.last_message_at
+      ? F && typeof F.shortDate === 'function' ? F.shortDate(conversation.last_message_at, true) : availabilityDate(conversation.last_message_at)
+      : '';
     var meta = 'Escribe por ' + channelLabel(conversation.channel) + (lastSeen ? ' · último mensaje ' + lastSeen.toLowerCase() : '');
     var careActions = permittedCareActions(conversation); var actions = [];
     ['schedule', 'payment', 'record'].forEach(function (key) {

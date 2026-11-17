@@ -11413,3 +11413,11 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Qué hay:** `docs/LANA_CONTEXTO_POR_SUCURSAL.md` (propuesta para quien mantiene LANA; SMYL aún no implementa nada). Define la función `lana-branch-context` con 3 acciones (`context`, `set_branch`, `availability`), firma HMAC como en `appointment-negotiations`, estados (`single_branch`, `assigned`, `unassigned`, `not_applicable`), reglas para el compilador de LANA, fallo abierto, seguridad, pruebas de aceptación y despliegue por fases.
 - **Nota:** `LANA_API_BASE` apunta a `lgjdzaqjrmmzyrenevfm.supabase.co`, que es el proyecto de Supabase conectado a esta sesión: es la base de LANA (clientes, órdenes de trabajo, CFDI…), no la de SMYL. Solo se leyó.
 - **Siguiente (cuando LANA acuerde el contrato):** construir en SMYL `lana-branch-context` (acciones context y set_branch) con pruebas y simulador; la despliega la clínica.
+
+## 2026-11-17 — Codex — Mensajes v4: conversación y compositor profesional
+
+- El rediseño se integró sobre el Inbox vigente sin retirar sucursales, alertas médicas, agenda embebida, Ficha 360 ni las mejoras recientes de LANA. El historial adopta un carril central de lectura y una jerarquía consistente entre paciente, equipo y SMYL Asistente.
+- Campo de respuesta, herramientas y envío forman una sola tarjeta. Emoji permanece visible; Plantilla, Programar, Nota de voz y Ubicación se concentran en `Más`; MILA se distingue como ayuda para redactar y todos los controles usan iconos SVG.
+- La ventana de WhatsApp vencida deja un solo CTA `Elegir plantilla`: desaparecen el campo inactivo y las acciones duplicadas. `Más` se oculta cuando el canal no ofrece herramientas, y el foco evita controles ocultos.
+- El comportamiento se adapta a escritorio, tableta y PWA móvil con controles táctiles de 44 px, sin barra horizontal en el compositor. Menús, Escape y flechas conservan navegación accesible.
+- Versiones: `smyl-inbox.js?v=58`, `smyl-inbox.css?v=50`, caché `inbox-professional-v4`; web y `mobile/www/` sincronizados. No se modificaron contratos, datos, permisos ni envíos automáticos.

@@ -1376,6 +1376,10 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
     padding: 0 8px;
   }
 
+  .smyl-inbox-care-action.is-primary {
+    min-height: 44px;
+  }
+
   .smyl-inbox-patient-summary { gap: 7px; }
   .smyl-inbox-thread-state { display: none; }
   .smyl-inbox-thread-person { max-width: none; }
@@ -2477,10 +2481,29 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
     grid-template-columns: repeat(2, minmax(0, 1fr));
     overflow: visible;
   }
+
+  #p-inbox .smyl-inbox-carebar .smyl-inbox-care-action.is-primary {
+    min-height: 44px;
+  }
 }
 
 @media (max-width: 390px) {
   .smyl-inbox-thread-person span { max-width: 160px; }
   .smyl-inbox-compose-primary [data-compose-emoji] { display: none; }
   .smyl-inbox-compose-tools { grid-template-columns: 1fr; width: min(260px, calc(100vw - 24px)); }
+}
+
+/* Keep hover actions compact while preserving a reliable desktop click target. */
+@media (min-width: 761px) {
+  #p-inbox .smyl-inbox-message .smyl-inbox-message-actions {
+    top: -46px;
+    min-height: 42px;
+    padding: 4px;
+  }
+
+  #p-inbox .smyl-inbox-message .smyl-inbox-bubble .smyl-inbox-message-actions > button {
+    min-width: 44px;
+    min-height: 42px;
+    padding-inline: 10px;
+  }
 }
