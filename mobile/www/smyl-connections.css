@@ -114,3 +114,8 @@
 .connections-train-review li strong{display:block;font-size:15px}
 .connections-train-review li small{color:#4b5f5d;font-size:13px}
 .connections-train-review li button{border:1px solid #cad8d1;border-radius:9px;background:#fff;padding:6px 12px;font-weight:600;cursor:pointer}
+
+.connections-branch-sync{margin:8px 0 0;font-size:12px;line-height:1.5;color:#526465}
+.connections-branch-sync:empty{display:none}
+.connections-branch-sync[data-state=ok]{color:#286653}
+.connections-branch-sync[data-state=stale],.connections-branch-sync[data-state=empty]{color:#745f39}

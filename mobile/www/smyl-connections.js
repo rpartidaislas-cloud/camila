@@ -53,7 +53,7 @@
       '<form data-lana-training-form><fieldset><legend>Identidad y voz</legend><div class="connections-context-grid"><label>Nombre del asistente<input name="assistant_name" maxlength="50" value="SMYL Asistente"></label><label>Tono<select name="tone"><option value="profesional">Profesional y claro</option><option value="cercano">Cercano y empático</option><option value="breve">Breve y directo</option></select></label><label class="full">Mensaje de bienvenida<textarea name="welcome_message" maxlength="350" rows="2" placeholder="Hola, soy el asistente de la clínica. Puedo orientarte y ayudarte con el siguiente paso."></textarea></label></div></fieldset>' +
       '<fieldset><legend>La clínica</legend><div class="connections-context-grid"><label class="full">Descripción y enfoque<textarea name="clinic_description" maxlength="1600" rows="3" placeholder="Especialidad, enfoque, tipo de pacientes y qué distingue a la clínica."></textarea></label><label class="full">Especialidades confirmadas<textarea name="specialties" maxlength="1200" rows="2" placeholder="Odontología general, ortodoncia, implantología…"></textarea></label><label>Ubicación principal<input name="location" maxlength="500" placeholder="Dirección o zona de atención"></label><label>Horarios<input name="hours" maxlength="500" placeholder="Lun–Vie 9:00–18:00"></label><label>Idiomas<input name="languages" maxlength="300" placeholder="Español, inglés"></label><label>Canales de contacto<input name="contact_channels" maxlength="700" placeholder="Teléfono y medios autorizados"></label><label class="full">Acceso, estacionamiento y accesibilidad<textarea name="access_info" maxlength="900" rows="2"></textarea></label><label class="full">Política para menores y acompañantes<textarea name="minor_policy" maxlength="900" rows="2"></textarea></label></div></fieldset>' +
       '<fieldset><legend>Sucursales y operación</legend><div class="connections-context-grid"><label class="full">Sucursales, direcciones y cobertura<textarea name="branches" maxlength="2400" rows="4" placeholder="Una sucursal por bloque: dirección, horario, especialidades y profesionales disponibles."></textarea></label>' +
-      '<div class="full connections-branch-tools" data-branch-tools hidden><div class="connections-branch-tools-row"><button type="button" class="btn btn-secondary" data-import-branches>Traer mis sucursales</button><label class="connections-inline-check"><input type="checkbox" data-ask-branch> Que el asistente pregunte la sucursal antes de agendar</label></div><p class="connections-fieldset-help">Tu clínica tiene varias sucursales. «Traer mis sucursales» llena este campo con sus direcciones y horarios de Mi clínica. Cuando el paciente diga cuál prefiere, la conversación se asigna sola a esa sucursal.</p></div><label class="full">Reglas de agenda<textarea name="scheduling_rules" maxlength="1600" rows="3" placeholder="Anticipación, duración, confirmación, reprogramación y horarios especiales."></textarea></label><label class="full">Promociones autorizadas y vigencia<textarea name="approved_promotions" maxlength="1200" rows="2" placeholder="Sólo promociones aprobadas; indica fecha de vencimiento."></textarea></label></div></fieldset>' +
+      '<div class="full connections-branch-tools" data-branch-tools hidden><div class="connections-branch-tools-row"><button type="button" class="btn btn-secondary" data-import-branches>Traer mis sucursales</button><label class="connections-inline-check"><input type="checkbox" data-ask-branch> Que el asistente pregunte la sucursal antes de agendar</label></div><p class="connections-branch-sync" data-branch-sync aria-live="polite"></p><p class="connections-fieldset-help">Tu clínica tiene varias sucursales. «Traer mis sucursales» llena este campo con sus direcciones, horarios y dentistas de Mi clínica. Cuando el paciente diga cuál prefiere, la conversación se asigna sola a esa sucursal.</p></div><label class="full">Reglas de agenda<textarea name="scheduling_rules" maxlength="1600" rows="3" placeholder="Anticipación, duración, confirmación, reprogramación y horarios especiales."></textarea></label><label class="full">Promociones autorizadas y vigencia<textarea name="approved_promotions" maxlength="1200" rows="2" placeholder="Sólo promociones aprobadas; indica fecha de vencimiento."></textarea></label></div></fieldset>' +
       '<fieldset><legend>Servicios confirmados</legend><p class="connections-fieldset-help">Incluye solo servicios reales. Si agregas precio, debe ser información confirmada o indicar que requiere valoración.</p><div class="connections-repeat-list" data-service-list></div><button type="button" class="connections-add-row" data-add-service>+ Agregar servicio</button></fieldset>' +
       '<fieldset><legend>Preguntas frecuentes</legend><p class="connections-fieldset-help">El asistente respetará estas respuestas y no inventará una política distinta.</p><div class="connections-repeat-list" data-faq-list></div><button type="button" class="connections-add-row" data-add-faq>+ Agregar pregunta</button></fieldset>' +
       '<fieldset><legend>Flujo de atención</legend><div class="connections-context-grid"><label class="full">Objetivo de la conversación<textarea name="attention_objective" maxlength="900" rows="2"></textarea></label><label class="full">Política de citas<textarea name="appointment_policy" maxlength="1200" rows="3" placeholder="Qué puede explicar, qué datos pedir y cuándo debe confirmar una persona."></textarea></label><label class="full">Cancelación e inasistencia<textarea name="cancellation_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Política de precios<textarea name="pricing_policy" maxlength="1200" rows="3" placeholder="Qué precios están confirmados y cuándo se requiere valoración. El asistente nunca inventa importes."></textarea></label><label class="full">Pagos, anticipos y financiamiento<textarea name="payment_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Facturación CFDI<textarea name="invoice_policy" maxlength="1200" rows="2" placeholder="Plazo, canal y datos que solicita el equipo; nunca recopilar contraseñas ni documentos completos."></textarea></label><label class="full">Seguros y reembolsos<textarea name="insurance_policy" maxlength="900" rows="2"></textarea></label><label class="full">Seguimientos y recordatorios<textarea name="followup_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Datos administrativos que puede solicitar<textarea name="intake_questions" maxlength="1600" rows="3" placeholder="Ej. nombre, tratamiento de interés, horario preferido y sucursal. Una o dos preguntas por mensaje."></textarea></label><label class="full">Protocolo administrativo de urgencias<textarea name="emergency_policy" maxlength="1200" rows="3" placeholder="Señales que exigen atención inmediata y texto aprobado por la clínica; nunca diagnosticar ni prescribir."></textarea></label><label class="full">Cuándo pasar la conversación a una persona<textarea name="handoff_rules" maxlength="1600" rows="3" placeholder="Ej. inconformidad, solicitud de hablar con el dentista o excepción administrativa. Dolor, urgencias y dudas clínicas ya escalan siempre."></textarea></label><label class="full">Expectativa de respuesta humana<textarea name="human_response_policy" maxlength="900" rows="2" placeholder="Indica tiempos sólo si la clínica realmente los mide."></textarea></label><label>Autonomía<select name="autonomy_level"><option value="1">1 · Solo bienvenida</option><option value="2">2 · Información y FAQ</option><option value="3">3 · Atención asistida</option><option value="4">4 · Gestión administrativa confirmada</option></select></label></div></fieldset>' +
@@ -563,12 +563,31 @@
     });
     return groups.map(function (g) { return (g.start === g.end ? DAY_SHORT[g.start] : DAY_SHORT[g.start] + '–' + DAY_SHORT[g.end]) + ' ' + g.label; }).join('; ');
   }
-  function branchesDescription(branches, hours) {
-    return (branches || []).map(function (branch) {
-      var address = [branch.address_line, branch.city, branch.state].filter(Boolean).join(', ');
-      var schedule = hoursSummary((hours || []).filter(function (row) { return row.branch_id === branch.id; }));
-      return [branch.name, address, branch.phone ? 'Tel. ' + branch.phone : '', schedule ? 'Horario: ' + schedule : ''].filter(Boolean).join(' · ');
-    }).join('\n').slice(0, 2400);
+  // team = [{ branch_id, name, specialty }]: dentistas de cada sucursal (opcional; sin él, el texto es el de siempre).
+  function branchesDescription(branches, hours, team) {
+    function build(level) {
+      return (branches || []).map(function (branch) {
+        var address = [branch.address_line, branch.city, branch.state].filter(Boolean).join(', ');
+        var schedule = hoursSummary((hours || []).filter(function (row) { return row.branch_id === branch.id; }));
+        var people = level > 1 ? [] : (team || []).filter(function (row) { return row.branch_id === branch.id; }).map(function (row) {
+          return level === 0 && row.specialty ? row.name + ' (' + row.specialty + ')' : row.name;
+        });
+        var dentists = people.length ? 'Dentistas: ' + people.slice(0, 8).join(', ') + (people.length > 8 ? ' y ' + (people.length - 8) + ' más' : '') : '';
+        return [branch.name, address, branch.phone ? 'Tel. ' + branch.phone : '', schedule ? 'Horario: ' + schedule : '', dentists].filter(Boolean).join(' · ');
+      }).join('\n');
+    }
+    // Si no cabe en el campo, se quitan primero las especialidades y luego los dentistas, nunca direcciones u horarios.
+    var text = build(0);
+    if (text.length > 2400) text = build(1);
+    if (text.length > 2400) text = build(2);
+    return text.slice(0, 2400);
+  }
+  // ¿Lo que dice el campo coincide con las sucursales de Mi clínica ahora mismo?
+  function branchesSyncState(current, fresh) {
+    var norm = function (value) { return String(value || '').replace(/\s+/g, ' ').trim(); };
+    if (!norm(fresh)) return 'none';
+    if (!norm(current)) return 'empty';
+    return norm(current) === norm(fresh) ? 'ok' : 'stale';
   }
   function setAskBranchLine(text, on) {
     var lines = String(text || '').split('\n').filter(function (line) { return line.trim() !== ASK_BRANCH_LINE; });
@@ -582,7 +601,16 @@
       var hours = await window.sb.from('smyl_clinic_hours').select('branch_id,weekday,starts_at,ends_at,active').eq('tenant_id', tenant).eq('active', true);
       state.clinicBranches = branches && branches.data || [];
       state.clinicHours = hours && hours.data || [];
-    } catch (_) { state.clinicBranches = []; state.clinicHours = []; }
+      state.clinicTeam = [];
+      try {
+        var links = await window.sb.from('smyl_professional_branches').select('professional_id,branch_id').eq('tenant_id', tenant);
+        var pros = await window.sb.from('smyl_professionals').select('id,display_name,specialty').eq('tenant_id', tenant).eq('active', true).order('display_name');
+        var byId = {}; ((pros && pros.data) || []).forEach(function (row) { byId[row.id] = row; });
+        state.clinicTeam = ((links && links.data) || []).filter(function (row) { return byId[row.professional_id]; }).map(function (row) {
+          return { branch_id: row.branch_id, name: byId[row.professional_id].display_name, specialty: byId[row.professional_id].specialty || '' };
+        }).sort(function (a, b) { return a.name < b.name ? -1 : 1; });
+      } catch (_) { state.clinicTeam = []; }
+    } catch (_) { state.clinicBranches = []; state.clinicHours = []; state.clinicTeam = []; }
     syncBranchTools();
   }
   function syncBranchTools() {
@@ -591,6 +619,14 @@
     tools.hidden = !(state.clinicBranches && state.clinicBranches.length > 1);
     var check = tools.querySelector('[data-ask-branch]');
     if (check && form.elements.intake_questions) check.checked = String(form.elements.intake_questions.value || '').indexOf(ASK_BRANCH_LINE) !== -1;
+    var note = tools.querySelector('[data-branch-sync]');
+    if (note && form.elements.branches) {
+      var status = branchesSyncState(form.elements.branches.value, branchesDescription(state.clinicBranches, state.clinicHours, state.clinicTeam));
+      note.dataset.state = status;
+      note.textContent = status === 'ok' ? 'Sucursales al día: el asistente tiene las direcciones, horarios y dentistas actuales de Mi clínica.'
+        : status === 'stale' ? 'Tus sucursales, horarios o dentistas ya no coinciden con este texto. Pulsa «Traer mis sucursales» y publica para que el asistente use lo actual.'
+        : status === 'empty' ? 'El asistente aún no conoce tus sucursales. Pulsa «Traer mis sucursales».' : '';
+    }
   }
   function bindBranchTools(root) {
     root.addEventListener('click', function (event) {
@@ -599,7 +635,7 @@
       var form = document.querySelector('[data-lana-training-form]'), field = form && form.elements.branches;
       if (!field) return;
       if (String(field.value || '').trim() && !window.confirm('Esto reemplaza lo que escribiste en «Sucursales, direcciones y cobertura». ¿Continuar?')) return;
-      field.value = branchesDescription(state.clinicBranches, state.clinicHours);
+      field.value = branchesDescription(state.clinicBranches, state.clinicHours, state.clinicTeam);
       field.dispatchEvent(new Event('input', { bubbles: true }));
     });
     root.addEventListener('change', function (event) {
@@ -632,6 +668,15 @@
     if (key === 5) return filled('appointment_policy') && filled('pricing_policy') && filled('emergency_policy');
     return false;
   }
+  // Avisos del paso final cuando la clínica tiene varias sucursales.
+  function multiBranchNotes(form) {
+    if (!(state.clinicBranches && state.clinicBranches.length > 1)) return '';
+    var notes = [];
+    var status = branchesSyncState(form.elements.branches && form.elements.branches.value, branchesDescription(state.clinicBranches, state.clinicHours, state.clinicTeam));
+    if (status === 'stale' || status === 'empty') notes.push(['Sucursales', status === 'empty' ? 'El asistente aún no conoce tus sucursales: usa «Traer mis sucursales» en el paso 3.' : 'El texto de sucursales no coincide con Mi clínica: usa «Traer mis sucursales» en el paso 3.']);
+    if (!(form.elements.intake_questions && String(form.elements.intake_questions.value || '').indexOf(ASK_BRANCH_LINE) !== -1)) notes.push(['Pregunta de sucursal', 'El asistente no preguntará a qué sucursal quiere ir el paciente. Actívalo en el paso 3.']);
+    return notes.map(function (note) { return '<li data-state="pending"><span aria-hidden="true">!</span><div><strong>' + note[0] + '</strong><small>' + note[1] + '</small></div></li>'; }).join('');
+  }
   function goTrainingStep(key) {
     var form = document.querySelector('[data-lana-training-form]');
     if (!form) return;
@@ -658,7 +703,7 @@
       review.innerHTML = '<h3>Antes de publicar</h3><ul>' + TRAIN_STEPS.slice(0, 5).map(function (step) {
         var done = trainingStepDone(step.key, form);
         return '<li data-state="' + (done ? 'done' : 'pending') + '"><span aria-hidden="true">' + (done ? '✓' : '!') + '</span><div><strong>' + step.title + '</strong><small>' + (done ? 'Listo' : 'Falta información en este paso') + '</small></div><button type="button" data-train-go="' + step.key + '">' + (done ? 'Editar' : 'Completar') + '</button></li>';
-      }).join('') + '</ul>';
+      }).join('') + (multiBranchNotes(form)) + '</ul>';
     }
     var back = form.querySelector('[data-train-back]'), next = form.querySelector('[data-train-next]');
     if (back) { back.hidden = current === 1; back.disabled = false; }
@@ -693,7 +738,7 @@
       if (event.target.closest && event.target.closest('[data-train-back]')) goTrainingStep((state.trainStep || 1) - 1);
       else if (event.target.closest && event.target.closest('[data-train-next]')) goTrainingStep((state.trainStep || 1) + 1);
     });
-    form.addEventListener('input', function () { updateTrainingSteps(); });
+    form.addEventListener('input', function () { updateTrainingSteps(); syncBranchTools(); });
     state.trainStep = 1;
     updateTrainingSteps();
   }
