@@ -29,6 +29,7 @@ export const SENTINELAS = {
   '20261114140000': { sentinel: `select ((select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'smyl_inventory_items' and column_name in ('reference_cost','package_label','package_quantity','preferred_supplier_id')) = 4 and ${proc('smyl_register_initial_stock')} and ${proc('smyl_inventory_consumption_report')} and ${proc('smyl_inventory_consumption_totals')}) as ok` },
   '20261114130000': { sentinel: `select (to_regclass('public.smyl_proposal_followups') is not null and ${proc('smyl_log_proposal_followup')}) as ok` },
   '20261106140000': { sentinel: `select (to_regclass('public.smyl_client_errors') is not null and ${proc('smyl_report_client_error')}) as ok` },
+  '20261117150000': { sentinel: "select (to_regclass('public.smyl_cfdi_stamp_events') is not null and exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'smyl_cfdi_drafts' and column_name = 'provider_invoice_id')) as ok" },
 };
 
 // Decide qué hacer con cada versión pendiente. `resultadoSentinela(version)` devuelve true/false (ya consultado).
