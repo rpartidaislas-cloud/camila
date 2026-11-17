@@ -26,12 +26,26 @@ test('lana-inbox: asignar requiere permiso de gestión y solo la clínica comple
   assert.match(edge, /onConflict: "tenant_id,conversation_id"/);
   assert.match(edge, /La sucursal no existe o está inactiva/);
 });
-test('bandeja: filtro por sucursal, sin asignar, aviso en cada fila y cambio desde el menú, solo con varias sedes', () => {
+test('bandeja: un solo botón de sucursal con conteos, sin ruido y con asignación de un clic', () => {
   assert.match(ui, /function multiBranch\(\) \{ return state\.branches\.length > 1; \}/);
   assert.match(ui, /if \(state\.branchFilter === 'none' && item\.branch\) return false;/);
-  assert.match(ui, /Sin asignar · /);
-  assert.match(ui, /node\('span', 'smyl-inbox-branch is-none', 'Sin sucursal'\)/);
-  assert.match(ui, /data-thread-branch/);
+  // un botón compacto junto a los filtros; el menú lista cada sucursal con su número
+  assert.match(ui, /data-inbox-branch-chip/);
+  assert.match(ui, /function toggleBranchMenu\(/);
+  assert.match(ui, /role', 'menuitemradio'|menuitemradio/);
+  assert.match(ui, /label: 'Sin sucursal', count: counts\.none/);
+  // ya no existe la pastilla naranja ni el rótulo «Sin asignar» para personas
+  assert.doesNotMatch(ui, /Sin asignar/);
+  assert.doesNotMatch(ui, /smyl-inbox-branch-unassigned/);
+  assert.match(ui, /Sin responsable/);
+  // fila: la sucursal sin asignar es solo un punto accesible
+  assert.match(ui, /smyl-inbox-branch is-none/);
+  assert.match(ui, /aria-label', 'Sin sucursal'|aria-label="Sin sucursal"/);
+  // cabecera: botón de sucursal que asigna con un clic
+  assert.match(ui, /data-thread-branch-chip/);
+  assert.match(ui, /function threadBranchMenuItems\(/);
   assert.match(ui, /action: 'set_branch'/);
   assert.match(ui, /if \(seesWholeClinic\(\)\) choices\.push\(\['', 'Sin sucursal/);
+  // sin almacenamiento del navegador
+  assert.doesNotMatch(ui, /localStorage/);
 });

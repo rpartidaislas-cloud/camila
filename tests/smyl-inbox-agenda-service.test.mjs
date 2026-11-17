@@ -26,8 +26,8 @@ test('elegir un servicio sin profesionales avisa en lugar de mostrar un calendar
 test('el aviso de configuración no ocupa un diálogo de pantalla completa y se publica en web y móvil', () => {
   assert.match(css, /\.smyl-inbox-availability-dialog\.has-config-issue\{height:auto;min-height:0/);
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-inbox\.js\?v=55/);
-    assert.match(read(file), /smyl-inbox\.css\?v=47/);
+    assert.match(read(file), /smyl-inbox\.js\?v=56/);
+    assert.match(read(file), /smyl-inbox\.css\?v=48/);
   }
   for (const file of ['smyl-inbox.js', 'smyl-inbox.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);
