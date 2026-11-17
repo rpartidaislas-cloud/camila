@@ -114,3 +114,11 @@
 .connections-train-review li strong{display:block;font-size:15px}
 .connections-train-review li small{color:#4b5f5d;font-size:13px}
 .connections-train-review li button{border:1px solid #cad8d1;border-radius:9px;background:#fff;padding:6px 12px;font-weight:600;cursor:pointer}
+
+/* Ejemplos en Capacitar IA */
+.connections-example-wrap{grid-column:1/-1;margin-top:-6px}
+.connections-example-link{border:0;background:none;color:#33607f;font-size:13px;font-weight:600;text-decoration:underline;cursor:pointer;padding:2px 0}
+.connections-example-box{margin-top:6px;padding:12px 14px;border:1px dashed #9db8c9;border-radius:12px;background:#f3f8fb}
+.connections-example-box p{margin:0 0 8px;font-size:14px;line-height:1.5;color:#27414d}
+.connections-example-box small{display:block;margin-bottom:10px;font-size:13px;color:#4b5f5d}
+.connections-example-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
