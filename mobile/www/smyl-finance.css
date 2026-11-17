@@ -1123,3 +1123,40 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
 #p-caja .finance-toolbar>input{max-width:250px}
 #p-caja .finance-account-filters button{white-space:nowrap}
 #p-caja .finance-account-filters .finance-more-filters{max-width:112px}
+
+/* Configuración de facturación (Configuración → Cobros → Facturación) */
+.billing-setup{display:grid;gap:16px;max-width:860px;container-type:inline-size}
+.billing-setup-head{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:start}
+.billing-setup-head h2{margin:4px 0;font-size:22px;line-height:1.25}
+.billing-setup-head p{margin:0;color:#5f716b;font-size:14px;line-height:1.5;max-width:56ch}
+.billing-setup-progress{display:grid;gap:6px;min-width:96px;justify-items:end}
+.billing-setup-progress strong{font-size:20px;font-variant-numeric:tabular-nums}
+.billing-setup-progress span{display:block;width:96px;height:6px;border-radius:99px;background:#e3ebe8;overflow:hidden}
+.billing-setup-progress i{display:block;height:100%;border-radius:inherit;background:#1e6952;transition:width .25s ease}
+.billing-setup-steps{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.billing-setup-steps li{display:grid;grid-template-columns:36px 1fr auto;gap:14px;align-items:center;padding:16px;border:1px solid #dce6e3;border-radius:16px;background:#fff}
+.billing-setup-steps li[data-done=true]{background:#f4faf7;border-color:#cfe6dc}
+.billing-setup-mark{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;background:#fff3e8;color:#9a5a1a}
+.billing-setup-steps li[data-done=true] .billing-setup-mark{background:#1e6952;color:#fff}
+.billing-setup-steps strong,.billing-setup-steps small{display:block}
+.billing-setup-steps strong{font-size:15px}
+.billing-setup-steps small{margin-top:3px;color:#5f716b;font-size:13px;line-height:1.45}
+.billing-setup-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.billing-setup-actions .btn{min-height:40px;white-space:nowrap}
+.billing-setup-note{margin:0;color:#6b7c76;font-size:12px;line-height:1.5}
+.billing-connect-help{margin:12px 0 0;padding-left:20px;display:grid;gap:8px;font-size:13px;line-height:1.5;color:#44544f}
+.billing-connect-help a{color:#266d7a;font-weight:700}
+.billing-connect code{padding:1px 5px;border-radius:6px;background:#eef3f1;font-size:12px}
+.billing-issuer small{display:block;margin-top:4px;color:#6b7c76;font-size:12px}
+.billing-issuer select{width:100%}
+.finance-fiscal-status{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:14px 16px;border:1px solid #f0d9bd;border-radius:14px;margin-bottom:14px;background:#fff8ef}
+.finance-fiscal-status[data-ready=true]{border-color:#cfe6dc;background:#f4faf7}
+.finance-fiscal-status strong,.finance-fiscal-status small{display:block}
+.finance-fiscal-status small{margin-top:2px;color:#6b7c76;font-size:12px}
+@container (max-width:560px){.billing-setup-head{grid-template-columns:1fr}.billing-setup-progress{justify-items:start}.billing-setup-steps li{grid-template-columns:32px 1fr}.billing-setup-actions{grid-column:1 / -1;justify-content:stretch}.billing-setup-actions .btn{flex:1 1 auto}}
+@media(max-width:620px){.billing-setup-head{grid-template-columns:1fr}.billing-setup-progress{justify-items:start}.billing-setup-steps li{grid-template-columns:32px 1fr}.billing-setup-actions{grid-column:1 / -1}.billing-setup-actions .btn{flex:1 1 auto}.finance-fiscal-status{flex-direction:column;align-items:stretch}.finance-fiscal-status .btn{width:100%}}
+@media(prefers-reduced-motion:reduce){.billing-setup-progress i{transition:none}}
+
+.finance-dialog .finance-actions .btn-secondary{min-height:36px;padding:0 14px;border:1px solid #cdd8e0;background:#fff;color:#10283b;font-weight:700;box-shadow:none}.finance-dialog .finance-actions .btn-secondary:hover{border-color:#91b8b4;background:#f1faf8}
+.billing-setup-body{display:grid;gap:16px}
+.billing-setup-steps li[data-wide=true]{grid-template-columns:36px 1fr}.billing-setup-steps li[data-wide=true] .billing-setup-actions{grid-column:2 / -1;justify-content:flex-start}

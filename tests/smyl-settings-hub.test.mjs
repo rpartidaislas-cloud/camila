@@ -76,9 +76,9 @@ test('la configuración se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-settings-hub.js', 'smyl-settings-hub.css', 'smyl-navigation.js', 'smyl-clinic-setup.js', 'smyl-professional-v3.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=7/);
+  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=8/);
   assert.match(read('app.html'), /smyl-settings-hub\.css\?v=5/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=7/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=8/);
   assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=5/);
 });
 
@@ -100,7 +100,7 @@ test('cada tarjeta abre la pestaña exacta de su pantalla y las pantallas ofrece
   const targets = Object.fromEntries(hub.SECTIONS.flatMap(s => s.items).filter(i => i.target).map(i => [i.title, i.target]));
   assert.equal(targets['Profesionales y roles'], '[data-ca-tab="equipo"]');
   assert.equal(targets['Sucursales y espacios'], '[data-ca-tab="operacion"]');
-  assert.equal(targets['Facturación'], '[data-finance-tab="fiscal"]');
+  assert.equal(targets['Facturación'], undefined); // se incrusta por elemento, no por pestaña
   assert.equal(targets['WhatsApp Business'], '[data-connection-tab="whatsapp"]');
   assert.equal(targets['Messenger'], '[data-connection-tab="messenger"]');
   assert.equal(targets['Instagram'], '[data-connection-tab="instagram"]');
@@ -109,7 +109,7 @@ test('cada tarjeta abre la pestaña exacta de su pantalla y las pantallas ofrece
   assert.equal(targets['Probar al asistente'], '[data-connection-tab="lab"]');
   // Cada selector existe de verdad en el código de su pantalla.
   assert.match(read('smyl-clinic-admin.js'), /data-ca-tab/);
-  assert.match(read('smyl-finance.js'), /data-finance-tab="fiscal"/);
+  assert.match(read('smyl-finance.js'), /id="billing-setup"|sec\.id='billing-setup'/);
   assert.match(read('smyl-navigation.js'), /dataset\.connectionTab = entry\[0\]/);
   assert.match(read('smyl-schedule.js'), /data-schedule-tab="settings"/);
   const source = read('smyl-settings-hub.js');
@@ -122,6 +122,7 @@ test('Profesionales, Facturación y Recordatorios se muestran dentro de Configur
   const embedded = Object.fromEntries(hub.SECTIONS.flatMap(s => s.items).filter(i => i.embed).map(i => [i.title, i]));
   assert.deepEqual(Object.keys(embedded).sort(), ['Corte de caja', 'Facturación', 'Profesionales y roles', 'Recibos', 'Recordatorios de cita', 'Sucursales y espacios']);
   assert.equal(embedded['Recordatorios de cita'].element, '#schedule-reminders-card');
+  assert.equal(embedded['Facturación'].element, '#billing-setup');
   assert.equal(embedded['Profesionales y roles'].route, 'clinica');
   const source = read('smyl-settings-hub.js');
   // Se reubica el mismo elemento y una marca de posición guarda su lugar para devolverlo al salir.
