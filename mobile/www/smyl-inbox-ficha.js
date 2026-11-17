@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  // Piezas visuales de la Ficha 360 del chat (cabecera, pestañas, tarjetas de resumen, galería de archivos y línea de tiempo).
+  // Piezas visuales de la Ficha 360 del chat (cabecera, bloques plegables, resumen IA, citas, movimientos y archivos).
   // No consulta datos ni conoce el tenant: smyl-inbox.js le pasa lo ya cargado y recibe las acciones por callbacks.
 
   function node(tag, cls, text) {
@@ -48,31 +48,28 @@
       ctx.actions.forEach(function (action) { actions.append(button(action.label, 'smyl-f360-action' + (action.primary ? ' is-primary' : ''), action.run)); });
       root.append(actions);
     }
-    var tabs = ctx.tabs || [];
-    var active = tabs.some(function (tab) { return tab.id === ctx.active; }) ? ctx.active : (tabs[0] && tabs[0].id);
-    var tablist = node('div', 'smyl-f360-tabs'); tablist.setAttribute('role', 'tablist'); tablist.setAttribute('aria-label', 'Secciones de la ficha del paciente');
-    tabs.forEach(function (tab) {
-      var element = node('button', 'smyl-f360-tab' + (tab.id === active ? ' is-active' : ''));
-      element.type = 'button'; element.id = 'smyl-f360-tab-' + tab.id; element.setAttribute('role', 'tab');
-      element.setAttribute('aria-selected', tab.id === active ? 'true' : 'false'); element.setAttribute('aria-controls', 'smyl-f360-panel-' + tab.id);
-      element.tabIndex = tab.id === active ? 0 : -1; element.dataset.f360Tab = tab.id;
-      element.append(document.createTextNode(tab.label)); if (tab.title) element.title = tab.title;
-      if (tab.count) element.append(node('em', '', String(tab.count)));
-      element.onclick = function () { if (ctx.onSelect) ctx.onSelect(tab.id); };
-      tablist.append(element);
+    // Bloques plegables en un orden fijo (Resumen, Cuenta, Citas, Archivos). Cerrados muestran su dato clave.
+    var list = node('div', 'smyl-f360-sections');
+    (ctx.sections || []).forEach(function (section) {
+      var wrap = node('section', 'smyl-f360-section' + (section.open ? ' is-open' : ''));
+      wrap.dataset.section = 'f360-' + section.id;
+      var bodyId = 'smyl-f360-section-' + section.id;
+      var head = node('button', 'smyl-f360-section-head'); head.type = 'button';
+      head.setAttribute('aria-expanded', section.open ? 'true' : 'false'); head.setAttribute('aria-controls', bodyId);
+      head.dataset.f360Section = section.id;
+      var title = node('span', 'smyl-f360-section-title', section.title);
+      if (section.badge) title.append(node('span', 'smyl-f360-ai-badge', section.badge));
+      head.append(title);
+      if (section.peek && section.peek.text) head.append(node('span', 'smyl-f360-peek is-' + (section.peek.tone || 'muted'), section.peek.text));
+      var chevron = node('span', 'smyl-f360-chevron'); chevron.setAttribute('aria-hidden', 'true'); head.append(chevron);
+      head.onclick = function () { if (ctx.onToggle) ctx.onToggle(section.id); };
+      var heading = node('h3', 'smyl-f360-section-heading'); heading.append(head);
+      wrap.append(heading);
+      var body = node('div', 'smyl-f360-section-body'); body.id = bodyId; body.hidden = !section.open;
+      if (section.open && section.node) body.append(section.node);
+      wrap.append(body); list.append(wrap);
     });
-    tablist.addEventListener('keydown', function (event) {
-      if (['ArrowRight', 'ArrowLeft', 'Home', 'End'].indexOf(event.key) === -1) return;
-      var items = Array.from(tablist.querySelectorAll('[role="tab"]')); var index = items.indexOf(document.activeElement); if (index < 0) return;
-      event.preventDefault();
-      var next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + items.length) % items.length;
-      if (ctx.onSelect) ctx.onSelect(items[next].dataset.f360Tab, true);
-    });
-    root.append(tablist);
-    var current = tabs.find(function (tab) { return tab.id === active; });
-    var panel = node('div', 'smyl-f360-panel'); panel.id = 'smyl-f360-panel-' + active; panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', 'smyl-f360-tab-' + active); panel.dataset.section = 'f360-' + active;
-    if (current && current.node) panel.append(current.node);
-    root.append(panel);
+    root.append(list);
     return root;
   }
 
@@ -108,17 +105,6 @@
     box.append(list);
     if (!medical.reviewed) box.append(node('p', 'smyl-f360-med-note', 'La historia clínica aún tiene alergias o alertas sin confirmar.'));
     return box;
-  }
-
-  function tiles(list) {
-    var grid = node('div', 'smyl-f360-tiles');
-    list.filter(Boolean).forEach(function (tile) {
-      var card = node('div', 'smyl-f360-tile' + (tile.tone ? ' is-' + tile.tone : ''));
-      card.append(node('small', '', tile.label), node('strong', '', tile.value));
-      if (tile.sub) card.append(node('span', '', tile.sub));
-      grid.append(card);
-    });
-    return grid;
   }
 
   function notice(text, tone) { return node('p', 'smyl-f360-note' + (tone ? ' is-' + tone : ''), text); }
@@ -176,10 +162,8 @@
   function conversationSummary(ctx) {
     var card = node('section', 'smyl-f360-summary' + (ctx.stale ? ' is-stale' : ''));
     card.setAttribute('aria-labelledby', 'smyl-f360-summary-title'); card.setAttribute('aria-busy', ctx.loading ? 'true' : 'false');
-    var head = node('div', 'smyl-f360-summary-head');
-    var title = node('h3', '', 'Resumen de la conversación'); title.id = 'smyl-f360-summary-title';
-    head.append(title, node('span', 'smyl-f360-ai-badge', 'IA'));
-    card.append(head);
+    var title = node('h4', 'smyl-inbox-sr', 'Resumen de la conversación'); title.id = 'smyl-f360-summary-title';
+    card.append(title);
     var data = ctx.data;
     if (ctx.loading && !data) {
       var skeleton = node('div', 'smyl-f360-skeleton'); skeleton.setAttribute('aria-hidden', 'true');
@@ -188,9 +172,9 @@
       return card;
     }
     if (ctx.needsTraining && !data) {
-      card.append(node('p', 'smyl-f360-summary-text is-muted', 'El resumen usa SMYL Copilot, que necesita la capacitación dental publicada (servicios, precios y políticas de la clínica).'));
-      if (ctx.onOpenTraining) card.append(button('Publicar capacitación', 'smyl-f360-action is-primary', ctx.onOpenTraining));
-      else card.append(notice('Pide a quien administra la clínica que publique la capacitación en Configuración → Canales y asistente.'));
+      // Sin capacitación del asistente no hay resumen; se informa sin convertirlo en tarea del paciente.
+      card.append(node('p', 'smyl-f360-summary-text is-muted', 'El resumen con IA se activa cuando la clínica configura su asistente.'));
+      if (ctx.onOpenTraining) card.append(button('Configurar asistente', 'smyl-f360-link', ctx.onOpenTraining));
       return card;
     }
     if (ctx.error && !data) {
@@ -232,23 +216,67 @@
     return card;
   }
 
-  var TIMELINE_TONES = { appointment: 'teal', file: 'purple', payment: 'amber', charge: 'amber', proposal: 'blue', note: 'blue' };
+  var VISIT_STATUS = {
+    confirmed: ['Confirmada', 'ok'], arrived: ['En sala', 'ok'], in_progress: ['En consulta', 'ok'],
+    completed: ['Atendida', 'ok'], no_show: ['No asistió', 'danger'], cancelled: ['Cancelada', 'muted'],
+  };
 
-  function timeline(ctx) {
-    var root = node('div', 'smyl-f360-timeline');
-    if (ctx.loading) { root.append(notice('Consultando la línea de tiempo…')); return root; }
+  function visitRow(visit, ctx) {
+    var status = VISIT_STATUS[visit.status] || ['', 'muted'];
+    var row = node('li', 'smyl-f360-visit' + (visit.status === 'cancelled' ? ' is-cancelled' : ''));
+    var top = node('div', 'smyl-f360-visit-top');
+    top.append(node('span', 'smyl-f360-visit-date', ctx.formatDate ? ctx.formatDate(visit.starts_at) : shortDate(visit.starts_at, true)));
+    if (status[0]) top.append(node('span', 'smyl-f360-pill is-' + status[1], status[0]));
+    row.append(top, node('strong', '', visit.service));
+    if (visit.treatments && visit.treatments.length) row.append(node('p', 'smyl-f360-visit-treatment', 'Tratamiento: ' + visit.treatments.join(', ')));
+    var who = [visit.professional, visit.branch].filter(Boolean).join(' · ');
+    if (who) row.append(node('small', '', who));
+    return row;
+  }
+
+  // Citas del paciente: próximas primero (la más cercana arriba) y después las anteriores.
+  function visits(ctx) {
+    var root = node('div', 'smyl-f360-visits');
+    if (ctx.loading) { root.append(notice('Consultando citas…')); return root; }
     if (ctx.error) { root.append(notice(ctx.error, 'warn'), button('Reintentar', 'smyl-f360-link', ctx.onRetry)); return root; }
-    var rows = ctx.rows || [];
-    if (!rows.length) { root.append(notice('Todavía no hay actividad registrada para este paciente.')); return root; }
-    var list = node('ol', 'smyl-f360-events');
-    rows.slice(0, ctx.limit || 30).forEach(function (row) {
-      var item = node('li', 'smyl-f360-event is-' + (TIMELINE_TONES[row.event_type] || 'neutral'));
-      item.append(node('small', '', shortDate(row.event_at, true)), node('strong', '', row.title || 'Actividad'));
-      list.append(item);
+    var all = ctx.items || [];
+    if (!all.length) { root.append(notice('Este paciente todavía no tiene citas registradas.')); return root; }
+    var upcoming = all.filter(ctx.isUpcoming).reverse();
+    var past = all.filter(function (visit) { return !ctx.isUpcoming(visit); });
+    function group(label, items) {
+      if (!items.length) return;
+      root.append(node('h4', 'smyl-f360-group', label));
+      var list = node('ol', 'smyl-f360-visit-list');
+      items.forEach(function (visit) { list.append(visitRow(visit, ctx)); });
+      root.append(list);
+    }
+    group('Próximas', upcoming);
+    var shownPast = ctx.showAll ? past : past.slice(0, 4);
+    group(upcoming.length ? 'Anteriores' : 'Citas anteriores', shownPast);
+    if (past.length > 4) root.append(button(ctx.showAll ? 'Ver menos' : 'Ver todas las anteriores (' + past.length + ')', 'smyl-f360-link', ctx.onShowAll));
+    return root;
+  }
+
+  function money(value) { return Number(value || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }); }
+
+  // Últimos cargos y pagos, del más reciente al más antiguo.
+  function movements(ctx) {
+    var root = node('div', 'smyl-f360-moves');
+    root.append(node('h4', 'smyl-f360-group', 'Últimos movimientos'));
+    if (ctx.loading) { root.append(notice('Consultando movimientos…')); return root; }
+    if (ctx.error) { root.append(notice(ctx.error, 'warn'), button('Reintentar', 'smyl-f360-link', ctx.onRetry)); return root; }
+    if (!(ctx.items || []).length) { root.append(notice('Todavía no hay cargos ni pagos registrados.')); return root; }
+    var list = node('ul', 'smyl-f360-move-list');
+    ctx.items.forEach(function (item) {
+      var row = node('li', 'smyl-f360-move is-' + item.kind + (item.voided ? ' is-voided' : ''));
+      var copy = node('div', 'smyl-f360-move-copy');
+      copy.append(node('strong', '', item.label), node('small', '', shortDate(item.at) + (item.voided ? ' · cancelado' : '')));
+      row.append(copy, node('span', 'smyl-f360-move-amount', money(item.amount)));
+      list.append(row);
     });
     root.append(list);
     return root;
   }
 
-  window.SmylInboxFicha = Object.freeze({ shell: shell, tiles: tiles, files: files, timeline: timeline, conversationSummary: conversationSummary, notice: notice, shortDate: shortDate });
+  window.SmylInboxFicha = Object.freeze({ shell: shell, files: files, visits: visits, movements: movements, conversationSummary: conversationSummary, notice: notice, shortDate: shortDate });
 })();

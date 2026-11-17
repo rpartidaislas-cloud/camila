@@ -28,7 +28,9 @@ test('el chat muestra la tarjeta «Cuenta del paciente» sólo con finance.read 
     const i = read(base + 'smyl-inbox.js');
     assert.match(i, /hasPermission\('finance\.read'\) && window\.SmylFinance && typeof window\.SmylFinance\.accountSummary === 'function'/);
     assert.match(i, /Vincula al paciente para ver su saldo y cobrar desde esta conversación\./);
-    assert.match(i, /hasPermission\('finance\.manage'\) && canOperate\(conversation, 'finance\.manage'\)\) \{\s*var chargeButton/);
+    // «Cobrar» vive una sola vez, en las acciones principales de la Ficha 360, y exige finance.manage.
+    assert.match(i, /hasPermission\('finance\.manage'\) && canOperate\(conversation, 'finance\.manage'\)\) actions\.push\(\{ id: 'payment'/);
+    assert.doesNotMatch(i, /var chargeButton/);
     assert.match(i, /loadAccountContext\(conversationId\);/);
   }
 });

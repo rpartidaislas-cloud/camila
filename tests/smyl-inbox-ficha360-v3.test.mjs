@@ -20,8 +20,9 @@ test('el resumen de la conversación usa el Copilot existente y no consulta tabl
 test('el resumen se muestra solo con permiso, se marca como IA y avisa cuando quedó viejo', () => {
   assert.match(js, /hasPermission\('messages\.read'\) && F\.conversationSummary/);
   assert.match(js, /onRefresh: canGenerate \? function/);
-  assert.match(js, /stale: Boolean\(entry\.data && entry\.basis !== summaryBasis\(conversation\)\)/);
-  assert.match(ficha, /'smyl-f360-ai-badge', 'IA'/);
+  assert.match(js, /stale = Boolean\(entry\.data && entry\.basis !== summaryBasis\(conversation\)\)/);
+  assert.match(ficha, /'smyl-f360-ai-badge', section\.badge/);
+  assert.match(js, /badge: 'IA'/);
   assert.match(ficha, /revísalo antes de usarlo/);
   assert.match(ficha, /Llegaron mensajes nuevos después de este resumen\./);
 });
@@ -43,9 +44,9 @@ test('en pantallas anchas la ficha se ancla sin oscurecer el chat ni atrapar el 
 
 test('web, móvil y PWA publican la ficha 360 v3', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-inbox-ficha\.js\?v=5/);
-    assert.match(read(file), /smyl-inbox\.js\?v=59/);
-    assert.match(read(file), /smyl-inbox\.css\?v=50/);
+    assert.match(read(file), /smyl-inbox-ficha\.js\?v=6/);
+    assert.match(read(file), /smyl-inbox\.js\?v=60/);
+    assert.match(read(file), /smyl-inbox\.css\?v=51/);
   }
   for (const file of ['smyl-inbox.js', 'smyl-inbox-ficha.js', 'smyl-inbox.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);
