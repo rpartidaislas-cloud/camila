@@ -7,7 +7,7 @@ const js = read("smyl-finance.js"), hub = read("smyl-settings-hub.js"), css = re
 test("la configuración fiscal vive en Configuración → Cobros → Facturación como cuatro pasos", () => {
   assert.match(hub, /title: 'Facturación'[^}]*element: '#billing-setup'[^}]*ensure: 'billing'/);
   assert.match(hub, /openItem: function \(section, title\)/);
-  for (const id of ["issuer", "facturapi", "services", "policy"]) assert.ok(js.includes(`{id:'${id}'`), id);
+  for (const id of ["issuer", "facturapi", "services", "policy", "production"]) assert.ok(js.includes(`{id:'${id}'`), id);
   assert.match(js, /ensureBilling:ensureBilling/);
 });
 
@@ -28,11 +28,23 @@ test("conectar Facturapi: la llave es de contraseña, no se guarda en el navegad
   const block = js.slice(js.indexOf("function openFacturapiConnect"));
   assert.match(block, /type="password"/);
   assert.doesNotMatch(block, /localStorage|sessionStorage/);
-  assert.match(block, /setPac\(\{provider:'Facturapi',auth:true,sandbox:true\}\)/);
+  assert.match(js, /setPac\(\{provider:'Facturapi',auth:true,sandbox:true\}\)/);
 });
 
 test("los diálogos y avisos funcionan aunque la página Cobros esté oculta", () => {
   assert.match(js, /if\(d\.parentNode!==document\.body\)document\.body\.append\(d\)/);
   assert.match(js, /id='billing-feedback'|fb\.id='billing-feedback'/);
   assert.match(css, /\.finance-dialog \.finance-actions \.btn-secondary/);
+});
+
+test("CSD y producción: el CSD no se guarda en el navegador y producción exige confirmación escrita", () => {
+  const csd = js.slice(js.indexOf("function openCsdDialog"), js.indexOf("function openLiveDialog"));
+  assert.match(csd, /type="password" autocomplete="new-password"/);
+  assert.match(csd, /new FormData\(\)/);
+  assert.match(csd, /f\.elements\.password\.value=''/);
+  assert.doesNotMatch(csd, /localStorage|sessionStorage|console\./);
+  const live = js.slice(js.indexOf("function openLiveDialog"), js.indexOf("async function facturapiRun"));
+  assert.match(live, /FACTURAR EN PRODUCCION/);
+  assert.match(live, /type="submit" disabled/);
+  assert.match(live, /las facturas serán reales/i);
 });

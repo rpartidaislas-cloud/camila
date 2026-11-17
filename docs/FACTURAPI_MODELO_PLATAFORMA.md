@@ -1,25 +1,32 @@
 # Facturapi · modelo de plataforma para clínicas (plan)
 
-Estado: **plan, nada implementado**. Fecha: 2026-11-17.
+Estado: **plan con API verificada en pruebas; sin implementar**. Fecha: 2026-11-17.
 Hoy SMYL tiene el modelo «la clínica trae su propia cuenta y llave de Facturapi» (función `facturapi`, solo sandbox). Este documento propone el modelo para vender SMYL a muchas clínicas sin que cada una tenga que registrarse en Facturapi.
 
 ## 1. Idea en una frase
 
 SMYL tiene **una sola cuenta de plataforma** en Facturapi. Por cada clínica crea una **organización** de Facturapi, le carga los datos fiscales y su **CSD** (certificado de sello digital), y timbra a su nombre. La clínica nunca toca Facturapi: solo captura sus datos fiscales y sube sus archivos del SAT dentro de SMYL.
 
-## 2. Qué sabemos y qué NO está verificado
+## 2. Verificado contra la API real (2026-11-17, ambiente de pruebas, con una User Secret Key)
 
-La documentación oficial no se pudo abrir desde la sesión (host no permitido). Lo que sí se encontró en el SDK oficial (changelog) y un ejemplo público:
+Se probó con una llave de usuario real, creando y borrando organizaciones desechables. No se emitió ninguna factura.
 
-- Existe una **llave de usuario** (`sk_user_…`) que administra organizaciones.
-- El SDK tiene métodos de organización: subir certificado (`uploadCertificate`: archivo `.cer`, archivo `.key` y contraseña), borrar certificado, y obtener/renovar la llave de pruebas y de producción de la organización.
+| Operación | Resultado |
+|---|---|
+| `GET /v2/organizations` | Lista las organizaciones de la cuenta de plataforma. |
+| `POST /v2/organizations` `{name}` | Crea una organización vacía (200). |
+| `PUT /v2/organizations/{id}/legal` | Exige `name`; acepta `legal_name`, `tax_system`, `address.zip`… **No acepta `tax_id`**: el RFC lo toma Facturapi del CSD (sin CSD asigna un RFC de prueba). |
+| `PUT /v2/organizations/{id}/certificate` | Existe; espera archivos en multipart (`certificate_files_required` si no hay). **Falta probarlo con un CSD de prueba.** |
+| `GET /v2/organizations/{id}/apikeys/test` | Devuelve la llave de pruebas como texto. |
+| `GET /v2/organizations/{id}/apikeys/live` | Devuelve una lista (vacía mientras la organización no está lista para producción). |
+| `DELETE /v2/organizations/{id}` | Borra la organización (200). |
+| `GET /v2/organizations/me` con llave de organización | Es lo que usa hoy SMYL para verificar la llave (funciona). |
 
-**No verificado (hacer un spike de medio día con una cuenta real antes de construir):**
-1. Ruta y cuerpo exactos para crear la organización y actualizar sus datos legales.
-2. Si usar la llave de usuario para facturar a nombre de una organización, o si hay que guardar la llave de cada organización (se asume lo segundo).
-3. Si exige un acuerdo comercial o plan «partner/white-label» para operar muchas organizaciones, y cuánto cuesta cada organización y cada timbre.
-4. Límites de tasa, tamaño de archivos y formato de errores.
-5. Cómo avisa Facturapi el estado de una cancelación (webhook o consulta).
+**Una organización necesita tres pasos para producción** (`pending_steps`): `legal` (datos fiscales), `certificate` (CSD) y **`manifiesto` (Firmar Carta Manifiesto)**. Cada organización trae además `is_production_ready`, `certificate.expires_at` y `certificate.serial_number`, útiles para alertas de vigencia.
+
+**La Carta Manifiesto no tiene ruta en la API** (las rutas probadas responden 401/inexistente). Es un paso humano por clínica que hay que resolver (¿se firma en el panel de Facturapi? ¿con e.firma?). Es el principal bloqueo de producto para el onboarding.
+
+**Aún sin verificar:** carga real de un CSD, cómo se firma el manifiesto, si hace falta un plan de pago para facturar en vivo (la organización existente tiene `plan: null` y está lista), límites de tasa y cómo avisa una cancelación.
 
 ## 2.1 Decisiones que son del dueño del producto (no técnicas)
 
@@ -41,7 +48,7 @@ Navegador (clínica)            Edge Function `facturapi`            Facturapi
                                 guarda: organization_id, llave cifrada, vigencia del CSD
 ```
 
-- **Secretos del servidor:** `FACTURAPI_USER_KEY` (plataforma) y `FACTURAPI_ENCRYPTION_KEY` (ya existe; pasa a ser versionada: `kid` para poder rotarla).
+- **Secretos del servidor:** `FACTURAPI_USER_KEY` (plataforma, llave de usuario) y `FACTURAPI_ENCRYPTION_KEY` (ya existe; pasa a ser versionada: `kid` para poder rotarla).
 - **Por clínica se guarda:** `organization_id`, llave de organización cifrada, modo (`test`/`live`), huella, vigencia del CSD (no el CSD).
 - **El CSD y su contraseña nunca se guardan en SMYL ni se registran en logs.** Viajan navegador → función → Facturapi, en memoria, y se descartan.
 - **Comprobantes:** UUID, XML y PDF se guardan en Storage privado de SMYL (los datos pertenecen a la clínica según `SMYL_PLATFORM_BOUNDARY.md`). El SAT exige conservar el XML.
