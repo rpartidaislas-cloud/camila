@@ -2964,9 +2964,18 @@
     return {
       params: function () { return { serviceId: dialog.querySelector('[data-availability-service]').value, branchId: dialog.querySelector('[data-availability-branch]').value, professionalId: dialog.querySelector('[data-availability-professional]').value }; },
       fetchDay: async function (from, to) {
-        var params = this.params();
-        var data = await request('GET', { action: 'availability', service_id: params.serviceId, branch_id: params.branchId, professional_id: params.professionalId, from: from.toISOString(), to: to.toISOString(), limit: '30' });
-        return data.slots || [];
+        var params = this.params(); var all = []; var seen = {}; var cursor = from; var truncated = false;
+        // El servidor devuelve como máximo 30 horarios por consulta, ordenados por hora: si llegan 30, pedimos el resto desde el último.
+        for (var page = 0; page < 6; page += 1) {
+          var data = await request('GET', { action: 'availability', service_id: params.serviceId, branch_id: params.branchId, professional_id: params.professionalId, from: cursor.toISOString(), to: to.toISOString(), limit: '30' });
+          var rows = data.slots || []; var fresh = 0;
+          rows.forEach(function (slot) { var id = availabilitySlotKey(slot); if (!seen[id]) { seen[id] = true; all.push(slot); fresh += 1; } });
+          if (rows.length < 30) break;
+          if (!fresh || page === 5) { truncated = true; break; }
+          cursor = new Date(rows[rows.length - 1].starts_at);
+        }
+        all.truncated = truncated;
+        return all;
       },
       isSelected: function (slot) { var key = availabilitySlotKey(slot); return state.availabilitySelected.some(function (item) { return availabilitySlotKey(item) === key; }); },
       toggle: toggleAvailabilityOption,

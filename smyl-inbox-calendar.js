@@ -7,7 +7,8 @@
   var MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
   var STATUS_LABEL = { arrived: 'Ya llegó', in_progress: 'En consulta', completed: 'Terminada', no_show: 'No vino' };
   var WEEKDAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-  var state = { host: null, ctx: null, month: null, day: null, key: '', cache: Object.create(null), token: 0, queue: [], running: 0, agenda: Object.create(null), agendaOpen: true, paint: 0 };
+  var state = { host: null, ctx: null, month: null, day: null, key: '', cache: Object.create(null), token: 0, queue: [], running: 0, agenda: Object.create(null), agendaOpen: true, paint: 0, groupBy: 'time', expanded: Object.create(null) };
+  var GROUP_PREVIEW = 12;
 
   function el(tag, cls, text) { var node = document.createElement(tag); if (cls) node.className = cls; if (text != null) node.textContent = text; return node; }
   function pad(value) { return String(value).padStart(2, '0'); }
@@ -17,6 +18,12 @@
   function todayStart() { var now = new Date(); return new Date(now.getFullYear(), now.getMonth(), now.getDate()); }
   function level(count) { return count <= 0 ? 'none' : count <= 4 ? 'few' : 'many'; }
   function longDay(key) { var date = parseDay(key); return WEEKDAYS[date.getDay()].replace(/^./, function (c) { return c.toUpperCase(); }) + ' ' + date.getDate() + ' de ' + MONTHS[date.getMonth()]; }
+  function countText(slots, truncated) {
+    if (!slots.length) return 'Sin horarios libres';
+    return slots.length + (slots.length === 1 ? ' horario libre' : ' horarios libres') + (truncated ? ' o más' : '');
+  }
+  function truncatedFlag(slots) { return !!(slots && slots.truncated); }
+  function hourOf(slot) { return new Date(slot.starts_at).getHours(); }
   function cacheKey(key) { return state.key + '#' + key; }
 
   function invalidate() {
@@ -95,7 +102,7 @@
       var slots = slotsFor(key);
       if (key === dayKey(today)) cell.classList.add('is-today');
       if (!slots) { cell.classList.add('is-loading'); cell.setAttribute('aria-label', date.getDate() + ' de ' + MONTHS[date.getMonth()] + ', consultando'); }
-      else { cell.classList.add('is-' + level(slots.length)); cell.setAttribute('aria-label', date.getDate() + ' de ' + MONTHS[date.getMonth()] + ', ' + (slots.length ? (slots.length >= 30 ? '30 o más horarios libres' : slots.length + (slots.length === 1 ? ' horario libre' : ' horarios libres')) : 'sin horarios')); }
+      else { cell.classList.add('is-' + level(slots.length)); cell.setAttribute('aria-label', date.getDate() + ' de ' + MONTHS[date.getMonth()] + ', ' + (slots.length ? countText(slots, truncatedFlag(slots)) : 'sin horarios')); cell.title = slots.length ? countText(slots, truncatedFlag(slots)) : 'Sin horarios'; }
       if (key === state.day) { cell.classList.add('is-selected'); cell.setAttribute('aria-pressed', 'true'); } else cell.setAttribute('aria-pressed', 'false');
       cell.onclick = (function (value) { return function () { state.day = value; paint(); }; })(key);
       grid.append(cell);
@@ -107,26 +114,67 @@
     return section;
   }
 
-  function buildSlots(ctx, slots) {
+  function distinct(slots, field) { var seen = {}; slots.forEach(function (slot) { seen[slot[field] || ''] = true; }); return Object.keys(seen).length; }
+  function shortName(name) { return String(name || '').split(' ').slice(0, 2).join(' '); }
+  function range(ctx, rows) { return ctx.time(rows[0].starts_at) + ' – ' + ctx.time(rows[rows.length - 1].starts_at); }
+
+  function slotButton(ctx, slot, sub) {
+    var selected = ctx.isSelected(slot);
+    var button = el('button', 'smyl-cal-slot' + (selected ? ' is-selected' : '')); button.type = 'button'; button.setAttribute('aria-pressed', String(selected));
+    button.setAttribute('aria-label', (selected ? 'Quitar' : 'Seleccionar') + ' horario de las ' + ctx.time(slot.starts_at) + ' con ' + slot.professional_name + (slot.branch_name ? ' en ' + slot.branch_name : ''));
+    button.append(el('strong', '', ctx.time(slot.starts_at)));
+    (Array.isArray(sub) ? sub : sub ? [sub] : []).forEach(function (line) { if (line) button.append(el('small', '', line)); });
+    button.onclick = function () { ctx.toggle(slot); };
+    return button;
+  }
+
+  // Un grupo con título, número de horarios y «Ver N más» para no llenar la pantalla de botones.
+  function slotGroup(ctx, id, title, detail, rows, subFor) {
+    var group = el('div', 'smyl-cal-part'); group.dataset.group = id;
+    var head = el('div', 'smyl-cal-part-head'); head.append(el('span', '', title));
+    head.append(el('em', '', detail ? detail + ' · ' + rows.length : String(rows.length)));
+    group.append(head);
+    var open = !!state.expanded[id]; var shown = open ? rows : rows.slice(0, GROUP_PREVIEW);
+    var list = el('div', 'smyl-cal-slotlist');
+    shown.forEach(function (slot) { list.append(slotButton(ctx, slot, subFor(slot))); });
+    group.append(list);
+    if (rows.length > GROUP_PREVIEW) {
+      var more = el('button', 'smyl-cal-more', open ? 'Ver menos' : 'Ver ' + (rows.length - GROUP_PREVIEW) + ' más'); more.type = 'button'; more.setAttribute('aria-expanded', String(open));
+      more.onclick = function () { state.expanded[id] = !open; paint(); };
+      group.append(more);
+    }
+    return group;
+  }
+
+  function buildSlots(ctx, slots, truncated) {
     var wrap = el('div', 'smyl-cal-slots');
-    var names = {}; slots.forEach(function (slot) { names[slot.professional_id] = true; });
-    var many = Object.keys(names).length > 1;
-    [['Mañana', function (hour) { return hour < 12; }], ['Tarde', function (hour) { return hour >= 12; }]].forEach(function (part) {
-      var rows = slots.filter(function (slot) { return part[1](new Date(slot.starts_at).getHours()); });
-      if (!rows.length) return;
-      var group = el('div', 'smyl-cal-part'); group.append(el('span', '', part[0]));
-      var list = el('div', 'smyl-cal-slotlist');
-      rows.forEach(function (slot) {
-        var selected = ctx.isSelected(slot);
-        var button = el('button', 'smyl-cal-slot' + (selected ? ' is-selected' : '')); button.type = 'button'; button.setAttribute('aria-pressed', String(selected));
-        button.setAttribute('aria-label', (selected ? 'Quitar' : 'Seleccionar') + ' horario de las ' + ctx.time(slot.starts_at) + ' con ' + slot.professional_name);
-        button.append(el('strong', '', ctx.time(slot.starts_at)));
-        if (many) button.append(el('small', '', String(slot.professional_name || '').split(' ').slice(0, 2).join(' ')));
-        button.onclick = function () { ctx.toggle(slot); };
-        list.append(button);
+    var people = distinct(slots, 'professional_id'), places = distinct(slots, 'branch_id');
+    var canGroup = people > 1 || places > 1;
+    if (canGroup) {
+      var switcher = el('div', 'smyl-cal-group'); switcher.setAttribute('role', 'group'); switcher.setAttribute('aria-label', 'Ordenar horarios');
+      [['time', 'Por hora'], ['person', 'Por dentista']].forEach(function (item) {
+        var b = el('button', '', item[1]); b.type = 'button'; b.setAttribute('aria-pressed', String(state.groupBy === item[0]));
+        b.onclick = function () { state.groupBy = item[0]; paint(); };
+        switcher.append(b);
       });
-      group.append(list); wrap.append(group);
-    });
+      wrap.append(switcher);
+    } else state.groupBy = 'time';
+    var subTime = function (slot) { return [people > 1 ? shortName(slot.professional_name) : '', places > 1 ? slot.branch_name : '']; };
+    if (state.groupBy === 'person' && canGroup) {
+      var order = []; var by = {};
+      slots.forEach(function (slot) { var id = slot.professional_id + '|' + (slot.branch_id || ''); if (!by[id]) { by[id] = []; order.push(id); } by[id].push(slot); });
+      order.forEach(function (id) {
+        var rows = by[id].slice().sort(function (l, r) { return new Date(l.starts_at) - new Date(r.starts_at); });
+        wrap.append(slotGroup(ctx, 'p:' + id, rows[0].professional_name || 'Dentista', (places > 1 && rows[0].branch_name ? rows[0].branch_name + ' · ' : '') + range(ctx, rows), rows, function () { return ''; }));
+      });
+    } else {
+      [['m', 'Por la mañana', function (hour) { return hour < 12; }], ['t', 'Por la tarde', function (hour) { return hour >= 12; }]].forEach(function (part) {
+        var rows = slots.filter(function (slot) { return part[2](hourOf(slot)); });
+        if (!rows.length) return;
+        wrap.append(slotGroup(ctx, 't:' + part[0], part[1], range(ctx, rows), rows, subTime));
+      });
+    }
+    if (truncated) wrap.append(el('p', 'smyl-cal-note smyl-cal-trunc', 'Hay más horarios de los que caben aquí. Elige un dentista o una sucursal arriba para ver los demás.'));
     return wrap;
   }
 
@@ -163,7 +211,7 @@
     var head = el('header'); var copy = el('div');
     copy.append(el('strong', '', longDay(key)));
     var booked = state.agenda[key] && state.agenda[key].rows ? state.agenda[key].rows.length : null;
-    var freeText = !slots ? 'Consultando horarios…' : entry && entry.error ? 'No pudimos consultar este día' : slots.length ? (slots.length >= 30 ? '30 o más horarios libres' : slots.length + (slots.length === 1 ? ' horario libre' : ' horarios libres')) : 'Sin horarios libres';
+    var freeText = !slots ? 'Consultando horarios…' : entry && entry.error ? 'No pudimos consultar este día' : countText(slots, truncatedFlag(slots));
     copy.append(el('small', '', freeText + (booked !== null && slots ? ' · ' + (booked ? booked + (booked === 1 ? ' cita agendada' : ' citas agendadas') : 'sin citas') : '')));
     var actions = el('div', 'smyl-cal-actions');
     var agendaAllowed = ctx.canReadAgenda !== false;
@@ -186,7 +234,7 @@
       for (var i = 1; i <= 31 && !nextDay; i += 1) { cursor.setDate(cursor.getDate() + 1); var candidate = slotsFor(dayKey(cursor)); if (candidate && candidate.length) nextDay = dayKey(cursor); }
       section.append(emptyNote);
       if (nextDay) { var jump = el('button', 'btn btn-primary btn-sm', 'Ir al siguiente día con horarios · ' + longDay(nextDay)); jump.type = 'button'; jump.onclick = function () { state.day = nextDay; paint(); }; section.append(jump); }
-    } else section.append(buildSlots(ctx, slots));
+    } else section.append(buildSlots(ctx, slots, truncatedFlag(slots)));
     if (state.agendaOpen && ctx.canReadAgenda !== false) section.append(buildAgenda(ctx, key));
     return section;
   }

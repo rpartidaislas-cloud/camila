@@ -1961,3 +1961,22 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 .smyl-inbox-queue-summary[data-state=clear]{position:absolute;width:1px;height:1px;min-height:0;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);border:0}
 @container smyl-thread-head (max-width:700px){.smyl-inbox-iconchip.is-labeled{max-width:none;min-width:36px;padding:0 8px}.smyl-inbox-iconchip.is-labeled span{display:none}}
 @media(max-width:760px){.smyl-inbox-menu{min-width:min(260px,calc(100vw - 32px))}}
+
+/* Agendar cita (chat) · horarios más claros: título con rango y número, agrupar por dentista, «Ver más» y menos vacío. */
+#p-inbox .smyl-cal-group{display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:#eef2f6;align-self:flex-start}
+#p-inbox .smyl-cal-group button{min-height:28px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:#526477;font:700 12px/1 Inter,sans-serif;cursor:pointer}
+#p-inbox .smyl-cal-group button[aria-pressed="true"]{background:#fff;color:#10283b;box-shadow:0 1px 2px rgba(16,40,59,.14)}
+#p-inbox .smyl-cal-slots{display:flex;flex-direction:column;gap:14px}
+#p-inbox .smyl-cal-part-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px}
+#p-inbox .smyl-cal-part-head>span{margin:0;font-size:13px;font-weight:800;letter-spacing:0;text-transform:none;color:#10283b}
+#p-inbox .smyl-cal-part-head>em{font-style:normal;font-size:12px;font-weight:600;color:#5b6b78;font-variant-numeric:tabular-nums}
+#p-inbox .smyl-cal-more{margin-top:8px;padding:0;border:0;background:transparent;color:#0f766e;font:700 12.5px/1.2 Inter,sans-serif;cursor:pointer}
+#p-inbox .smyl-cal-more:hover{text-decoration:underline}
+#p-inbox .smyl-cal-more:focus-visible{outline:2px solid #0f766e;outline-offset:2px}
+#p-inbox .smyl-cal-slot{min-width:104px}
+#p-inbox .smyl-cal-slot{min-width:112px;padding:6px 12px}
+#p-inbox .smyl-cal-slot small{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.25}
+#p-inbox .smyl-cal-slot small+small{color:#7a8895}
+#p-inbox .smyl-cal-slot.is-selected small+small{color:#bfe6e1}
+#p-inbox .smyl-cal-d.is-none span{color:#8493a0;text-decoration:line-through;text-decoration-thickness:1px}
+#p-inbox .smyl-cal-trunc{padding:8px 10px;border-radius:9px;background:#fff7e6;color:#7a4c05}
