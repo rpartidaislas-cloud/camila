@@ -1926,3 +1926,57 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 #p-inbox .smyl-cal-agenda-list li{grid-template-columns:170px minmax(0,1fr)}
 #p-inbox .smyl-cal-agenda-list time{white-space:nowrap}
 @media (max-width:640px){#p-inbox .smyl-cal-agenda-list li{grid-template-columns:minmax(0,1fr);gap:2px}}
+
+/* Bandeja más ordenada: la sucursal es un botón compacto junto al buscador (filtrar) y otro en la cabecera (asignar). */
+.smyl-inbox-branchbar{position:relative;flex:none;display:block;padding:0;border:0;background:transparent}
+.smyl-inbox-branchbar[hidden]{display:none}
+.smyl-inbox-branchbar[data-attention]{background:transparent}
+.smyl-inbox-iconchip{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:40px;height:38px;padding:0 10px;border:1px solid #D4DEE8;border-radius:9px;background:#fff;color:#496276;font:700 13px Inter,sans-serif;cursor:pointer}
+.smyl-inbox-iconchip svg{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.smyl-inbox-iconchip:hover:not(:disabled),.smyl-inbox-iconchip[aria-expanded=true]{border-color:#91B8CD;background:#F0F7FA;color:#17678F}
+.smyl-inbox-iconchip[data-active=true]{border-color:#A9CFC6;background:#F0F8F5;color:#246B5E}
+.smyl-inbox-iconchip:disabled{cursor:default}
+.smyl-inbox-chip-dot{position:absolute;top:4px;right:4px;width:10px;height:10px;border:2px solid #fff;border-radius:50%;background:#D98A12}
+.smyl-inbox-chip-dot[hidden]{display:none}
+.smyl-inbox-iconchip.is-labeled{height:34px;max-width:170px;border-radius:999px}
+.smyl-inbox-iconchip.is-labeled span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.smyl-inbox-iconchip.is-labeled[data-state=none]{border-color:#EFD19A;background:#FFF4E0;color:#8A5200}
+.smyl-inbox-thread-branchwrap{position:relative;flex:none}
+.smyl-inbox-thread-branchwrap[hidden]{display:none}
+.smyl-inbox-menu{position:absolute;z-index:30;right:0;top:calc(100% + 6px);min-width:240px;padding:6px;border:1px solid #D4DEE8;border-radius:12px;background:#fff;box-shadow:0 12px 32px rgba(16,34,57,.18)}
+.smyl-inbox-menu hr{margin:4px 0;border:0;border-top:1px solid #E3E9EF}
+.smyl-inbox-menu-option{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;min-height:38px;padding:8px 10px;border:0;border-radius:8px;background:transparent;color:#102239;text-align:left;font:600 13px Inter,sans-serif;cursor:pointer}
+.smyl-inbox-menu-option small{color:#667587;font-size:12px;font-weight:600}
+.smyl-inbox-menu-option:hover,.smyl-inbox-menu-option:focus-visible{background:#F2F6F9;outline:none}
+.smyl-inbox-menu-option:focus-visible{box-shadow:inset 0 0 0 2px #2476B8}
+.smyl-inbox-menu-option[aria-checked=true]{background:#EAF5F1;color:#246B5E}
+.smyl-inbox-menu-option.is-warn{color:#8A5200}
+.smyl-inbox-branch-strip{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 12px;border-bottom:1px solid #E3E9EF;background:#F0F8F5;color:#246B5E;font-size:12px;font-weight:700}
+.smyl-inbox-branch-strip[hidden]{display:none}
+.smyl-inbox-strip-clear{border:0;background:transparent;color:#17678F;font:700 12px Inter,sans-serif;text-decoration:underline;cursor:pointer}
+/* En la fila: la sucursal va tenue; «sin sucursal» es solo un punto ámbar. */
+.smyl-inbox-branch{background:transparent;color:#667587;padding:0;font-weight:600}
+.smyl-inbox-branch.is-none{display:inline-block;width:8px;height:8px;max-width:none;padding:0;border-radius:50%;background:#D98A12;color:transparent;font-size:0;overflow:hidden}
+/* «Esta bandeja está al día» ya no ocupa una franja; se sigue anunciando a lectores de pantalla. */
+.smyl-inbox-queue-summary[data-state=clear]{position:absolute;width:1px;height:1px;min-height:0;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);border:0}
+@container smyl-thread-head (max-width:700px){.smyl-inbox-iconchip.is-labeled{max-width:none;min-width:36px;padding:0 8px}.smyl-inbox-iconchip.is-labeled span{display:none}}
+@media(max-width:760px){.smyl-inbox-menu{min-width:min(260px,calc(100vw - 32px))}}
+
+/* Agendar cita (chat) · horarios más claros: título con rango y número, agrupar por dentista, «Ver más» y menos vacío. */
+#p-inbox .smyl-cal-group{display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:#eef2f6;align-self:flex-start}
+#p-inbox .smyl-cal-group button{min-height:28px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:#526477;font:700 12px/1 Inter,sans-serif;cursor:pointer}
+#p-inbox .smyl-cal-group button[aria-pressed="true"]{background:#fff;color:#10283b;box-shadow:0 1px 2px rgba(16,40,59,.14)}
+#p-inbox .smyl-cal-slots{display:flex;flex-direction:column;gap:14px}
+#p-inbox .smyl-cal-part-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px}
+#p-inbox .smyl-cal-part-head>span{margin:0;font-size:13px;font-weight:800;letter-spacing:0;text-transform:none;color:#10283b}
+#p-inbox .smyl-cal-part-head>em{font-style:normal;font-size:12px;font-weight:600;color:#5b6b78;font-variant-numeric:tabular-nums}
+#p-inbox .smyl-cal-more{margin-top:8px;padding:0;border:0;background:transparent;color:#0f766e;font:700 12.5px/1.2 Inter,sans-serif;cursor:pointer}
+#p-inbox .smyl-cal-more:hover{text-decoration:underline}
+#p-inbox .smyl-cal-more:focus-visible{outline:2px solid #0f766e;outline-offset:2px}
+#p-inbox .smyl-cal-slot{min-width:104px}
+#p-inbox .smyl-cal-slot{min-width:112px;padding:6px 12px}
+#p-inbox .smyl-cal-slot small{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.25}
+#p-inbox .smyl-cal-slot small+small{color:#7a8895}
+#p-inbox .smyl-cal-slot.is-selected small+small{color:#bfe6e1}
+#p-inbox .smyl-cal-d.is-none span{color:#8493a0;text-decoration:line-through;text-decoration-thickness:1px}
+#p-inbox .smyl-cal-trunc{padding:8px 10px;border-radius:9px;background:#fff7e6;color:#7a4c05}
