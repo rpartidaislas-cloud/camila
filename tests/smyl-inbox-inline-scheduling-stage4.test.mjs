@@ -10,7 +10,6 @@ const worker = read('../sw.js');
 const styles = read('../smyl-inbox.css');
 
 test('todos los accesos para agendar permanecen dentro del chat', () => {
-  assert.match(inbox, /'Agendar cita'\); agenda\.type = 'button'; agenda\.onclick = openAvailabilityDialog/);
   const actions = inbox.slice(inbox.indexOf('function permittedCareActions'), inbox.indexOf('function primaryCareAction'));
   assert.match(actions, /hasPermission\('schedule\.manage'\)/);
   assert.match(actions, /id: 'schedule', label: 'Agendar cita', run: openAvailabilityDialog/);

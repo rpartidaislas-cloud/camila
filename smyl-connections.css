@@ -127,6 +127,15 @@
 .connections-train-review [data-ready-summary]{margin:0 0 10px;font-weight:600}
 .connections-train-review [data-ready-summary][data-state=ready]{color:#286653}
 .connections-train-review [data-ready-summary][data-state=pending]{color:#745f39}
+/* Prueba en el mismo paso */
+.connections-step-test{margin-top:22px;border:1px solid #d7e0dd;border-radius:14px;background:#fff}
+.connections-step-test>summary{display:flex;flex-direction:column;gap:2px;padding:14px 16px;cursor:pointer;list-style:none}
+.connections-step-test>summary::-webkit-details-marker{display:none}
+.connections-step-test>summary strong{font-size:15px}
+.connections-step-test>summary small{font-size:13px;color:#4b5f5d}
+.connections-step-test>summary::after{content:'Abrir ▾';font-size:13px;font-weight:600;color:#33607f}
+.connections-step-test[open]>summary::after{content:'Cerrar ▴'}
+.connections-step-test .connections-preview{margin-top:0;padding:4px 16px 16px;border-top:1px solid #dce2dd}
 .connections-branch-sync{margin:8px 0 0;font-size:12px;line-height:1.5;color:#526465}
 .connections-branch-sync:empty{display:none}
 .connections-branch-sync[data-state=ok]{color:#286653}
