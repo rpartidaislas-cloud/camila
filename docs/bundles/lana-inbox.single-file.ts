@@ -329,6 +329,67 @@ async function lanaRequest(
 return { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin: admin };
 })();
 
+// ── _shared/branch-match.ts ──
+const { tokens, matchBranch, matchBranchInMessages } = (() => {
+// Reconoce a qué sucursal se refiere un paciente cuando contesta «¿en cuál sucursal te atendemos?».
+// Determinístico y auditable: solo asigna cuando el mensaje nombra UNA sucursal sin ambigüedad.
+interface BranchRef { id: string; name: string }
+
+const GENERIC_IN_NAME = new Set(["sucursal", "sede", "clinica", "consultorio", "dental"]);
+const FILLER = new Set(["de", "del", "la", "el", "los", "las", "en", "a", "al", "por", "para", "me", "quiero", "prefiero", "mejor"]);
+
+function tokens(value: string): string[] {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean);
+}
+
+// Palabras que identifican a la sucursal (sin «sucursal», «sede», «clínica»…). Si no queda ninguna, se usa el nombre completo.
+function keyOf(name: string): string[] {
+  const all = tokens(name).filter((word) => !FILLER.has(word));
+  const key = all.filter((word) => !GENERIC_IN_NAME.has(word));
+  return key.length ? key : all;
+}
+
+function containsPhrase(haystack: string[], phrase: string[]): boolean {
+  if (!phrase.length || phrase.length > haystack.length) return false;
+  for (let i = 0; i + phrase.length <= haystack.length; i += 1) {
+    if (phrase.every((word, j) => haystack[i + j] === word)) return true;
+  }
+  return false;
+}
+
+function matchBranch(text: string, branches: BranchRef[]): BranchRef | null {
+  const spoken = tokens(text);
+  const words = spoken.filter((word) => !FILLER.has(word)); // «plaza sol» también reconoce «plaza del sol»
+  const hits = branches
+    .map((branch) => ({ branch, key: keyOf(branch.name) }))
+    .filter(({ key }) => key.length && (containsPhrase(spoken, key) || containsPhrase(words, key)));
+  // «Centro» y «Centro Norte»: si una coincide solo porque está contenida en otra que también coincide, gana la más específica.
+  const specific = hits.filter((hit) => !hits.some((other) => other !== hit && other.key.length > hit.key.length && containsPhrase(other.key, hit.key)));
+  return specific.length === 1 ? specific[0].branch : null;
+}
+
+// Revisa los últimos mensajes del paciente (de más nuevo a más viejo) y devuelve la primera sucursal inequívoca.
+function matchBranchInMessages(messages: { role?: string; content?: string }[], branches: BranchRef[], limit = 15): BranchRef | null {
+  let seen = 0;
+  for (let i = messages.length - 1; i >= 0 && seen < limit; i -= 1) {
+    const message = messages[i];
+    if (!message || message.role !== "user") continue;
+    seen += 1;
+    const hit = matchBranch(String(message.content || ""), branches);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+return { tokens, matchBranch, matchBranchInMessages };
+})();
+
 // ── _shared/cors.ts ──
 const { makeCors, corsPublic, corsHeaders } = (() => {
 // Orígenes autorizados para funciones privadas (autenticadas).
@@ -399,6 +460,13 @@ function uuid(value: unknown): string | null {
 function messageId(value: unknown): string | null {
   const candidate = String(value || "").trim();
   return /^[1-9][0-9]{0,18}$/.test(candidate) ? candidate : null;
+}
+
+// Respuesta JSON para las funciones auxiliares del módulo. Desde el 2026-10-21 la versión con CORS vive dentro del
+// manejador (necesita el Origin de cada petición) y las funciones de afuera fallaban con ReferenceError: la envoltura de
+// Deno.serve (al final del archivo) agrega los encabezados CORS a toda respuesta que no los traiga.
+function json(status: number, body: Record<string, unknown>): Response {
+  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
 }
 
 function text(value: unknown, max: number): string {
@@ -537,6 +605,23 @@ async function filterConversationPayload(actor: Actor, tenantId: string, body: R
   const ids = sliced.map((value) => value && typeof value === "object" ? uuid((value as Record<string, unknown>).id) : null).filter(Boolean) as string[];
   const [assignments, branches] = await Promise.all([branchAssignments(tenantId, ids), activeBranches(tenantId)]);
   const names = new Map(branches.map((branch) => [branch.id, branch.name]));
+  // Si el paciente acaba de decir en qué sucursal quiere atenderse, la conversación queda asignada sin esperar a una persona.
+  if (branches.length > 1) {
+    const inferred: Record<string, unknown>[] = [];
+    for (const value of sliced) {
+      if (!value || typeof value !== "object") continue;
+      const conversation = value as Record<string, unknown>;
+      const id = uuid(conversation.id);
+      if (!id || assignments.has(id) || conversation.last_message_role !== "patient") continue;
+      const hit = matchBranch(text(conversation.last_message, 600), branches);
+      if (!hit) continue;
+      assignments.set(id, { branch_id: hit.id, source: "ai" });
+      inferred.push({ tenant_id: tenantId, conversation_id: id, branch_id: hit.id, source: "ai" });
+    }
+    if (inferred.length) {
+      await admin.from("smyl_conversation_branches").upsert(inferred, { onConflict: "tenant_id,conversation_id", ignoreDuplicates: true });
+    }
+  }
   const clinicWide = (actor.scopes.messages || "own") === "clinic";
   const allowed: unknown[] = [];
   for (const value of sliced) {
@@ -549,6 +634,27 @@ async function filterConversationPayload(actor: Actor, tenantId: string, body: R
   }
   const page = body.page && typeof body.page === "object" ? { ...(body.page as Record<string, unknown>), total: allowed.length } : body.page;
   return clinicWide ? { ...body, conversations: allowed } : { ...body, conversations: allowed, removed: [], page };
+}
+
+// Al abrir una conversación: muestra su sucursal y, si aún no tiene, la deduce de lo que dijo el paciente.
+async function attachThreadBranch(tenantId: string, body: Record<string, unknown>): Promise<void> {
+  const conversation = body.conversation && typeof body.conversation === "object" ? body.conversation as Record<string, unknown> : null;
+  const id = conversation ? uuid(conversation.id) : null;
+  if (!conversation || !id) return;
+  const [assignments, branches] = await Promise.all([branchAssignments(tenantId, [id]), activeBranches(tenantId)]);
+  let assigned = assignments.get(id);
+  if (!assigned && branches.length > 1 && Array.isArray(body.messages)) {
+    const hit = matchBranchInMessages(body.messages as { role?: string; content?: string }[], branches);
+    if (hit) {
+      assigned = { branch_id: hit.id, source: "ai" };
+      await admin.from("smyl_conversation_branches").upsert(
+        { tenant_id: tenantId, conversation_id: id, branch_id: hit.id, source: "ai" },
+        { onConflict: "tenant_id,conversation_id", ignoreDuplicates: true },
+      );
+    }
+  }
+  const name = assigned ? branches.find((branch) => branch.id === assigned!.branch_id)?.name : "";
+  conversation.branch = assigned ? { id: assigned.branch_id, name: name || "Sucursal", source: assigned.source } : null;
 }
 
 function forbiddenConversation(): Response {
@@ -701,6 +807,122 @@ function actorHeaders(actor: Actor, idempotencyKey?: string | null): Headers {
   return headers;
 }
 
+// Resumen de conversación guardado (tabla smyl_conversation_summaries, sin acceso desde el navegador).
+const SUMMARY_TABLE = "smyl_conversation_summaries";
+
+function summaryList(value: unknown): string[] {
+  return (Array.isArray(value) ? value : []).map((item) => text(item, 300)).filter(Boolean).slice(0, 8);
+}
+
+function cleanSummary(body: Record<string, unknown>): Record<string, unknown> | null {
+  const summary = text(body.summary, 4000);
+  if (!summary) return null;
+  return {
+    summary,
+    next_step: text(body.next_step, 600),
+    open_questions: summaryList(body.open_questions),
+    unconfirmed_facts: summaryList(body.unconfirmed_facts),
+    requires_human: body.requires_human === true,
+  };
+}
+
+function isoDate(value: unknown): string | null {
+  const raw = text(value, 40);
+  if (!raw) return null;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+// Quien tiene clinical.read y alcance clínico sobre el paciente del chat puede ver el resumen hecho con contexto clínico.
+async function clinicalSummaryAllowed(actor: Actor, tenantId: string, conversationId: string): Promise<boolean> {
+  if (!can(actor, "clinical.read")) return false;
+  const { data: handoff } = await admin.from("camila_lana_handoffs").select("patient_id")
+    .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId).maybeSingle();
+  return Boolean(handoff?.patient_id && await accessiblePatient(actor, tenantId, String(handoff.patient_id), "clinical"));
+}
+
+async function storedSummary(actor: Actor, tenantId: string, conversationId: string): Promise<Record<string, unknown>> {
+  const allowClinical = await clinicalSummaryAllowed(actor, tenantId, conversationId);
+  let query = admin.from(SUMMARY_TABLE).select("summary,basis_at,generated_at,generated_by_name,includes_clinical")
+    .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId);
+  if (!allowClinical) query = query.eq("includes_clinical", false);
+  const { data, error } = await query.order("generated_at", { ascending: false }).limit(1);
+  // Sin la migración aplicada la ficha sigue funcionando: simplemente no hay resumen guardado.
+  if (error) return { ok: true, summary: null, storage: "unavailable" };
+  const row = data && data[0];
+  if (!row) return { ok: true, summary: null, storage: "ready" };
+  return {
+    ok: true, storage: "ready", summary: row.summary, basis_at: row.basis_at, generated_at: row.generated_at,
+    generated_by_name: row.generated_by_name || "", includes_clinical: Boolean(row.includes_clinical),
+  };
+}
+
+async function saveSummary(actor: Actor, tenantId: string, conversationId: string, summary: Record<string, unknown>, includesClinical: boolean, basisAt: string | null) {
+  const generatedAt = new Date().toISOString();
+  const { error } = await admin.from(SUMMARY_TABLE).upsert({
+    tenant_id: tenantId, lana_conversation_id: conversationId, includes_clinical: includesClinical,
+    summary, basis_at: basisAt, generated_by: actor.id, generated_by_name: text(actor.name, 120), generated_at: generatedAt,
+  }, { onConflict: "tenant_id,lana_conversation_id,includes_clinical" });
+  if (error) {
+    console.warn("No se guardó el resumen de la conversación", error.code || error.message);
+    return { stored: false };
+  }
+  return { stored: true, generated_at: generatedAt, generated_by_name: text(actor.name, 120), basis_at: basisAt };
+}
+
+type MedicalAlert = { kind: "alert" | "allergy"; label: string; detail: string; severity: string };
+
+const ALLERGY_SEVERITY: Record<string, string> = { low: "Baja", moderate: "Moderada", high: "Alta" };
+const HISTORY_STATUSES = ["yes", "no", "unknown", "pending"];
+
+function historyText(value: unknown, max = 120): string {
+  return String(value ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+// Misma lógica que smyl-history-model.js: registros con detalle y, si no hay, las listas antiguas.
+function historyAllergies(document: Record<string, unknown>): Array<{ substance: string; reaction: string; severity: string }> {
+  const rows = Array.isArray(document.allergy_records)
+    ? document.allergy_records.filter((row) => row && typeof row === "object").map((row) => {
+      const record = row as Record<string, unknown>;
+      return { substance: historyText(record.substance), reaction: historyText(record.reaction), severity: historyText(record.severity, 20) };
+    }).filter((row) => row.substance || row.reaction)
+    : [];
+  if (rows.length) return rows;
+  return (Array.isArray(document.allergies) ? document.allergies : [])
+    .map((value) => ({ substance: historyText(value), reaction: "", severity: "" })).filter((row) => row.substance);
+}
+
+function historyReviewed(document: Record<string, unknown>, key: string, count: number): boolean {
+  if (count) return true;
+  const value = String(document[key] || "");
+  const status = HISTORY_STATUSES.includes(value) ? value : "pending";
+  return status === "no";
+}
+
+// Alertas médicas para la cabecera de la Ficha 360: etiquetas del alta del paciente + historia clínica vigente.
+// Solo se arma después de comprobar el alcance clínico del rol (accessiblePatient … "clinical").
+function medicalAlerts(patientTags: unknown, history: { document?: unknown; updated_at?: string | null } | null) {
+  const document = history && history.document && typeof history.document === "object" ? history.document as Record<string, unknown> : {};
+  const items: MedicalAlert[] = []; const seen = new Set<string>();
+  const push = (item: MedicalAlert) => {
+    const key = item.label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (!item.label || seen.has(key) || items.length >= 12) return;
+    seen.add(key); items.push(item);
+  };
+  const allergies = historyAllergies(document);
+  allergies.forEach((row) => push({
+    kind: "allergy", label: row.substance || "Alergia sin sustancia", severity: row.severity in ALLERGY_SEVERITY ? row.severity : "",
+    detail: [row.reaction ? `Reacción: ${row.reaction}` : "", ALLERGY_SEVERITY[row.severity] ? `Gravedad: ${ALLERGY_SEVERITY[row.severity]}` : ""].filter(Boolean).join(" · "),
+  }));
+  const historyAlerts = (Array.isArray(document.alerts) ? document.alerts : []).map((value) => historyText(value)).filter(Boolean);
+  historyAlerts.forEach((label) => push({ kind: "alert", label, detail: "", severity: "" }));
+  (Array.isArray(patientTags) ? patientTags : []).map((value) => historyText(value, 80)).filter(Boolean)
+    .forEach((label) => push({ kind: "alert", label, detail: "", severity: "" }));
+  items.sort((a, b) => Number(b.severity === "high") - Number(a.severity === "high") || Number(b.kind === "allergy") - Number(a.kind === "allergy"));
+  const reviewed = historyReviewed(document, "alerts_status", historyAlerts.length) && historyReviewed(document, "allergies_status", allergies.length);
+  return { items, reviewed, has_history: Boolean(history), history_updated_at: history?.updated_at || null };
+}
+
 async function clinicalContext(actor: Actor, tenantId: string, conversationId: string): Promise<Response> {
   const { data: handoff, error } = await admin.from("camila_lana_handoffs")
     .select("id,patient_id,case_id,lana_channel,created_at")
@@ -718,11 +940,13 @@ async function clinicalContext(actor: Actor, tenantId: string, conversationId: s
     ? admin.from("camila_lana_clinical_links").select("id,lana_message_id,media_type,status,label,created_at")
       .eq("tenant_id", tenantId).eq("case_id", handoff.case_id).order("created_at", { ascending: false }).limit(50)
     : Promise.resolve({ data: [], error: null });
-  const [{ data: patient }, { data: caseRow }, { data: links }] = await Promise.all([
-    admin.from("camila_pacientes").select("id,nombre,apellido,email,telefono,fecha_nacimiento,genero,notas,updated_at,consentimiento_whatsapp")
+  const [{ data: patient }, { data: caseRow }, { data: links }, { data: history }] = await Promise.all([
+    admin.from("camila_pacientes").select("id,nombre,apellido,email,telefono,fecha_nacimiento,genero,notas,updated_at,consentimiento_whatsapp,alertas_medicas")
       .eq("tenant_id", tenantId).eq("id", handoff.patient_id).maybeSingle(),
     caseQuery,
     linksQuery,
+    admin.from("smyl_patient_histories").select("document,updated_at")
+      .eq("tenant_id", tenantId).eq("patient_id", handoff.patient_id).maybeSingle(),
   ]);
   return json(200, {
     ok: true,
@@ -733,6 +957,7 @@ async function clinicalContext(actor: Actor, tenantId: string, conversationId: s
       email: patient.email || "", phone: patient.telefono || "", birth_date: patient.fecha_nacimiento || null,
       gender: patient.genero || null, notes: patient.notas || "", updated_at: patient.updated_at || null,
       whatsapp_consent: typeof patient.consentimiento_whatsapp === "boolean" ? patient.consentimiento_whatsapp : null,
+      medical_alerts: medicalAlerts(patient.alertas_medicas, history),
     } : null,
     case: caseRow ? {
       id: caseRow.id, name: caseRow.nombre_paciente || "", score: caseRow.score ?? null,
@@ -1029,8 +1254,8 @@ function queryPath(url: URL, action: string, conversationId: string | null): str
   return `/inbox${params.size ? `?${params}` : ""}`;
 }
 
-Deno.serve(async (req: Request) => {
-  const CORS = { ...makeCors(req, "GET, POST, OPTIONS"), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, idempotency-key" };
+async function handleInbox(req: Request): Promise<Response> {
+  const CORS = inboxCors(req);
   const json = (status: number, body: Record<string, unknown>): Response =>
     new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
   const requirePermission = (actor: Actor, permission: string, message: string): Response | null =>
@@ -1077,6 +1302,9 @@ Deno.serve(async (req: Request) => {
         const scheduleDenied = requirePermission(actor, "schedule.read", "Tu rol no permite consultar la continuidad de Agenda.");
         return scheduleDenied || await appointmentContext(auth.tenantId, conversationId);
       }
+      if (action === "conversation_summary" && conversationId) {
+        return json(200, await storedSummary(actor, auth.tenantId, conversationId));
+      }
       if (action === "clinical_context" && conversationId) {
         const clinicalDenied = requirePermission(actor, "clinical.read", "Tu rol no permite consultar el expediente clínico.");
         return clinicalDenied || await clinicalContext(actor, auth.tenantId, conversationId);
@@ -1105,6 +1333,7 @@ Deno.serve(async (req: Request) => {
       const scopedBody = ["list", "sync"].includes(action)
         ? await filterConversationPayload(actor, auth.tenantId, remote.body)
         : remote.body;
+      if (action === "messages") { try { await attachThreadBranch(auth.tenantId, scopedBody); } catch (_) { /* la sucursal es informativa: no debe romper la conversación */ } }
       return json(remote.response.status, { ...scopedBody, actor });
     }
 
@@ -1231,6 +1460,14 @@ Deno.serve(async (req: Request) => {
         method: "POST", headers: actorHeaders(actor),
         body: JSON.stringify({ mode, clinical_context: clinical }),
       }, 30000);
+      if (mode === "summary" && remote.response.ok && remote.body && typeof remote.body === "object") {
+        const summary = cleanSummary(remote.body as Record<string, unknown>);
+        if (summary) {
+          const includesClinical = clinical.patient_confirmed === true && clinical.clinical_access !== false;
+          const saved = await saveSummary(actor, auth.tenantId, conversationId, summary, includesClinical, isoDate(body.basis_at));
+          return json(remote.response.status, { ...remote.body, ...saved, actor });
+        }
+      }
       return json(remote.response.status, { ...remote.body, actor });
     }
     if (action === "feedback") {
@@ -1452,4 +1689,17 @@ Deno.serve(async (req: Request) => {
     console.error("[lana-inbox]", error instanceof Error ? error.message : error);
     return json(500, { error: "No se pudo sincronizar el Inbox con LANA." });
   }
+}
+
+function inboxCors(req: Request): Record<string, string> {
+  return { ...makeCors(req, "GET, POST, OPTIONS"), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, idempotency-key" };
+}
+
+Deno.serve(async (req: Request) => {
+  const response = await handleInbox(req);
+  const missing = Object.entries(inboxCors(req)).filter(([name]) => !response.headers.has(name));
+  if (!missing.length) return response;
+  const headers = new Headers(response.headers);
+  for (const [name, value] of missing) headers.set(name, value);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 });

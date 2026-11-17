@@ -37,6 +37,10 @@ verify_jwt = false
 [functions.cloud-share]
 verify_jwt = false
 
+# Sugerir el tipo de un archivo de la Nube con IA. Exige JWT, cloud.manage y poder ver el archivo; solo sugiere, no escribe.
+[functions.cloud-classify]
+verify_jwt = true
+
 [functions.smyl-consumables-webhook]
 verify_jwt = false
 

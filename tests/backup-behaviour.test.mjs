@@ -40,7 +40,7 @@ case "$1 $2" in
     bad_flag "$@"
     f="\${@: -1}"
     if [[ "$*" == *"--role-only"* ]]; then echo "CREATE ROLE anon;" > "$f"
-    elif [[ "$*" == *"--data-only"* ]]; then printf 'COPY public.camila_tenants (id) FROM stdin;\\n1\\n\\\\.\\nCOPY auth.users (id) FROM stdin;\\n1\\n\\\\.\\n' > "$f"
+    elif [[ "$*" == *"--data-only"* ]]; then printf 'COPY "public"."camila_tenants" (id) FROM stdin;\\n1\\n\\\\.\\nCOPY "auth"."users" (id) FROM stdin;\\n1\\n\\\\.\\n' > "$f"
     else echo "CREATE TABLE public.camila_tenants (id uuid);" > "$f"; fi;;
   "storage cp") bad_flag "$@"
     dest="\${@: -1}"; [ -n "$FAIL_BUCKET" ] && [[ "$*" == *"$FAIL_BUCKET"* ]] && { echo "error de prueba: sin permiso (clave $SUPABASE_DB_PASSWORD)" >&2; exit 1; }
@@ -49,7 +49,8 @@ case "$1 $2" in
     if [ -n "$FAKE_FLAKY_FILE" ]; then n=$(cat "$FAKE_FLAKY_FILE" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "$FAKE_FLAKY_FILE"
       if [ "$n" -le "$FAKE_FLAKY_FAILS" ]; then mkdir -p "$dest"; echo "parcial" > "$dest/parcial.tmp"; echo "failed to execute http request: HttpClientError: Transport error" >&2; exit 1; fi; fi
     [ -n "$FAKE_CP_NESTED" ] && dest="$dest/$dest"
-    mkdir -p "$dest"; echo "objeto uno" > "$dest/a.png"; echo "objeto dos" > "$dest/b.png";;
+    mkdir -p "$dest"; echo "objeto uno" > "$dest/a.png"; echo "objeto dos" > "$dest/b.png"
+    if [ -n "$FAKE_INNER_SAME" ]; then mkdir -p "$dest/$(basename "$dest")"; echo "objeto tres" > "$dest/$(basename "$dest")/c.png"; fi;;
 esac
 `, { mode: 0o755 });
   fs.writeFileSync(path.join(bin, 'docker'), `#!/bin/bash
@@ -143,7 +144,7 @@ test('la verificación detecta un paquete alterado y una clave equivocada', { sk
 test('la verificación avisa si faltan las cuentas de acceso (auth.users)', { skip }, () => {
   const ctx = setup();
   try {
-    const fake = fs.readFileSync(path.join(ctx.bin, 'npx'), 'utf8').replace('COPY auth.users', 'COPY otra.tabla');
+    const fake = fs.readFileSync(path.join(ctx.bin, 'npx'), 'utf8').replace('COPY "auth"."users"', 'COPY "otra"."tabla"');
     fs.writeFileSync(path.join(ctx.bin, 'npx'), fake, { mode: 0o755 });
     const out = path.join(ctx.dir, 'paquete');
     assert.equal(runBackup(ctx, out).status, 0);
@@ -258,5 +259,38 @@ test('si la red falla en todos los intentos, aborta y limpia lo temporal', { ski
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /falló tras 4 intentos/);
     assert.deepEqual(fs.readdirSync(ctx.tmp), []);
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('aplanar funciona aunque el bucket tenga una carpeta con su mismo nombre (EPERM en Windows)', { skip }, () => {
+  const ctx = setup();
+  try {
+    const out = path.join(ctx.dir, 'paquete');
+    const result = runBackup(ctx, out, { env: { FAKE_CP_NESTED: '1', FAKE_INNER_SAME: '1' } });
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(fs.readFileSync(path.join(out, 'manifest.json'), 'utf8'));
+    assert.equal(Object.values(manifest.storage).reduce((sum, item) => sum + item.objects, 0), BUCKETS.length * 3);
+    const tarList = spawnSync('bash', ['-c', `age --decrypt -i ${ctx.key} ${out}/storage.tar.age | tar -t`], { encoding: 'utf8' }).stdout;
+    assert.match(tarList, /\.\/camila-fotos\/camila-fotos\/c\.png/, 'la carpeta real del bucket se conserva');
+    assert.match(tarList, /\.\/camila-fotos\/a\.png/);
+    assert.doesNotMatch(tarList, /aplanar/);
+    assert.equal(verify(ctx, out).status, 0);
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('el verificador cuenta bien aunque tar termine las líneas con CRLF (Windows) y pg_dump cite los nombres', { skip }, () => {
+  const ctx = setup();
+  try {
+    const out = path.join(ctx.dir, 'paquete');
+    const created = runBackup(ctx, out, { env: { FAKE_CP_NESTED: '1' } });
+    assert.equal(created.status, 0, created.stderr);
+    const realTar = spawnSync('bash', ['-c', 'command -v tar'], { encoding: 'utf8' }).stdout.trim();
+    // tar.exe de Windows lista con \r\n: se imita con un envoltorio que sólo cambia el listado.
+    fs.writeFileSync(path.join(ctx.bin, 'tar'), `#!/bin/bash
+if [ "$1" = "-tf" ]; then ${realTar} "$@" | sed 's/$/\r/'; else exec ${realTar} "$@"; fi
+`, { mode: 0o755 });
+    const result = verify(ctx, out);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(JSON.parse(result.stdout).decision, 'PASS');
   } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
 });

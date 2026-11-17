@@ -39,6 +39,7 @@ export function estadoDelEnlace(enlace, ahora = Date.now()) {
 // Un enlace caducado, revocado o bloqueado se ve igual que uno que no existe: no se revela nada.
 export const enlaceDisponible = (enlace, ahora) => estadoDelEnlace(enlace, ahora) === "active";
 
-export function vistaPublica({ nombre, mime, size, clinica, url, expires_at }) {
-  return { name: nombre, mime_type: mime, size_bytes: size, clinic: clinica || "", url, expires_at };
+// Un solo parámetro (sin desestructurar): el generador de bundles para el panel convierte cada parámetro en `x: any`.
+export function vistaPublica(datos) {
+  return { name: datos.nombre, mime_type: datos.mime, size_bytes: datos.size, clinic: datos.clinica || "", url: datos.url, expires_at: datos.expires_at };
 }

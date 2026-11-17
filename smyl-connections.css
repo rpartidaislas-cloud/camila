@@ -75,3 +75,42 @@
 /* WhatsApp v4 · identidad de canal reconocible sin convertir el verde de marca en color de interfaz. */
 .connections-channel-icon--whatsapp{border:0!important;background:transparent!important;box-shadow:0 0 0 1px rgba(37,211,102,.12)}
 .connections-channel-icon--whatsapp img{display:block;width:100%;height:100%;object-fit:contain}
+
+.connections-branch-tools{padding:12px 14px;border:1px dashed #cad8d1;border-radius:12px;background:#f8fbf9}
+.connections-branch-tools-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px}
+.connections-inline-check{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:#33484a}
+.connections-branch-tools .connections-fieldset-help{margin:10px 0 0}
+.connections-branch-tools .connections-inline-check{display:inline-flex;flex-direction:row;align-items:center;gap:8px;font-size:14px;color:#33484a}
+.connections-branch-tools .btn{width:auto}
+
+/* Capacitar IA por etapas */
+.connections-train-steps{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 0;padding:0;list-style:none}
+.connections-train-steps button{display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 6px;border:1px solid #d7e0dd;border-radius:999px;background:#fff;color:#4b5f5d;font-size:14px;font-weight:600;cursor:pointer}
+.connections-train-steps button b{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#e8eeec;color:#4b5f5d;font-size:13px}
+.connections-train-steps button[data-state=current]{border-color:#2b7873;color:#183335}
+.connections-train-steps button[data-state=current] b{background:#2b7873;color:#fff}
+.connections-train-steps button[data-state=done] b{background:#2f8a62;color:#fff}
+.connections-train-intro{margin:16px 0 4px;padding:14px 16px;border-left:3px solid #2b7873;background:#f4f8f6;border-radius:0 12px 12px 0}
+.connections-train-intro span{display:block;font-size:13px;font-weight:700;letter-spacing:.04em;color:#2b7873;text-transform:uppercase}
+.connections-train-intro strong{display:block;margin-top:2px;font-size:20px;color:#183335}
+.connections-train-intro p{margin:4px 0 0;font-size:14px;color:#4b5f5d}
+[data-lana-training-form] [data-train-step]{display:none}
+[data-lana-training-form][data-step="1"] [data-train-step="1"],
+[data-lana-training-form][data-step="2"] [data-train-step="2"],
+[data-lana-training-form][data-step="3"] [data-train-step="3"],
+[data-lana-training-form][data-step="4"] [data-train-step="4"],
+[data-lana-training-form][data-step="5"] [data-train-step="5"],
+[data-lana-training-form][data-step="6"] [data-train-step="6"]{display:block}
+[data-lana-training-form][data-step="6"] [data-training-validation][hidden]{display:none}
+[data-lana-training-form]:not([data-step="6"]) [data-validate-training],
+[data-lana-training-form]:not([data-step="6"]) [data-publish-training]{display:none}
+.connections-training-actions{position:sticky;bottom:0;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 0;background:linear-gradient(to top,#fdfdf9 70%,rgba(253,253,249,0))}
+.connections-train-review h3{margin:0 0 10px;font-size:18px}
+.connections-train-review ul{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.connections-train-review li{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #d7e0dd;border-radius:12px;background:#fff}
+.connections-train-review li>span{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;font-weight:800;background:#f4e3c9;color:#98632f}
+.connections-train-review li[data-state=done]>span{background:#d9ebe1;color:#2a6d5f}
+.connections-train-review li>div{flex:1;min-width:0}
+.connections-train-review li strong{display:block;font-size:15px}
+.connections-train-review li small{color:#4b5f5d;font-size:13px}
+.connections-train-review li button{border:1px solid #cad8d1;border-radius:9px;background:#fff;padding:6px 12px;font-weight:600;cursor:pointer}

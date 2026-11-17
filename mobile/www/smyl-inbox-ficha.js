@@ -37,6 +37,7 @@
     copy.append(node('strong', ctx.subtitle ? '' : 'is-missing', ctx.subtitle || 'Sin teléfono ni correo registrados'));
     if (ctx.meta) copy.append(node('small', '', ctx.meta));
     identity.append(copy); root.append(identity);
+    if (ctx.medical) root.append(medicalAlerts(ctx.medical, ctx.onCompleteHistory));
     if ((ctx.chips || []).length) {
       var chips = node('div', 'smyl-f360-chips');
       ctx.chips.forEach(function (chip) { chips.append(node('span', 'smyl-f360-chip is-' + (chip.tone || 'neutral'), chip.text)); });
@@ -73,6 +74,40 @@
     if (current && current.node) panel.append(current.node);
     root.append(panel);
     return root;
+  }
+
+  // Alertas médicas en la cabecera: lo primero que ve el equipo antes de agendar o tratar.
+  function medicalAlerts(medical, onCompleteHistory) {
+    if (medical.unlinked) {
+      var unlinked = node('div', 'smyl-f360-med is-pending'); unlinked.setAttribute('role', 'note');
+      unlinked.append(node('span', 'smyl-f360-med-icon', '!'), node('p', '', 'Vincula este chat a un paciente para ver sus alergias y alertas médicas'));
+      if (medical.onLink) unlinked.append(button('Resolver identidad', 'smyl-f360-link', medical.onLink));
+      return unlinked;
+    }
+    var items = medical.items || [];
+    if (!items.length) {
+      var quiet = node('div', 'smyl-f360-med is-' + (medical.reviewed ? 'clear' : 'pending'));
+      quiet.setAttribute('role', 'note');
+      quiet.append(node('span', 'smyl-f360-med-icon', medical.reviewed ? '✓' : '!'));
+      quiet.append(node('p', '', medical.reviewed ? 'Sin alergias ni alertas médicas conocidas' : 'Alergias y alertas médicas sin confirmar'));
+      if (!medical.reviewed && onCompleteHistory) quiet.append(button('Completar historia', 'smyl-f360-link', onCompleteHistory));
+      return quiet;
+    }
+    var box = node('section', 'smyl-f360-med is-alert'); box.setAttribute('aria-labelledby', 'smyl-f360-med-title');
+    var head = node('div', 'smyl-f360-med-head');
+    head.append(node('span', 'smyl-f360-med-icon', '⚠'));
+    var title = node('h3', '', items.length === 1 ? 'Alerta médica' : items.length + ' alertas médicas'); title.id = 'smyl-f360-med-title';
+    head.append(title); box.append(head);
+    var list = node('ul', 'smyl-f360-med-list');
+    items.forEach(function (item) {
+      var row = node('li', 'smyl-f360-med-item' + (item.kind === 'allergy' ? ' is-allergy' : '') + (item.severity === 'high' ? ' is-high' : ''));
+      row.append(node('strong', '', (item.kind === 'allergy' ? 'Alergia: ' : '') + item.label));
+      if (item.detail) row.append(node('small', '', item.detail));
+      list.append(row);
+    });
+    box.append(list);
+    if (!medical.reviewed) box.append(node('p', 'smyl-f360-med-note', 'La historia clínica aún tiene alergias o alertas sin confirmar.'));
+    return box;
   }
 
   function tiles(list) {
@@ -152,14 +187,20 @@
       card.append(node('p', 'smyl-inbox-sr', 'Resumiendo la conversación…'), skeleton);
       return card;
     }
+    if (ctx.needsTraining && !data) {
+      card.append(node('p', 'smyl-f360-summary-text is-muted', 'El resumen usa SMYL Copilot, que necesita la capacitación dental publicada (servicios, precios y políticas de la clínica).'));
+      if (ctx.onOpenTraining) card.append(button('Publicar capacitación', 'smyl-f360-action is-primary', ctx.onOpenTraining));
+      else card.append(notice('Pide a quien administra la clínica que publique la capacitación en Configuración → Canales y asistente.'));
+      return card;
+    }
     if (ctx.error && !data) {
       card.append(notice(ctx.error, 'warn'));
-      card.append(button('Reintentar', 'smyl-f360-link', ctx.onRefresh));
+      if (ctx.onRefresh) card.append(button('Reintentar', 'smyl-f360-link', ctx.onRefresh));
       return card;
     }
     if (!data) {
-      card.append(node('p', 'smyl-f360-summary-text is-muted', 'Obtén en segundos qué pidió el paciente, qué se le respondió y qué falta.'));
-      card.append(button('Resumir conversación', 'smyl-f360-action is-primary', ctx.onRefresh));
+      card.append(node('p', 'smyl-f360-summary-text is-muted', ctx.canGenerate === false ? 'Todavía nadie del equipo ha resumido esta conversación.' : 'Obtén en segundos qué pidió el paciente, qué se le respondió y qué falta.'));
+      if (ctx.onRefresh) card.append(button('Resumir conversación', 'smyl-f360-action is-primary', ctx.onRefresh));
       return card;
     }
     if (data.requires_human) card.append(notice('El asistente detectó algo que requiere atención humana.', 'warn'));
@@ -180,10 +221,12 @@
     if (facts.childNodes.length) card.append(facts);
     if (ctx.stale) card.append(notice('Llegaron mensajes nuevos después de este resumen.', 'warn'));
     var foot = node('div', 'smyl-f360-summary-foot');
-    foot.append(node('small', '', (ctx.loading ? 'Actualizando…' : 'Generado ' + shortDate(ctx.at, true).toLowerCase()) + ' · revísalo antes de usarlo'));
+    foot.append(node('small', '', (ctx.loading ? 'Actualizando…' : 'Generado ' + shortDate(ctx.at, true).toLowerCase() + (ctx.by ? ' por ' + ctx.by : '')) + ' · revísalo antes de usarlo'));
     var tools = node('div', 'smyl-f360-summary-tools');
-    var refresh = button(ctx.loading ? 'Actualizando…' : 'Actualizar', 'smyl-f360-link' + (ctx.stale ? ' is-strong' : ''), ctx.onRefresh); refresh.disabled = Boolean(ctx.loading);
-    tools.append(refresh);
+    if (ctx.onRefresh) {
+      var refresh = button(ctx.loading ? 'Actualizando…' : 'Actualizar', 'smyl-f360-link' + (ctx.stale ? ' is-strong' : ''), ctx.onRefresh); refresh.disabled = Boolean(ctx.loading);
+      tools.append(refresh);
+    }
     if (ctx.onCopy) tools.append(button('Copiar', 'smyl-f360-link', ctx.onCopy));
     foot.append(tools); card.append(foot);
     return card;

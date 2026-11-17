@@ -1890,3 +1890,39 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
   #p-inbox.context-docked .smyl-inbox-context{position:relative;inset:auto;grid-column:3;grid-row:1;width:auto;max-width:none;min-width:0;height:100%;overflow-y:auto;transform:none;box-shadow:none;border-left:1px solid var(--inbox-border);transition:none}
   #p-inbox.context-docked .smyl-inbox-context-scrim{display:none!important}
 }
+/* Alertas médicas en la cabecera de la Ficha 360 y aviso en la cabecera del chat. */
+#p-inbox .smyl-f360-med{display:grid;gap:8px;padding:11px 12px;border:1px solid var(--inbox-border);border-radius:10px;background:#F7F9FB}
+#p-inbox .smyl-f360-med.is-alert{border-color:#F0B4AC;border-left:4px solid #C2410C;background:#FFF5F3}
+#p-inbox .smyl-f360-med.is-clear,#p-inbox .smyl-f360-med.is-pending{grid-template-columns:auto minmax(0,1fr) auto;align-items:center;padding:8px 12px}
+#p-inbox .smyl-f360-med.is-clear{border-color:#CBE7DE;background:#F2FAF7}
+#p-inbox .smyl-f360-med.is-pending{border-color:#EBD6A5;background:#FFFBF0}
+#p-inbox .smyl-f360-med p{margin:0;color:var(--inbox-ink);font:600 12px/1.4 var(--inbox-font)}
+#p-inbox .smyl-f360-med-head{display:flex;align-items:center;gap:8px}
+#p-inbox .smyl-f360-med-head h3{margin:0;color:#9A2E12;font:800 12px/1.3 var(--inbox-font);letter-spacing:.04em;text-transform:uppercase}
+#p-inbox .smyl-f360-med-icon{width:22px;height:22px;flex:none;display:grid;place-items:center;border-radius:50%;font:800 12px/1 var(--inbox-font)}
+#p-inbox .smyl-f360-med.is-alert .smyl-f360-med-icon{background:#C2410C;color:#fff}
+#p-inbox .smyl-f360-med.is-clear .smyl-f360-med-icon{background:#D7F0E7;color:#17695A}
+#p-inbox .smyl-f360-med.is-pending .smyl-f360-med-icon{background:#F6E2B5;color:#8A5A0A}
+#p-inbox .smyl-f360-med-list{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px;margin:0;padding:0;list-style:none}
+#p-inbox .smyl-f360-med-item{display:grid;gap:2px;max-width:100%;padding:6px 9px;border:1px solid #F3C9C1;border-radius:8px;background:#fff}
+#p-inbox .smyl-f360-med-item strong{color:#7C2D12;font:700 12px/1.3 var(--inbox-font);overflow-wrap:anywhere}
+#p-inbox .smyl-f360-med-item small{color:#7C4A3A;font:500 12px/1.35 var(--inbox-font)}
+#p-inbox .smyl-f360-med-item.is-high{border-color:#C2410C;background:#FFEDE8}
+#p-inbox .smyl-f360-med-note{color:#7A5410!important;font-weight:500!important}
+#p-inbox .smyl-inbox-med-flag{flex:none;align-self:center;max-width:180px;margin-left:8px;padding:3px 8px;overflow:hidden;border-radius:999px;background:#FFEDE8;color:#9A2E12;font:700 12px/1.3 var(--inbox-font);text-overflow:ellipsis;white-space:nowrap}
+#p-inbox .smyl-inbox-med-flag[hidden]{display:none}
+@media (max-width:760px){#p-inbox .smyl-inbox-med-flag{max-width:110px}}
+/* Agendar desde el chat: si falta configurar Agenda, el aviso no necesita un diálogo de pantalla completa. */
+#p-inbox .smyl-inbox-availability-dialog.has-config-issue{height:auto;min-height:0;max-height:calc(100dvh - 36px)}
+#p-inbox .smyl-inbox-availability-dialog.has-config-issue .smyl-inbox-availability-empty{min-height:0;padding:34px 28px 40px}
+/* Agendar desde el chat: las citas del día se muestran solas debajo de los horarios libres. */
+#p-inbox .smyl-cal-agenda{margin-top:14px}
+#p-inbox .smyl-cal-agenda-title{margin:0 0 10px;color:#10283b;font:800 12px/1.3 Inter,system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase}
+#p-inbox .smyl-cal-agenda-list li{padding:8px 0;border-top:1px solid #e6edf2}
+#p-inbox .smyl-cal-agenda-list li:first-child{padding-top:0;border-top:0}
+#p-inbox .smyl-cal-agenda-status{margin-left:8px;padding:2px 8px;border-radius:999px;background:#e6f4f1;color:#0f5f58;font:700 12px/1.3 Inter,system-ui,sans-serif;font-style:normal}
+#p-inbox .smyl-cal-agenda-list li[data-status="no_show"] .smyl-cal-agenda-status{background:#fdecea;color:#9b2c1f}
+#p-inbox .smyl-cal-agenda-list li[data-status="completed"] time{color:#667586}
+#p-inbox .smyl-cal-agenda-list li{grid-template-columns:170px minmax(0,1fr)}
+#p-inbox .smyl-cal-agenda-list time{white-space:nowrap}
+@media (max-width:640px){#p-inbox .smyl-cal-agenda-list li{grid-template-columns:minmax(0,1fr);gap:2px}}

@@ -83,14 +83,14 @@ try {
     check('Esquema con tablas de la aplicación', fileContains(decrypted['schema.sql'], /CREATE TABLE[^;]*camila_tenants/i), 'schema.sql define camila_tenants.');
   }
   if (decrypted['data.sql']) {
-    check('Datos de la aplicación incluidos', fileContains(decrypted['data.sql'], /COPY public\.camila_tenants|INSERT INTO "?public"?\.camila_tenants/i), 'data.sql trae filas de camila_tenants.');
-    check('Cuentas de acceso (auth.users) incluidas', fileContains(decrypted['data.sql'], /COPY auth\.users|INSERT INTO "?auth"?\.users/i), 'Sin auth.users no se podría iniciar sesión tras restaurar.');
+    check('Datos de la aplicación incluidos', fileContains(decrypted['data.sql'], /COPY "?public"?\."?camila_tenants"?[ (]|INSERT INTO "?public"?\."?camila_tenants"?[ (]/i), 'data.sql trae filas de camila_tenants.');
+    check('Cuentas de acceso (auth.users) incluidas', fileContains(decrypted['data.sql'], /COPY "?auth"?\."?users"?[ (]|INSERT INTO "?auth"?\."?users"?[ (]/i), 'Sin auth.users no se podría iniciar sesión tras restaurar.');
   }
   if (decrypted['roles.sql']) check('Roles incluidos', fileContains(decrypted['roles.sql'], /CREATE ROLE|ALTER ROLE/i), 'roles.sql define roles.');
 
   if (decrypted['storage.tar']) {
     const listing = spawnSync('tar', ['-tf', decrypted['storage.tar']], { encoding: 'utf8', maxBuffer: 512 * 1024 * 1024 });
-    const entries = listing.status === 0 ? listing.stdout.split('\n').map((line) => line.replace(/^\.\//, '')).filter(Boolean) : [];
+    const entries = listing.status === 0 ? listing.stdout.split(/\r?\n/).map((line) => line.replace(/^\.\//, '')).filter(Boolean) : [];
     const files = entries.filter((entry) => !entry.endsWith('/'));
     const expected = Object.values(manifest.storage || {}).reduce((sum, item) => sum + item.objects, 0);
     check('Storage: cantidad de objetos igual al manifiesto', listing.status === 0 && files.length === expected, `El tar trae ${files.length} objetos; el manifiesto declara ${expected}.`);

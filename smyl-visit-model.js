@@ -9,7 +9,8 @@
 
   function dataStep(p,canManage){
     var base={key:'datos',title:'Datos del paciente',counts:true};
-    if(isPending(p))return Object.assign(base,{state:'todo',text:'Falta su nombre y sus datos.',actions:[{id:'complete',label:'Completar datos',primary:true},{id:'link',label:'Enviar enlace'}]});
+    /* Con permiso para gestionar pacientes, lo más rápido es que la persona los llene sola desde su celular (código QR). */
+    if(isPending(p))return Object.assign(base,{state:'todo',text:'Falta su nombre y sus datos.',actions:canManage?[{id:'qr',label:'Mostrar código QR',primary:true},{id:'complete',label:'Completar datos'},{id:'link',label:'Enviar enlace'}]:[{id:'complete',label:'Completar datos',primary:true},{id:'link',label:'Enviar enlace'}]});
     if(p&&p.registro_estado==='por_verificar')return Object.assign(base,{state:'todo',text:'Los llenó el paciente. Falta confirmarlos.',actions:(canManage?[{id:'confirm',label:'Confirmar datos',primary:true}]:[]).concat([{id:'complete',label:'Revisar y editar',primary:!canManage}])});
     return Object.assign(base,{state:'done',text:'Completos.',actions:[{id:'complete',label:'Editar datos'}]});
   }
@@ -35,13 +36,21 @@
     return Object.assign(base,{state:'done',text:[photos?plural(photos,'foto','fotos'):'',xrays?plural(xrays,'radiografía','radiografías'):''].filter(Boolean).join(' y ')+'.',actions:[{id:'files',label:'Subir o ver estudios'}]});
   }
 
+  /* consent: undefined = no se pudo leer, {signed:false} o {signed:true,…}. summary: texto ya armado de quién y cuándo firmó. */
+  function consentStep(consent,o){
+    var base={key:'privacidad',title:'Aviso de privacidad',counts:true},sign={id:'consent',label:'Pedir firma',primary:true};
+    if(consent===undefined)return Object.assign(base,{state:'unknown',text:'Ábrelo para ver si está firmado.',actions:o.canSign?[sign]:[]});
+    if(consent&&consent.signed)return Object.assign(base,{state:'done',text:o.summary||'Firmado.',actions:o.canView?[{id:'consent-view',label:'Ver firma'}]:[]});
+    return Object.assign(base,{state:'todo',text:'Falta su firma.',actions:o.canSign?[sign]:[]});
+  }
+
   function simulationStep(){return {key:'simulacion',title:'Simulación',counts:false,state:'optional',text:'Para mostrársela al paciente.',actions:[{id:'simulator',label:'Abrir el simulador'}]};}
 
   function build(input){
     input=input||{};
-    var steps=[dataStep(input.patient,!!input.canManage),historyStep(input.history,input.historyModel,!!input.canWriteClinical),studiesStep(input.files),simulationStep()];
+    var steps=[dataStep(input.patient,!!input.canManage),consentStep(input.consent,{canSign:!!input.canSignConsent,canView:!!input.canViewConsent,summary:input.consentSummary}),historyStep(input.history,input.historyModel,!!input.canWriteClinical),studiesStep(input.files),simulationStep()];
     var counted=steps.filter(function(s){return s.counts;}),done=counted.filter(function(s){return s.state==='done';}).length;
-    var current=counted.filter(function(s){return s.state!=='done';})[0];
+    var current=counted.filter(function(s){return s.state==='todo';})[0];
     steps.forEach(function(s){s.current=!!current&&s.key===current.key;});
     return {steps:steps,done:done,total:counted.length,current:current?current.key:null};
   }
