@@ -30,6 +30,7 @@ export const SENTINELAS = {
   '20261114130000': { sentinel: `select (to_regclass('public.smyl_proposal_followups') is not null and ${proc('smyl_log_proposal_followup')}) as ok` },
   '20261106140000': { sentinel: `select (to_regclass('public.smyl_client_errors') is not null and ${proc('smyl_report_client_error')}) as ok` },
   '20261117150000': { sentinel: "select (to_regclass('public.smyl_cfdi_stamp_events') is not null and exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'smyl_cfdi_drafts' and column_name = 'provider_invoice_id')) as ok" },
+  '20261117170000': { sentinel: "select exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'smyl_cfdi_drafts' and column_name = 'cancellation_status') as ok" },
 };
 
 // Decide qué hacer con cada versión pendiente. `resultadoSentinela(version)` devuelve true/false (ya consultado).

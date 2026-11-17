@@ -1197,3 +1197,8 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
 /* Timbrado en sandbox */
 .finance-sandbox-note{margin:14px 0 0;padding:10px 12px;border:1px solid #e7d9b8;border-radius:10px;background:#fbf6e8;font-size:13px;line-height:1.5;color:#5c4a1f}
 .finance-draft-actions{display:flex;flex-wrap:wrap;gap:8px}
+.finance-cancel-summary{display:grid;gap:8px;margin:12px 0 0}
+.finance-cancel-summary div{display:grid;gap:2px;padding:10px 12px;border:1px solid #d7e0dd;border-radius:10px;background:#f8fbf9}
+.finance-cancel-summary dt{font-size:12px;font-weight:700;color:#526465}
+.finance-cancel-summary dd{margin:0;font-size:14px;word-break:break-all}
+.btn.btn-danger{background:#a23b2e;border-color:#a23b2e;color:#fff}
