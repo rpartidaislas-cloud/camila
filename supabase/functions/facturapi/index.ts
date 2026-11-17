@@ -3,9 +3,10 @@
 // No timbra ni cancela nada: eso es una etapa posterior.
 import { requireUser, requirePermission } from "../_shared/auth.ts";
 import { makeCors } from "../_shared/cors.ts";
-import { smylAdmin as admin } from "../_shared/lana-linked.ts";
+import { smylAdmin } from "../_shared/lana-linked.ts";
 import { FACTURAPI_BASE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion } from "../_shared/facturapi-core.mjs";
 
+const admin = smylAdmin;
 const MASTER = Deno.env.get("FACTURAPI_ENCRYPTION_KEY") || "";
 // deno-lint-ignore no-explicit-any
 type Json = Record<string, any>;
