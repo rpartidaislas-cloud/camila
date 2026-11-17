@@ -1166,3 +1166,36 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
 .billing-csd p a{color:#266d7a;font-weight:700}
 .billing-live-warn{padding:12px 14px;border-radius:12px;background:#fdecec;color:#8a1f1f;font-size:13px;line-height:1.5}
 .billing-live-list{margin:12px 0;padding-left:20px;display:grid;gap:4px;font-size:13px;color:#44544f}
+
+/* Recibo: acciones con estilo propio y atajo «Facturar» */
+.finance-success-actions button{min-height:42px;padding:0 18px;border:1px solid #cad8d1;border-radius:11px;background:#fff;color:#18344a;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.finance-success-actions button:hover{background:#f3f7f5}
+.finance-success-actions button[data-success-invoice]{border-color:#2a6d5f;background:#e8f4ef;color:#1e5a4d}
+.finance-success-actions button[data-success-invoice]:hover{background:#d9ebe1}
+
+/* Alta de datos fiscales del paciente */
+.fiscal-capture{margin:auto;border:0;border-radius:20px;padding:0;width:min(640px,calc(100vw - 28px));max-height:calc(100dvh - 28px);box-shadow:0 25px 80px #0d244247}
+.fiscal-capture::backdrop{background:#0d244299;backdrop-filter:blur(3px)}
+.fiscal-capture form{display:grid;gap:14px;padding:26px 26px 22px}
+.fiscal-capture header span{font-size:12px;font-weight:800;letter-spacing:.08em;color:#2a6d5f}
+.fiscal-capture header h2{margin:2px 0 4px;font-size:22px}
+.fiscal-capture header p{margin:0;font-size:14px;color:#4b5f5d}
+.fiscal-capture-upload{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;border:1px dashed #9db8c9;border-radius:14px;background:#f3f8fb}
+.fiscal-capture-upload strong{display:block;font-size:15px}
+.fiscal-capture-upload small{display:block;margin-top:2px;font-size:13px;line-height:1.5;color:#4b5f5d}
+.fiscal-capture-upload .btn{flex:none;width:auto;cursor:pointer}
+.fiscal-capture-status{margin:0;font-size:13px;line-height:1.5;color:#4b5f5d}
+.fiscal-capture-status:empty{display:none}
+.fiscal-capture-status[data-tone=ok]{color:#286653}
+.fiscal-capture-status[data-tone=error]{color:#8f3b2f}
+.fiscal-capture-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fiscal-capture-grid label{display:grid;min-width:0;gap:5px;font-size:13px;font-weight:600;color:#33484a}
+.fiscal-capture-grid label.wide{grid-column:1/-1}
+.fiscal-capture-grid input,.fiscal-capture-grid select{width:100%;min-width:0;max-width:100%;box-sizing:border-box;text-overflow:ellipsis;min-height:42px;padding:0 12px;border:1px solid #cad8d1;border-radius:10px;font:inherit;font-size:15px;font-weight:400;background:#fff}
+.fiscal-capture-grid small{font-size:12px;font-weight:400;color:#8f3b2f}
+.fiscal-capture-grid small:empty{display:none}
+.fiscal-capture-notes{margin:0;padding:0 0 0 18px;font-size:13px;line-height:1.5;color:#745f39}
+.fiscal-capture-notes:empty{display:none}
+.fiscal-capture-help{margin:0;font-size:12px;line-height:1.5;color:#526465}
+.fiscal-capture footer{display:flex;justify-content:flex-end;gap:10px}
+@media(max-width:600px){.fiscal-capture-grid{grid-template-columns:1fr}.fiscal-capture-upload{flex-direction:column;align-items:stretch}.fiscal-capture form{padding:20px 16px}.fiscal-capture{width:100%;max-width:none;height:100dvh;max-height:none;margin:0;border-radius:0}}

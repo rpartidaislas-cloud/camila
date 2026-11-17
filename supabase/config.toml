@@ -41,6 +41,10 @@ verify_jwt = false
 [functions.cloud-classify]
 verify_jwt = true
 
+# Leer la constancia fiscal de un paciente con IA. Exige JWT y finance.manage; solo sugiere, no escribe ni guarda el archivo.
+[functions.fiscal-extract]
+verify_jwt = true
+
 [functions.smyl-consumables-webhook]
 verify_jwt = false
 
