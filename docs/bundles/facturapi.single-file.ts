@@ -364,7 +364,7 @@ return { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin: admin };
 })();
 
 // ── _shared/facturapi-core.mjs ──
-const { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd } = (() => {
+const { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura } = (() => {
 // Lógica pura de la conexión Facturapi (sin Deno ni red): validación de llave, cifrado y lectura de la organización.
 // Solo sandbox: la llave debe ser de pruebas (sk_test_…). Las llaves live se rechazan.
 const FACTURAPI_BASE = "https://www.facturapi.io/v2";
@@ -504,7 +504,110 @@ function mensajeCsd(code: any) {
   }
 }
 
-return { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd };
+// ───────────── Timbrado (SOLO sandbox) ─────────────
+// Todo lo de abajo es lógica pura: arma el comprobante a partir del borrador ya prevalidado, clasifica la respuesta de Facturapi
+// y valida la factura que regresa. El CFDI siempre sale con la llave de pruebas (sk_test_…), sin validez fiscal.
+const FORMAS_PAGO = {
+  "01": "Efectivo", "02": "Cheque nominativo", "03": "Transferencia electrónica de fondos", "04": "Tarjeta de crédito", "28": "Tarjeta de débito",
+};
+// Forma de pago SAT sugerida según cómo se cobró en SMYL. «Otro» no se adivina: la persona la elige.
+function formaPagoSugerida(method: any) {
+  return { cash: "01", check: "02", transfer: "03", card: "04" }[String(method || "")] || "";
+}
+const UNIDADES = { E48: "Unidad de servicio", H87: "Pieza", ACT: "Actividad", EA: "Elemento", KGM: "Kilogramo", LTR: "Litro", XBX: "Caja" };
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const cents = (n) => Math.round(Number(n) * 100);
+const num = (v) => (v === null || v === undefined || v === "" ? NaN : Number(v));
+
+// draft: fila de smyl_cfdi_drafts. impuestos: { [charge_id]: { tax_treatment, tax_rate } } (viene del snapshot del servicio de cada cargo).
+// Devuelve { ok:true, payload } o { ok:false, errors:[texto] }; nunca lanza.
+function construirFactura(draft: any, impuestos: any, formaPago: any) {
+  const errors = [];
+  const fs = (draft && draft.fiscal_snapshot) || {};
+  const issuer = (draft && draft.issuer_snapshot) || {};
+  const concepts = Array.isArray(draft && draft.concepts_snapshot) ? draft.concepts_snapshot : [];
+  if (!FORMAS_PAGO[formaPago]) errors.push("Elige la forma de pago real del cobro (efectivo, transferencia, tarjeta…).");
+  if (!/^[A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3}$/.test(String(fs.rfc || "")) || ["XAXX010101000", "XEXX010101000"].includes(String(fs.rfc))) errors.push("El RFC del paciente no es válido para facturarle (no se admite el RFC genérico).");
+  if (String(fs.legal_name || "").trim().length < 2) errors.push("Falta el nombre fiscal del paciente.");
+  if (!/^\d{3}$/.test(String(fs.fiscal_regime || ""))) errors.push("Falta el régimen fiscal del paciente.");
+  if (!/^\d{5}$/.test(String(fs.tax_postal_code || ""))) errors.push("Falta el código postal fiscal del paciente.");
+  if (!/^[A-Z]\d{2}$/.test(String(fs.cfdi_use || ""))) errors.push("Falta el uso del CFDI.");
+  if (fs.currency && fs.currency !== "MXN") errors.push("Por ahora solo se factura en pesos mexicanos.");
+  if (!concepts.length) errors.push("El borrador no tiene conceptos.");
+  const items = [];
+  let total = 0;
+  concepts.forEach((c, i) => {
+    const name = String(c.description || "").trim() || `concepto ${i + 1}`;
+    const qty = num(c.quantity), unit = num(c.unit_value), disc = num(c.discount || 0), tax = num(c.tax || 0), amount = num(c.amount);
+    if (![qty, unit, disc, tax, amount].every(Number.isFinite) || qty <= 0 || unit < 0 || disc < 0 || tax < 0) { errors.push(`Los importes de «${name}» no son válidos.`); return; }
+    if (!/^\d{8}$/.test(String(c.product_service_code || ""))) { errors.push(`«${name}» no tiene ClaveProdServ.`); return; }
+    if (!/^[A-Z0-9]{1,8}$/.test(String(c.unit_code || ""))) { errors.push(`«${name}» no tiene ClaveUnidad.`); return; }
+    const info = (impuestos && impuestos[c.charge_id]) || {};
+    const base = cents(qty * unit) - cents(disc);
+    let taxability, taxes, expectedTax;
+    if (info.tax_treatment === "exempt") { taxability = "02"; taxes = [{ type: "IVA", rate: 0, factor: "Exento" }]; expectedTax = 0; }
+    else if (info.tax_treatment === "non_object") { taxability = "01"; taxes = []; expectedTax = 0; }
+    else if (info.tax_treatment === "rate" && Number.isFinite(num(info.tax_rate)) && num(info.tax_rate) > 0) {
+      taxability = "02"; taxes = [{ type: "IVA", rate: num(info.tax_rate), factor: "Tasa" }]; expectedTax = Math.round(base * num(info.tax_rate));
+    } else { errors.push(`Revisa el tratamiento de IVA del servicio «${name}» en el catálogo (exento, tasa o no objeto).`); return; }
+    if (base <= 0) { errors.push(`El descuento de «${name}» es mayor que su importe.`); return; }
+    if (cents(tax) !== expectedTax) { errors.push(`El IVA de «${name}» no coincide con el que calcula el SAT. Corrige el cargo.`); return; }
+    if (cents(amount) !== base + expectedTax) { errors.push(`El total de «${name}» no coincide con sus importes.`); return; }
+    total += cents(amount);
+    const item = {
+      quantity: qty,
+      product: {
+        description: name.slice(0, 1000), product_key: String(c.product_service_code), unit_key: String(c.unit_code), unit_name: UNIDADES[c.unit_code] || "Unidad",
+        price: unit, tax_included: false, taxability, taxes,
+      },
+    };
+    if (disc > 0) item.discount = disc;
+    items.push(item);
+  });
+  if (!errors.length && total !== cents(fs.amount)) errors.push("El total de los conceptos no coincide con el pago.");
+  if (errors.length) return { ok: false, errors };
+  const customer = { legal_name: String(fs.legal_name).trim(), tax_id: fs.rfc, tax_system: String(fs.fiscal_regime), address: { zip: String(fs.tax_postal_code) } };
+  if (fs.email && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(fs.email))) customer.email = String(fs.email);
+  const payload = {
+    type: "I", customer, use: fs.cfdi_use, payment_form: formaPago, payment_method: "PUE", currency: "MXN", export: "01", items,
+    external_id: draft.id, idempotency_key: draft.idempotency_key,
+  };
+  if (/^[A-Z0-9-]{1,10}$/.test(String(issuer.invoice_series || ""))) payload.series = issuer.invoice_series;
+  return { ok: true, payload, total: total / 100 };
+}
+
+// Mensaje de error de Facturapi para la persona (corto, sin datos del paciente ni de la llave).
+function mensajeFacturapi(body: any, status: any) {
+  const o = body && typeof body === "object" ? body : {};
+  const text = String(o.message || o.error || "").replace(/\s+/g, " ").trim().slice(0, 400);
+  if (text) return text;
+  return status ? `Facturapi respondió ${status}.` : "Facturapi no respondió.";
+}
+// ok = timbrado confirmado; rejected = Facturapi lo rechazó y NO existe factura (se puede corregir y reintentar);
+// unknown = no sabemos si se creó (red, 5xx, 409 de idempotencia): hay que verificar antes de reintentar.
+function clasificarRespuesta(status: any, body: any) {
+  const factura = leerFactura(body);
+  if ((status === 200 || status === 201) && factura && factura.uuid) return "ok";
+  if (status === 200 || status === 201) return "unknown";
+  if (status === 409 || status === 408 || status === 425 || status === 429 || status >= 500 || !status) return "unknown";
+  return status >= 400 ? "rejected" : "unknown";
+}
+// Lee solo lo necesario de la factura de Facturapi; descarta lo que no cumple el formato.
+function leerFactura(body: any) {
+  const o = body && typeof body === "object" ? body : null;
+  if (!o || typeof o.id !== "string" || o.id.length < 3 || o.id.length > 120) return null;
+  const folio = Number(o.folio_number);
+  return {
+    id: o.id,
+    uuid: typeof o.uuid === "string" && UUID_RE.test(o.uuid) ? o.uuid.toLowerCase() : "",
+    status: typeof o.status === "string" ? o.status.slice(0, 20) : "",
+    series: typeof o.series === "string" && /^[A-Za-z0-9-]{0,25}$/.test(o.series) ? o.series : "",
+    folio: Number.isInteger(folio) && folio > 0 && folio < 2_000_000_000 ? folio : null,
+    total: Number.isFinite(Number(o.total)) ? Number(o.total) : null,
+  };
+}
+
+return { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura };
 })();
 
 // ── facturapi/index.ts ──
@@ -518,11 +621,19 @@ return { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, l
 const admin = smylAdmin;
 const MASTER = Deno.env.get("FACTURAPI_ENCRYPTION_KEY") || "";
 const USER_KEY = Deno.env.get("FACTURAPI_USER_KEY") || "";
+const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
+const SB_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SB_ANON_KEY") || "";
+// Timbrar en producción emite facturas reales. Apagado por defecto: se enciende con FACTURAPI_LIVE_STAMPING=1 tras una prueba controlada.
+const LIVE_STAMPING = Deno.env.get("FACTURAPI_LIVE_STAMPING") === "1";
+const STAMP_TIMEOUT_MS = 40_000;
+const RECONCILE_WAIT_MS = 2 * 60_000; // no se da por «no creada» una solicitud más reciente que esto
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_UPLOAD_BYTES = 200 * 1024;
 const MAX_CSD_FAILS_PER_HOUR = 5;
 // deno-lint-ignore no-explicit-any
 type Json = Record<string, any>;
 
+const vista = (r: Json | null) => ({ ...vistaConexion(r), live_stamping: LIVE_STAMPING });
 const json = (cors: Record<string, string>, status: number, body: Json) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
 
@@ -596,6 +707,129 @@ async function llaveDeOrganizacion(orgId: string, ambiente: "test" | "live", cre
   return key;
 }
 
+// ───────────── Timbrado (sandbox) ─────────────
+async function eventoTimbre(tenantId: string, actorId: string, draftId: string, action: string, status: string, detail: Json = {}) {
+  const { error } = await admin.from("smyl_cfdi_stamp_events").insert({ tenant_id: tenantId, actor_id: actorId, draft_id: draftId, action, status, detail });
+  if (error) console.error("[facturapi] no se pudo auditar el timbrado:", error.message);
+}
+async function llaveDeTenant(tenantId: string): Promise<{ key: string; live: boolean } | { error: string; status: number }> {
+  if (!MASTER) return { error: "La integración con Facturapi aún no está configurada en el servidor.", status: 503 };
+  const { data: row } = await admin.from("smyl_facturapi_connections").select("*").eq("tenant_id", tenantId).maybeSingle();
+  if (!row || row.status !== "connected" || !row.secret_ciphertext) return { error: "Conecta Facturapi en Configuración → Cobros → Facturación antes de timbrar.", status: 409 };
+  try {
+    if (row.environment === "live") {
+      // Timbrar en producción emite facturas reales: solo con el interruptor del servidor y la llave live guardada por la compuerta.
+      if (!LIVE_STAMPING) return { error: "El timbrado en producción aún no está habilitado en el servidor. Vuelve a pruebas para timbrar en sandbox.", status: 409 };
+      if (row.mode !== "platform" || !row.production_ready || !row.live_secret_ciphertext || !row.live_secret_iv) return { error: "La producción de esta clínica no está completa.", status: 409 };
+      const key = await descifrar(MASTER, tenantId, row.live_secret_ciphertext, row.live_secret_iv);
+      if (!LIVE_KEY_RE.test(key)) return { error: "La llave de producción guardada no es válida. Vuelve a activar producción.", status: 500 };
+      return { key, live: true };
+    }
+    const key = await descifrar(MASTER, tenantId, row.secret_ciphertext, row.secret_iv);
+    if (!/^sk_test_/.test(key)) return { error: "Solo se timbra con una llave de pruebas (sk_test_…).", status: 409 };
+    return { key, live: false };
+  } catch { return { error: "No se pudo leer la llave guardada. Vuelve a conectar Facturapi.", status: 500 }; }
+}
+async function llamarFacturapi(key: string, path: string, init: RequestInit = {}): Promise<{ status: number; body: Json | null; res: Response | null }> {
+  try {
+    const res = await fetch(`${FACTURAPI_BASE}${path}`, { ...init, headers: { ...(init.headers || {}), Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(STAMP_TIMEOUT_MS) });
+    const ct = res.headers.get("content-type") || "";
+    const body = ct.includes("json") ? await res.clone().json().catch(() => null) : null;
+    return { status: res.status, body, res };
+  } catch { return { status: 0, body: null, res: null }; }
+}
+
+async function timbrado(req: Request, CORS: Record<string, string>, tenantId: string, actor: string, body: Json): Promise<Response> {
+  const draftId = typeof body.draft_id === "string" && UUID_RE.test(body.draft_id) ? body.draft_id : "";
+  if (!draftId) return json(CORS, 400, { error: "Borrador inválido." });
+  // El borrador se lee con la sesión de la persona: la RLS aplica su alcance (paciente/sucursal), no el navegador.
+  const jwt = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  const asUser = createClient(SB_URL, SB_ANON_KEY, { global: { headers: { Authorization: `Bearer ${jwt}` } } });
+  const { data: draft } = await asUser.from("smyl_cfdi_drafts").select("*").eq("tenant_id", tenantId).eq("id", draftId).maybeSingle();
+  if (!draft) return json(CORS, 404, { error: "No encontramos ese borrador o no tienes acceso." });
+  const llave = await llaveDeTenant(tenantId);
+  if ("error" in llave) return json(CORS, llave.status, { error: llave.error });
+  const key = llave.key, live = llave.live;
+  const now = () => new Date().toISOString();
+  const vista = async () => ((await admin.from("smyl_cfdi_drafts").select("*").eq("tenant_id", tenantId).eq("id", draftId).single()).data);
+
+  if (body.action === "download") {
+    if (draft.status !== "issued" || !draft.provider_invoice_id) return json(CORS, 409, { error: "Este comprobante aún no está timbrado." });
+    const kind = body.kind === "xml" ? "xml" : "pdf";
+    const r = await llamarFacturapi(key, `/invoices/${encodeURIComponent(draft.provider_invoice_id)}/${kind}`);
+    if (!r.res || !r.res.ok) { await eventoTimbre(tenantId, actor, draftId, "download", "failed", { kind, status: r.status }); return json(CORS, 502, { error: "Facturapi no pudo entregar el archivo. Intenta de nuevo." }); }
+    const bytes = new Uint8Array(await r.res.arrayBuffer());
+    if (bytes.length === 0 || bytes.length > MAX_FILE_BYTES) return json(CORS, 502, { error: "El archivo recibido no es válido." });
+    let bin = ""; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    await eventoTimbre(tenantId, actor, draftId, "download", "success", { kind });
+    const folio = draft.invoice_series ? `${draft.invoice_series}-${draft.invoice_folio}` : String(draft.external_uuid || draft.id).slice(0, 8);
+    return json(CORS, 200, { filename: `CFDI${live ? "" : "-sandbox"}-${folio}.${kind}`, media_type: kind === "pdf" ? "application/pdf" : "application/xml", base64: btoa(bin) });
+  }
+
+  if (body.action === "reconcile") {
+    if (draft.status === "issued") return json(CORS, 200, { draft, message: "Este comprobante ya está timbrado." });
+    if (draft.status !== "submitted") return json(CORS, 409, { error: "Este borrador no tiene un timbrado pendiente de verificar." });
+    const r = await llamarFacturapi(key, `/invoices?external_id=${encodeURIComponent(draftId)}&limit=1`);
+    if (r.status === 0 || r.status >= 500 || !r.body) return json(CORS, 502, { error: "No se pudo consultar a Facturapi. Intenta de nuevo en un momento." });
+    const found = leerFactura(Array.isArray(r.body.data) ? r.body.data[0] : null);
+    if (found && found.uuid) {
+      await admin.from("smyl_cfdi_drafts").update({ status: "issued", external_uuid: found.uuid, provider_invoice_id: found.id, invoice_series: found.series || null, invoice_folio: found.folio, stamped_at: now(), provider_message: "" })
+        .eq("tenant_id", tenantId).eq("id", draftId).eq("status", "submitted");
+      await eventoTimbre(tenantId, actor, draftId, "reconcile", "success", { found: true });
+      return json(CORS, 200, { draft: await vista(), message: "El comprobante sí se había timbrado. Ya quedó registrado." });
+    }
+    const antiguo = draft.stamp_requested_at && Date.now() - new Date(draft.stamp_requested_at).getTime() > RECONCILE_WAIT_MS;
+    if (!antiguo) return json(CORS, 409, { error: "La solicitud es muy reciente. Espera un par de minutos y verifica de nuevo." });
+    await admin.from("smyl_cfdi_drafts").update({ status: "rejected", provider_message: "Facturapi no recibió la solicitud. Puedes intentar timbrar de nuevo." }).eq("tenant_id", tenantId).eq("id", draftId).eq("status", "submitted");
+    await eventoTimbre(tenantId, actor, draftId, "reconcile", "success", { found: false });
+    return json(CORS, 200, { draft: await vista(), message: "Facturapi no recibió esa solicitud: ya puedes intentar de nuevo." });
+  }
+
+  // stamp
+  if (draft.status === "issued") return json(CORS, 409, { error: "Este comprobante ya está timbrado." });
+  if (draft.status === "submitted") return json(CORS, 409, { error: "Ya hay un timbrado en proceso. Usa «Verificar estado»." });
+  if (draft.status !== "draft" && draft.status !== "rejected") return json(CORS, 409, { error: "Este borrador no se puede timbrar." });
+  if (draft.sandbox_status !== "passed") return json(CORS, 409, { error: "Primero pasa la prevalidación del borrador." });
+  const formaPago = typeof body.payment_form === "string" ? body.payment_form : "";
+  if (!FORMAS_PAGO[formaPago as keyof typeof FORMAS_PAGO]) return json(CORS, 400, { error: "Elige la forma de pago real del cobro." });
+  // IVA de cada concepto: sale del snapshot del servicio que se guardó en el cargo (no de lo que mande el navegador).
+  const ids = (Array.isArray(draft.concepts_snapshot) ? draft.concepts_snapshot : []).map((c: Json) => c.charge_id).filter((v: unknown) => typeof v === "string" && UUID_RE.test(v as string));
+  const { data: cargos } = ids.length ? await admin.from("smyl_finance_charges").select("id, service_snapshot").eq("tenant_id", tenantId).in("id", ids) : { data: [] };
+  const impuestos: Json = {};
+  for (const c of cargos || []) impuestos[c.id] = { tax_treatment: c.service_snapshot?.tax_treatment, tax_rate: c.service_snapshot?.tax_rate };
+  const armado = construirFactura(draft, impuestos, formaPago);
+  if (!armado.ok) return json(CORS, 422, { error: armado.errors[0], errors: armado.errors });
+
+  // Se «reclama» el borrador antes de llamar a Facturapi: dos clics o dos personas no pueden timbrar al mismo tiempo.
+  const { data: claimed } = await admin.from("smyl_cfdi_drafts").update({
+    status: "submitted", provider: "facturapi", payment_form: formaPago, stamp_attempts: (draft.stamp_attempts || 0) + 1, stamp_requested_at: now(), provider_message: "",
+  }).eq("tenant_id", tenantId).eq("id", draftId).in("status", ["draft", "rejected"]).select("id").maybeSingle();
+  if (!claimed) return json(CORS, 409, { error: "Otra persona ya está timbrando este borrador." });
+
+  const r = await llamarFacturapi(key, "/invoices", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(armado.payload) });
+  const clase = clasificarRespuesta(r.status, r.body);
+  if (clase === "ok") {
+    const f = leerFactura(r.body)!;
+    const difiere = f.total !== null && Math.round(f.total * 100) !== Math.round(armado.total * 100);
+    await admin.from("smyl_cfdi_drafts").update({
+      status: "issued", external_uuid: f.uuid, provider_invoice_id: f.id, invoice_series: f.series || null, invoice_folio: f.folio, stamped_at: now(),
+      provider_message: difiere ? "Aviso: el total que devolvió Facturapi difiere del cobro. Revísalo antes de entregar el comprobante." : "",
+    }).eq("tenant_id", tenantId).eq("id", draftId);
+    await eventoTimbre(tenantId, actor, draftId, "stamp", "success", { total_differs: difiere });
+    return json(CORS, 200, { draft: await vista(), message: live ? "Comprobante timbrado en producción." : "Comprobante timbrado en sandbox (sin validez fiscal)." });
+  }
+  if (clase === "rejected") {
+    const msg = mensajeFacturapi(r.body, r.status);
+    await admin.from("smyl_cfdi_drafts").update({ status: "rejected", provider_message: msg.slice(0, 1000) }).eq("tenant_id", tenantId).eq("id", draftId);
+    await eventoTimbre(tenantId, actor, draftId, "stamp", "failed", { status: r.status });
+    return json(CORS, 422, { error: `Facturapi rechazó el comprobante: ${msg}`, draft: await vista() });
+  }
+  const msg = "No se confirmó el timbrado (Facturapi no respondió a tiempo o pidió esperar). Usa «Verificar estado» antes de intentar de nuevo.";
+  await admin.from("smyl_cfdi_drafts").update({ provider_message: msg }).eq("tenant_id", tenantId).eq("id", draftId);
+  await eventoTimbre(tenantId, actor, draftId, "stamp", "pending", { status: r.status });
+  return json(CORS, 202, { draft: await vista(), message: msg });
+}
+
 Deno.serve(async (req) => {
   const CORS = makeCors(req);
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -603,9 +837,6 @@ Deno.serve(async (req) => {
 
   const auth = await requireUser(req, CORS);
   if (auth.response) return auth.response;
-  const denied = await requirePermission(auth, CORS, "finance.manage");
-  if (denied) return denied;
-  const tenantId = auth.tenantId as string, actor = (auth.user as { id: string }).id;
 
   const len = Number(req.headers.get("content-length") || 0);
   if (len > MAX_UPLOAD_BYTES) return json(CORS, 413, { error: "La solicitud es demasiado grande." });
@@ -616,9 +847,16 @@ Deno.serve(async (req) => {
     else body = await req.json();
   } catch { return json(CORS, 400, { error: "Solicitud inválida." }); }
   const action = body.action;
+  // Timbrado (stamp/reconcile/download): finance.invoice. Conexión y plataforma: finance.manage.
+  const esTimbrado = action === "stamp" || action === "reconcile" || action === "download";
+  const denied = await requirePermission(auth, CORS, esTimbrado ? "finance.invoice" : "finance.manage");
+  if (denied) return denied;
+  const tenantId = auth.tenantId as string, actor = (auth.user as { id: string }).id;
+  if (esTimbrado) return await timbrado(req, CORS, tenantId, actor, body);
+
   const row = await leerFila(tenantId);
 
-  if (action === "status") return json(CORS, 200, { connection: vistaConexion(row) });
+  if (action === "status") return json(CORS, 200, { connection: vista(row) });
 
   if (!MASTER) { console.error("[facturapi] falta FACTURAPI_ENCRYPTION_KEY"); return json(CORS, 503, { error: "La integración con Facturapi aún no está configurada en el servidor." }); }
   const platformActions = ["provision", "sync", "upload_csd", "enable_live", "disable_live"];
@@ -640,7 +878,7 @@ Deno.serve(async (req) => {
         connected_at: now, last_verified_at: now, last_error: null,
       });
       await evento(tenantId, actor, "connected", "success", { organization_id: r.org.id, mode: "own_key" });
-      return json(CORS, 200, { connection: vistaConexion(data) });
+      return json(CORS, 200, { connection: vista(data) });
     }
 
     if (action === "verify") {
@@ -648,7 +886,7 @@ Deno.serve(async (req) => {
       if (row.mode === "platform") {
         const { data } = await sincronizar(tenantId, actor, row);
         await evento(tenantId, actor, "verified", "success");
-        return json(CORS, 200, { connection: vistaConexion(data) });
+        return json(CORS, 200, { connection: vista(data) });
       }
       let key: string;
       try { key = await descifrar(MASTER, tenantId, row.secret_ciphertext, row.secret_iv); }
@@ -660,7 +898,7 @@ Deno.serve(async (req) => {
         : { status: r.auth ? "error" : row.status, last_error: r.error.slice(0, 500) };
       const data = await guardar(tenantId, actor, patch);
       await evento(tenantId, actor, "verified", r.ok ? "success" : "failed", r.ok ? {} : { reason: r.auth ? "rejected" : "unreachable" });
-      return json(CORS, r.ok ? 200 : (r.auth ? 400 : 502), { connection: vistaConexion(data), ...(r.ok ? {} : { error: r.error }) });
+      return json(CORS, r.ok ? 200 : (r.auth ? 400 : 502), { connection: vista(data), ...(r.ok ? {} : { error: r.error }) });
     }
 
     // ── plataforma ──
@@ -692,20 +930,20 @@ Deno.serve(async (req) => {
       });
       const cur = await leerFila(tenantId);
       const { data } = await sincronizar(tenantId, actor, cur);
-      return json(CORS, 200, { connection: vistaConexion(data) });
+      return json(CORS, 200, { connection: vista(data) });
     }
 
     if (action === "sync") {
       if (!row || row.mode !== "platform" || !row.organization_id) return json(CORS, 409, { error: "Primero activa la facturación de la clínica." });
       const { data } = await sincronizar(tenantId, actor, row);
-      return json(CORS, 200, { connection: vistaConexion(data) });
+      return json(CORS, 200, { connection: vista(data) });
     }
 
     if (action === "upload_csd") {
       if (!form) return json(CORS, 400, { error: "Solicitud inválida." });
       if (!row || row.mode !== "platform" || !row.organization_id) return json(CORS, 409, { error: "Primero activa la facturación de la clínica." });
       const cer = form.get("cer"), key = form.get("key"), password = form.get("password");
-      if (!(cer instanceof File) || !(key instanceof File) || typeof password !== "string") return json(CORS, 400, { error: "Sube el .cer, el .key y escribe la contraseña." });
+      if (!(cer instanceof File) || !(key instanceof File) || typeof password !== "string") return json(CORS, 400, { error: "Sube el certificado y la llave privada, y escribe la contraseña." });
       const v = validarCsd({ cer: { name: cer.name, size: cer.size }, key: { name: key.name, size: key.size }, password });
       if (!v.ok) return json(CORS, 400, { error: v.error });
       const desde = new Date(Date.now() - 3600_000).toISOString();
@@ -731,7 +969,7 @@ Deno.serve(async (req) => {
         return json(CORS, 409, { error: `El RFC del certificado (${st.tax_id || "desconocido"}) no coincide con el de la clínica (${iss.rfc}). Sube el CSD de la clínica o corrige sus datos fiscales.` });
       }
       await evento(tenantId, actor, "csd_uploaded", "success", { serial: st.csd_serial });
-      return json(CORS, 200, { connection: vistaConexion(data) });
+      return json(CORS, 200, { connection: vista(data) });
     }
 
     if (action === "enable_live") {
@@ -745,8 +983,8 @@ Deno.serve(async (req) => {
         mode: fresh.mode, status: fresh.status, productionReady: fresh.production_ready, issuerReviewed: iss?.fiscal_status === "reviewed",
         policyReviewed: !!pac?.fiscal_policy_reviewed_at, confirmText: body.confirm_text,
       });
-      if (!gate.ok) return json(CORS, 409, { error: gate.error, connection: vistaConexion(fresh) });
-      if (!iss || !rfcCoincide(st.tax_id, iss.rfc)) return json(CORS, 409, { error: "El RFC del certificado no coincide con el de la clínica. Vuelve a subir el CSD correcto.", connection: vistaConexion(fresh) });
+      if (!gate.ok) return json(CORS, 409, { error: gate.error, connection: vista(fresh) });
+      if (!iss || !rfcCoincide(st.tax_id, iss.rfc)) return json(CORS, 409, { error: "El RFC del certificado no coincide con el de la clínica. Vuelve a subir el CSD correcto.", connection: vista(fresh) });
       const liveKey = await llaveDeOrganizacion(row.organization_id, "live", true);
       if (!liveKey) { await evento(tenantId, actor, "went_live", "failed", { reason: "no_live_key" }); return json(CORS, 502, { error: "Facturapi no entregó la llave de producción. Revisa los pasos pendientes de la organización." }); }
       const enc = await cifrar(MASTER, tenantId, liveKey);
@@ -756,7 +994,7 @@ Deno.serve(async (req) => {
         live_enabled_at: now, live_enabled_by: actor, last_error: null,
       });
       await evento(tenantId, actor, "went_live", "success");
-      return json(CORS, 200, { connection: vistaConexion(data) });
+      return json(CORS, 200, { connection: vista(data) });
     }
 
     if (action === "disable_live") {
@@ -765,7 +1003,7 @@ Deno.serve(async (req) => {
       if (!row) return json(CORS, 409, { error: "Facturapi no está conectado." });
       const data = await guardar(tenantId, actor, { environment: "test", live_secret_ciphertext: null, live_secret_iv: null, live_key_fingerprint: null, live_enabled_at: null, live_enabled_by: null });
       await evento(tenantId, actor, "went_test", "success");
-      return json(CORS, 200, { connection: vistaConexion(data) });
+      return json(CORS, 200, { connection: vista(data) });
     }
 
     if (action === "disconnect") {
@@ -777,7 +1015,7 @@ Deno.serve(async (req) => {
         ...(row?.mode === "platform" ? {} : { organization_id: null, organization_name: null, pending_steps: [], production_ready: false, csd_valid_until: null, csd_serial: null }),
       });
       await evento(tenantId, actor, "disconnected", "success");
-      return json(CORS, 200, { connection: vistaConexion(data) });
+      return json(CORS, 200, { connection: vista(data) });
     }
   } catch (e) {
     console.error("[facturapi] error:", (e as Error)?.message);

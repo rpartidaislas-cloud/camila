@@ -43,7 +43,7 @@ test("CSD y producción: el CSD no se guarda en el navegador y producción exige
   assert.match(csd, /new FormData\(\)/);
   assert.match(csd, /f\.elements\.password\.value=''/);
   assert.doesNotMatch(csd, /localStorage|sessionStorage|console\./);
-  const live = js.slice(js.indexOf("function openLiveDialog"), js.indexOf("async function facturapiAction"));
+  const live = js.slice(js.indexOf("function openLiveDialog"), js.indexOf("async function facturapiRun"));
   assert.match(live, /FACTURAR EN PRODUCCION/);
   assert.match(live, /type="submit" disabled/);
   assert.match(live, /las facturas serán reales/i);

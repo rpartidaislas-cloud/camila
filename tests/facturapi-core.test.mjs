@@ -42,7 +42,8 @@ test("leerOrganizacion y vistaConexion", () => {
 test("la función exige sesión y permiso finance.manage, y no devuelve la fila cruda", () => {
   const src = readFileSync(new URL("../supabase/functions/facturapi/index.ts", import.meta.url), "utf8");
   assert.match(src, /requireUser/);
-  assert.match(src, /requirePermission\(auth, CORS, "finance\.manage"\)/);
+  // conexión: finance.manage; timbrado (stamp/reconcile/download): finance.invoice
+  assert.match(src, /requirePermission\(auth, CORS, esTimbrado \? "finance\.invoice" : "finance\.manage"\)/);
   assert.doesNotMatch(src, /connection: (row|data)\b/);
   assert.match(src, /environment: "test"/);
 });

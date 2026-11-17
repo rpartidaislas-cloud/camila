@@ -45,7 +45,7 @@ const server = http.createServer((req, res) => {
       if (a === 'provision') window.__fp = { status: 'connected', environment: 'test', mode: 'platform', has_organization: true, organization_name: 'CLINICA', key_fingerprint: 'AAAA0DC2', production_ready: false, pending_steps: [{ type: 'certificate', description: 'CSD' }, { type: 'manifiesto', description: 'Firma Carta Manifiesto' }] };
       if (a === 'upload_csd') { if (opts.body.get('password') === 'mala') return fail('El certificado o la llave privada no son válidos.'); window.__fp = { ...window.__fp, csd_valid_until: '2030-11-17T20:00:00Z', pending_steps: [{ type: 'manifiesto', description: 'Firma Carta Manifiesto' }] }; }
       if (a === 'sync' && window.__manifestSigned) window.__fp = { ...window.__fp, production_ready: true, pending_steps: [] };
-      if (a === 'enable_live') { if (String(opts.body.confirm_text).trim().toUpperCase() !== 'FACTURAR EN PRODUCCION') return fail('Para confirmar escribe: FACTURAR EN PRODUCCION'); window.__fp = { ...window.__fp, environment: 'live', live_enabled_at: new Date().toISOString(), live_key_fingerprint: 'BBBB1EC3' }; }
+      if (a === 'enable_live') { if (String(opts.body.confirm_text).trim().toUpperCase() !== 'FACTURAR EN PRODUCCION') return fail('Para confirmar escribe: FACTURAR EN PRODUCCION'); window.__fp = { ...window.__fp, environment: 'live', live_enabled_at: new Date().toISOString(), live_key_fingerprint: 'BBBB1EC3', live_stamping: !!window.__liveStamping }; }
       if (a === 'disable_live') window.__fp = { ...window.__fp, environment: 'test', live_enabled_at: null };
       return { data: { connection: window.__fp }, error: null };
     };
@@ -110,7 +110,9 @@ const server = http.createServer((req, res) => {
   await page.fill('.billing-live [name=confirm]', 'si'); check(await page.$eval('.billing-live button[type=submit]', b => b.disabled), 'texto incorrecto no habilita el botón');
   await page.fill('.billing-live [name=confirm]', 'facturar en produccion'); check(!(await page.$eval('.billing-live button[type=submit]', b => b.disabled)), 'el texto correcto habilita el botón');
   await page.click('.billing-live button[type=submit]'); await page.waitForTimeout(1500);
-  check((await page.$$eval('.billing-setup-head h2', n => n[0].textContent)).includes('producción'), 'el encabezado indica que se factura en producción');
+  check((await page.$$eval('.billing-setup-head h2', n => n[0].textContent)).includes('timbrado real pendiente'), 'con el interruptor del servidor apagado, dice que el timbrado real está pendiente');
+  await page.evaluate(async () => { window.__fp = { ...window.__fp, live_stamping: true }; await window.SmylFinance.ensureBilling(); }); await page.waitForTimeout(1200);
+  check((await page.$$eval('.billing-setup-head h2', n => n[0].textContent)).includes('facturando en producción'), 'con el interruptor encendido, dice que se factura en producción');
   check(/BBBB1EC3|1EC3/.test(await page.textContent('[data-step="production"]')), 'muestra la huella de la llave live, nunca la llave');
   await page.screenshot({ path: path.join(shots, 'billing-setup-1280-live.png') });
   for (const [w, h] of [[834, 900], [390, 844]]) {

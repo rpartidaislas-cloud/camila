@@ -136,3 +136,106 @@ export function mensajeCsd(code) {
     default: return "Facturapi no aceptó el certificado. Revisa los archivos y la contraseña.";
   }
 }
+
+// ───────────── Timbrado (SOLO sandbox) ─────────────
+// Todo lo de abajo es lógica pura: arma el comprobante a partir del borrador ya prevalidado, clasifica la respuesta de Facturapi
+// y valida la factura que regresa. El CFDI siempre sale con la llave de pruebas (sk_test_…), sin validez fiscal.
+export const FORMAS_PAGO = {
+  "01": "Efectivo", "02": "Cheque nominativo", "03": "Transferencia electrónica de fondos", "04": "Tarjeta de crédito", "28": "Tarjeta de débito",
+};
+// Forma de pago SAT sugerida según cómo se cobró en SMYL. «Otro» no se adivina: la persona la elige.
+export function formaPagoSugerida(method) {
+  return { cash: "01", check: "02", transfer: "03", card: "04" }[String(method || "")] || "";
+}
+const UNIDADES = { E48: "Unidad de servicio", H87: "Pieza", ACT: "Actividad", EA: "Elemento", KGM: "Kilogramo", LTR: "Litro", XBX: "Caja" };
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const cents = (n) => Math.round(Number(n) * 100);
+const num = (v) => (v === null || v === undefined || v === "" ? NaN : Number(v));
+
+// draft: fila de smyl_cfdi_drafts. impuestos: { [charge_id]: { tax_treatment, tax_rate } } (viene del snapshot del servicio de cada cargo).
+// Devuelve { ok:true, payload } o { ok:false, errors:[texto] }; nunca lanza.
+export function construirFactura(draft, impuestos, formaPago) {
+  const errors = [];
+  const fs = (draft && draft.fiscal_snapshot) || {};
+  const issuer = (draft && draft.issuer_snapshot) || {};
+  const concepts = Array.isArray(draft && draft.concepts_snapshot) ? draft.concepts_snapshot : [];
+  if (!FORMAS_PAGO[formaPago]) errors.push("Elige la forma de pago real del cobro (efectivo, transferencia, tarjeta…).");
+  if (!/^[A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3}$/.test(String(fs.rfc || "")) || ["XAXX010101000", "XEXX010101000"].includes(String(fs.rfc))) errors.push("El RFC del paciente no es válido para facturarle (no se admite el RFC genérico).");
+  if (String(fs.legal_name || "").trim().length < 2) errors.push("Falta el nombre fiscal del paciente.");
+  if (!/^\d{3}$/.test(String(fs.fiscal_regime || ""))) errors.push("Falta el régimen fiscal del paciente.");
+  if (!/^\d{5}$/.test(String(fs.tax_postal_code || ""))) errors.push("Falta el código postal fiscal del paciente.");
+  if (!/^[A-Z]\d{2}$/.test(String(fs.cfdi_use || ""))) errors.push("Falta el uso del CFDI.");
+  if (fs.currency && fs.currency !== "MXN") errors.push("Por ahora solo se factura en pesos mexicanos.");
+  if (!concepts.length) errors.push("El borrador no tiene conceptos.");
+  const items = [];
+  let total = 0;
+  concepts.forEach((c, i) => {
+    const name = String(c.description || "").trim() || `concepto ${i + 1}`;
+    const qty = num(c.quantity), unit = num(c.unit_value), disc = num(c.discount || 0), tax = num(c.tax || 0), amount = num(c.amount);
+    if (![qty, unit, disc, tax, amount].every(Number.isFinite) || qty <= 0 || unit < 0 || disc < 0 || tax < 0) { errors.push(`Los importes de «${name}» no son válidos.`); return; }
+    if (!/^\d{8}$/.test(String(c.product_service_code || ""))) { errors.push(`«${name}» no tiene ClaveProdServ.`); return; }
+    if (!/^[A-Z0-9]{1,8}$/.test(String(c.unit_code || ""))) { errors.push(`«${name}» no tiene ClaveUnidad.`); return; }
+    const info = (impuestos && impuestos[c.charge_id]) || {};
+    const base = cents(qty * unit) - cents(disc);
+    let taxability, taxes, expectedTax;
+    if (info.tax_treatment === "exempt") { taxability = "02"; taxes = [{ type: "IVA", rate: 0, factor: "Exento" }]; expectedTax = 0; }
+    else if (info.tax_treatment === "non_object") { taxability = "01"; taxes = []; expectedTax = 0; }
+    else if (info.tax_treatment === "rate" && Number.isFinite(num(info.tax_rate)) && num(info.tax_rate) > 0) {
+      taxability = "02"; taxes = [{ type: "IVA", rate: num(info.tax_rate), factor: "Tasa" }]; expectedTax = Math.round(base * num(info.tax_rate));
+    } else { errors.push(`Revisa el tratamiento de IVA del servicio «${name}» en el catálogo (exento, tasa o no objeto).`); return; }
+    if (base <= 0) { errors.push(`El descuento de «${name}» es mayor que su importe.`); return; }
+    if (cents(tax) !== expectedTax) { errors.push(`El IVA de «${name}» no coincide con el que calcula el SAT. Corrige el cargo.`); return; }
+    if (cents(amount) !== base + expectedTax) { errors.push(`El total de «${name}» no coincide con sus importes.`); return; }
+    total += cents(amount);
+    const item = {
+      quantity: qty,
+      product: {
+        description: name.slice(0, 1000), product_key: String(c.product_service_code), unit_key: String(c.unit_code), unit_name: UNIDADES[c.unit_code] || "Unidad",
+        price: unit, tax_included: false, taxability, taxes,
+      },
+    };
+    if (disc > 0) item.discount = disc;
+    items.push(item);
+  });
+  if (!errors.length && total !== cents(fs.amount)) errors.push("El total de los conceptos no coincide con el pago.");
+  if (errors.length) return { ok: false, errors };
+  const customer = { legal_name: String(fs.legal_name).trim(), tax_id: fs.rfc, tax_system: String(fs.fiscal_regime), address: { zip: String(fs.tax_postal_code) } };
+  if (fs.email && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(fs.email))) customer.email = String(fs.email);
+  const payload = {
+    type: "I", customer, use: fs.cfdi_use, payment_form: formaPago, payment_method: "PUE", currency: "MXN", export: "01", items,
+    external_id: draft.id, idempotency_key: draft.idempotency_key,
+  };
+  if (/^[A-Z0-9-]{1,10}$/.test(String(issuer.invoice_series || ""))) payload.series = issuer.invoice_series;
+  return { ok: true, payload, total: total / 100 };
+}
+
+// Mensaje de error de Facturapi para la persona (corto, sin datos del paciente ni de la llave).
+export function mensajeFacturapi(body, status) {
+  const o = body && typeof body === "object" ? body : {};
+  const text = String(o.message || o.error || "").replace(/\s+/g, " ").trim().slice(0, 400);
+  if (text) return text;
+  return status ? `Facturapi respondió ${status}.` : "Facturapi no respondió.";
+}
+// ok = timbrado confirmado; rejected = Facturapi lo rechazó y NO existe factura (se puede corregir y reintentar);
+// unknown = no sabemos si se creó (red, 5xx, 409 de idempotencia): hay que verificar antes de reintentar.
+export function clasificarRespuesta(status, body) {
+  const factura = leerFactura(body);
+  if ((status === 200 || status === 201) && factura && factura.uuid) return "ok";
+  if (status === 200 || status === 201) return "unknown";
+  if (status === 409 || status === 408 || status === 425 || status === 429 || status >= 500 || !status) return "unknown";
+  return status >= 400 ? "rejected" : "unknown";
+}
+// Lee solo lo necesario de la factura de Facturapi; descarta lo que no cumple el formato.
+export function leerFactura(body) {
+  const o = body && typeof body === "object" ? body : null;
+  if (!o || typeof o.id !== "string" || o.id.length < 3 || o.id.length > 120) return null;
+  const folio = Number(o.folio_number);
+  return {
+    id: o.id,
+    uuid: typeof o.uuid === "string" && UUID_RE.test(o.uuid) ? o.uuid.toLowerCase() : "",
+    status: typeof o.status === "string" ? o.status.slice(0, 20) : "",
+    series: typeof o.series === "string" && /^[A-Za-z0-9-]{0,25}$/.test(o.series) ? o.series : "",
+    folio: Number.isInteger(folio) && folio > 0 && folio < 2_000_000_000 ? folio : null,
+    total: Number.isFinite(Number(o.total)) ? Number(o.total) : null,
+  };
+}

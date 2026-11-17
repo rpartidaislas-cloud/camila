@@ -156,11 +156,14 @@
   }
   function renderFiscal(){
     var rows=state.fiscal,drafts=state.drafts,report=state.fiscalReadiness||{checks:[],ready:false},issuer=state.issuer||{},pac=state.pac||{};
-    var draftsHtml=drafts.length?'<section class="finance-drafts"><h3>Borradores y ciclo fiscal</h3>'+drafts.map(function(d){var r=d.sandbox_report||{},errors=Array.isArray(r.errors)?r.errors:[],tone=d.status==='issued'?'paid':d.sandbox_status==='passed'?'paid':d.sandbox_status==='blocked'?'due':'',label=d.status==='issued'?'Timbrado por '+esc(d.provider||'PAC'):d.sandbox_status==='passed'?'Prevalidación local aprobada':d.sandbox_status==='blocked'?'Correcciones pendientes':'Sin validar',plan=state.cancellations.find(function(x){return x.draft_id===d.id;});return '<article data-draft-id="'+d.id+'"><div><strong>'+esc(name(d.patient_id))+'</strong><small>CFDI '+esc(d.cfdi_version||'4.0')+' · '+money((d.fiscal_snapshot||{}).amount)+(d.external_uuid?' · '+esc(d.external_uuid):'')+'</small></div><div><span class="finance-badge" data-tone="'+tone+'">'+label+'</span>'+(errors.length?'<small>'+errors.length+' observación(es)</small>':'')+(plan?'<small>Cancelación '+esc(plan.reason_code)+' planeada; no enviada</small>':'')+'</div>'+(state.canInvoice?'<div class="finance-draft-actions"><button data-validate-cfdi="'+d.id+'">'+(d.sandbox_status==='pending'?'Prevalidar':'Validar de nuevo')+'</button>'+(d.status==='issued'&&!plan?'<button data-plan-cancel="'+d.id+'">Planear cancelación</button>':'')+'</div>':'')+'</article>';}).join('')+'</section>':'';
+    var draftsHtml=drafts.length?'<section class="finance-drafts"><h3>Borradores y ciclo fiscal</h3>'+drafts.map(function(d){var r=d.sandbox_report||{},errors=Array.isArray(r.errors)?r.errors:[],tone=d.status==='issued'?'paid':d.status==='rejected'?'due':d.sandbox_status==='passed'?'paid':d.sandbox_status==='blocked'?'due':'',label=d.status==='issued'?'Timbrado en sandbox · '+esc(d.provider||'PAC'):d.status==='submitted'?'Timbrado en proceso':d.status==='rejected'?'Rechazado por el PAC':d.sandbox_status==='passed'?'Prevalidación local aprobada':d.sandbox_status==='blocked'?'Correcciones pendientes':'Sin validar',plan=state.cancellations.find(function(x){return x.draft_id===d.id;});return '<article data-draft-id="'+d.id+'"><div><strong>'+esc(name(d.patient_id))+'</strong><small>CFDI '+esc(d.cfdi_version||'4.0')+' · '+money((d.fiscal_snapshot||{}).amount)+(d.external_uuid?' · '+esc(d.external_uuid):'')+'</small></div><div><span class="finance-badge" data-tone="'+tone+'">'+label+'</span>'+(errors.length?'<small>'+errors.length+' observación(es)</small>':'')+(d.provider_message?'<small>'+esc(d.provider_message)+'</small>':'')+(plan?'<small>Cancelación '+esc(plan.reason_code)+' planeada; no enviada</small>':'')+'</div>'+(state.canInvoice?'<div class="finance-draft-actions">'+(d.status==='draft'||d.status==='rejected'?'<button data-validate-cfdi="'+d.id+'">'+(d.sandbox_status==='pending'?'Prevalidar':'Validar de nuevo')+'</button>':'')+(d.sandbox_status==='passed'&&(d.status==='draft'||d.status==='rejected')&&pacConnected()?'<button class="btn btn-primary" data-stamp-cfdi="'+d.id+'">Timbrar en sandbox</button>':'')+(d.status==='submitted'?'<button data-reconcile-cfdi="'+d.id+'">Verificar estado</button>':'')+(d.status==='issued'?'<button data-download-cfdi="'+d.id+'" data-kind="pdf">PDF</button><button data-download-cfdi="'+d.id+'" data-kind="xml">XML</button>':'')+(d.status==='issued'&&!plan?'<button data-plan-cancel="'+d.id+'">Planear cancelación</button>':'')+'</div>':'')+'</article>';}).join('')+'</section>':'';
     var receivers=rows.length?'<section class="finance-fiscal-receivers"><h3>Receptores</h3><p class="finance-section-copy">Los datos del receptor se administran desde la ficha de cada paciente.</p><div class="finance-table">'+rows.map(function(f){var d=drafts.find(function(x){return x.patient_id===f.patient_id;});return '<article class="finance-row"><div><strong>'+esc(name(f.patient_id))+'</strong><small>'+esc(f.legal_name)+'</small></div><span>'+esc(f.rfc)+'</span><span class="finance-badge">'+(d?'Borrador preparado':'Datos completos')+'</span><button data-fiscal-patient="'+f.patient_id+'">Ver paciente</button></article>';}).join('')+'</div></section>':'<div class="finance-empty"><strong>Sin receptores fiscales</strong><p>Completa los datos fiscales desde un recibo o dentro de la ficha administrativa del paciente.</p></div>';
     document.getElementById('finance-fiscal').innerHTML='<div class="finance-fiscal-note"><strong>Proceso fiscal independiente.</strong> Las facturas comienzan desde un recibo. Aquí sólo se administran borradores, emisión, cancelaciones y configuración fiscal.</div>'+fiscalStatusStrip()+draftsHtml+receivers;
     document.querySelectorAll('[data-fiscal-patient]').forEach(function(b){b.onclick=function(){openPatientBilling(b.dataset.fiscalPatient);};});
     document.querySelectorAll('[data-validate-cfdi]').forEach(function(b){b.onclick=function(){validateCfdiDraft(by(state.drafts,b.dataset.validateCfdi));};});
+    document.querySelectorAll('[data-stamp-cfdi]').forEach(function(b){b.onclick=function(){openStamp(by(state.drafts,b.dataset.stampCfdi));};});
+    document.querySelectorAll('[data-reconcile-cfdi]').forEach(function(b){b.onclick=function(){reconcileCfdi(by(state.drafts,b.dataset.reconcileCfdi));};});
+    document.querySelectorAll('[data-download-cfdi]').forEach(function(b){b.onclick=function(){downloadCfdi(by(state.drafts,b.dataset.downloadCfdi),b.dataset.kind,b);};});
     document.querySelectorAll('[data-plan-cancel]').forEach(function(b){b.onclick=function(){planCfdiCancellation(by(state.drafts,b.dataset.planCancel));};});
     var cfg=document.getElementById('finance-open-billing-setup');if(cfg)cfg.onclick=openBillingSetup;
   }
@@ -175,6 +178,49 @@
     if(!data||data.error||!data.connection)throw new Error((data&&data.error)||'No se pudo consultar Facturapi.');
     return data.connection;
   }
+  // Timbrado en Facturapi SANDBOX (sin validez fiscal). La función `facturapi` arma y envía el comprobante; aquí solo se pide y se muestra.
+  var FORMAS_PAGO=[['01','Efectivo'],['02','Cheque nominativo'],['03','Transferencia electrónica de fondos'],['04','Tarjeta de crédito'],['28','Tarjeta de débito']];
+  var FORMA_SUGERIDA={cash:'01',check:'02',transfer:'03',card:'04'};
+  function pacConnected(){return !!(state.facturapi&&state.facturapi.status==='connected');}
+  async function facturapiAction(body){
+    var res=await window.sb.functions.invoke('facturapi',{body:body}),data=res&&res.data,err=res&&res.error;
+    if(err&&err.context&&typeof err.context.json==='function'){try{data=await err.context.json();}catch(e){}}
+    if(!data)throw new Error('No se pudo contactar a Facturapi.');
+    if(data.error&&!data.draft)throw new Error(data.error);
+    return data;
+  }
+  function openStamp(draft){
+    if(!draft)return;
+    if(!state.canInvoice)return notify('Tu rol no permite timbrar facturas.','error');
+    var snap=draft.fiscal_snapshot||{},suggested=FORMA_SUGERIDA[snap.payment_method]||'';
+    var d=dialog('<form><h2>Timbrar en sandbox</h2><p>'+esc(name(draft.patient_id))+' · '+money(snap.amount)+'</p><div class="finance-form-grid"><label class="wide">Forma de pago del cobro<select name="form" required><option value="">'+(suggested?'Elige':'Elige la forma de pago real')+'</option>'+FORMAS_PAGO.map(function(f){return '<option value="'+f[0]+'"'+(f[0]===suggested?' selected':'')+'>'+f[0]+' · '+esc(f[1])+'</option>';}).join('')+'</select></label></div><p class="finance-sandbox-note"><strong>Es una prueba.</strong> Se envía a Facturapi con la llave de pruebas: el comprobante no tiene validez fiscal y no llega al SAT real. Úsalo para revisar que todo salga bien antes de producción.</p><div class="finance-actions"><button type="button" data-close>Cancelar</button><button class="btn btn-primary">Timbrar en sandbox</button></div></form>');
+    d.querySelector('form').onsubmit=async function(e){
+      e.preventDefault();
+      var form=e.currentTarget.elements.form.value;if(!form)return;
+      d.close();notify('Timbrando en Facturapi sandbox…','info');
+      try{
+        var out=await facturapiAction({action:'stamp',draft_id:draft.id,payment_form:form});
+        await reload();
+        if(out.error)notify(out.error,'error');else notify(out.message||'Comprobante timbrado en sandbox.',out.draft&&out.draft.status==='issued'?'success':'info');
+      }catch(err){notify(message(err),'error');}
+    };
+  }
+  async function reconcileCfdi(draft){
+    if(!draft)return;
+    notify('Consultando a Facturapi…','info');
+    try{var out=await facturapiAction({action:'reconcile',draft_id:draft.id});await reload();notify(out.message||'Estado actualizado.','success');}catch(err){notify(message(err),'error');}
+  }
+  async function downloadCfdi(draft,kind,button){
+    if(!draft)return;
+    if(button)button.disabled=true;
+    try{
+      var out=await facturapiAction({action:'download',draft_id:draft.id,kind:kind});
+      var bin=atob(out.base64),bytes=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+      var url=URL.createObjectURL(new Blob([bytes],{type:out.media_type})),a=document.createElement('a');
+      a.href=url;a.download=out.filename||('cfdi.'+kind);document.body.append(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},4000);
+    }catch(err){notify(message(err),'error');}
+    if(button)button.disabled=false;
+  }
   async function loadFacturapi(){try{state.facturapi=await facturapiCall({action:'status'});}catch(e){state.facturapi={status:'unavailable',error:String(e&&e.message||e)};}}
   async function setPac(patch){
     var pac=state.pac||{};
@@ -188,7 +234,7 @@
     var types=(fp.pending_steps||[]).map(function(x){return x.type;}),needsCsd=types.indexOf('certificate')>=0,needsManifest=types.indexOf('manifiesto')>=0;
     var issuerDone=issuer.fiscal_status==='reviewed',live=fp.environment==='live';
     var csdText,csdAction,csdRun,csdDone,csdExtra=[];
-    if(own){csdDone=true;csdText='Cuenta propia de Facturapi conectada (pruebas)'+(fp.organization_name?' · '+esc(fp.organization_name):'')+' · llave ····'+esc(String(fp.key_fingerprint||'').slice(-4))+(fp.last_verified_at?' · verificada '+date(fp.last_verified_at,true):'');csdAction='Cambiar llave';csdRun=openFacturapiConnect;csdExtra=[{label:'Verificar',run:function(){facturapiAction('verify');}},{label:'Desconectar',run:function(){if(window.confirm('¿Desconectar Facturapi? Se borrará la llave guardada.'))facturapiAction('disconnect');}}];}
+    if(own){csdDone=true;csdText='Cuenta propia de Facturapi conectada (pruebas)'+(fp.organization_name?' · '+esc(fp.organization_name):'')+' · llave ····'+esc(String(fp.key_fingerprint||'').slice(-4))+(fp.last_verified_at?' · verificada '+date(fp.last_verified_at,true):'');csdAction='Cambiar llave';csdRun=openFacturapiConnect;csdExtra=[{label:'Verificar',run:function(){facturapiRun('verify');}},{label:'Desconectar',run:function(){if(window.confirm('¿Desconectar Facturapi? Se borrará la llave guardada.'))facturapiRun('disconnect');}}];}
     else if(platform&&fp.production_ready){csdDone=true;csdText='Facturación activa'+(fp.csd_valid_until?' · CSD vigente hasta '+date(fp.csd_valid_until):'');csdAction='Cambiar CSD';csdRun=openCsdDialog;csdExtra=[{label:'Revisar de nuevo',run:function(){syncOrganization();}}];}
     else if(platform&&!needsCsd&&needsManifest){csdDone=false;csdText='Tu CSD ya está cargado'+(fp.csd_valid_until?' (vigente hasta '+date(fp.csd_valid_until)+')':'')+'. Falta firmar la Carta Manifiesto: es la autorización del SAT para que Facturapi timbre a nombre de la clínica. Cuando la firmes, pulsa «Revisar de nuevo».';csdAction='Revisar de nuevo';csdRun=syncOrganization;csdExtra=[{label:'Cambiar CSD',run:openCsdDialog}];}
     else if(platform){csdDone=false;csdText='Falta subir el certificado de sello digital (CSD) de la clínica.';csdAction='Subir CSD';csdRun=openCsdDialog;}
@@ -196,7 +242,7 @@
     else{csdDone=false;csdText=issuerDone?'SMYL crea tu cuenta de facturación y la liga a tu CSD, que es el certificado que te da el SAT para facturar. No necesitas registrarte en Facturapi.':'Primero completa los datos fiscales de la clínica.';csdAction='Activar y subir CSD';csdRun=issuerDone?openCsdDialog:function(){notify('Primero completa los datos fiscales de la clínica.','info');};csdExtra=issuerDone?[{label:'Tengo mi propia cuenta',run:openFacturapiConnect}]:[];}
     var basics=issuerDone&&csdDone&&servicesDone&&!!pac.fiscal_policy_reviewed_at;
     var prodText,prodAction,prodRun,prodDone=live,prodExtra=[];
-    if(live){prodText='Facturando en producción desde '+date(fp.live_enabled_at,true)+' · llave ····'+esc(String(fp.live_key_fingerprint||'').slice(-4))+'. Las facturas se timbran y se envían al SAT.';prodAction='Volver a pruebas';prodRun=function(){if(window.confirm('¿Volver a pruebas? Dejarás de timbrar facturas reales hasta activar producción otra vez.'))facturapiAction('disable_live');};}
+    if(live){prodText='Facturando en producción desde '+date(fp.live_enabled_at,true)+' · llave ····'+esc(String(fp.live_key_fingerprint||'').slice(-4))+'. Las facturas se timbran y se envían al SAT.';prodAction='Volver a pruebas';prodRun=function(){if(window.confirm('¿Volver a pruebas? Dejarás de timbrar facturas reales hasta activar producción otra vez.'))facturapiRun('disable_live');};}
     else if(basics&&platform&&fp.production_ready){prodText='Todo está listo. Al activar producción, las facturas serán reales: se timbran y se envían al SAT, y solo se pueden cancelar, no borrar.';prodAction='Activar producción';prodRun=openLiveDialog;}
     else{prodText=own?'La producción se activa con la cuenta de SMYL, no con una cuenta propia.':'Disponible cuando completes los pasos anteriores.';prodAction='';prodRun=function(){};}
     return [
@@ -245,24 +291,25 @@
       try{await facturapiCall({action:'enable_live',confirm_text:f.elements.confirm.value});close();await loadFacturapi();await reload('Producción activada. Las facturas ahora son reales.');}
       catch(ex){err.textContent=String(ex&&ex.message||ex);err.hidden=false;submit.textContent='Activar producción';submit.disabled=f.elements.confirm.value.trim().toUpperCase()!==want;}};
   }
-  async function facturapiAction(a){
+  async function facturapiRun(a){
     try{await facturapiCall({action:a});if(a==='disconnect')await setPac({sandbox:false});await loadFacturapi();await reload(a==='verify'?'Llave verificada.':a==='disable_live'?'Volviste a pruebas. Ya no se timbran facturas reales.':'Facturapi desconectado.');}
     catch(e){notify(String(e&&e.message||e),'error');await loadFacturapi();renderBillingSetup();}
   }
   function renderBillingSetup(){
     var host=document.getElementById('billing-setup-body');if(!host)return;
     var steps=billingSteps(),basics=steps.slice(0,4),done=basics.filter(function(x){return x.done;}).length,live=!!(state.facturapi&&state.facturapi.environment==='live'),ready=done===basics.length,can=state.canInvoice;
-    var title=live?'Estás facturando en producción':ready?'Tu clínica está lista para facturar':'Prepara tu clínica para facturar';
-    var lead=live?'Las facturas que se emitan son reales: se timbran y se envían al SAT.':ready?'Los pasos están completos. Por ahora trabajas en pruebas: no se emite ninguna factura real hasta que actives producción.':'Completa estos pasos una sola vez. Mientras estés en pruebas no se emite ninguna factura real.';
+    var armed=live&&state.facturapi&&state.facturapi.live_stamping===true;var title=live?(armed?'Estás facturando en producción':'Producción activada · timbrado real pendiente'):ready?'Tu clínica está lista para facturar':'Prepara tu clínica para facturar';
+    var lead=live?(armed?'Las facturas que se emitan son reales: se timbran y se envían al SAT.':'Tu clínica ya está autorizada para producción, pero el servidor aún no permite timbrar facturas reales. Mientras tanto no se puede timbrar: vuelve a pruebas si necesitas probar.'):ready?'Los pasos están completos. Por ahora trabajas en pruebas: no se emite ninguna factura real hasta que actives producción.':'Completa estos pasos una sola vez. Mientras estés en pruebas no se emite ninguna factura real.';
     host.innerHTML='<header class="billing-setup-head"><div><span class="pro-eyebrow">FACTURACIÓN · '+(live?'PRODUCCIÓN':'PRUEBAS')+'</span><h2>'+title+'</h2><p>'+lead+'</p></div><div class="billing-setup-progress" aria-label="'+done+' de '+basics.length+' pasos completos"><strong>'+done+'/'+basics.length+'</strong><span><i style="width:'+Math.round(done/basics.length*100)+'%"></i></span></div></header><ol class="billing-setup-steps">'+steps.map(function(x,n){return '<li data-done="'+x.done+'" data-step="'+x.id+'" data-muted="'+!!x.muted+'" data-wide="'+!!((x.extra&&x.extra.length)||x.id==='facturapi')+'"><span class="billing-setup-mark" aria-hidden="true">'+(x.done?'✓':(n+1))+'</span><div><strong>'+x.title+'</strong><small>'+x.text+'</small></div>'+(can&&(x.action||(x.extra&&x.extra.length))?'<div class="billing-setup-actions">'+(x.action?'<button type="button" class="btn '+(x.done?'btn-secondary':'btn-primary')+'" data-bs="'+x.id+'">'+x.action+'</button>':'')+(x.extra||[]).map(function(e,i){return '<button type="button" class="btn btn-secondary" data-bs="'+x.id+':'+i+'">'+e.label+'</button>';}).join('')+'</div>':'')+'</li>';}).join('')+'</ol>'+(can?'':'<p class="billing-setup-note">Tu rol puede consultar esta configuración, pero no modificarla.</p>')+'<p class="billing-setup-note">Los datos fiscales de cada paciente se capturan desde su recibo o su ficha. SMYL nunca guarda tu CSD ni su contraseña.</p>';
     host.querySelectorAll('[data-bs]').forEach(function(b){b.onclick=function(){var k=b.dataset.bs.split(':'),st=steps.find(function(x){return x.id===k[0];});if(!st)return;(k[1]!=null?st.extra[Number(k[1])]:st).run();};});
   }
   async function ensureBilling(){await load(false);await loadFacturapi();renderBillingSetup();}
   function buildBillingHolder(){if(document.getElementById('billing-setup'))return;var h=el('div','');h.id='billing-setup-holder';h.hidden=true;var sec=el('section','billing-setup');sec.id='billing-setup';sec.setAttribute('aria-label','Configuración de facturación');var fb=el('div','');fb.id='billing-feedback';fb.setAttribute('aria-live','polite');var body=el('div','billing-setup-body');body.id='billing-setup-body';sec.append(fb,body);h.append(sec);document.body.append(h);}
   function openBillingSetup(){if(window.SmylSettingsHub&&window.SmylSettingsHub.openItem)window.SmylSettingsHub.openItem('cobros','Facturación');else notify('Abre Configuración → Cobros → Facturación.','info');}
+  function st_armed(live){return !!(live&&state.facturapi&&state.facturapi.live_stamping===true);}
   function fiscalStatusStrip(){
     var steps=billingSteps().slice(0,4),done=steps.filter(function(x){return x.done;}).length,ready=done===steps.length,live=!!(state.facturapi&&state.facturapi.environment==='live');
-    return '<div class="finance-fiscal-status" data-ready="'+ready+'"><div><strong>'+(live?'Facturando en producción':ready?'Facturación lista · en pruebas':'Falta terminar la configuración fiscal')+'</strong><small>'+(live?'Las facturas que emitas son reales.':ready?'Aún no se emiten facturas reales: activa producción en Configuración.':(steps.length-done)+' de '+steps.length+' pasos pendientes.')+'</small></div><button type="button" class="btn btn-secondary" id="finance-open-billing-setup">'+(ready?'Ver configuración':'Terminar configuración')+'</button></div>';
+    return '<div class="finance-fiscal-status" data-ready="'+ready+'"><div><strong>'+(live?(st_armed(live)?'Facturando en producción':'Producción activada · timbrado real pendiente'):ready?'Facturación lista · en pruebas':'Falta terminar la configuración fiscal')+'</strong><small>'+(live?(st_armed(live)?'Las facturas que emitas son reales.':'El servidor aún no permite timbrar facturas reales.'):ready?'Aún no se emiten facturas reales: activa producción en Configuración.':(steps.length-done)+' de '+steps.length+' pasos pendientes.')+'</small></div><button type="button" class="btn btn-secondary" id="finance-open-billing-setup">'+(ready?'Ver configuración':'Terminar configuración')+'</button></div>';
   }
   function openFacturapiConnect(){
     if(!state.canInvoice)return notify('Tu rol no permite configurar Facturapi.','error');
