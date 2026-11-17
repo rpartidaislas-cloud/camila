@@ -58,8 +58,8 @@ test('la barra «SMYL te pone al día» resume lo pendiente sin consultas extra 
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=44/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=38/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=45/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=39/);
 });
 
 test('la cabecera grande se reemplaza por una barra delgada y los contadores viven en las pestañas', () => {
@@ -86,7 +86,11 @@ test('las burbujas no repiten Paciente / Equipo de la clínica y Responder / Má
 
 test('el compositor tiene una sola fila de herramientas y el aviso de ventana solo aparece si vence', () => {
   assert.match(js, /smyl-inbox-compose-bar" title="El borrador se cifra para esta sesión/);
-  assert.match(js, /<button type="button" data-compose-attach>Adjuntar<\/button><button type="button" data-compose-quick>Respuesta rápida<\/button><button type="button" class="smyl-inbox-compose-copilot" data-compose-copilot aria-label="Sugerir con Copilot">Sugerir<\/button>/);
+  for (const control of ['data-compose-attach', 'data-compose-quick', 'data-compose-emoji', 'data-compose-copilot', 'data-compose-send']) {
+    assert.match(js, new RegExp(control));
+  }
+  assert.match(js, /smyl-inbox-compose-card/);
+  assert.match(js, /data-compose-tools role="menu"[^>]+hidden/);
   assert.equal((js.match(/data-compose-file accept/g) || []).length, 1);
   assert.match(js, /notice\.hidden = !isWhatsapp \|\| windowState\.status === 'open'/);
 });

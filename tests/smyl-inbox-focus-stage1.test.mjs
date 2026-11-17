@@ -22,7 +22,7 @@ test('la cabecera prioriza paciente, estado y una sola acción operativa', () =>
 
 test('el compositor deja visibles únicamente herramientas primarias', () => {
   assert.match(inbox, /data-compose-more aria-expanded="false"/);
-  assert.match(inbox, /data-compose-copilot aria-label="Sugerir con Copilot">Sugerir/);
+  assert.match(inbox, /data-compose-copilot aria-label="Sugerir con MILA">/);
   assert.match(inbox, /data-compose-tools[^>]+hidden/);
   assert.match(inbox, /toggleComposerTools/);
   assert.match(css, /\.smyl-inbox-compose-tools\[hidden\]\{display:none!important\}/);

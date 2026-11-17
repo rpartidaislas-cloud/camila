@@ -1674,3 +1674,507 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 }
 .smyl-inbox-account-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .smyl-inbox-account-blocked{color:#9b3d2e;font-weight:600}
+
+/* ================================================================
+   Professional Conversation Workspace v4
+   One reading lane, one composer card and one compact tools menu.
+   ================================================================ */
+
+.smyl-inbox-thread-pane {
+  background: #F3F6F9;
+}
+
+.smyl-inbox-thread-head {
+  z-index: 6;
+  min-height: 68px;
+  height: 68px;
+  padding-inline: 18px;
+  border-bottom: 1px solid #DCE4EA;
+  background: rgba(255, 255, 255, .98);
+  box-shadow: 0 1px 0 rgba(16, 34, 57, .02);
+}
+
+.smyl-inbox-thread-head .smyl-inbox-avatar {
+  width: 40px;
+  height: 40px;
+}
+
+.smyl-inbox-patient-summary {
+  max-width: min(360px, 38%);
+  border-radius: 10px;
+}
+
+.smyl-inbox-thread-person strong {
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.smyl-inbox-thread-more .smyl-inbox-compose-icon {
+  width: 19px;
+  height: 19px;
+}
+
+.smyl-inbox-thread-body {
+  padding: 22px clamp(18px, 4vw, 52px) 28px;
+  background:
+    linear-gradient(180deg, rgba(237, 243, 247, .72), rgba(247, 249, 251, .94) 90px),
+    #F7F9FB;
+}
+
+[data-thread-messages] {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.smyl-inbox-day {
+  margin-block: 18px;
+  padding: 4px 11px;
+  border: 0;
+  background: rgba(255, 255, 255, .78);
+  box-shadow: 0 0 0 1px #E2E8EE;
+}
+
+.smyl-inbox-message {
+  align-items: flex-end;
+  margin: 7px 0;
+}
+
+.smyl-inbox-bubble {
+  max-width: min(68%, 620px);
+  padding: 10px 13px 8px;
+  border-color: #D9E2E9;
+  border-radius: 15px 15px 15px 5px;
+  background: #FFFFFF;
+  box-shadow: 0 1px 2px rgba(16, 34, 57, .045);
+}
+
+.smyl-inbox-message.is-team .smyl-inbox-bubble,
+.smyl-inbox-message.is-assistant .smyl-inbox-bubble {
+  border-radius: 15px 15px 5px 15px;
+}
+
+.smyl-inbox-message.is-team .smyl-inbox-bubble {
+  border-color: #C7DBE8;
+  background: #EDF6FB;
+}
+
+.smyl-inbox-message.is-assistant .smyl-inbox-bubble {
+  border-color: #CDE2DC;
+  background: #EEF8F5;
+}
+
+.smyl-inbox-message.has-error .smyl-inbox-bubble {
+  border-color: #E7C5C1;
+  background: #FFF8F7;
+}
+
+.smyl-inbox-message.has-error .smyl-inbox-message-status {
+  color: #9D3F36;
+}
+
+.smyl-inbox-message.has-error .smyl-inbox-bubble > button {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 32px;
+  align-items: center;
+  margin: 5px 0 0 auto;
+  padding: 0 8px;
+  border-radius: 7px;
+  background: #FFFFFF;
+}
+
+.smyl-inbox-bubble p {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.smyl-inbox-message-status {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.smyl-inbox-composer {
+  padding: 12px clamp(14px, 3vw, 34px) 14px;
+  border-top: 1px solid #DCE4EA;
+  background: rgba(247, 249, 251, .97);
+  box-shadow: 0 -8px 24px rgba(16, 34, 57, .035);
+}
+
+.smyl-inbox-compose-surface {
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.smyl-inbox-compose-main {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.smyl-inbox-compose-card {
+  overflow: visible;
+  border: 1px solid #C9D5DF;
+  border-radius: 15px;
+  background: #FFFFFF;
+  box-shadow: 0 6px 18px rgba(16, 34, 57, .065);
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+
+.smyl-inbox-compose-card:focus-within {
+  border-color: #6EA5C7;
+  box-shadow: 0 0 0 3px rgba(36, 118, 184, .10), 0 8px 22px rgba(16, 34, 57, .07);
+}
+
+.smyl-inbox-message-row {
+  display: block;
+  width: 100%;
+}
+
+.smyl-inbox-composer textarea {
+  display: block;
+  width: 100%;
+  min-height: 64px;
+  max-height: 160px;
+  padding: 14px 16px 9px;
+  resize: vertical;
+  border: 0;
+  border-radius: 15px 15px 0 0;
+  background: transparent;
+  color: #102239;
+  font: 400 14px/1.5 var(--inbox-font);
+  box-shadow: none;
+}
+
+.smyl-inbox-composer textarea:focus {
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+}
+
+.smyl-inbox-compose-bar,
+.smyl-inbox-composer .smyl-inbox-compose-bar {
+  display: flex;
+  min-width: 0;
+  min-height: 54px;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 7px;
+  overflow: visible;
+  border-top: 1px solid #E7ECF0;
+}
+
+.smyl-inbox-compose-primary,
+.smyl-inbox-compose-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 3px;
+}
+
+.smyl-inbox-compose-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.smyl-inbox-compose-bar button,
+.smyl-inbox-compose-bar .smyl-inbox-compose-copilot,
+.smyl-inbox-compose-more,
+.smyl-inbox-send {
+  display: inline-flex;
+  width: auto;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #526477;
+  font: 650 12px/1 var(--inbox-font);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.smyl-inbox-compose-bar button:hover:not(:disabled),
+.smyl-inbox-compose-bar button:focus-visible {
+  background: #F0F4F7;
+  color: #183750;
+}
+
+.smyl-inbox-compose-bar button:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+
+.smyl-inbox-compose-icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.smyl-inbox-compose-bar .smyl-inbox-compose-copilot {
+  border: 1px solid #DDD6EC;
+  background: #FAF8FD;
+  color: #614C91;
+}
+
+.smyl-inbox-compose-bar .smyl-inbox-compose-copilot:hover:not(:disabled) {
+  border-color: #C8BCE1;
+  background: #F3EFF9;
+  color: #523C85;
+}
+
+.smyl-inbox-compose-bar .smyl-inbox-send {
+  min-width: 91px;
+  padding-inline: 14px;
+  background: #0F766E;
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(15, 118, 110, .18);
+}
+
+.smyl-inbox-compose-bar .smyl-inbox-send:hover:not(:disabled),
+.smyl-inbox-compose-bar .smyl-inbox-send:focus-visible {
+  background: #0B625C;
+  color: #FFFFFF;
+}
+
+.smyl-inbox-draft-status {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  color: #28786D;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smyl-inbox-draft-status:empty {
+  display: none;
+}
+
+/* An expired WhatsApp window becomes one clear action instead of a disabled
+   text field plus three repeated template buttons. */
+.smyl-inbox-composer[data-mode="template"] .smyl-inbox-message-row,
+.smyl-inbox-composer[data-mode="template"] [data-compose-attach],
+.smyl-inbox-composer[data-mode="template"] [data-compose-quick],
+.smyl-inbox-composer[data-mode="template"] [data-compose-emoji],
+.smyl-inbox-composer[data-mode="template"] [data-compose-copilot],
+.smyl-inbox-composer[data-mode="template"] [data-compose-template] {
+  display: none;
+}
+
+.smyl-inbox-composer[data-mode="template"] .smyl-inbox-compose-bar {
+  min-height: 56px;
+  border-top: 0;
+}
+
+.smyl-inbox-composer[data-mode="template"] .smyl-inbox-send {
+  min-width: 142px;
+}
+
+.smyl-inbox-compose-tools {
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(380px, calc(100vw - 48px));
+  gap: 4px;
+  padding: 7px;
+  overflow: visible;
+  border: 1px solid #D4DEE6;
+  border-radius: 12px;
+  background: #FFFFFF;
+  box-shadow: 0 16px 38px rgba(16, 34, 57, .16);
+}
+
+.smyl-inbox-compose-tools[hidden] {
+  display: none !important;
+}
+
+.smyl-inbox-compose-tools button,
+.smyl-inbox-compose-tools [data-compose-copilot] {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 56px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #31495E;
+  text-align: left;
+  cursor: pointer;
+}
+
+.smyl-inbox-compose-tools button:hover:not(:disabled),
+.smyl-inbox-compose-tools button:focus-visible {
+  background: #F1F5F7;
+  color: #153B55;
+}
+
+.smyl-inbox-compose-tools button > span {
+  display: block;
+  min-width: 0;
+}
+
+.smyl-inbox-compose-tools strong,
+.smyl-inbox-compose-tools small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smyl-inbox-compose-tools strong {
+  color: inherit;
+  font: 700 12px/17px var(--inbox-font);
+}
+
+.smyl-inbox-compose-tools small {
+  color: #718092;
+  font: 500 11px/16px var(--inbox-font);
+}
+
+@media (max-width: 1024px) and (min-width: 769px) {
+  .smyl-inbox-patient-summary { max-width: 38%; }
+  .smyl-inbox-thread-head { padding-inline: 10px; }
+  .smyl-inbox-compose-primary [data-compose-quick] span,
+  .smyl-inbox-compose-primary [data-compose-emoji] span,
+  .smyl-inbox-compose-primary [data-compose-more] span { display: none; }
+}
+
+@media (max-width: 768px) {
+  .smyl-inbox-thread-head {
+    min-height: 62px;
+    height: 62px;
+    padding-inline: 7px;
+  }
+
+  .smyl-inbox-patient-summary {
+    max-width: none;
+    padding-inline: 2px;
+  }
+
+  .smyl-inbox-thread-body {
+    padding: 14px 11px 18px;
+  }
+
+  [data-thread-messages] {
+    max-width: none;
+  }
+
+  .smyl-inbox-bubble {
+    max-width: 90%;
+    padding: 9px 11px 7px;
+  }
+
+  .smyl-inbox-composer {
+    padding: 8px 9px calc(9px + env(safe-area-inset-bottom));
+  }
+
+  .smyl-inbox-compose-card {
+    border-radius: 14px;
+  }
+
+  .smyl-inbox-composer textarea {
+    min-height: 54px;
+    padding: 12px 13px 7px;
+    resize: none;
+    border-radius: 14px 14px 0 0;
+    font-size: 16px;
+  }
+
+  .smyl-inbox-compose-bar,
+  .smyl-inbox-composer .smyl-inbox-compose-bar {
+    min-height: 54px;
+    gap: 3px;
+    padding: 5px;
+    overflow: visible;
+  }
+
+  .smyl-inbox-compose-bar button,
+  .smyl-inbox-compose-bar .smyl-inbox-compose-copilot,
+  .smyl-inbox-compose-more,
+  .smyl-inbox-send {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+  }
+
+  .smyl-inbox-compose-primary button > span,
+  .smyl-inbox-compose-actions button > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .smyl-inbox-composer[data-mode="template"] .smyl-inbox-send {
+    width: auto;
+    min-width: 142px;
+    padding-inline: 13px;
+  }
+
+  .smyl-inbox-composer[data-mode="template"] .smyl-inbox-send > span {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: nowrap;
+  }
+
+  .smyl-inbox-compose-primary [data-compose-quick] {
+    display: none;
+  }
+
+  .smyl-inbox-compose-bar .smyl-inbox-compose-copilot,
+  .smyl-inbox-compose-bar .smyl-inbox-send {
+    min-width: 44px;
+  }
+
+  .smyl-inbox-draft-status {
+    display: none;
+  }
+
+  .smyl-inbox-compose-tools {
+    right: auto;
+    left: 0;
+    width: min(360px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+    max-height: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+}
+
+@media (max-width: 390px) {
+  .smyl-inbox-thread-person span { max-width: 160px; }
+  .smyl-inbox-compose-primary [data-compose-emoji] { display: none; }
+  .smyl-inbox-compose-tools { grid-template-columns: 1fr; width: min(260px, calc(100vw - 24px)); }
+}
