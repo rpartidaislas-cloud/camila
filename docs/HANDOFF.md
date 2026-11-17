@@ -1,5 +1,10 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-16 — Claude Code — MILA por voz: respuestas más ágiles (paso 4)
+
+- **Instrucciones de la entrevista** (`buildInterviewerInstructions`, regla «Agilidad»): contesta de inmediato sin pensar en voz alta; acuse de 1–3 palabras y variado; frases de ~15 palabras; no anuncia lo que va a preguntar ni explica por qué; ante un «no»/«ninguna» pasa directo; si el paciente piensa en voz alta («mmm», «déjeme ver») espera sin llenar el silencio. Se conserva «máximo dos frases breves». No toca el resumen final ni las alertas.
+- **Velocidad de la voz** (`audio.output.speed`): por defecto **1.06** (antes 1.0, rango 0.8–1.25); `OPENAI_MILA_VOICE_SPEED=1` la deja como antes. Si OpenAI rechazara el parámetro, `realtime` reintenta sin él (queda en el log `speed rechazado`) para que la entrevista nunca falle por eso.
+- **Requiere volver a desplegar `mila-interview`.** Pruebas: `smyl-mila-interview` 25/25; `deno check` OK. Sin voz real: ajustar 1.06 según el oído (si se siente atropellada, bajar a 1.0–1.03).
 ## 2026-11-16 — Claude — Consultorio, etapa 4b: firma del aviso de privacidad (texto modelo PROVISIONAL)
 
 - **El texto es un modelo provisional, no el aviso de la clínica.** Vive en `smyl-privacy-notice.js` (`NOTICE`, versión `modelo-provisional-1`, `provisional:true`). Es genérico: no identifica domicilio del responsable ni medios ARCO concretos. **Debe revisarlo el asesor legal antes de usarse con pacientes.** La pantalla de firma muestra un aviso ámbar al operador y cada firma guarda `provisional=true` y su versión, para distinguir después las hechas con este modelo. Para usar el aviso propio: reemplazar `NOTICE` (texto y `version`) y poner `provisional:false`; las firmas anteriores conservan su texto y su versión. El repo no guarda hoy el texto del aviso de cada clínica (solo la casilla «aviso revisado» de preparación operativa); falta un campo de configuración si se quiere editar desde el panel.

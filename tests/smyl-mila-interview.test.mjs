@@ -434,3 +434,17 @@ test('turnos de voz: el detector semántico no se corta con un «ajá» ni con r
   assert.deepEqual(sent, []);
   ctx.st.rt.ctl = true;
 });
+
+test('agilidad de MILA: acuses breves, sin anunciar preguntas y velocidad con respaldo', () => {
+  const text = buildInterviewerInstructions('Ana');
+  assert.match(text, /Agilidad: en cuanto tengas la respuesta, contesta de inmediato/);
+  assert.match(text, /unas 15 palabras como máximo/);
+  assert.match(text, /No anuncies lo que vas a preguntar/);
+  assert.match(text, /simple «no» o «ninguna», pasa directo/);
+  assert.match(text, /espera; no llenes el silencio/);
+  assert.match(text, /como máximo dos frases breves/, 'se conserva el límite anterior');
+  const fn = read('../supabase/functions/mila-interview/index.ts');
+  assert.match(fn, /OPENAI_MILA_VOICE_SPEED/);
+  assert.match(fn, /Math\.min\(1\.25, Math\.max\(0\.8, n\)\)/);
+  assert.match(fn, /!resp\.ok && VOICE_SPEED !== 1 && \/speed\/i\.test\(answer\)[\s\S]{0,200}openCall\(false\)/, 'si rechaza speed reintenta sin él');
+});

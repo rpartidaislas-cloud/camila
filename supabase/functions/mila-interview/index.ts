@@ -58,6 +58,8 @@ const REALTIME_VOICE = Deno.env.get("OPENAI_MILA_INTERVIEW_VOICE") || Deno.env.g
 const TURN_MODE = (Deno.env.get("OPENAI_MILA_TURN_MODE") || "semantic").toLowerCase() === "server" ? "server" : "semantic";
 const VAD_EAGERNESS = ["low", "medium", "high", "auto"].includes((Deno.env.get("OPENAI_MILA_VAD_EAGERNESS") || "").toLowerCase())
   ? (Deno.env.get("OPENAI_MILA_VAD_EAGERNESS") || "").toLowerCase() : "medium";
+// Velocidad de la voz (1 = normal, 0.25–1.5). Un poco arriba de 1 quita sensación de lentitud sin atropellar; 1.0 la deja como antes.
+const VOICE_SPEED = (() => { const n = Number(Deno.env.get("OPENAI_MILA_VOICE_SPEED") || "1.06"); return Number.isFinite(n) ? Math.min(1.25, Math.max(0.8, n)) : 1.06; })();
 const REALTIME_TRANSCRIBE_MODEL = Deno.env.get("OPENAI_REALTIME_TRANSCRIBE_MODEL") || "gpt-transcribe";
 const CONSUMABLES_ENFORCED = (Deno.env.get("SMYL_CONSUMABLES_ENFORCED") || "false") === "true";
 // Tarifas opcionales (USD por millón de tokens) para estimar costo. Sin configurar, el costo queda vacío.
@@ -787,13 +789,15 @@ Deno.serve(async (req: Request) => {
       }
       continuation = { covered, pending };
     }
-    const session = {
+    const knownLines = await knownHistory(row.tenant_id, row.patient_id);
+    const previsitClinic = row.kind === "previsit" ? await clinicName(row.tenant_id) : "";
+    const buildSession = (withSpeed: boolean) => ({
       type: "realtime",
       model: REALTIME_MODEL,
       instructions: buildInterviewerInstructions(firstName(patient?.nombre), {
         ...(continuation ? { continuation } : {}),
-        known: await knownHistory(row.tenant_id, row.patient_id),
-        ...(row.kind === "previsit" ? { previsit: { clinic: await clinicName(row.tenant_id), appointment: row.appointment_label || "" } } : {}),
+        known: knownLines,
+        ...(row.kind === "previsit" ? { previsit: { clinic: previsitClinic, appointment: row.appointment_label || "" } } : {}),
       }),
       // Sin tope por respuesta: la voz consume muchos tokens y con un límite el resumen final se cortaba a media frase.
       max_output_tokens: "inf",
@@ -806,21 +810,29 @@ Deno.serve(async (req: Request) => {
             ? { type: "semantic_vad", eagerness: VAD_EAGERNESS, create_response: false, interrupt_response: false }
             : { type: "server_vad", threshold: 0.62, prefix_padding_ms: 300, silence_duration_ms: 800, create_response: true, interrupt_response: true },
         },
-        output: { voice: REALTIME_VOICE },
+        output: { voice: REALTIME_VOICE, ...(withSpeed && VOICE_SPEED !== 1 ? { speed: VOICE_SPEED } : {}) },
       },
       tools: INTERVIEWER_TOOLS,
       tool_choice: "auto",
-    };
-    try {
+    });
+    const openCall = async (withSpeed: boolean) => {
       const provider = new FormData();
       provider.set("sdp", sdp);
-      provider.set("session", JSON.stringify(session));
-      const resp = await fetch("https://api.openai.com/v1/realtime/calls", {
+      provider.set("session", JSON.stringify(buildSession(withSpeed)));
+      const r = await fetch("https://api.openai.com/v1/realtime/calls", {
         method: "POST",
         headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
         body: provider,
       });
-      const answer = await resp.text();
+      return { resp: r, answer: await r.text() };
+    };
+    try {
+      let { resp, answer } = await openCall(true);
+      // Si el servicio no acepta el parámetro de velocidad, se reintenta sin él: la entrevista nunca debe fallar por eso.
+      if (!resp.ok && VOICE_SPEED !== 1 && /speed/i.test(answer)) {
+        console.warn("[mila-interview:realtime] speed rechazado; reintentando sin velocidad", row.id);
+        ({ resp, answer } = await openCall(false));
+      }
       if (!resp.ok) {
         console.error("[mila-interview:realtime]", row.id, resp.status, answer.slice(0, 400));
         return json(502, { error: "No se pudo abrir la conversación de voz." });
