@@ -442,7 +442,7 @@
     var intro=byId('s-intro'),hero=element('section','flow-home');
     hero.innerHTML='<img class="flow-home-logo" src="icons/smyl_logo.png" alt="SMYL"><div class="flow-eyebrow">ESTUDIO DE SONRISA</div><h1>Una fotografía.<br>Una nueva posibilidad.</h1><p>Elige el cambio que buscas y compara la propuesta. Puedes comenzar con cualquier vista.</p>';
     hero.append(button('Crear simulación',openPhotos,'flow-primary'));
-    var panelLink=element('a','flow-panel-link','Ir a mi panel profesional');panelLink.href='app.html';hero.append(panelLink,element('p','flow-home-note','Las intraorales son opcionales y también pueden servir como referencia.'));intro.prepend(hero);
+    var consultorioLink=element('a','flow-panel-link','Ir al consultorio');consultorioLink.href='app.html?ir=consultorio';var panelLink=element('a','flow-panel-link','Ir a mi panel profesional');panelLink.href='app.html';hero.append(consultorioLink,panelLink,element('p','flow-home-note','Las intraorales son opcionales y también pueden servir como referencia.'));intro.prepend(hero);
     var screen=element('div','screen quick-guided-active');screen.id='s-photos';var shell=element('div','flow-shell');
     shell.innerHTML='<header class="flow-heading"><a href="app.html" aria-label="Volver al panel profesional"><img src="icons/smyl_logo.png" alt="SMYL"></a><a class="flow-panel-link" href="app.html">Panel profesional</a></header>';shell.append(steps(0));
     var returnButton=button('← Volver a mi simulación',returnToResult,'flow-secondary flow-return-result');returnButton.id='flow-return-result';returnButton.hidden=true;shell.append(returnButton);

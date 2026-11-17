@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#071827">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>MILA · Entrevista clínica</title>
+  <style>
+    :root{--navy:#071827;--panel:#102a40;--line:rgba(255,255,255,.12);--text:#f5fbff;--muted:#a9bccb;--teal:#3fd3c3;--blue:#55aaf0;--warn:#f4bd5b;--danger:#ff6b78}
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--navy);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
+    body{background:linear-gradient(160deg,#071827,#091522 65%,#06121d);min-height:100vh}
+    .shell{max-width:560px;margin:auto;padding:16px 16px calc(132px + env(safe-area-inset-bottom))}
+    header.top{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+    .mark{width:40px;height:40px;border-radius:12px;background:linear-gradient(145deg,var(--teal),var(--blue));display:grid;place-items:center;font-weight:800;color:#06202b;flex:none}
+    .top h1{font-size:17px;margin:0}.top p{font-size:13px;color:var(--muted);margin:2px 0 0}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:12px}
+    h2{font-size:20px;margin:0 0 8px}h3{font-size:15px;margin:0 0 8px}
+    p{line-height:1.45}.muted{color:var(--muted);font-size:13px}
+    .btn{min-height:48px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--text);font:inherit;font-weight:700;padding:12px 16px;width:100%;cursor:pointer}
+    .btn-primary{background:linear-gradient(135deg,#2a8fb0,#16588d);border-color:#4a9bd3}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .btn:focus-visible,.tab:focus-visible,.choice:focus-visible,input:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+    .patient-name{font-size:24px;font-weight:800;margin:6px 0 14px}
+    .consent{display:flex;gap:12px;align-items:flex-start;font-size:15px;line-height:1.4;margin:14px 0}
+    .consent input{width:24px;height:24px;flex:none;accent-color:var(--teal);margin-top:2px}
+    .tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
+    .tab{min-height:44px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:inherit;font-weight:700;cursor:pointer}
+    .tab[aria-selected="true"]{background:rgba(63,211,195,.16);color:var(--text)}
+    .choices{display:grid;gap:8px;margin-bottom:12px}
+    .choice{display:flex;gap:12px;align-items:flex-start;text-align:left;min-height:64px;border:1px solid var(--line);border-radius:14px;padding:12px;background:rgba(255,255,255,.04);color:var(--text);font:inherit;cursor:pointer}
+    .choice[aria-pressed="true"]{border-color:var(--teal);background:rgba(63,211,195,.1)}
+    .choice strong{display:block;font-size:15px}.choice small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+    .choice .dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--muted);flex:none;margin-top:2px}
+    .choice[aria-pressed="true"] .dot{border-color:var(--teal);background:var(--teal);box-shadow:inset 0 0 0 3px var(--panel)}
+    .alerts{border:2px solid var(--danger);background:rgba(255,107,120,.12);border-radius:16px;padding:14px;margin-bottom:12px}
+    .alerts h3{color:#ffb3ba;margin:0 0 6px}
+    .alerts ul{margin:0;padding-left:18px;font-size:15px}
+    .guide{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+    .guide>li{border:1px solid var(--line);border-radius:14px;padding:12px}
+    .guide>li[data-state="next"]{border-color:var(--warn);background:rgba(244,189,91,.07)}
+    .guide>li[data-state="done"]{opacity:.7}
+    .guide .head{display:flex;justify-content:space-between;gap:8px;align-items:center;font-weight:700}
+    .chip{font-size:12px;border-radius:999px;padding:3px 10px;background:rgba(244,189,91,.16);color:#ffd584;white-space:nowrap}
+    .chip.ok{background:rgba(63,211,195,.16);color:var(--teal)}
+    .guide ul{margin:8px 0 0;padding-left:18px;font-size:14px;color:#dbe8f1}
+    .chat{display:grid;gap:8px;max-height:46vh;overflow:auto;padding-right:2px}
+    .chat p{margin:0;padding:10px 12px;border-radius:14px;font-size:15px;line-height:1.4;max-width:88%}
+    .chat .mila{background:rgba(63,211,195,.12);justify-self:start}
+    .chat .patient{background:rgba(255,255,255,.07);justify-self:end}
+    .chat .mila::before{content:'MILA';display:block;font-size:12px;font-weight:700;color:var(--teal)}
+    .chat .patient::before{content:'Paciente';display:block;font-size:12px;font-weight:700;color:var(--muted)}
+    .findings{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+    .findings li{border:1px solid var(--line);border-radius:12px;padding:10px;font-size:14px}
+    .findings small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+    .flag{font-size:12px;color:#ffd584}
+    .dock{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(7,24,39,.96);border-top:1px solid var(--line);backdrop-filter:blur(8px)}
+    .dock-inner{max-width:560px;margin:auto;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
+    .rec{width:68px;height:68px;border-radius:50%;border:0;background:linear-gradient(145deg,#54d2c5,#287bb9);color:#fff;font-weight:800;font-size:13px;line-height:1.1;cursor:pointer;padding:4px}
+    .rec[data-on="true"]{background:linear-gradient(145deg,#ff6b78,#c43a4a);animation:pulse 1.4s infinite}
+    @keyframes pulse{50%{box-shadow:0 0 0 10px rgba(255,107,120,.15)}}
+    @media (prefers-reduced-motion:reduce){.rec[data-on="true"]{animation:none}}
+    .status{font-size:13px;color:var(--muted);line-height:1.35}
+    .status strong{color:var(--text);font-size:15px;display:block}
+    .heard{font-size:13px;color:#dbe8f1;background:rgba(255,255,255,.05);border-radius:12px;padding:10px;margin-top:10px}
+    .heard:empty{display:none}
+    .usage{font-size:12px;color:var(--muted);margin-top:6px}
+    .error{color:var(--danger)}
+    [hidden]{display:none!important}
+    /* ---- Entrevista en vivo (orbe) ---- */
+    .chat p{box-shadow:0 1px 0 rgba(255,255,255,.04) inset}
+    .chat .mila{background:linear-gradient(135deg,rgba(63,211,195,.18),rgba(85,170,240,.12));border:1px solid rgba(63,211,195,.22);border-bottom-left-radius:6px}
+    .chat .patient{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);border-bottom-right-radius:6px}
+    .dock.ai .dock-inner{grid-template-columns:1fr}
+    .dock.ai .status{display:none}
+    .dock.ai .heard{display:none}
+    .dock.ai .rec{width:100%;height:60px;border-radius:999px;font-size:17px;display:flex;align-items:center;justify-content:center;gap:12px;background:linear-gradient(120deg,#3fd3c3,#55aaf0 55%,#8b7cf6);box-shadow:0 12px 32px rgba(63,211,195,.28);color:#04202a}
+    .dock.ai .rec::before{content:'';width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,rgba(255,255,255,.55) 35%,rgba(255,255,255,0) 70%),conic-gradient(from 0deg,#3fd3c3,#8b7cf6,#55aaf0,#3fd3c3);animation:orbspin 4s linear infinite}
+    @keyframes orbspin{to{transform:rotate(360deg)}}
+    .live{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;padding:calc(12px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));background:radial-gradient(120% 70% at 50% 38%,#0f3550 0%,#081a2b 55%,#050f1a 100%);color:var(--text);overflow:hidden}
+    .live::before{content:'';position:absolute;inset:-20%;background:radial-gradient(40% 30% at 30% 30%,rgba(63,211,195,.10),transparent 70%),radial-gradient(40% 30% at 70% 60%,rgba(139,124,246,.10),transparent 70%);pointer-events:none}
+    .live>*{position:relative}
+    .live-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .live-top div{display:flex;align-items:center;gap:10px;min-width:0}
+    .live-badge{font-size:12px;font-weight:800;letter-spacing:.12em;padding:4px 10px;border-radius:999px;background:rgba(63,211,195,.16);color:var(--teal)}
+    .live-top strong{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .live-timer{font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted);padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.06)}
+    .live-alert{margin-top:10px;width:100%;min-height:44px;text-align:left;border:1px solid rgba(255,107,120,.55);background:rgba(255,107,120,.14);color:#ffd0d4;border-radius:14px;padding:10px 12px;font:inherit;font-size:14px;font-weight:600}
+    .live-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:0}
+    #orb{width:min(78vw,320px);height:min(78vw,320px)}
+    .live-state{margin:0;font-size:14px;letter-spacing:.02em;color:var(--muted);min-height:20px;text-align:center}
+    .live-caption{min-height:118px;max-height:26vh;flex:none;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;text-align:center;padding:0 6px;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 28%)}
+    .live-caption #live-who{font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--teal);text-transform:uppercase}
+    .live-caption #live-who[data-who="patient"]{color:#9fc4e8}
+    .live-caption p{margin:6px 0 0;font-size:21px;line-height:1.35;font-weight:600;transition:opacity .35s ease,transform .35s ease}
+    .live-caption p.enter{opacity:0;transform:translateY(8px)}
+    .live-caption p[data-who="patient"]{color:#cfe2f2;font-weight:500}
+    .live-sheet{position:absolute;left:12px;right:12px;bottom:calc(92px + env(safe-area-inset-bottom));max-height:56vh;overflow:auto;padding:14px;border-radius:20px;background:rgba(8,26,43,.94);border:1px solid var(--line);backdrop-filter:blur(12px);box-shadow:0 -12px 40px rgba(0,0,0,.4)}
+    .live-sheet .chat{max-height:none}
+    .live-controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px}
+    .live-btn{min-height:56px;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);color:var(--text);font:inherit;font-size:14px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;backdrop-filter:blur(8px)}
+    .live-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .live-btn[aria-pressed="true"]{background:rgba(244,189,91,.18);border-color:rgba(244,189,91,.5);color:#ffd584}
+    .live-btn.danger{background:linear-gradient(145deg,#ff6b78,#c43a4a);border-color:transparent;color:#fff}
+    .live-btn:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+    @media (prefers-reduced-motion:reduce){.dock.ai .rec::before{animation:none}.live-caption p{transition:none}}
+    /* ---- v2: cabecera, inicio, en vivo y terminado ---- */
+    header.top .mark{width:46px;height:46px;border-radius:15px;font-size:16px;background:linear-gradient(145deg,#5fe0d2,#55aaf0)}
+    .kick{margin:0;font-size:11.5px;font-weight:800;letter-spacing:.14em;color:var(--teal)}
+    header.top h1{font-size:22px;margin:2px 0 0;letter-spacing:-.01em}
+    .choices{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:rgba(0,0,0,.28);border:1px solid var(--line)}
+    .choice{min-height:44px;justify-content:center;align-items:center;text-align:center;padding:10px 6px;border:0;border-radius:10px;background:transparent;color:var(--muted);font-weight:700;font-size:14px}
+    .choice .dot,.choice small{display:none}
+    .choice strong{font-size:14px}
+    .choice[aria-pressed="true"]{background:rgba(63,211,195,.16);color:var(--text);border:0}
+    .hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:8px 0 4px}
+    #orb-idle{width:180px;height:180px}
+    .hero h2{font-size:25px;margin:6px 0 0;letter-spacing:-.02em}
+    .hero p{margin:0;color:var(--muted);font-size:15px}
+    .checks{width:100%;display:grid;gap:10px;margin-top:10px;text-align:left}
+    .chk{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--line);font-size:15px}
+    .chk span{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:rgba(63,211,195,.14);flex:none}
+    .chk svg,.done-mark svg,.rt-alert svg{fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .chk svg{width:20px;height:20px;stroke:var(--teal);stroke-width:1.8}
+    #ai-panel{background:transparent;border:0;padding:4px 0}
+    .orbwrap{position:relative;flex:none;width:min(78vw,320px,38vh);height:auto;aspect-ratio:1/1;display:grid;place-items:center}
+    .orbwrap #orb{position:absolute;inset:0;width:100%;height:100%;aspect-ratio:1/1}
+    .orbwrap .ring{position:absolute;inset:0;width:100%;height:100%}
+    .live-topic{margin:0;font-size:15px;font-weight:700}
+    .live-topic small{font-weight:600;color:var(--muted)}
+    .live-state{display:flex;align-items:center;justify-content:center;gap:8px}
+    .live-state::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 4px rgba(63,211,195,.18)}
+    .live-state[data-state="listening"]::before{background:#9fd8ff;box-shadow:0 0 0 4px rgba(159,216,255,.2)}
+    .live-state[data-state="paused"]::before{background:#7f93a6;box-shadow:none}
+    .live-caption{-webkit-mask-image:none;gap:8px}
+    .live-caption #live-who{margin-top:4px}
+    .live-caption p{margin:0;font-size:22px;letter-spacing:-.01em}
+    .live-caption p.long{font-size:18px}
+    .live-caption .dim{color:rgba(245,251,255,.32)}
+    .live-pat{align-self:center;max-width:94%;font-size:14px;color:#a9c6df;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:14px;padding:8px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .live-pat b{font-size:11px;letter-spacing:.14em;color:#9fc4e8;margin-right:6px}
+    .live-controls{display:flex;justify-content:space-around;align-items:flex-start;margin-top:18px}
+    .live-btn{min-height:0;border:0;background:transparent;backdrop-filter:none;font-size:12.5px;font-weight:600;color:#c9d9e6;gap:8px;padding:0;width:96px}
+    .live-btn .circ{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px)}
+    .live-btn svg{width:26px;height:26px;stroke:#fff}
+    .live-btn[aria-pressed="true"]{background:transparent;color:#ffd584}
+    .live-btn[aria-pressed="true"] .circ{background:rgba(244,189,91,.2);border-color:rgba(244,189,91,.55)}
+    .live-btn.danger{background:transparent;color:#c9d9e6}
+    .live-btn.danger .circ{background:linear-gradient(145deg,#ff7a86,#d03f50);border-color:transparent;box-shadow:0 10px 26px rgba(255,107,120,.35)}
+    .rt-done{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:6px 0}
+    .done-mark{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.5),transparent 55%),linear-gradient(145deg,#3fd3c3,#55aaf0);box-shadow:0 0 60px rgba(63,211,195,.4)}
+    .done-mark svg{width:44px;height:44px;stroke:#04202a;stroke-width:3}
+    .rt-done h2{font-size:26px;margin:0;letter-spacing:-.02em}
+    .rt-done>p{margin:-6px 0 0;color:var(--muted);font-size:15px}
+    .rt-alert{width:100%;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;background:rgba(255,107,120,.13);border:1px solid rgba(255,107,120,.45);color:#ffd0d4;font-size:14px;font-weight:600;text-align:left}
+    .rt-alert svg{width:18px;height:18px;flex:none;stroke:#ff8f99;stroke-width:2}
+    .rt-card{width:100%;text-align:left;padding:14px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+    .rt-card h3{display:flex;justify-content:space-between;margin:0 0 10px;font-size:12.5px;letter-spacing:.08em;color:var(--muted)}
+    .rt-card h3 b{color:#8fe6dc}
+    .rt-bar{height:6px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:12px}.rt-bar i{display:block;height:100%;background:linear-gradient(90deg,#3fd3c3,#55aaf0)}
+    .rt-chips{display:flex;flex-wrap:wrap;gap:6px}
+    .rt-chips span{font-size:12.5px;padding:6px 10px;border-radius:999px;background:rgba(63,211,195,.14);color:#8fe6dc;font-weight:600}
+    .rt-chips span.no{background:rgba(244,189,91,.14);color:#ffd584}
+    .rt-fold{width:100%;text-align:left;border:1px dashed rgba(255,255,255,.14);border-radius:14px;padding:0 14px}
+    .rt-fold summary{min-height:48px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;color:#c9d9e6;list-style:none}
+    .rt-fold summary::-webkit-details-marker{display:none}
+    .rt-fold summary::after{content:'⌄'}
+    .rt-fold[open] summary::after{content:'⌃'}
+    .rt-fold .chat{max-height:50vh;padding-bottom:12px}
+    .btn-grad{height:60px;border-radius:999px;border:0;font-size:16.5px;font-weight:800;color:#04202a;background:linear-gradient(120deg,#3fd3c3,#55aaf0 55%,#8b7cf6);box-shadow:0 14px 34px rgba(63,211,195,.28)}
+    .btn-line{height:52px;border-radius:999px;background:transparent;border:1px solid rgba(255,255,255,.16)}
+    /* ---- Entrevista previa (el paciente responde solo) ---- */
+    .pv-choices{display:grid;gap:12px;margin-top:14px}
+    .pv-choice{display:flex;gap:14px;align-items:center;text-align:left;min-height:88px;padding:16px;border-radius:20px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);font:inherit;cursor:pointer}
+    .pv-choice:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+    .pv-choice .ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;flex:none;background:rgba(63,211,195,.14)}
+    .pv-choice .ic.orb{border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,rgba(255,255,255,.4) 30%,transparent 60%),conic-gradient(#3fd3c3,#a78bfa,#5fb8ff,#3fd3c3)}
+    .pv-choice svg{width:26px;height:26px;fill:none;stroke:var(--teal);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .pv-choice strong{display:block;font-size:17px}.pv-choice small{display:block;color:var(--muted);font-size:14px;margin-top:2px}
+    .pv-form fieldset{border:1px solid var(--line);border-radius:18px;padding:14px;margin:0 0 12px;background:rgba(255,255,255,.04)}
+    .pv-form legend{font-weight:800;font-size:16px;padding:0 6px}
+    .pv-form label{display:block;font-size:14px;color:#dbe8f1;margin:10px 0 6px}
+    .pv-form input[type=text],.pv-form input[type=tel],.pv-form input[type=date],.pv-form textarea,.pv-form select{width:100%;min-height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.25);color:var(--text);font:inherit;font-size:16px;padding:10px 12px}
+    .pv-form textarea{min-height:76px;resize:vertical}
+    .seg3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+    .seg3.two{grid-template-columns:1fr 1fr}
+    .seg3 label{margin:0}
+    .seg3 input{position:absolute;opacity:0;pointer-events:none}
+    .seg3 span{display:grid;place-items:center;min-height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.16);font-weight:700;font-size:14px;color:var(--muted)}
+    .seg3 input:checked+span{background:rgba(63,211,195,.16);border-color:var(--teal);color:var(--text)}
+    .seg3 input:focus-visible+span{outline:3px solid var(--teal);outline-offset:2px}
+    .ck{display:flex!important;gap:10px;align-items:center;min-height:44px;margin:4px 0!important}
+    .ck input{width:22px;height:22px;accent-color:var(--teal);flex:none}
+    .rows{display:grid;gap:8px;margin-top:8px}
+    .rowx{display:grid;gap:6px;padding:10px;border-radius:14px;background:rgba(0,0,0,.18)}
+    .add{min-height:44px;margin-top:8px;border-radius:12px;border:1px dashed rgba(255,255,255,.2);background:transparent;color:var(--teal);font:inherit;font-weight:700;width:100%}
+    .pv-form input[type=range]{width:100%;accent-color:var(--teal)}
+    .pv-help{font-size:13px;color:var(--muted);margin:6px 0 0}
+
+
+
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header class="top"><div class="mark" id="avatar" aria-hidden="true">M</div><div><p class="kick">ENTREVISTA CLÍNICA · MILA</p><h1 id="patient">Conectando…</h1></div></header>
+
+  <section class="card" id="v-loading" aria-live="polite"><p>Vinculando este celular…</p></section>
+
+  <section class="card" id="v-error" hidden role="alert"><h2>No se pudo continuar</h2><p id="error-msg"></p><p class="muted">Genera un código nuevo desde la computadora con «Entrevista con MILA».</p></section>
+
+  <section class="card" id="v-confirm" hidden>
+    <h2>Confirma el paciente</h2>
+    <p class="muted">Antes de empezar, verifica que el código corresponde a la persona que vas a entrevistar.</p>
+    <div class="patient-name" id="confirm-name"></div>
+    <div class="row"><button class="btn" id="confirm-no">No es</button><button class="btn btn-primary" id="confirm-yes">Sí, es correcto</button></div>
+  </section>
+
+  <section class="card" id="v-consent" hidden>
+    <h2>Consentimiento del paciente</h2>
+    <p>Antes de grabar, explica al paciente:</p>
+    <ul class="muted" style="font-size:14px;padding-left:18px">
+      <li>MILA escuchará (y puede hacerle las preguntas) para llenar el borrador de su historia clínica.</li>
+      <li>El audio <strong>no se guarda</strong>; el doctor revisa y confirma todo.</li>
+      <li>Puede pedir que se detenga en cualquier momento.</li>
+    </ul>
+    <label class="consent"><input type="checkbox" id="consent-check"> El paciente aceptó que se grabe la entrevista con este propósito.</label>
+    <button class="btn btn-primary" id="consent-btn" disabled>Continuar</button>
+  </section>
+
+  <div id="v-main" hidden>
+    <section class="alerts" id="alerts" hidden role="alert"><h3>⚠ Alerta para la atención</h3><ul id="alerts-list"></ul></section>
+    <div class="tabs" role="tablist" aria-label="Modo de MILA">
+      <button class="tab" role="tab" id="tab-history" aria-selected="true" aria-controls="p-history">Entrevista</button>
+      <button class="tab" role="tab" id="tab-exam" aria-selected="false" aria-controls="p-exam">Exploración</button>
+    </div>
+    <section id="p-history" role="tabpanel" aria-labelledby="tab-history">
+      <div class="choices" role="group" aria-label="¿Quién hace las preguntas?">
+        <button class="choice" id="choice-ai" aria-pressed="true"><strong>MILA pregunta</strong></button>
+        <button class="choice" id="choice-me" aria-pressed="false"><strong>Yo pregunto</strong></button>
+      </div>
+      <section class="card" id="ai-panel">
+        <div class="hero" id="ai-hero">
+          <canvas id="orb-idle" aria-hidden="true"></canvas>
+          <h2>MILA hará las preguntas</h2>
+          <p>Conversa con el paciente por voz y llena el borrador de su historia clínica.</p>
+          <div class="checks">
+            <div class="chk"><span><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11"/></svg></span>Volumen alto</div>
+            <div class="chk"><span><svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></span>Celular sobre la mesa, cerca del paciente</div>
+            <div class="chk"><span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>Dura unos 5 minutos</div>
+          </div>
+        </div>
+        <div class="rt-done" id="rt-done" hidden>
+          <div class="done-mark"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+          <h2>Entrevista terminada</h2>
+          <p id="rt-done-meta"></p>
+          <div class="rt-alert" id="rt-done-alert" hidden><svg viewBox="0 0 24 24"><path d="M12 3.5l9 16H3z"/><path d="M12 10v4M12 17v.4"/></svg><span></span></div>
+          <div class="rt-card" id="rt-done-card"></div>
+          <details class="rt-fold"><summary id="rt-done-fold">Ver conversación</summary><div class="chat" id="chat" aria-live="polite"></div></details>
+          <button class="btn btn-grad" id="rt-send">Enviar a la computadora</button>
+          <button class="btn btn-line" id="rt-continue">Continuar la entrevista</button>
+        </div>
+      </section>
+      <section class="card" id="guide-panel" hidden>
+        <h3>Guía de preguntas</h3>
+        <p class="muted">Graba la conversación. MILA marca lo cubierto; la sección resaltada es la siguiente por preguntar.</p>
+        <ol class="guide" id="guide"></ol>
+      </section>
+      <section class="card" id="coverage-panel" hidden>
+        <h3>Lo que MILA ya tiene</h3>
+        <ol class="guide" id="coverage"></ol>
+        <div id="history-follow"></div>
+      </section>
+    </section>
+    <section class="card" id="p-exam" role="tabpanel" aria-labelledby="tab-exam" hidden>
+      <h3>Dicta la exploración</h3>
+      <p class="muted">Di <strong>pieza + cara + hallazgo</strong>. Ej.: «dieciséis oclusal caries», «treinta y seis mesial resina desadaptada», «cuarenta y seis ausente». Para corregir: «no, era la veintiséis».</p>
+      <ul class="findings" id="findings"></ul>
+      <p class="muted" id="exam-notes"></p>
+    </section>
+    <section class="card">
+      <button class="btn" id="finish-btn">Terminar y enviar a la computadora</button>
+      <p class="usage" id="usage" aria-live="polite"></p>
+    </section>
+  </div>
+
+  <section class="card" id="v-dob" hidden>
+    <h2>Confirma que eres tú</h2>
+    <p class="muted">Para proteger tu información, escribe tu fecha de nacimiento.</p>
+    <form id="dob-form"><label class="consent" style="display:block"><input type="date" id="dob" required style="width:100%;min-height:48px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.25);color:var(--text);font:inherit;padding:10px 12px"></label>
+    <p class="error" id="dob-error" hidden></p>
+    <button class="btn btn-primary" type="submit">Continuar</button></form>
+  </section>
+
+  <section class="card" id="v-choose" hidden>
+    <h2>¿Cómo prefieres responder?</h2>
+    <p class="muted" id="choose-sub">Son unas preguntas de salud para tu expediente. Toma unos 5 minutos.</p>
+    <div class="pv-choices">
+      <button class="pv-choice" id="pv-voice"><span class="ic orb" aria-hidden="true"></span><span><strong>Platicar con MILA</strong><small>Te hace las preguntas por voz. Ten a la mano tus recetas.</small></span></button>
+      <button class="pv-choice" id="pv-form"><span class="ic"><svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></svg></span><span><strong>Llenar formulario</strong><small>Respondes escribiendo, a tu ritmo.</small></span></button>
+    </div>
+  </section>
+
+  <section id="v-form" hidden>
+    <form class="pv-form" id="pv-form-el" novalidate>
+      <fieldset><legend>Motivo de tu visita</legend>
+        <label for="f-reason">¿Qué te trae a consulta?</label><textarea id="f-reason" name="reason" maxlength="300" placeholder="Ej. me duele una muela, limpieza, revisión"></textarea>
+        <label>¿Tienes dolor ahora?</label><div class="seg3 two" data-yn="pain"></div>
+        <div id="pain-more" hidden>
+          <label for="f-pain-level">¿Qué tan fuerte? <b id="pain-val">5</b> de 10</label><input type="range" id="f-pain-level" name="pain_level" min="0" max="10" value="5">
+          <label for="f-pain-since">¿Desde cuándo?</label><input type="text" id="f-pain-since" name="pain_since" maxlength="60" placeholder="Ej. hace 3 días">
+          <label for="f-pain-trigger">¿Qué lo empeora?</label><input type="text" id="f-pain-trigger" name="pain_trigger" maxlength="120" placeholder="Ej. lo frío, al morder">
+        </div>
+      </fieldset>
+      <fieldset><legend>Alergias</legend>
+        <label>¿Eres alérgico(a) a algún medicamento, anestesia, látex o alimento?</label><div class="seg3" data-ynu="allergies_status"></div>
+        <div class="rows" data-rows="allergies" hidden></div><button type="button" class="add" data-add="allergies" hidden>+ Agregar alergia</button>
+      </fieldset>
+      <fieldset><legend>Para tu seguridad</legend>
+        <p class="pv-help">Marca lo que aplique:</p><div id="alert-opts"></div>
+        <label for="f-alerts-other">Otra condición importante</label><input type="text" id="f-alerts-other" name="alerts_other" maxlength="160">
+        <label class="ck"><input type="checkbox" id="f-alerts-none"> Ninguna de las anteriores</label>
+      </fieldset>
+      <fieldset><legend>Enfermedades</legend>
+        <label>¿Tienes alguna enfermedad (diabetes, presión alta, asma, tiroides…)?</label><div class="seg3" data-ynu="conditions_status"></div>
+        <div class="rows" data-rows="conditions" hidden></div><button type="button" class="add" data-add="conditions" hidden>+ Agregar</button>
+      </fieldset>
+      <fieldset><legend>Medicamentos</legend>
+        <label>¿Tomas algún medicamento actualmente?</label><div class="seg3" data-ynu="medications_status"></div>
+        <div class="rows" data-rows="medications" hidden></div><button type="button" class="add" data-add="medications" hidden>+ Agregar medicamento</button>
+      </fieldset>
+      <fieldset><legend>Cirugías u hospitalizaciones</legend>
+        <label>¿Te han operado u hospitalizado?</label><div class="seg3" data-ynu="surgeries_status"></div>
+        <div class="rows" data-rows="surgeries" hidden></div><button type="button" class="add" data-add="surgeries" hidden>+ Agregar</button>
+      </fieldset>
+      <fieldset><legend>Dientes</legend>
+        <label for="f-last">¿Cuándo fue tu última visita al dentista?</label><input type="text" id="f-last" name="last_visit" maxlength="60" placeholder="Ej. hace un año">
+        <label>¿Has tenido problemas con la anestesia dental?</label><div class="seg3 two" data-yn="anesthesia_problems"></div>
+        <input type="text" id="f-anes" name="anesthesia_detail" maxlength="160" placeholder="¿Qué pasó?" hidden style="margin-top:8px">
+      </fieldset>
+      <fieldset><legend>Hábitos</legend>
+        <div id="habit-opts"></div><label class="ck"><input type="checkbox" id="f-habits-none"> Ninguno de los anteriores</label>
+        <label for="f-brush">¿Cuántas veces te cepillas al día?</label><select id="f-brush" name="brushing"><option value="">Elegir</option><option>1 vez al día</option><option>2 veces al día</option><option>3 o más veces al día</option><option>Menos de una vez al día</option></select>
+        <label>¿Usas hilo dental?</label><div class="seg3 two" data-yn="floss"></div>
+      </fieldset>
+      <fieldset><legend>Contacto de emergencia</legend>
+        <label for="f-ec-name">Nombre</label><input type="text" id="f-ec-name" name="emergency_name" maxlength="80">
+        <label for="f-ec-phone">Teléfono</label><input type="tel" id="f-ec-phone" name="emergency_phone" maxlength="30">
+      </fieldset>
+      <fieldset><legend>¿Algo más que quieras contarnos?</legend><textarea name="notes" maxlength="800"></textarea></fieldset>
+      <p class="error" id="form-error" hidden></p>
+      <button class="btn btn-grad" type="submit" id="form-send">Enviar mis respuestas</button>
+      <p class="pv-help" style="text-align:center;margin:10px 0 20px">Tu dentista revisará tus respuestas en tu cita.</p>
+    </form>
+  </section>
+
+  <section class="card" id="v-thanks" hidden>
+    <div class="rt-done"><div class="done-mark"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <h2 id="thanks-title">¡Gracias!</h2><p id="thanks-sub">Tus respuestas se enviaron a tu clínica. Tu dentista las revisará en tu cita.</p>
+    <p class="pv-help">Si antes de tu cita tienes dolor muy fuerte, hinchazón de cara o fiebre, llama a tu clínica. En una emergencia, marca al 911.</p></div>
+  </section>
+
+  <section class="card" id="v-done" hidden>
+    <h2>Listo</h2>
+    <p>El borrador ya está en la computadora. Revísalo con el paciente y guárdalo desde ahí. Puedes cerrar esta pestaña.</p>
+    <button class="btn" id="resume-btn">Volver</button>
+  </section>
+</div>
+
+<div class="dock" id="dock" hidden>
+  <div class="dock-inner">
+    <button class="rec" id="rec" data-on="false" aria-pressed="false">Iniciar</button>
+    <div><div class="status" id="status" aria-live="polite"><strong>Listo</strong>Pulsa el botón para empezar.</div><div class="heard" id="heard"></div></div>
+  </div>
+</div>
+<section class="live" id="live" hidden aria-label="Entrevista con MILA en curso">
+  <header class="live-top"><div><strong id="live-patient"></strong></div><span class="live-timer" id="live-timer">0:00</span></header>
+  <button class="live-alert" id="live-alert" hidden></button>
+  <div class="live-stage"><div class="orbwrap"><canvas id="orb" aria-hidden="true"></canvas><svg class="ring" id="ring" viewBox="0 0 300 300" aria-hidden="true"></svg></div><p class="live-topic" id="live-topic"></p><p class="live-state" id="live-state" aria-live="polite">Conectando…</p></div>
+  <div class="live-caption" aria-live="polite"><div class="live-pat" id="live-pat" hidden></div><span id="live-who"></span><p id="live-text"></p></div>
+  <div class="live-sheet" id="live-sheet" hidden><div class="chat" id="live-chat"></div></div>
+  <footer class="live-controls">
+    <button class="live-btn" id="live-log" aria-pressed="false"><span class="circ"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>Conversación</button>
+    <button class="live-btn" id="live-pause" aria-pressed="false"><span class="circ"><svg viewBox="0 0 24 24"><rect x="7" y="5" width="3.5" height="14" rx="1"/><rect x="13.5" y="5" width="3.5" height="14" rx="1"/></svg></span><span class="lbl">Pausar</span></button>
+    <button class="live-btn danger" id="live-end"><span class="circ"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/></svg></span>Terminar</button>
+  </footer>
+</section>
+<audio id="mila-audio" autoplay playsinline></audio>
+
+<script>
+(function(){
+  'use strict';
+  var URL_FN='https://rpxshsiwoxdbuevjjpfw.supabase.co/functions/v1/mila-interview',KEY='sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo';
+  var SEGMENT_MS=60000,GUIDE=[];
+  var st={id:'',device:'',patient:'',mode:'history',who:'ai',history:null,exam:null,alerts:[],seconds:0,tokens:{input:0,output:0},queue:[],sending:false,stream:null,recorder:null,cutTimer:null,recording:false,wake:null,pollTimer:null,
+    rt:{peer:null,channel:null,stream:null,active:false,started:0,usage:{input:0,output:0},calls:{},turnQueue:Promise.resolve(),timer:null,muted:false}};
+  var $=function(id){return document.getElementById(id);};
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
+  function show(view){['v-loading','v-error','v-confirm','v-consent','v-main','v-done','v-dob','v-choose','v-form','v-thanks'].forEach(function(id){$(id).hidden=id!==view;});$('dock').hidden=view!=='v-main'||!!st.pv;}
+  function fail(msg){$('error-msg').textContent=msg;show('v-error');stopRecording(true);stopRealtime(false);closeLive();}
+  function status(title,copy,isError){$('status').innerHTML='<strong'+(isError?' class="error"':'')+'>'+esc(title)+'</strong>'+esc(copy||'');}
+  async function api(body){
+    var opts=body instanceof FormData?{method:'POST',headers:{apikey:KEY},body:body}:{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(body)};
+    var res=await fetch(URL_FN,opts),data={};try{data=await res.json();}catch(_){}
+    if(!res.ok){var e=new Error(data.error||'MILA no respondió.');e.status=res.status;throw e;}
+    return data;
+  }
+  function store(){try{sessionStorage.setItem('mila-movil',JSON.stringify({id:st.id,device:st.device,guide:GUIDE,patient:st.patient,pv:st.pv||null}));}catch(_){}}
+  function call(action,extra){var b={action:action,id:st.id,device:st.device};for(var k in extra)b[k]=extra[k];return api(b);}
+
+  // ------------------------------------------------------------ vincular
+  async function boot(){
+    var hash=new URLSearchParams(location.hash.slice(1)),id=hash.get('s')||'',token=hash.get('t')||'';
+    if(location.hash)history.replaceState(null,'',location.pathname); // el token no queda en la barra ni en el historial
+    var saved=null;try{saved=JSON.parse(sessionStorage.getItem('mila-movil')||'null');}catch(_){}
+    try{
+      if(saved&&saved.id&&saved.device&&(!id||saved.id===id)){
+        st.id=saved.id;st.device=saved.device;GUIDE=saved.guide||[];st.pv=saved.pv||null;setPatient(saved.patient||'');if(st.pv)pvHeader();
+        var state=await call('state');applyState(state);
+        if(st.pv&&state.submitted){showThanks();return;}
+        // Si la página se recargó a mitad de una entrevista por voz, se cierra y se cobra lo usado.
+        if(state.realtime_active){try{var closed=await call('realtime_finish',{usage:{}});applyState(closed);}catch(_){}}
+        if(st.pv){if(state.realtime_active)return showThanks();if(!state.verified)return show('v-dob');if(!state.consent)return pvConsent();return pvChoose();}
+        if(state.consent)enterMain();else show('v-consent');
+        return;
+      }
+      if(!id||!token){fail('Abre esta página escaneando el código QR que aparece en la computadora.');return;}
+      var paired=await api({action:'pair',id:id,token:token});
+      st.id=id;st.device=paired.device;GUIDE=paired.guide||[];setPatient(paired.patient);
+      if(paired.kind==='previsit'){st.pv={clinic:paired.clinic,appointment:paired.appointment,mode:paired.mode,voice:paired.voice_available!==false};store();pvHeader();if(paired.submitted)return showThanks();if(paired.needs_dob)return show('v-dob');return pvConsent();}
+      if(paired.max_segment_seconds)SEGMENT_MS=Math.min(SEGMENT_MS,(paired.max_segment_seconds-10)*1000);
+      store();$('confirm-name').textContent=st.patient;show('v-confirm');
+    }catch(e){fail(e.message);}
+  }
+  function setPatient(name){st.patient=name;$('patient').textContent=name||'Paciente';$('avatar').textContent=String(name||'P').trim().split(/\s+/).slice(0,2).map(function(w){return w.charAt(0);}).join('').toUpperCase()||'P';}
+  $('confirm-yes').onclick=function(){show('v-consent');};
+  $('confirm-no').onclick=function(){try{sessionStorage.removeItem('mila-movil');}catch(_){}fail('El código no corresponde a este paciente. En la computadora abre la ficha correcta y pulsa «Nuevo código».');};
+  $('consent-check').onchange=function(){$('consent-btn').disabled=!this.checked;};
+  $('consent-btn').onclick=async function(){
+    this.disabled=true;
+    try{await call('consent');if(st.pv)pvChoose();else enterMain();}catch(e){fail(e.message);}
+  };
+  function enterMain(){show('v-main');setWho(st.who);renderAll();}
+  function applyState(s){if(!s)return;if(s.history)st.history=s.history;if(s.exam)st.exam=s.exam;if(s.alerts)st.alerts=s.alerts;if(s.tokens)st.tokens=s.tokens;if(s.audio_seconds!=null)st.seconds=s.audio_seconds;}
+
+  // ------------------------------------------------------------ vistas
+  function busy(){return st.recording||st.rt.active;}
+  function setMode(mode){
+    if(busy()){status('Detén primero','Termina la grabación o la entrevista antes de cambiar.',true);return;}
+    st.mode=mode;$('tab-history').setAttribute('aria-selected',String(mode==='history'));$('tab-exam').setAttribute('aria-selected',String(mode==='exam'));
+    $('p-history').hidden=mode!=='history';$('p-exam').hidden=mode!=='exam';updateDock();
+  }
+  function setWho(who){
+    if(busy()){status('Detén primero','Termina la grabación o la entrevista antes de cambiar.',true);return;}
+    st.who=who;$('choice-ai').setAttribute('aria-pressed',String(who==='ai'));$('choice-me').setAttribute('aria-pressed',String(who==='me'));
+    $('ai-panel').hidden=who!=='ai';$('guide-panel').hidden=who!=='me';updateDock();
+  }
+  function updateDock(){
+    var rec=$('rec');
+    $('dock').classList.toggle('ai',st.mode==='history'&&st.who==='ai'&&!st.rt.active);
+    $('dock').hidden=$('v-main').hidden||(st.mode==='history'&&st.who==='ai'&&!!st.rtDone);
+    $('finish-btn').closest('.card').hidden=st.mode==='history'&&st.who==='ai'&&!!st.rtDone;
+    setTimeout(startIdleOrb,0);
+    if(st.mode==='history'&&st.who==='ai'){rec.textContent=st.rt.active?'Terminar':'Iniciar entrevista con MILA';if(!st.rt.active)status('Listo','MILA saludará al paciente y empezará a preguntar.');}
+    else{rec.textContent=st.recording?'Detener':'Grabar';if(!st.recording)status('Listo para grabar',st.mode==='history'?'Graba la conversación con el paciente.':'Dicta cada hallazgo en voz alta.');}
+  }
+  $('tab-history').onclick=function(){setMode('history');};$('tab-exam').onclick=function(){setMode('exam');};
+  $('choice-ai').onclick=function(){setWho('ai');};$('choice-me').onclick=function(){setWho('me');};
+
+  function renderAll(){renderAlerts();renderGuide('guide',true);renderGuide('coverage',false);renderExam();renderUsage();}
+  function alertItems(){
+    var out=(st.alerts||[]).map(function(a){return (a.label||'Alerta')+(a.detalle?': '+a.detalle:'');});
+    var doc=st.history&&st.history.document;
+    if(doc){(doc.allergy_records||[]).forEach(function(r){if(r.severity==='high')out.push('Alergia grave: '+r.substance+(r.reaction?' ('+r.reaction+')':''));});(doc.alerts||[]).forEach(function(a){var low=String(a).toLowerCase();if(!out.some(function(x){return x.toLowerCase().indexOf(low)>=0;}))out.push(a);});}
+    return out.filter(function(v,i,a){return a.indexOf(v)===i;});
+  }
+  function renderAlerts(){var items=alertItems();$('alerts').hidden=!items.length||!!st.rtDone;$('alerts-list').innerHTML=items.map(function(t){return '<li>'+esc(t)+'</li>';}).join('');}
+  function renderGuide(target,withQuestions){
+    var cov=(st.history&&st.history.coverage)||{},nextMarked=false;
+    $(target).innerHTML=GUIDE.map(function(sec){
+      var v=sec.key==='emergency_contact'?(st.history&&st.history.document&&st.history.document.emergency_contact?'yes':'not_asked'):(cov[sec.key]||'not_asked');
+      var done=v!=='not_asked',state=done?'done':(!nextMarked?(nextMarked=true,'next'):'');
+      var label={yes:'Cubierto',no:'Negado',unknown:'No sabe',not_asked:'Falta'}[v]||'Falta';
+      return '<li data-state="'+(withQuestions?state:(done?'done':''))+'"><div class="head"><span>'+esc(sec.title)+'</span><span class="chip'+(done?' ok':'')+'">'+label+'</span></div>'+(withQuestions&&!done?'<ul>'+sec.questions.map(function(q){return '<li>'+esc(q)+'</li>';}).join('')+'</ul>':'')+'</li>';
+    }).join('');
+    $('coverage-panel').hidden=!(st.history&&st.who==='ai'&&!st.rtDone&&$('rt-done').hidden&&false);
+    var follow=(st.history&&st.history.follow_ups)||[];
+    $('history-follow').innerHTML=follow.length?'<h3 style="margin-top:14px">Falta confirmar</h3><ul class="muted" style="padding-left:18px;font-size:14px">'+follow.map(function(f){return '<li>'+esc(f)+'</li>';}).join('')+'</ul>':'';
+  }
+  var SURF={whole:'pieza completa',M:'mesial',D:'distal',V:'vestibular',L:'lingual/palatina',O:'oclusal',I:'incisal'};
+  function renderExam(){
+    var f=(st.exam&&st.exam.findings)||[];
+    $('findings').innerHTML=f.length?f.map(function(x){return '<li><strong>'+esc(x.tooth)+' · '+esc(SURF[x.surface]||x.surface)+'</strong> — '+esc(x.condition)+(x.uncertain?' <span class="flag">Verificar</span>':'')+'<small>«'+esc(x.quote)+'»</small></li>';}).join(''):'<li class="muted">Aún no hay hallazgos dictados.</li>';
+    var notes=((st.exam&&st.exam.general_notes)||[]).map(function(g){return g.text;}).concat(((st.exam&&st.exam.unplaced)||[]).map(function(u){return 'Sin pieza: '+u.text;}));
+    $('exam-notes').textContent=notes.length?'Notas: '+notes.join(' · '):'';
+  }
+  function renderUsage(){var total=(st.tokens.input||0)+(st.tokens.output||0);$('usage').textContent=st.seconds||total?'Consumo: '+Math.ceil((st.seconds||0)/60)+' min de MILA · '+total.toLocaleString('es-MX')+' tokens':'';}
+
+  // ------------------------------------------------------------ MILA entrevista (voz en tiempo real)
+  function chat(role,text){if(!text)return;[ $('chat'),$('live-chat') ].forEach(function(box){var p=document.createElement('p');p.className=role==='mila'?'mila':'patient';p.textContent=text;box.appendChild(p);box.scrollTop=box.scrollHeight;});caption(role,text);
+    st.rt.turnQueue=st.rt.turnQueue.then(function(){return call('realtime_turn',{role:role,text:text}).catch(function(){});});}
+  function sendRt(ev){var c=st.rt.channel;if(c&&c.readyState==='open')c.send(JSON.stringify(ev));}
+  function waitIce(pc){return new Promise(function(resolve){if(pc.iceGatheringState==='complete')return resolve();var done=function(){if(pc.iceGatheringState==='complete'){pc.removeEventListener('icegatheringstatechange',done);resolve();}};pc.addEventListener('icegatheringstatechange',done);setTimeout(resolve,3000);});}
+  // ---- Orbe en vivo: reacciona a la voz real (MILA = salida, paciente = micrófono) ----
+  var ORB={ctx:null,ac:null,inA:null,outA:null,buf:null,raf:0,state:'connecting',lvl:0,lvlIn:0,lvlOut:0,t0:0,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches};
+  var PALETTE={connecting:['#55aaf0','#3fd3c3','#8b7cf6'],mila:['#3fd3c3','#5fb8ff','#a78bfa'],listening:['#e6f6ff','#7cc8ff','#55aaf0'],thinking:['#a78bfa','#5fb8ff','#3fd3c3'],paused:['#6b7f93','#4d6378','#8899aa'],idle:['#3fd3c3','#5fb8ff','#a78bfa']};
+  var STATE_TEXT={connecting:'Conectando con MILA…',mila:'MILA está hablando',listening:'Escuchando al paciente…',thinking:'MILA está pensando…',paused:'En pausa · el micrófono está apagado',idle:'MILA te escucha'};
+  function setOrb(state){if(ORB.state===state)return;ORB.state=state;$('live-state').textContent=STATE_TEXT[state]||'';$('live-state').dataset.state=state;}
+  function analyser(stream){try{var src=ORB.ac.createMediaStreamSource(stream),a=ORB.ac.createAnalyser();a.fftSize=512;a.smoothingTimeConstant=.7;src.connect(a);return a;}catch(_){return null;}}
+  function level(a){if(!a)return 0;if(!ORB.buf||ORB.buf.length!==a.fftSize)ORB.buf=new Uint8Array(a.fftSize);a.getByteTimeDomainData(ORB.buf);var sum=0;for(var i=0;i<ORB.buf.length;i++){var v=(ORB.buf[i]-128)/128;sum+=v*v;}return Math.min(1,Math.sqrt(sum/ORB.buf.length)*4.2);}
+  function sizeCanvas(c){var dpr=Math.min(window.devicePixelRatio||1,2),size=c.getBoundingClientRect().width||300;c.width=size*dpr;c.height=size*dpr;var g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);return {g:g,size:size};}
+  function startOrb(){var o=sizeCanvas($('orb'));ORB.ctx=o.g;ORB.size=o.size;ORB.t0=performance.now();cancelAnimationFrame(ORB.raf);ORB.raf=requestAnimationFrame(drawOrb);}
+  function hexA(hex,a){var n=parseInt(hex.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';}
+  /* Orbe v3: esfera de vidrio con cintas de luz que fluyen y crecen con la voz real (L = nivel 0..1). */
+  function paintOrb(g,S,t,state,L,reduced){
+    var cx=S/2,cy=S/2,pal=PALETTE[state]||PALETTE.idle,breath=reduced?0:Math.sin(t*1.2)*.012,R=S*.34*(1+L*.08+breath);
+    g.clearRect(0,0,S,S);
+    // halo exterior que respira con la voz
+    var halo=g.createRadialGradient(cx,cy,R*.7,cx,cy,S*.5);halo.addColorStop(0,hexA(pal[0],.22+L*.35));halo.addColorStop(1,hexA(pal[0],0));g.fillStyle=halo;g.fillRect(0,0,S,S);
+    // ondas cuando habla el paciente
+    if(state==='listening'&&!reduced){for(var r=0;r<3;r++){var ph=((t*.55+r/3)%1);g.beginPath();g.arc(cx,cy,R*(1.03+ph*.4),0,Math.PI*2);g.strokeStyle=hexA('#cfeaff',(1-ph)*.45*(.45+L));g.lineWidth=1.5;g.stroke();}}
+    // cuerpo de vidrio
+    var body=g.createRadialGradient(cx-R*.25,cy-R*.3,R*.05,cx,cy,R);body.addColorStop(0,'#16446a');body.addColorStop(.55,'#0b2740');body.addColorStop(1,'#04111d');
+    g.beginPath();g.arc(cx,cy,R,0,Math.PI*2);g.fillStyle=body;g.fill();
+    g.save();g.beginPath();g.arc(cx,cy,R*.985,0,Math.PI*2);g.clip();
+    // giro lento al pensar
+    g.translate(cx,cy);g.rotate(state==='thinking'&&!reduced?t*.9:Math.sin(t*.25)*.12);g.translate(-cx,-cy);
+    g.globalCompositeOperation='lighter';
+    var waves=state==='paused'?1:5,speed=reduced?0:(state==='paused'?.2:1);
+    for(var k=0;k<waves;k++){
+      var col=pal[k%3],amp=R*(state==='paused'?.02:(.08+.5*L)*(1-k*.12)),freq=1.4+k*.35,ph=t*speed*(1.6+k*.45)+k*1.7,thick=R*(.05+.16*L+.03*Math.sin(t*1.3+k));
+      var x0=cx-R*1.05,x1=cx+R*1.05,N=64;
+      // banda (relleno) con borde superior e inferior
+      g.beginPath();
+      for(var i=0;i<=N;i++){var u=i/N,x=x0+(x1-x0)*u,env=Math.pow(Math.sin(Math.PI*u),1.6),y=cy+Math.sin(u*Math.PI*2*freq+ph)*amp*env+Math.sin(u*Math.PI*5+ph*1.3)*amp*.18*env-thick*env;if(i)g.lineTo(x,y);else g.moveTo(x,y);}
+      for(var j=N;j>=0;j--){var u2=j/N,xx=x0+(x1-x0)*u2,env2=Math.pow(Math.sin(Math.PI*u2),1.6),yy=cy+Math.sin(u2*Math.PI*2*freq+ph)*amp*env2+Math.sin(u2*Math.PI*5+ph*1.3)*amp*.18*env2+thick*env2;g.lineTo(xx,yy);}
+      g.closePath();
+      var lg=g.createLinearGradient(x0,0,x1,0);lg.addColorStop(0,hexA(col,0));lg.addColorStop(.5,hexA(col,.42+L*.3));lg.addColorStop(1,hexA(col,0));g.fillStyle=lg;g.fill();
+      // línea central brillante
+      g.beginPath();
+      for(var m=0;m<=N;m++){var u3=m/N,x3=x0+(x1-x0)*u3,env3=Math.pow(Math.sin(Math.PI*u3),1.6),y3=cy+Math.sin(u3*Math.PI*2*freq+ph)*amp*env3+Math.sin(u3*Math.PI*5+ph*1.3)*amp*.18*env3;if(m)g.lineTo(x3,y3);else g.moveTo(x3,y3);}
+      var lc=g.createLinearGradient(x0,0,x1,0);lc.addColorStop(0,'rgba(255,255,255,0)');lc.addColorStop(.5,'rgba(255,255,255,'+(.35+L*.45)+')');lc.addColorStop(1,'rgba(255,255,255,0)');g.strokeStyle=lc;g.lineWidth=1.2+L*1.4;g.stroke();
+    }
+    // núcleo de luz al centro
+    var core=g.createRadialGradient(cx,cy,0,cx,cy,R*(.45+L*.3));core.addColorStop(0,hexA(pal[1],.28+L*.35));core.addColorStop(1,hexA(pal[1],0));g.fillStyle=core;g.fillRect(cx-R,cy-R,R*2,R*2);
+    g.restore();g.globalCompositeOperation='source-over';
+    // borde de luz y brillo de vidrio
+    var rim=g.createLinearGradient(cx-R,cy-R,cx+R,cy+R);rim.addColorStop(0,'rgba(255,255,255,.75)');rim.addColorStop(.5,hexA(pal[1],.35));rim.addColorStop(1,hexA(pal[2],.75));
+    g.beginPath();g.arc(cx,cy,R,0,Math.PI*2);g.strokeStyle=rim;g.lineWidth=1.6;g.stroke();
+    var gl=g.createRadialGradient(cx-R*.4,cy-R*.5,0,cx-R*.4,cy-R*.5,R*.6);gl.addColorStop(0,'rgba(255,255,255,.16)');gl.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gl;g.beginPath();g.ellipse(cx-R*.25,cy-R*.42,R*.55,R*.32,-.5,0,Math.PI*2);g.fill();
+  }
+  function drawOrb(now){
+    var c=$('orb'),w=c.getBoundingClientRect().width;if(w&&Math.abs(w-ORB.size)>2){var o=sizeCanvas(c);ORB.ctx=o.g;ORB.size=o.size;}
+    var g=ORB.ctx,t=(now-ORB.t0)/1000;if(!g)return;
+    ORB.lvlIn+=(level(ORB.inA)-ORB.lvlIn)*.25;ORB.lvlOut+=(level(ORB.outA)-ORB.lvlOut)*.25;
+    var target=ORB.state==='mila'?Math.max(ORB.lvlOut,.22):ORB.state==='listening'?Math.max(ORB.lvlIn,.14):ORB.state==='thinking'?.12+.06*Math.sin(t*3):ORB.state==='paused'?0:.06;
+    ORB.lvl+=(target-ORB.lvl)*.15;
+    paintOrb(g,ORB.size,t,ORB.state,ORB.reduced?ORB.lvl*.5:ORB.lvl,ORB.reduced);
+    karaoke(now);
+    ORB.raf=requestAnimationFrame(drawOrb);
+  }
+  // Orbe en reposo de la pantalla de inicio
+  var IDLE={raf:0};
+  function startIdleOrb(){
+    var c=$('orb-idle');if(!c||IDLE.raf||$('ai-hero').hidden||$('ai-panel').hidden||$('v-main').hidden)return;
+    var o=sizeCanvas(c),t0=performance.now();
+    (function loop(now){if($('ai-hero').hidden||$('ai-panel').hidden||$('v-main').hidden||!$('live').hidden){IDLE.raf=0;return;}paintOrb(o.g,o.size,(now-t0)/1000,'idle',.1+.06*Math.sin((now-t0)/900),ORB.reduced);IDLE.raf=requestAnimationFrame(loop);})(t0);
+  }
+  // Temas de la entrevista (anillo): se detectan por lo que pregunta MILA, sin costo extra.
+  var TOPICS=[['dental','Motivo y dental',/le trae|motivo|dolor|duele|dentista|anestesia|sangr|sensibil/],['allergies','Alergias',/alerg/],['alerts','Alertas médicas',/anticoagul|aspirina|marcapasos|coraz[oó]n|coagula|embaraz|lactan/],['conditions','Condiciones',/diabet|presi[oó]n|asma|tiroid|enfermedad|padecimiento/],['medications','Medicamentos',/medicament|pastilla|tratamiento m[eé]dico|toma algo|dosis/],['surgeries','Cirugías',/oper|cirug|hospital/],['habits','Hábitos',/fuma|alcohol|cepill|hilo dental|aprieta|rechin/],['emergency_contact','Contacto',/emergencia/]];
+  function detectTopic(text){
+    var low=String(text||'').toLowerCase();if(!/\?/.test(low))return;
+    for(var i=0;i<TOPICS.length;i++)if(TOPICS[i][2].test(low)){if(st.rt.topic!==i){st.rt.topic=i;st.rt.visited[i]=true;renderRing();}return;}
+  }
+  function renderRing(){
+    var n=TOPICS.length,cx=150,cy=150,r=146,gap=.07,cur=st.rt.topic,h='<defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3fd3c3"/><stop offset="1" stop-color="#55aaf0"/></linearGradient></defs>';
+    for(var i=0;i<n;i++){var a0=-Math.PI/2+i*2*Math.PI/n+gap,a1=-Math.PI/2+(i+1)*2*Math.PI/n-gap,x0=cx+r*Math.cos(a0),y0=cy+r*Math.sin(a0),x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
+      var now=i===cur,col=now?'#ffffff':st.rt.visited[i]?'url(#rg)':'rgba(255,255,255,.14)';
+      h+='<path d="M'+x0.toFixed(1)+' '+y0.toFixed(1)+' A'+r+' '+r+' 0 0 1 '+x1.toFixed(1)+' '+y1.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="'+(now?5:4)+'" stroke-linecap="round"'+(now?' style="filter:drop-shadow(0 0 6px #3fd3c3)"':'')+'/>';}
+    $('ring').innerHTML=h;
+    var done=Object.keys(st.rt.visited).length;$('live-topic').innerHTML=cur>=0?esc(TOPICS[cur][1])+' <small>· '+done+' de '+n+'</small>':'';
+  }
+  // Subtítulo tipo karaoke: se iluminan las palabras al ritmo aproximado de la voz de MILA.
+  function karaoke(now){
+    var rt=st.rt,p=$('live-text');if(!rt.speakingAt||ORB.state!=='mila'||!rt.partial||p.dataset.who!=='mila')return;
+    var words=rt.partial.split(/\s+/).filter(Boolean),n=ORB.reduced?words.length:Math.min(words.length,Math.floor((now-rt.speakingAt)/1000*2.6)+1);
+    if(n===rt.kn&&words.length===rt.kw)return;rt.kn=n;rt.kw=words.length;
+    p.innerHTML=esc(words.slice(0,n).join(' '))+(n<words.length?' <span class="dim">'+esc(words.slice(n).join(' '))+'</span>':'');
+    p.classList.toggle('long',rt.partial.length>90);
+  }
+  function stopOrb(){cancelAnimationFrame(ORB.raf);ORB.raf=0;ORB.inA=ORB.outA=null;if(ORB.ac){try{ORB.ac.close();}catch(_){}ORB.ac=null;}}
+  function caption(role,text){
+    var p=$('live-text'),who=$('live-who');if(!p)return;
+    if(role==='mila'){detectTopic(text);if(p.dataset.who==='mila'&&st.rt.partial){p.textContent=text;p.classList.toggle('long',text.length>90);return;}}
+    if(role==='patient'){var pat=$('live-pat');pat.innerHTML='<b>PACIENTE</b>'+esc(text);pat.hidden=false;if(ORB.state!=='listening')return;}
+    p.classList.toggle('long',text.length>90);
+    who.textContent=role==='mila'?'MILA':'Paciente';who.dataset.who=role;p.dataset.who=role;p.textContent=text;
+    p.classList.add('enter');requestAnimationFrame(function(){requestAnimationFrame(function(){p.classList.remove('enter');});});
+  }
+  function openLive(){
+    $('live-patient').textContent=st.patient||'';$('live-text').textContent='';$('live-who').textContent='';$('live-chat').innerHTML='';
+    $('live-sheet').hidden=true;$('live-log').setAttribute('aria-pressed','false');$('live-pause').setAttribute('aria-pressed','false');$('live-pause').querySelector('.lbl').textContent='Pausar';
+    $('live-pat').hidden=true;st.rt.topic=-1;st.rt.visited={};st.rt.partial='';st.rt.speakingAt=0;renderRing();
+    $('live').hidden=false;ORB.state='';setOrb('connecting');startOrb();renderLiveAlert();
+  }
+  function closeLive(){$('live').hidden=true;stopOrb();setTimeout(startIdleOrb,0);}
+  function renderLiveAlert(){var items=alertItems(),b=$('live-alert');b.hidden=!items.length;b.textContent=items.length?'⚠ '+items[items.length-1]+(items.length>1?' (+'+(items.length-1)+')':''):'';}
+  $('live-log').onclick=function(){var open=$('live-sheet').hidden;$('live-sheet').hidden=!open;this.setAttribute('aria-pressed',String(open));if(open)$('live-sheet').scrollTop=$('live-sheet').scrollHeight;};
+  $('live-pause').onclick=function(){var rt=st.rt;if(!rt.stream)return;rt.muted=!rt.muted;rt.pausedAt=Date.now();if(!rt.muted)rt.last=Date.now();rt.stream.getAudioTracks().forEach(function(t){t.enabled=!rt.muted;});this.setAttribute('aria-pressed',String(rt.muted));this.querySelector('.lbl').textContent=rt.muted?'Reanudar':'Pausar';setOrb(rt.muted?'paused':'idle');};
+  $('live-end').onclick=function(){finishRealtime();};
+  $('live-alert').onclick=function(){$('live-log').click();};
+
+  async function startRealtime(continuar){
+    if(!window.RTCPeerConnection||!navigator.mediaDevices){status('Este navegador no permite la entrevista por voz','Usa «Yo pregunto, MILA escucha».',true);return;}
+    var rt=st.rt;$('rec').disabled=true;status('Conectando con MILA…','');
+    try{ORB.ac=new (window.AudioContext||window.webkitAudioContext)();if(ORB.ac.state==='suspended')ORB.ac.resume();}catch(_){ORB.ac=null;}
+    openLive();
+    try{
+      rt.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+      if(ORB.ac)ORB.inA=analyser(rt.stream);rt.muted=false;
+      rt.peer=new RTCPeerConnection();
+      rt.peer.ontrack=function(e){$('mila-audio').srcObject=e.streams[0];if(ORB.ac)ORB.outA=analyser(e.streams[0]);};
+      rt.stream.getTracks().forEach(function(t){rt.peer.addTrack(t,rt.stream);});
+      rt.channel=rt.peer.createDataChannel('oai-events');
+      rt.channel.onmessage=onRealtimeEvent;
+      rt.channel.onclose=function(){if(rt.active)finishRealtime();};
+      var offer=await rt.peer.createOffer();await rt.peer.setLocalDescription(offer);await waitIce(rt.peer);
+      var out=await call('realtime',{sdp:rt.peer.localDescription.sdp,continuar:!!continuar});
+      await rt.peer.setRemoteDescription({type:'answer',sdp:out.answer_sdp});
+      rt.active=true;rt.started=Date.now();rt.usage={input:0,output:0};rt.calls={};rt.ctl=out.turn_control==='client';rt.respActive=false;rt.pendingReply=false;rt.duringMila=false;rt.interrupted=false;rt.heardText='';rt.speechAt=0;
+      $('rec').dataset.on='true';$('rec').setAttribute('aria-pressed','true');updateDock();
+      try{if(navigator.wakeLock)st.wake=await navigator.wakeLock.request('screen');}catch(_){}
+      setOrb('idle');
+      rt.last=Date.now();rt.pausedAt=0;
+      rt.timer=setInterval(function(){var s=Math.round((Date.now()-rt.started)/1000);$('live-timer').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+        // Cierre automático para no consumir de más: 60 s sin voz o 5 min en pausa.
+        if(ORB.state==='mila'||ORB.state==='listening'||ORB.state==='thinking')rt.last=Date.now();
+        var quiet=Date.now()-(rt.muted?rt.pausedAt:rt.last),limit=rt.muted?300000:60000;
+        if(rt.active&&quiet>=limit){finishRealtime();return;}
+        if(rt.active&&!rt.muted&&quiet>=45000)$('live-state').textContent='Sin conversación · se cerrará en '+Math.ceil((limit-quiet)/1000)+' s';
+        else if(rt.active&&quiet<45000&&/se cerrará/.test($('live-state').textContent))$('live-state').textContent=STATE_TEXT[ORB.state]||'';status('MILA está entrevistando · '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0'),'Pulsa «Terminar» cuando acabe o si el paciente quiere detenerse.');},1000);
+    }catch(e){
+      stopRealtime(false);closeLive();
+      if(st.pv){alert(e&&e.name==='NotAllowedError'?'Necesitamos permiso para usar el micrófono. Puedes llenar el formulario en su lugar.':'No se pudo iniciar la conversación. Puedes llenar el formulario en su lugar.');st.pv.mode='choice';pvChoose();if(st.pv.mode==='choice')show('v-choose');}
+      status(e&&e.name==='NotAllowedError'?'Sin acceso al micrófono':'No se pudo iniciar la entrevista',e&&e.name==='NotAllowedError'?'Permite el micrófono en el navegador.':(e.message||''),true);
+    }finally{$('rec').disabled=false;}
+  }
+  /* Turnos controlados por el celular (turn_control='client'): el servidor solo detecta cuándo termina una idea; aquí se decide
+     si lo que dijo el paciente interrumpe a MILA o es un «ajá», un «o» o una tos que no debe cortarla. */
+  // MARK:turns
+  var NOISE_WORDS={a:1,e:1,o:1,u:1,eh:1,ah:1,uh:1,um:1,hm:1,mm:1,mmm:1,mhm:1,aja:1,ujum:1,ay:1};
+  function realWords(text){
+    return String(text||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zñ0-9\s]/g,' ').split(/\s+/).filter(function(w){return w&&!NOISE_WORDS[w];}).length;
+  }
+  function isRealSpeech(text){return realWords(text)>=3;}
+  function replyNow(rt){
+    rt.pendingReply=false;rt.interrupted=false;
+    if(rt.respActive){sendRt({type:'response.cancel'});sendRt({type:'output_audio_buffer.clear'});rt.respActive=false;}
+    sendRt({type:'response.create'});
+  }
+  function onTurnEvent(e){
+    var rt=st.rt;if(!rt.ctl||rt.muted)return;
+    if(e.type==='response.created')rt.respActive=true;
+    else if(e.type==='response.done'||e.type==='output_audio_buffer.stopped'||e.type==='output_audio_buffer.cleared')rt.respActive=false;
+    else if(e.type==='input_audio_buffer.speech_started'){rt.duringMila=rt.respActive;rt.pendingReply=true;rt.interrupted=false;rt.heardText='';rt.speechAt=performance.now();}
+    else if(e.type==='conversation.item.input_audio_transcription.delta'){
+      rt.heardText+=(e.delta||'');
+      // Interrupción de verdad: el paciente ya dijo una frase mientras MILA hablaba.
+      if(rt.duringMila&&rt.respActive&&!rt.interrupted&&isRealSpeech(rt.heardText)){rt.interrupted=true;sendRt({type:'response.cancel'});sendRt({type:'output_audio_buffer.clear'});rt.respActive=false;}
+    }
+    else if(e.type==='input_audio_buffer.speech_stopped'){
+      // Camino rápido: MILA estaba callada y el paciente habló lo suficiente → responde sin esperar la transcripción.
+      if(rt.pendingReply&&!rt.duringMila&&!rt.respActive&&performance.now()-rt.speechAt>=450)replyNow(rt);
+    }
+    else if(e.type==='conversation.item.input_audio_transcription.completed'){
+      var text=(e.transcript||'').trim();
+      if(!rt.pendingReply)return;
+      if(!text){rt.pendingReply=false;return;}
+      // MILA sigue hablando y fue un «ajá»/«o»/tos: no se le corta.
+      if(rt.duringMila&&rt.respActive&&!rt.interrupted&&!isRealSpeech(text)){rt.pendingReply=false;return;}
+      replyNow(rt);
+    }
+  }
+  // MARK:/turns
+  function onRealtimeEvent(message){
+    var e;try{e=JSON.parse(message.data);}catch(_){return;}
+    onTurnEvent(e);
+    if(/^(input_audio_buffer\.speech_started|output_audio_buffer\.started|response\.output_audio_transcript\.delta|response\.audio_transcript\.delta|conversation\.item\.input_audio_transcription\.completed)$/.test(e.type))st.rt.last=Date.now();
+    if(e.type==='session.created'||e.type==='session.updated'){if(!st.rt.greeted){st.rt.greeted=true;sendRt({type:'response.create',response:{instructions:'Empieza: saluda al paciente por su nombre, preséntate y explica en una frase lo que harás. Luego haz la primera pregunta.'}});}}
+    if(e.type==='input_audio_buffer.speech_started'&&!st.rt.muted)setOrb('listening');
+    if(e.type==='input_audio_buffer.speech_stopped'&&!st.rt.muted)setOrb('thinking');
+    if(e.type==='output_audio_buffer.started'){st.rt.speakingAt=performance.now();st.rt.kn=-1;}
+    if(e.type==='output_audio_buffer.started'||e.type==='response.output_audio.delta'||e.type==='response.audio.delta')setOrb('mila');
+    if(e.type==='conversation.item.input_audio_transcription.delta'&&ORB.state==='listening'){st.rt.heard=(st.rt.heard||'')+(e.delta||'');var hp=$('live-text');$('live-who').textContent='Paciente';$('live-who').dataset.who='patient';hp.dataset.who='patient';hp.textContent=st.rt.heard;}
+    if(e.type==='input_audio_buffer.speech_started')st.rt.heard='';
+    if(e.type==='output_audio_buffer.stopped'||e.type==='output_audio_buffer.cleared'){st.rt.speakingAt=0;var fp=$('live-text');if(st.rt.partial&&fp.dataset.who==='mila')fp.textContent=st.rt.partial;if(!st.rt.muted)setOrb('idle');}
+    if(e.type==='response.output_audio_transcript.delta'||e.type==='response.audio_transcript.delta'){st.rt.partial=(st.rt.partial||'')+(e.delta||'');var tp=$('live-text');if(tp&&!$('live').hidden){$('live-who').textContent='MILA';$('live-who').dataset.who='mila';tp.dataset.who='mila';if(!st.rt.speakingAt){tp.textContent=st.rt.partial;}detectTopic(st.rt.partial);}}
+    if(e.type==='response.created'){st.rt.partial='';st.rt.speakingAt=0;}
+    if(e.type==='conversation.item.input_audio_transcription.completed')chat('patient',(e.transcript||'').trim());
+    if(e.type==='response.output_audio_transcript.done'||e.type==='response.audio_transcript.done')chat('mila',(e.transcript||'').trim());
+    if(e.type==='response.done'&&e.response&&e.response.status==='incomplete'&&!st.rt.resumed){var reason=e.response.status_details&&e.response.status_details.reason;if(reason==='max_output_tokens'){st.rt.resumed=true;sendRt({type:'response.create',response:{instructions:'Tu respuesta anterior se cortó. Continúa exactamente donde te quedaste, sin repetir lo ya dicho.'}});setTimeout(function(){st.rt.resumed=false;},4000);}}
+    if(e.type==='response.done'&&e.response&&e.response.usage){var u=e.response.usage,ui=u.input_token_details||{},uo=u.output_token_details||{},b=st.rt.usage;b.input+=Number(u.input_tokens)||0;b.output+=Number(u.output_tokens)||0;b.cached=(b.cached||0)+(Number(ui.cached_tokens)||0);b.in_audio=(b.in_audio||0)+(Number(ui.audio_tokens)||0);b.in_text=(b.in_text||0)+(Number(ui.text_tokens)||0);b.out_audio=(b.out_audio||0)+(Number(uo.audio_tokens)||0);b.out_text=(b.out_text||0)+(Number(uo.text_tokens)||0);}
+    if(e.type==='response.output_item.done'&&e.item&&e.item.type==='function_call')onTool(e.item.name,e.item.arguments,e.item.call_id);
+    if(e.type==='response.function_call_arguments.done')onTool(e.name,e.arguments,e.call_id);
+  }
+  async function onTool(name,argsJson,callId){
+    if(!callId||st.rt.calls[callId])return;st.rt.calls[callId]=true;
+    var args={};try{args=typeof argsJson==='string'?JSON.parse(argsJson):argsJson||{};}catch(_){}
+    var output={ok:true};
+    if(name==='registrar_alerta'){
+      try{var r=await call('realtime_alert',{tipo:args.tipo,detalle:args.detalle});st.alerts=r.alerts||st.alerts;renderAlerts();renderLiveAlert();if(navigator.vibrate)navigator.vibrate([200,100,200]);}catch(_){output={ok:false};}
+    }
+    sendRt({type:'conversation.item.create',item:{type:'function_call_output',call_id:callId,output:JSON.stringify(output)}});
+    if(name==='entrevista_completa'){setTimeout(finishRealtime,2500);return;}
+    sendRt({type:'response.create'});
+  }
+  function stopRealtime(){
+    var rt=st.rt;clearInterval(rt.timer);rt.active=false;rt.greeted=false;
+    try{if(rt.channel)rt.channel.close();}catch(_){}try{if(rt.peer)rt.peer.close();}catch(_){}
+    if(rt.stream)rt.stream.getTracks().forEach(function(t){t.stop();});
+    rt.peer=rt.channel=rt.stream=null;
+    if(st.wake){try{st.wake.release();}catch(_){}st.wake=null;}
+    $('rec').dataset.on='false';$('rec').setAttribute('aria-pressed','false');updateDock();
+  }
+  async function finishRealtime(){
+    if(!st.rt.active)return;
+    var b=st.rt.usage,usage={input_tokens:b.input,output_tokens:b.output,cached_input_tokens:b.cached||0,input_audio_tokens:b.in_audio||0,input_text_tokens:b.in_text||0,output_audio_tokens:b.out_audio||0,output_text_tokens:b.out_text||0};
+    stopRealtime();closeLive();$('rec').disabled=true;status('MILA está preparando el borrador…','Suele tardar unos segundos.');
+    if(st.pv){show('v-loading');$('v-loading').querySelector('p').textContent='Enviando tus respuestas…';}
+    try{
+      await st.rt.turnQueue;
+      var out=await call('realtime_finish',{usage:usage});
+      if(out.history)st.history=out.history;if(out.alerts)st.alerts=out.alerts;if(out.tokens)st.tokens=out.tokens;st.seconds+=out.seconds||0;
+      if(st.pv){showThanks();return;}
+      st.rtDone={seconds:out.seconds||0,messages:$('chat').children.length};renderAll();showDone();
+    }catch(e){if(st.pv){fail('No se pudieron enviar tus respuestas. Abre de nuevo el enlace o avisa a tu clínica.');return;}status('No se pudo cerrar la entrevista',e.message,true);}
+    finally{$('rec').disabled=false;}
+  }
+
+  function showDone(){
+    var d=st.rtDone;if(!d)return;
+    $('ai-hero').hidden=true;$('rt-done').hidden=false;
+    var m=Math.floor(d.seconds/60),sg=d.seconds%60;
+    $('rt-done-meta').textContent=(m?m+' min ':'')+sg+' s · el borrador está listo para revisar';
+    var al=alertItems();$('rt-done-alert').hidden=!al.length;$('rt-done-alert').querySelector('span').textContent=al.length===1?al[0]:al.length+' alertas: '+al.map(function(a){return a.split(':')[0].toLowerCase();}).join(' · ');
+    var cov=(st.history&&st.history.coverage)||{},doc=(st.history&&st.history.document)||{},items=TOPICS.map(function(tp){var ok=tp[0]==='emergency_contact'?!!doc.emergency_contact:(cov[tp[0]]||'not_asked')!=='not_asked';return {t:tp[1],ok:ok};}),ok=items.filter(function(i){return i.ok;}).length;
+    $('rt-done-card').innerHTML='<h3><span>LO QUE MILA OBTUVO</span><b>'+ok+' de '+items.length+' temas</b></h3><div class="rt-bar"><i style="width:'+Math.round(ok/Math.max(1,items.length)*100)+'%"></i></div><div class="rt-chips">'+items.map(function(i){return '<span'+(i.ok?'':' class="no"')+'>'+esc(i.t)+(i.ok?'':' · falta')+'</span>';}).join('')+'</div>';
+    $('rt-done-fold').textContent='Ver conversación · '+$('chat').children.length+' mensajes';
+    $('rt-continue').hidden=ok>=items.length;$('alerts').hidden=true;$('choice-ai').parentNode.hidden=true;updateDock();
+  }
+  $('rt-send').onclick=function(){$('finish-btn').click();};
+  $('rt-continue').onclick=function(){$('rt-done').hidden=true;$('ai-hero').hidden=false;$('choice-ai').parentNode.hidden=false;st.rtDone=null;renderAlerts();updateDock();startRealtime(true);};
+
+
+  // ------------------------------------------------------------ Entrevista previa (el paciente solo)
+  var FORM_ALERTS=[['anticoagulante','Tomo anticoagulantes o aspirina diaria'],['marcapasos','Uso marcapasos'],['corazon','Tengo una enfermedad del corazón'],['coagulacion','Tengo problemas de coagulación o sangrado'],['embarazo','Estoy embarazada o lactando'],['bifosfonatos','Tomo bifosfonatos (para huesos/osteoporosis)']];
+  var FORM_HABITS=[['fuma','Fumo'],['alcohol','Tomo alcohol con frecuencia'],['bruxismo','Aprieto o rechino los dientes'],['respiracion_oral','Respiro por la boca'],['unas','Me muerdo las uñas'],['azucar','Consumo dulces o refrescos a diario']];
+  function pvHeader(){document.querySelector('header.top .kick').textContent='ANTES DE TU CITA'+(st.pv&&st.pv.clinic?' · '+st.pv.clinic.toUpperCase():'');}
+  function pvConsent(){
+    $('v-consent').querySelector('h2').textContent='Antes de empezar';
+    $('v-consent').querySelector('p').textContent='Tu clínica te pide responder unas preguntas de salud para preparar tu cita'+(st.pv.appointment?' del '+st.pv.appointment:'')+'.';
+    $('v-consent').querySelector('ul').innerHTML='<li>Tus respuestas solo las verá tu clínica y tu dentista las revisará contigo.</li><li>Si platicas con MILA, el audio <strong>no se guarda</strong>; solo el texto de tus respuestas.</li><li>MILA es una asistente: no da diagnósticos ni consejos médicos.</li>';
+    $('consent-check').parentNode.lastChild.textContent=' Acepto responder y que mis respuestas se envíen a mi clínica.';
+    show('v-consent');
+  }
+  function pvChoose(){
+    var m=st.pv.mode;if(m==='form'||(!st.pv.voice&&m!=='voice'))return openForm();if(m==='voice')return pvVoice();
+    $('choose-sub').textContent='Son unas preguntas de salud para tu expediente'+(st.pv.appointment?' antes de tu cita del '+st.pv.appointment:'')+'. Toma unos 5 minutos.';
+    show('v-choose');
+  }
+  function pvVoice(){st.mode='history';st.who='ai';show('v-main');$('v-main').hidden=true;startRealtime(false);}
+  $('pv-voice').onclick=pvVoice;$('pv-form').onclick=function(){openForm();};
+  $('dob-form').onsubmit=async function(e){e.preventDefault();var err=$('dob-error');err.hidden=true;
+    try{await call('verify',{dob:$('dob').value});pvConsent();}catch(x){err.textContent=x.message;err.hidden=false;if(x.status===429)fail(x.message);}};
+  function showThanks(){
+    closeLive();$('dock').hidden=true;
+    $('thanks-title').textContent='¡Gracias'+(st.patient&&st.patient!=='Paciente'?', '+st.patient:'')+'!';
+    $('thanks-sub').textContent='Tus respuestas se enviaron'+(st.pv&&st.pv.clinic?' a '+st.pv.clinic:'')+'. Tu dentista las revisará '+(st.pv&&st.pv.appointment?'en tu cita del '+st.pv.appointment:'en tu cita')+'.';
+    show('v-thanks');try{sessionStorage.removeItem('mila-movil');}catch(_){}
+  }
+  // ---- formulario
+  function seg(el,opts){var name=el.dataset.yn||el.dataset.ynu;el.innerHTML=opts.map(function(o){return '<label><input type="radio" name="'+name+'" value="'+o[0]+'"><span>'+o[1]+'</span></label>';}).join('');}
+  function rowHtml(kind){
+    var f={allergies:[['substance','¿A qué?','Ej. penicilina'],['reaction','¿Qué te pasó?','Ej. ronchas'],['severity','sev']],conditions:[['name','Enfermedad','Ej. diabetes'],['since','¿Desde cuándo?','Ej. 2019']],medications:[['name','Medicamento','Nombre'],['dose','Dosis','Ej. 500 mg'],['frequency','¿Cada cuánto?','Ej. cada 12 horas']],surgeries:[['procedure','¿De qué?','Ej. apéndice'],['when','¿Cuándo?','Ej. 2018']]}[kind];
+    return '<div class="rowx">'+f.map(function(x){return x[1]==='sev'?'<select data-k="severity" aria-label="Gravedad"><option value="">¿Qué tan grave fue?</option><option value="low">Leve</option><option value="moderate">Moderada</option><option value="high">Grave (fui a urgencias o me costó respirar)</option></select>':'<input type="text" data-k="'+x[0]+'" placeholder="'+x[1]+(x[2]?' · '+x[2]:'')+'" aria-label="'+x[1]+'" maxlength="160">';}).join('')+'</div>';
+  }
+  var formReady=false;
+  function openForm(){
+    if(!formReady){formReady=true;
+      document.querySelectorAll('[data-yn]').forEach(function(el){seg(el,[['yes','Sí'],['no','No']]);});
+      document.querySelectorAll('[data-ynu]').forEach(function(el){seg(el,[['yes','Sí'],['no','No'],['unknown','No sé']]);});
+      $('alert-opts').innerHTML=FORM_ALERTS.map(function(o){return '<label class="ck"><input type="checkbox" name="alerts" value="'+o[0]+'"> '+esc(o[1])+'</label>';}).join('');
+      $('habit-opts').innerHTML=FORM_HABITS.map(function(o){return '<label class="ck"><input type="checkbox" name="habits" value="'+o[0]+'"> '+esc(o[1])+'</label>';}).join('');
+      var f=$('pv-form-el');
+      f.addEventListener('change',function(e){var t=e.target;
+        if(t.name==='pain')$('pain-more').hidden=t.value!=='yes';
+        if(t.name==='anesthesia_problems')$('f-anes').hidden=t.value!=='yes';
+        if(/_status$/.test(t.name)){var kind=t.name.replace('_status','');var rows=f.querySelector('[data-rows="'+kind+'"]'),add=f.querySelector('[data-add="'+kind+'"]');rows.hidden=add.hidden=t.value!=='yes';if(t.value==='yes'&&!rows.children.length)rows.insertAdjacentHTML('beforeend',rowHtml(kind));}
+        if(t.id==='f-alerts-none'&&t.checked)f.querySelectorAll('[name=alerts]').forEach(function(c){c.checked=false;});
+        if(t.name==='alerts'&&t.checked)$('f-alerts-none').checked=false;
+        if(t.id==='f-habits-none'&&t.checked)f.querySelectorAll('[name=habits]').forEach(function(c){c.checked=false;});
+        if(t.name==='habits'&&t.checked)$('f-habits-none').checked=false;});
+      $('f-pain-level').oninput=function(){$('pain-val').textContent=this.value;};
+      f.querySelectorAll('[data-add]').forEach(function(b){b.onclick=function(){var rows=f.querySelector('[data-rows="'+b.dataset.add+'"]');if(rows.children.length<10)rows.insertAdjacentHTML('beforeend',rowHtml(b.dataset.add));};});
+      f.onsubmit=sendForm;
+    }
+    show('v-form');window.scrollTo(0,0);
+  }
+  function radio(name){var c=document.querySelector('#pv-form-el [name="'+name+'"]:checked');return c?c.value:'';}
+  function collectRows(kind){return Array.from(document.querySelectorAll('[data-rows="'+kind+'"] .rowx')).map(function(r){var o={};r.querySelectorAll('[data-k]').forEach(function(i){o[i.dataset.k]=i.value.trim();});return o;});}
+  async function sendForm(e){
+    e.preventDefault();var f=$('pv-form-el'),err=$('form-error');err.hidden=true;
+    var answers={reason:f.reason.value.trim(),pain:radio('pain'),pain_level:radio('pain')==='yes'?$('f-pain-level').value:'',pain_since:$('f-pain-since').value.trim(),pain_trigger:$('f-pain-trigger').value.trim(),
+      allergies_status:radio('allergies_status'),allergies:radio('allergies_status')==='yes'?collectRows('allergies'):[],
+      alerts:Array.from(f.querySelectorAll('[name=alerts]:checked')).map(function(c){return c.value;}),alerts_other:$('f-alerts-other').value.trim(),alerts_status:$('f-alerts-none').checked?'no':'',
+      conditions_status:radio('conditions_status'),conditions:radio('conditions_status')==='yes'?collectRows('conditions'):[],
+      medications_status:radio('medications_status'),medications:radio('medications_status')==='yes'?collectRows('medications'):[],
+      surgeries_status:radio('surgeries_status'),surgeries:radio('surgeries_status')==='yes'?collectRows('surgeries'):[],
+      last_visit:$('f-last').value.trim(),anesthesia_problems:radio('anesthesia_problems'),anesthesia_detail:$('f-anes').value.trim(),
+      habits:Array.from(f.querySelectorAll('[name=habits]:checked')).map(function(c){return c.value;}),habits_none:$('f-habits-none').checked,brushing:$('f-brush').value,floss:radio('floss'),
+      emergency_name:$('f-ec-name').value.trim(),emergency_phone:$('f-ec-phone').value.trim(),notes:f.notes.value.trim()};
+    var missing=['allergies_status','medications_status'].filter(function(k){return !answers[k];});
+    if(missing.length){err.textContent='Por favor responde al menos si tienes alergias y si tomas medicamentos: es lo más importante para tu seguridad.';err.hidden=false;err.scrollIntoView({block:'center'});return;}
+    var b=$('form-send');b.disabled=true;b.textContent='Enviando…';
+    try{await call('form_submit',{answers:answers});showThanks();}catch(x){err.textContent=x.message;err.hidden=false;b.disabled=false;b.textContent='Enviar mis respuestas';}
+  }
+
+  // ------------------------------------------------------------ «Yo pregunto»: grabación por segmentos
+  function pickMime(){
+    var options=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg;codecs=opus'];
+    if(!window.MediaRecorder)return null;
+    for(var i=0;i<options.length;i++)if(MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(options[i]))return options[i];
+    return '';
+  }
+  async function startRecording(){
+    var mime=pickMime();
+    if(mime===null||!navigator.mediaDevices){status('Este navegador no puede grabar','Usa Chrome o Safari actualizados.',true);return;}
+    try{st.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});}
+    catch(e){status('Sin acceso al micrófono','Permite el micrófono en el navegador y vuelve a intentar.',true);return;}
+    st.recording=true;st.mime=mime;$('rec').dataset.on='true';$('rec').setAttribute('aria-pressed','true');updateDock();
+    try{if(navigator.wakeLock)st.wake=await navigator.wakeLock.request('screen');}catch(_){}
+    newSegment();
+    status('Escuchando…',st.mode==='history'?'Haz las preguntas de la guía.':'Dicta pieza, cara y hallazgo.');
+  }
+  function newSegment(){
+    var rec=new MediaRecorder(st.stream,st.mime?{mimeType:st.mime}:undefined),chunks=[],started=Date.now(),mode=st.mode;
+    rec.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data);};
+    rec.onstop=function(){
+      var type=(rec.mimeType||st.mime||'audio/webm').split(';')[0];
+      if(chunks.length)enqueue(new Blob(chunks,{type:type}),Math.round((Date.now()-started)/1000),mode);
+      if(st.recording)newSegment();
+    };
+    st.recorder=rec;rec.start();
+    clearTimeout(st.cutTimer);st.cutTimer=setTimeout(function(){if(st.recorder===rec&&rec.state==='recording')rec.stop();},SEGMENT_MS);
+  }
+  function stopRecording(silent){
+    st.recording=false;clearTimeout(st.cutTimer);
+    if(st.recorder&&st.recorder.state==='recording')st.recorder.stop();
+    if(st.stream){st.stream.getTracks().forEach(function(t){t.stop();});st.stream=null;}
+    if(st.wake){try{st.wake.release();}catch(_){}st.wake=null;}
+    $('rec').dataset.on='false';$('rec').setAttribute('aria-pressed','false');updateDock();
+    if(!silent)status('Transcribiendo…','MILA está escuchando lo grabado.');
+  }
+  $('rec').onclick=function(){
+    if(st.mode==='history'&&st.who==='ai'){if(st.rt.active)finishRealtime();else startRealtime();return;}
+    if(st.recording)stopRecording(false);else startRecording();
+  };
+
+  function enqueue(blob,seconds,mode){st.queue.push({blob:blob,seconds:Math.max(1,seconds),mode:mode,tries:0});pump();}
+  async function pump(){
+    if(st.sending||!st.queue.length)return;
+    st.sending=true;var item=st.queue[0];
+    var ext=item.blob.type.indexOf('mp4')>=0?'m4a':item.blob.type.indexOf('ogg')>=0?'ogg':'webm';
+    var form=new FormData();form.set('id',st.id);form.set('device',st.device);form.set('mode',item.mode);form.set('duracion_segundos',String(item.seconds));form.set('audio',item.blob,'segmento.'+ext);
+    try{
+      var out=await api(form);st.queue.shift();
+      st.seconds+=out.seconds||0;
+      $('heard').textContent=out.heard?'MILA escuchó: «'+out.heard.slice(-220)+'»':'';
+      if(out.interpreting){if(!st.recording&&!st.queue.length)status('MILA está ordenando la información…','Puedes seguir grabando.');pollState();}
+      else if(!st.recording&&!st.queue.length)status(out.warning?'Atención':'Listo',out.warning||'Puedes seguir grabando o terminar.',!!out.warning);
+    }catch(e){
+      item.tries++;
+      if((e.status===429||e.status>=500||!e.status)&&item.tries<4){st.sending=false;setTimeout(pump,2500*item.tries);return;}
+      st.queue.shift();
+      if(e.status===410||e.status===403){fail(e.message);st.sending=false;return;}
+      status('No se procesó un segmento',e.message,true);
+    }
+    st.sending=false;pump();
+  }
+  // La interpretación corre en el servidor después de transcribir: se consulta hasta que termina.
+  function pollState(){
+    clearTimeout(st.pollTimer);var tries=0;
+    (function tick(){st.pollTimer=setTimeout(async function(){
+      tries++;
+      try{var s=await call('state');applyState(s);renderAll();
+        if(s.interpreting&&tries<40){tick();return;}
+        if(!st.recording&&!st.queue.length&&!st.sending)status('Listo','Puedes seguir grabando o terminar.');
+      }catch(_){if(tries<40)tick();}
+    },2000);})();
+  }
+
+  $('finish-btn').onclick=async function(){
+    if(st.rt.active)await finishRealtime();
+    if(st.recording)stopRecording(false);
+    this.disabled=true;
+    var wait=Date.now();while((st.queue.length||st.sending)&&Date.now()-wait<60000)await new Promise(function(r){setTimeout(r,500);});
+    try{await call('finish');show('v-done');}catch(e){fail(e.message);}
+    this.disabled=false;
+  };
+  $('resume-btn').onclick=function(){enterMain();};
+  addEventListener('pagehide',function(){stopRecording(true);if(st.rt.active)stopRealtime();});
+  boot();
+})();
+</script>
+</body>
+</html>

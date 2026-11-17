@@ -96,7 +96,8 @@
 .schedule-patient-new{margin-top:4px;padding:14px;border:1px solid #c7d9d0;border-radius:12px;background:#f2f7f3}
 .schedule-patient-new[hidden]{display:none}
 .schedule-patient-new-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;font-size:13px;color:#203b3b}
-.schedule-patient-new-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.schedule-patient-new-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end}
+.schedule-patient-new-grid label small{display:block;font-weight:500;color:#6b7f79;font-size:12px;line-height:1.25}
 .schedule-patient-new-grid label{display:flex;flex-direction:column;gap:7px;color:#48625c;font-size:11px;font-weight:650}
 .schedule-patient-new-actions{display:flex;justify-content:flex-end;margin-top:12px}
 .schedule-patient-dups{display:flex;flex-direction:column;gap:8px;margin-top:12px;padding:12px;border:1px solid #e4cfb3;border-radius:10px;background:#fff8ed;color:#6b4a1c;font-size:13px}
@@ -619,3 +620,133 @@ body.smyl-ui-governed #p-agenda .schedule-dialog :is(input,select,textarea){min-
 .sched-material-row i{font-style:normal}
 
 .schedule-pending-chip{display:inline-block;justify-self:start;margin:2px 0;padding:1px 8px;border-radius:999px;background:#fff4d6;color:#7a5200;font-size:12px;font-weight:600;line-height:1.5}
+
+/* Nueva cita: formulario a la izquierda y resumen fijo a la derecha; el resumen es neutro hasta que haya un problema real. */
+.schedule-booking-check[data-tone=pending]{border-color:#d9e2ec;background:#f6f8fb}
+.schedule-booking-check[data-tone=pending] .schedule-booking-head i{background:#e6ecf3;color:#5b6b7e}
+.schedule-custom-time{grid-column:1/-1}
+.schedule-custom-time>summary{cursor:pointer;color:#33607f;font-size:13px;font-weight:600;padding:4px 0}
+.schedule-custom-time[open]>summary{margin-bottom:8px}
+@media(min-width:900px){
+  dialog[data-smyl-dialog-size=large] #schedule-appointment-form .schedule-form-grid{position:relative;padding-right:324px;align-items:start}
+  dialog[data-smyl-dialog-size=large] #schedule-appointment-form .schedule-form-grid>.schedule-booking-check{position:absolute;top:0;right:0;width:300px;box-sizing:border-box;grid-column:auto}
+  dialog[data-smyl-dialog-size=large] #schedule-appointment-form .schedule-form-grid>.schedule-patient{grid-column:1/-1}
+  dialog[data-smyl-dialog-size=large] #schedule-appointment-form .schedule-booking-summary{grid-template-columns:1fr 1fr}
+}
+
+/* Mes: citas legibles (hora + paciente), color por estado, día completo clicable y días cerrados. */
+.schedule-month-day{position:relative;cursor:pointer;transition:background-color .12s}
+.schedule-month-day:hover{background:#f3f8f6}
+.schedule-month-day[data-outside=true]:hover{background:#f1f4f2}
+.schedule-month-day[data-today=true]{background:#eef7f4}
+.schedule-month-day[data-closed=true]:not([data-outside=true]){background:repeating-linear-gradient(135deg,#f7f8f7 0 8px,#f1f3f2 8px 16px)}
+.schedule-month-closed{display:block;margin-top:6px;color:#8a9691;font-size:12px;font-weight:600}
+.schedule-month-event{min-height:26px;gap:6px}
+.schedule-month-event span{font-size:12px;color:#5b6a65;flex:0 0 auto}
+.schedule-month-event strong{font-size:12px;font-weight:650}
+.schedule-month-event>i{flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:#7aa699}
+.schedule-month-event[data-status=arrived]>i{background:#d9962b}
+.schedule-month-event[data-status=in_progress]>i{background:#2f6fc0}
+.schedule-month-event[data-status=completed]>i{background:#2f8a62}
+.schedule-month-event[data-status=no_show]>i,.schedule-month-event[data-status=cancelled]>i{background:#c0453a}
+.schedule-month-event[data-status=completed]{opacity:.72}
+.schedule-month-event[data-status=no_show],.schedule-month-event[data-status=cancelled]{background:#fdf0ee}
+.schedule-month-more{font-size:12px}
+.schedule-month-number{font-size:12px}
+/* Encabezado más compacto */
+body.smyl-ui-governed #p-agenda .schedule-head{padding:14px 20px;margin-bottom:12px}
+body.smyl-ui-governed #p-agenda .schedule-head p{display:none}
+@media(max-width:760px){
+  .schedule-month-weekdays,.schedule-month-grid{grid-template-columns:repeat(7,minmax(0,1fr));min-width:0}
+  .schedule-month-day{min-height:68px;padding:4px}
+  .schedule-month-event{min-height:8px;height:8px;margin-top:2px;padding:0;border-left-width:0;border-radius:4px;background:var(--schedule-accent)}
+  .schedule-month-event>i,.schedule-month-event span,.schedule-month-event strong,.schedule-month-closed{display:none}
+}
+
+/* Mes: arrastrar y soltar */
+.schedule-month-event[draggable=true]{cursor:grab}
+.schedule-month-event.is-dragging{opacity:.45}
+.schedule-month-day.is-drop{background:#e3f1ec;box-shadow:inset 0 0 0 2px #2f7469}
+.schedule-month-number:focus-visible{outline:2px solid #2f7469;outline-offset:2px}
+.schedule-move-confirm p{margin:0 0 12px;line-height:1.5}
+
+/* «Llegó sin cita»: la hora es «ahora», así que no se muestran los horarios libres ni el selector de otra hora. */
+#schedule-appointment-form[data-walk-in] :is([data-slots],[data-custom-time]){display:none!important}
+
+/* Vista Día: cada tarjeta cabe en su bloque (1 px = 1 minuto) y no se encima en la siguiente cita.
+   Mismo criterio de tamaños que la semana (data-size: s <46 px, m <84 px, l el resto). La regla de padding de
+   "#p-agenda" borraba el hueco del círculo de iniciales y tapaba el inicio de la hora; aquí se restituye. */
+body.smyl-ui-governed #p-agenda .schedule-timeline-event>.schedule-appointment{box-sizing:border-box;height:100%;min-height:0;padding:7px 10px 7px 44px;gap:1px;overflow:hidden}
+body.smyl-ui-governed #p-agenda .schedule-timeline-event>.schedule-appointment :is(span,strong,em){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=m]>.schedule-appointment{padding-block:5px;gap:0}
+body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=m]>.schedule-appointment>b{top:7px}
+body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=m]>.schedule-appointment :is(span,strong,em){line-height:1.2}
+body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=m]>.schedule-appointment small{display:none}
+body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=m]>.schedule-appointment i:not(.schedule-billing){display:none}
+/* Una cita confirmada es el caso normal y no necesita etiqueta; el resto de estados sí se ve (y no choca con la de cobro). */
+body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=m]>.schedule-appointment:not([data-status=confirmed]):not(:has(.schedule-billing))>i{display:inline-block;position:absolute;top:6px;right:8px;margin:0}
+body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=s]>.schedule-appointment{display:flex;align-items:center;gap:6px;padding-block:2px}
+body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=s]>.schedule-appointment>b{top:50%;transform:translateY(-50%);width:22px;height:22px}
+body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=s]>.schedule-appointment :is(em,small,i:not(.schedule-billing)){display:none}
+
+/* Entrevista previa de MILA (historia clínica antes de la cita) */
+.schedule-calendar i.schedule-previsit,.schedule-agenda-row i.schedule-previsit,.sched-ficha-previsit i.schedule-previsit{display:inline-block;justify-self:start;border-radius:999px;padding:2px 8px;font-size:12px;font-style:normal;font-weight:750;letter-spacing:0;white-space:nowrap;line-height:1.5;margin-top:2px;background:#eef1f4;color:#4f5d6c}
+.schedule-calendar i.schedule-previsit[data-previsit=sent],.schedule-calendar i.schedule-previsit[data-previsit=link],i.schedule-previsit[data-previsit=sent],i.schedule-previsit[data-previsit=link]{background:#eaf1fb;color:#2c5282}
+.schedule-calendar i.schedule-previsit[data-previsit=in_progress],i.schedule-previsit[data-previsit=in_progress]{background:#e6f5f5;color:#0b6262}
+.schedule-calendar i.schedule-previsit[data-previsit=answered],i.schedule-previsit[data-previsit=answered]{background:#e3f6ec;color:#1c6a4c}
+.schedule-calendar i.schedule-previsit[data-previsit=alert],i.schedule-previsit[data-previsit=alert]{background:#fde8e1;color:#a2402a}
+.schedule-calendar i.schedule-previsit[data-previsit=failed],i.schedule-previsit[data-previsit=failed]{background:#fff2e0;color:#9a5a12}
+.schedule-calendar i.schedule-previsit[data-previsit=expired],i.schedule-previsit[data-previsit=expired]{background:#eef1f4;color:#5f6c7b}
+.schedule-wk-event[data-size=xs] i.schedule-previsit,.schedule-wk-event[data-size=s] i.schedule-previsit,.schedule-timeline-event[data-size=s] i.schedule-previsit{display:none}
+body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=m]>.schedule-appointment i.schedule-previsit[data-previsit=alert]{display:inline-block}
+.sched-ficha-previsit strong{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sched-ficha-previsit strong small{margin-left:0}
+
+/* Nueva cita: tablero de disponibilidad (smyl-schedule-board.js). */
+.schedule-board{display:grid;gap:10px}
+.schedule-board-step{margin-top:6px;color:#2f6a5e;font:800 12px/1.3 Inter,system-ui,sans-serif;letter-spacing:.05em;text-transform:uppercase}
+.schedule-board-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.schedule-board-filters label{display:grid;gap:5px;font-size:13px;font-weight:600}
+.schedule-board-filters select{min-width:0;width:100%}
+.schedule-board-days{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
+.schedule-board-day{flex:0 0 auto;min-width:64px;min-height:64px;padding:6px 6px 7px;border:1px solid #cbd8d1;border-radius:12px;background:#fff;color:#203b3b;text-align:center;font:inherit;cursor:pointer}
+.schedule-board-day small{display:block;color:#5b6b78;font-size:12px}
+.schedule-board-day b{display:block;font-size:16px;line-height:1.2}
+.schedule-board-day i{display:block;height:4px;margin:5px 4px 2px;border-radius:4px;background:#c5cfd9}
+.schedule-board-day em{display:block;color:#5b6b78;font-size:12px;font-style:normal}
+.schedule-board-day.is-many i{background:#1a9b63}.schedule-board-day.is-few i{background:#d98a12}
+.schedule-board-day.is-none{opacity:.6}.schedule-board-day.is-none b{color:#5b6b78}
+.schedule-board-day[aria-pressed=true]{border-color:#2f6a5e;box-shadow:0 0 0 2px #2f6a5e;background:#eaf5f1;opacity:1}
+.schedule-board-legend{display:flex;flex-wrap:wrap;gap:6px 14px;color:#5b6b78;font-size:12px}
+.schedule-board-legend span{display:inline-flex;align-items:center;gap:5px}
+.schedule-board-legend u{display:inline-block;width:14px;height:4px;border-radius:4px;background:#c5cfd9;text-decoration:none}
+.schedule-board-legend u.is-many{background:#1a9b63}.schedule-board-legend u.is-few{background:#d98a12}
+.schedule-board-group{display:grid;grid-template-columns:200px minmax(0,1fr);gap:10px;padding:10px 0;border-top:1px solid #e1e8e4}
+.schedule-board-group:first-child{border-top:0}
+.schedule-board-who{display:flex;align-items:flex-start;gap:8px}
+.schedule-board-who b{display:block;font-size:13px}.schedule-board-who small{display:block;color:#5b6b78;font-size:12px}
+.schedule-board-dot{flex:none;width:10px;height:10px;margin-top:5px;border-radius:50%;background:#0f766e}
+.schedule-board-dot.is-navy{background:#1e3a5f}.schedule-board-dot.is-blue{background:#1d5fbf}.schedule-board-dot.is-green{background:#1a7f4b}.schedule-board-dot.is-amber{background:#92610a}
+.schedule-board-dot.is-coral{background:#c2410c}.schedule-board-dot.is-violet{background:#6b46c1}.schedule-board-dot.is-slate{background:#475569}
+.schedule-board-explain{padding:12px 14px;border:1px solid #e1e8e4;border-left:4px solid #d98a12;border-radius:12px;background:#f6f8f6}
+.schedule-board-explain b{display:block;margin-bottom:2px}.schedule-board-explain p{margin:0 0 8px;color:#4c5f58}
+.schedule-board-actions{display:flex;flex-wrap:wrap;gap:8px}
+.schedule-board-action{min-height:36px;padding:7px 12px;border:1px solid #cbd8d1;border-radius:9px;background:#fff;color:#203b3b;font:700 13px/1.2 Inter,system-ui,sans-serif;cursor:pointer}
+.schedule-board-action.is-primary{border-color:#2f6a5e;background:#2f6a5e;color:#fff}
+.schedule-board-matrix{border:1px solid #e1e8e4;border-radius:12px;background:#f6f8f6}
+.schedule-board-matrix>summary{padding:10px 14px;cursor:pointer;color:#33607f;font-weight:700}
+.schedule-board-matrixwrap{padding:0 10px 12px;overflow-x:auto}
+.schedule-board-matrix table{width:100%;min-width:560px;border-collapse:separate;border-spacing:4px}
+.schedule-board-matrix th{color:#5b6b78;font-size:12px;font-weight:700;text-align:center}.schedule-board-matrix th:first-child,.schedule-board-matrix td:first-child{text-align:left}
+.schedule-board-matrix td{vertical-align:top;font-size:12px;text-align:center}.schedule-board-matrix td:first-child{font-size:13px;font-weight:700;white-space:nowrap}
+.schedule-board-cell{display:block;width:100%;margin-bottom:3px;padding:5px 4px;border:0;border-radius:8px;background:#0f766e;color:#fff;font:600 12px/1.25 Inter,system-ui,sans-serif;cursor:pointer}
+.schedule-board-cell small{display:block;font-weight:500;opacity:.92}
+.schedule-board-cell.is-navy{background:#1e3a5f}.schedule-board-cell.is-blue{background:#1d5fbf}.schedule-board-cell.is-green{background:#1a7f4b}.schedule-board-cell.is-amber{background:#92610a}
+.schedule-board-cell.is-coral{background:#c2410c}.schedule-board-cell.is-violet{background:#6b46c1}.schedule-board-cell.is-slate{background:#475569}
+.schedule-board-cell.is-full{opacity:.45}.schedule-board-dash{color:#5b6b78}
+.schedule-custom-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:10px}
+.schedule-custom-grid label{display:grid;gap:5px;font-size:13px;font-weight:600}.schedule-custom-grid label[hidden]{display:none}
+@media (max-width:640px){.schedule-board-filters,.schedule-custom-grid{grid-template-columns:1fr}.schedule-board-group{grid-template-columns:1fr}}
+
+.schedule-board-matrix table{table-layout:fixed}.schedule-board-matrix th:first-child,.schedule-board-matrix td:first-child{width:92px}
+.schedule-board-cell-branch,.schedule-board-cell-hours{display:block;overflow-wrap:anywhere}.schedule-board-cell-branch{font-weight:700}

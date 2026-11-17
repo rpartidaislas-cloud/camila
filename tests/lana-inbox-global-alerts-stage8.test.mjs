@@ -28,8 +28,8 @@ test('el Centro de alertas agrupa bloqueos y avisos y abre el diagnostico correc
 });
 
 test('web, movil y PWA distribuyen la misma integracion', () => {
-  assert.match(app, /smyl-task-center\.js\?v=5/);
-  assert.match(app, /smyl-inbox\.js\?v=45/);
+  assert.match(app, /smyl-task-center\.js\?v=6/);
+  assert.match(app, /smyl-inbox\.js\?v=57/);
   assert.match(worker, /smyl-v263-lana-connection-recovery/);
   assert.equal(inbox, read('../mobile/www/smyl-inbox.js'));
   assert.equal(taskCenter, read('../mobile/www/smyl-task-center.js'));

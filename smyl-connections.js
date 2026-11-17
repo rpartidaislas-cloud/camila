@@ -43,7 +43,7 @@
       '<p class="connections-help">Utiliza esta opción únicamente si soporte te proporcionó un código. Se cifra en el servidor.</p><div class="connections-actions"><button type="submit" class="btn btn-secondary" data-connect-lana>Usar código existente</button></div></form></details><p class="connections-form-message" data-lana-message role="status"></p>' +
       '<div class="connections-staff-note" data-staff-note hidden>Solo el dueño de la clínica puede cambiar esta conexión. El equipo sí puede consultar su estado.</div></section>' +
       '<section class="connections-card"><div class="connections-card-head"><div><span>CANALES</span><h2>Conecta las cuentas de la clínica</h2></div></div>' +
-      '<div class="connections-channel-list" role="list" aria-label="Canales de mensajería"><div role="listitem" data-channel-row="whatsapp"><span class="connections-channel-icon connections-channel-icon--whatsapp" aria-hidden="true"><img src="icons/brands/whatsapp.svg" alt=""></span><p><strong>Cuenta de la clínica</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-channel-primary-action data-connect-channel="whatsapp" disabled>Conectar</button><section class="connections-whatsapp-modes" data-whatsapp-modes aria-labelledby="whatsapp-mode-title"><header><span>TIPO DE CONEXIÓN</span><h3 id="whatsapp-mode-title">¿Cómo quieres usar tu número?</h3><p>Elige una opción. Podrás revisar los requisitos antes de abrir Meta.</p></header><div class="connections-whatsapp-mode-grid"><article class="connections-whatsapp-mode is-featured"><span class="connections-whatsapp-mode-label">Mismo número</span><h4>Conservar mi WhatsApp</h4><p>Usa el mismo número en la app Business y en SMYL.</p><details><summary>Requisitos y límites</summary><ul><li>Necesitas la app WhatsApp Business actualizada.</li><li>Grupos y llamadas continúan sólo en el celular.</li><li>Los chats anteriores no se importan todavía; los mensajes nuevos sí llegan a SMYL.</li><li>Responder desde el celular pausa al asistente en esa conversación.</li></ul></details><button type="button" class="btn btn-primary" data-connect-channel="whatsapp" data-connection-mode="coexistence" disabled>Conectar mi número actual</button></article><article class="connections-whatsapp-mode"><span class="connections-whatsapp-mode-label">Línea separada</span><h4>Usar un número exclusivo</h4><p>Para una línea nueva administrada desde SMYL.</p><details><summary>Requisitos y límites</summary><ul><li>El número debe estar libre de WhatsApp y WhatsApp Business.</li><li>Si ya está en una app, la migración puede perder su historial local.</li><li>Recomendamos una línea nueva para este modo.</li></ul></details><button type="button" class="btn btn-secondary" data-connect-channel="whatsapp" data-connection-mode="dedicated" disabled>Conectar número nuevo</button></article></div></section></div><div role="listitem" data-channel-row="messenger"><span class="connections-channel-icon" aria-hidden="true">M</span><p><strong>Messenger</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-channel-primary-action data-connect-channel="messenger" disabled>Conectar</button></div><div role="listitem" data-channel-row="instagram"><span class="connections-channel-icon" aria-hidden="true">I</span><p><strong>Instagram</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-channel-primary-action data-connect-channel="instagram" disabled>Conectar</button></div></div>' +
+      '<div class="connections-channel-list" role="list" aria-label="Canales de mensajería"><div role="listitem" data-channel-row="whatsapp"><span class="connections-channel-icon connections-channel-icon--whatsapp" aria-hidden="true"><img src="icons/brands/whatsapp.svg" alt=""></span><p><strong>Cuenta de la clínica</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-channel-primary-action data-connect-channel="whatsapp" disabled>Conectar</button><section class="connections-whatsapp-modes" data-whatsapp-modes aria-labelledby="whatsapp-mode-title"><header><span>TIPO DE CONEXIÓN</span><h3 id="whatsapp-mode-title">¿Cómo quieres usar tu número?</h3><p>Elige una opción. Podrás revisar los requisitos antes de abrir Meta.</p></header><div class="connections-whatsapp-mode-grid"><article class="connections-whatsapp-mode is-featured"><span class="connections-whatsapp-mode-label">Mismo número</span><h4>Conservar mi WhatsApp</h4><p>Usa el mismo número en la app Business y en SMYL.</p><div class="connections-mode-reqs"><strong>Requisitos y límites</strong><ul><li>Necesitas la app WhatsApp Business actualizada.</li><li>Grupos y llamadas continúan sólo en el celular.</li><li>Los chats anteriores no se importan todavía; los mensajes nuevos sí llegan a SMYL.</li><li>Responder desde el celular pausa al asistente en esa conversación.</li></ul></div><button type="button" class="btn btn-primary" data-connect-channel="whatsapp" data-connection-mode="coexistence" disabled>Conectar mi número actual</button></article><article class="connections-whatsapp-mode"><span class="connections-whatsapp-mode-label">Línea separada</span><h4>Usar un número exclusivo</h4><p>Para una línea nueva administrada desde SMYL.</p><div class="connections-mode-reqs"><strong>Requisitos y límites</strong><ul><li>El número debe estar libre de WhatsApp y WhatsApp Business.</li><li>Si ya está en una app, la migración puede perder su historial local.</li><li>Recomendamos una línea nueva para este modo.</li></ul></div><button type="button" class="btn btn-secondary" data-connect-channel="whatsapp" data-connection-mode="dedicated" disabled>Conectar número nuevo</button></article></div></section></div><div role="listitem" data-channel-row="messenger"><span class="connections-channel-icon connections-channel-icon--brand" aria-hidden="true"><img src="icons/brands/messenger.svg" alt=""></span><p><strong>Messenger</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-channel-primary-action data-connect-channel="messenger" disabled>Conectar</button></div><div role="listitem" data-channel-row="instagram"><span class="connections-channel-icon connections-channel-icon--brand" aria-hidden="true"><img src="icons/brands/instagram.svg" alt=""></span><p><strong>Instagram</strong><small data-channel-state>Activa la mensajería para continuar</small></p><button type="button" class="btn btn-secondary" data-channel-primary-action data-connect-channel="instagram" disabled>Conectar</button></div></div>' +
       '<div class="connections-channel-retry" data-channel-retry hidden role="status"><span>No pudimos consultar los canales.</span><button type="button" class="btn btn-secondary" data-retry-channels>Reintentar</button></div>' +
       '<p class="connections-boundary">Los tokens de Meta se procesan en una capa privada y nunca se muestran en el navegador ni se mezclan con el expediente clínico.</p></section></div>' +
       '<dialog class="connections-disconnect-dialog" data-disconnect-dialog><form method="dialog"><span class="connections-status-label">DESCONECTAR CANAL</span><h2 data-disconnect-title>¿Desconectar este canal?</h2><p data-disconnect-copy>El asistente dejará de recibir y enviar mensajes. El historial se conservará y podrás conectar otra cuenta después.</p><div class="connections-disconnect-summary"><span class="connections-channel-icon" data-disconnect-icon>I</span><div><strong data-disconnect-name>Instagram</strong><small data-disconnect-account></small></div></div><footer><button type="button" class="btn btn-secondary" data-disconnect-cancel>Cancelar</button><button type="button" class="btn connections-danger-button" data-disconnect-confirm>Desconectar</button></footer></form></dialog>' +
@@ -52,7 +52,8 @@
       '<div class="connections-training-bar" role="status" aria-live="polite" aria-atomic="true"><div><span class="connections-training-state" data-training-state>Borrador sin guardar</span><small data-training-version>Sin versión publicada</small></div><div class="connections-training-score"><span data-training-score>0%</span><small>capacitación completa</small></div></div>' +
       '<form data-lana-training-form><fieldset><legend>Identidad y voz</legend><div class="connections-context-grid"><label>Nombre del asistente<input name="assistant_name" maxlength="50" value="SMYL Asistente"></label><label>Tono<select name="tone"><option value="profesional">Profesional y claro</option><option value="cercano">Cercano y empático</option><option value="breve">Breve y directo</option></select></label><label class="full">Mensaje de bienvenida<textarea name="welcome_message" maxlength="350" rows="2" placeholder="Hola, soy el asistente de la clínica. Puedo orientarte y ayudarte con el siguiente paso."></textarea></label></div></fieldset>' +
       '<fieldset><legend>La clínica</legend><div class="connections-context-grid"><label class="full">Descripción y enfoque<textarea name="clinic_description" maxlength="1600" rows="3" placeholder="Especialidad, enfoque, tipo de pacientes y qué distingue a la clínica."></textarea></label><label class="full">Especialidades confirmadas<textarea name="specialties" maxlength="1200" rows="2" placeholder="Odontología general, ortodoncia, implantología…"></textarea></label><label>Ubicación principal<input name="location" maxlength="500" placeholder="Dirección o zona de atención"></label><label>Horarios<input name="hours" maxlength="500" placeholder="Lun–Vie 9:00–18:00"></label><label>Idiomas<input name="languages" maxlength="300" placeholder="Español, inglés"></label><label>Canales de contacto<input name="contact_channels" maxlength="700" placeholder="Teléfono y medios autorizados"></label><label class="full">Acceso, estacionamiento y accesibilidad<textarea name="access_info" maxlength="900" rows="2"></textarea></label><label class="full">Política para menores y acompañantes<textarea name="minor_policy" maxlength="900" rows="2"></textarea></label></div></fieldset>' +
-      '<fieldset><legend>Sucursales y operación</legend><div class="connections-context-grid"><label class="full">Sucursales, direcciones y cobertura<textarea name="branches" maxlength="2400" rows="4" placeholder="Una sucursal por bloque: dirección, horario, especialidades y profesionales disponibles."></textarea></label><label class="full">Reglas de agenda<textarea name="scheduling_rules" maxlength="1600" rows="3" placeholder="Anticipación, duración, confirmación, reprogramación y horarios especiales."></textarea></label><label class="full">Promociones autorizadas y vigencia<textarea name="approved_promotions" maxlength="1200" rows="2" placeholder="Sólo promociones aprobadas; indica fecha de vencimiento."></textarea></label></div></fieldset>' +
+      '<fieldset><legend>Sucursales y operación</legend><div class="connections-context-grid"><label class="full">Sucursales, direcciones y cobertura<textarea name="branches" maxlength="2400" rows="4" placeholder="Una sucursal por bloque: dirección, horario, especialidades y profesionales disponibles."></textarea></label>' +
+      '<div class="full connections-branch-tools" data-branch-tools hidden><div class="connections-branch-tools-row"><button type="button" class="btn btn-secondary" data-import-branches>Traer mis sucursales</button><label class="connections-inline-check"><input type="checkbox" data-ask-branch> Que el asistente pregunte la sucursal antes de agendar</label></div><p class="connections-branch-sync" data-branch-sync aria-live="polite"></p><p class="connections-fieldset-help">Tu clínica tiene varias sucursales. «Traer mis sucursales» llena este campo con sus direcciones, horarios y dentistas de Mi clínica. Cuando el paciente diga cuál prefiere, la conversación se asigna sola a esa sucursal.</p></div><label class="full">Reglas de agenda<textarea name="scheduling_rules" maxlength="1600" rows="3" placeholder="Anticipación, duración, confirmación, reprogramación y horarios especiales."></textarea></label><label class="full">Promociones autorizadas y vigencia<textarea name="approved_promotions" maxlength="1200" rows="2" placeholder="Sólo promociones aprobadas; indica fecha de vencimiento."></textarea></label></div></fieldset>' +
       '<fieldset><legend>Servicios confirmados</legend><p class="connections-fieldset-help">Incluye solo servicios reales. Si agregas precio, debe ser información confirmada o indicar que requiere valoración.</p><div class="connections-repeat-list" data-service-list></div><button type="button" class="connections-add-row" data-add-service>+ Agregar servicio</button></fieldset>' +
       '<fieldset><legend>Preguntas frecuentes</legend><p class="connections-fieldset-help">El asistente respetará estas respuestas y no inventará una política distinta.</p><div class="connections-repeat-list" data-faq-list></div><button type="button" class="connections-add-row" data-add-faq>+ Agregar pregunta</button></fieldset>' +
       '<fieldset><legend>Flujo de atención</legend><div class="connections-context-grid"><label class="full">Objetivo de la conversación<textarea name="attention_objective" maxlength="900" rows="2"></textarea></label><label class="full">Política de citas<textarea name="appointment_policy" maxlength="1200" rows="3" placeholder="Qué puede explicar, qué datos pedir y cuándo debe confirmar una persona."></textarea></label><label class="full">Cancelación e inasistencia<textarea name="cancellation_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Política de precios<textarea name="pricing_policy" maxlength="1200" rows="3" placeholder="Qué precios están confirmados y cuándo se requiere valoración. El asistente nunca inventa importes."></textarea></label><label class="full">Pagos, anticipos y financiamiento<textarea name="payment_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Facturación CFDI<textarea name="invoice_policy" maxlength="1200" rows="2" placeholder="Plazo, canal y datos que solicita el equipo; nunca recopilar contraseñas ni documentos completos."></textarea></label><label class="full">Seguros y reembolsos<textarea name="insurance_policy" maxlength="900" rows="2"></textarea></label><label class="full">Seguimientos y recordatorios<textarea name="followup_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Datos administrativos que puede solicitar<textarea name="intake_questions" maxlength="1600" rows="3" placeholder="Ej. nombre, tratamiento de interés, horario preferido y sucursal. Una o dos preguntas por mensaje."></textarea></label><label class="full">Protocolo administrativo de urgencias<textarea name="emergency_policy" maxlength="1200" rows="3" placeholder="Señales que exigen atención inmediata y texto aprobado por la clínica; nunca diagnosticar ni prescribir."></textarea></label><label class="full">Cuándo pasar la conversación a una persona<textarea name="handoff_rules" maxlength="1600" rows="3" placeholder="Ej. inconformidad, solicitud de hablar con el dentista o excepción administrativa. Dolor, urgencias y dudas clínicas ya escalan siempre."></textarea></label><label class="full">Expectativa de respuesta humana<textarea name="human_response_policy" maxlength="900" rows="2" placeholder="Indica tiempos sólo si la clínica realmente los mide."></textarea></label><label>Autonomía<select name="autonomy_level"><option value="1">1 · Solo bienvenida</option><option value="2">2 · Información y FAQ</option><option value="3">3 · Atención asistida</option><option value="4">4 · Gestión administrativa confirmada</option></select></label></div></fieldset>' +
@@ -259,6 +260,13 @@
     if (!pane) return;
     var coexistence = Boolean(item && item.connection_mode === 'coexistence');
     pane.dataset.channelState = connected ? 'connected' : 'pending';
+    pane.dataset.lana = connectedToLana ? 'true' : 'false';
+    var stepStates = { activate: connectedToLana ? 'done' : 'current', connect: connected ? 'done' : (connectedToLana ? 'current' : 'pending'), configure: connected ? 'current' : 'pending' };
+    pane.querySelectorAll('[data-channel-steps] [data-step]').forEach(function (li) { li.dataset.state = stepStates[li.dataset.step] || 'pending'; });
+    var accountTitle = pane.querySelector('.connections-channel-account > header h3');
+    if (accountTitle) { if (!accountTitle.dataset.pending) accountTitle.dataset.pending = accountTitle.textContent; accountTitle.textContent = connected ? 'Cuenta conectada' : accountTitle.dataset.pending; }
+    var dot = document.querySelector('[data-tab-dot="' + name + '"]');
+    if (dot) { dot.dataset.state = connected ? 'connected' : 'pending'; dot.parentNode.setAttribute('title', channelName(name) + (connected ? ': conectado' : ': sin conectar')); }
     pane.dataset.connectionMode = coexistence ? 'coexistence' : (connected ? 'dedicated' : '');
     var status = pane.querySelector('[data-channel-pane-status]');
     if (status) {
@@ -405,7 +413,9 @@
     dialog.dataset.channel = channel;
     dialog.querySelector('[data-disconnect-title]').textContent = '¿Desconectar ' + channelName(channel) + '?';
     dialog.querySelector('[data-disconnect-name]').textContent = channelName(channel);
-    dialog.querySelector('[data-disconnect-icon]').textContent = channel.charAt(0).toUpperCase();
+    var disconnectIcon = dialog.querySelector('[data-disconnect-icon]');
+    disconnectIcon.classList.add('connections-channel-icon--brand');
+    disconnectIcon.innerHTML = '<img src="icons/brands/' + (channel === 'instagram' ? 'instagram' : 'messenger') + '.svg" alt="">';
     dialog.querySelector('[data-disconnect-account]').textContent = item.display_name || 'Cuenta conectada';
     dialog.showModal();
   }
@@ -537,6 +547,202 @@
     return 'Borrador guardado';
   }
 
+  // Sucursales en el entrenamiento: texto con direcciones y horarios, y la instrucción de preguntar la sede.
+  var ASK_BRANCH_LINE = 'Si la clínica tiene más de una sucursal y el paciente aún no dijo en cuál quiere atenderse, pregúntaselo en una frase corta, con los nombres exactos de las sucursales, antes de hablar de horarios o de agendar.';
+  var DAY_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  function hourLabel(value) { var m = /^(\d{1,2}):(\d{2})/.exec(String(value || '')); return m ? Number(m[1]) + ':' + m[2] : ''; }
+  function hoursSummary(rows) {
+    var byDay = {};
+    (rows || []).forEach(function (row) { (byDay[row.weekday] = byDay[row.weekday] || []).push(hourLabel(row.starts_at) + '–' + hourLabel(row.ends_at)); });
+    var order = [1, 2, 3, 4, 5, 6, 0], groups = [];
+    order.forEach(function (day) {
+      if (!byDay[day]) return;
+      var label = byDay[day].join(' y '), last = groups[groups.length - 1];
+      if (last && last.label === label && last.next === order.indexOf(day)) { last.end = day; last.next = order.indexOf(day) + 1; }
+      else groups.push({ start: day, end: day, label: label, next: order.indexOf(day) + 1 });
+    });
+    return groups.map(function (g) { return (g.start === g.end ? DAY_SHORT[g.start] : DAY_SHORT[g.start] + '–' + DAY_SHORT[g.end]) + ' ' + g.label; }).join('; ');
+  }
+  // team = [{ branch_id, name, specialty }]: dentistas de cada sucursal (opcional; sin él, el texto es el de siempre).
+  function branchesDescription(branches, hours, team) {
+    function build(level) {
+      return (branches || []).map(function (branch) {
+        var address = [branch.address_line, branch.city, branch.state].filter(Boolean).join(', ');
+        var schedule = hoursSummary((hours || []).filter(function (row) { return row.branch_id === branch.id; }));
+        var people = level > 1 ? [] : (team || []).filter(function (row) { return row.branch_id === branch.id; }).map(function (row) {
+          return level === 0 && row.specialty ? row.name + ' (' + row.specialty + ')' : row.name;
+        });
+        var dentists = people.length ? 'Dentistas: ' + people.slice(0, 8).join(', ') + (people.length > 8 ? ' y ' + (people.length - 8) + ' más' : '') : '';
+        return [branch.name, address, branch.phone ? 'Tel. ' + branch.phone : '', schedule ? 'Horario: ' + schedule : '', dentists].filter(Boolean).join(' · ');
+      }).join('\n');
+    }
+    // Si no cabe en el campo, se quitan primero las especialidades y luego los dentistas, nunca direcciones u horarios.
+    var text = build(0);
+    if (text.length > 2400) text = build(1);
+    if (text.length > 2400) text = build(2);
+    return text.slice(0, 2400);
+  }
+  // ¿Lo que dice el campo coincide con las sucursales de Mi clínica ahora mismo?
+  function branchesSyncState(current, fresh) {
+    var norm = function (value) { return String(value || '').replace(/\s+/g, ' ').trim(); };
+    if (!norm(fresh)) return 'none';
+    if (!norm(current)) return 'empty';
+    return norm(current) === norm(fresh) ? 'ok' : 'stale';
+  }
+  function setAskBranchLine(text, on) {
+    var lines = String(text || '').split('\n').filter(function (line) { return line.trim() !== ASK_BRANCH_LINE; });
+    if (on) lines.push(ASK_BRANCH_LINE);
+    return lines.join('\n').trim().slice(0, 1600);
+  }
+  async function loadClinicBranches() {
+    try {
+      var tenant = window.tenantId;
+      var branches = await window.sb.from('smyl_branches').select('id,name,address_line,city,state,phone,is_default').eq('tenant_id', tenant).eq('active', true).order('is_default', { ascending: false }).order('name');
+      var hours = await window.sb.from('smyl_clinic_hours').select('branch_id,weekday,starts_at,ends_at,active').eq('tenant_id', tenant).eq('active', true);
+      state.clinicBranches = branches && branches.data || [];
+      state.clinicHours = hours && hours.data || [];
+      state.clinicTeam = [];
+      try {
+        var links = await window.sb.from('smyl_professional_branches').select('professional_id,branch_id').eq('tenant_id', tenant);
+        var pros = await window.sb.from('smyl_professionals').select('id,display_name,specialty').eq('tenant_id', tenant).eq('active', true).order('display_name');
+        var byId = {}; ((pros && pros.data) || []).forEach(function (row) { byId[row.id] = row; });
+        state.clinicTeam = ((links && links.data) || []).filter(function (row) { return byId[row.professional_id]; }).map(function (row) {
+          return { branch_id: row.branch_id, name: byId[row.professional_id].display_name, specialty: byId[row.professional_id].specialty || '' };
+        }).sort(function (a, b) { return a.name < b.name ? -1 : 1; });
+      } catch (_) { state.clinicTeam = []; }
+    } catch (_) { state.clinicBranches = []; state.clinicHours = []; state.clinicTeam = []; }
+    syncBranchTools();
+  }
+  function syncBranchTools() {
+    var tools = document.querySelector('[data-branch-tools]'), form = document.querySelector('[data-lana-training-form]');
+    if (!tools || !form) return;
+    tools.hidden = !(state.clinicBranches && state.clinicBranches.length > 1);
+    var check = tools.querySelector('[data-ask-branch]');
+    if (check && form.elements.intake_questions) check.checked = String(form.elements.intake_questions.value || '').indexOf(ASK_BRANCH_LINE) !== -1;
+    var note = tools.querySelector('[data-branch-sync]');
+    if (note && form.elements.branches) {
+      var status = branchesSyncState(form.elements.branches.value, branchesDescription(state.clinicBranches, state.clinicHours, state.clinicTeam));
+      note.dataset.state = status;
+      note.textContent = status === 'ok' ? 'Sucursales al día: el asistente tiene las direcciones, horarios y dentistas actuales de Mi clínica.'
+        : status === 'stale' ? 'Tus sucursales, horarios o dentistas ya no coinciden con este texto. Pulsa «Traer mis sucursales» y publica para que el asistente use lo actual.'
+        : status === 'empty' ? 'El asistente aún no conoce tus sucursales. Pulsa «Traer mis sucursales».' : '';
+    }
+  }
+  function bindBranchTools(root) {
+    root.addEventListener('click', function (event) {
+      var button = event.target.closest && event.target.closest('[data-import-branches]');
+      if (!button) return;
+      var form = document.querySelector('[data-lana-training-form]'), field = form && form.elements.branches;
+      if (!field) return;
+      if (String(field.value || '').trim() && !window.confirm('Esto reemplaza lo que escribiste en «Sucursales, direcciones y cobertura». ¿Continuar?')) return;
+      field.value = branchesDescription(state.clinicBranches, state.clinicHours, state.clinicTeam);
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    root.addEventListener('change', function (event) {
+      var check = event.target.closest && event.target.closest('[data-ask-branch]');
+      if (!check) return;
+      var form = document.querySelector('[data-lana-training-form]'), field = form && form.elements.intake_questions;
+      if (!field) return;
+      field.value = setAskBranchLine(field.value, check.checked);
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+
+  // Capacitar IA por etapas: el mismo formulario se reparte en 6 pasos; cada paso muestra solo lo suyo y su avance.
+  var TRAIN_STEPS = [
+    { key: 1, title: 'Identidad', hint: 'Cómo se llama y cómo habla tu asistente.' },
+    { key: 2, title: 'Tu clínica', hint: 'Lo que puede decir de tu clínica: solo información confirmada.' },
+    { key: 3, title: 'Sedes y servicios', hint: 'Dónde atiendes y qué ofreces.' },
+    { key: 4, title: 'Preguntas frecuentes', hint: 'Las respuestas que tu equipo repite todos los días.' },
+    { key: 5, title: 'Reglas de atención', hint: 'Cómo agenda, qué cobra, cuándo pasa con una persona.' },
+    { key: 6, title: 'Revisar y publicar', hint: 'Valida el borrador y publícalo cuando esté listo.' }
+  ];
+  var TRAIN_FIELD_STEP = { 'Identidad y voz': 1, 'La clínica': 2, 'Sucursales y operación': 3, 'Servicios confirmados': 3, 'Preguntas frecuentes': 4, 'Flujo de atención': 5, 'Memoria administrativa': 5 };
+  function trainingStepDone(key, form) {
+    var filled = function (name) { return Boolean(form.elements[name] && String(form.elements[name].value || '').trim()); };
+    var rows = function (selector) { return form.querySelectorAll(selector + ' .connections-repeat-row').length; };
+    if (key === 1) return filled('assistant_name') && filled('welcome_message');
+    if (key === 2) return filled('clinic_description') && filled('specialties') && (filled('location') || filled('hours'));
+    if (key === 3) return filled('branches') || rows('[data-service-list]') > 0;
+    if (key === 4) return rows('[data-faq-list]') > 0;
+    if (key === 5) return filled('appointment_policy') && filled('pricing_policy') && filled('emergency_policy');
+    return false;
+  }
+  // Avisos del paso final cuando la clínica tiene varias sucursales.
+  function multiBranchNotes(form) {
+    if (!(state.clinicBranches && state.clinicBranches.length > 1)) return '';
+    var notes = [];
+    var status = branchesSyncState(form.elements.branches && form.elements.branches.value, branchesDescription(state.clinicBranches, state.clinicHours, state.clinicTeam));
+    if (status === 'stale' || status === 'empty') notes.push(['Sucursales', status === 'empty' ? 'El asistente aún no conoce tus sucursales: usa «Traer mis sucursales» en el paso 3.' : 'El texto de sucursales no coincide con Mi clínica: usa «Traer mis sucursales» en el paso 3.']);
+    if (!(form.elements.intake_questions && String(form.elements.intake_questions.value || '').indexOf(ASK_BRANCH_LINE) !== -1)) notes.push(['Pregunta de sucursal', 'El asistente no preguntará a qué sucursal quiere ir el paciente. Actívalo en el paso 3.']);
+    return notes.map(function (note) { return '<li data-state="pending"><span aria-hidden="true">!</span><div><strong>' + note[0] + '</strong><small>' + note[1] + '</small></div></li>'; }).join('');
+  }
+  function goTrainingStep(key) {
+    var form = document.querySelector('[data-lana-training-form]');
+    if (!form) return;
+    state.trainStep = Math.max(1, Math.min(TRAIN_STEPS.length, Number(key) || 1));
+    updateTrainingSteps();
+    var top = document.querySelector('[data-train-steps]');
+    if (top && top.scrollIntoView) top.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+  function updateTrainingSteps() {
+    var form = document.querySelector('[data-lana-training-form]'), nav = document.querySelector('[data-train-steps]');
+    if (!form || !nav) return;
+    var current = state.trainStep || 1;
+    form.dataset.step = String(current);
+    nav.querySelectorAll('[data-train-go]').forEach(function (button) {
+      var key = Number(button.dataset.trainGo), done = key < 6 && trainingStepDone(key, form);
+      button.dataset.state = key === current ? 'current' : (done ? 'done' : 'pending');
+      button.querySelector('b').textContent = done && key !== current ? '✓' : String(key);
+      if (key === current) button.setAttribute('aria-current', 'step'); else button.removeAttribute('aria-current');
+    });
+    var info = TRAIN_STEPS[current - 1], intro = document.querySelector('[data-train-intro]');
+    if (intro) intro.innerHTML = '<span>Paso ' + current + ' de ' + TRAIN_STEPS.length + '</span><strong>' + info.title + '</strong><p>' + info.hint + '</p>';
+    var review = form.querySelector('[data-train-review]');
+    if (review) {
+      review.innerHTML = '<h3>Antes de publicar</h3><ul>' + TRAIN_STEPS.slice(0, 5).map(function (step) {
+        var done = trainingStepDone(step.key, form);
+        return '<li data-state="' + (done ? 'done' : 'pending') + '"><span aria-hidden="true">' + (done ? '✓' : '!') + '</span><div><strong>' + step.title + '</strong><small>' + (done ? 'Listo' : 'Falta información en este paso') + '</small></div><button type="button" data-train-go="' + step.key + '">' + (done ? 'Editar' : 'Completar') + '</button></li>';
+      }).join('') + (multiBranchNotes(form)) + '</ul>';
+    }
+    var back = form.querySelector('[data-train-back]'), next = form.querySelector('[data-train-next]');
+    if (back) { back.hidden = current === 1; back.disabled = false; }
+    if (next) { next.hidden = current === TRAIN_STEPS.length; next.disabled = false; }
+  }
+  function initTrainingSteps(root) {
+    var form = root.querySelector('[data-lana-training-form]');
+    if (!form || form.dataset.stepsReady) return;
+    form.dataset.stepsReady = 'true';
+    form.querySelectorAll('fieldset').forEach(function (fieldset) {
+      var legend = fieldset.querySelector('legend'), key = legend && TRAIN_FIELD_STEP[legend.textContent.trim()];
+      if (key) fieldset.dataset.trainStep = String(key);
+    });
+    var guard = form.querySelector('.connections-context-guard'); if (guard) guard.dataset.trainStep = '5';
+    var validation = form.querySelector('[data-training-validation]'); if (validation) validation.dataset.trainStep = '6';
+    var review = node('div', 'connections-train-review'); review.dataset.trainReview = 'true'; review.dataset.trainStep = '6';
+    if (validation) validation.before(review); else form.append(review);
+    var nav = node('ol', 'connections-train-steps'); nav.dataset.trainSteps = 'true'; nav.setAttribute('aria-label', 'Etapas de la capacitación');
+    TRAIN_STEPS.forEach(function (step) {
+      var item = node('li'), button = node('button'); button.type = 'button'; button.dataset.trainGo = String(step.key);
+      button.append(node('b', '', String(step.key)), node('span', '', step.title)); item.append(button); nav.append(item);
+    });
+    var intro = node('div', 'connections-train-intro'); intro.dataset.trainIntro = 'true'; intro.setAttribute('aria-live', 'polite');
+    form.before(nav, intro);
+    var actions = form.querySelector('.connections-training-actions');
+    var back = node('button', 'btn btn-secondary', '← Atrás'); back.type = 'button'; back.dataset.trainBack = 'true'; back.dataset.trainNav = 'true';
+    var next = node('button', 'btn btn-primary', 'Continuar →'); next.type = 'button'; next.dataset.trainNext = 'true'; next.dataset.trainNav = 'true';
+    if (actions) { actions.prepend(back); actions.querySelector('[data-save-training]').after(next); }
+    root.addEventListener('click', function (event) {
+      var go = event.target.closest && event.target.closest('[data-train-go]');
+      if (go) { goTrainingStep(go.dataset.trainGo); return; }
+      if (event.target.closest && event.target.closest('[data-train-back]')) goTrainingStep((state.trainStep || 1) - 1);
+      else if (event.target.closest && event.target.closest('[data-train-next]')) goTrainingStep((state.trainStep || 1) + 1);
+    });
+    form.addEventListener('input', function () { updateTrainingSteps(); syncBranchTools(); });
+    state.trainStep = 1;
+    updateTrainingSteps();
+  }
+
   function renderTrainingMeta() {
     var badge = document.querySelector('[data-training-state]');
     var version = document.querySelector('[data-training-version]');
@@ -615,6 +821,9 @@
     form.querySelectorAll('input,textarea,select,button').forEach(function (control) { control.disabled = !editable; });
     renderValidation(data.validation || null);
     renderTrainingMeta();
+    syncBranchTools();
+    form.querySelectorAll('[data-train-nav]').forEach(function (control) { control.disabled = false; });
+    updateTrainingSteps();
     contextStatus(state.draftRevision ? 'Borrador sincronizado. Publicar es una acción separada.' : 'Completa y guarda tu primer borrador.', state.draftRevision ? 'success' : '');
   }
 
@@ -935,6 +1144,9 @@
     page.id = 'p-conexiones';
     page.innerHTML = pageMarkup();
     document.querySelector('.contenido').append(page);
+    bindBranchTools(page);
+    initTrainingSteps(page);
+    loadClinicBranches();
     page.querySelector('[data-lana-form]').addEventListener('submit', connect);
     page.querySelector('[data-provision-lana]').addEventListener('click', provision);
     page.querySelector('[data-retry-channels]').addEventListener('click', loadChannels);

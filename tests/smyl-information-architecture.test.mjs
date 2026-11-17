@@ -33,8 +33,8 @@ test('las herramientas de baja frecuencia ya no compiten en el primer nivel', ()
 test('Canales e IA tiene un espacio por canal y herramientas compartidas', () => {
   assert.match(nav, /\['channels','Estado','R','general'\]/);
   assert.match(nav, /\['whatsapp','WhatsApp','<img src="icons\/brands\/whatsapp\.svg" alt="">','channels'\]/);
-  assert.match(nav, /\['messenger','Messenger','M','channels'\]/);
-  assert.match(nav, /\['instagram','Instagram','I','channels'\]/);
+  assert.match(nav, /\['messenger','Messenger','<img src="icons\/brands\/messenger\.svg" alt="">','channels'\]/);
+  assert.match(nav, /\['instagram','Instagram','<img src="icons\/brands\/instagram\.svg" alt="">','channels'\]/);
   assert.match(nav, /\['assistant','SMYL Asistente','A','tools'\]/);
   assert.match(nav, /\['templates','Plantillas','P','tools'\]/);
   assert.match(nav, /\['automations','Automatizaciones','⌁','tools'\]/);

@@ -36,10 +36,10 @@ test('additional instructions support editable Spanish voice dictation', () => {
 
 test('voice note and prompt updates are cache-busted together', () => {
   assert.match(html, /visual-simulation\.js\?v=32/);
-  assert.match(html, /smyl-studio\.js\?v=30/);
+  assert.match(html, /smyl-studio\.js\?v=31/);
   assert.match(html, /smyl-studio\.css\?v=31/);
   assert.match(sw, /voice-notes-v12/);
   assert.match(sw, /visual-simulation\.js\?v=32/);
-  assert.match(sw, /smyl-studio\.js\?v=30/);
+  assert.match(sw, /smyl-studio\.js\?v=31/);
   assert.match(sw, /smyl-studio\.css\?v=31/);
 });

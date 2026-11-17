@@ -37,7 +37,7 @@ test('la agenda marca a la persona como por registrar en lista y semana', () => 
 
 test('completar el registro exige un nombre real y marca el estado como completo', () => {
   assert.match(app, /nombre\.indexOf\('Por registrar · '\) === 0\) \{ alert\(/);
-  assert.match(app, /registro_estado === 'pendiente'\) datos\.registro_estado = 'completo'/);
+  assert.match(app, /previo\.registro_estado === 'pendiente' \|\| previo\.registro_estado === 'por_verificar'\)\) datos\.registro_estado = 'completo'/);
 });
 
 test('copias móviles idénticas', () => {
@@ -98,3 +98,19 @@ test('fase 2 · Pacientes ofrece «Enviar enlace de registro» solo si está pen
   assert.match(app, /sb\.rpc\('smyl_create_registration_link'/);
   assert.match(app, /wa\.me\//);
 });
+
+// ── Fase 2b: «por verificar» ──
+const verify = read('../supabase/migrations/20261115150000_smyl_patient_registration_verify.sql');
+
+test('fase 2b · el envío deja la ficha por verificar y el estado existe en la restricción', () => {
+  assert.match(verify, /check \(registro_estado in \('completo','pendiente','por_verificar'\)\)/);
+  assert.match(verify, /registro_estado = 'por_verificar',\s+updated_at = now\(\)/);
+  assert.doesNotMatch(verify, /registro_estado = 'completo',\s+updated_at/);
+  assert.match(verify, /grant execute on function public\.smyl_submit_registration\(text, text, text, text, date, text, boolean\) to anon, authenticated/);
+});
+
+test('fase 2b · Pacientes muestra Por verificar y permite confirmar solo ese estado', () => {
+  assert.match(app, /porVerificar \? 'Por verificar'/);
+  assert.match(app, /confirmarDatosPaciente\(p, ok\)/);
+  assert.match(app, /\.eq\('registro_estado', 'por_verificar'\)/);
+  });

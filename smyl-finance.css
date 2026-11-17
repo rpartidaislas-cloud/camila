@@ -1062,3 +1062,64 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
 .finance-receipt-material span{font-size:12px;font-weight:700;letter-spacing:.04em;color:#5b6b7e}
 .finance-receipt-material ul{margin:6px 0;padding-left:18px;font-size:13px}
 .finance-receipt-material small{color:#6b7a8c}
+
+/* Cobros · paso 1: acciones arriba, indicadores con su siguiente paso, acciones ligeras y un solo contador. */
+#p-caja .finance-page-head{display:flex;justify-content:flex-end;margin:0 0 12px}
+#p-caja .finance-page-head .finance-head-actions{margin:0}
+#p-caja .finance-bar{justify-content:flex-start}
+#p-caja .finance-metrics article small .finance-metric-warn{color:#b45309;font-weight:700}
+#p-caja .finance-metrics article small u{color:#0f766e;font-weight:700;text-decoration:underline;text-underline-offset:2px}
+#p-caja .finance-metrics article small u:hover{color:#0b5d56}
+#p-caja .finance-link-action{flex:0 0 auto;min-height:32px;padding:0 6px;border:0!important;background:transparent!important;box-shadow:none!important;color:#5b6b78;font-weight:700;cursor:pointer}
+#p-caja .finance-link-action:hover{color:#10283b;text-decoration:underline}
+#p-caja .finance-account-open{min-height:32px;padding:0 6px;border:0!important;background:transparent!important;box-shadow:none!important;color:#0f766e;font-weight:700;cursor:pointer}
+#p-caja .finance-account-open::after{content:" →"}
+#p-caja .finance-account-open:hover{text-decoration:underline}
+#p-caja .finance-visit-row:is([data-visit-state="arrived"],[data-visit-state="in_progress"]) .btn-primary{border:1px solid #cdd8e0;background:#fff;color:#10283b;box-shadow:none}
+#p-caja .finance-account-quiet small{color:#7a8a97}
+#p-caja .finance-empty-clear{display:grid;justify-items:center;gap:6px;padding:26px 16px;text-align:center}
+#p-caja .finance-empty-clear .btn{margin-top:6px}
+#p-caja .finance-account-filters .finance-more-filters{flex:0 0 auto;width:auto;min-width:0;max-width:150px;height:32px!important;min-height:0!important;padding:0 8px;border:1px solid #dbe3e9;border-radius:8px;background:#fff;color:#5b6b78;font:600 12px/16px Inter,system-ui,sans-serif!important;cursor:pointer}
+@media(max-width:700px){
+  #p-caja .finance-page-head{display:block}
+  #p-caja .finance-page-head .finance-head-actions{display:flex;width:100%;gap:8px}
+  #p-caja .finance-page-head #finance-guided-collection{flex:1 1 auto}
+  #p-caja .finance-metrics article:nth-child(n+3){min-height:0;padding:9px 12px}
+  #p-caja .finance-metrics article:nth-child(n+3) strong{font-size:16px}
+  #p-caja .finance-metrics small{white-space:normal;overflow:visible;text-overflow:clip}
+  #p-caja .finance-account-filters .finance-more-filters{grid-column:1/-1;width:100%;max-width:none;height:40px}
+  #p-caja .finance-tabs{display:flex;width:100%}
+  #p-caja .finance-tabs button{flex:1 1 auto;padding-left:8px;padding-right:8px;white-space:nowrap}
+}
+
+/* Cobros · paso 2: la ayuda de caja vive dentro de «Mi turno» y los botones sin clase dejan de verse como los del navegador. */
+#p-caja .finance-cash-card{max-width:860px}
+#p-caja .finance-cash-help{margin:14px 0 0;padding:10px 0 0;border-top:1px solid #e8edf2;color:#5b6b78;font-size:13px;line-height:20px}
+#p-caja .finance-cash-help summary{cursor:pointer;font-weight:700;color:#0f766e;list-style:none}
+#p-caja .finance-cash-help summary::-webkit-details-marker{display:none}
+#p-caja .finance-cash-help summary::after{content:" ▾"}
+#p-caja .finance-cash-help[open] summary::after{content:" ▴"}
+#p-caja .finance-cash-help ul{margin:8px 0 0 18px}
+#p-caja .finance-cash-help li{margin-top:3px}
+#p-caja .finance-fiscal-readiness .btn-secondary,#p-caja .finance-actions .btn-secondary,#p-caja .finance-team-cash .btn-secondary{min-height:36px;padding:0 14px;border:1px solid #cdd8e0;background:#fff;color:#10283b;font-weight:700;box-shadow:none}
+#p-caja .finance-fiscal-readiness .btn-secondary:hover,#p-caja .finance-actions .btn-secondary:hover,#p-caja .finance-team-cash .btn-secondary:hover{border-color:#91b8b4;background:#f1faf8}
+@media(max-width:700px){
+  #p-caja .finance-visit-row .finance-row-actions .finance-link-action{flex:0 0 auto;padding:0 14px}
+  #p-caja .finance-fiscal-readiness .btn-secondary{flex:1 1 100%}
+}
+@media(max-width:700px){#p-caja .finance-issuer-card{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}#p-caja .finance-issuer-card .finance-badge{justify-self:start}}
+@media(max-width:700px){#p-caja .finance-fiscal-receipt-filters{display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow:visible}#p-caja .finance-fiscal-receipt-filters button{justify-content:center;min-height:40px}}
+
+/* Cobros · paso 3: cobro directo en la fila, lista de cuentas más corta y aviso con el siguiente pendiente. */
+#p-caja .finance-metrics article small .finance-metric-cut{display:inline-flex;align-items:center;min-height:26px;padding:0 10px;border:1px solid #e4b66f;border-radius:8px;background:#fff7e8;color:#8a4b00;font-weight:700;text-decoration:none}
+#p-caja .finance-visit-row small b{color:#12233f}
+#p-caja .finance-row-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+#p-caja .finance-row-pay{min-height:32px;padding:0 12px;font-size:12px}
+#p-caja .finance-empty-fold{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-top:1px solid #e8edf2;background:#f8fafb;color:#5b6b78;font-size:13px;line-height:18px}
+#p-caja .finance-empty-fold button{padding:0;border:0;background:transparent;color:#0f766e;font:700 13px/18px Inter,system-ui,sans-serif;cursor:pointer}
+#p-caja .finance-empty-fold button:hover{text-decoration:underline}
+#p-caja .finance-notice-action{padding:0 4px;border:0;background:transparent;color:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
+@media(max-width:700px){#p-caja .finance-row-actions{justify-content:stretch}#p-caja .finance-row-pay{flex:1 1 auto;min-height:40px}}
+#p-caja .finance-toolbar>input{max-width:250px}
+#p-caja .finance-account-filters button{white-space:nowrap}
+#p-caja .finance-account-filters .finance-more-filters{max-width:112px}

@@ -24,6 +24,7 @@ function setup() {
   fs.writeFileSync(path.join(bin, 'npx'), `#!/bin/bash
 [ "$1" = "supabase" ] || exit 1; shift
 [ -n "$FAKE_LOG" ] && echo "$@" >> "$FAKE_LOG"
+if [ "$1" = "--workdir" ]; then shift 2; fi
 EXP=""; if [ "$1" = "--experimental" ]; then EXP=1; shift; fi
 bad_flag() {
   if [ "$FAKE_CLI" = "3" ] && [[ "$*" == *"--linked"* ]]; then echo "unknown flag: --linked" >&2; exit 1; fi
@@ -39,11 +40,17 @@ case "$1 $2" in
     bad_flag "$@"
     f="\${@: -1}"
     if [[ "$*" == *"--role-only"* ]]; then echo "CREATE ROLE anon;" > "$f"
-    elif [[ "$*" == *"--data-only"* ]]; then printf 'COPY public.camila_tenants (id) FROM stdin;\\n1\\n\\\\.\\nCOPY auth.users (id) FROM stdin;\\n1\\n\\\\.\\n' > "$f"
+    elif [[ "$*" == *"--data-only"* ]]; then printf 'COPY "public"."camila_tenants" (id) FROM stdin;\\n1\\n\\\\.\\nCOPY "auth"."users" (id) FROM stdin;\\n1\\n\\\\.\\n' > "$f"
     else echo "CREATE TABLE public.camila_tenants (id uuid);" > "$f"; fi;;
   "storage cp") bad_flag "$@"
     dest="\${@: -1}"; [ -n "$FAIL_BUCKET" ] && [[ "$*" == *"$FAIL_BUCKET"* ]] && { echo "error de prueba: sin permiso (clave $SUPABASE_DB_PASSWORD)" >&2; exit 1; }
-    mkdir -p "$dest"; echo "objeto uno" > "$dest/a.png"; echo "objeto dos" > "$dest/b.png";;
+    # Como la CLI 2.x real: un destino con «:» (C:\…) se toma por URL y se rechaza.
+    if [[ "$dest" == *:* ]]; then echo "Unsupported operation" >&2; exit 1; fi
+    if [ -n "$FAKE_FLAKY_FILE" ]; then n=$(cat "$FAKE_FLAKY_FILE" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "$FAKE_FLAKY_FILE"
+      if [ "$n" -le "$FAKE_FLAKY_FAILS" ]; then mkdir -p "$dest"; echo "parcial" > "$dest/parcial.tmp"; echo "failed to execute http request: HttpClientError: Transport error" >&2; exit 1; fi; fi
+    [ -n "$FAKE_CP_NESTED" ] && dest="$dest/$dest"
+    mkdir -p "$dest"; echo "objeto uno" > "$dest/a.png"; echo "objeto dos" > "$dest/b.png"
+    if [ -n "$FAKE_INNER_SAME" ]; then mkdir -p "$dest/$(basename "$dest")"; echo "objeto tres" > "$dest/$(basename "$dest")/c.png"; fi;;
 esac
 `, { mode: 0o755 });
   fs.writeFileSync(path.join(bin, 'docker'), `#!/bin/bash
@@ -59,7 +66,7 @@ function runBackup(ctx, out, extraEnv = {}) {
   return spawnSync(process.execPath, [backupScript, `--out=${out}`, ...(extraEnv.args || [])], {
     encoding: 'utf8',
     env: { ...process.env, PATH: `${ctx.bin}:${process.env.PATH}`, TMPDIR: ctx.tmp, FAKE_BUCKETS: BUCKETS.join(' '),
-      SMYL_BACKUP_CONFIRM: 'EXPORT_ENCRYPTED_CLINICAL_BACKUP', SMYL_BACKUP_AGE_RECIPIENT: ctx.recipient, SUPABASE_DB_PASSWORD: 'secreto123', FAKE_LOG: path.join(ctx.dir, 'cli.log'), FAKE_CLI: '', FAKE_STORAGE_EXPERIMENTAL: '', FAKE_DOCKER_DOWN: '', ...extraEnv.env }
+      SMYL_BACKUP_CONFIRM: 'EXPORT_ENCRYPTED_CLINICAL_BACKUP', SMYL_BACKUP_AGE_RECIPIENT: ctx.recipient, SUPABASE_DB_PASSWORD: 'secreto123', FAKE_LOG: path.join(ctx.dir, 'cli.log'), FAKE_CLI: '', FAKE_STORAGE_EXPERIMENTAL: '', FAKE_DOCKER_DOWN: '', SMYL_BACKUP_RETRY_WAIT_MS: '0', ...extraEnv.env }
   });
 }
 const verify = (ctx, bundle, key = ctx.key) => spawnSync(process.execPath, [verifyScript, `--bundle=${bundle}`, `--identity=${key}`], { encoding: 'utf8', env: { ...process.env, TMPDIR: ctx.tmp } });
@@ -137,7 +144,7 @@ test('la verificación detecta un paquete alterado y una clave equivocada', { sk
 test('la verificación avisa si faltan las cuentas de acceso (auth.users)', { skip }, () => {
   const ctx = setup();
   try {
-    const fake = fs.readFileSync(path.join(ctx.bin, 'npx'), 'utf8').replace('COPY auth.users', 'COPY otra.tabla');
+    const fake = fs.readFileSync(path.join(ctx.bin, 'npx'), 'utf8').replace('COPY "auth"."users"', 'COPY "otra"."tabla"');
     fs.writeFileSync(path.join(ctx.bin, 'npx'), fake, { mode: 0o755 });
     const out = path.join(ctx.dir, 'paquete');
     assert.equal(runBackup(ctx, out).status, 0);
@@ -199,5 +206,91 @@ test('cuando la CLI falla se muestra el motivo, sin la contraseña', { skip }, (
     assert.doesNotMatch(result.stderr, /secreto123/, 'la contraseña nunca se imprime');
     assert.match(result.stderr, /\*\*\*/);
     assert.deepEqual(fs.readdirSync(ctx.tmp), []);
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('la descarga de Storage usa un destino relativo (sin letra de unidad) y --workdir', { skip }, () => {
+  const ctx = setup();
+  try {
+    const result = runBackup(ctx, path.join(ctx.dir, 'paquete'));
+    assert.equal(result.status, 0, result.stderr);
+    const log = fs.readFileSync(path.join(ctx.dir, 'cli.log'), 'utf8');
+    const cp = log.split('\n').filter((line) => /storage cp/.test(line));
+    assert.equal(cp.length, BUCKETS.length);
+    for (const line of cp) {
+      assert.match(line, /^--workdir \S+ .*storage cp --linked --recursive ss:\/\/\/[a-z-]+ [a-z-]+$/, line);
+      assert.doesNotMatch(line.split(' ').pop(), /[:\\\/]/, 'el destino debe ser relativo');
+    }
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('si la CLI anida el bucket dentro de sí mismo, el respaldo lo aplana', { skip }, () => {
+  const ctx = setup();
+  try {
+    const out = path.join(ctx.dir, 'paquete');
+    const result = runBackup(ctx, out, { env: { FAKE_CP_NESTED: '1' } });
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(fs.readFileSync(path.join(out, 'manifest.json'), 'utf8'));
+    assert.equal(Object.values(manifest.storage).reduce((sum, item) => sum + item.objects, 0), BUCKETS.length * 2);
+    const tarList = spawnSync('bash', ['-c', `age --decrypt -i ${ctx.key} ${out}/storage.tar.age | tar -t`], { encoding: 'utf8' }).stdout;
+    assert.match(tarList, /\.\/camila-fotos\/a\.png/);
+    assert.doesNotMatch(tarList, /camila-fotos\/camila-fotos/, 'sin anidación');
+    assert.equal(verify(ctx, out).status, 0);
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('un corte de red en la descarga se reintenta y no deja restos parciales', { skip }, () => {
+  const ctx = setup();
+  try {
+    const out = path.join(ctx.dir, 'paquete');
+    const result = runBackup(ctx, out, { env: { FAKE_FLAKY_FILE: path.join(ctx.dir, 'flaky.count'), FAKE_FLAKY_FAILS: '2' } });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stderr, /se reintenta/);
+    const manifest = JSON.parse(fs.readFileSync(path.join(out, 'manifest.json'), 'utf8'));
+    assert.equal(Object.values(manifest.storage).reduce((sum, item) => sum + item.objects, 0), BUCKETS.length * 2, 'sin el archivo parcial');
+    assert.equal(verify(ctx, out).status, 0);
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('si la red falla en todos los intentos, aborta y limpia lo temporal', { skip }, () => {
+  const ctx = setup();
+  try {
+    const result = runBackup(ctx, path.join(ctx.dir, 'paquete'), { env: { FAKE_FLAKY_FILE: path.join(ctx.dir, 'flaky.count'), FAKE_FLAKY_FAILS: '99' } });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /falló tras 4 intentos/);
+    assert.deepEqual(fs.readdirSync(ctx.tmp), []);
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('aplanar funciona aunque el bucket tenga una carpeta con su mismo nombre (EPERM en Windows)', { skip }, () => {
+  const ctx = setup();
+  try {
+    const out = path.join(ctx.dir, 'paquete');
+    const result = runBackup(ctx, out, { env: { FAKE_CP_NESTED: '1', FAKE_INNER_SAME: '1' } });
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(fs.readFileSync(path.join(out, 'manifest.json'), 'utf8'));
+    assert.equal(Object.values(manifest.storage).reduce((sum, item) => sum + item.objects, 0), BUCKETS.length * 3);
+    const tarList = spawnSync('bash', ['-c', `age --decrypt -i ${ctx.key} ${out}/storage.tar.age | tar -t`], { encoding: 'utf8' }).stdout;
+    assert.match(tarList, /\.\/camila-fotos\/camila-fotos\/c\.png/, 'la carpeta real del bucket se conserva');
+    assert.match(tarList, /\.\/camila-fotos\/a\.png/);
+    assert.doesNotMatch(tarList, /aplanar/);
+    assert.equal(verify(ctx, out).status, 0);
+  } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
+});
+
+test('el verificador cuenta bien aunque tar termine las líneas con CRLF (Windows) y pg_dump cite los nombres', { skip }, () => {
+  const ctx = setup();
+  try {
+    const out = path.join(ctx.dir, 'paquete');
+    const created = runBackup(ctx, out, { env: { FAKE_CP_NESTED: '1' } });
+    assert.equal(created.status, 0, created.stderr);
+    const realTar = spawnSync('bash', ['-c', 'command -v tar'], { encoding: 'utf8' }).stdout.trim();
+    // tar.exe de Windows lista con \r\n: se imita con un envoltorio que sólo cambia el listado.
+    fs.writeFileSync(path.join(ctx.bin, 'tar'), `#!/bin/bash
+if [ "$1" = "-tf" ]; then ${realTar} "$@" | sed 's/$/\r/'; else exec ${realTar} "$@"; fi
+`, { mode: 0o755 });
+    const result = verify(ctx, out);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(JSON.parse(result.stdout).decision, 'PASS');
   } finally { fs.rmSync(ctx.dir, { recursive: true, force: true }); }
 });

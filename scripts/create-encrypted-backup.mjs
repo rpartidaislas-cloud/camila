@@ -11,8 +11,13 @@ const BUCKETS = [
   'camila-fotos', 'camila-masks', 'camila-analisis',
   'smyl-case-photos', 'smyl-radiographs', 'smyl-clinical-files',
   'smyl-proposal-photos', 'smyl-professional-cv', 'smyl-professional-cases',
-  'smyl-professional-public', 'mila-audio',
+  'smyl-professional-public', 'mila-audio', 'smyl-cloud',
 ];
+const STORAGE_ATTEMPTS = 4;
+const RETRY_WAIT_MS = Number.isFinite(Number(process.env.SMYL_BACKUP_RETRY_WAIT_MS)) ? Number(process.env.SMYL_BACKUP_RETRY_WAIT_MS) : 5000;
+const sleep = (ms) => { if (ms > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); };
+// El avance va a stderr (el resultado JSON final sigue solo en stdout) y no incluye datos clínicos.
+const progress = (text) => console.error(`[${new Date().toTimeString().slice(0, 8)}] ${text}`);
 const dryRun = process.argv.includes('--dry-run');
 const outputArg = process.argv.find((arg) => arg.startsWith('--out='));
 const recipient = String(process.env.SMYL_BACKUP_AGE_RECIPIENT || '').trim();
@@ -81,7 +86,8 @@ try {
   const TARGET = /--linked\b/.test(dumpHelpText) ? '--linked' : /--remote\b/.test(dumpHelpText) ? '--remote' : '--linked';
   // Los comandos de Storage son «experimentales» en algunas versiones: si fallan sin la bandera, se reintenta con ella.
   let experimental = false;
-  const storageCmd = (...rest) => ['supabase', ...(experimental ? ['--experimental'] : []), 'storage', ...rest];
+  // --workdir apunta al repo (ahí está el enlace con el proyecto) porque la descarga se ejecuta desde la carpeta temporal.
+  const storageCmd = (...rest) => ['supabase', '--workdir', ROOT, ...(experimental ? ['--experimental'] : []), 'storage', ...rest];
   let listing = exec('npx', storageCmd('ls', TARGET, 'ss:///'));
   if (listing.status !== 0) {
     experimental = true;
@@ -115,17 +121,42 @@ try {
       ['schema.sql', ['supabase', 'db', 'dump', TARGET, '--file']],
       ['data.sql', ['supabase', 'db', 'dump', TARGET, '--data-only', '--use-copy', '--exclude', 'storage.buckets_vectors', '--exclude', 'storage.vector_indexes', '--file']],
     ];
-    for (const [name, args] of dumps) run('npx', [...args, path.join(plain, name)]);
+    for (const [name, args] of dumps) { progress(`Base de datos: ${name}…`); run('npx', [...args, path.join(plain, name)]); }
 
     const storageCounts = {};
-    for (const bucket of BUCKETS) {
+    for (const [index, bucket] of BUCKETS.entries()) {
+      progress(`Storage ${index + 1}/${BUCKETS.length}: ${bucket}…`);
       const destination = path.join(storageDir, bucket);
       fs.mkdirSync(destination, { recursive: true });
-      run('npx', storageCmd('cp', TARGET, '--recursive', `ss:///${bucket}`, destination));
+      // La CLI 2.x toma una ruta con letra de unidad (C:\...) por una URL y rechaza la copia («Unsupported operation»):
+      // se ejecuta desde la carpeta de Storage con un destino relativo, sin dos puntos.
+      // Un corte de red momentáneo («Transport error») no debe tirar un respaldo de horas: se reintenta el bucket completo
+      // desde cero (se vacía lo parcial para no mezclar descargas) y sólo se aborta si falla todas las veces.
+      for (let attempt = 1; ; attempt += 1) {
+        const result = exec('npx', storageCmd('cp', TARGET, '--recursive', `ss:///${bucket}`, bucket), { cwd: storageDir });
+        if (result.status === 0) break;
+        if (attempt >= STORAGE_ATTEMPTS) abort(`npx supabase storage cp ${bucket} falló tras ${STORAGE_ATTEMPTS} intentos.\n${failureDetail(result)}`);
+        console.error(`Aviso · la descarga de «${bucket}» falló (intento ${attempt} de ${STORAGE_ATTEMPTS}); se reintenta.`);
+        fs.rmSync(destination, { recursive: true, force: true });
+        fs.mkdirSync(destination, { recursive: true });
+        sleep(RETRY_WAIT_MS * attempt);
+      }
+      // Algunas versiones crean <bucket>/<bucket>/…: se aplana para que el respaldo quede como <bucket>/<objeto>.
+      const top = fs.readdirSync(destination, { withFileTypes: true });
+      if (top.length === 1 && top[0].isDirectory() && top[0].name === bucket) {
+        // El bucket puede tener dentro una carpeta con su mismo nombre (<bucket>/<bucket>/<bucket>/…): mover sus hijos
+        // directo chocaría con la carpeta que se está vaciando (EPERM). Se aparta primero con un nombre que no existe.
+        const nested = path.join(destination, bucket);
+        const parked = path.join(destination, `.aplanar-${process.pid}`);
+        fs.renameSync(nested, parked);
+        for (const entry of fs.readdirSync(parked)) fs.renameSync(path.join(parked, entry), path.join(destination, entry));
+        fs.rmdirSync(parked);
+      }
       const files = listFiles(destination);
       storageCounts[bucket] = { objects: files.length, bytes: files.reduce((sum, file) => sum + fs.statSync(file).size, 0) };
     }
 
+    progress('Empaquetando y cifrando…');
     const archive = path.join(plain, 'storage.tar');
     run('tar', ['-cf', archive, '-C', storageDir, '.']);
     const sources = ['roles.sql', 'schema.sql', 'data.sql', 'storage.tar'];

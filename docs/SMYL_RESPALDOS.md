@@ -6,16 +6,16 @@ las tres capas y dice qué comprueba cada herramienta.
 | Capa | Qué protege | Quién la hace | Cómo se sabe que funciona |
 |---|---|---|---|
 | 1. Respaldos administrados de Supabase | Base de datos (diario / PITR según plan) | Supabase | Panel → Database → Backups: fecha del último y plan. **Se revisa a mano.** |
-| 2. Paquete cifrado SMYL | Base + 11 buckets de Storage, fuera de Supabase | `create-encrypted-backup.mjs` | `verify-encrypted-backup.mjs` (hash + descifrado + contenido) |
+| 2. Paquete cifrado SMYL | Base + 12 buckets de Storage, fuera de Supabase | `create-encrypted-backup.mjs` | `verify-encrypted-backup.mjs` (hash + descifrado + contenido) |
 | 3. Simulacro de restauración | Que todo lo anterior realmente se puede levantar | Persona responsable | Evidencia validada con `validate-restore-evidence.mjs` |
 
 Estado al 2026-11-08: la capa 2 estaba **sin probar** y tenía dos defectos (faltaban `smyl-professional-public` y
 `mila-audio`; un fallo dejaba datos en claro en el temporal). Corregidos y cubiertos por `tests/backup-behaviour.test.mjs`.
 La capa 3 **nunca se ha ejecutado**.
 
-## Buckets cubiertos (11)
+## Buckets cubiertos (12)
 `camila-fotos`, `camila-masks`, `camila-analisis`, `smyl-case-photos`, `smyl-radiographs`, `smyl-clinical-files`,
-`smyl-proposal-photos`, `smyl-professional-cv`, `smyl-professional-cases`, `smyl-professional-public`, `mila-audio`.
+`smyl-proposal-photos`, `smyl-professional-cv`, `smyl-professional-cases`, `smyl-professional-public`, `mila-audio`, `smyl-cloud`.
 El script **falla cerrado** si el proyecto tiene un bucket que no está en esa lista (se creó a mano en el panel):
 agrégalo a `BUCKETS`, o define `SMYL_BACKUP_ALLOW_UNLISTED=1` sabiendo que quedará sin respaldo.
 
@@ -88,7 +88,7 @@ así, un comando escrito de más no puede tocar `rpxshsiwoxdbuevjjpfw`.
    `session_replication_role = replica` desactiva disparadores y llaves foráneas mientras se cargan los datos. Con `--single-transaction`, si algo falla no queda un
    proyecto a medias: se corrige y se repite.
 5. **Historial de migraciones:** compara `select count(*) from supabase_migrations.schema_migrations;` entre producción y el desechable (Dashboard → SQL Editor, sólo lectura). Deben coincidir.
-6. **Storage.** `tar -xf storage.tar -C storage` y, por cada bucket, `npx supabase storage cp --linked --recursive storage\<bucket> ss:///<bucket>` (los buckets deben existir antes en el
+6. **Storage.** `tar -xf storage.tar -C storage` y, por cada bucket, `npx supabase --experimental storage cp --linked --recursive storage\<bucket> ss:///<bucket>` (ruta **relativa**, sin `C:\`: la CLI 2.x toma una letra de unidad por una URL) (los buckets deben existir antes en el
    proyecto desechable: créalos con el mismo nombre y el mismo carácter público/privado). Nunca insertes filas en `storage.objects`. Compara cantidad por bucket con `manifest.json` y el SHA-256 de al menos 10 objetos
    (`Get-FileHash <archivo> -Algorithm SHA256` contra el archivo original descifrado).
 7. **Comprueba la aplicación:** iniciar sesión con una cuenta real de prueba (depende de `auth.users`), que RLS aísla dos clínicas
@@ -104,6 +104,9 @@ El validador sólo lee el JSON: **la evidencia vale tanto como la honestidad de 
 | Síntoma | Causa probable | Qué hacer |
 |---|---|---|
 | `ABORTADO · Docker no responde` | Docker Desktop cerrado | Ábrelo y espera «Engine running» |
+| `Transport error` al descargar Storage | Corte de red momentáneo | El script reintenta cada bucket hasta 4 veces. Si aun así aborta, revisa tu conexión, borra la carpeta de salida y repite |
+| `Unsupported operation` al copiar Storage | La CLI 2.x rechaza rutas con letra de unidad (`C:\\`) | Ya está resuelto en el script (destino relativo). Si lo ves en otro comando, usa rutas relativas |
+| `Unsupported operation` al copiar Storage | La CLI 2.x rechaza rutas con letra de unidad (`C:\`) | Ya está resuelto en el script (destino relativo). Si lo ves en otro comando, usa rutas relativas |
 | `ABORTADO · supabase storage ls falló` | Proyecto no enlazado o sesión vencida | `npx supabase login` y `npx supabase link --project-ref rpxshsiwoxdbuevjjpfw` (en `projects list` Smyl debe tener ●) |
 | `ABORTADO · Define la contraseña … SUPABASE_DB_PASSWORD` | Falta la variable de la ventana actual | Repite el bloque con `Read-Host` |
 | `ABORTADO · El proyecto tiene buckets sin respaldo: X` | Bucket creado a mano que el script no conoce | Agrégalo a `BUCKETS` en `scripts/create-encrypted-backup.mjs` (o `SMYL_BACKUP_ALLOW_UNLISTED=1` sabiendo que quedará sin respaldo) |

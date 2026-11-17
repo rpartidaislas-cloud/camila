@@ -28,6 +28,7 @@
     campaign: '<path d="M4 13v-2l12-5v12L4 13Z"/><path d="M8 14v5a2 2 0 0 0 2 2h1v-6M18 9a3 3 0 0 1 0 6"/>',
     settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>',
     more: '<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',
+    cloud: '<path d="M18 10a6 6 0 0 0-11.7-1.8A4.5 4.5 0 0 0 7 17h11a3.5 3.5 0 0 0 0-7z"/>',
     plus: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>'
   };
 
@@ -54,11 +55,12 @@
     ['Servicios y tarifas', 'precios', 'pricing'],
     ['Inventario', 'inventario', 'inventory'],
     ['Reportes', 'reportes', 'reports'],
+    ['Nube', 'nube', 'cloud'],
     ['Simulaciones', 'historial', 'history']
   ];
   // Todos los ajustes viven ahora en la pantalla Configuración (smyl-settings-hub.js), ordenada como el panel de LANA.
   // El menú solo tiene ese acceso; se marca mientras estás en cualquiera de las pantallas a las que lleva.
-  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'mi-cuenta'];
+  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'mi-cuenta', 'almacenamiento'];
   var SETTINGS = [['Configuración', 'configuracion', 'settings']];
   // Otros módulos agregan su propio botón al menú cuando no lo encuentran. Estas rutas ya no tienen botón visible,
   // pero se dejan registradas (ocultas) para que no reaparezcan sueltas en el menú.
@@ -71,6 +73,7 @@
     ['Seguridad', 'seguridad', 'shield'],
     ['Marca y simulación', 'sim-config', 'brand'],
     ['Mi cuenta', 'mi-cuenta', 'account'],
+    ['Almacenamiento', 'almacenamiento', 'account'],
     // La ruta permanece registrada para impedir que otros módulos agreguen un acceso duplicado.
     ['Plantillas de WhatsApp', 'plantillas', 'templates']
   ];
@@ -345,8 +348,8 @@
     var entries = [
       ['channels','Estado','R','general'],
       ['whatsapp','WhatsApp','<img src="icons/brands/whatsapp.svg" alt="">','channels'],
-      ['messenger','Messenger','M','channels'],
-      ['instagram','Instagram','I','channels'],
+      ['messenger','Messenger','<img src="icons/brands/messenger.svg" alt="">','channels'],
+      ['instagram','Instagram','<img src="icons/brands/instagram.svg" alt="">','channels'],
       ['assistant','SMYL Asistente','A','tools'],
       ['templates','Plantillas','P','tools'],
       ['automations','Automatizaciones','⌁','tools'],
@@ -367,7 +370,7 @@
       button.dataset.connectionTab = entry[0];
       button.dataset.connectionGroup = entry[3];
       button.setAttribute('aria-selected', String(index === 0));
-      button.innerHTML = '<span class="connections-tab-icon' + (entry[0] === 'whatsapp' ? ' connections-tab-icon--whatsapp' : '') + '" aria-hidden="true">' + entry[2] + '</span><strong>' + entry[1] + '</strong>';
+      button.innerHTML = '<span class="connections-tab-icon' + (entry[0] === 'whatsapp' ? ' connections-tab-icon--whatsapp' : (entry[0] === 'messenger' || entry[0] === 'instagram' ? ' connections-tab-icon--brand' : '')) + '" aria-hidden="true">' + entry[2] + '</span><strong>' + entry[1] + '</strong>' + (entry[3] === 'channels' && entry[0] !== 'channels' ? '<i class="connections-tab-dot" data-tab-dot="' + entry[0] + '" data-state="pending" aria-hidden="true"></i>' : '');
       tabs.append(button);
     });
 
@@ -390,19 +393,24 @@
       messenger: ['Messenger', 'Mensajes de Facebook y entrega de conversaciones al equipo.'],
       instagram: ['Instagram', 'Mensajes directos y reglas de respuesta para la cuenta conectada.']
     };
+    var channelReqs = {
+      messenger: ['Debes ser administrador de la página de Facebook de la clínica.', 'Al conectar, Meta te pedirá elegir la página y aceptar los permisos.'],
+      instagram: ['La cuenta debe ser profesional (negocio o creador).', 'Debe estar vinculada a una página de Facebook de la clínica.', 'Debes ser administrador de esa página.']
+    };
+    var connectTitles = { whatsapp: 'Conecta tu WhatsApp', messenger: 'Conecta tu página de Facebook', instagram: 'Conecta tu cuenta de Instagram' };
     Object.keys(channelCopy).forEach(function (name) {
       var copy = channelCopy[name];
       var pane = document.createElement('section');
       pane.className = 'connections-pane connections-channel-pane';
       pane.dataset.connectionPane = name;
       pane.hidden = true;
-      var brand = name === 'whatsapp'
-        ? '<span class="connections-channel-brand" aria-hidden="true"><img src="icons/brands/whatsapp.svg" alt=""></span>'
-        : '<span class="connections-channel-brand connections-channel-brand--letter" aria-hidden="true">' + name.charAt(0).toUpperCase() + '</span>';
+      var brand = '<span class="connections-channel-brand' + (name === 'whatsapp' ? '' : ' connections-channel-brand--meta') + '" aria-hidden="true"><img src="icons/brands/' + name + '.svg" alt=""></span>';
       pane.innerHTML = '<header class="connections-pane-head connections-channel-head"><div class="connections-channel-identity">' + brand + '<div><h2>' + copy[0] + '</h2><p>' + copy[1] + '</p></div></div><span class="connections-platform-label" data-channel-pane-status data-state="pending">Sin conectar</span></header>' +
-        '<section class="connections-channel-control"><div class="connections-channel-account"><header><span>ESTADO</span><h3>Cuenta de la clínica</h3><p>La conexión se autoriza en Meta. SMYL no recibe contraseñas.</p></header><div class="connections-channel-list" data-channel-slot="' + name + '"></div></div>' +
+        '<ol class="connections-steps" data-channel-steps aria-label="Pasos para usar el canal"><li data-step="activate" data-state="pending"><b>1</b><span>Activar mensajería</span></li><li data-step="connect" data-state="pending"><b>2</b><span>Conectar canal</span></li><li data-step="configure" data-state="pending"><b>3</b><span>Configurar</span></li></ol>' +
+        '<section class="connections-channel-control"><div class="connections-channel-account"><header><h3>' + connectTitles[name] + '</h3><p>La conexión se autoriza en Meta. SMYL no recibe contraseñas.</p>' + (channelReqs[name] ? '<div class="connections-mode-reqs connections-channel-reqs"><strong>Antes de conectar</strong><ul>' + channelReqs[name].map(function (item) { return '<li>' + item + '</li>'; }).join('') + '</ul></div>' : '') + '</header><div class="connections-channel-list" data-channel-slot="' + name + '"></div></div>' +
         '<aside class="connections-channel-scope"><div><span>ALCANCE</span><h3 data-channel-scope-title>Se configura al conectar</h3><p data-channel-scope-copy>Primero conecta la cuenta. Después podrás revisar su alcance y herramientas.</p></div><dl><div><dt>Modo</dt><dd data-channel-mode>Pendiente</dd></div><div><dt>Historial</dt><dd data-channel-history>Pendiente</dd></div></dl></aside></section>' +
-        '<section class="connections-channel-tools"><header><div><span>HERRAMIENTAS</span><h3>¿Qué quieres configurar?</h3></div><p>Cada ajuste tiene su propio espacio.</p></header><div data-channel-tools="' + name + '"></div></section>';
+        '<section class="connections-channel-tools"><header><div><span>HERRAMIENTAS</span><h3>¿Qué quieres configurar?</h3></div><p>Cada ajuste tiene su propio espacio.</p></header><div data-channel-tools="' + name + '"></div></section>' +
+        '<p class="connections-channel-next">Al conectar el canal podrás configurar plantillas, el asistente y las automatizaciones.</p>';
       var row = channelCard && channelCard.querySelector('[data-channel-row="' + name + '"]');
       var slot = pane.querySelector('[data-channel-slot="' + name + '"]');
       if (row && slot) slot.append(row);

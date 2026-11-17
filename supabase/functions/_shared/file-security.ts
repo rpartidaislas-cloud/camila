@@ -6,6 +6,7 @@ export const FILE_RULES: Record<string, FileRule> = {
   'smyl-proposal-photos': { max: 8 * 1024 * 1024, mime: ['image/jpeg'] },
   'smyl-professional-cv': { max: 10 * 1024 * 1024, mime: ['application/pdf'] },
   'smyl-professional-cases': { max: 10 * 1024 * 1024, mime: ['image/jpeg','image/png','image/webp','application/pdf'] },
+  'smyl-cloud': { max: 20 * 1024 * 1024, mime: ['image/jpeg','image/png','image/webp','application/pdf'] },
 };
 export function bytesHex(bytes: Uint8Array): string { return Array.from(bytes).map((x)=>x.toString(16).padStart(2,'0')).join(''); }
 export function detectMime(bytes: Uint8Array): string | null {

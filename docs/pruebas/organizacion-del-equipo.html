@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Equipo de prueba · cómo se organiza</title>
+<style>
+  :root{--bg:#f6f8fa;--panel:#fff;--ink:#102239;--muted:#526173;--line:#d7e0e8;--closed:#e9eef3;--open:#f1f7f6;
+        --c1:#0f766e;--c2:#1d5fbf;--c3:#6b46c1;--c4:#92610a;--c5:#c2410c;--c6:#1e3a5f;--accent:#0f766e;--warn:#fff8e6;--warnline:#e6c872}
+  @media (prefers-color-scheme:dark){:root{--bg:#0e1621;--panel:#16212e;--ink:#e8eef5;--muted:#9fb0c1;--line:#2a3a4b;--closed:#1d2a38;--open:#173032;--warn:#2b2412;--warnline:#6a5520;
+        --c1:#1f9a8f;--c2:#4a8ae0;--c3:#9272dc;--c4:#c48a22;--c5:#e0663a;--c6:#5b87b8;--accent:#4fd1c5}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,sans-serif}
+  main{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
+  h1{font-size:24px;margin:0 0 4px} h2{font-size:17px;margin:32px 0 10px} h3{font-size:15px;margin:0 0 8px}
+  p{margin:0 0 10px} .muted{color:var(--muted)} .lead{color:var(--muted);max-width:70ch}
+  .layers{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:14px}
+  .layer{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .layer b{display:block;color:var(--accent);font-size:12px;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:6px 0 14px}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:13px}
+  .dot{width:12px;height:12px;border-radius:4px;flex:none}
+  .branch{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+  .branch header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;margin-bottom:10px}
+  .branch header span{color:var(--muted);font-size:13px}
+  .scroll{overflow-x:auto}
+  .week{display:grid;grid-template-columns:44px repeat(6,minmax(96px,1fr));gap:6px;min-width:660px;padding-bottom:12px}
+  .hours{position:relative;height:var(--h)}
+  .hours i{position:absolute;right:6px;transform:translateY(-50%);font-style:normal;font-size:12px;color:var(--muted)}
+  .col h4{margin:0 0 6px;text-align:center;font-size:13px;color:var(--muted);font-weight:700}
+  .day{position:relative;height:var(--h);border-radius:8px;background:var(--closed);overflow:hidden}
+  .open{position:absolute;left:0;right:0;background:var(--open)}
+  .blk{position:absolute;border-radius:6px;padding:3px 6px;color:#fff;font-size:12px;line-height:1.25;overflow:hidden}
+  .overlap{position:absolute;left:0;right:0;background:repeating-linear-gradient(135deg,transparent 0 6px,rgba(180,83,9,.16) 6px 8px);border-top:1px dashed var(--c5);border-bottom:1px dashed var(--c5);pointer-events:none}
+  .blk small{display:block;opacity:.9;font-size:11px}
+  .note{display:inline-block;margin-top:8px;font-size:13px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13px}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:center} th:first-child,td:first-child{text-align:left}
+  th{font-weight:700;color:var(--muted);background:var(--closed)} tr:last-child td{border-bottom:0}
+  td .dot{display:inline-block}
+  .callout{background:var(--warn);border:1px solid var(--warnline);border-radius:12px;padding:12px 14px;margin-top:12px}
+  .rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+  .rules div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .rules b{display:block;margin-bottom:2px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Equipo de prueba: cómo se organiza</h1>
+  <p class="lead">3 sucursales y 6 dentistas ficticios. Cada dentista atiende en ciertos días y horas, en una o dos sucursales, y solo hace algunos servicios. Un horario libre aparece cuando todo lo siguiente se cumple a la vez.</p>
+
+  <div class="layers" id="layers"></div>
+
+  <h2>Horario semanal por sucursal</h2>
+  <div class="legend" id="legend"></div>
+  <div id="branches"></div>
+
+  <h2>Quién hace cada servicio</h2>
+  <div class="scroll"><table id="services"></table></div>
+
+  <h2>Qué pasa al agendar una cita</h2>
+  <div class="rules" id="rules"></div>
+  <div class="callout"><b>Ejemplo con el sillón único de Plaza Sol.</b> (En el horario, la franja rayada marca cuándo coinciden dos dentistas en la misma sucursal.) El martes, la Dra. Valeria (10:00–16:00) y la Dra. Fernanda (12:00–20:00) coinciden de 12:00 a 16:00, pero la sucursal tiene un solo sillón. Si Valeria agenda una cita a las 12:00–13:00, Fernanda deja de ofrecer horarios de 12:00 a 12:45 aunque ella esté libre. A partir de las 13:00 vuelve a haber sillón. Esto se comprobó con la regla real de disponibilidad de SMYL.</div>
+</main>
+
+<script>
+  var START = 9, END = 20, PX = 34; // horas visibles y alto por hora
+  var DAYS = [['Lun',1],['Mar',2],['Mié',3],['Jue',4],['Vie',5],['Sáb',6]];
+  var BRANCHES = [
+    {id:'b1', name:'Sucursal Centro', city:'Guadalajara', chairs:'3 sillones', hours:{lv:[[9,14],[15,19]], sa:[[9,14]]}, note:'Cierra de 14:00 a 15:00 (hora de comida).'},
+    {id:'b2', name:'Sucursal Plaza Sol', city:'Zapopan', chairs:'1 solo sillón', hours:{lv:[[10,20]], sa:[[10,15]]}, note:'Un solo sillón: dos dentistas no pueden atender a la vez.'},
+    {id:'b3', name:'Sucursal Lomas Verdes', city:'Zapopan', chairs:'2 sillones', hours:{lv:[[9,18]], sa:[[9,14]]}, note:''}
+  ];
+  var DOCS = [
+    {id:'d1', name:'Dra. Valeria Montoya', short:'Valeria', spec:'Odontología general', c:'var(--c1)'},
+    {id:'d2', name:'Dr. Andrés Salinas', short:'Andrés', spec:'Endodoncia', c:'var(--c2)'},
+    {id:'d3', name:'Dra. Mónica Reyes', short:'Mónica', spec:'Ortodoncia', c:'var(--c3)'},
+    {id:'d4', name:'Dr. Rodrigo Pineda', short:'Rodrigo', spec:'Odontopediatría', c:'var(--c4)'},
+    {id:'d5', name:'Dra. Fernanda Lozano', short:'Fernanda', spec:'Estética dental', c:'var(--c5)'},
+    {id:'d6', name:'Dr. Iván Carrasco', short:'Iván', spec:'Cirugía oral e implantes', c:'var(--c6)'}
+  ];
+  // [dentista, sucursal, días (1=lun … 6=sáb), desde, hasta]
+  var SCHED = [
+    ['d1','b1',[1,3,5],9,14], ['d1','b2',[2,4],10,16],
+    ['d2','b1',[2,4],10,14], ['d2','b1',[2,4],15,19],
+    ['d3','b2',[1,3,5],10,18], ['d3','b3',[6],9,14],
+    ['d4','b3',[1,2,3,4,5],9,15],
+    ['d5','b2',[2,4],12,20], ['d5','b2',[6],10,15], ['d5','b1',[5],15,19],
+    ['d6','b3',[2,4],12,18], ['d6','b1',[6],9,14]
+  ];
+  var SERVICES = [
+    ['Valoración dental integral · 60 min',['d1','d2','d4','d5','d6']],
+    ['Limpieza dental · 45 min',['d1','d4']],
+    ['Aplicación de flúor · 30 min',['d1','d4']],
+    ['Resina (restauración) · 60 min',['d1']],
+    ['Extracción simple · 45 min',['d1','d6']],
+    ['Endodoncia · 90 min',['d2']],
+    ['Valoración de ortodoncia · 45 min',['d3']],
+    ['Revisión de ortodoncia · 30 min',['d3']],
+    ['Consulta odontopediátrica · 30 min',['d4']],
+    ['Blanqueamiento dental · 60 min',['d5']],
+    ['Valoración de carillas · 45 min',['d5']],
+    ['Consulta de implantes · 45 min',['d6']]
+  ];
+  var LAYERS = [
+    ['1 · Sucursal','Tiene su horario de apertura y sus sillones. Fuera de ese horario nadie ofrece citas.'],
+    ['2 · Dentista','Atiende ciertos días y horas en cada sucursal donde trabaja. Un mismo dentista puede estar en dos sucursales.'],
+    ['3 · Servicio','Cada servicio tiene duración y margen. Solo aparece con los dentistas que lo hacen.'],
+    ['4 · Cita','Ocupa al dentista, un sillón y el tiempo del servicio (más su margen). Lo ocupado deja de ofrecerse.']
+  ];
+  var RULES = [
+    ['El dentista trabaja ese día','Debe tener horario ese día de la semana en esa sucursal.'],
+    ['La sucursal está abierta','El servicio completo debe caber dentro del horario de la sucursal (no cruza la hora de comida).'],
+    ['El dentista está libre','Sin otra cita, bloqueo ni solicitud pendiente que se empalme, contando el margen del servicio.'],
+    ['Hay un sillón libre','Si la sucursal tiene sillones, al menos uno debe estar libre en ese tiempo.'],
+    ['Hace el servicio','Solo salen los dentistas asignados a ese servicio.'],
+    ['Es futuro','No se ofrecen horarios que ya pasaron. Se calculan en pasos de 15 minutos.']
+  ];
+
+  function el(tag, cls, text){var n=document.createElement(tag); if(cls) n.className=cls; if(text!=null) n.textContent=text; return n;}
+  function pad(n){return (n<10?'0':'')+n;}
+  var H = (END-START)*PX;
+  document.documentElement.style.setProperty('--h', H+'px');
+
+  var layers=document.getElementById('layers');
+  LAYERS.forEach(function(l){var d=el('div','layer'); d.append(el('b','',l[0]), el('span','',l[1])); layers.append(d);});
+
+  var legend=document.getElementById('legend');
+  DOCS.forEach(function(d){var c=el('span','chip'); var dot=el('i','dot'); dot.style.background=d.c; c.append(dot, document.createTextNode(d.name+' · '+d.spec)); legend.append(c);});
+
+  var host=document.getElementById('branches');
+  BRANCHES.forEach(function(b){
+    var card=el('section','branch'); var head=el('header');
+    var left=el('div'); left.append(el('h3','',b.name), el('span','',b.city+' · '+b.chairs));
+    var right=el('span','',(b.hours.lv.map(function(r){return pad(r[0])+':00–'+pad(r[1])+':00';}).join(' y '))+' lun–vie · '+pad(b.hours.sa[0][0])+':00–'+pad(b.hours.sa[0][1])+':00 sáb');
+    head.append(left,right); card.append(head);
+    var sc=el('div','scroll'); var week=el('div','week');
+    var hours=el('div','col'); hours.append(el('h4','',' ')); var hb=el('div','hours');
+    for(var h=START;h<=END;h+=1){var i=el('i','',pad(h)+':00'); i.style.top=((h-START)*PX)+'px'; hb.append(i);} hours.append(hb); week.append(hours);
+    DAYS.forEach(function(d){
+      var col=el('div','col'); col.append(el('h4','',d[0])); var day=el('div','day');
+      (d[1]===6?b.hours.sa:b.hours.lv).forEach(function(r){var o=el('div','open'); o.style.top=((r[0]-START)*PX)+'px'; o.style.height=((r[1]-r[0])*PX)+'px'; day.append(o);});
+      // Una copia por día (los mismos horarios se repiten en varios días).
+      var todays=SCHED.filter(function(s){return s[1]===b.id && s[2].indexOf(d[1])>=0;})
+        .map(function(s){return {doc:s[0], from:s[3], to:s[4], lane:0, cols:1};})
+        .sort(function(a,c){return a.from-c.from||a.to-c.to;});
+      // Los bloques que coinciden en el tiempo se ponen lado a lado, y la coincidencia se marca con una franja rayada.
+      var lanes=[]; todays.forEach(function(s){var lane=0; while(lanes[lane]!==undefined && lanes[lane]>s.from) lane++; s.lane=lane; lanes[lane]=s.to;});
+      var overlaps=[];
+      todays.forEach(function(s,i){todays.forEach(function(o,j){
+        if(i<j && o.from<s.to && s.from<o.to){
+          s.cols=o.cols=Math.max(s.cols,o.cols,s.lane+1,o.lane+1);
+          overlaps.push([Math.max(s.from,o.from),Math.min(s.to,o.to)]);
+        }});});
+      todays.forEach(function(s){
+        var doc=DOCS.filter(function(x){return x.id===s.doc;})[0]; var blk=el('div','blk'); blk.style.background=doc.c;
+        var width=100/s.cols; blk.style.left='calc('+(s.lane*width)+'% + 3px)'; blk.style.width='calc('+width+'% - 6px)';
+        blk.style.top=((s.from-START)*PX+1)+'px'; blk.style.height=((s.to-s.from)*PX-2)+'px';
+        blk.append(document.createTextNode(doc.short)); blk.append(el('small','',pad(s.from)+':00–'+pad(s.to)+':00'));
+        blk.title=doc.name+' · '+pad(s.from)+':00–'+pad(s.to)+':00'; day.append(blk);
+      });
+      overlaps.forEach(function(r){var ov=el('div','overlap'); ov.style.top=((r[0]-START)*PX)+'px'; ov.style.height=((r[1]-r[0])*PX)+'px'; ov.title='Coinciden de '+r[0]+':00 a '+r[1]+':00'; day.append(ov);});
+      col.append(day); week.append(col);
+    });
+    sc.append(week); card.append(sc);
+    if(b.note) card.append(el('span','note',b.note));
+    host.append(card);
+  });
+
+  var table=document.getElementById('services');
+  var thead=el('tr'); thead.append(el('th','','Servicio')); DOCS.forEach(function(d){thead.append(el('th','',d.short));}); table.append(thead);
+  SERVICES.forEach(function(s){var tr=el('tr'); tr.append(el('td','',s[0]));
+    DOCS.forEach(function(d){var td=el('td'); if(s[1].indexOf(d.id)>=0){var dot=el('i','dot'); dot.style.background=d.c; dot.setAttribute('role','img'); dot.setAttribute('aria-label','Sí lo hace'); td.append(dot);} else {td.textContent='·'; td.className='muted'; td.setAttribute('aria-label','No lo hace');} tr.append(td);});
+    table.append(tr);});
+
+  var rules=document.getElementById('rules');
+  RULES.forEach(function(r){var d=el('div'); d.append(el('b','',r[0]), el('span','muted',r[1])); rules.append(d);});
+</script>
+</body>
+</html>

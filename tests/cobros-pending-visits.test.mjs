@@ -43,7 +43,7 @@ test('«Sin cargo» pide motivo, usa la función segura y se puede reabrir', () 
 
 test('Cobros sigue funcionando si todavía no se aplicó la migración: la lista se ve y «Sin cargo» se oculta', () => {
   assert.match(js, /state\.noChargeReady=false/);
-  assert.match(js, /\(state\.noChargeReady\?'<button type="button" data-visit-nocharge=/);
+  assert.match(js, /\(state\.noChargeReady\?'<button type="button" class="finance-link-action" data-visit-nocharge=/);
 });
 
 test('al volver a Cobros se refresca la lista sin recargar toda la caja', () => {
@@ -58,8 +58,8 @@ test('el formulario de cargo se abre con la cita elegida y ofrece las citas de p
 test('la migración, la hoja de estilos y las versiones quedan publicadas y sincronizadas con la app móvil', () => {
   assert.ok(fs.existsSync(path.join(root, 'supabase/migrations/20261108140000_smyl_appointment_no_charge.sql')));
   assert.match(read('smyl-finance.css'), /\.finance-visit-row\{/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=38/);
-  assert.match(read('sw.js'), /smyl-finance\.js\?v=38/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=46/);
+  assert.match(read('sw.js'), /smyl-finance\.js\?v=46/);
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);
   }

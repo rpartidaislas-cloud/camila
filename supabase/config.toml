@@ -27,6 +27,20 @@ verify_jwt = true
 verify_jwt = true
 
 # Webhook de consumibles: sólo Stripe, autenticado por firma (STRIPE_CONSUMABLES_WEBHOOK_SECRET).
+# Cobro en línea (OpenPay vía LANA). verify_jwt=false porque convive: acciones de personal (la función exige JWT y finance.manage),
+# vista pública por token opaco y aviso de LANA firmado con HMAC. Nada se confía al navegador.
+[functions.smyl-pay]
+verify_jwt = false
+
+# Compartir archivos de la Nube con enlace privado. verify_jwt=false porque convive: acciones de personal (la función exige JWT, cloud.share
+# y poder ver el archivo) y vista pública por token opaco (solo se guarda su SHA-256; vence, se revoca y deja bitácora).
+[functions.cloud-share]
+verify_jwt = false
+
+# Sugerir el tipo de un archivo de la Nube con IA. Exige JWT, cloud.manage y poder ver el archivo; solo sugiere, no escribe.
+[functions.cloud-classify]
+verify_jwt = true
+
 [functions.smyl-consumables-webhook]
 verify_jwt = false
 
@@ -89,3 +103,9 @@ verify_jwt = true
 
 [functions.radiograph-analyze]
 verify_jwt = true
+
+# MILA en el celular (QR): la computadora llama con sesión (requireUser + clinical.write dentro
+# del handler); el celular no tiene sesión y se autentica con el token de un solo uso del QR y
+# después con el secreto de dispositivo (hash SHA-256 en tiempo constante). Las sesiones vencen a los 90 min.
+[functions.mila-interview]
+verify_jwt = false
