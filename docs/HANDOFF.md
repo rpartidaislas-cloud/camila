@@ -11422,6 +11422,14 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - El comportamiento se adapta a escritorio, tableta y PWA móvil con controles táctiles de 44 px, sin barra horizontal en el compositor. Menús, Escape y flechas conservan navegación accesible.
 - Versiones: `smyl-inbox.js?v=58`, `smyl-inbox.css?v=50`, caché `inbox-professional-v4`; web y `mobile/www/` sincronizados. No se modificaron contratos, datos, permisos ni envíos automáticos.
 
+## 2026-11-17 — Codex — Mensajes v5: mesa clínica sin espacios muertos
+
+- En escritorios de 1440 px o más la Ficha 360 se abre anclada por defecto como tercera columna. La preferencia es triestado: automática la primera vez y recordada durante la sesión después de que cada usuario decide mostrarla u ocultarla.
+- El carril común de historial y compositor crece de 920 a 1240 px cuando la ficha está cerrada. Las burbujas conservan un ancho de lectura cómodo; sólo desaparecen los márgenes laterales artificiales.
+- Paciente permanece a la izquierda y sucursal, modo de IA, acción clínica y menú quedan agrupados al extremo derecho. La cabecera muestra `Ficha 360` como acceso visible cuando existe espacio suficiente.
+- En tableta la ficha continúa como drawer y en móvil como vista completa. No se generan resúmenes de IA al abrirla: archivos, historial y datos clínicos mantienen sus cargas bajo demanda.
+- Versiones: `smyl-inbox.js?v=60`, `smyl-inbox.css?v=51`, caché `inbox-professional-v5`; web y `mobile/www/` sincronizados. La versión 60 integra además la actualización inmediata cuando una conversación cambia de sucursal.
+
 ## 2026-11-17 — Claude Code — Facturapi (sandbox): conectar y verificar la llave
 - **Qué hay:** Edge Function nueva `supabase/functions/facturapi` (acciones `status`, `connect`, `verify`, `disconnect`; JWT + permiso `finance.manage`) y lógica pura en `_shared/facturapi-core.mjs`. La llave `sk_test_…` se valida, se prueba contra `GET https://www.facturapi.io/v2/organizations/me` y se guarda **cifrada con AES-GCM** (el `tenant_id` va como dato autenticado) en `smyl_facturapi_connections`; el navegador solo recibe estado, nombre de la organización y huella. Llaves `sk_live_`/`sk_user_` se rechazan. Cada acción queda en `smyl_facturapi_connection_events`.
 - **No hace:** timbrar, cancelar ni descargar XML/PDF; producción (la tabla solo acepta `environment='test'`).
@@ -11444,5 +11452,5 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Cuenta:** saldo/vencidos/saldo a favor + **últimos 8 movimientos** (cargos y pagos con método).
 - **Datos:** el chat sigue sin tocar tablas: `SmylSchedule.patientVisits` (smyl-schedule.js v43) y `SmylFinance.recentMovements` / `appointmentConcepts` (smyl-finance.js v49) leen con la sesión del usuario, así que RLS aplica alcance por rol y sucursal. **Sin migraciones ni cambios en Edge Functions.**
 - **Movido:** Responsable, Etapa, Asistente, Ventana de WhatsApp, Reactivación y Programados → diálogo «Ajustes de la conversación» en el menú «⋯». Se retiraron de la ficha «Siguiente acción», la tarjeta Copilot (MILA ya sugiere desde el compositor), las tarjetas de datos sueltas, Clínico, Historial y «Agenda disponible» (duplicaba «Agendar cita»).
-- **Versiones:** `smyl-inbox.js?v=60`, `smyl-inbox-ficha.js?v=6`, `smyl-inbox.css?v=51`, caché `…-ficha360-v4`; copias en `mobile/www/`. Pruebas: `tests/smyl-inbox-ficha360-v4.test.mjs` y se actualizaron las que fijaban las pestañas/tarjetas retiradas. Revisado en navegador a 1440/834/390 px.
-- **Ya fallaba antes (no tocado):** `patient-messages-continuity` espera el texto «Sugerir con Copilot», que el compositor ya no tiene («Sugerir con MILA»).
+- **Versiones:** `smyl-inbox.js?v=61`, `smyl-inbox-ficha.js?v=6`, `smyl-inbox.css?v=52` (v60/v51 ya los usó Codex en «Optimiza el espacio operativo del chat»), caché `…-ficha360-v4`; copias en `mobile/www/`. Pruebas: `tests/smyl-inbox-ficha360-v4.test.mjs` y se actualizaron las que fijaban las pestañas/tarjetas retiradas. Revisado en navegador a 1440/834/390 px.
+- **Integra «Optimiza el espacio operativo del chat» (Codex):** se conservan el panel anclado en pantallas anchas, la pista con chevron y el ancho fluido; el menú «⋯» suma «Ajustes de la conversación».

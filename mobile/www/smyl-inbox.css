@@ -2492,6 +2492,71 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
   }
 }
 
+/* ================================================================
+   Professional Conversation Workspace v5
+   Fluid conversation rail + useful patient context on wide screens.
+   ================================================================ */
+
+.smyl-inbox-patient-context-hint {
+  display: none;
+  min-width: max-content;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+  padding-left: 10px;
+  border-left: 1px solid #E2E8EE;
+  color: #537083;
+  font: 650 12px/1 var(--inbox-font);
+}
+
+.smyl-inbox-patient-context-hint .smyl-inbox-compose-icon {
+  width: 15px;
+  height: 15px;
+  transition: transform .16s ease;
+}
+
+#p-inbox.context-open .smyl-inbox-patient-context-hint .smyl-inbox-compose-icon {
+  transform: rotate(180deg);
+}
+
+@container smyl-thread-head (min-width: 980px) {
+  .smyl-inbox-patient-context-hint { display: inline-flex; }
+}
+
+@media (min-width: 769px) {
+  .smyl-inbox-thread-head > .smyl-inbox-thread-branchwrap:not([hidden]) {
+    margin-left: auto;
+  }
+
+  .smyl-inbox-thread-head > .smyl-inbox-thread-branchwrap[hidden] + .smyl-inbox-mode-button {
+    margin-left: auto;
+  }
+
+  .smyl-inbox-thread-body {
+    padding-inline: clamp(18px, 2vw, 28px);
+  }
+
+  [data-thread-messages],
+  .smyl-inbox-compose-surface {
+    max-width: 1240px;
+  }
+
+  .smyl-inbox-composer {
+    padding-inline: clamp(18px, 2vw, 28px);
+  }
+}
+
+@media (min-width: 1440px) {
+  #p-inbox.context-docked .smyl-inbox-workspace {
+    grid-template-columns: 320px minmax(0, 1fr) clamp(340px, 24vw, 400px);
+  }
+
+  #p-inbox.context-docked .smyl-inbox-context {
+    background: #FBFCFD;
+    box-shadow: -1px 0 0 #E4EAF0, -10px 0 28px rgba(16, 34, 57, .035);
+  }
+}
+
 /* Ficha 360 v4: bloques plegables (Resumen IA, Cuenta, Citas, Archivos) en lugar de pestañas */
 #p-inbox .smyl-f360-sections{display:grid;gap:8px;margin-top:2px}
 #p-inbox .smyl-f360-section{border:1px solid var(--inbox-border);border-radius:12px;background:#fff;overflow:hidden}

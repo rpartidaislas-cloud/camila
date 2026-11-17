@@ -36,17 +36,20 @@ test('el resumen vive en memoria, no en el navegador, y reanudar reutiliza el vi
 
 test('en pantallas anchas la ficha se ancla sin oscurecer el chat ni atrapar el foco', () => {
   assert.match(js, /CONTEXT_DOCK_QUERY = '\(min-width: 1440px\)'/);
+  assert.match(js, /contextDockedPreferred: initialDockedContextPreference\(\)/);
+  assert.match(js, /state\.contextDockedPreferred !== false/);
+  assert.match(js, /sessionStorage\.setItem\(CONTEXT_DOCK_STORAGE_KEY, open \? 'open' : 'closed'\)/);
   assert.match(js, /panel\.setAttribute\('role', docked \? 'complementary' : 'dialog'\)/);
   assert.match(js, /if \(event\.key !== 'Tab' \|\| contextDocked\(\)\) return;/);
-  assert.match(css, /#p-inbox\.context-docked \.smyl-inbox-workspace\{grid-template-columns:320px minmax\(0,1fr\) clamp\(380px,26vw,440px\)\}/);
+  assert.match(css, /grid-template-columns:\s*320px minmax\(0, 1fr\) clamp\(340px, 24vw, 400px\)/);
   assert.match(css, /#p-inbox\.context-docked \.smyl-inbox-context-scrim\{display:none!important\}/);
 });
 
 test('web, móvil y PWA publican la ficha 360 v3', () => {
   for (const file of ['app.html', 'sw.js']) {
     assert.match(read(file), /smyl-inbox-ficha\.js\?v=6/);
-    assert.match(read(file), /smyl-inbox\.js\?v=60/);
-    assert.match(read(file), /smyl-inbox\.css\?v=51/);
+    assert.match(read(file), /smyl-inbox\.js\?v=61/);
+    assert.match(read(file), /smyl-inbox\.css\?v=52/);
   }
   for (const file of ['smyl-inbox.js', 'smyl-inbox-ficha.js', 'smyl-inbox.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);

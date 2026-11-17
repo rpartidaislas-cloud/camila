@@ -6,9 +6,9 @@ const read = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
 const src = read('smyl-inventory.js');
 const pick = (re) => { const m = src.match(re); assert.ok(m, 'no se encontró ' + re); return m[0]; };
 const helpers = new Function('state', [
-  pick(/function invNum\(v\)\{[^\n]*\n/), pick(/function invRound\(n\)\{[^\n]*\n/), pick(/function invUnitCost\(packCost,packQty\)\{[^\n]*\n/), pick(/function invPackCost\(unitCost,packQty\)\{[^\n]*\n/),
-  pick(/function stockValue\(rows,costs\)\{[^\n]*\n/), pick(/function usageSummary\(rows,totals\)\{[\s\S]*?\n  \}\n/), pick(/function usagePeriod\(kind,now\)\{[\s\S]*?\n  \}\n/),
-  pick(/function myProfessionalId\(\)\{[^\n]*\n/),
+  pick(/function invNum\(v\)\{[^\n]*\r?\n/), pick(/function invRound\(n\)\{[^\n]*\r?\n/), pick(/function invUnitCost\(packCost,packQty\)\{[^\n]*\r?\n/), pick(/function invPackCost\(unitCost,packQty\)\{[^\n]*\r?\n/),
+  pick(/function stockValue\(rows,costs\)\{[^\n]*\r?\n/), pick(/function usageSummary\(rows,totals\)\{[\s\S]*?\r?\n  \}\r?\n/), pick(/function usagePeriod\(kind,now\)\{[\s\S]*?\r?\n  \}\r?\n/),
+  pick(/function myProfessionalId\(\)\{[^\n]*\r?\n/),
 ].join('\n') + ';return {invNum,invUnitCost,invPackCost,stockValue,usageSummary,usagePeriod,myProfessionalId};');
 
 test('costos: acepta $ y comas, y convierte entre costo de la presentación y costo por unidad', () => {

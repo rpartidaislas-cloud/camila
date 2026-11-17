@@ -59,7 +59,9 @@ test('Más sólo aparece con herramientas disponibles y el foco evita controles 
 });
 
 test('el historial se concentra en un carril legible y el móvil no usa una barra horizontal', () => {
-  assert.match(css, /\[data-thread-messages\]\s*\{[^}]*max-width:\s*920px[^}]*margin:\s*0 auto/);
+  const workspaceV5 = css.slice(css.indexOf('Professional Conversation Workspace v5'));
+  assert.match(workspaceV5, /\[data-thread-messages\],[\s\S]*?\.smyl-inbox-compose-surface\s*\{[^}]*max-width:\s*1240px/);
+  assert.match(workspaceV5, /\.smyl-inbox-thread-branchwrap:not\(\[hidden\]\)[^}]*margin-left:\s*auto/);
   assert.match(css, /\.smyl-inbox-bubble\s*\{[^}]*max-width:\s*min\(68%,\s*620px\)/);
   assert.match(css, /@media\s*\(max-width:\s*768px\)[\s\S]*?\.smyl-inbox-compose-bar\s*\{[^}]*overflow:\s*visible/);
   assert.match(css, /@media\s*\(max-width:\s*768px\)[\s\S]*?\.smyl-inbox-compose-tools\s*\{[^}]*max-width:\s*calc\(100vw - 24px\)/);
