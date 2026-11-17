@@ -51,9 +51,88 @@ export function leerOrganizacion(body) {
 
 // Vista segura para el navegador: nunca incluye llave ni texto cifrado.
 export function vistaConexion(row) {
-  if (!row) return { status: "disconnected", environment: "test" };
+  if (!row) return { status: "disconnected", environment: "test", mode: "platform", pending_steps: [], production_ready: false };
   return {
-    status: row.status, environment: row.environment, organization_name: row.organization_name || "",
+    status: row.status, environment: row.environment, mode: row.mode || "own_key", organization_name: row.organization_name || "",
     key_fingerprint: row.key_fingerprint || "", connected_at: row.connected_at, last_verified_at: row.last_verified_at, last_error: row.last_error || "",
+    has_organization: !!row.organization_id, csd_valid_until: row.csd_valid_until || null, csd_serial: row.csd_serial || "",
+    pending_steps: Array.isArray(row.pending_steps) ? row.pending_steps : [], production_ready: row.production_ready === true,
+    live_enabled_at: row.live_enabled_at || null, live_key_fingerprint: row.live_key_fingerprint || "",
   };
+}
+
+// ── Modelo de plataforma: una organización de Facturapi por clínica ──
+export const LIVE_KEY_RE = /^sk_live_[A-Za-z0-9_-]{16,200}$/;
+export const CONFIRM_LIVE_TEXT = "FACTURAR EN PRODUCCION";
+const RFC_RE = /^[A-Z&Ñ]{3,4}[0-9]{6}[A-Z0-9]{3}$/;
+
+// Datos para PUT /organizations/{id}/legal. El RFC NO se envía: Facturapi lo toma del CSD.
+export function datosLegales(issuer) {
+  const i = issuer || {};
+  const legal = String(i.legal_name || "").trim();
+  if (legal.length < 2 || !/^\d{3}$/.test(String(i.fiscal_regime || "")) || !/^\d{5}$/.test(String(i.tax_postal_code || ""))) return null;
+  return { name: legal.slice(0, 100), legal_name: legal.slice(0, 240), tax_system: String(i.fiscal_regime), address: { zip: String(i.tax_postal_code) } };
+}
+
+// Archivos del CSD recibidos del navegador. `cer` y `key` son { name, size }.
+export function validarCsd({ cer, key, password } = {}) {
+  const ok = (f, ext) => f && typeof f.name === "string" && f.name.toLowerCase().endsWith(ext) && Number.isFinite(f.size) && f.size >= 200 && f.size <= 65536;
+  if (!ok(cer, ".cer")) return { ok: false, error: "Sube el archivo del certificado (termina en .cer)." };
+  if (!ok(key, ".key")) return { ok: false, error: "Sube el archivo de la llave privada (termina en .key)." };
+  if (typeof password !== "string" || password.length < 1 || password.length > 200) return { ok: false, error: "Escribe la contraseña de tu llave privada." };
+  return { ok: true };
+}
+
+// Estado de la organización según GET /organizations/{id}.
+export function estadoOrganizacion(org) {
+  const o = org && typeof org === "object" ? org : {};
+  const steps = Array.isArray(o.pending_steps) ? o.pending_steps.filter((s) => s && typeof s.type === "string").map((s) => ({ type: s.type.slice(0, 40), description: String(s.description || "").slice(0, 200) })) : [];
+  const cert = o.certificate && typeof o.certificate === "object" ? o.certificate : {};
+  return {
+    production_ready: o.is_production_ready === true && steps.length === 0,
+    pending_steps: steps,
+    has_certificate: cert.has_certificate === true,
+    csd_valid_until: typeof cert.expires_at === "string" ? cert.expires_at : null,
+    csd_serial: typeof cert.serial_number === "string" ? cert.serial_number.slice(0, 80) : null,
+    tax_id: o.legal && typeof o.legal.tax_id === "string" ? o.legal.tax_id.toUpperCase() : "",
+    name: String((o.legal && (o.legal.legal_name || o.legal.name)) || "").slice(0, 180),
+  };
+}
+
+// El RFC del certificado debe ser el de la clínica; si no, se rechaza el CSD.
+export function rfcCoincide(rfcCertificado, rfcClinica) {
+  const a = String(rfcCertificado || "").toUpperCase(), b = String(rfcClinica || "").toUpperCase();
+  return RFC_RE.test(a) && a === b;
+}
+
+// Compuerta de producción: todo debe cumplirse en el servidor.
+export function puedeActivarProduccion({ mode, status, productionReady, issuerReviewed, policyReviewed, confirmText } = {}) {
+  if (mode !== "platform") return { ok: false, error: "La producción se activa solo con la cuenta de plataforma de SMYL." };
+  if (status !== "connected") return { ok: false, error: "Primero activa la facturación de la clínica." };
+  if (!issuerReviewed) return { ok: false, error: "Faltan los datos fiscales revisados de la clínica." };
+  if (!policyReviewed) return { ok: false, error: "Falta la confirmación de tu contador." };
+  if (!productionReady) return { ok: false, error: "Facturapi aún no marca la organización lista para producción. Revisa los pasos pendientes." };
+  if (String(confirmText || "").trim().toUpperCase() !== CONFIRM_LIVE_TEXT) return { ok: false, error: `Para confirmar escribe: ${CONFIRM_LIVE_TEXT}` };
+  return { ok: true };
+}
+
+// La forma de la respuesta de llaves de Facturapi varía (texto, lista de textos o de objetos): se lee de forma defensiva.
+export function leerLlave(body, re) {
+  const dig = (x) => {
+    if (typeof x === "string") return re.test(x.trim()) ? x.trim() : null;
+    if (Array.isArray(x)) { for (const i of x) { const k = dig(i); if (k) return k; } return null; }
+    if (x && typeof x === "object") { for (const k of ["secret_key", "key", "value", "secret", "api_key", "data"]) { const r = dig(x[k]); if (r) return r; } }
+    return null;
+  };
+  return dig(body);
+}
+
+// Mensajes claros para los errores más comunes de la API.
+export function mensajeCsd(code) {
+  switch (code) {
+    case "certificate_files_invalid": return "El certificado o la llave privada no son válidos. Revisa que sean los archivos de tu CSD (no la e.firma) y que la contraseña sea la de la llave.";
+    case "certificate_files_required": return "Sube los dos archivos: el .cer y el .key.";
+    case "certificate_expired": return "Tu certificado ya venció. Genera uno nuevo en el SAT.";
+    default: return "Facturapi no aceptó el certificado. Revisa los archivos y la contraseña.";
+  }
 }
