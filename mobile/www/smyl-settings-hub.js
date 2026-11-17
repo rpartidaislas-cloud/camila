@@ -46,7 +46,7 @@
       { title: 'Formas de pago y anticipo', desc: 'Métodos aceptados y anticipos de la clínica.', group: 'Facturación y reglas', icon: 'payments', soon: true }
     ] },
     { id: 'cuenta', title: 'Cuenta y seguridad', blurb: 'Plan, protección y preparación operativa.', icon: 'security', items: [
-      { title: 'Plan y consumo', desc: 'Uso del plan y capacidad disponible.', group: 'Suscripción', icon: 'plan', action: 'Consultar', route: 'mi-cuenta' },
+      { title: 'Plan y suscripción', desc: 'Tu plan, cambios de plan y pago de la suscripción.', group: 'Suscripción', icon: 'plan', action: 'Consultar', route: 'plan', ownerOnly: true },
       { title: 'Almacenamiento', desc: 'Espacio usado por fotos, radiografías y documentos.', group: 'Suscripción', icon: 'plan', action: 'Consultar', route: 'almacenamiento' },
       { title: 'Seguridad', desc: 'Accesos, señales y revisiones de la cuenta.', group: 'Protección', icon: 'security', action: 'Revisar', route: 'seguridad' },
       { title: 'Preparación operativa', desc: 'Controles pendientes antes de atender pacientes.', group: 'Protección', icon: 'launch', action: 'Revisar', route: 'lanzamiento' }
@@ -98,6 +98,8 @@
   function groupedItems(section) {
     var groups = [];
     section.items.forEach(function (item) {
+      // Lo que es solo del dueño (plan y pagos) no se muestra al resto del equipo.
+      if (item.ownerOnly && typeof window !== 'undefined' && window.miRolEquipo && window.miRolEquipo !== 'dueño') return;
       var name = item.group || 'Ajustes';
       var current = groups.filter(function (group) { return group.name === name; })[0];
       if (!current) { current = { name: name, items: [] }; groups.push(current); }
