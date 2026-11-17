@@ -74,6 +74,7 @@ declare
   v_ok boolean;
   v_azar int;
   v_pacientes uuid[];
+  v_dia_junta int;
   v_servicios uuid[];
 begin
   if v_clinica !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
@@ -128,6 +129,8 @@ begin
   select array_agg(pg_temp.tid(v_tenant, 'pac' || n) order by n) into v_pacientes from pg_temp.paciente_prueba;
 
   -- ── Bloqueos (se crean ANTES de las citas para que estas los respeten) ────────────────────
+  -- La junta del Dr. Andrés cae en su primer martes o jueves (los días que atiende en Centro) a partir de 5 días.
+  select min(i) into v_dia_junta from generate_series(5, 12) i where extract(dow from v_hoy + i)::int in (2, 4);
   -- Vacaciones de la Dra. Valeria en sus dos sucursales; junta del Dr. Andrés; mantenimiento del sillón único de Plaza Sol.
   insert into public.smyl_schedule_blocks (id, tenant_id, branch_id, professional_id, room_id, starts_at, ends_at, reason, block_type, created_by)
   select pg_temp.tid(v_tenant, x.clave), v_tenant, pg_temp.tid(v_tenant, x.sucursal),
@@ -139,7 +142,7 @@ begin
   from (values
     ('blq-vac-centro', 'b001', 'd001', null::text, 10, time '00:00', 12, time '23:59', 'Vacaciones (prueba)', 'personal'),
     ('blq-vac-plaza',  'b002', 'd001', null::text, 10, time '00:00', 12, time '23:59', 'Vacaciones (prueba)', 'personal'),
-    ('blq-junta',      'b001', 'd002', null::text,  6, time '14:00',  6, time '15:30', 'Junta de equipo (prueba)', 'meeting'),
+    ('blq-junta',      'b001', 'd002', null::text,  v_dia_junta, time '14:00',  v_dia_junta, time '15:30', 'Junta de equipo (prueba)', 'meeting'),
     ('blq-mantto',     'b002', null::text, 'a201',  4, time '10:00',  4, time '12:00', 'Mantenimiento del sillón (prueba)', 'maintenance')
   ) as x(clave, sucursal, dentista, sillon, dia_ini, hora_ini, dia_fin, hora_fin, motivo, tipo)
   join public.smyl_branches br on br.tenant_id = v_tenant and br.id = pg_temp.tid(v_tenant, x.sucursal)
