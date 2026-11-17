@@ -657,6 +657,23 @@ async function attachThreadBranch(tenantId: string, body: Record<string, unknown
   conversation.branch = assigned ? { id: assigned.branch_id, name: name || "Sucursal", source: assigned.source } : null;
 }
 
+// Sincronización: si alguien cambió la sucursal de una conversación desde la última consulta, quien ya no puede verla la pierde
+// de su bandeja y los demás recargan la lista (la sucursal vive en SMYL, así que LANA no la marca como cambiada).
+async function attachBranchChanges(actor: Actor, tenantId: string, since: string | null, body: Record<string, unknown>): Promise<void> {
+  const stamp = since && !Number.isNaN(Date.parse(since)) ? new Date(since).toISOString() : "";
+  if (!stamp) return;
+  const { data } = await admin.from("smyl_conversation_branches").select("conversation_id").eq("tenant_id", tenantId).gt("assigned_at", stamp).limit(50);
+  const changed = ((data || []) as Record<string, unknown>[]).map((row) => String(row.conversation_id));
+  if (!changed.length) return;
+  body.branch_changed = true;
+  if ((actor.scopes.messages || "own") === "clinic") return;
+  const removed = Array.isArray(body.removed_conversation_ids) ? [...body.removed_conversation_ids as unknown[]] : [];
+  for (const id of changed) {
+    if (!await canAccessConversation(actor, tenantId, id)) removed.push(id);
+  }
+  body.removed_conversation_ids = removed;
+}
+
 function forbiddenConversation(): Response {
   return json(403, { error: "Esta conversación queda fuera del alcance de tu rol.", code: "conversation_scope_denied" });
 }
@@ -1333,6 +1350,7 @@ async function handleInbox(req: Request): Promise<Response> {
       const scopedBody = ["list", "sync"].includes(action)
         ? await filterConversationPayload(actor, auth.tenantId, remote.body)
         : remote.body;
+      if (action === "sync") { try { await attachBranchChanges(actor, auth.tenantId, url.searchParams.get("since"), scopedBody); } catch (_) { /* informativo */ } }
       if (action === "messages") { try { await attachThreadBranch(auth.tenantId, scopedBody); } catch (_) { /* la sucursal es informativa: no debe romper la conversación */ } }
       return json(remote.response.status, { ...scopedBody, actor });
     }
