@@ -11421,3 +11421,11 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - La ventana de WhatsApp vencida deja un solo CTA `Elegir plantilla`: desaparecen el campo inactivo y las acciones duplicadas. `Más` se oculta cuando el canal no ofrece herramientas, y el foco evita controles ocultos.
 - El comportamiento se adapta a escritorio, tableta y PWA móvil con controles táctiles de 44 px, sin barra horizontal en el compositor. Menús, Escape y flechas conservan navegación accesible.
 - Versiones: `smyl-inbox.js?v=58`, `smyl-inbox.css?v=50`, caché `inbox-professional-v4`; web y `mobile/www/` sincronizados. No se modificaron contratos, datos, permisos ni envíos automáticos.
+
+## 2026-11-17 — Codex — Mensajes v5: mesa clínica sin espacios muertos
+
+- En escritorios de 1440 px o más la Ficha 360 se abre anclada por defecto como tercera columna. La preferencia es triestado: automática la primera vez y recordada durante la sesión después de que cada usuario decide mostrarla u ocultarla.
+- El carril común de historial y compositor crece de 920 a 1240 px cuando la ficha está cerrada. Las burbujas conservan un ancho de lectura cómodo; sólo desaparecen los márgenes laterales artificiales.
+- Paciente permanece a la izquierda y sucursal, modo de IA, acción clínica y menú quedan agrupados al extremo derecho. La cabecera muestra `Ficha 360` como acceso visible cuando existe espacio suficiente.
+- En tableta la ficha continúa como drawer y en móvil como vista completa. No se generan resúmenes de IA al abrirla: archivos, historial y datos clínicos mantienen sus cargas bajo demanda.
+- Versiones: `smyl-inbox.js?v=59`, `smyl-inbox.css?v=51`, caché `inbox-professional-v5`; web y `mobile/www/` sincronizados.

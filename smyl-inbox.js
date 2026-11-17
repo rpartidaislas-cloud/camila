@@ -1,12 +1,24 @@
 (function () {
   'use strict';
 
+  var CONTEXT_DOCK_STORAGE_KEY = 'smyl_inbox_context_docked';
+  function initialDockedContextPreference() {
+    try {
+      var saved = window.sessionStorage.getItem(CONTEXT_DOCK_STORAGE_KEY);
+      if (saved === 'open') return true;
+      if (saved === 'closed') return false;
+    } catch (_) {}
+    // On a wide clinical workstation the Ficha 360 is useful workspace, not a
+    // modal interruption. Null means "automatic" until the user decides.
+    return null;
+  }
+
   var state = {
     conversations: [], total: 0, offset: 0, limit: 30, hasMore: false,
     filter: 'all', channel: '', search: '', selectedId: null, filterPanelOpen: false, branches: [], branchFilter: '', branchMenu: null,
     messages: {}, pages: {}, pending: {}, loadingList: false, loadingThread: false,
     listError: '', threadError: '', syncedAt: null, actor: null, team: [], stages: [],
-    threadController: null, contextOpen: false, contextSections: {}, contextReturnFocus: null, f360Tab: {}, f360File: {}, f360Filter: {}, f360Shared: {}, f360Timeline: {}, f360Summary: {}, contextDockedPreferred: false, polling: false,
+    threadController: null, contextOpen: false, contextSections: {}, contextReturnFocus: null, f360Tab: {}, f360File: {}, f360Filter: {}, f360Shared: {}, f360Timeline: {}, f360Summary: {}, contextDockedPreferred: initialDockedContextPreference(), polling: false,
     replyTo: null, attachment: null, clinical: {}, clinicalLoading: {},
     copilot: {}, copilotLoading: {},
     templates: [], templatesLoaded: false, templatesLoading: false,
@@ -229,7 +241,8 @@
     template: '<path d="M6 3h9l4 4v14H6V3Z"></path><path d="M14 3v5h5M9 12h6M9 16h6"></path>',
     calendar: '<rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01"></path>',
     mic: '<rect x="9" y="3" width="6" height="12" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"></path>',
-    location: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle>'
+    location: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle>',
+    chevron: '<path d="m9 18 6-6-6-6"></path>'
   };
 
   function composeIcon(name) {
@@ -265,7 +278,7 @@
         '<main class="smyl-inbox-thread-pane" data-inbox-thread-pane>' +
           '<div class="smyl-inbox-thread-empty" data-inbox-thread-empty><div class="smyl-inbox-empty-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></div><span class="smyl-inbox-eyebrow">CENTRO DE ATENCIÓN</span><h2>Continúa el siguiente caso</h2><p>Abre una conversación para responder, consultar el expediente y coordinar la cita sin cambiar de pantalla.</p><div class="smyl-inbox-empty-steps"><span><b>1</b>Revisa el motivo</span><span><b>2</b>Consulta agenda</span><span><b>3</b>Confirma el seguimiento</span></div><button type="button" class="btn btn-primary" data-inbox-open-next>Abrir siguiente conversación</button></div>' +
           '<div class="smyl-inbox-thread" data-inbox-thread hidden>' +
-            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención" aria-expanded="false" aria-controls="smyl-inbox-context-panel"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><span class="smyl-inbox-med-flag" data-thread-medical hidden></span></button><div class="smyl-inbox-thread-branchwrap" data-thread-branch-wrap hidden><button type="button" class="smyl-inbox-iconchip is-labeled" data-thread-branch-chip aria-haspopup="menu" aria-expanded="false"></button></div><button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Siguiente acción del paciente"></nav><div class="smyl-inbox-thread-menu-wrap"><button type="button" class="smyl-inbox-thread-more" data-thread-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-thread-menu" aria-label="Más acciones de la conversación">' + composeIcon('more') + '</button><div class="smyl-inbox-thread-menu" id="smyl-inbox-thread-menu" data-thread-menu role="menu" aria-label="Más acciones de la conversación" hidden><div class="smyl-inbox-thread-menu-care" data-thread-menu-care role="group" aria-label="Acciones del paciente"></div><label class="smyl-inbox-thread-menu-assign" data-thread-menu-assign role="none" hidden>Responsable de atención<select data-thread-assign aria-label="Asignar conversación"></select></label><button type="button" role="menuitem" data-thread-search>Buscar en el hilo</button><button type="button" role="menuitem" data-thread-shared>Archivos compartidos</button><button type="button" role="menuitem" data-thread-pin>Fijar conversación</button><button type="button" role="menuitem" data-thread-branch hidden>Cambiar sucursal</button><button type="button" role="menuitem" data-thread-details>Paciente y atención</button><button type="button" role="menuitem" data-thread-link-professional hidden>Usar como mi WhatsApp profesional</button><button type="button" role="menuitem" data-thread-resolve hidden>Marcar solicitud resuelta</button></div></div></header>' +
+            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención" aria-expanded="false" aria-controls="smyl-inbox-context-panel"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><span class="smyl-inbox-med-flag" data-thread-medical hidden></span><span class="smyl-inbox-patient-context-hint" aria-hidden="true"><span>Ficha 360</span>' + composeIcon('chevron') + '</span></button><div class="smyl-inbox-thread-branchwrap" data-thread-branch-wrap hidden><button type="button" class="smyl-inbox-iconchip is-labeled" data-thread-branch-chip aria-haspopup="menu" aria-expanded="false"></button></div><button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Siguiente acción del paciente"></nav><div class="smyl-inbox-thread-menu-wrap"><button type="button" class="smyl-inbox-thread-more" data-thread-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-thread-menu" aria-label="Más acciones de la conversación">' + composeIcon('more') + '</button><div class="smyl-inbox-thread-menu" id="smyl-inbox-thread-menu" data-thread-menu role="menu" aria-label="Más acciones de la conversación" hidden><div class="smyl-inbox-thread-menu-care" data-thread-menu-care role="group" aria-label="Acciones del paciente"></div><label class="smyl-inbox-thread-menu-assign" data-thread-menu-assign role="none" hidden>Responsable de atención<select data-thread-assign aria-label="Asignar conversación"></select></label><button type="button" role="menuitem" data-thread-search>Buscar en el hilo</button><button type="button" role="menuitem" data-thread-shared>Archivos compartidos</button><button type="button" role="menuitem" data-thread-pin>Fijar conversación</button><button type="button" role="menuitem" data-thread-branch hidden>Cambiar sucursal</button><button type="button" role="menuitem" data-thread-details>Paciente y atención</button><button type="button" role="menuitem" data-thread-link-professional hidden>Usar como mi WhatsApp profesional</button><button type="button" role="menuitem" data-thread-resolve hidden>Marcar solicitud resuelta</button></div></div></header>' +
             '<div class="smyl-inbox-thread-notices" data-thread-notices hidden></div><div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div></div>' +
             '<button type="button" class="smyl-inbox-jump" data-thread-jump hidden>Ir al final</button>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
@@ -1780,7 +1793,15 @@
       scrim.hidden = !open || docked;
       scrim.tabIndex = open && !docked ? 0 : -1;
     }
-    if (trigger) trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (trigger) {
+      trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      trigger.setAttribute('aria-label', open && docked ? 'Ocultar Ficha 360 del paciente' : 'Abrir Ficha 360 del paciente');
+    }
+    var close = panel.querySelector('.smyl-inbox-context-close');
+    if (close) {
+      close.textContent = docked ? 'Ocultar panel' : 'Cerrar';
+      close.setAttribute('aria-label', docked ? 'Ocultar Ficha 360 del paciente' : 'Cerrar Ficha 360 del paciente');
+    }
   }
 
   function openContext(trigger) {
@@ -1798,10 +1819,12 @@
 
   // Preferencia de vista solo en memoria: si dejaste la ficha abierta en pantalla ancha, sigue abierta al cambiar de chat.
   function rememberDockedContext(open) {
-    if (contextDocked()) state.contextDockedPreferred = Boolean(open);
+    if (!contextDocked()) return;
+    state.contextDockedPreferred = Boolean(open);
+    try { window.sessionStorage.setItem(CONTEXT_DOCK_STORAGE_KEY, open ? 'open' : 'closed'); } catch (_) {}
   }
   function dockedContextPreferred() {
-    return Boolean(state.contextDockedPreferred && contextDocked());
+    return Boolean(contextDocked() && state.contextDockedPreferred !== false);
   }
 
   function closeContext(restoreFocus) {
@@ -3745,7 +3768,10 @@
     page.querySelector('[data-pilot-report-back]').addEventListener('click', function () { page.querySelector('[data-pilot-report-dialog]').close(); openOperations(); });
     page.querySelector('[data-pilot-report-print]').addEventListener('click', printPilotReport);
     page.querySelector('[data-inbox-back]').addEventListener('click', function () { page.classList.remove('show-thread'); closeContext(false); });
-    page.querySelector('[data-inbox-context]').addEventListener('click', function (event) { openContext(event.currentTarget); });
+    page.querySelector('[data-inbox-context]').addEventListener('click', function (event) {
+      if (state.contextOpen && contextDocked()) closeContext(false);
+      else openContext(event.currentTarget);
+    });
     page.querySelector('[data-thread-details]').addEventListener('click', function () { closeThreadMenu(false); openContext(page.querySelector('[data-inbox-context]')); });
     page.querySelector('[data-thread-link-professional]').addEventListener('click', linkProfessionalWhatsApp);
     page.querySelector('[data-thread-mode]').addEventListener('click', function () { var conversation = selectedConversation(); if (!conversation) return; conversation.paused ? prepareResume() : mutateConversation('pause'); });
