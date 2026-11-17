@@ -33,8 +33,16 @@ test('propuestas: con varias sedes aprobar exige sucursal y guardar usa v3, con 
   assert.match(ui, /La sucursal no se guardó: falta actualizar la base de datos/);
 });
 test('vista del paciente y cobros usan la sucursal de la propuesta', () => {
-  assert.match(ui, /row\.branch_label=ctx\.branches\.length>1\?branchLabel\(row\.branch_id\):''/);
+  assert.match(ui, /withBranch\(row\);host\.replaceChildren/);
   assert.match(print, /row\.branch_label\?' · '\+row\.branch_label:''/);
   assert.match(fin, /document,branch_id'\)/);
   assert.match(fin, /opts\(state\.branches,'name',selected\.branch_id\|\|undefined\)/);
+});
+
+test('PDF y vista previa: dirección y teléfono de la sede, solo con varias sucursales', () => {
+  assert.match(ui, /function withBranch\(row\)\{var multi=ctx&&ctx\.branches&&ctx\.branches\.length>1;row\.branch_label=multi\?branchLabel\(row\.branch_id\):'';row\.branch_detail=multi\?branchDetail\(row\.branch_id\):'';return row;\}/);
+  assert.match(ui, /print\.replaceChildren|var print=document\.getElementById\('proposal-print'\);withBranch\(row\);/);
+  assert.match(ui, /withBranch\(row\);host\.replaceChildren\(SmylProposalPrint\.render\(row,assets,false\)\);/);
+  assert.match(ui, /select\('id,name,is_default,address_line,city,state,phone'\)/);
+  assert.match(print, /Se atenderá en la sede '\+row\.branch_label\+\(row\.branch_detail\?' · '\+row\.branch_detail:''\)/);
 });

@@ -15,6 +15,9 @@
   // Sucursal de la propuesta: el precio de cada concepto sale del precio de esa sede (si tiene uno propio) y queda congelado al guardar.
   function branchById(id){return ((ctx&&ctx.branches)||[]).find(function(b){return b.id===id;})||null;}
   function branchLabel(id){var b=branchById(id);return b?b.name:'';}
+  // Dónde se atenderá: dirección y teléfono de la sede, para el paciente (vista previa y PDF).
+  function branchDetail(id){var b=branchById(id);if(!b)return '';return [[b.address_line,b.city,b.state].filter(Boolean).join(', '),b.phone?'Tel. '+b.phone:''].filter(Boolean).join(' · ');}
+  function withBranch(row){var multi=ctx&&ctx.branches&&ctx.branches.length>1;row.branch_label=multi?branchLabel(row.branch_id):'';row.branch_detail=multi?branchDetail(row.branch_id):'';return row;}
   function branchUnitCents(item,branchId){
     if(!item||!item.service_id)return undefined;
     var own=(ctx.branchPrices||[]).find(function(x){return x.service_id===item.service_id&&x.branch_id===branchId;});
@@ -154,7 +157,7 @@
     if(!ctx||ctx.busy)return;var problem=validForm(false);if(problem){feedback(problem,true);return;}
     var current=ctx;current.busy=true;controls();document.getElementById('proposal-feedback').replaceChildren();
     try{var row=rowFromForm(),assets=await assetsFor(row,current,true);if(ctx!==current)return;
-      var host=document.getElementById('proposal-preview-paper');row.branch_label=ctx.branches.length>1?branchLabel(row.branch_id):'';host.replaceChildren(SmylProposalPrint.render(row,assets,false));
+      var host=document.getElementById('proposal-preview-paper');withBranch(row);host.replaceChildren(SmylProposalPrint.render(row,assets,false));
       await Promise.all(Array.from(host.querySelectorAll('img')).map(function(img){return img.decode();}));
       document.getElementById('proposal-approval-check').checked=false;document.getElementById('proposal-preview-dialog').showModal();
     }catch(error){if(ctx===current)feedback('No se pudo preparar la vista previa. Revisa las fotografías y vuelve a intentar.',true);}
@@ -168,7 +171,7 @@
       if(!row||row.id!==current.row.id||row.tenant_id!==current.tenant||row.status!=='approved'||row.revision!==current.row.revision)throw new Error('Unconfirmed export');
       await window.SmylSecurity.recordExport({export_type:'proposal_pdf',entity_type:'proposal',entity_id:row.id,record_count:1,purpose:'patient_copy'});
       var assets=await assetsFor(row,current,false);if(ctx!==current)return;
-      var print=document.getElementById('proposal-print');print.replaceChildren(SmylProposalPrint.render(row,assets,true));
+      var print=document.getElementById('proposal-print');withBranch(row);print.replaceChildren(SmylProposalPrint.render(row,assets,true));
       await Promise.all(Array.from(print.querySelectorAll('img')).map(function(img){return img.decode();}));
       document.body.classList.add('proposal-exporting');window.print();
       feedback('Se abrió la impresión. Elige “Guardar como PDF”. El archivo no se envía automáticamente.');
@@ -419,7 +422,7 @@
       if(token!==sequence||tenant!==tenantId)return;
       if(!row){var config=tenantData?.config||{};row={id:crypto.randomUUID(),tenant_id:tenant,patient_id:patient.id,patient_name:[patient.nombre,patient.apellido].filter(Boolean).join(' '),clinic_name:config.consultorio||tenantData?.nombre||'Clínica dental',professional_name:config.doctor||'',plan_revision:plan.revision,revision:0,status:'draft',document:M.fromPlan(plan)};}else row.document=M.normalize(row.document);
       var branches=[],branchPrices=[];
-      try{branches=await checked(sb.from('smyl_branches').select('id,name,is_default').eq('tenant_id',tenant).eq('active',true).order('is_default',{ascending:false}).order('name'))||[];branchPrices=await checked(sb.from('smyl_service_branch_prices').select('service_id,branch_id,price').eq('tenant_id',tenant))||[];}catch(_){branchPrices=[];}
+      try{branches=await checked(sb.from('smyl_branches').select('id,name,is_default,address_line,city,state,phone').eq('tenant_id',tenant).eq('active',true).order('is_default',{ascending:false}).order('name'))||[];branchPrices=await checked(sb.from('smyl_service_branch_prices').select('service_id,branch_id,price').eq('tenant_id',tenant))||[];}catch(_){branchPrices=[];}
       var initialBranch=row.branch_id||(branches.length>1?((branches.find(function(b){return b.is_default;})||{}).id||''):((branches[0]&&branches[0].id)||null));
       ctx={branches:branches,branchPrices:branchPrices,branchId:initialBranch,row:row,tenant:tenant,plan:plan,access:access,files:{},photoPaths:row.document.photos,saved:JSON.stringify(row.document),dirty:!id,busy:false,events:[],eventsLoading:false,decisionFinal:false,stale:plan.status!=='reviewed'||row.plan_revision!==plan.revision};if(!id&&ctx.branchId)repriceDocument(ctx.row.document,ctx.branchId);editor();
     }catch(error){if(token===sequence)root.replaceChildren(notice(errorText(error),true),b('Volver a Presentaciones',loadList));}
