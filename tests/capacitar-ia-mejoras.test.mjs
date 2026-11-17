@@ -105,3 +105,16 @@ test('interfaz: botones, nota y paso 6 conectados', () => {
   assert.match(js, /Listo para atender pacientes/);
   assert.match(css, /\.connections-import-btn/);
 });
+
+test('prueba en el mismo paso: laboratorio junto al formulario y escenarios por paso', () => {
+  const lib2 = new Function(js.match(/var DEFAULT_SCENARIOS = \[[\s\S]*?\n  \];/)[0] + js.match(/var STEP_SCENARIOS = \{[\s\S]*?\n  \};/)[0] + js.match(/function stepScenarios\(step, faqQuestions\) \{[\s\S]*?\n  \}\n/)[0] + ';return stepScenarios;')();
+  for (const step of [1, 2, 3, 4, 5, 6]) assert.equal(lib2(step, []).length, 3);
+  assert.match(lib2(3, [])[0][1], /servicios/);
+  const faq = lib2(4, ['¿La valoración tiene costo?', '', '¿Aceptan tarjeta?']);
+  assert.deepEqual(faq.slice(0, 2).map((x) => x[1]), ['¿La valoración tiene costo?', '¿Aceptan tarjeta?']);
+  assert.equal(faq.length, 3);
+  assert.match(js, /data-step-test/);
+  assert.match(js, /form\.after\(test\); test\.append\(summary, preview\)/);
+  assert.match(js, /renderPreview\(\); updateTrainingSteps\(\); previewStatus/);
+  assert.match(css, /\.connections-step-test/);
+});

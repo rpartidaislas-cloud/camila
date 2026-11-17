@@ -912,6 +912,35 @@
     if (!(form.elements.intake_questions && String(form.elements.intake_questions.value || '').indexOf(ASK_BRANCH_LINE) !== -1)) notes.push(['Pregunta de sucursal', 'El asistente no preguntará a qué sucursal quiere ir el paciente. Actívalo en el paso 3.']);
     return notes.map(function (note) { return '<li data-state="pending"><span aria-hidden="true">!</span><div><strong>' + note[0] + '</strong><small>' + note[1] + '</small></div></li>'; }).join('');
   }
+  // Prueba en el mismo paso: el laboratorio vive junto al formulario y sugiere escenarios del paso en curso.
+  var DEFAULT_SCENARIOS = [
+    ['Precio y horario', '¿Cuánto cuesta una valoración y en qué horarios atienden?'],
+    ['Dolor y urgencia', 'Me duele mucho una muela desde anoche, ¿qué medicamento debo tomar?'],
+    ['Foto y diagnóstico', 'Si les mando una foto, ¿pueden decirme si necesito carillas?']
+  ];
+  var STEP_SCENARIOS = {
+    1: [['Presentación', 'Hola, ¿con quién hablo?'], ['Tono', 'Hola, buenas tardes, necesito ayuda con una cita']],
+    2: [['Ubicación y horario', '¿Dónde están y a qué hora abren?'], ['Especialidades', '¿Qué tratamientos dentales hacen?']],
+    3: [['Servicios y precio', '¿Qué servicios ofrecen y cuánto cuesta una limpieza?'], ['Sucursal', 'Quiero una cita, ¿qué sucursal me queda mejor?']],
+    5: [['Agendar', 'Quiero agendar una cita para mañana'], ['Cancelar', 'Necesito cancelar mi cita de mañana'], ['Urgencia', DEFAULT_SCENARIOS[1][1]]]
+  };
+  // Siempre devuelve 3 escenarios [etiqueta, mensaje]; en el paso de preguntas frecuentes usa las del propio formulario.
+  function stepScenarios(step, faqQuestions) {
+    var list = STEP_SCENARIOS[step] ? STEP_SCENARIOS[step].slice() : [];
+    if (step === 4) list = (faqQuestions || []).filter(Boolean).slice(0, 3).map(function (q) { return [q.length > 22 ? q.slice(0, 21) + '…' : q, q]; });
+    DEFAULT_SCENARIOS.forEach(function (item) { if (list.length < 3 && !list.some(function (own) { return own[1] === item[1]; })) list.push(item); });
+    return list.slice(0, 3);
+  }
+  function syncStepScenarios(form, current) {
+    var buttons = document.querySelectorAll('[data-lana-scenario]');
+    if (!buttons.length) return;
+    var faq = Array.prototype.map.call(form.querySelectorAll('[data-faq-list] [name="faq_question"]'), function (el) { return String(el.value || '').trim(); });
+    var list = stepScenarios(current, faq);
+    buttons.forEach(function (button, index) {
+      var item = list[index] || DEFAULT_SCENARIOS[index];
+      button.textContent = item[0]; button.dataset.lanaScenario = item[1];
+    });
+  }
   function readinessMarkup(form) {
     var changes = diffTraining(state.published, trainingFromForm());
     var count = changes ? changes.reduce(function (n, g) { return n + g.items.length; }, 0) : 0;
@@ -947,6 +976,9 @@
     });
     var info = TRAIN_STEPS[current - 1], intro = document.querySelector('[data-train-intro]');
     if (intro) intro.innerHTML = '<span>Paso ' + current + ' de ' + TRAIN_STEPS.length + '</span><strong>' + info.title + '</strong><p>' + info.hint + '</p>';
+    syncStepScenarios(form, current);
+    var testPanel = document.querySelector('[data-step-test]');
+    if (testPanel && current === 6 && !state.stepTestShown) { state.stepTestShown = true; if (!(state.previewHistory || []).length) testPanel.open = true; }
     var review = form.querySelector('[data-train-review]');
     if (review) {
       review.innerHTML = '<h3>Antes de publicar</h3><ul>' + TRAIN_STEPS.slice(0, 5).map(function (step) {
@@ -972,6 +1004,12 @@
       var importHours = node('button', 'btn btn-secondary', 'Traer ubicación y horarios'); importHours.type = 'button'; importHours.dataset.importHours = 'true';
       var hoursNote = node('p', 'connections-fieldset-help connections-import-note'); hoursNote.dataset.hoursSync = 'true'; hoursNote.setAttribute('aria-live', 'polite');
       tools.append(importHours, hoursNote); hoursField.after(tools);
+    }
+    var preview = document.querySelector('.connections-preview');
+    if (preview && !document.querySelector('[data-step-test]')) {
+      var test = node('details', 'connections-step-test'); test.dataset.stepTest = 'true';
+      var summary = node('summary'); summary.append(node('strong', '', 'Probar tu asistente con lo que llevas'), node('small', '', 'Usa el borrador actual en cualquier paso; no se envía nada a pacientes.'));
+      form.after(test); test.append(summary, preview);
     }
     var guard = form.querySelector('.connections-context-guard'); if (guard) guard.dataset.trainStep = '5';
     var validation = form.querySelector('[data-training-validation]'); if (validation) validation.dataset.trainStep = '6';
@@ -1284,6 +1322,7 @@
     if (input) input.value = '';
     previewStatus('', '');
     renderPreview();
+    updateTrainingSteps();
   }
 
   async function sendPreview(event) {
@@ -1303,7 +1342,7 @@
       input.value = ''; renderPreview(); previewStatus('El asistente está preparando una respuesta privada…', '');
       var data = await trainingRequest('POST', 'preview', { message: message, history: historyForRequest, mode: mode });
       state.previewHistory.push({ role: 'assistant', content: data.reply || 'No se recibió una respuesta.', requiresHuman: Boolean(data.requires_human) });
-      renderPreview(); previewStatus((data.requires_human ? 'El asistente escalaría este caso a una persona. ' : '') + (mode === 'draft' ? 'Respuesta generada con el borrador r' + data.config_version + '.' : 'Respuesta generada con la versión publicada ' + data.config_version + '.'), 'success');
+      renderPreview(); updateTrainingSteps(); previewStatus((data.requires_human ? 'El asistente escalaría este caso a una persona. ' : '') + (mode === 'draft' ? 'Respuesta generada con el borrador r' + data.config_version + '.' : 'Respuesta generada con la versión publicada ' + data.config_version + '.'), 'success');
     } catch (error) {
       if (state.previewHistory[state.previewHistory.length - 1] && state.previewHistory[state.previewHistory.length - 1].role === 'user') state.previewHistory.pop();
       renderPreview(); input.value = message; previewStatus(error.message || 'No se pudo probar la respuesta.', 'error');
