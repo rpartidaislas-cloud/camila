@@ -67,7 +67,8 @@ test('no se ofrecen horas que ya pasaron y se respeta la zona de la sucursal', (
 test('Nueva cita ofrece días y horas libres y deja la validación final al servidor', () => {
   const schedule = read('smyl-schedule.js');
   assert.match(schedule, /function renderSlots\(form,appointment\)/);
-  assert.match(schedule, /renderBookingCheck\(form,appointment\);renderSlots\(form,appointment\);/);
+  // Nueva cita usa el tablero (smyl-schedule-board.js); reagendar y «Llegó sin cita» siguen con los botones de día y hora de siempre.
+  assert.match(schedule, /renderBookingCheck\(form,appointment\);if\(form\.hasAttribute\('data-board'\)\)renderBoard\(form\);else renderSlots\(form,appointment\);/);
   assert.match(schedule, /from\('smyl_appointments'\)\.select\('id,professional_id,room_id,service_id,status,starts_at,ends_at'\)/);
   assert.match(schedule, /from\('smyl_appointment_requests'\)/);
   assert.match(schedule, /el sistema la revisa al confirmar/);
