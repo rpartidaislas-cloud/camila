@@ -160,3 +160,40 @@ export function leerFactura(body) {
     total: Number.isFinite(Number(o.total)) ? Number(o.total) : null,
   };
 }
+
+// ───────────── Cancelación (SOLO sandbox) ─────────────
+export const MOTIVOS_CANCELACION = { "01": "Comprobante emitido con errores con relación", "02": "Comprobante emitido con errores sin relación", "03": "No se llevó a cabo la operación", "04": "Operación nominativa relacionada en una factura global" };
+// plan: fila de smyl_cfdi_cancellation_plans. Devuelve { ok:true, query:"motive=02" } o { ok:false, error }.
+export function parametrosCancelacion(plan) {
+  const motive = String((plan && plan.reason_code) || "");
+  if (!MOTIVOS_CANCELACION[motive]) return { ok: false, error: "El motivo de cancelación no es válido." };
+  const sust = plan.replacement_uuid ? String(plan.replacement_uuid).toLowerCase() : "";
+  if (motive === "01") {
+    if (!UUID_RE.test(sust)) return { ok: false, error: "El motivo 01 requiere el UUID del comprobante que sustituye al cancelado." };
+    return { ok: true, query: `motive=01&substitution=${encodeURIComponent(sust)}` };
+  }
+  if (sust) return { ok: false, error: "Solo el motivo 01 lleva UUID sustituto." };
+  return { ok: true, query: `motive=${motive}` };
+}
+const ESTADOS_CANCELACION = ["none", "pending", "accepted", "rejected", "expired"];
+// Lee el estado de cancelación de una factura de Facturapi (respuesta de cancelar o de consultar).
+// accepted = ya cancelada; pending = espera la aceptación del receptor; rejected = el receptor la rechazó o expiró;
+// none = no hay solicitud registrada (o la factura sigue vigente sin solicitud).
+export function estadoCancelacion(body) {
+  const o = body && typeof body === "object" ? body : null;
+  if (!o) return null;
+  const cs = ESTADOS_CANCELACION.includes(o.cancellation_status) ? o.cancellation_status : "none";
+  if (o.status === "canceled" || cs === "accepted") return "accepted";
+  if (cs === "pending") return "pending";
+  if (cs === "rejected" || cs === "expired") return "rejected";
+  return o.status === "valid" ? "none" : null;
+}
+// Respuesta al DELETE: accepted | pending | rejected (Facturapi dijo que no) | unknown (red, 5xx, 409…: verificar antes de reintentar).
+export function clasificarCancelacion(status, body) {
+  if (status === 200 || status === 201) {
+    const e = estadoCancelacion(body);
+    return e === "accepted" || e === "pending" ? e : e === "rejected" ? "rejected" : "unknown";
+  }
+  if (status === 409 || status === 408 || status === 425 || status === 429 || status >= 500 || !status) return "unknown";
+  return status >= 400 ? "rejected" : "unknown";
+}

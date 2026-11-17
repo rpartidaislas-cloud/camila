@@ -28,7 +28,7 @@ test('cancelación exige CFDI emitido y reglas SAT de motivo 01',()=>{
   assert.match(sql,/reason_code='01' and replacement_uuid is not null/);
   assert.match(sql,/Creates a local cancellation plan only\. No PAC\/SAT transmission/);
   assert.match(ui,/Planear cancelación/);
-  assert.match(ui,/esto no cancela el CFDI/i);
+  assert.match(ui,/guardar el plan no cancela el CFDI/i);
 });
 
 test('la prevalidación v2 incluye datos del emisor y mantiene frontera local',()=>{

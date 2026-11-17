@@ -1,8 +1,7 @@
 // Conexión SMYL ↔ Facturapi (SOLO sandbox): guardar, verificar y desconectar la llave de pruebas de cada clínica.
 // La llave se cifra aquí (AES-GCM, secreto FACTURAPI_ENCRYPTION_KEY) y nunca vuelve al navegador.
 // Conexión (status/connect/verify/disconnect): requiere finance.manage.
-// Timbrado SOLO sandbox (stamp/reconcile/download): requiere finance.invoice y que el borrador ya haya pasado la prevalidación local.
-// No cancela nada: eso es una etapa posterior.
+// Timbrado y cancelación SOLO sandbox (stamp/reconcile/download/cancel/cancel_check): requiere finance.invoice y que el borrador ya haya pasado la prevalidación local.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser, requirePermission } from "../_shared/auth.ts";
 import { makeCors } from "../_shared/cors.ts";
@@ -10,6 +9,7 @@ import { smylAdmin } from "../_shared/lana-linked.ts";
 import {
   FACTURAPI_BASE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion,
   FORMAS_PAGO, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura,
+  parametrosCancelacion, estadoCancelacion, clasificarCancelacion,
 } from "../_shared/facturapi-core.mjs";
 
 const admin = smylAdmin;
@@ -82,7 +82,7 @@ async function timbrado(req: Request, CORS: Record<string, string>, tenantId: st
   const vista = async () => ((await admin.from("smyl_cfdi_drafts").select("*").eq("tenant_id", tenantId).eq("id", draftId).single()).data);
 
   if (body.action === "download") {
-    if (draft.status !== "issued" || !draft.provider_invoice_id) return json(CORS, 409, { error: "Este comprobante aún no está timbrado." });
+    if ((draft.status !== "issued" && draft.status !== "cancelled") || !draft.provider_invoice_id) return json(CORS, 409, { error: "Este comprobante aún no está timbrado." });
     const kind = body.kind === "xml" ? "xml" : "pdf";
     const r = await llamarFacturapi(key, `/invoices/${encodeURIComponent(draft.provider_invoice_id)}/${kind}`);
     if (!r.res || !r.res.ok) { await eventoTimbre(tenantId, actor, draftId, "download", "failed", { kind, status: r.status }); return json(CORS, 502, { error: "Facturapi no pudo entregar el archivo. Intenta de nuevo." }); }
@@ -111,6 +111,64 @@ async function timbrado(req: Request, CORS: Record<string, string>, tenantId: st
     await admin.from("smyl_cfdi_drafts").update({ status: "rejected", provider_message: "Facturapi no recibió la solicitud. Puedes intentar timbrar de nuevo." }).eq("tenant_id", tenantId).eq("id", draftId).eq("status", "submitted");
     await eventoTimbre(tenantId, actor, draftId, "reconcile", "success", { found: false });
     return json(CORS, 200, { draft: await vista(), message: "Facturapi no recibió esa solicitud: ya puedes intentar de nuevo." });
+  }
+
+
+  // ── Cancelación (sandbox) ──
+  if (body.action === "cancel" || body.action === "cancel_check") {
+    if (draft.status === "cancelled") return json(CORS, 200, { draft, message: "Este comprobante ya está cancelado." });
+    if (draft.status !== "issued" || !draft.provider_invoice_id) return json(CORS, 409, { error: "Solo un comprobante timbrado se puede cancelar." });
+    const { data: plan } = await admin.from("smyl_cfdi_cancellation_plans").select("*").eq("tenant_id", tenantId).eq("draft_id", draftId).in("status", ["planned", "submitted"]).maybeSingle();
+    if (!plan) return json(CORS, 409, { error: "Primero planea la cancelación (motivo y, si aplica, UUID sustituto)." });
+    const aceptar = async (extra: Json = {}) => {
+      await admin.from("smyl_cfdi_drafts").update({ status: "cancelled", cancellation_status: "accepted", cancelled_at: now(), ...extra }).eq("tenant_id", tenantId).eq("id", draftId).eq("status", "issued");
+      await admin.from("smyl_cfdi_cancellation_plans").update({ status: "accepted", resolved_at: now(), provider_message: "" }).eq("tenant_id", tenantId).eq("id", plan.id);
+    };
+    const rechazar = async (msg: string) => {
+      await admin.from("smyl_cfdi_cancellation_plans").update({ status: "rejected", resolved_at: now(), provider_message: msg.slice(0, 1000) }).eq("tenant_id", tenantId).eq("id", plan.id);
+      await admin.from("smyl_cfdi_drafts").update({ cancellation_status: "rejected" }).eq("tenant_id", tenantId).eq("id", draftId);
+    };
+    const pendiente = async () => { await admin.from("smyl_cfdi_drafts").update({ cancellation_status: "pending" }).eq("tenant_id", tenantId).eq("id", draftId); };
+
+    if (body.action === "cancel_check") {
+      if (plan.status !== "submitted") return json(CORS, 409, { error: "Esta cancelación aún no se ha enviado a Facturapi." });
+      const r = await llamarFacturapi(key, `/invoices/${encodeURIComponent(draft.provider_invoice_id)}`);
+      if (r.status === 0 || r.status >= 500 || !r.body) return json(CORS, 502, { error: "No se pudo consultar a Facturapi. Intenta de nuevo en un momento." });
+      const estado = estadoCancelacion(r.body);
+      if (estado === "accepted") { await aceptar(); await eventoTimbre(tenantId, actor, draftId, "cancel_check", "success", { estado }); return json(CORS, 200, { draft: await vista(), message: "El comprobante quedó cancelado." }); }
+      if (estado === "pending") { await pendiente(); await eventoTimbre(tenantId, actor, draftId, "cancel_check", "pending", { estado }); return json(CORS, 200, { draft: await vista(), message: "Sigue esperando la aceptación del paciente." }); }
+      if (estado === "rejected") { await rechazar("El paciente rechazó la cancelación o la solicitud expiró."); await eventoTimbre(tenantId, actor, draftId, "cancel_check", "failed", { estado }); return json(CORS, 200, { draft: await vista(), message: "La cancelación no procedió: el paciente la rechazó o expiró." }); }
+      const antiguo = plan.submitted_at && Date.now() - new Date(plan.submitted_at).getTime() > RECONCILE_WAIT_MS;
+      if (!antiguo) return json(CORS, 409, { error: "La solicitud es muy reciente. Espera un par de minutos y verifica de nuevo." });
+      await rechazar("Facturapi no registró la solicitud de cancelación. Puedes planearla de nuevo.");
+      await eventoTimbre(tenantId, actor, draftId, "cancel_check", "success", { estado: "none" });
+      return json(CORS, 200, { draft: await vista(), message: "Facturapi no registró esa solicitud: puedes planear la cancelación de nuevo." });
+    }
+
+    // cancel
+    if (plan.status !== "planned") return json(CORS, 409, { error: "La cancelación ya se envió. Usa «Verificar cancelación»." });
+    const params = parametrosCancelacion(plan);
+    if (!params.ok) return json(CORS, 422, { error: params.error });
+    // Se reclama el plan (planned → submitted) antes de enviar: dos clics no cancelan dos veces.
+    const { data: claimed } = await admin.from("smyl_cfdi_cancellation_plans").update({ status: "submitted", submitted_at: now(), provider_message: "" })
+      .eq("tenant_id", tenantId).eq("id", plan.id).eq("status", "planned").select("id").maybeSingle();
+    if (!claimed) return json(CORS, 409, { error: "Otra persona ya está enviando esta cancelación." });
+    const r = await llamarFacturapi(key, `/invoices/${encodeURIComponent(draft.provider_invoice_id)}?${params.query}`, { method: "DELETE" });
+    const clase = clasificarCancelacion(r.status, r.body);
+    if (clase === "accepted") { await aceptar(); await eventoTimbre(tenantId, actor, draftId, "cancel", "success", { motive: plan.reason_code }); return json(CORS, 200, { draft: await vista(), message: "Comprobante cancelado en sandbox." }); }
+    if (clase === "pending") {
+      await pendiente(); await eventoTimbre(tenantId, actor, draftId, "cancel", "pending", { motive: plan.reason_code });
+      return json(CORS, 202, { draft: await vista(), message: "La cancelación está pendiente: el paciente debe aceptarla. Usa «Verificar cancelación» más tarde." });
+    }
+    if (clase === "rejected") {
+      const msg = mensajeFacturapi(r.body, r.status);
+      await rechazar(msg); await eventoTimbre(tenantId, actor, draftId, "cancel", "failed", { status: r.status, motive: plan.reason_code });
+      return json(CORS, 422, { error: `Facturapi no pudo cancelar el comprobante: ${msg}`, draft: await vista() });
+    }
+    const msg = "No se confirmó la cancelación (Facturapi no respondió a tiempo o pidió esperar). Usa «Verificar cancelación» antes de intentar de nuevo.";
+    await admin.from("smyl_cfdi_cancellation_plans").update({ provider_message: msg }).eq("tenant_id", tenantId).eq("id", plan.id);
+    await eventoTimbre(tenantId, actor, draftId, "cancel", "pending", { status: r.status, motive: plan.reason_code });
+    return json(CORS, 202, { draft: await vista(), message: msg });
   }
 
   // stamp
@@ -168,7 +226,7 @@ Deno.serve(async (req) => {
   let body: Json;
   try { body = await req.json(); } catch { return json(CORS, 400, { error: "Solicitud inválida." }); }
   const action = body.action;
-  const esTimbrado = action === "stamp" || action === "reconcile" || action === "download";
+  const esTimbrado = action === "stamp" || action === "reconcile" || action === "download" || action === "cancel" || action === "cancel_check";
   const denied = await requirePermission(auth, CORS, esTimbrado ? "finance.invoice" : "finance.manage");
   if (denied) return denied;
   const tenantId = auth.tenantId as string, actor = (auth.user as { id: string }).id;
