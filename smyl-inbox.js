@@ -21,7 +21,7 @@
     conversations: [], total: 0, offset: 0, limit: 30, hasMore: false,
     filter: 'all', channel: '', search: '', selectedId: null, filterPanelOpen: false, branches: [], branchFilter: '', branchMenu: null,
     messages: {}, pages: {}, pending: {}, loadingList: false, loadingThread: false,
-    listError: '', threadError: '', syncedAt: null, actor: null, team: [], stages: [],
+    listError: '', threadError: '', syncedAt: null, actor: null, team: [], teamStatus: 'idle', assigningChat: {}, stages: [],
     threadController: null, contextOpen: false, contextSections: {}, contextReturnFocus: null, f360Open: null, f360Visits: {}, f360VisitsAll: {}, f360Movements: {}, f360File: {}, f360Filter: {}, f360Shared: {}, f360Summary: {}, contextDockedPreferred: initialDockedContextPreference(), polling: false,
     replyTo: null, attachment: null, clinical: {}, clinicalLoading: {},
     copilot: {}, copilotLoading: {},
@@ -250,6 +250,7 @@
     calendar: '<rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01"></path>',
     mic: '<rect x="9" y="3" width="6" height="12" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"></path>',
     location: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle>',
+    person: '<circle cx="10" cy="8" r="3.5"></circle><path d="M3 20v-2a7 7 0 0 1 12.2-4.7M16 17l2 2 4-5"></path>',
     chevron: '<path d="m9 18 6-6-6-6"></path>'
   };
 
@@ -286,8 +287,8 @@
         '<main class="smyl-inbox-thread-pane" data-inbox-thread-pane>' +
           '<div class="smyl-inbox-thread-empty" data-inbox-thread-empty><div class="smyl-inbox-empty-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></div><span class="smyl-inbox-eyebrow">CENTRO DE ATENCIÓN</span><h2>Continúa el siguiente caso</h2><p>Abre una conversación para responder, consultar el expediente y coordinar la cita sin cambiar de pantalla.</p><div class="smyl-inbox-empty-steps"><span><b>1</b>Revisa el motivo</span><span><b>2</b>Consulta agenda</span><span><b>3</b>Confirma el seguimiento</span></div><button type="button" class="btn btn-primary" data-inbox-open-next>Abrir siguiente conversación</button></div>' +
           '<div class="smyl-inbox-thread" data-inbox-thread hidden>' +
-            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención" aria-expanded="false" aria-controls="smyl-inbox-context-panel"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><span class="smyl-inbox-med-flag" data-thread-medical hidden></span><span class="smyl-inbox-patient-context-hint" aria-hidden="true"><span>Ficha 360</span>' + composeIcon('chevron') + '</span></button><div class="smyl-inbox-thread-branchwrap" data-thread-branch-wrap hidden><button type="button" class="smyl-inbox-iconchip is-labeled" data-thread-branch-chip aria-haspopup="menu" aria-expanded="false"></button></div><button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Siguiente acción del paciente"></nav><div class="smyl-inbox-thread-menu-wrap"><button type="button" class="smyl-inbox-thread-more" data-thread-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-thread-menu" aria-label="Más acciones de la conversación">' + composeIcon('more') + '</button><div class="smyl-inbox-thread-menu" id="smyl-inbox-thread-menu" data-thread-menu role="menu" aria-label="Más acciones de la conversación" hidden><div class="smyl-inbox-thread-menu-care" data-thread-menu-care role="group" aria-label="Acciones del paciente"></div><label class="smyl-inbox-thread-menu-assign" data-thread-menu-assign role="none" hidden>Responsable de atención<select data-thread-assign aria-label="Asignar conversación"></select></label><button type="button" role="menuitem" data-thread-search>Buscar en el hilo</button><button type="button" role="menuitem" data-thread-shared>Archivos compartidos</button><button type="button" role="menuitem" data-thread-pin>Fijar conversación</button><button type="button" role="menuitem" data-thread-branch hidden>Cambiar sucursal</button><button type="button" role="menuitem" data-thread-details>Ficha 360 del paciente</button><button type="button" role="menuitem" data-thread-settings>Ajustes de la conversación</button><button type="button" role="menuitem" data-thread-link-professional hidden>Usar como mi WhatsApp profesional</button><button type="button" role="menuitem" data-thread-resolve hidden>Marcar solicitud resuelta</button></div></div></header>' +
-            '<div class="smyl-inbox-thread-notices" data-thread-notices hidden></div><div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div></div>' +
+            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención" aria-expanded="false" aria-controls="smyl-inbox-context-panel"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><span class="smyl-inbox-med-flag" data-thread-medical hidden></span><span class="smyl-inbox-patient-context-hint" aria-hidden="true"><span>Ficha 360</span>' + composeIcon('chevron') + '</span></button><div class="smyl-inbox-thread-branchwrap" data-thread-branch-wrap hidden><button type="button" class="smyl-inbox-iconchip is-labeled" data-thread-branch-chip aria-haspopup="menu" aria-expanded="false"></button></div><button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Siguiente acción del paciente"></nav><div class="smyl-inbox-owner-control" data-thread-owner>' + composeIcon('person') + '<span class="smyl-inbox-owner-copy"><small>Atiende el chat</small><strong data-thread-owner-name>Sin asignar</strong></span><select data-thread-assign aria-label="Asignar responsable del chat"></select><button type="button" data-thread-owner-retry hidden>Reintentar</button></div></header>' +
+            '<div class="smyl-inbox-briefing-row"><div class="smyl-inbox-thread-notices" data-thread-notices hidden></div><div class="smyl-inbox-thread-menu-wrap"><button type="button" class="smyl-inbox-thread-tools-trigger" data-thread-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-thread-menu" aria-label="Conversación: herramientas">Conversación ▾</button><div class="smyl-inbox-thread-menu" id="smyl-inbox-thread-menu" data-thread-menu role="menu" aria-label="Herramientas de conversación" hidden><div class="smyl-inbox-thread-menu-care" data-thread-menu-care role="group" aria-label="Acciones del paciente"></div><button type="button" role="menuitem" data-thread-search>Buscar en el hilo</button><button type="button" role="menuitem" data-thread-shared>Archivos compartidos</button><button type="button" role="menuitem" data-thread-pin>Fijar conversación</button><button type="button" role="menuitem" data-thread-branch hidden>Cambiar sucursal</button><button type="button" role="menuitem" data-thread-details>Ficha 360 del paciente</button><button type="button" role="menuitem" data-thread-settings>Ajustes de la conversación</button><button type="button" role="menuitem" data-thread-link-professional hidden>Usar como mi WhatsApp profesional</button><button type="button" role="menuitem" data-thread-resolve hidden>Marcar solicitud resuelta</button></div></div></div><div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div></div>' +
             '<button type="button" class="smyl-inbox-jump" data-thread-jump hidden>Ir al final</button>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
             '<form class="smyl-inbox-composer" data-inbox-composer><label class="smyl-inbox-sr" for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window aria-live="polite" hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><p class="smyl-compose-save-warning" data-compose-save-warning role="status" hidden>No se pudo guardar el texto para esta sesión.</p><div class="smyl-inbox-compose-surface" data-compose-surface><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-card"><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea></div><div class="smyl-inbox-compose-bar" role="group" aria-label="Acciones de respuesta"><div class="smyl-inbox-compose-primary"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-compose-tools" aria-label="Abrir herramientas de mensaje" title="Herramientas">' + composeIcon('plus') + '</button></div><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden><div class="smyl-inbox-compose-actions"><button type="button" class="smyl-inbox-compose-copilot" data-compose-copilot aria-label="Sugerir con MILA">' + composeIcon('mila') + '<span>Sugerir con MILA</span></button><button type="submit" class="smyl-inbox-send" data-compose-send aria-label="Enviar mensaje"><span>Enviar</span>' + composeIcon('send') + '</button></div></div></div><div class="smyl-inbox-compose-tools" id="smyl-inbox-compose-tools" data-compose-tools role="menu" aria-label="Herramientas de mensaje" hidden><button type="button" data-compose-attach role="menuitem" aria-label="Adjuntar archivo">' + composeIcon('attach') + '<span><strong>Adjuntar</strong><small>Foto, archivo o audio</small></span></button><button type="button" data-compose-quick role="menuitem" aria-label="Respuesta rápida">' + composeIcon('quick') + '<span><strong>Respuesta rápida</strong><small>Insertar texto del equipo</small></span></button><button type="button" data-compose-rewrite role="menuitem" aria-label="Mejorar redacción con MILA">' + composeIcon('rewrite') + '<span><strong>Mejorar redacción</strong><small>Ortografía y claridad con MILA</small></span></button><button type="button" data-compose-emoji role="menuitem" aria-label="Agregar emoji">' + composeIcon('smile') + '<span><strong>Emoji</strong><small>Insertar en el mensaje</small></span></button><button type="button" data-compose-template role="menuitem">' + composeIcon('template') + '<span><strong>Plantilla</strong><small>Mensaje aprobado</small></span></button><button type="button" data-compose-schedule role="menuitem">' + composeIcon('calendar') + '<span><strong>Programar</strong><small>Enviar después</small></span></button><button type="button" data-compose-record role="menuitem" aria-pressed="false">' + composeIcon('mic') + '<span><strong>Nota de voz</strong><small>Grabar audio</small></span></button><button type="button" data-compose-location role="menuitem" aria-label="Enviar ubicación actual">' + composeIcon('location') + '<span><strong>Enviar ubicación</strong><small>Ubicación actual o enlace de Maps</small></span></button></div></div></div></form>' +
@@ -2066,27 +2067,12 @@
     restoreContextFocus(focusSnapshot);
   }
 
-  // Ajustes de la conversación (no del paciente): responsable, etapa, asistente, ventana de WhatsApp, reactivación y programados.
-  // Viven en un diálogo que se abre desde «⋯» para que la Ficha 360 quede solo con lo que se consulta del paciente.
+  // Herramientas operativas del hilo. El responsable se edita únicamente desde la cabecera.
   function buildConversationSettings(conversation) {
     var zone = document.createDocumentFragment();
     var status = node('section', 'smyl-inbox-context-card');
     status.append(node('h3', '', 'Responsable'));
-    if (hasPermission('messages.manage')) {
-      var select = document.createElement('select'); select.setAttribute('aria-label', 'Asignar conversación');
-      var none = document.createElement('option'); none.value = ''; none.textContent = 'Sin responsable'; select.append(none);
-      state.team.forEach(function (member) { var option = document.createElement('option'); option.value = member.id; option.textContent = member.name; select.append(option); });
-      select.value = conversation.assignment && conversation.assignment.source === 'smyl' ? conversation.assignment.actor_id : '';
-      select.disabled = !canOperate(conversation, 'messages.manage');
-      select.onchange = function () { if (select.value) assignConversation(select.value); else mutateConversation('release'); };
-      status.append(select);
-    } else {
-      status.append(node('p', '', conversation.assignment ? conversation.assignment.name : 'Sin responsable'));
-      var own = conversation.assignment && state.actor && conversation.assignment.actor_id === state.actor.id;
-      var assignmentButton = node('button', 'btn btn-secondary btn-sm', own ? 'Liberar conversación' : 'Tomar conversación');
-      assignmentButton.type = 'button'; assignmentButton.disabled = !canOperate(conversation, 'messages.manage'); assignmentButton.onclick = function () { own ? mutateConversation('release') : assignConversation(state.actor.id); };
-      status.append(assignmentButton);
-    }
+    status.append(node('p', '', conversation.assignment ? conversation.assignment.name : 'Sin responsable'));
     zone.append(status);
 
     var organization = node('section', 'smyl-inbox-context-card smyl-inbox-organization');
@@ -2229,6 +2215,91 @@
     return ['confirmed', 'arrived', 'in_progress'].indexOf(visit.status) !== -1 && new Date(visit.ends_at || visit.starts_at).getTime() >= Date.now();
   }
 
+  function careDate(value) {
+    if (!value) return '';
+    var dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
+    var day = new Date(dateOnly ? value + 'T12:00:00Z' : value);
+    return Number.isFinite(day.getTime()) ? day.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', timeZone: dateOnly ? 'UTC' : undefined }) : '';
+  }
+
+  // Este historial solo muestra atenciones realizadas. Ni la asignación del chat ni
+  // el profesional de una próxima cita acreditan que el paciente haya sido atendido.
+  function indexCareHistory(visits) {
+    var branches = new Map();
+    visits.forEach(function (v) {
+      var branchKey = v.branch_id || v.branch_name || '', doctorKey = v.professional_id || v.professional_name || '';
+      var who = v.professional_name || (v.professional_id ? 'Profesional no disponible' : 'Profesional no registrado');
+      var where = v.branch_name || (v.branch_id ? 'Sucursal no disponible' : 'Sucursal no registrada');
+      if (!branches.has(branchKey)) branches.set(branchKey, { name:where, latestName:who, latestAt:v.attended_at, doctors:new Map(), count:0 });
+      var branch = branches.get(branchKey); branch.count += 1;
+      if (!branch.doctors.has(doctorKey)) branch.doctors.set(doctorKey, { name:who, dates:[] });
+      branch.doctors.get(doctorKey).dates.push(v.attended_at);
+    });
+    var first = branches.values().next().value, peek = 'Sin registros';
+    if (first) {
+      peek = first.name + ' · ' + first.latestName;
+      var others = Array.from(branches.keys()).filter(function (key) { return key && branches.get(key) !== first; }).length;
+      if (others) peek += ' · +' + others + (others === 1 ? ' sede' : ' sedes');
+    }
+    return { branches:branches, peek:peek };
+  }
+
+  function careHistorySection(entry, open, onRetry) {
+    var index = entry && entry.index;
+    var peek = index ? index.peek : entry && entry.error ? 'No disponible' : 'Consultando…';
+    var section = { id:'careHistory', title:'Atenciones realizadas', peek:{ text:peek, tone:'muted' } };
+    if (!open) return section;
+    var body = node('div', 'smyl-f360-care'); section.node = body;
+    if (!index || !index.branches.size) {
+      var hint = entry && entry.error ? 'No se pudo consultar el historial.' : index ? 'No hay atenciones realizadas registradas a las que tengas acceso.' : 'Consultando atenciones…';
+      body.append(node('p', 'smyl-f360-note', hint));
+      if (entry && entry.error) {
+        var retry = node('button', 'smyl-f360-link', 'Reintentar'); retry.type = 'button'; retry.onclick = onRetry; body.append(retry);
+      }
+      return section;
+    }
+    function disclosure(detail, key, initial, populate) {
+      var filled = false;
+      function fillOnce() { if (detail.open && !filled) { filled = true; populate(); } }
+      detail.open = Object.prototype.hasOwnProperty.call(entry.disclosures, key) ? entry.disclosures[key] : initial;
+      fillOnce();
+      detail.ontoggle = function () { if (detail.isConnected) { entry.disclosures[key] = detail.open; fillOnce(); } };
+    }
+    function dateNode(stamp) {
+      var label = careDate(stamp), el = node(label ? 'time' : 'span', '', label || 'Fecha no registrada');
+      if (label) el.dateTime = stamp;
+      return el;
+    }
+    index.branches.forEach(function (branch, branchKey) {
+      var group = node('details', 'smyl-f360-care-group'), heading = node('summary', 'smyl-f360-care-heading');
+      heading.append(node('strong', '', branch.name), node('span', '', branch.count === 1 ? '1 atención' : branch.count + ' atenciones'));
+      if (index.branches.size > 1) heading.append(node('small', '', branch.latestName + ' · ' + (careDate(branch.latestAt) || 'Fecha no registrada')));
+      group.append(heading);
+      disclosure(group, JSON.stringify(['branch', branchKey]), index.branches.size === 1, function () {
+        var list = node('ul', 'smyl-f360-care-list');
+        branch.doctors.forEach(function (doctor, doctorKey) {
+          var row = node('li', 'smyl-f360-care-row'); row.append(node('strong', '', doctor.name));
+          if (doctor.dates.length === 1) row.append(dateNode(doctor.dates[0]));
+          else {
+            var dates = node('details', 'smyl-f360-care-dates');
+            dates.append(node('summary', '', doctor.dates.length + ' atenciones · Última: ' + (careDate(doctor.dates[0]) || 'fecha no registrada')));
+            disclosure(dates, JSON.stringify(['dates', branchKey, doctorKey]), false, function () {
+              var dateList = node('ul', 'smyl-f360-care-days');
+              doctor.dates.forEach(function (stamp) { var li = node('li'); li.append(dateNode(stamp)); dateList.append(li); });
+              dates.append(dateList);
+            });
+            row.append(dates);
+          }
+          list.append(row);
+        });
+        group.append(list);
+      });
+      body.append(group);
+    });
+    if (entry.truncated) body.append(node('p', 'smyl-f360-note', 'Se muestran las 1,000 atenciones más recientes a las que tienes acceso.'));
+    return section;
+  }
+
   function buildFicha360(conversation, ficha, zones) {
     var F = window.SmylInboxFicha; var id = conversation.id;
     if (!F) {
@@ -2251,9 +2322,9 @@
       : '';
     var meta = 'Escribe por ' + channelLabel(conversation.channel) + (lastSeen ? ' · último mensaje ' + lastSeen.toLowerCase() : '');
     var careActions = permittedCareActions(conversation); var actions = [];
-    ['schedule', 'payment', 'record'].forEach(function (key) {
+    ['record', 'payment'].forEach(function (key) {
       var action = careActions.find(function (item) { return item.id === key; });
-      if (action) actions.push({ label: key === 'record' ? 'Expediente ↗' : action.label, primary: key === 'schedule', run: action.run });
+      if (action) actions.push({ label: key === 'record' ? 'Expediente ↗' : action.label, run: action.run });
     });
     var open = f360OpenState(); var sections = [];
 
@@ -2290,7 +2361,9 @@
       var citas = wrapPanel(zones.citas);
       if (linked && F.visits) {
         var visits = state.f360Visits[id] || {};
-        citas.append(F.visits({
+        // Una solicitud ya visible no debe ir seguida de «no tiene citas registradas».
+        // Los errores de consulta, en cambio, siempre deben ofrecer el reintento.
+        if (!citas.childElementCount || visits.loading || visits.error || (visits.items && visits.items.length)) citas.append(F.visits({
           items: visits.items || [], loading: Boolean(visits.loading) && !visits.items, error: visits.error || '', showAll: Boolean(state.f360VisitsAll[id]),
           isUpcoming: isUpcomingVisit, formatDate: availabilityDate,
           onShowAll: function () { state.f360VisitsAll[id] = !state.f360VisitsAll[id]; renderContext(); },
@@ -2300,7 +2373,12 @@
       sections.push({ id: 'citas', title: 'Citas', peek: visitsPeek(conversation, linked), node: citas });
     }
 
-    // 4. Archivos que ha compartido por el chat.
+    if (linked && !ficha.clinical_restricted && hasPermission('schedule.read')) {
+      var patientId = ficha.patient.id, historyKey = careHistoryKey(id, patientId);
+      sections.push(careHistorySection(careHistoryCache.get(historyKey), open.careHistory, function () { loadCareHistory(id, patientId, true); }));
+    }
+
+    // Archivos que ha compartido por el chat.
     var cache = state.f360Shared[id] || {};
     var reviewed = {}; ((ficha && ficha.clinical_images) || []).forEach(function (link) { if (link.lana_message_id) reviewed[link.lana_message_id] = true; });
     var mediaCount = (cache.items || []).filter(function (item) { return ['image', 'document', 'audio', 'video'].indexOf(item.media_type) !== -1; }).length;
@@ -2336,10 +2414,30 @@
     if (!cache || (open.files && !cache.loading && Date.now() - (cache.at || 0) > 30000)) loadFicha360Files(id, false);
     var patientId = ficha && ficha.linked && ficha.patient && ficha.patient.id;
     if (!patientId) return;
+    if (!ficha.clinical_restricted && hasPermission('schedule.read')) loadCareHistory(id, patientId, false);
     var visits = state.f360Visits[id];
     if (hasPermission('schedule.read') && (!visits || (!visits.loading && Date.now() - (visits.at || 0) > 60000))) loadPatientVisits(id, patientId, false);
     var moves = state.f360Movements[id];
     if (open.cuenta && hasPermission('finance.read') && (!moves || (!moves.loading && Date.now() - (moves.at || 0) > 60000))) loadPatientMovements(id, patientId, false);
+  }
+
+  var careHistoryCache = new Map();
+  function careHistoryKey(id, patientId) { return JSON.stringify([state.actor && state.actor.id, id, patientId]); }
+  async function loadCareHistory(id, patientId, force) {
+    if (!state.contextOpen || state.selectedId !== id || !patientId || !hasPermission('schedule.read')) return;
+    var key = careHistoryKey(id, patientId), previous = careHistoryCache.get(key);
+    if (previous && (previous.loading || (!force && Date.now() - previous.at < 60000))) return;
+    var entry = { loading:true, at:Date.now(), index:previous && previous.index, disclosures:previous && previous.disclosures || Object.create(null) };
+    careHistoryCache.set(key, entry);
+    try {
+      var result = await window.SmylSchedule.patientCareHistory(patientId);
+      if (!result || !Array.isArray(result.visits)) throw new Error('unavailable');
+      entry.index = indexCareHistory(result.visits); entry.truncated = result.truncated === true;
+    } catch (_) { entry.index = null; entry.error = true; }
+    entry.loading = false; entry.at = Date.now();
+    var current = state.clinical[id];
+    if (careHistoryKey(id, patientId) !== key || !current || !current.linked || !current.patient || current.patient.id !== patientId || current.clinical_restricted || !hasPermission('schedule.read')) { careHistoryCache.delete(key); return; }
+    if (state.contextOpen && state.selectedId === id) renderContext();
   }
 
   // Resumen con IA opcional: se genera solo cuando alguien pulsa «Resumir conversación» o «Actualizar».
@@ -2534,9 +2632,9 @@
       var primaryButton = node('button', 'smyl-inbox-care-action is-primary', primary.label);
       primaryButton.type = 'button'; primaryButton.dataset.threadPrimaryAction = primary.id; primaryButton.onclick = primary.run; host.append(primaryButton);
     }
-    // Acciones con permiso también quedan disponibles en ••• cuando la cabecera es angosta.
+    // El menú secundario no repite la acción principal de la cabecera.
     actions.forEach(function (action) {
-      if (!menuHost) return;
+      if (!menuHost || (primary && action.id === primary.id)) return;
       var item = node('button', action.id === (primary && primary.id) ? 'is-primary' : '', action.label);
       item.type = 'button'; item.setAttribute('role', 'menuitem'); item.onclick = function () { closeThreadMenu(false); action.run(); }; menuHost.append(item);
     });
@@ -2595,10 +2693,15 @@
     var patientSummary = document.querySelector('[data-inbox-context]');
     patientSummary.setAttribute('aria-label', 'Abrir paciente y atención · ' + continuityLabel + (actorRole ? ' · ' + actorRole : ''));
     var headerWindow = liveWhatsappWindow(conversation);
-    var threadMeta = [channelLabel(conversation.channel), conversation.assignment ? conversation.assignment.name : 'Sin responsable'];
+    var threadMeta = [channelLabel(conversation.channel)];
     renderThreadBranchChip(conversation);
     if (headerWindow && headerWindow.status !== 'expired') threadMeta.push('Ventana 24 h: quedan ' + durationLabel(headerWindow.remaining_seconds));
-    document.querySelector('[data-thread-meta]').textContent = threadMeta.join(' · ');
+    var meta = document.querySelector('[data-thread-meta]');
+    meta.textContent = threadMeta.join(' · ');
+    if (conversation.assignment && conversation.assignment.name) {
+      var compactOwner = node('span', 'smyl-inbox-owner-inline', ' · Atiende: ' + conversation.assignment.name);
+      meta.append(compactOwner);
+    }
     // Aviso visible aunque la ficha esté cerrada; solo con permiso clínico (el servidor ya filtra el alcance).
     var medicalFlag = document.querySelector('[data-thread-medical]');
     var medicalItems = hasPermission('clinical.read') && threadFicha && threadFicha.linked && threadFicha.patient && threadFicha.patient.medical_alerts ? (threadFicha.patient.medical_alerts.items || []) : [];
@@ -2714,15 +2817,7 @@
   }
 
   function renderThreadMenuState(conversation) {
-    var assignWrap = document.querySelector('[data-thread-menu-assign]'); var assign = document.querySelector('[data-thread-assign]');
-    if (assignWrap && assign) {
-      assignWrap.hidden = !hasPermission('messages.manage');
-      assign.innerHTML = '';
-      var none = document.createElement('option'); none.value = ''; none.textContent = 'Sin responsable'; assign.append(none);
-      state.team.forEach(function (member) { var option = document.createElement('option'); option.value = member.id; option.textContent = member.name; assign.append(option); });
-      assign.value = conversation.assignment && conversation.assignment.source === 'smyl' ? conversation.assignment.actor_id : '';
-      assign.disabled = !canOperate(conversation, 'messages.manage');
-    }
+    renderChatOwner(conversation);
     var resolve = document.querySelector('[data-thread-resolve]');
     if (resolve) { resolve.hidden = !conversation.needs_human; resolve.disabled = !canOperate(conversation, 'messages.manage'); }
   }
@@ -2731,8 +2826,82 @@
     renderList(); renderThreadHeader(); renderMessages(false); renderCopilotDraft();
   }
 
+  function renderChatOwner(conversation) {
+    var wrap = document.querySelector('[data-thread-owner]');
+    if (!wrap || !conversation) return;
+    var select = wrap.querySelector('select'), label = wrap.querySelector('[data-thread-owner-name]'), retry = wrap.querySelector('button');
+    var assignment = conversation.assignment, current = assignment ? (assignment.actor_id || '__legacy') : '';
+    var name = assignment && assignment.name || 'Sin asignar';
+    var allowed = canOperate(conversation, 'messages.manage'), saving = Boolean(state.assigningChat[conversation.id]);
+    var canChoose = allowed && !saving && state.teamStatus === 'ready' && Boolean(state.team.length || assignment);
+    var display = saving ? 'Guardando…' : allowed && state.teamStatus === 'loading' && !assignment ? 'Cargando equipo…' : name;
+    // Avoid replacing options under an open native picker when the conversation polls.
+    var signature = JSON.stringify([conversation.id, current, name, state.teamStatus, state.team.map(function (m) { return [m.id, m.name, m.kind]; })]);
+    if (select.dataset.signature !== signature) {
+      select.dataset.signature = signature; select.replaceChildren(new Option('Sin asignar', ''));
+      state.team.forEach(function (member) {
+        var kind = {owner:'Titular', professional:'Profesional clínico', staff:'Equipo de atención'}[member.kind];
+        select.add(new Option(member.name + (kind ? ' · ' + kind : ''), member.id));
+      });
+      if (current && !state.team.some(function (m) { return m.id === current; })) {
+        var prior = new Option(name, current); prior.disabled = true; select.add(prior);
+      }
+    }
+    select.value = current; select.disabled = !canChoose; select.dataset.conversationId = conversation.id;
+    label.textContent = display;
+    var description = 'Responsable del chat: ' + name;
+    var unavailable = allowed && state.teamStatus === 'error';
+    select.setAttribute('aria-label', description + (canChoose ? '. Cambiar responsable' : ''));
+    wrap.dataset.editable = String(canChoose); wrap.dataset.error = String(unavailable);
+    wrap.title = unavailable ? 'No se pudo cargar el equipo. Reintentar' : description + (canChoose ? ' · Cambiar' : allowed && !state.team.length && state.teamStatus === 'ready' ? ' · No hay integrantes disponibles' : '');
+    retry.hidden = !unavailable; retry.setAttribute('aria-label', 'Reintentar carga del equipo para asignar el chat');
+  }
+
+  async function changeChatOwner(conversationId, targetId) {
+    var conversation = selectedConversation();
+    if (!conversation || conversation.id !== conversationId || state.assigningChat[conversationId] || !canOperate(conversation, 'messages.manage')) return;
+    if (targetId && !state.team.some(function (member) { return member.id === targetId; })) return;
+    var actorId = state.actor && state.actor.id;
+    state.assigningChat[conversationId] = true; renderChatOwner(conversation);
+    try {
+      var payload = { action: targetId ? 'assign' : 'release', conversation_id: conversationId };
+      if (targetId) payload.target_actor_id = targetId;
+      var result = await request('POST', {}, payload, uuid());
+      var live = state.conversations.find(function (item) { return item.id === conversationId; });
+      if (!live || !state.actor || state.actor.id !== actorId) return;
+      // Una confirmación de asignación puede ser parcial: conserva IA, no leídos y permisos.
+      var assignedId = Object.prototype.hasOwnProperty.call(result, 'assigned_actor_id') ? result.assigned_actor_id : targetId;
+      var member = state.team.find(function (item) { return item.id === assignedId; });
+      live.assignment = assignedId ? { source:'smyl', actor_id:assignedId, name:result.assigned_actor_name || (member && member.name) || 'Miembro del equipo' } : null;
+      if (result.can_operate === false) live.can_operate = false;
+      if (assignedId !== actorId && (state.filter === 'mine' || (!seesWholeClinic() && state.actor.role !== 'owner'))) {
+        // Al transferir el único vínculo personal puede caducar el acceso: no mostrar
+        // la ficha o mensajes anteriores mientras el servidor reconstruye la bandeja.
+        state.conversations = state.conversations.filter(function (item) { return item.id !== conversationId; });
+        if (state.selectedId === conversationId) {
+          var input = document.querySelector('[name="message"]');
+          if (input && input.value.trim()) persistEncryptedDraft(conversationId, input.value.trim()).catch(function () {});
+          state.selectedId = null; state.contextOpen = false; state.attachment = null; state.replyTo = null;
+          document.getElementById('p-inbox').classList.remove('show-thread'); render();
+        }
+        await loadList(true);
+      }
+    } catch (error) {
+      if (state.selectedId === conversationId) window.alert(error.message || 'No se pudo cambiar al responsable del chat.');
+    } finally {
+      delete state.assigningChat[conversationId]; renderList();
+      if (state.selectedId === conversationId) renderThreadHeader();
+    }
+  }
+
   async function loadTeam() {
-    try { var data = await request('GET', { action: 'team' }); state.team = data.members || []; renderContext(); } catch (_) {}
+    if (state.teamStatus === 'loading') return;
+    state.teamStatus = 'loading'; renderChatOwner(selectedConversation());
+    try {
+      var data = await request('GET', { action: 'team' });
+      state.team = data.members || []; state.teamStatus = 'ready';
+    } catch (_) { state.team = []; state.teamStatus = 'error'; }
+    renderChatOwner(selectedConversation()); renderContext();
   }
 
   async function loadStages() {
@@ -3421,8 +3590,6 @@
     } catch (error) { window.alert(error.message || 'No se pudo actualizar la conversación.'); }
   }
 
-  function assignConversation(targetId) { return mutateConversation('assign', targetId); }
-
   function emojiSearchKey(text) {
     return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   }
@@ -3689,7 +3856,7 @@
     if (threadMenu && !threadMenu.hidden || actionMenu && !actionMenu.hidden || composeTools && !composeTools.hidden) return true;
     if (state.recorder && state.recorder.state === 'recording') return true;
     var active = document.activeElement;
-    return Boolean(active && page.contains(active) && active.closest('[data-inbox-composer],[data-inbox-context-panel]'));
+    return Boolean(active && page.contains(active) && active.closest('[data-inbox-composer],[data-inbox-context-panel],[data-thread-owner]'));
   }
 
   async function sync() {
@@ -4081,7 +4248,8 @@
     page.querySelector('[data-thread-shared]').addEventListener('click', function () { closeThreadMenu(); openSharedItems(); });
     page.querySelector('[data-thread-settings]').addEventListener('click', function () { closeThreadMenu(); openConversationSettings(); });
     page.querySelector('[data-settings-close]').addEventListener('click', function () { page.querySelector('[data-settings-dialog]').close(); });
-    page.querySelector('[data-thread-assign]').addEventListener('change', function (event) { closeThreadMenu(); if (event.target.value) assignConversation(event.target.value); else mutateConversation('release'); });
+    page.querySelector('[data-thread-assign]').addEventListener('change', function (event) { changeChatOwner(event.target.dataset.conversationId, event.target.value); });
+    page.querySelector('[data-thread-owner-retry]').addEventListener('click', loadTeam);
     page.querySelector('[data-thread-resolve]').addEventListener('click', function () { closeThreadMenu(); mutateConversation('resolve'); });
     page.querySelector('[data-thread-search-form]').addEventListener('submit', searchThread);
     page.querySelector('[data-search-close]').addEventListener('click', function () { page.querySelector('[data-search-dialog]').close(); });

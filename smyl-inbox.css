@@ -1213,7 +1213,7 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
   margin: 0 -20px 10px;
   padding: 18px 66px 16px 20px;
   border-color: var(--inbox-border);
-  background: rgba(255, 255, 255, .98);
+  background: var(--inbox-surface, #fff);
 }
 
 .smyl-inbox-context-head h2 {
@@ -2673,6 +2673,27 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 #p-inbox .smyl-f360-visit strong{color:var(--inbox-ink);font:700 13px/1.35 var(--inbox-font);overflow-wrap:anywhere}
 #p-inbox .smyl-f360-visit-treatment{margin:0;color:var(--inbox-text);font:500 12px/1.4 var(--inbox-font);overflow-wrap:anywhere}
 #p-inbox .smyl-f360-visit small{color:var(--inbox-muted);font:500 11px/1.35 var(--inbox-font)}
+#p-inbox .smyl-f360-care-list{display:grid;gap:0;margin:0;padding:0;list-style:none}
+#p-inbox .smyl-f360-care-row{min-width:0;padding:10px 3px;display:grid;gap:3px;border-top:1px solid var(--inbox-border)}
+#p-inbox .smyl-f360-care-row:first-child{border-top:0}
+#p-inbox .smyl-f360-care-row time{font:600 12px/1.35 var(--inbox-font);color:var(--inbox-muted)}
+#p-inbox .smyl-f360-care-row strong{font:700 14px/1.4 var(--inbox-font);color:var(--inbox-ink);overflow-wrap:anywhere}
+#p-inbox .smyl-f360-care-row small{font:500 13px/1.4 var(--inbox-font);color:var(--inbox-text);overflow-wrap:anywhere}
+#p-inbox [data-f360-section="careHistory"]{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px}
+#p-inbox [data-f360-section="careHistory"] .smyl-f360-peek{grid-row:2;grid-column:1;max-width:none;white-space:normal;overflow-wrap:anywhere;font-weight:500}
+#p-inbox [data-f360-section="careHistory"] .smyl-f360-chevron{grid-column:2;grid-row:1/span 2}
+#p-inbox .smyl-f360-care-group{border-top:1px solid var(--inbox-border);min-width:0}
+#p-inbox .smyl-f360-care-group:first-child{border-top:0}
+#p-inbox .smyl-f360-care-heading,#p-inbox .smyl-f360-care-dates>summary{cursor:pointer;min-height:40px;align-content:center;overflow-wrap:anywhere}
+#p-inbox .smyl-f360-care-heading{font:600 13px/1.4 var(--inbox-font);color:var(--inbox-ink)}
+#p-inbox .smyl-f360-care-heading span{display:inline-block;margin-left:8px;color:var(--inbox-muted);font-size:12px;font-weight:500}
+#p-inbox .smyl-f360-care-heading small{display:block;margin:2px 0 2px 14px;color:var(--inbox-muted);font:500 12px/1.4 var(--inbox-font);overflow-wrap:anywhere}
+#p-inbox .smyl-f360-care-group[open]>.smyl-f360-care-heading small{display:none}
+#p-inbox .smyl-f360-care-group .smyl-f360-care-list{border-left:2px solid var(--inbox-border);padding-left:12px;margin:0 0 8px 3px}
+#p-inbox .smyl-f360-care-row>span,#p-inbox .smyl-f360-care-dates{color:var(--inbox-muted);font:500 12px/1.35 var(--inbox-font)}
+#p-inbox .smyl-f360-care-days{margin:0;padding-left:18px;line-height:1.7}
+#p-inbox .smyl-f360-care summary:focus-visible{outline:2px solid var(--inbox-focus);outline-offset:-2px;border-radius:4px}
+@media (pointer:coarse){#p-inbox .smyl-f360-care summary{min-height:44px}}
 #p-inbox .smyl-f360-pill{flex:none;padding:2px 7px;border-radius:999px;background:#F0F4F7;color:#4B5D6E;font:700 10px/1.3 var(--inbox-font)}
 #p-inbox .smyl-f360-pill.is-ok{background:#E7F6F1;color:#17695A}
 #p-inbox .smyl-f360-pill.is-danger{background:#FDECEC;color:#B4232A}
@@ -2822,4 +2843,52 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
   #p-inbox [data-quick-content], #p-inbox [data-emoji-content] { padding: 12px 14px 16px; }
   #p-inbox :is([data-quick-dialog], [data-emoji-dialog]) :is(input, textarea, select) { font-size: 16px; }
   #p-inbox :is([data-quick-dialog], [data-emoji-dialog]) button { min-height: 44px; }
+}
+
+/* El responsable pertenece al chat: el selector nativo admite teclado y voz. */
+#p-inbox .smyl-inbox-owner-control {
+  position: relative; display: inline-flex; flex: 0 1 auto; align-items: center; gap: 7px;
+  min-width: 42px; max-width: 175px; min-height: 44px; padding: 4px 10px;
+  border: 1px solid #d6e1e8; border-radius: 9px; background: #fff; color: #365364;
+}
+#p-inbox .smyl-inbox-owner-control .smyl-inbox-compose-icon { flex: none; width: 19px; height: 19px; }
+.smyl-inbox-owner-copy { display: grid; gap: 1px; min-width: 0; }
+.smyl-inbox-owner-copy small { font-size: 12px; line-height: 15px; }
+.smyl-inbox-owner-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 16px; color: #162e40; }
+#p-inbox .smyl-inbox-owner-control select { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; }
+#p-inbox .smyl-inbox-owner-control[data-editable=true] select { cursor: pointer; }
+.smyl-inbox-owner-control:focus-within { outline: 2px solid #087970; outline-offset: 2px; }
+.smyl-inbox-owner-control[data-error=true] select { display: none; }
+.smyl-inbox-owner-control [data-thread-owner-retry] { border: 0; background: transparent; color: #075e59; text-decoration: underline; cursor: pointer; font: inherit; font-size: 12px; }
+.smyl-inbox-briefing-row { display: flex; align-items: center; flex: none; min-width: 0; padding-right: 12px; border-bottom: 1px solid #dce4ec; background: #fff; }
+.smyl-inbox-briefing-row .smyl-inbox-thread-notices { flex: 1 1 auto; min-width: 0; border-bottom: 0; }
+.smyl-inbox-briefing-row .smyl-inbox-thread-menu-wrap { flex: none; }
+.smyl-inbox-thread-tools-trigger { min-height: 44px; padding: 0 6px; border: 0; border-radius: 8px; color: #455c71; background: transparent; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.smyl-inbox-thread-tools-trigger:hover, .smyl-inbox-thread-tools-trigger[aria-expanded=true] { background: #f0f5f6; color: #12605a; }
+.smyl-inbox-briefing-row .smyl-inbox-thread-menu { max-width: calc(100vw - 24px); max-height: min(56dvh, 480px); overflow: auto; }
+.smyl-inbox-briefing-row .smyl-inbox-thread-menu-care:not(:empty) { display: block; border-bottom: 1px solid #e6edf2; }
+#p-inbox .smyl-inbox-thread-person .smyl-inbox-owner-inline { display: none; }
+@container smyl-thread-head (max-width: 700px) {
+  #p-inbox .smyl-inbox-thread-person .smyl-inbox-owner-inline { display: inline; font: inherit; color: inherit; }
+  #p-inbox .smyl-inbox-owner-control { width: 44px; justify-content: center; padding: 4px; flex: none; }
+  #p-inbox .smyl-inbox-owner-copy { display: none; }
+  #p-inbox .smyl-inbox-owner-control[data-error=true] > svg { display: none; }
+  #p-inbox [data-thread-owner-retry] { font-size: 0; width: 100%; min-height: 38px; }
+  #p-inbox [data-thread-owner-retry]:after { content: '↻'; font-size: 19px; }
+}
+/* Dos filas únicamente en teléfono: el nombre del paciente y el del operador
+   siguen legibles cuando también existen controles de sucursal y de IA. */
+@media (max-width: 560px) {
+  #p-inbox .smyl-inbox-thread-head {
+    display: grid; grid-template-columns: 44px minmax(0,1fr) auto auto;
+    grid-template-rows: 44px 44px; gap: 2px 6px; padding: 5px 10px 7px; height: auto; flex: none;
+  }
+  #p-inbox .smyl-inbox-thread-head > .smyl-inbox-back { grid-area: 1 / 1; }
+  #p-inbox .smyl-inbox-thread-head > .smyl-inbox-patient-summary { grid-area: 1 / 2; max-width: 100%; }
+  #p-inbox .smyl-inbox-thread-head > .smyl-inbox-thread-branchwrap { grid-area: 1 / 3; }
+  #p-inbox .smyl-inbox-thread-head > .smyl-inbox-mode-button { grid-area: 1 / 4; }
+  #p-inbox .smyl-inbox-thread-head > .smyl-inbox-owner-control { grid-area: 2 / 1 / 3 / 3; justify-self: start; justify-content: flex-start; width: auto; max-width: 100%; padding: 3px 9px; }
+  #p-inbox .smyl-inbox-owner-control .smyl-inbox-owner-copy { display: grid; }
+  #p-inbox .smyl-inbox-thread-person .smyl-inbox-owner-inline { display: none; }
+  #p-inbox .smyl-inbox-thread-head > .smyl-inbox-carebar { grid-area: 2 / 3 / 3 / 5; justify-self: end; }
 }

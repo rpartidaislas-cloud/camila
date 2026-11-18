@@ -1,5 +1,11 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-17 — Codex — Responsable de chat e historial de atención en Ficha 360
+
+- Cambio posterior a la publicación `e5ae5c54` de respuestas rápidas y emojis. En la cabecera queda «Agendar cita» como acción principal y «Atiende el chat» en lugar de los puntos suspensivos. La asignación del hilo no cambia el médico de una cita ni la sucursal clínica del paciente.
+- La Ficha 360 no repite el botón de agenda. Su historial clínico de atención usa únicamente citas con estado `completed` de la clínica y paciente vinculados, con fecha, sucursal y profesional. La lista de futuras citas y la sede elegida para enrutar el chat son datos distintos. No se deduce una visita por tener una sola sucursal configurada.
+- Versiones de esta etapa: `smyl-inbox.js` v64, `smyl-inbox.css` v55, `smyl-schedule.js` v44. Para publicar el cambio de responsables, desplegar también `lana-inbox` con la selección de personal activo autorizado para responder.
+
 ## 2026-11-17 — Codex — Chat: respuestas rápidas y emojis
 
 - El menú + permite redactar e insertar textos sin enviarlos. Administrar las respuestas del equipo requiere `messages.manage`; su lectura sigue el permiso y la clínica de la sesión. Migración `20261117230000_smyl_chat_quick_replies.sql`.

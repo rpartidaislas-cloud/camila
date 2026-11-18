@@ -34,8 +34,10 @@ test('bandeja: un solo botón de sucursal con conteos, sin ruido y con asignaci�
   assert.match(ui, /function toggleBranchMenu\(/);
   assert.match(ui, /role', 'menuitemradio'|menuitemradio/);
   assert.match(ui, /label: 'Sin sucursal', count: counts\.none/);
-  // ya no existe la pastilla naranja ni el rótulo «Sin asignar» para personas
-  assert.doesNotMatch(ui, /Sin asignar/);
+  // No confundir la sede del hilo con el operador que lo atiende.
+  assert.match(ui, /Atiende el chat<\/small>/);
+  const branchMenu = ui.slice(ui.indexOf('function threadBranchMenuItems'), ui.indexOf('function renderThreadBranchChip'));
+  assert.doesNotMatch(branchMenu, /Sin asignar/);
   assert.doesNotMatch(ui, /smyl-inbox-branch-unassigned/);
   assert.match(ui, /Sin responsable/);
   // fila: la sucursal sin asignar es solo un punto accesible

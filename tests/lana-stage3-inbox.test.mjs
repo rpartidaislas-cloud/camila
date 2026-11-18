@@ -16,8 +16,8 @@ test('SMYL provides a responsive operational inbox and canonical LANA thread', (
   assert.match(inbox, /Sincronización segura/);
   assert.match(styles, /grid-template-columns:332px minmax\(420px,1fr\) 268px/);
   assert.match(styles, /@media\(max-width:760px\)/);
-  assert.match(app, /smyl-inbox\.js\?v=63/);
-  assert.match(app, /smyl-inbox\.css\?v=54/);
+  assert.match(app, /smyl-inbox\.js\?v=64/);
+  assert.match(app, /smyl-inbox\.css\?v=55/);
   assert.match(worker, /smyl-v263-lana-connection-recovery/);
 });
 
@@ -34,7 +34,9 @@ test('manual responses use an isolated optimistic queue with visible retry state
 });
 
 test('assignment, read, pause, resume and resolution travel through the authenticated bridge', () => {
-  assert.match(inbox, /mutateConversation\('release'\)/);
+  const ownerChange = inbox.slice(inbox.indexOf('async function changeChatOwner('), inbox.indexOf('async function loadTeam('));
+  assert.match(ownerChange, /action: targetId \? 'assign' : 'release', conversation_id: conversationId/);
+  assert.match(ownerChange, /await request\('POST', \{\}, payload, uuid\(\)\)/);
   assert.match(inbox, /conversation\.paused \? prepareResume\(\) : mutateConversation\('pause'\)/);
   assert.match(inbox, /resume_with_context/);
   assert.match(inbox, /mutateConversation\('resolve'\)/);

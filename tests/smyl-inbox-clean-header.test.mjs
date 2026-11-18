@@ -26,7 +26,7 @@ test('un interruptor de IA sustituye al chip de estado y al botón Tomar control
   assert.match(js, /conversation\.paused \? prepareResume\(\) : mutateConversation\('pause'\)/);
 });
 
-test('la cabecera muestra una sola acción principal (Agendar cita) y las demás acciones, con permisos, viven en «⋯»', () => {
+test('la cabecera conserva Agendar cita y el menú Conversación ofrece únicamente las acciones secundarias permitidas', () => {
   const start = js.indexOf('function permittedCareActions');
   const end = js.indexOf('function closeThreadMenu', start);
   assert.ok(start >= 0 && end > start);
@@ -40,7 +40,10 @@ test('la cabecera muestra una sola acción principal (Agendar cita) y las demás
   assert.match(actions, /primaryButton\.dataset\.threadPrimaryAction/);
   assert.match(actions, /action\.id === 'schedule'/, 'Agendar cita es la acción principal cuando hay permiso');
   assert.doesNotMatch(actions, /'Nueva acción'|id: 'template'/, 'sin botón «Nueva acción» ni plantilla en el encabezado');
-  // El menú «⋯» está en el marcado de la cabecera; las acciones con permiso se agregan ahí como menuitem.
+  const head = js.match(/<header class="smyl-inbox-thread-head">.*?<\/header>/)?.[0] || '';
+  assert.match(head, /data-thread-assign/);
+  assert.doesNotMatch(head, /data-thread-more|data-thread-menu/);
+  assert.match(actions, /primary && action.id === primary.id\)\) return;/);
   assert.match(js, /data-thread-menu role="menu"/);
   assert.match(js, /data-thread-menu-care role="group"/);
   assert.match(actions, /document\.querySelector\('\[data-thread-menu-care\]'\)/);
@@ -62,8 +65,8 @@ test('la barra «SMYL te pone al día» resume lo pendiente sin consultas extra 
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=63/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=54/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=64/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=55/);
 });
 
 test('la cabecera grande se reemplaza por una barra delgada y los contadores viven en las pestañas', () => {

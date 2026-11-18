@@ -38,8 +38,8 @@ test('reply tools are understandable and preserve human review', () => {
 });
 
 test('web, mobile and offline bundles ship the same inbox stage', () => {
-  assert.match(app, /smyl-inbox\.css\?v=54/);
-  assert.match(app, /smyl-inbox\.js\?v=63/);
+  assert.match(app, /smyl-inbox\.css\?v=55/);
+  assert.match(app, /smyl-inbox\.js\?v=64/);
 assert.match(worker, /smyl-v263-lana-connection-recovery/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(inbox, read('../mobile/www/smyl-inbox.js'));

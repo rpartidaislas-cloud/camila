@@ -12,11 +12,14 @@ const schedule = read('smyl-schedule.js');
 
 const build = js.slice(js.indexOf('function buildFicha360('), js.indexOf('function wrapPanel('));
 
-test('la ficha tiene cuatro bloques en orden fijo: resumen IA, cuenta, citas y archivos', () => {
-  const order = ["id: 'summary'", "id: 'cuenta'", "id: 'citas'", "id: 'files'"].map((key) => build.indexOf(key));
+test('la ficha ordena resumen, cuenta, citas, atenciones realizadas y archivos sin repetir Agendar', () => {
+  const order = ["id: 'summary'", "id: 'cuenta'", "id: 'citas'", "sections.push(careHistorySection(", "id: 'files'"].map((key) => build.indexOf(key));
   assert.ok(order.every((index) => index > 0), 'faltan bloques');
   assert.deepEqual([...order].sort((a, b) => a - b), order, 'el orden cambió');
   assert.doesNotMatch(build, /tabs\.push|id: 'clinico'|id: 'timeline'|id: 'atencion'/);
+  const actions = build.slice(build.indexOf('var careActions ='), build.indexOf('var open = f360OpenState'));
+  assert.match(actions, /'record'/);
+  assert.doesNotMatch(actions, /'schedule'|Agendar cita/);
 });
 
 test('cada bloque cerrado muestra su dato clave y el abierto no lo repite', () => {
@@ -33,7 +36,7 @@ test('se retiran tarjetas que no son del paciente y la capacitación deja de ser
   assert.match(js, /badge: 'IA'/, 'el resumen con IA se conserva');
 });
 
-test('los ajustes de la conversación pasan a un diálogo desde «⋯»', () => {
+test('el menú Conversación conserva los ajustes sin repetir el selector de la cabecera', () => {
   assert.match(js, /data-thread-settings>Ajustes de la conversación<\/button>/);
   assert.match(js, /data-settings-dialog/);
   assert.match(js, /function buildConversationSettings\(conversation\)/);
@@ -65,9 +68,9 @@ test('la lista de citas separa próximas y anteriores, con tratamiento, dentista
 test('web, móvil y PWA publican la ficha 360 v4', () => {
   for (const file of ['app.html', 'sw.js']) {
     assert.match(read(file), /smyl-inbox-ficha\.js\?v=6/);
-    assert.match(read(file), /smyl-inbox\.js\?v=63/);
-    assert.match(read(file), /smyl-inbox\.css\?v=54/);
-    assert.match(read(file), /smyl-schedule\.js\?v=43/);
+    assert.match(read(file), /smyl-inbox\.js\?v=64/);
+    assert.match(read(file), /smyl-inbox\.css\?v=55/);
+    assert.match(read(file), /smyl-schedule\.js\?v=44/);
     assert.match(read(file), /smyl-finance\.js\?v=54/);
   }
   assert.match(read('sw.js'), /-ficha360-v4';/);

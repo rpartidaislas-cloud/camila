@@ -332,21 +332,49 @@ function forbiddenConversation(): Response {
   return json(403, { error: "Esta conversación queda fuera del alcance de tu rol.", code: "conversation_scope_denied" });
 }
 
+type TeamCandidate = {
+  id: string; tenant_id: string; nombre?: string; email?: string; rol: string; activo: boolean;
+  smyl_member_roles?: { smyl_roles: { active: boolean; smyl_role_permissions: { permission_key: string }[] } | null }[];
+  smyl_professionals?: { active: boolean; display_name: string }[];
+};
+
+function eligibleTeamMember(member: TeamCandidate, tenantId: string) {
+  if (!member || member.tenant_id !== tenantId || member.activo !== true) return null;
+  const owner = member.id === tenantId || member.rol === "dueño";
+  const permissions = new Set<string>();
+  for (const assignment of member.smyl_member_roles || []) {
+    const role = assignment.smyl_roles;
+    if (!role?.active) continue;
+    for (const grant of role.smyl_role_permissions || []) permissions.add(grant.permission_key);
+  }
+  if (!owner && !(permissions.has("messages.read") && permissions.has("messages.respond"))) return null;
+  const professional = (member.smyl_professionals || []).find((p) => p.active);
+  return { id: member.id, name: text(member.nombre, 160) || text(professional?.display_name, 160) || text(member.email, 160) || "Miembro del equipo",
+    role: owner ? "owner" : "staff", kind: owner ? "owner" : professional ? "professional" : "staff" };
+}
+
+// Las claves foráneas compuestas aseguran que roles, permisos y directorio pertenezcan a la misma clínica.
+// Un profesional sin usuario activo puede aparecer en la agenda, nunca como responsable del chat.
+async function assignableTeam(tenantId: string, targetId?: string) {
+  const members: NonNullable<ReturnType<typeof eligibleTeamMember>>[] = [];
+  for (let offset = 0; ; offset += 200) {
+    let query = admin.from("camila_usuarios")
+      .select("id,tenant_id,nombre,email,rol,activo,smyl_member_roles(smyl_roles(active,smyl_role_permissions(permission_key))),smyl_professionals(display_name,active)")
+      .eq("tenant_id", tenantId).eq("activo", true);
+    if (targetId) query = query.eq("id", targetId);
+    const result = await query.order("id").range(offset, offset + 199);
+    if (result.error) throw new Error("No se pudo consultar el equipo de la clínica.");
+    for (const row of result.data || []) {
+      const member = eligibleTeamMember(row as unknown as TeamCandidate, tenantId);
+      if (member) members.push(member);
+    }
+    if (targetId || !result.data || result.data.length < 200) break;
+  }
+  return members.sort((a, b) => a.name.localeCompare(b.name, "es"));
+}
+
 async function listTeam(tenantId: string): Promise<Response> {
-  const { data, error } = await admin.from("camila_usuarios")
-    .select("id,nombre,email,rol,activo")
-    .eq("tenant_id", tenantId)
-    .eq("activo", true)
-    .order("created_at", { ascending: true });
-  if (error) return json(500, { error: "No se pudo consultar el equipo de la clínica." });
-  return json(200, {
-    ok: true,
-    members: (data || []).map((member: Record<string, unknown>) => ({
-      id: String(member.id || ""),
-      name: text(member.nombre, 160) || text(member.email, 160) || "Miembro del equipo",
-      role: member.rol === "dueño" ? "owner" : "staff",
-    })),
-  });
+  return json(200, { ok: true, members: await assignableTeam(tenantId) });
 }
 
 async function availabilityCatalog(tenantId: string): Promise<Response> {
@@ -1348,16 +1376,13 @@ async function handleInbox(req: Request): Promise<Response> {
       } else return json(400, { error: "Tipo de mensaje no reconocido." });
     }
     if (action === "assign") {
-      const targetId = uuid(body.target_actor_id) || actor.id;
-      const { data: member } = await admin.from("camila_usuarios")
-        .select("id,nombre,email,rol,activo")
-        .eq("tenant_id", auth.tenantId)
-        .eq("id", targetId)
-        .eq("activo", true)
-        .maybeSingle();
-      if (!member) return json(404, { error: "El miembro seleccionado ya no está activo en esta clínica." });
+      if (!can(actor, "messages.read")) return forbiddenConversation();
+      const targetId = body.target_actor_id == null ? actor.id : uuid(body.target_actor_id);
+      if (!targetId) return json(400, { error: "Selecciona un integrante válido." });
+      const [member] = await assignableTeam(auth.tenantId, targetId);
+      if (!member) return json(404, { error: "Este integrante no está disponible para atender chats en tu clínica." });
       forwarded.target_actor_id = targetId;
-      forwarded.target_actor_name = text(member.nombre, 160) || text(member.email, 160) || "Miembro del equipo";
+      forwarded.target_actor_name = member.name;
     }
     if (action === "stage") {
       if (body.target_stage_id === null || body.target_stage_id === "") forwarded.target_stage_id = null;

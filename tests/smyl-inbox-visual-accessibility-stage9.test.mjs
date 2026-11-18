@@ -78,6 +78,9 @@ test('pestañas y menú de conversación publican semántica completa', () => {
   assert.match(filterControls, /tabIndex|setAttribute\(['"]tabindex['"]/);
 
   const menuTrigger = openingTag(inbox, 'data-thread-more');
+  const ownerSelect = openingTag(inbox, 'data-thread-assign');
+  assert.match(ownerSelect, /<select[^>]+aria-label="Asignar responsable del chat"/);
+  assert.match(inbox, /select\.setAttribute\('aria-label', description/);
   const menu = openingTag(inbox, 'data-thread-menu role');
   assert.match(menuTrigger, /\baria-haspopup=["']menu["']/);
   assert.match(menuTrigger, /\baria-controls=["'][^"']+["']/);
