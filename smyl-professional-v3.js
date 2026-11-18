@@ -63,11 +63,8 @@
     var screen=document.getElementById('p-paciente-detalle'),heading=screen&&screen.querySelector('.clinic-patient-heading');
     if(!heading||screen.querySelector('.pro-patient-workbar')||!window.pacienteActual)return;
     var bar=n('nav','pro-patient-workbar');bar.setAttribute('aria-label','Acciones del paciente');
-    [['Agendar cita','calendar',function(){openTask('appointment',pacienteActual.id);}],['Nueva evolución','note',function(){if(window.SmylPatient360)window.SmylPatient360.newNote();}]].forEach(function(item){var b=n('button','',item[0]);b.type='button';b.dataset.action=item[1];b.onclick=item[2];bar.append(b);});
-    var more=n('details','pro-patient-more');more.innerHTML='<summary>Más acciones</summary><div><button type="button" data-more-action="quote">Cotizar</button><button type="button" data-more-action="payment">Cobrar</button><button type="button" data-more-action="message">Enviar mensaje</button></div>';bar.append(more);
-    more.querySelector('[data-more-action="quote"]').onclick=function(){more.open=false;openTask('quote',pacienteActual.id);};
-    more.querySelector('[data-more-action="payment"]').onclick=function(){more.open=false;openTask('payment',pacienteActual.id);};
-    more.querySelector('[data-more-action="message"]').onclick=function(){more.open=false;route('inbox');};
+    // Sin menú «Más acciones»: las cinco acciones quedan a la vista (los módulos de destino validan el permiso de cada rol).
+    [['Agendar cita','calendar',function(){openTask('appointment',pacienteActual.id);}],['Nueva evolución','note',function(){if(window.SmylPatient360)window.SmylPatient360.newNote();}],['Cotizar','quote',function(){openTask('quote',pacienteActual.id);}],['Cobrar','payment',function(){openTask('payment',pacienteActual.id);}],['Enviar mensaje','message',function(){route('inbox');}]].forEach(function(item){var b=n('button','',item[0]);b.type='button';b.dataset.action=item[1];b.onclick=item[2];bar.append(b);});
     heading.after(bar);
   }
   function treatmentJourney(){
