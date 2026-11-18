@@ -297,3 +297,15 @@ export function clasificarEnvio(status, body) {
   if (status === 200 || status === 408 || status >= 500 || !status) return "unknown";
   return status >= 400 ? "rejected" : "unknown";
 }
+
+// ───────────── Descargas (comprobante y acuse de cancelación) ─────────────
+// El acuse (PDF/XML) solo existe cuando el SAT aceptó la cancelación.
+export const DESCARGAS = {
+  pdf: { path: "pdf", ext: "pdf", mime: "application/pdf", acuse: false },
+  xml: { path: "xml", ext: "xml", mime: "application/xml", acuse: false },
+  acuse_pdf: { path: "cancellation_receipt/pdf", ext: "pdf", mime: "application/pdf", acuse: true },
+  acuse_xml: { path: "cancellation_receipt/xml", ext: "xml", mime: "application/xml", acuse: true },
+};
+export function descarga(kind) {
+  return Object.prototype.hasOwnProperty.call(DESCARGAS, kind) ? DESCARGAS[kind] : DESCARGAS.pdf;
+}
