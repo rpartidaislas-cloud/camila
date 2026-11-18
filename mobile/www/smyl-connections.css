@@ -163,3 +163,8 @@
 @media(max-width:640px){.connections-auto-head,.connections-auto-drift{flex-direction:column;align-items:stretch}.connections-auto-head .btn,.connections-auto-drift .btn{width:100%}}
 .connections-branch-tools .connections-inline-check input[type=checkbox]{width:20px;height:20px;min-height:0;flex:none;margin:0;padding:0}
 .connections-branch-tools .connections-inline-check{flex-direction:row;align-items:center;font-size:13px;font-weight:600;color:#17352d}
+
+/* Skeletons de carga */
+.connections-training .is-sk-loading{display:none!important}
+.connections-training .sk-region{margin:12px 0}
+.connections-status-card .sk-line{margin:4px 0}

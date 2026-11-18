@@ -16,7 +16,7 @@ test('dental record resolves configurable clinical permissions and retains the o
 });
 
 test('read permission unlocks the record, dental map and radiograph viewer without granting writes', () => {
-  assert.match(source, /if\(!ctx\.canRead\)\{message\(ctx,'Tu rol no permite consultar/);
+  assert.match(source, /if\(!ctx\.canRead\)\{(?:clearLoading\(\);)?message\(ctx,'Tu rol no permite consultar/);
   assert.match(source, /openTooth[\s\S]*?!ctx\.canRead/);
   assert.match(source, /openStudy[\s\S]*?!ctx\.canRead/);
   assert.match(source, /planContext[\s\S]*?!ctx\.canRead/);

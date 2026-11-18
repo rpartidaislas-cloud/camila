@@ -750,3 +750,8 @@ body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=m]>.schedule-
 
 .schedule-board-matrix table{table-layout:fixed}.schedule-board-matrix th:first-child,.schedule-board-matrix td:first-child{width:92px}
 .schedule-board-cell-branch,.schedule-board-cell-hours{display:block;overflow-wrap:anywhere}.schedule-board-cell-branch{font-weight:700}
+
+/* Skeletons de carga */
+.schedule-calendar>.sk-region{grid-column:1/-1;padding:12px}
+.schedule-slots-sk{display:grid;gap:10px;padding:4px 0}
+.schedule-slots-sk .sk-row{flex-wrap:wrap}

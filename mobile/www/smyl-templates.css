@@ -82,3 +82,5 @@
 .tpl-group-grid{grid-template-columns:1fr}
 .tpl-actions .btn{flex:1}
 }
+
+.tpl-status-skeleton{display:block;min-width:180px;flex:1 1 180px;max-width:320px}

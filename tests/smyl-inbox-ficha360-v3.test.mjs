@@ -47,9 +47,9 @@ test('en pantallas anchas la ficha se ancla sin oscurecer el chat ni atrapar el 
 
 test('web, móvil y PWA publican la ficha 360 v3', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-inbox-ficha\.js\?v=9/);
-    assert.match(read(file), /smyl-inbox\.js\?v=69/);
-    assert.match(read(file), /smyl-inbox\.css\?v=58/);
+    assert.match(read(file), /smyl-inbox-ficha\.js\?v=10/);
+    assert.match(read(file), /smyl-inbox\.js\?v=70/);
+    assert.match(read(file), /smyl-inbox\.css\?v=59/);
   }
   for (const file of ['smyl-inbox.js', 'smyl-inbox-ficha.js', 'smyl-inbox.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);

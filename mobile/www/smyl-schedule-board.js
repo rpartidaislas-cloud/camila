@@ -15,6 +15,11 @@
   var WD_PLURAL = ['los domingos', 'los lunes', 'los martes', 'los miércoles', 'los jueves', 'los viernes', 'los sábados'];
   var MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
+  function slotsSkeleton() {
+    var holder = document.createElement('div'); holder.className = 'schedule-slots-sk';
+    holder.innerHTML = window.SmylSkeleton ? window.SmylSkeleton.html('text', { lines: 1, label: 'Buscando horarios libres' }) + '<div class="sk-row">' + '<span class="sk sk-chip"></span>'.repeat(6) + '</div>' : '<p class="schedule-slots-hint">Buscando horarios libres…</p>';
+    return holder;
+  }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function keyOf(date) { return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()); }
   function dateOf(key) { var p = String(key).split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
@@ -192,7 +197,7 @@
     var resultKey = values.serviceId + '|' + (Number(values.extra) || 0);
     if (ui.result && ui.resultKey === resultKey) { draw(); return; }
     var token = ++ui.token, keys = dayKeys(new Date(), DAY_COUNT);
-    show(el('p', 'schedule-slots-hint', 'Buscando horarios libres…'));
+    show(slotsSkeleton());
     Promise.resolve(api.loadBusy(keys)).then(function (busy) {
       if (host._ui.token !== token) return;
       ui.keys = keys; ui.busy = busy || {};

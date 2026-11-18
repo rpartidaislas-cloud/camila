@@ -195,7 +195,7 @@
   }
   function render(){
    if(!valid())return close(run,true);const fb=host.querySelector('.rr-feedback');host.replaceChildren();if(fb)host.prepend(fb);
-   if(!run.doc){host.append(n('p','rr-feedback','Cargando informe…'));return;}
+   if(!run.doc){const w=n('div','rr-skeleton');w.innerHTML=window.SmylSkeleton?window.SmylSkeleton.html('detail',{label:'Cargando informe'}):'<p class="rr-feedback">Cargando informe…</p>';host.append(w);return;}
    const top=n('section','rr-review rp-review'),head=n('header','rr-review-head'),title=n('div');
    title.append(n('p','rr-step',signed()?'Informe firmado':'4 de 4 · Informe'),n('h1','','Informe radiográfico asistido'),n('p','rr-lead','Documento profesional construido sólo con tus decisiones. La IA puede ordenar y redactar; no añade hallazgos, diagnósticos ni estudios.'));head.append(title);top.append(head);
    const ws=n('div','rp-workspace');ws.append(findingsPanel(),sectionsPanel());top.append(ws,diffPanel(),signaturePanel(),actionsBar(),n('p','rr-note rr-safety-note','Revisión asistida: no es un diagnóstico automático. La firma registra usuario, profesional, fecha, versión y hash; después sólo adendas.'));host.append(top);

@@ -16,6 +16,9 @@
   if (typeof module === 'object' && module.exports) module.exports = model; else root.SmylBranchScope = model;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
+  // `root` es parámetro del envoltorio UMD y no existe dentro de esta función: sin esta línea, init() y el resto lanzaban
+  // «root is not defined» en cuanto había clínica (visto con conexión lenta, justo después de iniciar sesión).
+  var root = typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : this);
 
   var ALL = 'all';
   var STORE_PREFIX = 'smyl-active-branch:';

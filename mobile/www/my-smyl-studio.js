@@ -58,7 +58,7 @@
     const title = node('span','','mySmyl · vista previa'); title.id = 'ms-studio-title';
     const back = node('button','','Volver a la simulación'); back.type = 'button';
     bar.append(title,back); dialog.append(bar,host);
-    host.append(node('p','ms-preview-loading','Abriendo las fotos de tu simulación…'));
+    {const w=node('div','ms-preview-loading');w.innerHTML=window.SmylSkeleton?'<div class="sk-region" role="status" aria-live="polite"><span class="sk-sr">Abriendo las fotos de tu simulación</span><div aria-hidden="true"><span class="sk" style="display:block;width:100%;aspect-ratio:4/3;max-height:60vh;border-radius:12px"></span></div></div>':'<p>Abriendo las fotos de tu simulación…</p>';host.append(w);}
     let closed = false, controller = null, watch = null;
     function release() { controller?.destroy(); controller = null; urls.splice(0).forEach(url => URL.revokeObjectURL(url)); }
     function close(restoreFocus = true) {
