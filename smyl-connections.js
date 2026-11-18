@@ -29,8 +29,8 @@
       '<h1>Canales</h1>' +
       '<p>Conecta una cuenta y configura cómo atiende SMYL.</p></div>' +
       '<div class="connections-status-card" role="status" aria-live="polite" aria-atomic="true"><span class="connections-status-label">ESTADO</span>' +
-      '<div class="connections-status-row"><span class="connections-status-dot"></span><strong data-lana-status>Cargando…</strong></div>' +
-      '<p data-lana-summary>Comprobando la configuración de esta clínica.</p><small data-lana-verified></small></div></header>' +
+      '<div class="connections-status-row"><span class="connections-status-dot"></span><strong data-lana-status><span class="sk-sr">Cargando…</span><span class="sk sk-line w-60 is-lg" aria-hidden="true"></span></strong></div>' +
+      '<p data-lana-summary><span class="sk-sr">Comprobando la configuración de esta clínica.</span><span class="sk sk-line w-100" aria-hidden="true"></span></p><small data-lana-verified></small></div></header>' +
       '<section class="connections-flow" aria-labelledby="connections-flow-title"><div class="connections-section-heading"><span>FLUJO SEGURO</span><h2 id="connections-flow-title">Un canal, dos responsabilidades claras</h2></div>' +
       '<ol><li><span>01</span><div><strong>El paciente escribe</strong><p>SMYL recibe y organiza la conversación de tus canales.</p></div></li>' +
       '<li><span>02</span><div><strong>El dentista revisa</strong><p>SMYL prepara la evidencia y el caso para revisión profesional.</p></div></li>' +
@@ -343,6 +343,7 @@
     var controller = new AbortController();
     state.channelLoadController = controller;
     showChannelRetry(false);
+    if (!state.channels.length) document.querySelectorAll('[data-channel-state]').forEach(function (el) { el.innerHTML = '<span class="sk-sr">Consultando canales…</span><span class="sk sk-line w-60" aria-hidden="true"></span>'; });
     try {
       var data = await channelRequest('GET', null, { signal: controller.signal });
       if (generation !== state.channelLoadGeneration) return;
@@ -1204,8 +1205,11 @@
     if (!state.status || !state.status.connected || (state.trainingLoaded && !force)) return;
     if (state.dirty) { contextStatus('Conservamos tus cambios locales sin guardar.', ''); return; }
     contextStatus('Cargando capacitación…', '');
+    var trainingForm = document.querySelector('[data-lana-training-form]'), trainingSkeleton = null;
+    if (trainingForm && window.SmylSkeleton) { trainingSkeleton = window.SmylSkeleton.node('form', { fields: 4, label: 'Cargando capacitación' }); trainingSkeleton.setAttribute('data-training-skeleton', ''); trainingForm.classList.add('is-sk-loading'); trainingForm.parentNode.insertBefore(trainingSkeleton, trainingForm); }
     try { fillTraining(await trainingRequest('GET', 'training')); state.trainingLoaded = true; await loadTrainingVersions(); refreshAutoFacts(true); }
     catch (error) { contextStatus(error.message, 'error'); }
+    finally { if (trainingSkeleton) { trainingSkeleton.remove(); trainingForm.classList.remove('is-sk-loading'); } }
   }
 
   async function saveTrainingDraft(showSuccess) {

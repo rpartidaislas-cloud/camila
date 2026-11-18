@@ -232,7 +232,11 @@
     if (!host) return;
     host.innerHTML = '';
     if (state.notice) { var notice = el('span', 'tpl-notice', state.notice.text); notice.dataset.kind = state.notice.kind; host.append(notice); }
-    if (state.loading) { host.append(el('span', 'tpl-status-text', 'Consultando plantillas…')); return; }
+    if (state.loading) {
+      if (window.SmylSkeleton) { var skNode = window.SmylSkeleton.node('text', { lines: 1, label: 'Consultando plantillas' }); skNode.classList.add('tpl-status-skeleton'); host.append(skNode); }
+      else host.append(el('span', 'tpl-status-text', 'Consultando plantillas…'));
+      return;
+    }
     if (state.error) {
       var retry = el('button', 'btn btn-secondary btn-sm', 'Reintentar'); retry.type = 'button'; retry.onclick = function () { loadApproved(true); };
       host.append(el('span', 'tpl-status-text', 'No pudimos consultar el estado en el servicio de mensajería. Puedes copiar los datos y solicitarlas desde tu panel de mensajería.'), retry);

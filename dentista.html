@@ -495,7 +495,9 @@
         }
       }
     </style>
-  </head>
+  <link rel="stylesheet" href="smyl-skeleton.css?v=1">
+<script defer src="smyl-skeleton.js?v=1"></script>
+</head>
   <body>
     <a class="skip-link" href="#app">Saltar al perfil profesional</a>
     <div class="shell">
@@ -976,5 +978,6 @@
         init();
       })();
     </script>
-  </body>
+  <script>document.addEventListener("DOMContentLoaded",function(){var s=document.querySelector("#app > .loading");if(window.SmylSkeleton&&s){s.className="";s.style.padding="30px";s.style.maxWidth="900px";s.style.margin="0 auto";s.innerHTML=window.SmylSkeleton.html("detail",{label:"Preparando el perfil profesional"});}});</script>
+</body>
 </html>

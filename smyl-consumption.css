@@ -227,3 +227,5 @@
   .usage-purchase-actions .usage-button-secondary{font-size:13px}
   .usage-purchase-actions .usage-button-secondary::before{content:none}
 }
+
+.usage-skel>div{display:grid;gap:10px}.usage-skel i{display:block;height:44px;border-radius:12px;background:linear-gradient(100deg,#eef2f4 20%,#f8fafb 40%,#eef2f4 60%);background-size:220% 100%;animation:usage-shimmer 1.3s infinite}.usage-skel-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}@media (prefers-reduced-motion:reduce){.usage-skel i,.usage-summary-card.is-loading{animation:none}}

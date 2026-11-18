@@ -369,7 +369,7 @@
    }
    footer.append(prog,info,footerActions,n('p','rr-save-note','Cada decisión se guarda al confirmarla o descartarla. La IA nunca valida por sí sola.'));panel.append(footer);host.append(top);updateProgress();
   }
-  host.append(n('p','rr-feedback','Abriendo la revisión privada…'));
+  {const w=n('div','rr-skeleton');w.innerHTML=window.SmylSkeleton?window.SmylSkeleton.html('detail',{label:'Abriendo la revisión privada'}):'<p class="rr-feedback">Abriendo la revisión privada…</p>';host.append(w);}
   try{run.store=await SmylRadiographReviewStore.connect(window.sb,{tenant,patient,study,current:valid});const row=await run.store.load();if(!valid())return;run.doc=row?.document||null;run.revision=row?.revision||0;run.lastSavedAt=row?.updated_at?new Date(row.updated_at):null;render();run.syncHandler=()=>{if(document.visibilityState!=='hidden')void refreshFromServer(true);};document.addEventListener('visibilitychange',run.syncHandler);window.addEventListener('focus',run.syncHandler);}catch(e){if(valid()){run.store=null;render();status(['42P01','PGRST205','PGRST202','42883'].includes(e.code)||e.message.includes('no habilitada')?'Esta fase está preparada localmente, pero el guardado aún no está activado en la clínica.':e.message,'rr-error');}}
  }
  addEventListener('pagehide',()=>close(active,true));

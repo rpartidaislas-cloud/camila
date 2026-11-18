@@ -86,7 +86,7 @@
   }
   async function open(conversationId){
     if(!/^[0-9a-f-]{36}$/i.test(String(conversationId||'')))return;
-    var m=modal();m.hidden=false;document.getElementById('lana-handoff-body').innerHTML='<p class="lana-handoff-state">Consultando la identidad del contacto…</p>';document.getElementById('lana-handoff-actions').innerHTML='';history.replaceState(null,'',location.pathname);
+    var m=modal();m.hidden=false;document.getElementById('lana-handoff-body').innerHTML=window.SmylSkeleton?window.SmylSkeleton.html('list',{rows:2,plain:true,label:'Consultando la identidad del contacto'}):'<p class="lana-handoff-state">Consultando la identidad del contacto…</p>';document.getElementById('lana-handoff-actions').innerHTML='';history.replaceState(null,'',location.pathname);
     try{
       var data=await request('preview',conversationId);
       // Ya vinculada: no hay nada que decidir, se abre el expediente directamente.
