@@ -4,7 +4,7 @@ const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidire
 const COMPOSER_TOOLBOX_CACHE = CACHE_VERSION + '-inbox-toolbox-v6';
 const CHAT_WRITING_TOOLS_CACHE = COMPOSER_TOOLBOX_CACHE + '-inbox-writing-tools-v7';
 const ANATOMICAL_ODONTOGRAM_CACHE = CHAT_WRITING_TOOLS_CACHE + '-evidence-single-entry-fix-v1-radiograph-anatomic-odontogram-v20-radiograph-mobile-workspace-v22-radiograph-visual-architecture-v23-radiograph-fit-action-v24-evidence-library-v25-radiograph-crop-view-v26-radiograph-unified-review-v27-patient-reload-continuity-v1-clinical-file-layout-v28-radiograph-crop-editor-v29';
-const STATIC_CACHE = ANATOMICAL_ODONTOGRAM_CACHE + '-collection-visual-v1-static-evidence-center-ux-v6-clinical-categories-v1-evidence-single-intake-v1-payments-ledger-ux-v1-evidence-workspace-v1-finance-workspace-v4-fiscal-receipts-v1-mila-interview-qr-v1-mila-voice-interview-v1-mila-dialog-v3-mila-live-orb-v1-mila-live-v2-summary-fix-v1-mila-orb-v3-mila-previsit-v1-orb-round-v1-online-pay-v1-oculto-v1-previsit-agenda-v1-mila-turnos-v1-mi-cuenta-personal-v1-mi-consultorio-v1';
+const STATIC_CACHE = ANATOMICAL_ODONTOGRAM_CACHE + '-collection-visual-v1-static-evidence-center-ux-v6-clinical-categories-v1-evidence-single-intake-v1-payments-ledger-ux-v1-evidence-workspace-v1-finance-workspace-v4-fiscal-receipts-v1-mila-interview-qr-v1-mila-voice-interview-v1-mila-dialog-v3-mila-live-orb-v1-mila-live-v2-summary-fix-v1-mila-orb-v3-mila-previsit-v1-orb-round-v1-online-pay-v1-oculto-v1-previsit-agenda-v1-mila-turnos-v1-mi-cuenta-personal-v1-mi-consultorio-v1-equipo-ficha-v1';
 const DYNAMIC_CACHE = ANATOMICAL_ODONTOGRAM_CACHE + '-collection-visual-v1-dynamic-evidence-center-ux-v6-clinical-categories-v1-evidence-single-intake-v1-payments-ledger-ux-v1-evidence-workspace-v1-finance-workspace-v4-fiscal-receipts-v1';
 
 // Archivos que se cachean al instalar
@@ -111,8 +111,8 @@ const STATIC_FILES = [
   '/camila/smyl-clinical-model.js?v=3',
   '/camila/smyl-panel.js?v=7',
   '/camila/smyl-panel.css?v=5',
-  '/camila/smyl-clinic-admin.js?v=13',
-  '/camila/smyl-clinic-admin.css?v=10',
+  '/camila/smyl-clinic-admin.js?v=14',
+  '/camila/smyl-clinic-admin.css?v=11',
   '/camila/smyl-professional-directory.js?v=12',
   '/camila/smyl-professional-directory.css?v=12',
   '/camila/smyl-design-system-v2.css?v=2',

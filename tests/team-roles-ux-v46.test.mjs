@@ -26,10 +26,10 @@ test('el correo sólo se usa para accesos realmente nuevos', () => {
 });
 
 test('equipo y profesionales se presentan como una sola ficha por persona', () => {
-  assert.match(script, /Personas con acceso/);
+  assert.match(script, /<h2>Personas<\/h2>/);
   assert.match(script, /professionalForMember\(user\.id\)/);
-  assert.match(script, /Doctor<\/span>/);
-  assert.match(script, /Los doctores vinculados se identifican en la misma lista/);
+  assert.match(script, /person\.doctor \? 'Doctor' : 'Equipo'/);
+  assert.match(script, /Toca a una persona para ver su ficha/);
   assert.match(script, /row\.active && !row\.user_id/);
 });
 
@@ -44,8 +44,8 @@ test('el módulo aplica escala legible, controles táctiles y composición respo
 
 test('la composición v47 responde al ancho real del módulo y no empalma tarjetas', () => {
   assert.match(script, /clinic-admin-team-panel/);
-  assert.match(script, /clinic-admin-member-controls/);
-  assert.match(script, /Todo al día/);
+  assert.match(script, /clinic-admin-person-row/);
+  assert.match(script, /No hay personas en esta vista/);
   assert.match(styles, /container:clinic-team \/ inline-size/);
   assert.match(styles, /\.clinic-admin-member-controls\{[^}]*grid-template-columns:minmax\(130px,\.8fr\) minmax\(180px,1\.2fr\)/);
   assert.match(styles, /\.clinic-admin-member select\{[^}]*max-width:100%[^}]*min-width:0/);
