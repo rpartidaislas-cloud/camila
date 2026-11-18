@@ -1208,3 +1208,17 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
 .finance-cancel-summary dt{font-size:12px;font-weight:700;color:#526465}
 .finance-cancel-summary dd{margin:0;font-size:14px;word-break:break-all}
 .btn.btn-danger{background:#a23b2e;border-color:#a23b2e;color:#fff}
+
+/* Cobrar desde el chat: el diálogo vive en <body> (fuera de #p-caja), así que lleva las mismas reglas base que la pantalla de Cobros. */
+@media screen{
+  body>.finance-dialog *{box-sizing:border-box;min-width:0}
+  body>.finance-dialog :where(button,.btn,input:not([type="checkbox"]):not([type="radio"]),select,textarea,[role="button"]){min-height:42px;font-size:13px}
+  body>.finance-dialog :where(button,.btn,[role="button"]){padding-inline:14px;border-radius:10px;font-weight:700}
+  body>.finance-dialog :where(button,.btn,input,select,textarea,a,[tabindex]):focus-visible{outline:3px solid rgba(31,120,167,.3);outline-offset:2px}
+  body>.finance-dialog :where(button,.btn,input,select,textarea):disabled{cursor:not-allowed;opacity:.55}
+  body>.finance-dialog textarea{min-height:96px;resize:vertical}
+}
+@media screen and (max-width:720px){
+  body>.finance-dialog :where(button,.btn,input:not([type="checkbox"]):not([type="radio"]),select,textarea,[role="button"]){min-height:44px}
+  body>.finance-dialog :where(button,.btn,[role="button"]){min-width:44px}
+}

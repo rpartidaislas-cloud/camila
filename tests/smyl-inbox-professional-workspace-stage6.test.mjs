@@ -38,8 +38,8 @@ test('la distribución profesional mantiene contexto amplio y respuesta móvil',
 test('web, móvil y PWA entregan exactamente la misma optimización', () => {
   assert.equal(mobileJs, js);
   assert.equal(mobileCss, css);
-  assert.match(app, /smyl-inbox\.js\?v=64/);
+  assert.match(app, /smyl-inbox\.js\?v=65/);
   assert.match(app, /smyl-inbox\.css\?v=55/);
-  assert.equal(mobileApp.includes('smyl-inbox.js?v=64'), true);
+  assert.equal(mobileApp.includes('smyl-inbox.js?v=65'), true);
   assert.match(worker, /smyl-v263-lana-connection-recovery/);
 });
