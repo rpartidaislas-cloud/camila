@@ -60,7 +60,7 @@ test('web y PWA comparten la misma entrega versionada', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-navigation.js', 'smyl-professional-v3.js', 'smyl-settings-hub.js', 'smyl-consultorio.js', 'smyl-proposals.js', 'app.html', 'sw.js']) {
     assert.equal(read(file), read('mobile/www/' + file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=40/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=55/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=41/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=56/);
   assert.match(read('sw.js'), /finanzas-workspace-v5/);
 });

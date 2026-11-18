@@ -52,7 +52,7 @@ test('web y PWA publican los mismos archivos y versiones del workspace', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'app.html', 'sw.js']) {
     assert.equal(read('mobile/www/' + file), read(file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=40/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=55/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=41/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=56/);
   assert.match(read('sw.js'), /finanzas-workspace-v5/);
 });

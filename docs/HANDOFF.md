@@ -11557,3 +11557,12 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Cobro desde el chat:** `SmylFinance.collect(patientId, patient)` abre el cobro guiado sobre la conversación con el paciente ya seleccionado, sin obligar a navegar a Finanzas. El diálogo se mantiene fuera de la pantalla oculta para funcionar también desde Mensajería.
 - **Alcance por sucursal:** se conserva `smyl-branch-scope.js` y la migración `20261118140000_smyl_branch_scope.sql` de la rama principal para que la nueva estructura financiera respete el consultorio seleccionado.
 - **Compatibilidad:** la ruta técnica continúa siendo `caja`, aunque toda la interfaz visible permanece como **Finanzas**.
+
+## 2026-11-17 — Codex — Recibo profesional v1
+
+- **Jerarquía:** el recibo separa folio y estado, total recibido, método/sucursal, conceptos cobrados y metadatos operativos. Se eliminó el segundo botón de cierre y se dejó una sola salida visible.
+- **Facturación contextual:** el comprobante interno ya no se mezcla con el CFDI. Un bloque independiente explica el estado fiscal y ofrece únicamente el siguiente paso aplicable: completar datos, preparar factura, continuar el borrador o consultar la factura emitida.
+- **Acciones:** Imprimir y Compartir quedan como utilidades secundarias y muestran confirmación dentro de la ventana. El recibo conserva los flujos existentes de impresión, Web Share/copia y navegación fiscal.
+- **PWA:** la ventana se convierte en hoja de pantalla completa, respeta el área segura, apila la información sin desborde, mantiene texto mínimo de 12 px y controles táctiles de 44 px. Los filtros de recibos se desplazan horizontalmente en una sola fila.
+- **Versiones:** `smyl-finance.js?v=56`, `smyl-finance.css?v=41`, caché `…-receipt-professional-v1`; raíz web y `mobile/www/` sincronizados.
+- **Verificación:** pruebas de estructura y regresión del módulo, más humo real en Chrome a 1500, 390 y 320 px. Sin errores de página, microtexto, controles pequeños ni desbordes horizontales.
