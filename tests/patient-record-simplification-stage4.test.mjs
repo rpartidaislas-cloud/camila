@@ -42,7 +42,7 @@ test('simulaciones permanece fuera del archivo de evidencia', () => {
 
 test('la simplificación se distribuye en web, móvil y PWA', () => {
   assert.match(app, /smyl-patient-360\.css\?v=20/);
-  assert.match(app, /smyl-patient-360\.js\?v=31/);
+  assert.match(app, /smyl-patient-360\.js\?v=32/);
   assert.match(app, /smyl-case-workspace\.js\?v=44/);
   assert.match(read('../sw.js'), /smyl-v263-lana-connection-recovery/);
   assert.equal(app, read('../mobile/www/app.html'));
