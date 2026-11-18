@@ -11547,3 +11547,9 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Técnico:** `#finance-dialog` estaba dentro de `#p-caja` (pantalla oculta fuera de Cobros, por eso había que navegar); ahora vive en `<body>` y `smyl-finance.css` v35 le da las mismas reglas base (`body>.finance-dialog …`). Cobros sigue abriéndolo igual.
 - **No cambia:** permisos (`finance.manage` + alcance de la conversación), RPC, saldos ni recibos; «Nueva tarea» y la ficha del paciente siguen con el selector genérico.
 - **Pruebas:** `tests/smyl-inbox-cobrar-en-chat.test.mjs` y humo de navegador `tests/qa/cobrar-desde-chat-smoke.cjs`. Ya fallaban ANTES de este cambio (no relacionados): `smyl-inbox-composer-dialogs-browser.test.mjs` (3 pruebas del compositor en main), `cobros-pending-visits-smoke` y `cobros-fiscal-receipts-smoke` (objetivos táctiles/filtros en celular) y `agenda-billing-smoke` (tiempo de espera).
+
+## 2026-11-18 — Claude Code — Equipo: SQL para pegar en Supabase (el workflow no arranca por facturación de GitHub)
+- Las dos ejecuciones del workflow «SMYL Equipo - teléfono interno y traslado entre sedes (migración)» fallaron en 1 s sin ejecutar pasos: GitHub muestra «update your payment method» (pago de la cuenta fallido) y no arranca los jobs.
+- `docs/sql-equipo-pegar-en-supabase.sql` junta las migraciones 20261118120000 y 20261118130000 en una transacción idempotente y termina con una fila de verificación (5 columnas `true`). Probado dos veces seguidas en PGlite.
+- Al pegarlo en el SQL Editor no se registra la versión en `supabase_migrations.schema_migrations`; los centinelas de `scripts/migration-sentinels.mjs` permiten registrarlas después.
+- **Pendiente del dueño:** regularizar el pago en GitHub (Settings → Billing and plans) para que los workflows vuelvan a funcionar.
