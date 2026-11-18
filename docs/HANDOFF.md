@@ -11581,3 +11581,14 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **PWA:** la ventana se convierte en hoja de pantalla completa, respeta el área segura, apila la información sin desborde, mantiene texto mínimo de 12 px y controles táctiles de 44 px. Los filtros de recibos se desplazan horizontalmente en una sola fila.
 - **Versiones:** `smyl-finance.js?v=56`, `smyl-finance.css?v=41`, caché `…-receipt-professional-v1`; raíz web y `mobile/www/` sincronizados.
 - **Verificación:** pruebas de estructura y regresión del módulo, más humo real en Chrome a 1500, 390 y 320 px. Sin errores de página, microtexto, controles pequeños ni desbordes horizontales.
+
+## 2026-11-18 — Claude Code — Expediente: «Datos del paciente» y sin «Más acciones»
+- **Barra del paciente (`smyl-professional-v3.js` v11 / `.css` v10):** se retira el menú «Más acciones»; Agendar cita, Nueva evolución, Cotizar, Cobrar y Enviar mensaje quedan a la vista (los módulos de destino siguen validando el permiso de cada rol). La barra hace salto de línea en pantallas angostas.
+- **Pestaña nueva «Datos del paciente» (`smyl-patient-360.js` v29 / `.css` v19):**
+  - *Datos generales:* nombre, teléfono/WhatsApp, correo, nacimiento (con edad), género, sucursal, profesional de cabecera, origen, autorización de WhatsApp y notas. «Editar datos» abre el formulario de paciente de siempre (`editarPacienteActual`, con duplicados y consentimiento); no hay un segundo guardado.
+  - *Datos fiscales* (solo `finance.read`; captura con `finance.manage`): RFC, razón social, régimen y uso con su nombre del SAT, y el estado «Listos para facturar» calculado con `SmylFiscalRules.perfilListo`. «Agregar / Editar datos fiscales» abre el mismo diálogo de Cobros (`SmylFiscalCapture`: catálogos del SAT y Constancia leída por IA que la persona revisa).
+  - Se eliminó el formulario fiscal básico que vivía escondido en «Más del expediente → Datos administrativos» (régimen y uso escritos a mano). Los accesos antiguos a `billing` (línea de tiempo de facturas, `SmylPatient360.open('billing')`, `forBilling`) llevan a la nueva pestaña.
+- **Encabezado:** sin teléfono ni correo aparece «+ Agregar teléfono o correo»; con contacto, un enlace «Editar». Tras guardar, la ficha refresca encabezado y datos sin recargar.
+- **Sin migraciones:** usa `camila_pacientes`, `smyl_patient_fiscal_profiles` y `smyl_branches` tal como están (RLS sin cambios).
+- **Pruebas:** `tests/smyl-patient-datos.test.mjs` (nuevo); se actualizaron `patient-360-stage3`, `smyl-patient-summary-v44` y las que fijan versiones. Humo en navegador (app real + Supabase simulado) a 1440/834/390 px: sin scroll horizontal; abre el diálogo fiscal y el de edición.
+- **Hallazgo (no corregido, ya ocurría en main):** `smyl-clinical-photo-review.js?v=4` lanza `insertBefore … not a child of this node` en su `MutationObserver.mount` al abrir un paciente y dispara el aviso global «Algo no salió como se esperaba».
