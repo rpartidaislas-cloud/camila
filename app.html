@@ -534,6 +534,9 @@ body.branch-scope-all .sb-branch select{border-color:#F59E0B;box-shadow:0 0 0 1p
 .ba-img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
 .ba-placeholder{width:100%;aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--texto3);font-size:13px;background:var(--bg3)}
 .ba-loading{width:100%;aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:linear-gradient(135deg,var(--violeta-s),var(--azul-s))}
+.ba-loading{position:relative;overflow:hidden}
+.ba-loading-sk{position:absolute;inset:0;border-radius:0;min-height:0}
+.ba-loading-txt,.ba-loading>div{position:relative;z-index:1}
 .ba-loading-txt{font-size:12px;color:var(--violeta);font-weight:500}
 /* Detalle en degradado para todo lo relacionado con IA */
 .fal-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;font-size:10px;font-weight:700;background:linear-gradient(135deg,rgba(39,215,231,.12),rgba(122,77,255,.12));color:#7A4DFF;border:1px solid rgba(122,77,255,.22);margin-bottom:12px}
@@ -854,7 +857,9 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
   .contenido{padding-bottom:100px!important}
 }
 </style>
+<link rel="stylesheet" href="smyl-skeleton.css?v=1">
 <link rel="stylesheet" href="smyl-panel.css?v=5">
+<script defer src="smyl-skeleton.js?v=1"></script>
 <script defer src="smyl-panel.js?v=7"></script>
 <link rel="stylesheet" href="smyl-clinic-admin.css?v=12">
 <script defer src="smyl-clinic-admin.js?v=15"></script>
@@ -1360,9 +1365,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
             <p class="patient-directory-summary" id="patient-directory-summary" role="status" aria-live="polite">Cargando pacientes…</p>
           </div>
           <div id="tabla-pacientes-wrap">
-            <div class="patient-loading" role="status" aria-label="Cargando pacientes">
-              <span></span><span></span><span></span>
-            </div>
+            <div class="sk-region" role="status" aria-live="polite" data-skeleton="list"><span class="sk-sr">Cargando pacientes</span><div aria-hidden="true"><div class="sk-list"><div class="sk-list-item"><span class="sk sk-circle"></span><div class="sk-stack"><span class="sk sk-line w-60"></span><span class="sk sk-line w-40"></span></div><span class="sk sk-chip"></span></div><div class="sk-list-item"><span class="sk sk-circle"></span><div class="sk-stack"><span class="sk sk-line w-40"></span><span class="sk sk-line w-30"></span></div><span class="sk sk-chip"></span></div><div class="sk-list-item"><span class="sk sk-circle"></span><div class="sk-stack"><span class="sk sk-line w-70"></span><span class="sk sk-line w-50"></span></div><span class="sk sk-chip"></span></div><div class="sk-list-item"><span class="sk sk-circle"></span><div class="sk-stack"><span class="sk sk-line w-50"></span><span class="sk sk-line w-30"></span></div><span class="sk sk-chip"></span></div><div class="sk-list-item"><span class="sk sk-circle"></span><div class="sk-stack"><span class="sk sk-line w-80"></span><span class="sk sk-line w-40"></span></div><span class="sk sk-chip"></span></div><div class="sk-list-item"><span class="sk sk-circle"></span><div class="sk-stack"><span class="sk sk-line w-30"></span><span class="sk sk-line w-50"></span></div><span class="sk sk-chip"></span></div></div></div></div>
           </div>
         </section>
       </div>
@@ -1531,7 +1534,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
         <!-- PASO 2: Análisis IA -->
         <div id="paso-2" style="display:none">
           <div class="loading-ia" id="loading-ia">
-            <div class="spinner-ring"></div>
+            <div class="sk-region" role="status" aria-live="polite" data-skeleton="kpis" style="max-width:420px"><span class="sk-sr">Analizando caso clínico</span><div aria-hidden="true"><div class="sk-kpis"><div class="sk-kpi"><span class="sk sk-line w-40"></span><span class="sk sk-line is-xl w-60"></span></div><div class="sk-kpi"><span class="sk sk-line w-40"></span><span class="sk sk-line is-xl w-60"></span></div><div class="sk-kpi"><span class="sk sk-line w-40"></span><span class="sk sk-line is-xl w-60"></span></div></div></div></div>
             <div style="font-size:15px;font-weight:600;color:var(--texto)">Analizando caso clínico...</div>
             <div style="font-size:12px;color:var(--texto3)">La IA está evaluando imágenes y generando el diagnóstico</div>
             <div class="ia-progress">
@@ -4349,7 +4352,7 @@ function copiarTexto() {
 // ══════════════════════════════════════════
 async function cargarHistorial() {
   var el = document.getElementById('historial-lista');
-  el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--color-text-tertiary);font-size:13px">Cargando casos...</div>';
+  el.innerHTML = window.SmylSkeleton ? window.SmylSkeleton.html('cards', { count: 6, media: true, label: 'Cargando casos' }) : '<div style="text-align:center;padding:32px;color:var(--color-text-tertiary);font-size:13px">Cargando casos...</div>';
 
   var casos = [];
   var historialDisponible = true;
@@ -4446,7 +4449,7 @@ async function verCaso(i) {
       modalLoading.onclick = function(e) { if (e.target === modalLoading) modalLoading.remove(); };
       document.body.appendChild(modalLoading);
     }
-    modalLoading.innerHTML = '<div style="color:#fff;font-size:13px">Cargando caso...</div>';
+    modalLoading.innerHTML = window.SmylSkeleton ? '<div style="width:min(560px,92vw);max-height:86vh;overflow:auto;background:#fff;border-radius:16px;padding:24px">' + window.SmylSkeleton.html('detail', { label: 'Cargando caso' }) + '</div>' : '<div style="color:#fff;font-size:13px">Cargando caso...</div>';
     try {
       var full = await sbTimeout(sb.from('camila_casos').select('*').eq('id', c.id).eq('tenant_id', tenantId).single(), 20000);
       if (full.data) c = Object.assign({}, c, full.data);
@@ -5248,7 +5251,7 @@ async function generarBeforeAfter() {
   // Mostrar loading
   document.getElementById('ba-after-wrap').innerHTML =
     '<div class="ba-loading">' +
-    '<div class="spinner-ring" style="border-color:rgba(124,58,237,.2);border-top-color:var(--violeta)"></div>' +
+    '<span class="sk ba-loading-sk" aria-hidden="true"></span>' +
     '<div class="ba-loading-txt">OpenAI está diseñando tu nueva sonrisa...</div>' +
     '<div style="font-size:11px;color:var(--texto3)">Esto toma ~20 segundos</div>' +
     '</div>';

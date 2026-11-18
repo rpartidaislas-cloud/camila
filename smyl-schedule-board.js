@@ -192,7 +192,7 @@
     var resultKey = values.serviceId + '|' + (Number(values.extra) || 0);
     if (ui.result && ui.resultKey === resultKey) { draw(); return; }
     var token = ++ui.token, keys = dayKeys(new Date(), DAY_COUNT);
-    show(el('p', 'schedule-slots-hint', 'Buscando horarios libres…'));
+    show(slotsSkeleton());
     Promise.resolve(api.loadBusy(keys)).then(function (busy) {
       if (host._ui.token !== token) return;
       ui.keys = keys; ui.busy = busy || {};
