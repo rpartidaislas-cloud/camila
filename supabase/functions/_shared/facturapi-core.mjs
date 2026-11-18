@@ -276,3 +276,24 @@ export function clasificarCancelacion(status, body) {
   if (status === 409 || status === 408 || status === 425 || status === 429 || status >= 500 || !status) return "unknown";
   return status >= 400 ? "rejected" : "unknown";
 }
+
+// ───────────── Envío por correo ─────────────
+const CORREO_RE = /^[^\s@,;<>()]{1,64}@[^\s@,;<>()]{1,190}\.[^\s@,;<>()]{2,}$/;
+// Un solo correo, en minúsculas y sin espacios; "" si no es válido (nunca varias direcciones: se envía a la persona indicada).
+export function validarCorreo(value) {
+  const e = String(value || "").trim().toLowerCase();
+  return e.length <= 254 && CORREO_RE.test(e) ? e : "";
+}
+// «juan.perez@gmail.com» → «j***@gmail.com»: para mostrar y registrar sin guardar la dirección completa en la bitácora.
+export function enmascararCorreo(email) {
+  const e = validarCorreo(email);
+  if (!e) return "";
+  const [local, dominio] = e.split("@");
+  return `${local[0]}***@${dominio}`;
+}
+// ok = Facturapi confirmó el envío; rejected = no se envió (dirección o límite); unknown = no sabemos (red/5xx): no reenviar a ciegas.
+export function clasificarEnvio(status, body) {
+  if (status === 200 && body && body.ok === true) return "ok";
+  if (status === 200 || status === 408 || status >= 500 || !status) return "unknown";
+  return status >= 400 ? "rejected" : "unknown";
+}
