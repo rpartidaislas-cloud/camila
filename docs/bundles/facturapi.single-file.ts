@@ -364,7 +364,7 @@ return { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin: admin };
 })();
 
 // ── _shared/facturapi-core.mjs ──
-const { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio } = (() => {
+const { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, DESCARGAS, descarga } = (() => {
 // Lógica pura de la conexión Facturapi (sin Deno ni red): validación de llave, cifrado y lectura de la organización.
 // Solo sandbox: la llave debe ser de pruebas (sk_test_…). Las llaves live se rechazan.
 const FACTURAPI_BASE = "https://www.facturapi.io/v2";
@@ -665,7 +665,19 @@ function clasificarEnvio(status: any, body: any) {
   return status >= 400 ? "rejected" : "unknown";
 }
 
-return { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio };
+// ───────────── Descargas (comprobante y acuse de cancelación) ─────────────
+// El acuse (PDF/XML) solo existe cuando el SAT aceptó la cancelación.
+const DESCARGAS = {
+  pdf: { path: "pdf", ext: "pdf", mime: "application/pdf", acuse: false },
+  xml: { path: "xml", ext: "xml", mime: "application/xml", acuse: false },
+  acuse_pdf: { path: "cancellation_receipt/pdf", ext: "pdf", mime: "application/pdf", acuse: true },
+  acuse_xml: { path: "cancellation_receipt/xml", ext: "xml", mime: "application/xml", acuse: true },
+};
+function descarga(kind: any) {
+  return Object.prototype.hasOwnProperty.call(DESCARGAS, kind) ? DESCARGAS[kind] : DESCARGAS.pdf;
+}
+
+return { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, DESCARGAS, descarga };
 })();
 
 // ── facturapi/index.ts ──
@@ -813,15 +825,18 @@ async function timbrado(req: Request, CORS: Record<string, string>, tenantId: st
 
   if (body.action === "download") {
     if ((draft.status !== "issued" && draft.status !== "cancelled") || !draft.provider_invoice_id) return json(CORS, 409, { error: "Este comprobante aún no está timbrado." });
-    const kind = body.kind === "xml" ? "xml" : "pdf";
-    const r = await llamarFacturapi(key, `/invoices/${encodeURIComponent(draft.provider_invoice_id)}/${kind}`);
+    const kind = typeof body.kind === "string" ? body.kind : "pdf";
+    const d = descarga(kind);
+    // El acuse solo existe cuando la cancelación fue aceptada.
+    if (d.acuse && draft.status !== "cancelled") return json(CORS, 409, { error: "El acuse de cancelación estará disponible cuando el comprobante quede cancelado." });
+    const r = await llamarFacturapi(key, `/invoices/${encodeURIComponent(draft.provider_invoice_id)}/${d.path}`);
     if (!r.res || !r.res.ok) { await eventoTimbre(tenantId, actor, draftId, "download", "failed", { kind, status: r.status }); return json(CORS, 502, { error: "Facturapi no pudo entregar el archivo. Intenta de nuevo." }); }
     const bytes = new Uint8Array(await r.res.arrayBuffer());
     if (bytes.length === 0 || bytes.length > MAX_FILE_BYTES) return json(CORS, 502, { error: "El archivo recibido no es válido." });
     let bin = ""; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
     await eventoTimbre(tenantId, actor, draftId, "download", "success", { kind });
     const folio = draft.invoice_series ? `${draft.invoice_series}-${draft.invoice_folio}` : String(draft.external_uuid || draft.id).slice(0, 8);
-    return json(CORS, 200, { filename: `CFDI${live ? "" : "-sandbox"}-${folio}.${kind}`, media_type: kind === "pdf" ? "application/pdf" : "application/xml", base64: btoa(bin) });
+    return json(CORS, 200, { filename: `${d.acuse ? "Acuse-cancelacion" : "CFDI"}${live ? "" : "-sandbox"}-${folio}.${d.ext}`, media_type: d.mime, base64: btoa(bin) });
   }
 
   if (body.action === "reconcile") {
