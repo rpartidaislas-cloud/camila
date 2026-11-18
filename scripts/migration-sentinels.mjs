@@ -31,6 +31,8 @@ export const SENTINELAS = {
   '20261106140000': { sentinel: `select (to_regclass('public.smyl_client_errors') is not null and ${proc('smyl_report_client_error')}) as ok` },
   '20261117150000': { sentinel: "select (to_regclass('public.smyl_cfdi_stamp_events') is not null and exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'smyl_cfdi_drafts' and column_name = 'provider_invoice_id')) as ok" },
   '20261117170000': { sentinel: "select exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'smyl_cfdi_drafts' and column_name = 'cancellation_status') as ok" },
+  '20261118120000': { sentinel: "select exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'smyl_professionals' and column_name = 'phone') as ok" },
+  '20261118130000': { sentinel: `select (to_regclass('public.smyl_schedule_rules') is not null and ${proc('smyl_set_professional_travel_margin')} and ${proc('smyl_professional_travel_conflicts')}) as ok` },
   '20261118100000': { sentinel: "select exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'smyl_cfdi_drafts' and column_name = 'last_emailed_at') as ok" },
 };
 
