@@ -1075,3 +1075,30 @@
   .p360-hv-changes li>span:last-child{grid-column:2;grid-row:2}
   .p360-hv-changes li[data-kind="none"]>span{grid-column:auto;grid-row:auto}
 }
+
+/* Datos del paciente: datos generales + datos fiscales (reemplaza «Datos administrativos» escondido en Más del expediente) */
+.p360-contact-line{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.p360-inline-link{padding:0;border:0;background:none;color:var(--p360-blue,#126779);font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.p360-inline-link:focus-visible{outline:2px solid var(--p360-blue,#126779);outline-offset:2px;border-radius:3px}
+.p360-datos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px;align-items:start}
+.p360-datos-card,.p360-fiscal-card{min-width:0;border:1px solid #dce4ec;background:#fff;box-shadow:none}
+.p360-datos-card .p360-section-head h2,.p360-fiscal-card .p360-section-head h2{font-size:18px}
+#p-paciente-detalle .p360-card dl.p360-datos-list{display:grid;grid-template-columns:1fr;gap:0;margin:14px 0 0;border:0;border-radius:0;overflow:visible;background:none}
+#p-paciente-detalle .p360-card dl.p360-datos-list>div{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:10px 0;border:0;border-bottom:1px solid #e8edf2;border-radius:0;background:transparent}
+#p-paciente-detalle .p360-card dl.p360-datos-list>div:last-child{border-bottom:0}
+#p-paciente-detalle .p360-card dl.p360-datos-list dt{flex:0 0 auto;white-space:nowrap;color:#5d6f7b;font-size:13px;font-weight:600;letter-spacing:0;text-transform:none}
+#p-paciente-detalle .p360-card dl.p360-datos-list dd{flex:1 1 auto;margin:0;line-height:1.4;min-width:0;color:#172b3a;font-size:13px;font-weight:700;text-align:right;overflow-wrap:anywhere}
+#p-paciente-detalle .p360-card dl.p360-datos-list dd.is-empty{color:#8796a5;font-weight:500}
+.p360-datos-notes{margin-top:12px;padding:12px;border-radius:9px;background:#f5f8fa}
+.p360-datos-notes strong{display:block;font-size:12px;color:#3c5260}
+.p360-datos-notes p{margin:4px 0 0;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.p360-fiscal-status{flex:none;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.p360-fiscal-status[data-state="ready"]{background:#e7f6f1;color:#17695a}
+.p360-fiscal-status[data-state="incomplete"]{background:#fff4dc;color:#8a5a0a}
+.p360-fiscal-status[data-state="empty"]{background:#f0f4f7;color:#4b5d6e}
+.p360-fiscal-empty{margin-top:14px;padding:14px;border:1px dashed #c9d5de;border-radius:10px}
+.p360-fiscal-empty strong{font-size:14px;color:#172b3a}
+.p360-fiscal-empty p{margin:4px 0 0;color:#5d6f7b;font-size:13px;line-height:1.45}
+.p360-fiscal-warning{margin:12px 0 0;padding:10px 12px;border-radius:9px;background:#fff8e6;color:#7a5410;font-size:13px}
+.p360-datos-card .p360-actions,.p360-fiscal-card .p360-actions{justify-content:flex-start;margin-top:14px}
+@media(max-width:600px){#p-paciente-detalle .p360-card dl.p360-datos-list>div{flex-direction:column;gap:2px}#p-paciente-detalle .p360-card dl.p360-datos-list dt{white-space:normal}#p-paciente-detalle .p360-card dl.p360-datos-list dd{text-align:left}.p360-fiscal-card .p360-section-head,.p360-datos-card .p360-section-head{flex-wrap:wrap}}

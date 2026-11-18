@@ -25,8 +25,9 @@ test('la cabecera prioriza identidad y elimina controles duplicados', () => {
   assert.match(buildProjection, /p360-title p360-title-clean/);
   assert.match(buildProjection, /p360-eyebrow/);
   assert.doesNotMatch(buildProjection, /p360-title-tools|data-p360-assistant-head|p360-secure/);
-  assert.match(script, /var billingTab=s\.root\.querySelector/);
-  assert.match(script, /if\(billingTab\)billingTab\.hidden=!s\.canFinanceRead/);
+  // Contacto faltante se corrige desde el encabezado; ya no hay pestaña de facturación oculta.
+  assert.match(script, /\+ Agregar teléfono o correo/);
+  assert.doesNotMatch(script, /var billingTab=/);
 });
 
 test('la actividad reciente muestra tres eventos y conserva acceso a la fuente canónica', () => {
@@ -43,7 +44,7 @@ test('la actividad reciente muestra tres eventos y conserva acceso a la fuente c
 });
 
 test('los accesos secundarios conservan permisos y estados clínicos explícitos', () => {
-  assert.match(script, /s\.canFinanceRead\?\[\['billing','Datos administrativos'\]\]:\[\]/);
+  assert.match(script, /\['datos','Datos del paciente'\]/);
   assert.match(script, /conciseHistoryValue/);
   assert.match(script, /Ninguna conocida/);
   assert.match(script, /Ninguno registrado/);
