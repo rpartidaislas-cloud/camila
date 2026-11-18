@@ -51,7 +51,7 @@ input:focus{outline:2px solid #93C5FD;border-color:var(--blue)}
 <main>
   <div class="brand"><img src="icons/smyl_pwa.png" alt="" width="24" height="24"><span>Pago seguro</span></div>
   <section class="card" id="card" aria-live="polite"><p class="sub">Cargando…</p></section>
-  <script>document.addEventListener("DOMContentLoaded",function(){var c=document.getElementById("card");if(window.SmylSkeleton&&c&&c.children.length===1&&c.firstElementChild.className==="sub")c.innerHTML=window.SmylSkeleton.html("form",{fields:3,label:"Cargando el cobro"});});</script>
+  <script>document.addEventListener("DOMContentLoaded",function(){var c=document.getElementById("card");if(window.SmylSkeleton&&c&&c.children.length===1&&c.firstElementChild.className==="sub")c.replaceChildren(window.SmylSkeleton.node("form",{fields:3,label:"Cargando el cobro"}));});</script>
   <p class="fine">El pago lo procesa OpenPay. Ni SMYL ni tu clínica guardan los datos de tu tarjeta.</p>
 </main>
 <script src="https://resources.openpay.mx/lib/openpay-js/1.2.38/openpay.v1.min.js"></script>
