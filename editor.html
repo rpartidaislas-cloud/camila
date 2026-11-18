@@ -189,6 +189,8 @@ input[type=range]::-webkit-slider-thumb:active{cursor:grabbing}
   .toolbar-left{display:none}
 }
 </style>
+<link rel="stylesheet" href="smyl-skeleton.css?v=1">
+<script defer src="smyl-skeleton.js?v=1"></script>
 </head>
 <body>
 
@@ -1700,5 +1702,6 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
   };
 }
 </script>
+<script>document.addEventListener("DOMContentLoaded",function(){var h=document.querySelector("#face-shape-result > .panel-loading");if(window.SmylSkeleton&&h)h.outerHTML=window.SmylSkeleton.html("text",{lines:4,label:"Analizando el rostro"});});</script>
 </body>
 </html>

@@ -82,9 +82,10 @@
 
   function renderLoading() {
     var metrics=document.querySelector('[data-home-metrics]'), priorities=document.querySelector('[data-home-priorities]'), next=document.querySelector('[data-home-next]');
-    if(metrics)metrics.innerHTML='';
-    if(priorities)priorities.innerHTML='<div class="daily-home-loading"><i></i><i></i><i></i></div>';
-    if(next)next.innerHTML='<div class="daily-home-loading compact"><i></i><i></i><i></i></div>';
+    var sk=function(k,o,fb){return window.SmylSkeleton?window.SmylSkeleton.html(k,o):fb;};
+    if(metrics)metrics.innerHTML=window.SmylSkeleton?window.SmylSkeleton.html('kpis',{count:3,label:'Cargando el resumen del día'}):'';
+    if(priorities)priorities.innerHTML=sk('list',{rows:3,action:true,label:'Cargando prioridades'},'<div class="daily-home-loading"><i></i><i></i><i></i></div>');
+    if(next)next.innerHTML=sk('list',{rows:3,label:'Cargando próximas citas'},'<div class="daily-home-loading compact"><i></i><i></i><i></i></div>');
     renderChats();
   }
 

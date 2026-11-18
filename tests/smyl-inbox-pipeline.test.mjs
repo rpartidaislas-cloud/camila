@@ -213,10 +213,10 @@ test('sincroniza 205 tarjetas una vez por canal y recupera solo el lote de etapa
 test('web, móvil y PWA publican el pipeline', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(app, /smyl-inbox\.js\?v=70/);
-  assert.match(app, /smyl-inbox\.css\?v=59/);
-  assert.match(worker, /smyl-inbox\.js\?v=70/);
-  assert.match(worker, /smyl-inbox\.css\?v=59/);
+  assert.match(app, /smyl-inbox\.js\?v=71/);
+  assert.match(app, /smyl-inbox\.css\?v=60/);
+  assert.match(worker, /smyl-inbox\.js\?v=71/);
+  assert.match(worker, /smyl-inbox\.css\?v=60/);
 });
 
 test('sin canales conectados el Inbox muestra una sola explicación en lugar de lista, hilo y compositor vacíos', () => {

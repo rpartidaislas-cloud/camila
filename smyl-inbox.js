@@ -1,6 +1,10 @@
 (function () {
   'use strict';
 
+  // Skeletons de carga (smyl-skeleton.js) con respaldo si el asistente no está cargado.
+  function sk(kind, options) { return window.SmylSkeleton ? window.SmylSkeleton.html(kind, options) : '<p class="smyl-inbox-productivity-state">' + ((options && options.label) || 'Cargando…') + '</p>'; }
+  function skNode(kind, options) { var holder = document.createElement('div'); holder.innerHTML = sk(kind, options); return holder.firstElementChild; }
+
   var inboxScriptUrl = document.currentScript && document.currentScript.src;
   var emojiCatalogPromise;
   var recentEmoji = [];
@@ -795,7 +799,7 @@
     renderBulkBar(); renderFilterControls(); renderBranchBar();
     list.innerHTML = '';
     if (state.loadingList && !state.conversations.length) {
-      list.innerHTML = '<div class="smyl-inbox-loading"><i></i><i></i><i></i></div>';
+      list.innerHTML = sk('list', { rows: 6, label: 'Cargando conversaciones' });
       renderPipeline();
       return;
     }
@@ -1017,7 +1021,7 @@
       return [column.dataset.pipelineStage, column.querySelector('.smyl-inbox-pipeline-cards').scrollTop];
     }));
     board.innerHTML = '';
-    if (state.loadingList && !state.conversations.length) { board.innerHTML = '<div class="smyl-inbox-loading"><i></i><i></i><i></i></div>'; return; }
+    if (state.loadingList && !state.conversations.length) { board.innerHTML = sk('cards', { count: 4, label: 'Cargando el tablero de conversaciones' }); return; }
     if (state.listError && !state.conversations.length) {
       var error = node('div', 'smyl-inbox-list-state');
       error.append(node('strong', '', 'No pudimos abrir el pipeline'), node('p', '', state.listError));
@@ -1231,9 +1235,7 @@
     );
     panel.append(head);
     if (loading) {
-      panel.append(node('p', '', isRewrite
-        ? 'Corrigiendo ortografía y claridad sin cambiar el sentido…'
-        : 'Revisando el hilo y la capacitación publicada…'));
+      panel.append(skNode('text', { lines: 3, label: isRewrite ? 'Corrigiendo ortografía y claridad sin cambiar el sentido' : 'Revisando el hilo y la capacitación publicada' }));
       return;
     }
     if (result.requires_human) panel.append(node('p', 'is-warning', 'Copilot detectó contenido que requiere atención humana. Revisa con especial cuidado.'));
@@ -1421,7 +1423,7 @@
     wrap.setAttribute('aria-busy', 'true');
     wrap.setAttribute('aria-live', 'off');
     wrap.innerHTML = '';
-    if (state.loadingThread && !items.length) wrap.innerHTML = '<div class="smyl-inbox-thread-loading"><i></i><i></i><i></i></div>';
+    if (state.loadingThread && !items.length) wrap.innerHTML = '<div class="sk-region smyl-inbox-thread-sk" role="status" aria-live="polite"><span class="sk-sr">Cargando mensajes</span><div aria-hidden="true"><span class="sk sk-bubble"></span><span class="sk sk-bubble is-out"></span><span class="sk sk-bubble is-short"></span><span class="sk sk-bubble is-out is-short"></span><span class="sk sk-bubble"></span></div></div>';
     else if (state.threadError && !items.length) {
       var error = node('div', 'smyl-inbox-thread-state'); error.append(node('strong', '', 'No pudimos cargar el hilo'), node('p', '', state.threadError));
       var retry = node('button', 'btn btn-secondary btn-sm', 'Reintentar'); retry.type = 'button'; retry.onclick = function () { loadThread(state.selectedId, false); }; error.append(retry); wrap.append(error);
@@ -1906,7 +1908,7 @@
     var reportButton = document.querySelector('[data-pilot-report]'); if (reportButton) reportButton.disabled = !state.operations;
     content.innerHTML = '';
     if (state.operationsLoading && !state.operations) {
-      content.append(node('div', 'smyl-inbox-operations-state', 'Calculando salud operativa…'));
+      content.append(skNode('panel', { lines: 4, label: 'Calculando salud operativa' }));
       return;
     }
     if (state.operationsError && !state.operations) {
@@ -2364,7 +2366,7 @@
       var accountTop = node('div', 'smyl-inbox-account-top');
       var accountStatus = node('div', 'smyl-inbox-account-status');
       if (!accountPatient) accountStatus.append(node('p', '', 'Vincula al paciente para ver su saldo y cobrar desde esta conversación.'));
-      else if (state.accountLoading && state.accountLoading[conversation.id]) accountStatus.append(node('p', '', 'Consultando cuenta…'));
+      else if (state.accountLoading && state.accountLoading[conversation.id]) accountStatus.append(skNode('text', { lines: 2, label: 'Consultando cuenta' }));
       else if (!accountInfo || !accountInfo.data) {
         accountStatus.append(node('strong', '', 'Saldo no disponible'), node('small', '', 'No pudimos cargar la cuenta.'));
         var retryAccount = node('button', 'smyl-inbox-link', 'Reintentar'); retryAccount.type = 'button';
@@ -2528,7 +2530,7 @@
       zone.append(automationCard);
 
       var scheduledCard = node('section', 'smyl-inbox-context-card smyl-inbox-scheduled-card'); scheduledCard.append(node('h3', '', 'Programados'));
-      if (state.scheduledLoading[conversation.id]) scheduledCard.append(node('p', '', 'Consultando agenda…'));
+      if (state.scheduledLoading[conversation.id]) scheduledCard.append(skNode('text', { lines: 2, label: 'Consultando agenda' }));
       else {
         var scheduledRows = state.scheduled[conversation.id] || [];
         if (!scheduledRows.length) scheduledCard.append(node('p', '', 'No hay mensajes programados para este hilo.'));
@@ -2664,7 +2666,7 @@
     var body = node('div', 'smyl-f360-care'); section.node = body;
     if (!index || !index.branches.size) {
       var hint = entry && entry.error ? 'No se pudo consultar el historial.' : index ? 'No hay atenciones realizadas registradas a las que tengas acceso.' : 'Consultando atenciones…';
-      body.append(node('p', 'smyl-f360-note', hint));
+      body.append(!index && !(entry && entry.error) ? skNode('text', { lines: 2, label: 'Consultando atenciones' }) : node('p', 'smyl-f360-note', hint));
       if (entry && entry.error) {
         var retry = node('button', 'smyl-f360-link', 'Reintentar'); retry.type = 'button'; retry.onclick = onRetry; body.append(retry);
       }
@@ -3518,8 +3520,7 @@
     if (scope) scope.textContent = professional && professional.value ? professional.options[professional.selectedIndex].text : 'Disponibilidad por profesional y especialidad';
     if (state.availabilityLoading) {
       host.style.setProperty('--availability-days', 1);
-      var loading = node('div', 'smyl-inbox-availability-loading');
-      for (var loadingIndex = 0; loadingIndex < 4; loadingIndex += 1) loading.append(node('i'));
+      var loading = node('div', 'smyl-inbox-availability-loading'); loading.innerHTML = sk('cards', { count: 3, media: true, label: 'Consultando horarios disponibles' });
       host.append(loading); return;
     }
     if (state.availabilityMode === 'calendar' && window.SmylInboxCalendar && ['no_services', 'no_branches', 'no_professionals', 'query_error'].indexOf(state.availabilityEmptyReason) < 0) {
@@ -4515,7 +4516,7 @@
       list.append(node('p', 'smyl-quick-empty', 'No se pudo cargar toda la biblioteca.'), retry);
     } else if (!replies.length) {
       var empty = session.loading.size ? 'Cargando respuestas…' : search ? 'No hay coincidencias.' : 'Aún no hay respuestas guardadas.';
-      list.append(node('p', 'smyl-quick-empty', empty));
+      list.append(session.loading.size ? skNode('list', { rows: 4, plain: true, label: 'Cargando respuestas' }) : node('p', 'smyl-quick-empty', empty));
     }
   }
 
@@ -4631,7 +4632,7 @@
 
   function renderThreadSearchResults() {
     var wrap = document.querySelector('[data-search-results]'); if (!wrap) return; wrap.innerHTML = '';
-    if (state.threadSearchLoading) { wrap.append(node('p', 'smyl-inbox-productivity-state', 'Buscando en el historial…')); return; }
+    if (state.threadSearchLoading) { wrap.append(skNode('list', { rows: 3, plain: true, label: 'Buscando en el historial' })); return; }
     if (!state.threadSearchResults.length) { wrap.append(node('p', 'smyl-inbox-productivity-state', 'Escribe una palabra para localizar mensajes en todo el hilo.')); return; }
     state.threadSearchResults.forEach(function (item) {
       var card = node('article', 'smyl-inbox-search-result');
@@ -4658,7 +4659,7 @@
 
   function renderSharedItems() {
     var wrap = document.querySelector('[data-shared-content]'); if (!wrap) return; wrap.innerHTML = '';
-    if (state.sharedLoading) { wrap.append(node('p', 'smyl-inbox-productivity-state', 'Consultando biblioteca…')); return; }
+    if (state.sharedLoading) { wrap.append(skNode('media', { count: 6, label: 'Consultando biblioteca' })); return; }
     if (!state.sharedItems.length) { wrap.append(node('p', 'smyl-inbox-productivity-state', 'No hay imágenes, documentos o enlaces en este hilo.')); return; }
     state.sharedItems.forEach(function (item) {
       var card = node('article', 'smyl-inbox-shared-item'); var target = item.media_url || firstUrl(item.content); var label = item.media_type === 'image' ? 'Imagen' : item.media_type === 'document' ? 'Documento' : item.media_type === 'audio' ? 'Audio' : 'Enlace';

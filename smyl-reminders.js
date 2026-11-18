@@ -79,7 +79,7 @@
     var body = card.querySelector('[data-reminders-body]');
     var actions = card.querySelector('[data-reminders-actions]');
     actions.innerHTML = '';
-    if (state.loading && !state.data) { body.innerHTML = '<p class="schedule-reminders-muted">Consultando recordatorios…</p>'; return; }
+    if (state.loading && !state.data) { body.innerHTML = window.SmylSkeleton ? window.SmylSkeleton.html('list', { rows: 3, avatar: false, plain: true, label: 'Consultando recordatorios' }) : '<p class="schedule-reminders-muted">Consultando recordatorios…</p>'; return; }
     if (state.error && !state.data) {
       body.innerHTML = '<p class="schedule-reminders-muted">' + esc(state.error) + '</p>';
       var retry = document.createElement('button'); retry.type = 'button'; retry.className = 'btn btn-secondary'; retry.textContent = 'Reintentar';

@@ -82,11 +82,11 @@ test("install es idempotente: no envuelve dos veces", () => {
 
 test("app.html: carga el módulo, inicia tras resolver la clínica y define el selector; móvil y PWA sincronizados", () => {
   const html = read("app.html");
-  assert.match(html, /<script defer src="smyl-branch-scope\.js\?v=1"><\/script>/);
+  assert.match(html, /<script defer src="smyl-branch-scope\.js\?v=2"><\/script>/);
   assert.match(html, /renderSidebar\(\);\s*\n\s*\/\/ Varios consultorios[^\n]*\n\s*if \(window\.SmylBranchScope\) window\.SmylBranchScope\.init\(\);/);
   assert.match(html, /\.sb-branch select/);
   for (const f of ["app.html", "smyl-branch-scope.js", "sw.js"]) assert.equal(read(f), read("mobile/www/" + f), `${f} móvil igual`);
-  assert.match(read("sw.js"), /'\/camila\/smyl-branch-scope\.js\?v=1'/);
+  assert.match(read("sw.js"), /'\/camila\/smyl-branch-scope\.js\?v=2'/);
   assert.match(read("sw.js"), /-branch-scope-v1(?:-|')/);
 });
 
@@ -103,4 +103,16 @@ test("migración: permiso branches.all, backfill y funciones sin acceso anónimo
   assert.match(sql, /revoke all on function public\.smyl_my_branches\(\) from public, anon/);
   assert.match(sql, /grant execute on function public\.smyl_branch_access\(uuid, uuid\) to authenticated/);
   assert.ok(!/grant[^;]*smyl_(my_branches|branch_access)[^;]*to anon/.test(sql));
+});
+
+test('init() no falla con «root is not defined» (la variable debe existir dentro de la fábrica UMD)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../smyl-branch-scope.js', import.meta.url), 'utf8');
+  assert.match(src, /var root = typeof globalThis/);
+  // se ejecuta como en el navegador: con un window simulado y clínica activa, init() debe resolver sin lanzar
+  const fakeWindow = { tenantId: '11111111-1111-4111-8111-111111111111', sb: { from() { return { select() { return { eq() { return { eq() { return Promise.resolve({ data: [], error: null }); } }; } }; } }; } }, document: { getElementById: () => null, querySelector: () => null, body: { classList: { toggle() {} } } }, location: {}, localStorage: { getItem: () => null, setItem() {} } };
+  const run = new Function('window', 'globalThis', 'module', `${src}; return window.SmylBranchScope;`);
+  const scope = run(fakeWindow, fakeWindow, undefined);
+  assert.ok(scope, 'expone SmylBranchScope');
+  await assert.doesNotReject(async () => { await scope.init(); });
 });

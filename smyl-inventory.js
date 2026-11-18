@@ -243,7 +243,7 @@
     section.innerHTML='<div class="inventory-usage-head"><div><span>CONSUMO REAL</span><h2>Quién usó qué material</h2><p>Consumo clínico confirmado, con el costo con el que salió (IVA incluido). Las correcciones por compensación no se cuentan.</p></div><label>Periodo<select data-usage-period><option value="30">Últimos 30 días</option><option value="month">Este mes</option><option value="lastMonth">Mes anterior</option><option value="90">Últimos 90 días</option></select></label></div><div data-usage-body></div>';
     var sel=section.querySelector('[data-usage-period]');sel.value=state.usagePeriod||'30';sel.onchange=function(){state.usagePeriod=sel.value;state.usage=null;renderUsage();};
     var body=section.querySelector('[data-usage-body]');
-    if(!cache||cache.key!==period.key){body.innerHTML='<div class="inventory-empty">Consultando consumo…</div>';loadUsage(period);return;}
+    if(!cache||cache.key!==period.key){body.innerHTML=sk('table',{rows:4,cols:4,label:'Consultando consumo'});loadUsage(period);return;}
     if(cache.error){body.innerHTML='<div class="inventory-empty"><strong>No se pudo cargar el reporte</strong><p>'+esc(cache.error)+'</p></div>';return;}
     var sum=usageSummary(cache.rows,cache.totals);
     if(!sum.professionals.length){body.innerHTML='<div class="inventory-empty"><strong>Sin consumo en este periodo</strong><p>Cuando se registre material utilizado en una atención, aparecerá aquí por profesional.</p></div>';return;}
@@ -261,9 +261,11 @@
     if(state.tab==='costs'&&usagePeriod(state.usagePeriod||'30').key===key)renderUsage();
   }
   function render(){renderInventoryFocus();renderStock();renderMovements();renderOrders();renderCatalog();renderCosts();renderUsage();document.querySelectorAll('[data-inventory-tab]').forEach(function(b){var active=b.dataset.inventoryTab===state.tab;b.setAttribute('aria-selected',String(active));b.setAttribute('tabindex',active?'0':'-1');});document.querySelectorAll('[data-inventory-panel]').forEach(function(p){p.hidden=p.dataset.inventoryPanel!==state.tab;});['inventory-add-item','inventory-import','inventory-add-supplier','inventory-add-location','inventory-add-kit'].forEach(function(id){var x=document.getElementById(id);if(x)x.hidden=!state.canManage;});var mv=document.getElementById('inventory-new-movement'),po=document.getElementById('inventory-new-order'),use=document.getElementById('inventory-use-material');if(use)use.hidden=!state.canConsume;var cnt=document.getElementById('inventory-count');if(cnt){cnt.hidden=!state.canAdjust;cnt.onclick=openCount;}if(mv)mv.hidden=!(state.canConsume||state.canAdjust||state.canManage);if(po)po.hidden=!state.canPurchase;}
+  function sk(k,o){return window.SmylSkeleton?window.SmylSkeleton.html(k,o):'<p>'+((o&&o.label)||'Cargando…')+'</p>';}
+  function loadingSkeleton(on){if(on&&state.loaded)return;var map={'inventory-alerts':['kpis',{count:3,label:'Cargando inventario'}],'inventory-stock':['table',{rows:6,cols:5,label:'Cargando existencias'}],'inventory-movements':['list',{rows:5,action:true,label:'Cargando movimientos'}],'inventory-orders':['list',{rows:4,action:true,label:'Cargando compras'}],'inventory-items':['list',{rows:4,label:'Cargando insumos'}],'inventory-suppliers':['list',{rows:3,label:'Cargando proveedores'}],'inventory-locations':['list',{rows:3,label:'Cargando ubicaciones'}]};Object.keys(map).forEach(function(id){var h=document.getElementById(id);if(h)h.innerHTML=on?sk(map[id][0],map[id][1]):'';});}
   async function load(force){
     if(!window.tenantId||state.loading||(state.loaded&&state.tenant===window.tenantId&&!force))return;
-    state.loading=true;state.tenant=window.tenantId;var page=document.getElementById('p-inventario');if(page)page.setAttribute('aria-busy','true');notify('Cargando inventario protegido…');
+    state.loading=true;state.tenant=window.tenantId;var page=document.getElementById('p-inventario');if(page)page.setAttribute('aria-busy','true');loadingSkeleton(true);
     try{
       var a=await window.sb.auth.getUser();state.actor=a.data&&a.data.user&&a.data.user.id;
       var access=await Promise.all([q(window.sb.from('smyl_role_permissions').select('role_id,permission_key').eq('tenant_id',state.tenant)),q(window.sb.from('smyl_member_roles').select('user_id,role_id').eq('tenant_id',state.tenant))]);
@@ -293,7 +295,7 @@
       state.orderLines=details[0]||[];state.movementLines=details[1]||[];try{state.lastMoves=await rpc('smyl_inventory_last_movements',{p_location_id:null})||[];}catch(e){state.lastMoves=[];}await ensurePatients();await loadPendingMaterial();
       if(!state.location&&state.locations[0])state.location=state.locations[0].id;
       state.loaded=true;render();notify('');
-    }catch(e){notify('No se pudo cargar inventario: '+error(e),'error');}finally{state.loading=false;var page=document.getElementById('p-inventario');if(page)page.setAttribute('aria-busy','false');}
+    }catch(e){loadingSkeleton(false);notify('No se pudo cargar inventario: '+error(e),'error');}finally{state.loading=false;var page=document.getElementById('p-inventario');if(page)page.setAttribute('aria-busy','false');}
   }
   async function reload(message){state.loaded=false;await load(true);if(message)notify(message,'success');}
   // Insumo (alta y edición): costo con IVA incluido, presentación de compra, proveedor habitual, mínimos y existencia inicial.

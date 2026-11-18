@@ -64,9 +64,9 @@ test('Agenda muestra una conexión verificable y explica el control clínico', (
 
 test('web, PWA y caché cargan la misma integración', () => {
   assert.match(app, /smyl-google-calendar\.css\?v=2/);
-  assert.match(app, /smyl-google-calendar\.js\?v=2/);
+  assert.match(app, /smyl-google-calendar\.js\?v=3/);
   assert.match(worker, /smyl-google-calendar\.css\?v=2/);
-  assert.match(worker, /smyl-google-calendar\.js\?v=2/);
+  assert.match(worker, /smyl-google-calendar\.js\?v=3/);
   assert.equal(client, read('../mobile/www/smyl-google-calendar.js'));
   assert.equal(styles, read('../mobile/www/smyl-google-calendar.css'));
   assert.equal(app, read('../mobile/www/app.html'));
