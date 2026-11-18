@@ -69,7 +69,19 @@ const EXTRA = `
   db.smyl_professional_profiles=[{tenant_id:T,professional_id:'pr1',status:'published'}];
   db.smyl_staff_invitations=[{id:'inv1',tenant_id:T,email:'nueva@clinica.mx',display_name:'Dra. Nueva',member_kind:'professional',specialty:'Ortodoncia',license_number:'',branch_id:'b2',status:'pending',expires_at:iso2(6),invited_at:now}];
   db.smyl_schedule_rules=[];
+  const chatMembers=db.camila_usuarios.map(u=>({user_id:u.id,name:u.nombre,active:u.activo,chat_mode:u.id===T?'coordinator':u.id==='u3'?'agent':'none',assigned_count:u.id==='u3'?2:0}));
   window.__rpcs={
+    smyl_chat_team_settings:()=>{window.__calls.push(['rpc','smyl_chat_team_settings']);return {data:chatMembers.map(m=>({...m})),error:null};},
+    smyl_set_chat_access:(a)=>{
+      window.__calls.push(['rpc','smyl_set_chat_access',a]);
+      const m=chatMembers.find(x=>x.user_id===a.p_user_id);
+      if(window.__chatConflict){window.__chatConflict=false;m.chat_mode='coordinator';return {error:{code:'40001',message:'changed'}};}
+      if(!m||m.chat_mode!==a.p_expected_mode)return {error:{code:'40001',message:'changed'}};
+      const moved=a.p_mode==='none'?m.assigned_count:0;
+      if(moved&&a.p_disposition==='transfer')chatMembers.find(x=>x.user_id===a.p_replacement_id).assigned_count+=moved;
+      m.chat_mode=a.p_mode;m.assigned_count-=moved;
+      return {data:{user_id:m.user_id,chat_mode:m.chat_mode,moved},error:null};
+    },
     smyl_professional_travel_conflicts:()=>Promise.resolve({data:[{professional_id:'pr3',weekday:1,branch_a:'b1',starts_a:'09:00:00',ends_a:'13:00:00',branch_b:'b2',starts_b:'13:30:00',ends_b:'17:00:00',gap_minutes:30,required_minutes:(db.smyl_schedule_rules[0]||{}).professional_travel_margin_minutes||45}],error:null}),
     smyl_set_professional_travel_margin:(a)=>{db.smyl_schedule_rules=[{tenant_id:T,professional_travel_margin_minutes:a.p_minutes}];window.__calls.push(['rpc','smyl_set_professional_travel_margin',a]);return Promise.resolve({data:a.p_minutes,error:null});},
     smyl_set_member_role:(a)=>{window.__calls.push(['rpc','smyl_set_member_role',a]);return Promise.resolve({data:true,error:null});},
@@ -78,7 +90,7 @@ const EXTRA = `
   `;
 
 function fakeSource(who) {
-  let src = fs.readFileSync(path.join(__dirname, 'fake-supabase-agenda.js'), 'utf8');
+  let src = fs.readFileSync(path.join(__dirname, 'fake-supabase-agenda.js'), 'utf8').replace(/\r\n/g,'\n');
   src = src.replace(/function chain\(table\)\{[\s\S]*?\n  \}\n  const rpcData/, CHAIN);
   src = src.replace('window.__db=db;', EXTRA + 'window.__db=db;');
   src = src.replace('rpc:async(name,args)=>{', 'rpc:async(name,args)=>{if(window.__rpcs&&window.__rpcs[name])return window.__rpcs[name](args);');
@@ -109,7 +121,7 @@ async function team(page) {
 const rows = page => page.$$eval('.clinic-admin-person-row', e => e.map(r => ({ name: r.querySelector('strong').textContent, status: r.dataset.status, text: r.innerText })));
 
 server.listen(0, '127.0.0.1', async () => {
-  const b = await chromium.launch(); let fails = 0;
+  const b = await chromium.launch({executablePath:process.env.SMYL_CHROMIUM}); let fails = 0;
   const check = (cond, msg) => { if (!cond) { console.log('FALLA · ' + msg); fails++; } };
 
   // ── Administrador ──
@@ -191,6 +203,31 @@ server.listen(0, '127.0.0.1', async () => {
     await page.evaluate(() => { window.__failTables = null; }); await page.click('#clinic-admin-feedback button:has-text("Reintentar")'); await page.waitForTimeout(1500);
     await page.fill('#clinic-admin-people-search', ''); await page.waitForTimeout(200);
     r = await rows(page); check(r.length === 6, 'tras reintentar debe volver a cargar la lista: ' + r.length);
+    const profile=page.locator('select[name="chat_profile"]'), dest=page.locator('select[name="chat_destination"]');
+    const openMember=id=>page.locator('.clinic-admin-person-row[data-person="u:'+id+'"]').click();
+    await openMember('u2');
+    await profile.selectOption('agent');
+    await page.getByRole('button',{name:'Guardar perfil de chat'}).click();
+    await page.getByText('Perfil guardado.',{exact:true}).waitFor();
+    await page.click('.clinic-admin-sheet-close');
+    await openMember('u3');
+    await profile.selectOption('none');
+    check(await page.getByRole('button',{name:'Guardar perfil de chat'}).isDisabled(), 'retirar acceso con chats requiere elegir destino');
+    await dest.selectOption('u2');
+    await page.getByRole('button',{name:'Transferir chats y quitar acceso'}).click();
+    await page.getByText('Perfil guardado. 2 conversaciones pasaron a Dr. Hernan Partida.').waitFor();
+    const transfer=await page.evaluate(()=>window.__calls.filter(c=>c[1]==='smyl_set_chat_access').at(-1)[2]);
+    check(transfer.p_user_id==='u3' && transfer.p_expected_mode==='agent' && transfer.p_replacement_id==='u2' && transfer.p_mode==='none', 'la confirmación debe transferir y quitar acceso en una operación');
+    await page.click('.clinic-admin-sheet-close');
+    await openMember('u2');
+    await profile.selectOption('none');await dest.selectOption('queue');
+    await page.getByRole('button',{name:'Devolver chats y quitar acceso'}).click();
+    await page.getByText('Perfil guardado. 2 conversaciones pasaron a Sin asignar.').waitFor();
+    await page.evaluate(()=>{window.__chatConflict=true;});
+    await profile.selectOption('agent');await page.getByRole('button',{name:'Guardar perfil de chat'}).click();
+    await page.getByText('La asignación cambió.',{exact:false}).waitFor();
+    check(await profile.inputValue()==='coordinator','un conflicto debe recargar el perfil real');
+    await page.click('.clinic-admin-sheet-close');
     check(errs.length === 0, 'errores de página: ' + JSON.stringify(errs)); if (errs.length) console.log(errs);
     await ctx.close();
   }
@@ -242,6 +279,10 @@ server.listen(0, '127.0.0.1', async () => {
     check(!c.editar && !c.quitar && !c.asignar && !c.zona, 'quien no administra no debe ver editar, quitar, asignar ni la zona delicada');
     check(!c.invitar && !c.agregar, 'quien no administra no debe ver invitar ni agregar doctor');
     await page.click('.clinic-admin-sheet-close'); await page.waitForTimeout(200);
+    await page.locator('.clinic-admin-person-row[data-person="u:u2"]').click();
+    check(await page.locator('select[name="chat_profile"]').count()===0,'la consulta no expone perfiles de chat de otras personas');
+    check(await page.evaluate(()=>!window.__calls.some(c=>c[1]==='smyl_chat_team_settings')),'la consulta no solicita el directorio privado');
+    await page.click('.clinic-admin-sheet-close');
     const margenBloqueado = await page.evaluate(() => ({ deshabilitado: document.getElementById('clinic-admin-travel-minutes').disabled, boton: !!document.querySelector('#clinic-admin-travel .btn') }));
     check(margenBloqueado.deshabilitado && !margenBloqueado.boton, 'quien no administra no puede cambiar el margen');
     check(errs.length === 0, 'errores de página: ' + JSON.stringify(errs));

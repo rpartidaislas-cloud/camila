@@ -41,19 +41,14 @@ test('actual patient care only; historical providers, stable pagination, honest 
   await assert.rejects(load(0,true),/Sin acceso/);
 });
 
-test('roster and assignment use one gate for active SMYL inbox users, not directory-only dentists', () => {
-  const fnText = edge.slice(edge.indexOf('type TeamCandidate ='),edge.indexOf('// Las claves foráneas compuestas'));
-  const eligible = vm.runInNewContext(stripTypeScriptTypes(fnText)+'; eligibleTeamMember', { text:v=>String(v??'') });
-  const role = (active,...grants) => ({smyl_roles:{active,smyl_role_permissions:grants.map(permission_key=>({permission_key}))}});
-  const member = {id:'staff',tenant_id:'clinic',activo:true,rol:'staff',nombre:'Test',smyl_member_roles:[role(true,'messages.read'),role(true,'messages.respond')]};
-  assert.equal(eligible(member,'clinic').kind,'staff');
-  assert.equal(eligible({...member,smyl_professionals:[{active:true,display_name:'Profesional sintético'}]},'clinic').kind,'professional');
-  assert.equal(eligible({...member,smyl_member_roles:[],id:'clinic'},'clinic').kind,'owner');
-  assert.equal(eligible({...member,smyl_member_roles:[role(true,'messages.read'),role(false,'messages.respond')]},'clinic'),null);
-  assert.equal(eligible({...member,smyl_member_roles:[role(true,'messages.respond')]},'clinic'),null);
-  assert.equal(eligible({...member,activo:false},'clinic'),null);
-  assert.equal(eligible(member,'other'),null);
-  assert.match(edge,/members: await assignableTeam\(tenantId\)/);
-  assert.match(edge,/await assignableTeam\(auth\.tenantId, targetId\)/);
-  assert.match(edge,/if \(targetId\) query = query.eq\("id", targetId\)/);
+test('roster and transfer validate the same tenant’s explicit profiles', async () => {
+  const source = edge.slice(edge.indexOf('async function assignableTeam('),edge.indexOf('function projectOwner('));
+  const data = [{id:'a',name:'Dra. Ana',kind:'professional',chat_mode:'agent'}];
+  const eligible = vm.runInNewContext(stripTypeScriptTypes(source)+'; assignableTeam', { admin: {
+    rpc: async (name, args) => { assert.equal(name,'smyl_chat_assistants'); assert.equal(args.p_tenant,'clinic'); return { data }; }
+  } });
+  assert.equal(await eligible('clinic'),data);
+  const migration = read('supabase/migrations/20261118150000_smyl_chat_access_and_private_handoff.sql');
+  assert.match(migration,/not public\.smyl_chat_recipient_allowed\(p_tenant,p_target,p_conversation\)/);
+  assert.match(edge,/const recipient = roster\.find\(member => member\.id === target\)/);
 });

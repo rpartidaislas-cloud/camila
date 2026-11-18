@@ -1,5 +1,12 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-17 — Perfiles de chat y relevo privado
+
+- En Configuración → Equipo → Profesionales y roles, la ficha de cada integrante activo permite elegir Sin acceso, Atiende o Coordina. Esta elección es independiente del puesto clínico. Al retirar el permiso de alguien con conversaciones se elige un nuevo responsable o la cola Sin asignar.
+- Mensajes verifica el acceso antes de abrir cada hilo y permite transferirlo desde «Atiende el chat». El texto del relevo se guarda en SMYL, en la misma transacción que la asignación. La versión de la asignación evita que una ventana desactualizada sobrescriba un cambio posterior. El receptor puede ver la última nota en la cabecera del chat.
+- La migración `20261118150000_smyl_chat_access_and_private_handoff.sql` protege también los mensajes, los vínculos con pacientes, las alertas y la lectura desde el historial. Las asignaciones históricas del proveedor quedan sin responsable local hasta que se distribuyan. Al activar la migración, el titular activo empieza como coordinador y el resto del equipo sin acceso.
+- Para el despliegue, aplicar primero la migración. Publicar conjuntamente `lana-inbox`, `lana-attention` y `appointment-negotiations`, seguidas de la web y los recursos PWA actualizados. Comprobar con dos cuentas de la misma clínica la recepción del relevo y el acceso de cada una. El transporte de LANA recibe el responsable, y la nota permanece en SMYL.
+
 ## 2026-11-17 — Codex — Responsable de chat e historial de atención en Ficha 360
 
 - Cambio posterior a la publicación `e5ae5c54` de respuestas rápidas y emojis. En la cabecera queda «Agendar cita» como acción principal y «Atiende el chat» en lugar de los puntos suspensivos. La asignación del hilo no cambia el médico de una cita ni la sucursal clínica del paciente.

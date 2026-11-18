@@ -12,10 +12,10 @@ test('the inbox resolves the widest active messages scope', () => {
   assert.match(inbox, /scopes\.messages/);
 });
 
-test('limited inbox roles only receive assigned or authorized patient conversations', () => {
-  assert.match(inbox, /canAccessConversation/);
-  assert.match(inbox, /assignedActorId\(conversation\) === actor\.id/);
-  assert.match(inbox, /camila_lana_handoffs/);
+test('assignments and the explicit chat profile govern visibility independently of patient care', () => {
+  assert.match(inbox, /"smyl_chat_visible"/);
+  assert.match(inbox, /"smyl_chat_visible_ids"/);
+  assert.match(inbox, /actor\.chat_access === "agent" && ownerId !== actor\.id/);
   assert.match(inbox, /filterConversationPayload/);
   assert.match(inbox, /conversation_scope_denied/);
 });

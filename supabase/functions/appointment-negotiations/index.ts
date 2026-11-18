@@ -225,6 +225,8 @@ Deno.serve(async (req: Request) => {
       if (!await can(jwt, auth.tenantId, "schedule.read")) return json(403, { error: "Tu rol no permite consultar la agenda." }, cors);
       const conversationId = uuid(body.conversation_id);
       if (!conversationId) return json(400, { error: "Conversación no válida." }, cors);
+      const visible = await admin.rpc("smyl_chat_visible", { p_tenant: auth.tenantId, p_actor: auth.user.id, p_conversation: conversationId });
+      if (visible.error || visible.data !== true) return json(403, { error: "Conversación fuera de tu bandeja.", code: "conversation_scope_denied" }, cors);
       const remote = await lanaRequest(auth.tenantId, "/inbox?channel=whatsapp&filter=all&limit=100&offset=0", { method: "GET", headers: actorHeaders(auth.user, auth.tenantId) }, 15000);
       const rows = Array.isArray(remote.body.conversations) ? remote.body.conversations as Row[] : [];
       if (!remote.response.ok || !rows.some((row) => String(row.id) === conversationId && text(row.channel, 20) === "whatsapp")) return json(400, { error: "Esa conversación de WhatsApp no está disponible para la clínica." }, cors);

@@ -21,7 +21,7 @@
     conversations: [], total: 0, offset: 0, limit: 30, hasMore: false,
     filter: 'all', channel: '', search: '', selectedId: null, filterPanelOpen: false, branches: [], branchFilter: '', branchMenu: null,
     messages: {}, pages: {}, pending: {}, loadingList: false, loadingThread: false,
-    listError: '', threadError: '', syncedAt: null, actor: null, team: [], teamStatus: 'idle', assigningChat: {}, stages: [],
+    listError: '', threadError: '', syncedAt: null, actor: null, stages: [],
     threadController: null, contextOpen: false, contextSections: {}, contextReturnFocus: null, f360Open: null, f360Visits: {}, f360VisitsAll: {}, f360Movements: {}, f360File: {}, f360Filter: {}, f360Shared: {}, f360Summary: {}, contextDockedPreferred: initialDockedContextPreference(), polling: false,
     replyTo: null, attachment: null, clinical: {}, clinicalLoading: {},
     copilot: {}, copilotLoading: {},
@@ -46,8 +46,96 @@
     return el;
   }
 
+  var accessEpoch = 0, accessRequest = null, accessUser = null;
+  var threadEpoch = new Map(), openSequence = 0, routingRevision = 0;
+  var teamsByConversation = new Map();
+  function chatEnabled() {
+    return !!state.actor && ['agent', 'coordinator'].includes(state.actor.chat_access);
+  }
+
+  function forgetChat(id) {
+    if (!id) return;
+    teamsByConversation.delete(id);
+    routingRevision++;
+    threadEpoch.set(id, (threadEpoch.get(id) || 0) + 1);
+    if (state.selectedId !== id) persistEncryptedDraft(id, '').catch(function () {});
+    state.conversations = state.conversations.filter(function (item) { return item.id !== id; });
+    ['messages','pages','pending','clinical','clinicalLoading','copilot','scheduled','appointmentContext','patientLinkChecked',
+      'f360Visits','f360VisitsAll','f360Movements','f360File','f360Filter','f360Shared','f360Summary'].forEach(function (key) { delete state[key][id]; });
+    state.bulkSelected.delete(id);
+    window.dispatchEvent(new CustomEvent('smyl:inbox-removed',{detail:{id:id}}));
+    if (state.selectedId !== id) return;
+    if (state.recorder) stopVoiceRecording(true);
+    if (state.threadController) { state.threadController.abort(); state.threadController = null; }
+    state.selectedId = null; state.contextOpen = false; state.replyTo = null; state.attachment = null;
+    state.threadSearchResults = []; state.sharedItems = []; state.loadingThread = false;
+    if (state.accountContext) delete state.accountContext[id];
+    var page = document.getElementById('p-inbox');
+    if (!page) return;
+    page.classList.remove('show-thread');
+    var input = page.querySelector('[name="message"]'); if (input) input.value = '';
+    clearEncryptedDraft(id);
+    document.querySelectorAll('#p-inbox dialog[open], dialog[data-chat-transfer][open], dialog.smyl-inbox-branch-dialog[open]').forEach(function (dialog) { dialog.close(); });
+    page.querySelector('[data-handoff] p').textContent = '';
+    page.querySelector('[data-thread-name]').textContent = '';
+    page.querySelector('[data-thread-meta]').textContent = '';
+    page.querySelector('[data-thread-messages]').replaceChildren();
+    var owner = page.querySelector('[data-thread-assign]'); delete owner.dataset.conversationId;
+    page.querySelector('[data-thread-owner-name]').textContent = 'Sin asignar';
+    render();
+  }
+
+  function setChatActor(actor) {
+    var next = actor && ['agent','coordinator'].includes(actor.chat_access) ? actor : null;
+    var mode = next ? next.chat_access : 'none';
+    var old = state.actor;
+    if (document.documentElement.dataset.smylChatAccess === mode && (!next || old && old.id === next.id)) {
+      state.actor = next;
+      var label = document.querySelector('[data-chat-access-status]');
+      if (!next && label) label.textContent = 'Tu perfil no tiene acceso al chat.';
+      return;
+    }
+    accessEpoch++; state.actor = next; state.badgeFailures = 0;
+    teamsByConversation.clear();
+    if (old) {
+      threadEpoch.clear();
+      forgetChat(state.selectedId);
+      state.conversations = []; state.operations = null;
+      state.messages = {}; state.clinical = {}; state.syncedAt = null; state.total = 0;
+      state.didAutoOpen = false; state.filter = 'all'; renderNavBadge(0);
+    }
+    document.documentElement.dataset.smylChatAccess = mode;
+    var status = document.querySelector('[data-chat-access-status]');
+    if (status) status.textContent = next ? '' : 'Tu perfil no tiene acceso al chat.';
+    if (!next && document.getElementById('p-inbox')) render();
+    window.dispatchEvent(new CustomEvent('smyl:inbox-access', { detail: { mode: mode } }));
+  }
+
+  function refreshAccess() {
+    if (accessRequest) return accessRequest;
+    var epoch = accessEpoch;
+    accessRequest = request('GET', { action: 'access' }).then(function (data) {
+      if (epoch === accessEpoch) setChatActor(data.actor);
+      return chatEnabled();
+    }).catch(function () {
+      if (epoch === accessEpoch) {
+        setChatActor(null);
+        var status = document.querySelector('[data-chat-access-status]');
+        if (status) {
+          status.textContent = 'No pudimos verificar tu acceso. ';
+          var retry = node('button', 'btn btn-secondary', 'Reintentar');
+          retry.type = 'button'; retry.onclick = function () { window.ir('inbox'); }; status.append(retry);
+        }
+      }
+      return false;
+    }).finally(function () { accessRequest = null; });
+    return accessRequest;
+  }
+
   function hasPermission(permission) {
     if (!state.actor) return false;
+    if (permission === 'messages.manage') return state.actor.chat_access === 'coordinator';
+    if (permission === 'messages.read' || permission === 'messages.respond') return chatEnabled();
     return state.actor.role === 'owner' || Array.isArray(state.actor.permissions) && state.actor.permissions.indexOf(permission) !== -1;
   }
 
@@ -100,6 +188,7 @@
 
   async function persistEncryptedDraft(conversationId, content) {
     if (!conversationId || !window.crypto || !window.crypto.subtle) return;
+    var revision = threadEpoch.get(conversationId), epoch = accessEpoch;
     var envelope = draftEnvelope();
     if (!content) {
       delete envelope[conversationId]; window.sessionStorage.setItem(DRAFT_STORE, JSON.stringify(envelope)); return;
@@ -107,6 +196,8 @@
     var iv = window.crypto.getRandomValues(new Uint8Array(12));
     var payload = JSON.stringify({ conversation_id: conversationId, content: content.slice(0, 4000), expires_at: Date.now() + 7 * 86400000 });
     var ciphertext = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, await draftKey(), new TextEncoder().encode(payload));
+    if (epoch !== accessEpoch || revision !== threadEpoch.get(conversationId)) return;
+    envelope = draftEnvelope();
     envelope[conversationId] = { iv: base64Bytes(iv), ciphertext: base64Bytes(new Uint8Array(ciphertext)) };
     window.sessionStorage.setItem(DRAFT_STORE, JSON.stringify(envelope));
   }
@@ -148,6 +239,9 @@
   }
 
   async function request(method, query, payload, key, timeoutMs, requestController) {
+    var epoch = accessEpoch;
+    var threadId = query && query.conversation_id || payload && payload.conversation_id;
+    var revision = threadEpoch.get(threadId);
     var params = new URLSearchParams(query || {});
     var controller = requestController || new AbortController();
     var timer = setTimeout(function () { controller.abort(); }, timeoutMs || 20000);
@@ -161,9 +255,12 @@
         signal: controller.signal,
       });
       var data = await response.json().catch(function () { return {}; });
+      if (epoch !== accessEpoch || revision !== threadEpoch.get(threadId)) throw new Error('El acceso al chat cambió.');
       if (!response.ok) {
         var error = new Error(typeof data.error === 'string' ? data.error : 'No se pudo completar la operación.');
-        error.code = data.code || '';
+        error.code = data.code || ''; error.status = response.status;
+        if (error.code === 'chat_access_denied') setChatActor(null);
+        if (error.code === 'conversation_scope_denied') forgetChat((query && query.conversation_id) || (payload && payload.conversation_id));
         error.retryable = Boolean(data.retryable);
         throw error;
       }
@@ -177,13 +274,17 @@
   }
 
   async function requestForm(form, key, timeoutMs) {
+    var epoch = accessEpoch;
     var controller = new AbortController();
     var timer = setTimeout(function () { controller.abort(); }, timeoutMs || 60000);
     try {
       var headers = { 'Authorization': 'Bearer ' + await token(), 'apikey': SUPA_KEY, 'Idempotency-Key': key };
       var response = await fetch(SUPA_URL + '/functions/v1/lana-inbox', { method: 'POST', headers: headers, body: form, signal: controller.signal });
       var data = await response.json().catch(function () { return {}; });
+      if (epoch !== accessEpoch) throw new Error('El acceso al chat cambió.');
       if (!response.ok) {
+        if (data.code === 'chat_access_denied') setChatActor(null);
+        if (data.code === 'conversation_scope_denied') forgetChat(form.get('conversation_id'));
         var error = new Error(typeof data.error === 'string' ? data.error : 'No se pudo enviar el adjunto.');
         error.code = data.code || ''; error.retryable = Boolean(data.retryable); throw error;
       }
@@ -278,8 +379,8 @@
             '<button type="button" role="tab" aria-selected="true" tabindex="0" data-inbox-filter="all" class="active">Todas</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="unread">Sin leer</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="attention">Por atender</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="mine">Mías</button>' +
           '</div>' +
           '<div class="smyl-inbox-branch-strip" data-inbox-branch-strip hidden></div>' +
-          '<div class="smyl-inbox-filter-panel" id="smyl-inbox-filter-panel" data-inbox-filter-panel aria-label="Filtros avanzados" hidden><span class="smyl-inbox-filter-label">Mostrar</span><div class="smyl-inbox-secondary-filters"><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="pinned">Fijadas</button></div><label>Canal<select data-inbox-channel aria-label="Filtrar por canal"><option value="">Todos</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option></select></label><div class="smyl-inbox-list-tools"><button type="button" data-inbox-bulk aria-pressed="false">Seleccionar varias</button><button type="button" data-inbox-refresh aria-label="Actualizar bandeja">Actualizar ahora</button></div></div>' +
-          '<div class="smyl-inbox-queue-summary" data-inbox-queue-summary role="status" aria-live="polite"></div>' +
+          '<div class="smyl-inbox-filter-panel" id="smyl-inbox-filter-panel" data-inbox-filter-panel aria-label="Filtros avanzados" hidden><span class="smyl-inbox-filter-label">Mostrar</span><div class="smyl-inbox-secondary-filters"><button type="button" data-inbox-filter="unassigned">Sin asignar</button><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="pinned">Fijadas</button></div><label>Canal<select data-inbox-channel aria-label="Filtrar por canal"><option value="">Todos</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option></select></label><div class="smyl-inbox-list-tools"><button type="button" data-inbox-bulk aria-pressed="false">Seleccionar varias</button><button type="button" data-inbox-refresh aria-label="Actualizar bandeja">Actualizar ahora</button></div></div>' +
+          '<div class="smyl-inbox-queue-summary" data-inbox-queue-summary role="status" aria-live="polite"></div><div class="smyl-inbox-queue-summary" data-inbox-handoff-status role="status" aria-live="polite" hidden></div>' +
           '<div class="smyl-inbox-list" data-inbox-list></div>' +
           '<div class="smyl-inbox-bulkbar" data-inbox-bulkbar hidden></div>' +
           '<button type="button" class="smyl-inbox-more" data-inbox-more hidden>Cargar más conversaciones</button>' +
@@ -288,7 +389,7 @@
           '<div class="smyl-inbox-thread-empty" data-inbox-thread-empty><div class="smyl-inbox-empty-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></div><span class="smyl-inbox-eyebrow">CENTRO DE ATENCIÓN</span><h2>Continúa el siguiente caso</h2><p>Abre una conversación para responder, consultar el expediente y coordinar la cita sin cambiar de pantalla.</p><div class="smyl-inbox-empty-steps"><span><b>1</b>Revisa el motivo</span><span><b>2</b>Consulta agenda</span><span><b>3</b>Confirma el seguimiento</span></div><button type="button" class="btn btn-primary" data-inbox-open-next>Abrir siguiente conversación</button></div>' +
           '<div class="smyl-inbox-thread" data-inbox-thread hidden>' +
             '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención" aria-expanded="false" aria-controls="smyl-inbox-context-panel"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><span class="smyl-inbox-med-flag" data-thread-medical hidden></span><span class="smyl-inbox-patient-context-hint" aria-hidden="true"><span>Ficha 360</span>' + composeIcon('chevron') + '</span></button><div class="smyl-inbox-thread-branchwrap" data-thread-branch-wrap hidden><button type="button" class="smyl-inbox-iconchip is-labeled" data-thread-branch-chip aria-haspopup="menu" aria-expanded="false"></button></div><button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Siguiente acción del paciente"></nav><div class="smyl-inbox-owner-control" data-thread-owner>' + composeIcon('person') + '<span class="smyl-inbox-owner-copy"><small>Atiende el chat</small><strong data-thread-owner-name>Sin asignar</strong></span><select data-thread-assign aria-label="Asignar responsable del chat"></select><button type="button" data-thread-owner-retry hidden>Reintentar</button></div></header>' +
-            '<div class="smyl-inbox-briefing-row"><div class="smyl-inbox-thread-notices" data-thread-notices hidden></div><div class="smyl-inbox-thread-menu-wrap"><button type="button" class="smyl-inbox-thread-tools-trigger" data-thread-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-thread-menu" aria-label="Conversación: herramientas">Conversación ▾</button><div class="smyl-inbox-thread-menu" id="smyl-inbox-thread-menu" data-thread-menu role="menu" aria-label="Herramientas de conversación" hidden><div class="smyl-inbox-thread-menu-care" data-thread-menu-care role="group" aria-label="Acciones del paciente"></div><button type="button" role="menuitem" data-thread-search>Buscar en el hilo</button><button type="button" role="menuitem" data-thread-shared>Archivos compartidos</button><button type="button" role="menuitem" data-thread-pin>Fijar conversación</button><button type="button" role="menuitem" data-thread-branch hidden>Cambiar sucursal</button><button type="button" role="menuitem" data-thread-details>Ficha 360 del paciente</button><button type="button" role="menuitem" data-thread-settings>Ajustes de la conversación</button><button type="button" role="menuitem" data-thread-link-professional hidden>Usar como mi WhatsApp profesional</button><button type="button" role="menuitem" data-thread-resolve hidden>Marcar solicitud resuelta</button></div></div></div><div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div></div>' +
+            '<div class="smyl-inbox-briefing-row"><div class="smyl-inbox-thread-notices" data-thread-notices hidden></div><details class="smyl-chat-note" data-handoff hidden><summary>Nota privada de relevo</summary><p></p></details><div class="smyl-inbox-thread-menu-wrap"><button type="button" class="smyl-inbox-thread-tools-trigger" data-thread-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-thread-menu" aria-label="Conversación: herramientas">Conversación ▾</button><div class="smyl-inbox-thread-menu" id="smyl-inbox-thread-menu" data-thread-menu role="menu" aria-label="Herramientas de conversación" hidden><div class="smyl-inbox-thread-menu-care" data-thread-menu-care role="group" aria-label="Acciones del paciente"></div><button type="button" role="menuitem" data-thread-search>Buscar en el hilo</button><button type="button" role="menuitem" data-thread-shared>Archivos compartidos</button><button type="button" role="menuitem" data-thread-pin>Fijar conversación</button><button type="button" role="menuitem" data-thread-branch hidden>Cambiar sucursal</button><button type="button" role="menuitem" data-thread-details>Ficha 360 del paciente</button><button type="button" role="menuitem" data-thread-settings>Ajustes de la conversación</button><button type="button" role="menuitem" data-thread-link-professional hidden>Usar como mi WhatsApp profesional</button><button type="button" role="menuitem" data-thread-resolve hidden>Marcar solicitud resuelta</button></div></div></div><div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div></div>' +
             '<button type="button" class="smyl-inbox-jump" data-thread-jump hidden>Ir al final</button>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
             '<form class="smyl-inbox-composer" data-inbox-composer><label class="smyl-inbox-sr" for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window aria-live="polite" hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><p class="smyl-compose-save-warning" data-compose-save-warning role="status" hidden>No se pudo guardar el texto para esta sesión.</p><div class="smyl-inbox-compose-surface" data-compose-surface><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-card"><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea></div><div class="smyl-inbox-compose-bar" role="group" aria-label="Acciones de respuesta"><div class="smyl-inbox-compose-primary"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-compose-tools" aria-label="Abrir herramientas de mensaje" title="Herramientas">' + composeIcon('plus') + '</button></div><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden><div class="smyl-inbox-compose-actions"><button type="button" class="smyl-inbox-compose-copilot" data-compose-copilot aria-label="Sugerir con MILA">' + composeIcon('mila') + '<span>Sugerir con MILA</span></button><button type="submit" class="smyl-inbox-send" data-compose-send aria-label="Enviar mensaje"><span>Enviar</span>' + composeIcon('send') + '</button></div></div></div><div class="smyl-inbox-compose-tools" id="smyl-inbox-compose-tools" data-compose-tools role="menu" aria-label="Herramientas de mensaje" hidden><button type="button" data-compose-attach role="menuitem" aria-label="Adjuntar archivo">' + composeIcon('attach') + '<span><strong>Adjuntar</strong><small>Foto, archivo o audio</small></span></button><button type="button" data-compose-quick role="menuitem" aria-label="Respuesta rápida">' + composeIcon('quick') + '<span><strong>Respuesta rápida</strong><small>Insertar texto del equipo</small></span></button><button type="button" data-compose-rewrite role="menuitem" aria-label="Mejorar redacción con MILA">' + composeIcon('rewrite') + '<span><strong>Mejorar redacción</strong><small>Ortografía y claridad con MILA</small></span></button><button type="button" data-compose-emoji role="menuitem" aria-label="Agregar emoji">' + composeIcon('smile') + '<span><strong>Emoji</strong><small>Insertar en el mensaje</small></span></button><button type="button" data-compose-template role="menuitem">' + composeIcon('template') + '<span><strong>Plantilla</strong><small>Mensaje aprobado</small></span></button><button type="button" data-compose-schedule role="menuitem">' + composeIcon('calendar') + '<span><strong>Programar</strong><small>Enviar después</small></span></button><button type="button" data-compose-record role="menuitem" aria-pressed="false">' + composeIcon('mic') + '<span><strong>Nota de voz</strong><small>Grabar audio</small></span></button><button type="button" data-compose-location role="menuitem" aria-label="Enviar ubicación actual">' + composeIcon('location') + '<span><strong>Enviar ubicación</strong><small>Ubicación actual o enlace de Maps</small></span></button></div></div></div></form>' +
@@ -318,8 +419,16 @@
   }
 
   function mergeConversations(items, replace) {
-    var map = new Map((replace ? [] : state.conversations).map(function (item) { return [item.id, item]; }));
-    (items || []).forEach(function (item) { map.set(item.id, Object.assign({}, map.get(item.id) || {}, item)); });
+    if (!chatEnabled()) return;
+    items = (items || []).filter(function (item) { return state.actor.chat_access === 'coordinator' || item.assignment && item.assignment.actor_id === state.actor.id; });
+    var previous = new Map(state.conversations.map(function (item) { return [item.id, item]; }));
+    var map = replace ? new Map() : new Map(previous);
+    items.forEach(function (item) {
+      var old = previous.get(item.id);
+      var merged = Object.assign({}, old || {}, item);
+      if (old && item.assignment_version !== old.assignment_version && !Object.hasOwn(item, 'private_handoff_note')) delete merged.private_handoff_note;
+      map.set(item.id, merged);
+    });
     state.conversations = Array.from(map.values()).sort(function (a, b) {
       if (Boolean(a.pinned) !== Boolean(b.pinned)) return a.pinned ? -1 : 1;
       if (Boolean(a.needs_human) !== Boolean(b.needs_human)) return a.needs_human ? -1 : 1;
@@ -339,6 +448,7 @@
       if (state.filter === 'unread' && !item.unread_count && !keepOpen) return false;
       if (state.filter === 'attention' && !item.needs_human && !keepOpen) return false;
       if (state.filter === 'mine' && (!item.assignment || item.assignment.actor_id !== (state.actor && state.actor.id))) return false;
+      if (state.filter === 'unassigned' && item.assignment) return false;
       if (state.filter === 'pinned' && !item.pinned) return false;
       if (state.filter === 'paused' && !item.paused) return false;
       if (state.branchFilter === 'none' && item.branch) return false;
@@ -363,15 +473,28 @@
     toggle.textContent = state.bulkMode ? 'Cancelar' : 'Seleccionar';
     bar.hidden = !state.bulkMode;
     if (!state.bulkMode) { bar.innerHTML = ''; return; }
+    var priorAssignee = bar.querySelector('[aria-label="Responsable para seleccionadas"]')?.value;
     bar.innerHTML = '';
     var count = node('strong', '', state.bulkSelected.size + ' seleccionadas');
     var assignee = document.createElement('select'); assignee.setAttribute('aria-label', 'Responsable para seleccionadas');
-    assignee.append(new Option('Responsable…', ''));
-    state.team.forEach(function (member) { assignee.append(new Option(member.name, member.id)); });
+    var rosters = Array.from(state.bulkSelected, function (id) {
+      return teamFor(state.conversations.find(function (item) { return item.id === id; }));
+    });
+    var ready = rosters.length > 0 && rosters.every(function (r) { return r.status === 'ready'; });
+    var members = ready ? rosters[0].members.filter(function (member) {
+      return rosters.every(function (r) { return r.members.some(function (other) { return other.id === member.id; }); });
+    }) : [];
+    var failed = rosters.some(function (r) { return r.status === 'error'; });
+    assignee.append(new Option(ready && !members.length ? 'Sin responsable en común' : !ready && rosters.length && !failed ? 'Consultando equipo…' : 'Responsable…', ''));
+    members.forEach(function (member) { assignee.append(new Option(member.name, member.id)); });
+    if (priorAssignee && members.some(function (member) { return member.id === priorAssignee; })) assignee.value = priorAssignee;
+    assignee.disabled = !members.length || state.bulkRunning;
     var stage = document.createElement('select'); stage.setAttribute('aria-label', 'Etapa para seleccionadas');
     stage.append(new Option('Etapa…', '')); state.stages.filter(function (item) { return !item.archived; }).forEach(function (item) { stage.append(new Option(item.name, item.id)); });
     var assign = node('button', 'btn btn-secondary btn-sm', 'Asignar'); assign.type = 'button';
-    assign.disabled = !state.bulkSelected.size || state.bulkRunning; assign.onclick = function () { if (assignee.value) applyBulkAction('assign', assignee.value); };
+    assign.disabled = !assignee.value || state.bulkRunning;
+    assignee.onchange = function () { assign.disabled = !assignee.value || state.bulkRunning; };
+    assign.onclick = function () { if (assignee.value) applyBulkAction('assign', assignee.value); };
     var move = node('button', 'btn btn-secondary btn-sm', 'Mover'); move.type = 'button';
     move.disabled = !state.bulkSelected.size || state.bulkRunning; move.onclick = function () { if (stage.value) applyBulkAction('stage', stage.value); };
     var clear = node('button', 'smyl-inbox-bulk-clear', 'Limpiar'); clear.type = 'button'; clear.onclick = function () { state.bulkSelected.clear(); renderList(); };
@@ -379,10 +502,19 @@
     branchButton.hidden = !multiBranch(); branchButton.disabled = !state.bulkSelected.size || state.bulkRunning;
     branchButton.onclick = function () { openBranchDialog(Array.from(state.bulkSelected).map(function (id) { return state.conversations.find(function (item) { return item.id === id; }); })); };
     bar.append(count, assignee, assign, stage, move, branchButton, clear);
+    if (failed) {
+      var retry = node('button', 'smyl-inbox-bulk-clear', 'Reintentar equipo'); retry.type = 'button';
+      retry.onclick = function () {
+        state.bulkSelected.forEach(function (id) { if (teamsByConversation.get(id)?.status === 'error') teamsByConversation.delete(id); });
+        renderBulkBar();
+      };
+      bar.append(retry);
+    }
   }
 
   function filterCount(filter) {
     return state.conversations.filter(function (item) {
+      if (filter === 'unassigned') return !item.assignment;
       if (filter === 'attention') return item.needs_human;
       if (filter === 'mine') return item.assignment && item.assignment.actor_id === (state.actor && state.actor.id);
       if (filter === 'unread') return item.unread_count;
@@ -496,8 +628,10 @@
   async function setConversationBranch(conversation, branchId) {
     try {
       var data = await request('POST', {}, { action: 'set_branch', conversation_id: conversation.id, branch_id: branchId || null }, uuid());
-      conversation.branch = data.branch || null;
+      var current = state.conversations.find(function (item) { return item.id === conversation.id; });
+      if (current) current.branch = data.branch || null;
       renderList(); if (state.selectedId === conversation.id) { renderThreadHeader(); renderContext(); }
+      await loadList(true);
     } catch (error) { window.alert((error && error.message) || 'No se pudo asignar la sucursal.'); }
   }
   function threadBranchMenuItems(conversation) {
@@ -521,7 +655,7 @@
     button.onclick = function () { toggleBranchMenu('thread', wrap, button, threadBranchMenuItems(conversation)); };
   }
   async function loadBranches() {
-    try { var data = await request('GET', { action: 'branches' }); state.branches = data.branches || []; state.actor = data.actor || state.actor; render(); } catch (_) {}
+    try { var data = await request('GET', { action: 'branches' }); state.branches = data.branches || []; if (data.actor && data.actor.chat_access) setChatActor(data.actor); render(); } catch (_) {}
   }
   function openBranchDialog(conversations) {
     var list = conversations.filter(Boolean);
@@ -547,11 +681,12 @@
       for (var i = 0; i < list.length; i += 1) {
         try {
           var data = await request('POST', {}, { action: 'set_branch', conversation_id: list[i].id, branch_id: picked.value || null }, uuid());
-          list[i].branch = data.branch || null;
+          var currentChat = state.conversations.find(function (item) { return item.id === list[i].id; });
+          if (currentChat) currentChat.branch = data.branch || null;
         } catch (err) { failed += 1; error.textContent = (err && err.message) || 'No se pudo asignar la sucursal.'; error.hidden = false; }
       }
       submit.disabled = false;
-      if (failed) return;
+      if (failed) { await loadList(true); render(); return; }
       dialog.close(); state.bulkSelected.clear(); state.bulkMode = false;
       await loadList(true); render();
     };
@@ -559,10 +694,12 @@
   }
 
   function renderFilterControls() {
-    var advanced = ['paused', 'pinned'].indexOf(state.filter) !== -1 || Boolean(state.channel);
+    var advanced = ['paused', 'pinned', 'unassigned'].indexOf(state.filter) !== -1 || Boolean(state.channel);
     document.querySelectorAll('[data-inbox-filter]').forEach(function (button) {
       var filter = button.dataset.inboxFilter;
-      var labels = { all: 'Todas', attention: 'Por atender', mine: 'Mías', unread: 'Sin leer', paused: 'En atención', pinned: 'Fijadas' };
+      var coord = state.actor && state.actor.chat_access === 'coordinator';
+      if (filter === 'mine' || filter === 'unassigned') button.hidden = !coord;
+      var labels = { all: coord ? 'Del equipo' : 'Mis chats', unassigned: 'Sin asignar', attention: 'Por atender', mine: 'Mías', unread: 'Sin leer', paused: 'En atención', pinned: 'Fijadas' };
       var selected = filter === state.filter;
       button.classList.toggle('active', selected);
       if (button.getAttribute('role') === 'tab') {
@@ -652,7 +789,8 @@
     }
     if (!visible.length) {
       var empty = node('div', 'smyl-inbox-list-state');
-      empty.append(node('strong', '', 'No hay conversaciones aquí'), node('p', '', 'Prueba otro filtro o espera un mensaje nuevo de tus canales.'));
+      var personal = state.actor && state.actor.chat_access === 'agent' && state.filter === 'all' && !state.search && !state.channel && !state.branchFilter;
+      empty.append(node('strong', '', state.hasMore ? 'Hay más conversaciones por consultar' : personal ? 'Aún no tienes chats asignados' : 'No hay conversaciones aquí'), node('p', '', state.hasMore ? 'Usa Cargar más conversaciones para continuar la búsqueda.' : personal ? 'Las conversaciones que te transfiera el equipo aparecerán aquí.' : 'Prueba otro filtro o espera un mensaje nuevo de tus canales.'));
       list.append(empty);
     }
     visible.forEach(function (item) {
@@ -1678,6 +1816,7 @@
   }
 
   async function loadOperations(force) {
+    if (!hasPermission('messages.manage')) return;
     if (state.operationsLoading || (state.operations && !force)) { renderOperations(); return; }
     state.operationsLoading = true; state.operationsError = ''; renderOperations();
     try { state.operations = await request('GET', { action: 'operations' }, null, null, 20000); }
@@ -2771,7 +2910,7 @@
   }
 
   async function refreshUnreadBadge() {
-    if (document.visibilityState !== 'visible' || state.badgeFailures >= 3 || state.loadingList) return;
+    if (!chatEnabled() || document.visibilityState !== 'visible' || state.badgeFailures >= 3 || state.loadingList) return;
     try {
       var data = await request('GET', { action: 'list', filter: 'unread', limit: 1, offset: 0 }, null, null, 12000);
       state.badgeFailures = 0;
@@ -2856,76 +2995,152 @@
     var select = wrap.querySelector('select'), label = wrap.querySelector('[data-thread-owner-name]'), retry = wrap.querySelector('button');
     var assignment = conversation.assignment, current = assignment ? (assignment.actor_id || '__legacy') : '';
     var name = assignment && assignment.name || 'Sin asignar';
-    var allowed = canOperate(conversation, 'messages.manage'), saving = Boolean(state.assigningChat[conversation.id]);
-    var canChoose = allowed && !saving && state.teamStatus === 'ready' && Boolean(state.team.length || assignment);
-    var display = saving ? 'Guardando…' : allowed && state.teamStatus === 'loading' && !assignment ? 'Cargando equipo…' : name;
+    var note = document.querySelector('[data-handoff]');
+    note.hidden = !conversation.private_handoff_note;
+    note.querySelector('p').textContent = conversation.private_handoff_note || '';
+    if (note.dataset.thread !== conversation.id) { note.open = false; note.dataset.thread = conversation.id; }
+    var allowed = canTransfer(conversation);
+    var roster = teamFor(conversation);
+    var canChoose = allowed && roster.status === 'ready' && Boolean(roster.members.some(function (m) { return m.id !== current; }) || (assignment && state.actor.chat_access === 'coordinator'));
+    var display = allowed && roster.status === 'loading' && !assignment ? 'Cargando equipo…' : name;
     // Avoid replacing options under an open native picker when the conversation polls.
-    var signature = JSON.stringify([conversation.id, current, name, state.teamStatus, state.team.map(function (m) { return [m.id, m.name, m.kind]; })]);
+    var signature = JSON.stringify([conversation.id, current, name, state.actor && state.actor.chat_access, roster.status, roster.members.map(function (m) { return [m.id, m.name, m.kind]; })]);
     if (select.dataset.signature !== signature) {
-      select.dataset.signature = signature; select.replaceChildren(new Option('Sin asignar', ''));
-      state.team.forEach(function (member) {
+      select.dataset.signature = signature; select.replaceChildren();
+      if (!current || state.actor.chat_access === 'coordinator') select.add(new Option('Sin asignar', ''));
+      roster.members.forEach(function (member) {
         var kind = {owner:'Titular', professional:'Profesional clínico', staff:'Equipo de atención'}[member.kind];
         select.add(new Option(member.name + (kind ? ' · ' + kind : ''), member.id));
       });
-      if (current && !state.team.some(function (m) { return m.id === current; })) {
+      if (current && !roster.members.some(function (m) { return m.id === current; })) {
         var prior = new Option(name, current); prior.disabled = true; select.add(prior);
       }
     }
     select.value = current; select.disabled = !canChoose; select.dataset.conversationId = conversation.id;
     label.textContent = display;
     var description = 'Responsable del chat: ' + name;
-    var unavailable = allowed && state.teamStatus === 'error';
+    var unavailable = allowed && roster.status === 'error';
     select.setAttribute('aria-label', description + (canChoose ? '. Cambiar responsable' : ''));
     wrap.dataset.editable = String(canChoose); wrap.dataset.error = String(unavailable);
-    wrap.title = unavailable ? 'No se pudo cargar el equipo. Reintentar' : description + (canChoose ? ' · Cambiar' : allowed && !state.team.length && state.teamStatus === 'ready' ? ' · No hay integrantes disponibles' : '');
+    wrap.title = unavailable ? 'No se pudo cargar el equipo. Reintentar' : description + (canChoose ? ' · Cambiar' : allowed && !roster.members.length && roster.status === 'ready' ? ' · No hay integrantes disponibles' : '');
     retry.hidden = !unavailable; retry.setAttribute('aria-label', 'Reintentar carga del equipo para asignar el chat');
   }
 
-  async function changeChatOwner(conversationId, targetId) {
-    var conversation = selectedConversation();
-    if (!conversation || conversation.id !== conversationId || state.assigningChat[conversationId] || !canOperate(conversation, 'messages.manage')) return;
-    if (targetId && !state.team.some(function (member) { return member.id === targetId; })) return;
-    var actorId = state.actor && state.actor.id;
-    state.assigningChat[conversationId] = true; renderChatOwner(conversation);
-    try {
-      var payload = { action: targetId ? 'assign' : 'release', conversation_id: conversationId };
-      if (targetId) payload.target_actor_id = targetId;
-      var result = await request('POST', {}, payload, uuid());
-      var live = state.conversations.find(function (item) { return item.id === conversationId; });
-      if (!live || !state.actor || state.actor.id !== actorId) return;
-      // Una confirmación de asignación puede ser parcial: conserva IA, no leídos y permisos.
-      var assignedId = Object.prototype.hasOwnProperty.call(result, 'assigned_actor_id') ? result.assigned_actor_id : targetId;
-      var member = state.team.find(function (item) { return item.id === assignedId; });
-      live.assignment = assignedId ? { source:'smyl', actor_id:assignedId, name:result.assigned_actor_name || (member && member.name) || 'Miembro del equipo' } : null;
-      if (result.can_operate === false) live.can_operate = false;
-      if (assignedId !== actorId && (state.filter === 'mine' || (!seesWholeClinic() && state.actor.role !== 'owner'))) {
-        // Al transferir el único vínculo personal puede caducar el acceso: no mostrar
-        // la ficha o mensajes anteriores mientras el servidor reconstruye la bandeja.
-        state.conversations = state.conversations.filter(function (item) { return item.id !== conversationId; });
-        if (state.selectedId === conversationId) {
-          var input = document.querySelector('[name="message"]');
-          if (input && input.value.trim()) persistEncryptedDraft(conversationId, input.value.trim()).catch(function () {});
-          state.selectedId = null; state.contextOpen = false; state.attachment = null; state.replyTo = null;
-          document.getElementById('p-inbox').classList.remove('show-thread'); render();
-        }
-        await loadList(true);
-      }
-    } catch (error) {
-      if (state.selectedId === conversationId) window.alert(error.message || 'No se pudo cambiar al responsable del chat.');
-    } finally {
-      delete state.assigningChat[conversationId]; renderList();
-      if (state.selectedId === conversationId) renderThreadHeader();
+  function announceHandoff(message, conversationId) {
+    var alert = document.querySelector('[data-inbox-handoff-status]');
+    if (!alert) return;
+    clearTimeout(state.handoffTimer); alert.hidden = false; alert.textContent = message;
+    if (conversationId) {
+      var open = node('button', 'smyl-inbox-bulk-clear', 'Abrir chat');
+      open.type = 'button'; open.onclick = function () { alert.hidden = true; openConversation(conversationId); };
+      alert.append(document.createTextNode(' '), open);
     }
+    state.handoffTimer = setTimeout(function () { if (!alert.contains(document.activeElement)) { alert.hidden = true; alert.textContent = ''; } }, 12000);
   }
 
-  async function loadTeam() {
-    if (state.teamStatus === 'loading') return;
-    state.teamStatus = 'loading'; renderChatOwner(selectedConversation());
+  function canTransfer(conversation) {
+    return Boolean(state.actor && conversation && (state.actor.chat_access === 'coordinator' ||
+      state.actor.chat_access === 'agent' && conversation.assignment && conversation.assignment.actor_id === state.actor.id));
+  }
+
+  function changeChatOwner(conversationId, targetId) {
+    var conversation = selectedConversation();
+    if (!conversation || conversation.id !== conversationId || !canTransfer(conversation)) return;
+    renderChatOwner(conversation);
+    var roster = teamFor(conversation);
+    if (roster.status !== 'ready') return;
+    var member = roster.members.find(function (item) { return item.id === targetId; });
+    if (targetId ? !member : state.actor.chat_access !== 'coordinator') return;
+    if ((conversation.assignment && conversation.assignment.actor_id || '') === targetId) return;
+    var version = conversation.assignment_version;
+    var dialog = node('dialog', 'smyl-chat-transfer');
+    var isTransfer = Boolean(conversation.assignment && targetId);
+    var heading = node('h2', '', targetId ? (isTransfer ? 'Transferir conversación' : 'Asignar conversación') : 'Devolver a la bandeja sin asignar');
+    heading.id = 'smyl-transfer-title'; dialog.setAttribute('aria-labelledby', heading.id);
+    dialog.dataset.chatTransfer = conversationId;
+    var form = node('form');
+    var recipient = node('p', '', (conversation.contact_name || 'Conversación') + ' → ' + (member ? member.name : 'Sin asignar'));
+    var label = node('label', '', 'Nota privada de relevo (opcional)');
+    var note = node('textarea'); note.rows = 3; note.maxLength = 500; note.name = 'private_note';
+    note.placeholder = '¿Qué necesita saber quien recibe el chat?'; label.append(note);
+    var help = node('small', '', 'Solo visible para el equipo que puede abrir este chat.');
+    var error = node('p'); error.setAttribute('role', 'alert'); error.hidden = true;
+    var actions = node('footer'), cancel = node('button', 'btn btn-secondary', 'Cancelar');
+    cancel.type = 'button'; cancel.onclick = function () { dialog.close(); };
+    var save = node('button', 'btn btn-primary', targetId ? (isTransfer ? 'Transferir chat' : 'Confirmar asignación') : 'Devolver chat');
+    save.type = 'submit'; actions.append(cancel, save); form.append(heading, recipient, label, help, error, actions);
+    dialog.append(form); document.body.append(dialog);
+    dialog.addEventListener('close', function () { dialog.remove(); }, { once: true });
+    form.onsubmit = async function (event) {
+      event.preventDefault();
+      if (save.disabled || state.selectedId !== conversationId || !canTransfer(selectedConversation())) return;
+      var latest = teamFor(selectedConversation());
+      if (latest.branchId !== roster.branchId || (targetId && (latest.status !== 'ready' || !latest.members.some(function (m) { return m.id === targetId; })))) {
+        error.textContent = 'Cambió el equipo disponible. Cierra esta ventana y elige de nuevo.';
+        error.hidden = false; save.disabled = true; return;
+      }
+      var payload = { action: targetId ? 'assign' : 'release', conversation_id: conversationId,
+        expected_version: version, private_note: note.value.trim() };
+      if (member) payload.target_actor_id = member.id;
+      save.disabled = true; cancel.disabled = true; error.hidden = true;
+      try {
+        var result = await request('POST', {}, payload, uuid());
+        if (dialog.open) dialog.close();
+        if (state.selectedId !== conversationId) return;
+        routingRevision++;
+        window.dispatchEvent(new Event('smyl:chat-routing-changed'));
+        if (result.can_operate === false || state.actor.chat_access === 'agent' && result.assigned_actor_id !== state.actor.id) forgetChat(conversationId);
+        else {
+          var current = selectedConversation();
+          if (!current) return;
+          current.assignment = result.assigned_actor_id ? { source: 'smyl', actor_id: result.assigned_actor_id, name: result.assigned_actor_name || member && member.name } : null;
+          current.assignment_version = result.assignment_version;
+          if (typeof result.can_operate === 'boolean') current.can_operate = result.can_operate;
+          current.private_handoff_note = result.private_handoff_note || payload.private_note;
+          render();
+        }
+        var confirmation = member ? 'Chat asignado a ' + member.name + '.' : 'Chat devuelto a Sin asignar.';
+        if (result.provider_sync === 'pending') confirmation += ' Pendiente de sincronizar con el canal.';
+        announceHandoff(confirmation);
+        await loadList(true);
+      } catch (reason) {
+        if (!dialog.open) return;
+        error.textContent = reason.status === 409 ? 'La asignación cambió. Cierra esta ventana y elige de nuevo.' : reason.message;
+        error.hidden = false; save.disabled = reason.status === 409 || reason.status === 400;
+        if (save.disabled) {
+          teamsByConversation.delete(conversationId);
+          await loadThread(conversationId, false, null, true);
+          if (state.selectedId === conversationId) renderChatOwner(selectedConversation());
+        }
+      } finally { cancel.disabled = false; }
+    };
+    dialog.addEventListener('cancel', function (event) { if (cancel.disabled) event.preventDefault(); });
+    dialog.showModal(); note.focus();
+  }
+
+  function teamFor(conversation) {
+    if (!canTransfer(conversation)) return { status: 'unavailable', members: [] };
+    var id = conversation.id, branchId = conversation.branch?.id || '';
+    var entry = teamsByConversation.get(id);
+    if (!entry || entry.branchId !== branchId || (entry.status === 'ready' && Date.now() - entry.loadedAt > 120000)) {
+      entry = { branchId: branchId, status: 'loading', members: [], loadedAt: 0 };
+      teamsByConversation.set(id, entry); loadTeam(id, entry);
+    }
+    return entry;
+  }
+
+  async function loadTeam(id, entry) {
     try {
-      var data = await request('GET', { action: 'team' });
-      state.team = data.members || []; state.teamStatus = 'ready';
-    } catch (_) { state.team = []; state.teamStatus = 'error'; }
-    renderChatOwner(selectedConversation()); renderContext();
+      var data = await request('GET', { action: 'team', conversation_id: id });
+      if (teamsByConversation.get(id) !== entry) return;
+      if (!Array.isArray(data.members)) throw new Error('Equipo no disponible');
+      entry.members = data.members; entry.status = 'ready'; entry.loadedAt = Date.now();
+    } catch (_) {
+      if (teamsByConversation.get(id) !== entry) return;
+      entry.status = 'error';
+    }
+    if (id === state.selectedId) renderChatOwner(selectedConversation());
+    if (state.bulkSelected.has(id)) renderBulkBar();
   }
 
   async function loadStages() {
@@ -3487,28 +3702,32 @@
   }
 
   async function loadList(reset) {
-    if (state.loadingList) return;
+    if (!chatEnabled() || state.loadingList) return;
+    var revision = routingRevision;
     state.loadingList = true; state.listError = '';
     if (reset) { state.offset = 0; state.hasMore = false; }
     renderList();
     try {
       var data = await request('GET', { action: 'list', filter: state.filter, channel: state.channel, q: state.search, limit: state.limit, offset: state.offset });
-      state.actor = data.actor || state.actor;
+      if (revision !== routingRevision) return;
+      if (data.actor && data.actor.chat_access) setChatActor(data.actor);
       mergeConversations(data.conversations || [], reset);
       state.total = data.page && Number(data.page.total) || state.conversations.length;
       state.hasMore = Boolean(data.page && data.page.has_more);
       if (reset || !state.syncedAt) state.syncedAt = data.synced_at || new Date().toISOString();
-      if (!reset) state.offset += (data.conversations || []).length;
+      if (data.page && Number.isInteger(data.page.next_offset)) state.offset = data.page.next_offset;
+      else if (!reset) state.offset += (data.conversations || []).length;
       else state.offset = (data.conversations || []).length;
     } catch (error) { state.listError = error.message; }
     finally {
       state.loadingList = false; renderList(); renderContext();
-      if (reset) autoOpenFirst();
+      if (revision !== routingRevision && chatEnabled()) setTimeout(function () { loadList(true); }, 0);
+      else if (reset) autoOpenFirst();
     }
   }
 
-  async function loadThread(conversationId, older, since, background) {
-    if (!conversationId) return;
+  async function loadThread(conversationId, older, since, background, initialPage) {
+    if (!conversationId || !chatEnabled()) return;
     var quiet = Boolean(since || background);
     if (!older && !quiet && state.threadController) state.threadController.abort();
     var controller = quiet ? null : new AbortController();
@@ -3521,11 +3740,12 @@
     if (older && state.pages[conversationId] && state.pages[conversationId].before) query.before = state.pages[conversationId].before;
     if (since) query.since = since;
     try {
-      var data = await request('GET', query, null, null, 20000, controller);
+      var data = initialPage || await request('GET', query, null, null, 20000, controller);
       if (conversationId !== state.selectedId) return;
       mergeMessages(conversationId, data.messages || [], older);
       if (!quiet) state.pages[conversationId] = { hasMore: Boolean(data.page && data.page.has_more), before: data.page && data.page.before };
       var updated = data.conversation;
+      if (updated && state.actor.chat_access === 'agent' && (!updated.assignment || updated.assignment.actor_id !== state.actor.id)) { forgetChat(conversationId); return; }
       if (updated) mergeConversations([updated], false);
       if (!quiet && controller === state.threadController) state.loadingThread = false;
       // El sondeo siempre conserva los datos recibidos. Solo aplaza el repintado destructivo
@@ -3553,16 +3773,29 @@
   }
 
   async function openConversation(id) {
+    var sequence = ++openSequence;
+    if (!chatEnabled() && !await refreshAccess()) return;
+    var lookup, epoch = accessEpoch, revision = threadEpoch.get(id);
+    try { lookup = await request('GET', { action:'messages', conversation_id:id, limit:50 }); }
+    catch (error) {
+      if (sequence === openSequence) announceHandoff(error.code === 'conversation_scope_denied' ? 'Ya no tienes acceso a esta conversación.' : error.message);
+      return;
+    }
+    if (sequence !== openSequence || !chatEnabled() || !lookup.conversation || lookup.conversation.id !== id) return;
+    if (state.actor.chat_access === 'agent' && (!lookup.conversation.assignment || lookup.conversation.assignment.actor_id !== state.actor.id)) { forgetChat(id); return; }
+    mergeConversations([lookup.conversation], false);
     if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(true);
     closeThreadMenu(false); closeActionMenu(false); closeComposerTools(); closeBranchMenu(false);
     var previousId = state.selectedId; var previousInput = document.querySelector('[name="message"]');
     if (previousId && previousInput && previousInput.value.trim()) await persistEncryptedDraft(previousId, previousInput.value.trim()).catch(function () {});
+    if (sequence !== openSequence || epoch !== accessEpoch || revision !== threadEpoch.get(id)) return;
     state.selectedId = id; state.contextOpen = dockedContextPreferred(); state.contextReturnFocus = null; state.threadError = ''; state.replyTo = null; state.attachment = null;
     document.getElementById('p-inbox').classList.add('show-thread');
     render(); await restoreEncryptedDraft(id);
-    var patientReady = prepareConversationPatient(id); loadScheduled(id); await loadThread(id, false); await patientReady;
+    if (sequence !== openSequence || state.selectedId !== id) return;
+    var patientReady = prepareConversationPatient(id); loadScheduled(id); await loadThread(id, false, null, false, lookup); await patientReady;
     var conversation = selectedConversation();
-    if (conversation && conversation.unread_count) {
+    if (conversation && conversation.id === id && conversation.unread_count) {
       try {
         await request('POST', {}, { action: 'read', conversation_id: id }, uuid());
         conversation.unread_count = 0; renderList(); refreshUnreadBadge();
@@ -3576,10 +3809,7 @@
     conversation.unread_count = Number(data.unread_count) || 0;
     if (Object.prototype.hasOwnProperty.call(data, 'pinned')) conversation.pinned = Boolean(data.pinned);
     if (Object.prototype.hasOwnProperty.call(data, 'stage_id')) conversation.stage_id = data.stage_id || null;
-    conversation.assignment = data.assigned_actor_id
-      ? { source: 'smyl', actor_id: data.assigned_actor_id, name: data.assigned_actor_name || 'Miembro de SMYL' }
-      : (data.legacy_assigned ? { source: 'lana', actor_id: null, name: 'Asignada previamente' } : null);
-    conversation.can_operate = true;
+    if (typeof data.can_operate === 'boolean') conversation.can_operate = data.can_operate;
   }
 
   async function applyBulkAction(action, targetId) {
@@ -3591,10 +3821,12 @@
       if (!conversation) continue;
       try {
         var payload = { action: action, conversation_id: conversation.id };
-        if (action === 'stage') payload.target_stage_id = targetId || null; else payload.target_actor_id = targetId;
+        if (action === 'stage') payload.target_stage_id = targetId || null;
+        else { payload.target_actor_id = targetId; payload.expected_version = conversation.assignment_version; }
         var data = await request('POST', {}, payload, uuid()); applyConversationResult(conversation, data);
       } catch (_) { failed += 1; }
     }
+    if (action === 'assign') { window.dispatchEvent(new Event('smyl:chat-routing-changed')); await loadList(true); }
     state.bulkRunning = false;
     if (!failed) { state.bulkSelected.clear(); state.bulkMode = false; }
     render();
@@ -3884,34 +4116,31 @@
   }
 
   async function sync() {
-    if (state.polling || !state.syncedAt || !document.getElementById('p-inbox').classList.contains('activa') || document.visibilityState !== 'visible') return;
+    if (!chatEnabled() || state.polling || !state.syncedAt || !document.getElementById('p-inbox').classList.contains('activa') || document.visibilityState !== 'visible') return;
     state.polling = true;
     var live = document.querySelector('[data-inbox-live]'); if (live) live.dataset.state = 'syncing';
     try {
       var previousUnread = state.conversations.reduce(function (total, item) { return total + (Number(item.unread_count) || 0); }, 0);
-      var data = await request('GET', { action: 'sync', since: state.syncedAt }, null, null, 15000);
+      var data = await request('GET', { action: 'sync', since: state.syncedAt, visible_ids: Array.from(new Set([state.selectedId].concat(state.conversations.map(function (item) { return item.id; })))).filter(Boolean).slice(0,100).join(',') }, null, null, 15000);
       // Sin cambios el sondeo se espacia (5 s → 30 s) para no saturar el servidor con muchas sesiones abiertas; cualquier cambio o interacción lo devuelve a 5 s.
       state.syncDelay = ((data.conversations || []).length || (data.removed_conversation_ids || []).length) ? 5000 : Math.min(30000, Math.round((state.syncDelay || 5000) * 1.5));
       var deferVisualRefresh = inboxInteractionProtected();
       mergeConversations(data.conversations || [], false);
-      (data.removed_conversation_ids || []).forEach(function (id) {
-        state.conversations = state.conversations.filter(function (item) { return item.id !== id; });
-        delete state.messages[id]; delete state.pages[id]; delete state.pending[id];
-        if (state.selectedId === id) {
-          state.selectedId = null;
-          document.getElementById('p-inbox').classList.remove('show-thread');
-        }
-      });
+      (data.removed_conversation_ids || []).forEach(forgetChat);
       // Si el lote quedó truncado durante una interacción, conservamos el cursor anterior para
       // pedir nuevamente el tramo completo cuando ya sea seguro repintar la interfaz.
       if (!(data.truncated && deferVisualRefresh)) state.syncedAt = data.synced_at || new Date().toISOString();
       // Alguien cambió la sucursal de una conversación: se recarga la lista para que cada sede vea solo lo suyo.
-      if (data.branch_changed && !deferVisualRefresh) { state.syncDelay = 5000; await loadList(true); }
+      if (data.branch_changed || (data.removed_conversation_ids || []).length) window.dispatchEvent(new Event('smyl:chat-routing-changed'));
+      if (data.branch_changed) { state.syncDelay = 5000; await loadList(true); }
       if (!deferVisualRefresh) { renderList(); renderThreadHeader(); }
       if (data.truncated && !deferVisualRefresh) await loadList(true);
       var latest = latestMessageTime();
       if (state.selectedId && latest) await loadThread(state.selectedId, false, latest);
       else if (state.selectedId && (data.conversations || []).some(function (item) { return item.id === state.selectedId; })) await loadThread(state.selectedId, false, null, true);
+      if ((data.received_conversation_ids || []).length) {
+        announceHandoff('Te asignaron ' + (data.received_conversation_ids.length === 1 ? 'una conversación.' : data.received_conversation_ids.length + ' conversaciones.'), data.received_conversation_ids[0]);
+      }
       var currentUnread = state.conversations.reduce(function (total, item) { return total + (Number(item.unread_count) || 0); }, 0);
       if (currentUnread > previousUnread) playInboxNotice();
       if (live) { live.dataset.state = 'online'; live.querySelector('span').textContent = 'Actualizado ahora'; }
@@ -4273,7 +4502,9 @@
     page.querySelector('[data-thread-settings]').addEventListener('click', function () { closeThreadMenu(); openConversationSettings(); });
     page.querySelector('[data-settings-close]').addEventListener('click', function () { page.querySelector('[data-settings-dialog]').close(); });
     page.querySelector('[data-thread-assign]').addEventListener('change', function (event) { changeChatOwner(event.target.dataset.conversationId, event.target.value); });
-    page.querySelector('[data-thread-owner-retry]').addEventListener('click', loadTeam);
+    page.querySelector('[data-thread-owner-retry]').addEventListener('click', function () {
+      teamsByConversation.delete(state.selectedId); renderChatOwner(selectedConversation());
+    });
     page.querySelector('[data-thread-resolve]').addEventListener('click', function () { closeThreadMenu(); mutateConversation('resolve'); });
     page.querySelector('[data-thread-search-form]').addEventListener('submit', searchThread);
     page.querySelector('[data-search-close]').addEventListener('click', function () { page.querySelector('[data-search-dialog]').close(); });
@@ -4308,20 +4539,39 @@
       if (state.filterPanelOpen) { state.filterPanelOpen = false; renderFilterControls(); page.querySelector('[data-inbox-filter-more]').focus(); }
     });
 
+    var notice = node('p', 'smyl-chat-access-status', 'Comprobando acceso al chat…'); notice.dataset.chatAccessStatus = ''; notice.setAttribute('role', 'status'); page.prepend(notice);
     var previous = window.ir;
     window.ir = function (route) {
-      previous(route);
+      var result = previous.apply(this, arguments);
       if (route === 'inbox') {
-        if (!state.conversations.length) { loadList(true); loadTeam(); loadBranches(); loadStages(); loadOperations(true); }
-        else { sync(); loadOperations(false); autoOpenFirst(); }
+        refreshAccess().then(function (allowed) {
+          if (!allowed || !page.classList.contains('activa')) return;
+          if (!state.conversations.length) { loadList(true); loadBranches(); loadStages(); loadOperations(true); }
+          else { sync(); loadOperations(false); autoOpenFirst(); }
+        });
       } else { if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(true); closeContext(false); }
+      return result;
     };
     renderOperationsChip(); renderNotifyButton();
-    // Precarga en segundo plano para que, al entrar a Mensajes, la bandeja ya esté lista y no se arme a la vista.
+    window.addEventListener('smyl:chat-access-changed', function () {
+      teamsByConversation.clear();
+      refreshAccess().then(function () { renderChatOwner(selectedConversation()); renderBulkBar(); });
+    });
+    if (typeof sb !== 'undefined' && sb.auth && typeof sb.auth.onAuthStateChange === 'function') {
+      sb.auth.onAuthStateChange(function (event, session) {
+        var id = session && session.user && session.user.id;
+        if (id !== accessUser) {
+          accessUser = id; accessEpoch++; accessRequest = null; setChatActor(null);
+          if (id) setTimeout(refreshAccess, 0);
+        }
+      });
+    }
+    setTimeout(refreshAccess, 0);
     setTimeout(function () {
-      if (state.conversations.length || state.loadingList || document.visibilityState !== 'visible') return;
-      loadList(true); loadTeam(); loadBranches(); loadStages();
+      if (!chatEnabled() || state.conversations.length || state.loadingList || document.visibilityState !== 'visible') return;
+      loadList(true); loadBranches(); loadStages();
     }, 2500);
+    setInterval(function () { if (document.visibilityState === 'visible') refreshAccess(); }, 60000);
     setTimeout(refreshUnreadBadge, 6000);
     setInterval(refreshUnreadBadge, 90000);
     function scheduleSync() {
@@ -4330,7 +4580,7 @@
     }
     function wakeSync() { state.syncDelay = 5000; }
     scheduleSync();
-    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { wakeSync(); sync(); } });
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { wakeSync(); refreshAccess().then(function (allowed) { if (allowed) sync(); }); } });
     var inboxPage = document.getElementById('p-inbox');
     if (inboxPage) ['pointerdown', 'keydown'].forEach(function (name) { inboxPage.addEventListener(name, wakeSync, { passive: true }); });
     setInterval(function () {
@@ -4340,15 +4590,17 @@
   }
 
   window.SmylInbox = {
-    open: function (conversationId) { window.ir('inbox'); openConversation(conversationId); },
-    sendTemplate: async function (conversationId, options) { options = options || {}; window.ir('inbox'); await openConversation(conversationId); await openTemplateDialog(options.preferred, options); },
-    collect: async function (conversationId) { window.ir('inbox'); await openConversation(conversationId); await openCobroTemplate(); },
-    openOperations: function () { window.ir('inbox'); openOperations(); },
+    canAccess: chatEnabled,
+    open: function (conversationId) { window.ir('inbox'); return openConversation(conversationId); },
+    sendTemplate: async function (conversationId, options) { options = options || {}; window.ir('inbox'); await openConversation(conversationId); if (state.selectedId !== conversationId || !chatEnabled()) return; await openTemplateDialog(options.preferred, options); },
+    collect: async function (conversationId) { window.ir('inbox'); await openConversation(conversationId); if (state.selectedId !== conversationId || !chatEnabled()) return; await openCobroTemplate(); },
+    openOperations: async function () { window.ir('inbox'); if (await refreshAccess() && hasPermission('messages.manage')) openOperations(); },
     refresh: function () { loadList(true); },
     loadOperations: loadOperations,
     getOperationsSummary: operationsSummary,
     // Para el Inicio: últimas conversaciones sin tocar la lista ni el filtro del buzón, y sin abrir ninguna.
     fetchRecent: async function (limit) {
+      if (!chatEnabled()) return [];
       var data = await request('GET', { action: 'list', filter: 'all', limit: Math.max(1, Math.min(12, Number(limit) || 6)), offset: 0 }, null, null, 12000);
       return Array.isArray(data.conversations) ? data.conversations : [];
     },

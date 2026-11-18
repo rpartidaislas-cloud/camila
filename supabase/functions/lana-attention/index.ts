@@ -26,6 +26,7 @@ Deno.serve(async (req: Request) => {
   const canResolve = auth.user.id === auth.tenantId;
 
   try {
+    const access = await messageAccess(smylAdmin, auth.tenantId, auth.user.id);
     if (req.method === "POST") {
       if (!canResolve) return json(403, { error: "Solo el dueño de la clínica puede cerrar una solicitud de atención desde SMYL." });
       let input: Record<string, unknown>;
@@ -33,6 +34,8 @@ Deno.serve(async (req: Request) => {
       if (input.action !== "resolve") return json(400, { error: "Acción no reconocida." });
       const conversationId = uuid(input.conversation_id);
       if (!conversationId) return json(400, { error: "La conversación de LANA no es válida." });
+      const visible = await visibleConversationIds(smylAdmin, auth.tenantId, access, [conversationId]);
+      if (!visible.has(conversationId)) return json(403, { error: "Esta conversación no está disponible para tu perfil de chat." });
       const remote = await lanaRequest(auth.tenantId, `/attention/${conversationId}/resolve`, { method: "POST", body: "{}" });
       if (!remote.response.ok) return json(remote.response.status === 404 ? 404 : 502, {
         error: String(remote.body.error || "LANA no pudo cerrar esta solicitud de atención."),
@@ -40,25 +43,22 @@ Deno.serve(async (req: Request) => {
       return json(200, { ok: true, conversation_id: conversationId, resolved: true });
     }
 
-    // Cada persona recibe solo los avisos de lo que su rol puede ver (por sucursal o por pacientes propios).
-    const access = await messageAccess(smylAdmin, auth.tenantId, auth.user.id);
-    if (!access) return json(403, { error: "Tu acceso a esta clínica no está activo." });
     if (!access.canRead) return json(200, { ok: true, total: 0, items: [], can_resolve: false, restricted: true, privacy: "metadata_only" });
     const remote = await lanaRequest(auth.tenantId, "/attention?limit=40");
     if (!remote.response.ok) return json(502, { error: String(remote.body.error || "LANA no pudo consultar la atención pendiente.") });
     const remoteItems = Array.isArray(remote.body.items) ? remote.body.items as Array<Record<string, unknown>> : [];
     const ids = remoteItems.map((item) => uuid(item.id)).filter((id): id is string => Boolean(id));
     const links = new Map<string, Record<string, unknown>>();
-    if (ids.length) {
+    const visible = await visibleConversationIds(smylAdmin, auth.tenantId, access, ids);
+    if (visible.size) {
       const { data, error } = await smylAdmin.from("camila_lana_handoffs")
         .select("lana_conversation_id,patient_id,case_id,created_at")
         .eq("tenant_id", auth.tenantId)
-        .in("lana_conversation_id", ids);
+        .in("lana_conversation_id", [...visible]);
       if (error) throw error;
       for (const link of data || []) links.set(String(link.lana_conversation_id), link as Record<string, unknown>);
     }
 
-    const visible = await visibleConversationIds(smylAdmin, auth.tenantId, access, ids);
     const items = remoteItems.flatMap((item) => {
       const id = uuid(item.id);
       if (!id || !visible.has(id)) return [];
@@ -84,7 +84,7 @@ Deno.serve(async (req: Request) => {
     });
     return json(200, {
       ok: true,
-      total: access.scope === "clinic" ? Math.max(items.length, Number(remote.body.total) || 0) : items.length,
+      total: items.length,
       items,
       can_resolve: canResolve,
       privacy: "metadata_only",

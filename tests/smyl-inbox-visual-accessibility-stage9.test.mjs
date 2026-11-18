@@ -7,7 +7,7 @@ const inbox = read('../smyl-inbox.js');
 const css = read('../smyl-inbox.css');
 
 function openingTag(source, marker) {
-  const markerAt = source.indexOf(marker);
+  const markerAt = source.indexOf(marker, source.indexOf('function shell()'));
   assert.notEqual(markerAt, -1, `No se encontró ${marker}`);
   const start = source.lastIndexOf('<', markerAt);
   const end = source.indexOf('>', markerAt);

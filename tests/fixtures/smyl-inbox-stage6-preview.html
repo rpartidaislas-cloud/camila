@@ -57,7 +57,8 @@
       var url = new URL(String(input)); var action = url.searchParams.get('action'); var body = {};
       try { body = init && typeof init.body === 'string' ? JSON.parse(init.body) : {}; } catch (_) {}
       action = action || body.action;
-      if (action === 'list') return json({ actor:{id:'owner-preview',role:'owner',name:'Dra. Mariana'}, conversations:[conversation], page:{total:1,has_more:false}, synced_at:new Date().toISOString() });
+      if (action === 'access') return json({actor:{id:'owner-preview',role:'owner',chat_access:'coordinator'}});
+      if (action === 'list') return json({ actor:{id:'owner-preview',role:'owner',name:'Dra. Mariana',chat_access:'coordinator'}, conversations:[conversation], page:{total:1,has_more:false}, synced_at:new Date().toISOString() });
       if (action === 'messages') return json({ conversation:conversation, messages:messages, page:{has_more:false,before:null} });
       if (action === 'team') return json({ members:[{id:'owner-preview',name:'Dra. Mariana'}] });
       if (action === 'clinical_context') return json({ linked:true, patient:{name:'Ana López',phone:'+52 55 0000 1184',email:'ana@ejemplo.mx'}, case:{score:86,lana_appointment_id:'apt-1',simulation_url:null,quote_total:18500,summary:'Valoración inicial pendiente de confirmación.'}, clinical_images:[] });

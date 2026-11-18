@@ -422,6 +422,12 @@
 .clinic-admin-callout{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:#fff2ef;border:1px solid #efc9c3;color:#8a2f25;font-size:13px;line-height:1.5}
 .clinic-admin-sheet-section.is-danger{margin-top:8px;padding:16px;border:1px solid #efc9c3;border-radius:14px;background:#fffafa}
 .clinic-admin-sheet-section.is-danger h3{color:#a73b30}
+.clinic-admin-chat-controls{display:grid;gap:8px;min-width:0}
+.clinic-admin-chat-controls .clinic-admin-sheet-field{margin:0;min-width:0}
+.clinic-admin-chat-controls .clinic-admin-hint{margin:0}
+.clinic-admin-chat-controls select{min-width:0}
+.clinic-admin-chat-controls button{justify-self:start}
+.clinic-admin-chat-controls [hidden],.clinic-admin-chat-controls + p:empty{display:none}
 @media(max-width:900px){
   .clinic-admin-person-row{grid-template-columns:auto minmax(0,1fr) auto;gap:10px}
   .clinic-admin-person-where{grid-column:2 / 3;grid-row:2}

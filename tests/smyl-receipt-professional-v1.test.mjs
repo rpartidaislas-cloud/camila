@@ -42,7 +42,7 @@ test('web y PWA entregan la misma versión del recibo', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'app.html', 'sw.js']) {
     assert.equal(read('mobile/www/' + file), read(file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.js\?v=56/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=57/);
   assert.match(read('app.html'), /smyl-finance\.css\?v=41/);
   assert.match(read('sw.js'), /receipt-professional-v1/);
 });

@@ -42,12 +42,12 @@ const read = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
 const edge = read('supabase/functions/lana-inbox/index.ts');
 const con = read('smyl-connections.js');
 
-test('lana-inbox: deduce la sucursal del último mensaje del paciente y no pisa asignaciones existentes', () => {
-  assert.match(edge, /import \{ matchBranch, matchBranchInMessages \} from "\.\.\/_shared\/branch-match\.ts";/);
-  assert.match(edge, /conversation\.last_message_role !== "patient"/);
-  assert.match(edge, /source: "ai" \}\);\s*\n\s*inferred\.push/);
-  assert.equal((edge.match(/ignoreDuplicates: true/g) || []).length, 2);
-  assert.match(edge, /if \(action === "messages"\) \{ try \{ await attachThreadBranch/);
+test('la inferencia de sucursal sólo escribe en hilos visibles y vuelve a leer la ruta guardada', () => {
+  assert.match(edge, /row\.last_message_role === "patient"/);
+  assert.match(edge, /!eligible\.has\(id\)/);
+  assert.match(edge, /smyl_chat_infer_branch/);
+  assert.match(edge, /if \(inferred\) assignments = await branchAssignments/);
+  assert.match(edge, /await attachThreadBranch\(actor, auth\.tenantId, remote.body\)/);
 });
 test('entrenamiento: «Traer mis sucursales» y la instrucción de preguntar la sede, solo con varias sucursales', () => {
   const pure = new Function(
