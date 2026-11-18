@@ -60,7 +60,7 @@ test('web, móvil y PWA comparten la implementación de la evaluación simplific
   assert.match(app, /smyl-patient-360\.js\?v=28/);
   assert.match(app, /smyl-case-workspace\.css\?v=31/);
   assert.match(app, /smyl-case-workspace\.js\?v=43/);
-  assert.match(app, /smyl-clinical-photo-review\.js\?v=4/);
+  assert.match(app, /smyl-clinical-photo-review\.js\?v=5/);
   assert.match(worker, /evaluation-separation-v79/);
   for (const file of [
     'app.html',
