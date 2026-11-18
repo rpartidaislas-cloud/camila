@@ -1,5 +1,14 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-18 — Claude Code — Varios consultorios (sucursales), fases 1 y 2: alcance por sede y selector
+
+- **Idea**: cada consultorio se administra por separado; cada persona ve solo los suyos; el administrador global ve todos y una vista Global. Hoy los permisos son por clínica completa, así que se agrega el ALCANCE sin tocar aún las políticas de las tablas (eso es la Fase 3).
+- **Fase 1 (base de datos)** — `20261118140000_smyl_branch_scope.sql`: permiso nuevo `branches.all` (administrador global; lo reciben los roles de sistema `propietario` y `administrador`, asignable a otros desde Equipo; la dueña ya cumple todos); `smyl_member_branches` pasa a ser el alcance y quien trabaja sin sede queda en la predeterminada (backfill); funciones `smyl_branch_access(clínica, sede)` y `smyl_my_branches()`. Probada en Postgres 16 real con el esquema del núcleo: dueña y administrador ven todas las sedes y `can_all`; recepción con una sola sede ve solo esa y no es global; sin clínica no ve nada; la migración es idempotente.
+- **Fase 2 (interfaz)** — `smyl-branch-scope.js`: selector «Consultorio» bajo el logo (solo con 2 o más sedes; «Todos (vista global)» solo con `branches.all`). Filtra por la sede activa los `select()` de citas, pagos, cajas, cargos y cotizaciones envolviendo `sb.from`, sin reescribir cada módulo; pacientes, servicios y profesionales siguen siendo de toda la clínica. La elección se guarda por clínica; al cambiar, la página se recarga para que todos los módulos queden en la misma sede. Una clínica con una sola sede se ve exactamente igual.
+- **Es selección, NO seguridad**: quién puede leer qué lo decidirá la base (Fase 3: políticas que exijan `smyl_branch_access`). Hasta entonces alguien técnico podría consultar otra sede por la API.
+- **Sin la migración aplicada no pasa nada**: `smyl_my_branches` no existe, la llamada falla en silencio y no se muestra ni filtra nada.
+- **Pendiente**: aplicar la migración; Fase 3 (RLS por sede, módulo por módulo, con pruebas de aislamiento entre sedes); Fase 4 (vista Global de solo lectura: ingresos por consultorio, comparativo, caja total); Fase 5 (recibos con datos de la sede, reportes y canales por sede). Decisiones tomadas por defecto, cambiables: pacientes compartidos; mismo rol en todas las sedes de una persona; folio de recibo por clínica; administrador global = permiso asignable. Sin verificar visualmente con una sesión real (no hay login aquí): pruebas unitarias y de migración sí.
+
 ## 2026-11-17 — Codex — Responsable de chat e historial de atención en Ficha 360
 
 - Cambio posterior a la publicación `e5ae5c54` de respuestas rápidas y emojis. En la cabecera queda «Agendar cita» como acción principal y «Atiende el chat» en lugar de los puntos suspensivos. La asignación del hilo no cambia el médico de una cita ni la sucursal clínica del paciente.
