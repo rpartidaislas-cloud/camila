@@ -714,8 +714,11 @@
     headTools.append(metrics, batchButton); head.append(copy, headTools);
     const list = el('div', 'scpr-list'), feedback = el('p', 'scpr-feedback'); feedback.setAttribute('role', 'status'); feedback.setAttribute('aria-live', 'polite');
     root.append(head, list, feedback);
-    const radiographQueue = reviewHost.querySelector('.cw-radiograph-shelf');
-    if (radiographQueue) reviewHost.insertBefore(root, radiographQueue); else reviewHost.append(root);
+    // La bandeja radiográfica puede quedar anidada (otros módulos reorganizan el panel):
+    // insertamos antes del hijo directo de reviewHost que la contiene, nunca contra un nieto.
+    let radiographAnchor = reviewHost.querySelector('.cw-radiograph-shelf');
+    while (radiographAnchor && radiographAnchor.parentNode !== reviewHost) radiographAnchor = radiographAnchor.parentNode;
+    if (radiographAnchor) reviewHost.insertBefore(root, radiographAnchor); else reviewHost.append(root);
     const state = { token: ++sequence, root, metrics, batchButton, list, feedback, tenant: value.tenant, patient: value.patient, studies: [], urls: new Map(), dialog: null, loading: false, timer: null };
     active = state;
     refresh(state, true);

@@ -11701,3 +11701,7 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 ## 2026-11-19 — Claude Code — Equipo: «Agregar doctor» → «Agregar profesional»
 - Solo copy en `smyl-clinic-admin.js` (v17): botón y diálogo «Agregar profesional», etiqueta «Profesional» (antes «Doctor»), filtro «Profesionales», y los avisos que decían «doctor». Identificadores internos (`person.doctor`, filtro `doctors`, `configureExistingDoctor`) y el rol «Odontólogo» no cambian.
 - `app.html`/`sw.js` (caché `-equipo-profesional-v1`) y `mobile/www/` sincronizados; pruebas que fijaban el texto o `?v=16` actualizadas. Única falla restante: «la deuda tipográfica…» (ya fallaba en main).
+
+## 2026-11-19 — Claude Code — Ficha del paciente: error `insertBefore` en revisión de fotografías
+- `smyl-clinical-photo-review.js` (v5): `mount()` insertaba antes de `.cw-radiograph-shelf`, que está anidada y no es hijo directo de `.cw-evaluation-panel-body` → `NotFoundError` ×6 y el aviso global al abrir un paciente; además `active` no se fijaba y el observer reintentaba. Ahora se inserta antes del hijo directo que contiene la bandeja (o `append`).
+- Caché de `sw.js` termina en `-photo-review-mount-fix-v1`; `mobile/www/` sincronizado. `tests/qa/patient-open-smoke.cjs`: 3 pacientes, 0 `pageerror`.
