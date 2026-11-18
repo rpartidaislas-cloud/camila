@@ -325,7 +325,8 @@ test('Cobros paso 2: la ayuda de caja vive en «Mi turno» y los botones sin cla
   assert.match(js, /<details class="finance-cash-help"><summary>¿Cómo funciona la caja\?<\/summary>/);
   for (const id of ['finance-adjust']) assert.match(js, new RegExp(`<button class="btn btn-secondary" id="${id}">`));
   assert.match(js, /class="btn btn-secondary" data-supervise-cash=/);
-  assert.match(css, /#p-caja \.finance-fiscal-receipt-filters\{display:grid;grid-template-columns:1fr 1fr/);
+  assert.match(css, /#p-caja \.finance-fiscal-receipt-filters\{display:flex;gap:6px;overflow-x:auto/);
+  assert.match(css, /#p-caja \.finance-fiscal-receipt-filters button\{flex:0 0 auto;justify-content:center;min-width:112px;min-height:44px/);
 });
 
 test('Cobros paso 3: precio de lista, cobro en la fila, «Con movimientos», siguiente pendiente, corte visible y filtro recordado', () => {
