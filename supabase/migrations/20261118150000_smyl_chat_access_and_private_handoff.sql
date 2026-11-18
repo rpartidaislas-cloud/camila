@@ -18,11 +18,14 @@ create index if not exists smyl_chat_assignment_sync on public.smyl_chat_assignm
 create table if not exists public.smyl_chat_handoffs (
   tenant_id uuid not null, conversation_id uuid not null, version integer not null, actor_id uuid,
   from_user_id uuid, to_user_id uuid, note text not null default '' check(char_length(note)<=1000),
-  reason text not null check(reason in ('transfer','profile_disabled','account_disabled')),
+  reason text not null,
   created_at timestamptz not null default now(), primary key(tenant_id,conversation_id,version),
   foreign key(tenant_id,conversation_id) references public.smyl_chat_assignments(tenant_id,conversation_id) on delete cascade
 );
 create index if not exists smyl_chat_incoming_handoffs on public.smyl_chat_handoffs(tenant_id,to_user_id,created_at desc);
+alter table public.smyl_chat_handoffs drop constraint if exists smyl_chat_handoffs_reason_check;
+alter table public.smyl_chat_handoffs add constraint smyl_chat_handoffs_reason_check
+  check(reason in ('transfer','profile_disabled','account_disabled','branch_changed'));
 alter table public.smyl_chat_member_access enable row level security;
 alter table public.smyl_chat_assignments enable row level security;
 alter table public.smyl_chat_handoffs enable row level security;
@@ -42,22 +45,45 @@ create or replace function public.smyl_my_chat_mode() returns text
 language sql stable security definer set search_path=pg_catalog,public as $$
   select public.smyl_chat_mode(public.smyl_current_tenant(),auth.uid())
 $$;
--- Only this scope is allowed to operate on branchless/unrouted conversations.
+-- Mirror the branch policy for the trusted bridge, which authenticates an explicit
+-- actor instead of running under auth.uid(). Clinical roles and chat roles are independent.
 create or replace function public.smyl_chat_clinic_wide(p_tenant uuid,p_user uuid) returns boolean
 language sql stable security definer set search_path=pg_catalog,public as $$
-  select p_user=p_tenant or exists(select 1 from public.camila_usuarios u where u.id=p_user and u.tenant_id=p_tenant and u.activo and u.rol='dueño')
-    or exists(select 1 from public.smyl_member_roles mr join public.smyl_roles r on (r.tenant_id,r.id)=(mr.tenant_id,mr.role_id) and r.active
-      join public.smyl_role_scopes s on (s.tenant_id,s.role_id)=(r.tenant_id,r.id)
-      where mr.tenant_id=p_tenant and mr.user_id=p_user and s.domain='messages' and s.scope='clinic')
+  select public.smyl_chat_mode(p_tenant,p_user)<>'none' and (p_user=p_tenant or exists(
+    select 1 from public.smyl_member_roles mr
+    join public.smyl_roles r on (r.tenant_id,r.id)=(mr.tenant_id,mr.role_id) and r.active
+    join public.smyl_role_permissions rp on (rp.tenant_id,rp.role_id)=(r.tenant_id,r.id)
+    where mr.tenant_id=p_tenant and mr.user_id=p_user and rp.permission_key='branches.all'))
+$$;
+create or replace function public.smyl_chat_route_allowed(p_tenant uuid,p_user uuid,p_branch uuid) returns boolean
+language sql stable security definer set search_path=pg_catalog,public as $$
+  select case when p_branch is null then public.smyl_chat_mode(p_tenant,p_user)='coordinator'
+    and public.smyl_chat_clinic_wide(p_tenant,p_user)
+  else public.smyl_chat_mode(p_tenant,p_user)<>'none' and exists(
+    select 1 from public.smyl_branches b where b.tenant_id=p_tenant and b.id=p_branch and b.active
+      and (public.smyl_chat_clinic_wide(p_tenant,p_user) or exists(select 1 from public.smyl_member_branches m
+        where m.tenant_id=b.tenant_id and m.branch_id=b.id and m.user_id=p_user)))
+  end
+$$;
+-- An explicit handoff is possible before reception identifies a branch. Once a
+-- branch is known, personal ownership never bypasses that branch's access rules.
+create or replace function public.smyl_chat_recipient_allowed(p_tenant uuid,p_user uuid,p_conversation uuid) returns boolean
+language sql stable security definer set search_path=pg_catalog,public as $$
+  select p_conversation is not null and public.smyl_chat_mode(p_tenant,p_user)<>'none' and coalesce((
+    select public.smyl_chat_route_allowed(p_tenant,p_user,b.branch_id) from public.smyl_conversation_branches b
+    where b.tenant_id=p_tenant and b.conversation_id=p_conversation),true)
 $$;
 create or replace function public.smyl_chat_visible(p_tenant uuid,p_actor uuid,p_conversation uuid) returns boolean
 language sql stable security definer set search_path=pg_catalog,public as $$
-  select p_actor is not null and p_conversation is not null and mode <> 'none' and (
-    exists(select 1 from public.smyl_chat_assignments a where a.tenant_id=p_tenant and a.conversation_id=p_conversation and a.assignee_id=p_actor)
-    or (mode='coordinator' and (public.smyl_chat_clinic_wide(p_tenant,p_actor) or
-      exists(select 1 from public.smyl_conversation_branches b join public.smyl_member_branches mb on mb.tenant_id=b.tenant_id and mb.branch_id=b.branch_id
-        where b.tenant_id=p_tenant and b.conversation_id=p_conversation and mb.user_id=p_actor))))
+  select mode<>'none' and p_conversation is not null and
+    case when b.branch_id is null then
+      is_owner or (mode='coordinator' and public.smyl_chat_clinic_wide(p_tenant,p_actor))
+    else (is_owner or mode='coordinator') and public.smyl_chat_route_allowed(p_tenant,p_actor,b.branch_id)
+    end
   from public.smyl_chat_mode(p_tenant,p_actor) m(mode)
+  cross join lateral (select exists(select 1 from public.smyl_chat_assignments a
+    where a.tenant_id=p_tenant and a.conversation_id=p_conversation and a.assignee_id=p_actor) as is_owner) o
+  left join public.smyl_conversation_branches b on b.tenant_id=p_tenant and b.conversation_id=p_conversation
 $$;
 create or replace function public.smyl_my_chat_visible(p_tenant uuid,p_conversation uuid) returns boolean
 language sql stable security definer set search_path=pg_catalog,public as $$
@@ -88,8 +114,8 @@ begin
   mode:=public.smyl_chat_mode(p_tenant,p_actor);
   if mode='none' or not public.smyl_chat_visible(p_tenant,p_actor,p_conversation) or (p_target is null and mode<>'coordinator') then
     raise insufficient_privilege; end if;
-  if p_target is not null and public.smyl_chat_mode(p_tenant,p_target)='none' then
-    raise exception using errcode='22023',message='Elige un responsable habilitado en esta clínica.'; end if;
+  if p_target is not null and not public.smyl_chat_recipient_allowed(p_tenant,p_target,p_conversation) then
+    raise exception using errcode='22023',message='Elige un responsable con acceso al chat y a su sucursal.'; end if;
   insert into public.smyl_chat_assignments(tenant_id,conversation_id) values (p_tenant,p_conversation) on conflict do nothing;
   select assignee_id,version into old_owner,new_version from public.smyl_chat_assignments where tenant_id=p_tenant and conversation_id=p_conversation for update;
   if new_version<>p_expected_version then raise exception using errcode='40001',message='La asignación cambió; actualiza el chat.'; end if;
@@ -131,6 +157,9 @@ create or replace function public.smyl_move_chat_work(t uuid,member uuid,replace
 returns integer language plpgsql security definer set search_path=pg_catalog,public as $$
 declare n integer;
 begin
+  if replacement is not null and exists(select 1 from public.smyl_chat_assignments a where a.tenant_id=t and a.assignee_id=member
+    and not public.smyl_chat_recipient_allowed(t,replacement,a.conversation_id)) then
+    raise exception using errcode='22023',message='Elige un responsable con acceso a todas las sucursales de estos chats o devuélvelos a Sin asignar.'; end if;
   with moved as (update public.smyl_chat_assignments set assignee_id=replacement,version=version+1,updated_at=clock_timestamp()
     where tenant_id=t and assignee_id=member returning conversation_id,version,updated_at)
   insert into public.smyl_chat_handoffs(tenant_id,conversation_id,version,actor_id,from_user_id,to_user_id,reason,created_at)
@@ -422,4 +451,75 @@ returns uuid[] language sql stable security definer set search_path=pg_catalog,p
 $$;
 revoke all on function public.smyl_chat_visible_ids(uuid,uuid,uuid[]) from public,anon,authenticated;
 grant execute on function public.smyl_chat_visible_ids(uuid,uuid,uuid[]) to service_role;
+create or replace function public.smyl_chat_recipients(p_tenant uuid,p_conversation uuid)
+returns table(id uuid,name text,chat_mode text,kind text)
+language sql stable security definer set search_path=pg_catalog,public as $$
+  select m.id,m.name,m.chat_mode,m.kind from public.smyl_chat_assistants(p_tenant) m
+  where public.smyl_chat_recipient_allowed(p_tenant,m.id,p_conversation) order by m.name,m.id
+$$;
+revoke all on function public.smyl_chat_route_allowed(uuid,uuid,uuid),public.smyl_chat_recipient_allowed(uuid,uuid,uuid),
+ public.smyl_chat_recipients(uuid,uuid) from public,anon,authenticated,service_role;
+grant execute on function public.smyl_chat_route_allowed(uuid,uuid,uuid),public.smyl_chat_recipients(uuid,uuid),
+ public.smyl_chat_recipient_allowed(uuid,uuid,uuid) to service_role;
+-- Automatic routing (channel, appointment) and manual routing share the assignment
+-- lock. An INSERT that loses ON CONFLICT DO NOTHING must never cause a release.
+create or replace function public.smyl_chat_route_lock() returns trigger
+language plpgsql security definer set search_path=pg_catalog,public as $$
+begin
+  perform pg_advisory_xact_lock(hashtextextended('smyl-chat:'||new.tenant_id::text,0));
+  return new;
+end;
+$$;
+create or replace function public.smyl_chat_requeue_after_route() returns trigger
+language plpgsql security definer set search_path=pg_catalog,public as $$
+declare previous_owner uuid; new_version integer; saved_at timestamptz;
+begin
+  select assignee_id into previous_owner from public.smyl_chat_assignments
+    where tenant_id=new.tenant_id and conversation_id=new.conversation_id for update;
+  if previous_owner is not null and not public.smyl_chat_route_allowed(new.tenant_id,previous_owner,new.branch_id) then
+    update public.smyl_chat_assignments set assignee_id=null,version=version+1,updated_at=clock_timestamp()
+      where tenant_id=new.tenant_id and conversation_id=new.conversation_id returning version,updated_at into new_version,saved_at;
+    insert into public.smyl_chat_handoffs(tenant_id,conversation_id,version,actor_id,from_user_id,reason,created_at)
+      values(new.tenant_id,new.conversation_id,new_version,new.assigned_by,previous_owner,'branch_changed',saved_at);
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists smyl_chat_route_lock on public.smyl_conversation_branches;
+create trigger smyl_chat_route_lock before insert or update of branch_id on public.smyl_conversation_branches
+for each row execute function public.smyl_chat_route_lock();
+drop trigger if exists smyl_chat_requeue_after_route on public.smyl_conversation_branches;
+create trigger smyl_chat_requeue_after_route after insert or update of branch_id on public.smyl_conversation_branches
+for each row execute function public.smyl_chat_requeue_after_route();
+create or replace function public.smyl_chat_set_branch(p_tenant uuid,p_actor uuid,p_conversation uuid,p_branch uuid)
+returns boolean language plpgsql security definer set search_path=pg_catalog,public as $$
+begin
+  perform pg_advisory_xact_lock(hashtextextended('smyl-chat:'||p_tenant::text,0));
+  if public.smyl_chat_mode(p_tenant,p_actor)<>'coordinator' or not public.smyl_chat_visible(p_tenant,p_actor,p_conversation)
+    or not public.smyl_chat_route_allowed(p_tenant,p_actor,p_branch) then raise insufficient_privilege; end if;
+  if p_branch is null then
+    delete from public.smyl_conversation_branches where tenant_id=p_tenant and conversation_id=p_conversation;
+  else
+    insert into public.smyl_conversation_branches(tenant_id,conversation_id,branch_id,source,assigned_by,assigned_at)
+      values(p_tenant,p_conversation,p_branch,'manual',p_actor,clock_timestamp()) on conflict (tenant_id,conversation_id)
+      do update set branch_id=excluded.branch_id,source=excluded.source,assigned_by=excluded.assigned_by,assigned_at=excluded.assigned_at;
+  end if;
+  return true;
+end;
+$$;
+revoke all on function public.smyl_chat_route_lock(),public.smyl_chat_requeue_after_route(),
+ public.smyl_chat_set_branch(uuid,uuid,uuid,uuid) from public,anon,authenticated,service_role;
+grant execute on function public.smyl_chat_set_branch(uuid,uuid,uuid,uuid) to service_role;
+create index if not exists smyl_chat_branch_sync on public.smyl_conversation_branches(tenant_id,assigned_at);
+-- Sync emits a boolean only for currently visible rows. Clients recheck the IDs
+-- already on screen separately so a transfer away promptly clears the old inbox.
+create or replace function public.smyl_chat_scope_changed(p_tenant uuid,p_actor uuid,p_since timestamptz)
+returns boolean language sql stable security definer set search_path=pg_catalog,public as $$
+  select exists(select 1 from public.smyl_chat_assignments a
+      where a.tenant_id=p_tenant and a.updated_at>=p_since and public.smyl_chat_visible(p_tenant,p_actor,a.conversation_id))
+    or exists(select 1 from public.smyl_conversation_branches b
+      where b.tenant_id=p_tenant and b.assigned_at>=p_since and public.smyl_chat_visible(p_tenant,p_actor,b.conversation_id))
+$$;
+revoke all on function public.smyl_chat_scope_changed(uuid,uuid,timestamptz) from public,anon,authenticated;
+grant execute on function public.smyl_chat_scope_changed(uuid,uuid,timestamptz) to service_role;
 commit;

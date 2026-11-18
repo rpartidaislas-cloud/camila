@@ -13,13 +13,17 @@ try { engine = require('@electric-sql/pglite'); } catch (error) {
 }
 const read = file => readFile(new URL(file, import.meta.url), 'utf8');
 
-test('chat profiles, private ownership and team handoffs', { skip: !engine && 'Requiere PGlite' }, async t => {
+for (const branchScopeInstalled of [false,true]) {
+test('chat profiles, private ownership and team handoffs '+(branchScopeInstalled?'after':'before')+' branch scope migration', { skip: !engine && 'Requiere PGlite' }, async t => {
   const db = new engine.PGlite();
   t.after(() => db.close());
   await db.exec(await read('./fixtures/radiograph-contracts/pglite-base.sql'));
   await db.exec(await read('../supabase/migrations/20261116100000_smyl_conversation_branches.sql'));
   await db.exec(`
     alter role service_role bypassrls;
+    alter table smyl_roles add column system_role boolean not null default false;
+    alter table smyl_branches add column active boolean not null default true,
+      add column is_default boolean not null default false, add column created_at timestamptz default now();
     create table camila_conversaciones(id uuid primary key,tenant_id uuid not null);
     create table camila_mensajes(conversacion_id uuid not null);
     alter table camila_lana_handoffs add column lana_conversation_id uuid;
@@ -28,6 +32,8 @@ test('chat profiles, private ownership and team handoffs', { skip: !engine && 'R
     create table smyl_radiograph_reports(id uuid,tenant_id uuid,patient_id uuid,source_id uuid,status text,revision int,signed_at timestamptz,updated_at timestamptz);
     create function smyl_radiograph_effective_study_type(uuid,uuid) returns text language sql as 'select null::text';
   `);
+  if (branchScopeInstalled) await db.exec(await read('../supabase/migrations/20261118140000_smyl_branch_scope.sql'));
+  else await db.exec("alter table smyl_role_permissions add constraint smyl_role_permissions_permission_key_check check(permission_key<>'branches.all')");
   const guarded = ['camila_conversaciones','camila_mensajes','camila_lana_handoffs','camila_lana_clinical_links'];
   for (const table of guarded) await db.exec(`alter table ${table} enable row level security;
     create policy legacy_broad on ${table} for select to authenticated using(true); grant select on ${table} to authenticated;`);
@@ -97,6 +103,70 @@ test('chat profiles, private ownership and team handoffs', { skip: !engine && 'R
     await denial(allModes());
     await denial(setAccess(ana,'coordinator','agent'));
     await denial(transfer(a,ana,0));
+  });
+  await t.test('active branch membership and branches.all restrict ownership, forwarding and bulk replacements',async () => {
+    const temporaryChat=randomUUID(), secondBranch=randomUUID();
+    const rpcRoute=(user,branchId)=>value('select smyl_chat_route_allowed($1,$2,$3) v',[a,user,branchId]);
+    const reroute=(user,branchId)=>value('select smyl_chat_set_branch($1,$2,$3,$4) v',[a,user,temporaryChat,branchId]);
+    const roster=async ()=>(await query('select id from smyl_chat_recipients($1,$2)',[a,temporaryChat])).rows.map(r=>r.id);
+    await as(null,null);
+    await query('insert into smyl_branches(id,tenant_id) values ($1,$2)',[secondBranch,a]);
+    await query('insert into smyl_member_branches(tenant_id,user_id,branch_id) values ($1,$2,$3)',[a,ana,branch]);
+    await query('insert into smyl_conversation_branches(tenant_id,conversation_id,branch_id) values ($1,$2,$3)',[a,temporaryChat,branch]);
+    // A stale messages=clinic grant and an old textual "dueño" are insufficient.
+    await query("update camila_usuarios set rol='dueño' where id=$1",[luis]);
+    await as(null,'service_role');
+    assert.equal(await rpcRoute(ana,branch),true);
+    assert.equal(await rpcRoute(luis,branch),false);
+    assert.equal(await rpcRoute(coord,null),false);
+    assert.equal(await rpcRoute(a,null),true);
+    assert.deepEqual((await roster()).sort(),[a,ana,coord].sort());
+    const changed=(user,when)=>value('select smyl_chat_scope_changed($1,$2,$3) v',[a,user,when]);
+    assert.equal(await changed(luis,'2000-01-01'),false);
+    assert.equal(await changed(coord,'2000-01-01'),true);
+    assert.equal(await changed(coord,'infinity'),false);
+    await transfer(coord,ana,0,temporaryChat);
+    await invalid(transfer(ana,luis,1,temporaryChat));
+    await as(manager);
+    await invalid(setAccess(ana,'none','agent','transfer',luis));
+    assert.equal((await allModes()).find(row=>row.user_id===ana).assigned_count,1);
+    await as(null,'service_role');
+    await denial(reroute(ana,branch));
+    await denial(reroute(coord,null));
+    await denial(reroute(coord,secondBranch));
+    assert.equal(await reroute(a,secondBranch),true);
+    assert.equal(await changed(ana,'2000-01-01'),false);
+    assert.equal(await value('select reason v from smyl_chat_handoffs where tenant_id=$1 and conversation_id=$2 and version=2',[a,temporaryChat]),'branch_changed');
+    await as(ana);
+    assert.equal(await visible(temporaryChat),false);
+    await denial(rpcRoute(ana,branch));
+    await denial(changed(ana,'2000-01-01'));
+    await denial(roster());
+    await as(null,'service_role');
+    await denial(transfer(ana,coord,1,temporaryChat));
+    await invalid(transfer(a,coord,2,temporaryChat));
+    await as(null,null);
+    if (branchScopeInstalled) await query("insert into smyl_role_permissions values ($1,$2,'branches.all')",[a,clinicalRole]);
+    else await query('insert into smyl_member_branches(tenant_id,user_id,branch_id) values ($1,$2,$3)',[a,luis,secondBranch]);
+    await as(luis);
+    assert.equal(await visible(temporaryChat),false); // Global scope alone does not assign an agent's inbox.
+    await as(null,'service_role');
+    assert.equal(await rpcRoute(luis,secondBranch),true);
+    await transfer(a,luis,2,temporaryChat);
+    await as(luis);
+    assert.equal(await visible(temporaryChat),true);
+    await as(null,null);
+    await query('update smyl_branches set active=false where id=$1',[secondBranch]);
+    await as(a);
+    assert.equal(await visible(temporaryChat),false); // Includes the actual clinic owner.
+    await as(luis);
+    assert.equal(await visible(temporaryChat),false);
+    await as(null,'service_role');
+    assert.deepEqual(await roster(),[]);
+    await as(null,null);
+    if (branchScopeInstalled) await query("delete from smyl_role_permissions where tenant_id=$1 and role_id=$2 and permission_key='branches.all'",[a,clinicalRole]);
+    await query("update camila_usuarios set rol='staff' where id=$1",[luis]);
+    await query('delete from smyl_chat_assignments where tenant_id=$1 and conversation_id=$2',[a,temporaryChat]);
   });
   await t.test('scope, concurrent version and restricted legacy row readers',async () => {
     await as(coord);
@@ -169,3 +239,4 @@ test('chat profiles, private ownership and team handoffs', { skip: !engine && 'R
     await denial(setAccess(b,'coordinator','none'));
   });
 });
+}
