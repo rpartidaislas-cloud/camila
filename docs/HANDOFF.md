@@ -1,5 +1,11 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-18 — Citas en Mensajes y Pipeline
+
+- Las tarjetas de conversación muestran la cita relevante. En la Ficha 360 se consultan fecha, profesional y sucursal según los permisos de Agenda. Se retiraron la franja «SMYL te pone al día» y el menú «Conversación». La cabecera conserva «Agendar cita».
+- El tablero incorpora «Cita confirmada», «Llegó» y «Atendido». Registrar la llegada y concluir una visita son eventos distintos. Mover una tarjeta con el ratón, el teclado o en el celular modifica su etapa en Mensajes. La Agenda retoma el seguimiento cuando cambia la cita relevante, sin perder el movimiento manual por editar otra cita histórica.
+- La migración `20261118160000_smyl_chat_appointment_pipeline.sql` está aplicada y registrada en producción. Se verificó `lana-inbox` v46 activa con autenticación. La web y la PWA integran el acceso a la Ficha desde el nombre y el avatar, el cobro en Cuenta y el separador ajustable de la publicación anterior. Los recursos de esta entrega son `smyl-inbox.js` v69, `smyl-inbox.css` v58 y `smyl-inbox-ficha.js` v9.
+
 ## 2026-11-17 — Perfiles de chat y relevo privado
 
 - En Configuración → Equipo → Profesionales y roles, la ficha de cada integrante activo permite elegir Sin acceso, Atiende o Coordina. Esta elección es independiente del puesto clínico. Al retirar el permiso de alguien con conversaciones se elige un nuevo responsable o la cola Sin asignar.

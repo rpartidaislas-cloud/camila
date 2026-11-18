@@ -16,8 +16,7 @@ test('la cabecera prioriza paciente, estado y una sola acción operativa', () =>
   assert.match(inbox, /data-thread-carebar aria-label="Siguiente acción del paciente"/);
   assert.equal((inbox.match(/host\.append\(primaryButton\)/g) || []).length, 1);
   assert.match(inbox, /primaryButton\.dataset\.threadPrimaryAction/);
-  assert.match(inbox, /data-thread-menu role="menu"[^>]+hidden/);
-  assert.match(inbox, /smyl-inbox-briefing-row[^\n]+data-thread-more[^\n]+Conversación ▾/);
+  assert.doesNotMatch(inbox, /data-thread-menu|smyl-inbox-briefing-row/);
   assert.match(inbox, /Atiende el chat<\/small>/);
 });
 

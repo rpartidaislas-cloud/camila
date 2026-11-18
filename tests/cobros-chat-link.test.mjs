@@ -29,7 +29,7 @@ test('el chat muestra la tarjeta «Cuenta del paciente» sólo con finance.read 
     assert.match(i, /hasPermission\('finance\.read'\) && window\.SmylFinance && typeof window\.SmylFinance\.accountSummary === 'function'/);
     assert.match(i, /Vincula al paciente para ver su saldo y cobrar desde esta conversación\./);
     // «Cobrar» vive una sola vez en la ficha, compacto dentro de Cuenta (junto al saldo), y exige finance.manage.
-    assert.match(i, /hasPermission\('finance\.manage'\) && canOperate\(conversation, 'finance\.manage'\)\) \{\n        var chargeButton/);
+    assert.match(i, /hasPermission\('finance\.manage'\) && canOperate\(conversation, 'finance\.manage'\)\) \{\s+var chargeButton/);
     assert.equal(i.split('var chargeButton').length - 1, 1);
     assert.doesNotMatch(i, /actions\.push\(\{ label: key === 'record'/);
     assert.match(i, /loadAccountContext\(conversationId\);/);

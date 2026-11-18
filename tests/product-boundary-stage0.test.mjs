@@ -29,7 +29,7 @@ test('dentist-facing copy presents one SMYL product', () => {
   assert.doesNotMatch(connections, /settings\.insertBefore\(button/);
   assert.match(connections, /SMYL Asistente/);
   assert.match(inbox, /SMYL Asistente/);
-  assert.match(inbox, /SMYL te pone al día/);
+  assert.doesNotMatch(inbox, /SMYL te pone al día/);
   assert.match(panel, /Dar seguimiento en Mensajes/);
   assert.match(attention, /ATENCIÓN OMNICANAL/);
   assert.match(handoff, /Consultando la identidad del contacto/);

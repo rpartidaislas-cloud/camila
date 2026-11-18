@@ -158,6 +158,9 @@
             var emoji = document.querySelector('[data-compose-emoji]');
             if (emoji) emoji.click();
           } else if (preview.has('productivity-search')) {
+            var profile = document.querySelector('[data-inbox-context]');
+            if (profile.getAttribute('aria-expanded') !== 'true') profile.click();
+            document.querySelector('[data-thread-settings]').click();
             var search = document.querySelector('[data-thread-search]');
             if (search) search.click();
           } else if (preview.has('productivity-quick')) {

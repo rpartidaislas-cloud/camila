@@ -42,7 +42,7 @@ test('the bridge enforces schedule management and never sends a chat message', (
   assert.match(edge, /action === "appointment_request" \|\| action === "appointment_confirm"/);
   assert.match(edge, /requirePermission\(actor, "schedule\.manage"/);
   assert.match(edge, /smyl_inbox_create_appointment_request/);
-  assert.match(edge, /smyl_inbox_confirm_appointment_request/);
+  assert.match(edge, /smyl_chat_confirm_request/);
   assert.match(edge, /message_sent: false/);
 });
 

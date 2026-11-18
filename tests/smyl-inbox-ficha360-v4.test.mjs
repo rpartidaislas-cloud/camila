@@ -18,9 +18,9 @@ test('la ficha ordena resumen, cuenta, citas, atenciones realizadas y archivos s
   assert.deepEqual([...order].sort((a, b) => a - b), order, 'el orden cambió');
   assert.doesNotMatch(build, /tabs\.push|id: 'clinico'|id: 'timeline'|id: 'atencion'/);
   // La ficha ya no lleva botones grandes: ni Expediente, ni Cobrar (vive en Cuenta), ni Agendar.
-  const actions = build.slice(build.indexOf('var actions = [];'), build.indexOf('var open = f360OpenState'));
-  assert.ok(actions.length > 0 && actions.length < 400, 'la lista de acciones de la ficha sigue vacía');
-  assert.doesNotMatch(actions, /'record'|'payment'|'schedule'|Agendar cita|Expediente/);
+  const shell = build.slice(build.indexOf('return F.shell('));
+  assert.ok(shell.startsWith('return F.shell('), 'se construye la ficha');
+  assert.doesNotMatch(shell, /\bactions\s*:|'record'|'payment'|'schedule'|Agendar cita|Expediente/);
 });
 
 test('cada bloque cerrado muestra su dato clave y el abierto no lo repite', () => {
@@ -37,8 +37,9 @@ test('se retiran tarjetas que no son del paciente y la capacitación deja de ser
   assert.match(js, /badge: 'IA'/, 'el resumen con IA se conserva');
 });
 
-test('el menú Conversación conserva los ajustes sin repetir el selector de la cabecera', () => {
-  assert.match(js, /data-thread-settings>Ajustes de la conversación<\/button>/);
+test('la Ficha 360 conserva los ajustes sin repetir el selector de la cabecera', () => {
+  assert.match(js, /settings\.dataset\.threadSettings/);
+  assert.match(js, /settings\.onclick = openConversationSettings/);
   assert.match(js, /data-settings-dialog/);
   assert.match(js, /function buildConversationSettings\(conversation\)/);
   const settings = js.slice(js.indexOf('function buildConversationSettings('), js.indexOf('function renderConversationSettings('));
@@ -68,13 +69,14 @@ test('la lista de citas separa próximas y anteriores, con tratamiento, dentista
 
 test('web, móvil y PWA publican la ficha 360 v4', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-inbox-ficha\.js\?v=8/);
-    assert.match(read(file), /smyl-inbox\.js\?v=68/);
-    assert.match(read(file), /smyl-inbox\.css\?v=57/);
+    assert.match(read(file), /smyl-inbox-ficha\.js\?v=9/);
+    assert.match(read(file), /smyl-inbox\.js\?v=69/);
+    assert.match(read(file), /smyl-inbox\.css\?v=58/);
     assert.match(read(file), /smyl-schedule\.js\?v=45/);
     assert.match(read(file), /smyl-finance\.js\?v=57/);
   }
   assert.match(read('sw.js'), /-ficha360-v4-finanzas-workspace-v5-datos-paciente-v1-expediente-orden-v2';/);
+  assert.match(read('sw.js'), /-chat-access-v1-citas-pipeline-v2';/);
   for (const file of ['smyl-inbox.js', 'smyl-inbox-ficha.js', 'smyl-inbox.css', 'smyl-schedule.js', 'smyl-finance.js', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);
   }

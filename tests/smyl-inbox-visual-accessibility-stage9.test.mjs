@@ -47,15 +47,15 @@ test('la Ficha 360 se comporta como drawer modal, no queda navegable al cerrarse
 
 test('la cabecera expone una sola acción contextual y cada acción respeta su permiso real', () => {
   const actionsStart = inbox.indexOf('function permittedCareActions');
-  const actionsEnd = inbox.indexOf('function closeThreadMenu', actionsStart);
+  const actionsEnd = inbox.indexOf('function closeComposerTools', actionsStart);
   assert.ok(actionsStart >= 0 && actionsEnd > actionsStart, 'Falta el modelo de acciones contextuales');
   const actions = inbox.slice(actionsStart, actionsEnd);
-  const careBar = functionBody(inbox, 'renderCareBar', 'closeThreadMenu');
+  const careBar = functionBody(inbox, 'renderCareBar', 'closeComposerTools');
 
-  // El CTA visible tiene un contrato de QA estable; las acciones restantes viven en el menú.
+  // El CTA visible tiene un contrato de QA estable; las acciones de gestión viven en la Ficha 360.
   assert.match(careBar, /data-thread-primary-action|threadPrimaryAction/);
   assert.match(actions, /primary(?:Care|Thread|Contextual)?Action/);
-  assert.match(actions, /setAttribute\(['"]role['"],\s*['"]menuitem['"]\)/);
+  assert.doesNotMatch(careBar, /menuitem/);
 
   // Consultar un módulo no equivale a poder modificarlo.
   for (const permission of ['schedule.manage', 'clinical.read', 'proposal.write', 'finance.manage']) {
@@ -63,7 +63,7 @@ test('la cabecera expone una sola acción contextual y cada acción respeta su p
   }
 });
 
-test('pestañas y menú de conversación publican semántica completa', () => {
+test('pestañas y selector de responsable publican semántica completa', () => {
   const viewTabs = openingTag(inbox, 'smyl-inbox-view-toggle');
   assert.match(viewTabs, /\brole=["']tablist["']/);
 
@@ -77,16 +77,11 @@ test('pestañas y menú de conversación publican semántica completa', () => {
   assert.match(filterControls, /setAttribute\(['"]aria-selected['"]/);
   assert.match(filterControls, /tabIndex|setAttribute\(['"]tabindex['"]/);
 
-  const menuTrigger = openingTag(inbox, 'data-thread-more');
   const ownerSelect = openingTag(inbox, 'data-thread-assign');
   assert.match(ownerSelect, /<select[^>]+aria-label="Asignar responsable del chat"/);
   assert.match(inbox, /select\.setAttribute\('aria-label', description/);
-  const menu = openingTag(inbox, 'data-thread-menu role');
-  assert.match(menuTrigger, /\baria-haspopup=["']menu["']/);
-  assert.match(menuTrigger, /\baria-controls=["'][^"']+["']/);
-  assert.match(menu, /\bid=["'][^"']+["']/);
-  assert.match(menu, /\brole=["']menu["']/);
-  assert.match(inbox, /\brole=["']menuitem["']/);
+  assert.doesNotMatch(inbox, /data-thread-menu|data-thread-more/);
+  assert.match(inbox, /settings\.setAttribute\('aria-haspopup', 'dialog'\)/);
 });
 
 test('el historial anuncia mensajes nuevos sin releer toda la conversación', () => {
