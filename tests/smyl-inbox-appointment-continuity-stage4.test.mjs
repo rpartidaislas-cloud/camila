@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const read = (relative) => fs.readFileSync(path.resolve(here, relative), 'utf8');
 const edge = read('../supabase/functions/lana-inbox/index.ts');
+const pipelineMigration = read('../supabase/migrations/20261118160000_smyl_chat_appointment_pipeline.sql');
 const inbox = read('../smyl-inbox.js');
 const css = read('../smyl-inbox.css');
 const mobileInbox = read('../mobile/www/smyl-inbox.js');
@@ -15,7 +16,9 @@ const preview = read('./fixtures/smyl-inbox-stage7-preview.html');
 
 test('the bridge assembles appointment continuity from SMYL-owned records', () => {
   assert.match(edge, /async function appointmentContext/);
-  for (const source of ['camila_lana_handoffs', 'smyl_appointment_requests', 'smyl_services', 'smyl_branches', 'smyl_professionals', 'smyl_appointments']) assert.match(edge, new RegExp(source));
+  assert.match(edge, /admin\.rpc\("smyl_chat_request_context"/);
+  const context = pipelineMigration.slice(pipelineMigration.indexOf('function public.smyl_chat_request_context'), pipelineMigration.indexOf('function public.smyl_chat_confirm_request'));
+  for (const source of ['camila_lana_handoffs', 'smyl_appointment_requests', 'smyl_services', 'smyl_branches', 'smyl_professionals', 'smyl_appointments']) assert.match(context, new RegExp(source));
   assert.match(edge, /requirePermission\(actor, "schedule\.read"/);
   assert.doesNotMatch(edge.slice(edge.indexOf('async function appointmentContext'), edge.indexOf('async function createAppointmentRequest')), /lanaRequest/);
 });

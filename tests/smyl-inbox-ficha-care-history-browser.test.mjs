@@ -60,3 +60,26 @@ test('Ficha 360: diferencia sin registros, datos parciales y error', async(t)=>{
     if(mode==='error') assert.equal(await history.getByRole('button',{name:'Reintentar'}).count(),1);
   }
 });
+
+test('Una cita compartida por chat y Agenda aparece una sola vez en la Ficha 360', async (t) => {
+  if (!browser) return t.skip(skipReason);
+  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  t.after(() => page.close());
+  await page.addInitScript(() => {
+    window.addEventListener('DOMContentLoaded', () => {
+      window.SmylSchedule.patientVisits = async () => [
+        { id:'appointment-preview', status:'confirmed', starts_at:'2026-10-15T16:00:00Z', service:'Servicio repetido' },
+        { id:'other-visit', status:'completed', starts_at:'2026-10-10T16:00:00Z', service:'Consulta anterior' },
+      ];
+    });
+  });
+  const { panel } = await openPatient(page, 'several');
+  const toggle = panel.locator('[data-f360-section="citas"]');
+  if (await toggle.getAttribute('aria-expanded') !== 'true') await toggle.click();
+  const section = panel.locator('[data-section="f360-citas"]');
+  await section.getByText('Consulta anterior', { exact:true }).waitFor();
+  await section.locator('[data-appointment-id="appointment-preview"]').waitFor();
+  assert.equal(await section.locator('.smyl-f360-visit').count(), 1);
+  assert.equal(await section.getByText('Servicio repetido').count(), 0);
+  assert.match(await section.innerText(), /Dra\. Mariana Ruiz · Clinica Centro/);
+});

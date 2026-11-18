@@ -57,7 +57,7 @@ for (const width of [1440, 1024, 390]) {
     await assign.selectOption('');
     await dialog.locator('[type=submit]').click();
     await page.waitForFunction(() => document.querySelector('[data-thread-owner-name]').textContent === 'Sin asignar');
-    await menu.click(); await page.locator('[data-thread-menu]:not([hidden])').waitFor(); await page.keyboard.press('Escape');
+    assert.equal(await menu.count(), 0);
     const expand=page.locator('[data-inbox-context]');
     if (await expand.getAttribute('aria-expanded')!=='true') await expand.click();
     await checkWidth(); assert.deepEqual(errors,[]);

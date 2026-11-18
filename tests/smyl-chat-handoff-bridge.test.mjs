@@ -10,7 +10,7 @@ const id = n => '10000000-0000-4000-8000-' + String(n).padStart(12, '0');
 const tenant = id(1), agent = id(2), dentist = id(3), disabled = id(4), chat = id(5), other = id(6);
 const secretNote = 'Pide que recepción le llame después de las cuatro.';
 
-function bridge({failProjectionOnce = false, branchBlocked = new Set(), ineligibleTargets = new Set()} = {}) {
+function bridge({failProjectionOnce = false, branchBlocked = new Set(), ineligibleTargets = new Set(), pipelineRows = new Map(), remoteStage = null} = {}) {
   const modes = new Map([[tenant,'coordinator'],[agent,'agent'],[dentist,'agent'],[disabled,'none']]);
   const users = [...modes.keys()].map((id, index) => ({id,tenant_id:tenant,nombre:'Integrante '+index,activo:true,rol:'staff'}));
   const assignments = [{tenant_id:tenant,conversation_id:chat,assignee_id:agent,version:1}];
@@ -36,7 +36,22 @@ function bridge({failProjectionOnce = false, branchBlocked = new Set(), ineligib
   }
   async function rpc(name,p) {
     if(name === 'smyl_chat_visible_ids') return {data:p.p_conversations.filter(id=>p.p_tenant === tenant && visible(p.p_actor,id))};
+    if(name === 'smyl_chat_request_context') {
+      assert.equal(p.p_tenant,tenant); assert.equal(p.p_actor,tenant); assert.equal(p.p_conversation,chat);
+      return {data:{linked:true,items:[{id:'1',status:'pending',branch:{name:'Sede de la cita'},appointment:null}]}};
+    }
     if(name === 'smyl_chat_scope_changed') return {data:false};
+    const stageContext = id => pipelineRows.get(id) || {conversation_id:id,manual_revision:0,stage_source:'lana',effective_stage_id:null,appointment:null};
+    if(name === 'smyl_chat_pipeline_context') return {data:p.p_conversations.filter(id=>visible(p.p_actor,id)).map(stageContext)};
+    if(name === 'smyl_chat_pipeline_changed') return {data:p.p_conversations.some(id=>visible(p.p_actor,id) && pipelineRows.has(id))};
+    if(name === 'smyl_chat_set_pipeline_stage') {
+      if(!visible(p.p_actor,p.p_conversation)) return {error:{code:'42501'}};
+      const current = stageContext(p.p_conversation);
+      if(current.manual_revision !== p.p_expected_revision) return {error:{code:'40001'}};
+      const updated = {...current,stage_source:'manual',manual_revision:current.manual_revision+1,effective_stage_id:p.p_stage_id};
+      pipelineRows.set(p.p_conversation,updated);
+      return {data:updated};
+    }
     if(name === 'smyl_chat_route_allowed') return {data:false};
     if(name === 'smyl_chat_clinic_wide') return {data:p.p_tenant === tenant && p.p_user === tenant};
     if(name === 'smyl_chat_visible') return {data:p.p_tenant === tenant && visible(p.p_actor, p.p_conversation)};
@@ -58,9 +73,10 @@ function bridge({failProjectionOnce = false, branchBlocked = new Set(), ineligib
   async function lanaRequest(tenantId,path,options) {
     assert.equal(tenantId,tenant);
     transport.push({path,body:options.body});
-    const conversation = {id:chat,contact_name:'Contacto de prueba',can_operate:true,assigned_actor_id:remoteOwner};
+    const conversation = {id:chat,stage_id:remoteStage,contact_name:'Contacto de prueba',can_operate:true,assigned_actor_id:remoteOwner};
     let body;
     if(path.startsWith('/inbox?')) body={conversations:[conversation,{id:other,last_message:'Otro chat'}],page:{has_more:false,total:2}};
+    else if(path === '/inbox/stages') body={stages:[{id:id(13),name:'Seguimiento',archived:false},{id:id(14),name:'Archivada',archived:true}]};
     else if(path.startsWith('/inbox/sync?')) body={conversations:[conversation],removed_conversation_ids:[],synced_at:new Date().toISOString()};
     else if(path.includes('/messages') && options.method === 'GET') body={conversation,messages:[{content:'Hola'}],page:{has_more:false}};
     else if(path.endsWith('/assign')) {
@@ -109,6 +125,60 @@ test('las transferencias y las dos acciones para cambiar sede rechazan destinos 
   for (const action of ['branch','set_branch']) {
     assert.equal((await call(tenant,{}, {action,conversation_id:chat,branch_id:id(8)})).status,403);
   }
+  assert.equal(transport.length,0);
+});
+
+test('la tarjeta, el filtro y el tablero usan la misma cita autorizada y la etapa efectiva', async () => {
+  const commercial = id(13);
+  const appointment = {id:id(12),status:'confirmed',starts_at:'2026-11-21T16:00:00Z',ends_at:'2026-11-21T16:30:00Z',timezone:'America/Mexico_City'};
+  const pipelineRows = new Map([[chat,{conversation_id:chat,stage_source:'appointment',effective_stage_id:'smyl:confirmed',appointment:{...appointment,patient_note:'Dato que debe quedar fuera'},manual_revision:0}]]);
+  const {call,transport}=bridge({pipelineRows,remoteStage:commercial});
+  const list=await call(agent,{action:'list',stage_id:'smyl:confirmed'});
+  assert.equal(list.status,200);
+  const row=list.body.conversations[0];
+  assert.equal(row.pipeline.provider_stage_id,commercial);
+  assert.equal(row.pipeline.stage_id,'smyl:confirmed');
+  assert.deepEqual(row.appointment,appointment);
+  assert.deepEqual((await call(agent,{action:'list',stage_id:commercial})).body.conversations,[]);
+  assert.deepEqual((await call(dentist,{action:'list'})).body.conversations,[]);
+  assert.ok(transport.filter(log=>log.path.startsWith('/inbox?')).every(log=>!log.path.includes('stage_id')));
+  const thread=await call(agent,{action:'messages',conversation_id:chat});
+  assert.deepEqual(thread.body.conversation.appointment,appointment);
+  assert.equal(thread.body.conversation.stage_id,'smyl:confirmed');
+  const payload={action:'stage',conversation_id:chat,target_stage_id:commercial,expected_revision:0};
+  assert.equal((await call(dentist,{},payload)).status,403);
+  assert.equal((await call(agent,{}, {...payload,target_stage_id:id(14)})).status,400);
+  const moved=await call(agent,{},payload);
+  assert.equal(moved.status,200);
+  assert.equal(moved.body.pipeline.source,'manual');
+  assert.equal(moved.body.pipeline.revision,1);
+  assert.equal(moved.body.stage_id,commercial);
+  assert.deepEqual(moved.body.appointment,appointment);
+  assert.equal((await call(agent,{}, {...payload,target_stage_id:null})).status,409);
+  const manual = await call(agent,{action:'list',stage_id:commercial});
+  assert.equal(manual.body.conversations[0].pipeline.source,'manual');
+  const unset=await call(agent,{}, {...payload,target_stage_id:null,expected_revision:1});
+  assert.equal(unset.body.stage_id,null);
+  assert.equal(unset.body.pipeline.source,'manual');
+  assert.ok(transport.every(entry=>!entry.path.endsWith('/stage')));
+  pipelineRows.set(chat,{...pipelineRows.get(chat),stage_source:'appointment',effective_stage_id:'smyl:arrived',appointment:{...appointment,status:'arrived'}});
+  const sync=await call(agent,{action:'sync',visible_ids:chat,since:'2026-11-01T00:00:00Z'});
+  assert.equal(sync.body.pipeline_changed,true);
+  assert.equal(sync.body.pipeline_updates[0].stage_id,'smyl:arrived');
+  assert.equal(sync.body.pipeline_updates[0].appointment.status,'arrived');
+});
+
+test('agenda del hilo usa el actor, las solicitudes permitidas y las tarjetas de la página siguiente sin volver a LANA', async () => {
+  const {call,transport}=bridge();
+  const panel=await call(tenant,{action:'appointment_context',conversation_id:chat});
+  assert.equal(panel.body.items[0].status,'pending');
+  const requests=await call(tenant,{action:'appointment_requests',conversation_id:chat});
+  assert.deepEqual(requests.body.requests,[{id:'1',status:'pending'}]);
+  const snapshot=await call(agent,{action:'pipeline_updates',visible_ids:[chat,other].join(',')});
+  assert.deepEqual(snapshot.body.removed_conversation_ids,[other]);
+  assert.equal(snapshot.body.pipeline_updates[0].id,chat);
+  assert.equal(snapshot.body.pipeline_updates[0].pipeline.source,'lana');
+  assert.equal((await call(agent,{action:'pipeline_updates',visible_ids:Array(101).fill(chat).join(',')})).status,400);
   assert.equal(transport.length,0);
 });
 

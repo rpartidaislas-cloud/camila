@@ -26,9 +26,9 @@ test('un interruptor de IA sustituye al chip de estado y al botón Tomar control
   assert.match(js, /conversation\.paused \? prepareResume\(\) : mutateConversation\('pause'\)/);
 });
 
-test('la cabecera conserva Agendar cita y el menú Conversación ofrece únicamente las acciones secundarias permitidas', () => {
+test('la cabecera conserva Agendar cita y las demás acciones respetan los permisos del paciente', () => {
   const start = js.indexOf('function permittedCareActions');
-  const end = js.indexOf('function closeThreadMenu', start);
+  const end = js.indexOf('function closeComposerTools', start);
   assert.ok(start >= 0 && end > start);
   const actions = js.slice(start, end);
   for (const permission of ['schedule.manage', 'clinical.read', 'proposal.write', 'finance.manage']) {
@@ -43,30 +43,21 @@ test('la cabecera conserva Agendar cita y el menú Conversación ofrece únicame
   const head = js.match(/<header class="smyl-inbox-thread-head">.*?<\/header>/)?.[0] || '';
   assert.match(head, /data-thread-assign/);
   assert.doesNotMatch(head, /data-thread-more|data-thread-menu/);
-  assert.match(actions, /primary && action.id === primary.id\)\) return;/);
-  assert.match(js, /data-thread-menu role="menu"/);
-  assert.match(js, /data-thread-menu-care role="group"/);
-  assert.match(actions, /document\.querySelector\('\[data-thread-menu-care\]'\)/);
-  assert.match(actions, /setAttribute\('role', 'menuitem'\)/);
+  assert.doesNotMatch(js, /data-thread-more|data-thread-menu-care|SMYL te pone al día/);
+  assert.match(js, /settings\.onclick = openConversationSettings/);
 });
 
-test('la barra «SMYL te pone al día» resume lo pendiente sin consultas extra ni IA', () => {
-  const bar = js.slice(js.indexOf('function briefingFacts'), js.indexOf('function renderThreadMenuState'));
-  assert.match(bar, /Pidió hablar con una persona/);
-  assert.match(bar, /Sin respuesta hace/);
-  assert.match(bar, /'Cita ' \+ availabilityDate/);
-  assert.match(bar, /'Etapa: ' \+ stage/);
-  assert.match(bar, /Marcar resuelta/);
-  assert.doesNotMatch(bar, /request\(/);
-  assert.match(js, /refreshBriefing\(\);\s*\}/);
-  assert.match(css, /\.smyl-inbox-briefing\[data-state=attention\]\{border-left-color:#D92D20/);
+test('el historial comienza debajo de la cabecera y reserva la nota privada para un relevo real', () => {
+  assert.match(js, /<details class="smyl-chat-note" data-handoff hidden>.*?<\/details><div class="smyl-inbox-thread-body"/);
+  assert.match(js, /note\.hidden = !conversation\.private_handoff_note/);
+  assert.match(js, /id: 'citas', title: 'Citas', peek: visitsPeek/);
 });
 
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=67/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=56/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=68/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=57/);
 });
 
 test('la cabecera grande se reemplaza por una barra delgada y los contadores viven en las pestañas', () => {

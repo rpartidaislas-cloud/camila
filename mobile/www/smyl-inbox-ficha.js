@@ -225,7 +225,7 @@
     var status = VISIT_STATUS[visit.status] || ['', 'muted'];
     var row = node('li', 'smyl-f360-visit' + (visit.status === 'cancelled' ? ' is-cancelled' : ''));
     var top = node('div', 'smyl-f360-visit-top');
-    top.append(node('span', 'smyl-f360-visit-date', ctx.formatDate ? ctx.formatDate(visit.starts_at) : shortDate(visit.starts_at, true)));
+    top.append(node('span', 'smyl-f360-visit-date', ctx.formatDate ? ctx.formatDate(visit.starts_at, visit.timezone) : shortDate(visit.starts_at, true)));
     if (status[0]) top.append(node('span', 'smyl-f360-pill is-' + status[1], status[0]));
     row.append(top, node('strong', '', visit.service));
     if (visit.treatments && visit.treatments.length) row.append(node('p', 'smyl-f360-visit-treatment', 'Tratamiento: ' + visit.treatments.join(', ')));
@@ -238,8 +238,11 @@
   function visits(ctx) {
     var root = node('div', 'smyl-f360-visits');
     if (ctx.loading) { root.append(notice('Consultando citas…')); return root; }
-    if (ctx.error) { root.append(notice(ctx.error, 'warn'), button('Reintentar', 'smyl-f360-link', ctx.onRetry)); return root; }
     var all = ctx.items || [];
+    if (ctx.error) {
+      root.append(notice(ctx.error, 'warn'), button('Reintentar', 'smyl-f360-link', ctx.onRetry));
+      if (!all.length) return root;
+    }
     if (!all.length) { root.append(notice('Este paciente todavía no tiene citas registradas.')); return root; }
     var upcoming = all.filter(ctx.isUpcoming).reverse();
     var past = all.filter(function (visit) { return !ctx.isUpcoming(visit); });

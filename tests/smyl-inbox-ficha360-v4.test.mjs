@@ -36,8 +36,9 @@ test('se retiran tarjetas que no son del paciente y la capacitación deja de ser
   assert.match(js, /badge: 'IA'/, 'el resumen con IA se conserva');
 });
 
-test('el menú Conversación conserva los ajustes sin repetir el selector de la cabecera', () => {
-  assert.match(js, /data-thread-settings>Ajustes de la conversación<\/button>/);
+test('la Ficha 360 conserva los ajustes sin repetir el selector de la cabecera', () => {
+  assert.match(js, /settings\.dataset\.threadSettings/);
+  assert.match(js, /settings\.onclick = openConversationSettings/);
   assert.match(js, /data-settings-dialog/);
   assert.match(js, /function buildConversationSettings\(conversation\)/);
   const settings = js.slice(js.indexOf('function buildConversationSettings('), js.indexOf('function renderConversationSettings('));
@@ -67,9 +68,9 @@ test('la lista de citas separa próximas y anteriores, con tratamiento, dentista
 
 test('web, móvil y PWA publican la ficha 360 v4', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-inbox-ficha\.js\?v=7/);
-    assert.match(read(file), /smyl-inbox\.js\?v=67/);
-    assert.match(read(file), /smyl-inbox\.css\?v=56/);
+    assert.match(read(file), /smyl-inbox-ficha\.js\?v=8/);
+    assert.match(read(file), /smyl-inbox\.js\?v=68/);
+    assert.match(read(file), /smyl-inbox\.css\?v=57/);
     assert.match(read(file), /smyl-schedule\.js\?v=45/);
     assert.match(read(file), /smyl-finance\.js\?v=57/);
   }

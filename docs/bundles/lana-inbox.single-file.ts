@@ -731,10 +731,83 @@ async function syncProviderOwner(tenantId: string, conversationId: string, roste
   return false;
 }
 
+const APPOINTMENT_STAGES = new Set(["smyl:confirmed", "smyl:arrived", "smyl:attended"]);
+
+type PipelineContext = {
+  conversation_id: string;
+  stage_source: "manual" | "appointment" | "lana";
+  effective_stage_id: string | null;
+  manual_revision: number;
+  appointment: { id: string; status: string; starts_at: string; ends_at: string; timezone: string | null } | null;
+};
+
+async function pipelineContext(tenantId: string, actor: Actor, ids: string[]): Promise<Map<string, PipelineContext>> {
+  if (!ids.length) return new Map();
+  const { data, error } = await admin.rpc("smyl_chat_pipeline_context", {
+    p_tenant: tenantId, p_actor: actor.id, p_conversations: ids,
+  });
+  if (error || !Array.isArray(data)) throw new Error("No se pudo comprobar la etapa de los chats.");
+  return new Map(data.map((context: PipelineContext) => [context.conversation_id, context]));
+}
+
+function projectPipeline(row: Record<string, unknown>, context: PipelineContext, providerKnown = true) {
+  const providerStage = uuid(row.stage_id);
+  const source = context.stage_source === "appointment" ? "agenda" :
+    context.stage_source === "manual" ? "manual" : providerStage || !providerKnown ? "lana" : "none";
+  row.stage_id = source === "manual" || source === "agenda" ? context.effective_stage_id : providerStage;
+  row.pipeline = {
+    stage_id: row.stage_id, source, revision: context.manual_revision,
+    ...(providerKnown ? {provider_stage_id:providerStage} : {}),
+  };
+  const visit = context.appointment;
+  row.appointment = visit ? { id:visit.id, status:visit.status, starts_at:visit.starts_at, ends_at:visit.ends_at, timezone:visit.timezone } : null;
+}
+
+async function movePipelineStage(actor: Actor, tenantId: string, conversationId: string, input: Record<string, unknown>): Promise<Response> {
+  const raw = input.target_stage_id;
+  const stage = raw === null || raw === "" ? null : typeof raw === "string" && APPOINTMENT_STAGES.has(raw) ? raw : uuid(raw);
+  if (stage === null && raw !== null && raw !== "") return json(400, { error:"La etapa seleccionada no es válida." });
+  let revision = input.expected_revision;
+  if (revision !== undefined && (!Number.isSafeInteger(revision) || Number(revision) < 0)) {
+    return json(400, {error:"La revisión del tablero no es válida."});
+  }
+  const headers = connectorHeaders(tenantId);
+  const thread = await lanaRequest(tenantId, "/inbox/conversations/" + conversationId + "/messages?limit=1", {method:"GET",headers}, 10000);
+  const record = thread.body.conversation as Record<string, unknown> | undefined;
+  if (!thread.response.ok || record?.id !== conversationId) {
+    return json(thread.response.ok ? 404 : thread.response.status, {error:"No se pudo verificar la conversación."});
+  }
+  if (stage && !APPOINTMENT_STAGES.has(stage)) {
+    const catalog = await lanaRequest(tenantId, "/inbox/stages", {method:"GET",headers:actorHeaders(actor)}, 10000);
+    if (!catalog.response.ok) return json(catalog.response.status, {error:"No se pudo consultar el catálogo de etapas."});
+    const available = Array.isArray(catalog.body.stages) && catalog.body.stages.some(row => row?.id === stage && !row.archived);
+    if (!available) return json(400, {error:"Elige una etapa activa de esta clínica."});
+  }
+  // Clientes anteriores aún no incluyen la revisión. Se protege igualmente el intervalo lectura/escritura.
+  if (revision === undefined) {
+    const current = (await pipelineContext(tenantId, actor, [conversationId])).get(conversationId);
+    if (!current) return forbiddenConversation();
+    revision = current.manual_revision;
+  }
+  const result = await admin.rpc("smyl_chat_set_pipeline_stage", {
+    p_tenant:tenantId, p_actor:actor.id, p_conversation:conversationId, p_stage_id:stage, p_expected_revision:revision,
+  });
+  if (result.error?.code === "40001") return json(409,{error:"La etapa cambió. Actualiza el tablero.",code:"pipeline_conflict"});
+  if (result.error?.code === "42501") return forbiddenConversation();
+  if (result.error || result.data?.conversation_id !== conversationId) throw new Error("No se pudo guardar la etapa del chat.");
+  const response = {ok:true, conversation_id:conversationId, stage_id:record.stage_id} as Record<string,unknown>;
+  projectPipeline(response, result.data as PipelineContext);
+  return json(200, response);
+}
+
 async function projectConversation(actor: Actor, tenantId: string, row: Record<string, unknown>, includeNote = false) {
   const id = uuid(row.id);
   if (!id) return;
-  const [assignments, roster] = await Promise.all([chatAssignments(tenantId, [id]), assignableTeam(tenantId)]);
+  const [assignments, roster, stages] = await Promise.all([
+    chatAssignments(tenantId, [id]), assignableTeam(tenantId), pipelineContext(tenantId, actor, [id]),
+  ]);
+  const currentStage = stages.get(id);
+  if (currentStage) projectPipeline(row, currentStage);
   const owner = assignments.get(id);
   const oldAssignment = row.assignment as Record<string,unknown> | null;
   if (includeNote && owner && (assignedActorId(row) !== (owner.assignee_id || "") || oldAssignment?.source === "lana")) {
@@ -824,7 +897,15 @@ async function filterConversationPayload(actor: Actor, tenantId: string, body: R
     conversation.branch = assigned ? {id:assigned.branch_id,name:names.get(assigned.branch_id)||"Sucursal",source:assigned.source} : null;
     allowed.push(projectOwner(conversation,owner,members));
   }
-  return { conversations:allowed, synced_at:body.synced_at || new Date().toISOString(), truncated:body.truncated === true };
+  const stages = await pipelineContext(tenantId, actor, allowed.map(row => String(row.id)));
+  const stageFilter = url.searchParams.get("stage_id");
+  const conversations = allowed.filter(row => {
+    const context = stages.get(String(row.id));
+    if (!context) return false;
+    projectPipeline(row, context);
+    return !stageFilter || (row.stage_id || "none") === stageFilter;
+  });
+  return { conversations, synced_at:body.synced_at || new Date().toISOString(), truncated:body.truncated === true };
 }
 
 // Paginar sobre el origen, incluso cuando una página no contiene hilos visibles.
@@ -835,6 +916,8 @@ async function listScoped(actor: Actor, tenantId: string, url: URL): Promise<Res
   let offset = start, hasMore = true; const rows: unknown[] = [];
   const since = new Date().toISOString();
   const source = new URL(url); source.searchParams.delete("assignee"); source.searchParams.delete("branch_id");
+  // LANA sólo conoce sus etapas comerciales. El filtro se evalúa sobre la etapa efectiva de SMYL.
+  source.searchParams.delete("stage_id");
   if (["mine","unassigned"].includes(source.searchParams.get("filter") || "")) source.searchParams.set("filter","all");
   for (let batch=0; batch<4 && hasMore && rows.length<limit; batch++) {
     const take = Math.min(100, Math.max(limit, 40));
@@ -904,6 +987,34 @@ async function attachBranchChanges(actor: Actor, tenantId: string, url: URL, bod
   const changed = await admin.rpc("smyl_chat_scope_changed", { p_tenant: tenantId, p_actor: actor.id, p_since: stamp });
   if (changed.error) throw new Error("No se pudieron actualizar las asignaciones.");
   body.branch_changed = changed.data === true || (body.removed_conversation_ids as string[]).length > 0;
+  Object.assign(body, await pipelineDelta(tenantId, actor, [...visible], stamp));
+}
+
+async function pipelineDelta(tenantId: string, actor: Actor, visibleIds: string[], since: string | null) {
+  const delta = since && visibleIds.length ? await admin.rpc("smyl_chat_pipeline_changed", {
+    p_tenant:tenantId, p_actor:actor.id, p_conversations:visibleIds, p_since:since,
+  }) : {data:!since && visibleIds.length > 0,error:null};
+  if (delta.error) throw new Error("No se pudo comprobar si cambió el tablero.");
+  const contexts = delta.data === true ? await pipelineContext(tenantId, actor, visibleIds) : new Map<string,PipelineContext>();
+  const updates = [...contexts.values()].map(context => {
+    const item: Record<string,unknown> = {id:context.conversation_id};
+    projectPipeline(item, context, false);
+    return item;
+  });
+  return {pipeline_changed:delta.data === true, pipeline_updates:updates};
+}
+
+async function pipelineUpdates(actor: Actor, tenantId: string, url: URL): Promise<Response> {
+  const syncedAt = new Date().toISOString();
+  const values = (url.searchParams.get("visible_ids") || "").split(",").filter(Boolean);
+  const since = url.searchParams.get("since") || null;
+  if (values.length > 100 || values.some(id => !uuid(id)) || (since && !Number.isFinite(Date.parse(since)))) {
+    return json(400,{error:"Lote de conversaciones o fecha de sincronización no válidos."});
+  }
+  const ids = [...new Set(values)];
+  const visible = await visibleChatIds(tenantId,actor,ids);
+  const changes = await pipelineDelta(tenantId, actor, [...visible], since);
+  return json(200,{...changes, removed_conversation_ids:ids.filter(id => !visible.has(id)), synced_at:syncedAt});
 }
 
 function forbiddenConversation(): Response {
@@ -960,48 +1071,17 @@ async function availableSlots(actor: Actor, tenantId: string, url: URL): Promise
   return json(200, { ok: true, slots: data || [], generated_at: new Date().toISOString(), holds_created: false });
 }
 
-async function appointmentRequests(tenantId: string, conversationId: string): Promise<Response> {
-  const { data, error } = await admin.from("smyl_appointment_requests")
-    .select("id,service_id,preferred_branch_id,preferred_professional_id,requested_start,requested_end,status,appointment_id,created_at,decided_at")
-    .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId)
-    .order("created_at", { ascending: false }).limit(20);
-  if (error) return json(500, { error: "No se pudieron consultar las elecciones de horario." });
-  return json(200, { ok: true, requests: data || [] });
-}
-
-async function appointmentContext(tenantId: string, conversationId: string): Promise<Response> {
-  const { data: handoff, error: handoffError } = await admin.from("camila_lana_handoffs")
-    .select("patient_id").eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId).maybeSingle();
-  if (handoffError) return json(500, { error: "No se pudo consultar la continuidad de Agenda." });
-  if (!handoff) return json(200, { ok: true, linked: false, items: [] });
-  const { data: requests, error } = await admin.from("smyl_appointment_requests")
-    .select("id,service_id,preferred_branch_id,preferred_professional_id,requested_start,requested_end,status,appointment_id,created_at,decided_at")
-    .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId)
-    .order("created_at", { ascending: false }).limit(10);
-  if (error) return json(500, { error: "No se pudo consultar la continuidad de Agenda." });
-  const rows = requests || [];
-  const serviceIds = [...new Set(rows.map((row) => row.service_id).filter(Boolean))];
-  const branchIds = [...new Set(rows.map((row) => row.preferred_branch_id).filter(Boolean))];
-  const professionalIds = [...new Set(rows.map((row) => row.preferred_professional_id).filter(Boolean))];
-  const appointmentIds = [...new Set(rows.map((row) => row.appointment_id).filter(Boolean))];
-  const [servicesResult, branchesResult, professionalsResult, appointmentsResult] = await Promise.all([
-    serviceIds.length ? admin.from("smyl_services").select("id,name,duration_minutes").eq("tenant_id", tenantId).in("id", serviceIds) : Promise.resolve({ data: [], error: null }),
-    branchIds.length ? admin.from("smyl_branches").select("id,name,timezone").eq("tenant_id", tenantId).in("id", branchIds) : Promise.resolve({ data: [], error: null }),
-    professionalIds.length ? admin.from("smyl_professionals").select("id,display_name,specialty").eq("tenant_id", tenantId).in("id", professionalIds) : Promise.resolve({ data: [], error: null }),
-    appointmentIds.length ? admin.from("smyl_appointments").select("id,status,starts_at,ends_at").eq("tenant_id", tenantId).in("id", appointmentIds) : Promise.resolve({ data: [], error: null }),
-  ]);
-  if ([servicesResult, branchesResult, professionalsResult, appointmentsResult].some((result) => result.error)) return json(500, { error: "No se pudieron completar los datos de Agenda." });
-  const byId = (data: Record<string, unknown>[]) => new Map(data.map((row) => [String(row.id), row]));
-  const services = byId((servicesResult.data || []) as Record<string, unknown>[]);
-  const branches = byId((branchesResult.data || []) as Record<string, unknown>[]);
-  const professionals = byId((professionalsResult.data || []) as Record<string, unknown>[]);
-  const appointments = byId((appointmentsResult.data || []) as Record<string, unknown>[]);
-  return json(200, { ok: true, linked: true, patient_id: handoff.patient_id, items: rows.map((row) => ({
-    ...row, service: services.get(String(row.service_id)) || null,
-    branch: branches.get(String(row.preferred_branch_id)) || null,
-    professional: professionals.get(String(row.preferred_professional_id)) || null,
-    appointment: row.appointment_id ? appointments.get(String(row.appointment_id)) || null : null,
-  })) });
+async function appointmentContext(actor: Actor, tenantId: string, conversationId: string, requestsOnly = false): Promise<Response> {
+  const {data, error} = await admin.rpc("smyl_chat_request_context", {
+    p_tenant:tenantId, p_actor:actor.id, p_conversation:conversationId, p_limit:requestsOnly ? 20 : 10,
+  });
+  if (error?.code === "42501") return forbiddenConversation();
+  if (error || !data || !Array.isArray(data.items)) return json(500, {error:"No se pudo consultar la continuidad de Agenda."});
+  if (requestsOnly) {
+    const requests = data.items.map(({service, branch, professional, appointment, ...request}: Record<string,unknown>) => request);
+    return json(200, {ok:true, requests});
+  }
+  return json(200, {ok:true, ...data});
 }
 
 async function createAppointmentRequest(actor: Actor, tenantId: string, conversationId: string, body: Record<string, unknown>, idempotencyKey: string): Promise<Response> {
@@ -1020,9 +1100,9 @@ async function createAppointmentRequest(actor: Actor, tenantId: string, conversa
   return json(200, { ok: true, request_id: data, status: "pending", appointment_created: false, message_sent: false });
 }
 
-async function confirmAppointmentRequest(actor: Actor, tenantId: string, requestId: string, appointmentId: string): Promise<Response> {
-  const { data, error } = await admin.rpc("smyl_inbox_confirm_appointment_request", {
-    p_tenant_id: tenantId, p_actor_id: actor.id, p_request_id: requestId, p_appointment_id: appointmentId,
+async function confirmAppointmentRequest(actor: Actor, tenantId: string, conversationId: string, requestId: string, appointmentId: string): Promise<Response> {
+  const { data, error } = await admin.rpc("smyl_chat_confirm_request", {
+    p_tenant:tenantId, p_actor:actor.id, p_conversation:conversationId, p_request:requestId, p_appointment:appointmentId,
   });
   if (error) {
     console.error("[lana-inbox] appointment confirm", error.message);
@@ -1433,7 +1513,7 @@ function invalidInboxFilter(url: URL): string | null {
   const assignee = url.searchParams.get("assignee");
   if (assignee && !["me", "unassigned"].includes(assignee) && !uuid(assignee)) return "El responsable indicado no es válido.";
   const stage = url.searchParams.get("stage_id");
-  if (stage && stage !== "none" && !uuid(stage)) return "La etapa indicada no es válida.";
+  if (stage && stage !== "none" && !APPOINTMENT_STAGES.has(stage) && !uuid(stage)) return "La etapa indicada no es válida.";
   const branch = url.searchParams.get("branch_id");
   if (branch && branch !== "none" && !uuid(branch)) return "La sucursal indicada no es válida.";
   const priority = url.searchParams.get("priority");
@@ -1521,6 +1601,7 @@ async function handleInbox(req: Request): Promise<Response> {
       const conversationId = url.searchParams.get("conversation_id") ? uuid(url.searchParams.get("conversation_id")) : null;
       if (url.searchParams.get("conversation_id") && !conversationId) return json(400, { error: "Conversación no válida." });
       if (conversationId && !await canAccessConversation(actor, auth.tenantId, conversationId)) return forbiddenConversation();
+      if (action === "pipeline_updates") return await pipelineUpdates(actor, auth.tenantId, url);
       if (action === "team") return await listTeam(auth.tenantId, conversationId);
       if (action === "branches") {
         const [all, wide] = await Promise.all([
@@ -1536,11 +1617,11 @@ async function handleInbox(req: Request): Promise<Response> {
       }
       if (action === "appointment_requests" && conversationId) {
         const scheduleDenied = requirePermission(actor, "schedule.manage", "Tu rol no permite administrar solicitudes de Agenda.");
-        return scheduleDenied || await appointmentRequests(auth.tenantId, conversationId);
+return scheduleDenied || await appointmentContext(actor, auth.tenantId, conversationId, true);
       }
       if (action === "appointment_context" && conversationId) {
         const scheduleDenied = requirePermission(actor, "schedule.read", "Tu rol no permite consultar la continuidad de Agenda.");
-        return scheduleDenied || await appointmentContext(auth.tenantId, conversationId);
+return scheduleDenied || await appointmentContext(actor, auth.tenantId, conversationId);
       }
       if (action === "conversation_summary" && conversationId) {
         return json(200, await storedSummary(actor, auth.tenantId, conversationId));
@@ -1693,7 +1774,7 @@ async function handleInbox(req: Request): Promise<Response> {
       if (action === "appointment_request") return await createAppointmentRequest(actor, auth.tenantId, conversationId, body, idempotencyKey);
       const requestId = uuid(body.request_id);
       if (!requestId) return json(400, { error: "Solicitud no válida." });
-      return await confirmAppointmentRequest(actor, auth.tenantId, requestId, idempotencyKey);
+      return await confirmAppointmentRequest(actor, auth.tenantId, conversationId, requestId, idempotencyKey);
     }
     if (action === "clinical_link") {
       const denied = requirePermission(actor, "clinical.write", "Tu rol no permite incorporar archivos al expediente clínico.");
@@ -1892,6 +1973,7 @@ async function handleInbox(req: Request): Promise<Response> {
     const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
     if (!idempotencyKey) return json(400, { error: "Idempotency-Key debe ser un UUID válido." });
 
+    if (action === "stage") return await movePipelineStage(actor, auth.tenantId, conversationId, body);
     const permission = ["send", "read", "star", "unstar"].includes(action) ? "messages.respond" : "messages.manage";
     const denied = requirePermission(actor, permission, permission === "messages.respond"
       ? "Tu rol no permite responder conversaciones."
@@ -1926,14 +2008,7 @@ async function handleInbox(req: Request): Promise<Response> {
       } else return json(400, { error: "Tipo de mensaje no reconocido." });
     }
 
-    if (action === "stage") {
-      if (body.target_stage_id === null || body.target_stage_id === "") forwarded.target_stage_id = null;
-      else {
-        const targetStageId = uuid(body.target_stage_id);
-        if (!targetStageId) return json(400, { error: "La etapa seleccionada no es válida." });
-        forwarded.target_stage_id = targetStageId;
-      }
-    }
+
 
     if (action === "priority") {
       const priority = text(body.priority, 20);
@@ -1957,6 +2032,11 @@ async function handleInbox(req: Request): Promise<Response> {
     }, action === "send" ? 30000 : 15000);
     if (remote.response.ok && remote.body.conversation && typeof remote.body.conversation === "object") {
       await projectConversation(actor, auth.tenantId, remote.body.conversation as Record<string,unknown>);
+    }
+    if (remote.response.ok && Object.hasOwn(remote.body, "stage_id")) {
+      const context = (await pipelineContext(auth.tenantId, actor, [conversationId])).get(conversationId);
+      if (!context) return forbiddenConversation();
+      projectPipeline(remote.body, context);
     }
     return json(remote.response.status, { ...remote.body, actor });
   } catch (error) {

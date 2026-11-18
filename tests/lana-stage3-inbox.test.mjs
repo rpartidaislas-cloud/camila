@@ -16,8 +16,8 @@ test('SMYL provides a responsive operational inbox and canonical LANA thread', (
   assert.match(inbox, /Sincronización segura/);
   assert.match(styles, /grid-template-columns:332px minmax\(420px,1fr\) 268px/);
   assert.match(styles, /@media\(max-width:760px\)/);
-  assert.match(app, /smyl-inbox\.js\?v=67/);
-  assert.match(app, /smyl-inbox\.css\?v=56/);
+  assert.match(app, /smyl-inbox\.js\?v=68/);
+  assert.match(app, /smyl-inbox\.css\?v=57/);
   assert.match(worker, /smyl-v263-lana-connection-recovery/);
 });
 
@@ -47,7 +47,7 @@ test('assignment, read, pause, resume and resolution travel through the authenti
   assert.match(edge, /"messages\.manage"/);
 });
 
-test('pinning, paused filters, responsibility and stages stay canonical in LANA', () => {
+test('the inbox preserves upstream conversation actions and the commercial stage catalog', () => {
   assert.match(inbox, /data-inbox-filter="pinned"/);
   assert.match(inbox, /data-inbox-filter="paused"/);
   assert.match(inbox, /mutateConversation\(conversation\.pinned \? 'unpin' : 'pin'\)/);
@@ -56,7 +56,7 @@ test('pinning, paused filters, responsibility and stages stay canonical in LANA'
   assert.match(inbox, /Etapa de atención/);
   assert.match(edge, /if \(action === "stages"\) return "\/inbox\/stages"/);
   assert.match(edge, /"pin", "unpin", "stage"/);
-  assert.match(edge, /forwarded\.target_stage_id/);
+  assert.match(edge, /smyl_chat_set_pipeline_stage/);
 });
 
 test('the browser never receives the linked LANA credential or chooses a tenant', () => {
