@@ -1339,7 +1339,7 @@
     if (Array.isArray(preferred)) {
       var match = null;
       preferred.some(function (name) { match = state.templates.find(function (item) { return item.name === name; }) || null; return Boolean(match); });
-      if (!match) { state.templatePreset = null; window.alert((preset && preset.missingText) || 'No hay una plantilla de cobro aprobada todavía. Solicítalas en Cobros → Plantillas; Meta suele tardar de unos minutos a 48 horas.'); return; }
+      if (!match) { state.templatePreset = null; window.alert((preset && preset.missingText) || 'No hay una plantilla de cobro aprobada todavía. Solicítala en Mensajería → Plantillas; Meta suele tardar de unos minutos a 48 horas.'); return; }
       select.value = match.id;
     }
     renderTemplateFields(select, dialog.querySelector('[data-template-preview]'), dialog.querySelector('[data-template-variables]'), 'send');
@@ -2006,7 +2006,7 @@
       var accountMoney = function (value) { return Number(value || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }); };
       if (!accountPatient) accountCard.append(node('p', '', 'Vincula al paciente para ver su saldo y cobrar desde esta conversación.'));
       else if (state.accountLoading && state.accountLoading[conversation.id]) accountCard.append(node('p', '', 'Consultando cuenta…'));
-      else if (!accountInfo || !accountInfo.data) accountCard.append(node('p', '', 'No se pudo consultar la cuenta. Ábrela en Cobros para revisarla.'));
+      else if (!accountInfo || !accountInfo.data) accountCard.append(node('p', '', 'No se pudo consultar la cuenta. Ábrela en Finanzas para revisarla.'));
       else {
         var summary = accountInfo.data;
         if (!summary.chargeCount && !summary.credit) accountCard.append(node('p', '', 'Todavía no tiene cargos registrados.'));

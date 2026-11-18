@@ -333,7 +333,7 @@
     function whatsapp(item){
       var link=quoteChats[item.row.patient_id];if(!link||link.channel!=='whatsapp'||!window.SmylInbox||typeof window.SmylInbox.sendTemplate!=='function')return;
       var follow=item.stage.key==='awaiting',names=follow?['cotizacion_seguimiento_v1','cotizacion_lista_v1']:['cotizacion_lista_v1'];
-      window.SmylInbox.sendTemplate(link.conversation,{preferred:names,variables:[quoteFirstName(item.row),quoteTitle(item.row),quoteClinic(item.row)],missingText:'No hay una plantilla de cotización aprobada todavía. Solicítala en Cobros → Plantillas; Meta suele tardar de unos minutos a 48 horas.',
+      window.SmylInbox.sendTemplate(link.conversation,{preferred:names,variables:[quoteFirstName(item.row),quoteTitle(item.row),quoteClinic(item.row)],missingText:'No hay una plantilla de cotización aprobada todavía. Solicítala en Mensajería → Plantillas; Meta suele tardar de unos minutos a 48 horas.',
         onSent:function(){if(item.stage.key==='ready'&&access.followup){record(item,'presented','whatsapp','Enviada por WhatsApp desde Cotizaciones').catch(function(){});}else if(item.stage.key==='awaiting'&&access.followup){logFollowup(item,'whatsapp').catch(function(){});}}});
     }
     function actionsFor(item){
@@ -344,7 +344,7 @@
       if(access.followup&&key==='awaiting')box.append(b('Registré un seguimiento',function(){followupDialog(item);}));
       var link=quoteChats[item.row.patient_id];
       if(link&&link.channel==='whatsapp'&&(key==='ready'||key==='awaiting')&&window.SmylInbox&&typeof window.SmylInbox.sendTemplate==='function')box.append(b(key==='awaiting'?'Dar seguimiento por WhatsApp':'Enviar por WhatsApp',function(){whatsapp(item);}));
-      if(key==='accepted'&&window.SmylFinance&&typeof window.SmylFinance.fromProposal==='function')box.append(b('Pasar a Cobros',function(){window.SmylFinance.fromProposal(item.row.id);}));
+      if(key==='accepted'&&window.SmylFinance&&typeof window.SmylFinance.fromProposal==='function')box.append(b('Pasar a Finanzas',function(){window.SmylFinance.fromProposal(item.row.id);}));
       if(link&&window.SmylInbox&&typeof window.SmylInbox.open==='function')box.append(b('Abrir chat',function(){window.SmylInbox.open(link.conversation);}));
       return box;
     }

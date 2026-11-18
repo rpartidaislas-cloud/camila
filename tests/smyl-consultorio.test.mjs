@@ -36,7 +36,7 @@ const registro = (page, nombre) => page.evaluate((n) => window.__log.filter((x) 
 // ── Contrato del código (no necesita navegador) ──
 test('app.html carga el módulo puro antes que el Consultorio y arranca en él solo en la app instalada', () => {
   const app = read('app.html');
-  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=5', 'smyl-privacy-notice.js?v=1', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=6'].map((f) => app.indexOf(f));
+  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=5', 'smyl-privacy-notice.js?v=1', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=7'].map((f) => app.indexOf(f));
   assert.ok(orden[0] > 0 && orden.every((x, i) => !i || orden[i - 1] < x), 'los módulos puros cargan antes que la pantalla');
   assert.match(app, /smyl-consultorio\.css\?v=6/);
   assert.match(app, /else if \(smylEsAppInstalada\(\) && document\.getElementById\('p-consultorio'\)\) ir\('consultorio'\)/);
@@ -57,7 +57,7 @@ test('el simulador y el manifiesto llevan al Consultorio y el simulador sigue ac
 
 test('se precarga y las copias móviles son idénticas', () => {
   const sw = read('sw.js');
-  for (const f of ['smyl-consultorio.js?v=6', 'smyl-consultorio.css?v=6', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=5', 'smyl-privacy-notice.js?v=1', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
+  for (const f of ['smyl-consultorio.js?v=7', 'smyl-consultorio.css?v=6', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=5', 'smyl-privacy-notice.js?v=1', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
   for (const f of ['smyl-consultorio.js', 'smyl-consultorio.css', 'smyl-patient-quick.js', 'smyl-visit-model.js', 'smyl-privacy-notice.js', 'smyl-history-interview.js', 'smyl-studio.js', 'simulacion-rapida.html', 'manifest-app.json', 'app.html', 'sw.js']) assert.equal(read(f), read('mobile/www/' + f), f);
 });
 
@@ -541,7 +541,7 @@ probar('próxima cita: se muestra la agendada, o se ofrece agendar con el pacien
   await page.close();
 });
 
-probar('Ir a Cobros abre Cobros', async () => {
+probar('Ir a Finanzas abre Finanzas', async () => {
   const { page } = await cierre();
   await page.evaluate(() => document.querySelector('[data-co-pay]').click());
   assert.equal((await page.evaluate(() => window.__rutas)).pop(), 'caja');

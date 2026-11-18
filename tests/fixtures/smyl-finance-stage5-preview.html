@@ -1,1 +1,57 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SMYL · Caja</title><link rel="stylesheet" href="../../smyl-finance.css"><style>:root{font-family:Inter,system-ui;background:#f5f7fa}.contenido{margin-left:220px}.preview-nav{position:fixed;inset:0 auto 0 0;width:220px;background:#11243f;color:white;padding:25px 14px}.preview-nav h2{padding:0 12px}.preview-nav div{padding:11px 12px;border-radius:10px;color:#b9c5d6}.preview-nav .active{background:#2476b833;color:white;border-left:3px solid #55a8df}@media(max-width:760px){.preview-nav{display:none}.contenido{margin:0}}</style></head><body><aside class="preview-nav"><h2>SMYL</h2><div>Resumen</div><div>Pacientes</div><div>Agenda</div><div>Inventario</div><div class="active">Caja</div><div>Conversaciones</div></aside><main class="contenido"><section class="finance-page"><header class="finance-head"><div><span class="pro-eyebrow">CONTROL FINANCIERO DENTAL</span><h1>Caja y cuentas</h1><p>Cargos, cobros, saldos, recibos y corte de caja por clínica. Separado de la suscripción de SMYL.</p></div><div class="finance-head-actions"><button>Datos fiscales</button><button>Nuevo cargo</button><button class="btn btn-primary">Registrar pago</button></div></header><section class="finance-metrics"><article><span>Por cobrar</span><strong>$18,450.00</strong><small>saldos abiertos</small></article><article><span>Cobrado hoy</span><strong>$7,200.00</strong><small>pagos menos reembolsos</small></article><article><span>Saldo a favor</span><strong>$1,000.00</strong><small>anticipos no aplicados</small></article><article><span>Caja</span><strong>Abierta</strong><small>desde 8:42 a.m.</small></article></section><nav class="finance-tabs"><button aria-selected="true">Cuentas por cobrar</button><button>Pagos y recibos</button><button>Corte de caja</button><button>Preparación CFDI</button></nav><article class="finance-card"><header><div><h2>Saldos por paciente</h2><p>El saldo se calcula desde movimientos confirmados.</p></div></header><div class="finance-toolbar"><input placeholder="Buscar paciente"></div><div class="finance-table"><div class="finance-row finance-row-head"><span>Paciente</span><span>Último cargo</span><span>Saldo</span><span>Acciones</span></div><article class="finance-row"><div><strong>Paciente de demostración</strong><small>Sin saldo a favor</small></div><span>12 oct 2026</span><div><strong>$12,500.00</strong><span class="finance-badge" data-tone="due">Pendiente</span></div><button>Ver cuenta</button></article><article class="finance-row"><div><strong>Caso de prueba</strong><small>$1,000.00 a favor</small></div><span>11 oct 2026</span><div><strong>$5,950.00</strong><span class="finance-badge" data-tone="due">Pendiente</span></div><button>Ver cuenta</button></article><article class="finance-row"><div><strong>Paciente muestra</strong><small>Sin saldo a favor</small></div><span>10 oct 2026</span><div><strong>$0.00</strong><span class="finance-badge" data-tone="paid">Al corriente</span></div><button>Ver cuenta</button></article></div></article></section></main></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Finanzas</title>
+  <link rel="stylesheet" href="../../smyl-finance.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f3f6f9;color:#12243b;font-family:Inter,system-ui,-apple-system,sans-serif}.contenido{margin-left:238px;padding:22px 36px 64px}.preview-nav{position:fixed;inset:0 auto 0 0;width:238px;padding:28px 18px;background:linear-gradient(180deg,#123047,#081c31);color:#fff}.preview-brand{margin:0 10px 28px;font-size:22px;font-weight:800}.preview-brand small{display:block;margin-top:3px;color:#9eb5c5;font-size:12px;font-weight:500}.preview-nav div{margin:4px 0;padding:12px 14px;border-radius:11px;color:#b9c9d6;font-size:14px;font-weight:650}.preview-nav .active{background:#ffffff16;color:#fff;box-shadow:inset 3px 0 #68c5b9}.preview-topbar{max-width:1280px;margin:0 auto 20px}.preview-topbar h1{margin:0;color:#12243b;font-size:18px}.preview-topbar p{margin:3px 0 0;color:#6a7b8f;font-size:13px}.finance-page{max-width:1280px!important;padding:0!important}.finance-page>h1{position:absolute!important;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}button{font:inherit;cursor:pointer}.finance-head-actions button,.finance-priority-list button{min-height:42px;padding:0 15px;border:1px solid #ccd8e3;border-radius:10px;background:#fff;color:#19364f;font-weight:750}.finance-head-actions .btn-primary{border-color:#0d263e;background:#0d263e;color:#fff}
+    @media(max-width:760px){.preview-nav{display:none}.contenido{margin:0;padding:18px 14px 90px}.preview-topbar{margin-bottom:15px}.finance-page{width:100%}.finance-actionsbar .finance-head-actions{display:grid}.finance-actionsbar .finance-head-actions button{width:100%}}
+  </style>
+</head>
+<body>
+  <aside class="preview-nav">
+    <div class="preview-brand">smyl<small>Gestión clínica</small></div>
+    <div>Inicio</div><div>Agenda</div><div>Pacientes</div><div class="active">Finanzas</div><div>Cotizaciones</div><div>Mensajería</div><div>Inventario</div>
+  </aside>
+  <main class="contenido">
+    <header class="preview-topbar"><h1>Finanzas</h1><p>Saldos, pagos y control financiero de la clínica.</p></header>
+    <section class="finance-page" id="p-caja">
+      <h1>Finanzas</h1>
+      <header class="finance-page-head finance-actionsbar"><div class="finance-head-actions"><button class="btn btn-primary">Registrar pago</button><button>Operaciones⌄</button></div></header>
+      <div class="finance-bar">
+        <nav class="finance-tabs" aria-label="Secciones de Finanzas">
+          <button aria-selected="true">Resumen</button><button>Cuentas por cobrar</button><button>Pagos y recibos</button><button>Caja</button><button>Facturación</button>
+        </nav>
+      </div>
+      <section class="finance-summary-panel">
+        <div class="finance-summary-intro"><div><span>RESUMEN</span><h2>Panorama financiero de la clínica</h2><p>Empieza aquí y entra al detalle únicamente cuando necesites actuar.</p></div></div>
+        <section class="finance-metrics">
+          <article><span>Por cobrar</span><strong>$18,450.00</strong><small>$4,500 vencido · Ver vencidas</small></article>
+          <article><span>Cobrado hoy</span><strong>$7,200.00</strong><small>pagos menos reembolsos</small></article>
+          <article><span>Saldo a favor</span><strong>$1,000.00</strong><small>Aplicar a una cuenta</small></article>
+          <article><span>Caja</span><strong>Abierta</strong><small>desde 8:42 a.m.</small></article>
+        </section>
+        <div id="finance-overview">
+          <section class="finance-overview-head"><div><span>ESTADO FINANCIERO</span><h2>3 asuntos por atender</h2><p>Una lectura breve antes de entrar al detalle.</p></div><strong>$18,450.00<small>saldo por cobrar</small></strong></section>
+          <div class="finance-priority-list">
+            <article data-tone="danger"><div><span>CARTERA VENCIDA</span><strong>2 pacientes necesitan seguimiento</strong><small>$4,500.00 fuera de fecha</small></div><button>Revisar vencidas →</button></article>
+            <article data-tone="warning"><div><span>CUENTAS POR CREAR</span><strong>3 atenciones sin cargo</strong><small>Confirma el servicio antes de registrar el pago.</small></div><button>Revisar atenciones →</button></article>
+            <article data-tone="info"><div><span>SALDOS A FAVOR</span><strong>$1,000.00 pendiente de aplicar</strong><small>Anticipos disponibles en cuentas de pacientes.</small></div><button>Ver saldos →</button></article>
+          </div>
+        </div>
+        <section class="finance-flow" aria-label="Ruta financiera">
+          <header><span>ORDEN DE TRABAJO</span><h2>Del saldo al cierre</h2><p>Cada etapa tiene un propósito distinto y conserva su propia trazabilidad.</p></header>
+          <div>
+            <button><i>1</i><span><strong>Cuentas por cobrar</strong><small>Saldos y vencimientos</small></span></button><b>→</b>
+            <button><i>2</i><span><strong>Pagos y recibos</strong><small>Movimientos confirmados</small></span></button><b>→</b>
+            <button><i>3</i><span><strong>Facturación</strong><small>Comprobante fiscal</small></span></button><b>→</b>
+            <button><i>4</i><span><strong>Caja</strong><small>Conciliación del turno</small></span></button>
+          </div>
+        </section>
+      </section>
+    </section>
+  </main>
+</body>
+</html>
