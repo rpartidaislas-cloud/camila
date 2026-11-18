@@ -364,7 +364,7 @@ return { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin: admin };
 })();
 
 // ── _shared/facturapi-core.mjs ──
-const { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion } = (() => {
+const { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio } = (() => {
 // Lógica pura de la conexión Facturapi (sin Deno ni red): validación de llave, cifrado y lectura de la organización.
 // Solo sandbox: la llave debe ser de pruebas (sk_test_…). Las llaves live se rechazan.
 const FACTURAPI_BASE = "https://www.facturapi.io/v2";
@@ -644,7 +644,28 @@ function clasificarCancelacion(status: any, body: any) {
   return status >= 400 ? "rejected" : "unknown";
 }
 
-return { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion };
+// ───────────── Envío por correo ─────────────
+const CORREO_RE = /^[^\s@,;<>()]{1,64}@[^\s@,;<>()]{1,190}\.[^\s@,;<>()]{2,}$/;
+// Un solo correo, en minúsculas y sin espacios; "" si no es válido (nunca varias direcciones: se envía a la persona indicada).
+function validarCorreo(value: any) {
+  const e = String(value || "").trim().toLowerCase();
+  return e.length <= 254 && CORREO_RE.test(e) ? e : "";
+}
+// «juan.perez@gmail.com» → «j***@gmail.com»: para mostrar y registrar sin guardar la dirección completa en la bitácora.
+function enmascararCorreo(email: any) {
+  const e = validarCorreo(email);
+  if (!e) return "";
+  const [local, dominio] = e.split("@");
+  return `${local[0]}***@${dominio}`;
+}
+// ok = Facturapi confirmó el envío; rejected = no se envió (dirección o límite); unknown = no sabemos (red/5xx): no reenviar a ciegas.
+function clasificarEnvio(status: any, body: any) {
+  if (status === 200 && body && body.ok === true) return "ok";
+  if (status === 200 || status === 408 || status >= 500 || !status) return "unknown";
+  return status >= 400 ? "rejected" : "unknown";
+}
+
+return { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio };
 })();
 
 // ── facturapi/index.ts ──
@@ -653,7 +674,7 @@ return { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, l
 //  · platform: SMYL crea una organización de Facturapi por clínica con la User Secret Key de la plataforma
 //    (FACTURAPI_USER_KEY), carga sus datos fiscales y su CSD, y la pasa a producción con una compuerta explícita.
 // Las llaves se cifran aquí (AES-GCM, FACTURAPI_ENCRYPTION_KEY, tenant como dato autenticado) y nunca vuelven al navegador.
-// El CSD y su contraseña viajan en memoria hacia Facturapi: no se guardan, no se registran. Timbrado y cancelación (stamp/reconcile/download/cancel/cancel_check): finance.invoice, con el borrador ya prevalidado.
+// El CSD y su contraseña viajan en memoria hacia Facturapi: no se guardan, no se registran. Timbrado y cancelación (stamp/reconcile/download/cancel/cancel_check/send_email): finance.invoice, con el borrador ya prevalidado.
 
 const admin = smylAdmin;
 const MASTER = Deno.env.get("FACTURAPI_ENCRYPTION_KEY") || "";
@@ -823,6 +844,31 @@ async function timbrado(req: Request, CORS: Record<string, string>, tenantId: st
   }
 
 
+  // ── Envío por correo ──
+  if (body.action === "send_email") {
+    if (draft.status !== "issued" || !draft.provider_invoice_id) return json(CORS, 409, { error: "Solo un comprobante timbrado se puede enviar por correo." });
+    // Destinatario: el que escribe la persona o, si no, el correo fiscal del paciente. Siempre uno solo y válido.
+    const destino = validarCorreo(typeof body.email === "string" && body.email.trim() ? body.email : (draft.fiscal_snapshot || {}).email);
+    if (!destino) return json(CORS, 400, { error: "Escribe un correo válido para enviar el comprobante." });
+    // Freno contra doble clic: no se vuelve a enviar durante los siguientes 30 segundos.
+    if (draft.last_emailed_at && Date.now() - new Date(draft.last_emailed_at).getTime() < 30_000) return json(CORS, 409, { error: "Ya se envió hace un momento. Espera unos segundos antes de reenviar." });
+    const r = await llamarFacturapi(key, `/invoices/${encodeURIComponent(draft.provider_invoice_id)}/email`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: destino }) });
+    const clase = clasificarEnvio(r.status, r.body);
+    const masked = enmascararCorreo(destino);
+    if (clase === "ok") {
+      await admin.from("smyl_cfdi_drafts").update({ last_emailed_at: now(), last_emailed_to: masked, email_count: (draft.email_count || 0) + 1 }).eq("tenant_id", tenantId).eq("id", draftId);
+      await eventoTimbre(tenantId, actor, draftId, "email", "success", { to: masked, live });
+      return json(CORS, 200, { draft: await vista(), message: `Comprobante enviado a ${masked}.` });
+    }
+    if (clase === "rejected") {
+      const msg = mensajeFacturapi(r.body, r.status);
+      await eventoTimbre(tenantId, actor, draftId, "email", "failed", { to: masked, status: r.status });
+      return json(CORS, 422, { error: `Facturapi no pudo enviar el correo: ${msg}` });
+    }
+    await eventoTimbre(tenantId, actor, draftId, "email", "pending", { to: masked, status: r.status });
+    return json(CORS, 202, { draft: await vista(), message: "No se confirmó el envío (Facturapi no respondió a tiempo). Revisa con el paciente si lo recibió antes de reenviar." });
+  }
+
   // ── Cancelación (sandbox) ──
   if (body.action === "cancel" || body.action === "cancel_check") {
     // La cancelación en producción es una acción real ante el SAT y aún no tiene su propia compuerta: por ahora solo sandbox.
@@ -945,7 +991,7 @@ Deno.serve(async (req) => {
   } catch { return json(CORS, 400, { error: "Solicitud inválida." }); }
   const action = body.action;
   // Timbrado y cancelación (stamp/reconcile/download/cancel/cancel_check): finance.invoice. Conexión y plataforma: finance.manage.
-  const esTimbrado = action === "stamp" || action === "reconcile" || action === "download" || action === "cancel" || action === "cancel_check";
+  const esTimbrado = action === "stamp" || action === "reconcile" || action === "download" || action === "cancel" || action === "cancel_check" || action === "send_email";
   const denied = await requirePermission(auth, CORS, esTimbrado ? "finance.invoice" : "finance.manage");
   if (denied) return denied;
   const tenantId = auth.tenantId as string, actor = (auth.user as { id: string }).id;

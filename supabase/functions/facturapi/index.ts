@@ -3,7 +3,7 @@
 //  · platform: SMYL crea una organización de Facturapi por clínica con la User Secret Key de la plataforma
 //    (FACTURAPI_USER_KEY), carga sus datos fiscales y su CSD, y la pasa a producción con una compuerta explícita.
 // Las llaves se cifran aquí (AES-GCM, FACTURAPI_ENCRYPTION_KEY, tenant como dato autenticado) y nunca vuelven al navegador.
-// El CSD y su contraseña viajan en memoria hacia Facturapi: no se guardan, no se registran. Timbrado y cancelación (stamp/reconcile/download/cancel/cancel_check): finance.invoice, con el borrador ya prevalidado.
+// El CSD y su contraseña viajan en memoria hacia Facturapi: no se guardan, no se registran. Timbrado y cancelación (stamp/reconcile/download/cancel/cancel_check/send_email): finance.invoice, con el borrador ya prevalidado.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser, requirePermission } from "../_shared/auth.ts";
 import { makeCors } from "../_shared/cors.ts";
@@ -12,7 +12,7 @@ import {
   FACTURAPI_BASE, LIVE_KEY_RE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion,
   datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd,
   FORMAS_PAGO, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura,
-  parametrosCancelacion, estadoCancelacion, clasificarCancelacion,
+  parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio,
 } from "../_shared/facturapi-core.mjs";
 
 const admin = smylAdmin;
@@ -183,6 +183,31 @@ async function timbrado(req: Request, CORS: Record<string, string>, tenantId: st
   }
 
 
+  // ── Envío por correo ──
+  if (body.action === "send_email") {
+    if (draft.status !== "issued" || !draft.provider_invoice_id) return json(CORS, 409, { error: "Solo un comprobante timbrado se puede enviar por correo." });
+    // Destinatario: el que escribe la persona o, si no, el correo fiscal del paciente. Siempre uno solo y válido.
+    const destino = validarCorreo(typeof body.email === "string" && body.email.trim() ? body.email : (draft.fiscal_snapshot || {}).email);
+    if (!destino) return json(CORS, 400, { error: "Escribe un correo válido para enviar el comprobante." });
+    // Freno contra doble clic: no se vuelve a enviar durante los siguientes 30 segundos.
+    if (draft.last_emailed_at && Date.now() - new Date(draft.last_emailed_at).getTime() < 30_000) return json(CORS, 409, { error: "Ya se envió hace un momento. Espera unos segundos antes de reenviar." });
+    const r = await llamarFacturapi(key, `/invoices/${encodeURIComponent(draft.provider_invoice_id)}/email`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: destino }) });
+    const clase = clasificarEnvio(r.status, r.body);
+    const masked = enmascararCorreo(destino);
+    if (clase === "ok") {
+      await admin.from("smyl_cfdi_drafts").update({ last_emailed_at: now(), last_emailed_to: masked, email_count: (draft.email_count || 0) + 1 }).eq("tenant_id", tenantId).eq("id", draftId);
+      await eventoTimbre(tenantId, actor, draftId, "email", "success", { to: masked, live });
+      return json(CORS, 200, { draft: await vista(), message: `Comprobante enviado a ${masked}.` });
+    }
+    if (clase === "rejected") {
+      const msg = mensajeFacturapi(r.body, r.status);
+      await eventoTimbre(tenantId, actor, draftId, "email", "failed", { to: masked, status: r.status });
+      return json(CORS, 422, { error: `Facturapi no pudo enviar el correo: ${msg}` });
+    }
+    await eventoTimbre(tenantId, actor, draftId, "email", "pending", { to: masked, status: r.status });
+    return json(CORS, 202, { draft: await vista(), message: "No se confirmó el envío (Facturapi no respondió a tiempo). Revisa con el paciente si lo recibió antes de reenviar." });
+  }
+
   // ── Cancelación (sandbox) ──
   if (body.action === "cancel" || body.action === "cancel_check") {
     // La cancelación en producción es una acción real ante el SAT y aún no tiene su propia compuerta: por ahora solo sandbox.
@@ -305,7 +330,7 @@ Deno.serve(async (req) => {
   } catch { return json(CORS, 400, { error: "Solicitud inválida." }); }
   const action = body.action;
   // Timbrado y cancelación (stamp/reconcile/download/cancel/cancel_check): finance.invoice. Conexión y plataforma: finance.manage.
-  const esTimbrado = action === "stamp" || action === "reconcile" || action === "download" || action === "cancel" || action === "cancel_check";
+  const esTimbrado = action === "stamp" || action === "reconcile" || action === "download" || action === "cancel" || action === "cancel_check" || action === "send_email";
   const denied = await requirePermission(auth, CORS, esTimbrado ? "finance.invoice" : "finance.manage");
   if (denied) return denied;
   const tenantId = auth.tenantId as string, actor = (auth.user as { id: string }).id;
