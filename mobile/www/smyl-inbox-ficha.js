@@ -78,7 +78,7 @@
     if (medical.unlinked) {
       var unlinked = node('div', 'smyl-f360-med is-pending'); unlinked.setAttribute('role', 'note');
       unlinked.append(node('span', 'smyl-f360-med-icon', '!'), node('p', '', 'Vincula este chat a un paciente para ver sus alergias y alertas médicas'));
-      if (medical.onLink) unlinked.append(button('Resolver identidad', 'smyl-f360-link', medical.onLink));
+      if (medical.onLink) unlinked.append(button('Vincular paciente', 'smyl-f360-link', medical.onLink));
       return unlinked;
     }
     var items = medical.items || [];
