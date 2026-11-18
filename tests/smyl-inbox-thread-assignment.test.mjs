@@ -20,7 +20,7 @@ test('El responsable es explícito: no se autoasigna al abrir y sólo el equipo 
   const assign = js.slice(js.indexOf('function changeChatOwner('), js.indexOf('async function loadTeam('));
   assert.match(assign, /conversation.id !== conversationId/);
   assert.match(assign, /canTransfer\(conversation\)/);
-  assert.match(assign, /state\.team\.find/);
+  assert.match(assign, /roster\.members\.find/);
   assert.match(assign, /expected_version: version/);
   assert.match(assign, /action: targetId \? 'assign' : 'release'/);
   assert.doesNotMatch(assign, /targetId \|\| state\.actor/);
@@ -63,6 +63,75 @@ for (const width of [1440, 1024, 390]) {
     await checkWidth(); assert.deepEqual(errors,[]);
   });
 }
+
+test('El selector consulta cada chat y sede, descarta respuestas fuera de orden y permite reintentar', async t => {
+  if (!browser) return t.skip('Se necesita Chromium.');
+  const page = await browser.newPage();
+  t.after(() => page.close());
+  page.setDefaultTimeout(8000);
+  await page.addInitScript(() => {
+    document.addEventListener('DOMContentLoaded', () => {
+      const previewFetch = window.fetch;
+      window.rosterRequests = [];
+      window.secondBranch = 'centro';
+      let attemptedSouth = false;
+      window.fetch = async (input, init) => {
+        const params = new URL(input, document.baseURI).searchParams;
+        const action = params.get('action'), id = params.get('conversation_id');
+        const branch = id === 'c-preview' ? 'norte' : window.secondBranch;
+        if (action === 'team') {
+          window.rosterRequests.push(id + '/' + branch);
+          if (id === 'c-preview') await new Promise(resolve => { window.releaseNorth = resolve; });
+          if (branch === 'sur' && !attemptedSouth) {
+            attemptedSouth = true;
+            return Response.json({error:'Equipo temporalmente no disponible'},{status:503});
+          }
+          return Response.json({members:[{id:'shared',name:'Ambas sedes'},{id:branch,name:branch}]});
+        }
+        if (!['list','messages'].includes(action)) return previewFetch(input, init);
+        const response = await (await previewFetch(input, init)).json();
+        function located(base, convoId, site) {
+          return {...base,id:convoId,branch:{id:site,name:site},contact_name:convoId};
+        }
+        if (action === 'messages') response.conversation = located(response.conversation, id, branch);
+        else {
+          const [base] = response.conversations;
+          response.conversations = [located(base,'c-preview','norte'),located(base,'c-second',window.secondBranch)];
+          response.page.total = 2;
+        }
+        return Response.json(response);
+      };
+    }, {once:true});
+  });
+  await page.goto(fixture.href);
+  await page.waitForSelector('html[data-preview-ready=true]');
+  await page.waitForFunction(() => typeof window.releaseNorth === 'function');
+  const assign = page.locator('[data-thread-assign]');
+  const members = () => assign.locator('option:not(:disabled)').evaluateAll(options => options.map(option => option.value));
+  const openSecond = () => page.evaluate(() => window.SmylInbox.open('c-second'));
+  await openSecond();
+  await assign.locator('option[value=centro]').waitFor({state:'attached'});
+  await page.evaluate(() => window.releaseNorth());
+  await openSecond();
+  assert.deepEqual(await members(), ['', 'shared', 'centro']);
+  assert.deepEqual(await page.evaluate(() => window.rosterRequests), ['c-preview/norte', 'c-second/centro']);
+
+  await page.evaluate(() => { window.secondBranch = 'sur'; });
+  await openSecond();
+  const retry = page.locator('[data-thread-owner-retry]');
+  await retry.waitFor();
+  assert.ok(await assign.isDisabled());
+  assert.ok(!(await members()).includes('centro'));
+  await retry.click();
+  await assign.locator('option[value=sur]').waitFor({state:'attached'});
+  assert.deepEqual(await members(), ['', 'shared', 'sur']);
+
+  await page.locator('[data-inbox-bulk]').evaluate(button => button.click());
+  for (const id of ['c-preview','c-second']) await page.locator('[data-conversation-id="'+id+'"].smyl-inbox-row').click();
+  const bulk = page.getByRole('combobox', {name:'Responsable para seleccionadas'});
+  assert.deepEqual(await bulk.locator('option').evaluateAll(options => options.map(option => option.value)), ['', 'shared']);
+  assert.deepEqual(await page.evaluate(() => window.rosterRequests), ['c-preview/norte','c-second/centro','c-second/sur','c-second/sur']);
+});
 
 test('Al transferir su conversación el agente pierde el hilo incluso desde el enlace directo', async t => {
   if (!browser) return t.skip('Se necesita Chromium.');

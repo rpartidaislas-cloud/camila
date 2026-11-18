@@ -4,7 +4,7 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 .smyl-inbox-top{min-height:82px;padding:17px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;background:#fff;border-bottom:1px solid #DCE4EC}
 .smyl-inbox-eyebrow{display:block;font-size:12px;line-height:1.2;font-weight:700;letter-spacing:1.05px;color:#2476B8;margin-bottom:4px}
 .smyl-inbox-top h1{font-size:20px;line-height:1.2;margin:0;color:#102239}.smyl-inbox-top p{font-size:12px;color:#667587;margin-top:3px}
-.smyl-inbox-live{display:flex;align-items:center;gap:8px;font-size:11px;color:#526173;white-space:nowrap}.smyl-inbox-live i{width:8px;height:8px;border-radius:50%;background:#16A69B}.smyl-inbox-live[data-state="syncing"] i{animation:smylInboxPulse 1s ease-in-out infinite}.smyl-inbox-live[data-state="offline"] i{background:#D97706}
+.smyl-inbox-live{display:flex;align-items:center;gap:8px;font-size:12px;color:#526173;white-space:nowrap}.smyl-inbox-live i{width:8px;height:8px;border-radius:50%;background:#16A69B}.smyl-inbox-live[data-state="syncing"] i{animation:smylInboxPulse 1s ease-in-out infinite}.smyl-inbox-live[data-state="offline"] i{background:#D97706}
 @keyframes smylInboxPulse{50%{opacity:.35}}
 .smyl-inbox-workspace{display:grid;grid-template-columns:332px minmax(420px,1fr) 268px;min-width:0;width:100%;min-height:0;flex:1;position:relative}
 .smyl-inbox-list-pane,.smyl-inbox-thread-pane,.smyl-inbox-context{min-height:0;background:#fff}

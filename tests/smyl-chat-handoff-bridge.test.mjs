@@ -10,7 +10,7 @@ const id = n => '10000000-0000-4000-8000-' + String(n).padStart(12, '0');
 const tenant = id(1), agent = id(2), dentist = id(3), disabled = id(4), chat = id(5), other = id(6);
 const secretNote = 'Pide que recepción le llame después de las cuatro.';
 
-function bridge({failProjectionOnce = false} = {}) {
+function bridge({failProjectionOnce = false, branchBlocked = new Set(), ineligibleTargets = new Set()} = {}) {
   const modes = new Map([[tenant,'coordinator'],[agent,'agent'],[dentist,'agent'],[disabled,'none']]);
   const users = [...modes.keys()].map((id, index) => ({id,tenant_id:tenant,nombre:'Integrante '+index,activo:true,rol:'staff'}));
   const assignments = [{tenant_id:tenant,conversation_id:chat,assignee_id:agent,version:1}];
@@ -23,20 +23,26 @@ function bridge({failProjectionOnce = false} = {}) {
       select() { return query; }, order() { return query; },
       eq(key,value) { rows = rows.filter(row => row[key] === value); return query; },
       in(key,values) { rows = rows.filter(row => values.includes(row[key])); return query; },
+      gte(key,value) { rows = rows.filter(row => row[key] >= value); return query; },
       limit(size) { rows = rows.slice(0,size); return query; },
       maybeSingle() { return Promise.resolve({data:rows[0] || null,error:null}); },
       then(done,fail) { return Promise.resolve({data:rows,error:null}).then(done,fail); },
     };
     return query;
   }
+  function visible(actorId, conversation) {
+    return modes.get(actorId) !== 'none' && !branchBlocked.has(actorId + ':' + conversation) &&
+      (actorId === tenant || assignments.some(row=>row.conversation_id === conversation && row.assignee_id === actorId));
+  }
   async function rpc(name,p) {
-    if(name === 'smyl_chat_visible_ids') return {data:p.p_conversations.filter(id=>p.p_tenant === tenant && modes.get(p.p_actor) !== 'none' &&
-      (p.p_actor === tenant || assignments.some(row=>row.conversation_id===id && row.assignee_id===p.p_actor)))};
+    if(name === 'smyl_chat_visible_ids') return {data:p.p_conversations.filter(id=>p.p_tenant === tenant && visible(p.p_actor,id))};
+    if(name === 'smyl_chat_scope_changed') return {data:false};
+    if(name === 'smyl_chat_route_allowed') return {data:false};
     if(name === 'smyl_chat_clinic_wide') return {data:p.p_tenant === tenant && p.p_user === tenant};
-    if(name === 'smyl_chat_visible') return {data:p.p_tenant === tenant && modes.get(p.p_actor) !== 'none' &&
-      (p.p_actor === tenant || assignments.some(row=>row.conversation_id===p.p_conversation && row.assignee_id===p.p_actor))};
+    if(name === 'smyl_chat_visible') return {data:p.p_tenant === tenant && visible(p.p_actor, p.p_conversation)};
     if(name === 'smyl_chat_mode') return {data:modes.get(p.p_user) || 'none'};
-    if(name === 'smyl_chat_assistants') return {data:users.filter(user=>modes.get(user.id)!=='none')
+    if(name === 'smyl_chat_assistants' || name === 'smyl_chat_recipients') return {data:users.filter(user=>modes.get(user.id)!=='none' &&
+      (name === 'smyl_chat_assistants' || !ineligibleTargets.has(user.id)))
       .map(user=>({id:user.id,name:user.nombre,chat_mode:modes.get(user.id),kind:'staff'}))};
     if(name === 'smyl_transfer_chat') {
       const row=assignments[0];
@@ -55,6 +61,7 @@ function bridge({failProjectionOnce = false} = {}) {
     const conversation = {id:chat,contact_name:'Contacto de prueba',can_operate:true,assigned_actor_id:remoteOwner};
     let body;
     if(path.startsWith('/inbox?')) body={conversations:[conversation,{id:other,last_message:'Otro chat'}],page:{has_more:false,total:2}};
+    else if(path.startsWith('/inbox/sync?')) body={conversations:[conversation],removed_conversation_ids:[],synced_at:new Date().toISOString()};
     else if(path.includes('/messages') && options.method === 'GET') body={conversation,messages:[{content:'Hola'}],page:{has_more:false}};
     else if(path.endsWith('/assign')) {
       if(failProjectionOnce) { failProjectionOnce=false; return {response:new Response(null,{status:503}),body:{}}; }
@@ -75,6 +82,35 @@ function bridge({failProjectionOnce = false} = {}) {
   }
   return {call,transport,notes};
 }
+
+test('la sede prevalece sobre la asignación y sobre los avisos al antiguo destinatario', async () => {
+  const {call,notes,transport} = bridge({branchBlocked:new Set([agent+':'+chat])});
+  const since = '2026-11-01T00:00:00Z';
+  notes.push({tenant_id:tenant,conversation_id:chat,to_user_id:agent,created_at:'2026-11-02T00:00:00Z'});
+  assert.deepEqual((await call(agent,{action:'list'})).body.conversations,[]);
+  const sync = await call(agent,{action:'sync',visible_ids:chat,since});
+  assert.equal(sync.status,200);
+  assert.deepEqual(sync.body.conversations,[]);
+  assert.deepEqual(sync.body.received_conversation_ids,[]);
+  assert.deepEqual(sync.body.removed_conversation_ids,[chat]);
+  const count = transport.length;
+  assert.equal((await call(agent,{action:'messages',conversation_id:chat})).status,403);
+  assert.equal((await call(agent,{action:'team',conversation_id:chat})).status,403);
+  assert.equal((await call(agent,{}, {action:'send',conversation_id:chat,content:'Hola'})).status,403);
+  assert.equal(transport.length,count);
+});
+
+test('las transferencias y las dos acciones para cambiar sede rechazan destinos fuera de alcance', async () => {
+  const {call,transport}=bridge({ineligibleTargets:new Set([dentist])});
+  const roster=await call(agent,{action:'team',conversation_id:chat});
+  assert.equal(roster.status,200);
+  assert.ok(!roster.body.members.some(member=>member.id===dentist));
+  assert.equal((await call(agent,{}, {action:'assign',conversation_id:chat,target_actor_id:dentist,expected_version:1})).status,400);
+  for (const action of ['branch','set_branch']) {
+    assert.equal((await call(tenant,{}, {action,conversation_id:chat,branch_id:id(8)})).status,403);
+  }
+  assert.equal(transport.length,0);
+});
 
 test('La bandeja valida perfil y asignación antes de consultar el canal del paciente', async () => {
   const {call,transport}=bridge();

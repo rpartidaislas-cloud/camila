@@ -21,7 +21,7 @@
     conversations: [], total: 0, offset: 0, limit: 30, hasMore: false,
     filter: 'all', channel: '', search: '', selectedId: null, filterPanelOpen: false, branches: [], branchFilter: '', branchMenu: null,
     messages: {}, pages: {}, pending: {}, loadingList: false, loadingThread: false,
-    listError: '', threadError: '', syncedAt: null, actor: null, team: [], teamStatus: 'idle', stages: [],
+    listError: '', threadError: '', syncedAt: null, actor: null, stages: [],
     threadController: null, contextOpen: false, contextSections: {}, contextReturnFocus: null, f360Open: null, f360Visits: {}, f360VisitsAll: {}, f360Movements: {}, f360File: {}, f360Filter: {}, f360Shared: {}, f360Summary: {}, contextDockedPreferred: initialDockedContextPreference(), polling: false,
     replyTo: null, attachment: null, clinical: {}, clinicalLoading: {},
     copilot: {}, copilotLoading: {},
@@ -48,12 +48,14 @@
 
   var accessEpoch = 0, accessRequest = null, accessUser = null;
   var threadEpoch = new Map(), openSequence = 0, routingRevision = 0;
+  var teamsByConversation = new Map();
   function chatEnabled() {
     return !!state.actor && ['agent', 'coordinator'].includes(state.actor.chat_access);
   }
 
   function forgetChat(id) {
     if (!id) return;
+    teamsByConversation.delete(id);
     routingRevision++;
     threadEpoch.set(id, (threadEpoch.get(id) || 0) + 1);
     if (state.selectedId !== id) persistEncryptedDraft(id, '').catch(function () {});
@@ -94,10 +96,11 @@
       return;
     }
     accessEpoch++; state.actor = next; state.badgeFailures = 0;
+    teamsByConversation.clear();
     if (old) {
       threadEpoch.clear();
       forgetChat(state.selectedId);
-      state.conversations = []; state.team = []; state.teamStatus = 'idle'; state.operations = null;
+      state.conversations = []; state.operations = null;
       state.messages = {}; state.clinical = {}; state.syncedAt = null; state.total = 0;
       state.didAutoOpen = false; state.filter = 'all'; renderNavBadge(0);
     }
@@ -470,15 +473,28 @@
     toggle.textContent = state.bulkMode ? 'Cancelar' : 'Seleccionar';
     bar.hidden = !state.bulkMode;
     if (!state.bulkMode) { bar.innerHTML = ''; return; }
+    var priorAssignee = bar.querySelector('[aria-label="Responsable para seleccionadas"]')?.value;
     bar.innerHTML = '';
     var count = node('strong', '', state.bulkSelected.size + ' seleccionadas');
     var assignee = document.createElement('select'); assignee.setAttribute('aria-label', 'Responsable para seleccionadas');
-    assignee.append(new Option('Responsable…', ''));
-    state.team.forEach(function (member) { assignee.append(new Option(member.name, member.id)); });
+    var rosters = Array.from(state.bulkSelected, function (id) {
+      return teamFor(state.conversations.find(function (item) { return item.id === id; }));
+    });
+    var ready = rosters.length > 0 && rosters.every(function (r) { return r.status === 'ready'; });
+    var members = ready ? rosters[0].members.filter(function (member) {
+      return rosters.every(function (r) { return r.members.some(function (other) { return other.id === member.id; }); });
+    }) : [];
+    var failed = rosters.some(function (r) { return r.status === 'error'; });
+    assignee.append(new Option(ready && !members.length ? 'Sin responsable en común' : !ready && rosters.length && !failed ? 'Consultando equipo…' : 'Responsable…', ''));
+    members.forEach(function (member) { assignee.append(new Option(member.name, member.id)); });
+    if (priorAssignee && members.some(function (member) { return member.id === priorAssignee; })) assignee.value = priorAssignee;
+    assignee.disabled = !members.length || state.bulkRunning;
     var stage = document.createElement('select'); stage.setAttribute('aria-label', 'Etapa para seleccionadas');
     stage.append(new Option('Etapa…', '')); state.stages.filter(function (item) { return !item.archived; }).forEach(function (item) { stage.append(new Option(item.name, item.id)); });
     var assign = node('button', 'btn btn-secondary btn-sm', 'Asignar'); assign.type = 'button';
-    assign.disabled = !state.bulkSelected.size || state.bulkRunning; assign.onclick = function () { if (assignee.value) applyBulkAction('assign', assignee.value); };
+    assign.disabled = !assignee.value || state.bulkRunning;
+    assignee.onchange = function () { assign.disabled = !assignee.value || state.bulkRunning; };
+    assign.onclick = function () { if (assignee.value) applyBulkAction('assign', assignee.value); };
     var move = node('button', 'btn btn-secondary btn-sm', 'Mover'); move.type = 'button';
     move.disabled = !state.bulkSelected.size || state.bulkRunning; move.onclick = function () { if (stage.value) applyBulkAction('stage', stage.value); };
     var clear = node('button', 'smyl-inbox-bulk-clear', 'Limpiar'); clear.type = 'button'; clear.onclick = function () { state.bulkSelected.clear(); renderList(); };
@@ -486,6 +502,14 @@
     branchButton.hidden = !multiBranch(); branchButton.disabled = !state.bulkSelected.size || state.bulkRunning;
     branchButton.onclick = function () { openBranchDialog(Array.from(state.bulkSelected).map(function (id) { return state.conversations.find(function (item) { return item.id === id; }); })); };
     bar.append(count, assignee, assign, stage, move, branchButton, clear);
+    if (failed) {
+      var retry = node('button', 'smyl-inbox-bulk-clear', 'Reintentar equipo'); retry.type = 'button';
+      retry.onclick = function () {
+        state.bulkSelected.forEach(function (id) { if (teamsByConversation.get(id)?.status === 'error') teamsByConversation.delete(id); });
+        renderBulkBar();
+      };
+      bar.append(retry);
+    }
   }
 
   function filterCount(filter) {
@@ -604,8 +628,10 @@
   async function setConversationBranch(conversation, branchId) {
     try {
       var data = await request('POST', {}, { action: 'set_branch', conversation_id: conversation.id, branch_id: branchId || null }, uuid());
-      conversation.branch = data.branch || null;
+      var current = state.conversations.find(function (item) { return item.id === conversation.id; });
+      if (current) current.branch = data.branch || null;
       renderList(); if (state.selectedId === conversation.id) { renderThreadHeader(); renderContext(); }
+      await loadList(true);
     } catch (error) { window.alert((error && error.message) || 'No se pudo asignar la sucursal.'); }
   }
   function threadBranchMenuItems(conversation) {
@@ -655,11 +681,12 @@
       for (var i = 0; i < list.length; i += 1) {
         try {
           var data = await request('POST', {}, { action: 'set_branch', conversation_id: list[i].id, branch_id: picked.value || null }, uuid());
-          list[i].branch = data.branch || null;
+          var currentChat = state.conversations.find(function (item) { return item.id === list[i].id; });
+          if (currentChat) currentChat.branch = data.branch || null;
         } catch (err) { failed += 1; error.textContent = (err && err.message) || 'No se pudo asignar la sucursal.'; error.hidden = false; }
       }
       submit.disabled = false;
-      if (failed) return;
+      if (failed) { await loadList(true); render(); return; }
       dialog.close(); state.bulkSelected.clear(); state.bulkMode = false;
       await loadList(true); render();
     };
@@ -2973,28 +3000,29 @@
     note.querySelector('p').textContent = conversation.private_handoff_note || '';
     if (note.dataset.thread !== conversation.id) { note.open = false; note.dataset.thread = conversation.id; }
     var allowed = canTransfer(conversation);
-    var canChoose = allowed && state.teamStatus === 'ready' && Boolean(state.team.length || assignment);
-    var display = allowed && state.teamStatus === 'loading' && !assignment ? 'Cargando equipo…' : name;
+    var roster = teamFor(conversation);
+    var canChoose = allowed && roster.status === 'ready' && Boolean(roster.members.some(function (m) { return m.id !== current; }) || (assignment && state.actor.chat_access === 'coordinator'));
+    var display = allowed && roster.status === 'loading' && !assignment ? 'Cargando equipo…' : name;
     // Avoid replacing options under an open native picker when the conversation polls.
-    var signature = JSON.stringify([conversation.id, current, name, state.actor && state.actor.chat_access, state.teamStatus, state.team.map(function (m) { return [m.id, m.name, m.kind]; })]);
+    var signature = JSON.stringify([conversation.id, current, name, state.actor && state.actor.chat_access, roster.status, roster.members.map(function (m) { return [m.id, m.name, m.kind]; })]);
     if (select.dataset.signature !== signature) {
       select.dataset.signature = signature; select.replaceChildren();
       if (!current || state.actor.chat_access === 'coordinator') select.add(new Option('Sin asignar', ''));
-      state.team.forEach(function (member) {
+      roster.members.forEach(function (member) {
         var kind = {owner:'Titular', professional:'Profesional clínico', staff:'Equipo de atención'}[member.kind];
         select.add(new Option(member.name + (kind ? ' · ' + kind : ''), member.id));
       });
-      if (current && !state.team.some(function (m) { return m.id === current; })) {
+      if (current && !roster.members.some(function (m) { return m.id === current; })) {
         var prior = new Option(name, current); prior.disabled = true; select.add(prior);
       }
     }
     select.value = current; select.disabled = !canChoose; select.dataset.conversationId = conversation.id;
     label.textContent = display;
     var description = 'Responsable del chat: ' + name;
-    var unavailable = allowed && state.teamStatus === 'error';
+    var unavailable = allowed && roster.status === 'error';
     select.setAttribute('aria-label', description + (canChoose ? '. Cambiar responsable' : ''));
     wrap.dataset.editable = String(canChoose); wrap.dataset.error = String(unavailable);
-    wrap.title = unavailable ? 'No se pudo cargar el equipo. Reintentar' : description + (canChoose ? ' · Cambiar' : allowed && !state.team.length && state.teamStatus === 'ready' ? ' · No hay integrantes disponibles' : '');
+    wrap.title = unavailable ? 'No se pudo cargar el equipo. Reintentar' : description + (canChoose ? ' · Cambiar' : allowed && !roster.members.length && roster.status === 'ready' ? ' · No hay integrantes disponibles' : '');
     retry.hidden = !unavailable; retry.setAttribute('aria-label', 'Reintentar carga del equipo para asignar el chat');
   }
 
@@ -3019,7 +3047,9 @@
     var conversation = selectedConversation();
     if (!conversation || conversation.id !== conversationId || !canTransfer(conversation)) return;
     renderChatOwner(conversation);
-    var member = state.team.find(function (item) { return item.id === targetId; });
+    var roster = teamFor(conversation);
+    if (roster.status !== 'ready') return;
+    var member = roster.members.find(function (item) { return item.id === targetId; });
     if (targetId ? !member : state.actor.chat_access !== 'coordinator') return;
     if ((conversation.assignment && conversation.assignment.actor_id || '') === targetId) return;
     var version = conversation.assignment_version;
@@ -3044,6 +3074,11 @@
     form.onsubmit = async function (event) {
       event.preventDefault();
       if (save.disabled || state.selectedId !== conversationId || !canTransfer(selectedConversation())) return;
+      var latest = teamFor(selectedConversation());
+      if (latest.branchId !== roster.branchId || (targetId && (latest.status !== 'ready' || !latest.members.some(function (m) { return m.id === targetId; })))) {
+        error.textContent = 'Cambió el equipo disponible. Cierra esta ventana y elige de nuevo.';
+        error.hidden = false; save.disabled = true; return;
+      }
       var payload = { action: targetId ? 'assign' : 'release', conversation_id: conversationId,
         expected_version: version, private_note: note.value.trim() };
       if (member) payload.target_actor_id = member.id;
@@ -3071,22 +3106,41 @@
       } catch (reason) {
         if (!dialog.open) return;
         error.textContent = reason.status === 409 ? 'La asignación cambió. Cierra esta ventana y elige de nuevo.' : reason.message;
-        error.hidden = false; save.disabled = reason.status === 409;
-        if (reason.status === 409) await loadThread(conversationId, false, null, true);
+        error.hidden = false; save.disabled = reason.status === 409 || reason.status === 400;
+        if (save.disabled) {
+          teamsByConversation.delete(conversationId);
+          await loadThread(conversationId, false, null, true);
+          if (state.selectedId === conversationId) renderChatOwner(selectedConversation());
+        }
       } finally { cancel.disabled = false; }
     };
     dialog.addEventListener('cancel', function (event) { if (cancel.disabled) event.preventDefault(); });
     dialog.showModal(); note.focus();
   }
 
-  async function loadTeam() {
-    if (state.teamStatus === 'loading') return;
-    state.teamStatus = 'loading'; renderChatOwner(selectedConversation());
+  function teamFor(conversation) {
+    if (!canTransfer(conversation)) return { status: 'unavailable', members: [] };
+    var id = conversation.id, branchId = conversation.branch?.id || '';
+    var entry = teamsByConversation.get(id);
+    if (!entry || entry.branchId !== branchId || (entry.status === 'ready' && Date.now() - entry.loadedAt > 120000)) {
+      entry = { branchId: branchId, status: 'loading', members: [], loadedAt: 0 };
+      teamsByConversation.set(id, entry); loadTeam(id, entry);
+    }
+    return entry;
+  }
+
+  async function loadTeam(id, entry) {
     try {
-      var data = await request('GET', { action: 'team' });
-      state.team = data.members || []; state.teamStatus = 'ready';
-    } catch (_) { state.team = []; state.teamStatus = 'error'; }
-    renderChatOwner(selectedConversation()); renderContext();
+      var data = await request('GET', { action: 'team', conversation_id: id });
+      if (teamsByConversation.get(id) !== entry) return;
+      if (!Array.isArray(data.members)) throw new Error('Equipo no disponible');
+      entry.members = data.members; entry.status = 'ready'; entry.loadedAt = Date.now();
+    } catch (_) {
+      if (teamsByConversation.get(id) !== entry) return;
+      entry.status = 'error';
+    }
+    if (id === state.selectedId) renderChatOwner(selectedConversation());
+    if (state.bulkSelected.has(id)) renderBulkBar();
   }
 
   async function loadStages() {
@@ -4448,7 +4502,9 @@
     page.querySelector('[data-thread-settings]').addEventListener('click', function () { closeThreadMenu(); openConversationSettings(); });
     page.querySelector('[data-settings-close]').addEventListener('click', function () { page.querySelector('[data-settings-dialog]').close(); });
     page.querySelector('[data-thread-assign]').addEventListener('change', function (event) { changeChatOwner(event.target.dataset.conversationId, event.target.value); });
-    page.querySelector('[data-thread-owner-retry]').addEventListener('click', loadTeam);
+    page.querySelector('[data-thread-owner-retry]').addEventListener('click', function () {
+      teamsByConversation.delete(state.selectedId); renderChatOwner(selectedConversation());
+    });
     page.querySelector('[data-thread-resolve]').addEventListener('click', function () { closeThreadMenu(); mutateConversation('resolve'); });
     page.querySelector('[data-thread-search-form]').addEventListener('submit', searchThread);
     page.querySelector('[data-search-close]').addEventListener('click', function () { page.querySelector('[data-search-dialog]').close(); });
@@ -4490,14 +4546,17 @@
       if (route === 'inbox') {
         refreshAccess().then(function (allowed) {
           if (!allowed || !page.classList.contains('activa')) return;
-          if (!state.conversations.length) { loadList(true); loadTeam(); loadBranches(); loadStages(); loadOperations(true); }
+          if (!state.conversations.length) { loadList(true); loadBranches(); loadStages(); loadOperations(true); }
           else { sync(); loadOperations(false); autoOpenFirst(); }
         });
       } else { if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(true); closeContext(false); }
       return result;
     };
     renderOperationsChip(); renderNotifyButton();
-    window.addEventListener('smyl:chat-access-changed', refreshAccess);
+    window.addEventListener('smyl:chat-access-changed', function () {
+      teamsByConversation.clear();
+      refreshAccess().then(function () { renderChatOwner(selectedConversation()); renderBulkBar(); });
+    });
     if (typeof sb !== 'undefined' && sb.auth && typeof sb.auth.onAuthStateChange === 'function') {
       sb.auth.onAuthStateChange(function (event, session) {
         var id = session && session.user && session.user.id;
@@ -4510,7 +4569,7 @@
     setTimeout(refreshAccess, 0);
     setTimeout(function () {
       if (!chatEnabled() || state.conversations.length || state.loadingList || document.visibilityState !== 'visible') return;
-      loadList(true); loadTeam(); loadBranches(); loadStages();
+      loadList(true); loadBranches(); loadStages();
     }, 2500);
     setInterval(function () { if (document.visibilityState === 'visible') refreshAccess(); }, 60000);
     setTimeout(refreshUnreadBadge, 6000);

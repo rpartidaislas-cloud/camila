@@ -17,14 +17,14 @@ test('migración: tabla por conversación con fuente, solo accesible por service
 test('lana-inbox: la sucursal asignada manda para el alcance por sucursales y se adjunta a cada conversación', () => {
   const access = read('supabase/migrations/20261118150000_smyl_chat_access_and_private_handoff.sql');
   assert.match(edge, /smyl_chat_visible_ids/);
-  assert.match(access, /mode='coordinator'[\s\S]*smyl_member_branches/);
+  assert.match(access, /smyl_chat_route_allowed[\s\S]*b\.active[\s\S]*smyl_member_branches/);
   assert.match(edge, /conversation\.branch = assigned \?/);
   assert.match(edge, /action === "branches"/);
 });
 test('lana-inbox: asignar requiere permiso de gestión y solo la clínica completa puede devolver a «Sin asignar»', () => {
-  assert.match(edge, /if \(action === "set_branch"\) \{\s*\n\s*const denied = requirePermission\(actor, "messages\.manage"/);
+  assert.match(edge, /if \(action === "set_branch" \|\| action === "branch"\) \{\s*const denied = requirePermission\(actor, "messages\.manage"/);
   assert.match(edge, /Solo quien ve toda la clínica puede devolver una conversación a «Sin asignar»/);
-  assert.match(edge, /onConflict: "tenant_id,conversation_id"/);
+  assert.match(edge, /"smyl_chat_set_branch"/);
   assert.match(edge, /La sucursal no existe o está inactiva/);
 });
 test('bandeja: un solo botón de sucursal con conteos, sin ruido y con asignación de un clic', () => {

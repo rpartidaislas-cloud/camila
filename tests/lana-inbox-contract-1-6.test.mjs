@@ -40,16 +40,15 @@ test('la configuración de etapas es sólo del propietario y traduce a las rutas
   assert.ok(proxy.indexOf('action === "stage_create"') < proxy.indexOf('const conversationId = uuid(body.conversation_id)'));
 });
 
-test('prioridad y sucursal son acciones de conversación con permiso de gestión y alcance', () => {
-  assert.match(proxy, /"pin", "unpin", "stage", "priority", "branch", "star", "unstar", "delete"\]\.includes\(action\)/);
-  assert.match(proxy, /const permission = \["send", "read", "star", "unstar"\]\.includes\(action\) \? "messages\.respond" : "messages\.manage"/);
-  const branch = section('if (action === "branch")', 'const targetMessageId');
-  assert.match(branch, /from\("smyl_branches"\)[\s\S]*?\.eq\("tenant_id", auth\.tenantId\)/, 'la sucursal se valida contra el tenant');
-  assert.match(branch, /branch\.active === false/);
-  assert.match(branch, /forwarded\.branch_name = text\(branch\.name, 160\)/, 'el nombre sale de la base, no del navegador');
+test('prioridad y las dos rutas de sucursal requieren gestión y usan el alcance de la clínica', () => {
+  const branch = section('if (action === "set_branch" || action === "branch")', 'if (action === "resume_with_context")');
+  assert.match(branch, /requirePermission\(actor, "messages\.manage"/);
+  assert.match(branch, /"smyl_chat_route_allowed"/);
+  assert.match(branch, /"smyl_chat_set_branch"/);
+  assert.match(branch, /p_tenant: auth\.tenantId, p_actor: actor\.id, p_conversation: conversationId, p_branch: target/);
+  assert.match(branch, /branch_name:branch\?\.name/);
   assert.doesNotMatch(branch, /body\.branch_name/);
-  assert.match(branch, /smyl_member_branches/, 'un rol con alcance limitado sólo usa sus sucursales');
-  assert.match(section('if (action === "priority")', 'if (action === "branch")'), /INBOX_PRIORITIES\.includes\(priority\)/);
+  assert.match(section('if (action === "priority")', 'const targetMessageId'), /INBOX_PRIORITIES\.includes\(priority\)/);
 });
 
 test('el proxy y el contrato anuncian la versión 1.6', () => {

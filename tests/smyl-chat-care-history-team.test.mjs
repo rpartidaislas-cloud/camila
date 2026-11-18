@@ -49,6 +49,6 @@ test('roster and transfer validate the same tenant’s explicit profiles', async
   } });
   assert.equal(await eligible('clinic'),data);
   const migration = read('supabase/migrations/20261118150000_smyl_chat_access_and_private_handoff.sql');
-  assert.match(migration,/smyl_chat_mode\(p_tenant,p_target\)='none'/);
+  assert.match(migration,/not public\.smyl_chat_recipient_allowed\(p_tenant,p_target,p_conversation\)/);
   assert.match(edge,/const recipient = roster\.find\(member => member\.id === target\)/);
 });

@@ -47,10 +47,10 @@ test('los totales, los vínculos de pacientes y el cierre de una alerta se limit
 test('la sincronización de asignaciones retira los chats invisibles y actualiza la lista', () => {
   const edge = read('supabase/functions/lana-inbox/index.ts');
   const ui = read('smyl-inbox.js');
-  assert.match(edge, /\.gte\("assigned_at",stamp\)/);
+  assert.match(edge, /admin\.rpc\("smyl_chat_scope_changed", \{ p_tenant: tenantId, p_actor: actor\.id, p_since: stamp \}\)/);
   assert.match(edge, /await attachBranchChanges\(actor, auth\.tenantId, url, scopedBody, remote\.body\)/);
   assert.match(edge, /body\.removed_conversation_ids\s*=\s*known\.filter\(id => deleted\.has\(id\) \|\| !visible\.has\(id\)\)/);
-  assert.match(edge, /body\.branch_changed\s*=.*changedOwner.*changedBranch/);
+  assert.match(edge, /body\.branch_changed\s*=\s*changed.data === true/);
   assert.match(ui, /if \(data\.branch_changed\)[\s\S]{0,240}await loadList\(true\)/);
 });
 

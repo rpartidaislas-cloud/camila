@@ -19,7 +19,7 @@ test('Cobros ofrece «Abrir chat» sólo si el paciente tiene chat vinculado, le
     assert.match(f, /from\('camila_lana_handoffs'\)\.select\('patient_id,lana_conversation_id,lana_channel,updated_at'\)/);
     assert.match(f, /chatLinks\[x\.p\.id\]\?'<button data-chat=/);
     assert.match(f, /window\.SmylInbox\.open\(l\.conversation\)/);
-    assert.match(f, /accountSummary:accountSummary,contactContext:contactContext,account:function\(patientId\)/);
+    assert.match(f, /accountSummary:accountSummary,\s*contactContext:contactContext,\s*account:function\(patientId\)/);
   }
 });
 
