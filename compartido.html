@@ -40,7 +40,7 @@ input:focus{outline:2px solid #5EEAD4;border-color:var(--teal)}
 <main>
   <div class="brand"><img src="icons/smyl_pwa.png" alt="" width="24" height="24"><span>Archivo compartido de forma privada</span></div>
   <section class="card" id="card" aria-live="polite"><p class="sub">Abriendo el archivo…</p></section>
-  <script>document.addEventListener("DOMContentLoaded",function(){var c=document.getElementById("card");if(window.SmylSkeleton&&c&&c.children.length===1&&c.firstElementChild.className==="sub")c.innerHTML=window.SmylSkeleton.html("detail",{label:"Abriendo el archivo"});});</script>
+  <script>document.addEventListener("DOMContentLoaded",function(){var c=document.getElementById("card");if(window.SmylSkeleton&&c&&c.children.length===1&&c.firstElementChild.className==="sub")c.replaceChildren(window.SmylSkeleton.node("detail",{label:"Abriendo el archivo"}));});</script>
   <p class="fine">Este enlace es personal y vence solo. Si no lo esperabas, ciérralo; no necesitas hacer nada más.</p>
 </main>
 <script>
