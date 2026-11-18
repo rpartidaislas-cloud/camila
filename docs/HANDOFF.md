@@ -1,14 +1,5 @@
 # Bitácora compartida — SMYL
 
-## 2026-11-18 — Claude Code — Varios consultorios (sucursales), fases 1 y 2: alcance por sede y selector
-
-- **Idea**: cada consultorio se administra por separado; cada persona ve solo los suyos; el administrador global ve todos y una vista Global. Hoy los permisos son por clínica completa, así que se agrega el ALCANCE sin tocar aún las políticas de las tablas (eso es la Fase 3).
-- **Fase 1 (base de datos)** — `20261118140000_smyl_branch_scope.sql`: permiso nuevo `branches.all` (administrador global; lo reciben los roles de sistema `propietario` y `administrador`, asignable a otros desde Equipo; la dueña ya cumple todos); `smyl_member_branches` pasa a ser el alcance y quien trabaja sin sede queda en la predeterminada (backfill); funciones `smyl_branch_access(clínica, sede)` y `smyl_my_branches()`. Probada en Postgres 16 real con el esquema del núcleo: dueña y administrador ven todas las sedes y `can_all`; recepción con una sola sede ve solo esa y no es global; sin clínica no ve nada; la migración es idempotente.
-- **Fase 2 (interfaz)** — `smyl-branch-scope.js`: selector «Consultorio» bajo el logo (solo con 2 o más sedes; «Todos (vista global)» solo con `branches.all`). Filtra por la sede activa los `select()` de citas, pagos, cajas, cargos y cotizaciones envolviendo `sb.from`, sin reescribir cada módulo; pacientes, servicios y profesionales siguen siendo de toda la clínica. La elección se guarda por clínica; al cambiar, la página se recarga para que todos los módulos queden en la misma sede. Una clínica con una sola sede se ve exactamente igual.
-- **Es selección, NO seguridad**: quién puede leer qué lo decidirá la base (Fase 3: políticas que exijan `smyl_branch_access`). Hasta entonces alguien técnico podría consultar otra sede por la API.
-- **Sin la migración aplicada no pasa nada**: `smyl_my_branches` no existe, la llamada falla en silencio y no se muestra ni filtra nada.
-- **Pendiente**: aplicar la migración; Fase 3 (RLS por sede, módulo por módulo, con pruebas de aislamiento entre sedes); Fase 4 (vista Global de solo lectura: ingresos por consultorio, comparativo, caja total); Fase 5 (recibos con datos de la sede, reportes y canales por sede). Decisiones tomadas por defecto, cambiables: pacientes compartidos; mismo rol en todas las sedes de una persona; folio de recibo por clínica; administrador global = permiso asignable. Sin verificar visualmente con una sesión real (no hay login aquí): pruebas unitarias y de migración sí.
-
 ## 2026-11-17 — Codex — Responsable de chat e historial de atención en Ficha 360
 
 - Cambio posterior a la publicación `e5ae5c54` de respuestas rápidas y emojis. En la cabecera queda «Agendar cita» como acción principal y «Atiende el chat» en lugar de los puntos suspensivos. La asignación del hilo no cambia el médico de una cita ni la sucursal clínica del paciente.
@@ -11550,12 +11541,7 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Archivos:** `smyl-clinic-admin.js` v14, `smyl-clinic-admin.css` v11, `app.html`, `sw.js` (caché `…-equipo-ficha-v1`), copias en `mobile/www/`; pruebas `tests/equipo-ficha.test.mjs` (9) y `tests/qa/equipo-ficha-smoke.cjs` (administrador, consulta, base sin actualizar, fallo de red, encabezado en Configuración y celular); ajustadas 6 pruebas que fijaban textos, clases y versiones de la pantalla anterior.
 - **Pendiente:** aplicar en producción el workflow «SMYL Equipo - teléfono interno y traslado entre sedes (migración)» para activar teléfono y traslado; limpiar los 6 doctores de prueba (`Céd. PRUEBA-00x`) que aparecen en producción; doctor en dos clínicas distintas (proyecto aparte).
 
-## 2026-11-18 — Claude Code — Cobrar desde el chat, en el mismo lugar
-- **Problema:** «Cobrar» en el chat (barra de acciones y tarjeta «Cuenta del paciente») abría el selector genérico de tareas («PASO 2 DE 2 · Registrar cobro») que pedía elegir al paciente de una lista de hasta 200, aunque la conversación ya tenía paciente vinculado, y luego saltaba a la pantalla de Cobros.
-- **Cambio (solo frontend):** `openCareTask('payment')` (smyl-inbox.js v65) llama a la nueva `SmylFinance.collect(patientId, patient)` (smyl-finance.js v55), que abre el **cobro guiado** encima del chat con el paciente ya elegido (cuenta, vencido, sugerencia «Cobrar saldo $X», servicio de hoy, cotización, anticipo). Sin paciente vinculado se abre el mismo diálogo con su buscador («¿A quién le cobras?»). Devuelve una promesa `{ok}`/`{ok:false,reason:'role'|'load'}` y el chat avisa si el rol no permite cobrar o no cargó la caja. Tras cobrar, `smyl:finance-updated` refresca la «Cuenta del paciente» del chat.
-- **Técnico:** `#finance-dialog` estaba dentro de `#p-caja` (pantalla oculta fuera de Cobros, por eso había que navegar); ahora vive en `<body>` y `smyl-finance.css` v35 le da las mismas reglas base (`body>.finance-dialog …`). Cobros sigue abriéndolo igual.
-- **No cambia:** permisos (`finance.manage` + alcance de la conversación), RPC, saldos ni recibos; «Nueva tarea» y la ficha del paciente siguen con el selector genérico.
-- **Pruebas:** `tests/smyl-inbox-cobrar-en-chat.test.mjs` y humo de navegador `tests/qa/cobrar-desde-chat-smoke.cjs`. Ya fallaban ANTES de este cambio (no relacionados): `smyl-inbox-composer-dialogs-browser.test.mjs` (3 pruebas del compositor en main), `cobros-pending-visits-smoke` y `cobros-fiscal-receipts-smoke` (objetivos táctiles/filtros en celular) y `agenda-billing-smoke` (tiempo de espera).
+## 2026-11-17 — Codex — Finanzas v5: arquitectura profesional y flujo operativo único
 
 ## 2026-11-18 — Claude Code — Equipo: SQL para pegar en Supabase (el workflow no arranca por facturación de GitHub)
 - Las dos ejecuciones del workflow «SMYL Equipo - teléfono interno y traslado entre sedes (migración)» fallaron en 1 s sin ejecutar pasos: GitHub muestra «update your payment method» (pago de la cuenta fallido) y no arranca los jobs.
@@ -11571,3 +11557,18 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Pruebas:** `tests/smyl-vincular-paciente-chat.test.mjs`; actualizada `smyl-inbox-automatic-patient-link-stage8.test.mjs` (la regla «no preseleccionar» ahora se expresa con «Elige una opción»). Probado en navegador con un entorno simulado (18 comprobaciones, celular incluido).
 - **Ya fallaban en main antes de este cambio:** `smyl-inbox-composer-dialogs-browser.test.mjs` (3) y `smyl-ui-v3.test.mjs` «deuda tipográfica» (938 → 939 por otra sesión).
 - **No verificado:** que `ir('inbox')` reabra exactamente la conversación en la que estabas (depende de la selección en memoria del chat); probar en la app.
+
+- **Nombre y alcance:** el módulo conserva la ruta interna `caja`, pero toda la interfaz visible se unifica como **Finanzas**: navegación, encabezados, Configuración, Agenda, Cotizaciones, Consultorio, alertas, catálogo y mensajes. No se modificaron tablas, migraciones, RLS ni Edge Functions.
+- **Nueva arquitectura:** `Resumen` → `Cuentas por cobrar` → `Pagos y recibos` → `Facturación` → `Caja`. El Resumen es la entrada predeterminada y presenta prioridades verificables: cartera vencida, cuentas por crear, saldos a favor y cajas abiertas por más de 18 horas.
+- **Proceso guiado:** se añadió el recorrido «Del saldo al cierre» con cuatro pasos accionables: cuenta, pago/recibo, factura y conciliación de caja. Cada sección conserva únicamente sus acciones relevantes; las operaciones menos frecuentes quedan agrupadas en `Operaciones`.
+- **Simplificación:** «Llegó sin cita» permanece en Agenda; Finanzas deja de mezclar ese proceso. Se eliminó el título duplicado dentro del módulo y se mantuvo una sola acción primaria contextual por vista.
+- **PWA y responsive:** pestañas desplazables sin romper el ancho, métricas 2 × 2 en móvil, prioridades apiladas, flujo vertical y acciones adaptadas a pantallas pequeñas. Se verificó sin desborde horizontal en escritorio, tableta y PWA.
+- **Versiones principales:** `smyl-finance.js?v=55`, `smyl-finance.css?v=40`, `smyl-navigation.js?v=28`, `smyl-professional-v3.js?v=10`, `smyl-settings-hub.js?v=11`, `smyl-proposals.js?v=18`, `smyl-consultorio.js?v=7`; los accesos secundarios actualizados usan `smyl-schedule.js?v=45`, `smyl-inbox.js?v=65`, `smyl-service-catalog.js?v=8` y `smyl-task-center.js?v=7`.
+- **Sincronización móvil:** `mobile/scripts/sync-web.js` incluye ahora Consultorio, Centro de alertas y Catálogo de servicios para evitar diferencias futuras entre web y `mobile/www/`.
+- **Verificación:** 346 pruebas relacionadas ejecutadas, 293 aprobadas, 53 omitidas por no tener Chromium en su propio entorno y 0 fallos. El QA visual dedicado (`tests/smyl-finance-information-architecture-v5-browser.cjs`) sí se ejecutó con navegador y aprobó escritorio, tableta y PWA.
+
+## 2026-11-18 — Integración conservada al publicar Finanzas v5
+
+- **Cobro desde el chat:** `SmylFinance.collect(patientId, patient)` abre el cobro guiado sobre la conversación con el paciente ya seleccionado, sin obligar a navegar a Finanzas. El diálogo se mantiene fuera de la pantalla oculta para funcionar también desde Mensajería.
+- **Alcance por sucursal:** se conserva `smyl-branch-scope.js` y la migración `20261118140000_smyl_branch_scope.sql` de la rama principal para que la nueva estructura financiera respete el consultorio seleccionado.
+- **Compatibilidad:** la ruta técnica continúa siendo `caja`, aunque toda la interfaz visible permanece como **Finanzas**.

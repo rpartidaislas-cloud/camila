@@ -38,7 +38,7 @@
     ['Inicio', 'dashboard', 'home'],
     ['Agenda', 'agenda', 'calendar'],
     ['Pacientes', 'pacientes', 'patients'],
-    ['Cobros', 'caja', 'cash'],
+    ['Finanzas', 'caja', 'cash'],
     ['Cotizaciones', 'propuestas', 'quote']
   ];
   // Centro de comunicación: una sola jerarquía para conversar, preparar plantillas

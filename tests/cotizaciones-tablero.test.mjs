@@ -7,7 +7,7 @@ const read = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
 test('Cotizaciones tiene entrada propia en la barra lateral (web y móvil) y el nombre es único en títulos y pantalla', () => {
   for (const base of ['', 'mobile/www/']) {
     const nav = read(base + 'smyl-navigation.js');
-    assert.match(nav, /\['Cobros', 'caja', 'cash'\],\s*\['Cotizaciones', 'propuestas', 'quote'\]/);
+    assert.match(nav, /\['Finanzas', 'caja', 'cash'\],\s*\['Cotizaciones', 'propuestas', 'quote'\]/);
     assert.match(nav, /quote: '<path d="M14 2H6a2 2 0 0 0-2 2v16/);
     const panel = read(base + 'smyl-panel.js');
     assert.match(panel, /TITULOS\.propuestas = 'Cotizaciones'/);
@@ -57,7 +57,7 @@ test('acciones rápidas por etapa, con permiso de seguimiento y sin enviar nada 
     const p = read(base + 'smyl-proposals.js');
     assert.match(p, /access\.followup&&key==='ready'\)box\.append\(b\('Marcar presentada'/);
     assert.match(p, /access\.followup&&key==='awaiting'\)box\.append\(b\('Registrar respuesta'/);
-    assert.match(p, /key==='accepted'&&window\.SmylFinance&&typeof window\.SmylFinance\.fromProposal==='function'\)box\.append\(b\('Pasar a Cobros'/);
+    assert.match(p, /key==='accepted'&&window\.SmylFinance&&typeof window\.SmylFinance\.fromProposal==='function'\)box\.append\(b\('Pasar a Finanzas'/);
     assert.match(p, /smyl_record_proposal_event',\{p_event_id:eventId,p_proposal_id:item\.row\.id,p_proposal_revision:item\.row\.revision/);
     assert.match(p, /if\(\(type==='declined'\|\|type==='changes_requested'\)&&!text\)/);
     assert.match(p, /from\('camila_lana_handoffs'\)\.select\('patient_id,lana_conversation_id,lana_channel,updated_at'\)/);

@@ -26,7 +26,7 @@ test('stage 5 mutations are permissioned, idempotent and transactional',()=>{
 });
 
 test('stage 5 UI distinguishes receipts, CFDI drafts and SaaS billing',()=>{
-  assert.match(ui,/<h1>Cobros<\/h1>/);
+  assert.match(ui,/<h1>Finanzas<\/h1>/);
   assert.doesNotMatch(ui,/Separado de la suscripción de SMYL/, 'la leyenda se retiró a petición de Ricardo');
   assert.match(ui,/Comprobante interno de pago/);
   assert.match(ui,/no consulta, timbra ni envía información al SAT o a un PAC/);

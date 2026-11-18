@@ -40,7 +40,7 @@
       { title: 'Automatizaciones', desc: 'Recordatorios, entregas al equipo y reglas.', group: 'Atención automática', icon: 'automation', action: 'Configurar', route: 'conexiones', target: '[data-connection-tab="automations"]' },
       { title: 'Probar al asistente', desc: 'Revisa respuestas antes de activar cambios.', group: 'Atención automática', icon: 'lab', action: 'Probar', route: 'conexiones', target: '[data-connection-tab="lab"]' }
     ] },
-    { id: 'cobros', title: 'Cobros', blurb: 'Pagos, caja y datos fiscales.', icon: 'payments', items: [
+    { id: 'cobros', title: 'Finanzas', blurb: 'Cuentas, pagos, caja y facturación.', icon: 'payments', items: [
       { title: 'Recibos', desc: 'Comprobantes, servicios cobrados y seguimiento fiscal.', group: 'Operación diaria', icon: 'payments', action: 'Abrir', route: 'caja', embed: true, target: '[data-finance-tab="receipts"]' },
       { title: 'Corte de caja', desc: 'Cierra el día y cuadra lo cobrado.', group: 'Operación diaria', icon: 'cash', action: 'Revisar', route: 'caja', embed: true, target: '[data-finance-tab="cash"]' },
       { title: 'Facturación', desc: 'Datos fiscales de la clínica y conexión con Facturapi.', group: 'Facturación y reglas', icon: 'template', action: 'Configurar', route: 'caja', embed: true, element: '#billing-setup', ensure: 'billing' },
