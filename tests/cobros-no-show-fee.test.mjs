@@ -33,9 +33,10 @@ test('el cargo se abre con la cita ligada, concepto libre «Inasistencia a cita 
   assert.match(js, /f\.elements\.price\.value=Number\(state\.noShowFee\)\.toFixed\(2\)/);
 });
 
-test('el monto se define en «Más acciones → Cobro por inasistencia», sólo para quien gestiona cobros, con aviso de política', () => {
-  assert.match(js, /id="finance-no-show-fee"><strong>Cobro por inasistencia<\/strong>/);
-  assert.match(js, /'finance-new-advance','finance-no-show-fee'\]\.forEach/);
+test('el monto se define en «Operaciones → Política de inasistencia», sólo para quien gestiona finanzas, con aviso de política', () => {
+  assert.match(js, /id="finance-no-show-fee"><strong>Política de inasistencia<\/strong>/);
+  assert.match(js, /\(state\.tab==='summary'\|\|state\.tab==='accounts'\|\|state\.tab==='receipts'\)&&state\.canManage/);
+  assert.match(js, /noShow\.onclick=function\(\)\{openNoShowFee\(\);\}/);
   assert.match(js, /rpc\('smyl_set_no_show_fee',\{p_amount:amount\}\)/);
   assert.match(js, /<strong>Nunca se cobra solo<\/strong>/);
   assert.match(js, /Avisa a tus pacientes de esta política/);
@@ -59,9 +60,9 @@ test('la migración y las versiones quedan publicadas y sincronizadas con la app
   assert.ok(fs.existsSync(path.join(root, 'supabase/migrations/20261108160000_smyl_no_show_fee.sql')));
   assert.match(read('.github/workflows/smyl-pendientes-cargo-migracion.yml'), /20261108160000_smyl_no_show_fee\.sql/);
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-finance\.js\?v=55/);
-    assert.match(read(file), /smyl-finance\.css\?v=39/);
-    assert.match(read(file), /smyl-schedule\.js\?v=44/);
+    assert.match(read(file), /smyl-finance\.js\?v=56/);
+    assert.match(read(file), /smyl-finance\.css\?v=40/);
+    assert.match(read(file), /smyl-schedule\.js\?v=45/);
   }
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-schedule.js', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);

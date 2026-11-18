@@ -9,7 +9,8 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const js = read('smyl-finance.js');
 const css = read('smyl-finance.css');
 
-test('Cobros abre en saldos pendientes y separa las tareas por destino', () => {
+test('Finanzas abre en Resumen y separa las tareas por destino', () => {
+  assert.match(js, /tab:'summary'/);
   assert.match(js, /accountFilter:'open'/);
   assert.match(js, /data-metric-sub="overdue">Ver vencidas/);
   assert.match(js, /Hacer corte/);
@@ -51,7 +52,8 @@ test('web y PWA publican los mismos archivos y versiones del workspace', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'app.html', 'sw.js']) {
     assert.equal(read('mobile/www/' + file), read(file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=39/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=55/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=40/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=56/);
   assert.match(read('sw.js'), /finance-workspace-v4/);
+  assert.match(read('sw.js'), /finanzas-workspace-v5/);
 });

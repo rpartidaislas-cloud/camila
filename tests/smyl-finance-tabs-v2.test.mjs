@@ -1,5 +1,4 @@
-// Cobros v2 (maqueta aprobada el 2026-11-08): 4 pestañas, «Por cobrar» unifica «Por cobrar hoy» y
-// «Cuentas por cobrar», las cifras son accesos directos y la tarjeta de seguimiento pasa a una franja.
+// Finanzas v5: un resumen orienta el trabajo y separa cuentas, pagos, caja y facturación.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -9,11 +8,12 @@ const js = read('smyl-finance.js');
 const css = read('smyl-finance.css');
 const nav = js.slice(js.indexOf('<nav class="finance-tabs"'), js.indexOf('</nav>', js.indexOf('<nav class="finance-tabs"')));
 
-test('quedan cuatro pestañas con Recibos primero y los mismos identificadores que enlaza Configuración', () => {
-  assert.match(js, /nav\.prepend\(receiptTab\)/);
+test('Finanzas conserva cinco destinos claros y abre con Resumen', () => {
+  assert.match(js, /nav\.prepend\(summaryTab\)/);
+  assert.match(js, /accountTab\.after\(receiptTab\)/);
   assert.match(js, /if\(paymentTab\)paymentTab\.remove\(\)/);
-  for (const label of ['Recibos', '>Por cobrar<em hidden></em>', '>Caja<', '>Facturación<']) assert.ok(js.includes(label), label);
-  for (const old of ['Por cobrar hoy', 'Cuentas por cobrar', 'Pagos y recibos', 'Corte de caja', 'Preparación CFDI', 'Plantillas']) assert.ok(!nav.includes(old), old);
+  for (const label of ["'Resumen'", 'Cuentas por cobrar', 'Pagos y recibos', '>Caja<', '>Facturación<']) assert.ok(js.includes(label), label);
+  for (const old of ['Por cobrar hoy', 'Corte de caja', 'Preparación CFDI', 'Plantillas']) assert.ok(!nav.includes(old), old);
   const hub = read('smyl-settings-hub.js');
   for (const id of ['receipts', 'cash']) assert.match(hub, new RegExp('data-finance-tab="' + id + '"'));
   // La configuración fiscal ya no es una pestaña de Cobros: Configuración incrusta #billing-setup.
@@ -53,15 +53,18 @@ test('los tamaños de letra nuevos respetan el mínimo de 12 px y la web y el co
   for (const f of ['smyl-finance.js', 'smyl-finance.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
 
-test('el módulo es compacto: sin encabezado ni leyenda, acciones junto a las pestañas y sin avisos fijos de carga', () => {
+test('el módulo tiene identidad profesional, acciones contextuales y sin avisos fijos de carga', () => {
   assert.doesNotMatch(js, /CONTROL FINANCIERO DENTAL|Separado de la suscripción|preparación fiscal por paciente/);
   assert.doesNotMatch(js, /markFinanceBoundary/);
-  assert.doesNotMatch(js, /<header class="finance-head">/);
-  assert.match(js, /<div class="finance-bar"><nav class="finance-tabs"[\s\S]*?<\/nav><div class="finance-head-actions">/);
+  assert.match(js, /finance-page-head finance-actionsbar/);
+  assert.doesNotMatch(js, /finance-titlebar|GESTIÓN FINANCIERA/);
+  assert.match(js, /function renderFinanceActions\(\)/);
+  assert.match(js, /Registrar pago/);
+  assert.match(js, /finance-operations-menu/);
   assert.match(js, /render\(\);notify\(''\);\}catch\(e\)/, 'al cargar bien se limpia el aviso de carga');
   assert.match(js, /notify\.timer=setTimeout\(function\(\)\{h\.replaceChildren\(\);\},action\?15000:6000\)/);
   assert.match(css, /\.finance-page>h1\{position:absolute/);
-  assert.match(css, /\.finance-bar\{display:flex/);
+  assert.match(css, /\.finance-actionsbar\{/);
   assert.match(css, /@media screen and \(max-width:420px\)\{[\s\S]*?\.finance-metrics\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
 });
 
@@ -298,18 +301,19 @@ test('Inventario: «Registrar consumo», «Ajustar inventario» y «Comprar y re
   for (const f of ['smyl-inventory.js', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
 
-test('Cobros paso 1: abre en Por cobrar con un solo contador, 4 filtros, acciones ligeras y vacío único', () => {
-  assert.match(js, /actor:null,tab:'accounts'/);
+test('Finanzas abre en Resumen y conserva la cuenta detallada con sus filtros', () => {
+  assert.match(js, /actor:null,tab:'summary'/);
   // El contador de la pestaña es el mismo del menú: pacientes pendientes de cargo.
   assert.match(js, /var tabBadge=document\.querySelector\('\[data-finance-tab="accounts"\] em'\);if\(tabBadge\)\{tabBadge\.textContent=String\(rows\.length\)/);
   assert.doesNotMatch(js, /tabCount\.textContent=String\(openCount\)/);
-  assert.match(js, /accountTab\.after\(receiptTab\)/, 'Recibos queda después de Por cobrar');
+  assert.match(js, /accountTab\.after\(receiptTab\)/, 'Pagos y recibos queda después de Cuentas por cobrar');
+  assert.match(js, /nav\.prepend\(summaryTab\)/, 'Resumen queda al inicio');
   assert.match(js, /var MORE_FILTERS=\['attention','settled'\]/);
   assert.match(js, /<option value="attention">Requieren acción<\/option><option value="settled">Liquidadas<\/option>/);
   assert.match(js, /class="finance-link-action" data-visit-nocharge=/);
   assert.match(js, /Sin abonos todavía/);
   assert.match(js, /Todo cobrado por ahora/);
-  assert.match(js, /pageHead=el\('div','finance-page-head'\)/);
+  assert.match(js, /actionsbar=el\('header','finance-page-head finance-actionsbar'\)/);
   assert.match(css, /#p-caja \.finance-account-open::after\{content:" →"\}/);
   const app = read('app.html'), shell = read('smyl-professional-v3.css');
   assert.match(app, /new MutationObserver\(function\(\)\{place\(\);\}\)/, 'el pie de derechos siempre queda al final del contenido');

@@ -77,7 +77,9 @@ test('la ficha y los adjuntos vuelven a comprobar el alcance clínico del pacien
 
 test('la resolución manual ya no preselecciona un expediente ambiguo', () => {
   assert.doesNotMatch(handoffUi, /i===0\?'checked'/);
-  assert.match(handoffUi, /!existing&&candidates\?'disabled'/);
+  // con coincidencias nada queda elegido y el botón espera («Elige una opción»); sin ellas, solo «Crear paciente nuevo» queda marcado
+  assert.match(handoffUi, /if\(!candidates\.length\)newOption\.checked=true/);
+  assert.match(handoffUi, /Elige una opción/);
   assert.match(handoffUi, /patient_link_preview/);
   assert.match(handoffUi, /patient_link_confirm/);
   assert.match(handoffUi, /\/functions\/v1\/lana-inbox/);

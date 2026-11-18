@@ -4,12 +4,12 @@ import fs from 'node:fs';
 
 const read = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 
-test('la sección se llama Cobros en la navegación, el título y la pantalla (web y móvil)', () => {
+test('la sección se llama Finanzas en la navegación, el título y la pantalla (web y móvil)', () => {
   for (const base of ['', 'mobile/www/']) {
-    assert.match(read(base + 'smyl-navigation.js'), /\['Cobros', 'caja', 'cash'\]/);
-    assert.match(read(base + 'smyl-professional-v3.js'), /caja:\['Cobros'/);
-    assert.match(read(base + 'smyl-finance.js'), /<h1>Cobros<\/h1>/);
-    assert.doesNotMatch(read(base + 'smyl-navigation.js'), /\['Finanzas'/);
+    assert.match(read(base + 'smyl-navigation.js'), /\['Finanzas', 'caja', 'cash'\]/);
+    assert.match(read(base + 'smyl-professional-v3.js'), /caja:\['Finanzas'/);
+    assert.match(read(base + 'smyl-finance.js'), /<h1>Finanzas<\/h1>/);
+    assert.doesNotMatch(read(base + 'smyl-navigation.js'), /\['Cobros'/);
   }
 });
 
@@ -168,10 +168,10 @@ test('el chat no toca tablas ni el tenant: usa SmylFinance.contactContext', () =
   for (const base of ['', 'mobile/www/']) assert.doesNotMatch(read(base + 'smyl-inbox.js'), /tenant_id|window\.tenantId|smyl_collection_(prefs|reminders)'\)/);
 });
 
-test('Cobros: filtro «Vencidas» de Por cobrar sin envíos automáticos (cada recordatorio pasa por el chat)', () => {
+test('Finanzas: filtro «Vencidas» de Cuentas por cobrar sin envíos automáticos (cada recordatorio pasa por el chat)', () => {
   for (const base of ['', 'mobile/www/']) {
     const f = read(base + 'smyl-finance.js');
-    assert.match(f, /<button data-finance-tab="accounts" aria-selected="true">Por cobrar<em hidden><\/em><\/button>/);
+    assert.match(f, /<button data-finance-tab="accounts" aria-selected="false">Cuentas por cobrar<em hidden><\/em><\/button>/);
     assert.doesNotMatch(f, /data-finance-tab="today"/);
     assert.match(f, /data-account-filter="overdue">Vencidas/);
     assert.match(f, /<div id="finance-today" hidden><\/div>/);

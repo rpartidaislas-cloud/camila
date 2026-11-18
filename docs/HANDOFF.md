@@ -11547,3 +11547,46 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
   - Tolerante a base sin actualizar: si falta `smyl_professionals.phone` no se muestra el teléfono; si falta `smyl_schedule_rules` se oculta la tarjeta de traslado.
 - **Archivos:** `smyl-clinic-admin.js` v14, `smyl-clinic-admin.css` v11, `app.html`, `sw.js` (caché `…-equipo-ficha-v1`), copias en `mobile/www/`; pruebas `tests/equipo-ficha.test.mjs` (9) y `tests/qa/equipo-ficha-smoke.cjs` (administrador, consulta, base sin actualizar, fallo de red, encabezado en Configuración y celular); ajustadas 6 pruebas que fijaban textos, clases y versiones de la pantalla anterior.
 - **Pendiente:** aplicar en producción el workflow «SMYL Equipo - teléfono interno y traslado entre sedes (migración)» para activar teléfono y traslado; limpiar los 6 doctores de prueba (`Céd. PRUEBA-00x`) que aparecen en producción; doctor en dos clínicas distintas (proyecto aparte).
+
+## 2026-11-17 — Codex — Finanzas v5: arquitectura profesional y flujo operativo único
+
+## 2026-11-18 — Claude Code — Equipo: SQL para pegar en Supabase (el workflow no arranca por facturación de GitHub)
+- Las dos ejecuciones del workflow «SMYL Equipo - teléfono interno y traslado entre sedes (migración)» fallaron en 1 s sin ejecutar pasos: GitHub muestra «update your payment method» (pago de la cuenta fallido) y no arranca los jobs.
+- `docs/sql-equipo-pegar-en-supabase.sql` junta las migraciones 20261118120000 y 20261118130000 en una transacción idempotente y termina con una fila de verificación (5 columnas `true`). Probado dos veces seguidas en PGlite.
+- Al pegarlo en el SQL Editor no se registra la versión en `supabase_migrations.schema_migrations`; los centinelas de `scripts/migration-sentinels.mjs` permiten registrarlas después.
+- **Pendiente del dueño:** regularizar el pago en GitHub (Settings → Billing and plans) para que los workflows vuelvan a funcionar.
+
+## 2026-11-18 — Claude Code — Chat: «Vincular paciente» y expediente directo
+- **Qué cambia (solo frontend; sin backend ni migración):**
+  - **Ya vinculada:** «Expediente» (barra de acciones y Ficha 360) abre el expediente **directo**, sin la ventana «Preparar expediente clínico» (que solo decía «ya está vinculada» con un botón). Aparece un botón flotante **«← Volver al chat»** (`smyl-lana-handoff.js` v6, `.css` v2) que regresa a Mensajes y se quita al ir a otra pantalla. Si `open()` descubre que ya hay vínculo (p. ej. desde la lista de atención), también abre directo.
+  - **Sin vincular:** la ventana se llama **«Vincular paciente»** (y el botón de la barra dice «Vincular paciente» en vez de «Expediente»; en la Ficha 360, «Resolver identidad» → «Vincular paciente»). Con coincidencias pregunta «¿Es alguno de estos pacientes?» sin preseleccionar; sin contacto (Instagram/Messenger sin teléfono ni correo) lo explica. Nuevo **buscador de pacientes existentes** (nombre, teléfono o correo; hasta 8; texto limpiado antes de consultar `camila_pacientes` de la clínica) y el botón dice a quién vincula («Vincular a …» / «Crear paciente nuevo»).
+- **Backend sin cambios:** vincular reutiliza `patient_link_confirm` con el `patient_id` elegido (la RPC `camila_confirmar_lana_handoff` ya valida el tenant). La vinculación automática (`auto_patient_link`) ya existía; la ventana solo aparece cuando hay duda.
+- **Pruebas:** `tests/smyl-vincular-paciente-chat.test.mjs`; actualizada `smyl-inbox-automatic-patient-link-stage8.test.mjs` (la regla «no preseleccionar» ahora se expresa con «Elige una opción»). Probado en navegador con un entorno simulado (18 comprobaciones, celular incluido).
+- **Ya fallaban en main antes de este cambio:** `smyl-inbox-composer-dialogs-browser.test.mjs` (3) y `smyl-ui-v3.test.mjs` «deuda tipográfica» (938 → 939 por otra sesión).
+- **No verificado:** que `ir('inbox')` reabra exactamente la conversación en la que estabas (depende de la selección en memoria del chat); probar en la app.
+
+- **Nombre y alcance:** el módulo conserva la ruta interna `caja`, pero toda la interfaz visible se unifica como **Finanzas**: navegación, encabezados, Configuración, Agenda, Cotizaciones, Consultorio, alertas, catálogo y mensajes. No se modificaron tablas, migraciones, RLS ni Edge Functions.
+- **Nueva arquitectura:** `Resumen` → `Cuentas por cobrar` → `Pagos y recibos` → `Facturación` → `Caja`. El Resumen es la entrada predeterminada y presenta prioridades verificables: cartera vencida, cuentas por crear, saldos a favor y cajas abiertas por más de 18 horas.
+- **Proceso guiado:** se añadió el recorrido «Del saldo al cierre» con cuatro pasos accionables: cuenta, pago/recibo, factura y conciliación de caja. Cada sección conserva únicamente sus acciones relevantes; las operaciones menos frecuentes quedan agrupadas en `Operaciones`.
+- **Simplificación:** «Llegó sin cita» permanece en Agenda; Finanzas deja de mezclar ese proceso. Se eliminó el título duplicado dentro del módulo y se mantuvo una sola acción primaria contextual por vista.
+- **PWA y responsive:** pestañas desplazables sin romper el ancho, métricas 2 × 2 en móvil, prioridades apiladas, flujo vertical y acciones adaptadas a pantallas pequeñas. Se verificó sin desborde horizontal en escritorio, tableta y PWA.
+- **Versiones principales:** `smyl-finance.js?v=55`, `smyl-finance.css?v=40`, `smyl-navigation.js?v=28`, `smyl-professional-v3.js?v=10`, `smyl-settings-hub.js?v=11`, `smyl-proposals.js?v=18`, `smyl-consultorio.js?v=7`; los accesos secundarios actualizados usan `smyl-schedule.js?v=45`, `smyl-inbox.js?v=65`, `smyl-service-catalog.js?v=8` y `smyl-task-center.js?v=7`.
+- **Sincronización móvil:** `mobile/scripts/sync-web.js` incluye ahora Consultorio, Centro de alertas y Catálogo de servicios para evitar diferencias futuras entre web y `mobile/www/`.
+- **Verificación:** 346 pruebas relacionadas ejecutadas, 293 aprobadas, 53 omitidas por no tener Chromium en su propio entorno y 0 fallos. El QA visual dedicado (`tests/smyl-finance-information-architecture-v5-browser.cjs`) sí se ejecutó con navegador y aprobó escritorio, tableta y PWA.
+
+## 2026-11-18 — Integración conservada al publicar Finanzas v5
+
+- **Cobro desde el chat:** `SmylFinance.collect(patientId, patient)` abre el cobro guiado sobre la conversación con el paciente ya seleccionado, sin obligar a navegar a Finanzas. El diálogo se mantiene fuera de la pantalla oculta para funcionar también desde Mensajería.
+- **Alcance por sucursal:** se conserva `smyl-branch-scope.js` y la migración `20261118140000_smyl_branch_scope.sql` de la rama principal para que la nueva estructura financiera respete el consultorio seleccionado.
+- **Compatibilidad:** la ruta técnica continúa siendo `caja`, aunque toda la interfaz visible permanece como **Finanzas**.
+
+## 2026-11-18 — Claude Code — Expediente: «Datos del paciente» y sin «Más acciones»
+- **Barra del paciente (`smyl-professional-v3.js` v11 / `.css` v10):** se retira el menú «Más acciones»; Agendar cita, Nueva evolución, Cotizar, Cobrar y Enviar mensaje quedan a la vista (los módulos de destino siguen validando el permiso de cada rol). La barra hace salto de línea en pantallas angostas.
+- **Pestaña nueva «Datos del paciente» (`smyl-patient-360.js` v29 / `.css` v19):**
+  - *Datos generales:* nombre, teléfono/WhatsApp, correo, nacimiento (con edad), género, sucursal, profesional de cabecera, origen, autorización de WhatsApp y notas. «Editar datos» abre el formulario de paciente de siempre (`editarPacienteActual`, con duplicados y consentimiento); no hay un segundo guardado.
+  - *Datos fiscales* (solo `finance.read`; captura con `finance.manage`): RFC, razón social, régimen y uso con su nombre del SAT, y el estado «Listos para facturar» calculado con `SmylFiscalRules.perfilListo`. «Agregar / Editar datos fiscales» abre el mismo diálogo de Cobros (`SmylFiscalCapture`: catálogos del SAT y Constancia leída por IA que la persona revisa).
+  - Se eliminó el formulario fiscal básico que vivía escondido en «Más del expediente → Datos administrativos» (régimen y uso escritos a mano). Los accesos antiguos a `billing` (línea de tiempo de facturas, `SmylPatient360.open('billing')`, `forBilling`) llevan a la nueva pestaña.
+- **Encabezado:** sin teléfono ni correo aparece «+ Agregar teléfono o correo»; con contacto, un enlace «Editar». Tras guardar, la ficha refresca encabezado y datos sin recargar.
+- **Sin migraciones:** usa `camila_pacientes`, `smyl_patient_fiscal_profiles` y `smyl_branches` tal como están (RLS sin cambios).
+- **Pruebas:** `tests/smyl-patient-datos.test.mjs` (nuevo); se actualizaron `patient-360-stage3`, `smyl-patient-summary-v44` y las que fijan versiones. Humo en navegador (app real + Supabase simulado) a 1440/834/390 px: sin scroll horizontal; abre el diálogo fiscal y el de edición.
+- **Hallazgo (no corregido, ya ocurría en main):** `smyl-clinical-photo-review.js?v=4` lanza `insertBefore … not a child of this node` en su `MutationObserver.mount` al abrir un paciente y dispara el aviso global «Algo no salió como se esperaba».

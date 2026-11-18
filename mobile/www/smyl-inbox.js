@@ -1450,7 +1450,7 @@
     if (Array.isArray(preferred)) {
       var match = null;
       preferred.some(function (name) { match = state.templates.find(function (item) { return item.name === name; }) || null; return Boolean(match); });
-      if (!match) { state.templatePreset = null; window.alert((preset && preset.missingText) || 'No hay una plantilla de cobro aprobada todavía. Solicítalas en Cobros → Plantillas; Meta suele tardar de unos minutos a 48 horas.'); return; }
+      if (!match) { state.templatePreset = null; window.alert((preset && preset.missingText) || 'No hay una plantilla de cobro aprobada todavía. Solicítala en Mensajería → Plantillas; Meta suele tardar de unos minutos a 48 horas.'); return; }
       select.value = match.id;
     }
     renderTemplateFields(select, dialog.querySelector('[data-template-preview]'), dialog.querySelector('[data-template-variables]'), 'send');
@@ -1895,6 +1895,10 @@
 
   function openPatientContext(conversationId) {
     if (!hasPermission('clinical.read')) return;
+    // Ya vinculada: directo al expediente (con «Volver al chat»); sin ventana intermedia. Sin vincular: «Vincular paciente».
+    var ficha = state.clinical[conversationId];
+    var linkedId = ficha && ficha.linked && ficha.patient && ficha.patient.id;
+    if (linkedId && window.SmylLanaHandoff && typeof window.SmylLanaHandoff.openPatient === 'function') { window.SmylLanaHandoff.openPatient(linkedId, conversationId); return; }
     if (window.SmylLanaHandoff) window.SmylLanaHandoff.open(conversationId);
   }
 
@@ -2118,7 +2122,7 @@
       var accountMoney = function (value) { return Number(value || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }); };
       if (!accountPatient) accountCard.append(node('p', '', 'Vincula al paciente para ver su saldo y cobrar desde esta conversación.'));
       else if (state.accountLoading && state.accountLoading[conversation.id]) accountCard.append(node('p', '', 'Consultando cuenta…'));
-      else if (!accountInfo || !accountInfo.data) accountCard.append(node('p', '', 'No se pudo consultar la cuenta. Ábrela en Cobros para revisarla.'));
+      else if (!accountInfo || !accountInfo.data) accountCard.append(node('p', '', 'No se pudo consultar la cuenta. Ábrela en Finanzas para revisarla.'));
       else {
         var summary = accountInfo.data;
         if (!summary.chargeCount && !summary.credit) accountCard.append(node('p', '', 'Todavía no tiene cargos registrados.'));
@@ -2684,14 +2688,34 @@
     var conversation = selectedConversation();
     var permission = type === 'quote' ? 'proposal.write' : 'finance.manage';
     if (!conversation || !hasPermission(permission) || !canOperate(conversation, permission)) return;
+    // Cobrar se hace aquí mismo: con el paciente de la conversación ya elegido (o con el buscador del cobro si aún no hay uno),
+    // sin lista intermedia de pacientes y sin salir del chat.
+    if (type === 'payment' && window.SmylFinance && typeof window.SmylFinance.collect === 'function') {
+      var ficha = state.clinical[conversation.id];
+      var linked = ficha && ficha.linked && ficha.patient || null;
+      window.SmylFinance.collect(linked && linked.id || '', linked).then(function (result) {
+        if (result && result.ok) return;
+        window.alert(result && result.reason === 'role' ? 'Tu rol puede consultar Cobros, pero no registrar cobros.' : 'No pudimos abrir el cobro. Revisa tu conexión e inténtalo de nuevo.');
+      });
+      return;
+    }
     if (window.SmylCareTasks && typeof window.SmylCareTasks.open === 'function') window.SmylCareTasks.open(type);
     else window.ir(type === 'quote' ? 'propuestas' : 'caja');
   }
 
+  // Tras cobrar, la «Cuenta del paciente» del chat se actualiza sola.
+  window.addEventListener('smyl:finance-updated', function () {
+    if (state.selectedId) loadAccountContext(state.selectedId);
+  });
+
   function permittedCareActions(conversation) {
     var actions = [];
     if (hasPermission('schedule.manage') && canOperate(conversation, 'schedule.manage')) actions.push({ id: 'schedule', label: 'Agendar cita', run: openAvailabilityDialog });
-    if (hasPermission('clinical.read')) actions.push({ id: 'record', label: 'Expediente', run: function () { openPatientContext(conversation.id); } });
+    if (hasPermission('clinical.read')) {
+      var careFicha = state.clinical[conversation.id];
+      var careLinked = Boolean(careFicha && careFicha.linked && careFicha.patient && careFicha.patient.id);
+      actions.push({ id: 'record', label: careLinked ? 'Expediente' : 'Vincular paciente', run: function () { openPatientContext(conversation.id); } });
+    }
     if (hasPermission('proposal.write') && canOperate(conversation, 'proposal.write')) actions.push({ id: 'quote', label: 'Cotizar', run: function () { openCareTask('quote'); } });
     if (hasPermission('finance.manage') && canOperate(conversation, 'finance.manage')) actions.push({ id: 'payment', label: 'Cobrar', run: function () { openCareTask('payment'); } });
     return actions;

@@ -16,7 +16,7 @@ test('la cartera prioriza vencimientos, créditos y cortes verificables', () => 
   assert.match(finance, /Hacer corte/);
   assert.match(finance, /accountSnapshot/);
   assert.match(finance, /dueLabel/);
-  assert.match(finance, /ningún cobro se ejecuta automáticamente/i);
+  assert.match(finance, /ningún cargo se ejecuta automáticamente/i);
 });
 
 test('cada cuenta comunica avance sin inventar estados financieros', () => {
@@ -57,7 +57,7 @@ test('el registro profesional guía paciente, importe, método, aplicación y re
 });
 
 test('el cobro cotidiano parte del paciente y decide la operación sin mezclar movimientos', () => {
-  for (const copy of ['Cobrar a paciente', 'Cobrar saldo', 'Servicio de hoy', 'Cotización aceptada', 'Registrar anticipo', 'Agregar cargo sin pago']) {
+  for (const copy of ['Cobrar a paciente', 'Cobrar saldo', 'Servicio de hoy', 'Cotización aceptada', 'Registrar anticipo', 'Agregar cargo']) {
     assert.match(finance, new RegExp(copy));
   }
   assert.match(finance, /function openGuidedCollection\(patientId\)/);
@@ -79,8 +79,8 @@ test('el cobro cotidiano parte del paciente y decide la operación sin mezclar m
 });
 
 test('web, móvil y PWA publican la etapa cinco sincronizada', () => {
-  assert.match(app, /smyl-finance\.css\?v=39/);
-  assert.match(app, /smyl-finance\.js\?v=55/);
+  assert.match(app, /smyl-finance\.css\?v=40/);
+  assert.match(app, /smyl-finance\.js\?v=56/);
   assert.match(worker, /collection-visual-v1/);
   assert.match(worker, /smyl-v267-guided-collection-sentry-v1/);
   for (const file of ['app.html', 'sw.js', 'smyl-finance.js', 'smyl-finance.css', 'smyl-dialog-system.js']) {

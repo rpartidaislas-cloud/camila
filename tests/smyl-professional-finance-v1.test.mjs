@@ -42,19 +42,20 @@ test('Caja muestra responsabilidad individual y supervisión explícita', () => 
   assert.match(finance, /function actorName\(id\)/);
 });
 
-test('Recibos queda primero y el libro de pagos pasa a movimientos secundarios', () => {
-  assert.match(finance, /nav\.prepend\(receiptTab\)/);
+test('Resumen queda primero y el libro de pagos pasa a movimientos secundarios', () => {
+  assert.match(finance, /nav\.prepend\(summaryTab\)/);
+  assert.match(finance, /accountTab\.after\(receiptTab\)/);
   assert.match(finance, /if\(paymentTab\)paymentTab\.remove\(\)/);
   assert.match(finance, /Movimientos y correcciones/);
   assert.match(finance, /data-receipt-ledger/);
-  assert.match(finance, /state\.tab='receipts'/);
+  assert.match(finance, /state\.tab='summary'/);
 });
 
 test('web y PWA conservan paridad de código y caché', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) {
     assert.equal(read(file), read('mobile/www/' + file), file);
   }
-  assert.match(read('sw.js'), /professional-finance-v1/);
+  assert.match(read('sw.js'), /finanzas-workspace-v5/);
 });
 
 test('producción aplica la migración sólo de forma manual y verifica el resultado', () => {

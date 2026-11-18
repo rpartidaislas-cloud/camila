@@ -17,14 +17,12 @@ test('«Llegó sin cita» crea una cita para ahora y la marca como «Ya llegó»
   assert.doesNotMatch(schedule, /smyl_create_walk_in|p_source:'walk_in'/, 'no se inventan RPC ni orígenes: no hay migración');
 });
 
-test('la Agenda y Cobros ofrecen el botón solo a quien puede administrar la agenda', () => {
+test('«Llegó sin cita» vive sólo en Agenda y no se mezcla con las acciones de Finanzas', () => {
   assert.match(schedule, /id="schedule-walkin">Llegó sin cita/);
   assert.match(schedule, /getElementById\('schedule-walkin'\)\.hidden=!state\.canManage/);
   assert.match(schedule, /openWalkIn:function\(opts\)\{[\s\S]*?window\.ir\('agenda'\)[\s\S]*?returnTo:opts&&opts\.returnTo/);
-  assert.match(finance, /id="finance-walk-in">\+ Llegó sin cita/);
-  assert.match(finance, /state\.canSchedule=owner\|\|p\.has\('schedule\.manage'\)/);
-  assert.match(finance, /walkIn\.hidden=!\(state\.canManage&&state\.canSchedule&&window\.SmylSchedule\)/);
-  assert.match(finance, /window\.SmylSchedule\.openWalkIn\(\{returnTo:'caja'\}\)/);
+  assert.doesNotMatch(finance, /id="finance-walk-in"|openWalkIn\(\{returnTo:'caja'/);
+  assert.match(finance, /function renderFinanceActions\(\)/);
 });
 
 test('en «Pendientes de registrar» la persona sin cita lleva su etiqueta', () => {
@@ -36,8 +34,8 @@ test('en «Pendientes de registrar» la persona sin cita lleva su etiqueta', () 
 test('web y móvil publican la misma versión', () => {
   for (const file of ['smyl-schedule.js', 'smyl-schedule.css', 'smyl-finance.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + file), read(file), file);
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-schedule\.js\?v=44/);
+    assert.match(read(file), /smyl-schedule\.js\?v=45/);
     assert.match(read(file), /smyl-schedule\.css\?v=32/);
-    assert.match(read(file), /smyl-finance\.js\?v=55/);
+    assert.match(read(file), /smyl-finance\.js\?v=56/);
   }
 });

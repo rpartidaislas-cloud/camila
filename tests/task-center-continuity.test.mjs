@@ -37,19 +37,19 @@ test('los pendientes siguen accesibles desde Inicio sin ocupar un módulo del me
 });
 
 test('etapa 5 se distribuye en web, PWA y fixture responsive',()=>{
-  assert.match(app,/smyl-task-center\.css\?v=1/);assert.match(app,/smyl-task-center\.js\?v=7/);assert.match(app,/smyl-navigation\.js\?v=(?:9|1[0-9]|2[0-9])/);assert.match(app,/smyl-daily-home\.js\?v=(?:[7-9]|1[0-9])/);
-assert.match(worker,/smyl-v263-lana-connection-recovery/);assert.match(worker,/smyl-task-center\.js\?v=7/);assert.match(styles,/@media\(max-width:700px\)/);
+  assert.match(app,/smyl-task-center\.css\?v=1/);assert.match(app,/smyl-task-center\.js\?v=8/);assert.match(app,/smyl-navigation\.js\?v=(?:9|1[0-9]|2[0-9])/);assert.match(app,/smyl-daily-home\.js\?v=(?:[7-9]|1[0-9])/);
+assert.match(worker,/smyl-v263-lana-connection-recovery/);assert.match(worker,/smyl-task-center\.js\?v=8/);assert.match(styles,/@media\(max-width:700px\)/);
   assert.match(read('./fixtures/smyl-task-center-stage5-preview.html'),/smyl-task-center\.js/);
   assert.equal(script,read('../mobile/www/smyl-task-center.js'));assert.equal(styles,read('../mobile/www/smyl-task-center.css'));
 });
 
-test('Cobros pendientes aparecen en el Centro de alertas y en «Atención requerida» del Inicio con el mismo conteo del menú', () => {
+test('Finanzas pendientes aparecen en el Centro de alertas y en «Atención requerida» del Inicio con el mismo conteo del menú', () => {
   const finance = read('../smyl-finance.js');
   assert.match(finance, /navBadge\.sent!==count[\s\S]*?new CustomEvent\('smyl:billing-updated',\{detail:\{pending:count\}\}\)/);
   assert.match(script, /smyl:billing-updated/);
-  assert.match(script, /source:'Cobros'[\s\S]*?route:'caja',action:'Cobrar'/);
+  assert.match(script, /source:'Finanzas'[\s\S]*?route:'caja',action:'Cobrar'/);
   assert.match(script, /state\.billing&&state\.billing\.pending>0/);
-  // Sin permiso de finanzas la función de sólo lectura no devuelve citas y el evento nunca llega: no hay tarea de Cobros.
+  // Sin permiso de finanzas la función de sólo lectura no devuelve citas y el evento nunca llega: no hay tarea de Finanzas.
   assert.doesNotMatch(script, /smyl_finance_|smyl_appointment_billing/);
   const app = read('../app.html');
   const dashboard = app.slice(app.indexOf('async function cargarDashboard()'), app.indexOf('// PACIENTES'));

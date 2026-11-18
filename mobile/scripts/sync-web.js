@@ -37,6 +37,8 @@ copyFile(path.join(ROOT, 'smyl-navigation.js'), path.join(WWW, 'smyl-navigation.
 copyFile(path.join(ROOT, 'smyl-navigation.css'), path.join(WWW, 'smyl-navigation.css'));
 copyFile(path.join(ROOT, 'smyl-settings-hub.js'), path.join(WWW, 'smyl-settings-hub.js'));
 copyFile(path.join(ROOT, 'smyl-settings-hub.css'), path.join(WWW, 'smyl-settings-hub.css'));
+copyFile(path.join(ROOT, 'smyl-task-center.js'), path.join(WWW, 'smyl-task-center.js'));
+copyFile(path.join(ROOT, 'smyl-task-center.css'), path.join(WWW, 'smyl-task-center.css'));
 copyFile(path.join(ROOT, 'smyl-command-menu.js'), path.join(WWW, 'smyl-command-menu.js'));
 copyFile(path.join(ROOT, 'smyl-command-menu.css'), path.join(WWW, 'smyl-command-menu.css'));
 copyFile(path.join(ROOT, 'smyl-studio.js'), path.join(WWW, 'smyl-studio.js'));
@@ -80,11 +82,16 @@ copyFile(path.join(ROOT, 'smyl-case-workspace.css'), path.join(WWW, 'smyl-case-w
 copyFile(path.join(ROOT, 'smyl-proposal-model.js'), path.join(WWW, 'smyl-proposal-model.js'));
 copyFile(path.join(ROOT, 'smyl-proposal-print.js'), path.join(WWW, 'smyl-proposal-print.js'));
 copyFile(path.join(ROOT, 'smyl-proposals.js'), path.join(WWW, 'smyl-proposals.js'));
+copyFile(path.join(ROOT, 'smyl-consultorio.js'), path.join(WWW, 'smyl-consultorio.js'));
 copyFile(path.join(ROOT, 'smyl-proposals.css'), path.join(WWW, 'smyl-proposals.css'));
 copyFile(path.join(ROOT, 'smyl-treatment-quote-stage3.js'), path.join(WWW, 'smyl-treatment-quote-stage3.js'));
 copyFile(path.join(ROOT, 'smyl-treatment-quote-stage3.css'), path.join(WWW, 'smyl-treatment-quote-stage3.css'));
 copyFile(path.join(ROOT, 'smyl-schedule.js'), path.join(WWW, 'smyl-schedule.js'));
 copyFile(path.join(ROOT, 'smyl-schedule.css'), path.join(WWW, 'smyl-schedule.css'));
+copyFile(path.join(ROOT, 'smyl-service-catalog-model.js'), path.join(WWW, 'smyl-service-catalog-model.js'));
+copyFile(path.join(ROOT, 'smyl-service-catalog.js'), path.join(WWW, 'smyl-service-catalog.js'));
+copyFile(path.join(ROOT, 'smyl-service-catalog.css'), path.join(WWW, 'smyl-service-catalog.css'));
+copyFile(path.join(ROOT, 'smyl-service-catalog-stage1.css'), path.join(WWW, 'smyl-service-catalog-stage1.css'));
 copyFile(path.join(ROOT, 'smyl-inbox.js'), path.join(WWW, 'smyl-inbox.js'));
 copyFile(path.join(ROOT, 'smyl-inbox.css'), path.join(WWW, 'smyl-inbox.css'));
 copyFile(path.join(ROOT, 'smyl-task-center.js'), path.join(WWW, 'smyl-task-center.js'));
