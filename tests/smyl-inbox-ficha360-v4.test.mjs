@@ -17,9 +17,10 @@ test('la ficha ordena resumen, cuenta, citas, atenciones realizadas y archivos s
   assert.ok(order.every((index) => index > 0), 'faltan bloques');
   assert.deepEqual([...order].sort((a, b) => a - b), order, 'el orden cambió');
   assert.doesNotMatch(build, /tabs\.push|id: 'clinico'|id: 'timeline'|id: 'atencion'/);
-  const actions = build.slice(build.indexOf('var careActions ='), build.indexOf('var open = f360OpenState'));
-  assert.match(actions, /'record'/);
-  assert.doesNotMatch(actions, /'schedule'|Agendar cita/);
+  // La ficha ya no lleva botones grandes: ni Expediente, ni Cobrar (vive en Cuenta), ni Agendar.
+  const actions = build.slice(build.indexOf('var actions = [];'), build.indexOf('var open = f360OpenState'));
+  assert.ok(actions.length > 0 && actions.length < 400, 'la lista de acciones de la ficha sigue vacía');
+  assert.doesNotMatch(actions, /'record'|'payment'|'schedule'|Agendar cita|Expediente/);
 });
 
 test('cada bloque cerrado muestra su dato clave y el abierto no lo repite', () => {
@@ -67,9 +68,9 @@ test('la lista de citas separa próximas y anteriores, con tratamiento, dentista
 
 test('web, móvil y PWA publican la ficha 360 v4', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-inbox-ficha\.js\?v=7/);
-    assert.match(read(file), /smyl-inbox\.js\?v=67/);
-    assert.match(read(file), /smyl-inbox\.css\?v=56/);
+    assert.match(read(file), /smyl-inbox-ficha\.js\?v=8/);
+    assert.match(read(file), /smyl-inbox\.js\?v=68/);
+    assert.match(read(file), /smyl-inbox\.css\?v=57/);
     assert.match(read(file), /smyl-schedule\.js\?v=45/);
     assert.match(read(file), /smyl-finance\.js\?v=57/);
   }

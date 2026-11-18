@@ -385,10 +385,11 @@
           '<div class="smyl-inbox-bulkbar" data-inbox-bulkbar hidden></div>' +
           '<button type="button" class="smyl-inbox-more" data-inbox-more hidden>Cargar más conversaciones</button>' +
         '</aside>' +
+        '<div class="smyl-inbox-resizer" data-inbox-resizer role="separator" aria-orientation="vertical" aria-label="Cambiar el ancho de la lista de conversaciones. Arrastra o usa las flechas." tabindex="0" title="Arrastra para cambiar el ancho · doble clic para restablecer"></div>' +
         '<main class="smyl-inbox-thread-pane" data-inbox-thread-pane>' +
           '<div class="smyl-inbox-thread-empty" data-inbox-thread-empty><div class="smyl-inbox-empty-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></div><span class="smyl-inbox-eyebrow">CENTRO DE ATENCIÓN</span><h2>Continúa el siguiente caso</h2><p>Abre una conversación para responder, consultar el expediente y coordinar la cita sin cambiar de pantalla.</p><div class="smyl-inbox-empty-steps"><span><b>1</b>Revisa el motivo</span><span><b>2</b>Consulta agenda</span><span><b>3</b>Confirma el seguimiento</span></div><button type="button" class="btn btn-primary" data-inbox-open-next>Abrir siguiente conversación</button></div>' +
           '<div class="smyl-inbox-thread" data-inbox-thread hidden>' +
-            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención" aria-expanded="false" aria-controls="smyl-inbox-context-panel"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><span class="smyl-inbox-med-flag" data-thread-medical hidden></span><span class="smyl-inbox-patient-context-hint" aria-hidden="true"><span>Ficha 360</span>' + composeIcon('chevron') + '</span></button><div class="smyl-inbox-thread-branchwrap" data-thread-branch-wrap hidden><button type="button" class="smyl-inbox-iconchip is-labeled" data-thread-branch-chip aria-haspopup="menu" aria-expanded="false"></button></div><button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Siguiente acción del paciente"></nav><div class="smyl-inbox-owner-control" data-thread-owner>' + composeIcon('person') + '<span class="smyl-inbox-owner-copy"><small>Atiende el chat</small><strong data-thread-owner-name>Sin asignar</strong></span><select data-thread-assign aria-label="Asignar responsable del chat"></select><button type="button" data-thread-owner-retry hidden>Reintentar</button></div></header>' +
+            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención" title="Ver la ficha del paciente" aria-expanded="false" aria-controls="smyl-inbox-context-panel"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><span class="smyl-inbox-med-flag" data-thread-medical hidden></span></button><div class="smyl-inbox-thread-branchwrap" data-thread-branch-wrap hidden><button type="button" class="smyl-inbox-iconchip is-labeled" data-thread-branch-chip aria-haspopup="menu" aria-expanded="false"></button></div><button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Siguiente acción del paciente"></nav><div class="smyl-inbox-owner-control" data-thread-owner>' + composeIcon('person') + '<span class="smyl-inbox-owner-copy"><small>Atiende el chat</small><strong data-thread-owner-name>Sin asignar</strong></span><select data-thread-assign aria-label="Asignar responsable del chat"></select><button type="button" data-thread-owner-retry hidden>Reintentar</button></div></header>' +
             '<div class="smyl-inbox-briefing-row"><div class="smyl-inbox-thread-notices" data-thread-notices hidden></div><details class="smyl-chat-note" data-handoff hidden><summary>Nota privada de relevo</summary><p></p></details><div class="smyl-inbox-thread-menu-wrap"><button type="button" class="smyl-inbox-thread-tools-trigger" data-thread-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-thread-menu" aria-label="Conversación: herramientas">Conversación ▾</button><div class="smyl-inbox-thread-menu" id="smyl-inbox-thread-menu" data-thread-menu role="menu" aria-label="Herramientas de conversación" hidden><div class="smyl-inbox-thread-menu-care" data-thread-menu-care role="group" aria-label="Acciones del paciente"></div><button type="button" role="menuitem" data-thread-search>Buscar en el hilo</button><button type="button" role="menuitem" data-thread-shared>Archivos compartidos</button><button type="button" role="menuitem" data-thread-pin>Fijar conversación</button><button type="button" role="menuitem" data-thread-branch hidden>Cambiar sucursal</button><button type="button" role="menuitem" data-thread-details>Ficha 360 del paciente</button><button type="button" role="menuitem" data-thread-settings>Ajustes de la conversación</button><button type="button" role="menuitem" data-thread-link-professional hidden>Usar como mi WhatsApp profesional</button><button type="button" role="menuitem" data-thread-resolve hidden>Marcar solicitud resuelta</button></div></div></div><div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div></div>' +
             '<button type="button" class="smyl-inbox-jump" data-thread-jump hidden>Ir al final</button>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
@@ -2147,51 +2148,66 @@
       var accountPatient = ficha && ficha.linked && ficha.patient && ficha.patient.id;
       var accountInfo = state.accountContext && state.accountContext[conversation.id];
       var accountMoney = function (value) { return Number(value || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }); };
-      if (!accountPatient) accountCard.append(node('p', '', 'Vincula al paciente para ver su saldo y cobrar desde esta conversación.'));
-      else if (state.accountLoading && state.accountLoading[conversation.id]) accountCard.append(node('p', '', 'Consultando cuenta…'));
-      else if (!accountInfo || !accountInfo.data) accountCard.append(node('p', '', 'No se pudo consultar la cuenta. Ábrela en Finanzas para revisarla.'));
+      // Fila superior: el estado de la cuenta a la izquierda y «Cobrar» (compacto) a la derecha, donde se mira el saldo.
+      var accountTop = node('div', 'smyl-inbox-account-top');
+      var accountStatus = node('div', 'smyl-inbox-account-status');
+      if (!accountPatient) accountStatus.append(node('p', '', 'Vincula al paciente para ver su saldo y cobrar desde esta conversación.'));
+      else if (state.accountLoading && state.accountLoading[conversation.id]) accountStatus.append(node('p', '', 'Consultando cuenta…'));
+      else if (!accountInfo || !accountInfo.data) {
+        accountStatus.append(node('strong', '', 'Saldo no disponible'), node('small', '', 'No pudimos cargar la cuenta.'));
+        var retryAccount = node('button', 'smyl-inbox-link', 'Reintentar'); retryAccount.type = 'button';
+        retryAccount.onclick = function () { loadAccountContext(conversation.id); }; accountStatus.append(retryAccount);
+      }
       else {
         var summary = accountInfo.data;
-        if (!summary.chargeCount && !summary.credit) accountCard.append(node('p', '', 'Todavía no tiene cargos registrados.'));
+        if (!summary.chargeCount && !summary.credit) accountStatus.append(node('strong', '', 'Sin cargos'), node('small', '', 'Todavía no tiene cargos registrados.'));
         else {
-          accountCard.append(node('strong', '', summary.due > 0 ? accountMoney(summary.due) + ' por cobrar' : 'Al corriente'));
+          accountStatus.append(node('strong', '', summary.due > 0 ? accountMoney(summary.due) + ' por cobrar' : 'Al corriente'));
           var accountLines = [];
           if (summary.overdueCount > 0) accountLines.push(summary.overdueCount + (summary.overdueCount === 1 ? ' cargo vencido' : ' cargos vencidos') + ' (' + accountMoney(summary.overdueAmount) + ')');
           else if (summary.nextDue) accountLines.push('Próximo vencimiento: ' + availabilityDate(summary.nextDue + 'T12:00:00').split(' · ')[0]);
           if (summary.credit > 0) accountLines.push(accountMoney(summary.credit) + ' a favor');
           if (summary.truncated) accountLines.push('Resumen parcial: abre la cuenta para ver todo.');
-          accountLines.forEach(function (line) { accountCard.append(node('small', '', line)); });
+          accountLines.forEach(function (line) { accountStatus.append(node('small', '', line)); });
         }
         var contactRule = cobroBlock(conversation);
-        if (contactRule.blocked) accountCard.append(node('small', 'smyl-inbox-account-blocked', 'No contactar por cobros: ' + contactRule.reason));
+        if (contactRule.blocked) accountStatus.append(node('small', 'smyl-inbox-account-blocked', 'No contactar por cobros: ' + contactRule.reason));
         else if (accountInfo.lastReminder) {
           var daysAgo = daysSince(accountInfo.lastReminder.sent_at);
-          accountCard.append(node('small', '', 'Último recordatorio: ' + (daysAgo === 0 ? 'hoy' : daysAgo === 1 ? 'ayer' : 'hace ' + daysAgo + ' días')));
+          accountStatus.append(node('small', '', 'Último recordatorio: ' + (daysAgo === 0 ? 'hoy' : daysAgo === 1 ? 'ayer' : 'hace ' + daysAgo + ' días')));
         }
       }
+      accountTop.append(accountStatus);
+      if (hasPermission('finance.manage') && canOperate(conversation, 'finance.manage')) {
+        var chargeButton = node('button', 'btn btn-primary btn-sm smyl-inbox-charge', 'Cobrar'); chargeButton.type = 'button';
+        chargeButton.title = 'Cobrar a este paciente sin salir del chat';
+        chargeButton.onclick = function () { openCareTask('payment'); }; accountTop.append(chargeButton);
+      }
+      accountCard.append(accountTop);
       if (accountPatient) {
         var accountActions = node('div', 'smyl-inbox-account-actions');
-        // «Cobrar» ya está en las acciones principales de la ficha; aquí solo lo propio de la cuenta.
         var accountRule = accountInfo && accountInfo.data ? cobroBlock(conversation) : { blocked: false };
+        var viewAccount = node('button', 'btn btn-secondary btn-sm', 'Ver cuenta completa'); viewAccount.type = 'button';
+        viewAccount.onclick = function () { window.SmylFinance.account(accountPatient); }; accountActions.append(viewAccount);
         if (conversation.channel === 'whatsapp' && !accountRule.blocked && hasPermission('messages.respond') && canOperate(conversation, 'messages.respond')) {
           var sendWhatsapp = node('button', 'btn btn-secondary btn-sm', 'Enviar por WhatsApp'); sendWhatsapp.type = 'button';
           sendWhatsapp.title = 'Elige una plantilla de cobro aprobada; el monto y la fecha se llenan solos.';
           sendWhatsapp.onclick = function () { openCobroTemplate(); }; accountActions.append(sendWhatsapp);
         }
+        accountCard.append(accountActions);
+        // Lo poco frecuente (permitir o evitar recordatorios) queda en «Más» para no sumar botones.
         if (accountInfo && accountInfo.data && conversation.channel === 'whatsapp') {
+          var accountMore = node('details', 'smyl-inbox-account-more'); accountMore.append(node('summary', '', 'Más opciones de cobranza'));
           if (accountRule.blocked && hasPermission('finance.manage') && canOperate(conversation, 'finance.manage')) {
             var allowAgain = node('button', 'btn btn-secondary btn-sm', 'Permitir recordatorios'); allowAgain.type = 'button';
             allowAgain.onclick = function () { if (window.confirm('¿Volver a permitir recordatorios de cobro por WhatsApp a este paciente?')) setCobroPref(conversation, false, null); };
-            accountActions.append(allowAgain);
+            accountMore.append(allowAgain); accountCard.append(accountMore);
           } else if (!accountRule.blocked && (hasPermission('messages.respond') || hasPermission('finance.manage'))) {
             var blockAccount = node('button', 'btn btn-secondary btn-sm', 'No contactar por cobros'); blockAccount.type = 'button';
             blockAccount.onclick = function () { if (window.confirm('¿Dejar de enviar recordatorios de cobro por WhatsApp a este paciente?')) setCobroPref(conversation, true, 'Marcado desde el chat'); };
-            accountActions.append(blockAccount);
+            accountMore.append(blockAccount); accountCard.append(accountMore);
           }
         }
-        var viewAccount = node('button', 'btn btn-secondary btn-sm', 'Ver cuenta completa'); viewAccount.type = 'button';
-        viewAccount.onclick = function () { window.SmylFinance.account(accountPatient); }; accountActions.append(viewAccount);
-        accountCard.append(accountActions);
       }
       cobrosZone.append(accountCard);
     }
@@ -2316,7 +2332,7 @@
   }
 
   // Qué bloques de la ficha deja abiertos la persona; vive en memoria durante la sesión (el chat no persiste nada en el navegador).
-  var F360_OPEN_DEFAULT = { summary: false, cuenta: false, citas: true, files: false };
+  var F360_OPEN_DEFAULT = { summary: false, cuenta: true, citas: true, files: false };
   function f360OpenState() {
     if (!state.f360Open) state.f360Open = Object.assign({}, F360_OPEN_DEFAULT);
     return state.f360Open;
@@ -2464,11 +2480,8 @@
       ? F && typeof F.shortDate === 'function' ? F.shortDate(conversation.last_message_at, true) : availabilityDate(conversation.last_message_at)
       : '';
     var meta = 'Escribe por ' + channelLabel(conversation.channel) + (lastSeen ? ' · último mensaje ' + lastSeen.toLowerCase() : '');
-    var careActions = permittedCareActions(conversation); var actions = [];
-    ['record', 'payment'].forEach(function (key) {
-      var action = careActions.find(function (item) { return item.id === key; });
-      if (action) actions.push({ label: key === 'record' ? 'Expediente ↗' : action.label, run: action.run });
-    });
+    // Sin botones grandes en la ficha: «Cobrar» vive en la sección Cuenta y el expediente se abre desde el módulo de Pacientes.
+    var actions = [];
     var open = f360OpenState(); var sections = [];
 
     // 1. Resumen de la conversación con IA (se queda) y, si aplica, la solicitud de intervención.
@@ -2494,7 +2507,7 @@
       var cuenta = wrapPanel(zones.cobros);
       if (linked && F.movements) {
         var moves = state.f360Movements[id] || {};
-        cuenta.append(F.movements({ items: moves.items || [], loading: Boolean(moves.loading) && !moves.items, error: moves.error || '', onRetry: function () { loadPatientMovements(id, ficha.patient.id, true); } }));
+        cuenta.append(F.movements({ items: (moves.items || []).slice(0, 3), loading: Boolean(moves.loading) && !moves.items, error: moves.error || '', onRetry: function () { loadPatientMovements(id, ficha.patient.id, true); } }));
       }
       sections.push({ id: 'cuenta', title: 'Cuenta', peek: accountPeek(conversation, linked), node: cuenta });
     }
@@ -4380,6 +4393,79 @@
     finally { state.sharedLoading = false; renderSharedItems(); }
   }
 
+  // Ancho de la lista de conversaciones: se arrastra el borde entre la lista y el chat (o con las flechas del teclado).
+  // Se guarda solo el número, por pestaña (sessionStorage), como la preferencia de la ficha acoplada.
+  var LIST_WIDTH_KEY = 'smyl_inbox_list_width', LIST_MIN = 260, LIST_MAX = 560, THREAD_MIN = 380;
+  function initListResizer(page) {
+    var workspace = page.querySelector('.smyl-inbox-workspace'), handle = page.querySelector('[data-inbox-resizer]'), listPane = page.querySelector('.smyl-inbox-list-pane');
+    if (!workspace || !handle || !listPane) return;
+    var wanted = null, natural = null, drag = null;
+    try { var saved = Number(window.sessionStorage.getItem(LIST_WIDTH_KEY)); if (saved >= LIST_MIN && saved <= LIST_MAX) wanted = saved; } catch (_) {}
+    function wide() { return window.matchMedia('(min-width: 901px)').matches && listPane.offsetParent !== null; }
+    // Mide las columnas «naturales» del CSS (con o sin ficha acoplada) para cambiar solo la primera.
+    function measure() {
+      workspace.style.gridTemplateColumns = '';
+      var tracks = window.getComputedStyle(workspace).gridTemplateColumns.split(' ').map(parseFloat).filter(function (n) { return !isNaN(n); });
+      natural = tracks.length ? tracks : null;
+      return natural;
+    }
+    function clamp(value) {
+      var tracks = natural || [LIST_MIN + 80, 800];
+      var rest = tracks.slice(2).reduce(function (sum, n) { return sum + n; }, 0);
+      var max = Math.min(LIST_MAX, workspace.clientWidth - rest - THREAD_MIN);
+      return Math.round(Math.max(LIST_MIN, Math.min(max, value)));
+    }
+    function place() {
+      if (!wide()) { handle.hidden = true; return; }
+      handle.hidden = false;
+      var width = listPane.getBoundingClientRect().width;
+      handle.style.left = (listPane.offsetLeft + width - 5) + 'px';
+      handle.setAttribute('aria-valuemin', String(LIST_MIN)); handle.setAttribute('aria-valuemax', String(LIST_MAX)); handle.setAttribute('aria-valuenow', String(Math.round(width)));
+    }
+    function apply(width) {
+      if (!wide()) { workspace.style.gridTemplateColumns = ''; place(); return; }
+      var tracks = measure();
+      if (width == null || !tracks) { place(); return; }
+      var next = clamp(width), rest = tracks.slice(2).map(function (n) { return n + 'px'; });
+      workspace.style.gridTemplateColumns = [next + 'px', 'minmax(0, 1fr)'].concat(rest).join(' ');
+      place();
+    }
+    function save(value) { try { if (value == null) window.sessionStorage.removeItem(LIST_WIDTH_KEY); else window.sessionStorage.setItem(LIST_WIDTH_KEY, String(value)); } catch (_) {} }
+    function current() { return Math.round(listPane.getBoundingClientRect().width); }
+    handle.addEventListener('pointerdown', function (event) {
+      if (event.button !== 0 || !wide()) return;
+      event.preventDefault(); var startWidth = current(); measure();
+      drag = { x: event.clientX, width: startWidth };
+      workspace.classList.add('is-resizing'); handle.setPointerCapture(event.pointerId);
+    });
+    handle.addEventListener('pointermove', function (event) {
+      if (!drag) return;
+      wanted = clamp(drag.width + event.clientX - drag.x);
+      var tracks = natural, rest = tracks ? tracks.slice(2).map(function (n) { return n + 'px'; }) : [];
+      workspace.style.gridTemplateColumns = [wanted + 'px', 'minmax(0, 1fr)'].concat(rest).join(' '); place();
+    });
+    function endDrag(event) {
+      if (!drag) return; drag = null; workspace.classList.remove('is-resizing');
+      try { handle.releasePointerCapture(event.pointerId); } catch (_) {}
+      if (wanted != null) save(wanted);
+    }
+    handle.addEventListener('pointerup', endDrag); handle.addEventListener('pointercancel', endDrag);
+    handle.addEventListener('dblclick', function () { wanted = null; save(null); apply(null); });
+    handle.addEventListener('keydown', function (event) {
+      var step = event.shiftKey ? 48 : 16;
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault(); var base = current(); measure();
+        wanted = clamp(base + (event.key === 'ArrowRight' ? step : -step)); save(wanted); apply(wanted);
+      } else if (event.key === 'Home' || event.key === 'Escape') { event.preventDefault(); wanted = null; save(null); apply(null); }
+    });
+    // El ancho elegido se vuelve a aplicar cuando cambia la ventana o se abre/cierra la ficha acoplada.
+    var relayout = function () { apply(wanted); };
+    window.addEventListener('resize', relayout);
+    if (window.ResizeObserver) new ResizeObserver(function () { if (!drag) place(); }).observe(workspace);
+    if (window.MutationObserver) new MutationObserver(relayout).observe(page, { attributes: true, attributeFilter: ['class'] });
+    relayout();
+  }
+
   function init() {
     if (!window.ir || document.getElementById('p-inbox')) return;
     TITULOS.inbox = 'Mensajes';
@@ -4487,6 +4573,7 @@
     page.querySelector('[data-pilot-report-back]').addEventListener('click', function () { page.querySelector('[data-pilot-report-dialog]').close(); openOperations(); });
     page.querySelector('[data-pilot-report-print]').addEventListener('click', printPilotReport);
     page.querySelector('[data-inbox-back]').addEventListener('click', function () { page.classList.remove('show-thread'); closeContext(false); });
+    initListResizer(page);
     page.querySelector('[data-inbox-context]').addEventListener('click', function (event) {
       if (state.contextOpen && contextDocked()) closeContext(false);
       else openContext(event.currentTarget);
