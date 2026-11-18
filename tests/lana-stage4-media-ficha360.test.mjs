@@ -25,7 +25,7 @@ test('the bridge keeps tenant and LANA credentials server-side for media and cli
   assert.match(edge, /message\.media_type !== "image"/);
   assert.match(edge, /lana_cita_id/);
   // Ficha 360 v4: el detalle clínico vive en el expediente; la ficha deja un atajo directo.
-  assert.match(ui, /Expediente ↗/);
+  assert.doesNotMatch(ui, /Expediente ↗/); // el expediente se abre desde Pacientes; la ficha ya no lleva botones grandes
   assert.match(helper, /!\(init\.body instanceof FormData\)/);
   assert.doesNotMatch(ui, /tenant_id|api_key_ciphertext|SMYL_LANA_ENCRYPTION_KEY/);
 });
