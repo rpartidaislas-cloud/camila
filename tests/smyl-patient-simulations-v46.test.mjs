@@ -13,9 +13,11 @@ const app = read('app.html');
 const worker = read('sw.js');
 
 test('el expediente ofrece un área única para todas las simulaciones SMYL', () => {
-  assert.match(record, /data-p360-tab="simulations"[^>]*>Simulaciones SMYL/);
+  // Las simulaciones forman parte de presentar el plan: viven dentro de la pestaña Tratamiento.
+  assert.doesNotMatch(record, /data-p360-tab="simulations"/);
   assert.match(record, /data-p360-panel="simulations"/);
-  assert.match(record, /\['simulations','Simulaciones SMYL'\]/);
+  assert.match(record, /treatment:\['simulations'\]/);
+  assert.match(record, /if\(key==='simulations'\)key='treatment';/);
   assert.match(record, /smyl:patient-simulations-updated/);
 });
 

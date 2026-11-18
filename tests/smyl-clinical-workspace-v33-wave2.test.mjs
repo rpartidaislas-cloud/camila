@@ -31,10 +31,9 @@ test('Ficha 360 adopta la escala cerrada y controles táctiles del Clinical Work
 test('Ficha 360 conserva una sola prioridad y navegación canónica por fuentes', () => {
   const js = read('smyl-patient-360.js');
   assert.equal((js.match(/class="p360-priority"/g) || []).length, 1);
-  assert.match(js, /class="p360-more"/);
-  assert.match(js, /class="p360-more-grid"/);
-  assert.match(js, /Más del expediente/);
-  assert.match(js, /data-p360-tab/);
+  // Organización v2: «Más del expediente» desaparece; Evoluciones y Citas tienen pestaña propia.
+  assert.doesNotMatch(js, /class="p360-more"|Más del expediente/);
+  assert.match(js, /data-p360-tab="visits"/);
 });
 
 test('Cotizaciones separa documento, decisión y seguimiento con una jerarquía explícita', () => {
