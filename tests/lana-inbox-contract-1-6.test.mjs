@@ -18,7 +18,9 @@ test('la lista reenvía y valida los filtros avanzados', () => {
   ]) assert.ok(validator.includes(message), `falta validar: ${message}`);
   assert.match(proxy, /action === "list"\) \{\s*const invalid = invalidInboxFilter\(url\);\s*if \(invalid\) return json\(400/);
   // El filtro de alcance por rol sigue aplicándose a la respuesta de la lista.
-  assert.match(proxy, /\["list", "sync"\]\.includes\(action\)\s*\? await filterConversationPayload/);
+  assert.match(proxy, /const scoped = await filterConversationPayload\(actor,tenantId,remote.body,url\)/);
+  assert.match(proxy, /if \(action === "sync"\) \{\s*const scopedBody = await filterConversationPayload/);
+  assert.match(proxy, /if \(!visible\.has\(id\)/);
 });
 
 test('el feedback de IA sólo lo ve el propietario y se valida antes de reenviar', () => {

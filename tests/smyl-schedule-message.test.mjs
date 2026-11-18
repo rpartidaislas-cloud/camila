@@ -72,11 +72,10 @@ test('el envío pasa por lana-inbox con permiso, plantilla aprobada e Idempotenc
   assert.match(source, /action: 'send', conversation_id: conversation\(\), type: 'template', template_id: item\.id, template_variables: values/);
   assert.match(source, /Idempotency-Key/);
   assert.match(source, /from\('camila_lana_handoffs'\)/);
-  assert.match(source, /if \(!host \|\| !ctx \|\| !ctx\.canMessage\)/);
+  assert.match(source, /!win\.SmylInbox\?\.canAccess\?\.\(\)/);
   assert.doesNotMatch(source, /META_TOKEN|graph\.facebook|meta-send/);
   assert.match(source, /send\.disabled = state\.sending \|\| values\.some/);
   const schedule = read('smyl-schedule.js');
-  assert.match(schedule, /state\.canMessage=owner\|\|perms\.has\('messages\.respond'\)/);
   assert.match(schedule, /SmylScheduleMessage\.mount\(/);
 });
 
@@ -102,6 +101,6 @@ test('el módulo de mensajes se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-schedule-message.js', 'smyl-schedule.js', 'smyl-schedule.css', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-schedule-message\.js\?v=2/);
-  assert.match(read('sw.js'), /\/camila\/smyl-schedule-message\.js\?v=2/);
+  assert.match(read('app.html'), /smyl-schedule-message\.js\?v=3/);
+  assert.match(read('sw.js'), /\/camila\/smyl-schedule-message\.js\?v=3/);
 });

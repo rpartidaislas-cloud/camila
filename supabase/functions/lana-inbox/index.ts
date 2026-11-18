@@ -17,6 +17,7 @@ type Actor = {
   role: "owner" | "staff";
   role_code: string;
   role_name: string;
+  chat_access: "none" | "agent" | "coordinator";
   permissions: string[];
   scopes: Record<string, DataScope>;
 };
@@ -31,7 +32,7 @@ const OWNER_PERMISSIONS = [
 ];
 
 function can(actor: Actor, permission: string): boolean {
-  return actor.role === "owner" || actor.permissions.includes(permission);
+  return (actor.role === "owner" && !permission.startsWith("messages.")) || actor.permissions.includes(permission);
 }
 
 function uuid(value: unknown): string | null {
@@ -174,7 +175,20 @@ async function actorFor(user: { id: string; email?: string }, tenantId: string):
       }
     }
   }
+  const access = await admin.rpc("smyl_chat_mode", { p_tenant: tenantId, p_user: user.id });
+  if (access.error) throw new Error("No se pudo verificar el perfil de mensajería.");
+  const mode: Actor["chat_access"] = access.data === "coordinator" || access.data === "agent" ? access.data : "none";
+  permissions = permissions.filter((p) => !p.startsWith("messages."));
+  if (mode !== "none") permissions.push("messages.read", "messages.respond");
+  if (mode === "coordinator") permissions.push("messages.manage");
+  scopes.messages = "own";
+  if (mode === "coordinator") {
+    const wide = await admin.rpc("smyl_chat_clinic_wide", { p_tenant: tenantId, p_user: user.id });
+    if (wide.error) throw new Error("No se pudo comprobar el alcance de mensajería.");
+    scopes.messages = wide.data === true ? "clinic" : "branches";
+  }
   return {
+    chat_access: mode,
     id: user.id,
     name: text(data?.nombre, 160) || text(data?.email, 160) || fallback,
     role: isOwner ? "owner" : "staff",
@@ -234,27 +248,116 @@ async function activeBranches(tenantId: string): Promise<{ id: string; name: str
   return ((data || []) as Record<string, unknown>[]).map((row) => ({ id: String(row.id), name: text(row.name, 120), is_default: Boolean(row.is_default) }));
 }
 
-async function canAccessConversation(actor: Actor, tenantId: string, conversationId: string, conversation?: Record<string, unknown>): Promise<boolean> {
-  if ((actor.scopes.messages || "own") === "clinic") return true;
-  if (conversation && assignedActorId(conversation) === actor.id) return true;
-  if ((actor.scopes.messages || "own") === "branches") {
-    const assigned = (await branchAssignments(tenantId, [conversationId])).get(conversationId);
-    // La sucursal asignada manda: quien no pertenece a ella no ve la conversación, aunque el paciente tenga citas en otra sede.
-    if (assigned) return (await memberBranchIds(actor, tenantId)).includes(assigned.branch_id);
-  }
-  const { data: handoff } = await admin.from("camila_lana_handoffs").select("patient_id")
-    .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId).maybeSingle();
-  if (handoff?.patient_id && await accessiblePatient(actor, tenantId, String(handoff.patient_id))) return true;
-  if (!conversation) {
-    const remote = await lanaRequest(tenantId, `/inbox/conversations/${conversationId}/messages?limit=1`, { method: "GET", headers: actorHeaders(actor) }, 15000);
-    const candidate = remote.body.conversation && typeof remote.body.conversation === "object" ? remote.body.conversation as Record<string, unknown> : {};
-    return assignedActorId(candidate) === actor.id;
+type Assignment = { conversation_id: string; assignee_id: string | null; version: number; updated_at: string };
+async function chatAssignments(tenantId: string, ids: string[]): Promise<Map<string, Assignment>> {
+  if (!ids.length) return new Map();
+  const {data, error} = await admin.from("smyl_chat_assignments").select("conversation_id,assignee_id,version,updated_at")
+    .eq("tenant_id",tenantId).in("conversation_id", ids);
+  if (error) throw new Error("No se pudo verificar el responsable del chat.");
+  return new Map((data || []).map((row: Assignment) => [row.conversation_id, row]));
+}
+
+async function canAccessConversation(actor: Actor, tenantId: string, conversationId: string): Promise<boolean> {
+  const result = await admin.rpc("smyl_chat_visible", { p_tenant: tenantId, p_actor: actor.id, p_conversation: conversationId });
+  if (result.error) throw new Error("No se pudo comprobar el acceso a esta conversación.");
+  return result.data === true;
+}
+type ChatMember = { id:string; name:string; chat_mode:string; kind:string };
+async function visibleChatIds(tenantId: string, actor: Actor, ids: string[]): Promise<Set<string>> {
+  if (!ids.length) return new Set();
+  const result = await admin.rpc("smyl_chat_visible_ids",{p_tenant:tenantId,p_actor:actor.id,p_conversations:ids});
+  if (result.error) throw new Error("No se pudo validar el alcance de la bandeja.");
+  return new Set(result.data || []);
+}
+
+async function assignableTeam(tenantId: string): Promise<ChatMember[]> {
+  const {data,error} = await admin.rpc("smyl_chat_assistants",{p_tenant:tenantId});
+  if (error) throw new Error("No se pudo consultar el equipo de chat.");
+  return (data || []) as ChatMember[];
+}
+function projectOwner(row: Record<string,unknown>, assignment: Assignment | undefined, members: Map<string, ChatMember>) {
+  const id = assignment?.assignee_id || null, name = id ? members.get(id)?.name || "Integrante del equipo" : null;
+  delete row.private_handoff_note;
+  row.assignment_version = assignment?.version || 0;
+  row.assigned_actor_id = id; row.assigned_actor_name = name; row.legacy_assigned = false;
+  row.assignment = id ? {actor_id:id,name,source:"smyl"} : null;
+  return row;
+}
+// LANA serializes assignments with the connector's owner capability. This identity is used
+// only for a tenant-bound inbox read or to project the authoritative SMYL assignment.
+function connectorHeaders(tenantId: string, key?: string): Headers {
+  const headers = new Headers({ "X-SMYL-Actor-Id": tenantId, "X-SMYL-Actor-Role": "owner",
+    "X-SMYL-Actor-Name-Encoded": encodeURIComponent("Integración SMYL") });
+  if (key) headers.set("Idempotency-Key", key);
+  return headers;
+}
+
+async function syncProviderOwner(tenantId: string, conversationId: string, roster: ChatMember[]): Promise<boolean> {
+  // Re-read after the write: a newer transfer may have committed while LANA was processing it.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const before = (await chatAssignments(tenantId, [conversationId])).get(conversationId);
+    if (!before) return true;
+    const target = before.assignee_id;
+    const path = "/inbox/conversations/" + conversationId + (target ? "/assign" : "/release");
+    const payload = target ? { target_actor_id: target, target_actor_name: roster.find(m => m.id === target)?.name || "Integrante del equipo" } : {};
+    const remote = await lanaRequest(tenantId, path, { method: "POST", headers: connectorHeaders(tenantId, crypto.randomUUID()), body: JSON.stringify(payload) }, 10000);
+    if (!remote.response.ok) return false;
+    const current = (await chatAssignments(tenantId, [conversationId])).get(conversationId);
+    if (current?.version === before.version) return true;
   }
   return false;
 }
 
-async function filterConversationPayload(actor: Actor, tenantId: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
-  if (!Array.isArray(body.conversations)) return body;
+async function projectConversation(actor: Actor, tenantId: string, row: Record<string, unknown>, includeNote = false) {
+  const id = uuid(row.id);
+  if (!id) return;
+  const [assignments, roster] = await Promise.all([chatAssignments(tenantId, [id]), assignableTeam(tenantId)]);
+  const owner = assignments.get(id);
+  const oldAssignment = row.assignment as Record<string,unknown> | null;
+  if (includeNote && owner && (assignedActorId(row) !== (owner.assignee_id || "") || oldAssignment?.source === "lana")) {
+    row.provider_sync = await syncProviderOwner(tenantId, id, roster).catch(() => false) ? "synced" : "pending";
+  }
+  projectOwner(row, owner, new Map(roster.map(m => [m.id,m])));
+  if (includeNote && owner && (owner.assignee_id === actor.id || actor.chat_access === "coordinator")) {
+    const {data,error} = await admin.from("smyl_chat_handoffs").select("note").eq("tenant_id",tenantId)
+      .eq("conversation_id",id).eq("version",owner.version).maybeSingle();
+    if (error) throw new Error("No se pudo consultar la nota del traspaso.");
+    row.private_handoff_note = data?.note || null;
+  }
+}
+
+async function transferChat(actor: Actor, tenantId: string, id: string, action: string, input: Record<string,unknown>) {
+  const target = action === "release" ? null : uuid(input.target_actor_id);
+  if (action === "assign" && !target) return json(400,{error:"Elige una persona para atender el chat."});
+  if (!Number.isSafeInteger(input.expected_version) || Number(input.expected_version) < 0) return json(400,{error:"Actualiza la conversación antes de transferirla."});
+  const note = input.private_note ?? "";
+  if (typeof note !== "string" || note.trim().length > 1000) return json(400,{error:"La nota debe tener hasta 1,000 caracteres."});
+  if (!target && actor.chat_access !== "coordinator") return forbiddenConversation();
+  const roster = await assignableTeam(tenantId);
+  const recipient = roster.find(member => member.id === target);
+  if (target && !recipient) return json(400,{error:"Elige un integrante habilitado para atender chats."});
+  const check = await lanaRequest(tenantId, "/inbox/conversations/" + id + "/messages?limit=1",
+    {method:"GET", headers:connectorHeaders(tenantId)}, 10000);
+  if (!check.response.ok || (check.body.conversation as {id?:string} | undefined)?.id !== id) return json(check.response.ok ? 404 : check.response.status,{error:"No se pudo verificar la conversación."});
+  const saved = await admin.rpc("smyl_transfer_chat", { p_tenant:tenantId, p_actor:actor.id, p_conversation:id,
+    p_target:target, p_note:note.trim(), p_expected_version:input.expected_version });
+  if (saved.error) {
+    if (saved.error.code === "40001") return json(409,{error:"La asignación cambió. Actualiza el chat.",code:"assignment_conflict"});
+    if (saved.error.code === "42501") return forbiddenConversation();
+    if (saved.error.code === "22023") return json(400,{error:"Elige un responsable habilitado distinto al actual."});
+    throw new Error("No se pudo guardar el traspaso.");
+  }
+  const synced = await syncProviderOwner(tenantId, id, roster).catch(() => false);
+  return json(200,{ok:true, conversation_id:id, assigned_actor_id:target, assigned_actor_name:recipient?.name || null,
+    assignment_version:saved.data.version, can_operate:await canAccessConversation(actor,tenantId,id), provider_sync:synced ? "synced" : "pending"});
+}
+
+async function listTeam(tenantId: string): Promise<Response> {
+  return json(200, {ok:true,members:await assignableTeam(tenantId)});
+}
+
+async function filterConversationPayload(actor: Actor, tenantId: string, body: Record<string, unknown>, url: URL): Promise<Record<string, unknown>> {
+  if (!Array.isArray(body.conversations)) return {conversations:[], synced_at:body.synced_at || new Date().toISOString()};
   const sliced = body.conversations.slice(0, 100);
   const ids = sliced.map((value) => value && typeof value === "object" ? uuid((value as Record<string, unknown>).id) : null).filter(Boolean) as string[];
   const [assignments, branches] = await Promise.all([branchAssignments(tenantId, ids), activeBranches(tenantId)]);
@@ -276,18 +379,51 @@ async function filterConversationPayload(actor: Actor, tenantId: string, body: R
       await admin.from("smyl_conversation_branches").upsert(inferred, { onConflict: "tenant_id,conversation_id", ignoreDuplicates: true });
     }
   }
-  const clinicWide = (actor.scopes.messages || "own") === "clinic";
-  const allowed: unknown[] = [];
+  const [owners, roster, visible] = await Promise.all([chatAssignments(tenantId,ids), assignableTeam(tenantId), visibleChatIds(tenantId,actor,ids)]);
+  const members = new Map(roster.map(m=>[m.id,m]));
+  const pick = url.searchParams.get("assignee"), filter = url.searchParams.get("filter");
+  const allowed: Record<string,unknown>[] = [];
   for (const value of sliced) {
     if (!value || typeof value !== "object") continue;
-    const conversation = { ...(value as Record<string, unknown>) };
-    const id = uuid(conversation.id);
-    const assigned = id ? assignments.get(id) : undefined;
-    conversation.branch = assigned ? { id: assigned.branch_id, name: names.get(assigned.branch_id) || "Sucursal", source: assigned.source } : null;
-    if (clinicWide || (id && await canAccessConversation(actor, tenantId, id, conversation))) allowed.push(conversation);
+    const conversation = {...value as Record<string,unknown>}, id = uuid(conversation.id);
+    if (!id) continue;
+    const assigned = assignments.get(id), owner = owners.get(id), ownerId = owner?.assignee_id || null;
+    if (!visible.has(id) || (actor.chat_access === "agent" && ownerId !== actor.id)) continue;
+    const branchFilter = url.searchParams.get("branch_id");
+    if (branchFilter && branchFilter !== (assigned?.branch_id || "none")) continue;
+    if (((filter === "mine" || pick === "me") && ownerId !== actor.id) || ((filter === "unassigned" || pick === "unassigned") && ownerId)
+       || (pick && uuid(pick) && pick !== ownerId)) continue;
+    conversation.branch = assigned ? {id:assigned.branch_id,name:names.get(assigned.branch_id)||"Sucursal",source:assigned.source} : null;
+    allowed.push(projectOwner(conversation,owner,members));
   }
-  const page = body.page && typeof body.page === "object" ? { ...(body.page as Record<string, unknown>), total: allowed.length } : body.page;
-  return clinicWide ? { ...body, conversations: allowed } : { ...body, conversations: allowed, removed: [], page };
+  return { conversations:allowed, synced_at:body.synced_at || new Date().toISOString(), truncated:body.truncated === true };
+}
+
+// Paginar sobre el origen, incluso cuando una página no contiene hilos visibles.
+// El cliente recibe un cursor opaco numérico, nunca el total ni los contadores globales.
+async function listScoped(actor: Actor, tenantId: string, url: URL): Promise<Response> {
+  const limit = Math.min(100, Math.max(1, Math.trunc(Number(url.searchParams.get("limit"))||40)));
+  const start = Math.min(1000000,Math.max(0,Math.trunc(Number(url.searchParams.get("offset"))||0)));
+  let offset = start, hasMore = true; const rows: unknown[] = [];
+  const since = new Date().toISOString();
+  const source = new URL(url); source.searchParams.delete("assignee"); source.searchParams.delete("branch_id");
+  if (["mine","unassigned"].includes(source.searchParams.get("filter") || "")) source.searchParams.set("filter","all");
+  for (let batch=0; batch<4 && hasMore && rows.length<limit; batch++) {
+    const take = Math.min(100, Math.max(limit, 40));
+    source.searchParams.set("limit",String(take)); source.searchParams.set("offset",String(offset));
+    const remote = await lanaRequest(tenantId,queryPath(source,"list",null)!,{method:"GET",headers:connectorHeaders(tenantId)},15000);
+    if (!remote.response.ok) return json(remote.response.status,{error:"No se pudo consultar la bandeja."});
+    const raw = Array.isArray(remote.body.conversations) ? remote.body.conversations as {id:string}[] : [];
+    const page = remote.body.page as {has_more?:boolean} | undefined;
+    const scoped = await filterConversationPayload(actor,tenantId,remote.body,url);
+    const visible = scoped.conversations as {id:string}[];
+    const selected = visible.slice(0,limit-rows.length);
+    rows.push(...selected);
+    const consumed = selected.length && rows.length===limit ? raw.findIndex(r=>r.id===selected[selected.length-1].id)+1 : raw.length;
+    offset += consumed;
+    hasMore = consumed>0 && (consumed<raw.length || (page?.has_more ?? raw.length>=take));
+  }
+  return json(200,{conversations:rows, actor, synced_at:since, page:{total:rows.length,has_more:hasMore,next_offset:offset}});
 }
 
 // Al abrir una conversación: muestra su sucursal y, si aún no tiene, la deduce de lo que dijo el paciente.
@@ -313,69 +449,44 @@ async function attachThreadBranch(tenantId: string, body: Record<string, unknown
 
 // Sincronización: si alguien cambió la sucursal de una conversación desde la última consulta, quien ya no puede verla la pierde
 // de su bandeja y los demás recargan la lista (la sucursal vive en SMYL, así que LANA no la marca como cambiada).
-async function attachBranchChanges(actor: Actor, tenantId: string, since: string | null, body: Record<string, unknown>): Promise<void> {
-  const stamp = since && !Number.isNaN(Date.parse(since)) ? new Date(since).toISOString() : "";
-  if (!stamp) return;
-  const { data } = await admin.from("smyl_conversation_branches").select("conversation_id").eq("tenant_id", tenantId).gt("assigned_at", stamp).limit(50);
-  const changed = ((data || []) as Record<string, unknown>[]).map((row) => String(row.conversation_id));
-  if (!changed.length) return;
-  body.branch_changed = true;
-  if ((actor.scopes.messages || "own") === "clinic") return;
-  const removed = Array.isArray(body.removed_conversation_ids) ? [...body.removed_conversation_ids as unknown[]] : [];
-  for (const id of changed) {
-    if (!await canAccessConversation(actor, tenantId, id)) removed.push(id);
+async function attachBranchChanges(actor: Actor, tenantId: string, url: URL, body: Record<string,unknown>, remote: Record<string,unknown>) {
+  const since = url.searchParams.get("since") || "";
+  if (!Number.isFinite(Date.parse(since))) return;
+  const stamp = new Date(since).toISOString();
+  const known = [...new Set((url.searchParams.get("visible_ids")||"").split(",").map(uuid).filter(Boolean) as string[])].slice(0,100);
+  const visible = await visibleChatIds(tenantId,actor,known);
+  const deleted = new Set(Array.isArray(remote.removed_conversation_ids) ? remote.removed_conversation_ids as string[] : []);
+  body.removed_conversation_ids = known.filter(id => deleted.has(id) || !visible.has(id));
+  const transfers = await admin.from("smyl_chat_handoffs").select("conversation_id").eq("tenant_id",tenantId)
+    .eq("to_user_id",actor.id).gte("created_at",stamp).order("created_at",{ascending:false}).limit(100);
+  if (transfers.error) throw new Error("No se pudieron consultar los traspasos.");
+  const received = [...new Set<string>((transfers.data || []).map(row => String(row.conversation_id)))];
+  const current = await chatAssignments(tenantId, received);
+  body.received_conversation_ids = received.filter(id => !deleted.has(id) && current.get(id)?.assignee_id === actor.id);
+  // A former recipient must also reconcile when the chat was outside their current page.
+  const departures = await admin.from("smyl_chat_handoffs").select("conversation_id").eq("tenant_id",tenantId)
+    .eq("from_user_id",actor.id).gte("created_at",stamp).limit(100);
+  if (departures.error) throw new Error("No se pudieron verificar las transferencias salientes.");
+  const previous = [...new Set<string>((departures.data || []).map(row => String(row.conversation_id)))];
+  if (previous.length) {
+    const stillVisible = await visibleChatIds(tenantId,actor,previous);
+    const removed = new Set(body.removed_conversation_ids as string[]);
+    for (const id of previous) if (!stillVisible.has(id)) removed.add(id);
+    body.removed_conversation_ids = [...removed];
   }
-  body.removed_conversation_ids = removed;
+  // Only test for existence, not names/previews of changed conversations. The client reconciles with a fresh authorized list.
+  let changed = admin.from("smyl_chat_assignments").select("conversation_id").eq("tenant_id",tenantId).gte("updated_at",stamp);
+  if (actor.chat_access === "agent") changed = changed.eq("assignee_id",actor.id);
+  const [changedOwner,changedBranch] = await Promise.all([changed.limit(1), actor.chat_access === "coordinator" ? admin.from("smyl_conversation_branches").select("conversation_id").eq("tenant_id",tenantId).gte("assigned_at",stamp).limit(1) : Promise.resolve({data:[],error:null})]);
+  if (changedOwner.error || changedBranch.error) throw new Error("No se pudieron actualizar las asignaciones.");
+  body.branch_changed = !!(changedOwner.data?.length || changedBranch.data?.length || (body.removed_conversation_ids as string[]).length);
 }
 
 function forbiddenConversation(): Response {
   return json(403, { error: "Esta conversación queda fuera del alcance de tu rol.", code: "conversation_scope_denied" });
 }
 
-type TeamCandidate = {
-  id: string; tenant_id: string; nombre?: string; email?: string; rol: string; activo: boolean;
-  smyl_member_roles?: { smyl_roles: { active: boolean; smyl_role_permissions: { permission_key: string }[] } | null }[];
-  smyl_professionals?: { active: boolean; display_name: string }[];
-};
-
-function eligibleTeamMember(member: TeamCandidate, tenantId: string) {
-  if (!member || member.tenant_id !== tenantId || member.activo !== true) return null;
-  const owner = member.id === tenantId || member.rol === "dueño";
-  const permissions = new Set<string>();
-  for (const assignment of member.smyl_member_roles || []) {
-    const role = assignment.smyl_roles;
-    if (!role?.active) continue;
-    for (const grant of role.smyl_role_permissions || []) permissions.add(grant.permission_key);
-  }
-  if (!owner && !(permissions.has("messages.read") && permissions.has("messages.respond"))) return null;
-  const professional = (member.smyl_professionals || []).find((p) => p.active);
-  return { id: member.id, name: text(member.nombre, 160) || text(professional?.display_name, 160) || text(member.email, 160) || "Miembro del equipo",
-    role: owner ? "owner" : "staff", kind: owner ? "owner" : professional ? "professional" : "staff" };
-}
-
-// Las claves foráneas compuestas aseguran que roles, permisos y directorio pertenezcan a la misma clínica.
-// Un profesional sin usuario activo puede aparecer en la agenda, nunca como responsable del chat.
-async function assignableTeam(tenantId: string, targetId?: string) {
-  const members: NonNullable<ReturnType<typeof eligibleTeamMember>>[] = [];
-  for (let offset = 0; ; offset += 200) {
-    let query = admin.from("camila_usuarios")
-      .select("id,tenant_id,nombre,email,rol,activo,smyl_member_roles(smyl_roles(active,smyl_role_permissions(permission_key))),smyl_professionals(display_name,active)")
-      .eq("tenant_id", tenantId).eq("activo", true);
-    if (targetId) query = query.eq("id", targetId);
-    const result = await query.order("id").range(offset, offset + 199);
-    if (result.error) throw new Error("No se pudo consultar el equipo de la clínica.");
-    for (const row of result.data || []) {
-      const member = eligibleTeamMember(row as unknown as TeamCandidate, tenantId);
-      if (member) members.push(member);
-    }
-    if (targetId || !result.data || result.data.length < 200) break;
-  }
-  return members.sort((a, b) => a.name.localeCompare(b.name, "es"));
-}
-
-async function listTeam(tenantId: string): Promise<Response> {
-  return json(200, { ok: true, members: await assignableTeam(tenantId) });
-}
+// La lista de responsables utiliza el mismo perfil explícito que la transferencia.
 
 async function availabilityCatalog(tenantId: string): Promise<Response> {
   const [servicesResult, branchesResult, professionalsResult, linksResult] = await Promise.all([
@@ -965,16 +1076,17 @@ async function handleInbox(req: Request): Promise<Response> {
   const auth = await requireUser(req, CORS);
   if (auth.response) return auth.response;
   if (!auth.user || !auth.tenantId) return json(401, { error: "Se requiere una sesión profesional válida." });
-  const actor = await actorFor(auth.user, auth.tenantId);
-  if (!actor) return json(403, { error: "Tu acceso al equipo de esta clínica no está activo." });
-
   try {
+    const actor = await actorFor(auth.user, auth.tenantId);
+    if (!actor) return json(403, { error: "Tu acceso al chat no está activo.", code:"chat_access_denied" });
     const url = new URL(req.url);
+    if (req.method === "GET" && url.searchParams.get("action") === "access") return json(200, {actor});
+    if (actor.chat_access === "none") return json(403, { error: "No tienes habilitado el chat.", code: "chat_access_denied" });
     if (req.method === "GET") {
       const action = text(url.searchParams.get("action"), 30) || "list";
       const denied = requirePermission(actor, "messages.read", "Tu rol no permite consultar las conversaciones de la clínica.");
       if (denied) return denied;
-      if (action === "team") return await listTeam(auth.tenantId);
+
       if (action === "availability_catalog" || action === "availability") {
         const scheduleDenied = requirePermission(actor, "schedule.read", "Tu rol no permite consultar disponibilidad de Agenda.");
         if (scheduleDenied) return scheduleDenied;
@@ -985,12 +1097,13 @@ async function handleInbox(req: Request): Promise<Response> {
       const conversationId = url.searchParams.get("conversation_id") ? uuid(url.searchParams.get("conversation_id")) : null;
       if (url.searchParams.get("conversation_id") && !conversationId) return json(400, { error: "Conversación no válida." });
       if (conversationId && !await canAccessConversation(actor, auth.tenantId, conversationId)) return forbiddenConversation();
+      if (action === "team") return await listTeam(auth.tenantId);
       if (action === "branches") {
         const all = await activeBranches(auth.tenantId);
         const mine = (actor.scopes.messages || "own") === "branches" ? new Set(await memberBranchIds(actor, auth.tenantId)) : null;
         return json(200, { branches: mine ? all.filter((branch) => mine.has(branch.id)) : all, actor });
       }
-      if (action === "operations" && actor.scopes.messages !== "clinic") {
+      if (["operations", "ai_feedback"].includes(action) && actor.scopes.messages !== "clinic") {
         return json(403, { error: "Los indicadores globales requieren alcance de toda la clínica.", code: "conversation_scope_denied" });
       }
       if (action === "appointment_requests" && conversationId) {
@@ -1024,17 +1137,26 @@ async function handleInbox(req: Request): Promise<Response> {
       if (action === "list") {
         const invalid = invalidInboxFilter(url);
         if (invalid) return json(400, { error: invalid });
+        return await listScoped(actor, auth.tenantId, url);
       }
       const path = queryPath(url, action, conversationId);
       if (!path) return json(400, { error: "Consulta de Inbox no reconocida." });
-      const headers = actorHeaders(actor);
+      const headers = ["sync", "messages"].includes(action) ? connectorHeaders(auth.tenantId) : actorHeaders(actor);
       const remote = await lanaRequest(auth.tenantId, path, { method: "GET", headers }, 15000);
-      const scopedBody = ["list", "sync"].includes(action)
-        ? await filterConversationPayload(actor, auth.tenantId, remote.body)
-        : remote.body;
-      if (action === "sync") { try { await attachBranchChanges(actor, auth.tenantId, url.searchParams.get("since"), scopedBody); } catch (_) { /* informativo */ } }
-      if (action === "messages") { try { await attachThreadBranch(auth.tenantId, scopedBody); } catch (_) { /* la sucursal es informativa: no debe romper la conversación */ } }
-      return json(remote.response.status, { ...scopedBody, actor });
+      if (!remote.response.ok) return json(remote.response.status, { error: "No se pudo consultar el chat." });
+      if (action === "sync") {
+        const scopedBody = await filterConversationPayload(actor, auth.tenantId, remote.body, url);
+        await attachBranchChanges(actor, auth.tenantId, url, scopedBody, remote.body);
+        return json(200, { ...scopedBody, actor });
+      }
+      if (action === "messages" && conversationId) {
+        const conversation = remote.body.conversation as Record<string, unknown> | undefined;
+        if (conversation?.id !== conversationId) return json(404, { error: "Conversación no disponible." });
+        await attachThreadBranch(auth.tenantId, remote.body);
+        await projectConversation(actor, auth.tenantId, conversation, true);
+        if (!await canAccessConversation(actor, auth.tenantId, conversationId)) return forbiddenConversation();
+      }
+      return json(remote.response.status, { ...remote.body, actor });
     }
 
     if ((req.headers.get("content-type") || "").toLowerCase().includes("multipart/form-data")) {
@@ -1059,6 +1181,7 @@ async function handleInbox(req: Request): Promise<Response> {
 
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
     const action = text(body.action, 30);
+    if (["pilot", "stage_create", "stage_update", "stage_reorder", "stage_seed_dental"].includes(action) && actor.scopes.messages !== "clinic") return forbiddenConversation();
     if (action === "pilot") {
       if (actor.role !== "owner") return json(403, { error: "Solo el dueño de la clínica puede aprobar el piloto." });
       const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
@@ -1117,6 +1240,7 @@ async function handleInbox(req: Request): Promise<Response> {
     const conversationId = uuid(body.conversation_id);
     if (!conversationId) return json(400, { error: "Conversación no válida." });
     if (!await canAccessConversation(actor, auth.tenantId, conversationId)) return forbiddenConversation();
+    if (action === "assign" || action === "release") return await transferChat(actor, auth.tenantId, conversationId, action, body);
     if (action === "patient_link_preview" || action === "patient_link_confirm") {
       const denied = requirePermission(actor, "patients.manage", "Tu rol no permite crear o vincular pacientes.");
       if (denied) return denied;
@@ -1336,7 +1460,7 @@ async function handleInbox(req: Request): Promise<Response> {
       }, 15000);
       return json(remote.response.status, { ...remote.body, actor });
     }
-    if (!["send", "read", "assign", "release", "pause", "resume", "resolve", "pin", "unpin", "stage", "priority", "branch", "star", "unstar", "delete"].includes(action)) {
+    if (!["send", "read", "pause", "resume", "resolve", "pin", "unpin", "stage", "priority", "branch", "star", "unstar", "delete"].includes(action)) {
       return json(400, { error: "Acción de Inbox no reconocida." });
     }
     const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
@@ -1375,15 +1499,7 @@ async function handleInbox(req: Request): Promise<Response> {
         forwarded.source_message_id = sourceMessageId;
       } else return json(400, { error: "Tipo de mensaje no reconocido." });
     }
-    if (action === "assign") {
-      if (!can(actor, "messages.read")) return forbiddenConversation();
-      const targetId = body.target_actor_id == null ? actor.id : uuid(body.target_actor_id);
-      if (!targetId) return json(400, { error: "Selecciona un integrante válido." });
-      const [member] = await assignableTeam(auth.tenantId, targetId);
-      if (!member) return json(404, { error: "Este integrante no está disponible para atender chats en tu clínica." });
-      forwarded.target_actor_id = targetId;
-      forwarded.target_actor_name = member.name;
-    }
+
     if (action === "stage") {
       if (body.target_stage_id === null || body.target_stage_id === "") forwarded.target_stage_id = null;
       else {
@@ -1433,6 +1549,9 @@ async function handleInbox(req: Request): Promise<Response> {
       headers,
       body: JSON.stringify(forwarded),
     }, action === "send" ? 30000 : 15000);
+    if (remote.response.ok && remote.body.conversation && typeof remote.body.conversation === "object") {
+      await projectConversation(actor, auth.tenantId, remote.body.conversation as Record<string,unknown>);
+    }
     return json(remote.response.status, { ...remote.body, actor });
   } catch (error) {
     console.error("[lana-inbox]", error instanceof Error ? error.message : error);

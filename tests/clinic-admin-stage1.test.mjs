@@ -12,8 +12,8 @@ const mobileScript = read('../mobile/www/smyl-clinic-admin.js');
 const mobileStyles = read('../mobile/www/smyl-clinic-admin.css');
 
 test('Mi clínica is loaded as a first-class panel module', () => {
-  assert.match(app, /smyl-clinic-admin\.css\?v=11/);
-  assert.match(app, /smyl-clinic-admin\.js\?v=14/);
+  assert.match(app, /smyl-clinic-admin\.css\?v=12/);
+  assert.match(app, /smyl-clinic-admin\.js\?v=15/);
   assert.match(script, /window\.TITULOS\.clinica = 'Mi clínica'/);
   assert.match(script, /navButton\('Mi clínica', 'clinica'\)/);
   assert.match(script, /Sucursales y horarios/);
@@ -55,6 +55,6 @@ test('web, mobile and offline cache include the same clinic module', () => {
   assert.equal(script, mobileScript);
   assert.equal(styles, mobileStyles);
 assert.match(worker, /professional-invitations/);
-  assert.match(worker, /smyl-clinic-admin\.js\?v=14/);
-  assert.match(worker, /smyl-clinic-admin\.css\?v=11/);
+  assert.match(worker, /smyl-clinic-admin\.js\?v=15/);
+  assert.match(worker, /smyl-clinic-admin\.css\?v=12/);
 });

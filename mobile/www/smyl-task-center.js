@@ -116,6 +116,7 @@
   function init(){
     build();window.cargarNotificaciones=load;window.marcarTodasLeidas=markAnnouncementsRead;
     window.addEventListener('smyl:attention-updated',function(event){state.messages=event.detail||null;if(state.loaded)render();});
+    window.addEventListener('smyl:inbox-access',function(){state.messages=null;state.inboxOperations=null;if(state.loaded)render();});
     window.addEventListener('smyl:inbox-operations-updated',function(event){state.inboxOperations=event.detail||null;if(state.loaded)render();});
     window.addEventListener('smyl:billing-updated',function(event){state.billing=event.detail||null;if(state.loaded)render();});
     window.addEventListener('smyl:security-updated',function(event){state.security=event.detail||null;if(state.loaded)render();});

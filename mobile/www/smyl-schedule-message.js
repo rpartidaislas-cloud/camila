@@ -121,7 +121,7 @@
   function el(tag, cls, content) { var node = document.createElement(tag); if (cls) node.className = cls; if (content != null) node.textContent = content; return node; }
 
   function mount(host, ctx) {
-    if (!host || !ctx || !ctx.canMessage) { if (host) host.hidden = true; return; }
+    if (!host || !ctx || !win.SmylInbox?.canAccess?.()) { if (host) host.hidden = true; return; }
     var state = { links: [], channel: '', templates: [], pick: null, sending: false };
     host.hidden = false; host.className = 'sched-msg';
 
@@ -151,7 +151,7 @@
       }
       if (!state.links.length) {
         frame();
-        note('Este paciente aún no tiene un chat vinculado. Cuando te escriba, vincúlalo en Mensajes y podrás enviarle recordatorios desde aquí.', 'info', { label: 'Ir a Mensajes', run: function () { ctx.close(); win.ir('inbox'); } });
+        note('Tu bandeja no tiene una conversación vinculada con este paciente.', 'info', { label: 'Ir a Mensajes', run: function () { ctx.close(); win.ir('inbox'); } });
         return;
       }
       state.channel = state.links[0].lana_channel;

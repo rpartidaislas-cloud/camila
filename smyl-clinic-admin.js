@@ -33,7 +33,6 @@
     { name: 'Agenda', keys: ['schedule.read', 'schedule.manage'] },
     { name: 'Cotizaciones', keys: ['proposal.read', 'proposal.write', 'proposal.approve', 'proposal.followup'] },
     { name: 'Servicios y tarifas', keys: ['catalog.manage', 'catalog.prices'] },
-    { name: 'Mensajes', keys: ['messages.read', 'messages.respond', 'messages.manage'] },
     { name: 'Cobros y caja', keys: ['finance.read', 'finance.manage', 'finance.cash', 'finance.cash.supervise', 'finance.refund'] },
     { name: 'Facturación', keys: ['finance.invoice'] },
     { name: 'Inventario', keys: ['inventory.read', 'inventory.manage', 'inventory.consume', 'inventory.adjust', 'inventory.purchase'] },
@@ -44,7 +43,7 @@
   };
   var SCOPE_GROUPS = [
     { key: 'patients', label: 'Pacientes' }, { key: 'schedule', label: 'Agenda' },
-    { key: 'clinical', label: 'Expediente clínico' }, { key: 'messages', label: 'Mensajes' },
+    { key: 'clinical', label: 'Expediente clínico' }, { key: 'messages', label: 'Chat de quien coordina' },
     { key: 'finance', label: 'Finanzas' }
   ];
   var state = { branchStep: {},
@@ -444,7 +443,11 @@
 
   function buildPeople() {
     var people = [];
-    state.users.forEach(function (user) {
+    var users = state.users;
+    if (state.canTeam && state.tenant && !users.some(function (user) { return user.id === state.tenant; })) {
+      users = [{ id: state.tenant, nombre: 'Titular de la clínica', rol: 'dueño', activo: true, legacyTitular: true }].concat(users);
+    }
+    users.forEach(function (user) {
       var professional = professionalForMember(user.id);
       var role = roleFor(user.id);
       var primary = branchForMember(user.id);
@@ -609,6 +612,7 @@
   }
 
   function openPerson(key) {
+    state.chatProfile = null;
     state.person = key; state.editing = false;
     var dialog = sheet();
     if (!dialog || !currentPerson()) return;
@@ -618,6 +622,7 @@
 
   function closePerson() {
     var dialog = sheet();
+    state.chatProfile = null;
     state.person = null; state.editing = false;
     if (dialog && dialog.open) dialog.close();
   }
@@ -634,6 +639,119 @@
     var section = el('section', 'clinic-admin-sheet-section');
     section.append(el('h3', '', title));
     if (hint) section.append(el('p', 'clinic-admin-hint', hint));
+    return section;
+  }
+
+  var CHAT_PROFILES = {
+    none: ['Sin acceso', 'Esta persona queda fuera de Mensajes.'],
+    agent: ['Atiende', 'Ve sus conversaciones asignadas, responde y puede transferirlas con una nota privada.'],
+    coordinator: ['Coordina', 'Distribuye conversaciones sin asignar y da seguimiento a las del equipo dentro de su alcance.']
+  };
+
+  function memberChatSection(person) {
+    var previous = state.chatProfile;
+    if (previous && previous.userId === person.user.id && previous.tenant === state.tenant && previous.actor === state.actor) return previous.section;
+    var section = sheetSection('Chat');
+    var session = { userId: person.user.id, tenant: state.tenant, actor: state.actor, section: section };
+    state.chatProfile = session;
+    var row, team, busy = false;
+    var controls = el('div', 'clinic-admin-chat-controls');
+    var status = el('p', 'clinic-admin-hint'); status.setAttribute('role', 'status');
+    section.append(controls, status);
+
+    function current() {
+      return state.chatProfile === session && state.person === person.key && state.canTeam &&
+        window.tenantId === session.tenant && state.actor === session.actor;
+    }
+
+    function showFields() {
+      var label = el('label', 'clinic-admin-sheet-field');
+      var select = el('select'); select.name = 'chat_profile';
+      Object.keys(CHAT_PROFILES).forEach(function (mode) { select.append(new Option(CHAT_PROFILES[mode][0], mode)); });
+      select.value = row.chat_mode;
+      label.append(el('span', '', 'Perfil de chat'), select);
+      var hint = el('p', 'clinic-admin-hint');
+      var destination = el('label', 'clinic-admin-sheet-field');
+      var target = el('select'); target.name = 'chat_destination';
+      var count = Number(row.assigned_count);
+      var chats = count === 1 ? '1 conversación asignada' : count + ' conversaciones asignadas';
+      destination.append(el('span', '', 'Destino de ' + (count === 1 ? 'la conversación asignada' : 'las ' + count + ' conversaciones asignadas')), target);
+      target.append(new Option('Elige un destino', ''), new Option('Devolver a Sin asignar', 'queue'));
+      var recipients = el('optgroup'); recipients.label = 'Transferir a';
+      team.filter(function (item) {
+        return item.active && item.user_id !== session.userId && (item.chat_mode === 'agent' || item.chat_mode === 'coordinator');
+      }).forEach(function (item) { recipients.append(new Option(item.name, item.user_id)); });
+      if (recipients.children.length) target.append(recipients);
+      var save = el('button', 'btn btn-primary'); save.type = 'button';
+      function update() {
+        var mode = select.value;
+        var needsDestination = mode === 'none' && count > 0;
+        hint.textContent = CHAT_PROFILES[mode][1] + (count > 0 ? ' Actualmente tiene ' + chats + '.' : '');
+        destination.hidden = !needsDestination;
+        save.hidden = mode === row.chat_mode;
+        save.disabled = busy || (needsDestination && !target.value);
+        save.textContent = needsDestination && target.value ? (target.value === 'queue' ? 'Devolver chats y quitar acceso' : 'Transferir chats y quitar acceso') : 'Guardar perfil de chat';
+      }
+      select.addEventListener('change', function () { target.value = ''; status.textContent = ''; update(); });
+      target.addEventListener('change', update);
+      save.addEventListener('click', async function () {
+        if (!current() || save.disabled || save.hidden || busy) return;
+        busy = true;
+        var mode = select.value;
+        var dest = !destination.hidden ? target.value : '';
+        select.disabled = target.disabled = save.disabled = true;
+        status.textContent = 'Guardando perfil…';
+        try {
+          var result = await query(window.sb.rpc('smyl_set_chat_access', {
+            p_user_id: session.userId, p_mode: mode, p_expected_mode: row.chat_mode,
+            p_disposition: dest ? (dest === 'queue' ? 'queue' : 'transfer') : null,
+            p_replacement_id: dest && dest !== 'queue' ? dest : null
+          }));
+          if (!result || result.user_id !== session.userId || result.chat_mode !== mode) throw new Error('unconfirmed');
+          window.dispatchEvent(new CustomEvent('smyl:chat-access-changed', { detail: { userId: session.userId } }));
+          if (!current()) return;
+          var moved = Number(result.moved);
+          var message = 'Perfil guardado.';
+          if (moved > 0) {
+            var recipient = team.find(function (item) { return item.user_id === dest; });
+            message += ' ' + (moved === 1 ? '1 conversación pasó' : moved + ' conversaciones pasaron') + ' a ' + (recipient ? recipient.name : 'Sin asignar') + '.';
+          }
+          await loadSettings(message);
+        } catch (error) {
+          if (!current()) return;
+          var message = error && error.code === '42501' ? 'Tu cuenta no tiene permiso para este cambio.' :
+            error && error.code === '40001' ? 'La asignación cambió. Revisa el perfil y el destino antes de guardar.' :
+            'No pudimos confirmar el cambio. Revisa la configuración antes de volver a guardar.';
+          await loadSettings(message);
+        }
+      });
+      controls.replaceChildren(label, hint, destination, save);
+      update();
+    }
+
+    async function loadSettings(message) {
+      busy = true;
+      controls.replaceChildren(); status.textContent = 'Consultando perfil de chat…';
+      try {
+        var rows = await query(window.sb.rpc('smyl_chat_team_settings'));
+        if (!current()) return;
+        team = Array.isArray(rows) ? rows : [];
+        row = team.find(function (item) { return item.user_id === session.userId && item.active; });
+        if (!row || !Object.hasOwn(CHAT_PROFILES, row.chat_mode)) throw new Error('unavailable');
+        busy = false;
+        showFields();
+        status.textContent = message || '';
+        if (message) controls.querySelector('select').focus();
+      } catch (error) {
+        if (!current()) return;
+        busy = false;
+        status.textContent = (message ? message + ' ' : '') + 'No pudimos consultar el perfil de chat.';
+        var retry = el('button', 'btn btn-secondary', 'Volver a consultar'); retry.type = 'button';
+        retry.addEventListener('click', function () { if (!busy && current()) loadSettings(); });
+        controls.replaceChildren(retry);
+      }
+    }
+    loadSettings();
     return section;
   }
 
@@ -748,6 +866,8 @@
       }
     }
     body.append(data);
+    if (state.canTeam && person.kind === 'user' && person.user.activo) body.append(memberChatSection(person));
+    else state.chatProfile = null;
 
     // Dónde trabaja
     if (professional) {
@@ -801,7 +921,7 @@
       branchSelect.append(new Option('Sin sede principal', ''));
       state.branches.filter(function (branch) { return branch.active; }).forEach(function (branch) { branchSelect.append(new Option(branch.name, branch.id)); });
       branchSelect.value = currentBranch ? currentBranch.id : '';
-      branchSelect.disabled = !state.canClinic || !user.activo;
+      branchSelect.disabled = !state.canClinic || !user.activo || !!user.legacyTitular;
       branchSelect.addEventListener('change', function () {
         if (branchSelect.value) setMemberBranch(user.id, branchSelect.value); else branchSelect.value = currentBranch ? currentBranch.id : '';
       });
@@ -869,11 +989,13 @@
       return;
     }
     host.innerHTML = roles.map(function (role) {
-      var permissions = state.permissions.filter(function (row) { return row.role_id === role.id; }).map(function (row) { return PERMISSION_LABELS[row.permission_key] || row.permission_key; });
+      var permissions = state.permissions.filter(function (row) { return row.role_id === role.id && !row.permission_key.startsWith('messages.'); }).map(function (row) { return PERMISSION_LABELS[row.permission_key] || row.permission_key; });
       var scopes = state.roleScopes.filter(function (row) { return row.role_id === role.id; });
       var scopeSummary = SCOPE_GROUPS.map(function (group) {
         var item = scopes.find(function (row) { return row.domain === group.key; });
-        return '<span title="' + esc(group.label) + '">' + esc(group.label) + ': ' + esc(DATA_SCOPES[item ? item.scope : 'own']) + '</span>';
+        var scope = item ? item.scope : 'own';
+        if (group.key === 'messages') scope = role.code === 'propietario' || scope === 'clinic' ? 'clinic' : 'branches';
+        return '<span title="' + esc(group.label) + '">' + esc(group.label) + ': ' + esc(DATA_SCOPES[scope]) + '</span>';
       }).join('');
       var protectedRole = role.code === 'propietario';
       return '<details class="clinic-admin-role"><summary><span><strong>' + esc(role.name) + '</strong><small>' + esc(role.description || 'Responsabilidades definidas por la clínica') + '</small></span><b>' + permissions.length + ' funciones</b></summary><div class="clinic-admin-role-body"><div><div class="clinic-admin-role-pills">' + (permissions.length ? permissions.map(function (permission) { return '<span>' + esc(permission) + '</span>'; }).join('') : '<small>Sin funciones operativas asignadas.</small>') + '</div><div class="clinic-admin-scope-summary">' + scopeSummary + '</div></div>' + (state.canAssignRoles && !protectedRole ? '<button type="button" class="btn btn-secondary" data-ca-edit-role="' + role.id + '">Editar acceso</button>' : (protectedRole ? '<small class="clinic-admin-protected">Protegido</small>' : '')) + '</div></details>';
@@ -900,10 +1022,13 @@
       }).join('') + '</div></fieldset>';
     }).join('');
     var scopeFields = SCOPE_GROUPS.map(function (group) {
-      return '<label class="clinic-admin-scope-field"><span>' + esc(group.label) + '</span><select name="scope_' + group.key + '">' + Object.keys(DATA_SCOPES).map(function (scope) { return '<option value="' + scope + '"' + (currentScopes[group.key] === scope ? ' selected' : '') + '>' + esc(DATA_SCOPES[scope]) + '</option>'; }).join('') + '</select></label>';
+      var choices = group.key === 'messages' ? ['branches', 'clinic'] : Object.keys(DATA_SCOPES);
+      return '<label class="clinic-admin-scope-field"><span>' + esc(group.label) + '</span><select name="scope_' + group.key + '">' + choices.map(function (scope) { return '<option value="' + scope + '"' + (currentScopes[group.key] === scope ? ' selected' : '') + '>' + esc(DATA_SCOPES[scope]) + '</option>'; }).join('') + '</select></label>';
     }).join('');
     dialog.innerHTML = '<form id="clinic-admin-role-form"><div class="clinic-admin-dialog-heading"><div><span class="pro-eyebrow">ACCESO CONFIGURABLE</span><h2>' + (role ? 'Editar rol' : 'Crear nuevo rol') + '</h2></div>' + (role ? '<label class="clinic-admin-active-switch"><input type="checkbox" name="active"' + (role.active ? ' checked' : '') + '><span>Rol activo</span></label>' : '') + '</div><p>Activa las funciones y decide hasta dónde llega cada acceso. Podrás cambiarlo en cualquier momento.</p><div class="clinic-admin-form-grid"><div class="clinic-admin-field"><label for="ca-role-name">Nombre del rol</label><input id="ca-role-name" name="name" maxlength="80" required value="' + esc(role ? role.name : '') + '" placeholder="Ej. Coordinación clínica"></div><div class="clinic-admin-field"><label for="ca-role-description">Descripción</label><input id="ca-role-description" name="description" maxlength="240" value="' + esc(role ? role.description : '') + '" placeholder="Responsabilidades principales"></div></div><section class="clinic-admin-scope-editor"><div><h3>Alcance de la información</h3><p>Elige si este rol trabaja con información propia, del equipo, de sus sucursales o de toda la clínica.</p></div><div class="clinic-admin-scope-grid">' + scopeFields + '</div></section><div class="clinic-admin-role-editor">' + groups + '</div><div class="clinic-admin-role-count" aria-live="polite"></div><div class="clinic-admin-actions"><button type="button" class="btn btn-secondary" data-ca-close>Cancelar</button><button type="submit" class="btn btn-primary">Guardar rol</button></div></form>';
     var form = dialog.querySelector('form');
+    var accessHint = el('p', 'clinic-admin-hint', 'El perfil para atender o coordinar el chat se elige en la ficha de cada integrante de Equipo.');
+    form.querySelector('.clinic-admin-scope-grid').after(accessHint);
     var count = dialog.querySelector('.clinic-admin-role-count');
     function refreshCount() {
       var total = form.querySelectorAll('input[name="permission"]:checked').length;
@@ -915,6 +1040,7 @@
       event.preventDefault();
       var data = new FormData(form);
       var permissions = Array.from(form.querySelectorAll('input[name="permission"]:checked')).map(function (input) { return input.value; });
+      enabled.forEach(function (key) { if (key.startsWith('messages.')) permissions.push(key); });
       var scopes = {};
       SCOPE_GROUPS.forEach(function (group) { scopes[group.key] = String(data.get('scope_' + group.key) || 'own'); });
       var ok = await mutate(function () {
@@ -1079,7 +1205,7 @@
   }
 
   async function toggleMember(userId, active) {
-    if (!active && !window.confirm('¿Desactivar el acceso de este integrante? Sus registros se conservarán.')) return;
+    if (!active && !window.confirm('¿Desactivar a esta persona y devolver sus chats a Sin asignar? Si prefieres transferirlos a alguien, cancela y elige Sin acceso en su perfil de chat.')) return;
     await mutate(function () { return query(window.sb.from('camila_usuarios').update({ activo: active }).eq('tenant_id', state.tenant).eq('id', userId).select('id').single()); }, active ? 'Acceso reactivado.' : 'Acceso desactivado.');
   }
 
@@ -1252,7 +1378,7 @@
     page.querySelector('#clinic-admin-people-search').addEventListener('input', function (event) { state.personQuery = event.target.value; renderPeople(); });
     var personSheet = page.querySelector('#clinic-admin-person');
     personSheet.addEventListener('click', function (event) { if (event.target === personSheet) closePerson(); });
-    personSheet.addEventListener('close', function () { state.person = null; state.editing = false; });
+    personSheet.addEventListener('close', function () { state.person = null; state.editing = false; state.chatProfile = null; });
     page.querySelector('#clinic-admin-add-branch').addEventListener('click', openBranchDialog);
     page.querySelector('#clinic-admin-add-professional').addEventListener('click', openProfessionalDialog);
     page.querySelector('#clinic-admin-add-member').addEventListener('click', openMemberDialog);

@@ -15,7 +15,7 @@
   function patientName(id) { var p=byId(state.patients,id); return p?[p.nombre,p.apellido].filter(Boolean).join(' '):'Paciente'; }
   function serviceName(id) { var s=byId(state.services,id); return s&&s.name?s.name:'Cita dental'; }
   // Inicio por rol: lo que el rol puede ver/hacer. Si no se pudo leer (access=null) se muestra todo; quien manda siempre es la base de datos (RLS).
-  function can(key) { var a=state.access; return !a||a.owner||a.perms.indexOf(key)!==-1; }
+  function can(key) { if(key==='messages.read')return Boolean(window.SmylInbox && window.SmylInbox.canAccess && window.SmylInbox.canAccess()); var a=state.access; return !a||a.owner||a.perms.indexOf(key)!==-1; }
   function mineOnly() { var a=state.access; if(!a||!a.professionalId)return false; return can('schedule.manage')?flag('mine')==='1':true; }
   function activeAppointments() { var mine=mineOnly()?state.access.professionalId:null; return state.appointments.filter(function(row){return row.status!=='cancelled'&&(!mine||row.professional_id===mine);}); }
   function query(builder) { return Promise.resolve(typeof window.sbTimeout==='function'?window.sbTimeout(builder):builder).then(function(result){if(result&&result.error)throw result.error;return result&&result.data||[];}); }
@@ -230,6 +230,7 @@
     state.chatsLoading=true; state.chatsError=false; if(!state.chats)renderChats();
     try {
       var rows=await inbox.fetchRecent(12);
+      if (!can('messages.read')) return;
       state.chats=rows.slice().sort(function(a,b){
         if(Boolean(a.needs_human)!==Boolean(b.needs_human))return a.needs_human?-1:1;
         if(Boolean(Number(a.unread_count))!==Boolean(Number(b.unread_count)))return Number(a.unread_count)?-1:1;
@@ -357,6 +358,8 @@
 
   function init() {
     build();
+    window.addEventListener('smyl:inbox-access',function(){state.chats=null;state.chatsAt=0;state.messages=null;applyAccess();if(state.loaded){renderChats();renderMetrics();if(can('messages.read'))loadChats(true);}});
+    window.addEventListener('smyl:inbox-removed',function(event){if(state.chats){state.chats=state.chats.filter(function(item){return item.id!==event.detail.id;});renderChats();}});
     window.addEventListener('smyl:attention-updated',function(event){state.messages=event.detail||null;if(state.loaded){var tasks=resolvePriorityTasks();renderMetrics(tasks);renderPriorities(tasks);loadChats(false);}});
     window.addEventListener('smyl:task-center-updated',function(event){state.tasks=event.detail&&Array.isArray(event.detail.items)?event.detail.items:null;if(state.loaded){var tasks=resolvePriorityTasks();renderMetrics(tasks);renderPriorities(tasks);}});
     var previous=window.ir;

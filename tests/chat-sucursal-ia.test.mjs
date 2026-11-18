@@ -47,7 +47,7 @@ test('lana-inbox: deduce la sucursal del último mensaje del paciente y no pisa 
   assert.match(edge, /conversation\.last_message_role !== "patient"/);
   assert.match(edge, /source: "ai" \}\);\s*\n\s*inferred\.push/);
   assert.equal((edge.match(/ignoreDuplicates: true/g) || []).length, 2);
-  assert.match(edge, /if \(action === "messages"\) \{ try \{ await attachThreadBranch/);
+  assert.match(edge, /if \(action === "messages" && conversationId\) \{[\s\S]*?await attachThreadBranch\(auth.tenantId, remote.body\)/);
 });
 test('entrenamiento: «Traer mis sucursales» y la instrucción de preguntar la sede, solo con varias sucursales', () => {
   const pure = new Function(

@@ -15,8 +15,9 @@ test('migración: tabla por conversación con fuente, solo accesible por service
   assert.match(sql, /grant select, insert, update, delete on public\.smyl_conversation_branches to service_role/);
 });
 test('lana-inbox: la sucursal asignada manda para el alcance por sucursales y se adjunta a cada conversación', () => {
-  assert.match(edge, /if \(\(actor\.scopes\.messages \|\| "own"\) === "branches"\) \{\s*\n\s*const assigned = \(await branchAssignments\(tenantId, \[conversationId\]\)\)\.get\(conversationId\);/);
-  assert.match(edge, /if \(assigned\) return \(await memberBranchIds\(actor, tenantId\)\)\.includes\(assigned\.branch_id\);/);
+  const access = read('supabase/migrations/20261118150000_smyl_chat_access_and_private_handoff.sql');
+  assert.match(edge, /smyl_chat_visible_ids/);
+  assert.match(access, /mode='coordinator'[\s\S]*smyl_member_branches/);
   assert.match(edge, /conversation\.branch = assigned \?/);
   assert.match(edge, /action === "branches"/);
 });

@@ -18,7 +18,10 @@
   }
   function render(){
     if(!dialog)return;var q=normalize(input&&input.value),host=dialog.querySelector('[data-command-results]'),visible=0;host.innerHTML='';
-    GROUPS.forEach(function(group){var items=group.items.filter(function(item){return !q||normalize(item.join(' ')).includes(q);});if(!items.length)return;visible+=items.length;var section=document.createElement('section');section.innerHTML='<h3>'+esc(group.label)+'</h3><div>'+items.map(function(item){return '<button type="button" data-command-route="'+esc(item[1])+'"><span><strong>'+esc(item[0])+'</strong><small>'+esc(item[2])+'</small></span><i aria-hidden="true">→</i></button>';}).join('')+'</div>';host.append(section);});
+    GROUPS.forEach(function(group){var items=group.items.filter(function(item){
+      if(item[1]==='inbox'&&!window.SmylInbox?.canAccess?.())return false;
+      return !q||normalize(item.join(' ')).includes(q);
+    });if(!items.length)return;visible+=items.length;var section=document.createElement('section');section.innerHTML='<h3>'+esc(group.label)+'</h3><div>'+items.map(function(item){return '<button type="button" data-command-route="'+esc(item[1])+'"><span><strong>'+esc(item[0])+'</strong><small>'+esc(item[2])+'</small></span><i aria-hidden="true">→</i></button>';}).join('')+'</div>';host.append(section);});
     if(!visible)host.innerHTML='<div class="smyl-command-empty"><strong>Sin coincidencias</strong><p>Prueba con el nombre de una tarea o módulo.</p></div>';
     host.querySelectorAll('[data-command-route]').forEach(function(button){button.onclick=function(){go(button.dataset.commandRoute);};});
   }
@@ -29,5 +32,6 @@
   function navigate(event){if(event.key!=='ArrowDown'&&event.key!=='ArrowUp'&&event.key!=='Enter')return;var buttons=Array.from(dialog.querySelectorAll('[data-command-route]'));if(!buttons.length)return;var index=buttons.indexOf(document.activeElement);if(event.key==='Enter'){event.preventDefault();buttons[index>=0?index:0].click();return;}event.preventDefault();if(event.key==='ArrowDown')buttons[index<0?0:(index+1)%buttons.length].focus();else buttons[index<=0?buttons.length-1:index-1].focus();}
   function init(){build();document.addEventListener('keydown',function(event){if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();dialog&&dialog.open?close():open();}});var previous=window.ir;window.ir=function(route){var result=typeof previous==='function'?previous(route):undefined;document.title=(window.TITULOS&&window.TITULOS[route]?window.TITULOS[route]:'SMYL')+' · SMYL';return result;};}
   window.SmylCommandMenu=Object.freeze({open:open,close:close});
+  window.addEventListener('smyl:inbox-access',function(){if(dialog&&dialog.open)render();});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
