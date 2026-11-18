@@ -147,3 +147,19 @@
 .connections-example-box p{margin:0 0 8px;font-size:14px;line-height:1.5;color:#27414d}
 .connections-example-box small{display:block;margin-bottom:10px;font-size:13px;color:#4b5f5d}
 .connections-example-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+
+/* Sedes y servicios · tarjetas de solo lectura que salen de Mi clínica y de Servicios y tarifas */
+.connections-auto{grid-column:1/-1;display:flex;flex-direction:column;gap:10px;padding:14px 16px;border:1px solid #d8e5df;border-radius:14px;background:#f8fbf9}
+.connections-auto-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.connections-auto-head strong{display:block;font-size:14px;color:#17352d}
+.connections-auto-head small{display:block;margin-top:2px;font-size:12px;line-height:1.5;color:#526465}
+.connections-auto-head .btn{width:auto;flex:none;min-height:34px;padding:0 12px;font-size:12px}
+.connections-auto-list{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none;max-height:340px;overflow:auto}
+.connections-auto-list li{display:flex;flex-direction:column;gap:2px;padding:9px 11px;border:1px solid #e3ece8;border-radius:10px;background:#fff;font-size:12px;line-height:1.5;color:#33474a}
+.connections-auto-list b{font-size:13px;color:#17352d}
+.connections-auto-empty{margin:0;padding:12px;border:1px dashed #c7d6cf;border-radius:10px;font-size:12px;line-height:1.5;color:#745f39;background:#fffdf6}
+.connections-auto-drift{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid #ebd6a5;border-radius:10px;background:#fff8e6;font-size:12px;color:#7a5410}
+.connections-auto-drift .btn{width:auto;flex:none;min-height:32px;padding:0 12px;font-size:12px}
+@media(max-width:640px){.connections-auto-head,.connections-auto-drift{flex-direction:column;align-items:stretch}.connections-auto-head .btn,.connections-auto-drift .btn{width:100%}}
+.connections-branch-tools .connections-inline-check input[type=checkbox]{width:20px;height:20px;min-height:0;flex:none;margin:0;padding:0}
+.connections-branch-tools .connections-inline-check{flex-direction:row;align-items:center;font-size:13px;font-weight:600;color:#17352d}

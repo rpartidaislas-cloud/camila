@@ -86,6 +86,7 @@ test('entrenamiento: «Traer mis sucursales» y la instrucción de preguntar la 
   assert.equal(pure.setAskBranchLine(on, false), 'Pide nombre');
   assert.match(con, /tools\.hidden = !\(state\.clinicBranches && state\.clinicBranches\.length > 1\)/);
   assert.match(con, /smyl_professional_branches/);
-  assert.match(con, /data-branch-sync/);
+  assert.match(con, /data-auto-branches/);
+  assert.doesNotMatch(con, /data-import-branches|data-branch-sync/);
   assert.match(con, /function multiBranchNotes\(form\)/);
 });
