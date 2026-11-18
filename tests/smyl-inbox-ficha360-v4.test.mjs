@@ -73,7 +73,7 @@ test('web, móvil y PWA publican la ficha 360 v4', () => {
     assert.match(read(file), /smyl-schedule\.js\?v=45/);
     assert.match(read(file), /smyl-finance\.js\?v=55/);
   }
-  assert.match(read('sw.js'), /-ficha360-v4-finanzas-workspace-v5-datos-paciente-v1';/);
+  assert.match(read('sw.js'), /-ficha360-v4-finanzas-workspace-v5-datos-paciente-v1-expediente-orden-v2';/);
   for (const file of ['smyl-inbox.js', 'smyl-inbox-ficha.js', 'smyl-inbox.css', 'smyl-schedule.js', 'smyl-finance.js', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);
   }
