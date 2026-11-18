@@ -52,7 +52,9 @@
     tab: 'operacion', selectedBranch: null, branches: [], rooms: [], hours: [],
     users: [], roles: [], permissions: [], roleScopes: [], memberRoles: [], memberBranches: [],
     professionals: [], professionalBranches: [], invitations: [], canClinic: false, canTeam: false,
-    canAssignRoles: false
+    canAssignRoles: false, canScheduleRead: false,
+    people: [], personFilter: 'all', personQuery: '', person: null, editing: false,
+    proHours: [], profiles: [], conflicts: [], phoneSupported: true, travelSupported: false, travelMargin: 45
   };
 
   function esc(value) {
@@ -84,6 +86,8 @@
   function errorMessage(error) {
     var message = error && (error.message || error.error_description || error.error);
     if (!message) return 'No se pudo completar la operación.';
+    if (/failed to fetch|networkerror|load failed|network request failed|timeout|timed out/i.test(message)) return 'No pudimos conectar con el servidor. Revisa tu internet e intenta de nuevo.';
+    if (/smyl_professionals_phone_check/i.test(message)) return 'El teléfono solo puede llevar números y los signos + ( ) - .';
     if (/traslapa/i.test(message)) return 'Ese horario se cruza con otro bloque activo.';
     if (/duplicate|unique|23505/i.test(message)) return 'Ya existe un registro activo con esos datos.';
     if (/permission|permiso|42501|row-level/i.test(message)) return 'Tu rol no permite realizar esta acción.';
@@ -96,18 +100,45 @@
     return response ? response.data : null;
   }
 
-  function feedback(message, tone) {
+  // Datos que enriquecen la ficha pero no son indispensables (horarios, perfil público, reglas): si fallan o aún no existen en la base, la pantalla sigue.
+  function soft(promise, fallback) {
+    return promise.then(null, function () { return fallback; });
+  }
+
+  async function loadProfessionals(tenant) {
+    var base = 'id,tenant_id,user_id,display_name,specialty,license_number,color_token,active';
+    try {
+      var rows = await query(window.sb.from('smyl_professionals').select(base + ',phone').eq('tenant_id', tenant).order('display_name'));
+      state.phoneSupported = true;
+      return rows;
+    } catch (error) {
+      // Mientras la base no tenga la columna del teléfono interno, la lista de doctores se lee sin ella.
+      if (!/phone|42703|column/i.test(String(error && (error.message || error.code || '')))) throw error;
+      state.phoneSupported = false;
+      return query(window.sb.from('smyl_professionals').select(base).eq('tenant_id', tenant).order('display_name'));
+    }
+  }
+
+  function feedback(message, tone, retry) {
     var host = document.getElementById('clinic-admin-feedback');
     if (!host) return;
     host.replaceChildren();
     if (!message) return;
     var notice = el('div', 'clinic-admin-notice');
     if (tone) notice.dataset.tone = tone;
+    if (tone === 'error') notice.setAttribute('role', 'alert');
     notice.append(el('span', '', message));
+    var actions = el('span', 'clinic-admin-notice-actions');
+    if (typeof retry === 'function') {
+      var again = el('button', '', 'Reintentar');
+      again.type = 'button';
+      again.addEventListener('click', function () { host.replaceChildren(); retry(); });
+      actions.append(again);
+    }
     var close = el('button', '', 'Cerrar');
     close.type = 'button';
     close.addEventListener('click', function () { host.replaceChildren(); });
-    notice.append(close); host.append(notice);
+    actions.append(close); notice.append(actions); host.append(notice);
   }
 
   function initials(name) {
@@ -200,6 +231,7 @@
     state.canClinic = owner || permissions.has('clinic.manage');
     state.canTeam = owner || permissions.has('team.manage');
     state.canAssignRoles = owner || permissions.has('team.manage');
+    state.canScheduleRead = owner || permissions.has('schedule.read') || permissions.has('schedule.manage');
   }
 
   function renderMetrics() {
@@ -234,7 +266,7 @@
     host.querySelectorAll('[data-ca-readiness]').forEach(function (button) {
       button.addEventListener('click', function () {
         if (button.dataset.caBranchTarget) state.selectedBranch = button.dataset.caBranchTarget;
-        setTab(button.dataset.caTabTarget);
+        goTab(button.dataset.caTabTarget);
         if (state.tab === 'operacion') renderOperations(); else renderTeam();
         var target = document.querySelector('.clinic-admin-tabs');
         if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -374,7 +406,7 @@
       (current !== 'datos' && index < STEPS.length - 1 ? '<button type="button" class="btn btn-primary" data-ca-step-go="' + STEPS[index + 1].key + '">' + (current === 'equipo' ? 'Ver resumen →' : 'Continuar →') + '</button>' : '') + '</div>';
     host.innerHTML = '<article class="clinic-admin-card clinic-admin-wizard"><div class="clinic-admin-section-head"><div><h2>' + esc(branch.name) + '</h2></div><div class="clinic-admin-badges">' + (branch.is_default ? '<span class="clinic-admin-pill">Sucursal principal</span>' : '') + '<span class="clinic-admin-pill" data-ready="' + readiness.ready + '">' + (readiness.ready ? 'Lista para agenda' : 'Configuración pendiente') + '</span></div></div>' + steps + '<div class="clinic-admin-step-panel">' + body + '</div>' + nav + '</article>';
     host.querySelectorAll('[data-ca-step-go]').forEach(function (button) { button.addEventListener('click', function () { goStep(branch.id, button.dataset.caStepGo); }); });
-    host.querySelector('[data-ca-go-team]')?.addEventListener('click', function () { setTab('equipo'); });
+    host.querySelector('[data-ca-go-team]')?.addEventListener('click', function () { goTab('equipo'); });
     bindBranchActions(branch);
   }
 
@@ -382,105 +414,184 @@
     renderBranches(); renderBranchDetail();
   }
 
-  function renderTeam() {
-    var members = document.getElementById('clinic-admin-members');
-    var professionals = document.getElementById('clinic-admin-professionals');
-    if (!members || !professionals) return;
-    var activeBranches = state.branches.filter(function (row) { return row.active; });
-    members.replaceChildren();
-    members.setAttribute('role', 'list');
-    members.setAttribute('aria-label', 'Personas con acceso a la clínica');
+  // ── Equipo: una sola lista de personas, ficha de cada una y regla de traslado entre sedes ─────────────────────
+  var PERSON_STATUS = { active: 'Activo', inactive: 'Inactivo', noaccess: 'Sin acceso', invited: 'Invitación pendiente' };
+  var PERSON_FILTERS = [['all', 'Todos'], ['doctors', 'Doctores'], ['team', 'Equipo'], ['pending', 'Pendientes'], ['inactive', 'Inactivos']];
+  var PROFILE_STATUS = { draft: 'Borrador', review: 'En revisión', published: 'Publicado', paused: 'En pausa' };
+  var WEEK_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+  function plain(value) {
+    return String(value == null ? '' : value).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  }
+
+  function branchById(id) {
+    return state.branches.find(function (branch) { return branch.id === id; }) || null;
+  }
+
+  function branchesOfProfessional(professionalId) {
+    return state.professionalBranches.filter(function (row) { return row.professional_id === professionalId; })
+      .map(function (row) { return branchById(row.branch_id); }).filter(Boolean);
+  }
+
+  function minutesOf(time) {
+    var parts = String(time || '').split(':');
+    return Number(parts[0]) * 60 + Number(parts[1] || 0);
+  }
+
+  function conflictsFor(professionalId) {
+    return state.conflicts.filter(function (row) { return row.professional_id === professionalId; });
+  }
+
+  function buildPeople() {
+    var people = [];
     state.users.forEach(function (user) {
-      var currentRole = roleFor(user.id);
-      var currentBranch = branchForMember(user.id);
       var professional = professionalForMember(user.id);
-      var row = el('article', 'clinic-admin-member');
-      row.dataset.active = String(Boolean(user.activo));
-      row.setAttribute('role', 'listitem');
-      row.setAttribute('aria-label', (user.nombre || user.email || 'Integrante') + (user.activo ? '' : ', acceso inactivo'));
-      row.append(el('div', 'clinic-admin-avatar', initials(user.nombre || user.email)));
-      var meta = el('div', 'clinic-admin-member-meta');
-      meta.innerHTML = '<div class="clinic-admin-member-title"><strong>' + esc(user.nombre || user.email || 'Integrante') + '</strong>' +
-        (professional ? '<span class="clinic-admin-person-kind">Doctor</span>' : '<span class="clinic-admin-person-kind is-team">Equipo</span>') +
-        (!user.activo ? '<span class="clinic-admin-person-kind is-off">Inactivo</span>' : '') + '</div><small>' + esc(user.email || '') + '</small>' +
-        (professional ? '<p>' + esc([professional.specialty || 'Odontología general', professional.license_number ? 'Céd. ' + professional.license_number : ''].filter(Boolean).join(' · ')) + '</p>' : '');
-      var roleField = el('label', 'clinic-admin-member-field is-role');
-      roleField.append(el('span', '', 'Rol'));
-      var roleSelect = el('select'); roleSelect.setAttribute('aria-label', 'Rol de ' + (user.nombre || user.email || 'integrante'));
-      var availableRoles = state.roles.filter(function (role) { return role.active && (user.rol === 'dueño' ? role.code === 'propietario' : role.code !== 'propietario'); });
-      availableRoles.forEach(function (role) { roleSelect.append(new Option(role.name, role.id)); });
-      roleSelect.value = currentRole ? currentRole.id : '';
-      roleSelect.disabled = !state.canAssignRoles || user.rol === 'dueño' || !user.activo;
-      roleSelect.addEventListener('change', function () { setMemberRole(user.id, roleSelect.value); });
-      roleField.append(roleSelect);
-      var branchField = el('label', 'clinic-admin-member-field is-branch');
-      branchField.append(el('span', '', 'Sede principal'));
-      var branchSelect = el('select'); branchSelect.setAttribute('aria-label', 'Sede principal de ' + (user.nombre || user.email || 'integrante'));
-      branchSelect.append(new Option('Sin sede principal', ''));
-      activeBranches.forEach(function (branch) { branchSelect.append(new Option(branch.name, branch.id)); });
-      branchSelect.value = currentBranch ? currentBranch.id : '';
-      branchSelect.disabled = !state.canClinic || !user.activo || !activeBranches.length;
-      branchSelect.addEventListener('change', function () {
-        if (branchSelect.value) setMemberBranch(user.id, branchSelect.value); else branchSelect.value = currentBranch ? currentBranch.id : '';
+      var role = roleFor(user.id);
+      var primary = branchForMember(user.id);
+      var branches = professional ? branchesOfProfessional(professional.id) : (primary ? [primary] : []);
+      people.push({
+        key: 'u:' + user.id, kind: 'user', user: user, professional: professional, doctor: Boolean(professional),
+        name: user.nombre || (professional && professional.display_name) || user.email || 'Integrante', email: user.email || '',
+        specialty: professional ? (professional.specialty || 'Odontología general') : '', license: professional ? professional.license_number : '',
+        roleName: role ? role.name : (user.rol === 'dueño' ? 'Propietario' : 'Sin rol'), branches: branches, status: user.activo ? 'active' : 'inactive'
       });
-      branchField.append(branchSelect);
-      var controls = el('div', 'clinic-admin-member-controls');
-      controls.append(roleField, branchField);
-      row.append(meta, controls);
-      if (state.canAssignRoles && user.rol !== 'dueño') {
-        var toggle = el('button', 'btn btn-secondary clinic-admin-member-action', user.activo ? 'Desactivar' : 'Reactivar');
-        toggle.type = 'button';
-        toggle.setAttribute('aria-label', (user.activo ? 'Desactivar acceso de ' : 'Reactivar acceso de ') + (user.nombre || user.email || 'integrante'));
-        toggle.addEventListener('click', function () { toggleMember(user.id, !user.activo); });
-        row.append(toggle);
-      }
-      members.append(row);
     });
-    if (!state.users.length) {
-      members.removeAttribute('role');
-      members.append(el('div', 'clinic-admin-empty', 'Todavía no hay integrantes en la clínica.'));
-    }
-    updateSectionCount('clinic-admin-member-count', state.users.length, 'persona', 'personas');
-
-    professionals.replaceChildren();
-    professionals.setAttribute('role', 'list');
-    professionals.setAttribute('aria-label', 'Accesos y perfiles por completar');
     state.professionals.filter(function (row) { return row.active && !row.user_id; }).forEach(function (professional) {
-      var row = el('article', 'clinic-admin-professional');
-      row.setAttribute('role', 'listitem');
-      row.append(el('div', 'clinic-admin-avatar', initials(professional.display_name)));
-      var info = el('div');
-      var locations = state.professionalBranches.filter(function (item) { return item.professional_id === professional.id; }).map(function (item) {
-        var branch = state.branches.find(function (candidate) { return candidate.id === item.branch_id; });
-        return branch ? branch.name : '';
-      }).filter(Boolean);
-      info.innerHTML = '<strong>' + esc(professional.display_name) + '</strong><small>' + esc([professional.specialty || 'Odontología general', professional.license_number ? 'Céd. ' + professional.license_number : '', locations.join(', ')].filter(Boolean).join(' · ')) + '</small><span class="clinic-admin-link-state" data-linked="false">Perfil sin acceso</span>';
-      row.append(info);
-      if (state.canTeam) {
-        var off = el('button', 'btn btn-secondary', 'Desactivar'); off.type = 'button';
-        off.addEventListener('click', function () { deactivateProfessional(professional.id); }); row.append(off);
-      }
-      professionals.append(row);
+      people.push({
+        key: 'p:' + professional.id, kind: 'profile', professional: professional, doctor: true, name: professional.display_name, email: '',
+        specialty: professional.specialty || 'Odontología general', license: professional.license_number, roleName: '',
+        branches: branchesOfProfessional(professional.id), status: 'noaccess'
+      });
     });
-    state.invitations.filter(function (row) { return row.member_kind === 'professional' && row.status === 'pending'; }).forEach(function (invitation) {
-      var pending = el('article', 'clinic-admin-professional is-pending');
-      pending.setAttribute('role', 'listitem');
-      pending.append(el('div', 'clinic-admin-avatar', initials(invitation.display_name)));
-      var pendingInfo = el('div');
-      var branch = state.branches.find(function (candidate) { return candidate.id === invitation.branch_id; });
-      pendingInfo.innerHTML = '<strong>' + esc(invitation.display_name) + '</strong><small>' + esc([invitation.email, invitation.specialty, branch && branch.name].filter(Boolean).join(' · ')) + '</small><span class="clinic-admin-link-state" data-linked="false">Invitación pendiente</span>';
-      pending.append(pendingInfo, el('span', 'clinic-admin-invite-expiry', 'Vence ' + new Date(invitation.expires_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })));
-      professionals.append(pending);
+    state.invitations.filter(function (row) { return row.status === 'pending'; }).forEach(function (invitation) {
+      var branch = branchById(invitation.branch_id);
+      people.push({
+        key: 'i:' + invitation.id, kind: 'invite', invitation: invitation, doctor: invitation.member_kind === 'professional',
+        name: invitation.display_name || invitation.email, email: invitation.email || '', specialty: invitation.specialty || '',
+        license: invitation.license_number || '', roleName: '', branches: branch ? [branch] : [], status: 'invited'
+      });
     });
-    if (!professionals.childElementCount) {
-      professionals.removeAttribute('role');
-      var empty = el('div', 'clinic-admin-pending-empty');
-      empty.setAttribute('role', 'status');
-      empty.innerHTML = '<span aria-hidden="true"></span><strong>Todo al día</strong><p>No hay invitaciones ni perfiles pendientes de vincular.</p>';
-      professionals.append(empty);
-    }
-    updateSectionCount('clinic-admin-pending-count', professionals.querySelectorAll('.clinic-admin-professional').length, 'pendiente', 'pendientes');
+    return people;
+  }
 
+  function matchesFilter(person, filter) {
+    if (filter === 'doctors') return person.doctor && person.status !== 'inactive';
+    if (filter === 'team') return !person.doctor && person.kind === 'user' && person.status !== 'inactive';
+    if (filter === 'pending') return person.status === 'noaccess' || person.status === 'invited';
+    if (filter === 'inactive') return person.status === 'inactive';
+    return true;
+  }
+
+  function branchChips(branches, limit) {
+    var wrap = el('span', 'clinic-admin-chips');
+    branches.slice(0, limit).forEach(function (branch) { wrap.append(el('span', 'clinic-admin-chip', branch.name)); });
+    if (branches.length > limit) wrap.append(el('span', 'clinic-admin-chip is-more', '+' + (branches.length - limit)));
+    return wrap;
+  }
+
+  function personRow(person) {
+    var row = el('button', 'clinic-admin-person-row');
+    row.type = 'button'; row.dataset.person = person.key; row.dataset.status = person.status;
+    row.setAttribute('role', 'listitem');
+    row.setAttribute('aria-label', 'Abrir la ficha de ' + person.name);
+    row.append(el('span', 'clinic-admin-avatar', initials(person.name)));
+    var main = el('span', 'clinic-admin-person-main');
+    var title = el('span', 'clinic-admin-person-title');
+    title.append(el('strong', '', person.name), el('span', 'clinic-admin-person-kind' + (person.doctor ? '' : ' is-team'), person.doctor ? 'Doctor' : 'Equipo'));
+    var detail = person.doctor ? [person.specialty, person.license ? 'Céd. ' + person.license : ''] : [person.roleName || person.email];
+    main.append(title, el('small', '', detail.filter(Boolean).join(' · ') || person.email));
+    row.append(main);
+    var where = el('span', 'clinic-admin-person-where');
+    if (person.branches.length) where.append(branchChips(person.branches, 2));
+    else where.append(el('span', 'clinic-admin-muted', person.doctor || person.kind === 'invite' ? 'Sin sede asignada' : ''));
+    row.append(where);
+    var flags = el('span', 'clinic-admin-person-flags');
+    if (person.professional && conflictsFor(person.professional.id).length) {
+      var warn = el('span', 'clinic-admin-flag is-warning', 'Horarios muy juntos'); warn.title = 'Tiene horarios en dos sedes con poco margen de traslado.'; flags.append(warn);
+    }
+    var status = el('span', 'clinic-admin-flag', PERSON_STATUS[person.status]); status.dataset.status = person.status; flags.append(status);
+    row.append(flags, el('span', 'clinic-admin-person-go', '›'));
+    row.addEventListener('click', function () { openPerson(person.key); });
+    return row;
+  }
+
+  function renderPeople() {
+    var host = document.getElementById('clinic-admin-people');
+    var filters = document.getElementById('clinic-admin-filters');
+    if (!host || !filters) return;
+    var people = buildPeople();
+    state.people = people;
+    filters.replaceChildren();
+    PERSON_FILTERS.forEach(function (item) {
+      var count = people.filter(function (person) { return matchesFilter(person, item[0]); }).length;
+      var button = el('button', 'clinic-admin-filter', item[1] + ' · ' + count);
+      button.type = 'button'; button.dataset.filter = item[0];
+      button.setAttribute('aria-pressed', String(state.personFilter === item[0]));
+      button.addEventListener('click', function () { state.personFilter = item[0]; renderPeople(); });
+      filters.append(button);
+    });
+    var term = plain(state.personQuery).trim();
+    var shown = people.filter(function (person) {
+      if (!matchesFilter(person, state.personFilter)) return false;
+      if (!term) return true;
+      return plain([person.name, person.email, person.specialty, person.license, person.roleName, person.branches.map(function (branch) { return branch.name; }).join(' ')].join(' ')).indexOf(term) !== -1;
+    });
+    host.replaceChildren();
+    host.setAttribute('role', 'list'); host.setAttribute('aria-label', 'Personas de la clínica');
+    shown.forEach(function (person) { host.append(personRow(person)); });
+    if (!shown.length) {
+      host.removeAttribute('role');
+      host.append(el('div', 'clinic-admin-empty', term ? 'Nadie coincide con «' + state.personQuery.trim() + '».' : (state.personFilter === 'all' ? 'Todavía no hay personas en la clínica.' : 'No hay personas en esta vista.')));
+    }
+    updateSectionCount('clinic-admin-member-count', shown.length, 'persona', 'personas');
+    refreshPerson();
+  }
+
+  function renderTravel() {
+    var card = document.getElementById('clinic-admin-travel-card');
+    var host = document.getElementById('clinic-admin-travel');
+    if (!card || !host) return;
+    card.hidden = !state.travelSupported;
+    if (!state.travelSupported) return;
+    host.replaceChildren();
+    var row = el('div', 'clinic-admin-travel-row');
+    var label = el('label', '', 'Margen de traslado'); label.setAttribute('for', 'clinic-admin-travel-minutes');
+    var input = el('input'); input.type = 'number'; input.id = 'clinic-admin-travel-minutes'; input.min = '0'; input.max = '240'; input.step = '5';
+    input.value = String(state.travelMargin); input.disabled = !state.canClinic;
+    row.append(label, input, el('span', 'clinic-admin-muted', 'minutos'));
+    if (state.canClinic) {
+      var save = el('button', 'btn btn-secondary', 'Guardar margen'); save.type = 'button';
+      save.addEventListener('click', function () {
+        var minutes = Number(input.value);
+        if (!Number.isInteger(minutes) || minutes < 0 || minutes > 240) { feedback('El margen debe estar entre 0 y 240 minutos.', 'error'); return; }
+        mutate(function () { return query(window.sb.rpc('smyl_set_professional_travel_margin', { p_minutes: minutes })); }, 'Margen de traslado actualizado.');
+      });
+      row.append(save);
+    }
+    host.append(row);
+    if (!state.canClinic) host.append(el('p', 'clinic-admin-hint', 'Solo el administrador puede cambiar este margen.'));
+    if (!state.canScheduleRead) return;
+    if (!state.conflicts.length) { host.append(el('p', 'clinic-admin-ok', 'Ningún doctor tiene horarios muy juntos entre sedes.')); return; }
+    var list = el('div', 'clinic-admin-conflicts');
+    list.append(el('strong', '', state.conflicts.length === 1 ? 'Hay 1 horario por corregir' : 'Hay ' + state.conflicts.length + ' horarios por corregir'));
+    var seen = {};
+    state.conflicts.forEach(function (item) {
+      var professional = state.professionals.find(function (candidate) { return candidate.id === item.professional_id; });
+      if (!professional || seen[professional.id]) return;
+      seen[professional.id] = true;
+      var open = el('button', 'clinic-admin-conflict', professional.display_name + ' · ver detalle'); open.type = 'button';
+      open.addEventListener('click', function () {
+        var person = (state.people || []).find(function (candidate) { return candidate.professional && candidate.professional.id === professional.id; });
+        if (person) openPerson(person.key);
+      });
+      list.append(open);
+    });
+    host.append(list);
+  }
+
+  function renderTeam() {
+    renderPeople();
+    renderTravel();
     var professionalButton = document.getElementById('clinic-admin-add-professional');
     if (professionalButton) professionalButton.hidden = !state.canTeam;
     var memberButton = document.getElementById('clinic-admin-add-member');
@@ -488,6 +599,264 @@
     var roleButton = document.getElementById('clinic-admin-add-role');
     if (roleButton) roleButton.hidden = !state.canAssignRoles;
     renderRoleGuide();
+  }
+
+  // ── Ficha de una persona ──────────────────────────────────────────────────────────────────────────────────────
+  function sheet() { return document.getElementById('clinic-admin-person'); }
+
+  function currentPerson() {
+    return (state.people || []).find(function (person) { return person.key === state.person; }) || null;
+  }
+
+  function openPerson(key) {
+    state.person = key; state.editing = false;
+    var dialog = sheet();
+    if (!dialog || !currentPerson()) return;
+    renderPerson();
+    if (!dialog.open) dialog.showModal();
+  }
+
+  function closePerson() {
+    var dialog = sheet();
+    state.person = null; state.editing = false;
+    if (dialog && dialog.open) dialog.close();
+  }
+
+  // Tras cualquier cambio la lista se vuelve a pintar: la ficha abierta se actualiza o, si la persona ya no está, se cierra.
+  function refreshPerson() {
+    var dialog = sheet();
+    if (!dialog || !dialog.open || !state.person) return;
+    if (!currentPerson()) { closePerson(); return; }
+    renderPerson();
+  }
+
+  function sheetSection(title, hint) {
+    var section = el('section', 'clinic-admin-sheet-section');
+    section.append(el('h3', '', title));
+    if (hint) section.append(el('p', 'clinic-admin-hint', hint));
+    return section;
+  }
+
+  function sheetRow(label, value, href) {
+    var row = el('div', 'clinic-admin-sheet-row');
+    row.append(el('span', '', label));
+    var content;
+    if (value && href) { content = el('a', '', value); content.href = href; } else { content = el('strong', '', value || 'Sin registrar'); if (!value) content.className = 'is-empty'; }
+    row.append(content);
+    return row;
+  }
+
+  function goToAgendaSettings() {
+    closePerson();
+    if (typeof window.ir !== 'function') return;
+    window.ir('agenda');
+    var tries = 0;
+    (function ready() {
+      var tab = document.querySelector('.pantalla.activa [data-schedule-tab="settings"]');
+      if (tab) return tab.click();
+      if (tries++ < 60) setTimeout(ready, 50);
+    })();
+  }
+
+  function hoursSummary(professional, branch) {
+    var blocks = state.proHours.filter(function (row) { return row.professional_id === professional.id && row.branch_id === branch.id; })
+      .sort(function (a, b) { return (a.weekday - b.weekday) || minutesOf(a.starts_at) - minutesOf(b.starts_at); });
+    if (!blocks.length) return 'Sin horario configurado';
+    return blocks.map(function (row) { return WEEK_SHORT[row.weekday] + ' ' + timeLabel(row.starts_at) + '–' + timeLabel(row.ends_at); }).join(' · ');
+  }
+
+  function conflictText(item) {
+    var a = branchById(item.branch_a), b = branchById(item.branch_b);
+    var gap = Number(item.gap_minutes);
+    var days = DAYS[item.weekday];
+    var how = gap < 0 ? 'se traslapan' : 'solo hay ' + gap + ' min entre ellos';
+    return days + ': ' + (a ? a.name : 'una sede') + ' (' + timeLabel(item.starts_a) + '–' + timeLabel(item.ends_a) + ') y ' + (b ? b.name : 'otra sede') + ' (' + timeLabel(item.starts_b) + '–' + timeLabel(item.ends_b) + '): ' + how + '. Se necesitan ' + item.required_minutes + ' min.';
+  }
+
+  function personEditForm(person) {
+    var professional = person.professional;
+    var form = el('form', 'clinic-admin-sheet-form');
+    function field(id, label, value, attrs) {
+      var wrap = el('label', 'clinic-admin-sheet-field'); wrap.append(el('span', '', label));
+      var input = el('input'); input.name = id; input.value = value || '';
+      Object.keys(attrs || {}).forEach(function (key) { input.setAttribute(key, attrs[key]); });
+      wrap.append(input); form.append(wrap); return input;
+    }
+    field('display_name', 'Nombre', professional.display_name, { required: 'required', minlength: '2', maxlength: '120', autocomplete: 'off' });
+    field('specialty', 'Especialidad', professional.specialty, { maxlength: '80' });
+    field('license_number', 'Cédula profesional', professional.license_number, { maxlength: '30' });
+    if (state.phoneSupported) field('phone', 'Teléfono interno', professional.phone, { type: 'tel', inputmode: 'tel', maxlength: '40', pattern: '[0-9 +.\\(\\)\\-]{0,40}', placeholder: 'Ej. 33 1234 5678', autocomplete: 'off' });
+    var actions = el('div', 'clinic-admin-sheet-actions');
+    var save = el('button', 'btn btn-primary', 'Guardar'); save.type = 'submit';
+    var cancel = el('button', 'btn btn-secondary', 'Cancelar'); cancel.type = 'button';
+    cancel.addEventListener('click', function () { state.editing = false; renderPerson(); });
+    actions.append(save, cancel); form.append(actions);
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      var data = new FormData(form);
+      var changes = {
+        display_name: String(data.get('display_name') || '').trim(),
+        specialty: String(data.get('specialty') || '').trim(),
+        license_number: String(data.get('license_number') || '').trim()
+      };
+      if (state.phoneSupported) changes.phone = String(data.get('phone') || '').trim();
+      if (changes.display_name.length < 2) { feedback('Escribe el nombre del doctor.', 'error'); return; }
+      var ok = await mutate(function () {
+        return query(window.sb.from('smyl_professionals').update(changes).eq('tenant_id', state.tenant).eq('id', professional.id).select('id').single());
+      }, 'Datos del doctor guardados.');
+      if (ok) { state.editing = false; refreshPerson(); }
+    });
+    return form;
+  }
+
+  function renderPerson() {
+    var dialog = sheet(); var person = currentPerson();
+    if (!dialog || !person) return;
+    var professional = person.professional;
+    dialog.replaceChildren();
+    dialog.setAttribute('aria-label', 'Ficha de ' + person.name);
+
+    var head = el('header', 'clinic-admin-sheet-head');
+    head.append(el('span', 'clinic-admin-avatar is-large', initials(person.name)));
+    var who = el('div', 'clinic-admin-sheet-who');
+    var name = el('h2', '', person.name); name.id = 'clinic-admin-person-title';
+    var meta = el('div', 'clinic-admin-sheet-meta');
+    meta.append(el('span', 'clinic-admin-person-kind' + (person.doctor ? '' : ' is-team'), person.doctor ? 'Doctor' : 'Equipo'));
+    var status = el('span', 'clinic-admin-flag', PERSON_STATUS[person.status]); status.dataset.status = person.status; meta.append(status);
+    who.append(name, meta);
+    var close = el('button', 'clinic-admin-sheet-close', '×'); close.type = 'button'; close.setAttribute('aria-label', 'Cerrar la ficha');
+    close.addEventListener('click', closePerson);
+    head.append(who, close);
+    dialog.append(head);
+
+    var body = el('div', 'clinic-admin-sheet-body');
+
+    // Datos de contacto y profesionales
+    var data = sheetSection('Datos');
+    if (state.editing && professional && state.canTeam) data.append(personEditForm(person));
+    else {
+      if (person.doctor) {
+        data.append(sheetRow('Especialidad', person.specialty), sheetRow('Cédula profesional', person.license));
+        if (state.phoneSupported && professional) data.append(sheetRow('Teléfono interno', professional.phone, professional.phone ? 'tel:' + professional.phone.replace(/[^0-9+]/g, '') : ''));
+      }
+      data.append(sheetRow('Correo', person.email, person.email ? 'mailto:' + person.email : ''));
+      if (person.roleName) data.append(sheetRow('Rol', person.roleName));
+      if (professional && state.canTeam) {
+        var edit = el('button', 'btn btn-secondary clinic-admin-sheet-edit', 'Editar datos'); edit.type = 'button';
+        edit.addEventListener('click', function () { state.editing = true; renderPerson(); });
+        data.append(edit);
+      }
+    }
+    body.append(data);
+
+    // Dónde trabaja
+    if (professional) {
+      var where = sheetSection('Dónde trabaja', 'Sedes donde atiende y su horario en cada una.');
+      var assigned = branchesOfProfessional(professional.id);
+      if (!assigned.length) where.append(el('p', 'clinic-admin-muted', 'Todavía no tiene sedes asignadas.'));
+      assigned.forEach(function (branch) {
+        var item = el('div', 'clinic-admin-sheet-branch');
+        var text = el('div'); text.append(el('strong', '', branch.name), el('small', '', state.canScheduleRead ? hoursSummary(professional, branch) : 'Horario no disponible para tu rol'));
+        item.append(text);
+        if (state.canClinic) {
+          var remove = el('button', 'clinic-admin-link-danger', 'Quitar'); remove.type = 'button';
+          remove.setAttribute('aria-label', 'Quitar a ' + professional.display_name + ' de ' + branch.name);
+          remove.addEventListener('click', function () { removeProfessionalBranch(professional, branch); });
+          item.append(remove);
+        }
+        where.append(item);
+      });
+      var free = state.branches.filter(function (branch) { return branch.active && !assigned.some(function (item) { return item.id === branch.id; }); });
+      if (state.canClinic && free.length) {
+        var add = el('div', 'clinic-admin-sheet-add');
+        var select = el('select'); select.setAttribute('aria-label', 'Sede a asignar');
+        select.append(new Option('Agregar a una sede…', ''));
+        free.forEach(function (branch) { select.append(new Option(branch.name, branch.id)); });
+        var addButton = el('button', 'btn btn-secondary', 'Asignar'); addButton.type = 'button';
+        addButton.addEventListener('click', function () { if (select.value) addProfessionalBranch(professional.id, select.value); });
+        add.append(select, addButton); where.append(add);
+      }
+      conflictsFor(professional.id).forEach(function (item) { var warn = el('p', 'clinic-admin-callout', conflictText(item)); warn.setAttribute('role', 'status'); where.append(warn); });
+      var agenda = el('button', 'clinic-admin-link', 'Editar horarios en la Agenda →'); agenda.type = 'button';
+      agenda.addEventListener('click', goToAgendaSettings); where.append(agenda);
+      body.append(where);
+    }
+
+    // Acceso a SMYL
+    var access = sheetSection('Acceso a SMYL');
+    if (person.kind === 'user') {
+      var user = person.user;
+      var roleField = el('label', 'clinic-admin-sheet-field'); roleField.append(el('span', '', 'Rol'));
+      var roleSelect = el('select'); roleSelect.setAttribute('aria-label', 'Rol de ' + person.name);
+      var currentRole = roleFor(user.id);
+      state.roles.filter(function (role) { return role.active && (user.rol === 'dueño' ? role.code === 'propietario' : role.code !== 'propietario'); })
+        .forEach(function (role) { roleSelect.append(new Option(role.name, role.id)); });
+      roleSelect.value = currentRole ? currentRole.id : '';
+      roleSelect.disabled = !state.canAssignRoles || user.rol === 'dueño' || !user.activo;
+      roleSelect.addEventListener('change', function () { setMemberRole(user.id, roleSelect.value); });
+      roleField.append(roleSelect); access.append(roleField);
+      var branchField = el('label', 'clinic-admin-sheet-field'); branchField.append(el('span', '', 'Sede principal'));
+      var branchSelect = el('select'); branchSelect.setAttribute('aria-label', 'Sede principal de ' + person.name);
+      var currentBranch = branchForMember(user.id);
+      branchSelect.append(new Option('Sin sede principal', ''));
+      state.branches.filter(function (branch) { return branch.active; }).forEach(function (branch) { branchSelect.append(new Option(branch.name, branch.id)); });
+      branchSelect.value = currentBranch ? currentBranch.id : '';
+      branchSelect.disabled = !state.canClinic || !user.activo;
+      branchSelect.addEventListener('change', function () {
+        if (branchSelect.value) setMemberBranch(user.id, branchSelect.value); else branchSelect.value = currentBranch ? currentBranch.id : '';
+      });
+      branchField.append(branchSelect); access.append(branchField);
+      if (!state.canAssignRoles) access.append(el('p', 'clinic-admin-hint', 'Solo el administrador puede cambiar el rol y la sede principal.'));
+    } else if (person.kind === 'profile') {
+      access.append(el('p', 'clinic-admin-muted', 'Este perfil de doctor no tiene acceso a SMYL. Para que entre, invítalo con «Invitar integrante».'));
+    } else {
+      var expires = person.invitation.expires_at ? new Date(person.invitation.expires_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' }) : '';
+      access.append(el('p', 'clinic-admin-muted', 'Invitación enviada a ' + person.email + (expires ? '. Vence el ' + expires + '.' : '.')));
+    }
+    body.append(access);
+
+    // Perfil público del directorio
+    if (professional) {
+      var pub = sheetSection('Perfil público');
+      var profile = state.profiles.find(function (row) { return row.professional_id === professional.id; });
+      pub.append(sheetRow('Directorio profesional', profile ? (PROFILE_STATUS[profile.status] || profile.status) : 'Sin perfil'));
+      var open = el('button', 'clinic-admin-link', 'Abrir el directorio profesional →'); open.type = 'button';
+      open.addEventListener('click', function () { closePerson(); if (typeof window.ir === 'function') window.ir('directorio'); });
+      pub.append(open); body.append(pub);
+    }
+
+    // Zona delicada: solo el administrador, nunca sobre el propietario
+    var canDeactivate = state.canTeam && !(person.user && person.user.rol === 'dueño') && (person.kind === 'user' || person.kind === 'profile');
+    if (canDeactivate) {
+      var danger = sheetSection('Zona delicada', 'Nada se borra: los registros y las citas anteriores se conservan.');
+      danger.className += ' is-danger';
+      var toggle;
+      if (person.kind === 'user') {
+        toggle = el('button', 'btn btn-secondary', person.user.activo ? 'Desactivar acceso' : 'Reactivar acceso'); toggle.type = 'button';
+        toggle.addEventListener('click', function () { toggleMember(person.user.id, !person.user.activo); });
+      } else {
+        toggle = el('button', 'btn btn-secondary', 'Desactivar perfil'); toggle.type = 'button';
+        toggle.addEventListener('click', function () { deactivateProfessional(person.professional.id); });
+      }
+      danger.append(toggle); body.append(danger);
+    }
+
+    dialog.append(body);
+  }
+
+  async function addProfessionalBranch(professionalId, branchId) {
+    await mutate(function () {
+      return query(window.sb.from('smyl_professional_branches').insert({ tenant_id: state.tenant, professional_id: professionalId, branch_id: branchId }).select('professional_id').single());
+    }, 'Sede asignada.');
+  }
+
+  async function removeProfessionalBranch(professional, branch) {
+    var blocks = state.proHours.filter(function (row) { return row.professional_id === professional.id && row.branch_id === branch.id; }).length;
+    var message = '¿Quitar a ' + professional.display_name + ' de ' + branch.name + '?' + (blocks ? ' También se eliminan sus ' + blocks + (blocks === 1 ? ' bloque' : ' bloques') + ' de horario en esa sede.' : '');
+    if (!window.confirm(message)) return;
+    await mutate(function () {
+      return query(window.sb.from('smyl_professional_branches').delete().eq('tenant_id', state.tenant).eq('professional_id', professional.id).eq('branch_id', branch.id).select('professional_id'));
+    }, 'Sede quitada.');
   }
 
   function renderRoleGuide() {
@@ -591,7 +960,7 @@
         query(window.sb.from('smyl_role_scopes').select('role_id,domain,scope').eq('tenant_id', tenant)),
         query(window.sb.from('smyl_member_roles').select('user_id,role_id').eq('tenant_id', tenant)),
         query(window.sb.from('smyl_member_branches').select('user_id,branch_id,is_primary').eq('tenant_id', tenant)),
-        query(window.sb.from('smyl_professionals').select('id,tenant_id,user_id,display_name,specialty,license_number,color_token,active').eq('tenant_id', tenant).order('display_name')),
+        loadProfessionals(tenant),
         query(window.sb.from('smyl_professional_branches').select('professional_id,branch_id').eq('tenant_id', tenant)),
         query(window.sb.from('smyl_staff_invitations').select('id,email,display_name,member_kind,specialty,license_number,branch_id,status,expires_at,invited_at').eq('tenant_id', tenant).in('status', ['pending', 'accepted']).order('invited_at', { ascending: false }))
       ]);
@@ -600,6 +969,15 @@
       state.users = results[3] || []; state.roles = results[4] || []; state.permissions = results[5] || [];
       state.roleScopes = results[6] || []; state.memberRoles = results[7] || []; state.memberBranches = results[8] || [];
       state.professionals = results[9] || []; state.professionalBranches = results[10] || []; state.invitations = results[11] || [];
+      var extra = await Promise.all([
+        soft(query(window.sb.from('smyl_professional_hours').select('professional_id,branch_id,weekday,starts_at,ends_at').eq('tenant_id', tenant).eq('active', true)), []),
+        soft(query(window.sb.from('smyl_professional_profiles').select('professional_id,status').eq('tenant_id', tenant)), []),
+        query(window.sb.from('smyl_schedule_rules').select('professional_travel_margin_minutes').eq('tenant_id', tenant).maybeSingle()).then(function (row) { return { ok: true, row: row }; }, function () { return { ok: false }; }),
+        soft(query(window.sb.rpc('smyl_professional_travel_conflicts')), [])
+      ]);
+      if (tenant !== window.tenantId) return;
+      state.proHours = extra[0] || []; state.profiles = extra[1] || []; state.conflicts = extra[3] || [];
+      state.travelSupported = extra[2].ok; state.travelMargin = extra[2].row ? Number(extra[2].row.professional_travel_margin_minutes) : 45;
       var active = state.branches.filter(function (row) { return row.active; });
       if (!active.some(function (row) { return row.id === state.selectedBranch; })) {
         var defaultBranch = active.find(function (row) { return row.is_default; });
@@ -607,7 +985,7 @@
       }
       calculateCapabilities(); state.loaded = true; renderAll();
     } catch (error) {
-      feedback('No se pudo cargar Mi clínica: ' + errorMessage(error), 'error');
+      feedback('No se pudo cargar Mi clínica. ' + errorMessage(error), 'error', function () { load(true); });
       var detail = document.getElementById('clinic-admin-branch-detail');
       if (detail) detail.innerHTML = '<div class="clinic-admin-empty">No se pudo cargar la configuración. Intenta actualizar.</div>';
     } finally { state.loading = false; }
@@ -840,8 +1218,22 @@
     return ok;
   }
 
+  // Dentro de Configuración la pantalla se abre desde dos tarjetas distintas («Sucursales y espacios» y «Profesionales y roles»):
+  // al cambiar de área se abre la tarjeta correspondiente para que el encabezado siempre diga dónde estás.
+  var HUB_ITEMS = { operacion: ['clinica', 'Sucursales y espacios'], equipo: ['equipo', 'Profesionales y roles'] };
+  function goTab(tab) {
+    var page = document.getElementById('p-clinica');
+    var embedded = page && page.closest && page.closest('.settings-hub-embed');
+    var hub = window.SmylSettingsHub;
+    if (embedded && hub && typeof hub.openItem === 'function' && HUB_ITEMS[tab] && tab !== state.tab) { hub.openItem(HUB_ITEMS[tab][0], HUB_ITEMS[tab][1]); return; }
+    setTab(tab);
+  }
+
   function setTab(tab) {
     state.tab = tab === 'equipo' ? 'equipo' : 'operacion';
+    // El resumen de preparación y las cifras son de Sucursales y horarios: en Equipo estorban.
+    ['clinic-admin-readiness', 'clinic-admin-metrics'].forEach(function (id) { var node = document.getElementById(id); if (node) node.hidden = state.tab === 'equipo'; });
+    if (state.tab !== 'equipo') closePerson();
     document.querySelectorAll('.clinic-admin-tab').forEach(function (button) {
       var selected = button.dataset.caTab === state.tab;
       button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1;
@@ -853,10 +1245,14 @@
 
   function buildPage() {
     var page = el('section', 'pantalla clinic-admin-page'); page.id = 'p-clinica';
-    page.innerHTML = '<header class="clinic-admin-head"><div><span class="pro-eyebrow">OPERACIÓN DE LA CLÍNICA</span><h1>Mi clínica</h1><p>Organiza sedes, espacios, horarios y responsabilidades con una guía clara para preparar la operación diaria.</p></div><div class="clinic-admin-head-actions"><span class="clinic-admin-status">Datos protegidos en SMYL</span><button type="button" class="btn btn-secondary" id="clinic-admin-refresh">Actualizar</button></div></header><div id="clinic-admin-feedback" class="clinic-admin-feedback" aria-live="polite"></div><section id="clinic-admin-readiness" class="clinic-admin-readiness" aria-label="Preparación operativa"></section><section id="clinic-admin-metrics" class="clinic-admin-metrics" aria-label="Resumen de la clínica"></section><div class="clinic-admin-tabs" role="tablist" aria-label="Áreas de Mi clínica"><button type="button" class="clinic-admin-tab" role="tab" data-ca-tab="operacion" aria-selected="true">Sucursales y horarios</button><button type="button" class="clinic-admin-tab" role="tab" data-ca-tab="equipo" aria-label="Equipo, roles y profesionales" aria-selected="false">Equipo y roles</button></div><section class="clinic-admin-panel" data-ca-panel="operacion"><div class="clinic-admin-layout"><aside class="clinic-admin-sidebar"><div class="clinic-admin-sidebar-head"><h2>Sucursales</h2><button type="button" class="clinic-admin-icon-button" id="clinic-admin-add-branch" aria-label="Agregar sucursal">+</button></div><div id="clinic-admin-branch-list" class="clinic-admin-branch-list"></div></aside><div id="clinic-admin-branch-detail" class="clinic-admin-main"><div class="clinic-admin-loading">Abre Mi clínica para cargar la operación.</div></div></div></section><section class="clinic-admin-panel clinic-admin-team-panel" data-ca-panel="equipo" hidden><button type="button" class="btn btn-secondary clinic-admin-back-ops" data-ca-tab="operacion">← Sucursales</button><header class="clinic-admin-team-hero"><div><span class="pro-eyebrow">PERSONAS Y ACCESO</span><h2>Equipo de la clínica</h2><p>Administra cada persona desde una sola ficha: define su acceso, su rol y la sede donde trabaja.</p></div><div class="clinic-admin-team-actions"><button type="button" class="btn btn-secondary" id="clinic-admin-add-member">Invitar integrante</button><button type="button" class="btn btn-primary" id="clinic-admin-add-professional">Agregar doctor</button></div></header><div class="clinic-admin-team-grid"><article class="clinic-admin-card clinic-admin-people-card"><div class="clinic-admin-section-head"><div><h2>Personas con acceso</h2><p class="clinic-admin-card-intro">Rol y sede se guardan al cambiarlos. Los doctores vinculados se identifican en la misma lista.</p></div><span class="clinic-admin-section-count" id="clinic-admin-member-count" aria-live="polite">0 personas</span></div><div id="clinic-admin-members" class="clinic-admin-people-list"></div></article><aside class="clinic-admin-card clinic-admin-pending-card"><div class="clinic-admin-section-head"><div><h2>Por completar</h2><p class="clinic-admin-card-intro">Invitaciones pendientes o perfiles profesionales sin acceso.</p></div><span class="clinic-admin-section-count" id="clinic-admin-pending-count" aria-live="polite">0 pendientes</span></div><div id="clinic-admin-professionals"></div></aside><article class="clinic-admin-card clinic-admin-role-card"><div class="clinic-admin-section-head"><div><h2>Roles y funciones</h2><p class="clinic-admin-card-intro">Plantillas editables para configurar qué puede hacer cada rol y hasta dónde llega su acceso a la información.</p></div><div class="clinic-admin-role-actions"><span class="clinic-admin-section-count" id="clinic-admin-role-count-summary" aria-live="polite">0 roles</span><button type="button" class="btn btn-secondary" id="clinic-admin-add-role">Crear rol</button></div></div><div id="clinic-admin-role-guide"></div></article></div></section><dialog id="clinic-admin-dialog" class="clinic-admin-dialog smyl-v2-dialog"></dialog>';
+    page.innerHTML = '<header class="clinic-admin-head"><div><span class="pro-eyebrow">OPERACIÓN DE LA CLÍNICA</span><h1>Mi clínica</h1><p>Organiza sedes, espacios, horarios y responsabilidades con una guía clara para preparar la operación diaria.</p></div><div class="clinic-admin-head-actions"><span class="clinic-admin-status">Datos protegidos en SMYL</span><button type="button" class="btn btn-secondary" id="clinic-admin-refresh">Actualizar</button></div></header><div id="clinic-admin-feedback" class="clinic-admin-feedback" aria-live="polite"></div><section id="clinic-admin-readiness" class="clinic-admin-readiness" aria-label="Preparación operativa"></section><section id="clinic-admin-metrics" class="clinic-admin-metrics" aria-label="Resumen de la clínica"></section><div class="clinic-admin-tabs" role="tablist" aria-label="Áreas de Mi clínica"><button type="button" class="clinic-admin-tab" role="tab" data-ca-tab="operacion" aria-selected="true">Sucursales y horarios</button><button type="button" class="clinic-admin-tab" role="tab" data-ca-tab="equipo" aria-label="Equipo, roles y profesionales" aria-selected="false">Equipo y roles</button></div><section class="clinic-admin-panel" data-ca-panel="operacion"><div class="clinic-admin-layout"><aside class="clinic-admin-sidebar"><div class="clinic-admin-sidebar-head"><h2>Sucursales</h2><button type="button" class="clinic-admin-icon-button" id="clinic-admin-add-branch" aria-label="Agregar sucursal">+</button></div><div id="clinic-admin-branch-list" class="clinic-admin-branch-list"></div></aside><div id="clinic-admin-branch-detail" class="clinic-admin-main"><div class="clinic-admin-loading">Abre Mi clínica para cargar la operación.</div></div></div></section><section class="clinic-admin-panel clinic-admin-team-panel" data-ca-panel="equipo" hidden><header class="clinic-admin-team-hero"><div><span class="pro-eyebrow">PERSONAS Y ACCESO</span><h2>Equipo de la clínica</h2><p>Administra cada persona desde una sola ficha: define su acceso, su rol y la sede donde trabaja.</p></div><div class="clinic-admin-team-actions"><button type="button" class="btn btn-secondary" id="clinic-admin-add-member">Invitar integrante</button><button type="button" class="btn btn-primary" id="clinic-admin-add-professional">Agregar doctor</button></div></header><div class="clinic-admin-team-grid"><article class="clinic-admin-card clinic-admin-people-card"><div class="clinic-admin-section-head"><div><h2>Personas</h2><p class="clinic-admin-card-intro">Toca a una persona para ver su ficha: dónde trabaja, cómo contactarla y su acceso.</p></div><span class="clinic-admin-section-count" id="clinic-admin-member-count" aria-live="polite">0 personas</span></div><div class="clinic-admin-team-toolbar"><label class="clinic-admin-search"><span class="clinic-admin-sr">Buscar en el equipo</span><input type="search" id="clinic-admin-people-search" placeholder="Buscar por nombre, correo, sede o especialidad" autocomplete="off"></label><div class="clinic-admin-filters" id="clinic-admin-filters" role="group" aria-label="Filtrar personas"></div></div><div id="clinic-admin-people" class="clinic-admin-people-list"></div></article><article class="clinic-admin-card clinic-admin-travel-card" id="clinic-admin-travel-card" hidden><div class="clinic-admin-section-head"><div><h2>Traslado entre sedes</h2><p class="clinic-admin-card-intro">Un doctor puede trabajar en varias sedes, pero no estar en dos a la vez: entre el horario de una y el de otra debe haber este tiempo.</p></div></div><div id="clinic-admin-travel"></div></article><article class="clinic-admin-card clinic-admin-role-card"><div class="clinic-admin-section-head"><div><h2>Roles y funciones</h2><p class="clinic-admin-card-intro">Plantillas editables para configurar qué puede hacer cada rol y hasta dónde llega su acceso a la información.</p></div><div class="clinic-admin-role-actions"><span class="clinic-admin-section-count" id="clinic-admin-role-count-summary" aria-live="polite">0 roles</span><button type="button" class="btn btn-secondary" id="clinic-admin-add-role">Crear rol</button></div></div><div id="clinic-admin-role-guide"></div></article></div></section><dialog id="clinic-admin-dialog" class="clinic-admin-dialog smyl-v2-dialog"></dialog><dialog id="clinic-admin-person" class="clinic-admin-sheet" aria-labelledby="clinic-admin-person-title"></dialog>';
     document.querySelector('.contenido').append(page);
     page.querySelectorAll('[data-ca-tab]').forEach(function (button) { button.addEventListener('click', function () { setTab(button.dataset.caTab); }); });
     page.querySelector('#clinic-admin-refresh').addEventListener('click', function () { load(true); });
+    page.querySelector('#clinic-admin-people-search').addEventListener('input', function (event) { state.personQuery = event.target.value; renderPeople(); });
+    var personSheet = page.querySelector('#clinic-admin-person');
+    personSheet.addEventListener('click', function (event) { if (event.target === personSheet) closePerson(); });
+    personSheet.addEventListener('close', function () { state.person = null; state.editing = false; });
     page.querySelector('#clinic-admin-add-branch').addEventListener('click', openBranchDialog);
     page.querySelector('#clinic-admin-add-professional').addEventListener('click', openProfessionalDialog);
     page.querySelector('#clinic-admin-add-member').addEventListener('click', openMemberDialog);

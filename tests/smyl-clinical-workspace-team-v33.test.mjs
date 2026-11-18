@@ -9,10 +9,13 @@ const styles = read('../smyl-clinic-admin.css');
 test('Clinical Workspace v3.3 resume equipo, pendientes y roles sin tocar permisos', () => {
   assert.match(script, /function updateSectionCount/);
   assert.match(script, /clinic-admin-member-count/);
-  assert.match(script, /clinic-admin-pending-count/);
+  // Los pendientes ahora son un filtro de la lista única, con su propio conteo.
+  assert.match(script, /\['pending', 'Pendientes'\]/);
+  assert.match(script, /item\[1\] \+ ' · ' \+ count/);
   assert.match(script, /clinic-admin-role-count-summary/);
-  assert.match(script, /members\.setAttribute\('role', 'list'\)/);
-  assert.match(script, /toggle\.setAttribute\('aria-label'/);
+  assert.match(script, /host\.setAttribute\('role', 'list'\)/);
+  assert.match(script, /row\.setAttribute\('aria-label', 'Abrir la ficha de '/);
+  assert.match(script, /remove\.setAttribute\('aria-label', 'Quitar a '/);
   assert.match(script, /rpc\('smyl_set_member_role'/);
   assert.match(script, /rpc\('smyl_set_member_primary_branch'/);
 });

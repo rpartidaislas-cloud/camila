@@ -23,5 +23,8 @@ test('sucursales: parte superior compacta (avance plegado, cifras en una línea)
   assert.match(js, /clinic-admin-readiness-fold/);
   assert.match(css, /\.settings-hub-embed \.clinic-admin-head\{display:none\}/);
   assert.match(css, /\.settings-hub-embed \.clinic-admin-tabs\{display:none\}/);
-  assert.match(js, /clinic-admin-back-ops/);
+  // Ya no hay un botón «← Sucursales» dentro de Equipo: cambiar de área abre la tarjeta que corresponde en Configuración.
+  assert.doesNotMatch(js, /<button[^>]*clinic-admin-back-ops/);
+  assert.match(js, /function goTab\(tab\)/);
+  assert.match(js, /hub\.openItem\(HUB_ITEMS\[tab\]\[0\], HUB_ITEMS\[tab\]\[1\]\)/);
 });
