@@ -8,16 +8,15 @@ const styles = read('../smyl-patient-360.css');
 const sync = read('../mobile/scripts/sync-web.js');
 
 test('el resumen prioriza riesgo, siguiente acción y datos clave sin duplicar la navegación', () => {
-  for (const area of ['Historia clínica', 'Evoluciones', 'Tratamiento', 'Simulaciones SMYL', 'Estudios y archivos', 'Citas']) {
+  for (const area of ['Historia clínica', 'Evoluciones y citas', 'Tratamiento', 'Imágenes y estudios']) {
     assert.match(script, new RegExp(area));
   }
-  for (const label of ['Alerta clínica', 'Hoy', 'SIGUIENTE PASO', 'Datos clave', 'Actividad reciente', 'Más del expediente']) {
+  for (const label of ['Alerta clínica', 'Hoy', 'SIGUIENTE PASO', 'Datos clave', 'Actividad reciente']) {
     assert.match(script, new RegExp(label));
   }
-  assert.match(script, /showSection\(s,button\.dataset\.p360Domain\)/);
+  // Las pestañas ya muestran todas las áreas: el resumen no repite la navegación con «Más del expediente».
+  assert.doesNotMatch(script, /function overviewLinks\(|Más del expediente/);
   assert.doesNotMatch(script, /Todo el paciente, ordenado por área|áreas vinculadas|p360-domain-card/);
-  const accessProjection = script.slice(script.indexOf('function overviewLinks('), script.indexOf('function timelineHtml('));
-  assert.doesNotMatch(accessProjection, /\.insert\(|\.update\(|\.upsert\(|rpc\(/);
 });
 
 test('la cabecera prioriza identidad y elimina controles duplicados', () => {
@@ -44,7 +43,7 @@ test('la actividad reciente muestra tres eventos y conserva acceso a la fuente c
 });
 
 test('los accesos secundarios conservan permisos y estados clínicos explícitos', () => {
-  assert.match(script, /\['datos','Datos del paciente'\]/);
+  assert.match(script, /data-p360-open-datos>Datos del paciente</);
   assert.match(script, /conciseHistoryValue/);
   assert.match(script, /Ninguna conocida/);
   assert.match(script, /Ninguno registrado/);
