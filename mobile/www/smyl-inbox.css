@@ -2867,7 +2867,8 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 .smyl-inbox-owner-control:focus-within { outline: 2px solid #087970; outline-offset: 2px; }
 .smyl-inbox-owner-control[data-error=true] select { display: none; }
 .smyl-inbox-owner-control [data-thread-owner-retry] { border: 0; background: transparent; color: #075e59; text-decoration: underline; cursor: pointer; font: inherit; font-size: 12px; }
-.smyl-f360-tools-link { align-self: flex-start; margin: 4px 12px 12px; padding: 8px 6px; min-height: 40px; border: 0; border-radius: 6px; background: transparent; color: #34556d; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.smyl-f360-tools { display: flex; flex-wrap: wrap; gap: 2px 8px; margin: 4px 12px 12px; }
+.smyl-f360-tools-link { padding: 8px 6px; min-height: 40px; border: 0; border-radius: 6px; background: transparent; color: #34556d; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .smyl-f360-tools-link:hover, .smyl-f360-tools-link:focus-visible { background: #edf4f5; color: #075e59; }
 #p-inbox .smyl-chat-note[hidden] { display: none; }
 #p-inbox .smyl-inbox-thread-person .smyl-inbox-owner-inline { display: none; }
@@ -2915,3 +2916,33 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
 #p-inbox .smyl-chat-note { max-width: 100%; padding: 5px 12px; background: #fff8e9; color: #654411; border-radius: 8px; }
 #p-inbox .smyl-chat-note summary { cursor: pointer; font-size: 13px; font-weight: 600; }
 #p-inbox .smyl-chat-note p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0; }
+
+/* Ficha 360 más ordenada: «Cobrar» compacto junto al saldo (en Cuenta), sin botones grandes, avisos dentro de la tarjeta de identidad. */
+#p-inbox .smyl-inbox-account-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+#p-inbox .smyl-inbox-account-status{display:grid;gap:2px;min-width:0;flex:1 1 auto}
+#p-inbox .smyl-inbox-account-status>strong{display:block;font:800 16px/1.3 var(--inbox-font);color:var(--inbox-ink)}
+#p-inbox .smyl-inbox-account-status>small{display:block;color:var(--inbox-muted);font:500 12px/1.4 var(--inbox-font)}
+#p-inbox .smyl-inbox-account-status>p{margin:0;color:var(--inbox-muted);font:500 13px/1.45 var(--inbox-font)}
+#p-inbox .smyl-inbox-account-status>.smyl-inbox-account-blocked{color:#9b3d2e;font-weight:600}
+#p-inbox .smyl-f360-section-body .smyl-inbox-account-top .smyl-inbox-charge.btn{flex:none;width:auto;min-height:32px;height:32px;padding:0 14px;border-radius:9px;font-size:12px;line-height:1}
+#p-inbox .smyl-inbox-link{justify-self:start;margin-top:2px;padding:0;border:0;background:transparent;color:var(--inbox-accent);font:700 12px/1.3 var(--inbox-font);text-decoration:underline;cursor:pointer}
+#p-inbox .smyl-inbox-link:focus-visible{outline:2px solid var(--inbox-focus);outline-offset:2px}
+#p-inbox .smyl-inbox-account-more{margin-top:8px}
+#p-inbox .smyl-inbox-account-more>summary{cursor:pointer;padding:4px 0;color:var(--inbox-muted);font:600 12px/1.3 var(--inbox-font)}
+#p-inbox .smyl-inbox-account-more .btn{width:auto;min-height:34px;margin-top:6px}
+#p-inbox .smyl-f360-id-copy .smyl-f360-chips{margin-top:6px}
+@media(max-width:640px){#p-inbox .smyl-f360-section-body .smyl-inbox-account-top .smyl-inbox-charge.btn{min-height:38px;height:38px}}
+
+/* Borde arrastrable entre la lista y el chat; el nombre y el avatar del contacto abren la ficha. */
+#p-inbox .smyl-inbox-workspace{position:relative}
+#p-inbox .smyl-inbox-resizer{position:absolute;top:0;bottom:0;left:340px;width:10px;z-index:15;cursor:col-resize;touch-action:none;background:transparent}
+#p-inbox .smyl-inbox-resizer::after{content:"";position:absolute;top:0;bottom:0;left:4px;width:2px;background:transparent;border-radius:2px;transition:background .15s}
+#p-inbox .smyl-inbox-resizer:hover::after,#p-inbox .smyl-inbox-resizer:focus-visible::after,#p-inbox .smyl-inbox-workspace.is-resizing .smyl-inbox-resizer::after{background:var(--inbox-accent,#0f766e)}
+#p-inbox .smyl-inbox-resizer:focus-visible{outline:2px solid var(--inbox-focus,#0f766e);outline-offset:-2px}
+#p-inbox .smyl-inbox-resizer[hidden]{display:none}
+#p-inbox .smyl-inbox-workspace.is-resizing{cursor:col-resize;user-select:none;-webkit-user-select:none}
+#p-inbox .smyl-inbox-workspace.is-resizing .smyl-inbox-thread-pane,#p-inbox .smyl-inbox-workspace.is-resizing .smyl-inbox-list-pane{pointer-events:none}
+@media(max-width:900px){#p-inbox .smyl-inbox-resizer{display:none}}
+#p-inbox .smyl-inbox-patient-summary{cursor:pointer}
+#p-inbox .smyl-inbox-patient-summary:hover [data-thread-name]{text-decoration:underline;text-underline-offset:3px}
+#p-inbox .smyl-inbox-patient-summary:hover .smyl-inbox-avatar{box-shadow:0 0 0 2px var(--inbox-accent,#0f766e)}

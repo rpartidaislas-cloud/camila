@@ -17,9 +17,10 @@ test('la ficha ordena resumen, cuenta, citas, atenciones realizadas y archivos s
   assert.ok(order.every((index) => index > 0), 'faltan bloques');
   assert.deepEqual([...order].sort((a, b) => a - b), order, 'el orden cambió');
   assert.doesNotMatch(build, /tabs\.push|id: 'clinico'|id: 'timeline'|id: 'atencion'/);
-  const actions = build.slice(build.indexOf('var careActions ='), build.indexOf('var open = f360OpenState'));
-  assert.match(actions, /'record'/);
-  assert.doesNotMatch(actions, /'schedule'|Agendar cita/);
+  // La ficha ya no lleva botones grandes: ni Expediente, ni Cobrar (vive en Cuenta), ni Agendar.
+  const shell = build.slice(build.indexOf('return F.shell('));
+  assert.ok(shell.startsWith('return F.shell('), 'se construye la ficha');
+  assert.doesNotMatch(shell, /\bactions\s*:|'record'|'payment'|'schedule'|Agendar cita|Expediente/);
 });
 
 test('cada bloque cerrado muestra su dato clave y el abierto no lo repite', () => {
@@ -68,13 +69,14 @@ test('la lista de citas separa próximas y anteriores, con tratamiento, dentista
 
 test('web, móvil y PWA publican la ficha 360 v4', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-inbox-ficha\.js\?v=8/);
-    assert.match(read(file), /smyl-inbox\.js\?v=68/);
-    assert.match(read(file), /smyl-inbox\.css\?v=57/);
+    assert.match(read(file), /smyl-inbox-ficha\.js\?v=9/);
+    assert.match(read(file), /smyl-inbox\.js\?v=69/);
+    assert.match(read(file), /smyl-inbox\.css\?v=58/);
     assert.match(read(file), /smyl-schedule\.js\?v=45/);
     assert.match(read(file), /smyl-finance\.js\?v=57/);
   }
-  assert.match(read('sw.js'), /-ficha360-v4-finanzas-workspace-v5-datos-paciente-v1';/);
+  assert.match(read('sw.js'), /-ficha360-v4-finanzas-workspace-v5-datos-paciente-v1-expediente-orden-v2';/);
+  assert.match(read('sw.js'), /-chat-access-v1-citas-pipeline-v2';/);
   for (const file of ['smyl-inbox.js', 'smyl-inbox-ficha.js', 'smyl-inbox.css', 'smyl-schedule.js', 'smyl-finance.js', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);
   }

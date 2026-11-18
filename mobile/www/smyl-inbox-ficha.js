@@ -36,13 +36,14 @@
     var copy = node('div', 'smyl-f360-id-copy');
     copy.append(node('strong', ctx.subtitle ? '' : 'is-missing', ctx.subtitle || 'Sin teléfono ni correo registrados'));
     if (ctx.meta) copy.append(node('small', '', ctx.meta));
-    identity.append(copy); root.append(identity);
-    if (ctx.medical) root.append(medicalAlerts(ctx.medical, ctx.onCompleteHistory));
+    // Los avisos (p. ej. «Sin consentimiento de WhatsApp») van dentro de la tarjeta de identidad, no en una fila aparte.
     if ((ctx.chips || []).length) {
       var chips = node('div', 'smyl-f360-chips');
       ctx.chips.forEach(function (chip) { chips.append(node('span', 'smyl-f360-chip is-' + (chip.tone || 'neutral'), chip.text)); });
-      root.append(chips);
+      copy.append(chips);
     }
+    identity.append(copy); root.append(identity);
+    if (ctx.medical) root.append(medicalAlerts(ctx.medical, ctx.onCompleteHistory));
     if ((ctx.actions || []).length) {
       var actions = node('div', 'smyl-f360-actions');
       ctx.actions.forEach(function (action) { actions.append(button(action.label, 'smyl-f360-action' + (action.primary ? ' is-primary' : ''), action.run)); });
