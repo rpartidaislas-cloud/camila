@@ -62,8 +62,8 @@ test('la barra «SMYL te pone al día» resume lo pendiente sin consultas extra 
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=62/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=53/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=63/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=54/);
 });
 
 test('la cabecera grande se reemplaza por una barra delgada y los contadores viven en las pestañas', () => {
@@ -89,7 +89,7 @@ test('las burbujas no repiten Paciente / Equipo de la clínica y Responder / Má
 });
 
 test('el compositor tiene un solo lanzador de herramientas y el aviso de ventana solo aparece si vence', () => {
-  assert.match(js, /smyl-inbox-compose-bar" title="El borrador se cifra para esta sesión/);
+  assert.match(js, /smyl-inbox-compose-bar" role="group" aria-label="Acciones de respuesta"/);
   assert.match(js, /data-compose-copilot aria-label="Sugerir con MILA"/);
   assert.match(js, /data-compose-more[^>]+aria-haspopup="menu"/);
   assert.match(js, /data-compose-attach role="menuitem"/);

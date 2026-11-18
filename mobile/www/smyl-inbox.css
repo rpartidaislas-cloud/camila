@@ -2693,3 +2693,133 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 .smyl-inbox-settings-content label{display:grid;gap:4px;color:#52697C;font:600 12px/1.3 Inter,sans-serif}
 .smyl-inbox-settings-content p{margin:0;color:#52697C;font-size:12px;line-height:1.45}
 @media (max-width:640px){#p-inbox .smyl-f360-section-head{min-height:52px}#p-inbox .smyl-f360-peek{max-width:50%}}
+
+/* Las herramientas del compositor comparten marco, controles y escalas de lectura. */
+#p-inbox dialog:is([data-quick-dialog], [data-emoji-dialog]) {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  box-sizing: border-box;
+  width: min(520px, calc(100% - 32px));
+  height: fit-content;
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 1px solid var(--inbox-border, #d7e2e9);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--inbox-ink);
+  font-family: var(--inbox-font);
+  overflow: hidden;
+  box-shadow: 0 16px 55px rgba(12, 33, 51, .18);
+}
+#p-inbox dialog:is([data-quick-dialog], [data-emoji-dialog])::backdrop {
+  background: rgba(13, 30, 46, .37);
+}
+#p-inbox :is([data-quick-dialog], [data-emoji-dialog]) > header {
+  flex: none;
+  padding: 12px 16px 12px 20px;
+  border-bottom: 1px solid var(--inbox-border);
+  background: #fff;
+}
+#p-inbox :is([data-quick-dialog], [data-emoji-dialog]) > header h2 {
+  margin: 0; color: var(--inbox-ink); font: 700 18px/1.4 var(--inbox-font);
+}
+#p-inbox :is([data-quick-close], [data-emoji-close]) {
+  display: grid; place-items: center; min-width: 40px; height: 40px;
+  padding: 0; border: 0; border-radius: 8px; color: var(--inbox-muted);
+  background: transparent; font: 400 23px/1 var(--inbox-font);
+}
+#p-inbox :is([data-quick-close], [data-emoji-close]):hover { background: #eff5f6; }
+#p-inbox :is([data-quick-dialog], [data-emoji-dialog]) :focus-visible {
+  outline: 2px solid var(--inbox-accent, #08776e); outline-offset: 2px;
+}
+#p-inbox :is([data-quick-dialog], [data-emoji-dialog]) :is(input, textarea, select) {
+  box-sizing: border-box; width: 100%; min-width: 0; min-height: 42px;
+  border: 1px solid var(--inbox-border); border-radius: 8px; padding: 8px 11px;
+  background: #fff; color: var(--inbox-ink); font: 400 14px/1.5 var(--inbox-font);
+}
+#p-inbox [data-quick-content], #p-inbox [data-emoji-content] {
+  display: flex; flex-direction: column; gap: 12px; min-height: 0;
+  padding: 16px 20px 20px; overflow: auto; overscroll-behavior: contain;
+}
+#p-inbox .smyl-quick-toolbar, #p-inbox .smyl-emoji-controls, #p-inbox .smyl-quick-actions,
+#p-inbox .smyl-emoji-footer {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+}
+#p-inbox .smyl-quick-toolbar input, #p-inbox .smyl-emoji-controls input {
+  flex: 1 1 165px;
+}
+#p-inbox .smyl-emoji-controls select { flex: 1 1 135px; }
+#p-inbox .smyl-quick-editor, #p-inbox .smyl-quick-list { display: grid; gap: 10px; }
+#p-inbox .smyl-quick-editor label { display: grid; gap: 5px; color: var(--inbox-ink); font: 600 13px/1.45 var(--inbox-font); }
+#p-inbox .smyl-quick-editor textarea { resize: vertical; min-height: 100px; }
+#p-inbox .smyl-quick-actions { justify-content: flex-end; }
+#p-inbox .smyl-quick-list { gap: 4px; }
+#p-inbox [data-quick-library] { display: grid; gap: 12px; min-width: 0; }
+#p-inbox [data-quick-content] [hidden], #p-inbox [data-emoji-content] [hidden] { display: none; }
+#p-inbox .smyl-quick-toolbar button, #p-inbox .smyl-quick-actions button {
+  min-height: 42px; padding: 8px 12px; border: 1px solid var(--inbox-border);
+  border-radius: 8px; background: #fff; color: var(--inbox-ink);
+  font: 600 13px/1.4 var(--inbox-font); cursor: pointer;
+}
+#p-inbox .smyl-quick-toolbar [data-quick-new], #p-inbox .smyl-quick-actions [data-quick-use] {
+  color: #fff; background: var(--inbox-ink); border-color: var(--inbox-ink);
+}
+#p-inbox .smyl-quick-actions [data-quick-back] { margin-right: auto; border-color: transparent; }
+#p-inbox .smyl-quick-actions [data-quick-delete] { color: #9b3434; }
+#p-inbox [data-quick-status] { margin: 0; font: 500 13px/1.5 var(--inbox-font); }
+#p-inbox [data-quick-content] button:disabled, #p-inbox .smyl-emoji-footer button:disabled {
+  opacity: .5; cursor: default;
+}
+#p-inbox .smyl-quick-item {
+  display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0;
+  text-align: start; padding: 2px 6px 2px 2px;
+  border-radius: 8px; border: 1px solid var(--inbox-border); background: #fff;
+  color: var(--inbox-ink); overflow-wrap: anywhere;
+}
+#p-inbox .smyl-quick-item strong { display: block; font: 600 14px/1.45 var(--inbox-font); }
+#p-inbox .smyl-quick-item:hover { border-color: var(--inbox-accent); background: #f4faf9; }
+#p-inbox .smyl-quick-item .smyl-inbox-quick-row {
+  flex: 1; min-width: 0; padding: 8px 10px; border: 0; background: transparent;
+  color: var(--inbox-ink); cursor: pointer;
+}
+#p-inbox .smyl-inbox-quick-row span {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  color: var(--inbox-muted); font: 400 14px/1.5 var(--inbox-font);
+}
+#p-inbox :is(.smyl-quick-edit, .smyl-quick-retry) {
+  min-height: 40px; padding: 5px 10px; border: 0; border-radius: 6px; background: transparent;
+  color: var(--inbox-accent); font: 600 13px/1.4 var(--inbox-font); cursor: pointer;
+}
+#p-inbox .smyl-quick-empty { padding: 10px 0; margin: 0; color: var(--inbox-muted); font: 400 14px/1.5 var(--inbox-font); }
+#p-inbox .smyl-emoji-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 3px;
+  overflow-y: auto; max-height: min(320px, 48dvh); padding: 3px;
+  align-content: start; overscroll-behavior: contain; scrollbar-width: thin;
+}
+#p-inbox [data-emoji-content] button { aspect-ratio: auto; cursor: pointer; }
+#p-inbox [data-emoji-content] .smyl-emoji-item {
+  display: grid; place-items: center; min-width: 0; min-height: 44px; padding: 0;
+  border: 0; border-radius: 8px; background: transparent;
+  font: 25px/1 "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+#p-inbox [data-emoji-content] .smyl-emoji-item:hover,
+#p-inbox [data-emoji-content] .smyl-emoji-item:focus-visible { background: #e9f4f2; }
+#p-inbox .smyl-emoji-footer {
+  justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--inbox-border);
+  color: var(--inbox-muted); font: 500 13px/1.45 var(--inbox-font);
+}
+#p-inbox .smyl-emoji-footer button {
+  min-height: 40px; padding: 6px 10px; background: #fff; color: var(--inbox-ink); font: 600 13px/1.4 var(--inbox-font);
+}
+#p-inbox .smyl-emoji-status { flex: 1 1 auto; }
+#p-inbox .smyl-compose-save-warning { color: #864c0a; margin: 4px 0; font-size: 13px; }
+@media (max-width: 600px) {
+  #p-inbox dialog:is([data-quick-dialog], [data-emoji-dialog]) {
+    inset: auto 0 0; margin: 0 auto; width: 100%; max-height: 88dvh;
+    border-radius: 16px 16px 0 0; padding-bottom: env(safe-area-inset-bottom);
+  }
+  #p-inbox [data-quick-content], #p-inbox [data-emoji-content] { padding: 12px 14px 16px; }
+  #p-inbox :is([data-quick-dialog], [data-emoji-dialog]) :is(input, textarea, select) { font-size: 16px; }
+  #p-inbox :is([data-quick-dialog], [data-emoji-dialog]) button { min-height: 44px; }
+}

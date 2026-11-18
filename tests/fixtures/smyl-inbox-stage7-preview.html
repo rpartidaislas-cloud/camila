@@ -57,10 +57,28 @@
       { id:'m3', author_type:'patient', role:'user', content:'Perfecto, quiero confirmar el horario de mi valoración.', status:'sent', starred:true, created_at:new Date(Date.now()-25.5*3600000).toISOString() }
     ];
     var previewParams = new URLSearchParams(location.search);
+    if (['composer-tools', 'composer-emoji', 'productivity-quick'].some(function (name) { return previewParams.has(name); })) {
+      conversation.whatsapp_window = {status:'open', freeform_allowed:true, remaining_seconds:3600, expires_at:new Date(Date.now()+3600000).toISOString()};
+    }
+    var quickRows = [], nextQuickId = 0;
+    window.sb.rpc = async function (action, args) {
+      if (action === 'smyl_list_quick_replies') return {data:quickRows.slice(),error:null};
+      var index = args ? quickRows.findIndex(function (item) { return item.id === args.p_id; }) : -1;
+      if (action === 'smyl_save_quick_reply') {
+        var row = {id:index < 0 ? 'local-' + (++nextQuickId) : args.p_id, shortcut:args.p_shortcut, text:args.p_text, version:index < 0 ? 1 : quickRows[index].version+1};
+        if (index < 0) quickRows.push(row); else quickRows[index] = row;
+        return {data:row,error:null};
+      }
+      if (action === 'smyl_delete_quick_reply' && index >= 0) { quickRows.splice(index,1); return {data:true,error:null}; }
+      return {data:null,error:{message:'Operación de prueba sin configurar'}};
+    };
     var autoLinkedPatient = !previewParams.has('new-patient') && !previewParams.has('unlinked-patient') && !previewParams.has('ambiguous-patient');
     function json(data, status) { return Promise.resolve(new Response(JSON.stringify(data), { status:status||200, headers:{'Content-Type':'application/json'} })); }
+    var fetchAsset = window.fetch.bind(window);
     window.fetch = function (input, init) {
-      var url = new URL(String(input)); var action = url.searchParams.get('action'); var body = {};
+      var url = new URL(String(input), document.baseURI);
+      if (url.origin === location.origin && url.pathname.includes('/assets/emoji/')) return fetchAsset(url, init);
+      var action = url.searchParams.get('action'); var body = {};
       try { body = init && typeof init.body === 'string' ? JSON.parse(init.body) : {}; } catch (_) {}
       action = action || body.action;
       if (action === 'list') return json({ actor:{id:'owner-preview',role:'owner',name:'Dra. Mariana'}, conversations:[conversation], page:{total:1,has_more:false}, synced_at:new Date().toISOString() });

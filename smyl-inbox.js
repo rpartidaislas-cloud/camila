@@ -1,6 +1,10 @@
 (function () {
   'use strict';
 
+  var inboxScriptUrl = document.currentScript && document.currentScript.src;
+  var emojiCatalogPromise;
+  var recentEmoji = [];
+
   var CONTEXT_DOCK_STORAGE_KEY = 'smyl_inbox_context_docked';
   function initialDockedContextPreference() {
     try {
@@ -24,13 +28,13 @@
     templates: [], templatesLoaded: false, templatesLoading: false,
     scheduled: {}, scheduledLoading: {},
     operations: null, operationsLoading: false, operationsError: '', pilotLoading: false,
-    quickReplies: [], quickRepliesLoaded: false, quickRepliesLoading: false,
+    quickSession: null,
     bulkMode: false, bulkSelected: new Set(), bulkRunning: false,
     threadSearchResults: [], threadSearchPage: null, threadSearchLoading: false,
     sharedItems: [], sharedPage: null, sharedLoading: false,
     notificationsEnabled: false, didAutoOpen: false,
     view: 'list', pipelineDragId: null, actionsOpenId: null, badgeFailures: 0,
-    draftSaveTimer: null, draftStatus: '',
+    draftSaveTimer: null,
     recorder: null, recorderStream: null, recorderChunks: [], recorderStartedAt: 0, recorderTimer: null, recordingCancelled: false,
     availabilityCatalog: null, availabilityMode: 'calendar', availabilityLoading: false, availabilitySlots: [], availabilityRequests: [], availabilitySelected: [], availabilityAction: '', availabilityError: '', availabilityEmptyReason: '', appointmentContext: {}, appointmentContextLoading: {}, patientLinking: {}, patientLinkChecked: {},
   };
@@ -89,43 +93,45 @@
     return window.crypto.subtle.importKey('raw', hash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
   }
 
-  function renderDraftStatus(value) {
-    state.draftStatus = value || '';
-    var label = document.querySelector('[data-draft-status]');
-    if (label) label.textContent = state.draftStatus || '';
+  function showSaveWarning(visible) {
+    var warning = document.querySelector('[data-compose-save-warning]');
+    if (warning) warning.hidden = !visible;
   }
 
   async function persistEncryptedDraft(conversationId, content) {
     if (!conversationId || !window.crypto || !window.crypto.subtle) return;
     var envelope = draftEnvelope();
     if (!content) {
-      delete envelope[conversationId]; window.sessionStorage.setItem(DRAFT_STORE, JSON.stringify(envelope)); renderDraftStatus('Sin borrador'); return;
+      delete envelope[conversationId]; window.sessionStorage.setItem(DRAFT_STORE, JSON.stringify(envelope)); return;
     }
     var iv = window.crypto.getRandomValues(new Uint8Array(12));
     var payload = JSON.stringify({ conversation_id: conversationId, content: content.slice(0, 4000), expires_at: Date.now() + 7 * 86400000 });
     var ciphertext = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, await draftKey(), new TextEncoder().encode(payload));
     envelope[conversationId] = { iv: base64Bytes(iv), ciphertext: base64Bytes(new Uint8Array(ciphertext)) };
     window.sessionStorage.setItem(DRAFT_STORE, JSON.stringify(envelope));
-    if (state.selectedId === conversationId) renderDraftStatus('Borrador protegido');
   }
 
   function scheduleDraftSave(value) {
     var conversationId = state.selectedId; if (!conversationId) return;
-    clearTimeout(state.draftSaveTimer); renderDraftStatus(value.trim() ? 'Guardando borrador…' : 'Limpiando borrador…');
+    clearTimeout(state.draftSaveTimer);
     state.draftSaveTimer = setTimeout(function () {
-      persistEncryptedDraft(conversationId, value.trim()).catch(function () { if (state.selectedId === conversationId) renderDraftStatus('No se pudo proteger'); });
+      persistEncryptedDraft(conversationId, value.trim()).then(function () {
+        if (state.selectedId === conversationId) showSaveWarning(false);
+      }).catch(function () {
+        if (state.selectedId === conversationId) showSaveWarning(true);
+      });
     }, 450);
   }
 
   async function restoreEncryptedDraft(conversationId) {
     var input = document.querySelector('[name="message"]'); if (!input) return;
-    input.value = ''; renderDraftStatus('');
+    input.value = ''; showSaveWarning(false);
     var envelope = draftEnvelope(); var stored = envelope[conversationId]; if (!stored) return;
     try {
       var plain = await window.crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytesFromBase64(stored.iv) }, await draftKey(), bytesFromBase64(stored.ciphertext));
       var draft = JSON.parse(new TextDecoder().decode(plain));
       if (draft.conversation_id !== conversationId || Number(draft.expires_at) < Date.now()) throw new Error('expired');
-      if (state.selectedId === conversationId) { input.value = String(draft.content || '').slice(0, 4000); renderDraftStatus(input.value ? 'Borrador recuperado' : ''); }
+      if (state.selectedId === conversationId) input.value = String(draft.content || '').slice(0, 4000);
     } catch (_) {
       delete envelope[conversationId]; window.sessionStorage.setItem(DRAFT_STORE, JSON.stringify(envelope));
     }
@@ -284,7 +290,7 @@
             '<div class="smyl-inbox-thread-notices" data-thread-notices hidden></div><div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div></div>' +
             '<button type="button" class="smyl-inbox-jump" data-thread-jump hidden>Ir al final</button>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
-            '<form class="smyl-inbox-composer" data-inbox-composer><label class="smyl-inbox-sr" for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window aria-live="polite" hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><div class="smyl-inbox-compose-surface" data-compose-surface><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-card"><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea></div><div class="smyl-inbox-compose-bar" title="El borrador se cifra para esta sesión; el equipo siempre revisa y decide el envío." role="group" aria-label="Acciones de respuesta"><div class="smyl-inbox-compose-primary"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-compose-tools" aria-label="Abrir herramientas de mensaje" title="Herramientas">' + composeIcon('plus') + '</button></div><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden><span class="smyl-inbox-draft-status" data-draft-status aria-live="polite"></span><div class="smyl-inbox-compose-actions"><button type="button" class="smyl-inbox-compose-copilot" data-compose-copilot aria-label="Sugerir con MILA">' + composeIcon('mila') + '<span>Sugerir con MILA</span></button><button type="submit" class="smyl-inbox-send" data-compose-send aria-label="Enviar mensaje"><span>Enviar</span>' + composeIcon('send') + '</button></div></div></div><div class="smyl-inbox-compose-tools" id="smyl-inbox-compose-tools" data-compose-tools role="menu" aria-label="Herramientas de mensaje" hidden><button type="button" data-compose-attach role="menuitem" aria-label="Adjuntar archivo">' + composeIcon('attach') + '<span><strong>Adjuntar</strong><small>Foto, archivo o audio</small></span></button><button type="button" data-compose-quick role="menuitem" aria-label="Respuesta rápida">' + composeIcon('quick') + '<span><strong>Respuesta rápida</strong><small>Insertar texto del equipo</small></span></button><button type="button" data-compose-rewrite role="menuitem" aria-label="Mejorar redacción con MILA">' + composeIcon('rewrite') + '<span><strong>Mejorar redacción</strong><small>Ortografía y claridad con MILA</small></span></button><button type="button" data-compose-emoji role="menuitem" aria-label="Agregar emoji">' + composeIcon('smile') + '<span><strong>Emoji</strong><small>Añadir una reacción</small></span></button><button type="button" data-compose-template role="menuitem">' + composeIcon('template') + '<span><strong>Plantilla</strong><small>Mensaje aprobado</small></span></button><button type="button" data-compose-schedule role="menuitem">' + composeIcon('calendar') + '<span><strong>Programar</strong><small>Enviar después</small></span></button><button type="button" data-compose-record role="menuitem" aria-pressed="false">' + composeIcon('mic') + '<span><strong>Nota de voz</strong><small>Grabar audio</small></span></button><button type="button" data-compose-location role="menuitem" aria-label="Enviar ubicación actual">' + composeIcon('location') + '<span><strong>Enviar ubicación</strong><small>Ubicación actual o enlace de Maps</small></span></button></div></div></div></form>' +
+            '<form class="smyl-inbox-composer" data-inbox-composer><label class="smyl-inbox-sr" for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window aria-live="polite" hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><p class="smyl-compose-save-warning" data-compose-save-warning role="status" hidden>No se pudo guardar el texto para esta sesión.</p><div class="smyl-inbox-compose-surface" data-compose-surface><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-card"><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea></div><div class="smyl-inbox-compose-bar" role="group" aria-label="Acciones de respuesta"><div class="smyl-inbox-compose-primary"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-compose-tools" aria-label="Abrir herramientas de mensaje" title="Herramientas">' + composeIcon('plus') + '</button></div><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden><div class="smyl-inbox-compose-actions"><button type="button" class="smyl-inbox-compose-copilot" data-compose-copilot aria-label="Sugerir con MILA">' + composeIcon('mila') + '<span>Sugerir con MILA</span></button><button type="submit" class="smyl-inbox-send" data-compose-send aria-label="Enviar mensaje"><span>Enviar</span>' + composeIcon('send') + '</button></div></div></div><div class="smyl-inbox-compose-tools" id="smyl-inbox-compose-tools" data-compose-tools role="menu" aria-label="Herramientas de mensaje" hidden><button type="button" data-compose-attach role="menuitem" aria-label="Adjuntar archivo">' + composeIcon('attach') + '<span><strong>Adjuntar</strong><small>Foto, archivo o audio</small></span></button><button type="button" data-compose-quick role="menuitem" aria-label="Respuesta rápida">' + composeIcon('quick') + '<span><strong>Respuesta rápida</strong><small>Insertar texto del equipo</small></span></button><button type="button" data-compose-rewrite role="menuitem" aria-label="Mejorar redacción con MILA">' + composeIcon('rewrite') + '<span><strong>Mejorar redacción</strong><small>Ortografía y claridad con MILA</small></span></button><button type="button" data-compose-emoji role="menuitem" aria-label="Agregar emoji">' + composeIcon('smile') + '<span><strong>Emoji</strong><small>Insertar en el mensaje</small></span></button><button type="button" data-compose-template role="menuitem">' + composeIcon('template') + '<span><strong>Plantilla</strong><small>Mensaje aprobado</small></span></button><button type="button" data-compose-schedule role="menuitem">' + composeIcon('calendar') + '<span><strong>Programar</strong><small>Enviar después</small></span></button><button type="button" data-compose-record role="menuitem" aria-pressed="false">' + composeIcon('mic') + '<span><strong>Nota de voz</strong><small>Grabar audio</small></span></button><button type="button" data-compose-location role="menuitem" aria-label="Enviar ubicación actual">' + composeIcon('location') + '<span><strong>Enviar ubicación</strong><small>Ubicación actual o enlace de Maps</small></span></button></div></div></div></form>' +
           '</div>' +
         '</main>' +
         '<section class="smyl-inbox-offline" data-inbox-offline hidden aria-live="polite"></section>' +
@@ -296,8 +302,11 @@
         '<dialog class="smyl-inbox-copilot-dialog smyl-inbox-template-dialog" data-template-dialog><form><span class="smyl-inbox-eyebrow">WHATSAPP · PLANTILLA APROBADA</span><h2>Volver a contactar</h2><p>Meta permite estas plantillas incluso cuando la ventana de 24 horas ya venció.</p><label>Plantilla<select data-template-select required></select></label><div class="smyl-inbox-template-preview" data-template-preview></div><div data-template-variables></div><footer><button type="button" class="btn btn-secondary" data-template-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Enviar plantilla</button></footer></form></dialog>' +
         '<dialog class="smyl-inbox-copilot-dialog smyl-inbox-schedule-dialog" data-schedule-dialog><form><span class="smyl-inbox-eyebrow">WHATSAPP · ENVÍO PROGRAMADO</span><h2>Programar seguimiento</h2><p>El envío se procesa una sola vez. Si el texto libre quedaría fuera de la ventana, usa una plantilla aprobada.</p><label>Fecha y hora<input type="datetime-local" data-schedule-at required></label><label>Tipo<select data-schedule-type><option value="text">Texto libre</option><option value="template">Plantilla aprobada</option></select></label><label data-schedule-text-wrap>Mensaje<textarea data-schedule-text maxlength="4000" rows="4"></textarea></label><div data-schedule-template-wrap hidden><label>Plantilla<select data-schedule-template></select></label><div class="smyl-inbox-template-preview" data-schedule-preview></div><div data-schedule-variables></div></div><footer><button type="button" class="btn btn-secondary" data-schedule-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Programar</button></footer></form></dialog>' +
         '<dialog class="smyl-v2-dialog smyl-inbox-productivity-dialog smyl-inbox-availability-dialog" data-availability-dialog><header><div class="smyl-inbox-availability-heading"><h2 tabindex="-1">Agendar cita</h2><p class="smyl-inbox-availability-context"><span data-availability-patient>Paciente por vincular</span><span aria-hidden="true">·</span><span data-availability-location>Tu clínica</span></p></div><button type="button" class="smyl-inbox-dialog-close" data-availability-close aria-label="Cerrar agenda"><span aria-hidden="true">×</span></button></header><aside class="smyl-inbox-availability-patient-alert" data-availability-patient-alert hidden><div><strong>Confirma la identidad del paciente</strong><span>Vincula esta conversación para registrar la cita en el expediente correcto.</span></div><button type="button" class="btn btn-secondary btn-sm" data-availability-link-patient>Vincular paciente</button></aside><form data-availability-form><div class="smyl-inbox-availability-primary-fields"><label>Servicio<select data-availability-service required></select></label><label>Sucursal<select data-availability-branch title="Todas las sucursales"><option value="">Todas las sucursales</option></select></label><label>Profesional<select data-availability-professional><option value="">Todo el equipo</option></select></label></div><div class="smyl-inbox-availability-period"><div class="smyl-inbox-availability-presets" aria-label="Periodo de búsqueda"><span>Periodo</span><button type="button" data-availability-preset="7">7 días</button><button type="button" data-availability-preset="14">15 días</button><button type="button" data-availability-preset="next">Próxima semana</button><button type="button" data-availability-custom>Fechas personalizadas</button></div><div class="smyl-inbox-availability-dates" data-availability-date-fields hidden><label>Desde<input type="date" data-availability-from required></label><label>Hasta<input type="date" data-availability-to required></label></div><button class="btn btn-primary" type="submit">Buscar horarios</button></div></form><section class="smyl-inbox-availability-board"><header><div><strong data-availability-scope>Disponibilidad del equipo</strong><span data-availability-period-label></span></div><div class="smyl-inbox-availability-modes" role="group" aria-label="Vista de disponibilidad"><button type="button" data-availability-mode="calendar" aria-pressed="true">Calendario</button><button type="button" data-availability-mode="list" aria-pressed="false">Lista</button></div></header><div data-availability-results></div></section><footer class="smyl-inbox-availability-offer" hidden><span data-availability-selection>0 horarios seleccionados</span><label class="smyl-inbox-availability-notify" data-availability-notify-wrap hidden><input type="checkbox" data-availability-notify checked> Preparar el mensaje de confirmación en el chat</label><button type="button" class="btn btn-primary" data-availability-book hidden>Confirmar cita</button><button type="button" class="btn btn-primary" data-availability-prepare disabled>Agregar opciones al mensaje</button></footer></dialog>' +
-        '<dialog class="smyl-inbox-productivity-dialog" data-quick-dialog><header><div><span class="smyl-inbox-eyebrow">ATAJOS DEL EQUIPO</span><h2>Respuestas rápidas</h2><p>Inserta un texto revisable; nunca se envía automáticamente.</p></div><button type="button" data-quick-close>Cerrar</button></header><div data-quick-content></div></dialog>' +
-        '<dialog class="smyl-inbox-productivity-dialog smyl-inbox-emoji-dialog" data-emoji-dialog><header><div><span class="smyl-inbox-eyebrow">COMPOSITOR</span><h2>Agregar emoji</h2><p>Elige un símbolo y continúa editando antes de enviar.</p></div><button type="button" data-emoji-close>Cerrar</button></header><div data-emoji-content></div></dialog>' +
+        '<dialog class="smyl-inbox-productivity-dialog inbox-tool-dialog" data-quick-dialog aria-labelledby="smyl-quick-heading"><header><h2 id="smyl-quick-heading">Respuestas rápidas</h2><button type="button" data-quick-close aria-label="Cerrar respuestas rápidas">×</button></header>' +
+          '<div data-quick-content><section data-quick-library><div class="smyl-quick-toolbar"><input type="search" data-quick-search placeholder="Buscar una respuesta" aria-label="Buscar una respuesta"><button type="button" data-quick-new>Redactar respuesta</button></div><div class="smyl-quick-list" data-quick-list></div></section>' +
+          '<form class="smyl-quick-editor" data-quick-form hidden><label data-quick-name>Atajo<input name="shortcut" type="text" placeholder="Ej. bienvenida" maxlength="40" autocapitalize="none" autocomplete="off" spellcheck="false"></label><label>Mensaje<textarea name="replyText" rows="4" maxlength="4000" required placeholder="Escribe la respuesta…"></textarea></label>' +
+          '<div class="smyl-quick-actions"><button type="button" data-quick-back>Volver</button><button type="button" data-quick-delete hidden>Eliminar</button><button type="button" data-quick-save>Guardar para el equipo</button><button type="submit" data-quick-use>Insertar en el chat</button></div></form><p data-quick-status role="status" hidden></p></div></dialog>' +
+        '<dialog class="smyl-inbox-productivity-dialog smyl-inbox-emoji-dialog" data-emoji-dialog aria-labelledby="smyl-emoji-heading"><header><h2 id="smyl-emoji-heading">Emojis</h2><button type="button" data-emoji-close aria-label="Cerrar emojis">×</button></header><div data-emoji-content></div></dialog>' +
         '<dialog class="smyl-inbox-productivity-dialog" data-search-dialog><header><div><span class="smyl-inbox-eyebrow">HISTORIAL CANÓNICO</span><h2>Buscar dentro del hilo</h2><p>La búsqueda se realiza en el historial completo, incluso sobre mensajes no cargados.</p></div><button type="button" data-search-close>Cerrar</button></header><form data-thread-search-form><input type="search" data-thread-search-input minlength="2" maxlength="160" placeholder="Ej. valoración, cita o presupuesto" required><button class="btn btn-primary" type="submit">Buscar</button></form><div data-search-results></div></dialog>' +
         '<dialog class="smyl-inbox-productivity-dialog" data-shared-dialog><header><div><span class="smyl-inbox-eyebrow">BIBLIOTECA DEL HILO</span><h2>Archivos y enlaces compartidos</h2><p>Contenido del historial real de esta conversación.</p></div><button type="button" data-shared-close>Cerrar</button></header><div data-shared-content></div></dialog>' +
         '<dialog class="smyl-inbox-productivity-dialog smyl-inbox-settings-dialog" data-settings-dialog aria-labelledby="smyl-inbox-settings-title"><header><div><span class="smyl-inbox-eyebrow">ESTA CONVERSACIÓN</span><h2 id="smyl-inbox-settings-title">Ajustes de la conversación</h2><p>Responsable, etapa, asistente y mensajes de WhatsApp de este hilo.</p></div><button type="button" data-settings-close>Cerrar</button></header><div class="smyl-inbox-settings-content" data-settings-content></div></dialog>' +
@@ -3414,19 +3423,103 @@
 
   function assignConversation(targetId) { return mutateConversation('assign', targetId); }
 
-  function openEmojiDialog() {
-    var dialog = document.querySelector('[data-emoji-dialog]'); var wrap = document.querySelector('[data-emoji-content]');
-    if (!dialog || !wrap) return; wrap.innerHTML = '';
-    ['🙂','😊','🙏','👍','✅','📅','⏰','📍','🦷','✨','💬','📎','📷','💙','🎉','👋'].forEach(function (emoji) {
-      var button = node('button', '', emoji); button.type = 'button'; button.setAttribute('aria-label', 'Insertar ' + emoji);
-      button.onclick = function () {
-        var input = document.querySelector('[name="message"]'); var start = input.selectionStart || input.value.length; var end = input.selectionEnd || start;
-        input.value = input.value.slice(0, start) + emoji + input.value.slice(end); input.selectionStart = input.selectionEnd = start + emoji.length;
-        scheduleDraftSave(input.value); dialog.close(); input.focus();
-      };
-      wrap.append(button);
-    });
-    dialog.showModal();
+  function emojiSearchKey(text) {
+    return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  }
+
+  function loadEmojiCatalog() {
+    if (!emojiCatalogPromise) {
+      var url = new URL('assets/emoji/catalog-es-v1.json', inboxScriptUrl || document.baseURI);
+      emojiCatalogPromise = fetch(url.href, { credentials: 'omit' }).then(function (response) {
+        if (!response.ok) throw new Error('emoji');
+        return response.json();
+      }).then(function (catalog) {
+        return { groups: catalog.groups, items: catalog.items.map(function (entry) {
+          return { glyph: entry[0], group: String(entry[1]), name: entry[2],
+            search: emojiSearchKey(entry[0] + ' ' + entry[2] + ' ' + entry[3]) };
+        }) };
+      }).catch(function (error) { emojiCatalogPromise = null; throw error; });
+    }
+    return emojiCatalogPromise;
+  }
+
+  async function openEmojiDialog() {
+    var dialog = document.querySelector('[data-emoji-dialog]');
+    var wrap = dialog && dialog.querySelector('[data-emoji-content]');
+    var input = document.querySelector('[data-inbox-composer] [name="message"]');
+    if (!wrap || !input || input.disabled || !state.selectedId) return;
+    var conversationId = state.selectedId;
+    var controls = node('div', 'smyl-emoji-controls');
+    var search = node('input'); search.type = 'search'; search.placeholder = 'Buscar emoji';
+    search.setAttribute('aria-label', 'Buscar emoji'); search.autocomplete = 'off';
+    var category = node('select'); category.setAttribute('aria-label', 'Categoría de emojis');
+    category.add(new Option('Todas las categorías', 'all'));
+    controls.append(search, category);
+    var grid = node('div', 'smyl-emoji-grid'); grid.setAttribute('role', 'group'); grid.setAttribute('aria-label', 'Emojis');
+    var footer = node('div', 'smyl-emoji-footer');
+    var status = node('span', 'smyl-emoji-status', 'Cargando emojis…'); status.setAttribute('role', 'status');
+    var previous = node('button', '', 'Anterior'); previous.type = 'button'; previous.hidden = true;
+    var next = node('button', '', 'Siguiente'); next.type = 'button'; next.hidden = true;
+    footer.append(status, previous, next);
+    wrap.replaceChildren(controls, grid, footer);
+    if (!dialog.open) dialog.showModal();
+    search.focus();
+    var catalog;
+    try { catalog = await loadEmojiCatalog(); }
+    catch (_) {
+      if (!wrap.contains(controls)) return;
+      status.textContent = 'No se pudo cargar el catálogo.';
+      next.textContent = 'Reintentar'; next.hidden = false; next.onclick = openEmojiDialog;
+      return;
+    }
+    if (!dialog.open || !wrap.contains(controls)) return;
+    if (recentEmoji.length) {
+      category.add(new Option('Recientes', 'recent'));
+      if (!search.value) category.value = 'recent';
+    }
+    catalog.groups.forEach(function (name, index) { category.add(new Option(name, String(index))); });
+    var page = 0; var perPage = 40;
+
+    function insert(item) {
+      if (state.selectedId !== conversationId || input.disabled) { dialog.close(); return; }
+      if (input.value.length - (input.selectionEnd - input.selectionStart) + item.glyph.length > input.maxLength) {
+        status.textContent = 'Se alcanzó el límite de caracteres del mensaje.'; return;
+      }
+      input.setRangeText(item.glyph, input.selectionStart, input.selectionEnd, 'end');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      recentEmoji = [item.glyph].concat(recentEmoji.filter(function (glyph) { return glyph !== item.glyph; })).slice(0, 24);
+      dialog.close(); input.focus();
+    }
+    function renderPage() {
+      var words = emojiSearchKey(search.value).split(/\s+/).filter(Boolean);
+      var items = catalog.items.filter(function (item) {
+        var inGroup = category.value === 'all' || category.value === item.group ||
+          (category.value === 'recent' && recentEmoji.includes(item.glyph));
+        return inGroup && words.every(function (word) { return item.search.includes(word); });
+      });
+      if (category.value === 'recent') items.sort(function (a, b) { return recentEmoji.indexOf(a.glyph) - recentEmoji.indexOf(b.glyph); });
+      var start = page * perPage;
+      var end = Math.min(start + perPage, items.length);
+      var fragment = document.createDocumentFragment();
+      items.slice(start, end).forEach(function (item) {
+        var button = node('button', 'smyl-emoji-item', item.glyph);
+        button.type = 'button'; button.title = item.name; button.setAttribute('aria-label', 'Insertar ' + item.name);
+        button.onclick = function () { insert(item); }; fragment.append(button);
+      });
+      grid.replaceChildren(fragment); grid.scrollTop = 0;
+      status.textContent = items.length ? (start + 1) + '–' + end + ' de ' + items.length : 'No se encontraron emojis.';
+      previous.hidden = next.hidden = items.length <= perPage;
+      previous.disabled = page === 0; next.disabled = end >= items.length;
+    }
+    function resetPage() { page = 0; renderPage(); }
+    search.oninput = function () {
+      if (search.value.trim() && category.value === 'recent') category.value = 'all';
+      resetPage();
+    };
+    category.onchange = resetPage;
+    previous.onclick = function () { page--; renderPage(); };
+    next.onclick = function () { page++; renderPage(); };
+    renderPage();
   }
 
   function recordingMimeType() {
@@ -3659,30 +3752,164 @@
     renderNotifyButton(); if (state.notificationsEnabled) playInboxNotice();
   }
 
-  async function loadQuickReplies() {
-    if (state.quickRepliesLoading || state.quickRepliesLoaded) return;
-    state.quickRepliesLoading = true;
-    try { var data = await request('GET', { action: 'quick_replies' }); state.quickReplies = data.quick_replies || []; state.quickRepliesLoaded = true; }
-    catch (_) { state.quickReplies = []; }
-    finally { state.quickRepliesLoading = false; }
+  function quickNotice(session, message) {
+    var status = session.dialog.querySelector('[data-quick-status]');
+    status.textContent = message; status.hidden = !message;
   }
 
-  function renderQuickReplies() {
-    var content = document.querySelector('[data-quick-content]'); if (!content) return;
-    content.innerHTML = '';
-    if (state.quickRepliesLoading) { content.append(node('p', 'smyl-inbox-productivity-state', 'Consultando respuestas…')); return; }
-    if (!state.quickReplies.length) { content.append(node('p', 'smyl-inbox-productivity-state', 'Aún no hay respuestas rápidas configuradas en tu panel de mensajería.')); return; }
-    state.quickReplies.forEach(function (item) {
-      var button = node('button', 'smyl-inbox-quick-row'); button.type = 'button';
-      button.append(node('strong', '', '/' + item.shortcut), node('span', '', item.text));
-      button.onclick = function () { setComposerText(item.text); document.querySelector('[data-quick-dialog]').close(); };
-      content.append(button);
+  function insertQuickReply(session, text) {
+    var input = document.querySelector('[name="message"]');
+    if (state.quickSession !== session || state.selectedId !== session.conversation || !input || input.disabled) {
+      quickNotice(session, 'Vuelve a abrir la conversación para insertar el mensaje.'); return;
+    }
+    if (input.value.length - (input.selectionEnd - input.selectionStart) + text.length > input.maxLength) {
+      quickNotice(session, 'Acorta el texto. El mensaje admite hasta 4000 caracteres.'); return;
+    }
+    session.dialog.close();
+    input.setRangeText(text, input.selectionStart, input.selectionEnd, 'end');
+    input.dispatchEvent(new Event('input', { bubbles: true })); input.focus();
+  }
+
+  function renderQuickReplies(session) {
+    var dialog = session.dialog;
+    var list = dialog.querySelector('[data-quick-list]'); list.replaceChildren();
+    var search = normalizeText(dialog.querySelector('[data-quick-search]').value.trim());
+    var replies = session.team.concat(session.legacy).filter(function (item) {
+      return item && typeof item.text === 'string' && typeof item.shortcut === 'string' &&
+        normalizeText('/' + item.shortcut + ' ' + item.text).includes(search);
     });
+    replies.forEach(function (item) {
+      var row = node('div', 'smyl-quick-item');
+      var insert = node('button', 'smyl-inbox-quick-row'); insert.type = 'button';
+      insert.append(node('strong', '', '/' + item.shortcut), node('span', '', item.text));
+      insert.onclick = function () { insertQuickReply(session, item.text); };
+      row.append(insert);
+      if (session.canManage && session.team.includes(item)) {
+        var edit = node('button', 'smyl-quick-edit', 'Editar'); edit.type = 'button'; edit.dataset.quickEdit = '';
+        edit.setAttribute('aria-label', 'Editar /' + item.shortcut);
+        edit.onclick = function () { showQuickEditor(session, item); };
+        row.append(edit);
+      }
+      list.append(row);
+    });
+    if (session.errors.size) {
+      var retry = node('button', 'smyl-quick-retry', 'Reintentar'); retry.type = 'button';
+      retry.onclick = function () { Array.from(session.errors).forEach(function (source) { loadQuickSource(session, source); }); };
+      list.append(node('p', 'smyl-quick-empty', 'No se pudo cargar toda la biblioteca.'), retry);
+    } else if (!replies.length) {
+      var empty = session.loading.size ? 'Cargando respuestas…' : search ? 'No hay coincidencias.' : 'Aún no hay respuestas guardadas.';
+      list.append(node('p', 'smyl-quick-empty', empty));
+    }
   }
 
-  async function openQuickReplies() {
-    var dialog = document.querySelector('[data-quick-dialog]'); if (!dialog) return;
-    dialog.showModal(); renderQuickReplies(); await loadQuickReplies(); renderQuickReplies();
+  async function loadQuickSource(session, source) {
+    var generation = session.teamGeneration;
+    session.errors.delete(source); session.loading.add(source); renderQuickReplies(session);
+    try {
+      if (source === 'team') {
+        var result = await sb.rpc('smyl_list_quick_replies');
+        if (generation !== session.teamGeneration) return;
+        if (result.error) throw result.error;
+        session.team = result.data || [];
+      } else {
+        var data = await request('GET', { action: 'quick_replies' });
+        session.legacy = data.quick_replies || [];
+      }
+    } catch (_) { if (source !== 'team' || generation === session.teamGeneration) session.errors.add(source); }
+    finally {
+      if (source !== 'team' || generation === session.teamGeneration) {
+        session.loading.delete(source);
+        if (state.quickSession === session && session.dialog.open) renderQuickReplies(session);
+      }
+    }
+  }
+
+  function showQuickLibrary(session, notice) {
+    var dialog = session.dialog;
+    session.editing = null; dialog.querySelector('[data-quick-form]').hidden = true;
+    dialog.querySelector('[data-quick-library]').hidden = false;
+    quickNotice(session, notice || ''); renderQuickReplies(session);
+    dialog.querySelector('[data-quick-search]').focus();
+  }
+
+  function showQuickEditor(session, item) {
+    var dialog = session.dialog; var form = dialog.querySelector('[data-quick-form]');
+    session.editing = item; dialog.querySelector('[data-quick-library]').hidden = true;
+    form.hidden = false; form.elements.shortcut.value = item ? item.shortcut : '';
+    form.elements.replyText.value = item ? item.text : '';
+    form.querySelector('[data-quick-name]').hidden = !session.canManage;
+    form.querySelector('[data-quick-save]').hidden = !session.canManage;
+    form.querySelector('[data-quick-delete]').hidden = !item;
+    quickNotice(session, '');
+    (session.canManage ? form.elements.shortcut : form.elements.replyText).focus();
+  }
+
+  async function writeQuickReply(session, remove) {
+    if (!session || !session.canManage || session.busy) return;
+    var form = session.dialog.querySelector('[data-quick-form]');
+    var item = session.editing;
+    var shortcut = normalizeText(form.elements.shortcut.value.trim()).replace(/^\/+/, '').replace(/\s+/g, '-');
+    var message = form.elements.replyText.value.trim();
+    if (remove) {
+      if (!item || !window.confirm('¿Eliminar /' + item.shortcut + ' para el equipo?')) return;
+    } else {
+      if (!/^[a-z0-9_-]{1,40}$/.test(shortcut)) {
+        quickNotice(session, 'Escribe un atajo con letras, números, guiones o guiones bajos.'); form.elements.shortcut.focus(); return;
+      }
+      if (!message) { quickNotice(session, 'Escribe el mensaje que quieres guardar.'); form.elements.replyText.focus(); return; }
+      if (session.legacy.some(function (entry) { return entry.shortcut === shortcut; })) {
+        quickNotice(session, 'El equipo ya usa ese atajo. Elige otro.'); return;
+      }
+    }
+    var params = { p_id: item ? item.id : null, p_version: item ? item.version : null };
+    if (!remove) { params.p_shortcut = shortcut; params.p_text = message; }
+    session.busy = true;
+    Array.from(form.elements).forEach(function (field) { field.disabled = true; });
+    quickNotice(session, remove ? 'Eliminando…' : 'Guardando…');
+    try {
+      var result = await sb.rpc(remove ? 'smyl_delete_quick_reply' : 'smyl_save_quick_reply', params);
+      if (result.error) throw result.error;
+      if (state.quickSession !== session || !session.dialog.open) return;
+      session.teamGeneration += 1;
+      session.team = session.team.filter(function (entry) { return !item || entry.id !== item.id; });
+      if (!remove) session.team.push(result.data);
+      session.team.sort(function (a, b) { return a.shortcut.localeCompare(b.shortcut, 'es'); });
+      session.dialog.querySelector('[data-quick-search]').value = '';
+      showQuickLibrary(session, remove ? 'Respuesta eliminada.' : 'Respuesta guardada para el equipo.');
+      loadQuickSource(session, 'team');
+    } catch (error) {
+      if (state.quickSession !== session || !session.dialog.open) return;
+      if (error.code === '40001') loadQuickSource(session, 'team');
+      var messages = { '23505': 'El equipo ya usa ese atajo. Elige otro.', '42501': 'Tu rol no permite gestionar las respuestas del equipo.', '40001': 'Esta respuesta cambió. Vuelve a la lista y ábrela de nuevo.' };
+      quickNotice(session, messages[error.code] || 'No se pudo completar el cambio. Inténtalo de nuevo.');
+    } finally {
+      session.busy = false;
+      if (state.quickSession === session) Array.from(form.elements).forEach(function (field) { field.disabled = false; });
+    }
+  }
+
+  function openQuickReplies() {
+    var dialog = document.querySelector('[data-quick-dialog]');
+    if (!dialog || dialog.open || !canOperate(selectedConversation(), 'messages.respond')) return;
+    var form = dialog.querySelector('[data-quick-form]');
+    var session = { dialog: dialog, conversation: state.selectedId, canManage: hasPermission('messages.manage'),
+      team: [], legacy: [], teamGeneration: 0, errors: new Set(), loading: new Set(), editing: null, busy: false };
+    state.quickSession = session;
+    Array.from(form.elements).forEach(function (field) { field.disabled = false; });
+    dialog.querySelector('[data-quick-search]').value = '';
+    dialog.querySelector('[data-quick-search]').oninput = function () { renderQuickReplies(session); };
+    dialog.querySelector('[data-quick-new]').onclick = function () { showQuickEditor(session, null); };
+    form.querySelector('[data-quick-back]').onclick = function () { showQuickLibrary(session); };
+    form.querySelector('[data-quick-save]').onclick = function () { writeQuickReply(session, false); };
+    form.querySelector('[data-quick-delete]').onclick = function () { writeQuickReply(session, true); };
+    form.onsubmit = function (event) {
+      event.preventDefault();
+      var text = form.elements.replyText.value.trim();
+      if (text) insertQuickReply(session, text);
+      else { quickNotice(session, 'Escribe el mensaje que quieres insertar.'); form.elements.replyText.focus(); }
+    };
+    dialog.showModal(); showQuickLibrary(session);
+    loadQuickSource(session, 'team'); loadQuickSource(session, 'legacy');
   }
 
   function renderThreadSearchResults() {
@@ -3861,6 +4088,14 @@
     page.querySelector('[data-shared-close]').addEventListener('click', function () { page.querySelector('[data-shared-dialog]').close(); });
     page.querySelector('[data-quick-close]').addEventListener('click', function () { page.querySelector('[data-quick-dialog]').close(); });
     page.querySelector('[data-emoji-close]').addEventListener('click', function () { page.querySelector('[data-emoji-dialog]').close(); });
+    page.querySelectorAll('[data-quick-dialog], [data-emoji-dialog]').forEach(function (dialog) {
+      dialog.addEventListener('close', function () {
+        // The browser may return focus to the tool menu after it has collapsed.
+        if (!dialog.open && (document.activeElement === document.body || document.activeElement.closest('[data-compose-tools][hidden]'))) {
+          page.querySelector('[data-compose-more]').focus();
+        }
+      });
+    });
     page.querySelector('[data-context-close]').addEventListener('click', function () { closeContext(true); });
     page.querySelector('[data-inbox-context-panel]').addEventListener('keydown', trapContextFocus);
     if (window.matchMedia) {
@@ -3885,7 +4120,7 @@
     window.ir = function (route) {
       previous(route);
       if (route === 'inbox') {
-        if (!state.conversations.length) { loadList(true); loadTeam(); loadBranches(); loadStages(); loadQuickReplies(); loadOperations(true); }
+        if (!state.conversations.length) { loadList(true); loadTeam(); loadBranches(); loadStages(); loadOperations(true); }
         else { sync(); loadOperations(false); autoOpenFirst(); }
       } else { if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(true); closeContext(false); }
     };
@@ -3893,7 +4128,7 @@
     // Precarga en segundo plano para que, al entrar a Mensajes, la bandeja ya esté lista y no se arme a la vista.
     setTimeout(function () {
       if (state.conversations.length || state.loadingList || document.visibilityState !== 'visible') return;
-      loadList(true); loadTeam(); loadBranches(); loadStages(); loadQuickReplies();
+      loadList(true); loadTeam(); loadBranches(); loadStages();
     }, 2500);
     setTimeout(refreshUnreadBadge, 6000);
     setInterval(refreshUnreadBadge, 90000);

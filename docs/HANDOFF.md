@@ -1,5 +1,11 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-17 — Codex — Chat: respuestas rápidas y emojis
+
+- El menú + permite redactar e insertar textos sin enviarlos. Administrar las respuestas del equipo requiere `messages.manage`; su lectura sigue el permiso y la clínica de la sesión. Migración `20261117230000_smyl_chat_quick_replies.sql`.
+- El selector de emojis usa un catálogo local en español con búsqueda, recientes y variantes. Se retiró el indicador permanente de borrador; se conserva la recuperación del texto. Cambios en `smyl-inbox.js` v63 y `smyl-inbox.css` v54, sincronizados con web y móvil.
+- Pruebas locales: crear/editar/eliminar respuestas, insertar emoji sin perder el texto, diálogos en tres tamaños y separación de dos clínicas con permisos distintos.
+
 ## 2026-11-16 — Claude Code — MILA por voz: respuestas más ágiles (paso 4)
 
 - **Instrucciones de la entrevista** (`buildInterviewerInstructions`, regla «Agilidad»): contesta de inmediato sin pensar en voz alta; acuse de 1–3 palabras y variado; frases de ~15 palabras; no anuncia lo que va a preguntar ni explica por qué; ante un «no»/«ninguna» pasa directo; si el paciente piensa en voz alta («mmm», «déjeme ver») espera sin llenar el silencio. Se conserva «máximo dos frases breves». No toca el resumen final ni las alertas.

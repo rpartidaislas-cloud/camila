@@ -30,15 +30,16 @@ test('each thread exposes a clear next action and patient continuity', () => {
 
 test('reply tools are understandable and preserve human review', () => {
   for (const label of ['Sugerir con MILA', 'Plantilla', 'Programar', 'Adjuntar', 'Ubicación']) assert.match(inbox, new RegExp(label));
-  assert.match(inbox, /el equipo siempre revisa y decide el envío/);
+  assert.match(inbox, /aria-label="Enviar mensaje"/);
   assert.match(styles, /smyl-inbox-message-row/);
   assert.doesNotMatch(inbox, /localStorage/);
-  assert.match(inbox, /El borrador se cifra para esta sesión/);
+  assert.match(inbox, /crypto\.subtle\.encrypt\(\{ name: 'AES-GCM'/);
+  assert.doesNotMatch(inbox, /Sin borrador|data-draft-status/);
 });
 
 test('web, mobile and offline bundles ship the same inbox stage', () => {
-  assert.match(app, /smyl-inbox\.css\?v=53/);
-  assert.match(app, /smyl-inbox\.js\?v=62/);
+  assert.match(app, /smyl-inbox\.css\?v=54/);
+  assert.match(app, /smyl-inbox\.js\?v=63/);
 assert.match(worker, /smyl-v263-lana-connection-recovery/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(inbox, read('../mobile/www/smyl-inbox.js'));

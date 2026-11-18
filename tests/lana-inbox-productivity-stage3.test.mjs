@@ -22,11 +22,12 @@ test('search and shared files stay on the authenticated LANA bridge', () => {
 });
 
 test('quick replies prepare a draft and never send automatically', () => {
-  const quickReplyFlow = inbox.slice(inbox.indexOf('function renderQuickReplies'), inbox.indexOf('async function openQuickReplies'));
+  const quickReplyFlow = inbox.slice(inbox.indexOf('function insertQuickReply'), inbox.indexOf('function renderThreadSearchResults'));
   assert.match(bridge, /action === "quick_replies"/);
   assert.match(inbox, /action: 'quick_replies'/);
-  assert.match(quickReplyFlow, /setComposerText\(item\.text\)/);
-  assert.match(inbox, /nunca se envía automáticamente/);
+  assert.match(quickReplyFlow, /insertQuickReply\(session, item\.text\)/);
+  assert.match(quickReplyFlow, /input\.setRangeText\(text, input\.selectionStart, input\.selectionEnd, 'end'\)/);
+  assert.match(quickReplyFlow, /input\.dispatchEvent\(new Event\('input'/);
   assert.doesNotMatch(quickReplyFlow, /submitMessage/);
 });
 
@@ -52,8 +53,8 @@ test('sound notices are opt-in and contain no patient persistence', () => {
 });
 
 test('stage 3 ships synchronized web, native and PWA assets', () => {
-  assert.match(app, /smyl-inbox\.js\?v=62/);
-  assert.match(app, /smyl-inbox\.css\?v=53/);
+  assert.match(app, /smyl-inbox\.js\?v=63/);
+  assert.match(app, /smyl-inbox\.css\?v=54/);
   assert.match(worker, /smyl-v263-lana-connection-recovery/);
   assert.equal(mobileInbox, inbox);
   assert.equal(mobileCss, css);

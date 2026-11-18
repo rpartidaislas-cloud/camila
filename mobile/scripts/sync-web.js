@@ -115,5 +115,6 @@ for (const file of ['smyl-dental-record.js', 'smyl-dental-record.css', 'smyl-den
   copyFile(path.join(ROOT, file), path.join(WWW, file));
 }
 copyDir(path.join(ROOT, 'icons'), path.join(WWW, 'icons'));
+copyDir(path.join(ROOT, 'assets', 'emoji'), path.join(WWW, 'assets', 'emoji'));
 
 console.log('www/ actualizado desde la raíz del repo.');

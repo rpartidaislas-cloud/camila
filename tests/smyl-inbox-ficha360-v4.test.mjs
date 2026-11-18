@@ -65,8 +65,8 @@ test('la lista de citas separa próximas y anteriores, con tratamiento, dentista
 test('web, móvil y PWA publican la ficha 360 v4', () => {
   for (const file of ['app.html', 'sw.js']) {
     assert.match(read(file), /smyl-inbox-ficha\.js\?v=6/);
-    assert.match(read(file), /smyl-inbox\.js\?v=62/);
-    assert.match(read(file), /smyl-inbox\.css\?v=53/);
+    assert.match(read(file), /smyl-inbox\.js\?v=63/);
+    assert.match(read(file), /smyl-inbox\.css\?v=54/);
     assert.match(read(file), /smyl-schedule\.js\?v=43/);
     assert.match(read(file), /smyl-finance\.js\?v=53/);
   }
