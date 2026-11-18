@@ -108,3 +108,5 @@
   .directory-upload>div{grid-template-columns:44px minmax(0,1fr)}
   .directory-upload input[type=file]{grid-column:1/-1;width:100%}
 }
+
+.directory-loading{padding:0;background:transparent;color:inherit}

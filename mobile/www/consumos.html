@@ -9,8 +9,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="smyl-design-system-v2.css?v=2">
-  <link rel="stylesheet" href="smyl-consumption.css?v=7">
+  <link rel="stylesheet" href="smyl-consumption.css?v=8">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3"></script>
+<link rel="stylesheet" href="smyl-skeleton.css?v=1">
+<script defer src="smyl-skeleton.js?v=1"></script>
 </head>
 <body>
   <div class="usage-app">
@@ -130,6 +132,7 @@
     <div class="usage-purchase-actions"><button class="usage-button usage-button-secondary" id="purchase-cancel" type="button">Cancelar</button><button class="usage-button usage-button-primary" id="purchase-confirm" type="button">Continuar al pago seguro</button></div>
   </dialog>
   <div class="usage-toast" id="usage-toast" role="status" aria-live="polite"></div>
-  <script src="smyl-consumption.js?v=10"></script>
+  <script src="smyl-consumption.js?v=11"></script>
+<script>document.addEventListener("DOMContentLoaded",function(){if(!window.SmylSkeleton)return;[["usage-recent","Cargando actividad",4],["usage-history","Cargando movimientos",6]].forEach(function(a){var h=document.getElementById(a[0]),e=h&&h.firstElementChild;if(e&&e.className==="usage-empty"&&h.children.length===1)h.innerHTML=window.SmylSkeleton.html("list",{rows:a[2],action:true,label:a[1]});});});</script>
 </body>
 </html>

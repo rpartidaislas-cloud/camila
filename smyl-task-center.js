@@ -48,14 +48,17 @@
     return list.sort(function(a,b){return a.rank-b.rank;});
   }
 
+  var sk=function(k,o){return window.SmylSkeleton?window.SmylSkeleton.html(k,o):'<p>'+((o&&o.label)||'Cargando…')+'</p>';};
   function renderSummary(items){
     var urgent=items.filter(function(item){return item.rank===1;}).length, clinical=items.filter(function(item){return item.owner==='Equipo clínico';}).length, reception=items.filter(function(item){return item.owner==='Recepción'||item.owner==='Atención al paciente';}).length, admin=items.filter(function(item){return item.owner==='Administración';}).length;
     var host=document.querySelector('[data-task-summary]');if(!host)return;
+    if(state.loading&&!state.loaded){host.innerHTML=sk('kpis',{count:4,label:'Cargando el resumen de pendientes'});return;}
     host.innerHTML=[['Total',items.length,'pendientes activos'],['Prioridad alta',urgent,urgent?'atender ahora':'sin urgencias'],['Recepción',reception,'acciones'],['Clínica y administración',clinical+admin,'acciones']].map(function(x,index){return '<article data-tone="'+(index===1&&urgent?'urgent':'neutral')+'"><span>'+esc(x[0])+'</span><strong>'+x[1]+'</strong><small>'+esc(x[2])+'</small></article>';}).join('');
   }
 
   function renderPending(items){
     var host=document.querySelector('[data-task-list]');if(!host)return;
+    if(state.loading&&!state.loaded){host.innerHTML=sk('list',{rows:5,action:true,label:'Cargando pendientes'});return;}
     if(state.error&&!state.loaded){host.innerHTML='<div class="task-center-state is-error"><strong>No pudimos reunir los pendientes</strong><p>'+esc(state.error)+'</p><button type="button">Intentar de nuevo</button></div>';host.querySelector('button').onclick=function(){load(true);};return;}
     if(!items.length){host.innerHTML='<div class="task-center-state"><span>✓</span><strong>No hay pendientes operativos</strong><p>Agenda, Mensajes, Finanzas e Inventario están al día con la información disponible para tu rol.</p></div>';return;}
     host.innerHTML='<div class="task-center-list">'+items.map(function(item){return '<article data-priority="'+item.rank+'"><i></i><div class="task-center-copy"><div><span>'+esc(item.source)+'</span><em>Responsable: '+esc(item.owner)+'</em></div><strong>'+esc(item.title)+'</strong><p>'+esc(item.detail)+'</p></div><button type="button" data-route="'+esc(item.route)+'"'+(item.open?' data-open="'+esc(item.open)+'"':'')+'>'+esc(item.action)+'</button></article>';}).join('')+'</div>';

@@ -48,7 +48,7 @@
     const before=el('img','ms-photo'),afterWindow=el('div','ms-after'),after=el('img','ms-photo');before.alt='Tu foto actual';after.alt='Propuesta visual, no es un resultado de tratamiento';before.draggable=after.draggable=false;afterWindow.append(after);
     const leftLabel=el('span','ms-photo-label ms-label-before','Tu foto actual'),rightLabel=el('span','ms-photo-label ms-label-after','Propuesta visual');
     const divider=el('div','ms-divider');divider.setAttribute('aria-hidden','true');divider.append(el('span','','‹  ›'));
-    const loading=el('p','ms-loading','Abriendo imágenes…');loading.setAttribute('role','status');
+    const loading=el('p','ms-loading','Abriendo imágenes…');loading.setAttribute('role','status');const setLoading=()=>{if(window.SmylSkeleton)loading.innerHTML='<span class="sk-sr" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Abriendo imágenes</span><span class="sk" aria-hidden="true" style="position:absolute;inset:0;border-radius:0"></span>';else loading.textContent='Abriendo imágenes…';};setLoading();
     stage.append(before,afterWindow,divider,leftLabel,rightLabel,loading);card.append(stage);
     const controls=el('div','ms-controls'),sliderLabel=el('label','ms-range-label','Desliza para comparar'),range=el('input','ms-range');range.type='range';range.min=0;range.max=100;range.value=50;range.id=prefix+'-compare';sliderLabel.htmlFor=range.id;
     range.oninput=()=>{split=+range.value;paint();};
@@ -94,7 +94,7 @@
     }
     async function selectView(index){
       const token=++sequence;currentView=index;ready=false;split=50;zoom=1;x=y=0;pointers.clear();gesture=null;before.removeAttribute('src');after.removeAttribute('src');
-      before.hidden=afterWindow.hidden=true;loading.hidden=false;loading.textContent='Abriendo imágenes…';
+      before.hidden=afterWindow.hidden=true;loading.hidden=false;setLoading();
       [range,originalButton,middleButton,proposalButton,zoomButton,resetButton].forEach(b=>b.disabled=true);viewButtons.forEach((b,i)=>b.setAttribute('aria-pressed',String(i===index)));paint();
       const load=src=>new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('image'));img.src=src;});
       try {

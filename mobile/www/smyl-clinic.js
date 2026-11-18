@@ -23,6 +23,10 @@
     var n = el('p', 'clinic-notice' + (error ? ' clinic-error' : ''), text);
     n.setAttribute('role', error ? 'alert' : 'status'); return n;
   }
+  function skeleton(kind, opts) {
+    if (window.SmylSkeleton) return window.SmylSkeleton.node(kind, opts);
+    return notice((opts && opts.label ? opts.label : 'Cargando') + '…');
+  }
   function fullName(p) { return [p.nombre, p.apellido].filter(Boolean).join(' '); }
   function date(value) { return value ? new Date(value).toLocaleString('es-MX') : ''; }
   async function checked(query) {
@@ -524,7 +528,7 @@
   async function history() {
     var host = document.getElementById('clinic-history-list'), ctx = current;
     if (!ctx || !ctx.ready || !document.getElementById('clinic-history').open) return;
-    host.replaceChildren(notice('Cargando versiones…'));
+    host.replaceChildren(skeleton('list', { rows: 3, plain: true, action: true, label: 'Cargando versiones' }));
     try {
       var rows = await checked(sb.from('smyl_clinical_versions').select('*').eq('tenant_id', ctx.tenant).eq('patient_id', ctx.patient).order('revision', { ascending: false }).limit(25));
       if (current !== ctx) return;
@@ -587,7 +591,7 @@
       feedback.append(notice('Este registro antiguo no está sincronizado. No se creará un expediente en nube ni se asociará por nombre. Su traslado requiere revisión.'));
       versions.hidden = true; return true;
     }
-    content.append(notice('Cargando el expediente…'));
+    content.append(skeleton('detail', { label: 'Cargando el expediente' }));
     try {
       var access = await clinicalCapabilities(ctx.tenant);
       if (current !== ctx || sequence !== token || tenantId !== ctx.tenant || !content.isConnected) return true;
@@ -616,10 +620,7 @@
     if (!tenant) return;
     agendaInfo = { tenant: tenant, status: 'loading', next: {}, last: {}, complete: false };
     var host = document.getElementById('tabla-pacientes-wrap');
-    var loading = el('div', 'patient-loading');
-    loading.setAttribute('role', 'status'); loading.setAttribute('aria-label', 'Cargando pacientes');
-    loading.append(el('span'), el('span'), el('span'));
-    host.replaceChildren(loading);
+    host.replaceChildren(skeleton('list', { rows: 6, action: true, label: 'Cargando pacientes' }));
     var summary = document.getElementById('patient-directory-summary');
     if (summary) summary.textContent = 'Cargando pacientes…';
     patientMessage = ''; patientFailure = false;

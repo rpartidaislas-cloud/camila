@@ -6,7 +6,7 @@
   <title>SMYL Inbox etapa 7 · QA visual</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="../../smyl-design-system-v2.css?focus=3">
-  <link rel="stylesheet" href="../../smyl-inbox.css?focus=14">
+  <link rel="stylesheet" href="../../smyl-inbox.css?v=61">
   <style>
     :root { --azul:#1769e0; --azul-oscuro:#0c4fb8; --gris:#64748b; --borde:#dce3ec; --fondo:#f6f8fb; --blanco:#fff; }
     * { box-sizing:border-box; }
@@ -57,6 +57,37 @@
       { id:'m3', author_type:'patient', role:'user', content:'Perfecto, quiero confirmar el horario de mi valoración.', status:'sent', starred:true, created_at:new Date(Date.now()-25.5*3600000).toISOString() }
     ];
     var previewParams = new URLSearchParams(location.search);
+    // A board of fictitious contacts for exercising the real side-by-side workspace.
+    var pipelineDemo, demoThreads;
+    if (previewParams.has('pipeline-preview')) {
+      sessionStorage.setItem('smyl_inbox_view', 'pipeline');
+      var demoDate = new Intl.DateTimeFormat('sv-SE', {timeZone:'America/Mexico_City'}).format(new Date());
+      var demoStage = {confirmed:'smyl:confirmed', arrived:'smyl:arrived', completed:'smyl:attended'};
+      pipelineDemo = [
+        ['c-preview','Ana López','whatsapp','confirmed','10:30','Gracias, nos vemos en la consulta.'],
+        ['c-elena','Elena Cruz','instagram','arrived','11:00','Ya llegué a recepción.'],
+        ['c-mateo','Mateo Ruiz','messenger',null,null,'¿Tienen horarios disponibles el viernes?'],
+        ['c-lucia','Lucía Díaz','whatsapp','completed','09:00','Muchas gracias por la atención.']
+      ].map(function (values) {
+        var [id,name,channel,status,time,preview] = values;
+        var starts = time && new Date(demoDate+'T'+time+':00-06:00');
+        var stage = demoStage[status] || null;
+        return Object.assign({}, conversation, {
+          id:id, contact_name:name, channel:channel, stage_id:stage, last_message:preview, pinned:false,
+          needs_human:!stage, unread_count:id === 'c-mateo' ? 1 : 0,
+          pipeline:{stage_id:stage,source:stage ? 'agenda' : 'none',revision:0,provider_stage_id:null},
+          appointment:starts && {id:'visit-'+id,status:status,starts_at:starts.toISOString(),ends_at:new Date(+starts+3600000).toISOString(),timezone:'America/Mexico_City'},
+          whatsapp_window:{status:'open',freeform_allowed:true,expires_at:new Date(Date.now()+8*3600000).toISOString()}
+        });
+      });
+      demoThreads = new Map(pipelineDemo.map(function (card) {
+        return [card.id, [{id:'hello-'+card.id,role:'user',author_type:'patient',content:card.last_message,status:'sent',created_at:card.last_message_at}]];
+      }));
+      demoThreads.get('c-preview').unshift(
+        {id:'greeting-preview',role:'user',author_type:'patient',content:'Buen día. ¿Me confirman la hora de mi valoración?',status:'sent',created_at:new Date(Date.now()-45*60000).toISOString()},
+        {id:'answer-preview',role:'assistant',author_type:'team',content:'Hola, Ana. Tu valoración es hoy a las 10:30 en la sucursal Centro.',status:'sent',created_at:new Date(Date.now()-42*60000).toISOString()}
+      );
+    }
     if (previewParams.has('care-history')) {
       var clinicalVisits = [
         {attended_at:'2026-11-14T16:00:00Z', branch_id:'plaza', branch_name:'Plaza Sol', professional_id:'p1', professional_name:'Dra. Valeria Montoya'},
@@ -104,6 +135,26 @@
       var permitted = mode === 'coordinator' || mode === 'agent' && conversation.assignment && conversation.assignment.actor_id === actor.id;
       if (action === 'access') return json({actor:actor});
       if (mode === 'none') return json({code:'chat_access_denied'},403);
+      if (pipelineDemo && mode === 'coordinator') {
+        var id = url.searchParams.get('conversation_id') || body.conversation_id;
+        var demo = pipelineDemo.find(function (card) { return card.id === id; });
+        if (action === 'stages') return json({stages:[]});
+        if (action === 'list') return json({actor:actor,conversations:pipelineDemo,page:{total:pipelineDemo.length,has_more:false},synced_at:new Date().toISOString()});
+        if (demo && action === 'messages') return json({conversation:demo,messages:demoThreads.get(id),page:{has_more:false}});
+        if (demo && action === 'read') { demo.unread_count=0; return json({unread_count:0}); }
+        if (demo && action === 'send') {
+          var message = {id:crypto.randomUUID(),role:'assistant',author_type:'team',content:body.content,status:'sent',created_at:new Date().toISOString()};
+          demoThreads.get(id).push(message); demo.last_message=message.content; demo.last_message_at=message.created_at;
+          return json({message:message});
+        }
+        if (demo && action === 'stage') {
+          demo.stage_id=body.target_stage_id;
+          demo.pipeline={stage_id:demo.stage_id,source:'manual',revision:demo.pipeline.revision+1,provider_stage_id:null};
+          return json({stage_id:demo.stage_id,pipeline:demo.pipeline,appointment:demo.appointment});
+        }
+        if (demo && ['auto_patient_link','clinical_context'].includes(action)) return json({ok:true,linked:true,patient:{id:'patient-'+id,name:demo.contact_name},clinical_images:[]});
+        if (demo && action === 'appointment_context') return json({linked:true,patient_id:'patient-'+id,items:[]});
+      }
       if (action === 'messages' && !permitted) return json({code:'conversation_scope_denied'},403);
       if (action === 'list') return json({ actor:actor, conversations:permitted ? [conversation] : [], page:{total:1,has_more:false}, synced_at:new Date().toISOString() });
       if (action === 'messages') return json({ conversation:conversation, messages:messages, page:{has_more:false,before:null} });
@@ -143,13 +194,13 @@
     };
   </script>
   <script src="../../smyl-inbox-ficha.js"></script>
-  <script src="../../smyl-inbox.js?focus=14"></script>
+  <script src="../../smyl-inbox.js?v=72"></script>
   <script>
     window.addEventListener('load', function () {
       window.ir('inbox');
       setTimeout(function () {
         var row = document.querySelector('[data-conversation-id="c-preview"]');
-        if (row) row.click();
+        if (row && !pipelineDemo) row.click();
         setTimeout(function () {
           var preview = new URLSearchParams(location.search);
           if (preview.has('composer-draft')) {
@@ -169,7 +220,7 @@
           } else if (preview.has('productivity-bulk')) {
             var bulk = document.querySelector('[data-inbox-bulk]');
             if (bulk) bulk.click();
-          } else if (preview.has('focus')) {
+          } else if (preview.has('focus') || pipelineDemo) {
             // Conversation-first state: no dialog or context drawer obscures the thread.
           } else if (preview.has('inbox')) {
             var control = document.querySelector('[data-inbox-context]');

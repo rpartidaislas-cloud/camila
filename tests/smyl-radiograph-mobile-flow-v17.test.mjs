@@ -33,7 +33,7 @@ test('el expediente móvil reduce filtros y muestra estudios como lista compacta
 test('web, PWA y copia móvil distribuyen la misma versión', () => {
   const app = read('app.html');
   const worker = read('sw.js');
-  for (const expected of ['smyl-radiograph-workbench.css?v=26', 'smyl-radiograph-review.js?v=32', 'smyl-case-workspace.css?v=31', 'smyl-case-workspace.js?v=43']) {
+  for (const expected of ['smyl-radiograph-workbench.css?v=26', 'smyl-radiograph-review.js?v=33', 'smyl-case-workspace.css?v=31', 'smyl-case-workspace.js?v=44']) {
     assert.match(app, new RegExp(expected.replaceAll('.', '\\.').replace('?', '\\?')));
     assert.match(worker, new RegExp(expected.replaceAll('.', '\\.').replace('?', '\\?')));
   }

@@ -108,6 +108,7 @@
     return box;
   }
 
+  function skel(kind, options) { var holder = document.createElement('div'); holder.innerHTML = window.SmylSkeleton ? window.SmylSkeleton.html(kind, options) : '<p class="smyl-f360-note">' + ((options && options.label) || 'Cargando…') + '</p>'; return holder.firstElementChild; }
   function notice(text, tone) { return node('p', 'smyl-f360-note' + (tone ? ' is-' + tone : ''), text); }
 
   var KINDS = { image: 'Foto', document: 'Documento', audio: 'Audio', video: 'Video' };
@@ -115,7 +116,7 @@
 
   function files(ctx) {
     var root = node('div', 'smyl-f360-files');
-    if (ctx.loading) { root.append(notice('Consultando archivos del chat…')); return root; }
+    if (ctx.loading) { root.append(skel('media', { count: 4, label: 'Consultando archivos del chat' })); return root; }
     if (ctx.error) { root.append(notice(ctx.error, 'warn'), button('Reintentar', 'smyl-f360-link', ctx.onRetry)); return root; }
     var all = (ctx.items || []).filter(function (item) { return KINDS[item.media_type]; });
     if (!all.length) { root.append(notice('Este paciente todavía no ha enviado fotos, rayos X ni documentos por el chat.')); return root; }
@@ -238,7 +239,7 @@
   // Citas del paciente: próximas primero (la más cercana arriba) y después las anteriores.
   function visits(ctx) {
     var root = node('div', 'smyl-f360-visits');
-    if (ctx.loading) { root.append(notice('Consultando citas…')); return root; }
+    if (ctx.loading) { root.append(skel('list', { rows: 2, plain: true, label: 'Consultando citas' })); return root; }
     var all = ctx.items || [];
     if (ctx.error) {
       root.append(notice(ctx.error, 'warn'), button('Reintentar', 'smyl-f360-link', ctx.onRetry));
@@ -267,7 +268,7 @@
   function movements(ctx) {
     var root = node('div', 'smyl-f360-moves');
     root.append(node('h4', 'smyl-f360-group', 'Últimos movimientos'));
-    if (ctx.loading) { root.append(notice('Consultando movimientos…')); return root; }
+    if (ctx.loading) { root.append(skel('list', { rows: 3, plain: true, avatar: false, action: true, label: 'Consultando movimientos' })); return root; }
     if (ctx.error) { root.append(notice(ctx.error, 'warn'), button('Reintentar', 'smyl-f360-link', ctx.onRetry)); return root; }
     if (!(ctx.items || []).length) { root.append(notice('Todavía no hay cargos ni pagos registrados.')); return root; }
     var list = node('ul', 'smyl-f360-move-list');

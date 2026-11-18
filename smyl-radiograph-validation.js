@@ -138,6 +138,7 @@
    top.append(disclosureSection(),setsSection(),referenceSection(),metricsSection(),reportSection(),monitoringSection(),n('p','rr-note rr-safety-note','Cambiar de motor o versión exige un nuevo informe de validación. Las métricas sin referencia multi-profesional usan las decisiones del propio revisor.'));host.append(top);
    if(run.busy)host.querySelectorAll('button,select,textarea,input').forEach(b=>{if(!b.closest('.rr-bar'))b.disabled=true;});
   }
+  {const w=n('div','rr-skeleton');w.innerHTML=window.SmylSkeleton?window.SmylSkeleton.html('kpis',{label:'Cargando validación'})+window.SmylSkeleton.html('table',{rows:4,label:'Cargando validación'}):'';host.append(w);}
   status('Cargando validación…');
   try{await reload();render();status('Panel de validación listo.','rr-ok');}catch(e){render();status(e?.message||'No se pudo cargar el panel.','rr-error');}
  }

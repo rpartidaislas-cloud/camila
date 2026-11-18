@@ -4,6 +4,7 @@
   var M=SmylProposalModel,ctx=null,sequence=0,lineSequence=0;
   function n(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
   function b(text,fn,cls){var e=n('button',cls||'btn btn-secondary',text);e.type='button';e.addEventListener('click',fn);return e;}
+  function skel(kind,opts){return window.SmylSkeleton?window.SmylSkeleton.node(kind,opts):notice((opts&&opts.label)||'Cargando…');}
   function notice(text,error){var e=n('p','clinic-notice'+(error?' clinic-error':''),text);e.setAttribute('role',error?'alert':'status');return e;}
   function field(label,id,value,type){var wrap=n('div','clinic-field'),input=n(type==='textarea'?'textarea':'input'),lbl=n('label','',label);input.id=id;lbl.htmlFor=id;if(type&&type!=='textarea')input.type=type;input.value=value==null?'':value;wrap.append(lbl,input);return wrap;}
   async function checked(query){var res=await sbTimeout(query,30000);if(res.error)throw res.error;return res.data;}
@@ -191,7 +192,7 @@
   }
   async function versions(){
     if(!ctx||!ctx.row.revision||!document.getElementById('proposal-versions').open)return;
-    var current=ctx,host=document.getElementById('proposal-version-list');host.replaceChildren(notice('Cargando versiones…'));
+    var current=ctx,host=document.getElementById('proposal-version-list');host.replaceChildren(skel('list',{rows:3,avatar:false,label:'Cargando versiones'}));
     try{var rows=await checked(sb.from('smyl_proposal_versions').select('revision,snapshot').eq('tenant_id',current.tenant).eq('proposal_id',current.row.id).order('revision',{ascending:false}).limit(25));if(ctx!==current)return;host.replaceChildren();rows.forEach(function(v){var d=n('details','clinic-version'),r=v.snapshot;d.append(n('summary','','Versión '+v.revision+' · '+(r.status==='approved'?'Aprobada en ese momento':'Borrador')),n('p','',r.document.title+' · '+M.money(r.total_cents)+' · Plan '+r.plan_revision),n('p','','Guardada: '+new Date(r.updated_at).toLocaleString('es-MX')));var list=n('ul');r.document.items.forEach(function(item){list.append(n('li','',item.label+' · '+item.quantity+' × '+(item.unit_cents===null?'Por definir':M.money(item.unit_cents))));});d.append(list);host.append(d);});host.append(n('small','','Últimas 25 versiones. Una aprobación anterior no aprueba cambios posteriores.'));}
     catch(_){if(ctx===current)host.replaceChildren(notice('No se pudo cargar el historial.',true));}
   }
@@ -410,7 +411,7 @@
   async function open(id,patientId){
     if(!tenantId)return;
     if(!leave())return;
-    var tenant=tenantId,token=++sequence,root=document.getElementById('p-propuestas');root.replaceChildren(notice('Preparando propuesta…'));
+    var tenant=tenantId,token=++sequence,root=document.getElementById('p-propuestas');root.replaceChildren(skel('detail',{label:'Preparando propuesta'}));
     try{
       var access=await capabilities(tenant);if(!access.read||(!id&&!access.write)){root.replaceChildren(notice(access.read?'Tu rol puede consultar cotizaciones, pero no preparar una nueva.':'Tu rol no permite consultar cotizaciones.',true),b('Volver a Cotizaciones',loadList));return;}
       var row=id?await checked(sb.from('smyl_proposals').select('*').eq('tenant_id',tenant).eq('id',id).single()):null;
@@ -436,7 +437,7 @@
     var launch=n('div','proposal-launch proposal-from-patient'),launchCopy=n('div');
     launchCopy.append(n('strong','','¿Quieres preparar una nueva?'),n('p','','Abre la ficha del paciente y continúa hasta Cotización. Así conservarás todo el caso en un solo recorrido.'));
     launch.append(launchCopy,b('Abrir pacientes',function(){ir('pacientes');},'btn btn-primary'));root.append(launch);
-    var list=n('div','proposal-list');root.append(list);list.append(notice('Cargando propuestas…'));
+    var list=n('div','proposal-list');root.append(list);list.append(skel('cards',{count:4,label:'Cargando propuestas'}));
     try{
       var access=await capabilities(tenant);if(!access.read){list.replaceChildren(notice('Tu rol no permite consultar cotizaciones.',true));launch.hidden=true;return;}if(!access.write)launch.hidden=true;
       var rows=await checked(sb.from('smyl_proposals').select('id,patient_id,patient_name,clinic_name,plan_revision,revision,status,total_cents,updated_at,document,branch_id').eq('tenant_id',tenant).order('updated_at',{ascending:false}).limit(100));

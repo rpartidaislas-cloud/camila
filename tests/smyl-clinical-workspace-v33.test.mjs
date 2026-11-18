@@ -47,7 +47,7 @@ test('Agenda identifica filtros, reserva el periodo y mantiene texto clínico de
   const agenda = read('smyl-schedule.js');
   const css = read('smyl-schedule.css');
   for (const label of ['Sucursal', 'Profesional', 'Sillón']) assert.match(agenda, new RegExp(`<span>${label}<\\/span>`));
-  assert.match(agenda, /id="schedule-period" aria-live="polite">Cargando fechas…/);
+  assert.match(agenda, /id="schedule-period" aria-live="polite">(?:<span class="sk[^>]*><\/span><span class="sk-sr">)?Cargando fechas…/);
   assert.match(css, /Agenda Clinical Workspace v4/);
   assert.match(css, /--schedule-type-meta:var\(--smyl-ui-text-meta,12px\)/);
   assert.match(css, /\.schedule-calendar\{max-width:100%;overflow-x:auto/);

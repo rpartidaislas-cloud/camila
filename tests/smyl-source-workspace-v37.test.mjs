@@ -57,9 +57,9 @@ test('la nueva superficie concentra mapa, inspector y contexto con respuesta mó
 });
 
 test('web, móvil y PWA comparten la implementación de la evaluación simplificada', () => {
-  assert.match(app, /smyl-patient-360\.js\?v=31/);
+  assert.match(app, /smyl-patient-360\.js\?v=32/);
   assert.match(app, /smyl-case-workspace\.css\?v=31/);
-  assert.match(app, /smyl-case-workspace\.js\?v=43/);
+  assert.match(app, /smyl-case-workspace\.js\?v=44/);
   assert.match(app, /smyl-clinical-photo-review\.js\?v=4/);
   assert.match(worker, /evaluation-separation-v79/);
   for (const file of [

@@ -130,10 +130,10 @@ test('la política visual conserva jerarquía, una CTA visible, tactilidad y res
 
 test('web, móvil y PWA distribuyen la misma implementación', () => {
   assert.match(app, /smyl-patient-360\.css\?v=20/);
-  assert.match(app, /smyl-clinic\.js\?v=24/);
-  assert.match(app, /smyl-patient-360\.js\?v=31/);
+  assert.match(app, /smyl-clinic\.js\?v=25/);
+  assert.match(app, /smyl-patient-360\.js\?v=32/);
   assert.match(app, /smyl-case-workspace\.css\?v=31/);
-  assert.match(app, /smyl-case-workspace\.js\?v=43/);
+  assert.match(app, /smyl-case-workspace\.js\?v=44/);
   assert.match(worker, /evaluation-separation-v79/);
   for (const file of ['app.html', 'sw.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css', 'smyl-patient-360.js', 'smyl-patient-360.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));

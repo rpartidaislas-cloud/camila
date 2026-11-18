@@ -10,9 +10,9 @@ test('el calendario del chat llega igual a web, PWA y móvil', () => {
     assert.equal(read(file), read(`mobile/www/${file}`), file);
   }
   const html = read('app.html');
-  assert.match(html, /smyl-inbox-calendar\.js\?v=3/);
+  assert.match(html, /smyl-inbox-calendar\.js\?v=4/);
   assert.ok(html.indexOf('smyl-inbox-calendar.js') < html.indexOf('smyl-inbox.js?v='));
-  assert.match(read('sw.js'), /smyl-inbox-calendar\.js\?v=3/);
+  assert.match(read('sw.js'), /smyl-inbox-calendar\.js\?v=4/);
 });
 
 test('el módulo del calendario expone render e invalidate, con niveles de disponibilidad y consultas acotadas', () => {

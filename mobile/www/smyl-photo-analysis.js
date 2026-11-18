@@ -20,7 +20,7 @@
   bar.append(n('span','','SMYL · Revisión profesional'),button('Volver al expediente',()=>close(run)));dialog.append(bar,host);document.body.append(dialog);dialog.showModal();
   dialog.addEventListener('cancel',e=>{e.preventDefault();close(run);});dialog.addEventListener('close',()=>close(run,true));
   run.watch=setInterval(()=>{if(!valid())close(run,true);},200);
-  host.append(n('p','pr-app','Abriendo las fotos originales de esta simulación…'));
+  host.append(window.SmylSkeleton?window.SmylSkeleton.node('media',{count:4,label:'Abriendo las fotos originales de esta simulación'}):n('p','pr-app','Abriendo las fotos originales de esta simulación…'));
   function status(){run.review?.setSaveState({dirty:run.dirty,saving:run.saving,failed:run.failed,conflict:run.conflict,revision:run.revision,available:!!run.store,savedDocument:run.savedDocument,message:run.message||''});}
   function changed(doc){
    if(!valid())return;run.doc=doc;run.dirty=true;status();clearTimeout(run.saveTimer);

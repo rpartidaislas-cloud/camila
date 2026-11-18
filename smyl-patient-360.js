@@ -11,6 +11,7 @@
   var FILE_TYPES={clinical_photo:'Fotografía clínica',radiograph:'Radiografía',laboratory:'Laboratorio',consent:'Consentimiento',referral:'Referencia',prescription:'Receta',other:'Otro'};
   var state=null, sequence=0;
   function n(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
+  function sk(k,o){return window.SmylSkeleton?window.SmylSkeleton.html(k,o):'<p>'+((o&&o.label)||'Cargando')+'…</p>';}
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
   async function q(builder){var r=await(typeof window.sbTimeout==='function'?window.sbTimeout(builder):builder);if(r&&r.error)throw r.error;return r?r.data:null;}
   async function rpc(name,args){return q(window.sb.rpc(name,args));}
@@ -148,7 +149,7 @@
     return names;
   }
   async function openHistoryVersions(s){
-    var limit=H.VERSION_LIMIT,dlg=dialog(s,'<div class="p360-hv"><header class="p360-hv-head"><div><h2>Historial de cambios</h2></div><button type="button" class="btn btn-secondary" data-close>Cerrar</button></header><p class="p360-hv-wait" role="status">Cargando el historial…</p></div>');
+    var limit=H.VERSION_LIMIT,dlg=dialog(s,'<div class="p360-hv"><header class="p360-hv-head"><div><h2>Historial de cambios</h2></div><button type="button" class="btn btn-secondary" data-close>Cerrar</button></header><div class="p360-hv-wait">'+sk('list',{rows:4,plain:true,action:true,label:'Cargando el historial'})+'</div></div>');
     function bindClose(){var close=dlg.querySelector('[data-close]');if(close)close.onclick=function(){dlg.close();};}
     function waiting(){return dlg.open&&dlg.querySelector('.p360-hv-wait');}
     try{
@@ -278,7 +279,7 @@
   async function loadAccount(s){var F=window.SmylFinance;if(!s.canFinanceRead||!F||typeof F.accountSummary!=='function')return;try{var r=await Promise.all([F.accountSummary(s.patient),typeof F.recentMovements==='function'?F.recentMovements(s.patient,5):Promise.resolve([])]);if(!current(s))return;s.account=r[0];s.movements=r[1]||[];}catch(e){s.account=null;s.movements=[];s.accountError=true;}if(!current(s))return;renderFlags(s);if(s.drawer&&s.drawer.open)renderDatos(s);}
   function accountCard(s){var a=s.account,F=window.SmylFinance;if(!s.canFinanceRead)return '';var body;
     if(s.accountError)body='<p class="p360-readonly">No se pudo consultar la cuenta. Ábrela en Cobros.</p>';
-    else if(!a)body='<p class="p360-readonly">Consultando cuenta…</p>';
+    else if(!a)body=sk('text',{lines:2,label:'Consultando cuenta'});
     else{var status=a.due>0?money(a.due)+' por cobrar':a.credit>0?money(a.credit)+' a favor':a.chargeCount?'Al corriente':'Sin cargos registrados';
       body='<p class="p360-account-balance" data-state="'+(a.overdueCount>0?'overdue':a.due>0?'due':'ok')+'">'+esc(status)+'</p>'+(a.overdueCount>0?'<p class="p360-fiscal-warning">'+a.overdueCount+(a.overdueCount===1?' cargo vencido':' cargos vencidos')+' ('+esc(money(a.overdueAmount))+').</p>':'')+
         ((s.movements||[]).length?'<ul class="p360-move-list">'+s.movements.map(function(m){return '<li class="is-'+m.kind+(m.voided?' is-voided':'')+'"><span><strong>'+esc(m.label)+'</strong><small>'+date(m.at)+(m.voided?' · cancelado':'')+'</small></span><b>'+esc(money(m.amount))+'</b></li>';}).join('')+'</ul>':'');}

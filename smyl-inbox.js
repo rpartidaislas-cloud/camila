@@ -1,6 +1,10 @@
 (function () {
   'use strict';
 
+  // Skeletons de carga (smyl-skeleton.js) con respaldo si el asistente no está cargado.
+  function sk(kind, options) { return window.SmylSkeleton ? window.SmylSkeleton.html(kind, options) : '<p class="smyl-inbox-productivity-state">' + ((options && options.label) || 'Cargando…') + '</p>'; }
+  function skNode(kind, options) { var holder = document.createElement('div'); holder.innerHTML = sk(kind, options); return holder.firstElementChild; }
+
   var inboxScriptUrl = document.currentScript && document.currentScript.src;
   var emojiCatalogPromise;
   var recentEmoji = [];
@@ -18,7 +22,7 @@
   }
 
   var state = {
-    conversations: [], total: 0, offset: 0, limit: 30, hasMore: false,
+    conversations: [], total: 0, offset: 0, limit: 30, hasMore: false, pipelineToday: false,
     filter: 'all', channel: '', search: '', selectedId: null, filterPanelOpen: false, branches: [], branchFilter: '', branchMenu: null,
     messages: {}, pages: {}, pending: {}, loadingList: false, loadingThread: false,
     listError: '', threadError: '', syncedAt: null, actor: null, stages: [],
@@ -33,7 +37,7 @@
     threadSearchResults: [], threadSearchPage: null, threadSearchLoading: false,
     sharedItems: [], sharedPage: null, sharedLoading: false,
     notificationsEnabled: false, didAutoOpen: false,
-    view: 'list', pipelineDragId: null, actionsOpenId: null, badgeFailures: 0,
+    view: 'list', pipelineDragId: null, pipelineChatId: null, pipelineOpening: false, actionsOpenId: null, badgeFailures: 0,
     draftSaveTimer: null,
     recorder: null, recorderStream: null, recorderChunks: [], recorderStartedAt: 0, recorderTimer: null, recordingCancelled: false,
     availabilityCatalog: null, availabilityMode: 'calendar', availabilityLoading: false, availabilitySlots: [], availabilityRequests: [], availabilitySelected: [], availabilityAction: '', availabilityError: '', availabilityEmptyReason: '', appointmentContext: {}, appointmentContextLoading: {}, patientLinking: {}, patientLinkChecked: {},
@@ -66,6 +70,10 @@
       'f360Visits','f360VisitsAll','f360Movements','f360File','f360Filter','f360Shared','f360Summary'].forEach(function (key) { delete state[key][id]; });
     state.bulkSelected.delete(id);
     window.dispatchEvent(new CustomEvent('smyl:inbox-removed',{detail:{id:id}}));
+    if (state.pipelineChatId === id) {
+      closePipelineChat(true);
+      document.querySelector('[data-pipeline-status]').textContent = 'Esta conversación ya no está disponible.';
+    }
     if (state.selectedId !== id) return;
     if (state.recorder) stopVoiceRecording(true);
     if (state.threadController) { state.threadController.abort(); state.threadController = null; }
@@ -101,11 +109,12 @@
     teamsByConversation.clear();
     pendingPipelineSnapshots.clear();
     if (old) {
+      if (state.pipelineChatId) closePipelineChat(false);
       threadEpoch.clear();
       forgetChat(state.selectedId);
       state.conversations = []; state.operations = null;
       state.messages = {}; state.clinical = {}; state.syncedAt = null; state.total = 0;
-      state.didAutoOpen = false; state.filter = 'all'; renderNavBadge(0);
+      state.didAutoOpen = false; state.filter = 'all'; state.pipelineToday = false; renderNavBadge(0);
     }
     document.documentElement.dataset.smylChatAccess = mode;
     var status = document.querySelector('[data-chat-access-status]');
@@ -225,7 +234,7 @@
       var plain = await window.crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytesFromBase64(stored.iv) }, await draftKey(), bytesFromBase64(stored.ciphertext));
       var draft = JSON.parse(new TextDecoder().decode(plain));
       if (draft.conversation_id !== conversationId || Number(draft.expires_at) < Date.now()) throw new Error('expired');
-      if (state.selectedId === conversationId) input.value = String(draft.content || '').slice(0, 4000);
+      if (state.selectedId === conversationId && !input.value) input.value = String(draft.content || '').slice(0, 4000);
     } catch (_) {
       delete envelope[conversationId]; window.sessionStorage.setItem(DRAFT_STORE, JSON.stringify(envelope));
     }
@@ -352,6 +361,7 @@
     send: '<path d="m4 4 17 8-17 8 3-8-3-8Z"></path><path d="M7 12h14"></path>',
     template: '<path d="M6 3h9l4 4v14H6V3Z"></path><path d="M14 3v5h5M9 12h6M9 16h6"></path>',
     calendar: '<rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01"></path>',
+    moveStage: '<path d="M3 4h7v6H3zM14 14h7v6h-7zM13 7h5v4m-3-3 3 3 3-3"></path>',
     mic: '<rect x="9" y="3" width="6" height="12" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"></path>',
     location: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle>',
     person: '<circle cx="10" cy="8" r="3.5"></circle><path d="M3 20v-2a7 7 0 0 1 12.2-4.7M16 17l2 2 4-5"></path>',
@@ -372,7 +382,7 @@
         '<div class="smyl-inbox-top-actions"><button type="button" class="smyl-inbox-notify" data-inbox-notify aria-pressed="false">Avisos</button><button type="button" class="smyl-inbox-health" data-inbox-operations data-state="loading"><i></i><span>Revisando operación</span></button><div class="smyl-inbox-live" data-inbox-live><i></i><span>Sincronización segura</span></div></div>' +
       '</header>' +
       '<section class="smyl-inbox-pipeline" id="smyl-inbox-pipeline" data-inbox-pipeline aria-label="Pipeline de pacientes por etapa" hidden>' +
-        '<div class="smyl-inbox-pipeline-bar"><div class="smyl-inbox-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" placeholder="Buscar paciente" aria-label="Buscar en el pipeline" data-pipeline-search></div><div class="smyl-inbox-pipeline-filters" role="tablist" aria-label="Filtrar pipeline"><button type="button" role="tab" aria-selected="true" tabindex="0" data-inbox-filter="all" class="active">Todas</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="unread">Sin leer</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="attention">Por atender</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="mine">Mías</button></div><span class="smyl-inbox-pipeline-hint"><span class="is-pointer">Arrastra una tarjeta para cambiar su etapa</span><span class="is-touch">Usa «Mover a» en cada tarjeta para cambiar su etapa</span></span><button type="button" class="smyl-inbox-pipeline-more" data-pipeline-more hidden>Cargar más</button></div>' +
+        '<div class="smyl-inbox-pipeline-bar"><div class="smyl-inbox-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" placeholder="Buscar paciente" aria-label="Buscar en el pipeline" data-pipeline-search></div><div class="smyl-inbox-pipeline-filters" role="tablist" aria-label="Filtrar pipeline"><button type="button" role="tab" aria-selected="true" tabindex="0" data-inbox-filter="all" class="active">Todas</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="unread">Sin leer</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="attention">Por atender</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="mine">Mías</button></div><button type="button" class="smyl-inbox-pipeline-today" data-pipeline-today aria-pressed="false">' + composeIcon('calendar') + 'Citas de hoy</button><button type="button" class="smyl-inbox-pipeline-more" data-pipeline-more hidden>Cargar más</button></div>' +
         '<p class="smyl-inbox-pipeline-status" data-pipeline-status role="status" aria-live="polite"></p><div class="smyl-inbox-pipeline-board" data-pipeline-board></div>' +
       '</section>' +
       '<div class="smyl-inbox-workspace" id="smyl-inbox-workspace">' +
@@ -389,7 +399,8 @@
           '<button type="button" class="smyl-inbox-more" data-inbox-more hidden>Cargar más conversaciones</button>' +
         '</aside>' +
         '<div class="smyl-inbox-resizer" data-inbox-resizer role="separator" aria-orientation="vertical" aria-label="Cambiar el ancho de la lista de conversaciones. Arrastra o usa las flechas." tabindex="0" title="Arrastra para cambiar el ancho · doble clic para restablecer"></div>' +
-        '<main class="smyl-inbox-thread-pane" data-inbox-thread-pane>' +
+        '<main class="smyl-inbox-thread-pane" id="smyl-inbox-thread-pane" data-inbox-thread-pane>' +
+          '<div class="smyl-inbox-pipeline-loading" data-pipeline-opening hidden><button type="button" data-pipeline-cancel>Volver al Pipeline</button><p role="status">Abriendo conversación…</p></div>' +
           '<div class="smyl-inbox-thread-empty" data-inbox-thread-empty><div class="smyl-inbox-empty-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></div><span class="smyl-inbox-eyebrow">CENTRO DE ATENCIÓN</span><h2>Continúa el siguiente caso</h2><p>Abre una conversación para responder, consultar el expediente y coordinar la cita sin cambiar de pantalla.</p><div class="smyl-inbox-empty-steps"><span><b>1</b>Revisa el motivo</span><span><b>2</b>Consulta agenda</span><span><b>3</b>Confirma el seguimiento</span></div><button type="button" class="btn btn-primary" data-inbox-open-next>Abrir siguiente conversación</button></div>' +
           '<div class="smyl-inbox-thread" data-inbox-thread hidden>' +
             '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención" title="Ver la ficha del paciente" aria-expanded="false" aria-controls="smyl-inbox-context-panel"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><span class="smyl-inbox-med-flag" data-thread-medical hidden></span></button><div class="smyl-inbox-thread-branchwrap" data-thread-branch-wrap hidden><button type="button" class="smyl-inbox-iconchip is-labeled" data-thread-branch-chip aria-haspopup="menu" aria-expanded="false"></button></div><button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Siguiente acción del paciente"></nav><div class="smyl-inbox-owner-control" data-thread-owner>' + composeIcon('person') + '<span class="smyl-inbox-owner-copy"><small>Atiende el chat</small><strong data-thread-owner-name>Sin asignar</strong></span><select data-thread-assign aria-label="Asignar responsable del chat"></select><button type="button" data-thread-owner-retry hidden>Reintentar</button></div></header>' +
@@ -445,13 +456,14 @@
       if (mineA !== mineB) return mineA ? -1 : 1;
       return new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0);
     });
+    if (replace && state.pipelineChatId && !map.has(state.pipelineChatId)) closePipelineChat(false);
   }
 
   function visibleConversations() {
     var query = state.search.toLocaleLowerCase('es-MX').trim();
     return state.conversations.filter(function (item) {
       if (state.channel && item.channel !== state.channel) return false;
-      var keepOpen = item.id === state.selectedId;
+      var keepOpen = item.id === state.selectedId && (state.view !== 'pipeline' || state.pipelineChatId === item.id);
       if (state.filter === 'unread' && !item.unread_count && !keepOpen) return false;
       if (state.filter === 'attention' && !item.needs_human && !keepOpen) return false;
       if (state.filter === 'mine' && (!item.assignment || item.assignment.actor_id !== (state.actor && state.actor.id))) return false;
@@ -787,7 +799,8 @@
     renderBulkBar(); renderFilterControls(); renderBranchBar();
     list.innerHTML = '';
     if (state.loadingList && !state.conversations.length) {
-      list.innerHTML = '<div class="smyl-inbox-loading"><i></i><i></i><i></i></div>';
+      list.innerHTML = sk('list', { rows: 6, label: 'Cargando conversaciones' });
+      renderPipeline();
       return;
     }
     var workspace = document.querySelector('.smyl-inbox-workspace');
@@ -795,7 +808,7 @@
     var offline = Boolean(state.listError && !state.conversations.length);
     if (workspace) { if (offline) workspace.dataset.state = 'offline'; else delete workspace.dataset.state; }
     if (offlinePane) { offlinePane.hidden = !offline; if (offline) renderOffline(offlinePane); }
-    if (offline) return;
+    if (offline) { renderPipeline(); return; }
     var visible = visibleConversations();
     if (summary) {
       var attention = visible.filter(function (item) { return item.needs_human; }).length;
@@ -866,12 +879,35 @@
     return labels[status] || 'Cita';
   }
 
-  function appointmentCardLine(appointment) {
-    if (!appointment?.id || ['cancelled','no_show','attended','completed'].includes(appointment.status)) return null;
+  // La fecha operativa es la de la sede, incluso cuando el equipo abre el chat desde otro huso.
+  var pipelineDayFormats = new Map();
+  function appointmentIsToday(appointment, now) {
+    if (!appointment?.id || !['scheduled','confirmed','arrived','checked_in','in_progress','completed','attended'].includes(appointment.status)) return false;
+    var starts = new Date(appointment.starts_at || '');
+    if (!Number.isFinite(starts.getTime())) return false;
+    var zone = appointment.timezone || 'UTC';
+    var format = pipelineDayFormats.get(zone);
+    if (!format) {
+      try { format = new Intl.DateTimeFormat('en-CA', { timeZone:zone }); }
+      catch (_) { format = new Intl.DateTimeFormat('en-CA', { timeZone:'UTC' }); }
+      pipelineDayFormats.set(zone, format);
+    }
+    return format.format(starts) === format.format(now);
+  }
+
+  function appointmentCardLine(appointment, columnStage) {
+    if (!appointment?.id || ['cancelled','no_show'].includes(appointment.status)) return null;
+    var completed = ['attended','completed'].includes(appointment.status);
+    if (completed && (columnStage === undefined || !state.pipelineToday)) return null;
     var line = node('span', 'smyl-inbox-card-appointment');
     line.dataset.status = appointment.status || '';
-    line.append(node('strong', '', appointmentStatusLabel(appointment.status)));
     var date = new Date(appointment.starts_at || '');
+    var stageDate = Number.isFinite(date.getTime()) && ((columnStage === 'smyl:confirmed' && appointment.status === 'confirmed') ||
+      (columnStage === 'smyl:arrived' && ['arrived','checked_in'].includes(appointment.status)) || (columnStage === 'smyl:attended' && completed));
+    if (stageDate) {
+      line.classList.add('is-stage-date');
+      line.innerHTML = composeIcon('calendar');
+    } else line.append(node('strong', '', appointmentStatusLabel(appointment.status)));
     if (Number.isFinite(date.getTime())) {
       var options = { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' };
       if (appointment.timezone) options.timeZone = appointment.timezone;
@@ -880,7 +916,8 @@
       catch (_) { delete options.timeZone; formatted = date.toLocaleString('es-MX', options); }
       var time = node('time', '', formatted); time.dateTime = date.toISOString();
       var atClinic = ['arrived','checked_in','in_progress'].includes(appointment.status);
-      line.append(document.createTextNode(atClinic ? ' · Cita ' : ' · '), time);
+      if (!stageDate) line.append(document.createTextNode(atClinic ? ' · Cita ' : ' · '));
+      line.append(time);
     }
     return line;
   }
@@ -889,6 +926,11 @@
     var stages = pipelineStages();
     var known = new Set(stages.map(function (stage) { return stage.id; }));
     var visible = visibleConversations();
+    if (state.pipelineToday && hasPermission('schedule.read')) {
+      var now = new Date();
+      visible = visible.filter(function (item) { return appointmentIsToday(item.appointment, now); });
+      visible.sort(function (a, b) { return Date.parse(a.appointment.starts_at) - Date.parse(b.appointment.starts_at); });
+    }
     var columns = [];
     var unstaged = visible.filter(function (item) { return !item.stage_id || !known.has(item.stage_id); });
     columns.push({ id: '', name: 'Sin etapa', color: '#94A3B8', items: unstaged });
@@ -903,10 +945,12 @@
   function pipelineCard(item, color) {
     var movable = canTransfer(item);
     var busy = pendingStageMoves.has(item.id);
-    var card = node('article', 'smyl-inbox-pipeline-card' + (item.needs_human ? ' is-attention' : ''));
+    var current = state.pipelineChatId === item.id;
+    var card = node('article', 'smyl-inbox-pipeline-card' + (item.needs_human ? ' is-attention' : '') + (current ? ' is-current' : ''));
     card.dataset.conversationId = item.id; card.draggable = movable && !busy; card.style.setProperty('--stage-color', color);
     if (busy) card.setAttribute('aria-busy', 'true');
     var open = node('button', 'smyl-inbox-pipeline-open'); open.type = 'button'; open.setAttribute('aria-label', 'Abrir conversación con ' + item.contact_name);
+    open.setAttribute('aria-controls', 'smyl-inbox-thread-pane'); open.setAttribute('aria-expanded', String(current));
     var top = node('span', 'smyl-inbox-pipeline-card-top');
     var avatar = node('span', 'smyl-inbox-avatar', initials(item.contact_name)); avatar.dataset.channel = item.channel; avatar.append(channelBadge(item.channel));
     top.append(avatar, node('strong', '', item.contact_name), node('time', '', timeLabel(item.last_message_at)));
@@ -917,24 +961,25 @@
     if (item.assignment) meta.append(node('span', 'smyl-inbox-pipeline-assignee', item.assignment.name));
     if (item.unread_count) meta.append(node('span', 'smyl-inbox-pipeline-unread', String(Math.min(99, item.unread_count))));
     open.append(top, node('span', 'smyl-inbox-pipeline-preview', item.last_message || 'Conversación sin vista previa'), meta);
-    var appointmentLine = appointmentCardLine(item.appointment);
+    var appointmentLine = appointmentCardLine(item.appointment, item.stage_id);
     if (appointmentLine) open.append(appointmentLine);
     else if (item.appointment) {
       open.title = appointmentStatusLabel(item.appointment.status);
       open.setAttribute('aria-description', open.title);
     }
-    open.onclick = function () { setInboxView('list'); openConversation(item.id); };
+    open.onclick = function () { openConversation(item.id); };
     card.append(open);
     if (movable) {
       // Alternativa al arrastre para pantallas táctiles y teclado.
-      var move = node('label', 'smyl-inbox-pipeline-move', 'Mover a');
+      var move = node('label', 'smyl-inbox-pipeline-move'); move.title = 'Mover a otra etapa';
+      var moveIcon = node('span'); moveIcon.setAttribute('aria-hidden', 'true'); moveIcon.innerHTML = composeIcon('moveStage');
       var select = document.createElement('select'); select.setAttribute('aria-label', 'Cambiar etapa de ' + item.contact_name);
       select.append(new Option('Sin etapa', ''));
       pipelineStages().filter(function (stage) { return !stage.archived || stage.id === item.stage_id; }).forEach(function (stage) { select.append(new Option(stage.name, stage.id)); });
       select.disabled = busy;
       select.value = item.stage_id || '';
       select.onchange = function () { moveConversationStage(item, select.value); };
-      move.append(select); card.append(move);
+      move.append(moveIcon, select); card.append(move);
       card.addEventListener('dragstart', function (event) {
         if (!card.draggable || event.target.closest('select, label')) { event.preventDefault(); return; }
         state.pipelineDragId = item.id; card.classList.add('is-dragging');
@@ -954,12 +999,29 @@
     if (!section || !board) return;
     section.hidden = state.view !== 'pipeline';
     if (state.view !== 'pipeline' || state.pipelineDragId) return;
-    var more = document.querySelector('[data-pipeline-more]');
-    if (more) { more.hidden = !state.hasMore; more.disabled = state.loadingList; more.textContent = state.loadingList ? 'Cargando…' : 'Cargar más'; }
+    // On phones the open conversation temporarily hides the board. Preserve its
+    // scroll containers until they have a visible size again.
+    if (state.pipelineChatId && !board.clientWidth && board.childElementCount) return;
+    var today = section.querySelector('[data-pipeline-today]');
+    today.hidden = !hasPermission('schedule.read');
+    today.setAttribute('aria-pressed', String(state.pipelineToday && !today.hidden));
+    var more = section.querySelector('[data-pipeline-more]');
+    more.hidden = !state.hasMore && !state.listError;
+    more.disabled = state.loadingList;
+    more.textContent = state.listError ? 'Reintentar' : state.loadingList ? 'Cargando…' : 'Cargar más';
+    if (state.pipelineToday && !today.hidden && state.hasMore && !state.loadingList && !state.listError) {
+      setTimeout(function () {
+        if (state.view === 'pipeline' && state.pipelineToday && state.hasMore && !state.loadingList && !state.listError && document.visibilityState === 'visible' && section.closest('.pantalla.activa')) loadList(false);
+      }, 0);
+    }
     var focus = document.activeElement, focusedCard = board.contains(focus) && focus.closest('[data-conversation-id]');
     var focusedId = focusedCard && focusedCard.dataset.conversationId, focusedControl = focus?.tagName === 'SELECT' ? 'select' : 'button';
-    var scroll = board.scrollLeft; board.innerHTML = '';
-    if (state.loadingList && !state.conversations.length) { board.innerHTML = '<div class="smyl-inbox-loading"><i></i><i></i><i></i></div>'; return; }
+    var scroll = board.scrollLeft;
+    var columnScroll = new Map(Array.from(board.querySelectorAll('[data-pipeline-stage]'), function (column) {
+      return [column.dataset.pipelineStage, column.querySelector('.smyl-inbox-pipeline-cards').scrollTop];
+    }));
+    board.innerHTML = '';
+    if (state.loadingList && !state.conversations.length) { board.innerHTML = sk('cards', { count: 4, label: 'Cargando el tablero de conversaciones' }); return; }
     if (state.listError && !state.conversations.length) {
       var error = node('div', 'smyl-inbox-list-state');
       error.append(node('strong', '', 'No pudimos abrir el pipeline'), node('p', '', state.listError));
@@ -971,7 +1033,8 @@
       columnNode.setAttribute('aria-label', column.name + ': ' + column.items.length + ' conversaciones');
       var head = node('header'); head.append(node('i'), node('strong', '', column.name), node('span', '', String(column.items.length)));
       var cards = node('div', 'smyl-inbox-pipeline-cards');
-      if (!column.items.length) cards.append(node('p', 'smyl-inbox-pipeline-empty', 'Sin conversaciones'));
+      if (!column.items.length) cards.append(node('p', 'smyl-inbox-pipeline-empty',
+        state.pipelineToday ? (state.hasMore ? 'Sin citas cargadas' : 'Sin citas de hoy') : 'Sin conversaciones'));
       column.items.forEach(function (item) { cards.append(pipelineCard(item, column.color)); });
       columnNode.addEventListener('dragover', function (event) {
         if (!state.pipelineDragId || column.archived) return;
@@ -986,6 +1049,7 @@
         else renderPipeline();
       });
       columnNode.append(head, cards); board.append(columnNode);
+      cards.scrollTop = columnScroll.get(column.id) || 0;
     });
     board.scrollLeft = scroll;
     if (focusedId) board.querySelector('[data-conversation-id="' + CSS.escape(focusedId) + '"] ' + focusedControl)?.focus({preventScroll:true});
@@ -1032,10 +1096,68 @@
     }
   }
 
-  function setInboxView(view) {
-    state.view = view === 'pipeline' ? 'pipeline' : 'list';
-    try { window.sessionStorage.setItem('smyl_inbox_view', state.view); } catch (_) {}
+  function setPipelineChat(id, loading) {
+    var board = document.querySelector('[data-pipeline-board]');
+    if (id && !state.pipelineChatId) state.pipelineReturnScroll = board.scrollLeft;
+    state.pipelineChatId = id;
+    state.pipelineOpening = Boolean(id && loading);
     var page = document.getElementById('p-inbox');
+    page.classList.toggle('pipeline-chat-open', Boolean(id));
+    page.classList.toggle('pipeline-chat-opening', state.pipelineOpening);
+    page.querySelector('[data-pipeline-opening]').hidden = !state.pipelineOpening;
+    page.querySelector('[data-inbox-thread-empty]').inert = state.pipelineOpening;
+    page.querySelector('[data-inbox-thread]').inert = state.pipelineOpening;
+    var back = page.querySelector('[data-inbox-back]');
+    back.title = id ? 'Volver al Pipeline' : 'Volver a la bandeja';
+    back.setAttribute('aria-label', back.title);
+    board.querySelectorAll('.smyl-inbox-pipeline-open').forEach(function (button) {
+      var card = button.closest('[data-conversation-id]');
+      var active = card.dataset.conversationId === id;
+      card.classList.toggle('is-current', active);
+      button.setAttribute('aria-expanded', String(active));
+      if (active && loading && board.clientWidth) {
+        var area = board.getBoundingClientRect(), rect = card.getBoundingClientRect();
+        if (rect.right > area.right) board.scrollLeft += rect.right - area.right + 8;
+        else if (rect.left < area.left) board.scrollLeft += rect.left - area.left - 8;
+      }
+    });
+    if (!id && state.pipelineReturnScroll != null) {
+      board.scrollLeft = state.pipelineReturnScroll;
+      state.pipelineReturnScroll = null;
+    }
+  }
+
+  function closePipelineChat(restoreFocus) {
+    var id = state.pipelineChatId;
+    if (!id) return;
+    openSequence++;
+    var page = document.getElementById('p-inbox');
+    closeComposerTools(false); closeBranchMenu(false);
+    if (state.recorder) stopVoiceRecording(true);
+    state.contextOpen = false; state.contextReturnFocus = null;
+    syncContextAccessibility();
+    setPipelineChat(null, false);
+    page.classList.remove('show-thread');
+    renderPipeline();
+    if (restoreFocus) {
+      var card = page.querySelector('[data-pipeline-board] [data-conversation-id="' + CSS.escape(id) + '"] .smyl-inbox-pipeline-open');
+      (card || page.querySelector('[data-pipeline-search]')).focus({preventScroll:true});
+    }
+  }
+
+  function setInboxView(view) {
+    var nextView = view === 'pipeline' ? 'pipeline' : 'list';
+    var page = document.getElementById('p-inbox');
+    if (state.view !== nextView) {
+      if (state.pipelineChatId) closePipelineChat(false); else openSequence++;
+      state.contextOpen = false; state.contextReturnFocus = null;
+      closeBranchMenu(false); closeComposerTools(false);
+      if (state.recorder) stopVoiceRecording(true);
+      page.classList.toggle('show-thread', nextView === 'list' && Boolean(state.selectedId));
+      syncContextAccessibility();
+    }
+    state.view = nextView;
+    try { window.sessionStorage.setItem('smyl_inbox_view', state.view); } catch (_) {}
     if (page) page.classList.toggle('view-pipeline', state.view === 'pipeline');
     document.querySelectorAll('[data-inbox-view]').forEach(function (button) {
       var selected = button.dataset.inboxView === state.view;
@@ -1113,9 +1235,7 @@
     );
     panel.append(head);
     if (loading) {
-      panel.append(node('p', '', isRewrite
-        ? 'Corrigiendo ortografía y claridad sin cambiar el sentido…'
-        : 'Revisando el hilo y la capacitación publicada…'));
+      panel.append(skNode('text', { lines: 3, label: isRewrite ? 'Corrigiendo ortografía y claridad sin cambiar el sentido' : 'Revisando el hilo y la capacitación publicada' }));
       return;
     }
     if (result.requires_human) panel.append(node('p', 'is-warning', 'Copilot detectó contenido que requiere atención humana. Revisa con especial cuidado.'));
@@ -1303,7 +1423,7 @@
     wrap.setAttribute('aria-busy', 'true');
     wrap.setAttribute('aria-live', 'off');
     wrap.innerHTML = '';
-    if (state.loadingThread && !items.length) wrap.innerHTML = '<div class="smyl-inbox-thread-loading"><i></i><i></i><i></i></div>';
+    if (state.loadingThread && !items.length) wrap.innerHTML = '<div class="sk-region smyl-inbox-thread-sk" role="status" aria-live="polite"><span class="sk-sr">Cargando mensajes</span><div aria-hidden="true"><span class="sk sk-bubble"></span><span class="sk sk-bubble is-out"></span><span class="sk sk-bubble is-short"></span><span class="sk sk-bubble is-out is-short"></span><span class="sk sk-bubble"></span></div></div>';
     else if (state.threadError && !items.length) {
       var error = node('div', 'smyl-inbox-thread-state'); error.append(node('strong', '', 'No pudimos cargar el hilo'), node('p', '', state.threadError));
       var retry = node('button', 'btn btn-secondary btn-sm', 'Reintentar'); retry.type = 'button'; retry.onclick = function () { loadThread(state.selectedId, false); }; error.append(retry); wrap.append(error);
@@ -1788,7 +1908,7 @@
     var reportButton = document.querySelector('[data-pilot-report]'); if (reportButton) reportButton.disabled = !state.operations;
     content.innerHTML = '';
     if (state.operationsLoading && !state.operations) {
-      content.append(node('div', 'smyl-inbox-operations-state', 'Calculando salud operativa…'));
+      content.append(skNode('panel', { lines: 4, label: 'Calculando salud operativa' }));
       return;
     }
     if (state.operationsError && !state.operations) {
@@ -2065,7 +2185,7 @@
   // En pantallas anchas la ficha se ancla como tercera columna: no tapa el chat ni atrapa el foco.
   var CONTEXT_DOCK_QUERY = '(min-width: 1440px)';
   function contextDocked() {
-    return Boolean(window.matchMedia && window.matchMedia(CONTEXT_DOCK_QUERY).matches);
+    return Boolean(state.view !== 'pipeline' && window.matchMedia && window.matchMedia(CONTEXT_DOCK_QUERY).matches);
   }
 
   function syncContextAccessibility() {
@@ -2127,7 +2247,7 @@
     state.contextReturnFocus = null;
     rememberDockedContext(false);
     renderContext();
-    if (restoreFocus !== false && target && document.contains(target) && typeof target.focus === 'function') setTimeout(function () { target.focus(); }, 0);
+    if (restoreFocus !== false && target && document.contains(target) && typeof target.focus === 'function') target.focus({preventScroll:true});
   }
 
   function trapContextFocus(event) {
@@ -2246,7 +2366,7 @@
       var accountTop = node('div', 'smyl-inbox-account-top');
       var accountStatus = node('div', 'smyl-inbox-account-status');
       if (!accountPatient) accountStatus.append(node('p', '', 'Vincula al paciente para ver su saldo y cobrar desde esta conversación.'));
-      else if (state.accountLoading && state.accountLoading[conversation.id]) accountStatus.append(node('p', '', 'Consultando cuenta…'));
+      else if (state.accountLoading && state.accountLoading[conversation.id]) accountStatus.append(skNode('text', { lines: 2, label: 'Consultando cuenta' }));
       else if (!accountInfo || !accountInfo.data) {
         accountStatus.append(node('strong', '', 'Saldo no disponible'), node('small', '', 'No pudimos cargar la cuenta.'));
         var retryAccount = node('button', 'smyl-inbox-link', 'Reintentar'); retryAccount.type = 'button';
@@ -2410,7 +2530,7 @@
       zone.append(automationCard);
 
       var scheduledCard = node('section', 'smyl-inbox-context-card smyl-inbox-scheduled-card'); scheduledCard.append(node('h3', '', 'Programados'));
-      if (state.scheduledLoading[conversation.id]) scheduledCard.append(node('p', '', 'Consultando agenda…'));
+      if (state.scheduledLoading[conversation.id]) scheduledCard.append(skNode('text', { lines: 2, label: 'Consultando agenda' }));
       else {
         var scheduledRows = state.scheduled[conversation.id] || [];
         if (!scheduledRows.length) scheduledCard.append(node('p', '', 'No hay mensajes programados para este hilo.'));
@@ -2546,7 +2666,7 @@
     var body = node('div', 'smyl-f360-care'); section.node = body;
     if (!index || !index.branches.size) {
       var hint = entry && entry.error ? 'No se pudo consultar el historial.' : index ? 'No hay atenciones realizadas registradas a las que tengas acceso.' : 'Consultando atenciones…';
-      body.append(node('p', 'smyl-f360-note', hint));
+      body.append(!index && !(entry && entry.error) ? skNode('text', { lines: 2, label: 'Consultando atenciones' }) : node('p', 'smyl-f360-note', hint));
       if (entry && entry.error) {
         var retry = node('button', 'smyl-f360-link', 'Reintentar'); retry.type = 'button'; retry.onclick = onRetry; body.append(retry);
       }
@@ -3400,8 +3520,7 @@
     if (scope) scope.textContent = professional && professional.value ? professional.options[professional.selectedIndex].text : 'Disponibilidad por profesional y especialidad';
     if (state.availabilityLoading) {
       host.style.setProperty('--availability-days', 1);
-      var loading = node('div', 'smyl-inbox-availability-loading');
-      for (var loadingIndex = 0; loadingIndex < 4; loadingIndex += 1) loading.append(node('i'));
+      var loading = node('div', 'smyl-inbox-availability-loading'); loading.innerHTML = sk('cards', { count: 3, media: true, label: 'Consultando horarios disponibles' });
       host.append(loading); return;
     }
     if (state.availabilityMode === 'calendar' && window.SmylInboxCalendar && ['no_services', 'no_branches', 'no_professionals', 'query_error'].indexOf(state.availabilityEmptyReason) < 0) {
@@ -3761,15 +3880,19 @@
     if (next && window.innerWidth > 760 && state.view !== 'pipeline') openConversation(next.id);
   }
 
+  var listResetPending = false;
   async function loadList(reset) {
-    if (!chatEnabled() || state.loadingList) return;
-    var revision = routingRevision;
+    if (!chatEnabled()) return;
+    if (state.loadingList) { if (reset) listResetPending = true; return; }
+    var revision = routingRevision, epoch = accessEpoch;
     state.loadingList = true; state.listError = '';
     if (reset) { state.offset = 0; state.hasMore = false; }
     renderList();
     try {
-      var data = await request('GET', { action: 'list', filter: state.filter, channel: state.channel, q: state.search, limit: state.limit, offset: state.offset });
-      if (revision !== routingRevision) return;
+      var limit = state.view === 'pipeline' && state.pipelineToday ? 100 : state.limit;
+      var previousOffset = state.offset;
+      var data = await request('GET', { action: 'list', filter: state.filter, channel: state.channel, q: state.search, limit: limit, offset: previousOffset });
+      if (revision !== routingRevision || epoch !== accessEpoch || listResetPending) return;
       if (data.actor && data.actor.chat_access) setChatActor(data.actor);
       mergeConversations(data.conversations || [], reset);
       state.total = data.page && Number(data.page.total) || state.conversations.length;
@@ -3778,10 +3901,13 @@
       if (data.page && Number.isInteger(data.page.next_offset)) state.offset = data.page.next_offset;
       else if (!reset) state.offset += (data.conversations || []).length;
       else state.offset = (data.conversations || []).length;
+      if (state.hasMore && state.offset <= previousOffset) throw new Error('No se pudo cargar la siguiente página.');
     } catch (error) { state.listError = error.message; }
     finally {
       state.loadingList = false; renderList(); renderContext();
-      if (revision !== routingRevision && chatEnabled()) setTimeout(function () { loadList(true); }, 0);
+      var refresh = listResetPending || revision !== routingRevision || epoch !== accessEpoch;
+      listResetPending = false;
+      if (refresh && chatEnabled()) loadList(true);
       else if (reset) autoOpenFirst();
     }
   }
@@ -3835,13 +3961,29 @@
   async function openConversation(id) {
     var sequence = ++openSequence;
     if (!chatEnabled() && !await refreshAccess()) return;
+    if (sequence !== openSequence) return;
+    var page = document.getElementById('p-inbox'), fromBoard = state.view === 'pipeline';
+    if (fromBoard) {
+      state.contextOpen = false; state.contextReturnFocus = null;
+      syncContextAccessibility(); closeComposerTools(false); closeBranchMenu(false);
+      page.querySelector('[data-pipeline-status]').textContent = '';
+      setPipelineChat(id, true);
+      page.querySelector('[data-pipeline-cancel]').focus({preventScroll:true});
+    }
     var lookup, epoch = accessEpoch, revision = threadEpoch.get(id);
-    try { lookup = await request('GET', { action:'messages', conversation_id:id, limit:50 }); }
+    try {
+      lookup = await request('GET', { action:'messages', conversation_id:id, limit:50 });
+      if (lookup.conversation?.id !== id) throw new Error('No se pudo abrir esta conversación.');
+    }
     catch (error) {
-      if (sequence === openSequence) announceHandoff(error.code === 'conversation_scope_denied' ? 'Ya no tienes acceso a esta conversación.' : error.message);
+      var message = error.code === 'conversation_scope_denied' ? 'Ya no tienes acceso a esta conversación.' : error.message;
+      if (fromBoard && state.pipelineChatId === id && sequence === openSequence) {
+        closePipelineChat(true);
+        page.querySelector('[data-pipeline-status]').textContent = message;
+      } else if (sequence === openSequence) announceHandoff(message);
       return;
     }
-    if (sequence !== openSequence || !chatEnabled() || !lookup.conversation || lookup.conversation.id !== id) return;
+    if (sequence !== openSequence || !chatEnabled() || epoch !== accessEpoch || revision !== threadEpoch.get(id)) return;
     if (state.actor.chat_access === 'agent' && (!lookup.conversation.assignment || lookup.conversation.assignment.actor_id !== state.actor.id)) { forgetChat(id); return; }
     mergeConversations([lookup.conversation], false);
     if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(true);
@@ -3849,13 +3991,17 @@
     var previousId = state.selectedId; var previousInput = document.querySelector('[name="message"]');
     if (previousId && previousInput && previousInput.value.trim()) await persistEncryptedDraft(previousId, previousInput.value.trim()).catch(function () {});
     if (sequence !== openSequence || epoch !== accessEpoch || revision !== threadEpoch.get(id)) return;
-    state.selectedId = id; state.contextOpen = dockedContextPreferred(); state.contextReturnFocus = null; state.threadError = ''; state.replyTo = null; state.attachment = null;
-    document.getElementById('p-inbox').classList.add('show-thread');
-    render(); await restoreEncryptedDraft(id);
+    state.selectedId = id; state.contextOpen = dockedContextPreferred(); state.contextReturnFocus = null; state.threadError = '';
+    if (previousId !== id) { state.replyTo = null; state.attachment = null; }
+    if (fromBoard) setPipelineChat(id, false);
+    page.classList.add('show-thread');
+    render();
+    if (fromBoard) page.querySelector('[data-inbox-back]').focus({preventScroll:true});
+    if (previousId !== id) await restoreEncryptedDraft(id);
     if (sequence !== openSequence || state.selectedId !== id) return;
     var patientReady = prepareConversationPatient(id); loadScheduled(id); await loadThread(id, false, null, false, lookup); await patientReady;
     var conversation = selectedConversation();
-    if (conversation && conversation.id === id && conversation.unread_count) {
+    if (sequence === openSequence && page.classList.contains('activa') && conversation && conversation.id === id && conversation.unread_count) {
       try {
         await request('POST', {}, { action: 'read', conversation_id: id }, uuid());
         conversation.unread_count = 0; renderList(); refreshUnreadBadge();
@@ -4093,20 +4239,28 @@
     if (!mime || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       window.alert('Este navegador no puede grabar un formato compatible con WhatsApp. Puedes adjuntar una nota de voz OGG, MP4, AAC o MP3.'); return;
     }
+    var sequence = openSequence, epoch = accessEpoch;
     try {
       var stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+      if (sequence !== openSequence || epoch !== accessEpoch || state.selectedId !== conversation.id || state.recorder) {
+        stream.getTracks().forEach(function (track) { track.stop(); });
+        return;
+      }
       state.recorderStream = stream; state.recorderChunks = []; state.recordingCancelled = false;
       var recorder = new MediaRecorder(stream, { mimeType: mime }); state.recorder = recorder;
       recorder.ondataavailable = function (event) { if (event.data && event.data.size) state.recorderChunks.push(event.data); };
       recorder.onstop = function () {
         var cancelled = state.recordingCancelled; var chunks = state.recorderChunks.slice(); state.recorderChunks = []; releaseRecorder();
-        if (cancelled || !chunks.length) return;
+        if (cancelled || !chunks.length || sequence !== openSequence || state.selectedId !== conversation.id) return;
         var type = mime.split(';')[0]; var extension = type === 'audio/ogg' ? 'ogg' : type === 'audio/mp4' ? 'm4a' : type === 'audio/aac' ? 'aac' : 'mp3';
         var file = new File(chunks, 'nota-de-voz-' + Date.now() + '.' + extension, { type: type });
         chooseAttachment(file);
       };
       recorder.start(250); state.recorderStartedAt = Date.now(); renderRecordingButton(); state.recorderTimer = setInterval(renderRecordingButton, 1000);
-    } catch (error) { releaseRecorder(); window.alert(error && error.name === 'NotAllowedError' ? 'Permite el acceso al micrófono para grabar una nota de voz.' : 'No se pudo iniciar la grabación de audio.'); }
+    } catch (error) {
+      if (sequence !== openSequence || epoch !== accessEpoch) return;
+      releaseRecorder(); window.alert(error && error.name === 'NotAllowedError' ? 'Permite el acceso al micrófono para grabar una nota de voz.' : 'No se pudo iniciar la grabación de audio.');
+    }
   }
 
   function toggleVoiceRecording() {
@@ -4115,18 +4269,28 @@
 
   async function submitMessage(content, key, pending, extra) {
     var conversationId = state.selectedId;
+    var epoch = accessEpoch, revision = threadEpoch.get(conversationId);
     try {
       var payload = Object.assign({ action: 'send', type: 'text', conversation_id: conversationId, content: content }, extra || {});
       var data = await request('POST', {}, payload, key, 35000);
+      if (epoch !== accessEpoch || revision !== threadEpoch.get(conversationId)) return;
       pending.reconciled = true;
       if (typeof pending.onSent === 'function') { try { pending.onSent(); } catch (_) {} }
       mergeMessages(conversationId, data.message ? [data.message] : [], false);
-      var conversation = selectedConversation();
-      if (conversation) { conversation.paused = true; conversation.last_message = content; conversation.last_message_at = new Date().toISOString(); }
-      render(); requestAnimationFrame(scrollThreadBottom);
+      var conversation = state.conversations.find(function (item) { return item.id === conversationId; });
+      if (conversation) {
+        conversation.paused = true;
+        var sentAt = data.message?.created_at || pending.created_at;
+        if (!conversation.last_message_at || Date.parse(sentAt) >= Date.parse(conversation.last_message_at)) {
+          conversation.last_message = content; conversation.last_message_at = sentAt;
+        }
+      }
+      if (state.selectedId === conversationId) { render(); requestAnimationFrame(scrollThreadBottom); }
+      else renderList();
     } catch (error) {
       pending.status = error.code === 'send_unknown' || error.code === 'send_in_progress' ? 'unknown' : 'failed';
-      pending.error = error.message; renderMessages(false);
+      pending.error = error.message;
+      if (state.selectedId === conversationId) renderMessages(false);
     }
   }
 
@@ -4264,8 +4428,9 @@
       else if (state.view === 'pipeline' && (data.pipeline_changed || data.conversations?.length)) renderList();
       if (data.truncated && !deferVisualRefresh) await loadList(true);
       var latest = latestMessageTime();
-      if (state.selectedId && latest) await loadThread(state.selectedId, false, latest);
-      else if (state.selectedId && (data.conversations || []).some(function (item) { return item.id === state.selectedId; })) await loadThread(state.selectedId, false, null, true);
+      var threadVisible = state.view !== 'pipeline' || (!state.pipelineOpening && state.pipelineChatId === state.selectedId);
+      if (threadVisible && state.selectedId && latest) await loadThread(state.selectedId, false, latest);
+      else if (threadVisible && state.selectedId && (data.conversations || []).some(function (item) { return item.id === state.selectedId; })) await loadThread(state.selectedId, false, null, true);
       if ((data.received_conversation_ids || []).length) {
         announceHandoff('Te asignaron ' + (data.received_conversation_ids.length === 1 ? 'una conversación.' : data.received_conversation_ids.length + ' conversaciones.'), data.received_conversation_ids[0]);
       }
@@ -4351,7 +4516,7 @@
       list.append(node('p', 'smyl-quick-empty', 'No se pudo cargar toda la biblioteca.'), retry);
     } else if (!replies.length) {
       var empty = session.loading.size ? 'Cargando respuestas…' : search ? 'No hay coincidencias.' : 'Aún no hay respuestas guardadas.';
-      list.append(node('p', 'smyl-quick-empty', empty));
+      list.append(session.loading.size ? skNode('list', { rows: 4, plain: true, label: 'Cargando respuestas' }) : node('p', 'smyl-quick-empty', empty));
     }
   }
 
@@ -4467,7 +4632,7 @@
 
   function renderThreadSearchResults() {
     var wrap = document.querySelector('[data-search-results]'); if (!wrap) return; wrap.innerHTML = '';
-    if (state.threadSearchLoading) { wrap.append(node('p', 'smyl-inbox-productivity-state', 'Buscando en el historial…')); return; }
+    if (state.threadSearchLoading) { wrap.append(skNode('list', { rows: 3, plain: true, label: 'Buscando en el historial' })); return; }
     if (!state.threadSearchResults.length) { wrap.append(node('p', 'smyl-inbox-productivity-state', 'Escribe una palabra para localizar mensajes en todo el hilo.')); return; }
     state.threadSearchResults.forEach(function (item) {
       var card = node('article', 'smyl-inbox-search-result');
@@ -4494,7 +4659,7 @@
 
   function renderSharedItems() {
     var wrap = document.querySelector('[data-shared-content]'); if (!wrap) return; wrap.innerHTML = '';
-    if (state.sharedLoading) { wrap.append(node('p', 'smyl-inbox-productivity-state', 'Consultando biblioteca…')); return; }
+    if (state.sharedLoading) { wrap.append(skNode('media', { count: 6, label: 'Consultando biblioteca' })); return; }
     if (!state.sharedItems.length) { wrap.append(node('p', 'smyl-inbox-productivity-state', 'No hay imágenes, documentos o enlaces en este hilo.')); return; }
     state.sharedItems.forEach(function (item) {
       var card = node('article', 'smyl-inbox-shared-item'); var target = item.media_url || firstUrl(item.content); var label = item.media_type === 'image' ? 'Imagen' : item.media_type === 'document' ? 'Documento' : item.media_type === 'audio' ? 'Audio' : 'Enlace';
@@ -4619,7 +4784,12 @@
     page.querySelector('[data-inbox-search]').addEventListener('input', function (event) { searchConversations(event.target.value); });
     page.querySelector('[data-pipeline-search]').addEventListener('input', function (event) { page.querySelector('[data-inbox-search]').value = event.target.value; searchConversations(event.target.value); });
     page.querySelectorAll('[data-inbox-view]').forEach(function (button) { button.addEventListener('click', function () { setInboxView(button.dataset.inboxView); }); });
-    page.querySelector('[data-pipeline-more]').addEventListener('click', function () { loadList(false); });
+    page.querySelector('[data-pipeline-today]').addEventListener('click', function () {
+      if (!hasPermission('schedule.read')) return;
+      state.pipelineToday = !state.pipelineToday;
+      renderPipeline();
+    });
+    page.querySelector('[data-pipeline-more]').addEventListener('click', function () { loadList(!state.hasMore); });
     var savedView = null; try { savedView = window.sessionStorage.getItem('smyl_inbox_view'); } catch (_) {}
     setInboxView(savedView);
     page.querySelector('[data-inbox-channel]').addEventListener('change', function (event) { state.channel = event.target.value; loadList(true); });
@@ -4692,7 +4862,11 @@
     page.querySelector('[data-pilot-report-close]').addEventListener('click', function () { page.querySelector('[data-pilot-report-dialog]').close(); });
     page.querySelector('[data-pilot-report-back]').addEventListener('click', function () { page.querySelector('[data-pilot-report-dialog]').close(); openOperations(); });
     page.querySelector('[data-pilot-report-print]').addEventListener('click', printPilotReport);
-    page.querySelector('[data-inbox-back]').addEventListener('click', function () { page.classList.remove('show-thread'); closeContext(false); });
+    page.querySelector('[data-pipeline-cancel]').addEventListener('click', function () { closePipelineChat(true); });
+    page.querySelector('[data-inbox-back]').addEventListener('click', function () {
+      if (state.pipelineChatId) closePipelineChat(true);
+      else { page.classList.remove('show-thread'); closeContext(false); }
+    });
     initListResizer(page);
     page.querySelector('[data-inbox-context]').addEventListener('click', function (event) {
       if (state.contextOpen && contextDocked()) closeContext(false);
@@ -4730,9 +4904,12 @@
       if (state.filterPanelOpen && !event.target.closest('[data-inbox-filter-panel],[data-inbox-filter-more]')) { state.filterPanelOpen = false; renderFilterControls(); }
     });
     page.addEventListener('keydown', function (event) {
-      if (event.key !== 'Escape' || state.contextOpen) return;
+      if (event.key !== 'Escape' || event.defaultPrevented || state.contextOpen || document.querySelector('dialog[open]')) return;
+      if (state.branchMenu) { event.preventDefault(); closeBranchMenu(true); return; }
+      var toolsOpen = !page.querySelector('[data-compose-tools]').hidden;
       closeComposerTools(true);
       if (state.filterPanelOpen) { state.filterPanelOpen = false; renderFilterControls(); page.querySelector('[data-inbox-filter-more]').focus(); }
+      else if (state.pipelineChatId && !toolsOpen) { event.preventDefault(); closePipelineChat(true); }
     });
 
     var notice = node('p', 'smyl-chat-access-status', 'Comprobando acceso al chat…'); notice.dataset.chatAccessStatus = ''; notice.setAttribute('role', 'status'); page.prepend(notice);
@@ -4745,7 +4922,10 @@
           if (!state.conversations.length) { loadList(true); loadBranches(); loadStages(); loadOperations(true); }
           else { sync(); loadOperations(false); autoOpenFirst(); }
         });
-      } else { if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(true); closeContext(false); }
+      } else {
+        if (state.pipelineChatId) closePipelineChat(false);
+        if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(true); closeContext(false);
+      }
       return result;
     };
     renderOperationsChip(); renderNotifyButton();
