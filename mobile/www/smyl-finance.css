@@ -1160,6 +1160,12 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
 .finance-dialog .finance-actions .btn-secondary{min-height:36px;padding:0 14px;border:1px solid #cdd8e0;background:#fff;color:#10283b;font-weight:700;box-shadow:none}.finance-dialog .finance-actions .btn-secondary:hover{border-color:#91b8b4;background:#f1faf8}
 .billing-setup-body{display:grid;gap:16px}
 .billing-setup-steps li[data-wide=true]{grid-template-columns:36px 1fr}.billing-setup-steps li[data-wide=true] .billing-setup-actions{grid-column:2 / -1;justify-content:flex-start}
+.billing-setup-steps li[data-muted=true]{opacity:.62;background:#f7f9f8;border-style:dashed}
+.billing-file input[type=file]{padding:10px;border:1px dashed #b7c7c2;border-radius:12px;background:#f9fcfb;width:100%}
+.billing-privacy{margin:10px 0 0;color:#5f716b;font-size:12px;line-height:1.5}
+.billing-csd p a{color:#266d7a;font-weight:700}
+.billing-live-warn{padding:12px 14px;border-radius:12px;background:#fdecec;color:#8a1f1f;font-size:13px;line-height:1.5}
+.billing-live-list{margin:12px 0;padding-left:20px;display:grid;gap:4px;font-size:13px;color:#44544f}
 
 /* Recibo: acciones con estilo propio y atajo «Facturar» */
 .finance-success-actions button{min-height:42px;padding:0 18px;border:1px solid #cad8d1;border-radius:11px;background:#fff;color:#18344a;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
@@ -1197,3 +1203,8 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
 /* Timbrado en sandbox */
 .finance-sandbox-note{margin:14px 0 0;padding:10px 12px;border:1px solid #e7d9b8;border-radius:10px;background:#fbf6e8;font-size:13px;line-height:1.5;color:#5c4a1f}
 .finance-draft-actions{display:flex;flex-wrap:wrap;gap:8px}
+.finance-cancel-summary{display:grid;gap:8px;margin:12px 0 0}
+.finance-cancel-summary div{display:grid;gap:2px;padding:10px 12px;border:1px solid #d7e0dd;border-radius:10px;background:#f8fbf9}
+.finance-cancel-summary dt{font-size:12px;font-weight:700;color:#526465}
+.finance-cancel-summary dd{margin:0;font-size:14px;word-break:break-all}
+.btn.btn-danger{background:#a23b2e;border-color:#a23b2e;color:#fff}

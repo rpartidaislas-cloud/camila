@@ -443,6 +443,11 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 /* ── MI CUENTA ── */
 .cuenta-grid{display:grid;grid-template-columns:1fr 2fr;gap:16px}
 .cuenta-grid--una{grid-template-columns:minmax(0,640px)}
+.mc-enlaces{display:grid;gap:8px}
+.mc-enlace{display:flex;flex-direction:column;gap:2px;align-items:flex-start;text-align:left;width:100%;padding:12px 14px;background:var(--color-surface-raised,#fff);border:1px solid var(--color-border,#e3e8f0);border-radius:12px;cursor:pointer;font:inherit;color:inherit}
+.mc-enlace strong{font-size:14px}
+.mc-enlace span{font-size:12.5px;color:var(--texto2)}
+.mc-enlace:hover,.mc-enlace:focus-visible{border-color:var(--color-primary,#5B47E0);outline:none}
 .plan-card{background:linear-gradient(135deg,var(--violeta),var(--azul));border-radius:var(--radius-l);padding:24px;color:#fff}
 .plan-card h3{font-size:22px;font-weight:800;margin-bottom:4px}
 .plan-card p{font-size:13px;opacity:.8}
@@ -872,10 +877,10 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-service-catalog.js?v=7"></script>
 <link rel="stylesheet" href="smyl-inventory.css?v=13">
 <script defer src="smyl-inventory.js?v=19"></script>
-<link rel="stylesheet" href="smyl-finance.css?v=38">
+<link rel="stylesheet" href="smyl-finance.css?v=39">
 <script defer src="smyl-fiscal-rules.js?v=2"></script>
 <script defer src="smyl-fiscal-capture.js?v=1"></script>
-<script defer src="smyl-finance.js?v=51"></script>
+<script defer src="smyl-finance.js?v=52"></script>
 <link rel="stylesheet" href="smyl-reports.css?v=6">
 <script defer src="smyl-reports.js?v=4"></script>
 <link rel="stylesheet" href="smyl-readiness.css?v=2">
@@ -901,7 +906,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-clinic-setup.css?v=4">
 <script defer src="smyl-clinic-setup.js?v=6"></script>
 <link rel="stylesheet" href="smyl-settings-hub.css?v=5">
-<script defer src="smyl-settings-hub.js?v=9"></script>
+<script defer src="smyl-settings-hub.js?v=10"></script>
 <link rel="stylesheet" href="smyl-task-center.css?v=1">
 <script defer src="smyl-task-center.js?v=6"></script>
 <link rel="stylesheet" href="smyl-resilience.css?v=1">
@@ -912,7 +917,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-inbox-ficha.js?v=6"></script>
 <script defer src="smyl-inbox.js?v=62"></script>
 <link rel="stylesheet" href="smyl-navigation.css?v=11">
-<script defer src="smyl-navigation.js?v=26"></script>
+<script defer src="smyl-navigation.js?v=27"></script>
 <link rel="stylesheet" href="smyl-command-menu.css?v=3">
 <script defer src="smyl-command-menu.js?v=4"></script>
 <link rel="stylesheet" href="smyl-clinic.css?v=12">
@@ -1882,16 +1887,6 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           <div id="precios-lista"></div>
           <button class="btn btn-primary" id="btn-guardar-precios" style="margin-top:16px" onclick="guardarPrecios()">💾 Guardar precios</button>
         </div>
-        <div class="card">
-          <div class="card-title">Información del consultorio</div>
-          <div class="form-grid">
-            <div class="fg"><label>Nombre del doctor</label><input type="text" id="conf-doctor" placeholder="Dr. / Dra. ..."></div>
-            <div class="fg"><label>Nombre del consultorio</label><input type="text" id="conf-consultorio" placeholder="Ej. Clínica Estética Dental"></div>
-            <div class="fg full"><label>Ciudad</label><input type="text" id="conf-ciudad" placeholder="Ej. Guadalajara, Jalisco"></div>
-          </div>
-          <button class="btn btn-primary" id="btn-guardar-config" style="margin-top:12px" onclick="guardarConfig()">💾 Guardar información</button>
-        </div>
-
         <!-- Solo visible para el dueño -- ver cargarEquipo() -->
         <div class="card" id="equipo-card" style="display:none">
           <div class="card-title">👥 Mi Equipo</div>
@@ -2068,6 +2063,31 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
               <div class="card-title">Uso del plan</div>
               <div id="mc-uso-detalle" style="font-size:13px;color:var(--texto2);line-height:2.2"></div>
               <a class="btn btn-secondary" href="consumos.html" style="margin-top:12px;display:inline-flex;text-decoration:none">Ver consumo de MILA, IA, canales y almacenamiento</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ MI CONSULTORIO (solo dueño) ═══ -->
+      <div class="pantalla" id="p-mi-consultorio">
+        <div class="cuenta-grid cuenta-grid--una">
+          <div class="card">
+            <div class="card-title">Datos del consultorio</div>
+            <p style="font-size:12.5px;color:var(--texto2);line-height:1.5;margin:0 0 12px">Así se identifica tu consultorio en cotizaciones, mensajes y reportes. Tus datos personales están en Mi cuenta.</p>
+            <div class="form-grid">
+              <div class="fg"><label for="conf-consultorio">Nombre del consultorio</label><input type="text" id="conf-consultorio" placeholder="Ej. Clínica Estética Dental"></div>
+              <div class="fg"><label for="conf-doctor">Doctor o doctora titular</label><input type="text" id="conf-doctor" placeholder="Dr. / Dra. ..."></div>
+              <div class="fg full"><label for="conf-ciudad">Ciudad</label><input type="text" id="conf-ciudad" placeholder="Ej. Guadalajara, Jalisco"></div>
+            </div>
+            <button class="btn btn-primary" id="btn-guardar-config" style="margin-top:12px" onclick="guardarConfig()">💾 Guardar datos del consultorio</button>
+          </div>
+          <div class="card">
+            <div class="card-title">Lo demás de tu consultorio</div>
+            <div class="mc-enlaces">
+              <button type="button" class="mc-enlace" onclick="ir('clinica')"><strong>Sucursales y espacios</strong><span>Direcciones, consultorios, horarios y equipo.</span></button>
+              <button type="button" class="mc-enlace" onclick="ir('caja')"><strong>Datos fiscales y facturación</strong><span>RFC, régimen y conexión para facturar.</span></button>
+              <button type="button" class="mc-enlace" onclick="ir('sim-config')"><strong>Marca para tus pacientes</strong><span>Nombre público, color y mensaje de bienvenida.</span></button>
+              <button type="button" class="mc-enlace" onclick="ir('directorio')"><strong>Directorio profesional</strong><span>Perfil público para recibir solicitudes de cita.</span></button>
             </div>
           </div>
         </div>
@@ -3392,6 +3412,7 @@ var TITULOS = {
   precios: 'Servicios y tarifas',
   'mi-cuenta': 'Mi Cuenta',
   plan: 'Plan y suscripción',
+  'mi-consultorio': 'Mi consultorio',
   'sim-config': 'Configuración de Simulación',
 };
 
@@ -3438,13 +3459,14 @@ function mostrarPanelNoDisponible(p) {
   aviso.classList.add('activa');
 }
 
+var RUTAS_SOLO_DUENO = ['plan', 'mi-consultorio'];
 function ir(p) {
   // Una recarga (p. ej. al actualizarse la PWA) vuelve al mismo módulo en esta pestaña.
   try { sessionStorage.setItem('smyl_route', p); } catch (_) {}
   document.querySelectorAll('.pantalla').forEach(function(el) { el.classList.remove('activa'); });
   document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('activo'); });
-  // «Plan y suscripción» es solo del dueño: para el equipo la pantalla se trata como no disponible.
-  var panel = (p === 'plan' && miRolEquipo !== 'dueño') ? null : document.getElementById('p-' + p);
+  // Plan y datos del consultorio son solo del dueño: para el equipo la pantalla se trata como no disponible.
+  var panel = (RUTAS_SOLO_DUENO.indexOf(p) !== -1 && miRolEquipo !== 'dueño') ? null : document.getElementById('p-' + p);
   if (panel) panel.classList.add('activa');
   else mostrarPanelNoDisponible(p);
   document.querySelectorAll('.nav-item').forEach(function(el) {
@@ -3461,6 +3483,7 @@ function ir(p) {
     notificaciones: cargarNotificaciones,
     'mi-cuenta': renderMiCuenta,
     plan: renderPlan,
+    'mi-consultorio': cargarConfig,
     'nuevo-diseno': resetNuevoDiseno,
     'sim-config': cargarSimConfig,
     bienvenida: renderBienvenida,
@@ -3917,7 +3940,8 @@ function sincBnTab(pantalla) {
     precios:'bn-mas',
     'sim-config':'bn-mas',
     'mi-cuenta':'bn-mas',
-    plan:'bn-mas'
+    plan:'bn-mas',
+    'mi-consultorio':'bn-mas'
   };
   document.querySelectorAll('.bn-tab').forEach(function(t) { t.classList.remove('activo'); });
   if (map[pantalla]) {
