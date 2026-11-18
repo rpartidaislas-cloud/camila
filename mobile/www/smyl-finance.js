@@ -810,6 +810,23 @@
     document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')refreshNavBadge();});
     ['smyl:finance-updated','smyl:appointments-changed'].forEach(function(name){window.addEventListener(name,function(){refreshNavBadge(true);});});}
 
-  function init(){build();buildBillingHolder();upgradeFinanceActions();navigation();startNavBadge();var previous=window.ir;window.ir=function(route){var result=previous(route);refreshNavBadge();if(route==='caja'){Promise.resolve(load(false)).then(function(){if(state.loaded)refreshVisits();});}return result;};window.SmylFinance=Object.freeze({reload:function(){return reload();},ensureBilling:ensureBilling,accountSummary:accountSummary,contactContext:contactContext,account:function(patientId){if(window.ir('caja')===false)return;function ready(){if(state.loading)return setTimeout(ready,60);if(!state.loaded)return load(true).then(ready);openAccount(patientId);}ready();},forPatient:function(patientId){if(window.ir('caja')===false)return;function ready(){if(state.loading)return setTimeout(ready,60);if(!state.loaded)return load(true).then(ready);if(!state.canManage)return notify('Tu rol puede consultar Caja, pero no registrar cobros.','error');openGuidedCollection(patientId);}ready();},fromProposal:function(id){if(window.ir('caja')===false)return;function ready(){if(state.loading)return setTimeout(ready,60);if(!state.loaded)return load(true).then(ready);openProposalCharge(id);}ready();},recentMovements:recentMovements,appointmentConcepts:appointmentConcepts});}
+  function init(){
+    build();
+    var financeDialog=document.getElementById('finance-dialog');
+    if(financeDialog&&financeDialog.parentNode!==document.body)document.body.append(financeDialog);
+    buildBillingHolder();upgradeFinanceActions();navigation();startNavBadge();
+    var previous=window.ir;
+    window.ir=function(route){var result=previous(route);refreshNavBadge();if(route==='caja'){Promise.resolve(load(false)).then(function(){if(state.loaded)refreshVisits();});}return result;};
+    window.SmylFinance=Object.freeze({
+      reload:function(){return reload();},
+      ensureBilling:ensureBilling,
+      accountSummary:accountSummary,
+      contactContext:contactContext,
+      account:function(patientId){if(window.ir('caja')===false)return;function ready(){if(state.loading)return setTimeout(ready,60);if(!state.loaded)return load(true).then(ready);openAccount(patientId);}ready();},
+      collect:function(patientId,patient){return new Promise(function(resolve){var waited=0,retried=false;function ready(){if(state.loading&&waited++<200)return setTimeout(ready,60);if(!state.loaded&&!retried){retried=true;return Promise.resolve(load(true)).then(ready,ready);}if(!state.loaded)return resolve({ok:false,reason:'load'});if(!state.canManage)return resolve({ok:false,reason:'role'});if(patientId&&patient&&!by(state.patients,patientId)){var parts=String(patient.name||'').trim().split(/\s+/);state.patients.push({id:patientId,nombre:patient.nombre||parts.shift()||'Paciente',apellido:patient.apellido||parts.join(' ')});}openGuidedCollection(patientId||'');resolve({ok:true});}ready();});},
+      forPatient:function(patientId){if(window.ir('caja')===false)return;function ready(){if(state.loading)return setTimeout(ready,60);if(!state.loaded)return load(true).then(ready);if(!state.canManage)return notify('Tu rol puede consultar Finanzas, pero no registrar pagos.','error');openGuidedCollection(patientId);}ready();},
+      fromProposal:function(id){if(window.ir('caja')===false)return;function ready(){if(state.loading)return setTimeout(ready,60);if(!state.loaded)return load(true).then(ready);openProposalCharge(id);}ready();},
+      recentMovements:recentMovements,appointmentConcepts:appointmentConcepts});
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

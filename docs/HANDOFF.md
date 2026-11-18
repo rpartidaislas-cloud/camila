@@ -11551,3 +11551,9 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Versiones principales:** `smyl-finance.js?v=55`, `smyl-finance.css?v=40`, `smyl-navigation.js?v=28`, `smyl-professional-v3.js?v=10`, `smyl-settings-hub.js?v=11`, `smyl-proposals.js?v=18`, `smyl-consultorio.js?v=7`; los accesos secundarios actualizados usan `smyl-schedule.js?v=45`, `smyl-inbox.js?v=65`, `smyl-service-catalog.js?v=8` y `smyl-task-center.js?v=7`.
 - **Sincronización móvil:** `mobile/scripts/sync-web.js` incluye ahora Consultorio, Centro de alertas y Catálogo de servicios para evitar diferencias futuras entre web y `mobile/www/`.
 - **Verificación:** 346 pruebas relacionadas ejecutadas, 293 aprobadas, 53 omitidas por no tener Chromium en su propio entorno y 0 fallos. El QA visual dedicado (`tests/smyl-finance-information-architecture-v5-browser.cjs`) sí se ejecutó con navegador y aprobó escritorio, tableta y PWA.
+
+## 2026-11-18 — Integración conservada al publicar Finanzas v5
+
+- **Cobro desde el chat:** `SmylFinance.collect(patientId, patient)` abre el cobro guiado sobre la conversación con el paciente ya seleccionado, sin obligar a navegar a Finanzas. El diálogo se mantiene fuera de la pantalla oculta para funcionar también desde Mensajería.
+- **Alcance por sucursal:** se conserva `smyl-branch-scope.js` y la migración `20261118140000_smyl_branch_scope.sql` de la rama principal para que la nueva estructura financiera respete el consultorio seleccionado.
+- **Compatibilidad:** la ruta técnica continúa siendo `caja`, aunque toda la interfaz visible permanece como **Finanzas**.

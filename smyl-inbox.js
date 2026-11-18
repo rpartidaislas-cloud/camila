@@ -2572,9 +2572,25 @@
     var conversation = selectedConversation();
     var permission = type === 'quote' ? 'proposal.write' : 'finance.manage';
     if (!conversation || !hasPermission(permission) || !canOperate(conversation, permission)) return;
+    // Cobrar se hace aquí mismo: con el paciente de la conversación ya elegido (o con el buscador del cobro si aún no hay uno),
+    // sin lista intermedia de pacientes y sin salir del chat.
+    if (type === 'payment' && window.SmylFinance && typeof window.SmylFinance.collect === 'function') {
+      var ficha = state.clinical[conversation.id];
+      var linked = ficha && ficha.linked && ficha.patient || null;
+      window.SmylFinance.collect(linked && linked.id || '', linked).then(function (result) {
+        if (result && result.ok) return;
+        window.alert(result && result.reason === 'role' ? 'Tu rol puede consultar Cobros, pero no registrar cobros.' : 'No pudimos abrir el cobro. Revisa tu conexión e inténtalo de nuevo.');
+      });
+      return;
+    }
     if (window.SmylCareTasks && typeof window.SmylCareTasks.open === 'function') window.SmylCareTasks.open(type);
     else window.ir(type === 'quote' ? 'propuestas' : 'caja');
   }
+
+  // Tras cobrar, la «Cuenta del paciente» del chat se actualiza sola.
+  window.addEventListener('smyl:finance-updated', function () {
+    if (state.selectedId) loadAccountContext(state.selectedId);
+  });
 
   function permittedCareActions(conversation) {
     var actions = [];

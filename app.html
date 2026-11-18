@@ -108,6 +108,11 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 .main{flex:1;overflow-y:auto;min-width:0}
 
 /* ── SIDEBAR ── */
+.sb-branch{padding:10px 18px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-branch label{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:4px}
+.sb-branch select{width:100%;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:7px 8px;font:inherit;font-size:13px;cursor:pointer}
+.sb-branch select option{color:#1F2937;background:#fff}
+body.branch-scope-all .sb-branch select{border-color:#F59E0B;box-shadow:0 0 0 1px #F59E0B}
 .sb-logo{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:8px}
 .sb-logo-icon{display:flex;align-items:center;flex-shrink:0}
 .sb-logo h1{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.3px}
@@ -861,6 +866,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-schedule-grid.js?v=2"></script>
 <script defer src="smyl-schedule-slots.js?v=1"></script>
 <script defer src="smyl-schedule-board.js?v=1"></script>
+<script defer src="smyl-branch-scope.js?v=1"></script>
 <script defer src="smyl-schedule.js?v=45"></script>
 <script defer src="smyl-google-calendar.js?v=2"></script>
 <script defer src="smyl-schedule-message.js?v=2"></script>
@@ -2888,6 +2894,8 @@ async function continuarConUsuario(authUser) {
   // Sentry: sólo identificadores opacos (nunca correo ni nombre).
   if (window.SmylSentry) window.SmylSentry.setContext({ userId: authUser.id, tenantId: tenantId, role: miRolEquipo });
   renderSidebar();
+  // Varios consultorios: consultorio activo y selector en la barra lateral (solo aparece con 2 o más).
+  if (window.SmylBranchScope) window.SmylBranchScope.init();
   // Justo después de registrarse, se muestra la pantalla de bienvenida en
   // vez del Dashboard directo (antes venía de index.html con ?bienvenida=1;
   // ahora también puede pasar aquí mismo tras registrarse en este archivo)
