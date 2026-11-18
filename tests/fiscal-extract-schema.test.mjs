@@ -34,3 +34,35 @@ test('la llamada deja margen al razonamiento de Haiku 5.5 y registra el motivo d
   assert.match(edge, /console\.error\("\[fiscal-extract\] la API rechazó la solicitud:", resp\.status, message\?\.error\?\.type/);
   assert.doesNotMatch(edge, /console\.(log|error)\([^)]*file_base64/);
 });
+
+test('la constancia también llena el domicilio fiscal y el estatus en el padrón (opcionales)', () => {
+  const r = core.leerConstancia(JSON.stringify({ is_constancia: true, legible: true, rfc: 'GUAJ620917DE7', legal_name: 'Jose Guevara', tax_postal_code: '44920', fiscal_regimes: ['Sueldos y Salarios'], email: '', sat_status: 'Suspendido', address: { street: 'calle  hidalgo', exterior_number: '123', interior_number: '', neighborhood: 'Centro', locality: '', municipality: 'Guadalajara', state: 'Jalisco' } }));
+  assert.deepEqual(r.address, { street: 'CALLE HIDALGO', exterior_number: '123', interior_number: '', neighborhood: 'CENTRO', locality: '', municipality: 'GUADALAJARA', state: 'JALISCO' });
+  assert.equal(r.sat_status, 'SUSPENDIDO');
+  assert.match(r.warnings.join(' '), /Estatus en el padrón: SUSPENDIDO/);
+  // Sin domicilio en la respuesta no se inventa nada.
+  const vacio = core.leerConstancia(JSON.stringify({ is_constancia: true, legible: true, rfc: 'GUAJ620917DE7', legal_name: 'J G', tax_postal_code: '44920', fiscal_regimes: [], email: '' }));
+  assert.ok(Object.values(vacio.address).every((v) => v === ''));
+  assert.doesNotMatch(core.FISCAL_SYSTEM, /domicilio completo/);
+  assert.match(core.FISCAL_SYSTEM, /No copies CURP/);
+});
+
+test('cada lectura se contabiliza en Créditos de IA con sus tokens y costo estimado', () => {
+  assert.match(edge, /p_resource: "ai_credits", p_quantity_units: 1/);
+  assert.match(edge, /p_source_type: "fiscal_extract"/);
+  assert.match(edge, /token_usage: message\.usage \|\| null/);
+  assert.match(edge, /estimated_cost_usd: costoEstimadoUsd\(FISCAL_EXTRACT_MODEL, usage\)/);
+  assert.equal(core.costoEstimadoUsd('claude-haiku-5-5', { input_tokens: 7653, output_tokens: 314 }), 0.000922);
+  assert.match(fs.readFileSync(path.join(root, 'smyl-consumption.js'), 'utf8'), /fiscal_extract:'Facturación · Lectura de constancia'/);
+});
+
+test('el formulario guarda el domicilio cuando existe la columna y lo obligatorio si aún no se aplica la migración', () => {
+  const capture = fs.readFileSync(path.join(root, 'smyl-fiscal-capture.js'), 'utf8');
+  const migration = fs.readFileSync(path.join(root, 'supabase/migrations/20261118170000_smyl_patient_fiscal_address.sql'), 'utf8');
+  for (const col of ['street', 'exterior_number', 'interior_number', 'neighborhood', 'locality', 'municipality', 'state', 'sat_status']) {
+    assert.match(migration, new RegExp(`add column if not exists ${col} text not null default ''`));
+    assert.ok(capture.includes(`'${col}'`) || capture.includes(`['${col}'`), col);
+  }
+  assert.match(capture, /if \(res && res\.error && missingColumn\(res\.error\)\) \{ partial = true;/);
+  assert.match(capture, /Domicilio fiscal <small>Opcional/);
+});

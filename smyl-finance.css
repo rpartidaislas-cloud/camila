@@ -1323,3 +1323,9 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
   body>.finance-dialog :where(button,.btn,input:not([type="checkbox"]):not([type="radio"]),select,textarea,[role="button"]){min-height:44px}
   body>.finance-dialog :where(button,.btn,[role="button"]){min-width:44px}
 }
+/* Domicilio fiscal (opcional) en el formulario de datos fiscales */
+.fiscal-capture-address{border:1px solid #d5e2e0;border-radius:12px;padding:0 14px;background:#fbfdfd}
+.fiscal-capture-address>summary{display:flex;align-items:baseline;gap:8px;min-height:44px;cursor:pointer;font-size:14px;font-weight:700;color:#21403d;list-style-position:inside}
+.fiscal-capture-address>summary small{font-size:12px;font-weight:500;color:#5b6f6d}
+.fiscal-capture-address[open]{padding-bottom:14px}
+.fiscal-capture-address .fiscal-capture-grid{margin-top:4px}

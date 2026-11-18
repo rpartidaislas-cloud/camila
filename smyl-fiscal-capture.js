@@ -8,6 +8,19 @@
 
   function esc(value) { return String(value === null || value === undefined ? '' : value).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function rules() { return window.SmylFiscalRules; }
+  // Domicilio fiscal y estatus en el padrón: opcionales (el CFDI 4.0 solo exige el código postal).
+  var ADDRESS = [['street', 'Calle', 120, 'wide'], ['exterior_number', 'Núm. exterior', 20, ''], ['interior_number', 'Núm. interior', 20, ''], ['neighborhood', 'Colonia', 120, ''], ['locality', 'Localidad', 120, ''], ['municipality', 'Municipio o alcaldía', 120, ''], ['state', 'Estado', 120, '']];
+  function addressHtml(current) {
+    var filled = ADDRESS.some(function (f) { return current[f[0]]; }) || current.sat_status;
+    return '<details class="fiscal-capture-address"' + (filled ? ' open' : '') + '><summary>Domicilio fiscal <small>Opcional · se llena con la constancia</small></summary><div class="fiscal-capture-grid">' +
+      ADDRESS.map(function (f) { return '<label' + (f[3] ? ' class="' + f[3] + '"' : '') + '>' + f[1] + '<input name="' + f[0] + '" maxlength="' + f[2] + '" autocomplete="off" value="' + esc(current[f[0]] || '') + '"></label>'; }).join('') +
+      '<label>Estatus en el padrón<input name="sat_status" maxlength="40" autocomplete="off" placeholder="ACTIVO" value="' + esc(current.sat_status || '') + '"></label></div></details>';
+  }
+  function optionalValues(form) {
+    var out = {}; ADDRESS.concat([['sat_status']]).forEach(function (f) { out[f[0]] = String(form.elements[f[0]].value || '').replace(/\s+/g, ' ').trim().toUpperCase().slice(0, f[2] || 40); }); return out;
+  }
+  // Antes de aplicar la migración del domicilio, la tabla no tiene esas columnas: se guarda lo obligatorio.
+  function missingColumn(error) { var text = String(error && (error.message || error.details) || ''); return (error && error.code === 'PGRST204') || /column .* does not exist|schema cache/i.test(text); }
 
   function readBase64(file) {
     return new Promise(function (resolve, reject) {
@@ -52,7 +65,7 @@
       '<label class="wide">Régimen fiscal<select name="fiscal_regime"></select><small data-err="fiscal_regime"></small></label>' +
       '<label class="wide">Uso de la factura<select name="cfdi_use"></select><small data-err="cfdi_use"></small></label>' +
       '<label class="wide">Correo para enviar la factura<input name="email" type="email" maxlength="254" autocomplete="off" value="' + esc(current.email || '') + '"><small data-err="email"></small></label>' +
-      '</div><ul class="fiscal-capture-notes" data-fiscal-notes></ul>' +
+      '</div>' + addressHtml(current) + '<ul class="fiscal-capture-notes" data-fiscal-notes></ul>' +
       '<p class="fiscal-capture-help">El SAT valida RFC, nombre, régimen y código postal contra su padrón al timbrar. Si un dato no coincide con la constancia, la factura se rechaza.</p>' +
       '<footer><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button type="submit" class="btn btn-primary" data-fiscal-save>Guardar datos fiscales</button></footer></form>';
     document.body.append(d);
@@ -104,6 +117,10 @@
         if (data.legal_name) form.elements.legal_name.value = data.legal_name;
         if (data.tax_postal_code) form.elements.tax_postal_code.value = data.tax_postal_code;
         if (data.email && !form.elements.email.value) form.elements.email.value = data.email;
+        var address = data.address || {}, gotAddress = false;
+        ADDRESS.forEach(function (f) { if (address[f[0]]) { form.elements[f[0]].value = address[f[0]]; gotAddress = true; } });
+        if (data.sat_status) { form.elements.sat_status.value = data.sat_status; gotAddress = true; }
+        if (gotAddress) d.querySelector('.fiscal-capture-address').open = true;
         refreshMenus({ regimen: data.fiscal_regime || '', uso: data.suggested_cfdi_use || 'G03' });
         ['rfc', 'legal_name', 'tax_postal_code', 'fiscal_regime', 'cfdi_use'].forEach(function (k) { touched[k] = true; });
         say('Datos leídos de la constancia. Revisa cada campo contra el documento antes de guardar.' + ((data.warnings || []).length ? ' ' + data.warnings.join(' ') : ''), 'ok');
@@ -118,11 +135,13 @@
       if (!result.ok) { var first = Object.keys(result.errors)[0]; if (form.elements[first]) form.elements[first].focus(); say('Revisa los campos marcados.', 'error'); return; }
       busy = true; form.querySelector('[data-fiscal-save]').disabled = true; say('Guardando…', '');
       var row = { tenant_id: options.tenant, patient_id: options.patientId, legal_name: result.clean.legal_name, rfc: result.clean.rfc, fiscal_regime: result.clean.fiscal_regime, tax_postal_code: result.clean.tax_postal_code, cfdi_use: result.clean.cfdi_use, email: result.clean.email, updated_by: options.actor, updated_at: new Date().toISOString() };
+      var full = Object.assign({}, row, optionalValues(form)), partial = false;
       try {
-        var res = await window.sb.from('smyl_patient_fiscal_profiles').upsert(row);
+        var res = await window.sb.from('smyl_patient_fiscal_profiles').upsert(full);
+        if (res && res.error && missingColumn(res.error)) { partial = true; res = await window.sb.from('smyl_patient_fiscal_profiles').upsert(row); }
         if (res && res.error) throw res.error;
         d.close(); d.remove();
-        if (typeof options.onSaved === 'function') await options.onSaved(row);
+        if (typeof options.onSaved === 'function') await options.onSaved(partial ? row : full, { addressSaved: !partial });
       } catch (e) {
         busy = false; form.querySelector('[data-fiscal-save]').disabled = false;
         say(/42501|row-level|permiso/i.test(String(e && e.message)) ? 'Tu rol no permite guardar datos fiscales.' : String(e && e.message || 'No se pudo guardar.'), 'error');
