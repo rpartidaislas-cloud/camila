@@ -984,35 +984,61 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
 .finance-team-cash article small,.finance-team-cash article span{color:#71838c;font-size:12px}
 .finance-team-cash article button{min-height:40px}
 
-.finance-receipt-dialog{width:min(920px,calc(100vw - 32px));padding:0!important;overflow:hidden}
-.finance-receipt-detail{display:grid;max-height:min(86vh,760px);background:#fff;color:#17343d}
-.finance-receipt-detail>header{display:grid;grid-template-columns:minmax(0,1fr) auto 38px;align-items:start;gap:12px;padding:18px 20px;border-bottom:1px solid #e3eaee;background:#f6faf8}
-.finance-receipt-detail>header>div>span,.finance-receipt-services>div>span,.finance-receipt-payment>span{color:#2b7b6f;font-size:12px;font-weight:850;letter-spacing:.09em}
-.finance-receipt-detail>header h2{margin:3px 0 2px;font-size:22px}
-.finance-receipt-detail>header p{margin:0;color:#667a83;font-size:13px}
-.finance-receipt-detail>header>button{width:38px;height:38px;padding:0;border-radius:10px;font-size:21px}
-.finance-receipt-detail-body{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(260px,.65fr);gap:18px;padding:18px 20px;overflow:auto}
+.finance-receipt-dialog{width:min(820px,calc(100vw - 32px));padding:0!important;overflow:hidden;border-radius:18px;box-shadow:0 30px 90px rgba(10,28,48,.28)}
+.finance-receipt-detail{display:grid;grid-template-rows:auto minmax(0,1fr) auto;max-height:min(90dvh,820px);background:#fff;color:#17343d}
+.finance-receipt-head{display:grid;grid-template-columns:minmax(0,1fr) 42px;align-items:start;gap:18px;padding:22px 24px;border-bottom:1px solid #e1e8ec;background:linear-gradient(135deg,#f4faf8 0%,#f8fbfc 100%)}
+.finance-receipt-head>div>span,.finance-receipt-services>div>span,.finance-receipt-total>div>span{color:#28786d;font-size:12px;font-weight:850;letter-spacing:.105em}
+.finance-receipt-head>div>div{display:flex;align-items:center;gap:10px;margin-top:4px}
+.finance-receipt-head h2{margin:0;color:#153242;font-size:24px;letter-spacing:-.03em}
+.finance-receipt-head p{margin:4px 0 0;color:#647883;font-size:13px}
+.finance-receipt-head>button{display:grid;place-items:center;width:42px;height:42px;min-height:42px;padding:0;border:1px solid #d4dfe5;border-radius:12px;background:#fff;color:#405965;font-size:21px;line-height:1}
+.finance-receipt-paid{display:inline-flex!important;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:#e6f5ef;color:#17684e!important;font-size:12px!important;font-weight:800;letter-spacing:0!important}
+.finance-receipt-paid i{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#2d8e71;color:#fff;font-style:normal;font-size:12px}
+.finance-receipt-detail-body{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(240px,.65fr);gap:16px;padding:20px 24px;overflow:auto;background:#fff}
+.finance-receipt-total{grid-column:1/-1;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:18px 20px;border:1px solid #cfe3dc;border-radius:14px;background:#f2f9f6}
+.finance-receipt-total>div{display:grid;gap:4px}
+.finance-receipt-total strong{color:#102f3c;font-size:27px;line-height:1.08;font-variant-numeric:tabular-nums;letter-spacing:-.025em}
+.finance-receipt-total strong em{color:#6d8583;font-size:12px;font-style:normal;font-weight:800;letter-spacing:.05em}
+.finance-receipt-total p{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;margin:0;color:#637980;font-size:12px;text-align:right}
+.finance-receipt-total p strong{color:#27454e;font-size:13px;letter-spacing:0}
+.finance-receipt-total p i{width:4px;height:4px;margin:0 4px;border-radius:50%;background:#91aaa7}
 .finance-receipt-services{min-width:0}
 .finance-receipt-services>div:first-child{margin-bottom:10px}
-.finance-receipt-services h3{margin:3px 0 0;font-size:17px}
-.finance-receipt-services>article{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;min-height:64px;padding:11px 12px;border:1px solid #e0e8ed;border-radius:11px;background:#fff}
+.finance-receipt-services h3{margin:3px 0 0;color:#183444;font-size:17px}
+.finance-receipt-services>article{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;min-height:68px;padding:13px 14px;border:1px solid #dde7eb;border-radius:12px;background:#fff}
 .finance-receipt-services>article+article{margin-top:8px}
 .finance-receipt-services article div{display:grid;gap:3px}
+.finance-receipt-services article strong{font-size:14px}
 .finance-receipt-services article small,.finance-receipt-services article span{color:#70818b;font-size:12px}
 .finance-receipt-services article>div:last-child{text-align:right}
 .finance-receipt-services article>div:last-child strong{font-variant-numeric:tabular-nums}
 .finance-receipt-no-services{padding:16px;border:1px dashed #b9d3cc;border-radius:11px;background:#f6faf8}
 .finance-receipt-no-services p{margin:4px 0 0;color:#678078;font-size:12px}
-.finance-receipt-payment{padding:14px;border:1px solid #dbe5e9;border-radius:12px;background:#f9fbfc}
-.finance-receipt-payment dl{display:grid;gap:0;margin:9px 0 0}
-.finance-receipt-payment dl>div{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-top:1px solid #e4eaee}
-.finance-receipt-payment dl>div:first-child{border-top:0}
-.finance-receipt-payment dt{color:#6f808a;font-size:12px}
-.finance-receipt-payment dd{margin:0;color:#17343d;font-size:12px;font-weight:800;text-align:right}
-.finance-receipt-detail>footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 20px;border-top:1px solid #e3eaee;background:#fff}
-.finance-receipt-detail>footer>div{display:flex;gap:8px}
-.finance-receipt-detail>footer button{min-height:42px}
-.finance-receipt-detail>small{padding:0 20px 14px;color:#778992;font-size:12px}
+.finance-receipt-meta{align-self:start;margin:0;padding:4px 16px;border:1px solid #dce6ea;border-radius:12px;background:#fafcfd}
+.finance-receipt-meta>div{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-top:1px solid #e5ebee}
+.finance-receipt-meta>div:first-child{border-top:0}
+.finance-receipt-meta dt{color:#6c7f89;font-size:12px}
+.finance-receipt-meta dd{margin:0;color:#183743;font-size:12px;font-weight:800;text-align:right;word-break:break-word}
+.finance-receipt-meta>div[data-tone=danger] dd{color:#a3483e}
+.finance-receipt-footer{display:grid;gap:12px;padding:16px 24px 14px;border-top:1px solid #e1e8ec;background:#fbfcfd}
+.finance-receipt-fiscal{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:12px;padding:13px 14px;border:1px solid #e2e7e8;border-radius:12px;background:#fff}
+.finance-receipt-fiscal>span{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#fff1d8;color:#996000;font-size:15px;font-weight:900}
+.finance-receipt-fiscal>div{display:grid;gap:2px;min-width:0}
+.finance-receipt-fiscal small{color:#6d7f88;font-size:12px;font-weight:800;letter-spacing:.08em}
+.finance-receipt-fiscal strong{color:#203945;font-size:13px}
+.finance-receipt-fiscal p{margin:0;color:#6c7d86;font-size:12px;line-height:1.4}
+.finance-receipt-fiscal[data-tone=paid]{border-color:#cfe6dd;background:#f6fbf9}
+.finance-receipt-fiscal[data-tone=paid]>span{background:#dff1e9;color:#197054}
+.finance-receipt-fiscal[data-tone=danger]{border-color:#efd5d1;background:#fff9f8}
+.finance-receipt-fiscal[data-tone=danger]>span{background:#fae6e2;color:#a74438}
+.finance-receipt-fiscal button{min-width:142px;min-height:42px}
+.finance-receipt-footer-actions{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.finance-receipt-footer-actions>div{display:flex;gap:8px}
+.finance-receipt-footer-actions button{display:inline-flex;align-items:center;gap:7px;min-height:42px;padding-inline:14px}
+.finance-receipt-footer-actions button span{color:#24756c;font-size:16px;font-weight:800}
+.finance-receipt-footer-actions>p{margin:0;color:#1c735b;font-size:12px;font-weight:700;text-align:right}
+.finance-receipt-footer-actions>p[data-tone=error]{color:#a84438}
+.finance-receipt-footer>small{color:#778992;font-size:12px}
 
 @media screen and (max-width:980px){
   .finance-fiscal-receipt-list>article{grid-template-columns:78px minmax(170px,1fr) minmax(145px,.5fr)}
@@ -1038,18 +1064,32 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
   .finance-team-cash>header{align-items:flex-start}
   .finance-team-cash>article{grid-template-columns:minmax(0,1fr) auto;gap:10px 12px}
   .finance-team-cash>article button{grid-column:1/-1;width:100%;min-height:44px}
-  .finance-receipt-dialog{width:100%;max-width:none;margin:0;align-self:end;border-radius:18px 18px 0 0}
-  .finance-receipt-detail{max-height:92dvh}
-  .finance-receipt-detail>header{grid-template-columns:minmax(0,1fr) 38px;padding:15px}
-  .finance-receipt-detail>header>.finance-badge{grid-column:1/2;grid-row:2;justify-self:start}
-  .finance-receipt-detail>header>button{grid-column:2;grid-row:1}
-  .finance-receipt-detail-body{grid-template-columns:1fr;gap:14px;padding:14px 15px}
+  .finance-receipt-dialog{width:100%;max-width:none;height:100dvh;max-height:none;margin:0;border-radius:0}
+  .finance-receipt-detail{height:100dvh;max-height:none}
+  .finance-receipt-head{padding:16px 16px 14px}
+  .finance-receipt-head>div>div{align-items:flex-start;flex-direction:column;gap:7px}
+  .finance-receipt-head h2{font-size:22px}
+  .finance-receipt-detail-body{grid-template-columns:1fr;gap:14px;padding:14px 16px}
+  .finance-receipt-total{display:grid;gap:12px;padding:15px 16px}
+  .finance-receipt-total strong{font-size:24px}
+  .finance-receipt-total p{justify-content:flex-start;text-align:left}
   .finance-receipt-services>article{min-height:68px}
-  .finance-receipt-detail>footer{display:grid;gap:9px;padding:12px 15px}
-  .finance-receipt-detail>footer>div{display:grid;grid-template-columns:1fr 1fr;width:100%}
-  .finance-receipt-detail>footer>div:last-child{grid-row:1}
-  .finance-receipt-detail>footer button{width:100%;min-height:46px}
-  .finance-receipt-detail>small{padding:0 15px 13px}
+  .finance-receipt-footer{gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+  .finance-receipt-fiscal{grid-template-columns:32px minmax(0,1fr);padding:11px 12px}
+  .finance-receipt-fiscal>span{width:32px;height:32px}
+  .finance-receipt-fiscal button{grid-column:1/-1;width:100%;min-height:46px}
+  .finance-receipt-footer-actions{display:grid;gap:8px}
+  .finance-receipt-footer-actions>div{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .finance-receipt-footer-actions button{justify-content:center;width:100%;min-height:46px}
+  .finance-receipt-footer-actions>p{text-align:left}
+}
+
+@media screen and (max-width:380px){
+  .finance-receipt-head{padding:13px 14px 12px}
+  .finance-receipt-detail-body{padding:12px 14px}
+  .finance-receipt-footer{padding-inline:14px}
+  .finance-receipt-total p i{display:none}
+  .finance-receipt-total p span:nth-of-type(2){flex-basis:100%;margin-top:3px}
 }
 
 .finance-visit-material{margin-top:4px}
@@ -1108,7 +1148,7 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
   #p-caja .finance-fiscal-readiness .btn-secondary{flex:1 1 100%}
 }
 @media(max-width:700px){#p-caja .finance-issuer-card{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}#p-caja .finance-issuer-card .finance-badge{justify-self:start}}
-@media(max-width:700px){#p-caja .finance-fiscal-receipt-filters{display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow:visible}#p-caja .finance-fiscal-receipt-filters button{justify-content:center;min-height:40px}}
+@media(max-width:700px){#p-caja .finance-fiscal-receipt-filters{display:flex;gap:6px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}#p-caja .finance-fiscal-receipt-filters::-webkit-scrollbar{display:none}#p-caja .finance-fiscal-receipt-filters button{flex:0 0 auto;justify-content:center;min-width:112px;min-height:44px;scroll-snap-align:start}}
 
 /* Cobros · paso 3: cobro directo en la fila, lista de cuentas más corta y aviso con el siguiente pendiente. */
 #p-caja .finance-metrics article small .finance-metric-cut{display:inline-flex;align-items:center;min-height:26px;padding:0 10px;border:1px solid #e4b66f;border-radius:8px;background:#fff7e8;color:#8a4b00;font-weight:700;text-decoration:none}

@@ -52,9 +52,9 @@
       '<div class="connections-training-bar" role="status" aria-live="polite" aria-atomic="true"><div><span class="connections-training-state" data-training-state>Borrador sin guardar</span><small data-training-version>Sin versión publicada</small></div><div class="connections-training-score"><span data-training-score>0%</span><small>capacitación completa</small></div></div>' +
       '<form data-lana-training-form><fieldset><legend>Identidad y voz</legend><div class="connections-context-grid"><label>Nombre del asistente<input name="assistant_name" maxlength="50" value="SMYL Asistente"></label><label>Tono<select name="tone"><option value="profesional">Profesional y claro</option><option value="cercano">Cercano y empático</option><option value="breve">Breve y directo</option></select></label><label class="full">Mensaje de bienvenida<textarea name="welcome_message" maxlength="350" rows="2" placeholder="Hola, soy el asistente de la clínica. Puedo orientarte y ayudarte con el siguiente paso."></textarea></label></div></fieldset>' +
       '<fieldset><legend>La clínica</legend><div class="connections-context-grid"><label class="full">Descripción y enfoque<textarea name="clinic_description" maxlength="1600" rows="3" placeholder="Especialidad, enfoque, tipo de pacientes y qué distingue a la clínica."></textarea></label><label class="full">Especialidades confirmadas<textarea name="specialties" maxlength="1200" rows="2" placeholder="Odontología general, ortodoncia, implantología…"></textarea></label><label>Ubicación principal<input name="location" maxlength="500" placeholder="Dirección o zona de atención"></label><label>Horarios<input name="hours" maxlength="500" placeholder="Lun–Vie 9:00–18:00"></label><label>Idiomas<input name="languages" maxlength="300" placeholder="Español, inglés"></label><label>Canales de contacto<input name="contact_channels" maxlength="700" placeholder="Teléfono y medios autorizados"></label><label class="full">Acceso, estacionamiento y accesibilidad<textarea name="access_info" maxlength="900" rows="2"></textarea></label><label class="full">Política para menores y acompañantes<textarea name="minor_policy" maxlength="900" rows="2"></textarea></label></div></fieldset>' +
-      '<fieldset><legend>Sucursales y operación</legend><div class="connections-context-grid"><label class="full">Sucursales, direcciones y cobertura<textarea name="branches" maxlength="2400" rows="4" placeholder="Una sucursal por bloque: dirección, horario, especialidades y profesionales disponibles."></textarea></label>' +
-      '<div class="full connections-branch-tools" data-branch-tools hidden><div class="connections-branch-tools-row"><button type="button" class="btn btn-secondary" data-import-branches>Traer mis sucursales</button><label class="connections-inline-check"><input type="checkbox" data-ask-branch> Que el asistente pregunte la sucursal antes de agendar</label></div><p class="connections-branch-sync" data-branch-sync aria-live="polite"></p><p class="connections-fieldset-help">Tu clínica tiene varias sucursales. «Traer mis sucursales» llena este campo con sus direcciones, horarios y dentistas de Mi clínica. Cuando el paciente diga cuál prefiere, la conversación se asigna sola a esa sucursal.</p></div><label class="full">Reglas de agenda<textarea name="scheduling_rules" maxlength="1600" rows="3" placeholder="Anticipación, duración, confirmación, reprogramación y horarios especiales."></textarea></label><label class="full">Promociones autorizadas y vigencia<textarea name="approved_promotions" maxlength="1200" rows="2" placeholder="Sólo promociones aprobadas; indica fecha de vencimiento."></textarea></label></div></fieldset>' +
-      '<fieldset><legend>Servicios confirmados</legend><p class="connections-fieldset-help">Incluye solo servicios reales. Si agregas precio, debe ser información confirmada o indicar que requiere valoración.</p><div class="connections-repeat-list" data-service-list></div><button type="button" class="connections-add-row" data-add-service>+ Agregar servicio</button><button type="button" class="btn btn-secondary connections-import-btn" data-import-services>Traer mis servicios</button><p class="connections-fieldset-help connections-import-note" data-service-sync aria-live="polite"></p></fieldset>' +
+      '<fieldset><legend>Sucursales y operación</legend><div class="connections-context-grid"><label class="full" hidden>Sucursales, direcciones y cobertura<textarea name="branches" maxlength="2400" rows="4" tabindex="-1"></textarea></label><div class="full connections-auto" data-auto-branches></div>' +
+      '<div class="full connections-branch-tools" data-branch-tools hidden><div class="connections-branch-tools-row"><label class="connections-inline-check"><input type="checkbox" data-ask-branch> Que el asistente pregunte la sucursal antes de agendar</label></div><p class="connections-fieldset-help">Cuando el paciente diga cuál sucursal prefiere, la conversación se asigna sola a esa sucursal.</p></div><label class="full">Reglas de agenda<textarea name="scheduling_rules" maxlength="1600" rows="3" placeholder="Anticipación para agendar, confirmación, reprogramación y horarios especiales. La duración de cada servicio ya se toma de tu catálogo."></textarea></label><label class="full">Promociones autorizadas y vigencia<textarea name="approved_promotions" maxlength="1200" rows="2" placeholder="Sólo promociones aprobadas; indica fecha de vencimiento."></textarea></label></div></fieldset>' +
+      '<fieldset><legend>Servicios confirmados</legend><div class="connections-auto" data-auto-services></div><div class="connections-repeat-list" data-service-list hidden></div></fieldset>' +
       '<fieldset><legend>Preguntas frecuentes</legend><p class="connections-fieldset-help">El asistente respetará estas respuestas y no inventará una política distinta.</p><div class="connections-repeat-list" data-faq-list></div><button type="button" class="connections-add-row" data-add-faq>+ Agregar pregunta</button></fieldset>' +
       '<fieldset><legend>Flujo de atención</legend><div class="connections-context-grid"><label class="full">Objetivo de la conversación<textarea name="attention_objective" maxlength="900" rows="2"></textarea></label><label class="full">Política de citas<textarea name="appointment_policy" maxlength="1200" rows="3" placeholder="Qué puede explicar, qué datos pedir y cuándo debe confirmar una persona."></textarea></label><label class="full">Cancelación e inasistencia<textarea name="cancellation_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Política de precios<textarea name="pricing_policy" maxlength="1200" rows="3" placeholder="Qué precios están confirmados y cuándo se requiere valoración. El asistente nunca inventa importes."></textarea></label><label class="full">Pagos, anticipos y financiamiento<textarea name="payment_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Facturación CFDI<textarea name="invoice_policy" maxlength="1200" rows="2" placeholder="Plazo, canal y datos que solicita el equipo; nunca recopilar contraseñas ni documentos completos."></textarea></label><label class="full">Seguros y reembolsos<textarea name="insurance_policy" maxlength="900" rows="2"></textarea></label><label class="full">Seguimientos y recordatorios<textarea name="followup_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Datos administrativos que puede solicitar<textarea name="intake_questions" maxlength="1600" rows="3" placeholder="Ej. nombre, tratamiento de interés, horario preferido y sucursal. Una o dos preguntas por mensaje."></textarea></label><label class="full">Protocolo administrativo de urgencias<textarea name="emergency_policy" maxlength="1200" rows="3" placeholder="Señales que exigen atención inmediata y texto aprobado por la clínica; nunca diagnosticar ni prescribir."></textarea></label><label class="full">Cuándo pasar la conversación a una persona<textarea name="handoff_rules" maxlength="1600" rows="3" placeholder="Ej. inconformidad, solicitud de hablar con el dentista o excepción administrativa. Dolor, urgencias y dudas clínicas ya escalan siempre."></textarea></label><label class="full">Expectativa de respuesta humana<textarea name="human_response_policy" maxlength="900" rows="2" placeholder="Indica tiempos sólo si la clínica realmente los mide."></textarea></label><label>Autonomía<select name="autonomy_level"><option value="1">1 · Solo bienvenida</option><option value="2">2 · Información y FAQ</option><option value="3">3 · Atención asistida</option><option value="4">4 · Gestión administrativa confirmada</option></select></label></div></fieldset>' +
       '<fieldset><legend>Memoria administrativa</legend><div class="connections-context-grid"><label class="full">Datos que puede recordar<textarea name="allowed_memory" maxlength="1200" rows="2"></textarea></label><label class="full">Datos que nunca debe recordar ni repetir<textarea name="prohibited_memory" maxlength="1200" rows="2"></textarea></label></div></fieldset>' +
@@ -623,7 +623,7 @@
       if (perBranch.length) note = (base ? 'Precio de referencia ' + base + '. ' : '') + 'Por sucursal: ' + perBranch.join('; ') + '. Sujeto a valoración.';
       else if (base) note = 'Desde ' + base + ' (precio de referencia). Sujeto a valoración.';
       else note = 'Requiere valoración.';
-      rows.push({ id: makeId ? makeId() : 'service-' + rows.length, name: name, description: parts.join(' ').slice(0, 700), pricing_note: note.slice(0, 350) });
+      rows.push({ id: makeId ? makeId(service) : 'service-' + rows.length, name: name, description: parts.join(' ').slice(0, 700), pricing_note: note.slice(0, 350) });
     });
     return { rows: rows, skipped: skipped, over: over };
   }
@@ -638,45 +638,112 @@
       hours: list.map(function (b) { var h = sched(b); return h ? b.name + ': ' + h : ''; }).filter(Boolean).join(' · ')
     };
   }
-  async function importServicesFromClinic() {
-    var form = document.querySelector('[data-lana-training-form]'), note = document.querySelector('[data-service-sync]'), button = document.querySelector('[data-import-services]');
-    if (!form) return;
-    var say = function (text, tone) { if (note) { note.textContent = text; note.dataset.tone = tone || ''; } };
-    if (button) button.disabled = true;
-    say('Buscando tus servicios…');
-    try {
-      var tenant = window.tenantId;
-      var res = await window.sb.from('smyl_services').select('id,name,category,duration_minutes,reference_price').eq('tenant_id', tenant).eq('active', true).order('name');
-      if (res && res.error) throw res.error;
-      var prices = [];
-      try { var pr = await window.sb.from('smyl_service_branch_prices').select('service_id,branch_id,price').eq('tenant_id', tenant); prices = pr && pr.data || []; } catch (_) { prices = []; }
-      if (!state.clinicBranches) await loadClinicBranches();
-      var result = importServiceRows(res && res.data || [], prices, state.clinicBranches || [], collectRepeatRows('[data-service-list]', 'service'), function () { return rowId('service'); });
-      var list = form.querySelector('[data-service-list]');
-      result.rows.forEach(function (item) { list.append(repeatRow('service', item)); });
-      if (result.rows.length) markTrainingDirty();
-      say(result.rows.length
-        ? 'Se agregaron ' + result.rows.length + ' servicio' + (result.rows.length === 1 ? '' : 's') + ' de Mi clínica' + (result.skipped ? ' (' + result.skipped + ' ya estaban)' : '') + (result.over ? '; ' + result.over + ' no caben (máximo ' + SERVICE_IMPORT_LIMIT + ')' : '') + '. Revisa los precios antes de publicar.'
-        : (res && res.data && res.data.length ? 'Tus servicios ya estaban todos en la lista.' : 'No hay servicios activos en Mi clínica.'), result.rows.length ? 'ok' : '');
-    } catch (_) { say('No se pudieron traer los servicios. Intenta de nuevo.', 'error'); }
-    if (button) button.disabled = false;
+  // ── Sucursales, ubicación, horarios y servicios: SIEMPRE salen de Mi clínica y de Servicios y tarifas. ──
+  // No se escriben aquí: los campos ocultos del formulario solo cargan el documento que se guarda y se publica.
+  // El asistente usa la versión publicada, así que lo nuevo le llega al publicar (el paso final avisa qué cambió).
+  var AUTO_FACTS_TTL_MS = 60000;
+  async function fetchClinicServices() {
+    var tenant = window.tenantId;
+    var res = await window.sb.from('smyl_services').select('id,name,category,duration_minutes,reference_price').eq('tenant_id', tenant).eq('active', true).order('name');
+    if (res && res.error) throw res.error;
+    var prices = [];
+    try { var pr = await window.sb.from('smyl_service_branch_prices').select('service_id,branch_id,price').eq('tenant_id', tenant); prices = pr && pr.data || []; } catch (_) { prices = []; }
+    return { services: res && res.data || [], prices: prices };
   }
-  async function importLocationHours() {
-    var form = document.querySelector('[data-lana-training-form]'), note = document.querySelector('[data-hours-sync]');
-    if (!form) return;
-    if (!state.clinicBranches) await loadClinicBranches();
-    var data = clinicLocationHours(state.clinicBranches, state.clinicHours);
-    if (!data.location && !data.hours) { if (note) note.textContent = 'No hay sucursales ni horarios cargados en Mi clínica.'; return; }
+  function composeAutoFacts(branches, hours, team, services, prices) {
+    var place = clinicLocationHours(branches, hours);
+    var made = importServiceRows(services, prices, branches, [], function (service) { return 'service-' + String(service.id).replace(/-/g, '').slice(0, 20); });
+    return { branches: branchesDescription(branches, hours, team), location: place.location.slice(0, 500), hours: place.hours.slice(0, 500), services: made.rows, over: made.over };
+  }
+  function autoSnapshot(rows) { return JSON.stringify((rows || []).map(function (row) { return [row.id, row.name, row.description, row.pricing_note]; })); }
+  function applyAutoFacts(facts) {
+    var form = document.querySelector('[data-lana-training-form]');
+    if (!form || !facts) return;
     var changed = false;
-    [['location', data.location], ['hours', data.hours]].forEach(function (pair) {
-      var field = form.elements[pair[0]];
-      if (!field || !pair[1]) return;
-      if (String(field.value || '').trim() && String(field.value).trim() !== pair[1] && !window.confirm('Esto reemplaza lo que escribiste en «' + (pair[0] === 'location' ? 'Ubicación' : 'Horarios') + '». ¿Continuar?')) return;
-      field.value = pair[1].slice(0, field.maxLength > 0 ? field.maxLength : pair[1].length);
-      field.dispatchEvent(new Event('input', { bubbles: true }));
-      changed = true;
+    [['branches', facts.branches], ['location', facts.location], ['hours', facts.hours]].forEach(function (pair) {
+      var field = form.elements[pair[0]]; if (!field) return;
+      var next = String(pair[1] || '');
+      if (field.value !== next) { field.value = next; changed = true; }
     });
-    if (note) note.textContent = changed ? 'Ubicación y horarios traídos de Mi clínica.' : '';
+    if (autoSnapshot(collectRepeatRows('[data-service-list]', 'service')) !== autoSnapshot(facts.services)) { renderRepeatRows('[data-service-list]', 'service', facts.services); changed = true; }
+    if (changed && canAutosaveTraining()) {
+      state.dirty = true; state.editSeq = (state.editSeq || 0) + 1; state.validation = null; renderValidation(null);
+      scheduleTrainingAutosave(); renderTrainingMeta();
+      contextStatus('Se actualizaron sucursales o servicios desde Mi clínica. El borrador se guarda solo; publica para que el asistente los use.', '');
+    }
+    renderAutoCards(); updateTrainingSteps();
+  }
+  async function refreshAutoFacts(force) {
+    if (!window.sb || !window.tenantId) return null;
+    if (!force && state.autoFacts && Date.now() - state.autoFacts.at < AUTO_FACTS_TTL_MS) return state.autoFacts;
+    if (state.autoFactsLoading) return state.autoFactsLoading;
+    state.autoFactsLoading = (async function () {
+      try {
+        await loadClinicBranches();
+        if (!state.clinicLoadOk) throw new Error('clinic');
+        var data = await fetchClinicServices();
+        var facts = composeAutoFacts(state.clinicBranches || [], state.clinicHours || [], state.clinicTeam || [], data.services, data.prices);
+        facts.at = Date.now(); state.autoFacts = facts; state.autoFactsError = false;
+        applyAutoFacts(facts);
+        return facts;
+      } catch (_) {
+        // Si Mi clínica no responde se conserva lo que ya tenía el borrador: nunca se borra por un fallo de red.
+        state.autoFactsError = true; renderAutoCards(); return state.autoFacts || null;
+      } finally { state.autoFactsLoading = null; }
+    })();
+    return state.autoFactsLoading;
+  }
+  function goEdit(route) { if (typeof window.ir === 'function') window.ir(route); }
+  function autoHead(title, route, label) {
+    var head = node('div', 'connections-auto-head'), copy = node('div');
+    copy.append(node('strong', '', title), node('small', '', 'Se toma de ' + (route === 'clinica' ? 'Mi clínica' : 'Servicios y tarifas') + '. No hay que escribirlo aquí.'));
+    var edit = node('button', 'btn btn-secondary', label); edit.type = 'button'; edit.addEventListener('click', function () { goEdit(route); });
+    head.append(copy, edit); return head;
+  }
+  // ¿Qué cambió en sucursales o servicios desde la última versión publicada? Se avisa con un botón para ir a publicar.
+  function autoDriftNote(facts, scope) {
+    if (!facts) return '';
+    var published = state.published;
+    if (!published) return 'Todavía no publicas una versión: esto se incluirá cuando publiques.';
+    if (scope === 'branches') {
+      var moved = diffGet(published, 'operations.branches') !== String(facts.branches || '').trim() || diffGet(published, 'clinic.location') !== String(facts.location || '').trim() || diffGet(published, 'clinic.hours') !== String(facts.hours || '').trim();
+      return moved ? 'Tus sucursales u horarios cambiaron desde la última publicación.' : '';
+    }
+    var change = diffList(published.services, facts.services, 'name', ['description', 'pricing_note']);
+    return change.added.length || change.edited.length || change.removed.length ? 'Tus servicios o precios cambiaron desde la última publicación.' : '';
+  }
+  function renderAutoCards() {
+    var facts = state.autoFacts, form = document.querySelector('[data-lana-training-form]');
+    var hostB = document.querySelector('[data-auto-branches]'), hostS = document.querySelector('[data-auto-services]'), hostL = document.querySelector('[data-auto-location]');
+    function driftRow(scope) {
+      var drift = autoDriftNote(facts, scope);
+      if (!drift) return null;
+      var row = node('div', 'connections-auto-drift'); row.setAttribute('role', 'status');
+      row.append(node('span', '', drift));
+      if (state.published) { var go = node('button', 'btn btn-primary', 'Ir a publicar'); go.type = 'button'; go.addEventListener('click', function () { goTrainingStep(6); }); row.append(go); }
+      return row;
+    }
+    if (hostB) {
+      hostB.innerHTML = ''; hostB.append(autoHead('Sucursales y horarios', 'clinica', 'Editar en Mi clínica'));
+      var lines = String(facts && facts.branches || form && form.elements.branches && form.elements.branches.value || '').split('\n').filter(Boolean);
+      if (!lines.length) hostB.append(node('p', 'connections-auto-empty', state.autoFactsError ? 'No se pudo consultar Mi clínica. Se conserva lo último guardado.' : 'Todavía no hay sucursales activas en Mi clínica. Sin ellas, el asistente no podrá dar direcciones ni horarios.'));
+      else { var list = node('ul', 'connections-auto-list'); lines.forEach(function (line) { var parts = line.split(' · '); var item = node('li'); item.append(node('b', '', parts.shift()), node('span', '', parts.join(' · '))); list.append(item); }); hostB.append(list); }
+      var noteB = driftRow('branches'); if (noteB) hostB.append(noteB);
+    }
+    if (hostS) {
+      hostS.innerHTML = ''; hostS.append(autoHead('Servicios y precios', 'precios', 'Editar servicios y tarifas'));
+      var rows = facts ? facts.services : collectRepeatRows('[data-service-list]', 'service');
+      if (!rows.length) hostS.append(node('p', 'connections-auto-empty', state.autoFactsError ? 'No se pudo consultar Servicios y tarifas. Se conserva lo último guardado.' : 'Todavía no hay servicios activos. El asistente no podrá hablar de tratamientos ni precios hasta que los agregues.'));
+      else {
+        var servicesList = node('ul', 'connections-auto-list');
+        rows.forEach(function (row) { var item = node('li'); item.append(node('b', '', row.name), node('span', '', [row.description, row.pricing_note].filter(Boolean).join(' '))); servicesList.append(item); });
+        hostS.append(servicesList);
+        if (facts && facts.over) hostS.append(node('p', 'connections-auto-empty', 'Hay ' + facts.over + ' servicio' + (facts.over === 1 ? '' : 's') + ' más que no caben (máximo ' + SERVICE_IMPORT_LIMIT + ').'));
+      }
+      hostS.append(node('p', 'connections-fieldset-help', 'Si un servicio no tiene precio, el asistente dice que requiere valoración. Para que mencione un servicio, debe estar activo en Servicios y tarifas.'));
+      var noteS = driftRow('services'); if (noteS) hostS.append(noteS);
+    }
+    if (hostL) hostL.textContent = 'Ubicación y horarios: ' + (facts && (facts.location || facts.hours) ? 'se toman de tus sucursales en Mi clínica.' : 'agrega una sucursal en Mi clínica y se llenan solos.');
   }
 
   // Qué cambió desde la última versión publicada.
@@ -743,12 +810,15 @@
   }
 
   async function loadClinicBranches() {
+    state.clinicLoadOk = false;
     try {
       var tenant = window.tenantId;
       var branches = await window.sb.from('smyl_branches').select('id,name,address_line,city,state,phone,is_default').eq('tenant_id', tenant).eq('active', true).order('is_default', { ascending: false }).order('name');
       var hours = await window.sb.from('smyl_clinic_hours').select('branch_id,weekday,starts_at,ends_at,active').eq('tenant_id', tenant).eq('active', true);
+      if ((branches && branches.error) || (hours && hours.error)) throw new Error('clinic');
       state.clinicBranches = branches && branches.data || [];
       state.clinicHours = hours && hours.data || [];
+      state.clinicLoadOk = true;
       state.clinicTeam = [];
       try {
         var links = await window.sb.from('smyl_professional_branches').select('professional_id,branch_id').eq('tenant_id', tenant);
@@ -758,7 +828,7 @@
           return { branch_id: row.branch_id, name: byId[row.professional_id].display_name, specialty: byId[row.professional_id].specialty || '' };
         }).sort(function (a, b) { return a.name < b.name ? -1 : 1; });
       } catch (_) { state.clinicTeam = []; }
-    } catch (_) { state.clinicBranches = []; state.clinicHours = []; state.clinicTeam = []; }
+    } catch (_) { state.clinicBranches = state.clinicBranches || []; state.clinicHours = state.clinicHours || []; state.clinicTeam = state.clinicTeam || []; state.clinicLoadOk = false; }
     syncBranchTools();
     if (state.trainStep === 6) updateTrainingSteps();
   }
@@ -768,25 +838,8 @@
     tools.hidden = !(state.clinicBranches && state.clinicBranches.length > 1);
     var check = tools.querySelector('[data-ask-branch]');
     if (check && form.elements.intake_questions) check.checked = String(form.elements.intake_questions.value || '').indexOf(ASK_BRANCH_LINE) !== -1;
-    var note = tools.querySelector('[data-branch-sync]');
-    if (note && form.elements.branches) {
-      var status = branchesSyncState(form.elements.branches.value, branchesDescription(state.clinicBranches, state.clinicHours, state.clinicTeam));
-      note.dataset.state = status;
-      note.textContent = status === 'ok' ? 'Sucursales al día: el asistente tiene las direcciones, horarios y dentistas actuales de Mi clínica.'
-        : status === 'stale' ? 'Tus sucursales, horarios o dentistas ya no coinciden con este texto. Pulsa «Traer mis sucursales» y publica para que el asistente use lo actual.'
-        : status === 'empty' ? 'El asistente aún no conoce tus sucursales. Pulsa «Traer mis sucursales».' : '';
-    }
   }
   function bindBranchTools(root) {
-    root.addEventListener('click', function (event) {
-      var button = event.target.closest && event.target.closest('[data-import-branches]');
-      if (!button) return;
-      var form = document.querySelector('[data-lana-training-form]'), field = form && form.elements.branches;
-      if (!field) return;
-      if (String(field.value || '').trim() && !window.confirm('Esto reemplaza lo que escribiste en «Sucursales, direcciones y cobertura». ¿Continuar?')) return;
-      field.value = branchesDescription(state.clinicBranches, state.clinicHours, state.clinicTeam);
-      field.dispatchEvent(new Event('input', { bubbles: true }));
-    });
     root.addEventListener('change', function (event) {
       var check = event.target.closest && event.target.closest('[data-ask-branch]');
       if (!check) return;
@@ -907,8 +960,6 @@
   function multiBranchNotes(form) {
     if (!(state.clinicBranches && state.clinicBranches.length > 1)) return '';
     var notes = [];
-    var status = branchesSyncState(form.elements.branches && form.elements.branches.value, branchesDescription(state.clinicBranches, state.clinicHours, state.clinicTeam));
-    if (status === 'stale' || status === 'empty') notes.push(['Sucursales', status === 'empty' ? 'El asistente aún no conoce tus sucursales: usa «Traer mis sucursales» en el paso 3.' : 'El texto de sucursales no coincide con Mi clínica: usa «Traer mis sucursales» en el paso 3.']);
     if (!(form.elements.intake_questions && String(form.elements.intake_questions.value || '').indexOf(ASK_BRANCH_LINE) !== -1)) notes.push(['Pregunta de sucursal', 'El asistente no preguntará a qué sucursal quiere ir el paciente. Actívalo en el paso 3.']);
     return notes.map(function (note) { return '<li data-state="pending"><span aria-hidden="true">!</span><div><strong>' + note[0] + '</strong><small>' + note[1] + '</small></div></li>'; }).join('');
   }
@@ -977,6 +1028,7 @@
     var info = TRAIN_STEPS[current - 1], intro = document.querySelector('[data-train-intro]');
     if (intro) intro.innerHTML = '<span>Paso ' + current + ' de ' + TRAIN_STEPS.length + '</span><strong>' + info.title + '</strong><p>' + info.hint + '</p>';
     syncStepScenarios(form, current);
+    if ((current === 2 || current === 3 || current === 6) && state.trainingLoaded && !state.autoFactsLoading && (!state.autoFacts || Date.now() - state.autoFacts.at > AUTO_FACTS_TTL_MS)) refreshAutoFacts(false);
     var testPanel = document.querySelector('[data-step-test]');
     if (testPanel && current === 6 && !state.stepTestShown) { state.stepTestShown = true; if (!(state.previewHistory || []).length) testPanel.open = true; }
     var review = form.querySelector('[data-train-review]');
@@ -998,13 +1050,9 @@
       var legend = fieldset.querySelector('legend'), key = legend && TRAIN_FIELD_STEP[legend.textContent.trim()];
       if (key) fieldset.dataset.trainStep = String(key);
     });
+    ['location', 'hours'].forEach(function (name) { var label = form.elements[name] && form.elements[name].closest('label'); if (label) label.hidden = true; });
     var hoursField = form.elements.hours && form.elements.hours.closest('label');
-    if (hoursField) {
-      var tools = node('div', 'full connections-branch-tools');
-      var importHours = node('button', 'btn btn-secondary', 'Traer ubicación y horarios'); importHours.type = 'button'; importHours.dataset.importHours = 'true';
-      var hoursNote = node('p', 'connections-fieldset-help connections-import-note'); hoursNote.dataset.hoursSync = 'true'; hoursNote.setAttribute('aria-live', 'polite');
-      tools.append(importHours, hoursNote); hoursField.after(tools);
-    }
+    if (hoursField) { var autoNote = node('p', 'full connections-fieldset-help'); autoNote.dataset.autoLocation = 'true'; hoursField.after(autoNote); }
     var preview = document.querySelector('.connections-preview');
     if (preview && !document.querySelector('[data-step-test]')) {
       var test = node('details', 'connections-step-test'); test.dataset.stepTest = 'true';
@@ -1027,8 +1075,6 @@
     var next = node('button', 'btn btn-primary', 'Continuar →'); next.type = 'button'; next.dataset.trainNext = 'true'; next.dataset.trainNav = 'true';
     if (actions) { actions.prepend(back); actions.querySelector('[data-save-training]').after(next); }
     root.addEventListener('click', function (event) {
-      if (event.target.closest && event.target.closest('[data-import-services]')) { importServicesFromClinic(); return; }
-      if (event.target.closest && event.target.closest('[data-import-hours]')) { importLocationHours(); return; }
       var go = event.target.closest && event.target.closest('[data-train-go]');
       if (go) { goTrainingStep(go.dataset.trainGo); return; }
       if (event.target.closest && event.target.closest('[data-train-back]')) goTrainingStep((state.trainStep || 1) - 1);
@@ -1158,7 +1204,7 @@
     if (!state.status || !state.status.connected || (state.trainingLoaded && !force)) return;
     if (state.dirty) { contextStatus('Conservamos tus cambios locales sin guardar.', ''); return; }
     contextStatus('Cargando capacitación…', '');
-    try { fillTraining(await trainingRequest('GET', 'training')); state.trainingLoaded = true; await loadTrainingVersions(); }
+    try { fillTraining(await trainingRequest('GET', 'training')); state.trainingLoaded = true; await loadTrainingVersions(); refreshAutoFacts(true); }
     catch (error) { contextStatus(error.message, 'error'); }
   }
 
@@ -1218,6 +1264,7 @@
   }
 
   async function runValidation() {
+    await refreshAutoFacts(true);
     await saveTrainingDraft(false);
     contextStatus('Validando estructura y límites clínicos…', '');
     var data = await trainingRequest('POST', 'validate', { expected_revision: state.draftRevision });
@@ -1336,6 +1383,7 @@
     if (!message) { previewStatus('Escribe un mensaje de paciente para iniciar la prueba.', 'error'); input.focus(); return; }
     button.disabled = true;
     try {
+      if (mode === 'draft') await refreshAutoFacts(true);
       if (mode === 'draft' && (state.dirty || !state.draftRevision)) await saveTrainingDraft(false);
       var historyForRequest = state.previewHistory.slice(-8).map(function (turn) { return { role: turn.role, content: turn.content }; });
       state.previewHistory.push({ role: 'user', content: message });
@@ -1493,7 +1541,6 @@
     var trainingForm = page.querySelector('[data-lana-training-form]');
     trainingForm.addEventListener('submit', saveTraining);
     trainingForm.addEventListener('input', markTrainingDirty);
-    page.querySelector('[data-add-service]').addEventListener('click', function () { page.querySelector('[data-service-list]').append(repeatRow('service', { id: rowId('service'), name: '', description: '', pricing_note: '' })); markTrainingDirty(); });
     page.querySelector('[data-add-faq]').addEventListener('click', function () { page.querySelector('[data-faq-list]').append(repeatRow('faq', { id: rowId('faq'), question: '', answer: '' })); markTrainingDirty(); });
     page.querySelector('[data-validate-training]').addEventListener('click', validateTraining);
     page.querySelector('[data-publish-training]').addEventListener('click', publishTraining);

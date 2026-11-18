@@ -444,8 +444,18 @@
       var events=rows.length?await checked(sb.from('smyl_proposal_events').select('proposal_id,proposal_revision,event_type,channel,note,occurred_at,created_at').eq('tenant_id',tenant).in('proposal_id',rows.map(function(row){return row.id;})).order('occurred_at',{ascending:false}).order('created_at',{ascending:false})):[];
       var latestEvents=new Map();(events||[]).forEach(function(event){var key=event.proposal_id+':'+event.proposal_revision;if(!latestEvents.has(key))latestEvents.set(key,event);});
       quoteFollowups=new Map();try{if(rows.length){var follows=await checked(sb.from('smyl_proposal_followups').select('proposal_id,proposal_revision,followed_at').eq('tenant_id',tenant).in('proposal_id',rows.map(function(row){return row.id;})));(follows||[]).forEach(function(f){var k=f.proposal_id+':'+f.proposal_revision;if(!quoteFollowups.has(k))quoteFollowups.set(k,[]);quoteFollowups.get(k).push(f);});}}catch(_){quoteFollowups=new Map();}
-      quoteChats={};try{var ids=Array.from(new Set(rows.map(function(row){return row.patient_id;}).filter(Boolean)));if(ids.length){var handoffs=await checked(sb.from('camila_lana_handoffs').select('patient_id,lana_conversation_id,lana_channel,updated_at').eq('tenant_id',tenant).in('patient_id',ids).order('updated_at',{ascending:false}));(handoffs||[]).forEach(function(h){if(!quoteChats[h.patient_id])quoteChats[h.patient_id]={conversation:h.lana_conversation_id,channel:h.lana_channel};});}}catch(_){quoteChats={};}
+      var currentChats={};
+      if(window.SmylInbox?.canAccess?.()){
+        try{
+          var ids=Array.from(new Set(rows.map(function(row){return row.patient_id;}).filter(Boolean)));
+          if(ids.length){
+            var handoffs=await checked(sb.from('camila_lana_handoffs').select('patient_id,lana_conversation_id,lana_channel,updated_at').eq('tenant_id',tenant).in('patient_id',ids).order('updated_at',{ascending:false}));
+            (handoffs||[]).forEach(function(h){if(!currentChats[h.patient_id])currentChats[h.patient_id]={conversation:h.lana_conversation_id,channel:h.lana_channel};});
+          }
+        }catch(_){}
+      }
       if(token!==sequence||tenant!==tenantId)return;list.replaceChildren();
+      quoteChats=window.SmylInbox?.canAccess?.()?currentChats:{};
       var dashboard=proposalDashboard(rows,latestEvents,list,access);root.insertBefore(dashboard.metrics,launch);root.insertBefore(dashboard.banner,launch);root.insertBefore(dashboard.toolbar,list);dashboard.render();
       if(!rows.length)list.replaceChildren(notice('Todavía no hay presentaciones guardadas. Abre un paciente y completa su recorrido para preparar la primera.'));
       root.append(n('p','proposal-privacy','Indicadores calculados sobre las últimas 100 propuestas visibles. La tasa usa únicamente decisiones registradas; no interpreta silencios como rechazo ni este seguimiento como firma o consentimiento.'));
@@ -464,6 +474,13 @@
     // its editor is already open. Keep the same dirty/busy guard on that path.
     var previous=window.ir;window.ir=function(route){if(ctx&&!leave())return false;var result=previous(route);if(result===false)return false;if(route==='propuestas')loadList();else sequence++;return result;};
     var logout=window.cerrarSesion;window.cerrarSesion=function(){if(leave())logout();};
+    function resetChatLinks(){
+      quoteChats={};
+      var page=document.getElementById('p-propuestas');
+      if(page?.classList.contains('activa')&&page.querySelector('.proposal-list')&&!ctx)loadList();
+    }
+    window.addEventListener('smyl:inbox-access',resetChatLinks);
+    window.addEventListener('smyl:chat-routing-changed',resetChatLinks);
     setTimeout(refreshQuoteBadge,7000);setInterval(refreshQuoteBadge,600000);
     window.SmylProposals={forPatient:function(patientId){if(window.ir('propuestas')!==false)open(null,patientId);},openSaved:function(id){if(window.ir('propuestas')!==false)open(id);}};
   }

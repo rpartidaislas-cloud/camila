@@ -96,15 +96,15 @@ test('listo para atender pacientes: cada requisito con su pista', () => {
   assert.match(dirty[4].hint, /cambios sin publicar/);
 });
 
-test('interfaz: botones, nota y paso 6 conectados', () => {
-  assert.match(js, /data-import-services>Traer mis servicios/);
-  assert.match(js, /'Traer ubicación y horarios'/);
-  assert.match(js, /importServicesFromClinic\(\); return;/);
-  assert.match(js, /importLocationHours\(\); return;/);
+test('interfaz: sucursales y servicios salen de Mi clínica y el paso 6 sigue conectado', () => {
+  assert.match(js, /data-auto-branches/);
+  assert.match(js, /data-auto-services/);
+  assert.doesNotMatch(js, /Traer mis servicios|Traer ubicación y horarios|importServicesFromClinic|importLocationHours/);
   assert.match(js, /\(current === 6 \? readinessMarkup\(form\) : ''\)/);
   assert.match(js, /Listo para atender pacientes/);
-  assert.match(css, /\.connections-import-btn/);
+  assert.match(css, /\.connections-auto-list/);
 });
+
 
 test('prueba en el mismo paso: laboratorio junto al formulario y escenarios por paso', () => {
   const lib2 = new Function(js.match(/var DEFAULT_SCENARIOS = \[[\s\S]*?\r?\n  \];/)[0] + js.match(/var STEP_SCENARIOS = \{[\s\S]*?\r?\n  \};/)[0] + js.match(/function stepScenarios\(step, faqQuestions\) \{[\s\S]*?\r?\n  \}\r?\n/)[0] + ';return stepScenarios;')();

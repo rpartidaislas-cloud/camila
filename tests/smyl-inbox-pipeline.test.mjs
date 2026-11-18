@@ -48,10 +48,10 @@ test('el tablero es horizontal en escritorio y desliza por columna en celular', 
 test('web, móvil y PWA publican el pipeline', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(app, /smyl-inbox\.js\?v=66/);
-  assert.match(app, /smyl-inbox\.css\?v=55/);
-  assert.match(worker, /smyl-inbox\.js\?v=66/);
-  assert.match(worker, /smyl-inbox\.css\?v=55/);
+  assert.match(app, /smyl-inbox\.js\?v=67/);
+  assert.match(app, /smyl-inbox\.css\?v=56/);
+  assert.match(worker, /smyl-inbox\.js\?v=67/);
+  assert.match(worker, /smyl-inbox\.css\?v=56/);
 });
 
 test('sin canales conectados el Inbox muestra una sola explicación en lugar de lista, hilo y compositor vacíos', () => {

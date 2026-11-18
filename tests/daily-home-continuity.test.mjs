@@ -46,14 +46,14 @@ test('Mensajería publica solo su resumen operativo al Inicio', () => {
 
 test('La mesa de trabajo se distribuye en web, PWA y vista de QA', () => {
   assert.match(app, /smyl-daily-home\.css\?v=16/);
-  assert.match(app, /smyl-daily-home\.js\?v=17/);
+  assert.match(app, /smyl-daily-home\.js\?v=18/);
   assert.match(app, /smyl-dashboard-v2\.css\?v=1/);
   assert.ok(app.indexOf('smyl-dashboard-v2.css?v=1') > app.indexOf('smyl-ui-template-v3.css?v=8'), 'la capa del dashboard debe gobernar después de la plantilla global');
   assert.match(app, /smyl-clinic-setup\.js\?v=6/);
-  assert.match(app, /smyl-lana-attention\.js\?v=4/);
+  assert.match(app, /smyl-lana-attention\.js\?v=5/);
   assert.match(worker, /meta-cards-v13/);
   assert.match(worker, /patient-simulations-v70/);
-  assert.match(worker, /smyl-daily-home\.js\?v=17/);
+  assert.match(worker, /smyl-daily-home\.js\?v=18/);
   assert.match(worker, /smyl-dashboard-v2\.css\?v=1/);
   assert.match(worker, /dashboard-operativo-v2/);
   assert.match(styles, /daily-home-metrics/);
@@ -152,7 +152,7 @@ test('la bandeja de Mensajes se precarga y no abre una conversación en segundo 
   const inbox = read('../smyl-inbox.js');
   assert.match(inbox, /function autoOpenFirst\(\)/);
   assert.match(inbox, /classList\.contains\('activa'\)/);
-  assert.match(inbox, /loadList\(true\); loadTeam\(\); loadBranches\(\); loadStages\(\);\s*\}, 2500\)/);
+  assert.match(inbox, /loadList\(true\); loadBranches\(\); loadStages\(\);\s*\}, 2500\)/);
   assert.match(inbox, /else \{ sync\(\); loadOperations\(false\); autoOpenFirst\(\); \}/);
 });
 

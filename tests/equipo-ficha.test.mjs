@@ -70,8 +70,8 @@ test('el CSS nuevo no baja de 12 px ni agrega microtexto', () => {
 
 test('la copia móvil y la caché publican la misma versión', () => {
   for (const file of ['smyl-clinic-admin.js', 'smyl-clinic-admin.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + file), read(file), `mobile/www/${file} difiere`);
-  assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=14/);
-  assert.match(read('app.html'), /smyl-clinic-admin\.css\?v=11/);
-  assert.match(read('sw.js'), /\/camila\/smyl-clinic-admin\.js\?v=14/);
-  assert.match(read('sw.js'), /\/camila\/smyl-clinic-admin\.css\?v=11/);
+  assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=15/);
+  assert.match(read('app.html'), /smyl-clinic-admin\.css\?v=12/);
+  assert.match(read('sw.js'), /\/camila\/smyl-clinic-admin\.js\?v=15/);
+  assert.match(read('sw.js'), /\/camila\/smyl-clinic-admin\.css\?v=12/);
 });

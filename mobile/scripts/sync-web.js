@@ -94,6 +94,9 @@ copyFile(path.join(ROOT, 'smyl-service-catalog.css'), path.join(WWW, 'smyl-servi
 copyFile(path.join(ROOT, 'smyl-service-catalog-stage1.css'), path.join(WWW, 'smyl-service-catalog-stage1.css'));
 copyFile(path.join(ROOT, 'smyl-inbox.js'), path.join(WWW, 'smyl-inbox.js'));
 copyFile(path.join(ROOT, 'smyl-inbox.css'), path.join(WWW, 'smyl-inbox.css'));
+copyFile(path.join(ROOT, 'smyl-task-center.js'), path.join(WWW, 'smyl-task-center.js'));
+copyFile(path.join(ROOT, 'smyl-schedule-message.js'), path.join(WWW, 'smyl-schedule-message.js'));
+copyFile(path.join(ROOT, 'smyl-lana-attention.js'), path.join(WWW, 'smyl-lana-attention.js'));
 copyFile(path.join(ROOT, 'smyl-daily-home.js'), path.join(WWW, 'smyl-daily-home.js'));
 copyFile(path.join(ROOT, 'smyl-daily-home.css'), path.join(WWW, 'smyl-daily-home.css'));
 copyFile(path.join(ROOT, 'smyl-dashboard-v2.css'), path.join(WWW, 'smyl-dashboard-v2.css'));

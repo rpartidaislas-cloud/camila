@@ -2,6 +2,7 @@
   'use strict';
 
   var state = { loading: false, loaded: false, items: [], total: 0, canResolve: false, error: '' };
+  var accessVersion = 0;
 
   function node(tag, cls, text) {
     var el = document.createElement(tag);
@@ -130,6 +131,7 @@
   function render() {
     var body = document.querySelector('[data-lana-attention-body]');
     var refresh = document.querySelector('[data-lana-attention-refresh]');
+    publishSummary();
     if (!body) return;
     if (refresh) { refresh.disabled = state.loading; refresh.textContent = state.loading ? 'Actualizando…' : 'Actualizar'; }
     body.innerHTML = '';
@@ -151,13 +153,11 @@
       var empty = node('div', 'lana-attention-state is-empty');
       empty.append(node('span', 'lana-attention-empty-mark', '✓'), node('strong', '', 'No hay conversaciones pendientes'), node('p', '', 'Cuando el asistente solicite a una persona o un paciente responda durante una pausa, aparecerá aquí.'));
       body.append(empty);
-      publishSummary();
       return;
     }
     var list = node('div', 'lana-attention-list');
     state.items.forEach(function (item) { list.append(renderItem(item)); });
     body.append(list);
-    publishSummary();
   }
 
   function summary() {
@@ -169,33 +169,39 @@
   }
 
   async function load(force) {
-    if (!document.getElementById('lana-attention-dashboard') || state.loading || (state.loaded && !force)) return;
+    if (!window.SmylInbox?.canAccess?.() || !document.getElementById('lana-attention-dashboard') || state.loading || (state.loaded && !force)) return;
+    var version = accessVersion;
     state.loading = true; state.error = ''; render();
     try {
       var data = await request('GET');
+      if (version !== accessVersion) return;
       state.items = Array.isArray(data.items) ? data.items : [];
       state.total = Number(data.total) || state.items.length;
       state.canResolve = Boolean(data.can_resolve);
       state.loaded = true;
     } catch (error) {
+      if (version !== accessVersion) return;
       state.error = error.message || 'No se pudo consultar la atención pendiente.';
       state.loaded = true;
       state.items = [];
       state.total = 0;
     } finally {
-      state.loading = false; render();
+      if (version === accessVersion) { state.loading = false; render(); }
     }
   }
 
   async function resolveItem(item, button) {
     if (!window.confirm('¿Confirmas que esta solicitud ya fue atendida? SMYL conservará la conversación y su trazabilidad.')) return;
+    var version = accessVersion;
     button.disabled = true; button.textContent = 'Guardando…';
     try {
       await request('POST', { action: 'resolve', conversation_id: item.id });
+      if (version !== accessVersion) return;
       state.items = state.items.filter(function (candidate) { return candidate.id !== item.id; });
       state.total = Math.max(0, state.total - 1);
       render();
     } catch (error) {
+      if (version !== accessVersion) return;
       button.disabled = false; button.textContent = 'Marcar resuelto';
       window.alert(error.message || 'No se pudo actualizar la conversación.');
     }
@@ -205,9 +211,20 @@
     var home = document.getElementById('p-dashboard');
     if (!home || document.getElementById('lana-attention-dashboard')) return;
     var section = shell();
+    section.hidden = !window.SmylInbox?.canAccess?.();
     var actions = home.querySelector('.pro-action-grid');
     var stats = home.querySelector('.stats-grid');
     if (actions) actions.after(section); else if (stats) stats.before(section); else home.prepend(section);
+    function refreshVisibility() {
+      accessVersion++;
+      section.hidden = !window.SmylInbox?.canAccess?.();
+      state.loading = state.loaded = state.canResolve = false;
+      state.items = []; state.total = 0; state.error = '';
+      render();
+      if (!section.hidden) load(true);
+    }
+    window.addEventListener('smyl:inbox-access', refreshVisibility);
+    window.addEventListener('smyl:chat-routing-changed', refreshVisibility);
 
     var previous = window.ir;
     window.ir = function (route) {

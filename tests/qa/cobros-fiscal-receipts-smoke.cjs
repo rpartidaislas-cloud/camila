@@ -93,6 +93,7 @@ const server = http.createServer((req, res) => {
   check(detail.service === 'Consulta', 'el detalle debe mostrar el servicio cobrado');
   check(detail.applied.includes('300'), 'el detalle debe mostrar el importe aplicado');
   check(detail.fiscal.includes('Ir a Facturación'), 'un recibo con borrador debe continuar hacia Facturación');
+  await page.screenshot({ path: path.join(shots, 'cobros-recibo-detalle-escritorio.png') });
   await page.click('.finance-receipt-detail [data-close]');
   await page.screenshot({ path: path.join(shots, 'cobros-recibos-escritorio.png'), fullPage: true });
 
@@ -130,6 +131,23 @@ const server = http.createServer((req, res) => {
     check(metrics.shortTargets.length === 0, `${viewport.label} debe conservar objetivos táctiles`);
     check(metrics.filterRows === 1, `${viewport.label} debe mantener los filtros en una fila`);
     await page.screenshot({ path: path.join(shots, `cobros-recibos-${viewport.label}.png`), fullPage: true });
+    await page.click('[data-open-receipt]'); await page.waitForTimeout(180);
+    const dialogMetrics = await page.$eval('.finance-receipt-detail', dialog => {
+      const visible = element => { const style = getComputedStyle(element); return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0; };
+      return {
+        overflow: dialog.scrollWidth > dialog.clientWidth + 1,
+        closeButtons: dialog.querySelectorAll('[data-close]').length,
+        under12: [...dialog.querySelectorAll('p,span,small,label,button,strong,em,dt,dd')].filter(visible).filter(element => element.textContent.trim() && parseFloat(getComputedStyle(element).fontSize) < 11.99).map(element => element.textContent.trim().slice(0, 35)),
+        shortTargets: [...dialog.querySelectorAll('button')].filter(visible).map(element => ({ text: element.textContent.trim(), rect: element.getBoundingClientRect() })).filter(item => item.rect.height < 43.5 || item.rect.width < 43.5).map(item => item.text)
+      };
+    });
+    console.log(`5) detalle ${viewport.label}:`, JSON.stringify(dialogMetrics));
+    check(!dialogMetrics.overflow, `${viewport.label}: el recibo no debe desbordar horizontalmente`);
+    check(dialogMetrics.closeButtons === 1, `${viewport.label}: el recibo debe tener un solo cierre`);
+    check(dialogMetrics.under12.length === 0, `${viewport.label}: el recibo no debe mostrar microtexto`);
+    check(dialogMetrics.shortTargets.length === 0, `${viewport.label}: las acciones del recibo deben ser táctiles`);
+    await page.screenshot({ path: path.join(shots, `cobros-recibo-detalle-${viewport.label}.png`) });
+    await page.click('.finance-receipt-detail [data-close]');
   }
   console.log('errores de página:', JSON.stringify(errors));
   check(errors.length === 0, 'no debe haber errores de página');

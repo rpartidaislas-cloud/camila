@@ -1,5 +1,12 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-17 — Perfiles de chat y relevo privado
+
+- En Configuración → Equipo → Profesionales y roles, la ficha de cada integrante activo permite elegir Sin acceso, Atiende o Coordina. Esta elección es independiente del puesto clínico. Al retirar el permiso de alguien con conversaciones se elige un nuevo responsable o la cola Sin asignar.
+- Mensajes verifica el acceso antes de abrir cada hilo y permite transferirlo desde «Atiende el chat». El texto del relevo se guarda en SMYL, en la misma transacción que la asignación. La versión de la asignación evita que una ventana desactualizada sobrescriba un cambio posterior. El receptor puede ver la última nota en la cabecera del chat.
+- La migración `20261118150000_smyl_chat_access_and_private_handoff.sql` protege también los mensajes, los vínculos con pacientes, las alertas y la lectura desde el historial. Las asignaciones históricas del proveedor quedan sin responsable local hasta que se distribuyan. Al activar la migración, el titular activo empieza como coordinador y el resto del equipo sin acceso.
+- Para el despliegue, aplicar primero la migración. Publicar conjuntamente `lana-inbox`, `lana-attention` y `appointment-negotiations`, seguidas de la web y los recursos PWA actualizados. Comprobar con dos cuentas de la misma clínica la recepción del relevo y el acceso de cada una. El transporte de LANA recibe el responsable, y la nota permanece en SMYL.
+
 ## 2026-11-17 — Codex — Responsable de chat e historial de atención en Ficha 360
 
 - Cambio posterior a la publicación `e5ae5c54` de respuestas rápidas y emojis. En la cabecera queda «Agendar cita» como acción principal y «Atiende el chat» en lugar de los puntos suspensivos. La asignación del hilo no cambia el médico de una cita ni la sucursal clínica del paciente.
@@ -11573,6 +11580,15 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Alcance por sucursal:** se conserva `smyl-branch-scope.js` y la migración `20261118140000_smyl_branch_scope.sql` de la rama principal para que la nueva estructura financiera respete el consultorio seleccionado.
 - **Compatibilidad:** la ruta técnica continúa siendo `caja`, aunque toda la interfaz visible permanece como **Finanzas**.
 
+## 2026-11-17 — Codex — Recibo profesional v1
+
+- **Jerarquía:** el recibo separa folio y estado, total recibido, método/sucursal, conceptos cobrados y metadatos operativos. Se eliminó el segundo botón de cierre y se dejó una sola salida visible.
+- **Facturación contextual:** el comprobante interno ya no se mezcla con el CFDI. Un bloque independiente explica el estado fiscal y ofrece únicamente el siguiente paso aplicable: completar datos, preparar factura, continuar el borrador o consultar la factura emitida.
+- **Acciones:** Imprimir y Compartir quedan como utilidades secundarias y muestran confirmación dentro de la ventana. El recibo conserva los flujos existentes de impresión, Web Share/copia y navegación fiscal.
+- **PWA:** la ventana se convierte en hoja de pantalla completa, respeta el área segura, apila la información sin desborde, mantiene texto mínimo de 12 px y controles táctiles de 44 px. Los filtros de recibos se desplazan horizontalmente en una sola fila.
+- **Versiones:** `smyl-finance.js?v=56`, `smyl-finance.css?v=41`, caché `…-receipt-professional-v1`; raíz web y `mobile/www/` sincronizados.
+- **Verificación:** pruebas de estructura y regresión del módulo, más humo real en Chrome a 1500, 390 y 320 px. Sin errores de página, microtexto, controles pequeños ni desbordes horizontales.
+
 ## 2026-11-18 — Claude Code — Expediente: «Datos del paciente» y sin «Más acciones»
 - **Barra del paciente (`smyl-professional-v3.js` v11 / `.css` v10):** se retira el menú «Más acciones»; Agendar cita, Nueva evolución, Cotizar, Cobrar y Enviar mensaje quedan a la vista (los módulos de destino siguen validando el permiso de cada rol). La barra hace salto de línea en pantallas angostas.
 - **Pestaña nueva «Datos del paciente» (`smyl-patient-360.js` v29 / `.css` v19):**
@@ -11583,6 +11599,14 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Sin migraciones:** usa `camila_pacientes`, `smyl_patient_fiscal_profiles` y `smyl_branches` tal como están (RLS sin cambios).
 - **Pruebas:** `tests/smyl-patient-datos.test.mjs` (nuevo); se actualizaron `patient-360-stage3`, `smyl-patient-summary-v44` y las que fijan versiones. Humo en navegador (app real + Supabase simulado) a 1440/834/390 px: sin scroll horizontal; abre el diálogo fiscal y el de edición.
 - **Hallazgo (no corregido, ya ocurría en main):** `smyl-clinical-photo-review.js?v=4` lanza `insertBefore … not a child of this node` en su `MutationObserver.mount` al abrir un paciente y dispara el aviso global «Algo no salió como se esperaba».
+
+## 2026-11-18 — Claude Code — Asistente: sucursales, servicios, ubicación y horarios salen de Mi clínica (ya no se escriben)
+- **Qué cambia (solo frontend, sin migración ni despliegue):** en «Canales → SMYL Asistente → Capacitar IA», el paso 3 «Sedes y servicios» deja de pedir escribir sucursales y servicios. Ahora muestra dos tarjetas de **solo lectura** («Sucursales y horarios» con dirección, horario y dentistas; «Servicios y precios» con duración y precio por sucursal) con los botones «Editar en Mi clínica» y «Editar servicios y tarifas». En el paso 2 desaparecen «Ubicación» y «Horarios» (se llenan solos desde las sucursales). Se quitaron los botones «Traer mis sucursales / servicios / ubicación y horarios» y «+ Agregar servicio».
+- **Cómo funciona:** los campos `branches`, `location`, `hours` y la lista `[data-service-list]` siguen existiendo pero **ocultos**; `refreshAutoFacts()` los llena desde `smyl_branches`, `smyl_clinic_hours`, `smyl_professional_branches`, `smyl_professionals`, `smyl_services` y `smyl_service_branch_prices` (mismas funciones puras de antes: `branchesDescription`, `clinicLocationHours`, `importServiceRows`). Así el documento (`schema_version: 2`) que viaja a LANA no cambia de forma. Se refresca al cargar, al entrar a los pasos 2/3/6 (caché 60 s) y **siempre antes de validar, publicar o probar el borrador**. Ids de servicio estables (`service-<id>`). Sin precio → «Requiere valoración.» (como antes).
+- **Seguridad de datos:** si Mi clínica no responde (`state.clinicLoadOk` falso) NO se sobrescribe el borrador; se conserva lo último guardado. El borrador se guarda solo únicamente si la persona puede editar; **publicar sigue siendo una acción aparte** (el asistente usa la versión publicada). Cuando sucursales o servicios cambian respecto a la publicada, cada tarjeta muestra «Tus … cambiaron desde la última publicación» con el botón «Ir a publicar».
+- **Quedó como estaba:** «Reglas de agenda» (placeholder aclara que la duración ya sale del catálogo), «Promociones autorizadas», «Especialidades» (campo manual) y la casilla «Que el asistente pregunte la sucursal antes de agendar».
+- **Decisión pendiente / ideas siguientes:** (1) «Descripción confirmada» por servicio ya no se edita (se genera con categoría y duración); si se quiere texto propio por servicio hay que añadir un campo opcional en el catálogo (migración). (2) Un interruptor «Visible para el asistente» por servicio también requeriría migración. (3) Actualización automática sin publicar: descartada a propósito. (4) Ordenar «Flujo de atención» (12 cuadros) con «Más reglas (opcional)» colapsado: no hecho.
+- **Archivos:** `smyl-connections.js` v27, `smyl-connections.css` v20, `app.html`, `sw.js` (caché `…-asistente-datos-vivos-v1`, insertado antes de `-ficha360-v4…` porque una prueba exige ese final), copias en `mobile/www/`; pruebas nuevas `tests/asistente-datos-vivos.test.mjs` y ajustes en `capacitar-ia-mejoras`, `chat-sucursal-ia`, `lana-connection-stage2`, `lana-stage5-response-lab`.
 
 ## 2026-11-18 — Claude Code — Expediente: organización v2 (clínico en pestañas, administrativo en panel lateral)
 - **Pestañas en orden de consulta (`smyl-patient-360.js` v30 / `.css` v20):** Resumen · Historia clínica · **Evoluciones y citas** (paneles `notes` + `appointments`, antes solo accesibles desde «Más del expediente») · **Tratamiento** (incluye el panel `simulations`; ya no hay pestaña «Simulaciones SMYL») · **Imágenes y estudios** (antes «Archivos»).

@@ -4,7 +4,7 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 .smyl-inbox-top{min-height:82px;padding:17px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;background:#fff;border-bottom:1px solid #DCE4EC}
 .smyl-inbox-eyebrow{display:block;font-size:12px;line-height:1.2;font-weight:700;letter-spacing:1.05px;color:#2476B8;margin-bottom:4px}
 .smyl-inbox-top h1{font-size:20px;line-height:1.2;margin:0;color:#102239}.smyl-inbox-top p{font-size:12px;color:#667587;margin-top:3px}
-.smyl-inbox-live{display:flex;align-items:center;gap:8px;font-size:11px;color:#526173;white-space:nowrap}.smyl-inbox-live i{width:8px;height:8px;border-radius:50%;background:#16A69B}.smyl-inbox-live[data-state="syncing"] i{animation:smylInboxPulse 1s ease-in-out infinite}.smyl-inbox-live[data-state="offline"] i{background:#D97706}
+.smyl-inbox-live{display:flex;align-items:center;gap:8px;font-size:12px;color:#526173;white-space:nowrap}.smyl-inbox-live i{width:8px;height:8px;border-radius:50%;background:#16A69B}.smyl-inbox-live[data-state="syncing"] i{animation:smylInboxPulse 1s ease-in-out infinite}.smyl-inbox-live[data-state="offline"] i{background:#D97706}
 @keyframes smylInboxPulse{50%{opacity:.35}}
 .smyl-inbox-workspace{display:grid;grid-template-columns:332px minmax(420px,1fr) 268px;min-width:0;width:100%;min-height:0;flex:1;position:relative}
 .smyl-inbox-list-pane,.smyl-inbox-thread-pane,.smyl-inbox-context{min-height:0;background:#fff}
@@ -2892,3 +2892,23 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
   #p-inbox .smyl-inbox-thread-person .smyl-inbox-owner-inline { display: none; }
   #p-inbox .smyl-inbox-thread-head > .smyl-inbox-carebar { grid-area: 2 / 3 / 3 / 5; justify-self: end; }
 }
+
+/* The server grants the inbox independently of the person's clinical role. */
+html:not([data-smyl-chat-access="agent"]):not([data-smyl-chat-access="coordinator"]) :is([data-route="inbox"], [onclick="ir('inbox')"], [onclick="pamIr('inbox')"], .daily-home-chats, [data-home-inbox-line], [data-more-action="message"], [data-open-inbox], .sched-msg, .lana-entry),
+html:not([data-smyl-chat-access="agent"]):not([data-smyl-chat-access="coordinator"]) #p-inbox > :not([data-chat-access-status]),
+html:is([data-smyl-chat-access="agent"], [data-smyl-chat-access="coordinator"]) [data-chat-access-status],
+html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations] { display: none !important; }
+.smyl-chat-access-status { padding: 24px; }
+.smyl-chat-transfer { box-sizing: border-box; width: min(420px, calc(100% - 24px)); max-height: 90dvh; padding: 24px; border: 1px solid #cedce3; border-radius: 14px; margin: auto; color: #102639; background: white; box-shadow: 0 18px 65px #10263933; }
+.smyl-chat-transfer::backdrop { background: #10263980; }
+.smyl-chat-transfer form, .smyl-chat-transfer label { display: grid; gap: 10px; }
+.smyl-chat-transfer h2, .smyl-chat-transfer p { margin: 0; }
+.smyl-chat-transfer h2 { font-size: 19px; }
+.smyl-chat-transfer label { margin-top: 8px; font-weight: 600; }
+.smyl-chat-transfer textarea { box-sizing: border-box; width: 100%; min-height: 84px; padding: 10px; border: 1px solid #b8cbd3; border-radius: 8px; resize: vertical; font: inherit; }
+.smyl-chat-transfer footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.smyl-chat-transfer small { color: #516777; }
+.smyl-chat-transfer [role="alert"] { color: #9c2820; }
+#p-inbox .smyl-chat-note { max-width: 100%; padding: 5px 12px; background: #fff8e9; color: #654411; border-radius: 8px; }
+#p-inbox .smyl-chat-note summary { cursor: pointer; font-size: 13px; font-weight: 600; }
+#p-inbox .smyl-chat-note p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0; }

@@ -87,7 +87,7 @@ test("app.html: carga el módulo, inicia tras resolver la clínica y define el s
   assert.match(html, /\.sb-branch select/);
   for (const f of ["app.html", "smyl-branch-scope.js", "sw.js"]) assert.equal(read(f), read("mobile/www/" + f), `${f} móvil igual`);
   assert.match(read("sw.js"), /'\/camila\/smyl-branch-scope\.js\?v=1'/);
-  assert.match(read("sw.js"), /-branch-scope-v1'/);
+  assert.match(read("sw.js"), /-branch-scope-v1(?:-|')/);
 });
 
 test("el selector solo se dibuja con 2 o más consultorios y usa textContent (sin innerHTML)", () => {
