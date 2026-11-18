@@ -119,6 +119,7 @@
   }
 
   function el(tag, cls, content) { var node = document.createElement(tag); if (cls) node.className = cls; if (content != null) node.textContent = content; return node; }
+  function skNode(kind, opts) { return win && win.SmylSkeleton ? win.SmylSkeleton.node(kind, opts) : el('p', 'sched-msg-loading', ((opts && opts.label) || 'Cargando') + '…'); }
 
   function mount(host, ctx) {
     if (!host || !ctx || !win.SmylInbox?.canAccess?.()) { if (host) host.hidden = true; return; }
@@ -140,7 +141,7 @@
     }
 
     async function start() {
-      frame(); host.append(el('p', 'sched-msg-loading', 'Buscando su chat…'));
+      frame(); host.append(skNode('list', { rows: 2, plain: true, avatar: false, label: 'Buscando su chat' }));
       try {
         var query = win.sb.from('camila_lana_handoffs').select('lana_conversation_id,lana_channel,updated_at').eq('tenant_id', ctx.tenant).eq('patient_id', ctx.patient.id).order('updated_at', { ascending: false });
         var result = await Promise.resolve(typeof win.sbTimeout === 'function' ? win.sbTimeout(query) : query);
@@ -178,7 +179,7 @@
     }
 
     async function whatsapp() {
-      var loading = el('p', 'sched-msg-loading', 'Cargando plantillas…'); host.append(loading);
+      var loading = skNode('list', { rows: 3, plain: true, avatar: false, label: 'Cargando plantillas' }); host.append(loading);
       try { state.templates = options(await approvedTemplates(ctx.tenant), win.SmylTemplateCatalog && win.SmylTemplateCatalog.TEMPLATES, ctx.appointment.status, ctx); }
       catch (error) { loading.remove(); note(friendly(error) === 'No se pudo enviar el mensaje.' ? 'No pudimos cargar las plantillas.' : friendly(error), 'warn', { label: 'Intentar de nuevo', run: function () { approvedTemplates(ctx.tenant, true).then(show, show); } }); return; }
       loading.remove();

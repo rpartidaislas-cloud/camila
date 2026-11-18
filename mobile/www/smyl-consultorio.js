@@ -14,6 +14,8 @@
   state.interview = null; state.notice = '';
 
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+  function skHtml(kind, opts) { return window.SmylSkeleton ? window.SmylSkeleton.html(kind, opts) : '<p class="co-note-dark">' + ((opts && opts.label) || 'Cargando') + '…</p>'; }
+  function skNode(kind, opts) { var h = document.createElement('div'); h.innerHTML = skHtml(kind, opts); return h.firstElementChild; }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
   function startDay(v) { var d = new Date(v); d.setHours(0, 0, 0, 0); return d; }
   function fmtTime(v) { return new Intl.DateTimeFormat('es-MX', { hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(v)).replace(/\s*([ap])\.?\s?m\.?/i, function (m, x) { return ' ' + x.toLowerCase() + 'm'; }); }
@@ -111,7 +113,7 @@
   function renderList() {
     var host = $('[data-co-list]'); if (!host) return;
     host.replaceChildren();
-    if (state.loading && !state.loaded) { host.append(el('p', 'co-note', 'Cargando la jornada…')); return; }
+    if (state.loading && !state.loaded) { host.append(skNode('list', { rows: 4, action: true, label: 'Cargando la jornada' })); return; }
     if (state.error) { var b = el('button', 'co-retry', 'Intentar de nuevo'); b.type = 'button'; b.onclick = function () { load(true); }; host.append(el('p', 'co-note', state.error), b); return; }
     var live = state.rows.filter(function (r) { return ORDER.indexOf(r.status) >= 0; }).sort(function (a, b) { return ORDER.indexOf(a.status) - ORDER.indexOf(b.status) || new Date(a.starts_at) - new Date(b.starts_at); });
     if (!live.length) { host.append(el('p', 'co-note', state.done ? 'Ya terminaste las ' + state.rows.length + ' citas de hoy.' : 'Nadie por atender ahora. Da de alta a quien llegue con el botón de arriba.')); return; }
@@ -299,7 +301,7 @@
     var host = $('[data-co-visit]'), v = state.visit; if (!host || !v) return;
     host.replaceChildren();
     var back = el('button', 'co-link-btn co-back', '‹ Consultorio'); back.type = 'button'; back.onclick = closeVisit; host.append(back);
-    if (v.loading) { host.append(el('p', 'co-note', 'Cargando al paciente…')); return; }
+    if (v.loading) { host.append(skNode('detail', { label: 'Cargando al paciente' })); return; }
     if (v.error) { var retry = el('button', 'co-retry', 'Intentar de nuevo'); retry.type = 'button'; retry.onclick = function () { loadVisit(v.id); }; host.append(el('p', 'co-note', v.error), retry); return; }
     var p = v.patient, appt = appointmentOf(p.id), label = Q.listName(p), model = modelFor(v);
     var head = el('div', 'co-vhead'), who = el('div', 'co-q');
@@ -531,7 +533,7 @@
     var d = dialog(); if (!d) return;
     stopQr();
     var q = state.qr = { id: patient.id, timer: null, polls: 0 };
-    d.innerHTML = '<div class="co-form co-qr"><header><h2>Que llene sus datos</h2><button type="button" class="co-x" data-co-cancel aria-label="Cerrar">×</button></header><div data-co-qr-body><p class="co-ok"><span>Preparando el código…</span></p></div></div>';
+    d.innerHTML = '<div class="co-form co-qr"><header><h2>Que llene sus datos</h2><button type="button" class="co-x" data-co-cancel aria-label="Cerrar">×</button></header><div data-co-qr-body>' + skHtml('text', { lines: 3, label: 'Preparando el código' }) + '</div></div>';
     d.querySelector('[data-co-cancel]').onclick = closeDialog;
     d.addEventListener('close', function () { if (state.qr === q) stopQr(); }, { once: true });
     if (!d.open) d.showModal();
@@ -692,7 +694,7 @@
   /* Ver la firma guardada (solo con clinical.read): imagen, quién y cuándo firmó, y el texto exacto que se firmó. */
   async function viewConsent() {
     var v = state.visit, d = dialog(); if (!v || !v.consent || !v.consent.id || !d) return;
-    d.innerHTML = '<div class="co-form co-sigview"><header><h2>Aviso firmado</h2><button type="button" class="co-x" data-co-cancel aria-label="Cerrar">×</button></header><div data-co-sig-body><p class="co-note-dark">Cargando…</p></div></div>';
+    d.innerHTML = '<div class="co-form co-sigview"><header><h2>Aviso firmado</h2><button type="button" class="co-x" data-co-cancel aria-label="Cerrar">×</button></header><div data-co-sig-body>' + skHtml('text', { lines: 3, label: 'Cargando el aviso firmado' }) + '</div></div>';
     d.querySelector('[data-co-cancel]').onclick = closeDialog; if (!d.open) d.showModal();
     var body = d.querySelector('[data-co-sig-body]');
     try {

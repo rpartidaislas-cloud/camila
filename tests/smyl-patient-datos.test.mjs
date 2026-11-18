@@ -36,10 +36,10 @@ test('el encabezado permite agregar contacto y se refresca tras editar', () => {
 
 test('web, móvil y PWA publican Datos del paciente', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-patient-360\.js\?v=30/);
+    assert.match(read(file), /smyl-patient-360\.js\?v=31/);
     assert.match(read(file), /smyl-patient-360\.css\?v=20/);
-    assert.match(read(file), /smyl-professional-v3\.js\?v=11/);
-    assert.match(read(file), /smyl-professional-v3\.css\?v=10/);
+    assert.match(read(file), /smyl-professional-v3\.js\?v=12/);
+    assert.match(read(file), /smyl-professional-v3\.css\?v=11/);
   }
   for (const file of ['smyl-patient-360.js', 'smyl-patient-360.css', 'smyl-professional-v3.js', 'smyl-professional-v3.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);

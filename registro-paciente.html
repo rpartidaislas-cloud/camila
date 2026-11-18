@@ -27,10 +27,13 @@
     .state{text-align:center;padding:12px 0}.mark{font-size:36px}
     .hp{position:absolute;left:-9999px}
   </style>
+<link rel="stylesheet" href="smyl-skeleton.css?v=1">
+<script defer src="smyl-skeleton.js?v=1"></script>
 </head>
 <body>
   <header class="top">SMYL</header>
   <main><div class="card" id="card"><p>Cargando…</p></div></main>
+  <script>document.addEventListener("DOMContentLoaded",function(){var c=document.getElementById("card");if(window.SmylSkeleton&&c&&c.children.length===1&&c.firstElementChild.tagName==="P")c.innerHTML=window.SmylSkeleton.html("form",{fields:4,label:"Cargando tu registro"});});</script>
   <script>
   (function(){'use strict';
     var URL_BASE='https://rpxshsiwoxdbuevjjpfw.supabase.co',KEY='sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo';

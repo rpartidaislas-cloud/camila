@@ -2946,3 +2946,15 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
 #p-inbox .smyl-inbox-patient-summary{cursor:pointer}
 #p-inbox .smyl-inbox-patient-summary:hover [data-thread-name]{text-decoration:underline;text-underline-offset:3px}
 #p-inbox .smyl-inbox-patient-summary:hover .smyl-inbox-avatar{box-shadow:0 0 0 2px var(--inbox-accent,#0f766e)}
+
+/* Skeletons de carga (lenguaje .sk de smyl-skeleton.css) */
+[data-inbox-list]>.sk-region,.smyl-inbox-pipeline-board>.sk-region{padding:10px}
+.smyl-inbox-thread-sk{padding:16px;flex:1}
+.smyl-inbox-thread-sk>div{display:grid;gap:12px}
+.smyl-inbox-thread-sk .sk-bubble{width:58%;height:44px;border-radius:16px 16px 16px 4px}
+.smyl-inbox-thread-sk .sk-bubble.is-out{justify-self:end;border-radius:16px 16px 4px 16px}
+.smyl-inbox-thread-sk .sk-bubble.is-short{width:34%;height:32px}
+.smyl-inbox-availability-loading{display:block;min-height:0;padding:var(--space-4,12px)}
+.smyl-inbox-availability-loading .sk-cards{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.smyl-inbox-context .sk-region{padding:2px 0}
+@media(prefers-reduced-motion:reduce){.smyl-inbox-thread-sk .sk{animation:none}}

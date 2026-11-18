@@ -161,6 +161,8 @@
 
   .bottom-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-top:1px solid var(--card-b);flex-shrink:0;background:rgba(255,255,255,.015)}
 </style>
+<link rel="stylesheet" href="smyl-skeleton.css?v=1">
+<script defer src="smyl-skeleton.js?v=1"></script>
 </head>
 <body>
   <!-- ══ LOGIN OBLIGATORIO — mismo Supabase Auth que simulacion.html/app.html ══
@@ -3187,7 +3189,7 @@ function nuevoCasoClinica(){
 
 async function cargarListaMisCasos(){
   const cont = document.getElementById('misCasosLista');
-  cont.innerHTML = '<p class="hint" style="text-align:center;padding:20px 0">Cargando...</p>';
+  cont.innerHTML = window.SmylSkeleton ? window.SmylSkeleton.html('list', { rows: 5, label: 'Cargando tus casos' }) : '<p class="hint" style="text-align:center;padding:20px 0">Cargando...</p>';
   try {
     const url = `${obtenerRestUrl()}?select=id,nombre_paciente,created_at,imagen_url,simulacion_url&order=created_at.desc&limit=50`;
     const res = await fetch(url, {

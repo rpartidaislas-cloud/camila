@@ -11,6 +11,7 @@
   var GROUP_PREVIEW = 12;
 
   function el(tag, cls, text) { var node = document.createElement(tag); if (cls) node.className = cls; if (text != null) node.textContent = text; return node; }
+  function skel(kind, options) { var holder = document.createElement('div'); holder.innerHTML = window.SmylSkeleton ? window.SmylSkeleton.html(kind, options) : '<p class="smyl-cal-note">' + ((options && options.label) || 'Cargando…') + '</p>'; return holder.firstElementChild; }
   function pad(value) { return String(value).padStart(2, '0'); }
   function dayKey(date) { return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()); }
   function parseDay(key) { var parts = key.split('-'); return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])); }
@@ -182,12 +183,12 @@
     var box = el('section', 'smyl-cal-agenda'); box.setAttribute('aria-label', 'Agenda del día');
     var entry = state.agenda[key];
     if (!entry) {
-      box.append(el('p', 'smyl-cal-note', 'Consultando la agenda…'));
+      box.append(skel('list', { rows: 2, plain: true, label: 'Consultando la agenda' }));
       state.agenda[key] = { loading: true };
       Promise.resolve().then(function () { return ctx.loadAgenda(key); }).then(function (rows) { state.agenda[key] = { rows: rows || [] }; schedulePaint(); }, function () { state.agenda[key] = { error: true }; schedulePaint(); });
       return box;
     }
-    if (entry.loading) { box.append(el('p', 'smyl-cal-note', 'Consultando la agenda…')); return box; }
+    if (entry.loading) { box.append(skel('list', { rows: 2, plain: true, label: 'Consultando la agenda' })); return box; }
     if (entry.error) { box.append(el('p', 'smyl-cal-note', 'No pudimos consultar la agenda de este día con tu rol.')); return box; }
     var title = el('h4', 'smyl-cal-agenda-title', entry.rows.length ? 'Citas del día · ' + entry.rows.length : 'Citas del día');
     box.append(title);

@@ -23,7 +23,7 @@
   async function checked(promise,nullable=false){let timeout;try{if(!valid())throw Error('Context changed');const res=await Promise.race([promise,new Promise((_,reject)=>timeout=setTimeout(()=>reject(Error('Timeout')),25000))]);if(!valid())throw Error('Context changed');if(res?.error)throw res.error;if(!res||(!nullable&&res.data==null))throw Error('Unconfirmed');return res.data;}finally{clearTimeout(timeout);}}
   const rpc=(name,args={})=>checked(window.sb.rpc(name,args));
   bar.append(n('span','','mySmyl · Propuesta para tu paciente'),button('Volver al expediente',()=>close()));dialog.append(bar,host);document.body.append(dialog);dialog.showModal();dialog.oncancel=e=>{e.preventDefault();close();};run.watch=setInterval(()=>{if(!valid())close(true);},200);
-  host.append(n('p','ms-preview-loading','Consultando el plan revisado y las fotografías de este caso…'));
+  {const w=n('div','ms-preview-loading');w.innerHTML=window.SmylSkeleton?window.SmylSkeleton.html('detail',{label:'Consultando el plan revisado y las fotografías de este caso'})+'<div class="sk-region" role="status" aria-live="polite"><span class="sk-sr">Cargando fotografías</span><div aria-hidden="true"><span class="sk" style="display:block;width:100%;aspect-ratio:4/3;max-height:60vh;border-radius:12px"></span></div></div>':'<p>Consultando el plan revisado y las fotografías de este caso…</p>';host.append(w);}
   run.auth=window.sb.auth.onAuthStateChange?.((event,session)=>{if(session?.user?.id!==row.tenant_id||session.user.is_anonymous!==false)close(true);})?.data?.subscription;
   try{
    const identity=await checked(window.sb.auth.getUser());if(identity.user?.id!==row.tenant_id||identity.user.is_anonymous!==false)throw {code:'42501'};

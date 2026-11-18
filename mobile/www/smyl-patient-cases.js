@@ -4,6 +4,7 @@
   'use strict';
   const M = window.SmylCaseModel, C = window.SmylCaseClient;
   const $ = id => document.getElementById(id);
+  const skeleton = (kind, opts) => window.SmylSkeleton ? window.SmylSkeleton.node(kind, opts) : node('p', '', (opts && opts.label || 'Cargando') + '…');
   const node = (tag, cls, text) => { const n = document.createElement(tag); n.className = cls || ''; if (text != null) n.textContent = text; return n; };
   const button = (text, action, cls) => { const b = node('button', cls || 'pc-secondary', text); b.type = 'button'; b.addEventListener('click', action); return b; };
   const displayName = p => [p.nombre, p.apellido].filter(Boolean).join(' ');
@@ -194,7 +195,7 @@
         dialog.scrollTop=0;
         if(fromComposer||initialTab==='review')host.querySelector('[role="tab"][aria-selected="true"]')?.focus({preventScroll:true});
       }
-      host.append(node('p','ms-preview-loading','Abriendo las imágenes de esta simulación…'));
+      host.append(skeleton('media',{count:4,label:'Abriendo las imágenes de esta simulación'}));
       dialog.append(bar,host);document.body.append(dialog);dialog.showModal();
       dialog.addEventListener('cancel',e=>{e.preventDefault();closeMyPreview(run);});
       dialog.addEventListener('close',()=>closeMyPreview(run));
@@ -252,7 +253,7 @@
       async function load() {
         gallery.dataset.loadState = 'loading'; gallery.smylCaseEntries = [];
         publishSummary(false,0,0,0);
-        body.textContent = 'Consultando sus simulaciones…';
+        body.replaceChildren(skeleton('cards',{count:3,media:true,label:'Consultando sus simulaciones'}));
         if (pacienteActual._local || window.miRolEquipo !== 'dueño') { gallery.dataset.loadState = 'unavailable'; body.textContent = 'La consulta de este archivo visual requiere una ficha en nube y la cuenta titular.'; return; }
         try {
           const api = await C.connect(window.sb, tenant, current);
@@ -286,7 +287,7 @@
             const reviewEntry=button('Revisar fotos y dientes',()=>window.SmylPhotoAnalysis?.open({api,row,current}));reviewEntry.dataset.reviewCase=row.id;reviewEntry.dataset.workspaceAction='review';tools.append(reviewEntry);
             const comparison=button('Ver antes y después', async () => {
               const token = ++viewerSequence;
-              viewerContent.textContent = 'Cargando imágenes privadas…'; viewer.showModal(); revoke();
+              viewerContent.replaceChildren(skeleton('media',{count:4,label:'Cargando imágenes privadas'})); viewer.showModal(); revoke();
               try {
                 const pairs = [];
                 for (const view of row.document.views) {

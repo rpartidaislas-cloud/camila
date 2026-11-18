@@ -731,7 +731,7 @@
 
     async function loadSettings(message) {
       busy = true;
-      controls.replaceChildren(); status.textContent = 'Consultando perfil de chat…';
+      controls.replaceChildren(); status.textContent = 'Consultando perfil de chat…'; if (window.SmylSkeleton) controls.append(window.SmylSkeleton.node('text', { lines: 2, label: 'Consultando perfil de chat' }));
       try {
         var rows = await query(window.sb.rpc('smyl_chat_team_settings'));
         if (!current()) return;
@@ -1065,8 +1065,10 @@
   }
 
   function loadingView() {
+    var metrics = document.getElementById('clinic-admin-metrics');
+    if (metrics && !state.loaded && window.SmylSkeleton) metrics.innerHTML = window.SmylSkeleton.html('kpis', { count: 4, label: 'Cargando indicadores de la clínica' });
     var detail = document.getElementById('clinic-admin-branch-detail');
-    if (detail) detail.innerHTML = '<div class="clinic-admin-loading">Cargando la operación de tu clínica…</div>';
+    if (detail) detail.innerHTML = window.SmylSkeleton ? window.SmylSkeleton.html('detail', { label: 'Cargando la operación de tu clínica' }) : '<div class="clinic-admin-loading">Cargando la operación de tu clínica…</div>';
   }
 
   async function load(force) {

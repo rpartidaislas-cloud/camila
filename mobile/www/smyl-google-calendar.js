@@ -14,7 +14,7 @@
   function fmt(value) { if (!value) return ''; return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)); }
   function ensureDialog() { if (dialog) return dialog; dialog = document.createElement('dialog'); dialog.className = 'google-calendar-dialog'; dialog.setAttribute('aria-labelledby', 'google-calendar-title'); dialog.addEventListener('click', function (event) { if (event.target === dialog) dialog.close(); }); document.body.appendChild(dialog); return dialog; }
   function renderLoading() {
-    ensureDialog().innerHTML = '<section class="google-calendar-panel"><header class="google-calendar-head"><div class="google-calendar-mark"><span>G</span><div><h2 id="google-calendar-title">Google Calendar</h2><p>Sincronización segura</p></div></div><button class="google-calendar-close" type="button" aria-label="Cerrar">×</button></header><div class="google-calendar-body"><p>Consultando la conexión…</p></div></section>';
+    ensureDialog().innerHTML = '<section class="google-calendar-panel"><header class="google-calendar-head"><div class="google-calendar-mark"><span>G</span><div><h2 id="google-calendar-title">Google Calendar</h2><p>Sincronización segura</p></div></div><button class="google-calendar-close" type="button" aria-label="Cerrar">×</button></header><div class="google-calendar-body">' + (window.SmylSkeleton ? window.SmylSkeleton.html('text', { lines: 3, label: 'Consultando la conexión' }) : '<p>Consultando la conexión…</p>') + '</div></section>';
     dialog.querySelector('.google-calendar-close').onclick = function () { dialog.close(); };
   }
   function render(errorText) {
@@ -54,7 +54,7 @@
   async function renderChanges() {
     var panel = ensureReviewPanel(), host = document.getElementById('schedule-google-changes'), count = document.getElementById('schedule-google-count'); if (!panel || !host) return;
     if (!connection || !connection.connected) { host.innerHTML = '<div class="schedule-google-empty"><strong>Conecta Google Calendar</strong><p>Los cambios externos aparecerán aquí.</p><button class="btn btn-primary" type="button" data-open-google>Conectar</button></div>'; host.querySelector('[data-open-google]').onclick = open; if (count) count.textContent = ''; return; }
-    host.innerHTML = '<div class="schedule-google-empty"><p>Buscando cambios…</p></div>';
+    host.innerHTML = window.SmylSkeleton ? window.SmylSkeleton.html('list', { rows: 2, action: true, label: 'Buscando cambios' }) : '<div class="schedule-google-empty"><p>Buscando cambios…</p></div>';
     try {
       var data = await invoke(syncFunction, 'list_changes'), changes = data.changes || []; if (count) count.textContent = changes.length || '';
       if (!changes.length) { host.innerHTML = '<div class="schedule-google-empty"><strong>Todo al día</strong><p>No hay cambios de Google por revisar.</p></div>'; return; }

@@ -101,6 +101,6 @@ test('el módulo de mensajes se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-schedule-message.js', 'smyl-schedule.js', 'smyl-schedule.css', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-schedule-message\.js\?v=3/);
-  assert.match(read('sw.js'), /\/camila\/smyl-schedule-message\.js\?v=3/);
+  assert.match(read('app.html'), /smyl-schedule-message\.js\?v=4/);
+  assert.match(read('sw.js'), /\/camila\/smyl-schedule-message\.js\?v=4/);
 });

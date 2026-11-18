@@ -543,7 +543,7 @@
   function render() {
     var page = document.getElementById('p-nube'); if (!page) return;
     var sidebar = page.querySelector('[data-cloud-side]'); var main = page.querySelector('[data-cloud-main]'); var detail = page.querySelector('[data-cloud-detail]');
-    if (state.loading && !state.summary) { main.innerHTML = ''; main.append(el('p', 'cloud-state', 'Abriendo la Nube…')); sidebar.innerHTML = ''; detail.innerHTML = ''; return; }
+    if (state.loading && !state.summary) { main.innerHTML = ''; if (win.SmylSkeleton) { var skh = el('div', 'cloud-state'); skh.innerHTML = win.SmylSkeleton.html('media', { count: 12, label: 'Abriendo la Nube' }); main.append(skh); } else main.append(el('p', 'cloud-state', 'Abriendo la Nube…')); sidebar.innerHTML = ''; detail.innerHTML = ''; return; }
     if (state.error) { main.innerHTML = ''; var box = el('div', 'cloud-state is-warn'); box.append(el('p', '', state.error), btn('Reintentar', 'btn btn-secondary btn-sm', function () { refresh(); })); main.append(box); sidebar.innerHTML = ''; detail.innerHTML = ''; return; }
     if (!perms().read) { main.innerHTML = ''; main.append(el('p', 'cloud-state', 'Tu rol no tiene acceso a la Nube. Pide a quien administra la clínica el permiso «Ver la Nube».')); sidebar.innerHTML = ''; detail.innerHTML = ''; return; }
     renderSidebar(sidebar);

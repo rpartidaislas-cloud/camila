@@ -101,7 +101,7 @@
   function autoSection(s){
     if(!auto.loaded&&!auto.loading)loadAuto(s);
     var d=auto.data,st=d&&d.settings||{},can=d&&d.can_configure;
-    var html='<details class="mila-iv-card mila-iv-auto"'+(s.autoOpen?' open':'')+'><summary><span><strong>Envío automático</strong><small>'+esc(!d?(auto.error||'Cargando…'):st.enabled?'Activo · '+st.hours_before+' h antes de cada cita':'Apagado')+'</small></span></summary>';
+    var html='<details class="mila-iv-card mila-iv-auto"'+(s.autoOpen?' open':'')+'><summary><span><strong>Envío automático</strong><small>'+(!d?(auto.error?esc(auto.error):'<span class="sk sk-line" style="display:inline-block;width:90px;vertical-align:middle" role="status" aria-label="Cargando"></span>'):esc(st.enabled?'Activo · '+st.hours_before+' h antes de cada cita':'Apagado'))+'</small></span></summary>';
     if(d){
       var hours=[24,48,72];if(hours.indexOf(st.hours_before)<0)hours.push(st.hours_before);
       html+='<p class="mila-iv-note">La entrevista previa sale sola por WhatsApp antes de cada cita confirmada. Nunca se envía dos veces para la misma cita ni más de una vez al mes al mismo paciente.</p>'
