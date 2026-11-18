@@ -1783,6 +1783,10 @@
 
   function openPatientContext(conversationId) {
     if (!hasPermission('clinical.read')) return;
+    // Ya vinculada: directo al expediente (con «Volver al chat»); sin ventana intermedia. Sin vincular: «Vincular paciente».
+    var ficha = state.clinical[conversationId];
+    var linkedId = ficha && ficha.linked && ficha.patient && ficha.patient.id;
+    if (linkedId && window.SmylLanaHandoff && typeof window.SmylLanaHandoff.openPatient === 'function') { window.SmylLanaHandoff.openPatient(linkedId, conversationId); return; }
     if (window.SmylLanaHandoff) window.SmylLanaHandoff.open(conversationId);
   }
 
@@ -2595,7 +2599,11 @@
   function permittedCareActions(conversation) {
     var actions = [];
     if (hasPermission('schedule.manage') && canOperate(conversation, 'schedule.manage')) actions.push({ id: 'schedule', label: 'Agendar cita', run: openAvailabilityDialog });
-    if (hasPermission('clinical.read')) actions.push({ id: 'record', label: 'Expediente', run: function () { openPatientContext(conversation.id); } });
+    if (hasPermission('clinical.read')) {
+      var careFicha = state.clinical[conversation.id];
+      var careLinked = Boolean(careFicha && careFicha.linked && careFicha.patient && careFicha.patient.id);
+      actions.push({ id: 'record', label: careLinked ? 'Expediente' : 'Vincular paciente', run: function () { openPatientContext(conversation.id); } });
+    }
     if (hasPermission('proposal.write') && canOperate(conversation, 'proposal.write')) actions.push({ id: 'quote', label: 'Cotizar', run: function () { openCareTask('quote'); } });
     if (hasPermission('finance.manage') && canOperate(conversation, 'finance.manage')) actions.push({ id: 'payment', label: 'Cobrar', run: function () { openCareTask('payment'); } });
     return actions;
