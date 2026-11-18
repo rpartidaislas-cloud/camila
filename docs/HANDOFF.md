@@ -11543,6 +11543,21 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 
 ## 2026-11-17 — Codex — Finanzas v5: arquitectura profesional y flujo operativo único
 
+## 2026-11-18 — Claude Code — Equipo: SQL para pegar en Supabase (el workflow no arranca por facturación de GitHub)
+- Las dos ejecuciones del workflow «SMYL Equipo - teléfono interno y traslado entre sedes (migración)» fallaron en 1 s sin ejecutar pasos: GitHub muestra «update your payment method» (pago de la cuenta fallido) y no arranca los jobs.
+- `docs/sql-equipo-pegar-en-supabase.sql` junta las migraciones 20261118120000 y 20261118130000 en una transacción idempotente y termina con una fila de verificación (5 columnas `true`). Probado dos veces seguidas en PGlite.
+- Al pegarlo en el SQL Editor no se registra la versión en `supabase_migrations.schema_migrations`; los centinelas de `scripts/migration-sentinels.mjs` permiten registrarlas después.
+- **Pendiente del dueño:** regularizar el pago en GitHub (Settings → Billing and plans) para que los workflows vuelvan a funcionar.
+
+## 2026-11-18 — Claude Code — Chat: «Vincular paciente» y expediente directo
+- **Qué cambia (solo frontend; sin backend ni migración):**
+  - **Ya vinculada:** «Expediente» (barra de acciones y Ficha 360) abre el expediente **directo**, sin la ventana «Preparar expediente clínico» (que solo decía «ya está vinculada» con un botón). Aparece un botón flotante **«← Volver al chat»** (`smyl-lana-handoff.js` v6, `.css` v2) que regresa a Mensajes y se quita al ir a otra pantalla. Si `open()` descubre que ya hay vínculo (p. ej. desde la lista de atención), también abre directo.
+  - **Sin vincular:** la ventana se llama **«Vincular paciente»** (y el botón de la barra dice «Vincular paciente» en vez de «Expediente»; en la Ficha 360, «Resolver identidad» → «Vincular paciente»). Con coincidencias pregunta «¿Es alguno de estos pacientes?» sin preseleccionar; sin contacto (Instagram/Messenger sin teléfono ni correo) lo explica. Nuevo **buscador de pacientes existentes** (nombre, teléfono o correo; hasta 8; texto limpiado antes de consultar `camila_pacientes` de la clínica) y el botón dice a quién vincula («Vincular a …» / «Crear paciente nuevo»).
+- **Backend sin cambios:** vincular reutiliza `patient_link_confirm` con el `patient_id` elegido (la RPC `camila_confirmar_lana_handoff` ya valida el tenant). La vinculación automática (`auto_patient_link`) ya existía; la ventana solo aparece cuando hay duda.
+- **Pruebas:** `tests/smyl-vincular-paciente-chat.test.mjs`; actualizada `smyl-inbox-automatic-patient-link-stage8.test.mjs` (la regla «no preseleccionar» ahora se expresa con «Elige una opción»). Probado en navegador con un entorno simulado (18 comprobaciones, celular incluido).
+- **Ya fallaban en main antes de este cambio:** `smyl-inbox-composer-dialogs-browser.test.mjs` (3) y `smyl-ui-v3.test.mjs` «deuda tipográfica» (938 → 939 por otra sesión).
+- **No verificado:** que `ir('inbox')` reabra exactamente la conversación en la que estabas (depende de la selección en memoria del chat); probar en la app.
+
 - **Nombre y alcance:** el módulo conserva la ruta interna `caja`, pero toda la interfaz visible se unifica como **Finanzas**: navegación, encabezados, Configuración, Agenda, Cotizaciones, Consultorio, alertas, catálogo y mensajes. No se modificaron tablas, migraciones, RLS ni Edge Functions.
 - **Nueva arquitectura:** `Resumen` → `Cuentas por cobrar` → `Pagos y recibos` → `Facturación` → `Caja`. El Resumen es la entrada predeterminada y presenta prioridades verificables: cartera vencida, cuentas por crear, saldos a favor y cajas abiertas por más de 18 horas.
 - **Proceso guiado:** se añadió el recorrido «Del saldo al cierre» con cuatro pasos accionables: cuenta, pago/recibo, factura y conciliación de caja. Cada sección conserva únicamente sus acciones relevantes; las operaciones menos frecuentes quedan agrupadas en `Operaciones`.
