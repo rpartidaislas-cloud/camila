@@ -11540,3 +11540,9 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
   - Tolerante a base sin actualizar: si falta `smyl_professionals.phone` no se muestra el teléfono; si falta `smyl_schedule_rules` se oculta la tarjeta de traslado.
 - **Archivos:** `smyl-clinic-admin.js` v14, `smyl-clinic-admin.css` v11, `app.html`, `sw.js` (caché `…-equipo-ficha-v1`), copias en `mobile/www/`; pruebas `tests/equipo-ficha.test.mjs` (9) y `tests/qa/equipo-ficha-smoke.cjs` (administrador, consulta, base sin actualizar, fallo de red, encabezado en Configuración y celular); ajustadas 6 pruebas que fijaban textos, clases y versiones de la pantalla anterior.
 - **Pendiente:** aplicar en producción el workflow «SMYL Equipo - teléfono interno y traslado entre sedes (migración)» para activar teléfono y traslado; limpiar los 6 doctores de prueba (`Céd. PRUEBA-00x`) que aparecen en producción; doctor en dos clínicas distintas (proyecto aparte).
+
+## 2026-11-18 — Claude Code — Equipo: SQL para pegar en Supabase (el workflow no arranca por facturación de GitHub)
+- Las dos ejecuciones del workflow «SMYL Equipo - teléfono interno y traslado entre sedes (migración)» fallaron en 1 s sin ejecutar pasos: GitHub muestra «update your payment method» (pago de la cuenta fallido) y no arranca los jobs.
+- `docs/sql-equipo-pegar-en-supabase.sql` junta las migraciones 20261118120000 y 20261118130000 en una transacción idempotente y termina con una fila de verificación (5 columnas `true`). Probado dos veces seguidas en PGlite.
+- Al pegarlo en el SQL Editor no se registra la versión en `supabase_migrations.schema_migrations`; los centinelas de `scripts/migration-sentinels.mjs` permiten registrarlas después.
+- **Pendiente del dueño:** regularizar el pago en GitHub (Settings → Billing and plans) para que los workflows vuelvan a funcionar.
