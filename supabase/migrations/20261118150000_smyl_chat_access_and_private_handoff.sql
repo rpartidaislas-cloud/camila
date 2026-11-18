@@ -522,4 +522,20 @@ returns boolean language sql stable security definer set search_path=pg_catalog,
 $$;
 revoke all on function public.smyl_chat_scope_changed(uuid,uuid,timestamptz) from public,anon,authenticated;
 grant execute on function public.smyl_chat_scope_changed(uuid,uuid,timestamptz) to service_role;
+-- An inferred location may fill a missing route while a clinician reads their inbox.
+-- Never overwrite a manual selection, including one committed after the list was fetched.
+create or replace function public.smyl_chat_infer_branch(p_tenant uuid,p_actor uuid,p_conversation uuid,p_branch uuid)
+returns boolean language plpgsql security definer set search_path=pg_catalog,public as $$
+begin
+  perform pg_advisory_xact_lock(hashtextextended('smyl-chat:'||p_tenant::text,0));
+  if p_branch is null or not public.smyl_chat_visible(p_tenant,p_actor,p_conversation)
+    or not public.smyl_chat_route_allowed(p_tenant,p_actor,p_branch) then return false; end if;
+  insert into public.smyl_conversation_branches(tenant_id,conversation_id,branch_id,source,assigned_at)
+    values(p_tenant,p_conversation,p_branch,'ai',clock_timestamp()) on conflict (tenant_id,conversation_id) do nothing;
+  return exists(select 1 from public.smyl_conversation_branches b
+    where b.tenant_id=p_tenant and b.conversation_id=p_conversation and b.branch_id=p_branch);
+end;
+$$;
+revoke all on function public.smyl_chat_infer_branch(uuid,uuid,uuid,uuid) from public,anon,authenticated;
+grant execute on function public.smyl_chat_infer_branch(uuid,uuid,uuid,uuid) to service_role;
 commit;
