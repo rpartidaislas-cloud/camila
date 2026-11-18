@@ -70,13 +70,13 @@ test('la lista de citas separa próximas y anteriores, con tratamiento, dentista
 test('web, móvil y PWA publican la ficha 360 v4', () => {
   for (const file of ['app.html', 'sw.js']) {
     assert.match(read(file), /smyl-inbox-ficha\.js\?v=10/);
-    assert.match(read(file), /smyl-inbox\.js\?v=71/);
-    assert.match(read(file), /smyl-inbox\.css\?v=60/);
+    assert.match(read(file), /smyl-inbox\.js\?v=72/);
+    assert.match(read(file), /smyl-inbox\.css\?v=61/);
     assert.match(read(file), /smyl-schedule\.js\?v=46/);
     assert.match(read(file), /smyl-finance\.js\?v=58/);
   }
   assert.match(read('sw.js'), /-ficha360-v4-finanzas-workspace-v5-datos-paciente-v1-expediente-orden-v2';/);
-  assert.match(read('sw.js'), /-chat-access-v1-citas-pipeline-v2-panel-v1';/);
+  assert.match(read('sw.js'), /-chat-access-v1-citas-pipeline-v2-panel-v2';/);
   for (const file of ['smyl-inbox.js', 'smyl-inbox-ficha.js', 'smyl-inbox.css', 'smyl-schedule.js', 'smyl-finance.js', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);
   }

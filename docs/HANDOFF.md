@@ -4,7 +4,7 @@
 
 - Pulsar una tarjeta abre el hilo en un espacio propio a la derecha del tablero. Usa el mismo compositor, la misma Ficha 360, la transferencia y la agenda de Mensajes. En celular, la flecha de regreso devuelve el foco y la posición a la tarjeta. La espera se puede cancelar antes de marcar el hilo como leído.
 - «Citas de hoy» filtra la cita relevante de cada chat en la zona horaria de su sucursal, carga las páginas pendientes y ordena por hora dentro de la etapa. Las cancelaciones e inasistencias quedan fuera. Agenda mantiene la vista de todos los turnos del paciente. El control compacto «Cambiar etapa» sigue disponible con teclado, ratón y pantalla táctil.
-- Esta entrega web y PWA integra los indicadores de carga de la versión anterior. Utiliza `smyl-inbox.js` v71 y `smyl-inbox.css` v60, con copias idénticas en `mobile/www`. La vista de prueba con cuatro contactos ficticios se abre en `tests/fixtures/smyl-inbox-stage7-preview.html?pipeline-preview`.
+- Esta entrega web y PWA integra los indicadores de carga de la versión anterior. Utiliza `smyl-inbox.js` v72 y `smyl-inbox.css` v61, con copias idénticas en `mobile/www`. La vista de prueba con cuatro contactos ficticios se abre en `tests/fixtures/smyl-inbox-stage7-preview.html?pipeline-preview`.
 
 ## 2026-11-18 — Citas en Mensajes y Pipeline
 
