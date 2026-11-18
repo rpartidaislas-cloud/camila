@@ -56,8 +56,8 @@ test('el historial comienza debajo de la cabecera y reserva la nota privada para
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=69/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=58/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=70/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=59/);
 });
 
 test('la cabecera grande se reemplaza por una barra delgada y los contadores viven en las pestañas', () => {
@@ -98,7 +98,7 @@ test('Chat limpio: un solo aviso de plantilla, conversación abierta que no desa
   assert.match(js, /send\.innerHTML = templateOnly/);
   assert.match(js, /Elegir plantilla aprobada/);
   assert.doesNotMatch(js, /smyl-inbox-window-action/, 'el aviso no duplica la acción de plantilla');
-  assert.match(js, /var keepOpen = item\.id === state\.selectedId;/);
+  assert.match(js, /var keepOpen = item\.id === state\.selectedId && \(state\.view !== 'pipeline' \|\| state\.pipelineChatId === item\.id\)/);
   assert.match(js, /Ventana 24 h: quedan /);
   assert.doesNotMatch(js, /smyl-inbox-briefing-files/, '«Archivos» ya no vive en la franja de resumen');
   const css = fs.readFileSync(new URL('../smyl-inbox.css', import.meta.url), 'utf8');

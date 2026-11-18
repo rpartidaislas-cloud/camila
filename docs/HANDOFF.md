@@ -1,5 +1,11 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-18 — Chat lateral desde Pipeline
+
+- Pulsar una tarjeta abre el hilo en un espacio propio a la derecha del tablero. Usa el mismo compositor, la misma Ficha 360, la transferencia y la agenda de Mensajes. En celular, la flecha de regreso devuelve el foco y la posición a la tarjeta. La espera se puede cancelar antes de marcar el hilo como leído.
+- «Citas de hoy» filtra la cita relevante de cada chat en la zona horaria de su sucursal, carga las páginas pendientes y ordena por hora dentro de la etapa. Las cancelaciones e inasistencias quedan fuera. Agenda mantiene la vista de todos los turnos del paciente. El control compacto «Cambiar etapa» sigue disponible con teclado, ratón y pantalla táctil.
+- Recursos web y móvil: `smyl-inbox.js` v70, `smyl-inbox.css` v59. La vista de prueba con cuatro contactos ficticios se abre en `tests/fixtures/smyl-inbox-stage7-preview.html?pipeline-preview`. Esta etapa se verificó localmente y queda pendiente de publicar.
+
 ## 2026-11-18 — Citas en Mensajes y Pipeline
 
 - Las tarjetas de conversación muestran la cita relevante. En la Ficha 360 se consultan fecha, profesional y sucursal según los permisos de Agenda. Se retiraron la franja «SMYL te pone al día» y el menú «Conversación». La cabecera conserva «Agendar cita».

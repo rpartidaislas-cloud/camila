@@ -38,8 +38,9 @@ test('las tarjetas se mueven arrastrando o con «Mover a» y solo con permiso', 
   assert.match(card, /canTransfer\(item\)/);
   assert.match(card, /card\.draggable = movable/);
   assert.match(card, /dragstart/);
-  assert.match(card, /'Mover a'/);
-  assert.match(card, /setInboxView\('list'\); openConversation\(item\.id\)/);
+  assert.match(card, /Cambiar etapa de/);
+  assert.match(card, /openConversation\(item\.id\)/);
+  assert.doesNotMatch(card, /setInboxView\('list'\)/);
 });
 
 test('el pipeline no marca como leídas conversaciones que nadie abrió', () => {
@@ -139,7 +140,7 @@ for (const mobile of [false,true]) {
 
 test('el tablero es horizontal en escritorio y desliza por columna en celular', () => {
   assert.match(css, /\.smyl-inbox-pipeline-board\{[^}]*overflow-x:auto/);
-  assert.match(css, /\.smyl-inbox-page\.view-pipeline \.smyl-inbox-workspace>:not\(dialog\)\{display:none\}/);
+  assert.match(css, /\.smyl-inbox-page\.view-pipeline:not\(\.pipeline-chat-open\) \.smyl-inbox-workspace>:not\(dialog\)\{display:none\}/);
   assert.match(css, /scroll-snap-type:x mandatory/);
   assert.match(css, /\.smyl-inbox-pipeline-move\{display:grid/);
 });
@@ -212,10 +213,10 @@ test('sincroniza 205 tarjetas una vez por canal y recupera solo el lote de etapa
 test('web, móvil y PWA publican el pipeline', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(app, /smyl-inbox\.js\?v=69/);
-  assert.match(app, /smyl-inbox\.css\?v=58/);
-  assert.match(worker, /smyl-inbox\.js\?v=69/);
-  assert.match(worker, /smyl-inbox\.css\?v=58/);
+  assert.match(app, /smyl-inbox\.js\?v=70/);
+  assert.match(app, /smyl-inbox\.css\?v=59/);
+  assert.match(worker, /smyl-inbox\.js\?v=70/);
+  assert.match(worker, /smyl-inbox\.css\?v=59/);
 });
 
 test('sin canales conectados el Inbox muestra una sola explicación en lugar de lista, hilo y compositor vacíos', () => {
