@@ -2558,8 +2558,11 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 }
 
 .smyl-inbox-compose-bar .smyl-inbox-compose-more {
-  min-width: 128px;
-  padding-inline: 12px;
+  width: 44px;
+  min-width: 44px;
+  flex: 0 0 44px;
+  padding: 0;
+  justify-content: center;
   border: 1px solid #D8E2E8;
   background: #F8FAFB;
   color: #29465B;

@@ -18,7 +18,7 @@ test('todas las herramientas presentes y futuras viven bajo un único lanzador',
   for (const marker of ['data-compose-copilot', 'data-compose-send', 'data-compose-more']) {
     assert.equal((inbox.match(new RegExp(marker, 'g')) || []).length >= 1, true, marker);
   }
-  for (const marker of ['data-compose-attach', 'data-compose-quick', 'data-compose-emoji', 'data-compose-template', 'data-compose-schedule', 'data-compose-record', 'data-compose-location']) {
+  for (const marker of ['data-compose-attach', 'data-compose-quick', 'data-compose-rewrite', 'data-compose-emoji', 'data-compose-template', 'data-compose-schedule', 'data-compose-record', 'data-compose-location']) {
     assert.match(inbox, new RegExp(`<button[^>]+${marker}[^>]+role="menuitem"`));
   }
   assert.match(inbox, /smyl-inbox-compose-primary"><button[^>]+data-compose-more[^>]*>[\s\S]*?<\/button><\/div><input type="file"/);

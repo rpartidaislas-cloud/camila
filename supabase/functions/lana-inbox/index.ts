@@ -6,6 +6,9 @@ import { makeCors } from "../_shared/cors.ts";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
+const MESSAGE_REWRITE_MODEL = Deno.env.get("OPENAI_MILA_MESSAGE_MODEL") || Deno.env.get("OPENAI_MILA_NOTE_MODEL") || "gpt-5-mini";
+const CONSUMABLES_ENFORCED = (Deno.env.get("SMYL_CONSUMABLES_ENFORCED") || "false") === "true";
 const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 
 type Actor = {
@@ -50,6 +53,78 @@ function json(status: number, body: Record<string, unknown>): Response {
 
 function text(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
+
+function responseUsage(payload: Record<string, unknown>): Record<string, number> {
+  const source = payload.usage && typeof payload.usage === "object" ? payload.usage as Record<string, unknown> : {};
+  const result: Record<string, number> = {};
+  for (const key of ["input_tokens", "output_tokens", "total_tokens"]) {
+    const value = Number(source[key]);
+    if (Number.isFinite(value) && value >= 0) result[key] = Math.round(value);
+  }
+  if (!("total_tokens" in result) && (result.input_tokens || result.output_tokens)) {
+    result.total_tokens = (result.input_tokens || 0) + (result.output_tokens || 0);
+  }
+  return result;
+}
+
+function responseOutputText(payload: Record<string, unknown>): string {
+  if (typeof payload.output_text === "string") return payload.output_text;
+  const output = Array.isArray(payload.output) ? payload.output : [];
+  for (const item of output as Array<Record<string, unknown>>) {
+    const content = Array.isArray(item.content) ? item.content : [];
+    for (const part of content as Array<Record<string, unknown>>) {
+      if (typeof part.text === "string") return part.text;
+    }
+  }
+  throw new Error("MILA no devolvió una redacción.");
+}
+
+function stableMessageFacts(value: string): { numbers: string[]; urls: string[] } {
+  return {
+    numbers: (value.match(/\b\d+(?:[.,:/-]\d+)*\b/g) || []).map((item) => item.trim()).sort(),
+    urls: (value.match(/https?:\/\/[^\s]+/gi) || []).map((item) => item.trim()).sort(),
+  };
+}
+
+async function improveMessageWriting(sourceText: string): Promise<{ rewrittenText: string; usage: Record<string, number> }> {
+  const schema = {
+    type: "object",
+    properties: { rewritten_text: { type: "string" } },
+    required: ["rewritten_text"],
+    additionalProperties: false,
+  };
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: MESSAGE_REWRITE_MODEL,
+      store: false,
+      max_output_tokens: 1400,
+      input: [
+        {
+          role: "system",
+          content: [{
+            type: "input_text",
+            text: `Eres MILA, asistente de comunicación de una clínica dental. Corrige únicamente ortografía, puntuación, concordancia, repeticiones y claridad del mensaje escrito por una persona del equipo.
+Conserva exactamente el significado, tono, intención, incertidumbre, negaciones, nombres, fechas, horas, montos, teléfonos, cantidades, enlaces y compromisos. Mantén saltos de línea y emojis cuando ayuden a la lectura.
+No inventes ni agregues hechos, diagnósticos, tratamientos, precios, promociones, disponibilidad, políticas ni promesas. No cambies una pregunta por una afirmación ni una posibilidad por una certeza. No respondas al paciente: solo devuelve el mismo mensaje mejor redactado en español.`,
+          }],
+        },
+        { role: "user", content: [{ type: "input_text", text: sourceText }] },
+      ],
+      text: { format: { type: "json_schema", name: "mila_message_rewrite", strict: true, schema } },
+    }),
+  });
+  const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
+  if (!response.ok) throw new Error(`Redacción ${response.status}`);
+  const parsed = JSON.parse(responseOutputText(payload)) as Record<string, unknown>;
+  const rewrittenText = typeof parsed.rewritten_text === "string" ? parsed.rewritten_text.trim() : "";
+  if (!rewrittenText || rewrittenText.length > 4000) throw new Error("Redacción fuera de límite");
+  if (JSON.stringify(stableMessageFacts(sourceText)) !== JSON.stringify(stableMessageFacts(rewrittenText))) {
+    throw new Error("La redacción alteró datos verificables");
+  }
+  return { rewrittenText, usage: responseUsage(payload) };
 }
 
 async function actorFor(user: { id: string; email?: string }, tenantId: string): Promise<Actor | null> {
@@ -1045,6 +1120,58 @@ async function handleInbox(req: Request): Promise<Response> {
       const channel = text(body.channel, 20);
       if (!["whatsapp", "messenger", "instagram"].includes(channel)) return json(400, { error: "Canal no válido." });
       return await linkClinicalImage(auth.tenantId, actor, conversationId, channel, body.message_id, body.label);
+    }
+    if (action === "rewrite_message") {
+      const denied = requirePermission(actor, "messages.respond", "Tu rol no permite preparar respuestas para pacientes.");
+      if (denied) return denied;
+      const idempotencyKey = uuid(req.headers.get("Idempotency-Key"));
+      if (!idempotencyKey) return json(400, { error: "Idempotency-Key debe ser un UUID válido." });
+      const sourceText = typeof body.source_text === "string" ? body.source_text.trim() : "";
+      if (sourceText.length < 2 || sourceText.length > 4000) {
+        return json(400, { error: "Escribe un mensaje de entre 2 y 4,000 caracteres para mejorarlo." });
+      }
+      if (!OPENAI_API_KEY) return json(503, { error: "MILA no está configurada todavía." });
+      if (CONSUMABLES_ENFORCED) {
+        const { data: wallet } = await admin.from("smyl_wallets").select("balance_units")
+          .eq("tenant_id", auth.tenantId).eq("resource", "ai_credits").maybeSingle();
+        if (!wallet || Number(wallet.balance_units) < 1) {
+          return json(402, { error: "No hay créditos de MILA suficientes para mejorar este mensaje." });
+        }
+      }
+      try {
+        const improved = await improveMessageWriting(sourceText);
+        const { data: usage, error: usageError } = await admin.rpc("smyl_consume", {
+          p_tenant_id: auth.tenantId,
+          p_resource: "ai_credits",
+          p_quantity_units: 1,
+          p_idempotency_key: `message-rewrite:${idempotencyKey}`,
+          p_source_type: "message_rewrite",
+          p_source_id: conversationId,
+          p_provider: "openai",
+          p_provider_model: MESSAGE_REWRITE_MODEL,
+          p_metadata: {
+            context: "chat_composer",
+            token_usage: improved.usage,
+            consumables_enforced: CONSUMABLES_ENFORCED,
+          },
+          p_enforce: CONSUMABLES_ENFORCED,
+        });
+        if (usageError) throw new Error("No se pudo registrar el consumo de MILA.");
+        const usageRow = Array.isArray(usage) ? usage[0] : usage;
+        if (usageRow && usageRow.accepted === false) {
+          return json(402, { error: "No hay créditos de MILA suficientes para mejorar este mensaje." });
+        }
+        return json(200, {
+          mode: "rewrite",
+          rewritten_text: improved.rewrittenText,
+          token_usage: improved.usage,
+          usage_recorded: true,
+          actor,
+        });
+      } catch (error) {
+        console.error("[lana-inbox:rewrite-message]", idempotencyKey, error instanceof Error ? error.message : error);
+        return json(502, { error: "MILA no pudo mejorar la redacción. Tu texto original no cambió." });
+      }
     }
     if (action === "copilot") {
       const denied = requirePermission(actor, "messages.respond", "Tu rol no permite preparar respuestas para pacientes.");

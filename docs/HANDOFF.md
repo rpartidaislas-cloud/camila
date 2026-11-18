@@ -11470,3 +11470,12 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
   - **Plan y suscripción** (`#p-plan`, ruta `plan`): tarjeta del plan, Cambiar plan, Gestionar suscripción y uso mensual, con enlace a `consumos.html` (consumo de MILA, IA, Meta y almacenamiento, que ya existía). Solo para `miRolEquipo === 'dueño'`; para el equipo `ir('plan')` muestra «no disponible» y la tarjeta se oculta en Configuración (`ownerOnly` en `smyl-settings-hub.js`).
 - **Archivos:** `app.html`, `smyl-settings-hub.js` v9, `smyl-navigation.js` v26, `sw.js` (caché `…-mi-cuenta-personal-v1`), copias en `mobile/www/`, `tests/smyl-settings-hub.test.mjs` (versiones) y humo nuevo `tests/qa/mi-cuenta-smoke.cjs` (dueño y equipo).
 - **Pendiente (con aprobación):** pantalla «Mi consultorio» (nombre comercial, logo, teléfono, datos fiscales, sucursales) y completar «Plan y consumo» con tokens/datos cuando se confirme qué se mide.
+
+## 2026-11-17 — Codex — Mensajes v7: botón +, ubicación multicanal y corrección con MILA
+
+- El lanzador del compositor conserva su nombre accesible, pero visualmente muestra sólo `+` en un control de 44 px. Las herramientas existentes siguen dentro de la misma caja extensible.
+- `Enviar ubicación` usa la ubicación actual del dispositivo: WhatsApp recibe el tipo nativo de Meta; Instagram y Messenger reciben un enlace de Google Maps como texto. Si la persona cambia de conversación mientras concede permiso, no se envía nada.
+- `Mejorar redacción` envía a MILA únicamente el borrador actual. Corrige ortografía y claridad, presenta una comparación revisable y nunca reemplaza ni envía automáticamente. El servidor rechaza resultados que cambien números o enlaces.
+- Cada corrección registra un crédito de IA y los tokens exactos devueltos por el proveedor mediante `smyl_consume`; el texto no se guarda en los metadatos de consumo. Requiere permiso `messages.respond` y acceso a la conversación.
+- Versiones: `smyl-inbox.js?v=62`, `smyl-inbox.css?v=53`, caché `inbox-writing-tools-v7`; web y `mobile/www/` sincronizados. Edge Function `lana-inbox` y bundle de despliegue actualizados.
+- Verificación: 1,865 pruebas (1,749 aprobadas, 116 omitidas, 0 fallos) y QA visual a 1440, 1024 y 390 px sin desbordes, superposiciones, microtexto ni controles pequeños.

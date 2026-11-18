@@ -162,6 +162,7 @@ Cada conversación del DTO incluye ahora `priority`, `branch_id` y
 |---|---|---|---|
 | `list` con filtros | `GET` | `messages.read` y alcance del rol | `GET /inbox?…` |
 | `ai_feedback` | `GET` | propietario | `GET /inbox/feedback` |
+| `rewrite_message` | `POST` | `messages.respond` y alcance de la conversación | SMYL llama a MILA; devuelve una sugerencia, registra tokens y nunca envía el mensaje |
 | `priority`, `branch` | `POST` | `messages.manage` y alcance de la conversación | `POST /inbox/conversations/:id/{priority,branch}` |
 | `stage_create`, `stage_update`, `stage_reorder`, `stage_seed_dental` | `POST` | propietario | `POST`/`PUT /inbox/stages…` |
 
