@@ -2,7 +2,9 @@
 // El documento NO se guarda: se envía a la IA, se devuelven los datos y se descarta.
 // Las reglas del receptor (RFC, régimen, nombre) son las de smyl-fiscal-rules.js; un test comprueba que coinciden.
 export const FISCAL_EXTRACT_MODEL = "claude-haiku-5-5";
-export const FISCAL_EXTRACT_MAX_TOKENS = 900;
+// Haiku 5.5 piensa por defecto (adaptive): el tope cubre razonamiento + JSON. El esfuerzo va en «low» (tarea de copiado).
+export const FISCAL_EXTRACT_MAX_TOKENS = 4000;
+export const FISCAL_EXTRACT_EFFORT = "low";
 export const FISCAL_EXTRACT_TIMEOUT_MS = 45_000;
 export const MAX_FILE_BASE64 = 6_000_000; // ~4.5 MB de archivo
 export const TIPOS_ARCHIVO = ["image/jpeg", "image/png", "application/pdf"];
@@ -24,7 +26,8 @@ export const FISCAL_SCHEMA = {
     rfc: { type: "string", description: "RFC exactamente como aparece, o cadena vacía." },
     legal_name: { type: "string", description: "Persona física: nombre(s) y apellidos en ese orden. Persona moral: denominación o razón social tal como aparece. Cadena vacía si no se ve." },
     tax_postal_code: { type: "string", description: "Código postal del domicilio fiscal (5 dígitos), o cadena vacía." },
-    fiscal_regimes: { type: "array", maxItems: 8, items: { type: "string", description: "Nombre del régimen tal como aparece en la sección «Regímenes» de la constancia." } },
+    // Sin maxItems: los structured outputs no aceptan restricciones de arreglos y la API rechaza el esquema (400). El tope se aplica en leerConstancia.
+    fiscal_regimes: { type: "array", items: { type: "string", description: "Nombre del régimen tal como aparece en la sección «Regímenes» de la constancia." } },
     email: { type: "string", description: "Correo electrónico si aparece, o cadena vacía." },
   },
 };
@@ -91,7 +94,7 @@ export function leerConstancia(text) {
   const tipo = rfcOk ? (rfc.length === 13 ? "F" : "M") : "";
   if (!rfcOk) warnings.push("No se pudo leer un RFC válido: escríbelo a mano.");
   const cp = String(raw.tax_postal_code || "").replace(/\D/g, "");
-  const codigos = (Array.isArray(raw.fiscal_regimes) ? raw.fiscal_regimes : []).map(codigoDeRegimen).filter((c, i, a) => c && a.indexOf(c) === i && (!tipo || REGIMENES[c].includes(tipo)));
+  const codigos = (Array.isArray(raw.fiscal_regimes) ? raw.fiscal_regimes.slice(0, 8) : []).map(codigoDeRegimen).filter((c, i, a) => c && a.indexOf(c) === i && (!tipo || REGIMENES[c].includes(tipo)));
   if (!codigos.length) warnings.push("No se identificó el régimen fiscal: elígelo de la lista.");
   else if (codigos.length > 1) warnings.push("La constancia tiene varios regímenes. Elige el que el paciente usará para esta factura.");
   if (raw.legible === false) warnings.push("El archivo se ve borroso o incompleto: revisa cada dato con cuidado.");

@@ -6,7 +6,7 @@ import { requireUser } from "../_shared/auth.ts";
 import { makeCors } from "../_shared/cors.ts";
 import { inicioDiaUTC, inicioMesUTC } from "../_shared/ai-quota.ts";
 import {
-  FISCAL_EXTRACT_MODEL, FISCAL_EXTRACT_MAX_TOKENS, FISCAL_EXTRACT_TIMEOUT_MS, FISCAL_SCHEMA, FISCAL_SYSTEM,
+  FISCAL_EXTRACT_MODEL, FISCAL_EXTRACT_MAX_TOKENS, FISCAL_EXTRACT_EFFORT, FISCAL_EXTRACT_TIMEOUT_MS, FISCAL_SCHEMA, FISCAL_SYSTEM,
   topesDeEntorno, evaluarTopeFiscal, archivoValido, leerConstancia,
 } from "../_shared/fiscal-core.mjs";
 
@@ -75,12 +75,16 @@ Deno.serve(async (req: Request) => {
           { type: esPdf ? "document" : "image", source: { type: "base64", media_type: body.media_type, data: body.file_base64 } },
           { type: "text", text: "Copia los datos fiscales de esta constancia." },
         ] }],
-        output_config: { format: { type: "json_schema", schema: FISCAL_SCHEMA } },
+        output_config: { effort: FISCAL_EXTRACT_EFFORT, format: { type: "json_schema", schema: FISCAL_SCHEMA } },
       }),
     }).finally(() => clearTimeout(timer));
     const message = await resp.json().catch(() => ({}));
     const duracion = Date.now() - inicio;
-    if (!resp.ok) { await medir(tenantId, message?.id || null, "error", null, duracion, null); return json(CORS, 502, { error: "La IA no pudo leer el archivo. Captura los datos a mano." }); }
+    if (!resp.ok) {
+      // Solo tipo y mensaje del error de la API (nunca el documento): permite diagnosticar sin exponer datos del paciente.
+      console.error("[fiscal-extract] la API rechazó la solicitud:", resp.status, message?.error?.type || "", String(message?.error?.message || "").slice(0, 300));
+      await medir(tenantId, message?.request_id || null, "error", null, duracion, `api_${resp.status}`);
+      return json(CORS, 502, { error: "La IA no pudo leer el archivo. Captura los datos a mano." }); }
     const texto = Array.isArray(message.content) ? message.content.filter((b: Json) => b?.type === "text").map((b: Json) => b.text).join("") : "";
     const sugerencia = leerConstancia(texto);
     await medir(tenantId, message.id || null, sugerencia ? "ok" : "incomplete", message.usage || null, duracion, message.stop_reason);
