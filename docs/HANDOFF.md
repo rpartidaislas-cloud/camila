@@ -8,6 +8,11 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-19 — Ficha y Archivos en Mensajes
+
+- La X cierra únicamente la ficha del paciente, en el panel lateral y en el móvil. Conserva el borrador del chat y el acceso por teclado.
+- Ficha y Archivos son dos vistas del mismo paciente. Los adjuntos ya no aparecen como bloque de la carátula. Se quitaron del pie Expediente, Cotizar y Ajustes del chat; este último sigue disponible desde el menú + del chat. No se eliminan documentos ni se cambian permisos.
+
 ## 2026-11-19 — Ubicaciones, relevo privado y lectura del historial
 
 - Conversaciones y el chat lateral del Pipeline comparten las tarjetas «Ubicación compartida · Abrir mapa». Se conservan las indicaciones escritas; las ubicaciones que no se pueden interpretar se muestran sin inventar coordenadas. Leer el chat no carga mapas de terceros.

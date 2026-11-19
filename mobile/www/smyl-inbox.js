@@ -26,7 +26,7 @@
     filter: 'all', channel: '', search: '', selectedId: null, filterPanelOpen: false, branches: [], branchFilter: '', branchMenu: null,
     messages: {}, pages: {}, pending: {}, loadingList: false, loadingThread: false,
     listError: '', threadError: '', syncedAt: null, actor: null, stages: [],
-    threadController: null, contextOpen: false, contextSections: {}, contextReturnFocus: null, f360Open: null, f360Visits: {}, f360VisitsAll: {}, f360Movements: {}, f360File: {}, f360Filter: {}, f360Shared: {}, f360Summary: {}, contextDockedPreferred: initialDockedContextPreference(), polling: false,
+    threadController: null, contextOpen: false, contextSections: {}, contextReturnFocus: null, f360Open: null, f360Tab: {}, f360Visits: {}, f360VisitsAll: {}, f360Movements: {}, f360File: {}, f360Filter: {}, f360Shared: {}, f360Summary: {}, contextDockedPreferred: initialDockedContextPreference(), polling: false,
     replyTo: null, attachment: null, clinical: {}, clinicalLoading: {},
     copilot: {}, copilotLoading: {},
     templates: [], templatesLoaded: false, templatesLoading: false,
@@ -75,7 +75,7 @@
     if (state.selectedId !== id) persistEncryptedDraft(id, '').catch(function () {});
     state.conversations = state.conversations.filter(function (item) { return item.id !== id; });
     ['messages','pages','pending','clinical','clinicalLoading','copilot','scheduled','appointmentContext','patientLinkChecked',
-      'f360Visits','f360VisitsAll','f360Movements','f360File','f360Filter','f360Shared','f360Summary'].forEach(function (key) { delete state[key][id]; });
+      'f360Tab','f360Visits','f360VisitsAll','f360Movements','f360File','f360Filter','f360Shared','f360Summary'].forEach(function (key) { delete state[key][id]; });
     state.bulkSelected.delete(id);
     window.dispatchEvent(new CustomEvent('smyl:inbox-removed',{detail:{id:id}}));
     if (state.pipelineChatId === id) {
@@ -121,6 +121,7 @@
       threadEpoch.clear();
       forgetChat(state.selectedId);
       state.conversations = []; state.operations = null;
+      state.f360Tab = {}; state.f360Filter = {}; state.f360File = {}; state.f360Shared = {};
       state.messages = {}; state.clinical = {}; state.syncedAt = null; state.total = 0;
       state.didAutoOpen = false; state.filter = 'all'; state.pipelineToday = false; renderNavBadge(0);
     }
@@ -373,6 +374,8 @@
     mic: '<rect x="9" y="3" width="6" height="12" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"></path>',
     location: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle>',
     person: '<circle cx="10" cy="8" r="3.5"></circle><path d="M3 20v-2a7 7 0 0 1 12.2-4.7M16 17l2 2 4-5"></path>',
+    close: '<path d="m6 6 12 12M18 6 6 18"></path>',
+    settings: '<path d="M3 7h6m4 0h8M3 17h10m4 0h4"></path><circle cx="11" cy="7" r="2"></circle><circle cx="15" cy="17" r="2"></circle>',
     chevron: '<path d="m9 18 6-6-6-6"></path>'
   };
 
@@ -2386,6 +2389,7 @@
     var section = active.closest && active.closest('[data-section]');
     var scope = section || panel; var items = focusableWithin(scope);
     return {
+      conversationId: state.selectedId, view: state.f360Tab[state.selectedId] || 'profile',
       section: section && section.dataset.section || '',
       index: Math.max(0, items.indexOf(active)),
       label: active.getAttribute && active.getAttribute('aria-label') || '',
@@ -2399,7 +2403,8 @@
     if (!snapshot) return;
     setTimeout(function () {
       var panel = document.querySelector('[data-inbox-context-panel]');
-      if (!state.contextOpen || !panel || panel.getAttribute('aria-hidden') === 'true') return;
+      if (!state.contextOpen || !panel || panel.getAttribute('aria-hidden') === 'true' || state.selectedId !== snapshot.conversationId || (state.f360Tab[state.selectedId] || 'profile') !== snapshot.view) return;
+      if (document.activeElement !== document.body && !panel.contains(document.activeElement)) return;
       var scope = panel;
       if (snapshot.section) {
         scope = Array.from(panel.querySelectorAll('[data-section]')).find(function (section) { return section.dataset.section === snapshot.section; }) || panel;
@@ -2410,7 +2415,7 @@
         || items.find(function (item) { return snapshot.text && item.tagName === snapshot.tag && item.textContent.trim() === snapshot.text; })
         || items[Math.min(snapshot.index, Math.max(0, items.length - 1))]
         || panel.querySelector('.smyl-inbox-context-close') || panel;
-      if (target && typeof target.focus === 'function') target.focus();
+      if (target && typeof target.focus === 'function') target.focus({preventScroll:true});
     }, 0);
   }
 
@@ -2443,11 +2448,6 @@
       trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
       trigger.setAttribute('aria-label', open && docked ? 'Ocultar Ficha 360 del paciente' : 'Abrir Ficha 360 del paciente');
     }
-    var close = panel.querySelector('.smyl-inbox-context-close');
-    if (close) {
-      close.textContent = docked ? 'Ocultar panel' : 'Cerrar';
-      close.setAttribute('aria-label', docked ? 'Ocultar Ficha 360 del paciente' : 'Cerrar Ficha 360 del paciente');
-    }
   }
 
   function openContext(trigger) {
@@ -2479,7 +2479,10 @@
     state.contextReturnFocus = null;
     rememberDockedContext(false);
     renderContext();
-    if (restoreFocus !== false && target && document.contains(target) && typeof target.focus === 'function') target.focus({preventScroll:true});
+    if (restoreFocus !== false) {
+      if (!target || !document.contains(target)) target = document.querySelector('[data-inbox-context]');
+      if (target && typeof target.focus === 'function') target.focus({preventScroll:true});
+    }
   }
 
   function trapContextFocus(event) {
@@ -2552,10 +2555,54 @@
     var header = node('div', 'smyl-inbox-context-head');
     var contextTitle = node('h2', '', conversation.contact_name); contextTitle.id = 'smyl-inbox-context-title';
     header.append(node('span', 'smyl-inbox-eyebrow', 'FICHA 360 DEL PACIENTE'), contextTitle);
-    var close = node('button', 'smyl-inbox-context-close', 'Cerrar'); close.type = 'button'; close.setAttribute('aria-label', 'Cerrar ficha del paciente'); close.onclick = function () { closeContext(true); };
+    var close = node('button', 'smyl-inbox-context-close'); close.type = 'button';
+    close.title = 'Cerrar ficha del paciente'; close.setAttribute('aria-label', close.title);
+    close.innerHTML = composeIcon('close'); close.onclick = function () { closeContext(true); };
     header.append(close); wrap.append(header);
-
     var ficha = state.clinical[conversation.id];
+    var showFiles = hasPermission('messages.read') && typeof window.SmylInboxFicha?.files === 'function';
+    var view = showFiles && state.f360Tab[conversation.id] === 'files' ? 'files' : 'profile';
+    var content = showFiles ? appendContextTabs(wrap, header, conversation.id, view) : wrap;
+    if (view === 'files') {
+      content.append(buildFichaFiles(conversation, ficha));
+      if (state.contextOpen) loadFicha360Files(conversation.id, false);
+    } else {
+      renderProfileView(content, conversation, ficha);
+      prepareFicha360Data(conversation, ficha);
+    }
+    renderConversationSettings();
+    syncContextAccessibility();
+    restoreContextFocus(focusSnapshot);
+  }
+
+  function appendContextTabs(wrap, header, id, view) {
+    var tabs = node('div', 'smyl-f360-tabs');
+    tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Vistas del paciente');
+    tabs.addEventListener('keydown', rovingTabsKeydown);
+    header.append(tabs);
+    var activePanel;
+    ['profile', 'files'].forEach(function (key) {
+      var active = key === view;
+      var tab = node('button', '', key === 'profile' ? 'Ficha' : 'Archivos');
+      tab.type = 'button'; tab.dataset.f360Tab = key; tab.id = 'smyl-f360-tab-' + key;
+      tab.setAttribute('role', 'tab'); tab.setAttribute('aria-selected', String(active)); tab.tabIndex = active ? 0 : -1;
+      var panel = node('div', 'smyl-f360-tab-panel');
+      panel.dataset.f360Panel = key; panel.id = 'smyl-f360-panel-' + key; panel.tabIndex = 0;
+      panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', tab.id);
+      panel.hidden = !active; tab.setAttribute('aria-controls', panel.id);
+      tab.onclick = function () {
+        if (active || state.selectedId !== id || !tab.isConnected) return;
+        state.f360Tab[id] = key; tab.focus({preventScroll:true});
+        var side = wrap.closest('[data-inbox-context-panel]'); if (side) side.scrollTop = 0;
+        renderContext();
+      };
+      tabs.append(tab); wrap.append(panel);
+      if (active) activePanel = panel;
+    });
+    return activePanel;
+  }
+
+  function renderProfileView(wrap, conversation, ficha) {
     var summaryZone = document.createDocumentFragment();
     var citasZone = document.createDocumentFragment();
     var cobrosZone = document.createDocumentFragment();
@@ -2666,19 +2713,6 @@
     }
 
     wrap.append(buildFicha360(conversation, ficha, { summary: summaryZone, citas: citasZone, cobros: cobrosZone }));
-    var tools = node('nav', 'smyl-f360-tools'); tools.setAttribute('aria-label', 'Acciones de la ficha');
-    permittedCareActions(conversation).forEach(function (action) {
-      if (action.id !== 'record' && action.id !== 'quote') return;
-      var link = node('button', 'smyl-f360-tools-link', action.label);
-      link.type = 'button'; link.onclick = action.run; tools.append(link);
-    });
-    var settings = node('button', 'smyl-f360-tools-link', 'Ajustes del chat');
-    settings.type = 'button'; settings.dataset.threadSettings = ''; settings.setAttribute('aria-haspopup', 'dialog');
-    settings.onclick = openConversationSettings; tools.append(settings); wrap.append(tools);
-    prepareFicha360Data(conversation, ficha);
-    renderConversationSettings();
-    syncContextAccessibility();
-    restoreContextFocus(focusSnapshot);
   }
 
   // Herramientas operativas del hilo. El responsable se edita únicamente desde la cabecera.
@@ -2803,7 +2837,7 @@
   }
 
   // Qué bloques de la ficha deja abiertos la persona; vive en memoria durante la sesión (el chat no persiste nada en el navegador).
-  var F360_OPEN_DEFAULT = { summary: false, cuenta: true, citas: true, files: false };
+  var F360_OPEN_DEFAULT = { summary: false, cuenta: true, citas: true };
   function f360OpenState() {
     if (!state.f360Open) state.f360Open = Object.assign({}, F360_OPEN_DEFAULT);
     return state.f360Open;
@@ -3027,22 +3061,6 @@
       sections.push(careHistorySection(careHistoryCache.get(historyKey), open.careHistory, function () { loadCareHistory(id, patientId, true); }));
     }
 
-    // Archivos que ha compartido por el chat.
-    var cache = state.f360Shared[id] || {};
-    var reviewed = {}; ((ficha && ficha.clinical_images) || []).forEach(function (link) { if (link.lana_message_id) reviewed[link.lana_message_id] = true; });
-    var mediaCount = (cache.items || []).filter(function (item) { return ['image', 'document', 'audio', 'video'].indexOf(item.media_type) !== -1; }).length;
-    sections.push({ id: 'files', title: 'Archivos', peek: cache.loading && !cache.items ? { text: 'Consultando…', tone: 'muted' } : { text: mediaCount ? mediaCount + (mediaCount === 1 ? ' archivo' : ' archivos') : 'Sin archivos', tone: 'muted' }, node: F.files({
-      items: cache.items || [], loading: Boolean(cache.loading) && !cache.items, error: cache.error || '', filter: state.f360Filter[id] || 'all', selectedId: state.f360File[id] || '',
-      reviewed: reviewed, canReview: hasPermission('clinical.write') && canOperate(conversation, 'clinical.write'), channelLabel: channelLabel(conversation.channel),
-      onFilter: function (value) { state.f360Filter[id] = value; state.f360File[id] = ''; renderContext(); },
-      onSelect: function (value) { state.f360File[id] = value; renderContext(); },
-      makeOpenButton: function (item) { return chatMediaKind(item) ? chatMediaButton(item, id, false) : null; },
-      thumbnail: function (item) { return mediaThumbnail(item, 'Foto'); },
-      fileUrl: chatFileUrl,
-      onReview: function (item) { linkClinicalImage(item); },
-      onRetry: function () { loadFicha360Files(id, true); },
-    }) });
-
     sections.forEach(function (section) { section.open = Boolean(open[section.id]); });
     return F.shell({
       initials: initials(conversation.contact_name), subtitle: subtitle, meta: meta, chips: chips,
@@ -3050,6 +3068,23 @@
         : hasPermission('clinical.read') && !linked && !state.patientLinking[conversation.id] ? { unlinked: true, onLink: function () { openPatientContext(conversation.id); } } : null,
       onCompleteHistory: function () { openPatientContext(conversation.id); },
       sections: sections, onToggle: toggleF360Section,
+    });
+  }
+
+  function buildFichaFiles(conversation, ficha) {
+    var id = conversation.id;
+    var cache = state.f360Shared[id] || {};
+    var reviewed = {}; ((ficha && ficha.clinical_images) || []).forEach(function (link) { if (link.lana_message_id) reviewed[link.lana_message_id] = true; });
+    return window.SmylInboxFicha.files({
+      items: cache.items || [], loading: !state.f360Shared[id] || (Boolean(cache.loading) && !cache.items), error: cache.error || '', filter: state.f360Filter[id] || 'all', selectedId: state.f360File[id] || '',
+      reviewed: reviewed, canReview: hasPermission('clinical.write') && canOperate(conversation, 'clinical.write'), channelLabel: channelLabel(conversation.channel),
+      onFilter: function (value) { state.f360Filter[id] = value; state.f360File[id] = ''; renderContext(); },
+      onSelect: function (value) { state.f360File[id] = value; renderContext(); },
+      makeOpenButton: function (item) { return chatMediaKind(item) ? chatMediaButton(item, id, false) : null; },
+      thumbnail: function (item) { return mediaThumbnail(item, 'Foto'); },
+      fileUrl: chatFileUrl,
+      onReview: function (item) { if (state.selectedId === id) linkClinicalImage(item); },
+      onRetry: function () { loadFicha360Files(id, true); },
     });
   }
 
@@ -3062,8 +3097,6 @@
     if (!state.contextOpen) return;
     var id = conversation.id; var open = f360OpenState();
     if (open.summary && hasPermission('messages.read') && !state.f360Summary[id]) loadStoredSummary(id);
-    var cache = state.f360Shared[id];
-    if (!cache || (open.files && !cache.loading && Date.now() - (cache.at || 0) > 30000)) loadFicha360Files(id, false);
     var patientId = ficha && ficha.linked && ficha.patient && ficha.patient.id;
     if (!patientId) return;
     if (!ficha.clinical_restricted && hasPermission('schedule.read')) loadCareHistory(id, patientId, false);
@@ -3169,14 +3202,18 @@
   }
 
   async function loadFicha360Files(conversationId, force) {
+    if (!hasPermission('messages.read') || state.selectedId !== conversationId) return;
+    var epoch = accessEpoch, revision = threadEpoch.get(conversationId);
     var cache = state.f360Shared[conversationId];
-    if (cache && cache.loading) return;
+    if (cache && (cache.loading || (!force && Date.now() - cache.at < 30000))) return;
     state.f360Shared[conversationId] = Object.assign({}, cache, { loading: true, error: '', at: Date.now() });
     if (force && state.selectedId === conversationId) renderContext();
     try {
       var data = await request('GET', { action: 'shared', conversation_id: conversationId, limit: 60 });
+      if (epoch !== accessEpoch || revision !== threadEpoch.get(conversationId)) return;
       state.f360Shared[conversationId] = { items: data.items || [], loading: false, error: '', at: Date.now() };
     } catch (error) {
+      if (epoch !== accessEpoch || revision !== threadEpoch.get(conversationId)) return;
       state.f360Shared[conversationId] = Object.assign({}, state.f360Shared[conversationId], { loading: false, error: (error && error.message) || 'No se pudieron consultar los archivos.', at: Date.now() });
     }
     if (state.selectedId === conversationId && state.contextOpen) renderContext();
@@ -5057,6 +5094,10 @@
     page.querySelector('[data-inbox-composer]').addEventListener('submit', sendMessage);
     page.querySelector('[name="message"]').addEventListener('input', function (event) { scheduleDraftSave(event.target.value); });
     page.querySelector('[data-compose-more]').addEventListener('click', toggleComposerTools);
+    var settings = node('button'); settings.type = 'button'; settings.dataset.threadSettings = '';
+    settings.setAttribute('role', 'menuitem'); settings.setAttribute('aria-haspopup', 'dialog');
+    settings.innerHTML = composeIcon('settings') + '<span><strong>Ajustes del chat</strong><small>Opciones de esta conversación</small></span>';
+    settings.onclick = openConversationSettings; page.querySelector('[data-compose-tools]').append(settings);
     page.querySelector('[data-compose-tools]').addEventListener('click', function (event) { if (event.target.closest('button')) closeComposerTools(); });
     page.querySelector('[data-compose-tools]').addEventListener('keydown', function (event) { menuKeydown(event, event.currentTarget, closeComposerTools); });
     page.querySelector('[data-compose-emoji]').addEventListener('click', openEmojiDialog);
@@ -5140,7 +5181,7 @@
     page.querySelector('[data-shared-close]').addEventListener('click', function () { page.querySelector('[data-shared-dialog]').close(); });
     page.querySelector('[data-quick-close]').addEventListener('click', function () { page.querySelector('[data-quick-dialog]').close(); });
     page.querySelector('[data-emoji-close]').addEventListener('click', function () { page.querySelector('[data-emoji-dialog]').close(); });
-    page.querySelectorAll('[data-quick-dialog], [data-emoji-dialog]').forEach(function (dialog) {
+    page.querySelectorAll('[data-quick-dialog], [data-emoji-dialog], [data-settings-dialog]').forEach(function (dialog) {
       dialog.addEventListener('close', function () {
         // The browser may return focus to the tool menu after it has collapsed.
         if (!dialog.open && (document.activeElement === document.body || document.activeElement.closest('[data-compose-tools][hidden]'))) {

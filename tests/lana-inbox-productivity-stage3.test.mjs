@@ -53,8 +53,8 @@ test('sound notices are opt-in and contain no patient persistence', () => {
 });
 
 test('stage 3 ships synchronized web, native and PWA assets', () => {
-  assert.match(app, /smyl-inbox\.js\?v=76/);
-  assert.match(app, /smyl-inbox\.css\?v=65/);
+  assert.match(app, /smyl-inbox\.js\?v=77/);
+  assert.match(app, /smyl-inbox\.css\?v=66/);
   assert.match(worker, /smyl-v263-lana-connection-recovery/);
   assert.equal(mobileInbox, inbox);
   assert.equal(mobileCss, css);

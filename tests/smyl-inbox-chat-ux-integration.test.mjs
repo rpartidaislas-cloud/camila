@@ -11,6 +11,22 @@ before(async () => {
 });
 after(async () => browser?.close());
 
+test('Ajustes sigue accesible desde + sin los tres enlaces del pie de la ficha', async t => {
+  if (!browser) return t.skip('Se necesita Chromium.');
+  const page = await browser.newPage({viewport:{width:1650,height:860}});
+  t.after(() => page.close());
+  await page.goto(new URL('./fixtures/smyl-inbox-stage7-preview.html?focus',import.meta.url).href);
+  await page.waitForSelector('html[data-preview-ready=true]');
+  const panel = page.locator('[data-inbox-context-panel]');
+  if (await panel.getAttribute('aria-hidden') !== 'false') await page.locator('[data-inbox-context]').click();
+  assert.equal(await panel.getByRole('button',{name:/^(Expediente|Cotizar|Ajustes del chat)$/}).count(),0);
+  await page.locator('[data-compose-more]').click();
+  await page.getByRole('menuitem',{name:/Ajustes del chat/}).click();
+  await page.locator('[data-settings-dialog][open]').waitFor();
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('[data-settings-dialog]').getAttribute('open'),null);
+});
+
 for (const [width, board] of [[1440,false],[768,false],[390,false],[1440,true],[390,true]]) {
   test(`Ubicación y relevo en un hilo largo de ${board ? 'Pipeline' : 'Conversaciones'} a ${width}px`, async t => {
     if (!browser) return t.skip('Se necesita Chromium.');

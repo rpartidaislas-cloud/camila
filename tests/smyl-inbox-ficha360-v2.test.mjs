@@ -31,8 +31,8 @@ test('los bloques respetan los permisos del rol', () => {
   assert.match(src, /if \(hasPermission\('schedule\.read'\)\) \{\s*var citas = wrapPanel/);
   assert.match(src, /if \(hasPermission\('messages\.read'\) && F\.conversationSummary\)/);
   assert.match(src, /hasPermission\('clinical\.write'\) && canOperate\(conversation, 'clinical\.write'\)/);
-  // Revisión clínica reutiliza la acción existente; no se inventó una nueva.
-  assert.match(src, /onReview: function \(item\) \{ linkClinicalImage\(item\); \}/);
+  // Un adjunto recién seleccionado solo se deriva a revisión si sigue abierto el mismo hilo.
+  assert.match(src, /onReview: function \(item\) \{ if \(state\.selectedId === id\) linkClinicalImage\(item\); \}/);
 });
 
 test('el consentimiento de WhatsApp se lee en servidor y llega como booleano opcional', () => {

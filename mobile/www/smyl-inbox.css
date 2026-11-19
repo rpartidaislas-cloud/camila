@@ -1251,11 +1251,18 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 .smyl-inbox-context-close {
   top: 12px;
   right: 16px;
-  min-width: 44px;
-  min-height: 44px;
-  border-color: var(--inbox-border);
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--inbox-text);
 }
+.smyl-inbox-context-close svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; fill: none; }
+.smyl-inbox-context-close:hover { background: var(--inbox-canvas, #f2f6f8); }
+.smyl-inbox-context-close:focus-visible { outline: 2px solid var(--inbox-focus, #147871); outline-offset: -2px; }
 
 .smyl-inbox-context-group { border-color: var(--inbox-border); }
 
@@ -2683,7 +2690,16 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 #p-inbox .smyl-f360-chevron{flex:none;width:8px;height:8px;margin:0 4px 3px 0;border-right:2px solid #8796A5;border-bottom:2px solid #8796A5;transform:rotate(45deg);transition:transform .15s ease}
 #p-inbox .smyl-f360-section.is-open .smyl-f360-chevron{margin:3px 4px 0 0;transform:rotate(-135deg)}
 #p-inbox .smyl-f360-section-body{padding:0 12px 12px}
-#p-inbox .smyl-f360-section-body>.smyl-f360-files{padding-top:2px}
+#p-inbox .smyl-inbox-context-head:has(.smyl-f360-tabs) { padding-block-end: 0; }
+#p-inbox .smyl-f360-tabs { display: flex; gap: 12px; margin-block-start: 4px; }
+#p-inbox .smyl-f360-tabs button {
+  min-height: 44px; padding: 0 6px; margin-bottom: -1px; border: 0; border-bottom: 3px solid transparent;
+  background: transparent; color: var(--inbox-muted); font: 600 14px/1.2 var(--inbox-font); cursor: pointer;
+}
+#p-inbox .smyl-f360-tabs button[aria-selected=true] { border-bottom-color: var(--inbox-accent); color: var(--inbox-ink); }
+#p-inbox .smyl-f360-tabs button:hover { color: var(--inbox-accent); }
+#p-inbox .smyl-f360-tabs button:focus-visible, #p-inbox .smyl-f360-tab-panel:focus-visible { outline: 2px solid var(--inbox-focus); outline-offset: -2px; }
+#p-inbox .smyl-f360-tab-panel { min-width: 0; }
 #p-inbox .smyl-f360-section .smyl-f360-summary{padding:0;border:0;border-radius:0;background:none}
 #p-inbox .smyl-f360-section.is-open .smyl-f360-peek{display:none}
 #p-inbox .smyl-f360-section-body .smyl-inbox-account-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
@@ -2886,9 +2902,6 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 .smyl-inbox-owner-control:focus-within { outline: 2px solid #087970; outline-offset: 2px; }
 .smyl-inbox-owner-control[data-error=true] select { display: none; }
 .smyl-inbox-owner-control [data-thread-owner-retry] { border: 0; background: transparent; color: #075e59; text-decoration: underline; cursor: pointer; font: inherit; font-size: 12px; }
-.smyl-f360-tools { display: flex; flex-wrap: wrap; gap: 2px 8px; margin: 4px 12px 12px; }
-.smyl-f360-tools-link { padding: 8px 6px; min-height: 40px; border: 0; border-radius: 6px; background: transparent; color: #34556d; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
-.smyl-f360-tools-link:hover, .smyl-f360-tools-link:focus-visible { background: #edf4f5; color: #075e59; }
 #p-inbox .smyl-chat-note[hidden] { display: none; }
 /* La identidad y el responsable comparten fila. Las acciones pasan juntas a la
    siguiente cuando el hilo se estrecha, incluso con la ficha o el Pipeline abiertos. */
