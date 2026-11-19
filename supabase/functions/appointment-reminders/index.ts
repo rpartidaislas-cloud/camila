@@ -15,6 +15,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
 import { lanaRequest } from "../_shared/lana-linked.ts";
 import { makeCors } from "../_shared/cors.ts";
+import { normalizeWindow, sendAtWithinWindow } from "../_shared/reminder-schedule.mjs";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
@@ -24,7 +25,7 @@ const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 
 const SOURCES = [
   "patient_first_name", "patient_name", "date", "time", "service",
-  "professional", "branch", "branch_phone", "clinic", "text",
+  "professional", "branch", "branch_phone", "branch_whatsapp", "contact_phone", "clinic", "text",
 ] as const;
 type Source = typeof SOURCES[number];
 type Variable = { source: Source; value?: string };
@@ -43,6 +44,16 @@ function uuid(value: unknown): string | null {
 function text(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
+
+// «9:00» o «09:00:00» → «09:00:00»; null si no es una hora válida.
+function hourMinute(value: unknown): string | null {
+  const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(text(value, 12));
+  if (!match) return null;
+  const hours = Number(match[1]), minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return null;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
+}
+function minutesOf(value: string): number { return Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5)); }
 
 function sameSecret(given: string, expected: string): boolean {
   if (!expected || expected.length < 32 || given.length !== expected.length) return false;
@@ -93,6 +104,8 @@ type Claimed = {
   starts_at: string; patient_id: string; patient_first_name: string | null; patient_last_name: string | null;
   service_name: string | null; professional_name: string | null; branch_name: string | null;
   branch_phone: string | null; branch_timezone: string | null;
+  branch_id: string | null; branch_whatsapp: string | null; professional_phone: string | null;
+  whatsapp_consent: boolean | null; appointment_source: string | null;
 };
 
 function renderVariable(variable: Variable, row: Claimed, clinicName: string): string {
@@ -110,6 +123,10 @@ function renderVariable(variable: Variable, row: Claimed, clinicName: string): s
     case "professional": return text(row.professional_name, 120) || clinicName;
     case "branch": return text(row.branch_name, 120) || clinicName;
     case "branch_phone": return text(row.branch_phone, 40) || "";
+    // Donde el paciente responde: el WhatsApp de su sucursal (o el de la clínica) y, si no hay, el teléfono de la sucursal.
+    case "branch_whatsapp": return text(row.branch_whatsapp, 40) || text(row.branch_phone, 40) || "";
+    // Teléfono para llamar: el del dentista solo si él lo hizo público; si no, el WhatsApp o teléfono de la sucursal.
+    case "contact_phone": return text(row.professional_phone, 40) || text(row.branch_whatsapp, 40) || text(row.branch_phone, 40) || "";
     case "clinic": return clinicName;
     case "text": return text(variable.value, 200);
   }
@@ -178,18 +195,32 @@ async function processCancellations(tenantId: string): Promise<number> {
   return cancelled;
 }
 
-// Al desactivar, nada que esté en cola debe salir: se cancela aquí y en LANA.
-async function cancelQueued(tenantId: string): Promise<number> {
+// Al desactivar, nada que esté en cola debe salir: se cancela aquí y en LANA. `kind` limita a confirmaciones o a recordatorios.
+const REMINDER_TYPES = ["24h", "2h", "custom"];
+async function cancelQueued(tenantId: string, kind: "reminder" | "confirmation" = "reminder"): Promise<number> {
+  const types = kind === "confirmation" ? ["confirmation"] : REMINDER_TYPES;
   const { data: queued } = await admin.from("smyl_appointment_reminders")
     .select("id,provider_reference")
-    .eq("tenant_id", tenantId).in("status", ["pending", "processing"]).limit(500);
+    .eq("tenant_id", tenantId).in("reminder_type", types).in("status", ["pending", "processing"]).limit(500);
   for (const row of queued || []) {
     await admin.from("smyl_appointment_reminders").update({
       status: "cancelled", provider_cancel_required: Boolean(row.provider_reference),
-      last_error: "Recordatorios desactivados por la clínica.", next_attempt_at: null,
+      last_error: kind === "confirmation" ? "Confirmaciones desactivadas por la clínica." : "Recordatorios desactivados por la clínica.", next_attempt_at: null,
     }).eq("id", row.id).in("status", ["pending", "processing"]);
   }
   return processCancellations(tenantId);
+}
+
+// Al enviar un mensaje de una cita, la conversación queda en la sucursal de esa cita (sin pisar una asignación previa):
+// así la respuesta del paciente llega ya ordenada y la ven los dentistas de esa sucursal.
+async function assignConversationBranch(tenantId: string, conversationId: string, branchId: string | null): Promise<void> {
+  if (!branchId) return;
+  try {
+    await admin.from("smyl_conversation_branches").upsert(
+      { tenant_id: tenantId, conversation_id: conversationId, branch_id: branchId, source: "appointment" },
+      { onConflict: "tenant_id,conversation_id", ignoreDuplicates: true },
+    );
+  } catch { /* la asignación es una comodidad: nunca debe impedir el mensaje */ }
 }
 
 type Summary = { scheduled: number; waiting: number; failed: number; skipped: number; cancelled_in_lana: number; synced: number; error?: string };
@@ -197,9 +228,13 @@ type Summary = { scheduled: number; waiting: number; failed: number; skipped: nu
 async function dispatchTenant(tenantId: string): Promise<Summary> {
   const summary: Summary = { scheduled: 0, waiting: 0, failed: 0, skipped: 0, cancelled_in_lana: 0, synced: 0 };
   const { data: settings } = await admin.from("smyl_reminder_settings").select("*").eq("tenant_id", tenantId).maybeSingle();
-  if (!settings?.enabled || !settings.template_id) return { ...summary, error: "disabled" };
+  const remindersOn = Boolean(settings?.enabled && settings.template_id);
+  const confirmOn = Boolean(settings?.confirmation_enabled && settings.confirmation_template_id);
+  if (!settings || (!remindersOn && !confirmOn)) return { ...summary, error: "disabled" };
   await admin.from("smyl_reminder_settings").update({ last_dispatch_at: new Date().toISOString() }).eq("tenant_id", tenantId);
-  const variables = normalizeVariables(settings.variables) || [];
+  const reminderVariables = normalizeVariables(settings.variables) || [];
+  const confirmVariables = normalizeVariables(settings.confirmation_variables) || [];
+  const sendWindow = normalizeWindow(settings.send_window_start, settings.send_window_end);
   const clinic = await clinicName(tenantId);
 
   // 1. Citas movidas o canceladas cuyo recordatorio ya estaba programado en LANA.
@@ -219,21 +254,48 @@ async function dispatchTenant(tenantId: string): Promise<Summary> {
       summary.skipped += 1;
       continue;
     }
+    const isConfirmation = row.reminder_type === "confirmation";
+    // Un tipo apagado (o sin plantilla) no sale aunque la fila ya exista.
+    if (isConfirmation ? !confirmOn : !remindersOn) {
+      await admin.from("smyl_appointment_reminders").update({
+        status: "cancelled", last_error: isConfirmation ? "Se omitió: las confirmaciones están desactivadas." : "Se omitió: los recordatorios están desactivados.",
+      }).eq("id", row.reminder_id).eq("status", "processing");
+      summary.skipped += 1;
+      continue;
+    }
+    // Consentimiento: «false» significa «no registrado», por eso solo se exige cuando la clínica lo pide.
+    if (settings.require_consent === true && row.whatsapp_consent !== true) {
+      await admin.from("smyl_appointment_reminders").update({
+        status: "cancelled", last_error: "Se omitió: el paciente no tiene registrado su consentimiento de WhatsApp.",
+      }).eq("id", row.reminder_id).eq("status", "processing");
+      summary.skipped += 1;
+      continue;
+    }
     const conversationId = await whatsappConversation(tenantId, row.patient_id);
     if (!conversationId) {
-      const overdue = now >= dueAt;
+      // Recordatorio: espera hasta su hora. Confirmación: espera hasta poco antes de la cita (el paciente puede vincularse antes).
+      const limitAt = isConfirmation ? startsAt - MIN_NOTICE_MS : dueAt;
+      const overdue = now >= limitAt;
       await admin.from("smyl_appointment_reminders").update(overdue
         ? { status: "failed", last_error: NO_WHATSAPP }
-        : { status: "pending", last_error: NO_WHATSAPP, next_attempt_at: new Date(Math.min(now + WAIT_LINK_MS, dueAt)).toISOString() },
+        : { status: "pending", last_error: NO_WHATSAPP, next_attempt_at: new Date(Math.min(now + WAIT_LINK_MS, limitAt)).toISOString() },
       ).eq("id", row.reminder_id).eq("status", "processing");
       if (overdue) summary.failed += 1; else summary.waiting += 1;
       continue;
     }
+    // Solo dentro de la ventana de envío de la sucursal (por omisión 9:00–20:00).
+    const timing = sendAtWithinWindow({
+      dueMs: isConfirmation ? now : dueAt, nowMs: now, startsMs: startsAt, zone: validTimeZone(row.branch_timezone),
+      window: sendWindow, mode: isConfirmation ? "later" : "nearest", leadMs: SEND_LEAD_MS, minNoticeMs: MIN_NOTICE_MS,
+    });
+    const templateId = isConfirmation ? settings.confirmation_template_id : settings.template_id;
+    const variables = isConfirmation ? confirmVariables : reminderVariables;
     const payload = {
       type: "template",
-      send_at: new Date(Math.max(dueAt, now + SEND_LEAD_MS)).toISOString(),
-      template_id: settings.template_id,
-      template_variables: variables.map((variable) => renderVariable(variable, row, clinic).slice(0, 1000)),
+      send_at: new Date(timing.sendAtMs).toISOString(),
+      template_id: templateId,
+      // Meta rechaza parámetros vacíos: un dato que falta (p. ej. sin teléfono) se escribe como un guion.
+      template_variables: variables.map((variable) => renderVariable(variable, row, clinic).slice(0, 1000) || "—"),
     };
     let status = 0; let body: Record<string, unknown> = {};
     try {
@@ -260,6 +322,7 @@ async function dispatchTenant(tenantId: string): Promise<Summary> {
         }).eq("id", row.reminder_id);
         continue;
       }
+      await assignConversationBranch(tenantId, conversationId, row.branch_id);
       summary.scheduled += 1;
       continue;
     }
@@ -333,14 +396,16 @@ async function templates(tenantId: string, headers: Headers): Promise<{ template
 async function overview(tenantId: string): Promise<Record<string, number>> {
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const { data } = await admin.from("smyl_appointment_reminders")
-    .select("status,provider_reference,last_error")
+    .select("status,provider_reference,last_error,reminder_type")
     .eq("tenant_id", tenantId).gte("scheduled_for", since).limit(1000);
-  const counts = { scheduled: 0, waiting: 0, sent: 0, failed: 0 };
+  // Los cuatro primeros cuentan recordatorios (igual que antes); confirmation_* cuenta las confirmaciones.
+  const counts: Record<string, number> = { scheduled: 0, waiting: 0, sent: 0, failed: 0, confirmation_scheduled: 0, confirmation_waiting: 0, confirmation_sent: 0, confirmation_failed: 0 };
   for (const row of data || []) {
-    if (row.status === "processing" && row.provider_reference) counts.scheduled += 1;
-    else if (row.status === "pending" || row.status === "processing") counts.waiting += 1;
-    else if (row.status === "sent") counts.sent += 1;
-    else if (row.status === "failed") counts.failed += 1;
+    const prefix = row.reminder_type === "confirmation" ? "confirmation_" : "";
+    if (row.status === "processing" && row.provider_reference) counts[prefix + "scheduled"] += 1;
+    else if (row.status === "pending" || row.status === "processing") counts[prefix + "waiting"] += 1;
+    else if (row.status === "sent") counts[prefix + "sent"] += 1;
+    else if (row.status === "failed") counts[prefix + "failed"] += 1;
   }
   return counts;
 }
@@ -355,9 +420,13 @@ Deno.serve(async (req) => {
   const cronSecret = req.headers.get("x-smyl-cron-secret") || "";
   if (cronSecret) {
     if (!sameSecret(cronSecret, CRON_SECRET)) return json(401, { error: "Secreto de cron no válido." });
-    const { data: enabled } = await admin.from("smyl_reminder_settings").select("tenant_id").eq("enabled", true).limit(200);
+    const [byReminders, byConfirmation] = await Promise.all([
+      admin.from("smyl_reminder_settings").select("tenant_id").eq("enabled", true).limit(200),
+      admin.from("smyl_reminder_settings").select("tenant_id").eq("confirmation_enabled", true).limit(200),
+    ]);
+    const enabled = [...new Map([...(byReminders.data || []), ...(byConfirmation.data || [])].map((row) => [row.tenant_id, row])).values()];
     const results: Record<string, Summary> = {};
-    for (const row of enabled || []) results[row.tenant_id] = await dispatchTenant(row.tenant_id).catch(() => ({ scheduled: 0, waiting: 0, failed: 0, skipped: 0, cancelled_in_lana: 0, synced: 0, error: "Error inesperado." }));
+    for (const row of enabled) results[row.tenant_id] = await dispatchTenant(row.tenant_id).catch(() => ({ scheduled: 0, waiting: 0, failed: 0, skipped: 0, cancelled_in_lana: 0, synced: 0, error: "Error inesperado." }));
     return json(200, { tenants: Object.keys(results).length, results });
   }
 
@@ -373,28 +442,53 @@ Deno.serve(async (req) => {
 
   if (action === "settings") {
     const { data: settings } = await admin.from("smyl_reminder_settings")
-      .select("enabled,template_id,template_name,template_language,variables,last_dispatch_at,updated_at")
+      .select("enabled,template_id,template_name,template_language,variables,last_dispatch_at,updated_at,confirmation_enabled,confirmation_template_id,confirmation_template_name,confirmation_template_language,confirmation_variables,confirmation_since,send_window_start,send_window_end,require_consent,whatsapp_mode,whatsapp_phone")
       .eq("tenant_id", tenantId).maybeSingle();
     const catalog = canConfigure ? await templates(tenantId, userHeaders(auth.user!, tenantId)) : { templates: [] };
     return json(200, {
-      settings: settings || { enabled: false, template_id: null, template_name: "", template_language: "", variables: [], last_dispatch_at: null },
+      settings: settings || {
+        enabled: false, template_id: null, template_name: "", template_language: "", variables: [], last_dispatch_at: null,
+        confirmation_enabled: false, confirmation_template_id: null, confirmation_template_name: "", confirmation_template_language: "", confirmation_variables: [], confirmation_since: null,
+        send_window_start: "09:00:00", send_window_end: "20:00:00", require_consent: false, whatsapp_mode: "single", whatsapp_phone: "",
+      },
       can_configure: canConfigure, sources: SOURCES, overview: await overview(tenantId), ...catalog,
     });
   }
 
   if (action === "save_settings") {
     if (!canConfigure) return json(403, { error: "Tu rol no permite configurar recordatorios.", code: "permission_denied" });
+    const kind = text(body.kind, 20) || "reminder";
+
+    // Preferencias comunes: ventana de envío, consentimiento y cómo usa la clínica su WhatsApp (un número o uno por sucursal).
+    if (kind === "preferences") {
+      const start = hourMinute(body.send_window_start), end = hourMinute(body.send_window_end);
+      if (!start || !end || minutesOf(end) - minutesOf(start) < 60) return json(400, { error: "La ventana de envío debe durar al menos una hora." });
+      const mode = body.whatsapp_mode === "per_branch" ? "per_branch" : "single";
+      const phone = text(body.whatsapp_phone, 40).replace(/[^0-9+()\-\s]/g, "").trim();
+      const { error } = await admin.from("smyl_reminder_settings").upsert({
+        tenant_id: tenantId, send_window_start: start, send_window_end: end, require_consent: body.require_consent === true,
+        whatsapp_mode: mode, whatsapp_phone: phone, updated_by: auth.user!.id,
+      }, { onConflict: "tenant_id" });
+      if (error) return json(500, { error: "No se pudo guardar la configuración." });
+      return json(200, { ok: true });
+    }
+
+    if (kind !== "reminder" && kind !== "confirmation") return json(400, { error: "Tipo de mensaje no reconocido." });
+    const confirmation = kind === "confirmation";
+    const col = confirmation
+      ? { enabled: "confirmation_enabled", id: "confirmation_template_id", name: "confirmation_template_name", language: "confirmation_template_language", variables: "confirmation_variables" }
+      : { enabled: "enabled", id: "template_id", name: "template_name", language: "template_language", variables: "variables" };
     const enabled = body.enabled === true;
     // Apagar siempre debe funcionar, aunque LANA no responda o la plantilla ya no exista.
     if (!enabled) {
-      const { error } = await admin.from("smyl_reminder_settings").upsert({ tenant_id: tenantId, enabled: false, updated_by: auth.user!.id }, { onConflict: "tenant_id" });
+      const { error } = await admin.from("smyl_reminder_settings").upsert({ tenant_id: tenantId, [col.enabled]: false, updated_by: auth.user!.id }, { onConflict: "tenant_id" });
       if (error) return json(500, { error: "No se pudo guardar la configuración." });
-      return json(200, { ok: true, cancelled_in_lana: await cancelQueued(tenantId) });
+      return json(200, { ok: true, cancelled_in_lana: await cancelQueued(tenantId, confirmation ? "confirmation" : "reminder") });
     }
     const templateId = body.template_id == null || body.template_id === "" ? null : uuid(body.template_id);
     const variables = normalizeVariables(body.variables);
     if (variables === null) return json(400, { error: "Las variables de la plantilla no son válidas." });
-    if (enabled && !templateId) return json(400, { error: "Elige una plantilla aprobada para activar los recordatorios." });
+    if (enabled && !templateId) return json(400, { error: confirmation ? "Elige una plantilla aprobada para activar las confirmaciones." : "Elige una plantilla aprobada para activar los recordatorios." });
     let templateName = ""; let templateLanguage = "";
     if (templateId) {
       const catalog = await templates(tenantId, userHeaders(auth.user!, tenantId));
@@ -405,17 +499,23 @@ Deno.serve(async (req) => {
       }
       templateName = String(template.name || ""); templateLanguage = String(template.language || "");
     }
-    const { error } = await admin.from("smyl_reminder_settings").upsert({
-      tenant_id: tenantId, enabled, template_id: templateId, template_name: templateName,
-      template_language: templateLanguage, variables, updated_by: auth.user!.id,
-    }, { onConflict: "tenant_id" });
+    const row: Record<string, unknown> = {
+      tenant_id: tenantId, [col.enabled]: enabled, [col.id]: templateId, [col.name]: templateName,
+      [col.language]: templateLanguage, [col.variables]: variables, updated_by: auth.user!.id,
+    };
+    if (confirmation) {
+      // La confirmación solo cubre las citas agendadas desde que se enciende: nunca se manda en retroactivo.
+      const { data: previous } = await admin.from("smyl_reminder_settings").select("confirmation_enabled,confirmation_since").eq("tenant_id", tenantId).maybeSingle();
+      row.confirmation_since = previous?.confirmation_enabled && previous.confirmation_since ? previous.confirmation_since : new Date().toISOString();
+    }
+    const { error } = await admin.from("smyl_reminder_settings").upsert(row, { onConflict: "tenant_id" });
     if (error) return json(500, { error: "No se pudo guardar la configuración." });
     return json(200, { ok: true, summary: await dispatchTenant(tenantId) });
   }
 
   if (action === "dispatch") {
-    const { data: settings } = await admin.from("smyl_reminder_settings").select("enabled,last_dispatch_at").eq("tenant_id", tenantId).maybeSingle();
-    if (!settings?.enabled) return json(200, { skipped: "disabled" });
+    const { data: settings } = await admin.from("smyl_reminder_settings").select("enabled,confirmation_enabled,last_dispatch_at").eq("tenant_id", tenantId).maybeSingle();
+    if (!settings?.enabled && !settings?.confirmation_enabled) return json(200, { skipped: "disabled" });
     const recent = settings.last_dispatch_at && Date.now() - new Date(settings.last_dispatch_at).getTime() < 60 * 1000;
     if (recent && !(body.force === true && can["schedule.manage"])) return json(200, { skipped: "recent" });
     return json(200, { summary: await dispatchTenant(tenantId) });

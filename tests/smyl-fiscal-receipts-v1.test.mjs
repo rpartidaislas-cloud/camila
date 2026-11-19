@@ -75,9 +75,9 @@ test('web y PWA publican la misma bandeja versionada', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) {
     assert.equal(read('mobile/www/' + file), read(file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=42/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=43/);
   assert.match(read('app.html'), /smyl-finance\.js\?v=58/);
-  assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=16/);
+  assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=17/);
   assert.match(read('sw.js'), /professional-finance-v1/);
   assert.match(read('sw.js'), /finanzas-workspace-v5/);
 });

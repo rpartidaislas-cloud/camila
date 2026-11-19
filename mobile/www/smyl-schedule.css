@@ -755,3 +755,21 @@ body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=m]>.schedule-
 .schedule-calendar>.sk-region{grid-column:1/-1;padding:12px}
 .schedule-slots-sk{display:grid;gap:10px;padding:4px 0}
 .schedule-slots-sk .sk-row{flex-wrap:wrap}
+
+/* Mensajes automáticos de citas: secciones del diálogo (confirmación, recordatorio, horario y número de WhatsApp). */
+.schedule-reminders-form{max-height:min(86dvh,860px);overflow:auto}
+.schedule-reminders-section{margin:0 0 18px;padding:14px 16px;border:1px solid #dce4de;border-radius:12px;background:#fafcfb;min-width:0}
+.schedule-reminders-section>legend{padding:0 6px;color:#203b3b;font:800 14px Inter,sans-serif}
+.schedule-reminders-section>p{margin:0 0 12px;color:#526465;font-size:13px;line-height:1.5}
+.schedule-reminders-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.schedule-reminders-modes{display:grid;gap:8px;margin:4px 0 14px}
+.schedule-reminders-form .schedule-reminders-modes label{flex-direction:row;align-items:flex-start;gap:10px;margin:0;padding:12px;border:1px solid #dce4de;border-radius:10px;background:#fff;cursor:pointer}
+.schedule-reminders-modes input{flex:none;width:18px;height:18px;min-height:0;margin:2px 0 0;accent-color:#28796e}
+.schedule-reminders-modes strong{display:block;color:#203b3b;font-size:13px}
+.schedule-reminders-modes small{display:block;margin-top:2px;color:#657777;font-size:12px;line-height:1.4}
+.schedule-reminders-link{padding:0;border:0;background:transparent;color:#28796e;font:700 12px Inter,sans-serif;text-decoration:underline;cursor:pointer}
+@media(max-width:560px){.schedule-reminders-row{grid-template-columns:1fr}}
+.schedule-reminders-form,.schedule-reminders-form *{box-sizing:border-box}
+.schedule-reminders-form label,.schedule-reminders-row>label{min-width:0}
+.schedule-reminders-form .schedule-reminders-modes input[type=radio]{width:18px;height:18px;min-height:0;padding:0;border:0;flex:none}
+.schedule-reminders-form .schedule-reminders-section input[type=time]{min-width:0}
