@@ -1,5 +1,18 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-19 — Ubicaciones, relevo privado y lectura del historial
+
+- Conversaciones y el chat lateral del Pipeline comparten las tarjetas «Ubicación compartida · Abrir mapa». Se conservan las indicaciones escritas; las ubicaciones que no se pueden interpretar se muestran sin inventar coordenadas. Leer el chat no carga mapas de terceros.
+- La nota privada se consulta junto al responsable del chat, sólo cuando existe. No es un mensaje del paciente. El acceso se limpia al cambiar de hilo.
+- El botón para volver al final queda dentro del historial y cuenta las novedades mientras el operador está leyendo mensajes anteriores. El compositor permanece despejado.
+- Recursos web y copias móviles: Inbox JS 75 / CSS 64. La vista de prueba con un historial ficticio se abre con `tests/fixtures/smyl-inbox-stage7-preview.html?chat-ux` (añadir `&pipeline-preview` para el tablero). Sin cambios de backend ni migraciones.
+
+## 2026-11-19 — Cabecera de Mensajes y responsable del chat
+
+- «Atiende el chat» acompaña a la identidad del contacto. Es el responsable de la conversación, no el médico de una cita. La transferencia y su nota privada conservan el flujo existente.
+- Avisos y operación pasan de la franja superior a Conversaciones → Filtros. La sincronización normal no ocupa espacio permanente; las incidencias sí deben seguir visibles.
+- Cambios de presentación en `smyl-inbox.js/css`, con sus copias móviles y versiones de recursos JS 74 / CSS 63. Sin cambios de permisos ni de datos clínicos.
+
 ## 2026-11-18 — Imágenes y PDF en el chat
 
 - Conversaciones, Pipeline, Archivos compartidos y Ficha 360 abren el mismo visor. Admite zoom continuo con rueda, control deslizante y dos dedos, desplazamiento, plumón, resaltador y notas de texto. La copia se descarga o se prepara en el compositor para su revisión antes del envío.

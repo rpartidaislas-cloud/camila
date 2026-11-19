@@ -192,6 +192,7 @@ test('sincroniza 205 tarjetas una vez por canal y recupera solo el lote de etapa
   const poll = phase => page.evaluate(n => { window.paging.phase = n; document.dispatchEvent(new Event('visibilitychange')); },phase);
   await poll(1);
   await page.waitForFunction(()=>document.querySelector('[data-inbox-live] span').textContent.includes('pendientes de actualizar'));
+  assert.equal(await page.locator('[data-inbox-live]').isVisible(),true, 'un problema de sincronización se anuncia en el tablero');
   assert.equal(await page.locator('[data-pipeline-stage="smyl:arrived"] [data-conversation-id=card-130]').count(),1);
   assert.equal(await page.locator('[data-inbox-list] [data-conversation-id=card-131]').count(),0);
   const first = await page.evaluate(()=>window.paging.calls.filter(x=>x.phase===1));
@@ -201,6 +202,7 @@ test('sincroniza 205 tarjetas una vez por canal y recupera solo el lote de etapa
   assert.deepEqual([...new Set(first.map(x=>x.since))],['2026-11-18T10:00:00.000Z']);
   await poll(2);
   await page.waitForSelector('[data-pipeline-stage="smyl:arrived"] [data-conversation-id=card-204]');
+  await page.locator('[data-inbox-live]').waitFor({state:'hidden'});
   const second = await page.evaluate(()=>window.paging.calls.filter(x=>x.phase===2));
   assert.equal(second.filter(x=>x.action==='sync').length,1);
   assert.equal(second.find(x=>x.action==='sync').since,'2026-11-18T10:01:00.000Z');
@@ -214,12 +216,12 @@ test('web, móvil y PWA publican el pipeline', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
   for (const shell of [app, read('../mobile/www/app.html')]) {
-    assert.match(shell, /serviceWorker\.register\('sw\.js\?v=chat-media-1',\s*\{\s*updateViaCache:\s*'none'\s*}/);
+    assert.match(shell, /serviceWorker\.register\('sw\.js\?v=inbox-thread-ux-1',\s*\{\s*updateViaCache:\s*'none'\s*}/);
   }
-  assert.match(app, /smyl-inbox\.js\?v=73/);
-  assert.match(app, /smyl-inbox\.css\?v=62/);
-  assert.match(worker, /smyl-inbox\.js\?v=73/);
-  assert.match(worker, /smyl-inbox\.css\?v=62/);
+  assert.match(app, /smyl-inbox\.js\?v=75/);
+  assert.match(app, /smyl-inbox\.css\?v=64/);
+  assert.match(worker, /smyl-inbox\.js\?v=75/);
+  assert.match(worker, /smyl-inbox\.css\?v=64/);
 });
 
 test('sin canales conectados el Inbox muestra una sola explicación en lugar de lista, hilo y compositor vacíos', () => {

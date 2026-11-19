@@ -16,6 +16,8 @@ after(async () => { await browser?.close(); });
 test('El responsable es explícito: no se autoasigna al abrir y sólo el equipo con permiso puede cambiarlo', () => {
   const header = js.slice(js.indexOf('<header class="smyl-inbox-thread-head"'), js.indexOf('</header>', js.indexOf('<header class="smyl-inbox-thread-head"')));
   assert.match(header, /data-thread-owner/);
+  const order = ['data-inbox-context', 'data-thread-owner', 'data-thread-branch-wrap', 'data-thread-mode', 'data-thread-carebar'].map(key => header.indexOf(key));
+  assert.ok(order.every((position,i) => position >= 0 && (!i || position > order[i - 1])), 'la persona de contacto y el responsable preceden las acciones de atención');
   assert.doesNotMatch(header, /data-thread-more|Más acciones/);
   const assign = js.slice(js.indexOf('function changeChatOwner('), js.indexOf('async function loadTeam('));
   assert.match(assign, /conversation.id !== conversationId/);
@@ -37,23 +39,47 @@ for (const width of [1440, 1024, 390]) {
     const assign=page.locator('[data-thread-assign]'), menu=page.locator('[data-thread-more]'), schedule=page.locator('[data-thread-primary-action="schedule"]');
     async function checkWidth() {
       const header = await page.locator('.smyl-inbox-thread-head').boundingBox();
-      for(const control of [assign,schedule]) {
+      const identity = page.locator('[data-inbox-context]');
+      assert.ok(await identity.evaluate(el => el.nextElementSibling?.matches('[data-thread-owner]')), 'Ficha y asignación son controles vecinos e independientes');
+      for(const control of [identity,assign,schedule]) {
         const box=await control.boundingBox(); assert.ok(box && box.width>0 && box.x>=header.x-1 && box.x+box.width<=header.x+header.width+1,'Header action fits at '+width);
+      }
+      if (header.width > 830) {
+        const name = await identity.boundingBox(), owner = await assign.boundingBox();
+        assert.ok(owner.x >= name.x + name.width - 1 && owner.x <= name.x + name.width + 25 && Math.abs(name.y + name.height / 2 - owner.y - owner.height / 2) < 12, 'en escritorio el responsable se ve al lado del contacto');
       }
     }
     await checkWidth();
+    const privateNote = page.locator('[data-handoff]');
+    const summary = privateNote.locator('summary');
+    assert.equal(await privateNote.isVisible(), false);
     await assign.selectOption('desk-preview');
     const dialog = page.locator('[data-chat-transfer][open]');
     await dialog.locator('textarea').fill('Llamar después de las cuatro.');
     await dialog.locator('[type=submit]').click();
-    await page.locator('[data-handoff] summary').click();
-    assert.equal(await page.locator('[data-handoff] p').innerText(), 'Llamar después de las cuatro.');
+    await summary.waitFor();
+    assert.ok(await privateNote.evaluate(el => el.previousElementSibling.matches('[data-thread-owner]')));
+    const timeline = page.locator('[data-thread-body]');
+    const beforeOpen = await timeline.boundingBox();
+    await summary.focus(); await summary.press('Enter');
+    const noteText = privateNote.locator('p');
+    assert.equal(await noteText.innerText(), 'Llamar después de las cuatro.');
+    assert.equal(await noteText.isVisible(),true);
+    const box = await privateNote.locator('.smyl-chat-note-content').boundingBox();
+    assert.ok(box.x >= 0 && box.x + box.width <= width + 1);
+    const afterOpen = await timeline.boundingBox();
+    assert.ok(Math.abs(beforeOpen.y-afterOpen.y) <= 1,'abrir la nota no desplaza los mensajes');
+    await summary.press('Escape');
+    assert.equal(await noteText.isVisible(),false);
+    assert.ok(await summary.evaluate(el => document.activeElement === el));
     assert.ok(!(await page.locator('[data-thread-messages]').innerText()).includes('Llamar después de las cuatro.'));
     assert.equal(await page.locator('[name=message]').inputValue(), '');
     await page.waitForFunction(() => document.querySelector('[data-thread-owner-name]').textContent === 'Sofía · Recepción');
     await assign.selectOption('owner-preview');
     await dialog.locator('[type=submit]').click();
     await page.waitForFunction(() => document.querySelector('[data-thread-owner-name]').textContent === 'Dra. Mariana');
+    assert.equal(await privateNote.isVisible(),false);
+    assert.equal(await noteText.textContent(),'');
     await assign.selectOption('');
     await dialog.locator('[type=submit]').click();
     await page.waitForFunction(() => document.querySelector('[data-thread-owner-name]').textContent === 'Sin asignar');
@@ -63,6 +89,29 @@ for (const width of [1440, 1024, 390]) {
     await checkWidth(); assert.deepEqual(errors,[]);
   });
 }
+
+test('La barra superior sólo cambia la vista; en Filtros se conservan avisos y operación', async t => {
+  if (!browser) return t.skip('Se necesita Chromium.');
+  const page = await browser.newPage({viewport:{width:1440,height:900}});
+  t.after(() => page.close());
+  await page.goto(fixture.href);
+  await page.waitForSelector('html[data-preview-ready=true]');
+  const top = page.locator('.smyl-inbox-top');
+  assert.equal(await top.getByRole('tab').count(),2);
+  assert.equal(await top.locator('[data-inbox-notify], [data-inbox-operations], [data-inbox-live]').count(),0);
+  const live = page.locator('[data-inbox-live]');
+  assert.equal(await live.count(),1);
+  assert.equal(await live.isVisible(),false, 'un chat sincronizado no muestra estado permanente');
+  const filters = page.locator('[data-inbox-filter-more]');
+  await filters.focus();
+  await filters.press('Enter');
+  const panel = page.locator('[data-inbox-filter-panel]');
+  await panel.waitFor();
+  assert.equal(await panel.locator('[data-inbox-notify]').isVisible(),true);
+  await panel.locator('[data-inbox-operations]').click();
+  await page.locator('[data-operations-dialog][open]').waitFor();
+  await page.locator('[data-operations-close]').click();
+});
 
 test('El selector consulta cada chat y sede, descarta respuestas fuera de orden y permite reintentar', async t => {
   if (!browser) return t.skip('Se necesita Chromium.');
@@ -91,7 +140,7 @@ test('El selector consulta cada chat y sede, descarta respuestas fuera de orden 
         if (!['list','messages'].includes(action)) return previewFetch(input, init);
         const response = await (await previewFetch(input, init)).json();
         function located(base, convoId, site) {
-          return {...base,id:convoId,branch:{id:site,name:site},contact_name:convoId};
+          return {...base,id:convoId,branch:{id:site,name:site},contact_name:convoId,private_handoff_note:convoId === 'c-preview' ? 'Relevo exclusivo del primer chat.' : null};
         }
         if (action === 'messages') response.conversation = located(response.conversation, id, branch);
         else {
@@ -109,7 +158,11 @@ test('El selector consulta cada chat y sede, descarta respuestas fuera de orden 
   const assign = page.locator('[data-thread-assign]');
   const members = () => assign.locator('option:not(:disabled)').evaluateAll(options => options.map(option => option.value));
   const openSecond = () => page.evaluate(() => window.SmylInbox.open('c-second'));
+  await page.locator('[data-handoff] summary').click();
+  assert.equal(await page.locator('[data-handoff] p').innerText(), 'Relevo exclusivo del primer chat.');
   await openSecond();
+  assert.equal(await page.locator('[data-handoff]').isVisible(), false);
+  assert.equal(await page.locator('[data-handoff] p').textContent(), '');
   await assign.locator('option[value=centro]').waitFor({state:'attached'});
   await page.evaluate(() => window.releaseNorth());
   await openSecond();
