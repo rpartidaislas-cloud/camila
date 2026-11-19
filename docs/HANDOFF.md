@@ -15,6 +15,10 @@
 - `smyl-proposal-share` ya NO escribe en `smyl_proposal_followups`: esa tabla es el seguimiento que hace el EQUIPO (sugiere el siguiente a los 3/7/15 días); que el paciente pulse «Me interesa» no debe contar como seguimiento del equipo.
 - **Hallazgo aparte**: en producción (proyecto SMYL) falta la tabla `smyl_proposal_followups` y la función `smyl_log_proposal_followup` (migración `20261114130000`, no registrada). El seguimiento 3/7/15 días del tablero no funciona ahí hasta aplicarla; la lista ya tolera su ausencia. Aplicarla es independiente de esta tarea.
 - Pruebas: `tests/smyl-proposal-share.test.mjs` (12); suite completa sin fallas nuevas frente a `main`.
+## 2026-11-19 — Ficha y Archivos en Mensajes
+
+- La X cierra únicamente la ficha del paciente, en el panel lateral y en el móvil. Conserva el borrador del chat y el acceso por teclado.
+- Ficha y Archivos son dos vistas del mismo paciente. Los adjuntos ya no aparecen como bloque de la carátula. Se quitaron del pie Expediente, Cotizar y Ajustes del chat; este último sigue disponible desde el menú + del chat. No se eliminan documentos ni se cambian permisos.
 
 ## 2026-11-19 — Claude Code — Propuesta compartida con el paciente (enlace privado `propuesta.html`)
 

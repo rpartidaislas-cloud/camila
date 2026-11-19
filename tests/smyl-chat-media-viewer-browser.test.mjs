@@ -123,6 +123,42 @@ for (const width of [1440, 820, 390]) {
   });
 }
 
+for (const [width, pipeline] of [[1655, false], [820, false], [390, true]]) {
+  test('Archivos abre fotos y PDF en la Ficha 360 y vuelve al perfil a '+width+' px'+(pipeline?' desde Pipeline':''), async t=>{
+    if (!browser) return t.skip('Se necesita Chromium.');
+    const page = await openInbox(t, width, pipeline);
+    const ficha = page.locator('[data-inbox-context-panel]');
+    if (await ficha.getAttribute('aria-hidden') !== 'false') await page.locator('[data-inbox-context]').click();
+    const profile = ficha.locator('[data-f360-tab=profile]'), files = ficha.locator('[data-f360-tab=files]');
+    const profilePanel = ficha.locator('[data-f360-panel=profile]'), filePanel = ficha.locator('[data-f360-panel=files]');
+    await profilePanel.waitFor({state:'visible'});
+    assert.equal(await profile.getAttribute('aria-selected'),'true');
+    assert.equal(await ficha.locator('[data-f360-section=files]').count(),0);
+    await files.click();
+    await filePanel.waitFor({state:'visible'});
+    assert.equal(await files.getAttribute('aria-selected'),'true');
+    assert.equal(await profilePanel.isVisible(),false);
+    for(const [filter,kind] of [['Fotos','image'],['Documentos','pdf']]){
+      await filePanel.getByRole('button',{name:new RegExp('^'+filter+'\\s+1$')}).click();
+      assert.equal(await filePanel.locator('.smyl-f360-file').count(),1);
+      await filePanel.locator('.smyl-f360-file').click();
+      await filePanel.locator('[data-chat-media-open="'+kind+'"]').click();
+      const viewer = page.locator('dialog[data-smyl-media-dialog][open]');
+      if(kind==='pdf') await viewer.getByRole('button',{name:'Página siguiente',exact:true}).click();
+      else await viewer.getByRole('button',{name:'Plumón',exact:true}).click();
+      await viewer.getByRole('button',{name:'Cerrar visor',exact:true}).click();
+      await viewer.waitFor({state:'hidden'});
+      assert.equal(await files.getAttribute('aria-selected'),'true','cerrar el visor conserva Archivos');
+    }
+    if (process.env.SMYL_QA_SHOTS) await page.screenshot({path:join(process.env.SMYL_QA_SHOTS, 'ficha-archivos-'+width+'.png')});
+    await profile.click();
+    await profilePanel.waitFor({state:'visible'});
+    assert.equal(await filePanel.isVisible(),false);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false);
+    assert.equal(await page.evaluate(()=>window.mediaSends),0);
+  });
+}
+
 test('Lee un PDF de dos páginas y descarga una copia con trazos sobre la página rotada', async t => {
   if (!browser) return t.skip('Se necesita Chromium.');
   const page = await openInbox(t, 1360);

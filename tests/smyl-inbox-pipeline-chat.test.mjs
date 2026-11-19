@@ -57,7 +57,10 @@ for (const width of [1680, 1024, 390]) {
     await chat.locator('[data-inbox-context]').click();
     const profile = page.locator('[data-inbox-context-panel]');
     await profile.getByRole('heading',{name:'Ana López'}).waitFor();
-    await profile.locator('.smyl-inbox-context-close').click();
+    const closeProfile = profile.getByRole('button',{name:/cerrar.*ficha/i});
+    assert.equal((await closeProfile.innerText()).trim(),'');
+    assert.equal(await closeProfile.locator('svg[aria-hidden="true"]').count(),1);
+    await closeProfile.click();
     await message.fill('Nos vemos en recepción.');
     await chat.locator('[data-compose-send]').click();
     await chat.locator('[data-thread-messages]').getByText('Nos vemos en recepción.',{exact:true}).waitFor();
@@ -71,6 +74,45 @@ for (const width of [1680, 1024, 390]) {
       assert.ok(Math.abs(await board.evaluate(el => el.scrollLeft) - boardPosition) <= 2, 'vuelve a la misma columna');
     }
     assert.deepEqual(errors, []);
+  });
+}
+
+for (const width of [390, 768, 1680]) {
+  test('La X cierra sólo la Ficha 360 y devuelve el foco al contacto a '+width+' px', async t => {
+    if (!browser) return t.skip('Se necesita Chromium.');
+    const page = await browser.newPage({ viewport:{width,height:860}, hasTouch:width<=768 });
+    t.after(() => page.close());
+    page.setDefaultTimeout(6000);
+    const preview = new URL(fixture); preview.search = 'focus&composer-tools';
+    await page.goto(preview.href);
+    await page.waitForSelector('html[data-preview-ready=true]');
+    const identity = page.locator('[data-inbox-context]'), profile = page.locator('[data-inbox-context-panel]');
+    const message = page.locator('[data-inbox-composer] textarea');
+    const draft = 'Todavía estoy redactando.';
+    await message.fill(draft);
+    if (width < 1440) {
+      assert.equal(await identity.getAttribute('aria-expanded'),'false');
+      await identity.click();
+    } else {
+      assert.equal(await identity.getAttribute('aria-expanded'),'true','la ficha ya estaba anclada al abrir este chat');
+      assert.equal(await profile.getAttribute('role'),'complementary');
+    }
+    await profile.getByRole('heading',{name:'Ana López'}).waitFor();
+    const close = profile.getByRole('button',{name:/cerrar.*ficha/i});
+    assert.equal(await close.count(),1);
+    assert.equal((await close.innerText()).trim(),'','el control no reserva espacio para un rótulo visible');
+    assert.equal(await close.locator('svg[aria-hidden="true"]').count(),1);
+    await close.click({trial:true}); // Espera a que termine la transición lateral antes de medir.
+    const rect = await close.boundingBox();
+    assert.ok(rect.width>=44 && rect.height>=44 && rect.x>=0 && rect.x+rect.width<=width+1,'objetivo táctil de la X: '+JSON.stringify(rect));
+    if (width<=768) await close.tap(); else { await close.focus(); await close.press('Enter'); }
+    await page.waitForFunction(()=>document.querySelector('[data-inbox-context-panel]').inert);
+    assert.equal(await profile.getAttribute('aria-hidden'),'true');
+    assert.equal(await identity.getAttribute('aria-expanded'),'false');
+    assert.equal(await identity.evaluate(el=>document.activeElement===el),true);
+    assert.equal(await message.inputValue(),draft);
+    assert.equal(await page.locator('[data-thread-name]').innerText(),'Ana López');
+    assert.equal(await page.locator('[data-thread-messages]').getByText(draft,{exact:true}).count(),0);
   });
 }
 
