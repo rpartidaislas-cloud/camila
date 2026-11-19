@@ -11713,3 +11713,21 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 ## 2026-11-19 — Claude Code — Ficha del paciente: error `insertBefore` en revisión de fotografías
 - `smyl-clinical-photo-review.js` (v5): `mount()` insertaba antes de `.cw-radiograph-shelf`, que está anidada y no es hijo directo de `.cw-evaluation-panel-body` → `NotFoundError` ×6 y el aviso global al abrir un paciente; además `active` no se fijaba y el observer reintentaba. Ahora se inserta antes del hijo directo que contiene la bandeja (o `append`).
 - Caché de `sw.js` termina en `-photo-review-mount-fix-v1`; `mobile/www/` sincronizado. `tests/qa/patient-open-smoke.cjs`: 3 pacientes, 0 `pageerror`.
+## 2026-11-19 — Claude — Equipo: WhatsApp del profesional
+- `smyl-clinic-admin.js?v=17` / `.css?v=13`: en la ficha de cada persona (Equipo → Editar datos) aparece «WhatsApp del profesional» (`smyl_professionals.contact_phone`) y la casilla «Compartir con los pacientes» (`contact_phone_public`). Se leen con respaldo si la base aún no tiene las columnas (migración `20261119120000`).
+- Alcance: solo captura y lectura del número. El envío de avisos al profesional (que atienda el chat) NO está construido; hoy `appointment-reminders` solo usa este número como variable de plantilla cuando es público.
+- Caché `…-equipo-whatsapp-v1`; `mobile/www` sincronizado.
+
+## 2026-11-19 — Claude — Equipo: horario semanal del profesional desde su ficha
+- `smyl-clinic-admin.js?v=18` / `.css?v=14`: en «Dónde trabaja», cada sede tiene «Editar horario» (solo con `schedule.manage`): 7 días, hasta 3 bloques por día, «Copiar el lunes a martes–viernes», recordatorio del horario de la sucursal y validación (fin>inicio, sin traslapes). Guarda sobre `smyl_professional_hours` (desactiva lo quitado y hace upsert de lo nuevo; si el trigger de traslape/traslado rechaza, se restauran los bloques quitados y se muestra el motivo).
+- No hay migración nueva. `tests/qa/equipo-ficha-smoke.cjs` cubre WhatsApp y horario (fake con `upsert`; `SHOT=ruta.png` guarda captura).
+
+## 2026-11-19 — Claude — Equipo: «Listo para recibir citas»
+- `smyl-clinic-admin.js?v=19` / `.css?v=15`: la ficha del doctor abre con una lista de preparación: sede y horario (indispensables), WhatsApp para avisos y acceso a SMYL (recomendados). En la lista de Equipo aparece «Falta sede / horario» a quien no puede recibir citas. Solo frontend; sin migración.
+- PENDIENTE (no construido): aviso por WhatsApp al profesional cuando se le agenda una cita. Hoy solo se puede escribir al profesional por una conversación de LANA ya vinculada (`smyl_professional_whatsapp_links`, que el propio doctor vincula con `link_my_professional`); un doctor «Sin acceso» no puede vincularla y SMYL no puede iniciar conversación por número. Requiere definir con LANA el envío de plantilla a un número, o aceptar que solo avise a quienes vincularon su chat.
+
+## 2026-11-19 — Claude Code — «Agregar profesional» pide el WhatsApp del profesional
+- Se integró la rama `claude/epic-newton-m7mac3` (WhatsApp del profesional, horario y lista de preparación en la ficha) con main y con el renombre «doctor» → «profesional».
+- `smyl-clinic-admin.js?v=20` / `.css?v=16`: el diálogo «Agregar profesional» muestra «WhatsApp del profesional» y «Compartir este número con los pacientes…» cuando el correo ya es de la clínica; guarda en `smyl_professionals.contact_phone` / `contact_phone_public` (el mismo dato que «Editar datos» en la ficha). Si el profesional ya estaba vinculado, precarga su número.
+- Con correo nuevo (invitación) el campo no se muestra: `smyl_staff_invitations` e `invite-staff` no tienen columna para el WhatsApp. Se muestra una nota para capturarlo en la ficha al aceptar. PENDIENTE si se quiere en el alta: columna en invitaciones + copiarla al crear el profesional en `camila_crear_tenant_en_signup`.
+- `tests/qa/equipo-ficha-smoke.cjs` cubre el alta con WhatsApp. Caché `…-alta-whatsapp-v1`; `mobile/www/` sincronizado. Única falla restante: «la deuda tipográfica…» (ya fallaba en main).
