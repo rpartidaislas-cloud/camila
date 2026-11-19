@@ -113,5 +113,21 @@ test("interfaz del doctor: botón «Compartir con el paciente» solo con propues
   assert.match(js, /shareButton=b\('Compartir con el paciente',openShare\)/);
   assert.match(js, /shareBtn\.disabled=ctx\.busy\|\|!approved\|\|!ctx\.access\.followup/);
   for (const f of ["smyl-proposals.js", "smyl-proposal-print.js", "app.html", "sw.js"]) assert.equal(read(f), read("mobile/www/" + f), `${f} móvil igual`);
-  assert.match(read("app.html"), /smyl-proposals\.js\?v=21/);
+  assert.match(read("app.html"), /smyl-proposals\.js\?v=22/);
+});
+
+test("aviso en la lista: el equipo solo lee columnas seguras del enlace; la función ya no escribe en el seguimiento del equipo", () => {
+  const sql = read("supabase/migrations/20261120100000_smyl_proposal_shares_staff_read.sql");
+  assert.match(sql, /grant select \(id, tenant_id, proposal_id/);
+  for (const prohibida of ["snapshot", "token_hash", "history_summary", "payment_note", "consent_text_hash", "interest_note"]) {
+    assert.ok(!new RegExp("grant select \\([^)]*" + prohibida).test(sql), `${prohibida} no se concede al equipo`);
+  }
+  assert.match(sql, /smyl_tenants_with_permission\('proposal\.read'\)/);
+  const fn = read("supabase/functions/smyl-proposal-share/index.ts");
+  assert.ok(!/smyl_proposal_followups/.test(fn), "no marca seguimiento del equipo cuando responde el paciente");
+  const js = read("smyl-proposals.js");
+  assert.match(js, /from\('smyl_proposal_shares'\)\.select\('proposal_id,status,expires_at,open_count,last_opened_at,interested_at,accepted_at'\)/);
+  assert.match(js, /catch\(_\)\{shareSignals=new Map\(\);\}/, "si falla, la lista sigue igual");
+  assert.match(js, /Enlace: aceptó el plan/);
+  assert.equal(js, read("mobile/www/smyl-proposals.js"));
 });

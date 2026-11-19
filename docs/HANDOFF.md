@@ -14,6 +14,18 @@
 - Ficha 360: «Historial de visitas» conserva el mismo origen (citas completadas visibles), las sucursales, los profesionales y las fechas. En la cabecera se conserva la nota privada de relevo mediante un icono sin rótulo.
 - Recursos web y copias móviles: Inbox JS 78 / CSS 67 y registro PWA `inbox-thread-ux-4`. Sin migraciones ni cambios de backend.
 
+## 2026-11-20 — Claude Code — Aviso de privacidad: propuestas compartidas por enlace (PROVISIONAL)
+
+- `privacidad.html` (camila, copia móvil y smyl-site) agrega el párrafo «Propuestas de tratamiento compartidas por enlace (opcional)» y sube la fecha a 20 de noviembre de 2026. Publicado de forma PROVISIONAL a petición de Ricardo: **pendiente de revisión del abogado** (datos de salud, consentimiento y fotografías). Mantener las tres copias iguales.
+
+## 2026-11-20 — Claude Code — Aviso en la lista de cotizaciones cuando el paciente responde a su enlace
+
+- La lista de **Cotizaciones** muestra bajo cada propuesta una línea del enlace compartido: «Enlace: aceptó el plan · fecha» (verde), «Enlace: le interesa y quiere agendar · fecha» (ámbar) o «Enlace: lo abrió N veces · última fecha». Es informativo: si la consulta falla, la lista queda igual.
+- Migración `20261120100000_smyl_proposal_shares_staff_read.sql`: el equipo con `proposal.read` lee SOLO columnas de estado de `smyl_proposal_shares` (no la copia congelada, el resumen de historial ni el hash del token).
+- `smyl-proposal-share` ya NO escribe en `smyl_proposal_followups`: esa tabla es el seguimiento que hace el EQUIPO (sugiere el siguiente a los 3/7/15 días); que el paciente pulse «Me interesa» no debe contar como seguimiento del equipo.
+- **Hallazgo aparte**: en producción (proyecto SMYL) falta la tabla `smyl_proposal_followups` y la función `smyl_log_proposal_followup` (migración `20261114130000`, no registrada). El seguimiento 3/7/15 días del tablero no funciona ahí hasta aplicarla; la lista ya tolera su ausencia. Aplicarla es independiente de esta tarea.
+- Pruebas: `tests/smyl-proposal-share.test.mjs` (12); suite completa sin fallas nuevas frente a `main`.
+
 ## 2026-11-19 — Ficha y Archivos en Mensajes
 
 - La X cierra únicamente la ficha del paciente, en el panel lateral y en el móvil. Conserva el borrador del chat y el acceso por teclado.

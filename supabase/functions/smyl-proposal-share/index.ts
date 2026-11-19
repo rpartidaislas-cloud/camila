@@ -35,14 +35,6 @@ async function firmar(tenantId: string, path: unknown): Promise<string | null> {
   return data?.signedUrl || null;
 }
 
-async function registrarSeguimiento(share: Json) {
-  try {
-    await admin.from("smyl_proposal_followups").insert({
-      tenant_id: share.tenant_id, proposal_id: share.proposal_id, proposal_revision: share.proposal_revision, channel: "other", followed_by: null,
-    });
-  } catch (_) { /* el seguimiento es una comodidad; no debe romper la respuesta */ }
-}
-
 async function accionesPublicas(body: Json, CORS: Record<string, string>): Promise<Response> {
   const share = await enlacePorToken(body.token);
   if (!share) return json(CORS, 404, { error: "Este enlace no existe o ya no está disponible." });
@@ -69,7 +61,6 @@ async function accionesPublicas(body: Json, CORS: Record<string, string>): Promi
       const { data } = await admin.from("smyl_proposal_shares").update({
         interested_at: new Date().toISOString(), interest_note: limpiarNotaInteres(body.note), updated_at: new Date().toISOString(),
       }).eq("id", share.id).is("interested_at", null).select("id").maybeSingle();
-      if (data) await registrarSeguimiento(share);
     }
     return json(CORS, 200, { ok: true });
   }
@@ -81,7 +72,6 @@ async function accionesPublicas(body: Json, CORS: Record<string, string>): Promi
       accepted_at: ahora, interested_at: share.interested_at || ahora, consent_version: CONSENT_VERSION,
       consent_text_hash: await sha256Hex(CONSENT_TEXT), updated_at: ahora,
     }).eq("id", share.id).is("accepted_at", null).select("id").maybeSingle();
-    if (data) await registrarSeguimiento(share); // solo la primera vez
     return json(CORS, 200, { ok: true, accepted_at: share.accepted_at || ahora });
   }
   return json(CORS, 400, { error: "Acción no válida." });
