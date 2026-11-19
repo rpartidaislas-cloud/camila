@@ -520,6 +520,11 @@
     if (person.professional && conflictsFor(person.professional.id).length) {
       var warn = el('span', 'clinic-admin-flag is-warning', 'Horarios muy juntos'); warn.title = 'Tiene horarios en dos sedes con poco margen de traslado.'; flags.append(warn);
     }
+    var prep = readiness(person);
+    if (prep && !prep.ready) {
+      var lack = el('span', 'clinic-admin-flag is-warning', 'Falta ' + prep.missing.map(function (item) { return item.key === 'branch' ? 'sede' : 'horario'; }).join(' y '));
+      lack.title = 'No puede recibir citas hasta completarlo.'; flags.append(lack);
+    }
     var status = el('span', 'clinic-admin-flag', PERSON_STATUS[person.status]); status.dataset.status = person.status; flags.append(status);
     row.append(flags, el('span', 'clinic-admin-person-go', '›'));
     row.addEventListener('click', function () { openPerson(person.key); });
@@ -969,6 +974,41 @@
     return form;
   }
 
+  // ── ¿Está listo el doctor para recibir citas? (sede + horario son indispensables; WhatsApp y acceso se recomiendan) ──
+  function readiness(person) {
+    var professional = person.professional;
+    if (!professional || !person.doctor) return null;
+    var assigned = branchesOfProfessional(professional.id);
+    var items = [{ key: 'branch', required: true, ok: assigned.length > 0, label: 'Sede asignada', todo: 'Asígnalo a una sede en «Dónde trabaja».' }];
+    if (state.canScheduleRead) {
+      var withHours = assigned.filter(function (branch) {
+        return state.proHours.some(function (row) { return row.professional_id === professional.id && row.branch_id === branch.id; });
+      });
+      items.push({ key: 'hours', required: true, ok: withHours.length > 0, label: 'Horario de atención', todo: assigned.length ? 'Define sus días y horas con «Editar horario».' : 'Primero asígnalo a una sede.' });
+    }
+    if (state.contactSupported) items.push({ key: 'whatsapp', required: false, ok: !!String(professional.contact_phone || '').trim(), label: 'WhatsApp para avisos', todo: 'Captúralo en «Editar datos» para avisarle de sus citas.' });
+    items.push({ key: 'access', required: false, ok: person.kind === 'user', label: 'Acceso a SMYL', todo: 'Invítalo para que atienda el chat desde SMYL.' });
+    var missing = items.filter(function (item) { return item.required && !item.ok; });
+    return { items: items, ready: missing.length === 0, missing: missing };
+  }
+
+  function readinessSection(person) {
+    var state_ = readiness(person);
+    if (!state_) return null;
+    var section = sheetSection(state_.ready ? 'Listo para recibir citas' : 'Falta para recibir citas', state_.ready ? 'Ya aparece disponible al agendar.' : 'Hasta completarlo no se le podrán agendar citas.');
+    section.className += ' clinic-admin-ready' + (state_.ready ? ' is-ready' : '');
+    var list = el('ul', 'clinic-admin-ready-list');
+    state_.items.forEach(function (item) {
+      var line = el('li', item.ok ? 'is-ok' : (item.required ? 'is-missing' : 'is-optional'));
+      line.append(el('span', 'clinic-admin-ready-mark', item.ok ? '✓' : (item.required ? '!' : '•')));
+      var text = el('span', 'clinic-admin-ready-text'); text.append(el('strong', '', item.label + (item.required || item.ok ? '' : ' (recomendado)')));
+      if (!item.ok) text.append(el('small', '', item.todo));
+      line.append(text); list.append(line);
+    });
+    section.append(list);
+    return section;
+  }
+
   function renderPerson() {
     var dialog = sheet(); var person = currentPerson();
     if (!dialog || !person) return;
@@ -990,6 +1030,8 @@
     dialog.append(head);
 
     var body = el('div', 'clinic-admin-sheet-body');
+    var ready = readinessSection(person);
+    if (ready) body.append(ready);
 
     // Datos de contacto y profesionales
     var data = sheetSection('Datos');

@@ -151,6 +151,9 @@ server.listen(0, '127.0.0.1', async () => {
     await page.click('.clinic-admin-filter[data-filter="pending"]'); await page.waitForTimeout(200);
     r = await rows(page); check(r.length === 3, 'Pendientes debe mostrar 3 (2 sin acceso + 1 invitación): ' + r.length);
     await page.click('.clinic-admin-filter[data-filter="all"]'); await page.waitForTimeout(200);
+    const faltas = await page.evaluate(() => [...document.querySelectorAll('.clinic-admin-person-row')].map(r => r.innerText.replace(/\s+/g, ' ')).filter(t => /Falta /.test(t)).map(t => t.slice(0, 40)));
+    console.log('2b) doctores a los que les falta algo:', JSON.stringify(faltas));
+    check(faltas.length === 1 && /Salinas/.test(faltas[0]), 'a quien no tiene horario se le avisa en la lista: ' + JSON.stringify(faltas));
 
     // Ficha de Iván (dos sedes con choque)
     await page.fill('#clinic-admin-people-search', 'Iván'); await page.waitForTimeout(200);
@@ -163,6 +166,7 @@ server.listen(0, '127.0.0.1', async () => {
     check(/solo hay 30 min/.test(ficha.texto) && /Se necesitan 45 min/.test(ficha.texto), 'debe avisar del choque entre sedes');
     check(/Teléfono interno/.test(ficha.texto) && /Sin registrar/.test(ficha.texto), 'debe mostrar el teléfono interno vacío');
     check(/Zona delicada/.test(ficha.texto) && /Desactivar perfil/.test(ficha.texto), 'el administrador ve la zona delicada');
+    check(/Listo para recibir citas/.test(ficha.texto) && /Sede asignada/.test(ficha.texto), 'Iván tiene sede y horario: debe verse como listo');
 
     // Editar datos y teléfono
     await page.click('.clinic-admin-sheet-edit'); await page.waitForTimeout(200);
