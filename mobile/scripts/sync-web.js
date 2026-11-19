@@ -110,6 +110,7 @@ copyFile(path.join(ROOT, 'smyl-daily-home.css'), path.join(WWW, 'smyl-daily-home
 copyFile(path.join(ROOT, 'smyl-dashboard-v2.css'), path.join(WWW, 'smyl-dashboard-v2.css'));
 copyFile(path.join(ROOT, 'smyl-clinic-setup.js'), path.join(WWW, 'smyl-clinic-setup.js'));
 copyFile(path.join(ROOT, 'smyl-clinic-setup.css'), path.join(WWW, 'smyl-clinic-setup.css'));
+copyFile(path.join(ROOT, 'smyl-inventory-routing.js'), path.join(WWW, 'smyl-inventory-routing.js'));
 copyFile(path.join(ROOT, 'smyl-inventory-procurement.js'), path.join(WWW, 'smyl-inventory-procurement.js'));
 copyFile(path.join(ROOT, 'smyl-inventory.js'), path.join(WWW, 'smyl-inventory.js'));
 copyFile(path.join(ROOT, 'smyl-inventory.css'), path.join(WWW, 'smyl-inventory.css'));
