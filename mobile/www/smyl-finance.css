@@ -1329,3 +1329,19 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
 .fiscal-capture-address>summary small{font-size:12px;font-weight:500;color:#5b6f6d}
 .fiscal-capture-address[open]{padding-bottom:14px}
 .fiscal-capture-address .fiscal-capture-grid{margin-top:4px}
+/* Elegir la constancia desde los archivos que el paciente mandó por el chat */
+.fiscal-capture-sources{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.fiscal-capture-chat{border:1px solid #d5e2e0;border-radius:12px;padding:12px 14px;background:#fff}
+.fiscal-capture-chat>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.fiscal-capture-chat>header strong{font-size:14px;color:#21403d}
+.fiscal-capture-chat-close{min-height:34px;padding:0 10px;border:1px solid #d5e2e0;border-radius:8px;background:#fff;font:inherit;font-size:13px;font-weight:600;color:#3b5250;cursor:pointer}
+.fiscal-capture-chat-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;max-height:280px;overflow:auto}
+.fiscal-capture-chat-item{display:flex;align-items:center;gap:10px;min-height:56px;padding:6px;border:1px solid #dfe8e7;border-radius:10px;background:#fbfdfd;text-align:left;font:inherit;cursor:pointer}
+.fiscal-capture-chat-item:hover,.fiscal-capture-chat-item:focus-visible{border-color:#2a6d5f;outline:none;box-shadow:0 0 0 2px rgba(42,109,95,.18)}
+.fiscal-capture-chat-thumb{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:8px;overflow:hidden;background:#eef3f2;color:#3b5250;font-size:12px}
+.fiscal-capture-chat-thumb img{width:100%;height:100%;object-fit:cover}
+.fiscal-capture-chat-item strong{display:block;font-size:13px;color:#1e3533;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px}
+.fiscal-capture-chat-item small{display:block;font-size:12px;color:#5b6f6d}
+.fiscal-capture-chat-empty{margin:0;font-size:13px;color:#5b6f6d}
+@media(max-width:600px){.fiscal-capture-sources{justify-content:stretch}.fiscal-capture-sources>*{flex:1 1 auto;text-align:center}}
+.fiscal-capture [hidden]{display:none!important}
