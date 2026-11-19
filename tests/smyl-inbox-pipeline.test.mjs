@@ -98,7 +98,8 @@ for (const mobile of [false,true]) {
     await page.waitForSelector('html[data-preview-ready=true]');
     const row = page.locator('[data-inbox-list] [data-conversation-id="c-preview"]');
     const listStage = page.locator('[data-list-conversation-id="c-preview"] [data-list-stage]');
-    assert.match(await row.locator('.smyl-inbox-card-appointment').textContent(), /Cita confirmada.*0?9:00/);
+    assert.match(await row.getAttribute('aria-description'), /Cita confirmada.*0?9:00/);
+    assert.match(await page.locator('[data-list-conversation-id="c-preview"] .smyl-inbox-list-card-footer time').textContent(), /0?9:00/);
     if (mobile) await page.locator('[data-inbox-back]').click();
     await page.locator('[data-inbox-view=pipeline]').click();
     const columns = page.locator('[data-pipeline-stage]');
@@ -219,12 +220,12 @@ test('web, móvil y PWA publican el pipeline', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
   for (const shell of [app, read('../mobile/www/app.html')]) {
-    assert.match(shell, /serviceWorker\.register\('sw\.js\?v=inbox-thread-ux-4',\s*\{\s*updateViaCache:\s*'none'\s*}/);
+    assert.match(shell, /serviceWorker\.register\('sw\.js\?v=inbox-thread-ux-5',\s*\{\s*updateViaCache:\s*'none'\s*}/);
   }
-  assert.match(app, /smyl-inbox\.js\?v=78/);
-  assert.match(app, /smyl-inbox\.css\?v=67/);
-  assert.match(worker, /smyl-inbox\.js\?v=78/);
-  assert.match(worker, /smyl-inbox\.css\?v=67/);
+  assert.match(app, /smyl-inbox\.js\?v=79/);
+  assert.match(app, /smyl-inbox\.css\?v=68/);
+  assert.match(worker, /smyl-inbox\.js\?v=79/);
+  assert.match(worker, /smyl-inbox\.css\?v=68/);
 });
 
 test('sin canales conectados el Inbox muestra una sola explicación en lugar de lista, hilo y compositor vacíos', () => {

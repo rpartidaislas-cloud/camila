@@ -41,25 +41,27 @@ test('la cabecera conserva Agendar cita y las demás acciones respetan los permi
   assert.match(actions, /action\.id === 'schedule'/, 'Agendar cita es la acción principal cuando hay permiso');
   assert.doesNotMatch(actions, /'Nueva acción'|id: 'template'/, 'sin botón «Nueva acción» ni plantilla en el encabezado');
   const head = js.match(/<header class="smyl-inbox-thread-head">.*?<\/header>/s)?.[0] || '';
-  assert.match(head, /data-thread-assign/);
+  assert.match(head, /data-thread-owner aria-haspopup="dialog"/);
   assert.doesNotMatch(head, /data-thread-more|data-thread-menu/);
   assert.doesNotMatch(js, /data-thread-more|data-thread-menu-care|SMYL te pone al día/);
   assert.match(js, /settings\.onclick = openConversationSettings/);
 });
 
-test('la nota privada queda junto al responsable y el historial comienza directamente bajo la cabecera', () => {
+test('el responsable y el relevo privado comparten un solo acceso en el encabezado', () => {
   const header = js.slice(js.indexOf('<header class="smyl-inbox-thread-head"'), js.indexOf('<div class="smyl-inbox-thread-body"'));
-  assert.ok(header.indexOf('data-handoff hidden') > header.indexOf('data-thread-owner'));
-  assert.ok(header.indexOf('data-handoff hidden') < header.indexOf('smyl-inbox-thread-actions'));
-  assert.equal(header.slice(header.indexOf('</header>')).includes('data-handoff'), false);
+  assert.match(header, /data-thread-owner[^>]+aria-controls="smyl-chat-owner"/);
+  assert.doesNotMatch(header, /data-handoff|data-thread-assign/);
+  const ownerDialog = js.slice(js.indexOf('id="smyl-chat-owner"')).split('</dialog>')[0];
+  assert.match(ownerDialog, /data-thread-assign/);
+  assert.match(ownerDialog, /data-handoff[^>]+hidden/);
   assert.match(js, /id: 'citas', title: 'Citas', peek: visitsPeek/);
 });
 
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=78/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=67/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=79/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=68/);
 });
 
 test('la cabecera grande se reemplaza por una barra delgada y los contadores viven en las pestañas', () => {

@@ -37,49 +37,50 @@ for (const width of [1440, 1024, 390]) {
     await page.goto(fixture.href+(width<500 ? '&mobile=1' : ''));
     await page.waitForSelector('html[data-preview-ready=true]');
     const assign=page.locator('[data-thread-assign]'), menu=page.locator('[data-thread-more]'), schedule=page.locator('[data-thread-primary-action="schedule"]');
+    const ownerButton = page.getByRole('button',{name:/Atiende el chat/});
     async function checkWidth() {
       const header = await page.locator('.smyl-inbox-thread-head').boundingBox();
       const identity = page.locator('[data-inbox-context]');
       assert.ok(await identity.evaluate(el => el.nextElementSibling?.matches('[data-thread-owner]')), 'Ficha y asignación son controles vecinos e independientes');
-      for(const control of [identity,assign,schedule]) {
+      for(const control of [identity,ownerButton,schedule]) {
         const box=await control.boundingBox(); assert.ok(box && box.width>0 && box.x>=header.x-1 && box.x+box.width<=header.x+header.width+1,'Header action fits at '+width);
       }
       if (header.width > 830) {
-        const name = await identity.boundingBox(), owner = await assign.boundingBox();
+        const name = await identity.boundingBox(), owner = await ownerButton.boundingBox();
         assert.ok(owner.x >= name.x + name.width - 1 && owner.x <= name.x + name.width + 25 && Math.abs(name.y + name.height / 2 - owner.y - owner.height / 2) < 12, 'en escritorio el responsable se ve al lado del contacto');
       }
     }
     await checkWidth();
-    const privateNote = page.locator('[data-handoff]');
-    const summary = privateNote.locator('summary');
+    const privateNote = page.locator('[data-owner-dialog] [data-handoff]');
+    await ownerButton.click();
     assert.equal(await privateNote.isVisible(), false);
     await assign.selectOption('desk-preview');
     const dialog = page.locator('[data-chat-transfer][open]');
     await dialog.locator('textarea').fill('Llamar después de las cuatro.');
     await dialog.locator('[type=submit]').click();
-    await summary.waitFor();
-    assert.ok(await privateNote.evaluate(el => el.previousElementSibling.matches('[data-thread-owner]')));
+    await page.waitForFunction(() => document.querySelector('[data-thread-owner-name]').textContent === 'Sofía · Recepción');
     const timeline = page.locator('[data-thread-body]');
     const beforeOpen = await timeline.boundingBox();
-    await summary.focus(); await summary.press('Enter');
+    await ownerButton.focus(); await ownerButton.press('Enter');
     const noteText = privateNote.locator('p');
     assert.equal(await noteText.innerText(), 'Llamar después de las cuatro.');
     assert.equal(await noteText.isVisible(),true);
-    const box = await privateNote.locator('.smyl-chat-note-content').boundingBox();
+    const box = await privateNote.boundingBox();
     assert.ok(box.x >= 0 && box.x + box.width <= width + 1);
     const afterOpen = await timeline.boundingBox();
     assert.ok(Math.abs(beforeOpen.y-afterOpen.y) <= 1,'abrir la nota no desplaza los mensajes');
-    await summary.press('Escape');
+    await page.keyboard.press('Escape');
     assert.equal(await noteText.isVisible(),false);
-    assert.ok(await summary.evaluate(el => document.activeElement === el));
+    assert.ok(await ownerButton.evaluate(el => document.activeElement === el));
     assert.ok(!(await page.locator('[data-thread-messages]').innerText()).includes('Llamar después de las cuatro.'));
     assert.equal(await page.locator('[name=message]').inputValue(), '');
-    await page.waitForFunction(() => document.querySelector('[data-thread-owner-name]').textContent === 'Sofía · Recepción');
+    await ownerButton.click();
     await assign.selectOption('owner-preview');
     await dialog.locator('[type=submit]').click();
     await page.waitForFunction(() => document.querySelector('[data-thread-owner-name]').textContent === 'Dra. Mariana');
     assert.equal(await privateNote.isVisible(),false);
     assert.equal(await noteText.textContent(),'');
+    await ownerButton.click();
     await assign.selectOption('');
     await dialog.locator('[type=submit]').click();
     await page.waitForFunction(() => document.querySelector('[data-thread-owner-name]').textContent === 'Sin asignar');
@@ -159,7 +160,7 @@ test('El selector consulta cada chat y sede, descarta respuestas fuera de orden 
         if (!['list','messages'].includes(action)) return previewFetch(input, init);
         const response = await (await previewFetch(input, init)).json();
         function located(base, convoId, site) {
-          return {...base,id:convoId,branch:{id:site,name:site},contact_name:convoId,private_handoff_note:convoId === 'c-preview' ? 'Relevo exclusivo del primer chat.' : null};
+          return {...base,id:convoId,branch:{id:site,name:site},contact_name:convoId,private_handoff_note:convoId === 'c-preview' ? (window.updatedHandoff || 'Relevo exclusivo del primer chat.') : null};
         }
         if (action === 'messages') response.conversation = located(response.conversation, id, branch);
         else {
@@ -177,9 +178,17 @@ test('El selector consulta cada chat y sede, descarta respuestas fuera de orden 
   const assign = page.locator('[data-thread-assign]');
   const members = () => assign.locator('option:not(:disabled)').evaluateAll(options => options.map(option => option.value));
   const openSecond = () => page.evaluate(() => window.SmylInbox.open('c-second'));
-  await page.locator('[data-handoff] summary').click();
+  const ownerButton = page.locator('[data-thread-owner]');
+  await ownerButton.click();
   assert.equal(await page.locator('[data-handoff] p').innerText(), 'Relevo exclusivo del primer chat.');
+  await page.evaluate(() => {
+    window.updatedHandoff = 'Relevo actualizado por el equipo.';
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.waitForFunction(() => document.querySelector('[data-handoff] p').textContent === window.updatedHandoff);
+  assert.ok(await page.locator('[data-owner-dialog]').isVisible(), 'se actualiza la nota sin cerrar lo que se está leyendo');
   await openSecond();
+  assert.equal(await page.locator('[data-owner-dialog]').isVisible(), false);
   assert.equal(await page.locator('[data-handoff]').isVisible(), false);
   assert.equal(await page.locator('[data-handoff] p').textContent(), '');
   await assign.locator('option[value=centro]').waitFor({state:'attached'});
@@ -191,6 +200,7 @@ test('El selector consulta cada chat y sede, descarta respuestas fuera de orden 
   await page.evaluate(() => { window.secondBranch = 'sur'; });
   await openSecond();
   const retry = page.locator('[data-thread-owner-retry]');
+  await ownerButton.click();
   await retry.waitFor();
   assert.ok(await assign.isDisabled());
   assert.ok(!(await members()).includes('centro'));
@@ -208,6 +218,7 @@ test('Al transferir su conversación el agente pierde el hilo incluso desde el e
   await page.goto(fixture.href+'&chat=agent');
   await page.waitForSelector('html[data-preview-ready=true]');
   const assign=page.locator('[data-thread-assign]');
+  await page.locator('[data-thread-owner]').click();
   await assign.selectOption('desk-preview');
   await page.locator('[data-chat-transfer] textarea').fill('Contactar por la tarde');
   await page.locator('[data-chat-transfer] [type=submit]').click();
@@ -281,6 +292,7 @@ test('Dos sesiones comparten el relevo sin publicar la nota en el canal del paci
   const sender=await login('owner-preview'), recipient=await login('desk-preview');
   assert.equal(await recipient.locator('.smyl-inbox-row').count(),0);
   const select=sender.locator('[data-thread-assign]');
+  await sender.locator('[data-thread-owner]').click();
   await select.selectOption('desk-preview');
   await sender.locator('[data-chat-transfer] textarea').fill('Pidió que le llamemos por la tarde.');
   await sender.getByRole('button',{name:'Cancelar',exact:true}).click();
@@ -290,7 +302,7 @@ test('Dos sesiones comparten el relevo sin publicar la nota en el canal del paci
   await sender.locator('[data-chat-transfer] [type=submit]').click();
   await sender.waitForFunction(()=>document.querySelector('[data-inbox-thread]').hidden);
   await recipient.evaluate(()=>window.SmylInbox.open('c-preview'));
-  await recipient.locator('[data-handoff] summary').click();
+  await recipient.locator('[data-thread-owner]').click();
   assert.equal(await recipient.locator('[data-handoff] p').innerText(),note);
   assert.ok(!(await recipient.locator('[data-thread-messages]').innerText()).includes(note));
   assert.equal(sends,0);

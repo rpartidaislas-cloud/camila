@@ -401,7 +401,8 @@
         '<aside class="smyl-inbox-list-pane" aria-label="Bandeja de conversaciones">' +
           '<div class="smyl-inbox-list-head"><div class="smyl-inbox-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" placeholder="Buscar paciente" aria-label="Buscar conversación" data-inbox-search></div><div class="smyl-inbox-branchbar" data-inbox-branchbar hidden></div><button type="button" class="smyl-inbox-filter-toggle" data-inbox-filter-more aria-expanded="false" aria-controls="smyl-inbox-filter-panel">Filtros</button></div>' +
           '<div class="smyl-inbox-filters" role="tablist" aria-label="Filtrar conversaciones">' +
-            '<button type="button" role="tab" aria-selected="true" tabindex="0" data-inbox-filter="all" class="active">Todas</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="unread">Sin leer</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="attention">Por atender</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="mine">Mías</button>' +
+            '<div class="smyl-inbox-filter-pair" role="presentation"><button type="button" role="tab" aria-selected="true" tabindex="0" data-inbox-filter="all" class="active">Todas</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="unread">Sin leer</button></div>' +
+            '<div class="smyl-inbox-filter-pair" role="presentation"><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="attention">Por atender</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="mine">Mías</button></div>' +
           '</div>' +
           '<div class="smyl-inbox-branch-strip" data-inbox-branch-strip hidden></div>' +
           '<section class="smyl-inbox-filter-panel" id="smyl-inbox-filter-panel" data-inbox-filter-panel aria-label="Filtros de conversaciones" hidden><fieldset><legend>Estado</legend><div class="smyl-inbox-secondary-filters"><button type="button" data-inbox-filter="unassigned">Sin asignar</button><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="pinned">Fijadas</button></div></fieldset><label>Canal<select data-inbox-channel aria-label="Filtrar por canal"><option value="">Todos los canales</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option></select></label></section>' +
@@ -417,8 +418,7 @@
           '<div class="smyl-inbox-thread" data-inbox-thread hidden>' +
             '<header class="smyl-inbox-thread-head">' +
               '<div class="smyl-inbox-thread-contact"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención" title="Ver la ficha del paciente" aria-expanded="false" aria-controls="smyl-inbox-context-panel"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><span class="smyl-inbox-med-flag" data-thread-medical hidden></span></button>' +
-                '<div class="smyl-inbox-owner-control" data-thread-owner>' + composeIcon('person') + '<span class="smyl-inbox-owner-copy"><small>Atiende el chat</small><strong data-thread-owner-name>Sin asignar</strong></span><select data-thread-assign aria-label="Asignar responsable del chat"></select><button type="button" data-thread-owner-retry hidden>Reintentar</button></div>' +
-                '<details class="smyl-chat-note" data-handoff hidden><summary aria-label="Nota privada de relevo" title="Nota privada de relevo">' + composeIcon('quick') + '</summary><div class="smyl-chat-note-content"><strong>Nota privada de relevo</strong><p></p></div></details></div>' +
+                '<button type="button" class="smyl-inbox-owner-control" data-thread-owner aria-haspopup="dialog" aria-controls="smyl-chat-owner">' + composeIcon('person') + '<span class="smyl-inbox-owner-copy"><small>Atiende el chat</small><strong data-thread-owner-name>Sin asignar</strong></span></button></div>' +
               '<div class="smyl-inbox-thread-actions"><div class="smyl-inbox-thread-branchwrap" data-thread-branch-wrap hidden><button type="button" class="smyl-inbox-iconchip is-labeled" data-thread-branch-chip aria-haspopup="menu" aria-expanded="false"></button></div><button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Siguiente acción del paciente"></nav></div>' +
             '</header>' +
             '<div class="smyl-inbox-transcript"><div class="smyl-inbox-thread-body" data-thread-body tabindex="-1" aria-label="Historial de mensajes" role="region"><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div id="smyl-thread-log" data-thread-messages role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div></div>' +
@@ -436,6 +436,9 @@
         '<dialog class="smyl-inbox-copilot-dialog smyl-inbox-template-dialog" data-template-dialog><form><span class="smyl-inbox-eyebrow">WHATSAPP · PLANTILLA APROBADA</span><h2>Volver a contactar</h2><p>Meta permite estas plantillas incluso cuando la ventana de 24 horas ya venció.</p><label>Plantilla<select data-template-select required></select></label><div class="smyl-inbox-template-preview" data-template-preview></div><div data-template-variables></div><footer><button type="button" class="btn btn-secondary" data-template-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Enviar plantilla</button></footer></form></dialog>' +
         '<dialog class="smyl-inbox-copilot-dialog smyl-inbox-schedule-dialog" data-schedule-dialog><form><span class="smyl-inbox-eyebrow">WHATSAPP · ENVÍO PROGRAMADO</span><h2>Programar seguimiento</h2><p>El envío se procesa una sola vez. Si el texto libre quedaría fuera de la ventana, usa una plantilla aprobada.</p><label>Fecha y hora<input type="datetime-local" data-schedule-at required></label><label>Tipo<select data-schedule-type><option value="text">Texto libre</option><option value="template">Plantilla aprobada</option></select></label><label data-schedule-text-wrap>Mensaje<textarea data-schedule-text maxlength="4000" rows="4"></textarea></label><div data-schedule-template-wrap hidden><label>Plantilla<select data-schedule-template></select></label><div class="smyl-inbox-template-preview" data-schedule-preview></div><div data-schedule-variables></div></div><footer><button type="button" class="btn btn-secondary" data-schedule-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Programar</button></footer></form></dialog>' +
         '<dialog class="smyl-v2-dialog smyl-inbox-productivity-dialog smyl-inbox-availability-dialog" data-availability-dialog><header><div class="smyl-inbox-availability-heading"><h2 tabindex="-1">Agendar cita</h2><p class="smyl-inbox-availability-context"><span data-availability-patient>Paciente por vincular</span><span aria-hidden="true">·</span><span data-availability-location>Tu clínica</span></p></div><button type="button" class="smyl-inbox-dialog-close" data-availability-close aria-label="Cerrar agenda"><span aria-hidden="true">×</span></button></header><aside class="smyl-inbox-availability-patient-alert" data-availability-patient-alert hidden><div><strong>Confirma la identidad del paciente</strong><span>Vincula esta conversación para registrar la cita en el expediente correcto.</span></div><button type="button" class="btn btn-secondary btn-sm" data-availability-link-patient>Vincular paciente</button></aside><form data-availability-form><div class="smyl-inbox-availability-primary-fields"><label>Servicio<select data-availability-service required></select></label><label>Sucursal<select data-availability-branch title="Todas las sucursales"><option value="">Todas las sucursales</option></select></label><label>Profesional<select data-availability-professional><option value="">Todo el equipo</option></select></label></div><div class="smyl-inbox-availability-period"><div class="smyl-inbox-availability-presets" aria-label="Periodo de búsqueda"><span>Periodo</span><button type="button" data-availability-preset="7">7 días</button><button type="button" data-availability-preset="14">15 días</button><button type="button" data-availability-preset="next">Próxima semana</button><button type="button" data-availability-custom>Fechas personalizadas</button></div><div class="smyl-inbox-availability-dates" data-availability-date-fields hidden><label>Desde<input type="date" data-availability-from required></label><label>Hasta<input type="date" data-availability-to required></label></div><button class="btn btn-primary" type="submit">Buscar horarios</button></div></form><section class="smyl-inbox-availability-board"><header><div><strong data-availability-scope>Disponibilidad del equipo</strong><span data-availability-period-label></span></div><div class="smyl-inbox-availability-modes" role="group" aria-label="Vista de disponibilidad"><button type="button" data-availability-mode="calendar" aria-pressed="true">Calendario</button><button type="button" data-availability-mode="list" aria-pressed="false">Lista</button></div></header><div data-availability-results></div></section><footer class="smyl-inbox-availability-offer" hidden><span data-availability-selection>0 horarios seleccionados</span><label class="smyl-inbox-availability-notify" data-availability-notify-wrap hidden><input type="checkbox" data-availability-notify checked> Preparar el mensaje de confirmación en el chat</label><button type="button" class="btn btn-primary" data-availability-book hidden>Confirmar cita</button><button type="button" class="btn btn-primary" data-availability-prepare disabled>Agregar opciones al mensaje</button></footer></dialog>' +
+        '<dialog class="smyl-inbox-productivity-dialog inbox-tool-dialog" id="smyl-chat-owner" data-owner-dialog aria-labelledby="smyl-owner-heading"><header><h2 id="smyl-owner-heading">Atiende el chat</h2><button type="button" data-owner-close aria-label="Cerrar responsable del chat">×</button></header>' +
+          '<div class="smyl-chat-owner-body"><label>Responsable<select data-thread-assign aria-label="Asignar responsable del chat"></select></label><p class="smyl-chat-owner-status" data-owner-status role="status" hidden></p><button type="button" class="btn btn-secondary" data-thread-owner-retry hidden>Reintentar</button>' +
+          '<section class="smyl-chat-note-content" data-handoff aria-labelledby="smyl-owner-note-title" hidden><h3 id="smyl-owner-note-title">Nota privada de relevo</h3><p></p></section></div></dialog>' +
         '<dialog class="smyl-inbox-productivity-dialog inbox-tool-dialog" data-quick-dialog aria-labelledby="smyl-quick-heading"><header><h2 id="smyl-quick-heading">Respuestas rápidas</h2><button type="button" data-quick-close aria-label="Cerrar respuestas rápidas">×</button></header>' +
           '<div data-quick-content><section data-quick-library><div class="smyl-quick-toolbar"><input type="search" data-quick-search placeholder="Buscar una respuesta" aria-label="Buscar una respuesta"><button type="button" data-quick-new>Redactar respuesta</button></div><div class="smyl-quick-list" data-quick-list></div></section>' +
           '<form class="smyl-quick-editor" data-quick-form hidden><label data-quick-name>Atajo<input name="shortcut" type="text" placeholder="Ej. bienvenida" maxlength="40" autocapitalize="none" autocomplete="off" spellcheck="false"></label><label>Mensaje<textarea name="replyText" rows="4" maxlength="4000" required placeholder="Escribe la respuesta…"></textarea></label>' +
@@ -896,13 +899,17 @@
       if (multiBranch() && item.branch && item.branch.source === 'ai') meta.lastChild.title = 'La eligió el paciente en la conversación';
       if (multiBranch() && !item.branch) { meta.lastChild.title = 'Sin sucursal'; meta.lastChild.setAttribute('role', 'img'); meta.lastChild.setAttribute('aria-label', 'Sin sucursal'); }
       copy.append(top, preview, meta);
-      var appointmentLine = appointmentCardLine(item.appointment);
-      if (appointmentLine) copy.append(appointmentLine);
-      else if (item.appointment) button.title = appointmentStatusLabel(item.appointment.status);
       var canPickStage = !state.bulkMode && canTransfer(item);
       var currentStage = stageName(item.stage_id);
+      var appointmentLine = appointmentCardLine(item.appointment);
+      var sharesAppointmentStatus = canPickStage && appointmentLine &&
+        CLINIC_PIPELINE_STAGES.some(function (stage) { return stage.id === item.stage_id; }) &&
+        currentStage === appointmentStatusLabel(item.appointment.status);
+      if (sharesAppointmentStatus) button.setAttribute('aria-description', appointmentLine.textContent);
+      else if (appointmentLine) copy.append(appointmentLine);
+      else if (item.appointment) button.title = appointmentStatusLabel(item.appointment.status);
       if (!canPickStage && currentStage !== 'Sin etapa' && (item.pipeline?.source !== 'agenda' || !appointmentLine)) {
-        copy.append(node('span', 'smyl-inbox-row-stage-line', 'Etapa · ' + currentStage));
+        copy.append(node('span', 'smyl-inbox-row-stage-line', currentStage));
       }
       button.append(avatar, copy);
       if (item.unread_count) button.append(node('span', 'smyl-inbox-unread', String(Math.min(99, item.unread_count))));
@@ -917,9 +924,13 @@
         var card = node('article', 'smyl-inbox-list-card');
         card.dataset.listConversationId = item.id;
         if (pendingStageMoves.has(item.id)) card.setAttribute('aria-busy', 'true');
-        var label = node('label', 'smyl-inbox-list-stage');
-        label.append(node('span', '', 'Etapa'), stageSelectFor(item, true));
-        card.append(button, label); list.append(card);
+        var footer = node('div', 'smyl-inbox-list-card-footer');
+        var stageControl = node('div', 'smyl-inbox-list-stage');
+        stageControl.append(stageSelectFor(item, true));
+        footer.append(stageControl);
+        var date = sharesAppointmentStatus && appointmentLine.querySelector('time');
+        if (date) { date.title = appointmentLine.textContent; footer.append(date); }
+        card.append(button, footer); list.append(card);
       } else list.append(button);
     });
     if (focusedStage) list.querySelector('[data-list-stage="' + CSS.escape(focusedStage) + '"]')?.focus({preventScroll:true});
@@ -2679,7 +2690,7 @@
       if (!accountPatient) accountStatus.append(node('p', '', 'Vincula al paciente para ver su saldo y cobrar desde esta conversación.'));
       else if (state.accountLoading && state.accountLoading[conversation.id]) accountStatus.append(skNode('text', { lines: 2, label: 'Consultando cuenta' }));
       else if (!accountInfo || !accountInfo.data) {
-        accountStatus.append(node('strong', '', 'Saldo no disponible'), node('small', '', 'No pudimos cargar la cuenta.'));
+        accountStatus.append(node('strong', 'is-unavailable', 'Saldo no disponible'), node('small', '', 'No pudimos cargar la cuenta.'));
         var retryAccount = node('button', 'smyl-inbox-link', 'Reintentar'); retryAccount.type = 'button';
         retryAccount.onclick = function () { loadAccountContext(conversation.id); }; accountStatus.append(retryAccount);
       }
@@ -3470,26 +3481,29 @@
   function renderHandoffNote(conversation) {
     var note = document.querySelector('[data-handoff]');
     if (!note) return;
-    var text = conversation && conversation.id === state.selectedId && canTransfer(conversation)
-      ? (conversation.private_handoff_note || '').trim() : '';
+    var dialog = note.closest('dialog');
+    var allowed = conversation && conversation.id === state.selectedId && canTransfer(conversation);
+    if (dialog.open && (!allowed || dialog.dataset.thread !== conversation.id)) {
+      var transfer = document.querySelector('dialog[data-chat-transfer][open]');
+      if (transfer && transfer.dataset.chatTransfer === dialog.dataset.thread) transfer.close();
+      dialog.close();
+    }
+    var text = allowed ? (conversation.private_handoff_note || '').trim() : '';
     var body = note.querySelector('p');
-    var id = text ? conversation.id : '';
-    if (note.dataset.thread !== id || body.textContent !== text) note.open = false;
     if (body.textContent !== text) body.textContent = text;
-    note.dataset.thread = id;
     note.hidden = !text;
   }
 
   function renderChatOwner(conversation) {
     var wrap = document.querySelector('[data-thread-owner]');
     if (!wrap || !conversation) return;
-    var select = wrap.querySelector('select'), label = wrap.querySelector('[data-thread-owner-name]'), retry = wrap.querySelector('button');
+    var dialog = document.querySelector('[data-owner-dialog]');
+    var select = dialog.querySelector('select'), retry = dialog.querySelector('[data-thread-owner-retry]');
     var assignment = conversation.assignment, current = assignment ? (assignment.actor_id || '__legacy') : '';
     var name = assignment && assignment.name || 'Sin asignar';
     var allowed = canTransfer(conversation);
     var roster = teamFor(conversation);
     var canChoose = allowed && roster.status === 'ready' && Boolean(roster.members.some(function (m) { return m.id !== current; }) || (assignment && state.actor.chat_access === 'coordinator'));
-    var display = allowed && roster.status === 'loading' && !assignment ? 'Cargando equipo…' : name;
     // Avoid replacing options under an open native picker when the conversation polls.
     var signature = JSON.stringify([conversation.id, current, name, state.actor && state.actor.chat_access, roster.status, roster.members.map(function (m) { return [m.id, m.name, m.kind]; })]);
     if (select.dataset.signature !== signature) {
@@ -3504,13 +3518,17 @@
       }
     }
     select.value = current; select.disabled = !canChoose; select.dataset.conversationId = conversation.id;
-    label.textContent = display;
+    wrap.querySelector('[data-thread-owner-name]').textContent = name;
     var description = 'Responsable del chat: ' + name;
     var unavailable = allowed && roster.status === 'error';
     select.setAttribute('aria-label', description + (canChoose ? '. Cambiar responsable' : ''));
-    wrap.dataset.editable = String(canChoose); wrap.dataset.error = String(unavailable);
-    wrap.title = unavailable ? 'No se pudo cargar el equipo. Reintentar' : description + (canChoose ? ' · Cambiar' : allowed && !roster.members.length && roster.status === 'ready' ? ' · No hay integrantes disponibles' : '');
-    retry.hidden = !unavailable; retry.setAttribute('aria-label', 'Reintentar carga del equipo para asignar el chat');
+    wrap.disabled = !allowed;
+    var status = dialog.querySelector('[data-owner-status]');
+    var hint = unavailable ? 'No se pudo cargar el equipo.' : roster.status === 'loading' ? 'Cargando equipo…' :
+      allowed && !canChoose ? 'No hay otros responsables disponibles.' : '';
+    if (status.textContent !== hint) status.textContent = hint;
+    status.hidden = !hint;
+    retry.hidden = !unavailable; retry.setAttribute('aria-label', 'Reintentar carga del equipo');
   }
 
   function announceHandoff(message, conversationId) {
@@ -3574,6 +3592,8 @@
         var result = await request('POST', {}, payload, uuid());
         if (dialog.open) dialog.close();
         if (state.selectedId !== conversationId) return;
+        var ownerDialog = document.querySelector('[data-owner-dialog]');
+        if (ownerDialog.open && ownerDialog.dataset.thread === conversationId) ownerDialog.close();
         routingRevision++;
         window.dispatchEvent(new Event('smyl:chat-routing-changed'));
         if (result.can_operate === false || state.actor.chat_access === 'agent' && result.assigned_actor_id !== state.actor.id) forgetChat(conversationId);
@@ -4258,6 +4278,11 @@
       // El sondeo siempre conserva los datos recibidos. Solo aplaza el repintado destructivo
       // mientras la persona escribe, usa un menú o consulta la Ficha 360.
       var deferVisualRefresh = quiet && inboxInteractionProtected();
+      if (updated && deferVisualRefresh && document.querySelector('[data-owner-dialog][open]')) {
+        var current = selectedConversation();
+        renderHandoffNote(current);
+        renderChatOwner(current);
+      }
       if (quiet && added && (!wasBottom || deferVisualRefresh)) threadNewCount += added;
       if (!deferVisualRefresh) {
         renderList(); renderThreadHeader(); renderMessages(Boolean(older));
@@ -5208,6 +5233,16 @@
     });
     page.querySelector('[data-thread-mode]').addEventListener('click', function () { var conversation = selectedConversation(); if (!conversation) return; conversation.paused ? prepareResume() : mutateConversation('pause'); });
     page.querySelector('[data-settings-close]').addEventListener('click', function () { page.querySelector('[data-settings-dialog]').close(); });
+    var ownerDialog = page.querySelector('[data-owner-dialog]');
+    page.querySelector('[data-thread-owner]').addEventListener('click', function () {
+      var conversation = selectedConversation();
+      if (!canTransfer(conversation) || ownerDialog.open) return;
+      renderChatOwner(conversation);
+      renderHandoffNote(conversation);
+      ownerDialog.dataset.thread = conversation.id;
+      ownerDialog.showModal();
+    });
+    page.querySelector('[data-owner-close]').addEventListener('click', function () { ownerDialog.close(); });
     page.querySelector('[data-thread-assign]').addEventListener('change', function (event) { changeChatOwner(event.target.dataset.conversationId, event.target.value); });
     page.querySelector('[data-thread-owner-retry]').addEventListener('click', function () {
       teamsByConversation.delete(state.selectedId); renderChatOwner(selectedConversation());
@@ -5238,15 +5273,10 @@
       } else updateThreadJump(true);
     }, {passive:true});
     page.addEventListener('pointerdown', function (event) {
-      if (!event.target.closest('[data-handoff]')) page.querySelector('[data-handoff]').open = false;
       if (!event.target.closest('[data-compose-tools],[data-compose-more]')) closeComposerTools(false);
       if (state.filterPanelOpen && !event.target.closest('[data-inbox-filter-panel],[data-inbox-filter-more]')) { state.filterPanelOpen = false; renderFilterControls(); }
     });
     page.addEventListener('keydown', function (event) {
-      var openedNote = page.querySelector('[data-handoff][open]');
-      if (event.key === 'Escape' && openedNote && !document.querySelector('dialog[open]')) {
-        event.preventDefault(); openedNote.open = false; openedNote.querySelector('summary').focus(); return;
-      }
       if (event.key !== 'Escape' || event.defaultPrevented || state.contextOpen || document.querySelector('dialog[open]')) return;
       if (state.branchMenu) { event.preventDefault(); closeBranchMenu(true); return; }
       var toolsOpen = !page.querySelector('[data-compose-tools]').hidden;
@@ -5268,6 +5298,7 @@
         });
       } else {
         closeChatMedia();
+        if (ownerDialog.open) renderHandoffNote(null);
         if (state.pipelineChatId) closePipelineChat(false);
         if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(true); closeContext(false);
       }

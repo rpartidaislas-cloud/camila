@@ -8,6 +8,12 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-19 — Tipografía del chat y nota privada de relevo
+
+- La tarjeta de Conversaciones muestra el estado editable con su flecha y conserva su nombre accesible. Cambiarlo utiliza los permisos y el flujo del Pipeline.
+- La nota privada de la conversación se consulta desde «Atiende el chat». El equipo puede leerla antes de decidir si transfiere la conversación.
+- Conversaciones, Pipeline y Ficha 360 comparten tamaños para mensajes, nombres, controles y datos secundarios. Los campos de escritura en celular conservan 16 px. Recursos de Mensajes JS 79 y CSS 68, registro PWA `inbox-thread-ux-5`.
+
 ## 2026-11-19 — Filtros, etapa del chat e historial de visitas
 
 - Conversaciones: el panel Filtros queda dedicado a estado y canal. La tarjeta del contacto permite consultar su etapa y cambiarla con los permisos del Pipeline. El cambio manual no registra una llegada ni modifica la cita en Agenda.
