@@ -38,7 +38,7 @@ test('la propuesta para el paciente relaciona conceptos con piezas y superficies
 test('web, móvil, impresión y PWA distribuyen la etapa tres',()=>{
   const app=read('app.html'),mobile=read('mobile/www/app.html'),worker=read('sw.js');
   assert.equal(app,mobile);
-  assert.match(app,/smyl-proposal-print\.js\?v=6/);
+  assert.match(app,/smyl-proposal-print\.js\?v=7/);
   assert.match(app,/smyl-treatment-quote-stage3\.js\?v=1/);
   assert.match(app,/smyl-treatment-quote-stage3\.css\?v=3/);
   assert.match(worker,/smyl-v263-lana-connection-recovery/);

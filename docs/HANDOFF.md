@@ -8,6 +8,15 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-19 — Claude Code — Propuesta compartida con el paciente (enlace privado `propuesta.html`)
+
+- **Qué hace**: en una propuesta aprobada, el botón **Compartir con el paciente** deja elegir qué viaja: plan y precios (siempre) y, opcionales, **odontograma**, **fotografías y simulación** (antes/después) y un **resumen de historial** que el doctor escribe (no se copia nada del expediente). Genera un enlace privado (vence en 7/15/30 días, 15 por defecto; se puede cancelar) para copiar o enviar por WhatsApp. La lista muestra si se abrió, si le interesa y si aceptó.
+- **Página del paciente** (`propuesta.html#t=…`): usa el MISMO renderizador que el PDF (`SmylProposalPrint.render`, ahora con `opts.hideMap` para ocultar el odontograma), más el resumen de historial y las formas de pago si se incluyeron. Botones: **Me interesa · quiero agendar mi cita** (avisa a la clínica) y **Acepto el plan** con casilla de consentimiento (tratamiento y uso de imágenes/simulaciones). Se guarda fecha, versión y hash del texto aceptado. Interés y aceptación quedan además en el seguimiento de la propuesta (`smyl_proposal_followups`, canal «otro»).
+- **Backend**: migración `20261119160000_smyl_proposal_shares.sql` (solo service_role; token de 256 bits, solo su SHA-256) y Edge Function `smyl-proposal-share` (`verify_jwt=false`; personal con sesión + `proposal.followup`; público por token). Lo compartido es una **copia congelada**: editar la propuesta después no cambia lo ya enviado. Las fotos se firman 10 min y solo si pertenecen a la clínica. `_shared/smyl-proposal-share-core.mjs` es la parte pura.
+- **Simulación de carillas**: no tiene flujo aparte; viaja como la sección «Fotografías y simulación». Mandarla sola, sin precios, queda para después.
+- **Pendiente / decidir**: pago en línea y meses sin intereses desde la propuesta (hoy solo hay una nota informativa de formas de pago; el cobro con OpenPay sigue siendo el «Enlace de pago» de Cobros una vez creados los cargos); botón de agendar directo en la agenda; aviso de privacidad (`privacidad.html` en camila y smyl-site) con una línea sobre enlaces temporales de propuestas con fotos — revisar con el abogado antes de publicar.
+- **Verificación**: `tests/smyl-proposal-share.test.mjs` (11); suite completa sin fallas nuevas frente a `main`. Sin probar de punta a punta con una sesión real (no hay login aquí).
+
 ## 2026-11-19 — Ubicaciones, relevo privado y lectura del historial
 
 - Conversaciones y el chat lateral del Pipeline comparten las tarjetas «Ubicación compartida · Abrir mapa». Se conservan las indicaciones escritas; las ubicaciones que no se pueden interpretar se muestran sin inventar coordenadas. Leer el chat no carga mapas de terceros.
