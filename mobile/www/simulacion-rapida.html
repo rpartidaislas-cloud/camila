@@ -13641,7 +13641,7 @@ if(new URLSearchParams(location.search).get('debugUI')==='1'&&new URLSearchParam
 // ══ SERVICE WORKER ══
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js?v=inbox-thread-ux-1', { updateViaCache: 'none' }).then(function(reg) {
+    navigator.serviceWorker.register('sw.js?v=inbox-thread-ux-2', { updateViaCache: 'none' }).then(function(reg) {
       console.log('[SMYL PWA] SW registered:', reg.scope);
       reg.update().catch(function() {});
     }).catch(function(err) {

@@ -13,7 +13,7 @@
 - Conversaciones y el chat lateral del Pipeline comparten las tarjetas «Ubicación compartida · Abrir mapa». Se conservan las indicaciones escritas; las ubicaciones que no se pueden interpretar se muestran sin inventar coordenadas. Leer el chat no carga mapas de terceros.
 - La nota privada se consulta junto al responsable del chat, sólo cuando existe. No es un mensaje del paciente. El acceso se limpia al cambiar de hilo.
 - El botón para volver al final queda dentro del historial y cuenta las novedades mientras el operador está leyendo mensajes anteriores. El compositor permanece despejado.
-- Recursos web y copias móviles: Inbox JS 75 / CSS 64. La vista de prueba con un historial ficticio se abre con `tests/fixtures/smyl-inbox-stage7-preview.html?chat-ux` (añadir `&pipeline-preview` para el tablero). Sin cambios de backend ni migraciones.
+- Recursos web y copias móviles: Inbox JS 76 / CSS 65, registro PWA `inbox-thread-ux-2`. Se renovaron las direcciones de los recursos después de detectar archivos anteriores en la caché pública. La vista de prueba con un historial ficticio se abre con `tests/fixtures/smyl-inbox-stage7-preview.html?chat-ux` (añadir `&pipeline-preview` para el tablero). Sin cambios de backend ni migraciones.
 
 ## 2026-11-19 — Cabecera de Mensajes y responsable del chat
 

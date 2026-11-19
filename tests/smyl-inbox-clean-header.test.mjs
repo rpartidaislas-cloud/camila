@@ -58,8 +58,8 @@ test('la nota privada queda junto al responsable y el historial comienza directa
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=75/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=64/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=76/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=65/);
 });
 
 test('la cabecera grande se reemplaza por una barra delgada y los contadores viven en las pestañas', () => {
