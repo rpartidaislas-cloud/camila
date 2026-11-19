@@ -8,6 +8,10 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-20 — Claude Code — Aviso de privacidad: propuestas compartidas por enlace (PROVISIONAL)
+
+- `privacidad.html` (camila, copia móvil y smyl-site) agrega el párrafo «Propuestas de tratamiento compartidas por enlace (opcional)» y sube la fecha a 20 de noviembre de 2026. Publicado de forma PROVISIONAL a petición de Ricardo: **pendiente de revisión del abogado** (datos de salud, consentimiento y fotografías). Mantener las tres copias iguales.
+
 ## 2026-11-20 — Claude Code — Aviso en la lista de cotizaciones cuando el paciente responde a su enlace
 
 - La lista de **Cotizaciones** muestra bajo cada propuesta una línea del enlace compartido: «Enlace: aceptó el plan · fecha» (verde), «Enlace: le interesa y quiere agendar · fecha» (ámbar) o «Enlace: lo abrió N veces · última fecha». Es informativo: si la consulta falla, la lista queda igual.
