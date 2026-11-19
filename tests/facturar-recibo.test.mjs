@@ -73,8 +73,10 @@ test('constancia: la sugerencia se normaliza y nunca inventa lo que no se leyó'
   assert.equal(resico.fiscal_regime, '626');
   assert.equal(resico.suggested_cfdi_use, 'G03');
   const varios = leerConstancia(JSON.stringify({ is_constancia: true, legible: true, rfc: 'MUPJ800229AB1', legal_name: 'X Y', tax_postal_code: '72000', fiscal_regimes: ['Sueldos y Salarios', 'Arrendamiento'], email: '' }));
-  assert.equal(varios.fiscal_regime, '');
+  // Con varios regímenes se preselecciona el primero y se avisa cuáles había; la persona confirma o cambia.
+  assert.equal(varios.fiscal_regime, '605');
   assert.deepEqual(varios.fiscal_regimes, ['605', '606']);
+  assert.match(varios.warnings.join(' '), /2 regímenes \(605, 606\)\. Se eligió 605/);
   const mala = leerConstancia(JSON.stringify({ is_constancia: true, legible: false, rfc: 'XAXX010101000', legal_name: '', tax_postal_code: '7200', fiscal_regimes: [], email: 'no' }));
   assert.equal(mala.rfc, '');
   assert.equal(mala.tax_postal_code, '');
@@ -129,9 +131,9 @@ test('Cobros: «Facturar» en el recibo, alta de datos fiscales al vuelo y conti
 test('publicación: scripts cargados antes de Cobros y copias de móvil idénticas', () => {
   for (const html of ['app.html', 'mobile/www/app.html']) {
     const page = read(html);
-    assert.ok(page.indexOf('smyl-fiscal-rules.js?v=2') < page.indexOf('smyl-fiscal-capture.js?v=1'));
-    assert.ok(page.indexOf('smyl-fiscal-capture.js?v=1') < page.indexOf('smyl-finance.js?v=58'));
+    assert.ok(page.indexOf('smyl-fiscal-rules.js?v=2') < page.indexOf('smyl-fiscal-capture.js?v=2'));
+    assert.ok(page.indexOf('smyl-fiscal-capture.js?v=2') < page.indexOf('smyl-finance.js?v=58'));
   }
-  for (const sw of ['sw.js', 'mobile/www/sw.js']) assert.match(read(sw), /smyl-fiscal-rules\.js\?v=2[\s\S]*smyl-fiscal-capture\.js\?v=1/);
+  for (const sw of ['sw.js', 'mobile/www/sw.js']) assert.match(read(sw), /smyl-fiscal-rules\.js\?v=2[\s\S]*smyl-fiscal-capture\.js\?v=2/);
   for (const f of ['smyl-fiscal-rules.js', 'smyl-fiscal-capture.js', 'smyl-finance.js', 'smyl-finance.css']) assert.equal(read(f), read('mobile/www/' + f), f);
 });
