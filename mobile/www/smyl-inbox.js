@@ -54,12 +54,19 @@
   var threadEpoch = new Map(), openSequence = 0, routingRevision = 0;
   var teamsByConversation = new Map();
   var pendingPipelineSnapshots = new Set();
+  var mediaSession = null;
+  function closeChatMedia() {
+    if (!mediaSession) return;
+    mediaSession.abort();
+    mediaSession = null;
+  }
   function chatEnabled() {
     return !!state.actor && ['agent', 'coordinator'].includes(state.actor.chat_access);
   }
 
   function forgetChat(id) {
     if (!id) return;
+    if (state.selectedId === id) closeChatMedia();
     teamsByConversation.delete(id);
     pendingPipelineSnapshots.delete(id);
     routingRevision++;
@@ -1130,6 +1137,7 @@
   function closePipelineChat(restoreFocus) {
     var id = state.pipelineChatId;
     if (!id) return;
+    closeChatMedia();
     openSequence++;
     var page = document.getElementById('p-inbox');
     closeComposerTools(false); closeBranchMenu(false);
@@ -1149,6 +1157,7 @@
     var nextView = view === 'pipeline' ? 'pipeline' : 'list';
     var page = document.getElementById('p-inbox');
     if (state.view !== nextView) {
+      closeChatMedia();
       if (state.pipelineChatId) closePipelineChat(false); else openSequence++;
       state.contextOpen = false; state.contextReturnFocus = null;
       closeBranchMenu(false); closeComposerTools(false);
@@ -1347,22 +1356,158 @@
     finally { submit.disabled = false; }
   }
 
+  function chatFileUrl(value) {
+    if (typeof value !== 'string' || !/^(?:https?:\/\/|\/|\.\.?\/)/i.test(value)) return '';
+    try {
+      var url = new URL(value, location.href);
+      if (url.username || url.password) return '';
+      if (url.protocol === 'https:' || (url.protocol === 'http:' && url.origin === location.origin)) return url.href;
+    } catch (_) {}
+    return '';
+  }
+
+  function chatMediaKind(item) {
+    if (!item || item.deleted) return '';
+    if (item.media_type === 'image') return 'image';
+    if (item.media_type !== 'document') return '';
+    var name = item.media_filename || (item.file && item.file.name) || item.content || '';
+    var mime = item.media_mime_type || item.mime_type || (item.file && item.file.type) || '';
+    if (mime.split(';')[0].trim().toLowerCase() === 'application/pdf' || /\.pdf\s*$/i.test(name)) return 'pdf';
+    var url = chatFileUrl(item.media_url);
+    if (url && /\.pdf$/i.test(new URL(url).pathname)) return 'pdf';
+    return '';
+  }
+
+  function mediaThumbnail(item, description) {
+    var preview = node('span', 'smyl-chat-thumbnail');
+    var source = item.file && item.file instanceof Blob ? item.media_url : chatFileUrl(item.media_url);
+    if (source) {
+      var image = document.createElement('img');
+      image.alt = ''; image.loading = 'lazy'; image.decoding = 'async'; image.referrerPolicy = 'no-referrer';
+      image.onerror = function () { preview.replaceChildren(node('span', 'smyl-chat-thumbnail-fallback', description)); };
+      image.src = source; preview.append(image);
+    } else preview.append(node('span', 'smyl-chat-thumbnail-fallback', description));
+    return preview;
+  }
+
+  function canAttachMediaCopy(conversation, kind) {
+    if (!canOperate(conversation, 'messages.respond') || (kind === 'pdf' && conversation.channel === 'instagram')) return false;
+    var windowInfo = liveWhatsappWindow(conversation);
+    return !windowInfo || windowInfo.freeform_allowed;
+  }
+
+  function openChatAttachment(item, conversationId, trigger) {
+    var viewer = window.SmylChatMediaViewer, kind = chatMediaKind(item);
+    if (!kind || conversationId !== state.selectedId || !chatEnabled()) return;
+    if (!viewer) { window.alert('El visor no se ha cargado. Vuelve a abrir Mensajes e inténtalo de nuevo.'); return; }
+    closeChatMedia();
+    var session = new AbortController();
+    mediaSession = session;
+    var epoch = accessEpoch, revision = threadEpoch.get(conversationId), sequence = openSequence;
+    function checkScope() {
+      if (session.signal.aborted || !chatEnabled() || state.selectedId !== conversationId || sequence !== openSequence || epoch !== accessEpoch || revision !== threadEpoch.get(conversationId)) {
+        throw new Error('La conversación cambió. Abre el archivo desde su chat.');
+      }
+    }
+    async function loadBlob(signal) {
+      checkScope();
+      if (item.file instanceof Blob) return item.file;
+      var url = chatFileUrl(item.media_url);
+      async function download(source) {
+        var response = await fetch(source, { signal: signal, credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'no-store' });
+        if (!response.ok) throw new Error('No se pudo descargar el archivo.');
+        var blob = await response.blob();
+        checkScope();
+        return blob;
+      }
+      if (url) {
+        try { return await download(url); }
+        catch (error) { if (signal && signal.aborted) throw error; }
+      }
+      // La biblioteca entrega enlaces privados temporales. Solicitar el mismo mensaje
+      // por fecha también cubre adjuntos antiguos, fuera de la primera página del hilo.
+      checkScope();
+      var time = Date.parse(item.created_at);
+      if (!Number.isFinite(time)) throw new Error('Este archivo ya no está disponible.');
+      var result = await request('GET', {
+        action: 'messages', conversation_id: conversationId, since: item.created_at,
+        before: new Date(time + 1).toISOString(), limit: 100,
+      });
+      checkScope();
+      if (signal && signal.aborted) throw new DOMException('Cancelado', 'AbortError');
+      var refreshed = (result.messages || []).find(function (entry) { return String(entry.id) === String(item.id) && !entry.deleted && entry.media_type === item.media_type; });
+      var freshUrl = refreshed && chatFileUrl(refreshed.media_url);
+      if (!freshUrl) throw new Error('Este archivo ya no está disponible.');
+      item.media_url = freshUrl;
+      try { return await download(freshUrl); }
+      catch (error) {
+        checkScope();
+        // Algunos proveedores permiten abrir un enlace firmado pero restringen su
+        // lectura desde JavaScript. Solo ofrecemos ese enlace tras renovar el acceso.
+        if (error instanceof TypeError && new URL(freshUrl).origin !== location.origin && !signal?.aborted) {
+          error.originalUrl = freshUrl;
+          error.allowImagePreview = kind === 'image';
+          error.allowOpenOriginal = true;
+        }
+        throw error;
+      }
+    }
+    function attach(file) {
+      checkScope();
+      if (!canAttachMediaCopy(selectedConversation(), kind)) throw new Error('Este chat ya no permite adjuntar la copia. Puedes descargarla.');
+      if (state.attachment && !window.confirm('¿Reemplazar el adjunto que ya preparaste para este chat?')) return false;
+      if (!chooseAttachment(file)) return false;
+      var sharedDialog = document.querySelector('[data-shared-dialog][open]');
+      if (sharedDialog) sharedDialog.close();
+      if (state.contextOpen && !contextDocked()) closeContext(false);
+      requestAnimationFrame(function () {
+        if (state.selectedId === conversationId && !document.querySelector('dialog[open]')) document.querySelector('[data-inbox-composer] textarea')?.focus();
+      });
+      return true;
+    }
+    viewer.open({
+      kind: kind, name: item.media_filename || (item.file && item.file.name) || (kind === 'pdf' ? 'Documento.pdf' : 'Imagen'),
+      url: chatFileUrl(item.media_url), loadBlob: loadBlob, returnFocus: trigger, signal: session.signal,
+      onAttach: canAttachMediaCopy(selectedConversation(), kind) ? attach : undefined,
+    });
+  }
+
+  function chatMediaButton(item, conversationId, withThumbnail) {
+    var kind = chatMediaKind(item);
+    var label = kind === 'image' ? 'Abrir imagen' : 'Abrir PDF';
+    var name = item.media_filename || (item.file && item.file.name) || '';
+    var button = node('button', 'smyl-chat-media-open' + (withThumbnail && kind === 'image' ? ' has-thumbnail' : ''));
+    button.type = 'button'; button.dataset.chatMediaOpen = kind; button.setAttribute('aria-haspopup', 'dialog');
+    button.setAttribute('aria-label', label + (name ? ' · ' + name : ''));
+    if (withThumbnail && kind === 'image') button.append(mediaThumbnail(item, label));
+    else {
+      var glyph = node('span', 'smyl-chat-file-icon'); glyph.innerHTML = composeIcon(kind === 'pdf' ? 'template' : 'attach');
+      button.append(glyph, node('span', 'smyl-chat-file-name', kind === 'pdf' && name ? name : label));
+    }
+    button.onclick = function () { openChatAttachment(item, conversationId, button); };
+    return button;
+  }
+
   function appendMessageMedia(bubble, item) {
     if (item.deleted) { bubble.append(node('p', 'smyl-inbox-deleted', 'Mensaje eliminado del panel')); return; }
     if (item.reply_to) {
       var quote = node('div', 'smyl-inbox-quote'); quote.append(node('strong', '', 'Respuesta a'), node('span', '', item.reply_to.preview || 'Mensaje citado')); bubble.append(quote);
     }
     if (item.forwarded) bubble.append(node('span', 'smyl-inbox-forwarded', '↪ Reenviado'));
-    if (item.media_type === 'image' && item.media_url) {
-      var link = document.createElement('a'); link.href = item.media_url; link.target = '_blank'; link.rel = 'noopener noreferrer';
-      var image = document.createElement('img'); image.src = item.media_url; image.alt = item.content || 'Fotografía del chat'; image.loading = 'lazy'; link.append(image); bubble.append(link);
-    } else if (item.media_type === 'audio' && item.media_url) {
-      var audio = document.createElement('audio'); audio.controls = true; audio.preload = 'metadata'; audio.src = item.media_url; bubble.append(audio);
-    } else if ((item.media_type === 'document' || item.media_type === 'location') && item.media_url) {
-      var attachment = document.createElement('a'); attachment.className = 'smyl-inbox-attachment'; attachment.href = item.media_url; attachment.target = '_blank'; attachment.rel = 'noopener noreferrer';
+    var kind = chatMediaKind(item);
+    var mediaUrl = item.file && item.file instanceof Blob ? item.media_url : chatFileUrl(item.media_url);
+    if (kind) {
+      bubble.append(chatMediaButton(item, state.selectedId, true));
+    } else if (item.media_type === 'audio' && mediaUrl) {
+      var audio = document.createElement('audio'); audio.controls = true; audio.preload = 'metadata'; audio.src = mediaUrl; bubble.append(audio);
+    } else if ((item.media_type === 'document' || item.media_type === 'location') && mediaUrl) {
+      var attachment = document.createElement('a'); attachment.className = 'smyl-inbox-attachment'; attachment.href = mediaUrl; attachment.target = '_blank'; attachment.rel = 'noopener noreferrer';
       attachment.textContent = item.media_type === 'location' ? '📍 Abrir ubicación' : '📄 ' + (item.media_filename || 'Abrir documento'); bubble.append(attachment);
     }
-    if (item.content || !item.media_type) bubble.append(node('p', '', item.content || 'Mensaje sin texto'));
+    var content = (item.content || '').trim();
+    var defaultCaption = (kind === 'image' && /^(?:📷|📸|🖼️?)?\s*(?:imagen|foto(?:grafía)?)$/i.test(content))
+      || (kind === 'pdf' && content.replace(/^📄\s*/, '') === (item.media_filename || (item.file && item.file.name)));
+    if (!defaultCaption && (content || !item.media_type)) bubble.append(node('p', '', content || 'Mensaje sin texto'));
   }
 
   async function mutateMessage(item, action) {
@@ -2804,6 +2949,9 @@
       reviewed: reviewed, canReview: hasPermission('clinical.write') && canOperate(conversation, 'clinical.write'), channelLabel: channelLabel(conversation.channel),
       onFilter: function (value) { state.f360Filter[id] = value; state.f360File[id] = ''; renderContext(); },
       onSelect: function (value) { state.f360File[id] = value; renderContext(); },
+      makeOpenButton: function (item) { return chatMediaKind(item) ? chatMediaButton(item, id, false) : null; },
+      thumbnail: function (item) { return mediaThumbnail(item, 'Foto'); },
+      fileUrl: chatFileUrl,
       onReview: function (item) { linkClinicalImage(item); },
       onRetry: function () { loadFicha360Files(id, true); },
     }) });
@@ -3959,6 +4107,11 @@
   }
 
   async function openConversation(id) {
+    closeChatMedia();
+    if (id !== state.selectedId) {
+      var previousLibrary = document.querySelector('[data-shared-dialog][open]');
+      if (previousLibrary) previousLibrary.close();
+    }
     var sequence = ++openSequence;
     if (!chatEnabled() && !await refreshAccess()) return;
     if (sequence !== openSequence) return;
@@ -4303,7 +4456,7 @@
     if (!conversation || !canOperate(conversation, 'messages.respond')) return;
     var waWindow = liveWhatsappWindow(conversation);
     if (waWindow && !waWindow.freeform_allowed) { openTemplateDialog(); return; }
-    if (state.attachment) { sendAttachment(state.attachment); input.value = ''; clearEncryptedDraft(conversation.id); return; }
+    if (state.attachment) { sendAttachment(state.attachment); return; }
     if (!content) return;
     var key = uuid();
     var reply = state.replyTo;
@@ -4324,7 +4477,7 @@
     var conversation = selectedConversation();
     if (kind === 'audio' && conversation && conversation.channel !== 'whatsapp') { window.alert('Las notas de voz solo están disponibles en WhatsApp.'); return; }
     if (kind === 'document' && conversation && conversation.channel === 'instagram') { window.alert('Instagram no permite enviar documentos.'); return; }
-    state.attachment = file; state.replyTo = null; renderComposerContext();
+    state.attachment = file; state.replyTo = null; renderComposerContext(); return true;
   }
 
   async function sendAttachment(file) {
@@ -4386,6 +4539,7 @@
 
   function inboxInteractionProtected() {
     var page = document.getElementById('p-inbox'); if (!page) return false;
+    if (document.querySelector('[data-smyl-media-dialog][open]')) return true;
     if (page.querySelector('dialog[open]')) return true;
     if (state.contextOpen || state.filterPanelOpen) return true;
     var composeTools = page.querySelector('[data-compose-tools]');
@@ -4662,20 +4816,24 @@
     if (state.sharedLoading) { wrap.append(skNode('media', { count: 6, label: 'Consultando biblioteca' })); return; }
     if (!state.sharedItems.length) { wrap.append(node('p', 'smyl-inbox-productivity-state', 'No hay imágenes, documentos o enlaces en este hilo.')); return; }
     state.sharedItems.forEach(function (item) {
-      var card = node('article', 'smyl-inbox-shared-item'); var target = item.media_url || firstUrl(item.content); var label = item.media_type === 'image' ? 'Imagen' : item.media_type === 'document' ? 'Documento' : item.media_type === 'audio' ? 'Audio' : 'Enlace';
-      if (item.media_type === 'image' && target) { var image = document.createElement('img'); image.src = target; image.alt = item.content || 'Imagen compartida'; image.loading = 'lazy'; card.append(image); }
+      var card = node('article', 'smyl-inbox-shared-item'); var target = chatFileUrl(item.media_url || firstUrl(item.content)); var label = item.media_type === 'image' ? 'Imagen' : item.media_type === 'document' ? 'Documento' : item.media_type === 'audio' ? 'Audio' : 'Enlace';
+      var kind = chatMediaKind(item);
+      if (kind) card.append(chatMediaButton(item, state.selectedId, true));
       card.append(node('strong', '', label), node('span', '', new Date(item.created_at).toLocaleDateString('es-MX')));
       if (item.content) card.append(node('p', '', item.content));
-      if (target) { var link = node('a', '', 'Abrir'); link.href = target; link.target = '_blank'; link.rel = 'noopener noreferrer'; card.append(link); }
+      if (!kind && target) { var link = node('a', '', 'Abrir'); link.href = target; link.target = '_blank'; link.rel = 'noopener noreferrer'; card.append(link); }
       wrap.append(card);
     });
   }
 
   async function openSharedItems() {
-    if (!state.selectedId) return; var dialog = document.querySelector('[data-shared-dialog]'); dialog.showModal(); state.sharedLoading = true; state.sharedItems = []; renderSharedItems();
-    try { var data = await request('GET', { action: 'shared', conversation_id: state.selectedId, limit: 60 }); state.sharedItems = data.items || []; state.sharedPage = data.page || null; }
-    catch (error) { window.alert(error.message || 'No se pudo abrir la biblioteca.'); }
-    finally { state.sharedLoading = false; renderSharedItems(); }
+    var id = state.selectedId, sequence = openSequence;
+    if (!id) return; var dialog = document.querySelector('[data-shared-dialog]'); dialog.showModal(); state.sharedLoading = true; state.sharedItems = []; renderSharedItems();
+    try {
+      var data = await request('GET', { action: 'shared', conversation_id: id, limit: 60 });
+      if (state.selectedId === id && sequence === openSequence) { state.sharedItems = data.items || []; state.sharedPage = data.page || null; }
+    } catch (error) { if (state.selectedId === id && sequence === openSequence) window.alert(error.message || 'No se pudo abrir la biblioteca.'); }
+    finally { if (state.selectedId === id && sequence === openSequence) { state.sharedLoading = false; renderSharedItems(); } }
   }
 
   // Ancho de la lista de conversaciones: se arrastra el borde entre la lista y el chat (o con las flechas del teclado).
@@ -4864,6 +5022,7 @@
     page.querySelector('[data-pilot-report-print]').addEventListener('click', printPilotReport);
     page.querySelector('[data-pipeline-cancel]').addEventListener('click', function () { closePipelineChat(true); });
     page.querySelector('[data-inbox-back]').addEventListener('click', function () {
+      closeChatMedia();
       if (state.pipelineChatId) closePipelineChat(true);
       else { page.classList.remove('show-thread'); closeContext(false); }
     });
@@ -4923,6 +5082,7 @@
           else { sync(); loadOperations(false); autoOpenFirst(); }
         });
       } else {
+        closeChatMedia();
         if (state.pipelineChatId) closePipelineChat(false);
         if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(true); closeContext(false);
       }

@@ -94,6 +94,14 @@ copyFile(path.join(ROOT, 'smyl-service-catalog.css'), path.join(WWW, 'smyl-servi
 copyFile(path.join(ROOT, 'smyl-service-catalog-stage1.css'), path.join(WWW, 'smyl-service-catalog-stage1.css'));
 copyFile(path.join(ROOT, 'smyl-inbox.js'), path.join(WWW, 'smyl-inbox.js'));
 copyFile(path.join(ROOT, 'smyl-inbox.css'), path.join(WWW, 'smyl-inbox.css'));
+for (const file of ['smyl-inbox-ficha.js', 'smyl-chat-media-viewer.js', 'smyl-chat-media-viewer.css', 'smyl-chat-pdf.js']) {
+  copyFile(path.join(ROOT, file), path.join(WWW, file));
+}
+const pdfReader = 'vendor/pdfjs-6.5.438';
+copyDir(path.join(ROOT, pdfReader), path.join(WWW, pdfReader));
+for (const file of ['vendor/pdf-lib-1.17.1.min.mjs', 'vendor/pdf-lib-1.17.1.LICENSE']) {
+  copyFile(path.join(ROOT, file), path.join(WWW, file));
+}
 copyFile(path.join(ROOT, 'smyl-task-center.js'), path.join(WWW, 'smyl-task-center.js'));
 copyFile(path.join(ROOT, 'smyl-schedule-message.js'), path.join(WWW, 'smyl-schedule-message.js'));
 copyFile(path.join(ROOT, 'smyl-lana-attention.js'), path.join(WWW, 'smyl-lana-attention.js'));
