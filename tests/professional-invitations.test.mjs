@@ -30,7 +30,7 @@ test('la invitación valida tenant y sucursal antes de enviar el correo', () => 
 });
 
 test('Mi clínica agrega doctores sin duplicar cuentas existentes', () => {
-  assert.match(admin, /Agregar doctor/);
+  assert.match(admin, /Agregar profesional/);
   assert.match(admin, /member_kind: 'professional'/);
   assert.match(admin, /No enviaremos otro correo/);
   assert.match(admin, /rpc\('smyl_create_professional'/);
