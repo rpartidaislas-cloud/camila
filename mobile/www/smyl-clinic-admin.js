@@ -53,7 +53,7 @@
     professionals: [], professionalBranches: [], invitations: [], canClinic: false, canTeam: false,
     canAssignRoles: false, canScheduleRead: false,
     people: [], personFilter: 'all', personQuery: '', person: null, editing: false,
-    proHours: [], profiles: [], conflicts: [], phoneSupported: true, travelSupported: false, travelMargin: 45
+    proHours: [], profiles: [], conflicts: [], phoneSupported: true, contactSupported: false, travelSupported: false, travelMargin: 45
   };
 
   function esc(value) {
@@ -86,6 +86,7 @@
     var message = error && (error.message || error.error_description || error.error);
     if (!message) return 'No se pudo completar la operación.';
     if (/failed to fetch|networkerror|load failed|network request failed|timeout|timed out/i.test(message)) return 'No pudimos conectar con el servidor. Revisa tu internet e intenta de nuevo.';
+    if (/smyl_professionals_contact_phone_check|contact_phone/i.test(message)) return 'El WhatsApp solo puede llevar números y los signos + ( ) - .';
     if (/smyl_professionals_phone_check/i.test(message)) return 'El teléfono solo puede llevar números y los signos + ( ) - .';
     if (/traslapa/i.test(message)) return 'Ese horario se cruza con otro bloque activo.';
     if (/duplicate|unique|23505/i.test(message)) return 'Ya existe un registro activo con esos datos.';
@@ -106,6 +107,12 @@
 
   async function loadProfessionals(tenant) {
     var base = 'id,tenant_id,user_id,display_name,specialty,license_number,color_token,active';
+    try {
+      // WhatsApp del profesional (migración de mensajes de citas): si la base aún no lo tiene, se lee sin él.
+      var withContact = await query(window.sb.from('smyl_professionals').select(base + ',phone,contact_phone,contact_phone_public').eq('tenant_id', tenant).order('display_name'));
+      state.phoneSupported = true; state.contactSupported = true;
+      return withContact;
+    } catch (contactError) { state.contactSupported = false; }
     try {
       var rows = await query(window.sb.from('smyl_professionals').select(base + ',phone').eq('tenant_id', tenant).order('display_name'));
       state.phoneSupported = true;
@@ -804,6 +811,14 @@
     field('specialty', 'Especialidad', professional.specialty, { maxlength: '80' });
     field('license_number', 'Cédula profesional', professional.license_number, { maxlength: '30' });
     if (state.phoneSupported) field('phone', 'Teléfono interno', professional.phone, { type: 'tel', inputmode: 'tel', maxlength: '40', pattern: '[0-9 +.\\(\\)\\-]{0,40}', placeholder: 'Ej. 33 1234 5678', autocomplete: 'off' });
+    if (state.contactSupported) {
+      field('contact_phone', 'WhatsApp del profesional', professional.contact_phone, { type: 'tel', inputmode: 'tel', maxlength: '40', pattern: '[0-9 +.\\(\\)\\-]{0,40}', placeholder: 'Ej. 33 1234 5678', autocomplete: 'off' });
+      form.append(el('p', 'clinic-admin-hint', 'Es el número donde SMYL le avisará de sus citas para que atienda el chat. No se muestra a los pacientes.'));
+      var shareWrap = el('label', 'clinic-admin-sheet-check');
+      var share = el('input'); share.type = 'checkbox'; share.name = 'contact_phone_public'; share.checked = !!professional.contact_phone_public;
+      shareWrap.append(share, el('span', '', 'Compartir este número con los pacientes en los mensajes de cita'));
+      form.append(shareWrap);
+    }
     var actions = el('div', 'clinic-admin-sheet-actions');
     var save = el('button', 'btn btn-primary', 'Guardar'); save.type = 'submit';
     var cancel = el('button', 'btn btn-secondary', 'Cancelar'); cancel.type = 'button';
@@ -818,6 +833,10 @@
         license_number: String(data.get('license_number') || '').trim()
       };
       if (state.phoneSupported) changes.phone = String(data.get('phone') || '').trim();
+      if (state.contactSupported) {
+        changes.contact_phone = String(data.get('contact_phone') || '').trim();
+        changes.contact_phone_public = data.get('contact_phone_public') === 'on' && !!changes.contact_phone;
+      }
       if (changes.display_name.length < 2) { feedback('Escribe el nombre del doctor.', 'error'); return; }
       var ok = await mutate(function () {
         return query(window.sb.from('smyl_professionals').update(changes).eq('tenant_id', state.tenant).eq('id', professional.id).select('id').single());
@@ -855,6 +874,7 @@
     else {
       if (person.doctor) {
         data.append(sheetRow('Especialidad', person.specialty), sheetRow('Cédula profesional', person.license));
+        if (state.contactSupported && professional) data.append(sheetRow('WhatsApp (avisos de citas)', professional.contact_phone ? professional.contact_phone + (professional.contact_phone_public ? ' · visible para pacientes' : ' · solo uso interno') : '', ''));
         if (state.phoneSupported && professional) data.append(sheetRow('Teléfono interno', professional.phone, professional.phone ? 'tel:' + professional.phone.replace(/[^0-9+]/g, '') : ''));
       }
       data.append(sheetRow('Correo', person.email, person.email ? 'mailto:' + person.email : ''));

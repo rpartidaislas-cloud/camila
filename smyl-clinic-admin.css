@@ -439,3 +439,7 @@
   .clinic-admin-sheet-head{padding:16px}
   .clinic-admin-sheet-body{padding:4px 16px 24px}
 }
+
+.clinic-admin-sheet-check{display:flex;align-items:flex-start;gap:10px;margin-top:6px;font-size:14px;color:var(--ca-ink);line-height:1.4;cursor:pointer}
+.clinic-admin-sheet-check input[type=checkbox]{width:20px;min-height:20px;height:20px;margin:1px 0 0;padding:0;flex:none;accent-color:var(--ca-accent,#1b4d77)}
+.clinic-admin-sheet-check span{font-size:14px;font-weight:500;color:var(--ca-ink)}
