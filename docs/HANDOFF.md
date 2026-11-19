@@ -1,5 +1,11 @@
 # Bitácora compartida — SMYL
 
+## 2026-11-18 — Imágenes y PDF en el chat
+
+- Conversaciones, Pipeline, Archivos compartidos y Ficha 360 abren el mismo visor. Admite zoom continuo con rueda, control deslizante y dos dedos, desplazamiento, plumón, resaltador y notas de texto. La copia se descarga o se prepara en el compositor para su revisión antes del envío.
+- `smyl-chat-media-viewer.js/css` y `smyl-chat-pdf.js` trabajan en el dispositivo. El lector PDF y la biblioteca de exportación se cargan desde `vendor/` bajo demanda. Las notas de cada página se superponen al contenido original. Los originales del paciente se excluyen de la caché del visor.
+- Sirviendo el proyecto por HTTP, `tests/fixtures/smyl-inbox-stage7-preview.html?media-preview` permite probar con un PNG y un PDF de dos páginas. `tests/smyl-chat-media-viewer-browser.test.mjs` comprueba gestos, anotaciones, posición al exportar, renovación de enlaces y cambios de permisos. Recursos de la entrega: Inbox JS v73, CSS v62, Ficha v11 y visor v1, con copias en `mobile/www`.
+
 ## 2026-11-18 — Chat lateral desde Pipeline
 
 - Pulsar una tarjeta abre el hilo en un espacio propio a la derecha del tablero. Usa el mismo compositor, la misma Ficha 360, la transferencia y la agenda de Mensajes. En celular, la flecha de regreso devuelve el foco y la posición a la tarjeta. La espera se puede cancelar antes de marcar el hilo como leído.

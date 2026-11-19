@@ -136,8 +136,8 @@
       var tile = node('button', 'smyl-f360-file' + (selected ? ' is-selected' : '')); tile.type = 'button';
       tile.setAttribute('aria-pressed', selected ? 'true' : 'false'); tile.setAttribute('aria-label', (KINDS[item.media_type] || 'Archivo') + ' del ' + shortDate(item.created_at));
       var preview = node('span', 'smyl-f360-file-preview');
-      if (item.media_type === 'image' && item.media_url) { var image = document.createElement('img'); image.src = item.media_url; image.alt = ''; image.loading = 'lazy'; preview.append(image); }
-      else preview.append(node('b', '', item.media_type === 'document' ? 'PDF' : item.media_type === 'audio' ? '♪' : '▶'));
+      if (item.media_type === 'image' && ctx.thumbnail) preview.append(ctx.thumbnail(item));
+      else preview.append(node('b', '', item.media_type === 'document' ? 'Doc' : item.media_type === 'audio' ? '♪' : item.media_type === 'image' ? 'Foto' : '▶'));
       tile.append(preview, node('span', 'smyl-f360-file-kind', KINDS[item.media_type]));
       if (ctx.reviewed && ctx.reviewed[item.id]) tile.append(node('i', 'smyl-f360-file-check', '✓'));
       tile.append(node('span', 'smyl-f360-file-date', shortDate(item.created_at)));
@@ -153,7 +153,10 @@
       if (chosen.content) detail.append(node('p', '', chosen.content));
       var row = node('div', 'smyl-f360-file-actions');
       if (chosen.media_type === 'image' && ctx.canReview && !(ctx.reviewed && ctx.reviewed[chosen.id])) row.append(button('Enviar a revisión clínica', 'smyl-f360-action is-primary', function () { ctx.onReview(chosen); }));
-      if (chosen.media_url) { var open = node('a', 'smyl-f360-action', 'Abrir / descargar'); open.href = chosen.media_url; open.target = '_blank'; open.rel = 'noopener noreferrer'; row.append(open); }
+      var open = ctx.makeOpenButton && ctx.makeOpenButton(chosen);
+      var fileUrl = ctx.fileUrl && ctx.fileUrl(chosen.media_url);
+      if (open) row.append(open);
+      else if (fileUrl) { var link = node('a', 'smyl-f360-action', 'Abrir / descargar'); link.href = fileUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; row.append(link); }
       detail.append(row); root.append(detail);
     }
     root.append(node('p', 'smyl-f360-files-note', 'Las fotos que envías a revisión clínica pasan al expediente y solo se analizan con IA cuando el equipo lo autoriza.'));

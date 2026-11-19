@@ -6,7 +6,8 @@
   <title>SMYL Inbox etapa 7 · QA visual</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="../../smyl-design-system-v2.css?focus=3">
-  <link rel="stylesheet" href="../../smyl-inbox.css?v=61">
+  <link rel="stylesheet" href="../../smyl-inbox.css?v=62">
+  <link rel="stylesheet" href="../../smyl-chat-media-viewer.css?v=1">
   <style>
     :root { --azul:#1769e0; --azul-oscuro:#0c4fb8; --gris:#64748b; --borde:#dce3ec; --fondo:#f6f8fb; --blanco:#fff; }
     * { box-sizing:border-box; }
@@ -88,6 +89,15 @@
         {id:'answer-preview',role:'assistant',author_type:'team',content:'Hola, Ana. Tu valoración es hoy a las 10:30 en la sucursal Centro.',status:'sent',created_at:new Date(Date.now()-42*60000).toISOString()}
       );
     }
+    var demoFiles = [];
+    if (previewParams.has('media-preview')) {
+      var created = {created_at:new Date().toISOString(), status:'sent'};
+      demoFiles = [
+        Object.assign({}, created, {id:'img-test', author_type:'patient', role:'user', media_type:'image', media_filename:'ejemplo.png', media_url:new URL('../../icons/icon-512.png', location.href).href, content:'Imagen'}),
+        Object.assign({}, created, {id:'pdf-test', author_type:'team', role:'assistant', media_type:'document', media_filename:'ejemplo.pdf', media_url:new URL('chat-media-ejemplo.pdf', location.href).href, content:'Documento de ejemplo'})
+      ];
+      (demoThreads ? demoThreads.get('c-preview') : messages).push(...demoFiles);
+    }
     if (previewParams.has('care-history')) {
       var clinicalVisits = [
         {attended_at:'2026-11-14T16:00:00Z', branch_id:'plaza', branch_name:'Plaza Sol', professional_id:'p1', professional_name:'Dra. Valeria Montoya'},
@@ -104,7 +114,7 @@
         }
       };
     }
-    if (['composer-tools', 'composer-emoji', 'productivity-quick'].some(function (name) { return previewParams.has(name); })) {
+    if (['composer-tools', 'composer-emoji', 'productivity-quick', 'media-preview'].some(function (name) { return previewParams.has(name); })) {
       conversation.whatsapp_window = {status:'open', freeform_allowed:true, remaining_seconds:3600, expires_at:new Date(Date.now()+3600000).toISOString()};
     }
     conversation.assignment_version = 0;
@@ -126,6 +136,8 @@
     var fetchAsset = window.fetch.bind(window);
     window.fetch = function (input, init) {
       var url = new URL(String(input), document.baseURI);
+      if (url.origin === location.origin && previewParams.has('media-preview') &&
+          (url.pathname.includes('/vendor/') || demoFiles.some(file => new URL(file.media_url).pathname === url.pathname))) return fetchAsset(url, init);
       if (url.origin === location.origin && url.pathname.includes('/assets/emoji/')) return fetchAsset(url, init);
       var action = url.searchParams.get('action'); var body = {};
       try { body = init && typeof init.body === 'string' ? JSON.parse(init.body) : {}; } catch (_) {}
@@ -169,7 +181,7 @@
       if (action === 'stages') return json({ stages:[{id:'stage-nuevo',name:'Nuevo contacto',order:1},{id:'stage-valoracion',name:'Valoración agendada',order:2},{id:'stage-tratamiento',name:'Tratamiento activo',order:3}] });
       if (action === 'quick_replies') return json({ quick_replies:[{id:'q1',shortcut:'valoracion',text:'Hola, con gusto te ayudamos a agendar tu valoración dental.'},{id:'q2',shortcut:'documentos',text:'Para continuar, por favor comparte los estudios indicados por tu especialista.'}] });
       if (action === 'search') return json({ query:'valoración',results:[messages[2],messages[1]],page:{has_more:false,before:null} });
-      if (action === 'shared') return json({ items:[{id:'share1',author_type:'patient',content:'Estudios previos https://ejemplo.invalid/estudios.pdf',created_at:new Date(Date.now()-2*86400000).toISOString(),media_type:null,media_url:null}],page:{has_more:false,before:null} });
+      if (action === 'shared') return json({ items:demoFiles.length ? demoFiles : [{id:'share1',author_type:'patient',content:'Estudios previos https://ejemplo.invalid/estudios.pdf',created_at:new Date(Date.now()-2*86400000).toISOString(),media_type:null,media_url:null}],page:{has_more:false,before:null} });
       if (action === 'auto_patient_link') {
         if (previewParams.has('ambiguous-patient')) return json({ok:true,linked:false,reason:'ambiguous',needs_review:true});
         if (previewParams.has('unlinked-patient')) return json({ok:true,linked:false,reason:'needs_identity',needs_review:true});
@@ -193,8 +205,10 @@
       return json({});
     };
   </script>
-  <script src="../../smyl-inbox-ficha.js"></script>
-  <script src="../../smyl-inbox.js?v=72"></script>
+  <script src="../../smyl-inbox-ficha.js?v=11"></script>
+  <script src="../../smyl-chat-pdf.js?v=1"></script>
+  <script src="../../smyl-chat-media-viewer.js?v=1"></script>
+  <script src="../../smyl-inbox.js?v=73"></script>
   <script>
     window.addEventListener('load', function () {
       window.ir('inbox');
@@ -220,7 +234,7 @@
           } else if (preview.has('productivity-bulk')) {
             var bulk = document.querySelector('[data-inbox-bulk]');
             if (bulk) bulk.click();
-          } else if (preview.has('focus') || pipelineDemo) {
+          } else if (preview.has('focus') || preview.has('media-preview') || pipelineDemo) {
             // Conversation-first state: no dialog or context drawer obscures the thread.
           } else if (preview.has('inbox')) {
             var control = document.querySelector('[data-inbox-context]');

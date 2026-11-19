@@ -1,3 +1,7 @@
 # Preserve the audited third-party bundle byte-for-byte on every platform.
 /vendor/supabase-js-2.117.3.js -text whitespace=-trailing-space
 /mobile/www/vendor/supabase-js-2.117.3.js -text whitespace=-trailing-space
+/vendor/pdfjs-6.5.438/** -text whitespace=-trailing-space
+/mobile/www/vendor/pdfjs-6.5.438/** -text whitespace=-trailing-space
+/vendor/pdf-lib-1.17.1* -text whitespace=-trailing-space
+/mobile/www/vendor/pdf-lib-1.17.1* -text whitespace=-trailing-space
