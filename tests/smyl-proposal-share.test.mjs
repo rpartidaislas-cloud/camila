@@ -100,7 +100,9 @@ test("propuesta.html: sin innerHTML con datos, CSP, noindex, token en fragmento 
   const html = read("propuesta.html");
   assert.ok(!/innerHTML\s*=/.test(html));
   assert.match(html, /Content-Security-Policy/);
-  assert.match(html, /frame-ancestors 'none'/);
+  assert.ok(!/frame-ancestors/.test(html), "frame-ancestors en <meta> lo ignora el navegador: no se aparenta protección");
+  assert.match(html, /window\.top !== window\.self/, "anti-clickjacking por script");
+  assert.match(html, /AbortController/, "con tiempo límite");
   assert.match(html, /name="robots" content="noindex/);
   assert.match(html, /history\.replaceState/);
   assert.match(html, /SmylProposalPrint\.render\(v\.row, v\.assets, true, \{ hideMap: !\(v\.sections && v\.sections\.odontogram\) \}\)/);
@@ -113,7 +115,7 @@ test("interfaz del doctor: botón «Compartir con el paciente» solo con propues
   assert.match(js, /shareButton=b\('Compartir con el paciente',openShare\)/);
   assert.match(js, /shareBtn\.disabled=ctx\.busy\|\|!approved\|\|!ctx\.access\.followup/);
   for (const f of ["smyl-proposals.js", "smyl-proposal-print.js", "app.html", "sw.js"]) assert.equal(read(f), read("mobile/www/" + f), `${f} móvil igual`);
-  assert.match(read("app.html"), /smyl-proposals\.js\?v=22/);
+  assert.match(read("app.html"), /smyl-proposals\.js\?v=23/);
 });
 
 test("aviso en la lista: el equipo solo lee columnas seguras del enlace; la función ya no escribe en el seguimiento del equipo", () => {
@@ -126,8 +128,40 @@ test("aviso en la lista: el equipo solo lee columnas seguras del enlace; la func
   const fn = read("supabase/functions/smyl-proposal-share/index.ts");
   assert.ok(!/smyl_proposal_followups/.test(fn), "no marca seguimiento del equipo cuando responde el paciente");
   const js = read("smyl-proposals.js");
-  assert.match(js, /from\('smyl_proposal_shares'\)\.select\('proposal_id,status,expires_at,open_count,last_opened_at,interested_at,accepted_at'\)/);
+  assert.match(js, /from\('smyl_proposal_shares'\)\.select\('proposal_id,proposal_revision,status,expires_at,open_count,last_opened_at,interested_at,accepted_at'\)/);
   assert.match(js, /catch\(_\)\{shareSignals=new Map\(\);\}/, "si falla, la lista sigue igual");
   assert.match(js, /Enlace: aceptó el plan/);
   assert.equal(js, read("mobile/www/smyl-proposals.js"));
+});
+
+test("revisión 2026-11-19: consentimiento v2 más específico; sin casilla de odontograma no viajan piezas ni superficies", () => {
+  assert.equal(CONSENT_VERSION, "v2");
+  for (const frag of ["datos de salud", "aviso de privacidad", "derechos ARCO", "revocar", "no autoriza publicar", "clínica que me lo envió"]) assert.ok(CONSENT_TEXT.includes(frag), frag);
+  const sin = construirSnapshot(propuesta, { secciones: { odontogram: false, photos: false, history: false } });
+  assert.deepEqual(sin.document.items[0].teeth, []);
+  assert.deepEqual(sin.document.items[0].surfaces, []);
+  const con = construirSnapshot(propuesta, { secciones: { odontogram: true, photos: false, history: false } });
+  assert.deepEqual(con.document.items[0].teeth, [11, 21]);
+  assert.deepEqual(propuesta.document.items[0].teeth, [11, 21], "la propuesta original no se modifica");
+});
+
+test("revisión: purga de copias vencidas con plazo y aviso de privacidad coherente; solo aceptadas se conservan", () => {
+  const sql = read("supabase/migrations/20261120120000_smyl_review_fixes.sql");
+  assert.match(sql, /smyl_payment_links_one_pending_idx[\s\S]*where status = 'pending'/);
+  assert.match(sql, /accepted_at is null/, "no borra lo aceptado");
+  assert.match(sql, /interval '90 days'/);
+  assert.match(sql, /grant execute on function public\.smyl_purge_expired_proposal_shares\(integer\) to service_role/);
+  assert.ok(!/grant execute[^;]*smyl_purge_expired_proposal_shares[^;]*to (anon|authenticated)/.test(sql));
+  for (const f of ["privacidad.html", "mobile/www/privacidad.html"]) {
+    const html = read(f);
+    assert.match(html, /Copias de propuestas compartidas por enlace<\/td><td>Las no aceptadas se eliminan 90 días/);
+    assert.match(html, /huella de tu dispositivo/);
+  }
+  assert.equal(read("privacidad.html"), read("mobile/www/privacidad.html"));
+});
+
+test("revisión: el aviso por fila solo cuenta la revisión vigente de la propuesta", () => {
+  const js = read("smyl-proposals.js");
+  assert.match(js, /proposal_revision,status,expires_at,open_count/);
+  assert.match(js, /sh\.proposal_revision!==currentRev\.get\(sh\.proposal_id\)\)return/);
 });

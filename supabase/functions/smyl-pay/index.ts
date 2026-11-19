@@ -48,6 +48,15 @@ async function conciliar(link: Json): Promise<Json> {
   }
 }
 
+// Cancela la solicitud en LANA. Solo cuenta como cancelada si LANA lo confirma (o ya no la conoce): si no, el paciente aún podría pagarla.
+async function cancelarEnLana(tenantId: string, link: Json): Promise<boolean> {
+  if (!link.lana_request_id) return true;
+  try {
+    const { response } = await lanaRequest(tenantId, `/payments/requests/${link.lana_request_id}/cancel`, { method: "POST", body: "{}" }, 8000);
+    return response.ok || response.status === 404;
+  } catch (_) { return false; }
+}
+
 async function enlacePorToken(token: unknown): Promise<Json | null> {
   if (typeof token !== "string" || !TOKEN_RE.test(token)) return null;
   const { data } = await admin.from("smyl_payment_links").select("*").eq("token_hash", await sha256Hex(token)).maybeSingle();
@@ -72,7 +81,7 @@ async function manejarCallback(req: Request): Promise<Response> {
   try { body = JSON.parse(raw); } catch { return json({}, 400, { error: "invalid_json" }); }
   if (typeof body.request_id !== "string" || !UUID_RE.test(body.request_id)) return json({}, 400, { error: "invalid_request" });
   const { data: link } = await admin.from("smyl_payment_links").select("*").eq("lana_request_id", body.request_id).maybeSingle();
-  if (!link) return json({}, 404, { error: "not_found" });
+  if (!link) return json({}, 401, { error: "bad_signature" }); // misma respuesta que una firma inválida: no revela qué solicitudes existen
   const ok = await firmaValida(link.callback_secret, req.headers.get("X-LANA-Timestamp"), raw, req.headers.get("X-LANA-Signature"));
   if (!ok) return json({}, 401, { error: "bad_signature" });
   // El cuerpo del aviso es solo una pista: lo que cuenta es lo que LANA confirma por GET.
@@ -110,7 +119,7 @@ async function accionesPersonal(req: Request, body: Json, CORS: Record<string, s
     if (!link) return json(CORS, 404, { error: "Enlace no encontrado." });
     const actual = await conciliar(link); // si ya se pagó, no se cancela
     if (actual.status === "paid") return json(CORS, 409, { error: "El enlace ya fue pagado.", status: "paid" });
-    if (link.lana_request_id) await lanaRequest(tenantId, `/payments/requests/${link.lana_request_id}/cancel`, { method: "POST", body: "{}" }, 8000).catch(() => null);
+    if (!(await cancelarEnLana(tenantId, link))) return json(CORS, 502, { error: "No se pudo cancelar el enlace en LANA. Inténtalo de nuevo; mientras tanto el paciente aún podría pagarlo." });
     await admin.from("smyl_payment_links").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", id).eq("status", "pending");
     return json(CORS, 200, { ok: true });
   }
@@ -143,7 +152,7 @@ async function accionesPersonal(req: Request, body: Json, CORS: Record<string, s
   for (const previo of previos || []) {
     const actual = await conciliar(previo);
     if (actual.status === "paid") continue;
-    if (previo.lana_request_id) await lanaRequest(tenantId, `/payments/requests/${previo.lana_request_id}/cancel`, { method: "POST", body: "{}" }, 8000).catch(() => null);
+    if (!(await cancelarEnLana(tenantId, previo))) return json(CORS, 409, { error: "No se pudo cancelar el enlace anterior en LANA. Inténtalo de nuevo.", error_code: "previous_link_not_cancelled" });
     await admin.from("smyl_payment_links").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", previo.id).eq("status", "pending");
   }
 
@@ -154,6 +163,7 @@ async function accionesPersonal(req: Request, body: Json, CORS: Record<string, s
     tenant_id: tenantId, patient_id: patientId, branch_id: branchId, token_hash: await sha256Hex(token), callback_secret: callbackSecret,
     amount: plan.total, allocations: plan.allocations, expires_at: expiresAt, created_by: user.id,
   }).select("id").single();
+  if (errLink?.code === "23505") return json(CORS, 409, { error: "Ya se está generando un enlace para este paciente. Inténtalo de nuevo en un momento.", error_code: "link_in_progress" });
   if (errLink || !link) return json(CORS, 500, { error: "No se pudo crear el enlace." });
 
   const marcarFallido = () => admin.from("smyl_payment_links").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", link.id);

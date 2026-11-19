@@ -103,3 +103,15 @@ test("smyl-pay: verify_jwt=false declarado y la función exige sesión + finance
   assert.match(src, /firmaValida\(link\.callback_secret/);
   assert.match(src, /conciliar\(link\)/);
 });
+
+test("revisión 2026-11-19: cancelar solo cuenta si LANA lo confirma; una carrera de «crear» devuelve 409; el callback no revela qué existe", () => {
+  const src = readFileSync(new URL("../supabase/functions/smyl-pay/index.ts", import.meta.url), "utf8");
+  assert.match(src, /async function cancelarEnLana/);
+  assert.match(src, /response\.ok \|\| response\.status === 404/);
+  assert.ok(!/\.catch\(\(\) => null\)/.test(src), "ya no se ignora el fallo del cancelado en LANA");
+  assert.match(src, /previous_link_not_cancelled/);
+  assert.match(src, /errLink\?\.code === "23505"[\s\S]*link_in_progress/);
+  assert.match(src, /if \(!link\) return json\(\{\}, 401/);
+  assert.match(readFileSync(new URL("../pagar.html", import.meta.url), "utf8"), /window\.top !== window\.self/);
+  assert.match(readFileSync(new URL("../pagar.html", import.meta.url), "utf8"), /\/\^https:\\\/\\\//);
+});

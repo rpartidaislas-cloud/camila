@@ -8,6 +8,14 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-19 — Claude Code — Correcciones tras la revisión por cinco agentes (seguridad, páginas públicas, privacidad, funcional, producción)
+
+- **Cobro en línea (`smyl-pay`)**: cancelar un enlace solo cuenta si LANA lo confirma (antes se marcaba «cancelado» aunque el paciente aún pudiera pagarlo); índice único de un enlace pendiente por paciente (carrera de dos «crear») → 409; el callback responde 401 igual exista o no la solicitud.
+- **Propuesta compartida**: consentimiento **v2** (datos de salud, aviso de privacidad, ARCO y revocación, no autoriza publicar imágenes); sin la casilla de odontograma ya no viajan piezas ni superficies; el aviso por fila cuenta solo la revisión vigente; **purga a los 90 días** de copias no aceptadas vencidas/canceladas (`smyl_purge_expired_proposal_shares`, pg_cron diario). El plazo es PROVISIONAL (lo fija el abogado); las aceptadas se conservan.
+- **Páginas públicas**: `frame-ancestors` en `<meta>` no funciona (GitHub Pages no manda cabeceras) → anti-clickjacking por script; tiempo límite y mensajes para 429/500; `redirect_url` solo https; casilla de consentimiento respetada tras un error; `pagar.html` enlaza el aviso de privacidad.
+- **Consultorios**: sin bucle de recarga si el almacenamiento del navegador está bloqueado.
+- **Privacidad** (3 copias): fila de OpenPay lista los datos que viajan (nombre, correo, teléfono, concepto, monto y huella del dispositivo); fila de conservación para las copias de propuestas; fecha corregida al 19 de noviembre de 2026.
+- **Pendiente / no tocado**: SRI en los scripts de OpenPay (requiere descargar y fijar el hash); `script-src 'unsafe-inline'`; reconciliar 17 migraciones aplicadas sin registrar y `appointment-reminders` (verify_jwt distinto entre producción y `config.toml`); `smyl_proposal_followups` ausente en producción; qué aviso de privacidad ve el paciente (SMYL o el de la clínica) y quién recaba el consentimiento: decide el abogado.
 ## 2026-11-19 — Filtros, etapa del chat e historial de visitas
 
 - Conversaciones: el panel Filtros queda dedicado a estado y canal. La tarjeta del contacto permite consultar su etapa y cambiarla con los permisos del Pipeline. El cambio manual no registra una llegada ni modifica la cita en Agenda.
