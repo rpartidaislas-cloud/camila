@@ -1,6 +1,6 @@
 # Insumos, almacenes y compras
 
-Implementación del 19 de noviembre de 2026. Preparada y probada localmente; la migración no se ha aplicado a producción en esta entrega.
+Implementación del 19 de noviembre de 2026. Publicación autorizada en PR #214. Las migraciones de sucursales `20261118140000` y de inventario `20261119100000` se aplicaron y registraron en producción antes de publicar el frontend; tablas, funciones, RLS y permisos fueron verificados.
 
 ## Recorrido del usuario
 
@@ -47,3 +47,5 @@ node --test tests/inventory-procurement-browser.test.cjs
 ```
 
 Para activar: aplicar primero la migración mediante el proceso de despliegue de SMYL; publicar después los archivos web sincronizados; comprobar con una cuenta autorizada la lectura y creación de un borrador en la sucursal correcta. No emitir pedidos ficticios ni escribir existencias de prueba en producción. La actualización de la aplicación nativa requiere su distribución habitual; sincronizar `mobile/www` no instala una versión nueva en los dispositivos.
+
+La validación local de la entrega integrada tiene 49 pruebas de datos/modelo/inventario y un recorrido de navegador aprobados, además de los nueve controles estáticos del release gate. GitHub Actions no pudo iniciar sus jobs por un bloqueo de facturación preexistente de la cuenta. El lint de producción no detectó errores en las funciones nuevas; sí conserva un error ajeno de MILA en `smyl_mila_interview_usage_summary` y avisos de geometría radiográfica.
