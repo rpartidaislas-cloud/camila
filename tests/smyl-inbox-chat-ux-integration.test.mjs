@@ -47,6 +47,9 @@ for (const [width, board] of [[1440,false],[768,false],[390,false],[1440,true],[
     assert.doesNotMatch(await history.innerText(),/www\.google\.com/);
     const note = page.locator('[data-handoff]');
     const trigger = note.locator('summary');
+    assert.equal((await trigger.innerText()).trim(), '');
+    assert.equal(await trigger.getAttribute('aria-label'), 'Nota privada de relevo');
+    assert.equal(await trigger.locator('svg').count(), 1);
     await trigger.click();
     assert.match(await note.innerText(), /confirmar la sucursal/i);
     const popover = await note.locator('p').boundingBox();

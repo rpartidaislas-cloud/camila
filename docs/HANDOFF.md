@@ -8,6 +8,12 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-19 — Filtros, etapa del chat e historial de visitas
+
+- Conversaciones: el panel Filtros queda dedicado a estado y canal. La tarjeta del contacto permite consultar su etapa y cambiarla con los permisos del Pipeline. El cambio manual no registra una llegada ni modifica la cita en Agenda.
+- Ficha 360: «Historial de visitas» conserva el mismo origen (citas completadas visibles), las sucursales, los profesionales y las fechas. En la cabecera se conserva la nota privada de relevo mediante un icono sin rótulo.
+- Recursos web y copias móviles: Inbox JS 78 / CSS 67 y registro PWA `inbox-thread-ux-4`. Sin migraciones ni cambios de backend.
+
 ## 2026-11-19 — Ficha y Archivos en Mensajes
 
 - La X cierra únicamente la ficha del paciente, en el panel lateral y en el móvil. Conserva el borrador del chat y el acceso por teclado.

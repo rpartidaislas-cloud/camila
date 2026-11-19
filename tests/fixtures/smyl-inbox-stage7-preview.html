@@ -6,7 +6,7 @@
   <title>SMYL Inbox etapa 7 · QA visual</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="../../smyl-design-system-v2.css?focus=3">
-  <link rel="stylesheet" href="../../smyl-inbox.css?v=66">
+  <link rel="stylesheet" href="../../smyl-inbox.css?v=67">
   <link rel="stylesheet" href="../../smyl-chat-media-viewer.css?v=1">
   <style>
     :root { --azul:#1769e0; --azul-oscuro:#0c4fb8; --gris:#64748b; --borde:#dce3ec; --fondo:#f6f8fb; --blanco:#fff; }
@@ -218,7 +218,7 @@
   <script src="../../smyl-inbox-ficha.js?v=11"></script>
   <script src="../../smyl-chat-pdf.js?v=1"></script>
   <script src="../../smyl-chat-media-viewer.js?v=1"></script>
-  <script src="../../smyl-inbox.js?v=77"></script>
+  <script src="../../smyl-inbox.js?v=78"></script>
   <script>
     window.addEventListener('load', function () {
       window.ir('inbox');
@@ -240,9 +240,10 @@
           } else if (preview.has('productivity-quick')) {
             var quick = document.querySelector('[data-compose-quick]');
             if (quick) quick.click();
-          } else if (preview.has('productivity-bulk')) {
-            var bulk = document.querySelector('[data-inbox-bulk]');
-            if (bulk) bulk.click();
+          } else if (preview.has('filters-preview')) {
+            var back = document.querySelector('[data-inbox-back]');
+            if (back && back.offsetWidth) back.click();
+            document.querySelector('[data-inbox-filter-more]').click();
           } else if (preview.has('focus') || preview.has('media-preview') || preview.has('chat-ux') || pipelineDemo) {
             // Conversation-first state: no dialog or context drawer obscures the thread.
           } else if (preview.has('inbox')) {
