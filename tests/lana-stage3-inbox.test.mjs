@@ -13,11 +13,13 @@ test('SMYL provides a responsive operational inbox and canonical LANA thread', (
   assert.match(inbox, /<h1 class="smyl-inbox-sr">Mensajes<\/h1>/);
   assert.match(inbox, /WhatsApp.*Messenger.*Instagram/);
   assert.match(inbox, /Cargar mensajes anteriores/);
-  assert.match(inbox, /Sincronización segura/);
+  assert.match(inbox, /data-inbox-live role="status" hidden/);
+  assert.match(inbox, /Reconectando…/);
+  assert.doesNotMatch(inbox, /Sincronización segura|Actualizado ahora/);
   assert.match(styles, /grid-template-columns:332px minmax\(420px,1fr\) 268px/);
   assert.match(styles, /@media\(max-width:760px\)/);
-  assert.match(app, /smyl-inbox\.js\?v=73/);
-  assert.match(app, /smyl-inbox\.css\?v=62/);
+  assert.match(app, /smyl-inbox\.js\?v=76/);
+  assert.match(app, /smyl-inbox\.css\?v=65/);
   assert.match(worker, /smyl-v263-lana-connection-recovery/);
 });
 

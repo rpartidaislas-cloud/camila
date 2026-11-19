@@ -1018,6 +1018,16 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 .smyl-inbox-briefing-copy span { color: var(--inbox-text); font-size: 12px; }
 
 /* Conversation: comfortable reading density and a calmer semantic palette. */
+.smyl-inbox-transcript { display:flex; flex:1 1 0; flex-direction:column; position:relative; min-height:0; min-width:0; }
+#p-inbox .smyl-inbox-transcript .smyl-inbox-jump {
+  --smyl-inbox-control-target:44px;
+  bottom:10px; right:14px; display:inline-flex; align-items:center; gap:6px;
+  min-height:44px; height:auto; padding:0 14px; border-radius:24px;
+  color:#164e49; background:#fff; border-color:#abc9c5; font-size:13px;
+}
+#p-inbox .smyl-inbox-transcript .smyl-inbox-jump[hidden] { display:none; }
+.smyl-inbox-transcript .smyl-inbox-jump svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.smyl-inbox-transcript .smyl-inbox-jump:focus-visible { outline:2px solid #0f766e; outline-offset:2px; }
 .smyl-inbox-thread-pane { background: var(--inbox-canvas); }
 
 .smyl-inbox-thread-body {
@@ -2880,31 +2890,41 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 .smyl-f360-tools-link { padding: 8px 6px; min-height: 40px; border: 0; border-radius: 6px; background: transparent; color: #34556d; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .smyl-f360-tools-link:hover, .smyl-f360-tools-link:focus-visible { background: #edf4f5; color: #075e59; }
 #p-inbox .smyl-chat-note[hidden] { display: none; }
-#p-inbox .smyl-inbox-thread-person .smyl-inbox-owner-inline { display: none; }
-@container smyl-thread-head (max-width: 700px) {
-  #p-inbox .smyl-inbox-thread-person .smyl-inbox-owner-inline { display: inline; font: inherit; color: inherit; }
-  #p-inbox .smyl-inbox-owner-control { width: 44px; justify-content: center; padding: 4px; flex: none; }
-  #p-inbox .smyl-inbox-owner-copy { display: none; }
+/* La identidad y el responsable comparten fila. Las acciones pasan juntas a la
+   siguiente cuando el hilo se estrecha, incluso con la ficha o el Pipeline abiertos. */
+#p-inbox .smyl-inbox-thread-head {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+  height: auto; min-height: 64px; padding-block: 6px; gap: 4px 12px; flex: none;
+}
+.smyl-inbox-thread-contact, .smyl-inbox-thread-actions { display: flex; align-items: center; min-width: 0; gap: 8px; }
+.smyl-inbox-thread-actions { justify-self: end; max-width: 100%; flex-wrap: wrap; justify-content: flex-end; }
+#p-inbox .smyl-inbox-thread-contact > .smyl-inbox-patient-summary { flex: 0 1 auto; max-width: min(360px, 58%); }
+#p-inbox .smyl-inbox-thread-contact .smyl-inbox-back { flex: none; }
+#p-inbox .smyl-inbox-thread-contact > .smyl-inbox-owner-control { max-width: min(175px, 42%); }
+#p-inbox .smyl-inbox-thread-actions > .smyl-inbox-carebar:not([hidden]) { display: flex; }
+#p-inbox .smyl-inbox-thread-actions > .smyl-inbox-carebar:empty { display: none; }
+#p-inbox .smyl-inbox-thread-actions [data-thread-state] { display: inline; }
+@container smyl-thread-head (max-width: 780px) {
+  #p-inbox .smyl-inbox-thread-actions [data-thread-mode] { width: auto; gap: 6px; padding-inline: 8px; }
+  #p-inbox .smyl-inbox-thread-actions [data-thread-mode]::after { content: "IA"; font: 650 12px/1 var(--inbox-font); }
+  #p-inbox .smyl-inbox-thread-actions [data-thread-state] { display: none; }
+}
+@container smyl-thread-head (max-width: 640px) {
+  .smyl-inbox-thread-contact, .smyl-inbox-thread-actions { grid-column: 1 / -1; gap: 6px; }
+  #p-inbox .smyl-inbox-thread-contact .smyl-inbox-patient-summary { max-width: 56%; }
+  #p-inbox .smyl-inbox-thread-contact .smyl-inbox-owner-control { max-width: 37%; padding: 3px 7px; }
   #p-inbox .smyl-inbox-owner-control[data-error=true] > svg { display: none; }
-  #p-inbox [data-thread-owner-retry] { font-size: 0; width: 100%; min-height: 38px; }
+  #p-inbox [data-thread-owner-retry] { font-size: 0; min-width: 32px; min-height: 38px; }
   #p-inbox [data-thread-owner-retry]:after { content: '↻'; font-size: 19px; }
 }
-/* Dos filas únicamente en teléfono: el nombre del paciente y el del operador
-   siguen legibles cuando también existen controles de sucursal y de IA. */
-@media (max-width: 560px) {
-  #p-inbox .smyl-inbox-thread-head {
-    display: grid; grid-template-columns: 44px minmax(0,1fr) auto auto;
-    grid-template-rows: 44px 44px; gap: 2px 6px; padding: 5px 10px 7px; height: auto; flex: none;
-  }
-  #p-inbox .smyl-inbox-thread-head > .smyl-inbox-back { grid-area: 1 / 1; }
-  #p-inbox .smyl-inbox-thread-head > .smyl-inbox-patient-summary { grid-area: 1 / 2; max-width: 100%; }
-  #p-inbox .smyl-inbox-thread-head > .smyl-inbox-thread-branchwrap { grid-area: 1 / 3; }
-  #p-inbox .smyl-inbox-thread-head > .smyl-inbox-mode-button { grid-area: 1 / 4; }
-  #p-inbox .smyl-inbox-thread-head > .smyl-inbox-owner-control { grid-area: 2 / 1 / 3 / 3; justify-self: start; justify-content: flex-start; width: auto; max-width: 100%; padding: 3px 9px; }
-  #p-inbox .smyl-inbox-owner-control .smyl-inbox-owner-copy { display: grid; }
-  #p-inbox .smyl-inbox-thread-person .smyl-inbox-owner-inline { display: none; }
-  #p-inbox .smyl-inbox-thread-head > .smyl-inbox-carebar { grid-area: 2 / 3 / 3 / 5; justify-self: end; }
+#p-inbox .smyl-inbox-sync-warning {
+  flex: none; padding: 6px 14px; background: #fff6e6; color: #714506;
+  font: 600 13px/1.4 var(--inbox-font);
 }
+#p-inbox .smyl-inbox-queue-settings { display: flex; align-items: stretch; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+#p-inbox .smyl-inbox-queue-settings button { width: auto; flex: 1 1 auto; justify-content: center; min-height: 42px; padding: 4px 8px; font-size: 13px; }
+#p-inbox .smyl-inbox-queue-settings .smyl-inbox-health span { display: inline; }
+#p-inbox .smyl-inbox-queue-settings .smyl-inbox-notify::after { content: none; }
 
 /* The server grants the inbox independently of the person's clinical role. */
 html:not([data-smyl-chat-access="agent"]):not([data-smyl-chat-access="coordinator"]) :is([data-route="inbox"], [onclick="ir('inbox')"], [onclick="pamIr('inbox')"], .daily-home-chats, [data-home-inbox-line], [data-more-action="message"], [data-open-inbox], .sched-msg, .lana-entry),
@@ -2922,9 +2942,26 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
 .smyl-chat-transfer footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 .smyl-chat-transfer small { color: #516777; }
 .smyl-chat-transfer [role="alert"] { color: #9c2820; }
-#p-inbox .smyl-chat-note { max-width: 100%; padding: 5px 12px; background: #fff8e9; color: #654411; border-radius: 8px; }
-#p-inbox .smyl-chat-note summary { cursor: pointer; font-size: 13px; font-weight: 600; }
-#p-inbox .smyl-chat-note p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0; }
+.smyl-inbox-thread-contact { position: relative; }
+#p-inbox .smyl-chat-note { flex: none; }
+#p-inbox .smyl-chat-note summary {
+  display: flex; align-items: center; justify-content: center; gap: 5px; min-width: 44px; min-height: 44px;
+  padding-inline: 8px; border-radius: 8px; color: #805819; cursor: pointer; font: 600 13px/1.3 var(--inbox-font);
+}
+#p-inbox .smyl-chat-note summary::-webkit-details-marker { display: none; }
+#p-inbox .smyl-chat-note summary svg { width: 18px; height: 18px; }
+#p-inbox .smyl-chat-note summary:hover, #p-inbox .smyl-chat-note[open] summary { background: #fff6e5; }
+#p-inbox .smyl-chat-note summary:focus-visible { outline: 2px solid var(--inbox-focus); outline-offset: 1px; }
+#p-inbox .smyl-chat-note-content {
+  position: absolute; z-index: 2; inset-inline-start: 0; inset-block-start: calc(100% + 3px);
+  width: min(320px, 100%); box-sizing: border-box; max-height: min(240px, 35dvh); overflow: auto;
+  padding: 12px 14px; border: 1px solid #e6d8bb; border-radius: 10px; background: #fffdf7;
+  color: #493e2b; box-shadow: 0 6px 20px rgba(18, 36, 53, .14); font: 400 14px/1.45 var(--inbox-font);
+}
+#p-inbox .smyl-chat-note p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 4px 0 0; }
+@container smyl-thread-head (max-width: 780px) {
+  #p-inbox .smyl-chat-note summary span { display: none; }
+}
 
 /* Ficha 360 más ordenada: «Cobrar» compacto junto al saldo (en Cuenta), sin botones grandes, avisos dentro de la tarjeta de identidad. */
 #p-inbox .smyl-inbox-account-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
@@ -2960,12 +2997,14 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
 #p-inbox.activa.view-pipeline.pipeline-chat-open {
   display: grid;
   grid-template-columns: minmax(0, 1fr) clamp(365px, 33%, 515px);
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-areas: "sync sync" "tabs tabs" "board thread";
 }
-#p-inbox.pipeline-chat-open > .smyl-inbox-top { grid-area: 1 / 1 / 2 / -1; }
-#p-inbox.pipeline-chat-open > .smyl-inbox-pipeline { grid-area: 2 / 1; min-width: 0; }
+#p-inbox.pipeline-chat-open > .smyl-inbox-sync-warning { grid-area: sync; }
+#p-inbox.pipeline-chat-open > .smyl-inbox-top { grid-area: tabs; }
+#p-inbox.pipeline-chat-open > .smyl-inbox-pipeline { grid-area: board; min-width: 0; }
 #p-inbox.view-pipeline.pipeline-chat-open > .smyl-inbox-workspace {
-  grid-area: 2 / 2;
+  grid-area: thread;
   display: flex;
   min-width: 0;
   width: auto;
@@ -2983,43 +3022,8 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
   min-width: 0;
   transform: none;
 }
-#p-inbox.pipeline-chat-open .smyl-inbox-thread-head {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto auto;
-  grid-template-rows: auto auto;
-  height: auto;
-  min-height: 0;
-  padding: 7px 10px;
-  gap: 4px 6px;
-  flex: none;
-}
-#p-inbox.pipeline-chat-open .smyl-inbox-thread-head > .smyl-inbox-back {
-  grid-area: 1 / 1;
-  display: inline-grid;
-  width: 40px;
-  height: 42px;
-  place-items: center;
-  border-radius: 8px;
-}
-#p-inbox.pipeline-chat-open .smyl-inbox-thread-head > .smyl-inbox-patient-summary { grid-area: 1 / 2; width: 100%; max-width: none; margin: 0; }
-#p-inbox.pipeline-chat-open .smyl-inbox-thread-head > .smyl-inbox-thread-branchwrap { grid-area: 1 / 3; margin: 0; }
-#p-inbox.pipeline-chat-open .smyl-inbox-thread-head > .smyl-inbox-mode-button { grid-area: 1 / 4; width: auto; min-width: max-content; margin: 0; padding-inline: 8px; gap: 6px; }
-#p-inbox.pipeline-chat-open .smyl-inbox-mode-button [data-thread-state] { display: inline; font-size: 12px; }
-@container smyl-thread-head (max-width: 435px) {
-  #p-inbox.pipeline-chat-open .smyl-inbox-mode-button [data-thread-state] { display: none; }
-  #p-inbox.pipeline-chat-open .smyl-inbox-mode-button::after { content: "IA"; font: 650 12px/1 var(--inbox-font); }
-}
-#p-inbox.pipeline-chat-open .smyl-inbox-thread-head > .smyl-inbox-owner-control {
-  grid-area: 2 / 1 / 3 / 3;
-  justify-self: start;
-  justify-content: flex-start;
-  width: auto;
-  max-width: 100%;
-  padding-inline: 9px;
-}
-#p-inbox.pipeline-chat-open .smyl-inbox-owner-control .smyl-inbox-owner-copy { display: grid; }
-#p-inbox.pipeline-chat-open .smyl-inbox-thread-person .smyl-inbox-owner-inline { display: none; }
-#p-inbox.pipeline-chat-open .smyl-inbox-thread-head > .smyl-inbox-carebar { grid-area: 2 / 3 / 3 / 5; justify-self: end; }
+#p-inbox.pipeline-chat-open .smyl-inbox-thread-head { padding: 7px 10px; }
+#p-inbox.pipeline-chat-open .smyl-inbox-back { display: inline-grid; width: 44px; height: 44px; place-items: center; border-radius: 8px; }
 #p-inbox.pipeline-chat-open .smyl-inbox-thread-body { padding: 14px 12px; }
 #p-inbox.pipeline-chat-open .smyl-inbox-bubble { max-width: 92%; }
 #p-inbox.pipeline-chat-open .smyl-inbox-composer { padding: 9px 10px max(10px, env(safe-area-inset-bottom)); }
@@ -3045,10 +3049,11 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
 @media (max-width: 760px) {
   #p-inbox.activa.view-pipeline.pipeline-chat-open {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "sync" "thread";
   }
   #p-inbox.pipeline-chat-open > :is(.smyl-inbox-top, .smyl-inbox-pipeline) { display: none; }
-  #p-inbox.view-pipeline.pipeline-chat-open > .smyl-inbox-workspace { grid-area: 1 / 1; border: 0; }
+  #p-inbox.view-pipeline.pipeline-chat-open > .smyl-inbox-workspace { border: 0; }
 }
 
 /* Skeletons de carga (lenguaje .sk de smyl-skeleton.css) */
@@ -3062,6 +3067,18 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
 .smyl-inbox-availability-loading .sk-cards{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
 .smyl-inbox-context .sk-region{padding:2px 0}
 @media(prefers-reduced-motion:reduce){.smyl-inbox-thread-sk .sk{animation:none}}
+
+.smyl-inbox-bubble .smyl-chat-location {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 48px; max-width: 100%;
+  margin: 2px 0; padding: 4px 9px 4px 4px; border: 0; background: transparent;
+  color: var(--inbox-text, #18344b); text-align: start; text-decoration: none;
+}
+.smyl-chat-location-icon { display: grid; place-items: center; flex: none; width: 36px; height: 36px; background: #dceee9; color: #11675c; border-radius: 9px; }
+.smyl-chat-location-copy { display: grid; min-width: 0; gap: 3px; }
+.smyl-chat-location-copy strong { font-size: 14px; line-height: 1.3; }
+.smyl-chat-location-copy > span { color: #12685e; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.smyl-chat-location:hover .smyl-chat-location-icon { background: #c9e4dc; }
+.smyl-chat-location:focus-visible { outline: 2px solid #187e85; outline-offset: 1px; }
 
 .smyl-inbox-page .smyl-chat-media-open {
   display: inline-flex;

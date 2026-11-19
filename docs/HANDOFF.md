@@ -8,6 +8,19 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-19 — Ubicaciones, relevo privado y lectura del historial
+
+- Conversaciones y el chat lateral del Pipeline comparten las tarjetas «Ubicación compartida · Abrir mapa». Se conservan las indicaciones escritas; las ubicaciones que no se pueden interpretar se muestran sin inventar coordenadas. Leer el chat no carga mapas de terceros.
+- La nota privada se consulta junto al responsable del chat, sólo cuando existe. No es un mensaje del paciente. El acceso se limpia al cambiar de hilo.
+- El botón para volver al final queda dentro del historial y cuenta las novedades mientras el operador está leyendo mensajes anteriores. El compositor permanece despejado.
+- Recursos web y copias móviles: Inbox JS 76 / CSS 65, registro PWA `inbox-thread-ux-2`. Se renovaron las direcciones de los recursos después de detectar archivos anteriores en la caché pública. La vista de prueba con un historial ficticio se abre con `tests/fixtures/smyl-inbox-stage7-preview.html?chat-ux` (añadir `&pipeline-preview` para el tablero). Sin cambios de backend ni migraciones.
+
+## 2026-11-19 — Cabecera de Mensajes y responsable del chat
+
+- «Atiende el chat» acompaña a la identidad del contacto. Es el responsable de la conversación, no el médico de una cita. La transferencia y su nota privada conservan el flujo existente.
+- Avisos y operación pasan de la franja superior a Conversaciones → Filtros. La sincronización normal no ocupa espacio permanente; las incidencias sí deben seguir visibles.
+- Cambios de presentación en `smyl-inbox.js/css`, con sus copias móviles y versiones de recursos JS 74 / CSS 63. Sin cambios de permisos ni de datos clínicos.
+
 ## 2026-11-19 — Insumos, almacenes, kits y compras por clínica o consolidadas — publicación autorizada
 
 - Rama `codex/inventory-procurement-v3`, desde `origin/main` `66c1e4d5`, en el worktree `camila-inventory-procurement`. Publicación autorizada por el usuario y preparada en PR #214. Migraciones `20261118140000` y `20261119100000` aplicadas, verificadas y registradas en Supabase SMYL; la primera era una dependencia pendiente en producción. Se avisó al usuario antes de ampliar a base de datos porque las asociaciones múltiples y la consolidación lo requerían.

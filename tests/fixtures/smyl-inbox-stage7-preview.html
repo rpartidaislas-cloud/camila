@@ -6,7 +6,7 @@
   <title>SMYL Inbox etapa 7 · QA visual</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="../../smyl-design-system-v2.css?focus=3">
-  <link rel="stylesheet" href="../../smyl-inbox.css?v=62">
+  <link rel="stylesheet" href="../../smyl-inbox.css?v=65">
   <link rel="stylesheet" href="../../smyl-chat-media-viewer.css?v=1">
   <style>
     :root { --azul:#1769e0; --azul-oscuro:#0c4fb8; --gris:#64748b; --borde:#dce3ec; --fondo:#f6f8fb; --blanco:#fff; }
@@ -90,6 +90,16 @@
       );
     }
     var demoFiles = [];
+    if (previewParams.has('chat-ux')) {
+      // Synthetic thread for checking location cards, staff-only handoff and scrolling.
+      var uxContact = pipelineDemo ? pipelineDemo[0] : conversation;
+      var uxMessages = demoThreads ? demoThreads.get(uxContact.id) : messages;
+      uxContact.private_handoff_note = 'Recepción: confirmar la sucursal antes de agendar.';
+      for (var uxIndex = 0; uxIndex < 20; uxIndex++) {
+        uxMessages.push({id:'history-'+uxIndex, role:'user', author_type:'patient', status:'sent', content:'Mensaje de ejemplo '+(uxIndex+1), created_at:new Date(Date.now()-(21-uxIndex)*60000).toISOString()});
+      }
+      uxMessages.push({id:'map-example', role:'assistant', author_type:'team', status:'sent', content:'📍 Ubicación actual\nhttps://www.google.com/maps?q=20.674%2C-103.344', created_at:new Date().toISOString()});
+    }
     if (previewParams.has('media-preview')) {
       var created = {created_at:new Date().toISOString(), status:'sent'};
       demoFiles = [
@@ -208,7 +218,7 @@
   <script src="../../smyl-inbox-ficha.js?v=11"></script>
   <script src="../../smyl-chat-pdf.js?v=1"></script>
   <script src="../../smyl-chat-media-viewer.js?v=1"></script>
-  <script src="../../smyl-inbox.js?v=73"></script>
+  <script src="../../smyl-inbox.js?v=76"></script>
   <script>
     window.addEventListener('load', function () {
       window.ir('inbox');
@@ -234,7 +244,7 @@
           } else if (preview.has('productivity-bulk')) {
             var bulk = document.querySelector('[data-inbox-bulk]');
             if (bulk) bulk.click();
-          } else if (preview.has('focus') || preview.has('media-preview') || pipelineDemo) {
+          } else if (preview.has('focus') || preview.has('media-preview') || preview.has('chat-ux') || pipelineDemo) {
             // Conversation-first state: no dialog or context drawer obscures the thread.
           } else if (preview.has('inbox')) {
             var control = document.querySelector('[data-inbox-context]');
@@ -247,8 +257,7 @@
               if (form) form.dispatchEvent(new Event('submit', { bubbles:true, cancelable:true }));
             }, 120);
           } else {
-            var health = document.querySelector('[data-inbox-operations]');
-            if (health) health.click();
+            window.SmylInbox.openOperations();
           }
           document.documentElement.dataset.previewReady = 'true';
         }, 180);
