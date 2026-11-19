@@ -11685,3 +11685,7 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - `smyl-clinic-admin.js?v=17` / `.css?v=13`: en la ficha de cada persona (Equipo → Editar datos) aparece «WhatsApp del profesional» (`smyl_professionals.contact_phone`) y la casilla «Compartir con los pacientes» (`contact_phone_public`). Se leen con respaldo si la base aún no tiene las columnas (migración `20261119120000`).
 - Alcance: solo captura y lectura del número. El envío de avisos al profesional (que atienda el chat) NO está construido; hoy `appointment-reminders` solo usa este número como variable de plantilla cuando es público.
 - Caché `…-equipo-whatsapp-v1`; `mobile/www` sincronizado.
+
+## 2026-11-19 — Claude — Equipo: horario semanal del profesional desde su ficha
+- `smyl-clinic-admin.js?v=18` / `.css?v=14`: en «Dónde trabaja», cada sede tiene «Editar horario» (solo con `schedule.manage`): 7 días, hasta 3 bloques por día, «Copiar el lunes a martes–viernes», recordatorio del horario de la sucursal y validación (fin>inicio, sin traslapes). Guarda sobre `smyl_professional_hours` (desactiva lo quitado y hace upsert de lo nuevo; si el trigger de traslape/traslado rechaza, se restauran los bloques quitados y se muestra el motivo).
+- No hay migración nueva. `tests/qa/equipo-ficha-smoke.cjs` cubre WhatsApp y horario (fake con `upsert`; `SHOT=ruta.png` guarda captura).

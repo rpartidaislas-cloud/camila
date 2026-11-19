@@ -23,6 +23,7 @@ const CHAIN = `function chain(table){
           const match=r=>q.filters.every(f=>f[2]==='in'?f[1].includes(r[f[0]]):r[f[0]]===f[1]);
           let out;
           if(q.op==='insert'){const arr=[].concat(q.payload).map(r=>Object.assign({id:'n'+Math.random().toString(36).slice(2,8)},r));db[table].push(...arr);window.__calls.push(['insert',table,q.payload]);out={data:q.single?arr[0]:arr,error:null};}
+          else if(q.op==='upsert'){const keys=String(q.conflict||'id').split(',');const arr=[].concat(q.payload);arr.forEach(r=>{const hit=db[table].find(x=>keys.every(k=>x[k]===r[k]));if(hit)Object.assign(hit,r);else db[table].push(Object.assign({id:'n'+Math.random().toString(36).slice(2,8)},r));});window.__calls.push(['upsert',table,q.payload]);out={data:arr,error:null};}
           else if(q.op==='update'){const hit=db[table].filter(match);hit.forEach(r=>Object.assign(r,q.payload));window.__calls.push(['update',table,q.payload]);out={data:q.single?(hit[0]||null):hit,error:null};}
           else if(q.op==='delete'){const keep=[],gone=[];db[table].forEach(r=>(match(r)?gone:keep).push(r));db[table]=keep;window.__calls.push(['delete',table]);out={data:gone,error:null};}
           else{const rows=db[table].filter(match);out={data:q.single?(rows[0]||null):rows,error:null,count:rows.length};window.__calls.push(['from',table]);
@@ -35,6 +36,7 @@ const CHAIN = `function chain(table){
         if(prop==='eq'){return (c,v)=>{q.filters.push([c,v]);return api;};}
         if(prop==='select'){return (c)=>{if(q.op==='select')q.cols=String(c||'');return api;};}
         if(prop==='insert'){return (p)=>{q.op='insert';q.payload=p;return api;};}
+        if(prop==='upsert'){return (p,o)=>{q.op='upsert';q.payload=p;q.conflict=o&&o.onConflict;return api;};}
         if(prop==='update'){return (p)=>{q.op='update';q.payload=p;return api;};}
         if(prop==='delete'){return ()=>{q.op='delete';return api;};}
         if(prop==='maybeSingle'||prop==='single'){return ()=>{q.single=true;return api;};}
@@ -64,8 +66,8 @@ const EXTRA = `
   db.smyl_professional_branches=[{tenant_id:T,professional_id:'pr1',branch_id:'b1'},{tenant_id:T,professional_id:'pr2',branch_id:'b1'},{tenant_id:T,professional_id:'pr3',branch_id:'b1'},{tenant_id:T,professional_id:'pr3',branch_id:'b2'}];
   db.smyl_professional_hours=[
     {tenant_id:T,professional_id:'pr1',branch_id:'b1',weekday:2,starts_at:'09:00:00',ends_at:'14:00:00',active:true},
-    {tenant_id:T,professional_id:'pr3',branch_id:'b1',weekday:1,starts_at:'09:00:00',ends_at:'13:00:00',active:true},
-    {tenant_id:T,professional_id:'pr3',branch_id:'b2',weekday:1,starts_at:'13:30:00',ends_at:'17:00:00',active:true}];
+    {id:'h-pr3-b1-1',tenant_id:T,professional_id:'pr3',branch_id:'b1',weekday:1,starts_at:'09:00:00',ends_at:'13:00:00',active:true},
+    {id:'h-pr3-b2-1',tenant_id:T,professional_id:'pr3',branch_id:'b2',weekday:1,starts_at:'13:30:00',ends_at:'17:00:00',active:true}];
   db.smyl_professional_profiles=[{tenant_id:T,professional_id:'pr1',status:'published'}];
   db.smyl_staff_invitations=[{id:'inv1',tenant_id:T,email:'nueva@clinica.mx',display_name:'Dra. Nueva',member_kind:'professional',specialty:'Ortodoncia',license_number:'',branch_id:'b2',status:'pending',expires_at:iso2(6),invited_at:now}];
   db.smyl_schedule_rules=[];
@@ -171,6 +173,34 @@ server.listen(0, '127.0.0.1', async () => {
     check(guardado.db.phone === '33 1234 5678' && guardado.db.specialty === 'Cirugía oral', 'debe guardar teléfono y especialidad');
     check(guardado.tel === 'tel:3312345678', 'el teléfono debe ser un enlace para llamar');
     check(guardado.abierta, 'la ficha debe seguir abierta con los datos nuevos');
+
+    // WhatsApp del profesional y horario semanal desde la ficha
+    check(/WhatsApp \(avisos de citas\)/.test(ficha.texto), 'la ficha debe mostrar el WhatsApp para avisos');
+    await page.click('.clinic-admin-sheet-edit'); await page.waitForTimeout(200);
+    await page.fill('.clinic-admin-sheet-form input[name="contact_phone"]', '33 9876 5432'); await page.check('.clinic-admin-sheet-form input[name="contact_phone_public"]');
+    await page.click('.clinic-admin-sheet-form button[type="submit"]'); await page.waitForTimeout(900);
+    const wa = await page.evaluate(() => { const r = window.__db.smyl_professionals.find(p => p.id === 'pr3'); return { n: r.contact_phone, p: r.contact_phone_public, t: document.getElementById('clinic-admin-person').innerText }; });
+    console.log('4b) WhatsApp:', JSON.stringify({ n: wa.n, p: wa.p }));
+    check(wa.n === '33 9876 5432' && wa.p === true, 'debe guardar el WhatsApp y que sea visible para pacientes');
+    check(/visible para pacientes/.test(wa.t), 'la ficha debe decir que es visible para pacientes');
+    const editBtns = await page.$$('.clinic-admin-sheet-branch .clinic-admin-link'); check(editBtns.length === 2, 'cada sede asignada debe ofrecer «Editar horario»: ' + editBtns.length);
+    await editBtns[0].click(); await page.waitForTimeout(250);
+    const ed = await page.evaluate(() => ({ dias: document.querySelectorAll('.clinic-admin-hours-day').length, lunes: [...document.querySelectorAll('.clinic-admin-hours-day')][0].querySelectorAll('input[type=time]').length, hint: document.querySelector('.clinic-admin-hours-editor .clinic-admin-hint').innerText }));
+    check(ed.dias === 7 && ed.lunes === 2, 'el editor debe mostrar 7 días y el bloque del lunes: ' + JSON.stringify(ed));
+    check(/Horario de la sucursal: Lun 08:00–20:00/.test(ed.hint), 'debe recordar el horario de la sucursal: ' + ed.hint);
+    if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT });
+    await page.click('.clinic-admin-hours-tools .clinic-admin-link'); await page.waitForTimeout(250);
+    await page.uncheck('.clinic-admin-hours-day:nth-child(3) input[type=checkbox]'); await page.waitForTimeout(250);
+    await page.fill('.clinic-admin-hours-day:nth-child(4) input[type=time] >> nth=1', '08:00'); await page.dispatchEvent('.clinic-admin-hours-day:nth-child(4) input[type=time] >> nth=1', 'change');
+    await page.click('.clinic-admin-hours-editor .btn-primary'); await page.waitForTimeout(300);
+    const bad = await page.evaluate(() => ({ msg: (document.getElementById('clinic-admin-feedback') || {}).innerText || '', saved: window.__db.smyl_professional_hours.filter(h => h.professional_id === 'pr3' && h.branch_id === 'b1' && h.active).length }));
+    check(/Jueves: la hora de fin/.test(bad.msg) && bad.saved === 1, 'un horario inválido no se guarda y se explica: ' + JSON.stringify(bad));
+    await page.fill('.clinic-admin-hours-day:nth-child(4) input[type=time] >> nth=1', '13:00'); await page.dispatchEvent('.clinic-admin-hours-day:nth-child(4) input[type=time] >> nth=1', 'change');
+    await page.click('.clinic-admin-hours-editor .btn-primary'); await page.waitForTimeout(1000);
+    const okh = await page.evaluate(() => ({ dias: window.__db.smyl_professional_hours.filter(h => h.professional_id === 'pr3' && h.branch_id === 'b1' && h.active).map(h => h.weekday).sort().join(), b2: window.__db.smyl_professional_hours.filter(h => h.professional_id === 'pr3' && h.branch_id === 'b2' && h.active).length, texto: document.getElementById('clinic-admin-person').innerText, editor: !!document.querySelector('.clinic-admin-hours-editor') }));
+    console.log('4c) horario guardado:', JSON.stringify({ dias: okh.dias, b2: okh.b2, editor: okh.editor }));
+    check(okh.dias === '1,2,4,5' && okh.b2 === 1 && !okh.editor, 'debe guardar lunes, martes, jueves y viernes en Centro sin tocar la otra sede');
+    check(/Mar 09:00–13:00/.test(okh.texto) && /Vie 09:00–13:00/.test(okh.texto), 'la ficha debe mostrar el horario nuevo');
 
     // Asignar y quitar sede
     await page.selectOption('.clinic-admin-sheet-add select', 'b3'); await page.click('.clinic-admin-sheet-add button'); await page.waitForTimeout(1200);

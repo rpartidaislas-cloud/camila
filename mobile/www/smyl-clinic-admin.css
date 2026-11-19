@@ -443,3 +443,18 @@
 .clinic-admin-sheet-check{display:flex;align-items:flex-start;gap:10px;margin-top:6px;font-size:14px;color:var(--ca-ink);line-height:1.4;cursor:pointer}
 .clinic-admin-sheet-check input[type=checkbox]{width:20px;min-height:20px;height:20px;margin:1px 0 0;padding:0;flex:none;accent-color:var(--ca-accent,#1b4d77)}
 .clinic-admin-sheet-check span{font-size:14px;font-weight:500;color:var(--ca-ink)}
+
+/* Horario semanal del profesional (ficha de Equipo) */
+.clinic-admin-hours-editor{grid-column:1/-1;display:grid;gap:10px;margin-top:10px;padding:12px;border:1px solid var(--ca-border);border-radius:12px;background:#fff}
+.clinic-admin-hours-days{display:grid;gap:6px}
+.clinic-admin-hours-day{display:grid;grid-template-columns:64px minmax(0,1fr);align-items:start;gap:8px;padding:6px 0;border-top:1px solid var(--ca-border)}
+.clinic-admin-hours-day:first-child{border-top:0}
+.clinic-admin-hours-toggle{display:flex;align-items:center;gap:8px;min-height:44px;cursor:pointer;font-size:14px}
+.clinic-admin-hours-toggle input[type=checkbox]{width:20px;height:20px;min-height:20px;margin:0;padding:0;flex:none;accent-color:var(--ca-accent,#1b4d77)}
+.clinic-admin-hours-blocks{display:grid;gap:6px;min-width:0;align-content:center;min-height:44px}
+.clinic-admin-hours-block{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.clinic-admin-hours-block input[type=time]{width:138px;min-height:40px;border:1px solid var(--ca-border);border-radius:10px;padding:0 8px;font:inherit;font-size:15px;background:#fff;color:var(--ca-ink)}
+.clinic-admin-hours-block span{font-size:13px;color:var(--ca-muted)}
+.clinic-admin-hours-day.is-off .clinic-admin-muted{font-size:13px}
+.clinic-admin-hours-tools{display:flex;gap:12px;flex-wrap:wrap}
+.clinic-admin-sheet-branch{flex-wrap:wrap}
