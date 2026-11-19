@@ -13,6 +13,15 @@
 - La X cierra únicamente la ficha del paciente, en el panel lateral y en el móvil. Conserva el borrador del chat y el acceso por teclado.
 - Ficha y Archivos son dos vistas del mismo paciente. Los adjuntos ya no aparecen como bloque de la carátula. Se quitaron del pie Expediente, Cotizar y Ajustes del chat; este último sigue disponible desde el menú + del chat. No se eliminan documentos ni se cambian permisos.
 
+## 2026-11-19 — Claude Code — Propuesta compartida con el paciente (enlace privado `propuesta.html`)
+
+- **Qué hace**: en una propuesta aprobada, el botón **Compartir con el paciente** deja elegir qué viaja: plan y precios (siempre) y, opcionales, **odontograma**, **fotografías y simulación** (antes/después) y un **resumen de historial** que el doctor escribe (no se copia nada del expediente). Genera un enlace privado (vence en 7/15/30 días, 15 por defecto; se puede cancelar) para copiar o enviar por WhatsApp. La lista muestra si se abrió, si le interesa y si aceptó.
+- **Página del paciente** (`propuesta.html#t=…`): usa el MISMO renderizador que el PDF (`SmylProposalPrint.render`, ahora con `opts.hideMap` para ocultar el odontograma), más el resumen de historial y las formas de pago si se incluyeron. Botones: **Me interesa · quiero agendar mi cita** (avisa a la clínica) y **Acepto el plan** con casilla de consentimiento (tratamiento y uso de imágenes/simulaciones). Se guarda fecha, versión y hash del texto aceptado. Interés y aceptación quedan además en el seguimiento de la propuesta (`smyl_proposal_followups`, canal «otro»).
+- **Backend**: migración `20261119160000_smyl_proposal_shares.sql` (solo service_role; token de 256 bits, solo su SHA-256) y Edge Function `smyl-proposal-share` (`verify_jwt=false`; personal con sesión + `proposal.followup`; público por token). Lo compartido es una **copia congelada**: editar la propuesta después no cambia lo ya enviado. Las fotos se firman 10 min y solo si pertenecen a la clínica. `_shared/smyl-proposal-share-core.mjs` es la parte pura.
+- **Simulación de carillas**: no tiene flujo aparte; viaja como la sección «Fotografías y simulación». Mandarla sola, sin precios, queda para después.
+- **Pendiente / decidir**: pago en línea y meses sin intereses desde la propuesta (hoy solo hay una nota informativa de formas de pago; el cobro con OpenPay sigue siendo el «Enlace de pago» de Cobros una vez creados los cargos); botón de agendar directo en la agenda; aviso de privacidad (`privacidad.html` en camila y smyl-site) con una línea sobre enlaces temporales de propuestas con fotos — revisar con el abogado antes de publicar.
+- **Verificación**: `tests/smyl-proposal-share.test.mjs` (11); suite completa sin fallas nuevas frente a `main`. Sin probar de punta a punta con una sesión real (no hay login aquí).
+
 ## 2026-11-19 — Ubicaciones, relevo privado y lectura del historial
 
 - Conversaciones y el chat lateral del Pipeline comparten las tarjetas «Ubicación compartida · Abrir mapa». Se conservan las indicaciones escritas; las ubicaciones que no se pueden interpretar se muestran sin inventar coordenadas. Leer el chat no carga mapas de terceros.
@@ -11723,3 +11732,35 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Servidor (`lana-inbox`, acción POST `fiscal_document`):** requiere `finance.manage` y el alcance de la conversación (`canAccessConversation`); verifica que el chat esté vinculado **a ese paciente**; consulta el mensaje en LANA (no confía en el navegador); descarga solo `https` públicas (sin IPs ni nombres internos) hasta 4 MB; decide el tipo por la firma del archivo (PDF/PNG/JPG; otros se rechazan) y lo entrega a `fiscal-extract` con la sesión de quien lo pide, así aplican el permiso, los topes y el consumo de créditos de IA. El archivo no se guarda. Lógica pura en `_shared/fiscal-chat.mjs`.
 - **Frontend:** `smyl-fiscal-capture.js` v3, `smyl-finance.css` v43 (incluye `.fiscal-capture [hidden]{display:none!important}`: `.btn` anulaba `hidden`). Pruebas: `tests/fiscal-chat.test.mjs`.
 - **PENDIENTE DEL DUEÑO:** desplegar `lana-inbox` (`supabase functions deploy lana-inbox --project-ref rpxshsiwoxdbuevjjpfw`). Sin ese despliegue, «Elegir del chat» lista los archivos pero la lectura responde error.
+
+## 2026-11-19 — Claude Code — Equipo: «Agregar doctor» → «Agregar profesional»
+- Solo copy en `smyl-clinic-admin.js` (v17): botón y diálogo «Agregar profesional», etiqueta «Profesional» (antes «Doctor»), filtro «Profesionales», y los avisos que decían «doctor». Identificadores internos (`person.doctor`, filtro `doctors`, `configureExistingDoctor`) y el rol «Odontólogo» no cambian.
+- `app.html`/`sw.js` (caché `-equipo-profesional-v1`) y `mobile/www/` sincronizados; pruebas que fijaban el texto o `?v=16` actualizadas. Única falla restante: «la deuda tipográfica…» (ya fallaba en main).
+
+## 2026-11-19 — Claude Code — Ficha del paciente: error `insertBefore` en revisión de fotografías
+- `smyl-clinical-photo-review.js` (v5): `mount()` insertaba antes de `.cw-radiograph-shelf`, que está anidada y no es hijo directo de `.cw-evaluation-panel-body` → `NotFoundError` ×6 y el aviso global al abrir un paciente; además `active` no se fijaba y el observer reintentaba. Ahora se inserta antes del hijo directo que contiene la bandeja (o `append`).
+- Caché de `sw.js` termina en `-photo-review-mount-fix-v1`; `mobile/www/` sincronizado. `tests/qa/patient-open-smoke.cjs`: 3 pacientes, 0 `pageerror`.
+## 2026-11-19 — Claude — Equipo: WhatsApp del profesional
+- `smyl-clinic-admin.js?v=17` / `.css?v=13`: en la ficha de cada persona (Equipo → Editar datos) aparece «WhatsApp del profesional» (`smyl_professionals.contact_phone`) y la casilla «Compartir con los pacientes» (`contact_phone_public`). Se leen con respaldo si la base aún no tiene las columnas (migración `20261119120000`).
+- Alcance: solo captura y lectura del número. El envío de avisos al profesional (que atienda el chat) NO está construido; hoy `appointment-reminders` solo usa este número como variable de plantilla cuando es público.
+- Caché `…-equipo-whatsapp-v1`; `mobile/www` sincronizado.
+
+## 2026-11-19 — Claude — Equipo: horario semanal del profesional desde su ficha
+- `smyl-clinic-admin.js?v=18` / `.css?v=14`: en «Dónde trabaja», cada sede tiene «Editar horario» (solo con `schedule.manage`): 7 días, hasta 3 bloques por día, «Copiar el lunes a martes–viernes», recordatorio del horario de la sucursal y validación (fin>inicio, sin traslapes). Guarda sobre `smyl_professional_hours` (desactiva lo quitado y hace upsert de lo nuevo; si el trigger de traslape/traslado rechaza, se restauran los bloques quitados y se muestra el motivo).
+- No hay migración nueva. `tests/qa/equipo-ficha-smoke.cjs` cubre WhatsApp y horario (fake con `upsert`; `SHOT=ruta.png` guarda captura).
+
+## 2026-11-19 — Claude — Equipo: «Listo para recibir citas»
+- `smyl-clinic-admin.js?v=19` / `.css?v=15`: la ficha del doctor abre con una lista de preparación: sede y horario (indispensables), WhatsApp para avisos y acceso a SMYL (recomendados). En la lista de Equipo aparece «Falta sede / horario» a quien no puede recibir citas. Solo frontend; sin migración.
+- PENDIENTE (no construido): aviso por WhatsApp al profesional cuando se le agenda una cita. Hoy solo se puede escribir al profesional por una conversación de LANA ya vinculada (`smyl_professional_whatsapp_links`, que el propio doctor vincula con `link_my_professional`); un doctor «Sin acceso» no puede vincularla y SMYL no puede iniciar conversación por número. Requiere definir con LANA el envío de plantilla a un número, o aceptar que solo avise a quienes vincularon su chat.
+
+## 2026-11-19 — Claude Code — «Agregar profesional» pide el WhatsApp del profesional
+- Se integró la rama `claude/epic-newton-m7mac3` (WhatsApp del profesional, horario y lista de preparación en la ficha) con main y con el renombre «doctor» → «profesional».
+- `smyl-clinic-admin.js?v=20` / `.css?v=16`: el diálogo «Agregar profesional» muestra «WhatsApp del profesional» y «Compartir este número con los pacientes…» cuando el correo ya es de la clínica; guarda en `smyl_professionals.contact_phone` / `contact_phone_public` (el mismo dato que «Editar datos» en la ficha). Si el profesional ya estaba vinculado, precarga su número.
+- Con correo nuevo (invitación) el campo no se muestra: `smyl_staff_invitations` e `invite-staff` no tienen columna para el WhatsApp. Se muestra una nota para capturarlo en la ficha al aceptar. PENDIENTE si se quiere en el alta: columna en invitaciones + copiarla al crear el profesional en `camila_crear_tenant_en_signup`.
+- `tests/qa/equipo-ficha-smoke.cjs` cubre el alta con WhatsApp. Caché `…-alta-whatsapp-v1`; `mobile/www/` sincronizado. Única falla restante: «la deuda tipográfica…» (ya fallaba en main).
+
+## 2026-11-19 — Claude Code — WhatsApp del profesional también en invitaciones
+- Migración `20261119200000_smyl_invitation_professional_whatsapp.sql`: `smyl_staff_invitations.contact_phone` / `contact_phone_public` (CHECK igual que en `smyl_professionals`) y `camila_crear_tenant_en_signup()` los copia al perfil al aceptar (si el perfil ya existía, solo llena el WhatsApp vacío). La función se partió de la definición viva en producción (idéntica a 20261026250000). Probada en PGlite (copia, CHECK, idempotencia).
+- `invite-staff`: acepta `contact_phone`/`contact_phone_public` solo para profesionales, valida el formato y lo guarda en la invitación. Al redesplegarla se publica también el `_shared/auth.ts` actual del repo (producción tenía uno anterior, sin `auth-membership.ts`).
+- `smyl-clinic-admin.js?v=21` / `.css?v=17`: el campo WhatsApp se muestra siempre en «Agregar profesional» y viaja en la invitación. Prueba nueva `tests/invitation-professional-whatsapp.test.mjs`; humo `equipo-ficha-smoke.cjs` cubre invitación y cuenta existente.
+- **ORDEN DE PUBLICACIÓN:** 1) migración, 2) `invite-staff`, 3) frontend. Si se despliega la función sin la migración, las invitaciones con WhatsApp fallan al insertar.
