@@ -1,0 +1,68 @@
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');const http=require('node:http');
+const root=path.resolve(__dirname,'..'),out=path.resolve(root,'../output/inventory-procurement');fs.mkdirSync(out,{recursive:true});
+let playwright;try{playwright=require('playwright');}catch(e){playwright=require(path.join(process.env.SMYL_NODE_MODULES||path.join(require('node:os').homedir(),'.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules'),'playwright'));}
+test('inventario: gestión de catálogos, kits y compra consolidada en navegador', {timeout:120000},async t=>{
+  const server=http.createServer((req,res)=>{const file=path.resolve(root,'.'+decodeURIComponent(req.url.split('?')[0]));if(!file.startsWith(root+path.sep)){res.writeHead(403);return res.end();}try{const body=fs.readFileSync(file);res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript; charset=utf-8':file.endsWith('.css')?'text/css; charset=utf-8':'text/html; charset=utf-8');res.end(body);}catch{res.writeHead(404);res.end();}});
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>new Promise(r=>server.close(r)));
+  const browser=await playwright.chromium.launch({headless:true,channel:'chrome'});t.after(()=>browser.close());
+  const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
+  await page.context().addInitScript(()=>{window.print=()=>{window.__printRequested=true;};});
+  const url='http://127.0.0.1:'+server.address().port+'/tests/fixtures/smyl-inventory-procurement-preview.html';
+  await page.goto(url);await page.waitForFunction(()=>document.querySelector('[data-catalog-nav]'));
+  page.setDefaultTimeout(8000);t.after(async()=>{if(t.passed===false){try{fs.writeFileSync(path.join(out,'failure.txt'),(await page.locator('body').innerText())+'\n'+JSON.stringify(errors));await page.screenshot({path:path.join(out,'failure.png'),fullPage:true});}catch{}}});
+  const ids=await page.evaluate(()=>window.__inventoryIDs),dialog=page.locator('#inventory-dialog');
+  await page.getByRole('tab',{name:'Catálogo y configuración'}).click();
+  await page.getByRole('button',{name:'Almacenes',exact:true}).click();
+  await page.locator('[data-edit="'+ids.L+'"]').click();await dialog.getByLabel('Nombre del almacén').fill('Bodega Centro');
+  assert.equal(await dialog.locator('select[name=room] option').count(),2);
+  await dialog.getByRole('button',{name:'Guardar almacén',exact:true}).click();await dialog.waitFor({state:'hidden'});await page.waitForFunction(()=>document.querySelector('#p-inventario').getAttribute('aria-busy')==='false');
+  assert.match(await page.locator('[data-catalog-content]').innerText(),/Bodega Centro/);
+  await page.getByRole('button',{name:'Agregar almacén',exact:true}).click();await dialog.locator('[name=branch]').selectOption(ids.B2);await dialog.getByLabel('Nombre del almacén').fill('Gabinete de apoyo');
+  assert.match(await dialog.locator('select[name=room]').innerText(),/Gabinete Lomas/);
+  assert.doesNotMatch(await dialog.locator('select[name=room]').innerText(),/Gabinete 1/);
+  await dialog.getByRole('button',{name:'Guardar almacén',exact:true}).click();await dialog.waitFor({state:'hidden'});await page.waitForFunction(()=>document.querySelector('#p-inventario').getAttribute('aria-busy')==='false');
+  let locId=await page.evaluate(()=>window.__inventoryDB.smyl_inventory_locations.find(x=>x.name==='Gabinete de apoyo').id);
+  await page.locator('[data-edit="'+locId+'"]').click();await dialog.getByRole('button',{name:'Desactivar almacén'}).click();await dialog.waitFor({state:'hidden'});await page.waitForFunction(()=>document.querySelector('#p-inventario').getAttribute('aria-busy')==='false');
+  assert.equal(await page.locator('[data-edit="'+locId+'"]').count(),0);await page.getByLabel('Mostrar inactivos').check();assert.equal(await page.locator('[data-edit="'+locId+'"]').count(),1);
+  await page.locator('[data-edit="'+locId+'"]').click();await dialog.getByRole('button',{name:'Reactivar almacén'}).click();await dialog.waitFor({state:'hidden'});await page.waitForFunction(()=>document.querySelector('#p-inventario').getAttribute('aria-busy')==='false');
+  await page.screenshot({path:path.join(out,'almacenes-desktop.png'),fullPage:true});
+  await page.getByRole('button',{name:'Proveedores',exact:true}).click();await page.locator('[data-edit="'+ids.P+'"]').click();await dialog.getByLabel('Persona de contacto').fill('Atención a clínicas');await dialog.getByRole('button',{name:'Guardar proveedor'}).click();await dialog.waitFor({state:'hidden'});await page.waitForFunction(()=>document.querySelector('#p-inventario').getAttribute('aria-busy')==='false');
+  await page.locator('[data-templates="'+ids.P+'"]').click();await dialog.getByLabel('Mensaje de WhatsApp').fill('Hola {contacto}, pedido {folio}:\n{insumos}\nTotal {total}');await dialog.getByRole('button',{name:'Guardar plantillas'}).click();await dialog.waitFor({state:'hidden'});await page.waitForFunction(()=>document.querySelector('#p-inventario').getAttribute('aria-busy')==='false');
+  await page.locator('[data-supplier-items="'+ids.P+'"]').click();await dialog.locator('[name=unit_cost]').first().fill('2.5');await dialog.getByRole('button',{name:'Guardar catálogo'}).click();await dialog.waitFor({state:'hidden'});await page.waitForFunction(()=>document.querySelector('#p-inventario').getAttribute('aria-busy')==='false');
+  await page.getByRole('button',{name:'Insumos',exact:true}).click();await page.getByRole('button',{name:'Agregar insumo',exact:true}).click();await dialog.locator('[name=name]').fill('Vasos de enjuague');
+  await dialog.getByRole('button',{name:'Continuar'}).click();await dialog.getByLabel('Nombre de la presentación').fill('bolsa');await dialog.getByLabel('Unidades por presentación').fill('50');await dialog.locator('[name=packCost]').fill('100');
+  await dialog.getByRole('button',{name:'Continuar'}).click();await dialog.getByRole('button',{name:'Guardar insumo',exact:true}).click();await dialog.waitFor({state:'hidden'});await page.waitForFunction(()=>document.querySelector('#p-inventario').getAttribute('aria-busy')==='false');
+  const created=await page.evaluate(()=>window.__inventoryCalls.find(x=>x.rpc==='smyl_create_inventory_item').args);assert.equal(created.p_item.reference_cost,2);assert.match(created.p_item.sku,/^INS-/);assert.equal(created.p_item.track_lot,false);
+  await page.getByRole('button',{name:'Kits por tratamiento',exact:true}).click();await page.locator('[data-edit="'+ids.S+'"]').click();await dialog.getByRole('button',{name:'+ Agregar material',exact:true}).click();await dialog.locator('[data-row]').last().locator('select').selectOption(ids.I3);await dialog.locator('[data-row]').last().locator('input').fill('3');await dialog.getByRole('button',{name:'Guardar kit completo'}).click();await dialog.waitFor({state:'hidden'});await page.waitForFunction(()=>document.querySelector('#p-inventario').getAttribute('aria-busy')==='false');
+  assert.equal(await page.locator('.inventory-kit-card li').count(),3);await page.screenshot({path:path.join(out,'kits-desktop.png'),fullPage:true});
+  await page.getByRole('button',{name:'Nueva compra',exact:true}).click();await dialog.getByText('Compra consolidada',{exact:true}).click();
+  await dialog.getByRole('button',{name:'Agregar faltantes',exact:true}).click();assert.equal(await dialog.locator('[data-row]').count(),2);
+  const packed=dialog.locator('[data-row]').first();await packed.locator('[name=purchase_unit]').selectOption('pack');assert.equal(Number(await packed.locator('[name=quantity]').inputValue()),2.2);await packed.locator('[name=quantity]').fill('3');
+  await dialog.getByRole('button',{name:'+ Agregar insumo',exact:true}).click();let row=dialog.locator('[data-row]').last();await row.locator('[name=item_id]').selectOption(ids.I2);await row.locator('[name=destination_location_id]').selectOption(ids.L);await row.locator('[name=quantity]').fill('2');
+  await dialog.locator('.smyl-dialog-body').evaluate(e=>e.scrollTop=0);await page.screenshot({path:path.join(out,'compra-consolidada-desktop.png'),fullPage:true});
+  await dialog.getByRole('button',{name:'Guardar borrador',exact:true}).click();await page.waitForFunction(()=>document.querySelector('[data-edit]')&&document.querySelector('#inventory-dialog')?.textContent.includes('Pedidos por proveedor'));
+  let batch=await page.evaluate(()=>window.__inventoryDB.smyl_purchase_batches[0]);assert.equal(batch.mode,'consolidated');assert.equal(batch.lines.length,3);assert.equal(new Set(batch.lines.map(l=>l.destination_location_id)).size,2);
+  assert.equal(batch.lines[0].quantity,300);assert.equal(batch.lines[0].package_quantity,100);
+  await dialog.getByRole('button',{name:'Editar y emitir'}).click();await dialog.getByRole('button',{name:'Emitir órdenes de compra',exact:true}).click();await page.waitForFunction(()=>window.__inventoryDB.smyl_purchase_orders.length===3);await page.waitForFunction(()=>document.querySelector('#inventory-dialog')?.textContent.includes('Registrar recepción'));
+  await page.screenshot({path:path.join(out,'resumen-compra-desktop.png'),fullPage:true});
+  assert.ok(await dialog.locator('.inventory-document-table').evaluate(x=>x.scrollHeight<=x.clientHeight+1),'tabla completa sin recorte vertical');assert.ok(await dialog.locator('.inventory-supplier-order').evaluateAll(rows=>rows.every(x=>x.scrollHeight<=x.clientHeight+1)),'recepciones sin recorte');
+  const popupPromise=page.waitForEvent('popup');await dialog.locator('[data-print="'+ids.P+'"]').click();const popup=await popupPromise;await popup.waitForLoadState();const printed=await popup.locator('body').innerText();assert.match(printed,/Orden de compra/);assert.match(printed,/3 caja de 100 pieza/);assert.doesNotMatch(printed,/Resina compuesta/);assert.ok(await popup.evaluate(()=>window.__printRequested));await popup.close();
+  await dialog.locator('[data-message="'+ids.P+'"]').click();let text=await dialog.locator('[name=message]').inputValue();assert.match(text,/Atención a clínicas/);assert.match(text,/Guantes/);assert.doesNotMatch(text,/Resina compuesta/);assert.match(text,/Clínica Centro/);assert.match(text,/Clínica Lomas/);
+  assert.match(text,/3 caja de 100 pieza/);
+  await dialog.getByRole('button',{name:'Correo',exact:true}).click();assert.match(await dialog.locator('[data-open]').getAttribute('href'),/^mailto:pedidos%40example.test/);
+  await dialog.locator('[name=message]').fill('Texto revisado');assert.match(decodeURIComponent(await dialog.locator('[data-open]').getAttribute('href')),/Texto revisado/);
+  await dialog.getByRole('button',{name:'Cerrar',exact:true}).click();
+  await page.locator('[data-batch="'+batch.id+'"]').click();let orderId=await page.evaluate(ids=>window.__inventoryDB.smyl_purchase_orders.find(o=>o.destination_location_id===ids.L2&&o.supplier_id===ids.P).id,ids);await dialog.locator('[data-receive="'+orderId+'"]').click();await dialog.locator('input[type=number]').fill('10');await dialog.getByRole('button',{name:'Confirmar recepción',exact:true}).click();await dialog.waitFor({state:'hidden'});await page.waitForFunction(()=>document.querySelector('#p-inventario').getAttribute('aria-busy')==='false');assert.match(await page.locator('[data-batch="'+batch.id+'"]').locator('..').innerText(),/Recepción parcial/i);
+  for(const [name,width,height] of [['tablet',834,1112],['mobile',390,844]]){
+    await page.setViewportSize({width,height});await page.getByRole('tab',{name:'Catálogo y configuración'}).click();await page.getByRole('button',{name:'Proveedores',exact:true}).click();
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'catálogo sin desborde '+name);
+    await page.screenshot({path:path.join(out,'proveedores-'+name+'.png'),fullPage:true});
+    await page.getByRole('button',{name:'Nueva compra',exact:true}).click();await dialog.getByText('Compra consolidada',{exact:true}).click();await dialog.getByRole('button',{name:'Agregar faltantes',exact:true}).click();
+    await dialog.getByRole('button',{name:'+ Agregar insumo',exact:true}).click();const smallRow=dialog.locator('[data-row]').last();await smallRow.locator('[name=item_id]').selectOption(ids.I);await smallRow.locator('[name=destination_location_id]').selectOption(ids.L);await smallRow.locator('[name=quantity]').fill('100');await dialog.locator('.smyl-dialog-body').evaluate(e=>e.scrollTop=0);
+    assert.ok(await dialog.evaluate(d=>d.scrollWidth<=d.clientWidth+1),'diálogo sin desborde '+name);
+    await page.screenshot({path:path.join(out,'compra-'+name+'.png')});await smallRow.scrollIntoViewIfNeeded();await page.screenshot({path:path.join(out,'compra-'+name+'-insumos.png')});
+    if(name==='mobile'){await page.evaluate(()=>window.__inventoryFail='smyl_save_purchase_batch');await dialog.getByRole('button',{name:'Guardar borrador',exact:true}).click();await dialog.locator('[data-error]:not([hidden])').waitFor();assert.match(await dialog.locator('[data-error]').innerText(),/no se guardaron/);assert.equal(await smallRow.locator('[name=quantity]').inputValue(),'100');await page.evaluate(()=>window.__inventoryFail=null);}
+    await dialog.getByRole('button',{name:'Cancelar',exact:true}).click();
+  }
+  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'browser-result.json'),JSON.stringify({ok:true,errors,viewports:[1440,834,390],batch},null,2));
+});
