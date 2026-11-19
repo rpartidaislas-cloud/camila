@@ -18,6 +18,7 @@ async function openPatient(page, mode) {
   if (await panel.getAttribute('aria-hidden') === 'true') await page.locator('[data-inbox-context]').click();
   const toggle = panel.locator('[data-f360-section="careHistory"]');
   await toggle.waitFor();
+  assert.match(await toggle.innerText(), /Historial de visitas/);
   return {panel, toggle, history:panel.locator('[data-section="f360-careHistory"]')};
 }
 for (const [width,height] of [[1512,982],[1024,860],[390,844]]) {
@@ -53,7 +54,7 @@ for (const [width,height] of [[1512,982],[1024,860],[390,844]]) {
 test('Ficha 360: diferencia sin registros, datos parciales y error', async(t)=>{
   if (!browser) return t.skip(skipReason);
   const page = await browser.newPage({viewport:{width:1512,height:982}}); t.after(()=>page.close());
-  for (const [mode,expected] of [['empty','No hay atenciones realizadas registradas'],['error','No se pudo consultar el historial'],['missing','Sucursal no disponible']]) {
+  for (const [mode,expected] of [['empty','No hay visitas completadas visibles.'],['error','No se pudo consultar el historial'],['missing','Sucursal no disponible']]) {
     const {toggle,history}=await openPatient(page,mode); await toggle.click();
     await history.locator('.smyl-f360-section-body').getByText(expected,{exact:false}).first().waitFor();
     if(mode==='missing') assert.match(await history.innerText(), /Profesional no registrado[\s\S]*Fecha no registrada/);

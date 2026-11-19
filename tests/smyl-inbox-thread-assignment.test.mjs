@@ -90,12 +90,13 @@ for (const width of [1440, 1024, 390]) {
   });
 }
 
-test('La barra superior sólo cambia la vista; en Filtros se conservan avisos y operación', async t => {
+for (const width of [1440, 820, 390]) test('Filtros sólo contiene estado y canal, con teclado y sin perder la operación global a '+width+' px', async t => {
   if (!browser) return t.skip('Se necesita Chromium.');
-  const page = await browser.newPage({viewport:{width:1440,height:900}});
+  const page = await browser.newPage({viewport:{width,height:900}, hasTouch:width<900});
   t.after(() => page.close());
   await page.goto(fixture.href);
   await page.waitForSelector('html[data-preview-ready=true]');
+  if (width<800) await page.locator('[data-inbox-back]').click();
   const top = page.locator('.smyl-inbox-top');
   assert.equal(await top.getByRole('tab').count(),2);
   assert.equal(await top.locator('[data-inbox-notify], [data-inbox-operations], [data-inbox-live]').count(),0);
@@ -107,8 +108,26 @@ test('La barra superior sólo cambia la vista; en Filtros se conservan avisos y 
   await filters.press('Enter');
   const panel = page.locator('[data-inbox-filter-panel]');
   await panel.waitFor();
-  assert.equal(await panel.locator('[data-inbox-notify]').isVisible(),true);
-  await panel.locator('[data-inbox-operations]').click();
+  assert.equal(await page.locator('[data-inbox-notify],[data-inbox-operations],[data-inbox-bulk],[data-inbox-refresh]').count(),0);
+  const paused=panel.locator('[data-inbox-filter="paused"]'), channel=panel.getByRole('combobox');
+  assert.equal(await panel.getByRole('button').count(),3);
+  assert.equal(await channel.inputValue(),'');
+  assert.equal(await panel.evaluate(el=>el.contains(document.activeElement)),true);
+  await paused.click();
+  assert.equal(await paused.getAttribute('aria-pressed'),'true');
+  await channel.selectOption('instagram');
+  await paused.click();
+  assert.equal(await paused.getAttribute('aria-pressed'),'false');
+  assert.equal(await channel.inputValue(),'instagram');
+  assert.equal(await filters.getAttribute('data-active'),'true');
+  await channel.selectOption('');
+  assert.equal(await filters.getAttribute('data-active'),'false');
+  const box=await panel.boundingBox(); assert.ok(box.x>=0 && box.x+box.width<=width+1);
+  if(process.env.SMYL_QA_SHOTS) await panel.screenshot({path:process.env.SMYL_QA_SHOTS+'/inbox-filtros-'+width+'.png'});
+  await channel.press('Escape');
+  assert.equal(await panel.isVisible(),false);
+  assert.equal(await filters.evaluate(el=>el===document.activeElement),true);
+  await page.evaluate(()=>window.SmylInbox.openOperations());
   await page.locator('[data-operations-dialog][open]').waitFor();
   await page.locator('[data-operations-close]').click();
 });
@@ -179,10 +198,6 @@ test('El selector consulta cada chat y sede, descarta respuestas fuera de orden 
   await assign.locator('option[value=sur]').waitFor({state:'attached'});
   assert.deepEqual(await members(), ['', 'shared', 'sur']);
 
-  await page.locator('[data-inbox-bulk]').evaluate(button => button.click());
-  for (const id of ['c-preview','c-second']) await page.locator('[data-conversation-id="'+id+'"].smyl-inbox-row').click();
-  const bulk = page.getByRole('combobox', {name:'Responsable para seleccionadas'});
-  assert.deepEqual(await bulk.locator('option').evaluateAll(options => options.map(option => option.value)), ['', 'shared']);
   assert.deepEqual(await page.evaluate(() => window.rosterRequests), ['c-preview/norte','c-second/centro','c-second/sur','c-second/sur']);
 });
 

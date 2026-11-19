@@ -16,6 +16,11 @@
 - **Consultorios**: sin bucle de recarga si el almacenamiento del navegador está bloqueado.
 - **Privacidad** (3 copias): fila de OpenPay lista los datos que viajan (nombre, correo, teléfono, concepto, monto y huella del dispositivo); fila de conservación para las copias de propuestas; fecha corregida al 19 de noviembre de 2026.
 - **Pendiente / no tocado**: SRI en los scripts de OpenPay (requiere descargar y fijar el hash); `script-src 'unsafe-inline'`; reconciliar 17 migraciones aplicadas sin registrar y `appointment-reminders` (verify_jwt distinto entre producción y `config.toml`); `smyl_proposal_followups` ausente en producción; qué aviso de privacidad ve el paciente (SMYL o el de la clínica) y quién recaba el consentimiento: decide el abogado.
+## 2026-11-19 — Filtros, etapa del chat e historial de visitas
+
+- Conversaciones: el panel Filtros queda dedicado a estado y canal. La tarjeta del contacto permite consultar su etapa y cambiarla con los permisos del Pipeline. El cambio manual no registra una llegada ni modifica la cita en Agenda.
+- Ficha 360: «Historial de visitas» conserva el mismo origen (citas completadas visibles), las sucursales, los profesionales y las fechas. En la cabecera se conserva la nota privada de relevo mediante un icono sin rótulo.
+- Recursos web y copias móviles: Inbox JS 78 / CSS 67 y registro PWA `inbox-thread-ux-4`. Sin migraciones ni cambios de backend.
 
 ## 2026-11-20 — Claude Code — Aviso de privacidad: propuestas compartidas por enlace (PROVISIONAL)
 
@@ -28,6 +33,7 @@
 - `smyl-proposal-share` ya NO escribe en `smyl_proposal_followups`: esa tabla es el seguimiento que hace el EQUIPO (sugiere el siguiente a los 3/7/15 días); que el paciente pulse «Me interesa» no debe contar como seguimiento del equipo.
 - **Hallazgo aparte**: en producción (proyecto SMYL) falta la tabla `smyl_proposal_followups` y la función `smyl_log_proposal_followup` (migración `20261114130000`, no registrada). El seguimiento 3/7/15 días del tablero no funciona ahí hasta aplicarla; la lista ya tolera su ausencia. Aplicarla es independiente de esta tarea.
 - Pruebas: `tests/smyl-proposal-share.test.mjs` (12); suite completa sin fallas nuevas frente a `main`.
+
 ## 2026-11-19 — Ficha y Archivos en Mensajes
 
 - La X cierra únicamente la ficha del paciente, en el panel lateral y en el móvil. Conserva el borrador del chat y el acceso por teclado.
