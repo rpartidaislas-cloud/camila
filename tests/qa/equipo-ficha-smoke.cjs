@@ -343,10 +343,21 @@ server.listen(0, '127.0.0.1', async () => {
     const { ctx, page, errs } = await open(b, 'admin');
     await team(page);
     await page.click('#clinic-admin-add-professional'); await page.waitForTimeout(300);
-    const inicial = await page.evaluate(() => ({ titulo: document.querySelector('#clinic-admin-create-professional h2').textContent, campo: document.getElementById('ca-prof-whatsapp').hidden, nota: document.getElementById('ca-prof-whatsapp-later').hidden }));
+    const inicial = await page.evaluate(() => ({ titulo: document.querySelector('#clinic-admin-create-professional h2').textContent, campo: !document.getElementById('ca-prof-whatsapp').hidden }));
     console.log('11) alta:', JSON.stringify(inicial));
     check(inicial.titulo === 'Agregar profesional', 'el diálogo debe llamarse «Agregar profesional»');
-    check(inicial.campo && !inicial.nota, 'con correo nuevo (invitación) el WhatsApp se captura después en la ficha');
+    check(inicial.campo, 'el WhatsApp del profesional se pide desde el alta');
+    // Correo nuevo: el WhatsApp viaja en la invitación (invite-staff lo guarda y se copia al aceptar).
+    let enviado = null;
+    await page.route('**/functions/v1/invite-staff', r => { enviado = JSON.parse(r.request().postData() || '{}'); r.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }); });
+    await page.evaluate(() => { window.sb.auth.getSession = async () => ({ data: { session: { access_token: 't' } } }); });
+    await page.fill('#ca-prof-email', 'nueva@clinica.mx'); await page.dispatchEvent('#ca-prof-email', 'input');
+    await page.fill('#ca-prof-name', 'Dra. Nueva Prueba'); await page.selectOption('#ca-prof-branch', 'b1');
+    await page.fill('#ca-prof-contact', '33 4444 1111'); await page.check('#ca-prof-whatsapp input[name="contact_phone_public"]');
+    await page.click('#clinic-admin-create-professional [data-ca-submit]'); await page.waitForTimeout(1200);
+    console.log('11a) invitación:', JSON.stringify(enviado && { n: enviado.contact_phone, p: enviado.contact_phone_public }));
+    check(enviado && enviado.contact_phone === '33 4444 1111' && enviado.contact_phone_public === true, 'la invitación debe enviar el WhatsApp del profesional');
+    await page.click('#clinic-admin-add-professional'); await page.waitForTimeout(300);
     await page.fill('#ca-prof-email', 'circulo@clinica.mx'); await page.dispatchEvent('#ca-prof-email', 'input'); await page.waitForTimeout(150);
     check(await page.isVisible('#ca-prof-contact'), 'con cuenta existente debe pedir el WhatsApp del profesional');
     await page.fill('#ca-prof-contact', '33 5555 0000'); await page.check('#ca-prof-whatsapp input[name="contact_phone_public"]');
