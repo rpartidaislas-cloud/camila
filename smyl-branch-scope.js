@@ -150,7 +150,8 @@
     render();
     // Primera vez con varios consultorios (o lo guardado ya no es válido): se recarga una vez para que todo salga filtrado.
     // Ya quedó guardado lo elegido, así que no hay ciclo.
-    if (multi && saved !== next && root.location && typeof root.location.reload === 'function') root.location.reload();
+    // Solo si la elección se pudo guardar y releer: con el almacenamiento bloqueado (modo privado, algunos WebView) recargar daría un bucle.
+    if (multi && saved !== next && readSaved(state.tenant) === next && root.location && typeof root.location.reload === 'function') root.location.reload();
   }
 
   // Se llama justo después de resolver la clínica de la sesión. La parte síncrona deja el filtro listo con lo guardado.

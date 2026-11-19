@@ -2,10 +2,11 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<script>if (window.top !== window.self) { try { window.top.location = window.self.location; } catch (e) {} document.documentElement.style.display = "none"; }</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://rpxshsiwoxdbuevjjpfw.supabase.co; connect-src https://rpxshsiwoxdbuevjjpfw.supabase.co; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://rpxshsiwoxdbuevjjpfw.supabase.co; connect-src https://rpxshsiwoxdbuevjjpfw.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Tu propuesta · SMYL</title>
 <link rel="icon" href="icons/smyl_pwa.png">
 <link rel="stylesheet" href="smyl-ui-template-v3.css">
@@ -57,10 +58,12 @@ main{max-width:760px;margin:0 auto;padding:18px 14px 56px}
   function msg(text, tone) { return el('div', 'pp-msg ' + (tone || 'info'), text); }
   function post(body) {
     body.token = token;
-    return fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; }); });
+    var ctrl = new AbortController(), timer = setTimeout(function () { ctrl.abort(); }, 20000);
+    return fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctrl.signal })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; }); })
+      .then(function (d) { clearTimeout(timer); return d; }, function (e) { clearTimeout(timer); throw e; });
   }
-  function fail(title, text) { paper.textContent = ''; extra.textContent = ''; var c = el('section', 'pp-card'); c.append(el('h2', '', title), msg(text, 'err')); paper.append(c); }
+  function fail(title, text) { paper.textContent = ''; extra.textContent = ''; var c = el('section', 'pp-card'); var m = msg(text, 'err'); m.setAttribute('role', 'alert'); c.append(el('h1', '', title), m); paper.append(c); }
 
   function textCard(title, text) { var c = el('section', 'pp-card'); c.append(el('h2', '', title), el('p', 'pp-text', text)); return c; }
 
@@ -89,8 +92,8 @@ main{max-width:760px;margin:0 auto;padding:18px 14px 56px}
       accept.disabled = true;
       post({ action: 'accept', consent: true, consent_version: v.consent_version }).then(function (d) {
         if (d.ok) { v.accepted_at = d.accepted_at; extra.replaceChildren.apply(extra, build(v)); }
-        else { accept.disabled = false; status.append(msg(d.error || 'No se pudo registrar. Inténtalo de nuevo.', 'err')); }
-      }).catch(function () { accept.disabled = false; status.append(msg('Sin conexión. Inténtalo de nuevo.', 'err')); });
+        else { accept.disabled = !box.checked; status.append(msg(d.error || 'No se pudo registrar. Inténtalo de nuevo.', 'err')); }
+      }).catch(function () { accept.disabled = !box.checked; status.append(msg('Sin conexión. Inténtalo de nuevo.', 'err')); });
     };
     c.append(status, interest, label, accept);
     return c;
@@ -105,9 +108,12 @@ main{max-width:760px;margin:0 auto;padding:18px 14px 56px}
   }
 
   function init() {
+    paper.append(msg('Cargando tu propuesta…', 'info'));
     if (!/^[a-f0-9]{64}$/.test(token)) return fail('Enlace no válido', 'Abre el enlace completo que te envió tu clínica.');
     post({ action: 'view' }).then(function (v) {
+      paper.textContent = '';
       if (v._status === 404) return fail('Enlace no disponible', 'Este enlace no existe o ya no está disponible.');
+      if (v._status !== 200 && v._status !== 410) return fail('Servicio ocupado', 'No pudimos cargar tu propuesta en este momento. Inténtalo de nuevo en unos minutos.');
       if (v._status === 410 || (v.status && v.status !== 'active' && v.status !== 'accepted')) return fail(v.status === 'revoked' ? 'Enlace cancelado' : 'Enlace vencido', v.error || 'Pide un enlace nuevo a tu clínica.');
       try {
         paper.append(SmylProposalPrint.render(v.row, v.assets, true, { hideMap: !(v.sections && v.sections.odontogram) }));

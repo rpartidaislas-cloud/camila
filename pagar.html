@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<script>if (window.top !== window.self) { try { window.top.location = window.self.location; } catch (e) {} document.documentElement.style.display = "none"; }</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="no-referrer">
@@ -52,7 +53,7 @@ input:focus{outline:2px solid #93C5FD;border-color:var(--blue)}
   <div class="brand"><img src="icons/smyl_pwa.png" alt="" width="24" height="24"><span>Pago seguro</span></div>
   <section class="card" id="card" aria-live="polite"><p class="sub">Cargando…</p></section>
   <script>document.addEventListener("DOMContentLoaded",function(){var c=document.getElementById("card");if(window.SmylSkeleton&&c&&c.children.length===1&&c.firstElementChild.className==="sub")c.replaceChildren(window.SmylSkeleton.node("form",{fields:3,label:"Cargando el cobro"}));});</script>
-  <p class="fine">El pago lo procesa OpenPay. Ni SMYL ni tu clínica guardan los datos de tu tarjeta.</p>
+  <p class="fine">El pago lo procesa OpenPay. Ni SMYL, ni LANA ni tu clínica guardan los datos de tu tarjeta. · <a href="privacidad.html">Aviso de privacidad</a></p>
 </main>
 <script src="https://resources.openpay.mx/lib/openpay-js/1.2.38/openpay.v1.min.js"></script>
 <script src="https://resources.openpay.mx/lib/openpay-data-js/1.2.38/openpay-data.v1.min.js"></script>
@@ -82,8 +83,10 @@ input:focus{outline:2px solid #93C5FD;border-color:var(--blue)}
   function dateTime(v) { try { return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v)); } catch (e) { return ''; } }
   function clear() { card.textContent = ''; }
   function post(url, body) {
-    return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; }); });
+    var ctrl = new AbortController(), timer = setTimeout(function () { ctrl.abort(); }, 20000);
+    return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctrl.signal })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; }); })
+      .then(function (d) { clearTimeout(timer); return d; }, function (e) { clearTimeout(timer); throw e; });
   }
 
   function head(v) {
@@ -184,7 +187,7 @@ input:focus{outline:2px solid #93C5FD;border-color:var(--blue)}
       if (!ds) return fail('No se pudo validar tu dispositivo. Recarga la página e inténtalo de nuevo.');
       OpenPay.token.extractFormAndCreate('pay-form', function (res) {
         post(LANA_PAY, { accion: 'tarjeta', token: token, token_id: res.data.id, device_session_id: ds }).then(function (d) {
-          if (d.status === '3ds' && d.redirect_url) { location.href = d.redirect_url; return; }
+          if (d.status === '3ds' && /^https:\/\//.test(String(d.redirect_url || ''))) { location.href = d.redirect_url; return; }
           if (d.status === 'pagada') { return post(SMYL_PAY, { action: 'view', token: token }).then(function (v) { v.status === 'paid' ? showPaid(v) : waiting(); }); }
           fail(d.error || 'No se pudo completar el pago. Revisa los datos de tu tarjeta.');
         }).catch(function () { fail('No pudimos conectar. Revisa tu conexión e inténtalo de nuevo.'); });
@@ -233,6 +236,7 @@ input:focus{outline:2px solid #93C5FD;border-color:var(--blue)}
     if (!/^[a-f0-9]{64}$/.test(token)) return showMessage('Enlace no válido', 'Abre el enlace completo que te envió tu clínica.', 'err');
     post(SMYL_PAY, { action: 'view', token: token }).then(function (v) {
       if (v._status === 404) return showMessage('Enlace no disponible', 'Este enlace no existe o ya no está disponible. Pide uno nuevo a tu clínica.', 'err');
+      if (v._status !== 200) return showMessage('Servicio ocupado', 'No pudimos cargar tu recibo en este momento. Inténtalo de nuevo en unos minutos.', 'err');
       view = v;
       if (v.status === 'paid') return showPaid(v);
       if (v.status === 'expired') return showMessage('Enlace vencido', 'Este enlace de pago venció. Pide uno nuevo a tu clínica.', 'err');

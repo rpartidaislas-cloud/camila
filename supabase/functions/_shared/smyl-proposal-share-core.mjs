@@ -4,10 +4,13 @@ export const VIGENCIA_DIAS_MAX = 30;
 export const HISTORIAL_MAX = 1200;
 export const PAGO_NOTA_MAX = 500;
 export const INTERES_NOTA_MAX = 300;
-export const CONSENT_VERSION = "v1";
+export const CONSENT_VERSION = "v2";
 // Texto exacto que el paciente acepta; su hash queda guardado junto con la fecha.
 export const CONSENT_TEXT =
-  "Acepto este plan de tratamiento como punto de partida para agendar mi valoración, y autorizo a la clínica a usar mis fotografías y simulaciones de esta propuesta para atenderme. Entiendo que la simulación es orientativa y no garantiza resultados.";
+  "Acepto este plan de tratamiento como punto de partida para agendar mi valoración con la clínica que me lo envió. " +
+  "Autorizo que la clínica use los datos de salud, fotografías y simulaciones incluidos en esta propuesta para atenderme. " +
+  "Conozco el aviso de privacidad, que explica cómo ejercer mis derechos ARCO y revocar este consentimiento, y entiendo que esto no autoriza publicar mis imágenes. " +
+  "La simulación es orientativa y no garantiza resultados.";
 
 const limpio = (v, max) => (typeof v === "string" ? v.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max) : "");
 
@@ -31,6 +34,8 @@ export function normalizarComparticion(body) {
 export function construirSnapshot(propuesta, { secciones, sede = null, nombrePaciente = "" } = {}) {
   const doc = JSON.parse(JSON.stringify(propuesta.document || {}));
   if (!secciones.photos) doc.photos = null;
+  // Sin la casilla de odontograma no viajan las piezas ni las superficies (el mapa no se dibuja y el paciente no las recibe).
+  if (!secciones.odontogram && Array.isArray(doc.items)) doc.items.forEach((i) => { i.teeth = []; i.surfaces = []; });
   const primerNombre = String(nombrePaciente || propuesta.patient_name || "").trim().split(/\s+/)[0] || "";
   return {
     id: propuesta.id,
