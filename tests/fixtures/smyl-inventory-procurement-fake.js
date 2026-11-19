@@ -12,9 +12,9 @@
     smyl_services:[stamp({id:S,name:'Restauración con resina',reference_price:1200})],
     smyl_service_materials:[{tenant_id:T,service_id:S,item_id:I,expected_quantity:2},{tenant_id:T,service_id:S,item_id:I2,expected_quantity:0.25}],
     smyl_inventory_reorder_levels:[{tenant_id:T,location_id:L,item_id:I,minimum_quantity:100,target_quantity:300},{tenant_id:T,location_id:L2,item_id:I,minimum_quantity:100,target_quantity:200}],
-    smyl_purchase_batches:[],smyl_purchase_orders:[],smyl_purchase_order_lines:[],smyl_inventory_movements:[],smyl_inventory_movement_lines:[],smyl_role_permissions:[],smyl_member_roles:[],smyl_appointments:[],smyl_professionals:[],camila_pacientes:[]
+    smyl_supply_requests:[],smyl_supply_request_lines:[],smyl_supply_purchase_allocations:[],smyl_supply_deliveries:[],smyl_purchase_batches:[],smyl_purchase_orders:[],smyl_purchase_order_lines:[],smyl_inventory_movements:[],smyl_inventory_movement_lines:[],smyl_role_permissions:[],smyl_member_roles:[],smyl_appointments:[],smyl_professionals:[],camila_pacientes:[]
   };
-  window.__inventoryDB=db;window.__inventoryCalls=[];window.__inventoryIDs={T,B,B2,L,L2,P,P2,I,I2,I3,S};
+  window.__inventoryPolicy={configured:false,mode:null,central_location_id:null,revision:0,can_admin:true,can_central:true,can_request:true,can_receive:true,can_buy:false};window.__inventoryDB=db;window.__inventoryCalls=[];window.__inventoryIDs={T,B,B2,L,L2,P,P2,I,I2,I3,S};
   function builder(table){let filters=[],single=false,verb='select',data,range=null,sort=[];let api={
     select(){return api;},eq(k,v){filters.push(r=>r[k]===v);return api;},in(k,v){filters.push(r=>v.includes(r[k]));return api;},order(k,opts={}){sort.push([k,opts.ascending!==false]);return api;},limit(n){range=[0,n-1];return api;},range(a,b){range=[a,b];return api;},single(){single=true;return api;},maybeSingle(){single=true;return api;},insert(x){verb='insert';data=x;return api;},update(x){verb='update';data=x;return api;},upsert(x){verb='upsert';data=x;return api;},
     then(resolve,reject){return Promise.resolve().then(()=>{let rows=(db[table]||[]).filter(r=>filters.every(f=>f(r)));
@@ -26,7 +26,29 @@
   };return api;}
   function snapshot(){return [{item_id:I,location_id:L,item_name:'Guantes de nitrilo medianos',sku:'GUA-M',category:'material',unit:'pieza',location_name:'Clínica Centro · Almacén principal',on_hand:80,minimum_quantity:100,below_minimum:true},{item_id:I,location_id:L2,item_name:'Guantes de nitrilo medianos',sku:'GUA-M',category:'material',unit:'pieza',location_name:'Clínica Lomas · Almacén principal',on_hand:30,minimum_quantity:100,below_minimum:true}];}
   async function rpc(name,p){window.__inventoryCalls.push({rpc:name,args:structuredClone(p)});if(window.__inventoryFail===name)return {error:{message:'Error de prueba: no se guardaron cambios.'},data:null};let data=[];
-    if(name==='smyl_my_branches')data=db.smyl_branches.map(b=>({branch_id:b.id,name:b.name,can_all:true}));
+    if(name==='smyl_my_branches')data=db.smyl_branches.filter(b=>!window.__onlyBranch||b.id===window.__onlyBranch).map(b=>({branch_id:b.id,name:b.name,can_all:true}));
+    if(name==='smyl_inventory_purchasing_context')data=window.__inventoryPolicy;
+    if(name==='smyl_save_purchasing_settings')Object.assign(window.__inventoryPolicy,{configured:true,mode:p.p_mode,central_location_id:p.p_central_location_id,revision:window.__inventoryPolicy.revision+1,can_buy:true});
+    if(name==='smyl_save_supply_request'){
+      let old=db.smyl_supply_requests.find(r=>r.id===p.p_id),location=db.smyl_inventory_locations.find(l=>l.id===p.p_document.destination_location_id);
+      db.smyl_supply_requests=db.smyl_supply_requests.filter(r=>r.id!==p.p_id).concat(stamp({...p.p_document,id:p.p_id,reference:'SOL-'+p.p_id.slice(0,8),branch_id:location.branch_id,central_location_id:window.__inventoryPolicy.central_location_id,status:p.p_submit?'submitted':'draft',revision:(old?.revision||0)+1}));
+      db.smyl_supply_request_lines=db.smyl_supply_request_lines.filter(l=>l.request_id!==p.p_id).concat(p.p_document.lines.map(l=>stamp({id:crypto.randomUUID(),request_id:p.p_id,item_id:l.item_id,requested_quantity:l.quantity,approved_quantity:null,delivered_quantity:0})));data=p.p_id;
+    }
+    if(name==='smyl_review_supply_request'){
+      p.p_lines.forEach(l=>db.smyl_supply_request_lines.find(x=>x.id===l.line_id).approved_quantity=l.quantity);
+      Object.assign(db.smyl_supply_requests.find(r=>r.id===p.p_id),{status:p.p_lines.some(l=>l.quantity>0)?'approved':'rejected',revision:2,review_note:p.p_note});
+    }
+    if(name==='smyl_prepare_supply_purchase'){
+      const grouped=new Map();db.smyl_supply_request_lines.filter(l=>p.p_request_ids.includes(l.request_id)).forEach(l=>grouped.set(l.item_id,(grouped.get(l.item_id)||0)+Number(l.approved_quantity)-Number(l.delivered_quantity)));
+      db.smyl_purchase_batches.push(stamp({id:p.p_id,reference:'OC-CENTRAL-'+p.p_id.slice(0,8),mode:'consolidated',status:'draft',revision:1,lines:[...grouped].map(([item_id,quantity])=>{let item=db.smyl_inventory_items.find(i=>i.id===item_id);return {item_id,quantity,unit_cost:item.reference_cost,supplier_id:item.preferred_supplier_id,destination_location_id:window.__inventoryPolicy.central_location_id,purchase_unit:'unit'};})}));data=p.p_id;
+    }
+    if(name==='smyl_deliver_supply_request'){
+      p.p_lines.forEach(l=>db.smyl_supply_request_lines.find(x=>x.id===l.line_id).delivered_quantity+=l.quantity);
+      db.smyl_supply_deliveries.push(stamp({id:p.p_id,request_id:p.p_request_id,lines:p.p_lines.map(l=>({...l,item_id:db.smyl_supply_request_lines.find(x=>x.id===l.line_id).item_id}))}));
+      Object.assign(db.smyl_supply_requests.find(r=>r.id===p.p_request_id),{status:'delivered',revision:3});data=p.p_id;
+    }
+    if(name==='smyl_confirm_supply_delivery'){let delivery=db.smyl_supply_deliveries.find(d=>d.id===p.p_id);delivery.confirmed_at=now;db.smyl_supply_requests.find(r=>r.id===delivery.request_id).status='fulfilled';}
+    if(name==='smyl_cancel_supply_request')db.smyl_supply_requests.find(r=>r.id===p.p_id).status='cancelled';
     if(name==='smyl_inventory_snapshot')data=snapshot();
     if(name==='smyl_save_supplier_catalog'){db.smyl_supplier_items=db.smyl_supplier_items.filter(x=>x.supplier_id!==p.p_supplier_id).concat(p.p_items.map(x=>({...x,supplier_id:p.p_supplier_id,tenant_id:T})));}
     if(name==='smyl_save_treatment_kit'){db.smyl_service_materials=db.smyl_service_materials.filter(x=>x.service_id!==p.p_service_id).concat(p.p_lines.map(x=>({...x,service_id:p.p_service_id,tenant_id:T})));}

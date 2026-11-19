@@ -14,6 +14,7 @@
     { id: 'clinica', title: 'Clínica', blurb: 'Identidad, sedes y experiencia del paciente.', icon: 'clinic', items: [
       { title: 'Datos del consultorio', desc: 'Nombre, doctor titular y ciudad con los que se identifica tu consultorio.', group: 'Identidad', icon: 'clinic', action: 'Editar', route: 'mi-consultorio', ownerOnly: true },
       { title: 'Sucursales y espacios', desc: 'Direcciones, consultorios y horarios por sede.', group: 'Operación', icon: 'location', action: 'Administrar', route: 'clinica', embed: true, target: '[data-ca-tab="operacion"]', check: 'hours' },
+      { title: 'Modalidad de compras', desc: 'Elige si las sucursales compran a proveedores o solicitan insumos al centro.', group: 'Operación', icon: 'inventory', action: 'Configurar', route: 'inventario', target: '#inventory-purchasing-settings' },
       { title: 'Marca y experiencia', desc: 'Nombre, colores y mensajes que ven tus pacientes.', group: 'Presencia', icon: 'sparkles', action: 'Personalizar', route: 'sim-config' },
       { title: 'Directorio profesional', desc: 'Perfil público para recibir solicitudes de cita.', group: 'Presencia', icon: 'profile', action: 'Editar perfil', route: 'directorio' }
     ] },

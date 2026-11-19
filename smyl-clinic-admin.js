@@ -22,7 +22,7 @@
     'finance.cash': 'Abrir y operar su caja', 'finance.cash.supervise': 'Supervisar cajas del equipo',
     'finance.invoice': 'Preparar facturas', 'finance.refund': 'Reembolsar y cancelar cargos',
     'inventory.read': 'Consultar inventario', 'inventory.manage': 'Gestionar inventario',
-    'inventory.consume': 'Registrar consumo', 'inventory.adjust': 'Ajustar inventario', 'inventory.purchase': 'Comprar y recibir',
+    'inventory.consume': 'Registrar consumo', 'inventory.adjust': 'Ajustar inventario', 'inventory.purchase': 'Comprar a proveedores', 'inventory.request': 'Solicitar insumos al centro', 'inventory.central': 'Atender compras centrales (requiere todas las sucursales y comprar)', 'inventory.receive': 'Confirmar recepciones',
     'catalog.manage': 'Gestionar servicios', 'catalog.prices': 'Cambiar precios',
     'settings.manage': 'Administrar configuración',
     'cloud.read': 'Ver la Nube', 'cloud.upload': 'Subir a la Nube', 'cloud.manage': 'Organizar y borrar en la Nube', 'cloud.share': 'Compartir desde la Nube'
@@ -35,7 +35,7 @@
     { name: 'Servicios y tarifas', keys: ['catalog.manage', 'catalog.prices'] },
     { name: 'Cobros y caja', keys: ['finance.read', 'finance.manage', 'finance.cash', 'finance.cash.supervise', 'finance.refund'] },
     { name: 'Facturación', keys: ['finance.invoice'] },
-    { name: 'Inventario', keys: ['inventory.read', 'inventory.manage', 'inventory.consume', 'inventory.adjust', 'inventory.purchase'] },
+    { name: 'Inventario', keys: ['inventory.read', 'inventory.manage', 'inventory.consume', 'inventory.adjust', 'inventory.purchase', 'inventory.request', 'inventory.central', 'inventory.receive'] },
     { name: 'Nube', keys: ['cloud.read', 'cloud.upload', 'cloud.manage', 'cloud.share'] }
   ];
   var DATA_SCOPES = {
