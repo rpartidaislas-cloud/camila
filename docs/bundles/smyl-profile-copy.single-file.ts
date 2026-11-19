@@ -172,7 +172,7 @@ return { requireUser, requirePermission };
 })();
 
 // ── _shared/limits.ts ──
-const { checkLimitSinConsumir, checkAndConsumeLimit, checkAndConsumeLimitProspecto, checkLimitPorIpProspecto } = (() => {
+const { ipDelRequest, checkLimitSinConsumir, checkAndConsumeLimit, checkAndConsumeLimitProspecto, checkLimitPorIpProspecto } = (() => {
 // Tope de gasto server-side para las Edge Functions que llaman APIs de
 // pago (Anthropic, Gemini, Replicate). Antes el límite de plan
 // (limite_diagnosticos/diagnosticos_usados) solo se checaba en el cliente
@@ -223,10 +223,16 @@ function limitDeny(cors: Record<string, string>, status: number, msg: string): R
   return new Response(JSON.stringify({ error: msg }), { status, headers });
 }
 
+// La IP para los topes sale de la cabecera que pone el borde de Cloudflare (el cliente no puede sobrescribirla). x-forwarded-for puede traer
+// valores escritos por el propio cliente, así que solo se usa si no hay otra; antes iba primero y permitía saltarse el límite cambiando esa cabecera.
 function ipDelRequest(req: Request): string {
+  const cf = (req.headers.get('cf-connecting-ip') || '').trim();
+  if (cf) return cf;
+  const real = (req.headers.get('x-real-ip') || '').trim();
+  if (real) return real;
   const fwd = req.headers.get('x-forwarded-for');
-  if (fwd) return fwd.split(',')[0].trim();
-  return req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || 'sin-ip';
+  if (fwd) return fwd.split(',')[0].trim() || 'sin-ip';
+  return 'sin-ip';
 }
 
 const MENSAJES_TENANT: Record<string, string> = {
@@ -235,6 +241,12 @@ const MENSAJES_TENANT: Record<string, string> = {
   plan_vencido: 'Tu plan venció. Renueva tu suscripción para seguir generando simulaciones.',
   limite_alcanzado: 'Alcanzaste el límite de diagnósticos de tu plan en este periodo.',
 };
+
+// Si no se puede VERIFICAR el límite (RPC no desplegada, base degradada), se rechaza: es preferible un error visible y reintentable
+// a dejar pasar gasto de IA o envíos sin tope. Antes estos casos fallaban abiertos.
+function limiteNoVerificable(cors: Record<string, string>): LimitResult {
+  return { allowed: false, response: limitDeny(cors, 503, 'No pudimos verificar tu límite de uso en este momento. Intenta de nuevo en unos minutos.') };
+}
 
 // Verifica que la clínica pueda seguir generando, SIN descontarle nada.
 // Existe porque una sola simulación hace VARIAS llamadas a la Edge
@@ -256,11 +268,9 @@ async function checkLimitSinConsumir(
     .eq('id', tenantId)
     .maybeSingle();
 
-  // Falla de infraestructura ajena al usuario -- mismo criterio que el
-  // resto de este archivo: no bloquear por eso, dejar rastro en los logs.
   if (error) {
     console.error('[limits] error verificando tenant:', error.message);
-    return { allowed: true, response: null };
+    return limiteNoVerificable(cors);
   }
   if (!data) return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT.tenant_no_encontrado) };
   if (!data.activo) return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT.plan_inactivo) };
@@ -283,11 +293,8 @@ async function checkAndConsumeLimit(
   if (tenantId) {
     const { data, error } = await admin.rpc('camila_consumir_diagnostico', { p_tenant_id: tenantId });
     if (error) {
-      // Falla de infraestructura ajena al usuario (RPC no desplegada,
-      // conexión a la BD caída, etc.) -- no lo bloqueamos por eso, mejor
-      // dejar pasar y que quede en los logs.
       console.error('[limits] error RPC camila_consumir_diagnostico:', error.message);
-      return { allowed: true, response: null };
+      return limiteNoVerificable(cors);
     }
     const fila = Array.isArray(data) ? data[0] : data;
     if (!fila?.permitido) {
@@ -314,7 +321,7 @@ async function checkLimitPorIp(
   });
   if (error) {
     console.error('[limits] error RPC camila_anon_rate_check:', error.message);
-    return { allowed: true, response: null };
+    return limiteNoVerificable(cors);
   }
   if (!data) {
     return {
@@ -356,7 +363,7 @@ async function checkLimitPorIpProspecto(
   return checkLimitPorIp(req, PROSPECTO_LIMITE_POR_HORA, cors);
 }
 
-return { checkLimitSinConsumir, checkAndConsumeLimit, checkAndConsumeLimitProspecto, checkLimitPorIpProspecto };
+return { ipDelRequest, checkLimitSinConsumir, checkAndConsumeLimit, checkAndConsumeLimitProspecto, checkLimitPorIpProspecto };
 })();
 
 // ── _shared/cors.ts ──
