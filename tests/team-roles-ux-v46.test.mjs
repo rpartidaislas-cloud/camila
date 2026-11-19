@@ -28,7 +28,7 @@ test('el correo sólo se usa para accesos realmente nuevos', () => {
 test('equipo y profesionales se presentan como una sola ficha por persona', () => {
   assert.match(script, /<h2>Personas<\/h2>/);
   assert.match(script, /professionalForMember\(user\.id\)/);
-  assert.match(script, /person\.doctor \? 'Doctor' : 'Equipo'/);
+  assert.match(script, /person\.doctor \? 'Profesional' : 'Equipo'/);
   assert.match(script, /Toca a una persona para ver su ficha/);
   assert.match(script, /row\.active && !row\.user_id/);
 });
