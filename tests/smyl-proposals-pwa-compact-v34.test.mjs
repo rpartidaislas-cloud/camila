@@ -32,7 +32,7 @@ test('versiones PWA y espejos móviles quedan sincronizados',()=>{
   const app=read('app.html');
   const worker=read('sw.js');
   assert.match(app,/smyl-proposals\.css\?v=15/);
-  assert.match(app,/smyl-proposals\.js\?v=22/);
+  assert.match(app,/smyl-proposals\.js\?v=23/);
   assert.match(app,/smyl-treatment-quote-stage3\.css\?v=3/);
   assert.match(worker,/proposal-pwa-compact-v1/);
   for(const file of ['app.html','sw.js','smyl-proposals.css','smyl-proposals.js','smyl-treatment-quote-stage3.css']){
