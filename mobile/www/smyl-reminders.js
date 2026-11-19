@@ -14,14 +14,17 @@
     professional: 'Profesional',
     branch: 'Sucursal',
     branch_phone: 'Teléfono de la sucursal',
+    branch_whatsapp: 'WhatsApp de la sucursal (donde responde el paciente)',
+    contact_phone: 'Teléfono de contacto (dentista si lo publicó; si no, la sucursal)',
     clinic: 'Nombre de la clínica',
     text: 'Texto fijo'
   };
   var SAMPLE = {
-    patient_first_name: 'Ana', patient_name: 'Ana López', date: 'martes 21 de octubre', time: '10:30 a.m.',
-    service: 'Valoración', professional: 'Dra. Torres', branch: 'Sucursal Centro', branch_phone: '55 1234 5678', clinic: 'tu clínica'
+    patient_first_name: 'Ana', patient_name: 'Ana López', date: 'martes 21 de octubre', time: '10:30 am',
+    service: 'Valoración', professional: 'Dra. Torres', branch: 'Sucursal Centro', branch_phone: '55 1234 5678', branch_whatsapp: '33 1111 1111', contact_phone: '33 1111 1111', clinic: 'tu clínica'
   };
   var DEFAULT_ORDER = ['patient_first_name', 'date', 'time', 'clinic', 'branch_phone', 'professional', 'service', 'branch'];
+  var CONFIRMATION_ORDER = ['patient_first_name', 'clinic', 'date', 'time', 'contact_phone', 'service', 'branch', 'professional'];
   var state = { data: null, loading: false, error: '', loadedAt: 0, lastDispatch: 0, dispatching: false };
 
   function esc(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
@@ -86,20 +89,26 @@
       retry.onclick = function () { loadSettings(true); }; actions.append(retry); return;
     }
     var data = state.data || {}; var settings = data.settings || {}; var overview = data.overview || {};
-    var enabled = Boolean(settings.enabled);
+    var enabled = Boolean(settings.enabled), confirmOn = Boolean(settings.confirmation_enabled);
+    function line(label, on, name) {
+      return '<div class="schedule-reminders-status" data-enabled="' + on + '"><i aria-hidden="true"></i><strong>' + label + ': ' + (on ? 'activa' : 'desactivada') + '</strong>' +
+        (name ? '<span>Plantilla «' + esc(name) + '»</span>' : '<span>Sin plantilla elegida</span>') + '</div>';
+    }
+    function stats(prefix) {
+      return '<div class="schedule-reminders-stats">' + [['Programados', 'scheduled'], ['En espera', 'waiting'], ['Enviados', 'sent'], ['Con error', 'failed']].map(function (item) {
+        return '<span><b>' + Number(overview[prefix + item[1]] || 0) + '</b>' + item[0] + '</span>';
+      }).join('') + '</div>';
+    }
+    var whatsappInfo = settings.whatsapp_mode === 'per_branch' ? 'Cada sucursal usa su propio número de WhatsApp.' : 'Todas las sucursales usan el WhatsApp de la clínica' + (settings.whatsapp_phone ? ' (' + esc(settings.whatsapp_phone) + ')' : '') + '.';
     body.innerHTML =
-      '<div class="schedule-reminders-status" data-enabled="' + enabled + '"><i aria-hidden="true"></i><strong>' + (enabled ? 'Activos' : 'Desactivados') + '</strong>' +
-      (settings.template_name ? '<span>Plantilla «' + esc(settings.template_name) + '»' + (settings.template_language ? ' · ' + esc(settings.template_language) : '') + '</span>' : '<span>Sin plantilla elegida</span>') + '</div>' +
-      '<div class="schedule-reminders-stats">' +
-        [['Programados', overview.scheduled], ['En espera', overview.waiting], ['Enviados', overview.sent], ['Con error', overview.failed]].map(function (item) {
-          return '<span><b>' + Number(item[1] || 0) + '</b>' + item[0] + '</span>';
-        }).join('') +
-      '</div>' +
-      '<p class="schedule-reminders-muted">Últimos 7 días y próximas citas. Solo se envían a pacientes con una conversación de WhatsApp vinculada en Mensajes.</p>';
+      line('Confirmación al agendar', confirmOn, settings.confirmation_template_name) + stats('confirmation_') +
+      line('Recordatorio 24 h antes', enabled, settings.template_name) + stats('') +
+      '<p class="schedule-reminders-muted">' + whatsappInfo + ' Últimos 7 días y próximas citas. Solo se envían a pacientes con una conversación de WhatsApp vinculada en Mensajes, entre las ' +
+      esc(String(settings.send_window_start || '09:00').slice(0, 5)) + ' y las ' + esc(String(settings.send_window_end || '20:00').slice(0, 5)) + ' (hora de la sucursal)' + (settings.require_consent ? ' y solo con consentimiento registrado' : '') + '.</p>';
     if (data.can_configure) {
       var configure = document.createElement('button'); configure.type = 'button'; configure.className = 'btn btn-secondary'; configure.textContent = 'Configurar';
       configure.onclick = openSettings; actions.append(configure);
-      if (enabled) {
+      if (enabled || confirmOn) {
         var now = document.createElement('button'); now.type = 'button'; now.className = 'btn btn-secondary'; now.textContent = 'Revisar pendientes';
         now.onclick = async function () {
           now.disabled = true; now.textContent = 'Revisando…';
@@ -123,11 +132,11 @@
     finally { state.loading = false; renderCard(); }
   }
 
-  function variableRows(template, variables) {
+  function variableRows(template, variables, order) {
     var count = Number(template && template.variable_count || 0);
     var rows = '';
     for (var i = 0; i < count; i += 1) {
-      var variable = variables[i] || { source: DEFAULT_ORDER[i] || 'text' };
+      var variable = variables[i] || { source: (order || DEFAULT_ORDER)[i] || 'text' };
       rows += '<div class="schedule-reminders-variable" data-index="' + i + '"><label>Variable {{' + (i + 1) + '}}<select data-variable-source>' +
         Object.keys(SOURCE_LABELS).map(function (key) { return '<option value="' + key + '"' + (variable.source === key ? ' selected' : '') + '>' + esc(SOURCE_LABELS[key]) + '</option>'; }).join('') +
         '</select></label><label data-variable-text' + (variable.source === 'text' ? '' : ' hidden') + '>Texto<input data-variable-value maxlength="200" value="' + esc(variable.value || '') + '"></label></div>';
@@ -135,8 +144,8 @@
     return rows || '<p class="schedule-reminders-muted">Esta plantilla no tiene variables.</p>';
   }
 
-  function readVariables(form) {
-    return Array.prototype.map.call(form.querySelectorAll('.schedule-reminders-variable'), function (row) {
+  function readVariables(scope) {
+    return Array.prototype.map.call(scope.querySelectorAll('.schedule-reminders-variable'), function (row) {
       var source = row.querySelector('[data-variable-source]').value;
       var item = { source: source };
       if (source === 'text') item.value = row.querySelector('[data-variable-value]').value.trim();
@@ -144,45 +153,81 @@
     });
   }
 
+  // Una sección de plantilla (confirmación o recordatorio): interruptor, plantilla, variables y vista previa.
+  function templateSection(key, title, intro, enabled, templateId, saved, order, list, error) {
+    return '<fieldset class="schedule-reminders-section" data-section="' + key + '"><legend>' + title + '</legend><p>' + intro + '</p>' +
+      (error ? '<p class="schedule-reminders-alert">' + esc(error) + '</p>' : '') +
+      '<label class="schedule-reminders-toggle"><input type="checkbox" name="' + key + '_enabled"' + (enabled ? ' checked' : '') + '><span>Enviar automáticamente</span></label>' +
+      '<label>Plantilla aprobada por Meta<select name="' + key + '_template"><option value="">Selecciona una plantilla</option>' +
+        list.map(function (item) { return '<option value="' + esc(item.id) + '"' + (item.id === templateId ? ' selected' : '') + (usable(item) ? '' : ' disabled') + '>' + esc(item.name) + (item.language ? ' · ' + esc(item.language) : '') + (usable(item) ? '' : ' (no es de utilidad)') + '</option>'; }).join('') +
+      '</select></label><div data-template-variables></div><div class="schedule-reminders-preview" data-template-preview hidden><span>Vista previa</span><p></p></div></fieldset>';
+  }
+
+  function wireSection(form, key, saved, order) {
+    var scope = form.querySelector('[data-section="' + key + '"]');
+    var select = form.elements[key + '_template'];
+    function preview() {
+      var template = templateById(select.value), box = scope.querySelector('[data-template-preview]');
+      box.hidden = !template;
+      if (template) box.querySelector('p').textContent = previewText(template, readVariables(scope));
+    }
+    function bind() {
+      scope.querySelectorAll('.schedule-reminders-variable').forEach(function (row) {
+        var source = row.querySelector('[data-variable-source]');
+        source.onchange = function () { row.querySelector('[data-variable-text]').hidden = source.value !== 'text'; preview(); };
+        row.querySelector('[data-variable-value]').oninput = preview;
+      });
+    }
+    function refresh(keep) {
+      var template = templateById(select.value);
+      scope.querySelector('[data-template-variables]').innerHTML = template ? variableRows(template, keep ? saved : readVariables(scope), order) : '';
+      bind(); preview();
+    }
+    select.onchange = function () { saved = []; refresh(false); };
+    refresh(true);
+    return { scope: scope, select: select };
+  }
+
   function openSettings() {
     var d = document.getElementById('schedule-dialog');
     if (!d || !state.data) return;
     var data = state.data; var settings = data.settings || {}; var list = data.templates || [];
-    var saved = Array.isArray(settings.variables) ? settings.variables : [];
-    d.innerHTML = '<form class="schedule-reminders-form"><h2>Recordatorios por WhatsApp</h2>' +
-      '<p>SMYL envía a cada paciente un recordatorio 24 horas antes de su cita. Si la cita se mueve o se cancela, el recordatorio se cancela solo.</p>' +
+    var hm = function (value, fallback) { return String(value || fallback).slice(0, 5); };
+    d.innerHTML = '<form class="schedule-reminders-form"><h2>Mensajes automáticos de citas</h2>' +
+      '<p>SMYL le avisa al paciente por WhatsApp desde el número de tu clínica. Si la cita se mueve o se cancela, los avisos pendientes se cancelan solos, y las respuestas del paciente llegan a Mensajes.</p>' +
       (data.error ? '<p class="schedule-reminders-alert">' + esc(data.error) + '</p>' : '') +
-      '<label class="schedule-reminders-toggle"><input type="checkbox" name="enabled"' + (settings.enabled ? ' checked' : '') + '><span>Enviar recordatorios automáticos</span></label>' +
-      '<label>Plantilla aprobada por Meta<select name="template"><option value="">Selecciona una plantilla</option>' +
-        list.map(function (item) { return '<option value="' + esc(item.id) + '"' + (item.id === settings.template_id ? ' selected' : '') + (usable(item) ? '' : ' disabled') + '>' + esc(item.name) + (item.language ? ' · ' + esc(item.language) : '') + (usable(item) ? '' : ' (no es de utilidad)') + '</option>'; }).join('') +
-      '</select></label>' +
-      (list.length ? '' : '<p class="schedule-reminders-muted">No hay plantillas aprobadas todavía. Solicita en tu panel de mensajería una de categoría Utilidad; en Mensajería → Plantillas de WhatsApp tienes propuestas listas para copiar, empezando por «Recordatorio de cita (24 horas antes)».</p><button type="button" class="btn btn-secondary btn-sm" data-open-templates>Ver plantillas propuestas</button>') +
-      '<div data-template-variables></div>' +
-      '<div class="schedule-reminders-preview" data-template-preview hidden><span>Vista previa</span><p></p></div>' +
+      templateSection('confirmation', 'Confirmación al agendar', 'Se envía poco después de agendar una cita desde la Agenda o el portal (no a las que ya se hablaron en el chat) y cuando una cita cambia de fecha. Solo aplica a citas nuevas desde que la enciendes.', settings.confirmation_enabled, settings.confirmation_template_id, settings.confirmation_variables, CONFIRMATION_ORDER, list) +
+      templateSection('reminder', 'Recordatorios por WhatsApp (24 h antes)', 'Se envía un día antes de la cita. Si la confirmación acaba de salir (menos de 6 horas antes), no se repite.', settings.enabled, settings.template_id, settings.variables, DEFAULT_ORDER, list) +
+      (list.length ? '' : '<p class="schedule-reminders-muted">No hay plantillas aprobadas todavía. Solicita en tu panel de mensajería una de categoría Utilidad; en Mensajería → Plantillas de WhatsApp tienes propuestas listas para copiar, empezando por «cita_confirmada_v1» y «recordatorio_cita_24h_v1». <button type="button" class="schedule-reminders-link" data-open-templates>Ver plantillas propuestas</button></p>') +
+      '<fieldset class="schedule-reminders-section" data-section="preferences"><legend>Cuándo y desde qué número</legend>' +
+        '<div class="schedule-reminders-row"><label>Enviar desde<input type="time" name="window_start" value="' + hm(settings.send_window_start, '09:00') + '" required></label><label>Hasta<input type="time" name="window_end" value="' + hm(settings.send_window_end, '20:00') + '" required></label></div>' +
+        '<p class="schedule-reminders-muted">Hora de cada sucursal. Fuera de este horario el aviso espera a que abra la ventana, para no avisar de madrugada.</p>' +
+        '<label class="schedule-reminders-toggle"><input type="checkbox" name="require_consent"' + (settings.require_consent ? ' checked' : '') + '><span>Enviar solo a pacientes con consentimiento de WhatsApp registrado</span></label>' +
+        '<div class="schedule-reminders-modes" role="radiogroup" aria-label="Número de WhatsApp"><label><input type="radio" name="whatsapp_mode" value="single"' + (settings.whatsapp_mode === 'per_branch' ? '' : ' checked') + '><span><strong>Un solo número para toda la clínica</strong><small>Todas las sucursales usan el mismo WhatsApp.</small></span></label>' +
+        '<label><input type="radio" name="whatsapp_mode" value="per_branch"' + (settings.whatsapp_mode === 'per_branch' ? ' checked' : '') + '><span><strong>Un número por sucursal</strong><small>Cada sucursal usa el suyo; sus dentistas heredan el de su sucursal.</small></span></label></div>' +
+        '<label>WhatsApp de la clínica<input name="whatsapp_phone" inputmode="tel" maxlength="40" placeholder="Ej. 33 1234 5678" value="' + esc(settings.whatsapp_phone || '') + '"></label>' +
+        '<div data-branch-numbers hidden></div></fieldset>' +
       '<div class="schedule-dialog-actions"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary" data-save>Guardar</button></div></form>';
     var form = d.querySelector('form');
-    var select = form.elements.template;
-    function refresh(keep) {
-      var template = templateById(select.value);
-      var current = keep ? saved : readVariables(form);
-      form.querySelector('[data-template-variables]').innerHTML = template ? variableRows(template, current) : '';
-      bindVariables(); updatePreview();
+    var confirmation = wireSection(form, 'confirmation', Array.isArray(settings.confirmation_variables) ? settings.confirmation_variables : [], CONFIRMATION_ORDER);
+    var reminder = wireSection(form, 'reminder', Array.isArray(settings.variables) ? settings.variables : [], DEFAULT_ORDER);
+
+    // Números por sucursal: se editan aquí mismo cuando la clínica elige «un número por sucursal».
+    var branches = []; var branchBox = form.querySelector('[data-branch-numbers]');
+    function drawBranches() {
+      var perBranch = form.elements.whatsapp_mode.value === 'per_branch';
+      branchBox.hidden = !perBranch || !branches.length;
+      if (!perBranch || !branches.length) return;
+      branchBox.innerHTML = '<p class="schedule-reminders-muted">Si una sucursal no tiene número propio, usa el de la clínica.</p>' + branches.map(function (b) {
+        return '<label>' + esc(b.name) + '<input data-branch-whatsapp="' + esc(b.id) + '" inputmode="tel" maxlength="40" placeholder="WhatsApp de esta sucursal" value="' + esc(b.whatsapp_phone || '') + '"></label>';
+      }).join('');
     }
-    function updatePreview() {
-      var template = templateById(select.value);
-      var box = form.querySelector('[data-template-preview]');
-      box.hidden = !template;
-      if (template) box.querySelector('p').textContent = previewText(template, readVariables(form));
+    form.querySelectorAll('input[name="whatsapp_mode"]').forEach(function (radio) { radio.onchange = drawBranches; });
+    if (window.sb && window.tenantId) {
+      Promise.resolve(window.sb.from('smyl_branches').select('id,name,whatsapp_phone,active').eq('tenant_id', window.tenantId).eq('active', true).order('name')).then(function (result) {
+        branches = (result && result.data) || []; drawBranches();
+      }).catch(function () {});
     }
-    function bindVariables() {
-      form.querySelectorAll('.schedule-reminders-variable').forEach(function (row) {
-        var source = row.querySelector('[data-variable-source]');
-        source.onchange = function () { row.querySelector('[data-variable-text]').hidden = source.value !== 'text'; updatePreview(); };
-        row.querySelector('[data-variable-value]').oninput = updatePreview;
-      });
-    }
-    select.onchange = function () { saved = []; refresh(false); };
-    refresh(true);
     d.querySelector('[data-close]').onclick = function () { d.close(); };
     var openTemplates = d.querySelector('[data-open-templates]');
     if (openTemplates) openTemplates.onclick = function () { d.close(); window.ir('plantillas'); };
@@ -190,12 +235,25 @@
       event.preventDefault();
       var save = form.querySelector('[data-save]'); save.disabled = true; save.textContent = 'Guardando…';
       try {
-        var result = await invoke({ action: 'save_settings', enabled: form.elements.enabled.checked, template_id: select.value || null, variables: readVariables(form) });
+        var phone = function (value) { return String(value || '').replace(/[^0-9+()\-\s]/g, '').trim(); };
+        await invoke({ action: 'save_settings', kind: 'preferences', send_window_start: form.elements.window_start.value, send_window_end: form.elements.window_end.value, require_consent: form.elements.require_consent.checked, whatsapp_mode: form.elements.whatsapp_mode.value, whatsapp_phone: phone(form.elements.whatsapp_phone.value) });
+        // Números de las sucursales (solo los que cambiaron).
+        var changed = 0;
+        for (var i = 0; i < branches.length; i += 1) {
+          var input = form.querySelector('[data-branch-whatsapp="' + branches[i].id + '"]');
+          if (!input) continue;
+          var next = phone(input.value);
+          if (next === String(branches[i].whatsapp_phone || '')) continue;
+          var saved = await window.sb.from('smyl_branches').update({ whatsapp_phone: next }).eq('tenant_id', window.tenantId).eq('id', branches[i].id);
+          if (saved && saved.error) throw new Error('No se pudo guardar el WhatsApp de «' + branches[i].name + '». Pide a quien administra la clínica que lo capture en Mi clínica.');
+          changed += 1;
+        }
+        var results = [];
+        results.push(await invoke({ action: 'save_settings', kind: 'confirmation', enabled: form.elements.confirmation_enabled.checked, template_id: confirmation.select.value || null, variables: readVariables(confirmation.scope) }));
+        results.push(await invoke({ action: 'save_settings', kind: 'reminder', enabled: form.elements.reminder_enabled.checked, template_id: reminder.select.value || null, variables: readVariables(reminder.scope) }));
         d.close();
-        var summary = result.summary;
-        window.alert(form.elements.enabled.checked
-          ? 'Recordatorios activos.' + (summary ? ' ' + summary.scheduled + ' programados en WhatsApp, ' + summary.waiting + ' en espera.' : '')
-          : 'Recordatorios desactivados. Los que estaban en cola se cancelaron, también en WhatsApp.');
+        var on = [form.elements.confirmation_enabled.checked ? 'confirmaciones' : '', form.elements.reminder_enabled.checked ? 'recordatorios' : ''].filter(Boolean);
+        window.alert(on.length ? 'Guardado. Activos: ' + on.join(' y ') + '.' : 'Guardado. Los mensajes automáticos están desactivados; los que estaban en cola se cancelaron, también en WhatsApp.');
         loadSettings(true);
         if (window.SmylSchedule) window.SmylSchedule.reload();
       } catch (error) {
@@ -212,7 +270,7 @@
     var card = document.createElement('article');
     card.className = 'schedule-card schedule-reminders-card';
     card.id = 'schedule-reminders-card';
-    card.innerHTML = '<div class="schedule-section-title"><div><h2>Recordatorios por WhatsApp</h2><p>Aviso automático 24 horas antes de cada cita.</p></div><div class="schedule-reminders-actions" data-reminders-actions></div></div><div data-reminders-body></div>';
+    card.innerHTML = '<div class="schedule-section-title"><div><h2>Mensajes automáticos de citas</h2><p>Confirmación al agendar y recordatorio 24 horas antes, por WhatsApp.</p></div><div class="schedule-reminders-actions" data-reminders-actions></div></div><div data-reminders-body></div>';
     grid.prepend(card);
     renderCard();
     return true;

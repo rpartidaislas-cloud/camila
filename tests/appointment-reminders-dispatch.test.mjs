@@ -15,6 +15,8 @@ const TEMPLATE = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const CONVERSATION = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const PATIENT = '22222222-2222-4222-8222-222222222222';
 const CRON = 'x'.repeat(40);
+const BRANCH = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const CONFIRM_TEMPLATE = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 const LANA_BASE = 'https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v1/camila-api';
 const HOUR = 3600 * 1000;
 
@@ -25,7 +27,7 @@ class Query {
   constructor(db, table) { this.db = db; this.table = table; this.filters = []; this.mode = 'select'; this.max = Infinity; this.sort = null; this.chainedSelect = false; }
   select() { if (this.mode !== 'select') this.chainedSelect = true; return this; }
   update(patch) { this.mode = 'update'; this.patch = patch; return this; }
-  upsert(row, options) { this.mode = 'upsert'; this.row = row; this.conflict = options && options.onConflict; return this; }
+  upsert(row, options) { this.mode = 'upsert'; this.row = row; this.conflict = options && options.onConflict; this.ignoreDuplicates = Boolean(options && options.ignoreDuplicates); return this; }
   eq(column, value) { this.filters.push((row) => row[column] === value); return this; }
   in(column, values) { this.filters.push((row) => values.includes(row[column])); return this; }
   not(column, operator, value) { this.filters.push((row) => (operator === 'is' && value === null ? row[column] != null : true)); return this; }
@@ -40,8 +42,9 @@ class Query {
   run() {
     const rows = this.db.tables[this.table] || (this.db.tables[this.table] = []);
     if (this.mode === 'upsert') {
-      const index = rows.findIndex((row) => row[this.conflict] === this.row[this.conflict]);
-      if (index === -1) rows.push({ ...this.row }); else Object.assign(rows[index], this.row);
+      const keys = String(this.conflict || '').split(',');
+      const index = rows.findIndex((row) => keys.every((key) => row[key] === this.row[key]));
+      if (index === -1) rows.push({ ...this.row }); else if (!this.ignoreDuplicates) Object.assign(rows[index], this.row);
       return { data: null, error: null };
     }
     let matched = rows.filter((row) => this.filters.every((filter) => filter(row)));
@@ -64,18 +67,19 @@ function makeWorld() {
       camila_lana_handoffs: [{ tenant_id: T, patient_id: PATIENT, lana_channel: 'whatsapp', lana_conversation_id: CONVERSATION, updated_at: iso(Date.now()) }],
       smyl_reminder_settings: [{ tenant_id: T, enabled: true, template_id: TEMPLATE, template_name: 'recordatorio_cita_24h_v1', variables: [{ source: 'patient_first_name' }, { source: 'date' }, { source: 'time' }, { source: 'clinic' }] }],
       smyl_appointment_reminders: [],
+      smyl_conversation_branches: [],
     },
     appointments: [],
-    patients: { [PATIENT]: { nombre: 'Ana', apellido: 'López' } },
+    patients: { [PATIENT]: { nombre: 'Ana', apellido: 'López', consent: false } },
     permissions: { 'owner-jwt': ['schedule.read', 'schedule.manage', 'messages.respond'], 'staff-jwt': ['schedule.read'] },
-    lana: { calls: [], scheduled: [], nextId: 5000, override: null, templates: [{ id: TEMPLATE, name: 'recordatorio_cita_24h_v1', language: 'es_MX', category: 'UTILITY', variable_count: 4, body: 'Hola {{1}}' }] },
+    lana: { calls: [], scheduled: [], nextId: 5000, override: null, templates: [{ id: TEMPLATE, name: 'recordatorio_cita_24h_v1', language: 'es_MX', category: 'UTILITY', variable_count: 4, body: 'Hola {{1}}' }, { id: CONFIRM_TEMPLATE, name: 'cita_confirmada_v1', language: 'es_MX', category: 'UTILITY', variable_count: 5, body: 'Hola {{1}}, cita confirmada' }] },
     // Una cita confirmada con su recordatorio; start/due relativos al momento actual salvo que se indique.
     addReminder(options = {}) {
       const id = options.id || crypto.randomUUID();
       const startsAt = options.startsAt || Date.now() + 3 * 24 * HOUR;
       const appointmentId = crypto.randomUUID();
-      world.appointments.push({ id: appointmentId, tenant_id: T, patient_id: PATIENT, status: options.appointmentStatus || 'confirmed', starts_at: iso(startsAt), service: 'Valoración', professional: 'Dra. Torres', branch: { name: 'Sucursal Centro', phone: '55 1234 5678', timezone: 'America/Mexico_City' } });
-      const row = { id, tenant_id: T, appointment_id: appointmentId, reminder_type: '24h', scheduled_for: iso(options.dueAt || startsAt - 24 * HOUR), status: options.status || 'pending', delivery_channel: 'preferred', attempt_count: options.attempts || 0, provider_reference: options.reference || null, provider_conversation_id: options.reference ? CONVERSATION : null, provider_status: '', provider_cancel_required: Boolean(options.cancelRequired), last_error: '', next_attempt_at: options.nextAttemptAt || null, sent_at: null, created_at: iso(Date.now()), updated_at: iso(Date.now()) };
+      world.appointments.push({ id: appointmentId, tenant_id: T, patient_id: PATIENT, status: options.appointmentStatus || 'confirmed', starts_at: iso(startsAt), service: 'Valoración', professional: 'Dra. Torres', source: options.source || 'manual', branch_id: BRANCH, branch_whatsapp: options.branchWhatsapp || null, professional_phone: options.professionalPhone || null, branch: { name: 'Sucursal Centro', phone: options.branchPhone === undefined ? '55 1234 5678' : options.branchPhone, timezone: options.timezone || 'America/Mexico_City' } });
+      const row = { id, tenant_id: T, appointment_id: appointmentId, reminder_type: options.type || '24h', scheduled_for: iso(options.dueAt || startsAt - 24 * HOUR), status: options.status || 'pending', delivery_channel: 'preferred', attempt_count: options.attempts || 0, provider_reference: options.reference || null, provider_conversation_id: options.reference ? CONVERSATION : null, provider_status: '', provider_cancel_required: Boolean(options.cancelRequired), last_error: '', next_attempt_at: options.nextAttemptAt || null, sent_at: null, created_at: iso(Date.now()), updated_at: iso(Date.now()) };
       world.tables.smyl_appointment_reminders.push(row);
       return row;
     },
@@ -98,7 +102,7 @@ function client(getWorld, jwt) {
       rows.filter((row) => row.status === 'pending').forEach((row) => { const a = appointment(row); if (a.status !== 'confirmed' || new Date(a.starts_at).getTime() <= now) { row.status = 'cancelled'; row.next_attempt_at = null; row.last_error = 'La cita ya no está confirmada o ya ocurrió.'; } });
       const picked = rows.filter((row) => row.status === 'pending' && (!row.next_attempt_at || new Date(row.next_attempt_at).getTime() <= now)).sort((a, b) => a.scheduled_for.localeCompare(b.scheduled_for)).slice(0, 25);
       picked.forEach((row) => { row.status = 'processing'; row.attempt_count = Math.min(row.attempt_count + 1, 20); row.next_attempt_at = null; });
-      return { data: picked.map((row) => { const a = appointment(row); const p = world.patients[a.patient_id]; return { reminder_id: row.id, appointment_id: a.id, reminder_type: row.reminder_type, scheduled_for: row.scheduled_for, attempt_count: row.attempt_count, starts_at: a.starts_at, patient_id: a.patient_id, patient_first_name: p.nombre, patient_last_name: p.apellido, service_name: a.service, professional_name: a.professional, branch_name: a.branch.name, branch_phone: a.branch.phone, branch_timezone: a.branch.timezone }; }), error: null };
+      return { data: picked.map((row) => { const a = appointment(row); const p = world.patients[a.patient_id]; return { reminder_id: row.id, appointment_id: a.id, reminder_type: row.reminder_type, scheduled_for: row.scheduled_for, attempt_count: row.attempt_count, starts_at: a.starts_at, patient_id: a.patient_id, patient_first_name: p.nombre, patient_last_name: p.apellido, service_name: a.service, professional_name: a.professional, branch_name: a.branch.name, branch_phone: a.branch.phone, branch_timezone: a.branch.timezone, branch_id: a.branch_id, branch_whatsapp: a.branch_whatsapp, professional_phone: a.professional_phone, whatsapp_consent: p.consent, appointment_source: a.source }; }), error: null };
     },
     auth: { getUser: async (token) => (token === 'owner-jwt' ? { data: { user: { id: T, email: 'dra@clinica.mx' } } } : token === 'staff-jwt' ? { data: { user: { id: STAFF, email: 'recepcion@clinica.mx' } } } : { data: null }) }
   };
@@ -413,4 +417,203 @@ test('sin la clave de cifrado válida de LANA no se envía nada y el recordatori
   assert.equal(result.summary.waiting, 1);
   assert.match(world.reminder(reminder.id).last_error, /LANA todavía no está conectada/);
   assert.equal(scheduledCalls().length, 0);
+}));
+
+// ── Confirmación automática, consentimiento, ventana de envío y WhatsApp por sucursal ──
+import { localParts } from '../supabase/functions/_shared/reminder-schedule.mjs';
+const CONFIRM_VARIABLES = [{ source: 'patient_first_name' }, { source: 'clinic' }, { source: 'date' }, { source: 'time' }, { source: 'contact_phone' }];
+const settingsRow = () => world.tables.smyl_reminder_settings[0];
+function enableConfirmation(extra = {}) {
+  Object.assign(settingsRow(), { enabled: false, confirmation_enabled: true, confirmation_template_id: CONFIRM_TEMPLATE, confirmation_template_name: 'cita_confirmada_v1', confirmation_variables: CONFIRM_VARIABLES, send_window_start: '00:00:00', send_window_end: '23:59:00', ...extra });
+}
+
+test('la confirmación sale con su propia plantilla y el teléfono de contacto (dentista público → WhatsApp → sucursal)', async (t) => scenario(t, async () => {
+  enableConfirmation();
+  const start = Date.UTC(2099, 2, 4, 16, 30);
+  const sent = world.addReminder({ type: 'confirmation', startsAt: start, dueAt: Date.now(), professionalPhone: '33 2222 2222', branchWhatsapp: '33 1111 1111' });
+  const result = await dispatch();
+  assert.equal(result.summary.scheduled, 1);
+  const [call] = scheduledCalls();
+  assert.equal(call.body.template_id, CONFIRM_TEMPLATE);
+  assert.deepEqual(call.body.template_variables.slice(0, 2), ['Ana', 'Clínica Dental Sonríe']);
+  assert.equal(call.body.template_variables[4], '33 2222 2222');
+  assert.equal(world.reminder(sent.id).reminder_type, 'confirmation');
+  // sin dentista público usa el WhatsApp de la sucursal; sin ninguno, el teléfono de la sucursal
+  world.tables.smyl_appointment_reminders.length = 0; world.appointments.length = 0; world.lana.calls.length = 0;
+  world.addReminder({ type: 'confirmation', startsAt: start, dueAt: Date.now(), branchWhatsapp: '33 1111 1111' });
+  await dispatch();
+  assert.equal(scheduledCalls()[0].body.template_variables[4], '33 1111 1111');
+  world.tables.smyl_appointment_reminders.length = 0; world.appointments.length = 0; world.lana.calls.length = 0;
+  world.addReminder({ type: 'confirmation', startsAt: start, dueAt: Date.now() });
+  await dispatch();
+  assert.equal(scheduledCalls()[0].body.template_variables[4], '55 1234 5678');
+}));
+
+test('con solo las confirmaciones encendidas, el recordatorio de 24 h no sale y queda cancelado con su motivo', async (t) => scenario(t, async () => {
+  enableConfirmation();
+  const reminder = world.addReminder();
+  const confirmation = world.addReminder({ type: 'confirmation', dueAt: Date.now() });
+  const result = await dispatch();
+  assert.equal(result.summary.scheduled, 1);
+  assert.equal(world.reminder(reminder.id).status, 'cancelled');
+  assert.match(world.reminder(reminder.id).last_error, /recordatorios están desactivados/);
+  assert.equal(world.reminder(confirmation.id).status, 'processing');
+  assert.equal(scheduledCalls()[0].body.template_id, CONFIRM_TEMPLATE);
+}));
+
+test('sin ninguna de las dos funciones encendidas no se envía nada', async (t) => scenario(t, async () => {
+  Object.assign(settingsRow(), { enabled: false, confirmation_enabled: false });
+  world.addReminder({ type: 'confirmation', dueAt: Date.now() });
+  const result = await dispatch();
+  assert.equal(result.skipped, 'disabled');
+  assert.equal(scheduledCalls().length, 0);
+}));
+
+test('«exigir consentimiento»: sin consentimiento registrado se omite; con él, sale; apagado, sale a todos', async (t) => scenario(t, async () => {
+  enableConfirmation({ require_consent: true });
+  const blocked = world.addReminder({ type: 'confirmation', dueAt: Date.now() });
+  const result = await dispatch();
+  assert.equal(result.summary.skipped, 1);
+  assert.equal(scheduledCalls().length, 0);
+  assert.equal(world.reminder(blocked.id).status, 'cancelled');
+  assert.match(world.reminder(blocked.id).last_error, /consentimiento de WhatsApp/);
+  world.patients[PATIENT].consent = true;
+  const allowed = world.addReminder({ type: 'confirmation', dueAt: Date.now() });
+  assert.equal((await dispatch()).summary.scheduled, 1);
+  assert.equal(world.reminder(allowed.id).status, 'processing');
+  // apagado (por omisión) también se envía a quien tiene «false» = «no registrado»
+  world.patients[PATIENT].consent = false; settingsRow().require_consent = false;
+  const open = world.addReminder({ type: 'confirmation', dueAt: Date.now() });
+  assert.equal((await dispatch()).summary.scheduled, 1);
+  assert.equal(world.reminder(open.id).status, 'processing');
+}));
+
+test('la confirmación espera a que el paciente tenga WhatsApp vinculado y solo falla cuando la cita está por empezar', async (t) => scenario(t, async () => {
+  enableConfirmation();
+  world.tables.camila_lana_handoffs.length = 0;
+  const later = world.addReminder({ type: 'confirmation', dueAt: Date.now(), startsAt: Date.now() + 3 * 24 * HOUR });
+  const first = await dispatch();
+  assert.equal(first.summary.waiting, 1);
+  assert.equal(world.reminder(later.id).status, 'pending');
+  assert.match(world.reminder(later.id).last_error, /no tiene una conversación de WhatsApp vinculada/);
+  assert.ok(new Date(world.reminder(later.id).next_attempt_at).getTime() > Date.now());
+  const soon = world.addReminder({ type: 'confirmation', dueAt: Date.now(), startsAt: Date.now() + 3 * HOUR });
+  world.tables.smyl_appointment_reminders.find((row) => row.id === soon.id).next_attempt_at = null;
+  Object.assign(world.reminder(soon.id), { scheduled_for: new Date(Date.now() - 1000).toISOString() });
+  // a 3 h de la cita aún espera; a menos de 2 h se omite por poca anticipación
+  assert.equal((await dispatch()).summary.waiting >= 1, true);
+}));
+
+test('fuera de la ventana de envío la confirmación se programa para cuando abra, en la hora de la sucursal', async (t) => scenario(t, async () => {
+  // ventana de una hora que empieza dentro de 3 h (hora local de la sucursal)
+  const zone = 'America/Mexico_City';
+  const nowParts = localParts(Date.now(), zone);
+  const startMin = (nowParts.minutes + 180) % 1440;
+  if (startMin > 1440 - 120) return t.skip('Ventana que cruza la medianoche: el escenario no aplica a esta hora.');
+  const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}:00`;
+  enableConfirmation({ send_window_start: hhmm(startMin), send_window_end: hhmm(startMin + 60) });
+  world.addReminder({ type: 'confirmation', dueAt: Date.now(), startsAt: Date.now() + 5 * 24 * HOUR });
+  assert.equal((await dispatch()).summary.scheduled, 1);
+  const sendAt = new Date(scheduledCalls()[0].body.send_at).getTime();
+  assert.equal(localParts(sendAt, zone).minutes, startMin);
+  assert.ok(sendAt > Date.now() + 2 * HOUR && sendAt < Date.now() + 4 * HOUR);
+}));
+
+test('el recordatorio de 24 h respeta la ventana: una hora ideal de madrugada sale en el borde más cercano', async (t) => scenario(t, async () => {
+  const zone = 'America/Mexico_City';
+  // cita a las 07:30 local dentro de ~3 días: «24 h antes» cae a las 07:30, antes de abrir la ventana de las 9:00
+  const base = new Date(Date.now() + 3 * 24 * HOUR); const p = localParts(base.getTime(), zone);
+  const start = (() => { let ms = Date.UTC(p.year, p.month - 1, p.day, 13, 30); return ms; })(); // 07:30 UTC−6
+  Object.assign(settingsRow(), { send_window_start: '09:00:00', send_window_end: '20:00:00' });
+  world.addReminder({ startsAt: start });
+  assert.equal((await dispatch()).summary.scheduled, 1);
+  const sent = localParts(new Date(scheduledCalls()[0].body.send_at).getTime(), zone);
+  assert.equal(sent.minutes, 540);
+}));
+
+test('un dato vacío (sin teléfono) se envía como guion para que Meta no rechace el parámetro', async (t) => scenario(t, async () => {
+  enableConfirmation();
+  world.addReminder({ type: 'confirmation', dueAt: Date.now(), branchPhone: '' });
+  await dispatch();
+  assert.equal(scheduledCalls()[0].body.template_variables[4], '—');
+}));
+
+test('al enviar, la conversación queda en la sucursal de la cita sin pisar una asignación previa', async (t) => scenario(t, async () => {
+  enableConfirmation();
+  world.addReminder({ type: 'confirmation', dueAt: Date.now() });
+  await dispatch();
+  assert.deepEqual(world.tables.smyl_conversation_branches.map((row) => [row.conversation_id, row.branch_id, row.source]), [[CONVERSATION, BRANCH, 'appointment']]);
+  // una asignación manual existente no se cambia
+  world.tables.smyl_conversation_branches.length = 0;
+  const OTHER = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+  world.tables.smyl_conversation_branches.push({ tenant_id: T, conversation_id: CONVERSATION, branch_id: OTHER, source: 'manual' });
+  world.addReminder({ type: 'confirmation', dueAt: Date.now() });
+  await dispatch();
+  assert.equal(world.tables.smyl_conversation_branches.length, 1);
+  assert.equal(world.tables.smyl_conversation_branches[0].branch_id, OTHER);
+  assert.equal(world.tables.smyl_conversation_branches[0].source, 'manual');
+}));
+
+test('guardar la configuración de confirmaciones valida la plantilla y las variables, y no manda nada en retroactivo', async (t) => scenario(t, async () => {
+  const bad = await post({ action: 'save_settings', kind: 'confirmation', enabled: true, template_id: CONFIRM_TEMPLATE, variables: CONFIRM_VARIABLES.slice(0, 2) });
+  assert.equal(bad.status, 400);
+  assert.match((await bad.json()).error, /necesita 5 variables/);
+  assert.equal((await post({ action: 'save_settings', kind: 'confirmation', enabled: true, variables: CONFIRM_VARIABLES })).status, 400);
+  assert.equal((await post({ action: 'save_settings', kind: 'otra', enabled: true })).status, 400);
+  const before = Date.now();
+  const ok = await post({ action: 'save_settings', kind: 'confirmation', enabled: true, template_id: CONFIRM_TEMPLATE, variables: CONFIRM_VARIABLES });
+  assert.equal(ok.status, 200);
+  const row = settingsRow();
+  assert.equal(row.confirmation_enabled, true);
+  assert.equal(row.confirmation_template_id, CONFIRM_TEMPLATE);
+  assert.equal(row.confirmation_template_name, 'cita_confirmada_v1');
+  assert.ok(new Date(row.confirmation_since).getTime() >= before - 1000, 'confirmation_since = momento en que se enciende');
+  // guardar otra vez no mueve la fecha desde la que aplica
+  const since = row.confirmation_since;
+  await new Promise((resolve) => setTimeout(resolve, 15));
+  await post({ action: 'save_settings', kind: 'confirmation', enabled: true, template_id: CONFIRM_TEMPLATE, variables: CONFIRM_VARIABLES });
+  assert.equal(settingsRow().confirmation_since, since);
+  // los recordatorios de 24 h siguen igual (su configuración no se tocó)
+  assert.equal(row.enabled, true);
+  assert.equal(row.template_id, TEMPLATE);
+}));
+
+test('apagar las confirmaciones cancela solo las confirmaciones en cola; los recordatorios siguen', async (t) => scenario(t, async () => {
+  enableConfirmation({ enabled: true, template_id: TEMPLATE });
+  const reminder = world.addReminder();
+  const confirmation = world.addReminder({ type: 'confirmation', dueAt: Date.now() });
+  await dispatch();
+  assert.equal(world.reminder(confirmation.id).status, 'processing');
+  const off = await post({ action: 'save_settings', kind: 'confirmation', enabled: false });
+  assert.equal(off.status, 200);
+  assert.equal(settingsRow().confirmation_enabled, false);
+  assert.equal(world.reminder(confirmation.id).status, 'cancelled');
+  assert.match(world.reminder(confirmation.id).last_error, /Confirmaciones desactivadas/);
+  assert.equal(world.reminder(reminder.id).status, 'processing');
+  assert.equal(settingsRow().enabled, true);
+}));
+
+test('preferencias: ventana, consentimiento y WhatsApp por sucursal o un solo número, con validación', async (t) => scenario(t, async () => {
+  assert.equal((await post({ action: 'save_settings', kind: 'preferences', send_window_start: '10:00', send_window_end: '10:30' })).status, 400);
+  assert.equal((await post({ action: 'save_settings', kind: 'preferences', send_window_start: '25:00', send_window_end: '30:00' })).status, 400);
+  const ok = await post({ action: 'save_settings', kind: 'preferences', send_window_start: '8:30', send_window_end: '19:00', require_consent: true, whatsapp_mode: 'per_branch', whatsapp_phone: 'WhatsApp +52 (33) 1234-5678 <script>' });
+  assert.equal(ok.status, 200);
+  const row = settingsRow();
+  assert.equal(row.send_window_start, '08:30:00');
+  assert.equal(row.send_window_end, '19:00:00');
+  assert.equal(row.require_consent, true);
+  assert.equal(row.whatsapp_mode, 'per_branch');
+  assert.equal(row.whatsapp_phone, '+52 (33) 1234-5678');
+  await post({ action: 'save_settings', kind: 'preferences', send_window_start: '09:00', send_window_end: '20:00', whatsapp_mode: 'cualquiera' });
+  assert.equal(settingsRow().whatsapp_mode, 'single');
+  // solo quien puede configurar (permisos del servidor)
+  assert.equal((await post({ action: 'save_settings', kind: 'preferences', send_window_start: '09:00', send_window_end: '20:00' }, { authorization: 'Bearer staff-jwt' })).status, 403);
+}));
+
+test('el modo cron también procesa clínicas que solo tienen confirmaciones encendidas', async (t) => scenario(t, async () => {
+  enableConfirmation();
+  world.addReminder({ type: 'confirmation', dueAt: Date.now() });
+  const result = await (await post({}, { 'x-smyl-cron-secret': CRON })).json();
+  assert.equal(result.tenants, 1);
+  assert.equal(scheduledCalls().length, 1);
 }));
