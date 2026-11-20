@@ -1,3 +1,11 @@
+## 2026-11-20 — Claude Code — Cobro en línea (Openpay vía LANA): desplegado y botón por clínica
+
+- **Desplegado** (Ricardo, con la CLI de Supabase desde su PC; GitHub Actions bloqueado por facturación):
+  - LANA (`promodesk`, proyecto `lgjdzaqjrmmzyrenevfm`): `pago-publico` v1 (nueva), `camila-api` v59 (solo agrega `/payments/requests` frente a v58), `openpay-webhook` v44 con `--no-verify-jwt` (no está en el `config.toml` de LANA; sin la bandera Openpay dejaría de poder avisar pagos). Verificado: los archivos desplegados son idénticos a `main` de `promodesk`; `pago-publico` responde 404 a un token inexistente y `/payments/requests` responde 401 sin clave.
+  - SMYL (`rpxshsiwoxdbuevjjpfw`): migración `20261116130000_smyl_payment_links.sql` + índice `smyl_payment_links_one_pending_idx` (de `20261120120000`) aplicados a mano en el editor SQL (sin `db push`: hay migraciones aplicadas sin registrar); `smyl-pay` desplegada.
+- `smyl-finance.js` v61: el botón **Enlace de pago** se muestra si `camila_tenants.config.pago_en_linea === true` (por clínica) o si `window.SMYL_ONLINE_PAY === true` (pruebas). Así no aparece en clínicas sin Openpay.
+- **Pendiente**: la clínica de SMYL en LANA no tiene Openpay conectado; capturar llaves **sandbox** en el panel de LANA, activar `pago_en_linea` en su config y probar de punta a punta (tarjeta de prueba y SPEI). SMYL no tiene pantalla propia para conectar Openpay (hoy solo en el panel de LANA).
+
 ## 2026-11-20 — Codex — Acciones visibles para archivar sucursales
 
 - Seguimiento de Ricardo: la opción para quitar una clínica no era visible al seleccionar la sucursal principal. La acción existía únicamente al final de los datos de una sede secundaria y desaparecía por completo en la principal.
