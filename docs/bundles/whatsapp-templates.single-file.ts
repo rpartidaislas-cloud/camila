@@ -549,6 +549,11 @@ const catalog = (function () {
       pick('nombre', 'clinica')),
 
     // ── Utilidad · Equipo y operación ───────────────────────────────────
+    utility('agenda_cita_nueva_profesional_v1', 'equipo', 'Nueva cita en tu agenda',
+      'Cuando se agenda o confirma una cita asignada al profesional.',
+      'Se agendó una cita en tu agenda de {{1}} para el {{2}} a las {{3}}. Revisa SMYL para ver el detalle y prepararte.',
+      pick('sucursal', 'fecha', 'hora'),
+      { note: 'No incluye nombre, diagnóstico ni tratamiento del paciente.' }),
     utility('agenda_cambio_profesional_v1', 'equipo', 'Cambio en tu agenda',
       'Cuando una cita asignada al profesional cambia de fecha u hora.',
       'Tu agenda en {{1}} cambió: la cita del {{2}} ahora está programada para el {{3}} a las {{4}}. Revisa SMYL para ver el contexto completo.',

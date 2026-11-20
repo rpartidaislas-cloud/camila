@@ -16,7 +16,7 @@ test('las secciones siguen las tareas administrativas de la clínica', () => {
   assert.ok(hub.SECTIONS.every(section => section.items.every(item => item.group && item.icon)), 'cada tarea debe pertenecer a un grupo y tener icono');
   assert.deepEqual(hub.groupedItems(hub.SECTIONS[4]).map(group => [group.name, group.items.length]), [
     ['Cuentas conectadas', 3],
-    ['Atención automática', 4]
+    ['Atención automática', 5]
   ]);
 });
 
@@ -76,9 +76,9 @@ test('la configuración se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-settings-hub.js', 'smyl-settings-hub.css', 'smyl-navigation.js', 'smyl-clinic-setup.js', 'smyl-professional-v3.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=12/);
+  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=13/);
   assert.match(read('app.html'), /smyl-settings-hub\.css\?v=5/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=12/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=13/);
   assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=5/);
 });
 
