@@ -47,3 +47,25 @@ test('web y móvil publican lo mismo', () => {
   assert.equal(js, read('mobile/www/smyl-schedule.js'));
   assert.equal(css, read('mobile/www/smyl-schedule.css'));
 });
+
+test('avisos: solo se piden «por enviar» si los recordatorios automáticos están activados y no se arrastran los viejos', () => {
+  const fn = new Function(js.match(/function remindersActive\(\)\{[^\n]*\n/)[0].replace('{var s=', '{var s=') + '\nreturn remindersActive;');
+  const make = (settings) => new Function('state', js.match(/function remindersActive\(\)\{[^\n]*\n/)[0] + '\nreturn remindersActive;')({ reminderSettings: settings });
+  assert.equal(make([])(), false, 'sin configuración = apagado');
+  assert.equal(make(undefined)(), false);
+  assert.equal(make([{ enabled: false, template_id: null, confirmation_enabled: false, confirmation_template_id: null }])(), false);
+  assert.equal(make([{ enabled: true, template_id: null }])(), false, 'activado sin plantilla aprobada tampoco envía');
+  assert.equal(make([{ enabled: true, template_id: 'tpl' }])(), true);
+  assert.equal(make([{ enabled: false, template_id: null, confirmation_enabled: true, confirmation_template_id: 'c1' }])(), true, 'basta con las confirmaciones');
+  // la lista de pendientes aplica esa regla y descarta avisos de hace más de 3 días
+  assert.match(js, /if\(!remindersActive\(\)\|\|new Date\(r\.scheduled_for\)\.getTime\(\)<now-3\*86400000\)return false;/);
+  // la configuración se carga con el resto de la agenda y queda en el mismo lugar del arreglo de nombres
+  assert.match(js, /optionalQuery\(window\.sb\.from\('smyl_reminder_settings'\)\.select\('enabled,template_id,confirmation_enabled,confirmation_template_id'\)/);
+  assert.match(js, /'negotiationDeliveries','reminderSettings','intakes'\]/);
+});
+
+test('la fila del aviso explica el motivo (p. ej. sin WhatsApp vinculado) en vez de solo la fecha', () => {
+  assert.match(js, /why=r\.last_error\?\(\/vinculada\/i\.test\(r\.last_error\)\?'sin WhatsApp vinculado'/);
+  assert.match(js, /\+\(why\?' · '\+why:''\)/);
+  assert.match(js, /'id,appointment_id,reminder_type,scheduled_for,status,delivery_channel,attempt_count,last_error,/, 'ya se pide last_error');
+});
