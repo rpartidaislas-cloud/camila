@@ -494,3 +494,9 @@ body.smyl-ui-governed #modal-paciente .fg>:is(input,select,textarea),body.smyl-u
   body.smyl-ui-governed #p-pacientes .clinic-patient-table .clinic-patient-actions .btn{min-height:44px}
   body.smyl-ui-governed #p-pacientes .clinic-patient-table td{font-size:var(--smyl-ui-text-body-sm,14px)}
 }
+/* Guía al llegar desde otro recorrido (mySmyl o Cotizar): título, pasos y una acción clara. */
+#clinic-portal-return{display:grid;gap:6px;justify-items:start;padding:16px 18px;border-color:#bcd7cb;background:#f1f8f4}
+#clinic-portal-return strong{font-size:15px;color:#173f36}
+#clinic-portal-return p{margin:0;font-size:14px;line-height:1.5;color:#31564e}
+#clinic-portal-return p:empty{display:none}
+#clinic-portal-return .btn{min-height:44px;margin-top:6px}

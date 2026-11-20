@@ -1,3 +1,12 @@
+## 2026-11-20 — Claude Code — Cotizar: el buscador muestra quién está listo y lleva directo a la propuesta
+
+- Ricardo probó «Nueva cotización» con un paciente sin plan: veía la pantalla «Antes de cotizar» y luego el expediente general. Se quitó ese rodeo.
+- `smyl-professional-v3.js` v14: al cotizar, el buscador consulta `smyl_clinical_plans` y muestra «Listo para cotizar» / «Propuesta sin revisar» / «Sin propuesta», con los listos primero. Elegir a alguien sin propuesta revisada abre su expediente directo en Tratamiento → Propuesta. Si la consulta de planes falla, el buscador funciona como antes.
+- `smyl-proposals.js` v26: `SmylProposals.openPlan(id)` abre el expediente en la propuesta con la guía «Para cotizar, termina la propuesta» y el botón «Cotizar ahora». La pantalla «Antes de cotizar» queda solo de respaldo (p. ej. desde otros accesos) y su botón usa el mismo atajo.
+- `smyl-clinic.js` v26: `SmylClinicalWorkflow.focus(tenant, patient, resume, options)` acepta título/texto/acción (mySmyl sigue igual). Si la propuesta aún no está revisada, explica qué falta en vez de no hacer nada. `smyl-clinic.css` v13 da formato a esa guía.
+- `smyl-professional-v3.css` v12: la ventana de tareas pasa de textos de 8–11 px a 12 px o más, filas de 58 px, etiquetas de estado y hoja inferior en celular.
+- `sw.js` (`-cotizar-listos-v1`) y copias en `mobile/www/`. Pruebas en `tests/smyl-quote-stages.test.mjs`.
+
 ## 2026-11-20 — Claude Code — Cotizaciones fase 6: «Iniciar tratamiento» en un solo recorrido
 
 - En la bandeja, una cotización **Aceptada** muestra «Iniciar tratamiento»: abre la creación de cargos de siempre y, al terminar, un paso a paso: Cargos ✓ → **Cobrar anticipo** → **Agendar primera cita** (más «Ver cuenta» y «Terminar»). Las «En tratamiento» muestran «Anticipo y cita» para retomar el recorrido sin duplicar cargos.

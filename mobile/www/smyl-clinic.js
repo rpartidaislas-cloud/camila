@@ -993,7 +993,9 @@
           available: ctx.ready && mounted, saving: ctx.saving, saved: !!ctx.row,
           assessment: !!doc?.assessment.trim(), treatments: !!doc?.treatments.some(function (t) { return t.name.trim(); }) };
       },
-      focus: function (tenant, patient, resume) {
+      // options (opcional): {title, text, action} para reutilizar la guía desde otros recorridos (p. ej. Cotizar).
+      focus: function (tenant, patient, resume, options) {
+        options = options || {};
         var ctx = current;
         if (!ctx || ctx.tenant !== tenant || ctx.patient !== patient || !ctx.canWrite) return false;
         var host = document.getElementById('clinic-content');
@@ -1001,8 +1003,9 @@
         window.SmylCaseWorkspace?.open('plan');
         document.getElementById('clinic-portal-return')?.remove();
         var guide = el('section', 'clinic-notice'); guide.id = 'clinic-portal-return';
-        guide.append(el('strong', '', '1 · Preparar la propuesta'), el('p'), button('Continuar con mySmyl', function () {
-          if (current === ctx && capturePatientReview(tenant, patient)) resume();
+        guide.append(el('strong', '', options.title || '1 · Preparar la propuesta'), el('p', '', options.text || ''), button(options.action || 'Continuar con mySmyl', function () {
+          if (current === ctx && capturePatientReview(tenant, patient)) { guide.remove(); resume(); return; }
+          var hint = guide.querySelector('p'); if (hint) hint.textContent = 'Primero guarda la valoración y los tratamientos y pulsa «Revisar propuesta».';
         }, 'btn btn-primary'));
         host.prepend(guide); status();
         guide.scrollIntoView({ block: 'center' });

@@ -491,8 +491,8 @@
       if(!plan||(!row&&plan.status!=='reviewed')){
         // Sin plan revisado no se cotiza: se explica y se lleva al expediente de ese paciente, no a la lista general.
         var who=[patient.nombre,patient.apellido].filter(Boolean).join(' ')||'este paciente',gate=n('section','proposal-plan-gate');
-        gate.append(n('p','pro-eyebrow','ANTES DE COTIZAR'),n('h2','',plan?'El plan de '+who+' tiene cambios sin revisar':who+' todavía no tiene plan de tratamiento'),n('p','','La cotización toma los tratamientos, piezas y precios del plan revisado. Así lo cotizado coincide con lo diagnosticado. Abre su expediente, completa el plan en Tratamiento y márcalo como revisado; después vuelve a «Nueva cotización».'));
-        var go=b('Abrir expediente de '+who,function(){if(typeof window.verPaciente==='function')window.verPaciente(patient.id);else ir('pacientes');},'btn btn-primary');go.id='proposal-gate-open';
+        gate.append(n('p','pro-eyebrow','ANTES DE COTIZAR'),n('h2','',plan?'El plan de '+who+' tiene cambios sin revisar':who+' todavía no tiene plan de tratamiento'),n('p','','La cotización toma los tratamientos, piezas y precios de la propuesta clínica revisada. Te llevamos a su expediente, en Tratamiento → Propuesta; al revisarla, pulsa «Cotizar ahora».'));
+        var go=b('Ir a la propuesta de '+who,function(){openPlanForQuote(patient.id);},'btn btn-primary');go.id='proposal-gate-open';
         gate.append(go,b('Volver a Cotizaciones',loadList));root.replaceChildren(gate);return;}
       if(token!==sequence||tenant!==tenantId)return;
       if(!row){var config=tenantData?.config||{};row={id:crypto.randomUUID(),tenant_id:tenant,patient_id:patient.id,patient_name:[patient.nombre,patient.apellido].filter(Boolean).join(' '),clinic_name:config.consultorio||tenantData?.nombre||'Clínica dental',professional_name:config.doctor||'',plan_revision:plan.revision,revision:0,status:'draft',document:M.fromPlan(plan)};}else row.document=M.normalize(row.document);
@@ -543,6 +543,19 @@
       root.append(n('p','proposal-privacy','Indicadores calculados sobre las últimas 100 propuestas visibles. La tasa usa únicamente decisiones registradas; no interpreta silencios como rechazo ni este seguimiento como firma o consentimiento.'));
     }catch(error){if(token===sequence){list.replaceChildren(notice(errorText(error),true),b('Volver a intentar',loadList));}}
   }
+  // Sin plan revisado no se cotiza: abre el expediente del paciente directo en Tratamiento → Propuesta, con una guía
+  // y el botón «Cotizar ahora» que solo continúa cuando la propuesta ya está revisada.
+  function openPlanForQuote(patientId){
+    if(!patientId||typeof window.verPaciente!=='function'){if(typeof window.ir==='function')window.ir('pacientes');return false;}
+    var tenant=window.tenantId;Promise.resolve(window.verPaciente(patientId)).catch(function(){});
+    var tries=0;(function ready(){
+      var flow=window.SmylClinicalWorkflow;
+      var done=flow&&typeof flow.focus==='function'&&flow.focus(tenant,patientId,function(){if(window.SmylProposals)window.SmylProposals.forPatient(patientId);},{title:'Para cotizar, termina la propuesta',text:'Escribe la valoración, elige los tratamientos y pulsa «Revisar propuesta». Después usa «Cotizar ahora».',action:'Cotizar ahora'});
+      if(!done&&tries++<100)setTimeout(ready,80);
+      else if(!done&&window.SmylCaseWorkspace&&typeof window.SmylCaseWorkspace.open==='function')window.SmylCaseWorkspace.open('plan');
+    })();
+    return true;
+  }
   function init(){
     document.querySelectorAll('.pro-primary-nav .pro-next').forEach(function(e){e.remove();});
     var dialog=n('dialog','proposal-preview-dialog');dialog.id='proposal-preview-dialog';dialog.setAttribute('aria-label','Vista de la propuesta para el paciente');
@@ -564,7 +577,7 @@
     window.addEventListener('smyl:inbox-access',resetChatLinks);
     window.addEventListener('smyl:chat-routing-changed',resetChatLinks);
     setTimeout(refreshQuoteBadge,7000);setInterval(refreshQuoteBadge,600000);
-    window.SmylProposals={forPatient:function(patientId){if(window.ir('propuestas')!==false)open(null,patientId);},openSaved:function(id){if(window.ir('propuestas')!==false)open(id);}};
+    window.SmylProposals={forPatient:function(patientId){if(window.ir('propuestas')!==false)open(null,patientId);},openSaved:function(id){if(window.ir('propuestas')!==false)open(id);},openPlan:openPlanForQuote};
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

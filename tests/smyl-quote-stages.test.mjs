@@ -52,7 +52,7 @@ test('el módulo crea cotizaciones solo eligiendo paciente y respeta el plan rev
   assert.match(ui,/SmylCareTasks\.open\('quote'\)/);
   assert.match(ui,/proposal-new/);
   assert.match(ui,/proposal-plan-gate/);
-  assert.match(ui,/window\.verPaciente\(patient\.id\)/);
+  assert.match(ui,/openPlanForQuote\(patient\.id\)/);
   assert.match(ui,/M\.stage\(/);
   assert.match(ui,/smyl_proposal_charge_batches/);
   assert.match(ui,/finance:perms\.has\('finance\.read'\)/);
@@ -85,4 +85,31 @@ test('el cobro guiado ofrece agendar como siguiente paso, sin hacerlo solo',()=>
 });
 test('una cotización ya convertida no duplica cargos al reabrir el recorrido',()=>{
   assert.match(finance,/if\(existing&&options\.guided&&existing\.proposal_id===proposalId\)\{treatmentSteps\(selected,existing,true\);return;\}/);
+});
+
+// ── Cotizar: el buscador muestra quién está listo y lleva directo a la propuesta ──
+const pro=read('smyl-professional-v3.js'),proCss=read('smyl-professional-v3.css'),clinic=read('smyl-clinic.js');
+test('el buscador de cotizar muestra el estado de la propuesta y ordena listos primero',()=>{
+  assert.match(pro,/from\('smyl_clinical_plans'\)\.select\('patient_id,status'\)/);
+  for(const text of ['Listo para cotizar','Propuesta sin revisar','Sin propuesta','Listos para cotizar · ','Necesitan propuesta · '])assert.match(pro,new RegExp(text));
+  assert.match(pro,/plan\.status==='reviewed'\?'ready':'draft'/);
+  // si falla la consulta de planes, el buscador funciona como antes (sin estados)
+  assert.match(pro,/catch\(_\)\{taskPlans=null;\}/);
+});
+test('elegir a alguien sin propuesta revisada abre su expediente en la propuesta, sin pantalla intermedia',()=>{
+  assert.match(pro,/button\.dataset\.plan!=='ready'&&window\.SmylProposals&&typeof window\.SmylProposals\.openPlan==='function'\)\{closeTask\(\);window\.SmylProposals\.openPlan\(id\);return;\}/);
+  assert.match(ui,/openPlan:openPlanForQuote/);
+  const helper=ui.slice(ui.indexOf('function openPlanForQuote'),ui.indexOf('  function init(){'));
+  assert.match(helper,/flow\.focus\(tenant,patientId,/);
+  assert.match(helper,/action:'Cotizar ahora'/);
+  assert.match(helper,/SmylCaseWorkspace\.open\('plan'\)/);
+});
+test('«Cotizar ahora» solo continúa con la propuesta revisada y si no, lo explica',()=>{
+  assert.match(clinic,/focus: function \(tenant, patient, resume, options\)/);
+  assert.match(clinic,/capturePatientReview\(tenant, patient\)\) \{ guide\.remove\(\); resume\(\); return; \}/);
+  assert.match(clinic,/pulsa «Revisar propuesta»/);
+});
+test('la ventana de tareas no usa microtexto en la versión nueva',()=>{
+  const block=proCss.slice(proCss.indexOf('/* Ventana de tareas v12'));
+  for(const m of block.matchAll(/font-size:(\d+(?:\.\d+)?)px/g))assert.ok(Number(m[1])>=12,'font-size '+m[1]);
 });
