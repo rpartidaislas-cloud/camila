@@ -220,11 +220,11 @@ test('web, móvil y PWA publican el pipeline', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
   for (const shell of [app, read('../mobile/www/app.html')]) {
-    assert.match(shell, /serviceWorker\.register\('sw\.js\?v=chat-message-actions-v1',\s*\{\s*updateViaCache:\s*'none'\s*}/);
+    assert.match(shell, /serviceWorker\.register\('sw\.js\?v=chat-message-actions-v2',\s*\{\s*updateViaCache:\s*'none'\s*}/);
   }
-  assert.match(app, /smyl-inbox\.js\?v=81/);
+  assert.match(app, /smyl-inbox\.js\?v=82/);
   assert.match(app, /smyl-inbox\.css\?v=69/);
-  assert.match(worker, /smyl-inbox\.js\?v=81/);
+  assert.match(worker, /smyl-inbox\.js\?v=82/);
   assert.match(worker, /smyl-inbox\.css\?v=69/);
 });
 

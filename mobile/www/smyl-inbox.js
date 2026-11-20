@@ -1368,9 +1368,10 @@
     var incoming = row.classList.contains('is-patient'), left = incoming ? anchor.right + 4 : anchor.left - width - 4;
     var sideFits = left >= leftEdge && left + width <= rightEdge;
     if (!sideFits) left = Math.max(leftEdge, Math.min(incoming ? anchor.left : anchor.right - width, rightEdge - width));
-    var top = sideFits ? anchor.top : anchor.bottom + 4;
+    var bubbleBounds = row.querySelector('.smyl-inbox-bubble').getBoundingClientRect();
+    var top = sideFits ? anchor.top : Math.max(anchor.bottom, bubbleBounds.bottom) + 4;
     var floor = Math.min(innerHeight - inset, bounds.bottom - inset), ceiling = Math.max(inset, bounds.top + inset);
-    if (top + height > floor) top = (sideFits ? anchor.bottom : anchor.top - 4) - height;
+    if (top + height > floor) top = (sideFits ? anchor.bottom : Math.min(anchor.top, bubbleBounds.top) - 4) - height;
     menu.style.left = Math.max(inset, Math.min(left, innerWidth - width - inset)) + 'px';
     menu.style.top = Math.max(ceiling, Math.min(top, floor - height)) + 'px';
     menu.style.maxHeight = Math.max(44, floor - ceiling) + 'px';

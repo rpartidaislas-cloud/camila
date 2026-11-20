@@ -70,7 +70,11 @@ for(const [width,touch] of [[1440,false],[834,true],[390,true]]){
       assert.equal(await menu.getByRole('menuitem').first().innerText(),'Responder');
       const m=await menu.boundingBox();assert.ok(m.x>=0&&m.y>=0&&m.x+m.width<=width+1&&m.y+m.height<=960,'menú dentro de pantalla');
       assert.equal(await button.getAttribute('aria-expanded'),'true');
-      if(id==='map-example')await page.screenshot({path:path.join(shots,'menu-'+width+'.png')});
+      if(id==='map-example'){
+        const b=await bubble.boundingBox();
+        assert.ok(m.x+m.width<=b.x||m.x>=b.x+b.width||m.y+m.height<=b.y||m.y>=b.y+b.height,'el menú no cubre la ubicación seleccionada');
+        await page.screenshot({path:path.join(shots,'menu-'+width+'.png')});
+      }
       if(id==='img-test')assert.equal(await menu.getByRole('menuitem',{name:'Enviar a revisión clínica'}).count(),1);
       await menu.getByRole('menuitem',{name:'Responder',exact:true}).click();
       const quote=page.locator('[data-compose-context]');await quote.waitFor();
