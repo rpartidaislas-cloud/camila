@@ -39,7 +39,7 @@ test('la etiqueta aparece en las tarjetas de semana y día, en la lista y en el 
 });
 
 test('se refresca al volver a la agenda y cuando Finanzas cambia algo', () => {
-  assert.match(js, /if\(route==='agenda'\)\{if\(state\.loaded\)loadBilling\(\);load\(false\);\}/);
+  assert.match(js, /if\(route==='agenda'\)\{if\(state\.loaded\)loadBilling\(\);load\(false\);setTimeout\(checkRemoteChanges,0\);\}/);
   assert.match(js, /window\.addEventListener\('smyl:finance-updated',function\(\)\{if\(state\.loaded\)loadBilling\(\);\}\)/);
   assert.match(read('smyl-finance.js'), /window\.dispatchEvent\(new CustomEvent\('smyl:finance-updated'\)\)/);
 });
@@ -55,7 +55,7 @@ test('la migración y las versiones quedan publicadas y sincronizadas con la app
   assert.ok(fs.existsSync(path.join(root, 'supabase/migrations/20261108150000_smyl_appointment_billing_status.sql')));
   assert.match(read('.github/workflows/smyl-pendientes-cargo-migracion.yml'), /20261108150000_smyl_appointment_billing_status\.sql/);
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-schedule\.js\?v=46/);
+    assert.match(read(file), /smyl-schedule\.js\?v=47/);
     assert.match(read(file), /smyl-schedule\.css\?v=34/);
   }
   for (const file of ['smyl-schedule.js', 'smyl-schedule.css', 'smyl-finance.js', 'app.html', 'sw.js']) {

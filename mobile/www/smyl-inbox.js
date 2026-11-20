@@ -4059,6 +4059,7 @@
     try {
       var created = await request('POST', {}, { action: 'appointment_request', conversation_id: state.selectedId, service_id: slot.service_id, branch_id: slot.branch_id, professional_id: slot.professional_id, starts_at: slot.starts_at }, uuid());
       await request('POST', {}, { action: 'appointment_confirm', conversation_id: state.selectedId, request_id: created.request_id }, uuid());
+      announceAppointmentsChanged();
       loadAppointmentContext(state.selectedId);
       if (window.SmylReminders) window.SmylReminders.dispatch(true);
       var notify = dialog && dialog.querySelector('[data-availability-notify]');
@@ -4079,12 +4080,18 @@
     document.querySelectorAll('[data-availability-mode]').forEach(function (button) { button.setAttribute('aria-pressed', String(button.dataset.availabilityMode === state.availabilityMode)); });
   }
 
+  // Avisa a la Agenda (y a quien escuche) que el chat creó una cita: así la Agenda no muestra datos viejos al abrirla.
+  function announceAppointmentsChanged() {
+    try { window.dispatchEvent(new CustomEvent('smyl:appointments-changed', { detail: { source: 'inbox' } })); } catch (_) {}
+  }
+
   async function confirmAvailabilityRequest(requestRow) {
     if (!window.confirm('¿Confirmar esta cita? SMYL volverá a comprobar la disponibilidad antes de guardarla.')) return;
     state.availabilityAction = 'confirm'; renderAvailabilityResults();
     try {
       var data = await request('POST', {}, { action: 'appointment_confirm', conversation_id: state.selectedId, request_id: requestRow.id }, uuid());
       requestRow.status = 'accepted'; requestRow.appointment_id = data.appointment_id;
+      announceAppointmentsChanged();
       loadAppointmentContext(state.selectedId);
       if (window.SmylReminders) window.SmylReminders.dispatch(true);
       window.alert('Cita confirmada en la Agenda. El chat no envió ningún mensaje automáticamente; si los recordatorios están activos, el paciente recibirá uno 24 horas antes.');
