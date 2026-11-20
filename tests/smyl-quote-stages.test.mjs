@@ -41,11 +41,11 @@ test('las respuestas en el enlace compartido piden acción del equipo',()=>{
 
 test('aceptada pasa a "en tratamiento" cuando ya hay cargos en Finanzas',()=>{
   const accepted=M.stage({today,plan,row:row(),event:ev('accepted')});
-  assert.equal(accepted.key,'accepted');assert.equal(accepted.action,true);assert.match(accepted.detail,/Finanzas/);
+  assert.equal(accepted.key,'accepted');assert.equal(accepted.action,true);assert.match(accepted.detail,/iniciar el tratamiento/);
   const converted=M.stage({today,plan,row:row(),event:ev('accepted'),batch:{created_at:'2026-11-12T16:00:00Z'}});
   assert.equal(converted.key,'converted');assert.equal(converted.action,false);
   const noFinance=M.stage({today,plan,row:row(),event:ev('accepted'),financeVisible:false});
-  assert.equal(noFinance.action,false);assert.doesNotMatch(noFinance.detail,/Finanzas/);
+  assert.equal(noFinance.action,false);assert.doesNotMatch(noFinance.detail,/iniciar el tratamiento/);
 });
 
 test('el módulo crea cotizaciones solo eligiendo paciente y respeta el plan revisado',()=>{
@@ -64,4 +64,25 @@ test('confirmar una aceptación por enlace registra presentada y aceptada, con c
   assert.match(fn,/record\(item,'presented'/);
   assert.match(fn,/record\(item,'accepted'/);
   assert.match(fn,/No sustituye el consentimiento informado/);
+});
+
+// ── Fase 6: iniciar tratamiento en un solo recorrido ──
+const finance=read('smyl-finance.js');
+test('aceptada: «Iniciar tratamiento» crea cargos y guía a anticipo y primera cita',()=>{
+  assert.match(ui,/b\('Iniciar tratamiento',function\(\)\{window\.SmylFinance\.fromProposal\(item\.row\.id,\{guided:true\}\)/);
+  assert.match(ui,/key==='converted'&&access\.finance/);
+  assert.match(finance,/fromProposal:function\(id,options\)/);
+  assert.match(finance,/if\(options\.guided\)treatmentSteps\(proposal,batch,false\);else openAccount/);
+  const steps=finance.slice(finance.indexOf('function treatmentSteps'),finance.indexOf('async function openProposalCharge'));
+  for(const text of ['Cobrar anticipo','Agendar primera cita','Ver cuenta','Terminar'])assert.match(steps,new RegExp(text));
+  assert.match(steps,/openPayment\(pid,\{mode:'balance',after:canSchedule\?'schedule':''\}\)/);
+  assert.match(steps,/if\(!state\.canManage\)pay\.disabled=true/);
+});
+test('el cobro guiado ofrece agendar como siguiente paso, sin hacerlo solo',()=>{
+  assert.match(finance,/function paymentSuccess\(payment,receipt,snapshot,after\)/);
+  assert.match(finance,/after==='schedule'\?'<button type="button" class="btn btn-primary" data-success-schedule>Siguiente: agendar primera cita/);
+  assert.match(finance,/receipt,snapshot,options\.after\);/);
+});
+test('una cotización ya convertida no duplica cargos al reabrir el recorrido',()=>{
+  assert.match(finance,/if\(existing&&options\.guided&&existing\.proposal_id===proposalId\)\{treatmentSteps\(selected,existing,true\);return;\}/);
 });

@@ -43,7 +43,7 @@ test('el lenguaje visible adopta Finanzas en navegación y configuración', () =
   assert.match(read('smyl-professional-v3.js'), /caja:\['Finanzas','Saldos, pagos y control financiero de la clínica'\]/);
   assert.match(read('smyl-settings-hub.js'), /id: 'cobros', title: 'Finanzas'/);
   assert.match(read('smyl-consultorio.js'), /Ir a Finanzas/);
-  assert.match(read('smyl-proposals.js'), /Pasar a Finanzas/);
+  assert.match(read('smyl-proposals.js'), /Iniciar tratamiento/);
 });
 
 test('la capa visual nueva evita microtexto y se adapta a PWA', () => {
@@ -60,7 +60,7 @@ test('web y PWA comparten la misma entrega versionada', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-navigation.js', 'smyl-professional-v3.js', 'smyl-settings-hub.js', 'smyl-consultorio.js', 'smyl-proposals.js', 'app.html', 'sw.js']) {
     assert.equal(read(file), read('mobile/www/' + file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=44/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=59/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=45/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=60/);
   assert.match(read('sw.js'), /finanzas-workspace-v5/);
 });

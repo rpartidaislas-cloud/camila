@@ -22,7 +22,7 @@ test('los cargos nuevos exigen aceptación de la revisión vigente en servidor',
 test('la activación separa aceptación, caja y agenda',()=>{
   for(const text of ['ACTIVACIÓN','Iniciar tratamiento','Crear cargos en Caja','Agendar primera cita','Aprobar internamente no autoriza cargos ni citas'])assert.match(proposals,new RegExp(text));
   assert.match(proposals,/function acceptedCurrent/);
-  assert.match(proposals,/SmylFinance\.fromProposal\(ctx\.row\.id\)/);
+  assert.match(proposals,/SmylFinance\.fromProposal\(ctx\.row\.id,\{guided:true\}\)/);
   assert.match(proposals,/SmylSchedule\.forPatient\(ctx\.row\.patient_id\)/);
   assert.match(proposals,/La aceptación no sustituye el consentimiento informado/);
   assert.match(css,/proposal-activation/);
@@ -44,7 +44,7 @@ test('caja sólo muestra cotizaciones aceptadas o lotes ya existentes',()=>{
 
 test('web, móvil y PWA distribuyen la activación de tratamiento',()=>{
   assert.match(app,/smyl-proposals\.css\?v=16/);
-  assert.match(app,/smyl-proposals\.js\?v=24/);
+  assert.match(app,/smyl-proposals\.js\?v=25/);
   assert.match(app,/smyl-schedule\.js\?v=(?:1[1-9]|[2-9][0-9])/);
   assert.match(app,/smyl-finance\.js\?v=(?:1[6-9]|[2-9][0-9])/);
   assert.match(sw,/smyl-v263-lana-connection-recovery/);

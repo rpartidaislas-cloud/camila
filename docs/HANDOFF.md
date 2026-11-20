@@ -1,3 +1,9 @@
+## 2026-11-20 — Claude Code — Cotizaciones fase 6: «Iniciar tratamiento» en un solo recorrido
+
+- En la bandeja, una cotización **Aceptada** muestra «Iniciar tratamiento»: abre la creación de cargos de siempre y, al terminar, un paso a paso: Cargos ✓ → **Cobrar anticipo** → **Agendar primera cita** (más «Ver cuenta» y «Terminar»). Las «En tratamiento» muestran «Anticipo y cita» para retomar el recorrido sin duplicar cargos.
+- `smyl-finance.js` v60: `fromProposal(id,{guided:true})`, `treatmentSteps()`; `openPayment(...,{after:'schedule'})` y el recibo ofrece «Siguiente: agendar primera cita». Cada paso abre el flujo existente con sus permisos y confirmaciones; nada se cobra ni agenda solo. Sin backend nuevo.
+- `smyl-finance.css` v45, `smyl-proposals.js` v25, `smyl-proposal-model.js` v4, `sw.js` (`-iniciar-tratamiento-v1`) y copias móviles. Pruebas en `tests/smyl-quote-stages.test.mjs`; textos actualizados en pruebas de finanzas/activación.
+
 ## 2026-11-20 — Claude Code — Cotizaciones: un solo camino para crear y estados claros (fases 1 y 2)
 
 - Decisión con Ricardo: la cotización **se crea desde el paciente** (plan clínico revisado) y el módulo Cotizaciones es la **bandeja de seguimiento**. No hay cotizaciones sueltas.

@@ -61,7 +61,7 @@ test('acciones rápidas por etapa, con permiso de seguimiento y sin enviar nada 
     const p = read(base + 'smyl-proposals.js');
     assert.match(p, /access\.followup&&key==='ready'\)box\.append\(b\('Marcar presentada'/);
     assert.match(p, /access\.followup&&key==='awaiting'\)box\.append\(b\('Registrar respuesta'/);
-    assert.match(p, /key==='accepted'&&window\.SmylFinance&&typeof window\.SmylFinance\.fromProposal==='function'\)box\.append\(b\('Pasar a Finanzas'/);
+    assert.match(p, /key==='accepted'&&window\.SmylFinance&&typeof window\.SmylFinance\.fromProposal==='function'\)box\.append\(b\('Iniciar tratamiento'/);
     assert.match(p, /smyl_record_proposal_event',\{p_event_id:eventId,p_proposal_id:item\.row\.id,p_proposal_revision:item\.row\.revision/);
     assert.match(p, /if\(\(type==='declined'\|\|type==='changes_requested'\)&&!text\)/);
     assert.match(p, /from\('camila_lana_handoffs'\)\.select\('patient_id,lana_conversation_id,lana_channel,updated_at'\)/);
