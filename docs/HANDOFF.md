@@ -1,3 +1,9 @@
+## 2026-11-20 — Claude — Cabecera del menú sin el cuadro «S»
+
+- Solicitud de Ricardo: quitar el cuadro con la «S» que iba a un lado del logo de smyl.
+- Regla en `app.html` (con mayor especificidad que `smyl-ui-template-v3.css`, sin cambiar su versión): con el menú abierto la cabecera muestra solo el logo y el nombre de la clínica. Con el menú colapsado la «S» se queda, porque ahí el logo se oculta y es la única marca visible.
+- `sw.js` registro `cabecera-sin-s-v1`; copias idénticas en `mobile/www/`.
+
 ## 2026-11-20 — Claude — Selector de consultorio compacto en el menú lateral
 
 - Solicitud de Ricardo: el texto «Todos (vista global)» del selector de consultorio se veía demasiado grande.

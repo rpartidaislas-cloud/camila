@@ -122,6 +122,8 @@ body.branch-scope-all .sb-branch-icon::after{content:"";position:absolute;top:-3
 body.smyl-sidebar-collapsed .sb-branch{padding:2px 8px 10px}
 body.smyl-sidebar-collapsed .sb-branch label,body.smyl-sidebar-collapsed :is(.sb-branch-value,.sb-branch-chev){display:none}
 body.smyl-sidebar-collapsed .sb-branch-field{justify-content:center;padding:0}
+/* Cabecera: solo el logo de smyl; el cuadro con la «S» queda únicamente con el menú colapsado. */
+body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .sb-logo::before{display:none}
 .sb-logo{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:8px}
 .sb-logo-icon{display:flex;align-items:center;flex-shrink:0}
 .sb-logo h1{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.3px}
