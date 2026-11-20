@@ -1,3 +1,10 @@
+## 2026-11-20 — Claude Code — Ventana «Preparar cotización»: pestañas y continuar cotizaciones existentes
+
+- `smyl-professional-v3.js` v15: pestañas **Listos / Por completar / Todos** con contadores (la búsqueda busca en todos y agrupa). Si nadie está listo, abre en «Todos». Enter elige el primer resultado.
+- Si el paciente ya tiene una cotización hecha sobre **la misma revisión** de su propuesta, se muestra «Cotización en borrador» o «Cotización aprobada» y al elegirlo **se continúa esa** (`SmylProposals.openSaved`) en vez de crear un duplicado. Consulta `smyl_proposals` (`id, patient_id, status, plan_revision, updated_at`); si falla, se comporta como antes.
+- Listos muestran «Propuesta revisada el …» (`smyl_clinical_plans.reviewed_at`). Abierta desde Cotizaciones ya no muestra «← Volver / Paso 2 de 2».
+- `smyl-professional-v3.css` v13: pestañas, etiqueta azul para cotización en curso, la lista se ajusta a su contenido (máx. ~470 px) y hoja inferior en celular. `sw.js` (`-cotizar-ventana-v2`) y copias móviles. Pruebas en `tests/smyl-quote-stages.test.mjs`.
+
 ## 2026-11-20 — Claude Code — Cotizar: el buscador muestra quién está listo y lleva directo a la propuesta
 
 - Ricardo probó «Nueva cotización» con un paciente sin plan: veía la pantalla «Antes de cotizar» y luego el expediente general. Se quitó ese rodeo.

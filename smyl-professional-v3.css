@@ -116,3 +116,33 @@ body.smyl-ui-governed .contenido>#app-copyright{position:static;z-index:auto;hei
   .pro-task-patients>button em{grid-column:2;justify-self:start;margin-top:-4px}
   .pro-task-patients>button>b{grid-column:3;grid-row:1}
 }
+/* Ventana de tareas v13: pestañas al cotizar, cotización en curso y lista que aprovecha la altura. */
+.pro-task-dialog{width:min(600px,calc(100% - 28px));max-height:min(860px,calc(100vh - 34px))}
+.pro-task-shell{display:flex;flex-direction:column;max-height:min(860px,calc(100vh - 34px))}
+.pro-task-shell>[data-task-body]{display:flex;flex-direction:column;min-height:0}
+.pro-task-step h2{padding-right:44px}
+.pro-task-tabs{display:flex;gap:4px;margin:0 0 10px;padding:4px;border-radius:12px;background:#eef3f5}
+.pro-task-tabs[hidden]{display:none}
+.pro-task-tabs button{flex:1;min-height:40px;padding:6px 10px;border:0;border-radius:9px;background:transparent;color:#4f6370;font:600 13px Inter,sans-serif;cursor:pointer;white-space:nowrap}
+.pro-task-tabs button span{display:inline-block;min-width:22px;margin-left:4px;padding:1px 7px;border-radius:999px;background:#dfe7eb;color:#3d5260;font-size:12px}
+.pro-task-tabs button[aria-selected="true"]{background:#fff;color:#172b3a;box-shadow:0 1px 3px rgba(16,40,59,.14)}
+.pro-task-tabs button[aria-selected="true"] span{background:#dff3e7;color:#17643f}
+.pro-task-tabs button:focus-visible{outline:2px solid #679ea1;outline-offset:1px}
+.pro-task-patients{flex:1 1 auto;min-height:220px;max-height:none;height:min(470px,calc(100vh - 330px))}
+.pro-task-patients>button[data-quote] em{background:#e7eef9;color:#315a8d}
+.pro-task-patients>button[data-quote]>i{background:#e7eef9;color:#315a8d}
+.pro-task-new-patient{flex-shrink:0}
+@media(max-width:600px){
+  .pro-task-dialog,.pro-task-shell{max-height:100dvh}
+  .pro-task-tabs button{padding:6px 6px;font-size:12px}
+  .pro-task-patients{height:calc(100dvh - 330px)}
+}
+.pro-task-patients{display:grid;grid-auto-rows:max-content;align-content:start}
+.pro-task-patients>button{min-height:58px;height:auto}
+@media(max-width:600px){
+  .pro-task-dialog{inset:auto 0 0 0;width:auto;max-width:none;margin:0}
+  .pro-task-tabs button{flex:1 1 auto;min-width:0;padding:6px 4px}
+  .pro-task-tabs button span{margin-left:3px;padding:1px 6px}
+}
+.pro-task-patients{height:auto;min-height:0;max-height:min(470px,calc(100vh - 330px))}
+@media(max-width:600px){.pro-task-patients{max-height:calc(100dvh - 330px)}}
