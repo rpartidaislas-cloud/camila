@@ -12,7 +12,7 @@ test('la agenda comunica tiempo, profesional y consultorio como recursos clínic
   assert.match(schedule, /fmtRange\(a\)/);
   assert.match(schedule, /durationLabel\(a,s\)/);
   assert.match(schedule, /Atiende/);
-  assert.match(schedule, /Todos los sillones/);
+  assert.doesNotMatch(schedule, /Todos los sillones/, 'el filtro de sillón se quitó de la agenda');
   assert.match(schedule, /Sin sillón/);
 });
 

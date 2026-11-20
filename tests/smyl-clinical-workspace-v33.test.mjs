@@ -47,7 +47,8 @@ test('Inicio usa una sola fuente de prioridades y nunca anuncia Todo al día si 
 test('Agenda identifica filtros, reserva el periodo y mantiene texto clínico de 12px o más', () => {
   const agenda = read('smyl-schedule.js');
   const css = read('smyl-schedule.css');
-  for (const label of ['Sucursal', 'Profesional', 'Sillón']) assert.match(agenda, new RegExp(`<span>${label}<\\/span>`));
+  for (const label of ['Sucursal', 'Profesional']) assert.match(agenda, new RegExp(`<span>${label}<\\/span>`));
+  assert.doesNotMatch(agenda, /<span>Sillón<\/span>/, 'el filtro de sillón se quitó de la agenda');
   assert.match(agenda, /id="schedule-period" aria-live="polite">(?:<span class="sk[^>]*><\/span><span class="sk-sr">)?Cargando fechas…/);
   assert.match(css, /Agenda Clinical Workspace v4/);
   assert.match(css, /--schedule-type-meta:var\(--smyl-ui-text-meta,12px\)/);

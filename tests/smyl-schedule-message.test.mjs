@@ -91,7 +91,7 @@ test('la agenda oculta los filtros con una sola opción y la franja de pendiente
   const schedule = read('smyl-schedule.js');
   assert.match(schedule, /\[\[branch,state\.branches\.filter\(function\(x\)\{return x\.active;\}\)\.length<2\]/);
   assert.match(schedule, /\[prof,state\.professionals\.length<2\]/);
-  assert.match(schedule, /\[room,state\.rooms\.filter/);
+  assert.doesNotMatch(schedule, /\[room,state\.rooms\.filter/, 'ya no hay filtro de sillón');
   assert.match(schedule, /closest\('\.schedule-filter'\)/);
   assert.match(schedule, /if\(!pending\)\{host\.hidden=true/);
   assert.match(read('smyl-schedule.css'), /\.schedule-focus\[hidden\]\{display:none\}/);
