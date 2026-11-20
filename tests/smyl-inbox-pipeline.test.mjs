@@ -222,9 +222,9 @@ test('web, móvil y PWA publican el pipeline', () => {
   for (const shell of [app, read('../mobile/www/app.html')]) {
     assert.match(shell, /serviceWorker\.register\('sw\.js\?v=inbox-thread-ux-5',\s*\{\s*updateViaCache:\s*'none'\s*}/);
   }
-  assert.match(app, /smyl-inbox\.js\?v=79/);
+  assert.match(app, /smyl-inbox\.js\?v=80/);
   assert.match(app, /smyl-inbox\.css\?v=68/);
-  assert.match(worker, /smyl-inbox\.js\?v=79/);
+  assert.match(worker, /smyl-inbox\.js\?v=80/);
   assert.match(worker, /smyl-inbox\.css\?v=68/);
 });
 
