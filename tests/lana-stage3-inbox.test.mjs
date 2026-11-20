@@ -18,8 +18,8 @@ test('SMYL provides a responsive operational inbox and canonical LANA thread', (
   assert.doesNotMatch(inbox, /Sincronización segura|Actualizado ahora/);
   assert.match(styles, /grid-template-columns:332px minmax\(420px,1fr\) 268px/);
   assert.match(styles, /@media\(max-width:760px\)/);
-  assert.match(app, /smyl-inbox\.js\?v=81/);
-  assert.match(app, /smyl-inbox\.css\?v=69/);
+  assert.match(app, /smyl-inbox\.js\?v=84/);
+  assert.match(app, /smyl-inbox\.css\?v=71/);
   assert.match(worker, /smyl-v263-lana-connection-recovery/);
 });
 

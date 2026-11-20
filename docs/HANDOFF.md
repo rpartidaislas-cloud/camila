@@ -1,3 +1,36 @@
+## 2026-11-20 — Claude — Menú propio para el selector de consultorio y los filtros de Agenda
+
+- Solicitud de Ricardo: el desplegable de sucursales (lista nativa de Windows) se veía plano y con letra grande; mejorarlo, junto con los filtros de la Agenda.
+- `smyl-select-menu.js` / `.css` v1 (nuevos): en computadora (`(hover: hover) and (pointer: fine)`) el clic o Enter/Espacio/flechas sobre el selector abren una tarjeta propia: inicial en círculo de color por sucursal/profesional, ✓ en la activa, «Todos…» separado con punto ámbar, buscador desde 7 opciones, teclado (flechas, Enter, Esc, Tab) y cierre al hacer clic fuera, desplazar o cambiar el tamaño. Variante oscura para el menú lateral. Crece hasta 360 px para no cortar nombres.
+- El `<select>` sigue siendo la fuente de verdad (opciones releídas al abrir, al elegir emite `input` y `change`): `smyl-branch-scope.js` y `smyl-schedule.js` no cambian. Aplica solo a `#sb-branch-select` y a los filtros `#p-agenda .schedule-filter select`; el resto de selectores no se toca.
+- En celular y tableta no intercepta nada: queda el selector del sistema con sus 16 px (sin zoom de iPhone). En computadora los filtros de Agenda pasan a 36 px de alto y 13 px.
+- `app.html`, `sw.js` (precache + registro `menu-selectores-v1`), copias idénticas en `mobile/www/`. Pruebas: `tests/smyl-select-menu.test.mjs` y `tests/smyl-select-menu-browser.test.mjs` (Chromium: clic, teclado, búsqueda, Escape, clic fuera, celular), fixture `tests/fixtures/smyl-select-menu-preview.html`. Suite completa: mismas 6 fallas preexistentes de inventario/chat/relevo que en `main`.
+
+## 2026-11-20 — Claude — Cabecera del menú sin el cuadro «S»
+
+- Solicitud de Ricardo: quitar el cuadro con la «S» que iba a un lado del logo de smyl.
+- Regla en `app.html` (con mayor especificidad que `smyl-ui-template-v3.css`, sin cambiar su versión): con el menú abierto la cabecera muestra solo el logo y el nombre de la clínica. Con el menú colapsado la «S» se queda, porque ahí el logo se oculta y es la única marca visible.
+- `sw.js` registro `cabecera-sin-s-v1`; copias idénticas en `mobile/www/`.
+
+## 2026-11-20 — Claude — Selector de consultorio compacto en el menú lateral
+
+- Solicitud de Ricardo: el texto «Todos (vista global)» del selector de consultorio se veía demasiado grande.
+- Causa: la regla global `input,textarea,select{font-size:16px!important}` (evita el zoom de iPhone al tocar un campo) también agrandaba el selector del menú.
+- `smyl-branch-scope.js` v4: el selector se dibuja como una fila del menú (icono de edificio, nombre del consultorio a 13 px, flecha) y el `<select>` nativo va encima, transparente, conservando sus 16 px: se ve pequeño y el iPhone sigue sin hacer zoom. La opción global ahora dice «Todos los consultorios»; en vista global, en lugar del borde ámbar grueso, un punto ámbar sobre el icono. Con el menú colapsado solo queda el icono. Sin cambios de datos ni permisos.
+- `app.html` (estilos `.sb-branch*`), `sw.js` (`?v=4`, registro `selector-consultorio-v1`) y copias idénticas en `mobile/www/`. Prueba del módulo actualizada a v4.
+## 2026-11-19 — Codex — Menú lateral sin cubrir la tarjeta seleccionada en móvil
+
+- Revisión final del chat: cuando el menú no cabe a un costado, se calcula su posición desde el borde completo de la burbuja, no desde el botón. Así la tarjeta de ubicación permanece visible al abrir opciones en pantallas estrechas. Se conserva el límite de pantalla para mensajes más altos que el área disponible.
+- Inbox JS 82 / CSS 69, registro PWA `chat-message-actions-v2`, copias móviles y referencias de pruebas actualizadas. El recorrido de navegador comprueba además que el menú no intersecte la tarjeta de ubicación a 390, 834 y 1440 px.
+
+## 2026-11-19 — Codex — Opciones fuera de las burbujas y respuesta sobre el compositor
+
+- Solicitud de Ricardo: tres puntos fuera de cada burbuja, referencia del mensaje encima de donde escribe, computadora y celular, con publicación autorizada.
+- `smyl-inbox.js` v81 y `smyl-inbox.css` v69: botón lateral de 44 px con espacio reservado; visible al pasar el cursor o enfocar con teclado, permanente en pantallas táctiles. Menú con Responder, Destacar, Reenviar y acciones existentes según permisos. Cierra al salir, desplazar el historial, cambiar de conversación o pulsar Escape; el sondeo no lo interrumpe. Funciona también en Pipeline.
+- La referencia de respuesta muestra autor y vista breve de texto, ubicación o archivo, sobre el campo de escritura. La X conserva el borrador. Se mantiene el ID del mensaje citado en el envío. Sin cambios de API, permisos, backend ni datos reales.
+- `app.html`, `sw.js`, copias idénticas en `mobile/www/`, registro PWA `chat-message-actions-v1`, fixture y pruebas de versiones actualizados. Launcher móvil intacto.
+- Validación: 132 pruebas distintas aprobadas (114 de regresión, incluidas 3 recorridas luego con Chromium, y 18 de navegador), 9 controles de release, sintaxis y diff limpios. Revisión visual con la cascada completa de la app a 1440, 834 y 390 px, mensajes de texto/ubicación/imagen/documento, teclado, borrador, cancelación y respuesta simulada con ID correcto. Los recorridos usan datos ficticios, imágenes locales y envío interceptado en memoria.
+
 ## 2026-11-19 — Codex — Modalidad de compras por tenant y solicitudes al centro
 - **Solicitud explícita de Ricardo:** el administrador elige la modalidad; sucursales solicitan al centro o compran al proveedor según lo habilitado. Continúa la publicación autorizada de inventario de PR #214.
 - **Pantalla:** `smyl-inventory-routing.js` v1, procurement v2, inventario v22/CSS v15; acceso desde Configuración → Clínica → Modalidad de compras (`smyl-settings-hub.js` v12). Sin selector de modalidad en cada compra. Configuración, solicitudes internas, revisión, consolidación de aprobadas, entrega física y confirmación. Web/caché/copias móviles sincronizadas; no se modifica el launcher móvil.
@@ -7,6 +40,19 @@
 - **Pruebas:** migraciones reales en PGlite, roles y tenants distintos, recepción histórica, parcialidades y reintentos; recorridos de catálogo y compras + administrador/sucursal en navegador, escritorio/tablet/celular. 93 pruebas locales aprobadas, 2 recorridos de navegador aprobados y 9 controles del release gate. Migración aplicada y registrada en producción; 5 tablas con RLS, sin escritura directa y función heredada privada. Lint sin errores nuevos; permanecen el error ajeno de MILA y avisos de radiografías. Frontend se publica mediante GitHub Pages; GitHub Actions conserva el bloqueo de facturación preexistente.
 
 # Bitácora compartida — SMYL
+
+## 2026-11-19 — Conversación móvil
+
+- En un hilo de hasta 700 px, la cabecera muestra al paciente, la acción principal y «Opciones del chat». El panel reúne los controles existentes de responsable, sucursal y asistente; la nota privada se sigue consultando desde el responsable. En un hilo más ancho los mismos controles regresan a la cabecera.
+- Hasta 640 px, las herramientas, el campo de respuesta, MILA y el envío comparten una fila. El campo crece con el texto y vuelve a compactarse al vaciarlo. Cuando WhatsApp requiere una plantilla se conserva su botón específico.
+- El historial agrupa por fecha y muestra la hora en cada mensaje. En celular el editor aprovecha la altura visible del navegador al cambiar el teclado. Recursos de chat JS v83 y CSS v70, con copias en `mobile/www` y clave de caché `chat-compact-v1`.
+
+## 2026-11-19 — Inicio de la clínica
+
+- La jornada, las áreas que requieren atención, los mensajes y el resumen mensual comparten una cuadrícula que responde al ancho disponible. En celular conservan ese orden en una columna. La acción principal es «Nueva cita». «Ver agenda» y «Solo mis citas» están en la jornada.
+- Cada área de atención muestra el motivo y una acción. El indicador cuenta áreas distintas. Si falta información de agenda y alertas, Inicio informa que los pendientes siguen sin actualizar. Los indicadores mensuales distinguen un saldo o conteo de cero de un dato no disponible.
+- La guía de configuración se abre desde una fila al final de Inicio. Mantiene los pasos, los permisos y la opción de ocultarla por hoy.
+- Recursos de web y móvil sincronizados en `smyl-daily-home.js` v20, `smyl-dashboard-v2.css` v2 y `smyl-clinic-setup` JS v7 / CSS v5. La caché del PWA usa `dashboard-operativo-v3`. El recorrido de navegador de Inicio cubre escritorio, tableta y celular con datos de prueba.
 
 ## 2026-11-19 — Tipografía del chat y nota privada de relevo
 

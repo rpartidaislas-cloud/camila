@@ -93,32 +93,61 @@
     return b ? b.name : '';
   }
 
+  // Icono de edificio (SVG armado con createElementNS: este módulo nunca inserta HTML como texto).
+  function buildingIcon(doc) {
+    var NS = 'http://www.w3.org/2000/svg';
+    var svg = doc.createElementNS(NS, 'svg');
+    [['viewBox', '0 0 24 24'], ['width', '16'], ['height', '16'], ['fill', 'none'], ['stroke', 'currentColor'], ['stroke-width', '1.8'], ['stroke-linecap', 'round'], ['stroke-linejoin', 'round'], ['aria-hidden', 'true']]
+      .forEach(function (a) { svg.setAttribute(a[0], a[1]); });
+    ['M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16', 'M16 9h2a2 2 0 0 1 2 2v10', 'M3 21h18', 'M8 7h4M8 11h4M8 15h4'].forEach(function (d) {
+      var path = doc.createElementNS(NS, 'path'); path.setAttribute('d', d); svg.appendChild(path);
+    });
+    return svg;
+  }
+
+  // Selector compacto: se ve como una fila del menú (icono, nombre, flecha) y encima va el <select> nativo transparente.
+  // El select conserva sus 16 px (en iPhone, menos de 16 px hace zoom al tocarlo) pero el texto visible es pequeño.
   function render() {
-    var host = root.document && root.document.getElementById('sb-branch-scope');
+    var doc = root.document;
+    var host = doc && doc.getElementById('sb-branch-scope');
     if (host && host.parentNode) host.parentNode.removeChild(host);
     var show = state.branches.length > 1;
-    if (root.document && root.document.body) root.document.body.classList.toggle('branch-scope-all', state.active === ALL);
-    if (!show || !root.document) return;
-    var logo = root.document.querySelector('.sb-logo');
+    if (doc && doc.body) doc.body.classList.toggle('branch-scope-all', state.active === ALL);
+    if (!show || !doc) return;
+    var logo = doc.querySelector('.sb-logo');
     if (!logo) return;
-    var box = root.document.createElement('div');
+    var box = doc.createElement('div');
     box.id = 'sb-branch-scope';
     box.className = 'sb-branch';
-    var title = root.document.createElement('label');
+    var title = doc.createElement('label');
     title.setAttribute('for', 'sb-branch-select');
     title.textContent = 'Consultorio';
-    var select = root.document.createElement('select');
+    var field = doc.createElement('div');
+    field.className = 'sb-branch-field';
+    field.title = label(state.active);
+    var icon = doc.createElement('span');
+    icon.className = 'sb-branch-icon';
+    icon.appendChild(buildingIcon(doc));
+    var value = doc.createElement('span');
+    value.className = 'sb-branch-value';
+    value.textContent = label(state.active);
+    var chev = doc.createElement('span');
+    chev.className = 'sb-branch-chev';
+    chev.setAttribute('aria-hidden', 'true');
+    chev.textContent = '\u25BE';
+    var select = doc.createElement('select');
     select.id = 'sb-branch-select';
     select.setAttribute('aria-label', 'Consultorio que administras');
     state.branches.forEach(function (b) {
-      var o = root.document.createElement('option'); o.value = b.branch_id; o.textContent = b.name; select.appendChild(o);
+      var o = doc.createElement('option'); o.value = b.branch_id; o.textContent = b.name; select.appendChild(o);
     });
     if (state.canAll) {
-      var all = root.document.createElement('option'); all.value = ALL; all.textContent = 'Todos (vista global)'; select.appendChild(all);
+      var all = doc.createElement('option'); all.value = ALL; all.textContent = 'Todos los consultorios'; select.appendChild(all);
     }
     select.value = state.active;
-    select.onchange = function () { choose(select.value); };
-    box.appendChild(title); box.appendChild(select);
+    select.onchange = function () { value.textContent = label(select.value); choose(select.value); };
+    field.appendChild(icon); field.appendChild(value); field.appendChild(chev); field.appendChild(select);
+    box.appendChild(title); box.appendChild(field);
     logo.parentNode.insertBefore(box, logo.nextSibling);
   }
 

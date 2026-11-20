@@ -69,7 +69,7 @@ test('la pantalla solo navega: no escribe datos y no guarda secretos', () => {
   assert.doesNotMatch(source, /token|secret|api[_-]?key/i);
   assert.match(source, /localStorage/);
   assert.match(source, /catch \(_\) \{ return null; \}/);
-  assert.match(read('smyl-clinic-setup.js'), /results: function \(\) \{ return state\.results; \}/);
+  assert.match(read('smyl-clinic-setup.js'), /results: function \(\) \{ return isOwner\(\) && state\.tenant === window\.tenantId \? state\.results : null; \}/);
 });
 
 test('la configuración se distribuye igual en web, móvil y PWA', () => {

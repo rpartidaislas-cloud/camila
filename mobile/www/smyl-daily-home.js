@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var state = { loading:false, loaded:false, tenant:null, appointments:[], requests:[], patients:[], services:[], messages:null, error:'', chats:null, chatsError:false, chatsLoading:false, chatsAt:0, tasks:null, month:null, monthLoading:false, monthAt:0, access:null, accessTenant:null };
+  var state = { loading:false, loaded:false, tenant:null, appointments:[], requests:[], patients:[], services:[], messages:null, error:'', chats:null, chatsError:false, chatsLoading:false, chatsVersion:0, chatsAt:0, tasks:null, month:null, monthLoading:false, monthAt:0, access:null, accessTenant:null };
 
   function el(tag, cls, text) { var node=document.createElement(tag); if(cls)node.className=cls; if(text!=null)node.textContent=text; return node; }
   function esc(value) { return String(value==null?'':value).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
@@ -20,6 +20,7 @@
   function activeAppointments() { var mine=mineOnly()?state.access.professionalId:null; return state.appointments.filter(function(row){return row.status!=='cancelled'&&(!mine||row.professional_id===mine);}); }
   function query(builder) { return Promise.resolve(typeof window.sbTimeout==='function'?window.sbTimeout(builder):builder).then(function(result){if(result&&result.error)throw result.error;return result&&result.data||[];}); }
   var STATUS={confirmed:'Confirmada',arrived:'Ya llegó',in_progress:'En consulta',completed:'Terminada',no_show:'No vino'};
+  var renderedPriorities=null;
   function ymd(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   function money(v) { return new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}).format(Number(v)||0); }
   function flag(key,value) {
@@ -33,21 +34,70 @@
     return hour<12?'Buenos días':hour<19?'Buenas tardes':'Buenas noches';
   }
 
+  function refreshHeading(root) {
+    root.querySelector('[data-home-date]').textContent=capitalize(fmtDate(new Date()));
+    root.querySelector('[data-home-greeting]').textContent=greeting();
+  }
+
   function build() {
     var home=document.getElementById('p-dashboard');
     if(!home||document.getElementById('smyl-daily-home'))return;
     home.classList.add('has-daily-home');
     var section=el('section','daily-home'); section.id='smyl-daily-home';
-    section.innerHTML='<header class="daily-home-bar"><div class="daily-home-bar-copy"><h1 data-home-greeting></h1><p><span data-home-date></span> · <small data-home-updated aria-live="polite">Actualizando…</small></p></div><div class="daily-home-bar-actions"><span class="daily-home-state" data-home-day-state data-tone="clear">Revisando…</span><button type="button" class="daily-home-bar-btn" data-home-open-agenda>Ver agenda</button><button type="button" class="daily-home-bar-btn is-primary" data-home-new-appointment>+ Nueva cita</button></div></header><div class="daily-home-workbench"><section class="daily-home-card daily-home-now-card" aria-labelledby="daily-home-now-title"><header><div><span>HOY</span><h2 id="daily-home-now-title">Mi jornada</h2></div><span class="daily-home-day-count" data-home-day-count></span></header><div class="daily-home-chips" data-home-metrics aria-live="polite"></div><div data-home-next></div></section><section class="daily-home-card daily-home-priorities" aria-labelledby="daily-home-priorities-title"><header><div><span>ATENCIÓN REQUERIDA</span><h2 id="daily-home-priorities-title" data-home-priority-title>Revisando…</h2></div></header><div data-home-priorities></div><div class="daily-home-inbox-line" data-home-inbox-line hidden></div></section></div><section class="daily-home-card daily-home-chats" aria-labelledby="daily-home-chats-title"><header><div><span>CONVERSACIONES</span><h2 id="daily-home-chats-title">Mensajes recientes</h2></div><button type="button" data-home-open-inbox>Ver bandeja</button></header><div class="daily-home-chat-strip" data-home-chats aria-live="polite"></div></section><section class="daily-home-month" aria-labelledby="daily-home-month-title"><header><h2 id="daily-home-month-title">Resumen del mes</h2><button type="button" data-home-open-reports>Ver reportes <span aria-hidden="true">→</span></button></header><div class="daily-home-metrics daily-home-metrics-month" data-home-month aria-live="polite"></div></section>';
+    section.innerHTML=`
+      <header class="daily-home-bar">
+        <div class="daily-home-bar-copy">
+          <h1 data-home-greeting></h1>
+          <p><span data-home-date></span> · <small data-home-updated>Actualizando…</small></p>
+        </div>
+        <div class="daily-home-bar-actions">
+          <button type="button" class="daily-home-bar-btn is-primary" data-home-new-appointment><span aria-hidden="true">+</span> Nueva cita</button>
+        </div>
+      </header>
+      <div class="daily-home-workbench">
+        <section class="daily-home-card daily-home-now-card" aria-labelledby="daily-home-now-title">
+          <header>
+            <div><h2 id="daily-home-now-title">Mi jornada</h2><span class="daily-home-day-count" data-home-day-count></span></div>
+            <div class="daily-home-card-actions">
+              <button type="button" class="daily-home-chip is-toggle" data-home-mine aria-pressed="false" hidden>Solo mis citas</button>
+              <button type="button" data-home-open-agenda>Ver agenda</button>
+            </div>
+          </header>
+          <div class="daily-home-chips" data-home-metrics hidden></div>
+          <div data-home-next></div>
+        </section>
+        <section class="daily-home-card daily-home-priorities" aria-labelledby="daily-home-priorities-title">
+          <header>
+            <h2 id="daily-home-priorities-title" data-home-priority-title>Requiere atención</h2>
+            <span data-home-priority-count hidden></span>
+          </header>
+          <div data-home-priorities></div>
+        </section>
+        <section class="daily-home-card daily-home-chats" aria-labelledby="daily-home-chats-title">
+          <header>
+            <div><h2 id="daily-home-chats-title">Mensajes recientes</h2><span data-home-inbox-line hidden></span></div>
+            <button type="button" data-home-open-inbox>Ver bandeja</button>
+          </header>
+          <div class="daily-home-chat-strip" data-home-chats></div>
+        </section>
+        <section class="daily-home-month" aria-labelledby="daily-home-month-title">
+          <header><h2 id="daily-home-month-title">Resumen mensual de la clínica</h2><button type="button" data-home-open-reports>Ver reportes <span aria-hidden="true">→</span></button></header>
+          <div class="daily-home-metrics daily-home-metrics-month" data-home-month></div>
+        </section>
+      </div>`;
     var monthSection=section.querySelector('.daily-home-month');
     if(flag('month')==='1')section.querySelector('[data-home-month]').innerHTML='<div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div>'; else monthSection.hidden=true;
-    section.querySelector('[data-home-date]').textContent=capitalize(fmtDate(new Date()));
-    section.querySelector('[data-home-greeting]').textContent=greeting();
+    refreshHeading(section);
     section.querySelector('[data-home-open-agenda]').onclick=function(){route('agenda');};
     section.querySelector('[data-home-new-appointment]').onclick=function(){if(window.SmylCareTasks&&typeof window.SmylCareTasks.open==='function')window.SmylCareTasks.open('appointment');else route('agenda');};
     section.querySelector('[data-home-open-inbox]').onclick=function(){route('inbox');};
     section.querySelector('[data-home-open-reports]').onclick=function(){route('reportes');};
+    section.querySelector('[data-home-mine]').onclick=function(){
+      flag('mine',mineOnly()?'0':'1');
+      applyAccess(); renderMetrics(); renderNext(); renderPriorities();
+    };
     home.prepend(section);
+    applyAccess();
     renderLoading();
   }
 
@@ -82,8 +132,9 @@
 
   function renderLoading() {
     var metrics=document.querySelector('[data-home-metrics]'), priorities=document.querySelector('[data-home-priorities]'), next=document.querySelector('[data-home-next]');
+    renderedPriorities=null;
     var sk=function(k,o,fb){return window.SmylSkeleton?window.SmylSkeleton.html(k,o):fb;};
-    if(metrics)metrics.innerHTML=window.SmylSkeleton?window.SmylSkeleton.html('kpis',{count:3,label:'Cargando el resumen del día'}):'';
+    if(metrics)metrics.hidden=true;
     if(priorities)priorities.innerHTML=sk('list',{rows:3,action:true,label:'Cargando prioridades'},'<div class="daily-home-loading"><i></i><i></i><i></i></div>');
     if(next)next.innerHTML=sk('list',{rows:3,label:'Cargando próximas citas'},'<div class="daily-home-loading compact"><i></i><i></i><i></i></div>');
     renderChats();
@@ -94,45 +145,40 @@
     if(!can('schedule.read'))return tasks;
     activeAppointments().forEach(function(a){
       var time=new Date(a.starts_at).getTime();
-      if(a.status==='in_progress')tasks.push({rank:1,label:'EN CONSULTA',name:patientName(a.patient_id),detail:fmtTime(a.starts_at)+' · '+serviceName(a.service_id),action:'Abrir cita'});
-      else if(a.status==='arrived')tasks.push({rank:2,label:'YA LLEGÓ',name:patientName(a.patient_id),detail:fmtTime(a.starts_at)+' · '+serviceName(a.service_id),action:'Abrir cita'});
-      else if(a.status==='confirmed'&&time<now)tasks.push({rank:3,label:'¿YA LLEGÓ?',name:patientName(a.patient_id),detail:fmtTime(a.starts_at)+' · ya pasó su hora',action:'Abrir cita'});
-      else if(a.status==='no_show')tasks.push({rank:6,label:'NO VINO',name:patientName(a.patient_id),detail:fmtTime(a.starts_at)+' · ofrécele otra cita',action:'Ver cita'});
+      if(a.status==='in_progress')tasks.push({rank:1,label:'EN CONSULTA',name:patientName(a.patient_id),detail:fmtTime(a.starts_at)+' · '+serviceName(a.service_id),action:'Ver en agenda'});
+      else if(a.status==='arrived')tasks.push({rank:2,label:'YA LLEGÓ',name:patientName(a.patient_id),detail:fmtTime(a.starts_at)+' · '+serviceName(a.service_id),action:'Ver en agenda'});
+      else if(a.status==='confirmed'&&time<now)tasks.push({rank:3,label:'¿YA LLEGÓ?',name:patientName(a.patient_id),detail:fmtTime(a.starts_at)+' · ya pasó su hora',action:'Ver en agenda'});
+      else if(a.status==='no_show')tasks.push({rank:6,label:'NO VINO',name:patientName(a.patient_id),detail:fmtTime(a.starts_at)+' · ofrécele otra cita',action:'Ver en agenda'});
     });
     if(can('schedule.manage'))state.requests.filter(function(r){return r.status==='pending';}).forEach(function(r){tasks.push({rank:4,label:'PIDIÓ CITA',name:patientName(r.patient_id),detail:r.requested_start?'Prefiere '+fmtTime(r.requested_start):'Horario por acordar',action:'Revisar solicitud'});});
     return tasks.sort(function(a,b){return a.rank-b.rank;});
   }
 
-  // Resumen de la jornada en chips dentro de «Mi jornada»: sin tarjetas aparte que repitan la lista de atención.
-  // El tipo de cada chip ('appointments','clinic','requests','messages') se conserva para pruebas y lectores de pantalla.
+  // El resumen de citas terminadas ya aparece al pie de la jornada.
   function chip(kind,count,one,many,tone) {
     return '<span class="daily-home-chip" data-kind="'+kind+'" data-tone="'+tone+'"><i aria-hidden="true"></i>'+count+' '+(count===1?one:many)+'</span>';
   }
 
   function renderMetrics() {
     var host=document.querySelector('[data-home-metrics]'); if(!host)return;
-    var rows=activeAppointments(), now=Date.now();
+    var rows=activeAppointments();
     var clinic=rows.filter(function(a){return a.status==='arrived'||a.status==='in_progress';}).length;
     var waiting=rows.filter(function(a){return a.status==='confirmed';}).length;
-    var done=rows.filter(function(a){return a.status==='completed';}).length;
     var chips=[];
     if(clinic)chips.push(chip('clinic',clinic,'en clínica','en clínica','active'));
     if(waiting)chips.push(chip('appointments',waiting,'por llegar','por llegar','neutral'));
-    if(done)chips.push(chip('completed',done,'terminada','terminadas','neutral'));
     var a=state.access, canToggle=Boolean(a&&a.professionalId&&can('schedule.manage'));
-    if(canToggle)chips.push('<button type="button" class="daily-home-chip is-toggle" data-home-mine aria-pressed="'+(mineOnly()?'true':'false')+'">Solo mis citas</button>');
     host.innerHTML=chips.join('');
-    host.hidden=!chips.length;
-    var toggle=host.querySelector('[data-home-mine]');
-    if(toggle)toggle.onclick=function(){flag('mine',mineOnly()?'0':'1');applyAccess();renderMetrics();renderNext();};
+    host.hidden=Boolean(state.error)||!chips.length;
+    var toggle=document.querySelector('[data-home-mine]');
+    if(toggle){toggle.hidden=!canToggle||Boolean(state.error); toggle.setAttribute('aria-pressed',String(mineOnly()));}
     var total=document.querySelector('[data-home-day-count]');
-    if(total)total.textContent=rows.length?rows.length+(rows.length===1?' cita':' citas'):'Sin citas';
+    if(total)total.textContent=!state.error&&rows.length?rows.length+(rows.length===1?' cita':' citas'):'';
     var inboxLine=document.querySelector('[data-home-inbox-line]');
     if(inboxLine){
-      var ready=Boolean(state.messages&&state.messages.loaded), unread=ready?Number(state.messages.unread||state.messages.total||0):0;
-      inboxLine.hidden=!ready||!can('messages.read');
-      inboxLine.innerHTML=ready?'<span>Mensajes: '+(unread?unread+' sin leer':'0 sin leer')+'</span><button type="button" data-home-open-inbox-line>Ver bandeja</button>':'';
-      var go=inboxLine.querySelector('button'); if(go)go.onclick=function(){route('inbox');};
+      var unread=state.messages&&state.messages.loaded?Number(state.messages.unread):0;
+      inboxLine.hidden=!(unread>0&&can('messages.read'));
+      inboxLine.textContent=inboxLine.hidden?'':unread+' sin leer';
     }
   }
 
@@ -145,19 +191,28 @@
   function resolvePriorityTasks() {
     var shared=taskItems(), tasks;
     // Misma fuente que el contador de Alertas, para que el Inicio y la campana nunca se contradigan.
-    if(shared)tasks=shared.map(function(item){return {label:item.source.toUpperCase(),name:item.title,detail:item.detail,action:item.action,route:item.route,open:item.open,urgent:item.rank===1};});
-    else tasks=priorityRows().map(function(item){return {label:item.label,name:item.name,detail:item.detail,action:item.action,route:'agenda',urgent:false};});
+    if(shared)tasks=shared.map(function(item){return {source:item.source,label:item.source,name:item.title,detail:item.detail,action:item.action,route:item.route,open:item.open,urgent:item.rank===1};});
+    else tasks=priorityRows().map(function(item){return {source:'Agenda',label:item.label,name:item.name,detail:item.detail,action:item.action,route:'agenda',urgent:false};});
     return tasks;
   }
 
   function renderPriorities(tasks) {
     var host=document.querySelector('[data-home-priorities]'); if(!host)return;
+    if(state.error&&!taskItems()){
+      renderedPriorities=null;
+      var unavailable=document.querySelector('[data-home-priority-count]'); if(unavailable)unavailable.hidden=true;
+      host.innerHTML='<div class="daily-home-chats-note">Pendientes sin actualizar</div>';
+      return;
+    }
     tasks=tasks||resolvePriorityTasks();
-    var title=document.querySelector('[data-home-priority-title]'),dayState=document.querySelector('[data-home-day-state]');
-    var label=tasks.length?tasks.length+(tasks.length===1?' pendiente':' pendientes'):'Sin pendientes';
-    if(title)title.textContent=label;
-    if(dayState){dayState.textContent=tasks.length?tasks.length+(tasks.length===1?' requiere atención':' requieren atención'):'Todo al día';dayState.dataset.tone=tasks.length?'attention':'clear';}
-    if(!tasks.length){host.innerHTML='<div class="daily-home-empty"><span>✓</span><div><p>No tienes pendientes por ahora.</p></div></div>';return;}
+    // Las notificaciones pueden repetir el mismo resumen. Mantén el foco en el botón activo.
+    var signature=JSON.stringify(tasks);
+    if(signature===renderedPriorities)return;
+    renderedPriorities=signature;
+    var count=document.querySelector('[data-home-priority-count]');
+    var areas=new Set(tasks.map(function(task){return task.source;})).size;
+    if(count){count.hidden=!areas; count.textContent=areas?areas+(areas===1?' área':' áreas'):'';}
+    if(!tasks.length){host.innerHTML='<div class="daily-home-empty"><span aria-hidden="true">✓</span><div><strong>Todo al día</strong></div></div>';return;}
     var shown=tasks.slice(0,5);
     host.innerHTML='<div class="daily-home-priority-list">'+shown.map(function(task,index){return '<article data-urgent="'+(task.urgent?'1':'0')+'"><i></i><div><span>'+esc(task.label)+'</span><strong>'+esc(task.name)+'</strong><small>'+esc(task.detail)+'</small></div><button type="button" data-index="'+index+'">'+esc(task.action)+'</button></article>';}).join('')+(tasks.length>shown.length?'<button type="button" class="daily-home-more" data-home-more-alerts>Ver todas las acciones <span aria-hidden="true">→</span></button>':'')+'</div>';
     host.querySelectorAll('button[data-index]').forEach(function(button){button.onclick=function(){var task=shown[Number(button.dataset.index)];route(task.route||'agenda');if(task.open==='operations'&&window.SmylInbox)setTimeout(window.SmylInbox.openOperations,0);};});
@@ -171,8 +226,8 @@
     var rows=all.filter(function(a){return a.status==='arrived'||a.status==='in_progress'||(a.status==='confirmed'&&new Date(a.ends_at||a.starts_at).getTime()>=now);}).sort(function(a,b){return new Date(a.starts_at)-new Date(b.starts_at);});
     var finished=all.filter(function(a){return a.status==='completed';}).sort(function(a,b){return new Date(b.starts_at)-new Date(a.starts_at);});
     if(!rows.length&&!finished.length){
-      host.innerHTML='<div class="daily-home-next-empty"><span aria-hidden="true">＋</span><div><strong>Tu agenda está libre por ahora</strong><p>'+(can('schedule.manage')?'Crea una cita cuando necesites reservar un espacio.':'Cuando tengas citas aparecerán aquí.')+'</p></div>'+(can('schedule.manage')?'<button type="button" data-go="new">Crear cita</button>':'')+'</div>';
-      var createButton=host.querySelector('[data-go="new"]'); if(createButton)createButton.onclick=function(){if(window.SmylCareTasks)window.SmylCareTasks.open('appointment');else route('agenda');};
+      var emptyLabel=all.length?'Sin próximas citas hoy':mineOnly()?'Sin citas asignadas para hoy':'Sin citas programadas para hoy';
+      host.innerHTML='<div class="daily-home-next-empty"><span aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 10h18"/></svg></span><div><strong>'+emptyLabel+'</strong></div></div>';
       return;
     }
     var upcoming=rows.find(function(a){return new Date(a.starts_at).getTime()>=now&&a.status==='confirmed';});
@@ -212,13 +267,13 @@
   function renderChats() {
     var host=document.querySelector('[data-home-chats]'); if(!host)return;
     host.innerHTML='';
-    if(state.chatsLoading&&!state.chats){host.innerHTML='<div class="daily-home-chat-skeleton"></div><div class="daily-home-chat-skeleton"></div><div class="daily-home-chat-skeleton"></div>';return;}
+    if(!state.chats&&!state.chatsError){host.innerHTML='<div class="daily-home-chat-skeleton" role="status" aria-label="Cargando conversaciones"></div>';return;}
     if(state.chatsError&&!state.chats){
       var box=el('div','daily-home-chats-note'); box.append(el('span','','Mensajes no disponibles por el momento.'));
       var retry=el('button','','Reintentar'); retry.type='button'; retry.onclick=function(){loadChats(true);}; box.append(retry); host.append(box); return;
     }
     if(!state.chats||!state.chats.length){
-      var empty=el('div','daily-home-empty'); empty.append(el('span','','✓'));var emptyCopy=el('div');emptyCopy.append(el('strong','','Sin conversaciones recientes'),el('p','','Los mensajes de WhatsApp, Instagram y Messenger aparecerán aquí.'));empty.append(emptyCopy);
+      var empty=el('div','daily-home-empty'); empty.append(el('strong','','Sin conversaciones recientes'));
       host.append(empty); return;
     }
     state.chats.forEach(function(item){host.append(chatCard(item));});
@@ -229,17 +284,18 @@
     if(!inbox||typeof inbox.fetchRecent!=='function'||state.chatsLoading||!can('messages.read'))return;
     if(!force&&state.chats&&Date.now()-state.chatsAt<30000)return;
     state.chatsLoading=true; state.chatsError=false; if(!state.chats)renderChats();
+    var version=state.chatsVersion;
     try {
       var rows=await inbox.fetchRecent(12);
-      if (!can('messages.read')) return;
+      if (version!==state.chatsVersion||!can('messages.read')) return;
       state.chats=rows.slice().sort(function(a,b){
         if(Boolean(a.needs_human)!==Boolean(b.needs_human))return a.needs_human?-1:1;
         if(Boolean(Number(a.unread_count))!==Boolean(Number(b.unread_count)))return Number(a.unread_count)?-1:1;
         return new Date(b.last_message_at||0)-new Date(a.last_message_at||0);
       }).slice(0,4);
       state.chatsAt=Date.now();
-    } catch(_) { state.chatsError=true; }
-    finally { state.chatsLoading=false; renderChats(); }
+    } catch(_) { if(version===state.chatsVersion)state.chatsError=true; }
+    finally { if(version===state.chatsVersion){state.chatsLoading=false; renderChats();} }
   }
 
   function trend(current,previous,unit) {
@@ -263,9 +319,9 @@
     var tiles=[];
     if(data.finance){
       tiles.push(monthTile('Cobrado este mes',money(data.collected),trend(data.collected,data.prevCollected)||'Ingresos confirmados','caja'));
-      tiles.push(monthTile('Por cobrar',money(data.outstanding),'Saldo de pacientes','caja'));
+      tiles.push(monthTile('Por cobrar',data.outstanding==null?'Sin dato':money(data.outstanding),'Saldo de pacientes','caja'));
     }
-    tiles.push(monthTile('Pacientes nuevos',String(data.newPatients),trend(data.newPatients,data.prevNewPatients)||'Registrados este mes','pacientes'));
+    tiles.push(monthTile('Pacientes nuevos',data.newPatients==null?'Sin dato':String(data.newPatients),trend(data.newPatients,data.prevNewPatients)||'Registrados este mes','pacientes'));
     if(data.attendance!=null)tiles.push(monthTile('Asistencia',data.attendance+'%',trend(data.attendance,data.prevAttendance,'pts')||(data.attended+' de '+data.closed+' citas cerradas'),'reportes'));
     host.dataset.count=String(tiles.length); host.style.setProperty('--cols',String(tiles.length));
     host.innerHTML=tiles.join('');
@@ -276,7 +332,7 @@
   async function countRows(builder) {
     var result=await Promise.resolve(typeof window.sbTimeout==='function'?window.sbTimeout(builder):builder);
     if(result&&result.error)throw result.error;
-    return result&&typeof result.count==='number'?result.count:0;
+    return result&&typeof result.count==='number'?result.count:null;
   }
 
   // Indicadores del mes (cobros y asistencia vienen de la función de reportes ejecutivos, que ya aplica los permisos de cada rol).
@@ -304,8 +360,8 @@
           finance:Boolean(m&&m.collected!=null),
           collected:m&&m.collected!=null?Number(m.collected):null, prevCollected:pm&&pm.collected!=null?Number(pm.collected):null,
           outstanding:m&&m.outstanding!=null?Number(m.outstanding):null,
-          newPatients:newPatients||0, prevNewPatients:rows[3].status==='fulfilled'?rows[3].value:null,
-          attendance:m&&closed>0?Number(m.attendance_rate):null, prevAttendance:pm&&Number(pm.completed||0)+Number(pm.no_show||0)>0?Number(pm.attendance_rate):null,
+          newPatients:newPatients, prevNewPatients:rows[3].status==='fulfilled'?rows[3].value:null,
+          attendance:m&&m.attendance_rate!=null&&closed>0?Number(m.attendance_rate):null, prevAttendance:pm&&pm.attendance_rate!=null&&Number(pm.completed||0)+Number(pm.no_show||0)>0?Number(pm.attendance_rate):null,
           attended:m?Number(m.completed||0):0, closed:closed
         };
       }
@@ -315,12 +371,13 @@
   }
 
   function renderError() {
-    var priorities=document.querySelector('[data-home-priorities]'), next=document.querySelector('[data-home-next]'), updated=document.querySelector('[data-home-updated]');
-    if(priorities)priorities.innerHTML='<div class="daily-home-error"><strong>No pudimos actualizar la jornada</strong><p>'+esc(state.error||'Revisa tu conexión e intenta nuevamente.')+'</p><button type="button">Intentar de nuevo</button></div>';
-    if(priorities&&priorities.querySelector('button'))priorities.querySelector('button').onclick=function(){load(true);};
-    if(next)next.innerHTML='<div class="daily-home-next-empty"><strong>Agenda no disponible</strong><p>Ábrela desde el menú para continuar.</p></div>';
+    var next=document.querySelector('[data-home-next]'), updated=document.querySelector('[data-home-updated]');
+    if(next){
+      next.innerHTML='<div class="daily-home-error" role="status"><strong>No se pudo cargar la jornada.</strong><button type="button">Reintentar</button></div>';
+      next.querySelector('button').onclick=function(){load(true);};
+    }
     if(updated)updated.textContent='Actualización pendiente';
-    applyAccess(); renderMetrics(); if(can('messages.read'))loadChats(false); loadMonth(false);
+    applyAccess(); renderMetrics(); renderPriorities(); if(can('messages.read'))loadChats(false); loadMonth(false);
   }
 
   function render() {
@@ -339,6 +396,7 @@
 
   async function load(force) {
     if(!window.tenantId||!window.sb||state.loading||(state.loaded&&state.tenant===window.tenantId&&!force))return;
+    var home=document.getElementById('smyl-daily-home'); if(home)refreshHeading(home);
     state.loading=true; state.error=''; state.tenant=window.tenantId; if(!state.loaded)renderLoading();
     var start=startDay(new Date()), end=new Date(start); end.setDate(end.getDate()+1);
     try {
@@ -359,10 +417,10 @@
 
   function init() {
     build();
-    window.addEventListener('smyl:inbox-access',function(){state.chats=null;state.chatsAt=0;state.messages=null;applyAccess();if(state.loaded){renderChats();renderMetrics();if(can('messages.read'))loadChats(true);}});
+    window.addEventListener('smyl:inbox-access',function(){state.chatsVersion++;state.chatsLoading=false;state.chatsError=false;state.chats=null;state.chatsAt=0;state.messages=null;applyAccess();if(state.loaded||state.error){renderChats();renderMetrics();if(can('messages.read'))loadChats(true);}});
     window.addEventListener('smyl:inbox-removed',function(event){if(state.chats){state.chats=state.chats.filter(function(item){return item.id!==event.detail.id;});renderChats();}});
-    window.addEventListener('smyl:attention-updated',function(event){state.messages=event.detail||null;if(state.loaded){var tasks=resolvePriorityTasks();renderMetrics(tasks);renderPriorities(tasks);loadChats(false);}});
-    window.addEventListener('smyl:task-center-updated',function(event){state.tasks=event.detail&&Array.isArray(event.detail.items)?event.detail.items:null;if(state.loaded){var tasks=resolvePriorityTasks();renderMetrics(tasks);renderPriorities(tasks);}});
+    window.addEventListener('smyl:attention-updated',function(event){state.messages=event.detail||null;if(state.loaded||state.error){var tasks=resolvePriorityTasks();renderMetrics(tasks);renderPriorities(tasks);loadChats(false);}});
+    window.addEventListener('smyl:task-center-updated',function(event){state.tasks=event.detail&&Array.isArray(event.detail.items)?event.detail.items:null;if(state.loaded||state.error){var tasks=resolvePriorityTasks();renderMetrics(tasks);renderPriorities(tasks);}});
     var previous=window.ir;
     window.ir=function(routeName){var result=previous(routeName);if(routeName==='dashboard'){load(true);loadMonth(true);}return result;};
     var originalDashboard=window.cargarDashboard;

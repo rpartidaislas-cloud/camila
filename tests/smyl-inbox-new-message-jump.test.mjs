@@ -55,7 +55,8 @@ for (const width of [390, 1440]) {
     assert.equal(await jump.isVisible(),false);
     await body.evaluate(el => { el.scrollTop = el.scrollHeight / 3; });
     await jump.waitFor();
-    assert.equal(await jump.innerText(),'Ir al final');
+    assert.equal(await jump.getAttribute('aria-label'),'Ir al final');
+    assert.equal(await jump.locator('span').isVisible(), await jump.evaluate(el => el.closest('.smyl-inbox-thread').clientWidth > 640));
     const start = await body.evaluate(el=>el.scrollTop);
     await poll(2); // Includes one already-seen id.
     assert.equal(await jump.innerText(),'2 mensajes nuevos');

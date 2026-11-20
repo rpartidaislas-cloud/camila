@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import path from 'node:path';
 import { after, before, test } from 'node:test';
 
 const shell = new URL('../app.html', import.meta.url);
@@ -49,6 +50,128 @@ async function checkText(scope, selector, px) {
   await el.waitFor({ state: 'visible' });
   assert.equal(await el.evaluate(node => getComputedStyle(node).fontSize), px + 'px', selector);
 }
+
+async function openThreadPreview(t, width, query) {
+  const page = await browser.newPage({
+    viewport: {width, height: 844}, hasTouch: width <= 820, isMobile: width <= 430,
+    locale: 'es-MX', timezoneId: 'America/Mexico_City', reducedMotion: 'reduce',
+  });
+  t.after(() => page.close());
+  page.setDefaultTimeout(6000);
+  await page.route(/^https?:/, route => route.abort());
+  const url = new URL(preview);
+  url.search = query;
+  await page.goto(url.href);
+  await page.locator('html[data-preview-ready=true]').waitFor();
+  await loadAppStyles(page);
+  return page;
+}
+
+async function capture(page, name) {
+  const folder = process.env.SMYL_QA_SHOTS;
+  if (!folder) return;
+  mkdirSync(folder, {recursive: true});
+  await page.screenshot({path:path.join(folder, name + '.png')});
+}
+
+async function bounds(page, selector) {
+  const el = page.locator(selector);
+  await el.waitFor({state:'visible'});
+  return el.boundingBox();
+}
+
+for (const width of [320, 390, 820, 1440]) {
+  test('Espacio para los mensajes y controles accesibles del hilo a ' + width + ' px', async t => {
+    if (!browser) return t.skip('Se necesita Chromium con Playwright.');
+    const page = await openThreadPreview(t, width, 'focus&mobile-layout');
+    const header = await bounds(page, '.smyl-inbox-thread-head');
+    const history = await bounds(page, '[data-thread-body]');
+    const composer = await bounds(page, '[data-inbox-composer]');
+    const options = page.getByRole('button', {name:'Opciones del chat',exact:true});
+    const narrow = header.width <= 700;
+    assert.equal(await options.isVisible(), narrow, 'Las opciones responden al ancho del hilo');
+    assert.ok(header.y + header.height <= history.y + 1 && history.y + history.height <= composer.y + 1, 'El historial ocupa su propio espacio');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
+    t.diagnostic(JSON.stringify({viewport:width, panel:header.width, encabezado:header.height, editor:composer.height, historial:history.height}));
+    if (narrow) {
+      assert.ok(header.height <= 76, 'Encabezado de una fila: ' + header.height);
+      assert.equal(await page.locator('[data-thread-owner]').isVisible(), false);
+      assert.equal(await page.locator('[data-thread-mode]').isVisible(), false);
+      assert.equal(await options.getAttribute('aria-expanded'), 'false');
+    }
+    const schedule = page.locator('[data-thread-primary-action=schedule]');
+    assert.equal(await schedule.isVisible(), true, 'La cita conserva acceso directo');
+    if (width <= 430) {
+      assert.ok(composer.height <= 86, 'Altura del editor en reposo: ' + composer.height);
+      assert.ok(Math.abs(composer.y + composer.height - 844) <= 2, 'El editor ocupa hasta el límite visible');
+      for (const selector of ['[data-inbox-back]', '[data-inbox-context]', '[data-thread-options]', '[data-thread-primary-action=schedule]', '[data-compose-more]', '[data-compose-copilot]', '[data-compose-send]']) {
+        const box = await bounds(page, selector);
+        assert.ok(box.width >= 44 && box.height >= 44, selector + ': ' + JSON.stringify(box));
+      }
+    }
+    await capture(page, 'conversacion-' + width);
+    if (narrow) {
+      await options.click();
+      assert.equal(await options.getAttribute('aria-expanded'), 'true');
+      const panel = page.locator('[data-thread-options-panel]');
+      await panel.locator('[data-thread-owner]').waitFor();
+      await panel.locator('[data-thread-branch-chip]').waitFor();
+      await panel.locator('[data-thread-mode]').waitFor();
+      if (width === 390) await capture(page, 'opciones-390');
+      const branch = panel.locator('[data-thread-branch-chip]');
+      await branch.click();
+      await panel.getByRole('menuitemradio', {name:/Centro/}).waitFor();
+      await page.keyboard.press('Escape');
+      assert.equal(await branch.getAttribute('aria-expanded'), 'false');
+      assert.equal(await options.getAttribute('aria-expanded'), 'true', 'Cerrar el selector de sucursal conserva las opciones');
+      await page.keyboard.press('Escape');
+      assert.equal(await options.getAttribute('aria-expanded'), 'false');
+      assert.equal(await options.evaluate(el => el === document.activeElement), true);
+    }
+    if (width === 1440) {
+      const ficha = page.locator('[data-inbox-context-panel]');
+      if (await ficha.getAttribute('aria-hidden') === 'false') await ficha.getByRole('button', {name:/cerrar.*ficha/i}).click();
+      await page.waitForFunction(() => document.querySelector('.smyl-inbox-thread-head').clientWidth > 700);
+      await options.waitFor({state:'hidden'});
+      assert.equal(await page.locator('[data-thread-owner]').isVisible(), true);
+      assert.equal(await page.locator('[data-thread-mode]').isVisible(), true);
+    }
+    if (width !== 390) return;
+    const input = page.locator('#smyl-inbox-message');
+    await checkText(page, '#smyl-inbox-message', 16);
+    await input.fill('Confirmamos la cita.\nJueves a las 16:30.\nTe esperamos en la sucursal Centro.');
+    const expanded = await bounds(page, '[data-inbox-composer]');
+    assert.ok(expanded.height >= composer.height + 16, 'El editor crece al escribir varias líneas');
+    await page.setViewportSize({width, height:510});
+    await page.waitForFunction(() => Math.abs(document.querySelector('[data-inbox-composer]').getBoundingClientRect().bottom - 510) <= 2);
+    const keyboardLayout = await bounds(page, '[data-compose-send]');
+    const bottomGap = 510 - keyboardLayout.y - keyboardLayout.height;
+    assert.ok(bottomGap >= -1 && bottomGap <= 16, 'Distancia entre Enviar y el borde visible: ' + bottomGap);
+    t.diagnostic('Enviar queda a ' + bottomGap + ' px del borde en una ventana de 510 px');
+    await capture(page, 'redaccion-390');
+    await input.fill('');
+    await page.setViewportSize({width, height:844});
+    const collapsed = await bounds(page, '[data-inbox-composer]');
+    assert.ok(Math.abs(collapsed.height - composer.height) < 2, 'El editor vacío vuelve a su altura inicial');
+    await page.locator('[data-compose-more]').click();
+    await page.getByRole('menuitem', {name:'Respuesta rápida'}).click();
+    await page.locator('[data-quick-dialog][open] [data-quick-close]').click();
+    await schedule.click();
+    await page.locator('[data-availability-dialog][open] [data-availability-close]').click();
+    await page.locator('[data-inbox-back]').click();
+    await page.locator('[data-inbox-search]').waitFor({state:'visible'});
+    await page.waitForFunction(() => !document.querySelector('#p-inbox').style.getPropertyValue('--smyl-thread-available-height'));
+  });
+}
+
+test('WhatsApp conserva la acción de plantilla en el editor móvil', async t => {
+  if (!browser) return t.skip('Se necesita Chromium con Playwright.');
+  const page = await openThreadPreview(t, 390, 'focus');
+  const form = page.locator('[data-inbox-composer]');
+  assert.equal(await form.getAttribute('data-mode'), 'template');
+  await form.getByRole('button', {name:'Elegir plantilla aprobada'}).click();
+  await page.locator('[data-template-dialog][open]').waitFor();
+});
 
 for (const [width, touch] of [[390, true], [820, true], [1440, false]]) {
   test('Jerarquía de texto del chat con la cascada de la aplicación a ' + width + ' px', async t => {
