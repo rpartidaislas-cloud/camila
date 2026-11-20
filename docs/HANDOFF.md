@@ -1,3 +1,11 @@
+## 2026-11-20 — Claude — Menú propio para el selector de consultorio y los filtros de Agenda
+
+- Solicitud de Ricardo: el desplegable de sucursales (lista nativa de Windows) se veía plano y con letra grande; mejorarlo, junto con los filtros de la Agenda.
+- `smyl-select-menu.js` / `.css` v1 (nuevos): en computadora (`(hover: hover) and (pointer: fine)`) el clic o Enter/Espacio/flechas sobre el selector abren una tarjeta propia: inicial en círculo de color por sucursal/profesional, ✓ en la activa, «Todos…» separado con punto ámbar, buscador desde 7 opciones, teclado (flechas, Enter, Esc, Tab) y cierre al hacer clic fuera, desplazar o cambiar el tamaño. Variante oscura para el menú lateral. Crece hasta 360 px para no cortar nombres.
+- El `<select>` sigue siendo la fuente de verdad (opciones releídas al abrir, al elegir emite `input` y `change`): `smyl-branch-scope.js` y `smyl-schedule.js` no cambian. Aplica solo a `#sb-branch-select` y a los filtros `#p-agenda .schedule-filter select`; el resto de selectores no se toca.
+- En celular y tableta no intercepta nada: queda el selector del sistema con sus 16 px (sin zoom de iPhone). En computadora los filtros de Agenda pasan a 36 px de alto y 13 px.
+- `app.html`, `sw.js` (precache + registro `menu-selectores-v1`), copias idénticas en `mobile/www/`. Pruebas: `tests/smyl-select-menu.test.mjs` y `tests/smyl-select-menu-browser.test.mjs` (Chromium: clic, teclado, búsqueda, Escape, clic fuera, celular), fixture `tests/fixtures/smyl-select-menu-preview.html`. Suite completa: mismas 6 fallas preexistentes de inventario/chat/relevo que en `main`.
+
 ## 2026-11-20 — Claude — Cabecera del menú sin el cuadro «S»
 
 - Solicitud de Ricardo: quitar el cuadro con la «S» que iba a un lado del logo de smyl.
