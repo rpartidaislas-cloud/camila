@@ -1,3 +1,11 @@
+## 2026-11-20 — Claude Code — Agenda: el clic en día/hora llega a «Nueva cita» y al guardar se ve la cita
+
+- `smyl-schedule.js`: el tablero recibe `api.preselected()` con la hora tocada; el resumen muestra «Horario» aunque aún no haya tratamiento; al guardar, la Agenda salta al día, sucursal y filtros de la cita y avisa «Cita guardada: vie 20 de nov · 1:00 pm en Sucursal …».
+- `smyl-schedule-board.js`: nota «Elegiste …» antes de elegir tratamiento; al elegirlo toma sola esa hora (con sillón) si está libre, o avisa que no lo está.
+- `smyl-schedule.css` v35, `smyl-schedule-board.js` v3, `smyl-schedule.js` v51, sufijo SW `-agenda-clic-horario-v1`. Copias en `mobile/www/`.
+- Diagnóstico «no se guardan»: en producción sí se guardaban, pero en otra sucursal/día distinto al filtro de la Agenda.
+- Prueba: `tests/smyl-agenda-clic-horario.test.mjs`; smoke `tests/qa/agenda-nueva-cita-smoke.cjs` pasa.
+
 ## 2026-11-19 — Codex — Lectura y respuestas consecutivas en el chat móvil
 
 - Al abrir y cerrar el teclado o crecer el editor, el historial conserva el último mensaje si estaba al final, o el punto de lectura si se había desplazado. Tocar Enviar mientras se escribe permite seguir redactando.
