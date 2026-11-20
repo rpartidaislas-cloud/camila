@@ -11914,5 +11914,5 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - El área de escritura usa ahora todo el ancho disponible y elimina el espacio vacío lateral del escritorio.
 - **Mejorar redacción** corrige directamente el contenido actual de la caja, permite deshacer y nunca envía el mensaje automáticamente.
 - Se protegió el texto escrito durante el procesamiento: si el usuario lo cambia antes de recibir la corrección, la propuesta no sobrescribe ese cambio.
-- Se actualizaron los recursos a `smyl-inbox.js?v=86` y `smyl-inbox.css?v=73`, junto con la caché de la PWA.
+- Se actualizaron los recursos a `smyl-inbox.js?v=87` y `smyl-inbox.css?v=74`, junto con la caché de la PWA.
 - Se agregaron pruebas unitarias y de navegador para inserción de atajos, edición, eliminación, redacción, deshacer y anchura del compositor.
