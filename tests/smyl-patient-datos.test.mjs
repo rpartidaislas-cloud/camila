@@ -42,8 +42,8 @@ test('web, móvil y PWA publican Datos del paciente', () => {
   for (const file of ['app.html', 'sw.js']) {
     assert.match(read(file), /smyl-patient-360\.js\?v=33/);
     assert.match(read(file), /smyl-patient-360\.css\?v=21/);
-    assert.match(read(file), /smyl-professional-v3\.js\?v=13/);
-    assert.match(read(file), /smyl-professional-v3\.css\?v=11/);
+    assert.match(read(file), /smyl-professional-v3\.js\?v=14/);
+    assert.match(read(file), /smyl-professional-v3\.css\?v=12/);
   }
   for (const file of ['smyl-patient-360.js', 'smyl-patient-360.css', 'smyl-professional-v3.js', 'smyl-professional-v3.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);

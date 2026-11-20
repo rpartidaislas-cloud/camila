@@ -31,8 +31,8 @@ test('un paciente fuera de la lista reciente se recupera de forma acotada', () =
 });
 
 test('web, móvil y PWA publican la corrección versionada', () => {
-  assert.match(app, /smyl-clinic\.js\?v=25/);
-  assert.match(read('sw.js'), /smyl-clinic\.js\?v=25/);
+  assert.match(app, /smyl-clinic\.js\?v=26/);
+  assert.match(read('sw.js'), /smyl-clinic\.js\?v=26/);
   assert.match(read('sw.js'), /patient-reload-continuity-v1/);
   for (const file of ['app.html', 'smyl-clinic.js', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
