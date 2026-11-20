@@ -10,7 +10,8 @@ const bar = read('smyl-professional-v3.js');
 
 test('la barra del paciente ya no esconde acciones en «Más acciones»', () => {
   assert.doesNotMatch(bar, /pro-patient-more|<summary>Más acciones/);
-  for (const label of ["'Agendar cita'", "'Nueva evolución'", "'Cotizar'", "'Cobrar'", "'Enviar mensaje'"]) assert.ok(bar.includes(label), label);
+  for (const label of ["'Agendar cita'", "'Nueva evolución'"]) assert.ok(bar.includes(label), label);
+  for (const label of ["'Cotizar'", "'Cobrar'", "'Enviar mensaje'"]) assert.ok(!bar.includes(label), `${label} ya no va en la barra`);
 });
 
 test('«Datos del paciente» muestra datos generales y edita con el formulario de alta existente', () => {
@@ -28,17 +29,20 @@ test('los datos fiscales usan el mismo formulario de Cobros y respetan permisos'
   assert.match(p360, /R\.perfilListo\(f\)/, 'el estado «Listos para facturar» usa las reglas del SAT');
 });
 
-test('el encabezado permite agregar contacto y se refresca tras editar', () => {
-  assert.match(p360, /\+ Agregar teléfono o correo/);
+test('el contacto vive solo en Datos del paciente (con Agregar si falta) y la ficha se refresca tras editar', () => {
+  assert.doesNotMatch(p360, /p360-contact-line|\+ Agregar teléfono o correo|function contactLine/, 'el encabezado ya no repite el contacto');
+  assert.match(p360, /function contactRow\(label,value\)\{if\(value\|\|!canEditPatient\(\)\)return dataRow\(label,value\)/);
+  assert.match(p360, /contactRow\('Teléfono \/ WhatsApp',p\.telefono\)\+contactRow\('Correo',p\.email\)/);
+  assert.match(p360, /data-p360-edit-patient>Agregar<\/button>/);
   assert.match(p360, /state\.identityStamp!==window\.pacienteActual\.updated_at/);
   assert.match(p360, /if\(key==='billing'\|\|key==='datos'\)\{openDatos\(s\);return;\}/, 'los accesos antiguos a facturación abren el panel de datos');
 });
 
 test('web, móvil y PWA publican Datos del paciente', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-patient-360\.js\?v=32/);
-    assert.match(read(file), /smyl-patient-360\.css\?v=20/);
-    assert.match(read(file), /smyl-professional-v3\.js\?v=12/);
+    assert.match(read(file), /smyl-patient-360\.js\?v=33/);
+    assert.match(read(file), /smyl-patient-360\.css\?v=21/);
+    assert.match(read(file), /smyl-professional-v3\.js\?v=13/);
     assert.match(read(file), /smyl-professional-v3\.css\?v=11/);
   }
   for (const file of ['smyl-patient-360.js', 'smyl-patient-360.css', 'smyl-professional-v3.js', 'smyl-professional-v3.css', 'app.html', 'sw.js']) {

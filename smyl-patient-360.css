@@ -1077,7 +1077,6 @@
 }
 
 /* Datos del paciente: datos generales + datos fiscales (reemplaza «Datos administrativos» escondido en Más del expediente) */
-.p360-contact-line{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
 .p360-inline-link{padding:0;border:0;background:none;color:var(--p360-blue,#126779);font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 .p360-inline-link:focus-visible{outline:2px solid var(--p360-blue,#126779);outline-offset:2px;border-radius:3px}
 .p360-datos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px;align-items:start}
@@ -1134,3 +1133,33 @@
 .p360-move-list li.is-payment b{color:#17695a}
 .p360-move-list li.is-voided b{color:#8796a5;text-decoration:line-through}
 @media(max-width:600px){#p-paciente-detalle .p360-title-clean{grid-template-columns:46px minmax(0,1fr)}.p360-datos-button{grid-column:1/-1;width:100%}.p360-drawer-head{padding:14px 16px}.p360-drawer [data-p360-panel="datos"]{padding:12px 16px 24px}}
+
+/* ── Contexto del paciente en el Resumen: saldo, próxima cita, última visita y recorrido de citas ── */
+.p360-context-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.p360-context-card{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;box-sizing:border-box}
+.p360-ctx-label{color:var(--p360-blue);font-size:12px;font-weight:750;letter-spacing:.06em}
+.p360-ctx-value{display:block;color:var(--p360-ink);font-size:20px;font-weight:720;line-height:1.25;overflow-wrap:anywhere}
+.p360-ctx-value[data-tone="due"]{color:#9a5b00}
+.p360-ctx-value[data-tone="overdue"]{color:#b3321f}
+.p360-ctx-value[data-tone="ok"]{color:#0a7a5f}
+.p360-context-card small{color:var(--p360-muted);font-size:13px;line-height:1.45}
+.p360-ctx-more{margin-top:auto;padding-top:4px}
+.p360-ctx-action{margin-top:auto;min-height:40px;padding:0 14px;border:1px solid var(--p360-line);border-radius:10px;background:#fff;color:var(--p360-ink);font:inherit;font-size:14px;font-weight:650;cursor:pointer}
+.p360-ctx-action:hover{border-color:#b8c3d6}
+.p360-ctx-link{border:0;background:none;padding:6px 0;color:var(--p360-blue);font:inherit;font-size:14px;font-weight:650;cursor:pointer}
+.p360-visits-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.p360-visits-card{min-width:0}
+.p360-visits-card h3{display:flex;align-items:center;gap:8px;margin:0 0 8px;color:var(--p360-ink);font-size:15px;font-weight:700}
+.p360-visits-card h3 em{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 8px;border-radius:999px;background:#eef3f7;color:#2c4452;font-size:12px;font-style:normal;font-weight:700}
+.p360-visits-card ul{display:grid;margin:0;padding:0;list-style:none}
+.p360-visits-card li{display:grid;grid-template-columns:96px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #eef1f5}
+.p360-visits-card li:last-child{border-bottom:0}
+.p360-visits-card time{color:var(--p360-muted);font-size:13px}
+.p360-visits-card li strong{display:block;color:var(--p360-ink);font-size:14px;overflow-wrap:anywhere}
+.p360-visits-card li small{display:block;margin-top:2px;color:var(--p360-muted);font-size:13px;overflow-wrap:anywhere}
+.p360-visit-status{display:inline-flex;align-items:center;min-height:24px;padding:0 10px;border-radius:999px;background:#eaf1ff;color:#244fb3;font-size:12px;font-weight:700;white-space:nowrap}
+.p360-visit-status[data-status="completed"]{background:#e8f7f4;color:#086356}
+.p360-visit-status[data-status="no_show"]{background:#fff2ef;color:#a73b30}
+.p360-visit-status[data-status="cancelled"]{background:#eceff3;color:#56606c}
+@media(max-width:900px){.p360-context-grid,.p360-visits-grid{grid-template-columns:1fr}.p360-visits-card li{grid-template-columns:84px minmax(0,1fr) auto}}
+@media(max-width:480px){.p360-visits-card li{grid-template-columns:minmax(0,1fr) auto}.p360-visits-card time{grid-column:1 / -1}}
