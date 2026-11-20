@@ -29,9 +29,9 @@ test('la biblioteca explica el flujo y hace evidente cómo usar cada respuesta',
 });
 
 test('web y PWA publican la misma versión de respuestas rápidas', () => {
-  assert.match(app, /smyl-inbox\.js\?v=88/);
+  assert.match(app, /smyl-inbox\.js\?v=89/);
   assert.match(app, /smyl-inbox\.css\?v=75/);
-  assert.match(worker, /smyl-inbox\.js\?v=88/);
+  assert.match(worker, /smyl-inbox\.js\?v=89/);
   assert.match(worker, /smyl-inbox\.css\?v=75/);
   assert.match(worker, /quick-replies-v1/);
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
