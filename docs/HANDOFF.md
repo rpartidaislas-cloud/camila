@@ -41,7 +41,14 @@
 - Al abrir y cerrar el teclado o crecer el editor, el historial conserva el último mensaje si estaba al final, o el punto de lectura si se había desplazado. Tocar Enviar mientras se escribe permite seguir redactando.
 - El editor móvil ofrece ampliar y reducir los textos largos. En hilos estrechos, los mensajes consecutivos del mismo autor comparten rótulo y quedan más juntos. Los mensajes del equipo se agrupan cuando se conoce la identidad del remitente.
 - Recursos de chat JS v88 y CSS v75, con referencias en `app.html`, `sw.js` y las copias móviles. Las pruebas de `tests/smyl-inbox-typography-browser.test.mjs` usan conversaciones ficticias para comprobar teclado, foco, envíos consecutivos, expansión del editor y grupos por autor y fecha.
+## 2026-11-20 — Codex — Sucursales y profesionales administrables desde una sola pantalla
 
+- Solicitud de Ricardo: poder agregar y quitar sucursales y profesionales, vincular cada profesional a una o varias sedes y elevar la calidad visual y operativa del módulo.
+- `Mi clínica → Sucursales y horarios` incorpora búsqueda, filtros **Activas / Archivadas**, alta visible y archivo recuperable. «Quitar» una sucursal archiva en lugar de borrar; conserva historial, espacios, horarios y vínculos, impide archivar la sede principal o una sede con citas futuras y permite reactivarla.
+- Cada sucursal tiene **Administrar equipo**: buscador, selección múltiple y estado de horario por profesional. Se puede vincular o desvincular sin salir de la sede; una desvinculación con citas futuras se bloquea hasta reasignarlas o cancelarlas. Desde la misma sección se abre la ficha o se agrega un profesional con la sede inicial preseleccionada.
+- La ficha separa el acceso al sistema de la disponibilidad clínica. Un profesional se puede desactivar/reactivar sin borrar su historial y no se permite desactivarlo con citas futuras. Las cuentas, roles y accesos siguen en **Equipo y roles**.
+- Composición responsive: dos columnas amplias en computadora y flujo vertical en tableta/celular; lista de sedes desplazable, acciones táctiles y diálogos sin desbordamiento. Recursos web/móvil sincronizados: `smyl-clinic-admin.js` v22, CSS v18 y caché PWA `branches-team-v2`.
+- Sin migraciones, cambios de backend ni datos reales. Validación: sintaxis y diff limpios; 27 pruebas de módulo aprobadas; recorrido real en Chromium aprobado para administración, permisos de consulta, errores, altas y celular. Capturas revisadas en computadora, tableta y celular. Cambio local, todavía no publicado.
 ## 2026-11-19 — Codex — Iconos de atención y marca del canal en el chat
 
 - Solicitud de Ricardo: convertir los cuatro controles marcados en iconos y mostrar el logo junto al nombre de Instagram, WhatsApp o Messenger.

@@ -129,6 +129,28 @@ server.listen(0, '127.0.0.1', async () => {
   // ── Administrador ──
   {
     const { ctx, page, errs } = await open(b, 'admin');
+    await page.evaluate(() => ir('clinica')); await page.waitForTimeout(1500);
+    const sedes = await page.evaluate(() => ({
+      filtros: Array.from(document.querySelectorAll('[data-ca-branch-filter]')).map(x => x.innerText.replace(/\s+/g, ' ').trim()),
+      sucursales: Array.from(document.querySelectorAll('.clinic-admin-branch')).map(x => x.innerText.replace(/\s+/g, ' ').trim()),
+      buscador: !!document.getElementById('clinic-admin-branch-search'),
+      nueva: document.getElementById('clinic-admin-add-branch')?.innerText,
+      equipo: !!document.querySelector('[data-ca-manage-team]')
+    }));
+    console.log('0) sucursales:', JSON.stringify(sedes));
+    check(sedes.buscador && /Nueva/.test(sedes.nueva || ''), 'Sucursales debe ofrecer búsqueda y alta clara');
+    check(sedes.filtros.length === 2 && /Activas 3/.test(sedes.filtros[0]) && /Archivadas 0/.test(sedes.filtros[1]), 'debe separar sucursales activas y archivadas');
+    check(sedes.sucursales.length === 3 && sedes.equipo, 'debe listar las sedes y permitir administrar su equipo');
+    await page.click('[data-ca-manage-team]'); await page.waitForTimeout(250);
+    const asignacion = await page.evaluate(() => ({
+      abierta: document.getElementById('clinic-admin-dialog').open,
+      titulo: document.querySelector('#clinic-admin-branch-team-form h2')?.innerText,
+      profesionales: document.querySelectorAll('.clinic-admin-assignment').length,
+      buscador: !!document.querySelector('[data-ca-team-search]')
+    }));
+    console.log('0b) equipo por sucursal:', JSON.stringify(asignacion));
+    check(asignacion.abierta && /Centro/.test(asignacion.titulo || '') && asignacion.profesionales === 3 && asignacion.buscador, 'la sede debe administrar y buscar profesionales sin salir del módulo');
+    await page.click('#clinic-admin-dialog [data-ca-close]');
     await team(page);
     let r = await rows(page);
     console.log('1) lista:', r.map(x => `${x.name} [${x.status}]`).join(' | '));
@@ -165,7 +187,7 @@ server.listen(0, '127.0.0.1', async () => {
     check(/Lun 09:00–13:00/.test(ficha.texto) && /Lun 13:30–17:00/.test(ficha.texto), 'la ficha debe mostrar el horario por sede');
     check(/solo hay 30 min/.test(ficha.texto) && /Se necesitan 45 min/.test(ficha.texto), 'debe avisar del choque entre sedes');
     check(/Teléfono interno/.test(ficha.texto) && /Sin registrar/.test(ficha.texto), 'debe mostrar el teléfono interno vacío');
-    check(/Zona delicada/.test(ficha.texto) && /Desactivar perfil/.test(ficha.texto), 'el administrador ve la zona delicada');
+    check(/Zona delicada/.test(ficha.texto) && /Desactivar como profesional/.test(ficha.texto), 'el administrador ve la zona delicada y distingue la disponibilidad profesional');
     check(/Listo para recibir citas/.test(ficha.texto) && /Sede asignada/.test(ficha.texto), 'Iván tiene sede y horario: debe verse como listo');
 
     // Editar datos y teléfono
@@ -327,6 +349,13 @@ server.listen(0, '127.0.0.1', async () => {
   {
     const { ctx, page, errs } = await open(b, 'admin', { width: 390, height: 844 });
     await page.evaluate(() => ir('clinica')); await page.waitForTimeout(1500);
+    const operacionMovil = await page.evaluate(() => ({
+      sinScroll: document.documentElement.scrollWidth <= window.innerWidth + 1,
+      ancho: Math.round(document.querySelector('.clinic-admin-layout').getBoundingClientRect().width),
+      vista: window.innerWidth,
+      filtros: document.querySelectorAll('[data-ca-branch-filter]').length
+    }));
+    check(operacionMovil.sinScroll && operacionMovil.ancho <= operacionMovil.vista && operacionMovil.filtros === 2, 'Sucursales debe adaptarse al celular sin desbordarse');
     await page.click('.clinic-admin-tab[data-ca-tab="equipo"]'); await page.waitForTimeout(500);
     const sinScroll = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
     await page.click('.clinic-admin-person-row[data-person="p:pr3"]'); await page.waitForTimeout(500);
@@ -374,6 +403,8 @@ server.listen(0, '127.0.0.1', async () => {
   if (process.env.SMYL_SHOTS) {
     for (const [name, size] of [['escritorio', { width: 1440, height: 900 }], ['tablet', { width: 820, height: 1100 }], ['celular', { width: 390, height: 844 }]]) {
       const { ctx, page } = await open(b, 'admin', size);
+      await page.evaluate(() => ir('clinica')); await page.waitForTimeout(1500);
+      await page.screenshot({ path: path.join(process.env.SMYL_SHOTS, `sucursales-${name}.png`), fullPage: true });
       await team(page);
       await page.screenshot({ path: path.join(process.env.SMYL_SHOTS, `equipo-lista-${name}.png`) });
       await page.click('.clinic-admin-person-row[data-person="p:pr3"]'); await page.waitForTimeout(500);
