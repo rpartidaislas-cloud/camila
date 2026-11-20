@@ -11693,3 +11693,6 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 ## 2026-11-19 — Claude — Equipo: «Listo para recibir citas»
 - `smyl-clinic-admin.js?v=19` / `.css?v=15`: la ficha del doctor abre con una lista de preparación: sede y horario (indispensables), WhatsApp para avisos y acceso a SMYL (recomendados). En la lista de Equipo aparece «Falta sede / horario» a quien no puede recibir citas. Solo frontend; sin migración.
 - PENDIENTE (no construido): aviso por WhatsApp al profesional cuando se le agenda una cita. Hoy solo se puede escribir al profesional por una conversación de LANA ya vinculada (`smyl_professional_whatsapp_links`, que el propio doctor vincula con `link_my_professional`); un doctor «Sin acceso» no puede vincularla y SMYL no puede iniciar conversación por número. Requiere definir con LANA el envío de plantilla a un número, o aceptar que solo avise a quienes vincularon su chat.
+
+## 2026-11-20 — Claude — Especificación LANA: aviso al profesional
+- `docs/LANA_AVISO_A_PROFESIONALES.md`: propuesta para quien mantiene LANA (endpoint `POST /inbox/whatsapp/template-to-phone`, plantilla `cita_agendada_profesional_v1`, decisiones pendientes). SMYL no implementó nada del envío todavía; solo documentación.
