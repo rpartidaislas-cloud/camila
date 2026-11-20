@@ -1,0 +1,57 @@
+/* SMYL · Privacidad y derechos (solicitudes ARCO, decisiones por paciente) */
+.priv-page{max-width:1040px;margin:0 auto;padding:0 4px 40px}
+.priv-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin:0 0 18px}
+.priv-head h1{margin:2px 0 4px;font-size:26px}
+.priv-head p{margin:0;max-width:640px;font-size:14px;line-height:1.55;color:#4b5f5d}
+.priv-tabs{display:flex;gap:6px;margin:0 0 14px;padding:6px;border:1px solid #d7e0dd;border-radius:14px;background:#fff;width:max-content;max-width:100%}
+.priv-tabs button{min-height:38px;padding:0 16px;border:0;border-radius:10px;background:none;font:inherit;font-size:14px;font-weight:600;color:#4b5f5d;cursor:pointer}
+.priv-tabs button[aria-selected=true]{background:#0b1b2e;color:#fff}
+.priv-feedback{margin:0 0 12px;min-height:0;font-size:14px;line-height:1.5;color:#4b5f5d}
+.priv-feedback:empty{display:none}
+.priv-feedback[data-tone=ok]{color:#286653}
+.priv-feedback[data-tone=error]{color:#8f3b2f}
+.priv-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0 0 14px}
+.priv-bar .priv-summary{flex:1;min-width:200px;margin:0}
+.priv-bar select{min-height:40px;padding:0 12px;border:1px solid #cad8d1;border-radius:10px;background:#fff;font:inherit;font-size:14px}
+.priv-summary{font-size:15px;font-weight:600;color:#18344a}
+.priv-summary[data-tone=error]{color:#8f3b2f}
+.priv-muted{margin:6px 0;font-size:13px;line-height:1.5;color:#526465}
+.priv-empty{padding:28px 20px;border:1px dashed #cad8d1;border-radius:14px;background:#f8fbf9;font-size:14px;line-height:1.55;color:#4b5f5d;text-align:center}
+.priv-list{display:grid;gap:10px}
+.priv-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid #d7e0dd;border-radius:14px;background:#fff}
+.priv-row[data-kind=overdue]{border-color:#e3b4ab;background:#fdf6f4}
+.priv-row-main{flex:1;min-width:0;display:grid;gap:2px}
+.priv-row-main strong{font-size:15px}
+.priv-row-main span{font-size:14px;color:#33484a}
+.priv-row-main small{font-size:13px;color:#526465}
+.priv-chip{flex:none;padding:4px 11px;border-radius:999px;background:#e8eeec;color:#33484a;font-size:12px;font-weight:700}
+.priv-chip[data-kind=overdue]{background:#f6dcd6;color:#8f3b2f}
+.priv-chip[data-kind=soon]{background:#f4e8c9;color:#745f39}
+.priv-chip[data-kind=ok],.priv-chip[data-state=granted]{background:#d9ebe1;color:#286653}
+.priv-chip[data-state=revoked]{background:#f6dcd6;color:#8f3b2f}
+.priv-picker{display:grid;gap:6px;margin:0 0 14px}
+.priv-picker input{min-height:42px;padding:0 12px;border:1px solid #cad8d1;border-radius:10px;font:inherit;font-size:15px;width:100%;box-sizing:border-box}
+.priv-picker-list{display:grid;gap:4px}
+.priv-picker-item{padding:9px 12px;border:1px solid #d7e0dd;border-radius:10px;background:#fff;font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.priv-picker-item:hover{background:#f3f7f5}
+.priv-card{display:grid;gap:12px;padding:18px;border:1px solid #d7e0dd;border-radius:16px;background:#fff}
+.priv-card h3{margin:0;font-size:19px}
+.priv-notice{margin:0;font-size:14px;font-weight:600}
+.priv-notice[data-state=ok]{color:#286653}
+.priv-notice[data-state=pending]{color:#745f39}
+.priv-purpose{display:grid;grid-template-columns:1fr auto;gap:8px 14px;align-items:center;padding:12px 14px;border:1px solid #e1e8e4;border-radius:12px}
+.priv-purpose strong{display:block;font-size:15px}
+.priv-purpose small{display:block;margin-top:2px;font-size:13px;line-height:1.5;color:#526465}
+.priv-purpose-actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px}
+.priv-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:6px}
+.priv-dialog{width:min(560px,calc(100vw - 28px));max-height:calc(100dvh - 28px);margin:auto;padding:0;border:0;border-radius:18px;box-shadow:0 25px 80px #0d244247}
+.priv-dialog::backdrop{background:#0d244299}
+.priv-dialog form{display:grid;gap:12px;padding:22px}
+.priv-dialog h2{margin:0;font-size:21px}
+.priv-field{display:grid;gap:5px;font-size:13px;font-weight:600;color:#33484a}
+.priv-field input,.priv-field select,.priv-field textarea{min-height:42px;padding:8px 12px;border:1px solid #cad8d1;border-radius:10px;font:inherit;font-size:15px;font-weight:400;width:100%;box-sizing:border-box;background:#fff}
+.priv-field small{font-size:12px;font-weight:400;color:#526465}
+.priv-check{display:flex;align-items:center;gap:8px;font-size:14px}
+.priv-purposes{display:grid;gap:6px}
+.priv-details{margin:0;padding:10px 12px;border-radius:10px;background:#f3f7f5;font-size:14px;line-height:1.5;white-space:pre-wrap}
+@media(max-width:700px){.priv-head{flex-direction:column}.priv-row{flex-wrap:wrap}.priv-purpose{grid-template-columns:1fr}.priv-dialog{width:100%;max-width:none;height:100dvh;max-height:none;margin:0;border-radius:0}}
