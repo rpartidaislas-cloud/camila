@@ -41,6 +41,12 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-19 — Conversación móvil
+
+- En un hilo de hasta 700 px, la cabecera muestra al paciente, la acción principal y «Opciones del chat». El panel reúne los controles existentes de responsable, sucursal y asistente; la nota privada se sigue consultando desde el responsable. En un hilo más ancho los mismos controles regresan a la cabecera.
+- Hasta 640 px, las herramientas, el campo de respuesta, MILA y el envío comparten una fila. El campo crece con el texto y vuelve a compactarse al vaciarlo. Cuando WhatsApp requiere una plantilla se conserva su botón específico.
+- El historial agrupa por fecha y muestra la hora en cada mensaje. En celular el editor aprovecha la altura visible del navegador al cambiar el teclado. Recursos de chat JS v83 y CSS v70, con copias en `mobile/www` y clave de caché `chat-compact-v1`.
+
 ## 2026-11-19 — Inicio de la clínica
 
 - La jornada, las áreas que requieren atención, los mensajes y el resumen mensual comparten una cuadrícula que responde al ancho disponible. En celular conservan ese orden en una columna. La acción principal es «Nueva cita». «Ver agenda» y «Solo mis citas» están en la jornada.

@@ -6,7 +6,7 @@
   <title>SMYL Inbox etapa 7 · QA visual</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="../../smyl-design-system-v2.css?focus=3">
-  <link rel="stylesheet" href="../../smyl-inbox.css?v=69">
+  <link rel="stylesheet" href="../../smyl-inbox.css?v=70">
   <link rel="stylesheet" href="../../smyl-chat-media-viewer.css?v=1">
   <style>
     :root { --azul:#1769e0; --azul-oscuro:#0c4fb8; --gris:#64748b; --borde:#dce3ec; --fondo:#f6f8fb; --blanco:#fff; }
@@ -58,6 +58,18 @@
       { id:'m3', author_type:'patient', role:'user', content:'Perfecto, quiero confirmar el horario de mi valoración.', status:'sent', starred:true, created_at:new Date(Date.now()-25.5*3600000).toISOString() }
     ];
     var previewParams = new URLSearchParams(location.search);
+    if (previewParams.has('mobile-layout')) {
+      conversation.channel = 'instagram';
+      conversation.contact_name = 'Sofía de la Cruz';
+      conversation.private_handoff_note = 'Recepción: confirmar la sucursal antes de agendar.';
+      messages[0].content = 'Hola, ¿tienen horarios para una valoración esta semana?';
+      messages[1].content = '¡Hola, Sofía! Tenemos espacio el jueves por la tarde. ¿Te queda bien la sucursal Centro?';
+      messages[2].content = 'Sí, la sucursal Centro me queda bien. ¿Podría ser después de las cuatro?';
+      messages.push(
+        {id:'m4', role:'assistant', author_type:'team', content:'Tenemos un espacio a las 16:30. ¿Te lo reservamos?', status:'sent', created_at:new Date(Date.now()-42*60000).toISOString()},
+        {id:'m5', role:'user', author_type:'patient', content:'Sí, por favor. ¿Me comparten también la ubicación?', status:'sent', created_at:new Date(Date.now()-39*60000).toISOString()}
+      );
+    }
     // A board of fictitious contacts for exercising the real side-by-side workspace.
     var pipelineDemo, demoThreads;
     if (previewParams.has('pipeline-preview')) {
@@ -157,6 +169,9 @@
       var permitted = mode === 'coordinator' || mode === 'agent' && conversation.assignment && conversation.assignment.actor_id === actor.id;
       if (action === 'access') return json({actor:actor});
       if (mode === 'none') return json({code:'chat_access_denied'},403);
+      if (action === 'branches' && previewParams.has('mobile-layout')) {
+        return json({branches:[{id:'centro',name:'Centro'},{id:'norte',name:'Norte'}],actor:actor});
+      }
       if (pipelineDemo && mode === 'coordinator') {
         var id = url.searchParams.get('conversation_id') || body.conversation_id;
         var demo = pipelineDemo.find(function (card) { return card.id === id; });
@@ -218,7 +233,7 @@
   <script src="../../smyl-inbox-ficha.js?v=11"></script>
   <script src="../../smyl-chat-pdf.js?v=1"></script>
   <script src="../../smyl-chat-media-viewer.js?v=1"></script>
-  <script src="../../smyl-inbox.js?v=82"></script>
+  <script src="../../smyl-inbox.js?v=83"></script>
   <script>
     window.addEventListener('load', function () {
       window.ir('inbox');

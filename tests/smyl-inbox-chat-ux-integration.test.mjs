@@ -46,6 +46,8 @@ for (const [width, board] of [[1440,false],[768,false],[390,false],[1440,true],[
     assert.match(await card.getAttribute('href'), /^https:\/\/www\.google\.com\/maps\?/);
     assert.doesNotMatch(await history.innerText(),/www\.google\.com/);
     const trigger = page.getByRole('button',{name:/Atiende el chat/});
+    const options = page.getByRole('button',{name:'Opciones del chat',exact:true});
+    if (await options.isVisible()) await options.click();
     const note = page.locator('[data-owner-dialog] [data-handoff]');
     assert.equal(await page.locator('.smyl-inbox-thread-head [data-handoff]').count(),0);
     await trigger.click();
@@ -55,7 +57,8 @@ for (const [width, board] of [[1440,false],[768,false],[390,false],[1440,true],[
     assert.doesNotMatch(await history.innerText(), /confirmar la sucursal/i);
     await page.keyboard.press('Escape');
     assert.equal(await note.isVisible(), false);
-    assert.ok(await trigger.evaluate(el=>el === document.activeElement));
+    const returnControl = await trigger.isVisible() ? trigger : options;
+    assert.ok(await returnControl.evaluate(el=>el === document.activeElement));
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth+1), false);
     assert.deepEqual(mapRequests,[], 'leer la conversación no consulta servicios de mapas');
   });
