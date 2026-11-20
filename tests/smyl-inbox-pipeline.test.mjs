@@ -222,10 +222,10 @@ test('web, móvil y PWA publican el pipeline', () => {
   for (const shell of [app, read('../mobile/www/app.html')]) {
     assert.match(shell, /serviceWorker\.register\('sw\.js\?v=chat-control-icons-v1',\s*\{\s*updateViaCache:\s*'none'\s*}/);
   }
-  assert.match(app, /smyl-inbox\.js\?v=86/);
-  assert.match(app, /smyl-inbox\.css\?v=73/);
-  assert.match(worker, /smyl-inbox\.js\?v=86/);
-  assert.match(worker, /smyl-inbox\.css\?v=73/);
+  assert.match(app, /smyl-inbox\.js\?v=87/);
+  assert.match(app, /smyl-inbox\.css\?v=74/);
+  assert.match(worker, /smyl-inbox\.js\?v=87/);
+  assert.match(worker, /smyl-inbox\.css\?v=74/);
 });
 
 test('sin canales conectados el Inbox muestra una sola explicación en lugar de lista, hilo y compositor vacíos', () => {

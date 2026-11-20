@@ -26,7 +26,7 @@ test('quick replies prepare a draft and never send automatically', () => {
   assert.match(bridge, /action === "quick_replies"/);
   assert.match(inbox, /action: 'quick_replies'/);
   assert.match(quickReplyFlow, /insertQuickReply\(session, item\.text\)/);
-  assert.match(quickReplyFlow, /input\.setRangeText\(text, input\.selectionStart, input\.selectionEnd, 'end'\)/);
+  assert.match(quickReplyFlow, /input\.setRangeText\(text, start, end, 'end'\)/);
   assert.match(quickReplyFlow, /input\.dispatchEvent\(new Event\('input'/);
   assert.doesNotMatch(quickReplyFlow, /submitMessage/);
 });
@@ -53,8 +53,8 @@ test('sound notices are opt-in and contain no patient persistence', () => {
 });
 
 test('stage 3 ships synchronized web, native and PWA assets', () => {
-  assert.match(app, /smyl-inbox\.js\?v=86/);
-  assert.match(app, /smyl-inbox\.css\?v=73/);
+  assert.match(app, /smyl-inbox\.js\?v=87/);
+  assert.match(app, /smyl-inbox\.css\?v=74/);
   assert.match(worker, /smyl-v263-lana-connection-recovery/);
   assert.equal(mobileInbox, inbox);
   assert.equal(mobileCss, css);

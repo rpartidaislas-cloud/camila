@@ -18,7 +18,7 @@ test('el lanzador permanente muestra sólo el icono más y conserva nombre acces
 
 test('la caja incorpora ubicación multicanal y mejora de redacción con MILA', () => {
   assert.match(inbox, /data-compose-rewrite[^>]+role="menuitem"[^>]+aria-label="Mejorar redacción con MILA"/);
-  assert.match(inbox, /<strong>Mejorar redacción<\/strong><small>Ortografía y claridad con MILA<\/small>/);
+  assert.match(inbox, /<strong>Mejorar redacción<\/strong><small>Corregir el texto actual de la caja<\/small>/);
   assert.match(inbox, /data-compose-location[^>]+aria-label="Enviar ubicación actual"/);
   const channelRules = inbox.slice(inbox.indexOf('function renderWhatsappWindow()'), inbox.indexOf('async function loadTemplates()'));
   assert.match(channelRules, /location\.disabled = !canRespond \|\| !freeformAllowed;/);
@@ -36,13 +36,18 @@ test('ubicación usa el formato nativo en WhatsApp y un enlace de Maps en Instag
   assert.doesNotMatch(location, /Ubicación de la clínica/);
 });
 
-test('MILA propone la corrección sin sobrescribir ni enviar automáticamente', () => {
+test('MILA corrige el contenido actual en la misma caja sin enviarlo', () => {
   const rewrite = inbox.slice(inbox.indexOf('async function rewriteComposerText()'), inbox.indexOf('async function prepareResume()'));
   assert.match(rewrite, /action: 'rewrite_message'/);
   assert.match(rewrite, /source_text: source/);
   assert.match(rewrite, /state\.copilot\[conversation\.id\]/);
-  assert.doesNotMatch(rewrite, /submitMessage|setComposerText/);
-  assert.match(inbox, /Reemplazar borrador/);
+  assert.match(rewrite, /input\.value === source/);
+  assert.match(rewrite, /setComposerText\(suggestion\)/);
+  assert.match(rewrite, /mode: 'rewrite_applied'/);
+  assert.doesNotMatch(rewrite, /submitMessage/);
+  assert.match(inbox, /Texto corregido en la caja\. Revísalo antes de enviar\./);
+  assert.match(inbox, /original_text/);
+  assert.match(css, /\.smyl-inbox-compose-surface\s*\{[^}]*max-width:\s*none;[^}]*margin:\s*0;/s);
 });
 
 test('el servidor limita la corrección, conserva hechos verificables y registra el consumo', () => {
@@ -63,7 +68,7 @@ test('el servidor limita la corrección, conserva hechos verificables y registra
 test('web y PWA comparten exactamente las herramientas', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), inbox);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=86/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=73/);
-  assert.match(read('../sw.js'), /inbox-writing-tools-v7/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=87/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=74/);
+  assert.match(read('../sw.js'), /inbox-composer-rewrite-v1/);
 });
