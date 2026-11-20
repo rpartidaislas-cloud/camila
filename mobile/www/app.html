@@ -942,13 +942,13 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-resilience.css?v=1">
 <script defer src="smyl-resilience.js?v=1"></script>
 <link rel="stylesheet" href="smyl-design-system-v2.css?v=2">
-<link rel="stylesheet" href="smyl-inbox.css?v=71">
+<link rel="stylesheet" href="smyl-inbox.css?v=72">
 <link rel="stylesheet" href="smyl-chat-media-viewer.css?v=1">
 <script defer src="smyl-inbox-calendar.js?v=4"></script>
 <script defer src="smyl-inbox-ficha.js?v=12"></script>
 <script defer src="smyl-chat-pdf.js?v=1"></script>
 <script defer src="smyl-chat-media-viewer.js?v=1"></script>
-<script defer src="smyl-inbox.js?v=84"></script>
+<script defer src="smyl-inbox.js?v=85"></script>
 <link rel="stylesheet" href="smyl-navigation.css?v=11">
 <script defer src="smyl-navigation.js?v=29"></script>
 <link rel="stylesheet" href="smyl-command-menu.css?v=3">
@@ -2513,7 +2513,7 @@ if (_diagTarget) _diagObs.observe(_diagTarget, {childList:true, subtree:true});
 // ══ SERVICE WORKER ══
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js?v=chat-message-actions-v2', { updateViaCache: 'none' }).then(function(reg) {
+    navigator.serviceWorker.register('sw.js?v=chat-filter-icon-v1', { updateViaCache: 'none' }).then(function(reg) {
       console.log('[SMYL PWA] SW registered:', reg.scope);
       reg.update().catch(function() {});
     }).catch(function(err) {
