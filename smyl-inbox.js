@@ -401,6 +401,7 @@
     moveStage: '<path d="M3 4h7v6H3zM14 14h7v6h-7zM13 7h5v4m-3-3 3 3 3-3"></path>',
     mic: '<rect x="9" y="3" width="6" height="12" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"></path>',
     location: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle>',
+    bot: '<rect x="4" y="7" width="16" height="13" rx="3"></rect><path d="M12 3v4M2 12v4M22 12v4M8 16h8"></path><circle cx="8.5" cy="11.5" r=".5"></circle><circle cx="15.5" cy="11.5" r=".5"></circle>',
     person: '<circle cx="10" cy="8" r="3.5"></circle><path d="M3 20v-2a7 7 0 0 1 12.2-4.7M16 17l2 2 4-5"></path>',
     close: '<path d="m6 6 12 12M18 6 6 18"></path>',
     settings: '<path d="M3 7h6m4 0h8M3 17h10m4 0h4"></path><circle cx="11" cy="7" r="2"></circle><circle cx="15" cy="17" r="2"></circle>',
@@ -448,7 +449,7 @@
                 '<button type="button" class="smyl-inbox-owner-control" data-thread-owner aria-haspopup="dialog" aria-controls="smyl-chat-owner">' + composeIcon('person') + '<span class="smyl-inbox-owner-copy"><small>Atiende el chat</small><strong data-thread-owner-name>Sin asignar</strong></span></button></div>' +
               '<div class="smyl-inbox-thread-actions">' +
                 '<div class="smyl-inbox-thread-branchwrap" data-thread-branch-wrap hidden><button type="button" class="smyl-inbox-iconchip is-labeled" data-thread-branch-chip aria-haspopup="menu" aria-expanded="false"></button></div>' +
-                '<button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button>' +
+                '<button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-mode-mark" aria-hidden="true">' + composeIcon('bot') + '<svg class="smyl-inbox-mode-status is-paused" viewBox="0 0 12 12"><path d="M4 3v6M8 3v6"></path></svg><svg class="smyl-inbox-mode-status is-active" viewBox="0 0 12 12"><path d="m4 2 5 4-5 4Z"></path></svg></span><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button>' +
                 '<nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Siguiente acción del paciente"></nav>' +
                 '<button type="button" data-thread-options aria-label="Opciones del chat" title="Opciones del chat" aria-controls="smyl-thread-options" aria-expanded="false" hidden>' + composeIcon('settings') + '</button>' +
               '</div>' +
@@ -457,7 +458,7 @@
             '<div class="smyl-inbox-transcript"><div class="smyl-inbox-thread-body" data-thread-body tabindex="-1" aria-label="Historial de mensajes" role="region"><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div id="smyl-thread-log" data-thread-messages role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div></div>' +
               '<button type="button" class="smyl-inbox-jump" data-thread-jump aria-controls="smyl-thread-log" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-6-6 6 6 6-6"/></svg><span>Ir al final</span></button><span class="smyl-inbox-sr" role="status" data-thread-jump-status></span></div>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
-            '<form class="smyl-inbox-composer" data-inbox-composer><label class="smyl-inbox-sr" for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window aria-live="polite" hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><p class="smyl-compose-save-warning" data-compose-save-warning role="status" hidden>No se pudo guardar el texto para esta sesión.</p><div class="smyl-inbox-compose-surface" data-compose-surface><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-card"><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea></div><div class="smyl-inbox-compose-bar" role="group" aria-label="Acciones de respuesta"><div class="smyl-inbox-compose-primary"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-compose-tools" aria-label="Abrir herramientas de mensaje" title="Herramientas">' + composeIcon('plus') + '</button></div><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden><div class="smyl-inbox-compose-actions"><button type="button" class="smyl-inbox-compose-copilot" data-compose-copilot aria-label="Sugerir con MILA">' + composeIcon('mila') + '<span>Sugerir con MILA</span></button><button type="submit" class="smyl-inbox-send" data-compose-send aria-label="Enviar mensaje"><span>Enviar</span>' + composeIcon('send') + '</button></div></div></div><div class="smyl-inbox-compose-tools" id="smyl-inbox-compose-tools" data-compose-tools role="menu" aria-label="Herramientas de mensaje" hidden><button type="button" data-compose-attach role="menuitem" aria-label="Adjuntar archivo">' + composeIcon('attach') + '<span><strong>Adjuntar</strong><small>Foto, archivo o audio</small></span></button><button type="button" data-compose-quick role="menuitem" aria-label="Respuesta rápida">' + composeIcon('quick') + '<span><strong>Respuesta rápida</strong><small>Insertar texto del equipo</small></span></button><button type="button" data-compose-rewrite role="menuitem" aria-label="Mejorar redacción con MILA">' + composeIcon('rewrite') + '<span><strong>Mejorar redacción</strong><small>Ortografía y claridad con MILA</small></span></button><button type="button" data-compose-emoji role="menuitem" aria-label="Agregar emoji">' + composeIcon('smile') + '<span><strong>Emoji</strong><small>Insertar en el mensaje</small></span></button><button type="button" data-compose-template role="menuitem">' + composeIcon('template') + '<span><strong>Plantilla</strong><small>Mensaje aprobado</small></span></button><button type="button" data-compose-schedule role="menuitem">' + composeIcon('calendar') + '<span><strong>Programar</strong><small>Enviar después</small></span></button><button type="button" data-compose-record role="menuitem" aria-pressed="false">' + composeIcon('mic') + '<span><strong>Nota de voz</strong><small>Grabar audio</small></span></button><button type="button" data-compose-location role="menuitem" aria-label="Enviar ubicación actual">' + composeIcon('location') + '<span><strong>Enviar ubicación</strong><small>Ubicación actual o enlace de Maps</small></span></button></div></div></div></form>' +
+            '<form class="smyl-inbox-composer" data-inbox-composer><label class="smyl-inbox-sr" for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window aria-live="polite" hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><p class="smyl-compose-save-warning" data-compose-save-warning role="status" hidden>No se pudo guardar el texto para esta sesión.</p><div class="smyl-inbox-compose-surface" data-compose-surface><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-card"><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea></div><div class="smyl-inbox-compose-bar" role="group" aria-label="Acciones de respuesta"><div class="smyl-inbox-compose-primary"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-compose-tools" aria-label="Abrir herramientas de mensaje" title="Herramientas">' + composeIcon('plus') + '</button></div><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden><div class="smyl-inbox-compose-actions"><button type="button" class="smyl-inbox-compose-copilot" title="Sugerir con MILA" data-compose-copilot aria-label="Sugerir con MILA">' + composeIcon('mila') + '<span>Sugerir con MILA</span></button><button type="submit" class="smyl-inbox-send" data-compose-send aria-label="Enviar mensaje"><span>Enviar</span>' + composeIcon('send') + '</button></div></div></div><div class="smyl-inbox-compose-tools" id="smyl-inbox-compose-tools" data-compose-tools role="menu" aria-label="Herramientas de mensaje" hidden><button type="button" data-compose-attach role="menuitem" aria-label="Adjuntar archivo">' + composeIcon('attach') + '<span><strong>Adjuntar</strong><small>Foto, archivo o audio</small></span></button><button type="button" data-compose-quick role="menuitem" aria-label="Respuesta rápida">' + composeIcon('quick') + '<span><strong>Respuesta rápida</strong><small>Insertar texto del equipo</small></span></button><button type="button" data-compose-rewrite role="menuitem" aria-label="Mejorar redacción con MILA">' + composeIcon('rewrite') + '<span><strong>Mejorar redacción</strong><small>Ortografía y claridad con MILA</small></span></button><button type="button" data-compose-emoji role="menuitem" aria-label="Agregar emoji">' + composeIcon('smile') + '<span><strong>Emoji</strong><small>Insertar en el mensaje</small></span></button><button type="button" data-compose-template role="menuitem">' + composeIcon('template') + '<span><strong>Plantilla</strong><small>Mensaje aprobado</small></span></button><button type="button" data-compose-schedule role="menuitem">' + composeIcon('calendar') + '<span><strong>Programar</strong><small>Enviar después</small></span></button><button type="button" data-compose-record role="menuitem" aria-pressed="false">' + composeIcon('mic') + '<span><strong>Nota de voz</strong><small>Grabar audio</small></span></button><button type="button" data-compose-location role="menuitem" aria-label="Enviar ubicación actual">' + composeIcon('location') + '<span><strong>Enviar ubicación</strong><small>Ubicación actual o enlace de Maps</small></span></button></div></div></div></form>' +
           '</div>' +
         '</main>' +
         '<section class="smyl-inbox-offline" data-inbox-offline hidden aria-live="polite"></section>' +
@@ -3570,7 +3571,8 @@
       var primaryButton = node('button', 'smyl-inbox-care-action is-primary', primary.label);
       if (primary.id === 'schedule') {
         primaryButton.setAttribute('aria-label', primary.label);
-        primaryButton.replaceChildren(node('span', 'smyl-thread-action-full', primary.label), node('span', 'smyl-thread-action-short', 'Agendar'));
+        primaryButton.title = primary.label;
+        primaryButton.innerHTML = composeIcon('calendar');
       }
       primaryButton.type = 'button'; primaryButton.dataset.threadPrimaryAction = primary.id; primaryButton.onclick = primary.run; host.append(primaryButton);
     }
@@ -3608,7 +3610,6 @@
     var headerAvatar = document.querySelector('[data-thread-avatar]');
     headerAvatar.textContent = initials(conversation.contact_name);
     headerAvatar.dataset.channel = conversation.channel;
-    headerAvatar.append(channelBadge(conversation.channel));
     document.querySelector('[data-thread-name]').textContent = conversation.contact_name;
     var threadFicha = state.clinical[conversation.id];
     var actorRole = state.actor && state.actor.role_name;
@@ -3620,7 +3621,11 @@
     renderThreadBranchChip(conversation);
     if (headerWindow && headerWindow.status !== 'expired') threadMeta.push('Ventana 24 h: quedan ' + durationLabel(headerWindow.remaining_seconds));
     var meta = document.querySelector('[data-thread-meta]');
-    meta.textContent = threadMeta.join(' · ');
+    var channelLogo = node('span', 'smyl-inbox-thread-channel-logo');
+    channelLogo.setAttribute('aria-hidden', 'true');
+    channelLogo.innerHTML = (CHANNEL_MARKS[conversation.channel] || '').replace(/smyl-(ig|ms)-gradient/g, 'smyl-thread-$1-gradient');
+    channelLogo.hidden = !CHANNEL_MARKS[conversation.channel];
+    meta.replaceChildren(channelLogo, node('span', 'smyl-inbox-thread-channel-text', threadMeta.join(' · ')));
     // Aviso visible aunque la ficha esté cerrada; solo con permiso clínico (el servidor ya filtra el alcance).
     var medicalFlag = document.querySelector('[data-thread-medical]');
     var medicalItems = hasPermission('clinical.read') && threadFicha && threadFicha.linked && threadFicha.patient && threadFicha.patient.medical_alerts ? (threadFicha.patient.medical_alerts.items || []) : [];
@@ -3634,6 +3639,7 @@
     var mode = document.querySelector('[data-thread-mode]');
     stateLabel.textContent = conversation.paused ? (state.copilotLoading[conversation.id] === 'summary' ? 'Preparando…' : 'IA pausada') : 'IA activa';
     mode.dataset.state = conversation.paused ? 'resume' : 'pause';
+    mode.title = stateLabel.textContent + (conversation.paused ? ' · Activar IA' : ' · Pausar IA');
     mode.setAttribute('aria-checked', conversation.paused ? 'false' : 'true');
     mode.setAttribute('aria-label', conversation.paused ? 'IA pausada: activar para que SMYL Asistente vuelva a responder' : 'IA activa: desactivar para tomar el control de la conversación');
     mode.disabled = !canOperate(conversation, 'messages.manage') || Boolean(state.copilotLoading[conversation.id]);
@@ -3719,6 +3725,8 @@
     select.value = current; select.disabled = !canChoose; select.dataset.conversationId = conversation.id;
     wrap.querySelector('[data-thread-owner-name]').textContent = name;
     var description = 'Responsable del chat: ' + name;
+    wrap.setAttribute('aria-label', 'Atiende el chat: ' + name);
+    wrap.title = description;
     var unavailable = allowed && roster.status === 'error';
     select.setAttribute('aria-label', description + (canChoose ? '. Cambiar responsable' : ''));
     wrap.disabled = !allowed;

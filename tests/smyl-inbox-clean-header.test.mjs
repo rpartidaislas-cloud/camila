@@ -6,12 +6,13 @@ const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
 const js = read('../smyl-inbox.js');
 const css = read('../smyl-inbox.css');
 
-test('cada canal muestra su logo en la esquina del avatar, en lista, encabezado y pipeline', () => {
+test('cada canal conserva su marca y la cabecera la muestra junto al nombre', () => {
   assert.match(js, /var CHANNEL_MARKS = \{\s*whatsapp:/);
   assert.match(js, /instagram: '<svg/);
   assert.match(js, /messenger: '<svg/);
   assert.match(js, /badge\.setAttribute\('role', 'img'\); badge\.setAttribute\('aria-label', channelLabel\(channel\)\)/);
-  assert.equal((js.match(/channelBadge\(/g) || []).length, 5); // definición, lista, encabezado, pipeline y la API del Inicio (buildAvatar)
+  assert.equal((js.match(/channelBadge\(/g) || []).length, 4); // definición, lista, pipeline y la API del Inicio (buildAvatar)
+  assert.match(js, /meta\.replaceChildren\(channelLogo, node\('span', 'smyl-inbox-thread-channel-text'/);
   // Ya no hay un chip de texto con el nombre del canal en cada fila.
   assert.doesNotMatch(js, /node\('span', 'smyl-inbox-channel', channelLabel/);
   assert.match(css, /\.smyl-inbox-channel-badge\{position:absolute/);
@@ -60,8 +61,8 @@ test('el responsable y el relevo privado comparten un solo acceso en el encabeza
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=85/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=72/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=86/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=73/);
 });
 
 test('la cabecera grande se reemplaza por una barra delgada y los contadores viven en las pestañas', () => {
