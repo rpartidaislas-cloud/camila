@@ -60,8 +60,8 @@ test('el responsable y el relevo privado comparten un solo acceso en el encabeza
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=80/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=68/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=81/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=69/);
 });
 
 test('la cabecera grande se reemplaza por una barra delgada y los contadores viven en las pestañas', () => {
@@ -77,12 +77,13 @@ test('la cabecera grande se reemplaza por una barra delgada y los contadores viv
   assert.match(css, /\.smyl-inbox-page\.show-thread \.smyl-inbox-top\{display:none\}/);
 });
 
-test('las burbujas no repiten Paciente / Equipo de la clínica y Responder / Más aparece al tocar en celular', () => {
+test('las burbujas no repiten el autor y las opciones viven fuera del mensaje', () => {
   assert.match(js, /bubble\.append\(node\('span', 'smyl-inbox-sr', author \+ ': '\)\)/);
   assert.match(js, /function dayLabel\(date\)/);
   assert.match(js, /return 'Hoy'/);
   assert.match(js, /state\.actionsOpenId/);
-  assert.match(css, /\.smyl-inbox-message\.show-actions \.smyl-inbox-message-actions\{display:flex\}/);
+  assert.match(js, /row\.append\(actions\)/);
+  assert.match(css, /@media \(hover: hover\) and \(pointer: fine\)/);
   assert.match(css, /\.smyl-inbox-day\{width:max-content[^}]*border-radius:999px/);
 });
 
@@ -106,6 +107,6 @@ test('Chat limpio: un solo aviso de plantilla, conversación abierta que no desa
   assert.match(js, /Ventana 24 h: quedan /);
   assert.doesNotMatch(js, /smyl-inbox-briefing-files/, '«Archivos» ya no vive en la franja de resumen');
   const css = fs.readFileSync(new URL('../smyl-inbox.css', import.meta.url), 'utf8');
-  assert.match(css, /smyl-inbox-message:focus-within \.smyl-inbox-message-actions/, 'las acciones también aparecen con el foco del teclado');
+  assert.match(css, /smyl-inbox-message:focus-within \.smyl-inbox-message-more/, 'las opciones también aparecen con el foco del teclado');
   assert.match(css, /#p-inbox \.smyl-inbox-filters button\.active b\{background:#0b1b2e;color:#fff\}/, 'el contador del filtro activo se ve');
 });
