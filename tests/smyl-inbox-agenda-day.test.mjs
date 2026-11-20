@@ -26,7 +26,7 @@ test('la agenda solo se pide y se muestra a quien puede leer Agenda, y es de sol
 test('web, móvil y PWA publican la agenda del día automática', () => {
   for (const file of ['app.html', 'sw.js']) {
     assert.match(read(file), /smyl-inbox-calendar\.js\?v=4/);
-    assert.match(read(file), /smyl-inbox\.js\?v=88/);
+    assert.match(read(file), /smyl-inbox\.js\?v=89/);
     assert.match(read(file), /smyl-inbox\.css\?v=75/);
   }
   for (const file of ['smyl-inbox-calendar.js', 'smyl-inbox.js', 'smyl-inbox.css', 'app.html', 'sw.js']) {

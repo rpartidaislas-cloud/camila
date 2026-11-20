@@ -1,3 +1,10 @@
+## 2026-11-20 — Claude Code — Citas desde el chat: aviso de dónde quedaron y Agenda sincronizada
+
+- Diagnóstico: en producción las citas del chat sí se crean y confirman (6 con `source=inbox`, la última hoy); no se veían porque quedan en otra sucursal/día distinto al filtro de la Agenda y el aviso solo decía «Cita confirmada en la Agenda».
+- `smyl-inbox.js` v89: `announceBookedAppointment()` dice día, hora y sucursal y ofrece «¿Abrir la Agenda en ese día para verla?» (en `bookAvailabilitySlot` y `confirmAvailabilityRequest`).
+- `smyl-schedule.js` v52: escucha `smyl:appointments-changed` (recarga) y expone `SmylSchedule.focusAppointment(startsAt, branchId, professionalId)`.
+- SW suffix `-chat-cita-agenda-v1`; copias en `mobile/www/`. Sin cambios de backend/migraciones.
+
 ## 2026-11-20 — Claude Code — Agenda: el clic en día/hora llega a «Nueva cita» y al guardar se ve la cita
 
 - `smyl-schedule.js`: el tablero recibe `api.preselected()` con la hora tocada; el resumen muestra «Horario» aunque aún no haya tratamiento; al guardar, la Agenda salta al día, sucursal y filtros de la cita y avisa «Cita guardada: vie 20 de nov · 1:00 pm en Sucursal …».
