@@ -1,3 +1,10 @@
+## 2026-11-20 — Claude — Selector de consultorio compacto en el menú lateral
+
+- Solicitud de Ricardo: el texto «Todos (vista global)» del selector de consultorio se veía demasiado grande.
+- Causa: la regla global `input,textarea,select{font-size:16px!important}` (evita el zoom de iPhone al tocar un campo) también agrandaba el selector del menú.
+- `smyl-branch-scope.js` v4: el selector se dibuja como una fila del menú (icono de edificio, nombre del consultorio a 13 px, flecha) y el `<select>` nativo va encima, transparente, conservando sus 16 px: se ve pequeño y el iPhone sigue sin hacer zoom. La opción global ahora dice «Todos los consultorios»; en vista global, en lugar del borde ámbar grueso, un punto ámbar sobre el icono. Con el menú colapsado solo queda el icono. Sin cambios de datos ni permisos.
+- `app.html` (estilos `.sb-branch*`), `sw.js` (`?v=4`, registro `selector-consultorio-v1`) y copias idénticas en `mobile/www/`. Prueba del módulo actualizada a v4.
+
 ## 2026-11-19 — Codex — Opciones fuera de las burbujas y respuesta sobre el compositor
 
 - Solicitud de Ricardo: tres puntos fuera de cada burbuja, referencia del mensaje encima de donde escribe, computadora y celular, con publicación autorizada.

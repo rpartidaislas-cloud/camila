@@ -108,11 +108,20 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 .main{flex:1;overflow-y:auto;min-width:0}
 
 /* ── SIDEBAR ── */
-.sb-branch{padding:10px 18px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
-.sb-branch label{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:4px}
-.sb-branch select{width:100%;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:7px 8px;font:inherit;font-size:13px;cursor:pointer}
+.sb-branch{padding:2px 14px 10px}
+.sb-branch label{display:block;padding:0 4px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(200,222,228,.5);margin-bottom:5px}
+.sb-branch-field{position:relative;display:flex;align-items:center;gap:8px;min-height:36px;padding:0 10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#e4f0f3;transition:background-color .15s,border-color .15s}
+.sb-branch-field:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}
+.sb-branch-field:focus-within{border-color:#6ed8ce;box-shadow:0 0 0 2px rgba(110,216,206,.25)}
+.sb-branch-icon{position:relative;display:grid;place-items:center;flex:0 0 16px;color:rgba(186,208,216,.75)}
+.sb-branch-value{flex:1;min-width:0;overflow:hidden;font-size:13px;font-weight:500;line-height:1.2;text-overflow:ellipsis;white-space:nowrap}
+.sb-branch-chev{flex:0 0 auto;font-size:11px;color:rgba(186,208,216,.6)}
+.sb-branch select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;margin:0;-webkit-appearance:none;appearance:none}
 .sb-branch select option{color:#1F2937;background:#fff}
-body.branch-scope-all .sb-branch select{border-color:#F59E0B;box-shadow:0 0 0 1px #F59E0B}
+body.branch-scope-all .sb-branch-icon::after{content:"";position:absolute;top:-3px;right:-4px;width:7px;height:7px;border-radius:50%;background:#F59E0B;box-shadow:0 0 0 2px #10283a}
+body.smyl-sidebar-collapsed .sb-branch{padding:2px 8px 10px}
+body.smyl-sidebar-collapsed .sb-branch label,body.smyl-sidebar-collapsed :is(.sb-branch-value,.sb-branch-chev){display:none}
+body.smyl-sidebar-collapsed .sb-branch-field{justify-content:center;padding:0}
 .sb-logo{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:8px}
 .sb-logo-icon{display:flex;align-items:center;flex-shrink:0}
 .sb-logo h1{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.3px}
@@ -871,7 +880,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-schedule-grid.js?v=2"></script>
 <script defer src="smyl-schedule-slots.js?v=1"></script>
 <script defer src="smyl-schedule-board.js?v=2"></script>
-<script defer src="smyl-branch-scope.js?v=3"></script>
+<script defer src="smyl-branch-scope.js?v=4"></script>
 <script defer src="smyl-schedule.js?v=48"></script>
 <script defer src="smyl-google-calendar.js?v=3"></script>
 <script defer src="smyl-schedule-message.js?v=5"></script>

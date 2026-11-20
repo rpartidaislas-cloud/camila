@@ -82,11 +82,11 @@ test("install es idempotente: no envuelve dos veces", () => {
 
 test("app.html: carga el módulo, inicia tras resolver la clínica y define el selector; móvil y PWA sincronizados", () => {
   const html = read("app.html");
-  assert.match(html, /<script defer src="smyl-branch-scope\.js\?v=3"><\/script>/);
+  assert.match(html, /<script defer src="smyl-branch-scope\.js\?v=4"><\/script>/);
   assert.match(html, /renderSidebar\(\);\s*\n\s*\/\/ Varios consultorios[^\n]*\n\s*if \(window\.SmylBranchScope\) window\.SmylBranchScope\.init\(\);/);
   assert.match(html, /\.sb-branch select/);
   for (const f of ["app.html", "smyl-branch-scope.js", "sw.js"]) assert.equal(read(f), read("mobile/www/" + f), `${f} móvil igual`);
-  assert.match(read("sw.js"), /'\/camila\/smyl-branch-scope\.js\?v=3'/);
+  assert.match(read("sw.js"), /'\/camila\/smyl-branch-scope\.js\?v=4'/);
   assert.match(read("sw.js"), /-branch-scope-v1(?:-|')/);
 });
 
