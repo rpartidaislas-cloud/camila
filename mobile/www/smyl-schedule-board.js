@@ -183,7 +183,17 @@
     var values = api.values(), ctx = api.context();
     var ui = host._ui;
     if (!ui) { var init = api.initial() || {}; ui = host._ui = { svc: '', day: '', professional: init.professionalId || '', branch: init.branchId || '', token: 0, result: null, resultKey: '' }; }
-    if (!values.serviceId || !ctx.service) { host._sig = ''; ui.result = null; ui.svc = ''; show(el('p', 'schedule-slots-hint', 'Elige el tratamiento para ver quién tiene horarios libres.')); return; }
+    if (!values.serviceId || !ctx.service) {
+      host._sig = ''; ui.result = null; ui.svc = '';
+      var picked = typeof api.preselected === 'function' ? api.preselected() : '';
+      if (picked) {
+        // Se abrió desde un horario de la Agenda: se ve lo elegido y solo falta el tratamiento para revisar que esté libre.
+        var note = el('div', 'schedule-board-picked');
+        note.append(el('strong', '', 'Elegiste ' + picked + '.'), el('span', '', 'Elige el tratamiento y revisamos que ese horario esté libre.'));
+        show(note);
+      } else show(el('p', 'schedule-slots-hint', 'Elige el tratamiento para ver quién tiene horarios libres.'));
+      return;
+    }
     var capable = ctx.professionals || [];
     if (!capable.length) { host._sig = ''; show(el('p', 'schedule-slots-hint', 'Ningún dentista tiene asignado este tratamiento. Asígnalo en Agenda, Disponibilidad.')); return; }
     if (!activeRows(ctx.clinicHours).length) { host._sig = ''; show(el('p', 'schedule-slots-hint', 'Las sucursales no tienen horario semanal configurado. Agrégalo en Agenda, Disponibilidad; sin eso no se puede confirmar ninguna cita.')); return; }
@@ -278,6 +288,7 @@
         });
         box.append(row); detail.append(box);
       } else {
+        var foundChosen = false, pending = null, autoKey = [v.serviceId, v.extra, v.starts, v.professionalId, v.branchId].join('|');
         groups.sort(function (a, b) { return nameOf(a.professionalId, ctx2.professionals, 'display_name').localeCompare(nameOf(b.professionalId, ctx2.professionals, 'display_name')) || nameOf(a.branchId, ctx2.branches, 'name').localeCompare(nameOf(b.branchId, ctx2.branches, 'name')); });
         groups.forEach(function (g) {
           var p = ctx2.professionals.filter(function (x) { return x.id === g.professionalId; })[0], line = el('div', 'schedule-board-group');
@@ -288,12 +299,21 @@
           var list = el('div', 'schedule-slot-times'); list.setAttribute('role', 'group'); list.setAttribute('aria-label', 'Horarios libres de ' + (p ? p.display_name : ''));
           g.slots.forEach(function (s) {
             var chosen = v.starts === toLocalInput(s.start) && v.professionalId === g.professionalId && v.branchId === g.branchId;
+            if (chosen) { foundChosen = true; if (!s.roomId || autoKey !== ui.autoPicked) pending = { professionalId: g.professionalId, branchId: g.branchId, roomId: s.roomId || '', start: s.start }; }
             var b = btn('schedule-slot-time', api.time(s.start)); b.setAttribute('aria-pressed', String(chosen));
             b.onclick = function () { api.pick({ professionalId: g.professionalId, branchId: g.branchId, roomId: s.roomId || '', start: s.start }); };
             list.append(b);
           });
           line.append(who, list); detail.append(line);
         });
+        // Horario tocado en la Agenda: si está libre se toma solo (con sillón); si no, se avisa para elegir otro.
+        if (v.starts && String(v.starts).slice(0, 10) === ui.day) {
+          if (pending && ui.autoPicked !== autoKey) { ui.autoPicked = autoKey; setTimeout(function () { api.pick(pending); }, 0); }
+          else if (!foundChosen && ui.warnedFor !== autoKey) {
+            var warn = el('p', 'schedule-board-picked is-warning', 'El horario que elegiste en la Agenda no está libre para este tratamiento. Elige otra hora de la lista.');
+            detail.insertBefore(warn, detail.firstChild);
+          }
+        }
       }
       root.append(detail);
 
