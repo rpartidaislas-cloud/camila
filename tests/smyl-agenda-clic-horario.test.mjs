@@ -31,14 +31,22 @@ test('las citas hechas desde el chat avisan dónde quedaron y la Agenda se actua
   assert.match(inbox, /¿Abrir la Agenda en ese día para verla\?/);
 });
 
+test('la Agenda avisa cuando el filtro esconde citas y deja verlas todas', () => {
+  const schedule = read('smyl-schedule.js');
+  assert.match(schedule, /function renderHiddenNote\(\)/);
+  assert.match(schedule, /no se ven porque estás filtrando por/);
+  assert.match(schedule, /renderCalendar\(\);renderHiddenNote\(\);/);
+  assert.match(read('smyl-schedule.css'), /\.schedule-hidden-note\{/);
+});
+
 test('web, móvil y PWA publican el arreglo', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-schedule\.js\?v=52/);
+    assert.match(read(file), /smyl-schedule\.js\?v=53/);
     assert.match(read(file), /smyl-schedule-board\.js\?v=3/);
-    assert.match(read(file), /smyl-schedule\.css\?v=35/);
+    assert.match(read(file), /smyl-schedule\.css\?v=36/);
     assert.match(read(file), /smyl-inbox\.js\?v=89/);
   }
-  assert.match(read('sw.js'), /-agenda-clic-horario-v1-chat-cita-agenda-v1';/);
+  assert.match(read('sw.js'), /-agenda-clic-horario-v1-chat-cita-agenda-v1-agenda-filtro-aviso-v1';/);
   for (const file of ['smyl-schedule.js', 'smyl-inbox.js', 'smyl-schedule-board.js', 'smyl-schedule.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);
   }
