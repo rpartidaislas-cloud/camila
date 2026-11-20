@@ -23,10 +23,9 @@ function functionSource(source, name) {
 }
 
 test('Inicio prioriza la jornada, atención y mensajes sin duplicar el menú', () => {
-  for (const label of ['Todo al día','Mi jornada','en clínica','por llegar','terminada','Mensajes recientes','Requiere atención','Resumen mensual de la clínica','Nueva cita']) assert.match(script, new RegExp(label));
+  for (const label of ['Todo al día','Mi jornada','en clínica','por llegar','terminada','Mensajes recientes','Requiere atención','Resumen mensual de la clínica']) assert.match(script, new RegExp(label));
   for (const route of ["route('agenda')","route('inbox')","route('reportes')"]) assert.match(script, new RegExp(route.replace(/[()]/g,'\\$&')));
-  assert.match(script,/SmylCareTasks\.open/);
-  assert.doesNotMatch(script, /data-home-task=|daily-home-shortcuts|window\.abrirModalPaciente/);
+  assert.doesNotMatch(script, /data-home-task=|data-home-new-appointment|daily-home-shortcuts|window\.abrirModalPaciente|SmylCareTasks\.open\('appointment'\)/);
   assert.doesNotMatch(script, /insert\(|update\(|delete\(/);
 });
 
@@ -75,15 +74,17 @@ test('el resumen mensual conserva los ceros reales y distingue los datos ausente
 });
 
 test('La mesa de trabajo se distribuye en web, PWA y vista de QA', () => {
-  assert.match(app, /smyl-daily-home\.css\?v=16/);
-  assert.match(app, /smyl-daily-home\.js\?v=20/);
+  assert.match(app, /smyl-daily-home\.css\?v=17/);
+  assert.match(app, /smyl-daily-home\.js\?v=21/);
   assert.match(app, /smyl-dashboard-v2\.css\?v=2/);
   assert.ok(app.indexOf('smyl-dashboard-v2.css?v=2') > app.indexOf('smyl-ui-template-v3.css?v=9'), 'la capa del dashboard debe gobernar después de la plantilla global');
   assert.match(app, /smyl-clinic-setup\.js\?v=7/);
   assert.match(app, /smyl-lana-attention\.js\?v=5/);
   assert.match(worker, /meta-cards-v13/);
   assert.match(worker, /patient-simulations-v70/);
-  assert.match(worker, /smyl-daily-home\.js\?v=20/);
+  assert.match(worker, /smyl-daily-home\.js\?v=21/);
+  assert.match(worker, /smyl-daily-home\.css\?v=17/);
+  assert.match(worker, /inicio-sin-nueva-cita-v1/);
   assert.match(worker, /smyl-dashboard-v2\.css\?v=2/);
   assert.match(worker, /dashboard-operativo-v3/);
   assert.match(styles, /daily-home-metrics/);
@@ -222,7 +223,6 @@ test('Inicio por rol: oculta lo que el rol no puede usar y limita la jornada a l
   assert.match(script, /professional_id/);
   assert.match(script, /function mineOnly\(\)[\s\S]*?can\('schedule\.manage'\)\?flag\('mine'\)==='1':true/);
   assert.match(script, /now\.hidden=!read/);
-  assert.match(script, /create\.hidden=!can\('schedule\.manage'\)/);
   assert.match(script, /chats\.hidden=!messages/);
   assert.match(script, /if\(!can\('schedule\.read'\)\)return tasks;/);
   assert.match(script, /Solo mis citas/);

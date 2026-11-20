@@ -50,9 +50,6 @@
           <h1 data-home-greeting></h1>
           <p><span data-home-date></span> · <small data-home-updated>Actualizando…</small></p>
         </div>
-        <div class="daily-home-bar-actions">
-          <button type="button" class="daily-home-bar-btn is-primary" data-home-new-appointment><span aria-hidden="true">+</span> Nueva cita</button>
-        </div>
       </header>
       <div class="daily-home-workbench">
         <section class="daily-home-card daily-home-now-card" aria-labelledby="daily-home-now-title">
@@ -89,7 +86,6 @@
     if(flag('month')==='1')section.querySelector('[data-home-month]').innerHTML='<div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div><div class="daily-home-skeleton"></div>'; else monthSection.hidden=true;
     refreshHeading(section);
     section.querySelector('[data-home-open-agenda]').onclick=function(){route('agenda');};
-    section.querySelector('[data-home-new-appointment]').onclick=function(){if(window.SmylCareTasks&&typeof window.SmylCareTasks.open==='function')window.SmylCareTasks.open('appointment');else route('agenda');};
     section.querySelector('[data-home-open-inbox]').onclick=function(){route('inbox');};
     section.querySelector('[data-home-open-reports]').onclick=function(){route('reportes');};
     section.querySelector('[data-home-mine]').onclick=function(){
@@ -105,8 +101,8 @@
     var root=document.getElementById('smyl-daily-home'); if(!root)return;
     var pick=function(sel){return root.querySelector(sel);};
     var read=can('schedule.read'), messages=can('messages.read');
-    var now=pick('.daily-home-now-card'), chats=pick('.daily-home-chats'), agenda=pick('[data-home-open-agenda]'), create=pick('[data-home-new-appointment]'), bench=pick('.daily-home-workbench'), inboxLine=pick('[data-home-inbox-line]');
-    if(now)now.hidden=!read; if(agenda)agenda.hidden=!read; if(create)create.hidden=!can('schedule.manage');
+    var now=pick('.daily-home-now-card'), chats=pick('.daily-home-chats'), agenda=pick('[data-home-open-agenda]'), bench=pick('.daily-home-workbench'), inboxLine=pick('[data-home-inbox-line]');
+    if(now)now.hidden=!read; if(agenda)agenda.hidden=!read;
     if(chats)chats.hidden=!messages; if(inboxLine&&!messages)inboxLine.hidden=true;
     if(bench)bench.classList.toggle('is-solo',!read);
     root.dataset.scope=mineOnly()?'mine':'all';

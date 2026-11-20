@@ -294,15 +294,9 @@
 #smyl-daily-home .daily-home-bar h1{margin:0;color:var(--smyl-ink,#102239);font-size:24px;font-weight:700;line-height:30px;letter-spacing:-.02em}
 #smyl-daily-home .daily-home-bar p{display:flex;flex-wrap:wrap;gap:0 4px;margin:2px 0 0;color:var(--smyl-text-muted,#667586);font-size:13px;line-height:18px}
 #smyl-daily-home .daily-home-bar small{font-size:13px;line-height:18px}
-#smyl-daily-home .daily-home-bar-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
 #smyl-daily-home .daily-home-state{display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:0 12px;border-radius:999px;background:#fff1d6;color:#8a5a00;font-size:12px;font-weight:700;line-height:16px}
 #smyl-daily-home .daily-home-state::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
 #smyl-daily-home .daily-home-state[data-tone="clear"]{background:#e3f4ea;color:#17663b}
-#smyl-daily-home .daily-home-bar-btn{min-height:40px;padding:0 16px;border:1px solid var(--home-line,#dce5ec);border-radius:10px;background:#fff;color:var(--home-ink,#102439);font:700 13px/18px Inter,system-ui,sans-serif;cursor:pointer}
-#smyl-daily-home .daily-home-bar-btn:hover{border-color:#91b8b4;background:#f1faf8}
-#smyl-daily-home .daily-home-bar-btn.is-primary{border-color:var(--home-navy,#0b2238);background:var(--home-navy,#0b2238);color:#fff}
-#smyl-daily-home .daily-home-bar-btn.is-primary:hover{background:#12304d}
-#smyl-daily-home .daily-home-bar-btn:focus-visible{outline:2px solid var(--home-teal,#0f766e);outline-offset:2px}
 
 #smyl-daily-home .daily-home-card>header>.daily-home-day-count{margin:0;color:var(--smyl-text-muted,#667586);font-size:12px;font-weight:600;letter-spacing:0;text-transform:none}
 #smyl-daily-home .daily-home-chips{display:flex;flex-wrap:wrap;gap:8px;padding:12px 18px;border-bottom:1px solid var(--home-line-soft,#eaf0f4)}
@@ -345,9 +339,7 @@ body.smyl-ui-governed #smyl-daily-home .daily-home-month .daily-home-metrics-mon
 @media(max-width:700px){
   #smyl-daily-home .daily-home-bar{align-items:stretch;flex-direction:column;gap:10px}
   #smyl-daily-home .daily-home-bar h1{font-size:22px;line-height:28px}
-  #smyl-daily-home .daily-home-bar-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   #smyl-daily-home .daily-home-state{grid-column:1/-1;justify-self:start}
-  #smyl-daily-home .daily-home-bar-btn{min-height:44px}
   #smyl-daily-home .daily-home-chips{padding:10px 14px}
   #smyl-daily-home .daily-home-timeline>button{grid-template-columns:62px minmax(0,1fr) auto;padding:11px 14px}
   #smyl-daily-home .daily-home-now,#smyl-daily-home .daily-home-fold,#smyl-daily-home .daily-home-inbox-line{padding-left:14px;padding-right:14px}
