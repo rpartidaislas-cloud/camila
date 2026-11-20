@@ -3218,3 +3218,5 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
 .smyl-chat-thumbnail-fallback { padding: 8px; color: #436375; font: 600 13px/1.4 var(--inbox-font, sans-serif); }
 .smyl-inbox-shared-item .smyl-chat-media-open.has-thumbnail, .smyl-inbox-shared-item .smyl-chat-thumbnail { width: 100%; }
 .smyl-f360-file-preview > .smyl-chat-thumbnail { display: grid; place-items: center; width: 100%; height: 100%; }
+#p-inbox .smyl-f360-visit-actions{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:6px}
+#p-inbox .smyl-f360-link.is-danger{color:#A1442E}

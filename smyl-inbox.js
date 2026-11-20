@@ -3092,6 +3092,7 @@
         if (!citas.childElementCount || visits.loading || visits.error || items.length) citas.append(F.visits({
           items: items, loading: Boolean(visits.loading) && !items.length, error: visits.error || '', showAll: Boolean(state.f360VisitsAll[id]),
           isUpcoming: isUpcomingVisit, formatDate: availabilityDate,
+          onManage: hasPermission('schedule.manage') && window.SmylSchedule && typeof window.SmylSchedule.openAppointmentAction === 'function' ? manageVisit : null,
           onShowAll: function () { state.f360VisitsAll[id] = !state.f360VisitsAll[id]; renderContext(); },
           onRetry: function () { if (linked) loadPatientVisits(id, ficha.patient.id, true); },
         }));
@@ -4058,7 +4059,7 @@
     state.availabilityAction = 'confirm'; renderAvailabilityOffer();
     try {
       var created = await request('POST', {}, { action: 'appointment_request', conversation_id: state.selectedId, service_id: slot.service_id, branch_id: slot.branch_id, professional_id: slot.professional_id, starts_at: slot.starts_at }, uuid());
-      await request('POST', {}, { action: 'appointment_confirm', conversation_id: state.selectedId, request_id: created.request_id }, uuid());
+      var confirmedBooking = await request('POST', {}, { action: 'appointment_confirm', conversation_id: state.selectedId, request_id: created.request_id }, uuid());
       announceAppointmentsChanged();
       loadAppointmentContext(state.selectedId);
       if (window.SmylReminders) window.SmylReminders.dispatch(true);
@@ -4072,12 +4073,26 @@
       if (window.SmylInboxCalendar) window.SmylInboxCalendar.invalidate();
       if (dialog) dialog.close();
       window.alert('Cita confirmada en la Agenda.' + (notify && notify.checked ? ' El mensaje de confirmación quedó escrito en el chat para que lo revises y lo envíes.' : ' El chat no envió ningún mensaje automáticamente.'));
+      offerAppointmentNotice('confirmed', confirmedBooking && confirmedBooking.appointment_id);
     } catch (error) { window.alert(error.message || 'No se pudo confirmar la cita. Consulta nuevamente la disponibilidad.'); }
     finally { state.availabilityAction = ''; renderAvailabilityResults(); }
   }
 
   function syncAvailabilityMode() {
     document.querySelectorAll('[data-availability-mode]').forEach(function (button) { button.setAttribute('aria-pressed', String(button.dataset.availabilityMode === state.availabilityMode)); });
+  }
+
+  // «¿Avisar?»: tras confirmar una cita desde el chat, ofrece la plantilla por defecto al paciente y al dentista. Nunca envía solo.
+  function offerAppointmentNotice(event, appointmentId) {
+    if (!appointmentId || !window.SmylAppointmentNotice || !(hasPermission('messages.respond') || hasPermission('schedule.manage'))) return;
+    try { Promise.resolve(window.SmylAppointmentNotice.offerById({ event: event, appointmentId: appointmentId })).catch(function () {}); } catch (_) {}
+  }
+
+  // Desde la Ficha 360: lleva a la Agenda y abre «Cambiar horario» o «Cancelar» de esa cita; allí se ofrece el aviso al terminar.
+  function manageVisit(visit, action) {
+    var schedule = window.SmylSchedule;
+    if (!schedule || typeof schedule.openAppointmentAction !== 'function') return;
+    Promise.resolve(schedule.openAppointmentAction(visit.id, action)).catch(function (error) { window.alert((error && error.message) || 'No se pudo abrir la cita.'); });
   }
 
   // Avisa a la Agenda (y a quien escuche) que el chat creó una cita: así la Agenda no muestra datos viejos al abrirla.
@@ -4095,6 +4110,7 @@
       loadAppointmentContext(state.selectedId);
       if (window.SmylReminders) window.SmylReminders.dispatch(true);
       window.alert('Cita confirmada en la Agenda. El chat no envió ningún mensaje automáticamente; si los recordatorios están activos, el paciente recibirá uno 24 horas antes.');
+      offerAppointmentNotice('confirmed', data && data.appointment_id);
     } catch (error) { window.alert(error.message || 'No se pudo confirmar la cita. Consulta nuevamente la disponibilidad.'); }
     finally { state.availabilityAction = ''; renderAvailabilityResults(); }
   }
