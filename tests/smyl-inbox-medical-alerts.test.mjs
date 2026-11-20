@@ -32,7 +32,7 @@ test('el chat no consulta tablas para las alertas y solo las muestra con permiso
 test('web, móvil y PWA publican las alertas médicas', () => {
   for (const file of ['app.html', 'sw.js']) {
     assert.match(read(file), /smyl-inbox-ficha\.js\?v=11/);
-    assert.match(read(file), /smyl-inbox\.js\?v=81/);
+    assert.match(read(file), /smyl-inbox\.js\?v=82/);
     assert.match(read(file), /smyl-inbox\.css\?v=69/);
   }
   for (const file of ['smyl-inbox.js', 'smyl-inbox-ficha.js', 'smyl-inbox.css', 'app.html', 'sw.js']) {

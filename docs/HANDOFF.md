@@ -1,3 +1,8 @@
+## 2026-11-19 — Codex — Menú lateral sin cubrir la tarjeta seleccionada en móvil
+
+- Revisión final del chat: cuando el menú no cabe a un costado, se calcula su posición desde el borde completo de la burbuja, no desde el botón. Así la tarjeta de ubicación permanece visible al abrir opciones en pantallas estrechas. Se conserva el límite de pantalla para mensajes más altos que el área disponible.
+- Inbox JS 82 / CSS 69, registro PWA `chat-message-actions-v2`, copias móviles y referencias de pruebas actualizadas. El recorrido de navegador comprueba además que el menú no intersecte la tarjeta de ubicación a 390, 834 y 1440 px.
+
 ## 2026-11-19 — Codex — Opciones fuera de las burbujas y respuesta sobre el compositor
 
 - Solicitud de Ricardo: tres puntos fuera de cada burbuja, referencia del mensaje encima de donde escribe, computadora y celular, con publicación autorizada.
