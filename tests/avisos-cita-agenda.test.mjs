@@ -106,7 +106,7 @@ test('web, móvil y PWA publican el aviso de cita', () => {
   for (const file of ['smyl-appointment-notice.js', 'smyl-appointment-notice.css', 'smyl-schedule.js', 'smyl-schedule-message.js', 'app.html', 'sw.js']) {
     assert.equal(read(file), read(`mobile/www/${file}`), file);
   }
-  assert.match(read('app.html'), /smyl-appointment-notice\.js\?v=1/);
-  assert.match(read('sw.js'), /smyl-appointment-notice\.js\?v=1/);
+  assert.match(read('app.html'), /smyl-appointment-notice\.js\?v=2/);
+  assert.match(read('sw.js'), /smyl-appointment-notice\.js\?v=2/);
   assert.match(read('sw.js'), /smyl-appointment-notice\.css\?v=1/);
 });
