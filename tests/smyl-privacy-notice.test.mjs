@@ -11,17 +11,25 @@ const trazo = (n, paso = 10) => [Array.from({ length: n }, (_, i) => ({ x: i * p
 test('el texto lleva el nombre de la clínica, está marcado como provisional y no deja marcas sin reemplazar', () => {
   const n = N.render('Diseño de Sonrisas');
   assert.equal(n.provisional, true);
-  assert.equal(n.version, 'modelo-provisional-1');
+  assert.equal(n.version, 'modelo-provisional-2');
   assert.match(n.text, /Responsable: Diseño de Sonrisas\./);
   assert.doesNotMatch(n.text, /\{|\}/);
   assert.ok(n.text.length >= 50 && n.text.length <= 8000, 'cabe en lo que acepta la base');
   assert.match(N.render('  ').text, /Responsable: la clínica\./);
-  assert.equal(N.paragraphs('X').length, 4);
+  assert.equal(N.paragraphs('X').length, 5);
 });
 
 test('cubre lo mínimo: finalidades, datos sensibles, terceros, derechos ARCO y consentimiento expreso', () => {
   const t = N.render('X').text;
   for (const re of [/de salud \(datos personales sensibles\)/, /finalidades|para crear y mantener/, /terceros/, /acceso, rectificación, cancelación y oposición/, /consentimiento expreso/]) assert.match(t, re);
+});
+
+test('avisa del uso de IA con proveedores externos, que se puede negar o retirar, y que no condiciona la atención', () => {
+  const t = N.render('X').text;
+  assert.match(t, /inteligencia artificial de proveedores externos/);
+  assert.match(t, /por cuenta de la clínica y solo para esa finalidad/);
+  assert.match(t, /negarse a este uso, o retirar su permiso en cualquier momento, sin que se le niegue la atención dental/);
+  assert.match(t, /lo registrará por separado/);
 });
 
 test('un toque suelto o muy poco trazo no es firma; un trazo real sí', () => {

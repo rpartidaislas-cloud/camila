@@ -8,12 +8,13 @@
 (function(root,factory){var api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SmylPrivacyNotice=api;})(globalThis,function(){
   'use strict';
   var NOTICE={
-    version:'modelo-provisional-1',
+    version:'modelo-provisional-2',
     provisional:true,
     title:'Aviso de privacidad',
     paragraphs:[
       'Responsable: {CLINICA}. Sus datos personales, incluidos los de salud (datos personales sensibles), serán tratados para crear y mantener su expediente clínico, brindarle atención dental, agendar y dar seguimiento a sus citas, y comunicarnos con usted, por ejemplo por WhatsApp o por llamada.',
       'Sus datos podrán ser consultados por el personal de la clínica que participa en su atención. No se transferirán a terceros sin su consentimiento, salvo en los casos que la ley permita.',
+      'Para apoyar su atención (por ejemplo, analizar o simular fotografías), la clínica puede usar herramientas de inteligencia artificial de proveedores externos que tratan esas imágenes y datos por cuenta de la clínica y solo para esa finalidad. Usted puede negarse a este uso, o retirar su permiso en cualquier momento, sin que se le niegue la atención dental. Si lo permite, la clínica lo registrará por separado.',
       'Usted puede ejercer sus derechos de acceso, rectificación, cancelación y oposición (ARCO) y revocar su consentimiento solicitándolo a la clínica por los medios que ella le indique.',
       'Al firmar, usted confirma que leyó este aviso y otorga su consentimiento expreso para el tratamiento de sus datos personales y sensibles para las finalidades anteriores.'
     ]

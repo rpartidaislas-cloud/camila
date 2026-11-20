@@ -36,7 +36,7 @@ const registro = (page, nombre) => page.evaluate((n) => window.__log.filter((x) 
 // ── Contrato del código (no necesita navegador) ──
 test('app.html carga el módulo puro antes que el Consultorio y arranca en él solo en la app instalada', () => {
   const app = read('app.html');
-  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=5', 'smyl-privacy-notice.js?v=1', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=8'].map((f) => app.indexOf(f));
+  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=5', 'smyl-privacy-notice.js?v=2', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=8'].map((f) => app.indexOf(f));
   assert.ok(orden[0] > 0 && orden.every((x, i) => !i || orden[i - 1] < x), 'los módulos puros cargan antes que la pantalla');
   assert.match(app, /smyl-consultorio\.css\?v=6/);
   assert.match(app, /else if \(smylEsAppInstalada\(\) && document\.getElementById\('p-consultorio'\)\) ir\('consultorio'\)/);
@@ -57,7 +57,7 @@ test('el simulador y el manifiesto llevan al Consultorio y el simulador sigue ac
 
 test('se precarga y las copias móviles son idénticas', () => {
   const sw = read('sw.js');
-  for (const f of ['smyl-consultorio.js?v=8', 'smyl-consultorio.css?v=6', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=5', 'smyl-privacy-notice.js?v=1', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
+  for (const f of ['smyl-consultorio.js?v=8', 'smyl-consultorio.css?v=6', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=5', 'smyl-privacy-notice.js?v=2', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
   for (const f of ['smyl-consultorio.js', 'smyl-consultorio.css', 'smyl-patient-quick.js', 'smyl-visit-model.js', 'smyl-privacy-notice.js', 'smyl-history-interview.js', 'smyl-studio.js', 'simulacion-rapida.html', 'manifest-app.json', 'app.html', 'sw.js']) assert.equal(read(f), read('mobile/www/' + f), f);
 });
 
@@ -761,7 +761,7 @@ probar('guardar envía el texto exacto que se leyó, su versión, la marca provi
   const [firma] = await page.evaluate(() => window.__firmas);
   assert.equal(firma.p_patient_id, 'p1');
   assert.equal(firma.p_notice_text, mostrado, 'lo que se guardó es lo que la persona vio');
-  assert.equal(firma.p_notice_version, 'modelo-provisional-1');
+  assert.equal(firma.p_notice_version, 'modelo-provisional-2');
   assert.equal(firma.p_provisional, true);
   assert.equal(firma.p_signer_name, 'Cristian Partida');
   assert.equal(firma.p_signer_relation, 'patient');
