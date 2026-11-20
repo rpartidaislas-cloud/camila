@@ -106,7 +106,19 @@ test('web, móvil y PWA publican el aviso de cita', () => {
   for (const file of ['smyl-appointment-notice.js', 'smyl-appointment-notice.css', 'smyl-schedule.js', 'smyl-schedule-message.js', 'app.html', 'sw.js']) {
     assert.equal(read(file), read(`mobile/www/${file}`), file);
   }
-  assert.match(read('app.html'), /smyl-appointment-notice\.js\?v=2/);
-  assert.match(read('sw.js'), /smyl-appointment-notice\.js\?v=2/);
-  assert.match(read('sw.js'), /smyl-appointment-notice\.css\?v=1/);
+  assert.match(read('app.html'), /smyl-appointment-notice\.js\?v=3/);
+  assert.match(read('sw.js'), /smyl-appointment-notice\.js\?v=3/);
+  assert.match(read('sw.js'), /smyl-appointment-notice\.css\?v=2/);
+});
+
+test('cuando no se puede ofrecer el aviso lo dice con un mensaje discreto, sin diálogo y sin spam', () => {
+  const source = read('smyl-appointment-notice.js');
+  assert.match(source, /aún no hay una plantilla aprobada por Meta para este aviso/);
+  assert.match(source, /No pudimos consultar tus plantillas de WhatsApp, así que no se ofreció avisar/);
+  assert.match(source, /Date\.now\(\) - stamp < 120000/, 'como mucho un mensaje cada 2 minutos');
+  assert.match(source, /Configurar avisos/);
+  // Sin plantillas aprobadas no se abre el diálogo: solo el mensaje.
+  const decision = source.slice(source.indexOf('if (!offerable &&'), source.indexOf('return show(opts, ctx, rows);'));
+  assert.doesNotMatch(decision, /show\(/);
+  assert.match(read('smyl-appointment-notice.css'), /\.notice-toast\{/);
 });

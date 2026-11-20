@@ -11929,3 +11929,8 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - La atribución enlaza a `https://www.get-lana.com`, abre en una pestaña separada y tiene nombre accesible, foco visible y estado de interacción sin presentar a SMYL como certificado o verificado por Meta.
 - La fecha legal visible se actualizó a 2026. Web y `mobile/www` quedan sincronizados con `smyl-ui-template-v3.css?v=9` y caché `lana-meta-attribution-v1`; en pantallas de 760 px o menos el pie continúa oculto para no invadir el espacio operativo.
 - Verificación integrada sobre la producción vigente: `22/22` contratos focalizados aprobados, `git diff --check` sin errores y revisión visual aprobada en 1440, 820 y 390 px. Publicación autorizada el 19 de noviembre de 2026.
+
+## 2026-11-21 — Claude — Avisos de cita: el aviso ya no se queda callado
+
+- Hallazgo en la primera prueba real: `SmylScheduleMessage.approvedTemplates()` devolvía `[]` (ninguna plantilla aprobada por Meta) y el paso «¿Avisar?» no salía, **sin decir nada**. Ahora, si no hay nada que ofrecer, `smyl-appointment-notice.js` (v3) muestra un mensaje discreto (`.notice-toast`, con «Configurar avisos» cuando falta plantilla) en vez de callar; también cuando falla la consulta de plantillas a LANA. Máximo uno cada 2 min (`sessionStorage`) y sin diálogo modal. Sin migraciones ni funciones.
+- Para ver el paso completo la clínica debe tener aprobada al menos la plantilla del aviso (Configuración → Plantillas de WhatsApp → Solicitar a Meta).
