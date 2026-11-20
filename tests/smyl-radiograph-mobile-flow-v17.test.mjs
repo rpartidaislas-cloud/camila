@@ -25,7 +25,7 @@ test('el expediente móvil reduce filtros y muestra estudios como lista compacta
   assert.match(workspace, /btn\('Quitar filtro'/);
   assert.match(workspace, /cw-radiograph-pieces/);
   assert.match(css, /Expediente PWA v25/);
-  assert.match(css, /\.cw-map-filter\[data-count="0"\]:not\(\[aria-pressed="true"\]\)\{display:none\}/);
+  assert.match(css, /\.cw-map-filter\[data-count="0"\]:not\(\[aria-pressed="true"\]\):not\(\[data-layer="all"\]\):not\(\[data-layer="periodontal"\]\)\{display:none\}/);
   assert.match(css, /\.cw-radiograph-grid\{display:grid;grid-auto-flow:row/);
   assert.match(css, /padding-bottom:calc\(96px \+ env\(safe-area-inset-bottom\)\)/);
 });
@@ -33,7 +33,7 @@ test('el expediente móvil reduce filtros y muestra estudios como lista compacta
 test('web, PWA y copia móvil distribuyen la misma versión', () => {
   const app = read('app.html');
   const worker = read('sw.js');
-  for (const expected of ['smyl-radiograph-workbench.css?v=26', 'smyl-radiograph-review.js?v=33', 'smyl-case-workspace.css?v=31', 'smyl-case-workspace.js?v=44']) {
+  for (const expected of ['smyl-radiograph-workbench.css?v=26', 'smyl-radiograph-review.js?v=33', 'smyl-case-workspace.css?v=32', 'smyl-case-workspace.js?v=45']) {
     assert.match(app, new RegExp(expected.replaceAll('.', '\\.').replace('?', '\\?')));
     assert.match(worker, new RegExp(expected.replaceAll('.', '\\.').replace('?', '\\?')));
   }

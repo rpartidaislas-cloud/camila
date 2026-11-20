@@ -1,0 +1,132 @@
+.cw-clinical-odontogram .cw-map-periodontal .dr-enamel { fill: #d9eee8; stroke: #19776e; stroke-width: 2.6; }
+.cw-clinical-odontogram .cw-map-periodontal.cw-source-pending .dr-enamel { stroke: #a66b06; stroke-dasharray: 4 2; }
+.cw-map-legend .cw-map-key-periodontal::before { background: #d9eee8; border: 2px solid #19776e; }
+.perio-entry, .perio-dialog {
+  --perio-ink: var(--smyl-ui-text, #102a42);
+  --perio-muted: #486174;
+  --perio-line: #d6e1e8;
+  --perio-accent: #0f766e;
+  --perio-soft: #eef7f5;
+  box-sizing: border-box;
+  color: var(--perio-ink);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.perio-entry :where(*), .perio-dialog :where(*) { box-sizing: border-box; }
+.perio-entry { margin-block: 10px; border: 1px solid var(--perio-line); border-radius: var(--smyl-ui-radius-card, 10px); background: #fff; }
+.perio-entry[hidden], .perio-entry [hidden], .perio-dialog[hidden], .perio-dialog [hidden] { display: none !important; }
+.perio-entry button, .perio-dialog button, .perio-dialog input, .perio-dialog select, .perio-dialog textarea { font: inherit; }
+.perio-entry .perio-launch {
+  width: 100%; min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 9px 13px; border: 0; border-radius: inherit; color: var(--perio-ink); background: transparent;
+  text-align: left; cursor: pointer;
+}
+.perio-launch:hover, .perio-entry .perio-launch[aria-expanded="true"] { background: var(--perio-soft); }
+.perio-launch-text { min-width: 0; display: grid; gap: 2px; }
+.perio-launch strong { font-weight: 650; }
+.perio-launch small, .perio-caption, .perio-meta, .perio-legend, .perio-save-state { color: var(--perio-muted); font-size: 12px; line-height: 1.45; }
+.perio-chevron { width: 9px; height: 9px; margin-inline-end: 5px; border: solid var(--perio-accent); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+.perio-launch[aria-expanded="true"] .perio-chevron { transform: rotate(225deg); }
+.perio-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 8px 12px; border-top: 1px solid var(--perio-line); }
+.cw-map-aside .perio-entry button { margin: 0; }
+.cw-map-aside .perio-inline button { width: auto; }
+.perio-inline .perio-caption { flex-basis: 100%; }
+.perio-inline .perio-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.perio-inline .perio-table td, .perio-inline .perio-table th { padding: 4px 2px; border-bottom: 1px solid var(--perio-line); }
+.perio-dialog {
+  position: fixed; inset: 0; width: min(780px, calc(100vw - 32px)); max-width: none;
+  max-height: min(850px, calc(100vh - 32px)); max-height: min(850px, calc(100dvh - 32px));
+  padding: 0; margin: auto; border: 1px solid var(--perio-line); border-radius: 14px;
+  box-shadow: 0 22px 65px rgba(11, 27, 46, .22); background: #fff; overflow: hidden;
+}
+.perio-dialog[open] { display: flex; flex-direction: column; }
+.perio-dialog::backdrop { background: rgba(10, 25, 40, .49); }
+.perio-header {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; flex: none;
+  padding: 16px 20px; border-bottom: 1px solid var(--perio-line);
+}
+.perio-dialog h2, .perio-dialog h3, .perio-dialog p { margin: 0; }
+.perio-header h2 { color: var(--perio-ink); font-size: 20px; line-height: 1.25; font-weight: 650; }
+.perio-header .perio-meta { margin-top: 3px; }
+.perio-close {
+  display: grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0;
+  border: 1px solid var(--perio-line); border-radius: 9px; background: #fff; color: var(--perio-ink); cursor: pointer;
+}
+.perio-dialog .perio-close { font-size: 25px; line-height: 1; }
+.perio-body { overflow: auto; min-height: 0; padding: 16px 20px; display: grid; gap: 14px; overscroll-behavior: contain; }
+.perio-piece-nav, .perio-chart-nav, .perio-start, .perio-compare-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 7px 12px; }
+.perio-btn, .perio-link { display: inline-flex; justify-content: center; align-items: center; min-height: 38px; padding: 7px 12px; cursor: pointer; text-align: center; }
+.perio-btn { color: var(--perio-ink); background: white; border: 1px solid var(--perio-line); border-radius: 8px; font-weight: 600; }
+.perio-dialog .perio-primary { color: #fff; background: #102a42; border-color: #102a42; }
+.perio-link { padding-inline: 2px; border: 0; color: var(--perio-accent); background: transparent; font-weight: 600; }
+.perio-link:hover { text-decoration: underline; }
+.perio-entry :focus-visible, .perio-dialog :focus-visible { outline: 2px solid #087c72; outline-offset: 2px; }
+.perio-entry button:disabled, .perio-dialog button:disabled { opacity: .55; cursor: default; }
+.perio-dialog .perio-select, .perio-dialog .perio-number, .perio-dialog .perio-date input, .perio-dialog .perio-note {
+  color: var(--perio-ink); background-color: #fff; border: 1px solid #b7cbd5; border-radius: 7px; min-height: 38px;
+}
+.perio-select { min-width: 0; max-width: 100%; padding: 5px 8px; }
+.perio-faces { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 276px), 1fr)); gap: 10px; }
+.perio-face, .perio-arch { padding: 10px; border: 1px solid var(--perio-line); border-radius: 9px; min-width: 0; }
+.perio-dialog h3 { color: var(--perio-ink); font-size: 15px; line-height: 1.4; font-weight: 650; }
+.perio-face h3, .perio-arch h3 { margin-bottom: 6px; }
+.perio-dialog .perio-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 0; table-layout: fixed; color: var(--perio-ink); }
+.perio-table th, .perio-table td { padding: 3px; border: 0; vertical-align: middle; word-break: normal; text-align: center; }
+.perio-table th:first-child { text-align: start; }
+.perio-table thead th { color: var(--perio-muted); font-weight: 550; font-size: 12px; }
+.perio-face .perio-table thead th:first-child { width: 29%; }
+.perio-table tbody th { font-size: 12px; line-height: 1.3; font-weight: 600; }
+.perio-table tbody th small { display: block; color: var(--perio-muted); font-size: 12px; font-weight: 400; }
+.perio-face :is(.perio-number, .perio-select) { width: 100%; min-width: 0; padding: 3px; text-align: center; font-variant-numeric: tabular-nums; }
+.perio-face input[aria-invalid="true"] { border-color: #9a3328; outline: 2px solid #9a3328; }
+.perio-read-value { display: block; padding: 6px 0; font-variant-numeric: tabular-nums; }
+.perio-mila-host:empty { display: none; }
+.perio-legend { margin-top: -4px; }
+.perio-details { border-top: 1px solid var(--perio-line); }
+.perio-details > summary { cursor: pointer; min-height: 44px; padding: 12px 2px 6px; color: var(--perio-ink); font-weight: 600; }
+.perio-details-body { display: grid; gap: 10px; padding: 4px 0 10px; }
+.perio-details .perio-table td, .perio-details .perio-table th { padding: 7px 5px; border-bottom: 1px solid var(--perio-line); }
+.perio-details .perio-table th:first-child { width: 39%; }
+.perio-dialog .perio-note { resize: vertical; width: 100%; padding: 9px; margin-block: 6px; }
+.perio-arches { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 14px; }
+.perio-arch .perio-table { font-variant-numeric: tabular-nums; }
+.perio-arch .perio-table thead tr:first-child th { color: var(--perio-accent); }
+.perio-arch .perio-table thead tr:nth-child(2) th { font-size: 12px; padding-block: 5px; }
+.perio-arch .perio-table tbody tr:nth-child(odd) { background: #f3f7f9; }
+.perio-arch .perio-table :is(td,th):nth-child(5) { border-left: 1px solid var(--perio-line); }
+.perio-arch .perio-tooth { display: block; width: 100%; min-height: 32px; background: transparent; padding: 0; color: var(--perio-accent); font-weight: 650; border: 0; border-radius: 4px; cursor: pointer; }
+.perio-tooth:hover { background: var(--perio-soft); text-decoration: underline; }
+.perio-date, .perio-metric-label { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 13px; font-weight: 550; }
+.perio-date input { padding: 4px 8px; }
+.perio-dialog .perio-feedback:empty { display: none; }
+.perio-dialog .perio-feedback { flex: none; font-size: 12px; color: #075f58; padding: 5px 18px; background: var(--perio-soft); }
+.perio-footer {
+  flex: none; display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 5px 12px;
+  padding: 10px 20px; background: #f6f9fa; border-top: 1px solid var(--perio-line);
+}
+.perio-footer .perio-save-state { margin-inline-end: auto; }
+.perio-footer .perio-warning { font-size: 13px; color: #774613; }
+.perio-footer .perio-start { width: 100%; }
+@media (pointer: coarse) {
+  .perio-entry button, .perio-dialog button, .perio-dialog .perio-select, .perio-dialog .perio-number,
+  .perio-dialog .perio-date input, .perio-dialog .perio-tooth { min-height: 44px; }
+  .perio-arch .perio-table thead tr:first-child td:first-child { width: 50px; }
+}
+@media (max-width: 700px) {
+  .perio-dialog {
+    inset: auto 0 0; width: 100%; margin: 0; max-height: 94vh; max-height: 94dvh;
+    border-radius: 16px 16px 0 0; border-bottom: 0;
+  }
+  .perio-header { padding: 10px 12px; }
+  .perio-header h2 { font-size: 18px; }
+  .perio-body { gap: 10px; padding: 12px; }
+  .perio-faces, .perio-arches { grid-template-columns: minmax(0,1fr); }
+  .perio-footer { padding: 8px 12px max(8px,env(safe-area-inset-bottom)); gap: 4px 8px; }
+  .perio-entry button, .perio-dialog button, .perio-dialog select, .perio-dialog input, .perio-arch .perio-tooth { min-height: 44px; }
+  .perio-dialog .perio-select, .perio-dialog .perio-number, .perio-dialog .perio-date input, .perio-dialog .perio-note { font-size: 16px; min-height: 44px; }
+  .perio-face td { padding: 2px; }
+  .perio-face, .perio-arch { padding: 8px; }
+  .perio-arch .perio-table th, .perio-arch .perio-table td { padding-inline: 0; }
+  .perio-arch .perio-table thead tr:first-child td:first-child { width: 44px; }
+}

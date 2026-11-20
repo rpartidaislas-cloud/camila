@@ -1,3 +1,10 @@
+## 2026-11-20 — Codex — Periodoncia en la revisión profesional
+
+- El odontograma de Evaluación incorpora una capa periodontal y conserva la pieza seleccionada al alternar las vistas. Desde la pieza se capturan los seis sitios, se consulta el periodontograma completo o se compara una visita con controles cerrados. En celular se abre una hoja inferior al tocar una pieza en la capa Periodoncia.
+- `smyl-periodontal-context.js` conecta los controles al borrador de `smyl-dental-record.js`. La migración `20261122140000_smyl_periodontal_exams.sql` amplía el guardado dental versionado y añade `smyl_periodontal_history` con permisos clínicos por paciente. Los registros existentes siguen siendo válidos. Las visitas cerradas conservan sus mediciones y su autor.
+- `smyl-periodontal-review.js` y `smyl-periodontal-mila.js` implementan la captura y la asistencia opcional. El dictado permite revisar tres profundidades antes de incorporarlas. El servicio `periodontal-summary` propone un orden de lectura a partir de datos estructurados y el profesional revisa el texto antes de guardarlo. Un resumen generado registra un crédito de IA. El dictado depende del reconocimiento de voz disponible en el navegador.
+- La entrega incluye copias web y móviles, pruebas del historial en PostgreSQL y pruebas de navegador con expedientes ficticios. La migración 20261122140000 quedó registrada en producción y la función periodontal-summary quedó activa en su versión 1. Se comprobaron los permisos y el rechazo de solicitudes sin sesión.
+
 ## 2026-11-20 — Claude Code — Cobro en línea (Openpay vía LANA): desplegado y botón por clínica
 
 - **Desplegado** (Ricardo, con la CLI de Supabase desde su PC; GitHub Actions bloqueado por facturación):

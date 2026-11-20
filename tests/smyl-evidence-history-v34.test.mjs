@@ -44,9 +44,9 @@ test('la historia de evidencia es progresiva y móvil', () => {
 
 test('web, móvil y PWA publican la misma etapa', () => {
   assert.match(app, /smyl-patient-360\.js\?v=33/);
-  assert.match(app, /smyl-dental-record\.js\?v=33/);
-  assert.match(app, /smyl-case-workspace\.css\?v=31/);
-  assert.match(app, /smyl-case-workspace\.js\?v=44/);
+  assert.match(app, /smyl-dental-record\.js\?v=34/);
+  assert.match(app, /smyl-case-workspace\.css\?v=32/);
+  assert.match(app, /smyl-case-workspace\.js\?v=45/);
   assert.match(worker, /evidence-history-v34/);
   for (const file of ['app.html', 'sw.js', 'smyl-patient-360.js', 'smyl-dental-record.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));

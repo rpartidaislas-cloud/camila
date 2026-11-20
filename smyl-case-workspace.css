@@ -460,7 +460,7 @@
 @media(max-width:760px){
  .cw-enhanced .cw-map-filters{flex-wrap:nowrap;gap:6px;padding:8px 10px;overflow-x:auto;scroll-snap-type:x proximity}
  .cw-enhanced .cw-workspace .cw-map-filter{min-width:max-content;min-height:40px;flex:none;padding-inline:12px;scroll-snap-align:start}
- .cw-enhanced .cw-workspace .cw-map-filter[data-count="0"]:not([aria-pressed="true"]){display:none}
+ .cw-enhanced .cw-workspace .cw-map-filter[data-count="0"]:not([aria-pressed="true"]):not([data-layer="all"]):not([data-layer="periodontal"]){display:none}
  .cw-enhanced .cw-radiograph-shelf-head{display:grid;align-items:start;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:12px 12px 8px}
  .cw-enhanced .cw-radiograph-shelf-head p{max-width:32ch}
  .cw-enhanced .cw-workspace .cw-radiograph-clear{width:auto;min-height:36px;padding:6px 10px;font-size:12px}

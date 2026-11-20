@@ -39,9 +39,9 @@ test('web and packaged mobile use the same archive UX release', () => {
   assert.equal(record, mobileRecord);
   assert.equal(workspace, mobileWorkspace);
   for (const html of [app, mobileApp]) {
-    assert.match(html, /smyl-dental-record\.js\?v=33/);
+    assert.match(html, /smyl-dental-record\.js\?v=34/);
     assert.match(html, /smyl-dental-record\.css\?v=6/);
-    assert.match(html, /smyl-case-workspace\.js\?v=44/);
-    assert.match(html, /smyl-case-workspace\.css\?v=31/);
+    assert.match(html, /smyl-case-workspace\.js\?v=45/);
+    assert.match(html, /smyl-case-workspace\.css\?v=32/);
   }
 });

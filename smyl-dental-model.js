@@ -20,6 +20,31 @@
   const uuid=v=>typeof v==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(v);
   const exact=(value,keys)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===keys.length&&keys.every(key=>Object.prototype.hasOwnProperty.call(value,key));
   const empty=()=>({schema:1,teeth:{},studies:[],findings:{schema:2,events:[]}});
+  const periodontalSites=Object.freeze(['MB','B','DB','ML','L','DL']);
+  function createPeriodontalExam(date){
+    const now=new Date();
+    const localDate=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+    return {id:crypto.randomUUID(),date:date??localDate,status:'draft',teeth:{},summary:''};
+  }
+  function validPeriodontalExam(exam){
+    if(!exact(exam,['id','date','status','teeth','summary'])||!uuid(exam.id))return false;
+    if(typeof exam.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(exam.date)||exam.date.startsWith('0000')||
+      !Number.isFinite(Date.parse(exam.date))||new Date(exam.date).toISOString().slice(0,10)!==exam.date)return false;
+    if(!['draft','closed'].includes(exam.status)||typeof exam.summary!=='string'||[...exam.summary].length>2000)return false;
+    if(!exam.teeth||typeof exam.teeth!=='object'||Array.isArray(exam.teeth))return false;
+    for(const [tooth,sites] of Object.entries(exam.teeth)){
+      if(!teeth.includes(tooth)||!sites||typeof sites!=='object'||Array.isArray(sites)||!Object.keys(sites).length)return false;
+      for(const [site,values] of Object.entries(sites)){
+        if(!periodontalSites.includes(site)||!exact(values,['depth','margin','bleeding']))return false;
+        const {depth,margin,bleeding}=values;
+        if(depth!==null&&(!Number.isInteger(depth)||depth<0||depth>20))return false;
+        if(margin!==null&&(!Number.isInteger(margin)||margin< -20||margin>20))return false;
+        if(bleeding!==null&&typeof bleeding!=='boolean')return false;
+        if(depth===null&&margin===null&&bleeding===null)return false;
+      }
+    }
+    return exam.status==='draft'||Object.keys(exam.teeth).length>0;
+  }
   function ensureFindings(doc){
     if(!doc||typeof doc!=='object'||Array.isArray(doc))throw new TypeError('Se requiere un expediente dental.');
     if(doc.findings===undefined)doc.findings={schema:2,events:[]};
@@ -107,6 +132,7 @@
   function validate(doc,tenant,patient){
     const text=(v,max)=>typeof v==='string'&&v.length<=max;
     if(!uuid(tenant)||!uuid(patient)||!doc||doc.schema!==1||!doc.teeth||typeof doc.teeth!=='object'||Array.isArray(doc.teeth)||!Array.isArray(doc.studies)||doc.studies.length>20)return false;
+    if(doc.periodontogram!==undefined&&!validPeriodontalExam(doc.periodontogram))return false;
     for(const [tooth,n] of Object.entries(doc.teeth))if(!teeth.includes(tooth)||!n||!text(n.observation,2000)||!text(n.action,2000)||!['pending','following','done'].includes(n.status))return false;
     if(doc.findings!==undefined){
       if(!exact(doc.findings,['schema','events'])||doc.findings.schema!==2||!Array.isArray(doc.findings.events)||doc.findings.events.length>200)return false;
@@ -138,5 +164,5 @@
     if(!valid)throw new Error('El contenido no corresponde a una imagen JPG o PNG.');
     const sha256=await hash(data);return {path:`${tenant}/${patient}/${id}/${sha256}.${file.type.split('/')[1]}`,sha256,bytes:file.size,mime:file.type};
   }
-  return {upper,lower,teeth,types,surfaces,conditions,uuid,empty,ensureFindings,surfaceAllowed,surfaceLabel,conditionLabel,conditionCodeFromText,createFinding,activeFindings,findingsForTooth,findingLabel,findingTone,validate,hash,asset};
+  return {upper,lower,teeth,types,surfaces,conditions,uuid,empty,periodontalSites,createPeriodontalExam,validPeriodontalExam,ensureFindings,surfaceAllowed,surfaceLabel,conditionLabel,conditionCodeFromText,createFinding,activeFindings,findingsForTooth,findingLabel,findingTone,validate,hash,asset};
 });

@@ -27,7 +27,7 @@ test('read permission unlocks the record, dental map and radiograph viewer witho
 });
 
 test('all local mutations and remote saves require clinical.write', () => {
-  assert.match(source, /function dirty\(ctx\)\{if\(!ctx\.canWrite\)return/);
+  assert.match(source, /function dirty\(ctx,source\)\{if\(!ctx\.canWrite\)return/);
   assert.match(source, /if\(!file\|\|!ctx\.canWrite/);
   assert.match(source, /if\(!ctx\.ready\|\|!ctx\.canWrite\|\|ctx\.busy\|\|!ctx\.dirty\)return/);
   assert.match(source, /await guard\(ctx,'write'\);const doc=structuredClone/);
