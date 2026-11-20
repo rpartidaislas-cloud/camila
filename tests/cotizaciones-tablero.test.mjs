@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 
 const read = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 
@@ -24,7 +26,9 @@ function loadHelpers() {
   const src = read('smyl-proposals.js');
   const stage = src.match(/function proposalStage\(row,event\)\{[\s\S]*?\r?\n  \}\r?\n/)[0];
   const age = src.match(/function quoteAge\(iso\)\{[^\n]*\n/)[0] + src.match(/function quoteAgeLabel\(d\)\{[^\n]*\n/)[0] + src.match(/function quoteFirstName\(row\)\{[^\n]*\n/)[0] + src.match(/function quoteTitle\(row\)\{[^\n]*\n/)[0] + src.match(/function quoteTotal\(row\)\{[^\n]*\n/)[0];
-  return new Function(stage + age + ';return {proposalStage,quoteAge,quoteAgeLabel,quoteFirstName,quoteTitle,quoteTotal};')();
+  // proposalStage delega en SmylProposalModel.stage; sin enlace, plan ni lote de cargos se comporta como antes.
+  const ctx = 'var M=arguments[0],shareSignals=new Map(),quotePlans=new Map(),quoteBatches=new Map(),quoteFinanceVisible=true;';
+  return new Function(ctx + stage + age + ';return {proposalStage,quoteAge,quoteAgeLabel,quoteFirstName,quoteTitle,quoteTotal};')(require('../smyl-proposal-model.js'));
 }
 
 test('etapas: la cotización pasa de borrador a lista, presentada y decidida según su último evento', () => {
@@ -57,7 +61,7 @@ test('acciones rápidas por etapa, con permiso de seguimiento y sin enviar nada 
     const p = read(base + 'smyl-proposals.js');
     assert.match(p, /access\.followup&&key==='ready'\)box\.append\(b\('Marcar presentada'/);
     assert.match(p, /access\.followup&&key==='awaiting'\)box\.append\(b\('Registrar respuesta'/);
-    assert.match(p, /key==='accepted'&&window\.SmylFinance&&typeof window\.SmylFinance\.fromProposal==='function'\)box\.append\(b\('Pasar a Finanzas'/);
+    assert.match(p, /key==='accepted'&&window\.SmylFinance&&typeof window\.SmylFinance\.fromProposal==='function'\)box\.append\(b\('Iniciar tratamiento'/);
     assert.match(p, /smyl_record_proposal_event',\{p_event_id:eventId,p_proposal_id:item\.row\.id,p_proposal_revision:item\.row\.revision/);
     assert.match(p, /if\(\(type==='declined'\|\|type==='changes_requested'\)&&!text\)/);
     assert.match(p, /from\('camila_lana_handoffs'\)\.select\('patient_id,lana_conversation_id,lana_channel,updated_at'\)/);
@@ -84,6 +88,7 @@ function followupFns() {
     src.match(/function quoteAge\(iso\)\{[^\n]*\r?\n/)[0], src.match(/function quoteAgeLabel\(d\)\{[^\n]*\r?\n/)[0],
     src.match(/var QUOTE_TIERS=\[3,7,15\],quoteFollowups=new Map\(\);\r?\n/)[0],
     src.match(/function quoteFollowupState\(stageKey,event,followups\)\{[\s\S]*?\r?\n  \}\r?\n/)[0],
+    src.match(/var QUOTE_URGENT=\[[^\n]*\r?\n/)[0],
     src.match(/function quoteNeedsAttention\(stageKey,fu\)\{[^\n]*\r?\n/)[0],
   ].join('\n');
   return new Function(code + ';return {quoteFollowupState,quoteNeedsAttention};')();

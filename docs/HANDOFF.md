@@ -1,3 +1,20 @@
+## 2026-11-20 — Claude Code — Cotizaciones fase 6: «Iniciar tratamiento» en un solo recorrido
+
+- En la bandeja, una cotización **Aceptada** muestra «Iniciar tratamiento»: abre la creación de cargos de siempre y, al terminar, un paso a paso: Cargos ✓ → **Cobrar anticipo** → **Agendar primera cita** (más «Ver cuenta» y «Terminar»). Las «En tratamiento» muestran «Anticipo y cita» para retomar el recorrido sin duplicar cargos.
+- `smyl-finance.js` v60: `fromProposal(id,{guided:true})`, `treatmentSteps()`; `openPayment(...,{after:'schedule'})` y el recibo ofrece «Siguiente: agendar primera cita». Cada paso abre el flujo existente con sus permisos y confirmaciones; nada se cobra ni agenda solo. Sin backend nuevo.
+- `smyl-finance.css` v45, `smyl-proposals.js` v25, `smyl-proposal-model.js` v4, `sw.js` (`-iniciar-tratamiento-v1`) y copias móviles. Pruebas en `tests/smyl-quote-stages.test.mjs`; textos actualizados en pruebas de finanzas/activación.
+
+## 2026-11-20 — Claude Code — Cotizaciones: un solo camino para crear y estados claros (fases 1 y 2)
+
+- Decisión con Ricardo: la cotización **se crea desde el paciente** (plan clínico revisado) y el módulo Cotizaciones es la **bandeja de seguimiento**. No hay cotizaciones sueltas.
+- Fase 1 · `smyl-proposals.js` v24: el botón «Nueva cotización» del módulo abre el selector de pacientes existente (`SmylCareTasks.open('quote')`, el mismo de Inicio). Si el paciente no tiene plan revisado, la pantalla «Antes de cotizar» explica por qué y lleva a **su** expediente (`verPaciente`), no a la lista general.
+- Fase 2 · el estado se calcula en una función pura `SmylProposalModel.stage()` (`smyl-proposal-model.js` v3), que usan la lista, los indicadores y el contador del menú. Estados nuevos: **Plan actualizado** (el plan cambió después de cotizar; no aplica a decisiones ya registradas), **Aceptó en el enlace**, **Quiere agendar** y **En tratamiento** (aceptada y con lote en `smyl_proposal_charge_batches`). «Aceptada» ahora pide pasarla a Finanzas solo si el rol tiene `finance.read`.
+- Acciones por fila: «Actualizar con el plan», «Confirmar aceptación» (con confirmación humana; registra presentada → aceptada con la RPC existente), «Agendar cita».
+- Sin migraciones ni cambios de RLS/RPC: solo lecturas a tablas que el equipo ya podía leer (`smyl_clinical_plans`, `smyl_proposal_charge_batches`).
+- `smyl-proposals.css` v16 (colores de estados nuevos, pantalla «Antes de cotizar», acciones en su propia fila en celular). `app.html`, `sw.js` (registro `cotizacion-estados-v1`) y copias en `mobile/www/`.
+- Pruebas: `tests/smyl-quote-stages.test.mjs` (nueva) y se ajustaron versiones/regex en las pruebas de cotizaciones. Revisión visual con datos ficticios a 1366, 834 y 390 px.
+- Siguiente (pendiente de decisión de Ricardo): fase 6 (cierre en un paso), fase 3 (filtros por sucursal/fecha), opciones A/B/C, descuentos y cotización rápida para prospectos.
+
 ## 2026-11-20 — Claude Code — Agenda: aviso cuando el filtro esconde citas
 
 - Diagnóstico: las citas (manuales y del chat) sí se guardan en producción, pero en otras sucursales/dentistas distintos al filtro de la Agenda; el usuario no las veía.

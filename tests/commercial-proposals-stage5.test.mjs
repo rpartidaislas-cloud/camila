@@ -9,10 +9,13 @@ const app=read('app.html');
 const sw=read('sw.js');
 
 test('el tablero distingue cada estado comercial verificable',()=>{
-  for(const text of ['Completar borrador','Lista para presentar','Esperando decisión','Vigencia vencida','Preparar cambios','Aceptada'])assert.match(ui,new RegExp(text));
+  // Los estados viven en SmylProposalModel.stage (ver tests/smyl-quote-stages.test.mjs).
+  const model=read('smyl-proposal-model.js');
+  for(const text of ['Completar borrador','Lista para presentar','Esperando decisión','Vigencia vencida','Preparar cambios','Aceptada'])assert.match(model,new RegExp(text));
   assert.match(ui,/function proposalStage/);
-  assert.match(ui,/valid<today/);
-  assert.match(ui,/event\?\.event_type==='accepted'/);
+  assert.match(ui,/M\.stage\(/);
+  assert.match(model,/valid<today/);
+  assert.match(model,/type==='accepted'/);
 });
 
 test('las métricas no convierten silencios en rechazo',()=>{
@@ -31,8 +34,8 @@ test('la cola permite filtrar y buscar sin otra fuente de datos',()=>{
 });
 
 test('web, móvil y PWA publican el tablero comercial',()=>{
-  assert.match(app,/smyl-proposals\.css\?v=15/);
-  assert.match(app,/smyl-proposals\.js\?v=23/);
+  assert.match(app,/smyl-proposals\.css\?v=16/);
+  assert.match(app,/smyl-proposals\.js\?v=25/);
   assert.match(sw,/smyl-v263-lana-connection-recovery/);
   assert.equal(app,read('mobile/www/app.html'));
   assert.equal(ui,read('mobile/www/smyl-proposals.js'));

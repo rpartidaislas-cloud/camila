@@ -1348,3 +1348,20 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
 
 /* Aviso fijo cuando la carga llegó al tope */
 .finance-truncation{margin:0 0 14px;padding:12px 14px;border:1px solid #e3b4ab;border-radius:12px;background:#fdf0ed;color:#7a2d22;font-size:14px;line-height:1.5;font-weight:600}
+/* Iniciar tratamiento desde cotización aceptada (v45): cargos ✓ → anticipo → primera cita. */
+.finance-treatment-steps{padding:28px 26px 24px}
+.finance-treatment-steps>span{color:#3d7f70;font-size:12px;font-weight:800;letter-spacing:.11em}
+.finance-treatment-steps h2{margin:6px 0 4px!important;font-size:24px!important}
+.finance-treatment-steps>p{margin:0 0 18px;color:#66788d;font-size:14px;line-height:1.5}
+.finance-treatment-steps ol{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:10px}
+.finance-treatment-steps li{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid #e0e7ee;border-radius:12px;background:#f8fafc}
+.finance-treatment-steps li>b{flex:0 0 30px;height:30px;display:grid;place-items:center;border-radius:50%;background:#e7eef6;color:#0d2442;font-size:13px}
+.finance-treatment-steps li[data-done="true"]>b{background:#dff3e7;color:#17643f}
+.finance-treatment-steps li>div{flex:1;min-width:0}
+.finance-treatment-steps li strong{display:block;font-size:14px}
+.finance-treatment-steps li small{display:block;color:#66788d;font-size:12px;line-height:1.4}
+.finance-treatment-steps li>.btn{flex-shrink:0;min-height:44px}
+.finance-treatment-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.finance-treatment-actions .btn{min-height:44px}
+.finance-payment-success [data-success-schedule]{margin-bottom:8px}
+@media(max-width:600px){.finance-treatment-steps{padding:22px 16px 18px}.finance-treatment-steps li{flex-wrap:wrap}.finance-treatment-steps li>.btn{width:100%}.finance-treatment-actions .btn{flex:1}}
