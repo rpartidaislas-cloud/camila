@@ -61,7 +61,7 @@ test('el responsable y el relevo privado comparten un solo acceso en el encabeza
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=88/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=89/);
   assert.match(read('../app.html'), /smyl-inbox\.css\?v=75/);
 });
 

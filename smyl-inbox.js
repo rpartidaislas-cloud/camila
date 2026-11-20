@@ -4338,7 +4338,7 @@
       state.availabilitySelected = [];
       if (window.SmylInboxCalendar) window.SmylInboxCalendar.invalidate();
       if (dialog) dialog.close();
-      window.alert('Cita confirmada en la Agenda.' + (notify && notify.checked ? ' El mensaje de confirmación quedó escrito en el chat para que lo revises y lo envíes.' : ' El chat no envió ningún mensaje automáticamente.'));
+      announceBookedAppointment(slot.starts_at, slot.branch_id, slot.professional_id, slot.branch_name, notify && notify.checked ? 'El mensaje de confirmación quedó escrito en el chat para que lo revises y lo envíes.' : 'El chat no envió ningún mensaje automáticamente.');
       offerAppointmentNotice('confirmed', confirmedBooking && confirmedBooking.appointment_id);
     } catch (error) { window.alert(error.message || 'No se pudo confirmar la cita. Consulta nuevamente la disponibilidad.'); }
     finally { state.availabilityAction = ''; renderAvailabilityResults(); }
@@ -4361,6 +4361,19 @@
     Promise.resolve(schedule.openAppointmentAction(visit.id, action)).catch(function (error) { window.alert((error && error.message) || 'No se pudo abrir la cita.'); });
   }
 
+  // Dice dónde quedó la cita (día, hora, sucursal) y ofrece abrir la Agenda justo ahí: así no parece que la cita no se hizo.
+  function announceBookedAppointment(startsAt, branchId, professionalId, branchName, extraText) {
+    var name = branchName;
+    if (!name && state.availabilityCatalog) { var found = (state.availabilityCatalog.branches || []).find(function (row) { return row.id === branchId; }); name = found && found.name; }
+    var text = 'Cita confirmada: ' + availabilityDate(startsAt) + (name ? ' en ' + name : '') + '.' + (extraText ? ' ' + extraText : '');
+    var schedule = window.SmylSchedule;
+    var canOpen = schedule && typeof schedule.focusAppointment === 'function' && typeof window.ir === 'function' && (hasPermission('schedule.read') || hasPermission('schedule.manage'));
+    if (!canOpen) { window.alert(text); return; }
+    if (window.confirm(text + '\n\n¿Abrir la Agenda en ese día para verla?')) {
+      Promise.resolve(schedule.focusAppointment(startsAt, branchId, professionalId)).catch(function () {}).then(function () { window.ir('agenda'); });
+    }
+  }
+
   // Avisa a la Agenda (y a quien escuche) que el chat creó una cita: así la Agenda no muestra datos viejos al abrirla.
   function announceAppointmentsChanged() {
     try { window.dispatchEvent(new CustomEvent('smyl:appointments-changed', { detail: { source: 'inbox' } })); } catch (_) {}
@@ -4375,7 +4388,7 @@
       announceAppointmentsChanged();
       loadAppointmentContext(state.selectedId);
       if (window.SmylReminders) window.SmylReminders.dispatch(true);
-      window.alert('Cita confirmada en la Agenda. El chat no envió ningún mensaje automáticamente; si los recordatorios están activos, el paciente recibirá uno 24 horas antes.');
+      announceBookedAppointment(requestRow.requested_start, requestRow.preferred_branch_id, requestRow.preferred_professional_id, '', 'El chat no envió ningún mensaje automáticamente; si los recordatorios están activos, el paciente recibirá uno 24 horas antes.');
       offerAppointmentNotice('confirmed', data && data.appointment_id);
     } catch (error) { window.alert(error.message || 'No se pudo confirmar la cita. Consulta nuevamente la disponibilidad.'); }
     finally { state.availabilityAction = ''; renderAvailabilityResults(); }
