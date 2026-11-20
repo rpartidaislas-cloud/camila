@@ -399,3 +399,14 @@
 .proposal-branch-field select{min-height:44px;border:1px solid #cad8d1;border-radius:9px;background:#fff;padding:0 12px;font-size:15px}
 .proposal-branch-field small{color:#4b5f5d;font-size:13px}
 .proposal-paper-branch{margin-top:2px;color:#33484a}
+/* Estados de cotización v16: respuesta por enlace, plan actualizado y en tratamiento. */
+.proposal-list-status[data-state="link_accepted"],.proposal-list-status[data-state="converted"]{background:#dff3e7;color:#17643f}
+.proposal-list-status[data-state="interested"]{background:#fff1cf;color:#7b5b13}
+.proposal-list-status[data-state="stale"]{background:#f3e8fb;color:#6b3a8c}
+.proposal-plan-gate{max-width:640px;margin:32px auto;padding:28px;border:1px solid #dce2dd;border-radius:18px;background:#fdfdf9;color:#233c3d}
+.proposal-plan-gate h2{font-size:22px;font-weight:600;line-height:1.3;margin:6px 0 10px}
+.proposal-plan-gate p:not(.pro-eyebrow){font-size:14px;line-height:1.6;color:#4c675f;margin:0 0 20px}
+.proposal-plan-gate .btn{margin:0 8px 8px 0;min-height:44px}
+@media(max-width:600px){.proposal-plan-gate{margin:16px 0;padding:20px 16px}.proposal-plan-gate .btn{display:block;width:100%;margin:0 0 8px}}
+/* Con dos o más acciones, en celular van en su propia fila bajo el importe para no encimarse. */
+@media(max-width:600px){.proposal-list-row>strong{flex-basis:100%;grid-column:1/-1}.proposal-list-row .proposal-row-actions{grid-column:1/-1;justify-content:flex-start;width:100%;margin-left:0}}

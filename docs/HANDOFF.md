@@ -1,3 +1,14 @@
+## 2026-11-20 — Claude Code — Cotizaciones: un solo camino para crear y estados claros (fases 1 y 2)
+
+- Decisión con Ricardo: la cotización **se crea desde el paciente** (plan clínico revisado) y el módulo Cotizaciones es la **bandeja de seguimiento**. No hay cotizaciones sueltas.
+- Fase 1 · `smyl-proposals.js` v24: el botón «Nueva cotización» del módulo abre el selector de pacientes existente (`SmylCareTasks.open('quote')`, el mismo de Inicio). Si el paciente no tiene plan revisado, la pantalla «Antes de cotizar» explica por qué y lleva a **su** expediente (`verPaciente`), no a la lista general.
+- Fase 2 · el estado se calcula en una función pura `SmylProposalModel.stage()` (`smyl-proposal-model.js` v3), que usan la lista, los indicadores y el contador del menú. Estados nuevos: **Plan actualizado** (el plan cambió después de cotizar; no aplica a decisiones ya registradas), **Aceptó en el enlace**, **Quiere agendar** y **En tratamiento** (aceptada y con lote en `smyl_proposal_charge_batches`). «Aceptada» ahora pide pasarla a Finanzas solo si el rol tiene `finance.read`.
+- Acciones por fila: «Actualizar con el plan», «Confirmar aceptación» (con confirmación humana; registra presentada → aceptada con la RPC existente), «Agendar cita».
+- Sin migraciones ni cambios de RLS/RPC: solo lecturas a tablas que el equipo ya podía leer (`smyl_clinical_plans`, `smyl_proposal_charge_batches`).
+- `smyl-proposals.css` v16 (colores de estados nuevos, pantalla «Antes de cotizar», acciones en su propia fila en celular). `app.html`, `sw.js` (registro `cotizacion-estados-v1`) y copias en `mobile/www/`.
+- Pruebas: `tests/smyl-quote-stages.test.mjs` (nueva) y se ajustaron versiones/regex en las pruebas de cotizaciones. Revisión visual con datos ficticios a 1366, 834 y 390 px.
+- Siguiente (pendiente de decisión de Ricardo): fase 6 (cierre en un paso), fase 3 (filtros por sucursal/fecha), opciones A/B/C, descuentos y cotización rápida para prospectos.
+
 ## 2026-11-20 — Claude Code — Agenda: el clic en día/hora llega a «Nueva cita» y al guardar se ve la cita
 
 - `smyl-schedule.js`: el tablero recibe `api.preselected()` con la hora tocada; el resumen muestra «Horario» aunque aún no haya tratamiento; al guardar, la Agenda salta al día, sucursal y filtros de la cita y avisa «Cita guardada: vie 20 de nov · 1:00 pm en Sucursal …».

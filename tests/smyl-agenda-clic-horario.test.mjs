@@ -26,7 +26,7 @@ test('web, móvil y PWA publican el arreglo', () => {
     assert.match(read(file), /smyl-schedule-board\.js\?v=3/);
     assert.match(read(file), /smyl-schedule\.css\?v=35/);
   }
-  assert.match(read('sw.js'), /-agenda-clic-horario-v1';/);
+  assert.match(read('sw.js'), /-agenda-clic-horario-v1(-|')/);
   for (const file of ['smyl-schedule.js', 'smyl-schedule-board.js', 'smyl-schedule.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);
   }
