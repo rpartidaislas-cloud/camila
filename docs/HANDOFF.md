@@ -1,3 +1,9 @@
+## 2026-11-20 — Claude Code — Agenda: aviso cuando el filtro esconde citas
+
+- Diagnóstico: las citas (manuales y del chat) sí se guardan en producción, pero en otras sucursales/dentistas distintos al filtro de la Agenda; el usuario no las veía.
+- `smyl-schedule.js` v53 / `smyl-schedule.css` v36: `renderHiddenNote()` muestra «N citas más de este periodo no se ven porque estás filtrando por …» con botón «Ver todas». Se quitó un listener duplicado de `smyl:appointments-changed` (ya existía en `init`).
+- SW suffix `-agenda-filtro-aviso-v1`; copias en `mobile/www/`. Sin cambios de backend.
+
 ## 2026-11-20 — Claude Code — Citas desde el chat: aviso de dónde quedaron y Agenda sincronizada
 
 - Diagnóstico: en producción las citas del chat sí se crean y confirman (6 con `source=inbox`, la última hoy); no se veían porque quedan en otra sucursal/día distinto al filtro de la Agenda y el aviso solo decía «Cita confirmada en la Agenda».
