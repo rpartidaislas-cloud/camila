@@ -34,7 +34,7 @@ export const SENTINELAS = {
   '20261118120000': { sentinel: "select exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'smyl_professionals' and column_name = 'phone') as ok" },
   '20261118130000': { sentinel: `select (to_regclass('public.smyl_schedule_rules') is not null and ${proc('smyl_set_professional_travel_margin')} and ${proc('smyl_professional_travel_conflicts')}) as ok` },
   '20261118100000': { sentinel: "select exists(select 1 from information_schema.columns where table_schema = 'public' and table_name = 'smyl_cfdi_drafts' and column_name = 'last_emailed_at') as ok" },
-  '20261121100000': { reapply: true }, // solo create index if not exists (idempotente por diseño)
+  '20261122090000': { reapply: true }, // solo create index if not exists (idempotente por diseño)
 };
 
 // Decide qué hacer con cada versión pendiente. `resultadoSentinela(version)` devuelve true/false (ya consultado).

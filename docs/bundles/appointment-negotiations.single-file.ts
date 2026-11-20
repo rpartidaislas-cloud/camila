@@ -372,6 +372,8 @@ return { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin: admin };
 // POST público firmado por LANA:
 //   { event_id, tenant_id, conversation_id, provider_message_id, button, occurred_at }
 //   X-SMYL-Signature: sha256=<HMAC del cuerpo crudo>
+//   Si no corresponde a una entrega de negociación y el botón es «Confirmo mi asistencia» o «Necesito reprogramar»,
+//   se registra como respuesta del paciente a su cita más próxima (smyl_apply_patient_attendance_response).
 //
 // LANA conserva mensajes, teléfonos y credenciales de Meta. SMYL sólo guarda
 // ids de correlación y la decisión normalizada; nunca el texto completo.
@@ -537,6 +539,14 @@ function normalizeAction(recipient: Recipient, value: unknown): string | null {
   return (recipient === "professional" ? professional : patient)[label] || null;
 }
 
+// Botones de los avisos de cita al paciente. Cualquier otro texto se ignora (no es una respuesta de asistencia).
+function normalizeAttendance(value: unknown): "confirmed" | "reschedule" | null {
+  const label = text(value, 80).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  if (["confirmo mi asistencia", "confirmo", "confirmar asistencia", "confirmed"].includes(label)) return "confirmed";
+  if (["necesito reprogramar", "reprogramar", "reschedule"].includes(label)) return "reschedule";
+  return null;
+}
+
 async function callback(raw: string, signature: string | null): Promise<Response> {
   if (WEBHOOK_SECRET.length < 32 || !signature || !safeEqual(signature, `sha256=${await hmac(raw)}`)) return json(403, { error: "Firma inválida." });
   const body = JSON.parse(raw || "{}") as Row;
@@ -547,7 +557,16 @@ async function callback(raw: string, signature: string | null): Promise<Response
   let query = admin.from("smyl_appointment_negotiation_deliveries").select("*").eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId);
   query = deliveryId ? query.eq("id", deliveryId) : query.eq("provider_message_id", providerMessageId);
   const { data: delivery } = await query.maybeSingle();
-  if (!delivery) return json(404, { error: "No se encontró la entrega." });
+  if (!delivery) {
+    // No es una respuesta de negociación: puede ser el botón de un aviso de cita («Confirmo mi asistencia» / «Necesito reprogramar»).
+    const response = normalizeAttendance(body.button ?? body.action);
+    if (!response) return json(404, { error: "No se encontró la entrega." });
+    const { data: applied, error: attendanceError } = await admin.rpc("smyl_apply_patient_attendance_response", {
+      p_tenant: tenantId, p_conversation: conversationId, p_event_id: eventId, p_response: response, p_occurred_at: new Date(occurredAt).toISOString(),
+    });
+    if (attendanceError) return json(409, { error: "No se pudo registrar la respuesta del paciente." });
+    return json(200, { ok: true, attendance: applied });
+  }
   const action = normalizeAction(delivery.recipient as Recipient, body.button ?? body.action);
   if (!action) return json(400, { error: "Botón no reconocido." });
   const { data: state, error } = await admin.rpc("smyl_apply_whatsapp_negotiation_response", {

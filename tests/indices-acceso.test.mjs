@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const sql = fs.readFileSync(new URL('../supabase/migrations/20261121100000_smyl_indices_acceso.sql', import.meta.url), 'utf8');
+const sql = fs.readFileSync(new URL('../supabase/migrations/20261122090000_smyl_indices_acceso.sql', import.meta.url), 'utf8');
 
 test('los índices nuevos son aditivos e idempotentes: no tocan datos, políticas ni funciones', () => {
   const sentencias = sql.replace(/--.*$/gm, '').split(';').map((x) => x.trim()).filter(Boolean);
@@ -20,5 +20,5 @@ test('cada índice cubre una columna realmente usada y existe en el esquema', ()
 
 test('la versión de la migración es única', () => {
   const versions = fs.readdirSync(new URL('../supabase/migrations/', import.meta.url)).map((f) => f.split('_')[0]);
-  assert.equal(versions.filter((v) => v === '20261121100000').length, 1);
+  assert.equal(versions.filter((v) => v === '20261122090000').length, 1);
 });
