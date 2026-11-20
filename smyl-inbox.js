@@ -270,7 +270,10 @@
 
   function setComposerText(value) {
     var input = document.querySelector('[name="message"]'); if (!input) return;
-    input.value = String(value || '').slice(0, 4000); fitComposerText(input); scheduleDraftSave(input.value); input.focus();
+    input.value = String(value || '').slice(0, 4000);
+    fitComposerText(input); scheduleDraftSave(input.value);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.focus();
   }
 
   async function request(method, query, payload, key, timeoutMs, requestController) {
@@ -458,7 +461,7 @@
             '<div class="smyl-inbox-transcript"><div class="smyl-inbox-thread-body" data-thread-body tabindex="-1" aria-label="Historial de mensajes" role="region"><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div id="smyl-thread-log" data-thread-messages role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div></div>' +
               '<button type="button" class="smyl-inbox-jump" data-thread-jump aria-controls="smyl-thread-log" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-6-6 6 6 6-6"/></svg><span>Ir al final</span></button><span class="smyl-inbox-sr" role="status" data-thread-jump-status></span></div>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
-            '<form class="smyl-inbox-composer" data-inbox-composer><label class="smyl-inbox-sr" for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window aria-live="polite" hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><p class="smyl-compose-save-warning" data-compose-save-warning role="status" hidden>No se pudo guardar el texto para esta sesión.</p><div class="smyl-inbox-compose-surface" data-compose-surface><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-card"><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea></div><div class="smyl-inbox-compose-bar" role="group" aria-label="Acciones de respuesta"><div class="smyl-inbox-compose-primary"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-compose-tools" aria-label="Abrir herramientas de mensaje" title="Herramientas">' + composeIcon('plus') + '</button></div><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden><div class="smyl-inbox-compose-actions"><button type="button" class="smyl-inbox-compose-copilot" title="Sugerir con MILA" data-compose-copilot aria-label="Sugerir con MILA">' + composeIcon('mila') + '<span>Sugerir con MILA</span></button><button type="submit" class="smyl-inbox-send" data-compose-send aria-label="Enviar mensaje"><span>Enviar</span>' + composeIcon('send') + '</button></div></div></div><div class="smyl-inbox-compose-tools" id="smyl-inbox-compose-tools" data-compose-tools role="menu" aria-label="Herramientas de mensaje" hidden><button type="button" data-compose-attach role="menuitem" aria-label="Adjuntar archivo">' + composeIcon('attach') + '<span><strong>Adjuntar</strong><small>Foto, archivo o audio</small></span></button><button type="button" data-compose-quick role="menuitem" aria-label="Respuesta rápida">' + composeIcon('quick') + '<span><strong>Respuesta rápida</strong><small>Insertar texto del equipo</small></span></button><button type="button" data-compose-rewrite role="menuitem" aria-label="Mejorar redacción con MILA">' + composeIcon('rewrite') + '<span><strong>Mejorar redacción</strong><small>Ortografía y claridad con MILA</small></span></button><button type="button" data-compose-emoji role="menuitem" aria-label="Agregar emoji">' + composeIcon('smile') + '<span><strong>Emoji</strong><small>Insertar en el mensaje</small></span></button><button type="button" data-compose-template role="menuitem">' + composeIcon('template') + '<span><strong>Plantilla</strong><small>Mensaje aprobado</small></span></button><button type="button" data-compose-schedule role="menuitem">' + composeIcon('calendar') + '<span><strong>Programar</strong><small>Enviar después</small></span></button><button type="button" data-compose-record role="menuitem" aria-pressed="false">' + composeIcon('mic') + '<span><strong>Nota de voz</strong><small>Grabar audio</small></span></button><button type="button" data-compose-location role="menuitem" aria-label="Enviar ubicación actual">' + composeIcon('location') + '<span><strong>Enviar ubicación</strong><small>Ubicación actual o enlace de Maps</small></span></button></div></div></div></form>' +
+            '<form class="smyl-inbox-composer" data-inbox-composer><label class="smyl-inbox-sr" for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window aria-live="polite" hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><p class="smyl-compose-save-warning" data-compose-save-warning role="status" hidden>No se pudo guardar el texto para esta sesión.</p><div class="smyl-inbox-compose-surface" data-compose-surface><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-card"><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea></div><div class="smyl-inbox-compose-bar" role="group" aria-label="Acciones de respuesta"><div class="smyl-inbox-compose-primary"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-compose-tools" aria-label="Abrir herramientas de mensaje" title="Herramientas">' + composeIcon('plus') + '</button></div><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden><div class="smyl-inbox-compose-actions"><button type="button" class="smyl-inbox-compose-copilot" title="Sugerir con MILA" data-compose-copilot aria-label="Sugerir con MILA">' + composeIcon('mila') + '<span>Sugerir con MILA</span></button><button type="submit" class="smyl-inbox-send" data-compose-send aria-label="Enviar mensaje"><span>Enviar</span>' + composeIcon('send') + '</button></div></div></div><div class="smyl-inbox-compose-tools" id="smyl-inbox-compose-tools" data-compose-tools role="menu" aria-label="Herramientas de mensaje" hidden><button type="button" data-compose-attach role="menuitem" aria-label="Adjuntar archivo">' + composeIcon('attach') + '<span><strong>Adjuntar</strong><small>Foto, archivo o audio</small></span></button><button type="button" data-compose-quick role="menuitem" aria-label="Respuesta rápida">' + composeIcon('quick') + '<span><strong>Respuesta rápida</strong><small>Insertar texto del equipo</small></span></button><button type="button" data-compose-rewrite role="menuitem" aria-label="Mejorar redacción con MILA">' + composeIcon('rewrite') + '<span><strong>Mejorar redacción</strong><small>Corregir el texto actual de la caja</small></span></button><button type="button" data-compose-emoji role="menuitem" aria-label="Agregar emoji">' + composeIcon('smile') + '<span><strong>Emoji</strong><small>Insertar en el mensaje</small></span></button><button type="button" data-compose-template role="menuitem">' + composeIcon('template') + '<span><strong>Plantilla</strong><small>Mensaje aprobado</small></span></button><button type="button" data-compose-schedule role="menuitem">' + composeIcon('calendar') + '<span><strong>Programar</strong><small>Enviar después</small></span></button><button type="button" data-compose-record role="menuitem" aria-pressed="false">' + composeIcon('mic') + '<span><strong>Nota de voz</strong><small>Grabar audio</small></span></button><button type="button" data-compose-location role="menuitem" aria-label="Enviar ubicación actual">' + composeIcon('location') + '<span><strong>Enviar ubicación</strong><small>Ubicación actual o enlace de Maps</small></span></button></div></div></div></form>' +
           '</div>' +
         '</main>' +
         '<section class="smyl-inbox-offline" data-inbox-offline hidden aria-live="polite"></section>' +
@@ -473,9 +476,9 @@
         '<dialog class="smyl-inbox-productivity-dialog inbox-tool-dialog" id="smyl-chat-owner" data-owner-dialog aria-labelledby="smyl-owner-heading"><header><h2 id="smyl-owner-heading">Atiende el chat</h2><button type="button" data-owner-close aria-label="Cerrar responsable del chat">×</button></header>' +
           '<div class="smyl-chat-owner-body"><label>Responsable<select data-thread-assign aria-label="Asignar responsable del chat"></select></label><p class="smyl-chat-owner-status" data-owner-status role="status" hidden></p><button type="button" class="btn btn-secondary" data-thread-owner-retry hidden>Reintentar</button>' +
           '<section class="smyl-chat-note-content" data-handoff aria-labelledby="smyl-owner-note-title" hidden><h3 id="smyl-owner-note-title">Nota privada de relevo</h3><p></p></section></div></dialog>' +
-        '<dialog class="smyl-inbox-productivity-dialog inbox-tool-dialog" data-quick-dialog aria-labelledby="smyl-quick-heading"><header><h2 id="smyl-quick-heading">Respuestas rápidas</h2><button type="button" data-quick-close aria-label="Cerrar respuestas rápidas">×</button></header>' +
-          '<div data-quick-content><section data-quick-library><div class="smyl-quick-toolbar"><input type="search" data-quick-search placeholder="Buscar una respuesta" aria-label="Buscar una respuesta"><button type="button" data-quick-new>Redactar respuesta</button></div><div class="smyl-quick-list" data-quick-list></div></section>' +
-          '<form class="smyl-quick-editor" data-quick-form hidden><label data-quick-name>Atajo<input name="shortcut" type="text" placeholder="Ej. bienvenida" maxlength="40" autocapitalize="none" autocomplete="off" spellcheck="false"></label><label>Mensaje<textarea name="replyText" rows="4" maxlength="4000" required placeholder="Escribe la respuesta…"></textarea></label>' +
+        '<dialog class="smyl-inbox-productivity-dialog inbox-tool-dialog" data-quick-dialog aria-labelledby="smyl-quick-heading"><header><div><span class="smyl-quick-kicker">BIBLIOTECA DEL EQUIPO</span><h2 id="smyl-quick-heading">Respuestas rápidas</h2><p>Inserta un mensaje preparado sin enviarlo automáticamente.</p></div><button type="button" data-quick-close aria-label="Cerrar respuestas rápidas"><span aria-hidden="true">×</span></button></header>' +
+          '<div data-quick-content><section data-quick-library><div class="smyl-quick-toolbar"><label class="smyl-quick-search"><span class="smyl-inbox-sr">Buscar una respuesta</span><input type="search" data-quick-search placeholder="Buscar por atajo o texto" aria-label="Buscar por atajo o texto"></label><button type="button" data-quick-new><span aria-hidden="true">＋</span> Nueva respuesta</button></div><div class="smyl-quick-overview"><p data-quick-summary aria-live="polite">Consultando biblioteca…</p><small>Consejo: escribe <b>/atajo</b> en el mensaje para abrir esta lista.</small></div><div class="smyl-quick-list" data-quick-list role="list"></div></section>' +
+          '<form class="smyl-quick-editor" data-quick-form hidden><div class="smyl-quick-editor-heading"><span>RESPUESTA DEL EQUIPO</span><strong data-quick-editor-title>Nueva respuesta</strong><p>Guárdala para reutilizarla o insértala sólo en esta conversación.</p></div><label data-quick-name>Atajo<div class="smyl-quick-shortcut-field"><span aria-hidden="true">/</span><input name="shortcut" type="text" placeholder="bienvenida" maxlength="40" autocapitalize="none" autocomplete="off" spellcheck="false"></div><small>Usa letras, números, guiones o guiones bajos.</small></label><label>Mensaje<textarea name="replyText" rows="5" maxlength="4000" required placeholder="Escribe la respuesta…"></textarea></label>' +
           '<div class="smyl-quick-actions"><button type="button" data-quick-back>Volver</button><button type="button" data-quick-delete hidden>Eliminar</button><button type="button" data-quick-save>Guardar para el equipo</button><button type="submit" data-quick-use>Insertar en el chat</button></div></form><p data-quick-status role="status" hidden></p></div></dialog>' +
         '<dialog class="smyl-inbox-productivity-dialog smyl-inbox-emoji-dialog" data-emoji-dialog aria-labelledby="smyl-emoji-heading"><header><h2 id="smyl-emoji-heading">Emojis</h2><button type="button" data-emoji-close aria-label="Cerrar emojis">×</button></header><div data-emoji-content></div></dialog>' +
         '<dialog class="smyl-inbox-productivity-dialog" data-search-dialog><header><div><span class="smyl-inbox-eyebrow">HISTORIAL CANÓNICO</span><h2>Buscar dentro del hilo</h2><p>La búsqueda se realiza en el historial completo, incluso sobre mensajes no cargados.</p></div><button type="button" data-search-close>Cerrar</button></header><form data-thread-search-form><input type="search" data-thread-search-input minlength="2" maxlength="160" placeholder="Ej. valoración, cita o presupuesto" required><button class="btn btn-primary" type="submit">Buscar</button></form><div data-search-results></div></dialog>' +
@@ -1526,18 +1529,28 @@
     var result = conversationId && state.copilot[conversationId];
     var loadingMode = conversationId && state.copilotLoading[conversationId];
     var loading = loadingMode === 'draft' || loadingMode === 'rewrite';
-    var isRewrite = loadingMode === 'rewrite' || Boolean(result && result.mode === 'rewrite');
-    panel.hidden = !loading && !(result && (result.mode === 'draft' || result.mode === 'rewrite'));
+    var appliedRewrite = Boolean(result && result.mode === 'rewrite_applied');
+    var isRewrite = loadingMode === 'rewrite' || Boolean(result && (result.mode === 'rewrite' || result.mode === 'rewrite_applied'));
+    panel.hidden = !loading && !(result && (result.mode === 'draft' || result.mode === 'rewrite' || result.mode === 'rewrite_applied'));
     if (panel.hidden) return;
     var head = node('div', 'smyl-inbox-copilot-head');
     head.append(
       node('strong', '', isRewrite ? 'MILA · Redacción' : 'SMYL Copilot'),
-      node('span', '', isRewrite ? 'Ortografía y claridad · no enviado' : 'Borrador interno · no enviado')
+      node('span', '', appliedRewrite ? 'Aplicada en la caja · no enviada' : isRewrite ? 'Ortografía y claridad · no enviado' : 'Borrador interno · no enviado')
     );
     panel.append(head);
     if (loading) {
       panel.append(skNode('text', { lines: 3, label: isRewrite ? 'Corrigiendo ortografía y claridad sin cambiar el sentido' : 'Revisando el hilo y la capacitación publicada' }));
       return;
+    }
+    if (appliedRewrite) {
+      panel.append(node('p', 'smyl-inbox-rewrite-applied', 'Texto corregido en la caja. Revísalo antes de enviar.'));
+      var appliedActions = node('div', 'smyl-inbox-copilot-actions');
+      var undo = node('button', 'btn btn-secondary btn-sm', 'Deshacer'); undo.type = 'button';
+      undo.onclick = function () { setComposerText(result.original_text || ''); delete state.copilot[conversationId]; renderCopilotDraft(); };
+      var done = node('button', 'btn btn-primary btn-sm', 'Listo'); done.type = 'button';
+      done.onclick = function () { delete state.copilot[conversationId]; renderCopilotDraft(); document.querySelector('[name="message"]')?.focus(); };
+      appliedActions.append(undo, done); panel.append(appliedActions); return;
     }
     if (result.requires_human) panel.append(node('p', 'is-warning', 'Copilot detectó contenido que requiere atención humana. Revisa con especial cuidado.'));
     var suggestion = result.rewritten_text || result.draft || '';
@@ -1575,8 +1588,8 @@
   async function rewriteComposerText() {
     var conversation = selectedConversation();
     var input = document.querySelector('[name="message"]');
-    var source = input && input.value.trim();
-    if (!source) {
+    var source = input && input.value;
+    if (!source || !source.trim()) {
       window.alert('Escribe primero el mensaje que quieres mejorar.');
       if (input) input.focus();
       return null;
@@ -1590,7 +1603,14 @@
         source_text: source,
       }, uuid(), 35000);
       if (state.selectedId !== conversation.id) return null;
-      state.copilot[conversation.id] = Object.assign({ mode: 'rewrite' }, data);
+      var suggestion = String(data && data.rewritten_text || '').trim();
+      if (!suggestion) throw new Error('MILA no devolvió una versión corregida.');
+      if (input.value === source) {
+        setComposerText(suggestion);
+        state.copilot[conversation.id] = Object.assign({}, data, { mode: 'rewrite_applied', original_text: source, rewritten_text: suggestion });
+      } else {
+        state.copilot[conversation.id] = Object.assign({ mode: 'rewrite' }, data);
+      }
       return data;
     } catch (error) {
       window.alert(error.message || 'MILA no pudo mejorar la redacción. Tu texto original no cambió.');
@@ -5052,16 +5072,28 @@
     status.textContent = message; status.hidden = !message;
   }
 
+  function quickShortcutAtCaret(input) {
+    if (!input || input.selectionStart !== input.selectionEnd) return null;
+    var caret = input.selectionStart; var before = input.value.slice(0, caret);
+    var match = before.match(/(^|\s)\/([a-z0-9_-]{1,40})$/i);
+    if (!match) return null;
+    return { start: caret - match[2].length - 1, end: caret, query: match[2] };
+  }
+
   function insertQuickReply(session, text) {
-    var input = document.querySelector('[name="message"]');
+    var input = document.querySelector('[data-inbox-composer] [name="message"]');
     if (state.quickSession !== session || state.selectedId !== session.conversation || !input || input.disabled) {
       quickNotice(session, 'Vuelve a abrir la conversación para insertar el mensaje.'); return;
     }
-    if (input.value.length - (input.selectionEnd - input.selectionStart) + text.length > input.maxLength) {
+    var start = input.selectionStart; var end = input.selectionEnd;
+    if (input.value === session.inputValue && Number.isInteger(session.insertStart) && Number.isInteger(session.insertEnd)) {
+      start = session.insertStart; end = session.insertEnd;
+    }
+    if (input.value.length - (end - start) + text.length > input.maxLength) {
       quickNotice(session, 'Acorta el texto. El mensaje admite hasta 4000 caracteres.'); return;
     }
     session.dialog.close();
-    input.setRangeText(text, input.selectionStart, input.selectionEnd, 'end');
+    input.setRangeText(text, start, end, 'end');
     input.dispatchEvent(new Event('input', { bubbles: true })); input.focus();
   }
 
@@ -5073,10 +5105,14 @@
       return item && typeof item.text === 'string' && typeof item.shortcut === 'string' &&
         normalizeText('/' + item.shortcut + ' ' + item.text).includes(search);
     });
+    var summary = dialog.querySelector('[data-quick-summary]');
+    if (summary) summary.textContent = session.loading.size ? 'Actualizando biblioteca…' : replies.length + (replies.length === 1 ? ' respuesta disponible' : ' respuestas disponibles');
     replies.forEach(function (item) {
       var row = node('div', 'smyl-quick-item');
       var insert = node('button', 'smyl-inbox-quick-row'); insert.type = 'button';
-      insert.append(node('strong', '', '/' + item.shortcut), node('span', '', item.text));
+      insert.setAttribute('aria-label', 'Usar /' + item.shortcut + ': ' + item.text);
+      var copy = node('span', 'smyl-quick-row-copy'); copy.append(node('strong', '', '/' + item.shortcut), node('span', '', item.text));
+      insert.append(copy, node('span', 'smyl-quick-use-label', 'Usar'));
       insert.onclick = function () { insertQuickReply(session, item.text); };
       row.append(insert);
       if (session.canManage && session.team.includes(item)) {
@@ -5132,6 +5168,7 @@
     session.editing = item; dialog.querySelector('[data-quick-library]').hidden = true;
     form.hidden = false; form.elements.shortcut.value = item ? item.shortcut : '';
     form.elements.replyText.value = item ? item.text : '';
+    form.querySelector('[data-quick-editor-title]').textContent = item ? 'Editar /' + item.shortcut : 'Nueva respuesta';
     form.querySelector('[data-quick-name]').hidden = !session.canManage;
     form.querySelector('[data-quick-save]').hidden = !session.canManage;
     form.querySelector('[data-quick-delete]').hidden = !item;
@@ -5183,16 +5220,25 @@
     }
   }
 
-  function openQuickReplies() {
+  function openQuickReplies(options) {
+    options = options && options.quickReplyTrigger ? options : {};
     var dialog = document.querySelector('[data-quick-dialog]');
     if (!dialog || dialog.open || !canOperate(selectedConversation(), 'messages.respond')) return;
-    var form = dialog.querySelector('[data-quick-form]');
+    var form = dialog.querySelector('[data-quick-form]'); var input = document.querySelector('[data-inbox-composer] [name="message"]');
+    var inline = options.range || quickShortcutAtCaret(input);
     var session = { dialog: dialog, conversation: state.selectedId, canManage: hasPermission('messages.manage'),
-      team: [], legacy: [], teamGeneration: 0, errors: new Set(), loading: new Set(), editing: null, busy: false };
+      team: [], legacy: [], teamGeneration: 0, errors: new Set(), loading: new Set(), editing: null, busy: false,
+      inputValue: input ? input.value : '', insertStart: inline ? inline.start : input && input.selectionStart,
+      insertEnd: inline ? inline.end : input && input.selectionEnd };
     state.quickSession = session;
     Array.from(form.elements).forEach(function (field) { field.disabled = false; });
-    dialog.querySelector('[data-quick-search]').value = '';
+    dialog.querySelector('[data-quick-search]').value = options.query || (inline && inline.query) || '';
     dialog.querySelector('[data-quick-search]').oninput = function () { renderQuickReplies(session); };
+    dialog.querySelector('[data-quick-search]').onkeydown = function (event) {
+      if (event.key !== 'Enter') return;
+      var first = dialog.querySelector('.smyl-inbox-quick-row');
+      if (first) { event.preventDefault(); first.click(); }
+    };
     dialog.querySelector('[data-quick-new]').onclick = function () { showQuickEditor(session, null); };
     form.querySelector('[data-quick-back]').onclick = function () { showQuickLibrary(session); };
     form.querySelector('[data-quick-save]').onclick = function () { writeQuickReply(session, false); };
@@ -5203,8 +5249,19 @@
       if (text) insertQuickReply(session, text);
       else { quickNotice(session, 'Escribe el mensaje que quieres insertar.'); form.elements.replyText.focus(); }
     };
+    dialog.onclose = function () {
+      if (state.quickSession === session) state.quickSession = null;
+      if (input && !input.disabled) input.focus();
+    };
     dialog.showModal(); showQuickLibrary(session);
     loadQuickSource(session, 'team'); loadQuickSource(session, 'legacy');
+  }
+
+  function maybeOpenQuickReplies(event) {
+    if (!event.isTrusted || document.querySelector('[data-quick-dialog][open]')) return;
+    var range = quickShortcutAtCaret(event.currentTarget);
+    if (!range || range.query.length < 2) return;
+    openQuickReplies({ quickReplyTrigger: true, range: range, query: range.query });
   }
 
   function renderThreadSearchResults() {
@@ -5403,7 +5460,9 @@
     });
     page.querySelector('[data-inbox-composer]').addEventListener('submit', sendMessage);
     var replyInput = page.querySelector('[name="message"]');
-    replyInput.addEventListener('input', function () { fitComposerText(replyInput); scheduleDraftSave(replyInput.value); });
+    replyInput.addEventListener('input', function (event) {
+      fitComposerText(replyInput); scheduleDraftSave(replyInput.value); maybeOpenQuickReplies(event);
+    });
     if (!window.CSS.supports('field-sizing', 'content') && window.ResizeObserver) {
       var lastReplyWidth = 0;
       new ResizeObserver(function () {

@@ -11898,7 +11898,6 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Límites:** el estado es «enviado / no se envió» al aceptar LANA el mensaje; no hay confirmación de entrega/lectura de Meta (eso requiere el webhook del PR 4). Si cambia el dentista de una cita solo se avisa al nuevo.
 - **Aplicar:** migración `20261120160000_smyl_appointment_notice_log.sql` en el SQL Editor (aditiva; depende de la del PR 1 solo por convención, no por FK). Sin ella el aviso sigue funcionando, solo que no recuerda envíos ni los lista (el registro falla en silencio).
 - **Archivos:** `smyl-appointment-notice.js` (v2), `smyl-schedule.js` (v49), `smyl-inbox.js` (v81), `smyl-inbox-ficha.js` (v12), `smyl-inbox.css` (v69), `app.html`, `sw.js`, copias en `mobile/www/`, `tests/avisos-cita-chat.test.mjs` y versiones ajustadas en pruebas existentes.
-
 ## 2026-11-21 — Claude — Avisos de cita (PR 4): respuestas del paciente («Confirmo mi asistencia» / «Necesito reprogramar»)
 
 - **Qué:** cuando el paciente toca un botón de asistencia, SMYL guarda **solo la decisión** y la marca en la Agenda; **nunca cancela ni mueve la cita**. Migración `20261121100000_smyl_patient_attendance_responses.sql` (sin aplicar): tabla `smyl_appointment_patient_responses` (RLS por cita visible; `unique (tenant_id, provider_event_id)` para idempotencia; guarda el horario de la cita al responder) y RPC `smyl_apply_patient_attendance_response` (solo `service_role`): liga la conversación de LANA con el paciente (`camila_lana_handoffs`) y toma su cita **confirmada más próxima** (de 2 h atrás a 4 días adelante); si hay varias marca `ambiguous`, si el chat tiene varios pacientes o ninguna cita no registra nada.
@@ -11907,3 +11906,13 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **DEPENDENCIA NO VERIFICADA (LANA):** SMYL no ve el chat; esto solo funciona si LANA **envía el callback firmado a este mismo endpoint cuando el paciente toca el botón de cualquier plantilla**, no solo de las de negociación, con `event_id`, `tenant_id`, `conversation_id`, `button` y `occurred_at` frescos. No se pudo comprobar ni configurar desde aquí. Sin eso, el código queda listo pero no recibirá eventos. Comprobarlo con una cita de prueba y el recordatorio con botones (`recordatorio_cita_confirmar_v1`).
 - **Límites:** correlación por paciente + cita próxima (no por id de mensaje); el recordatorio automático usa la plantilla configurada en Automatizaciones, así que para que haya botones esa plantilla debe ser la de botones. Sin marcas en las tarjetas del calendario ni alerta en el chat (solo ficha y panel de foco).
 - **Archivos:** migración, `supabase/functions/appointment-negotiations/index.ts` + bundle, `smyl-schedule.js` (v50), `app.html`, `sw.js`, copias en `mobile/www/`, `tests/avisos-cita-respuestas.test.mjs`.
+
+## 2026-11-19 — Codex — Respuestas rápidas y redacción en la caja v1
+
+- Los atajos escritos en el compositor (por ejemplo, `/saludo`) abren automáticamente la biblioteca y reemplazan exactamente el atajo por la respuesta elegida.
+- Se rediseñó la ventana de respuestas rápidas con búsqueda, resumen, acciones más claras y adaptación como panel inferior en móvil.
+- El área de escritura usa ahora todo el ancho disponible y elimina el espacio vacío lateral del escritorio.
+- **Mejorar redacción** corrige directamente el contenido actual de la caja, permite deshacer y nunca envía el mensaje automáticamente.
+- Se protegió el texto escrito durante el procesamiento: si el usuario lo cambia antes de recibir la corrección, la propuesta no sobrescribe ese cambio.
+- Se actualizaron los recursos a `smyl-inbox.js?v=86` y `smyl-inbox.css?v=73`, junto con la caché de la PWA.
+- Se agregaron pruebas unitarias y de navegador para inserción de atajos, edición, eliminación, redacción, deshacer y anchura del compositor.

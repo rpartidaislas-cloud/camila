@@ -26,7 +26,7 @@ test('quick replies prepare a draft and never send automatically', () => {
   assert.match(bridge, /action === "quick_replies"/);
   assert.match(inbox, /action: 'quick_replies'/);
   assert.match(quickReplyFlow, /insertQuickReply\(session, item\.text\)/);
-  assert.match(quickReplyFlow, /input\.setRangeText\(text, input\.selectionStart, input\.selectionEnd, 'end'\)/);
+  assert.match(quickReplyFlow, /input\.setRangeText\(text, start, end, 'end'\)/);
   assert.match(quickReplyFlow, /input\.dispatchEvent\(new Event\('input'/);
   assert.doesNotMatch(quickReplyFlow, /submitMessage/);
 });

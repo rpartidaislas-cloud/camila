@@ -205,6 +205,7 @@
       }
       if (action === 'stages') return json({ stages:[{id:'stage-nuevo',name:'Nuevo contacto',order:1},{id:'stage-valoracion',name:'Valoración agendada',order:2},{id:'stage-tratamiento',name:'Tratamiento activo',order:3}] });
       if (action === 'quick_replies') return json({ quick_replies:[{id:'q1',shortcut:'valoracion',text:'Hola, con gusto te ayudamos a agendar tu valoración dental.'},{id:'q2',shortcut:'documentos',text:'Para continuar, por favor comparte los estudios indicados por tu especialista.'}] });
+      if (action === 'rewrite_message') return json({ rewritten_text:'Hola, me gustaría conocer tus opciones. ¿Podrías ayudarme?', token_usage:{total_tokens:42}, usage_recorded:true });
       if (action === 'search') return json({ query:'valoración',results:[messages[2],messages[1]],page:{has_more:false,before:null} });
       if (action === 'shared') return json({ items:demoFiles.length ? demoFiles : [{id:'share1',author_type:'patient',content:'Estudios previos https://ejemplo.invalid/estudios.pdf',created_at:new Date(Date.now()-2*86400000).toISOString(),media_type:null,media_url:null}],page:{has_more:false,before:null} });
       if (action === 'auto_patient_link') {
