@@ -29,6 +29,16 @@
   function wasSent(key) { try { return win.sessionStorage.getItem(key) === '1'; } catch (_) { return false; } }
   function markSent(key) { try { win.sessionStorage.setItem(key, '1'); } catch (_) {} }
 
+  // ¿Ya se avisó de este evento? Mira el historial guardado: para un cambio de horario solo cuenta lo enviado
+  // después de la última modificación de la cita (si se movió otra vez, el aviso anterior ya no vale).
+  function lastSent(log, appointment, event, audience) {
+    var floor = event === 'rescheduled' && appointment.updated_at ? new Date(appointment.updated_at).getTime() - 60000 : 0;
+    var found = (log || []).filter(function (row) {
+      return row.status === 'sent' && row.event === event && row.audience === audience && new Date(row.created_at).getTime() >= floor;
+    }).sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); })[0];
+    return found ? found.created_at : '';
+  }
+
   function previousWhen(previous, ctx) {
     if (!previous || !previous.starts_at) return '';
     var fake = { appointment: { starts_at: previous.starts_at }, branch: ctx.branch, patient: ctx.patient, clinic: ctx.clinic };
@@ -81,7 +91,8 @@
       if (missing.length) { row.reason = 'Falta un dato para armar el mensaje: ' + missing.join(', ') + '.'; rows.push(row); return; }
       row.conversationId = conversation; row.values = values; row.preview = sms().fill(template.body, values); row.key = key;
       row.state = 'ready';
-      row.already = wasSent(key);
+      row.sentAt = lastSent(input.log, input.appointment, input.event, audience.id);
+      row.already = Boolean(row.sentAt) || wasSent(key);
       row.checked = !row.already;
       rows.push(row);
     });
@@ -100,6 +111,10 @@
     return dialog;
   }
 
+  function when(iso) {
+    try { return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(iso)).replace(/\s*([ap])\.?\s?m\.?/i, function (m, x) { return ' ' + x.toLowerCase() + 'm'; }); } catch (_) { return ''; }
+  }
+
   function summaryLine(opts, ctx) {
     var when = sms().render('date', { appointment: opts.appointment, branch: ctx.branch }) + ' · ' + sms().render('time', { appointment: opts.appointment, branch: ctx.branch });
     var parts = [[ctx.patient && ctx.patient.first, ctx.patient && ctx.patient.last].filter(Boolean).join(' ') || 'Paciente', when];
@@ -115,7 +130,8 @@
       sms().approvedTemplates(tenant).catch(function () { return null; }),
       safe(sb.from('camila_lana_handoffs').select('lana_conversation_id').eq('tenant_id', tenant).eq('patient_id', a.patient_id).eq('lana_channel', 'whatsapp').order('updated_at', { ascending: false }).limit(1), []),
       a.professional_id ? safe(sb.from('smyl_professional_whatsapp_links').select('lana_conversation_id').eq('tenant_id', tenant).eq('professional_id', a.professional_id).eq('active', true).limit(1), []) : Promise.resolve([]),
-      safe(sb.from('smyl_reminder_settings').select('confirmation_enabled').eq('tenant_id', tenant).limit(1), [])
+      safe(sb.from('smyl_reminder_settings').select('confirmation_enabled').eq('tenant_id', tenant).limit(1), []),
+      safe(sb.from('smyl_appointment_notice_log').select('event,audience,status,created_at').eq('tenant_id', tenant).eq('appointment_id', a.id).order('created_at', { ascending: false }).limit(30), [])
     ]);
     if (!results[1]) throw new Error('No pudimos consultar las plantillas de WhatsApp.');
     var defaults = {}; (results[0] || []).forEach(function (row) { defaults[row.event + ':' + row.audience] = row.template_name; });
@@ -123,8 +139,38 @@
       event: opts.event, appointment: a, previous: opts.previous, ctx: ctx, defaults: defaults, approved: results[1],
       patientConversation: results[2] && results[2][0] ? results[2][0].lana_conversation_id : '',
       professionalConversation: results[3] && results[3][0] ? results[3][0].lana_conversation_id : '',
-      autoConfirmation: Boolean(results[4] && results[4][0] && results[4][0].confirmation_enabled)
+      autoConfirmation: Boolean(results[4] && results[4][0] && results[4][0].confirmation_enabled),
+      log: results[5] || []
     };
+  }
+
+  // Guarda el resultado en el historial de la cita. Si falla no afecta al envío: es solo el registro.
+  function record(opts, row, status, error) {
+    try {
+      Promise.resolve(win.sb.rpc('smyl_log_appointment_notice', { p_appointment_id: opts.appointment.id, p_event: opts.event, p_audience: row.audience, p_template_name: row.templateId, p_status: status, p_error: String(error || '').slice(0, 300) })).catch(function () {});
+    } catch (_) {}
+  }
+
+  // Versión para otras pantallas (chat): recibe solo el id de la cita y arma el contexto desde la base.
+  async function offerById(opts) {
+    if (!win || !win.sb || !opts || !opts.appointmentId) return false;
+    var tenant = opts.tenant || win.tenantId, sb = win.sb;
+    function first(promise) { return Promise.resolve(promise).then(function (r) { return r && !r.error && r.data && r.data[0] ? r.data[0] : null; }, function () { return null; }); }
+    var a = await first(sb.from('smyl_appointments').select('*').eq('tenant_id', tenant).eq('id', opts.appointmentId).limit(1));
+    if (!a || !a.patient_id) return false;
+    var found = await Promise.all([
+      first(sb.from('camila_pacientes').select('nombre,apellido').eq('tenant_id', tenant).eq('id', a.patient_id).limit(1)),
+      first(sb.from('smyl_services').select('name').eq('tenant_id', tenant).eq('id', a.service_id).limit(1)),
+      first(sb.from('smyl_professionals').select('display_name').eq('tenant_id', tenant).eq('id', a.professional_id).limit(1)),
+      first(sb.from('smyl_branches').select('id,name,timezone').eq('tenant_id', tenant).eq('id', a.branch_id).limit(1))
+    ]);
+    var label = win.document && win.document.getElementById('sb-consultorio');
+    var clinic = label && label.textContent.trim(); if (clinic === 'Mi Consultorio') clinic = '';
+    return offer({
+      event: opts.event, tenant: tenant, appointment: a, previous: opts.previous || null,
+      patient: { id: a.patient_id, first: found[0] && found[0].nombre, last: found[0] && found[0].apellido },
+      service: found[1] && found[1].name, professional: found[2] && found[2].display_name, branch: found[3], clinic: clinic || '', onSent: opts.onSent
+    });
   }
 
   function offer(opts) {
@@ -182,7 +228,7 @@
             var bubble = el('div', 'notice-offer-bubble'); bubble.append(el('p', '', row.preview));
             if (row.buttons.length) { var strip = el('div', 'notice-offer-buttons'); row.buttons.forEach(function (text) { strip.append(el('span', '', text)); }); bubble.append(strip); }
             card.append(bubble);
-            if (row.already && row.status !== 'ok') card.append(el('p', 'notice-offer-note', 'Ya se avisó antes sobre esta cita. Márcalo solo si quieres reenviarlo.'));
+            if (row.already && row.status !== 'ok') card.append(el('p', 'notice-offer-note', 'Ya se avisó' + (row.sentAt ? ' el ' + when(row.sentAt) : ' antes') + '. Márcalo solo si quieres reenviarlo.'));
             if (row.status === 'sending') card.append(el('p', 'notice-offer-note', 'Enviando…'));
             if (row.status === 'ok') card.append(el('p', 'notice-offer-ok', '✓ Enviado por WhatsApp'));
             if (row.status === 'error') { var err = el('p', 'notice-offer-error', row.error); err.setAttribute('role', 'alert'); card.append(err); }
@@ -216,7 +262,8 @@
           try {
             await sms().sendTemplate(row.conversationId, row.lanaId, row.values, row.idempotency || (row.idempotency = sms().uuid()));
             row.status = 'ok'; row.checked = false; sentAny = true; markSent(row.key);
-          } catch (error) { row.status = 'error'; row.error = sms().friendly(error) + ' Puedes reintentar: no se enviará dos veces.'; }
+            record(opts, row, 'sent', '');
+          } catch (error) { row.status = 'error'; row.error = sms().friendly(error) + ' Puedes reintentar: no se enviará dos veces.'; record(opts, row, 'failed', row.error); }
           draw();
         }
         busy = false; draw();
@@ -230,5 +277,5 @@
     });
   }
 
-  return { offer: offer, planRows: planRows, valuesFor: valuesFor, previousWhen: previousWhen, EVENTS: EVENTS, sentKey: sentKey };
+  return { offer: offer, offerById: offerById, lastSent: lastSent, planRows: planRows, valuesFor: valuesFor, previousWhen: previousWhen, EVENTS: EVENTS, sentKey: sentKey };
 });

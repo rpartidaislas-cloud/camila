@@ -236,6 +236,11 @@
     if (visit.treatments && visit.treatments.length) row.append(node('p', 'smyl-f360-visit-treatment', 'Tratamiento: ' + visit.treatments.join(', ')));
     var who = [visit.professional, visit.branch].filter(Boolean).join(' · ');
     if (who) row.append(node('small', '', who));
+    if (ctx.onManage && visit.status === 'confirmed' && ctx.isUpcoming && ctx.isUpcoming(visit)) {
+      var actions = node('div', 'smyl-f360-visit-actions');
+      actions.append(button('Cambiar horario', 'smyl-f360-link', function () { ctx.onManage(visit, 'reschedule'); }), button('Cancelar cita', 'smyl-f360-link is-danger', function () { ctx.onManage(visit, 'cancel'); }));
+      row.append(actions);
+    }
     return row;
   }
 

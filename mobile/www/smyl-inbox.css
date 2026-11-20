@@ -3614,3 +3614,5 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
   background: #0f766e;
 }
 #p-inbox .smyl-inbox-filter-toggle:focus-visible { outline: 2px solid #168477; outline-offset: 2px; }
+#p-inbox .smyl-f360-visit-actions{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:6px}
+#p-inbox .smyl-f360-link.is-danger{color:#A1442E}
