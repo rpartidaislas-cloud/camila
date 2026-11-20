@@ -115,3 +115,12 @@ test("revisión 2026-11-19: cancelar solo cuenta si LANA lo confirma; una carrer
   assert.match(readFileSync(new URL("../pagar.html", import.meta.url), "utf8"), /window\.top !== window\.self/);
   assert.match(readFileSync(new URL("../pagar.html", import.meta.url), "utf8"), /\/\^https:\\\/\\\//);
 });
+
+// El botón «Enlace de pago» se activa por clínica (config.pago_en_linea) y no para todas.
+import {readFileSync as _rf} from 'node:fs';
+test('Enlace de pago visible solo en clínicas con cobro en línea activado',()=>{
+  const fin=_rf(new URL('../smyl-finance.js',import.meta.url),'utf8');
+  assert.match(fin,/function onlinePayEnabled\(\)\{if\(window\.SMYL_ONLINE_PAY===true\)return true;var t=window\.tenantData,c=t&&t\.config;return !!\(c&&typeof c==='object'&&c\.pago_en_linea===true\);\}/);
+  assert.match(fin,/onlinePayEnabled\(\)\?'<button type="button" id="account-link">Enlace de pago<\/button>'/);
+  assert.doesNotMatch(fin,/window\.SMYL_ONLINE_PAY===true\?'<button/);
+});
