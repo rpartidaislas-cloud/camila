@@ -21,6 +21,11 @@ test('archivar conserva historial y se bloquea si hay citas futuras', () => {
   assert.match(js, /Reasígnalas o cancélalas antes de archivarla/);
   assert.match(js, /update\(\{ active: false \}\)/);
   assert.doesNotMatch(js, /from\('smyl_branches'\)\.delete\(/);
+  assert.match(js, /function branchActionsMenu\(branch, compact\)/);
+  assert.match(js, /data-ca-archive-blocked/);
+  assert.match(js, /Primero establece otra sucursal como principal/);
+  assert.match(css, /\.clinic-admin-branch-menu-popover/);
+  assert.match(css, /\.clinic-admin-branch-form-actions\{position:sticky/);
 });
 
 test('el equipo de una sucursal se administra sin abandonar la pantalla', () => {

@@ -1,3 +1,11 @@
+## 2026-11-20 — Codex — Acciones visibles para archivar sucursales
+
+- Seguimiento de Ricardo: la opción para quitar una clínica no era visible al seleccionar la sucursal principal. La acción existía únicamente al final de los datos de una sede secundaria y desaparecía por completo en la principal.
+- Cada sucursal activa muestra **Más acciones** en la cabecera; en computadora también aparece `•••` en cada fila. Las sedes secundarias ofrecen **Hacer sucursal principal** y **Archivar sucursal**. La principal muestra la acción de archivo con la explicación «Primero elige otra sucursal principal», en lugar de ocultarla.
+- Archivar sigue siendo reversible y no borra citas, cobros, expediente, espacios ni horarios. Se bloquea si existen citas futuras. La pestaña **Archivadas** permite reactivar la sede.
+- El recorrido se simplificó de cinco a cuatro etapas: **Datos y dirección → Operación → Equipo → Resumen**; Operación reúne espacios y horarios. Guardar permanece visible con una barra fija discreta durante el desplazamiento.
+- Web/móvil sincronizados en `smyl-clinic-admin.js` v23, CSS v19 y caché PWA `branch-actions-v1`. Sin migraciones ni cambios de backend. Validación: 34 pruebas de módulo y recorrido real en Chromium aprobados; el recorrido archiva y reactiva una sede ficticia, verifica permisos y comprueba computadora/tableta/celular. Cambio local, todavía no publicado.
+
 ## 2026-11-20 — Claude Code — Ventana «Preparar cotización»: pestañas y continuar cotizaciones existentes
 
 - `smyl-professional-v3.js` v15: pestañas **Listos / Por completar / Todos** con contadores (la búsqueda busca en todos y agrupa). Si nadie está listo, abre en «Todos». Enter elige el primer resultado.

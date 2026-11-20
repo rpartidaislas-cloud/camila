@@ -135,12 +135,26 @@ server.listen(0, '127.0.0.1', async () => {
       sucursales: Array.from(document.querySelectorAll('.clinic-admin-branch')).map(x => x.innerText.replace(/\s+/g, ' ').trim()),
       buscador: !!document.getElementById('clinic-admin-branch-search'),
       nueva: document.getElementById('clinic-admin-add-branch')?.innerText,
-      equipo: !!document.querySelector('[data-ca-manage-team]')
+      equipo: !!document.querySelector('[data-ca-manage-team]'),
+      etapas: document.querySelectorAll('.clinic-admin-steps li').length,
+      menuPrincipal: !!document.querySelector('.clinic-admin-branch-head [data-ca-archive-blocked]'),
+      menuOtraSede: !!document.querySelector('.clinic-admin-branch-row:has([data-branch-id="b2"]) [data-ca-deactivate-branch]')
     }));
     console.log('0) sucursales:', JSON.stringify(sedes));
     check(sedes.buscador && /Nueva/.test(sedes.nueva || ''), 'Sucursales debe ofrecer búsqueda y alta clara');
     check(sedes.filtros.length === 2 && /Activas 3/.test(sedes.filtros[0]) && /Archivadas 0/.test(sedes.filtros[1]), 'debe separar sucursales activas y archivadas');
     check(sedes.sucursales.length === 3 && sedes.equipo, 'debe listar las sedes y permitir administrar su equipo');
+    check(sedes.etapas === 4, 'el proceso debe quedar en cuatro etapas claras');
+    check(sedes.menuPrincipal && sedes.menuOtraSede, 'Archivar debe permanecer visible y explicar por qué la principal está protegida');
+    await page.click('.clinic-admin-branch-row:has([data-branch-id="b3"]) .clinic-admin-branch-menu summary');
+    await page.click('.clinic-admin-branch-row:has([data-branch-id="b3"]) [data-ca-deactivate-branch]');
+    await page.waitForTimeout(1100);
+    const archivada = await page.evaluate(() => ({ activa: window.__db.smyl_branches.find(b => b.id === 'b3').active, filtro: document.querySelector('[data-ca-branch-filter="archived"]').innerText.replace(/\s+/g, ' ').trim() }));
+    check(archivada.activa === false && /Archivadas 1/.test(archivada.filtro), 'archivar debe retirar la sede de operación sin borrarla');
+    await page.click('[data-ca-branch-filter="archived"]'); await page.waitForTimeout(250);
+    await page.click('.clinic-admin-archived [data-ca-restore-branch]'); await page.waitForTimeout(1100);
+    check(await page.evaluate(() => window.__db.smyl_branches.find(b => b.id === 'b3').active === true), 'la sucursal archivada debe poder reactivarse');
+    await page.click('.clinic-admin-branch[data-branch-id="b1"]'); await page.waitForTimeout(200);
     await page.click('[data-ca-manage-team]'); await page.waitForTimeout(250);
     const asignacion = await page.evaluate(() => ({
       abierta: document.getElementById('clinic-admin-dialog').open,

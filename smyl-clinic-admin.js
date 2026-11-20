@@ -312,13 +312,56 @@
     }
     branches.forEach(function (branch) {
       var readiness = branchReadiness(branch);
+      var row = el('div', 'clinic-admin-branch-row');
       var button = el('button', 'clinic-admin-branch');
       button.type = 'button'; button.dataset.branchId = branch.id;
       button.setAttribute('aria-current', String(branch.id === state.selectedBranch));
       var subtitle = [branch.city || 'Ubicación pendiente', branch.is_default ? 'Principal' : (branch.active ? 'Sucursal' : 'Fuera de operación')].join(' · ');
       button.innerHTML = '<strong>' + esc(branch.name) + '</strong><small><i class="clinic-admin-dot" data-ready="' + (branch.active && readiness.ready) + '"></i>' + esc(subtitle) + '</small><span class="clinic-admin-branch-state" data-ready="' + (branch.active && readiness.ready) + '" data-archived="' + (!branch.active) + '">' + (!branch.active ? 'Archivada' : readiness.ready ? 'Lista para agenda' : 'Por completar') + '</span>';
       button.addEventListener('click', function () { state.selectedBranch = branch.id; renderOperations(); });
-      list.append(button);
+      row.append(button);
+      if (state.canClinic) row.insertAdjacentHTML('beforeend', branchActionsMenu(branch, true));
+      bindBranchActionsMenu(row, branch);
+      list.append(row);
+    });
+  }
+
+  function branchActionsMenu(branch, compact) {
+    if (!state.canClinic) return '';
+    var label = compact ? '<span aria-hidden="true">•••</span>' : '<span>Más acciones</span>';
+    var actions = '';
+    if (!branch.active) {
+      actions = '<button type="button" role="menuitem" data-ca-restore-branch><strong>Reactivar sucursal</strong><small>Volver a mostrarla en la operación</small></button>';
+    } else {
+      actions = branch.is_default
+        ? '<button type="button" role="menuitem" aria-disabled="true" data-ca-primary-current><strong>Sucursal principal</strong><small>Esta es la sede principal actual</small></button>'
+        : '<button type="button" role="menuitem" data-ca-default><strong>Hacer sucursal principal</strong><small>Usarla como sede predeterminada</small></button>';
+      actions += branch.is_default
+        ? '<button type="button" role="menuitem" class="is-danger" aria-disabled="true" data-ca-archive-blocked><strong>Archivar sucursal</strong><small>Primero elige otra sucursal principal</small></button>'
+        : '<button type="button" role="menuitem" class="is-danger" data-ca-deactivate-branch><strong>Archivar sucursal</strong><small>Quitar de la operación sin borrar historial</small></button>';
+    }
+    return '<details class="clinic-admin-branch-menu" data-compact="' + compact + '"><summary aria-label="Más acciones de ' + esc(branch.name) + '">' + label + '</summary><div class="clinic-admin-branch-menu-popover" role="menu">' + actions + '</div></details>';
+  }
+
+  function bindBranchActionsMenu(scope, branch) {
+    function close(button) { var menu = button.closest('details'); if (menu) menu.removeAttribute('open'); }
+    scope.querySelectorAll('[data-ca-default]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        close(button);
+        mutate(function () { return query(window.sb.rpc('smyl_set_default_branch', { p_branch_id: branch.id })); }, 'Sucursal principal actualizada.');
+      });
+    });
+    scope.querySelectorAll('[data-ca-deactivate-branch]').forEach(function (button) {
+      button.addEventListener('click', function () { close(button); archiveBranch(branch); });
+    });
+    scope.querySelectorAll('[data-ca-restore-branch]').forEach(function (button) {
+      button.addEventListener('click', function () { close(button); restoreBranch(branch); });
+    });
+    scope.querySelectorAll('[data-ca-primary-current]').forEach(function (button) {
+      button.addEventListener('click', function () { close(button); feedback('Esta ya es la sucursal principal de la clínica.'); });
+    });
+    scope.querySelectorAll('[data-ca-archive-blocked]').forEach(function (button) {
+      button.addEventListener('click', function () { close(button); feedback('Primero establece otra sucursal como principal. Después podrás archivar esta sede.', 'error'); });
     });
   }
 
@@ -337,8 +380,7 @@
             return '<option value="' + zone + '"' + (zone === branch.timezone ? ' selected' : '') + '>' + zone.replace('America/', '') + '</option>';
           }).join('') + '</select></div>' +
       '</div>' +
-      (state.canClinic ? '<div class="clinic-admin-actions">' +
-        (!branch.is_default ? '<button type="button" class="btn btn-secondary" data-ca-default>Hacer principal</button><button type="button" class="btn btn-secondary danger" data-ca-deactivate-branch>Archivar sucursal</button>' : '') +
+      (state.canClinic ? '<div class="clinic-admin-actions clinic-admin-branch-form-actions">' +
         '<button type="submit" class="btn btn-primary">Guardar y continuar</button></div>' : '') +
     '</form>';
   }
@@ -368,13 +410,12 @@
 
   var STEPS = [
     { key: 'datos', label: 'Datos y dirección' },
-    { key: 'espacios', label: 'Espacios' },
-    { key: 'horarios', label: 'Horarios' },
+    { key: 'operacion', label: 'Operación' },
     { key: 'equipo', label: 'Equipo' },
     { key: 'resumen', label: 'Resumen' }
   ];
   function stepDone(readiness, key) {
-    return key === 'datos' ? readiness.address : key === 'espacios' ? readiness.rooms > 0 : key === 'horarios' ? readiness.blocks > 0 : key === 'equipo' ? readiness.team > 0 : readiness.ready;
+    return key === 'datos' ? readiness.address : key === 'operacion' ? readiness.rooms > 0 && readiness.blocks > 0 : key === 'espacios' ? readiness.rooms > 0 : key === 'horarios' ? readiness.blocks > 0 : key === 'equipo' ? readiness.team > 0 : readiness.ready;
   }
   function firstPendingStep(readiness) {
     var found = STEPS.find(function (step) { return step.key !== 'equipo' && step.key !== 'resumen' && !stepDone(readiness, step.key); });
@@ -413,14 +454,14 @@
 
   function summarySection(branch, readiness) {
     var items = [
-      ['datos', 'Datos y dirección', readiness.address ? [branch.address_line, branch.city].filter(Boolean).join(', ') : 'Falta la dirección y la ciudad'],
-      ['espacios', 'Espacios', readiness.rooms ? readiness.rooms + (readiness.rooms === 1 ? ' espacio activo' : ' espacios activos') : 'Agrega al menos un sillón o consultorio'],
-      ['horarios', 'Horarios', readiness.blocks ? readiness.weekdays + (readiness.weekdays === 1 ? ' día' : ' días') + ' con horario' : 'Define cuándo atiende esta sede'],
-      ['equipo', 'Equipo', readiness.team ? readiness.team + (readiness.team === 1 ? ' persona asignada' : ' personas asignadas') : 'Sin personas asignadas todavía (opcional)']
+      ['datos', 'datos', 'Datos y dirección', readiness.address ? [branch.address_line, branch.city].filter(Boolean).join(', ') : 'Falta la dirección y la ciudad'],
+      ['espacios', 'operacion', 'Espacios', readiness.rooms ? readiness.rooms + (readiness.rooms === 1 ? ' espacio activo' : ' espacios activos') : 'Agrega al menos un sillón o consultorio'],
+      ['horarios', 'operacion', 'Horarios', readiness.blocks ? readiness.weekdays + (readiness.weekdays === 1 ? ' día' : ' días') + ' con horario' : 'Define cuándo atiende esta sede'],
+      ['equipo', 'equipo', 'Equipo', readiness.team ? readiness.team + (readiness.team === 1 ? ' persona asignada' : ' personas asignadas') : 'Sin personas asignadas todavía (opcional)']
     ];
     return '<section class="clinic-admin-subsection"><h3>' + (readiness.ready ? 'Esta sucursal está lista para agenda' : 'Falta poco para activar esta sucursal') + '</h3><p>' + (readiness.ready ? 'Ya aparece con disponibilidad en la agenda. Puedes ajustar cualquier paso cuando quieras.' : 'Completa los pasos marcados para que la agenda pueda ofrecer citas aquí.') + '</p><div class="clinic-admin-list">' + items.map(function (item) {
       var done = stepDone(readiness, item[0]);
-      return '<div class="clinic-admin-row"><span class="clinic-admin-check-icon" data-ready="' + done + '">' + (done ? '✓' : '!') + '</span><div class="clinic-admin-row-main"><strong>' + item[1] + '</strong><small>' + esc(item[2]) + '</small></div><button type="button" data-ca-step-go="' + item[0] + '">' + (done ? 'Editar' : 'Completar') + '</button></div>';
+      return '<div class="clinic-admin-row"><span class="clinic-admin-check-icon" data-ready="' + done + '">' + (done ? '✓' : '!') + '</span><div class="clinic-admin-row-main"><strong>' + item[2] + '</strong><small>' + esc(item[3]) + '</small></div><button type="button" data-ca-step-go="' + item[1] + '">' + (done ? 'Editar' : 'Completar') + '</button></div>';
     }).join('') + '</div></section>';
   }
 
@@ -445,10 +486,11 @@
       var done = step.key !== 'resumen' && stepDone(readiness, step.key);
       return '<li><button type="button" data-ca-step-go="' + step.key + '" data-state="' + (step.key === current ? 'current' : done ? 'done' : 'pending') + '"' + (step.key === current ? ' aria-current="step"' : '') + '><b>' + (done && step.key !== current ? '✓' : (i + 1)) + '</b><span>' + step.label + '</span></button></li>';
     }).join('') + '</ol>';
-    var body = current === 'datos' ? branchForm(branch) : current === 'espacios' ? roomSection(branch) : current === 'horarios' ? hoursSection(branch) : current === 'equipo' ? teamSection(branch) : summarySection(branch, readiness);
+    var body = current === 'datos' ? branchForm(branch) : current === 'operacion' ? '<div class="clinic-admin-operation-grid">' + roomSection(branch) + hoursSection(branch) + '</div>' : current === 'equipo' ? teamSection(branch) : summarySection(branch, readiness);
     var nav = '<div class="clinic-admin-step-nav">' + (index > 0 ? '<button type="button" class="btn btn-secondary" data-ca-step-go="' + STEPS[index - 1].key + '">← Atrás</button>' : '<span></span>') +
       (current !== 'datos' && index < STEPS.length - 1 ? '<button type="button" class="btn btn-primary" data-ca-step-go="' + STEPS[index + 1].key + '">' + (current === 'equipo' ? 'Ver resumen →' : 'Continuar →') + '</button>' : '') + '</div>';
-    host.innerHTML = '<article class="clinic-admin-card clinic-admin-wizard"><div class="clinic-admin-section-head clinic-admin-branch-head"><div><span class="pro-eyebrow">SUCURSAL ACTIVA</span><h2>' + esc(branch.name) + '</h2></div><div class="clinic-admin-branch-head-actions"><div class="clinic-admin-badges">' + (branch.is_default ? '<span class="clinic-admin-pill">Sucursal principal</span>' : '') + '<span class="clinic-admin-pill" data-ready="' + readiness.ready + '">' + (readiness.ready ? 'Lista para agenda' : 'Configuración pendiente') + '</span></div>' + (state.canClinic ? '<button type="button" class="btn btn-secondary" data-ca-manage-team>Administrar equipo</button>' : '') + '</div></div>' + steps + '<div class="clinic-admin-step-panel">' + body + '</div>' + nav + '</article>';
+    host.innerHTML = '<article class="clinic-admin-card clinic-admin-wizard"><div class="clinic-admin-section-head clinic-admin-branch-head"><div><span class="pro-eyebrow">SUCURSAL ACTIVA</span><h2>' + esc(branch.name) + '</h2></div><div class="clinic-admin-branch-head-actions"><div class="clinic-admin-badges">' + (branch.is_default ? '<span class="clinic-admin-pill">Sucursal principal</span>' : '') + '<span class="clinic-admin-pill" data-ready="' + readiness.ready + '">' + (readiness.ready ? 'Lista para agenda' : 'Configuración pendiente') + '</span></div>' + (state.canClinic ? '<button type="button" class="btn btn-secondary" data-ca-manage-team>Administrar equipo</button>' + branchActionsMenu(branch, false) : '') + '</div></div>' + steps + '<div class="clinic-admin-step-panel">' + body + '</div>' + nav + '</article>';
+    bindBranchActionsMenu(host, branch);
     host.querySelectorAll('[data-ca-step-go]').forEach(function (button) { button.addEventListener('click', function () { goStep(branch.id, button.dataset.caStepGo); }); });
     host.querySelectorAll('[data-ca-manage-team]').forEach(function (button) { button.addEventListener('click', function () { openBranchTeamDialog(branch); }); });
     host.querySelector('[data-ca-go-team]')?.addEventListener('click', function () { goTab('equipo'); });
@@ -1494,13 +1536,7 @@
           state: String(data.get('state') || '').trim(), postal_code: String(data.get('postal_code') || '').trim(),
           timezone: String(data.get('timezone') || 'America/Mexico_City')
         }).eq('tenant_id', state.tenant).eq('id', branch.id).select('id').single());
-      }, 'Sucursal actualizada.').then(function (ok) { if (ok) { state.branchStep[branch.id] = 'espacios'; renderBranchDetail(); } });
-    });
-    document.querySelector('[data-ca-default]')?.addEventListener('click', function () {
-      mutate(function () { return query(window.sb.rpc('smyl_set_default_branch', { p_branch_id: branch.id })); }, 'Sucursal principal actualizada.');
-    });
-    document.querySelector('[data-ca-deactivate-branch]')?.addEventListener('click', function () {
-      archiveBranch(branch);
+      }, 'Sucursal actualizada.').then(function (ok) { if (ok) { state.branchStep[branch.id] = 'operacion'; renderBranchDetail(); } });
     });
     document.getElementById('clinic-admin-room-form')?.addEventListener('submit', function (event) {
       event.preventDefault(); var form = event.currentTarget; var data = new FormData(form);

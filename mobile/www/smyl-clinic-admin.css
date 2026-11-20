@@ -488,6 +488,8 @@
 .clinic-admin-branch-filters button[aria-pressed="true"]{background:#fff;color:var(--ca-ink);box-shadow:0 1px 4px rgba(11,27,46,.08)}
 .clinic-admin-branch-filters span{display:grid;place-items:center;min-width:21px;height:21px;border-radius:999px;background:#e7edf2;font-size:12px}
 .clinic-admin-branch-list{gap:5px}
+.clinic-admin-branch-row{position:relative;min-width:0}
+.clinic-admin-branch-row>.clinic-admin-branch{padding-right:50px}
 .clinic-admin-branch{position:relative;padding:13px 12px;min-height:78px;border-color:transparent}
 .clinic-admin-branch[aria-current="true"]{border-color:#9fccc5;background:#edf8f5;box-shadow:inset 3px 0 0 #14877b}
 .clinic-admin-branch-state[data-archived="true"]{background:#eef1f4;color:#5a6673}
@@ -497,6 +499,24 @@
 .clinic-admin-branch-head h2{margin:4px 0 0;font-size:24px;line-height:1.2;letter-spacing:-.02em}
 .clinic-admin-branch-head .pro-eyebrow{font-size:12px;color:#08766d}
 .clinic-admin-branch-head-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.clinic-admin-branch-menu{position:relative;flex:none;z-index:6}
+.clinic-admin-branch-menu>summary{display:flex;align-items:center;justify-content:center;min-height:40px;padding:0 13px;border:1px solid var(--ca-border);border-radius:10px;background:#fff;color:var(--ca-ink);font-size:12px;font-weight:750;cursor:pointer;list-style:none;box-sizing:border-box;white-space:nowrap}
+.clinic-admin-branch-menu>summary::-webkit-details-marker{display:none}
+.clinic-admin-branch-menu>summary:hover,.clinic-admin-branch-menu[open]>summary{border-color:#9db8c4;background:#f7fafb}
+.clinic-admin-branch-menu[data-compact="true"]{position:absolute;top:8px;right:8px}
+.clinic-admin-branch-menu[data-compact="true"]>summary{width:36px;min-height:36px;padding:0;border-color:transparent;background:rgba(255,255,255,.82);font-size:13px;letter-spacing:.08em}
+.clinic-admin-branch-menu-popover{position:absolute;top:calc(100% + 7px);right:0;display:grid;width:260px;padding:7px;border:1px solid var(--ca-border);border-radius:13px;background:#fff;box-shadow:0 18px 45px rgba(11,27,46,.18);z-index:20}
+.clinic-admin-branch-menu-popover button{display:grid;gap:2px;width:100%;min-height:52px;padding:9px 10px;border:0;border-radius:9px;background:transparent;text-align:left;color:var(--ca-ink);cursor:pointer;font:inherit}
+.clinic-admin-branch-menu-popover button:hover{background:#f1f6f7}
+.clinic-admin-branch-menu-popover button strong{font-size:13px}
+.clinic-admin-branch-menu-popover button small{font-size:12px;line-height:1.35;color:var(--ca-muted)}
+.clinic-admin-branch-menu-popover button.is-danger strong{color:#a33f35}
+.clinic-admin-branch-menu-popover button[aria-disabled="true"]{background:#f6f7f8;cursor:help}
+.clinic-admin-branch-menu-popover button[aria-disabled="true"] strong{color:#67727d}
+.clinic-admin-branch-menu-popover button[aria-disabled="true"] small{color:#7b858f}
+.clinic-admin-branch-form-actions{position:sticky;bottom:10px;z-index:4;margin:22px -4px -4px;padding:12px;border:1px solid var(--ca-border);border-radius:12px;background:rgba(255,255,255,.96);box-shadow:0 10px 26px rgba(11,27,46,.10);backdrop-filter:blur(8px)}
+.clinic-admin-operation-grid{display:grid;gap:24px}
+.clinic-admin-step-panel .clinic-admin-operation-grid>.clinic-admin-subsection+.clinic-admin-subsection{margin-top:0;padding-top:22px;border-top:1px solid var(--ca-border)}
 .clinic-admin-subsection-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
 .clinic-admin-subsection-head h3{margin:0 0 4px}
 .clinic-admin-subsection-head p{margin:0;color:var(--ca-muted);font-size:13px;line-height:1.5}
@@ -546,7 +566,9 @@
   .clinic-admin-layout{grid-template-columns:minmax(0,1fr)}
   .clinic-admin-sidebar{position:static;gap:10px}
   .clinic-admin-branch-list{display:flex;max-width:100%;overflow:auto;padding-bottom:3px;scroll-snap-type:x proximity}
-  .clinic-admin-branch{min-width:220px;scroll-snap-align:start}
+  .clinic-admin-branch-row{min-width:220px;scroll-snap-align:start}
+  .clinic-admin-branch-row>.clinic-admin-branch{min-width:0}
+  .clinic-admin-branch-row>.clinic-admin-branch-menu{display:none}
   .clinic-admin-steps{flex-wrap:nowrap;overflow:auto;padding-bottom:3px}
   .clinic-admin-steps li{flex:none}
   .clinic-admin-branch-head{display:grid}
@@ -563,6 +585,9 @@
   .clinic-admin-sidebar-head{align-items:center}
   .clinic-admin-add-branch{min-width:0}
   .clinic-admin-branch-head-actions,.clinic-admin-branch-head-actions>.btn{width:100%}
+  .clinic-admin-branch-head-actions>.clinic-admin-branch-menu{width:100%}
+  .clinic-admin-branch-head-actions>.clinic-admin-branch-menu>summary{width:100%}
+  .clinic-admin-branch-menu-popover{left:0;right:0;width:auto}
   .clinic-admin-badges{justify-content:flex-start}
   .clinic-admin-branch-person{padding:12px}
   .clinic-admin-branch-person-actions{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
@@ -572,5 +597,6 @@
   .clinic-admin-assignment-state{grid-column:3;justify-self:start}
   .clinic-admin-dialog .clinic-admin-actions{position:sticky;bottom:-22px;margin:18px -18px -22px;padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--ca-border);background:#fff;z-index:2}
   .clinic-admin-dialog .clinic-admin-actions .btn{flex:1}
+  .clinic-admin-branch-form-actions{bottom:calc(74px + env(safe-area-inset-bottom));margin-inline:0}
   .clinic-admin-archive-summary{display:grid;width:100%}
 }
