@@ -38,6 +38,7 @@
       { title: 'Instagram', desc: 'Mensajes directos y estado de la cuenta.', group: 'Cuentas conectadas', icon: 'channels', action: 'Configurar', route: 'conexiones', target: '[data-connection-tab="instagram"]' },
       { title: 'SMYL Asistente', desc: 'Información, tono y reglas de respuesta.', group: 'Atención automática', icon: 'bot', action: 'Configurar', route: 'conexiones', target: '[data-connection-tab="assistant"]' },
       { title: 'Plantillas de WhatsApp', desc: 'Mensajes aprobados para citas, cobros y seguimiento.', group: 'Atención automática', icon: 'template', action: 'Administrar', route: 'plantillas', check: 'template' },
+      { title: 'Avisos de cita', desc: 'Qué plantilla se envía al confirmar, reprogramar o cancelar una cita.', group: 'Atención automática', icon: 'template', action: 'Configurar', route: 'avisos-cita' },
       { title: 'Automatizaciones', desc: 'Recordatorios, entregas al equipo y reglas.', group: 'Atención automática', icon: 'automation', action: 'Configurar', route: 'conexiones', target: '[data-connection-tab="automations"]' },
       { title: 'Probar al asistente', desc: 'Revisa respuestas antes de activar cambios.', group: 'Atención automática', icon: 'lab', action: 'Probar', route: 'conexiones', target: '[data-connection-tab="lab"]' }
     ] },
