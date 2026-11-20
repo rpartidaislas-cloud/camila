@@ -1,3 +1,11 @@
+## 2026-11-19 — Codex — Opciones fuera de las burbujas y respuesta sobre el compositor
+
+- Solicitud de Ricardo: tres puntos fuera de cada burbuja, referencia del mensaje encima de donde escribe, computadora y celular, con publicación autorizada.
+- `smyl-inbox.js` v81 y `smyl-inbox.css` v69: botón lateral de 44 px con espacio reservado; visible al pasar el cursor o enfocar con teclado, permanente en pantallas táctiles. Menú con Responder, Destacar, Reenviar y acciones existentes según permisos. Cierra al salir, desplazar el historial, cambiar de conversación o pulsar Escape; el sondeo no lo interrumpe. Funciona también en Pipeline.
+- La referencia de respuesta muestra autor y vista breve de texto, ubicación o archivo, sobre el campo de escritura. La X conserva el borrador. Se mantiene el ID del mensaje citado en el envío. Sin cambios de API, permisos, backend ni datos reales.
+- `app.html`, `sw.js`, copias idénticas en `mobile/www/`, registro PWA `chat-message-actions-v1`, fixture y pruebas de versiones actualizados. Launcher móvil intacto.
+- Validación: 132 pruebas distintas aprobadas (114 de regresión, incluidas 3 recorridas luego con Chromium, y 18 de navegador), 9 controles de release, sintaxis y diff limpios. Revisión visual con la cascada completa de la app a 1440, 834 y 390 px, mensajes de texto/ubicación/imagen/documento, teclado, borrador, cancelación y respuesta simulada con ID correcto. Los recorridos usan datos ficticios, imágenes locales y envío interceptado en memoria.
+
 ## 2026-11-19 — Codex — Modalidad de compras por tenant y solicitudes al centro
 - **Solicitud explícita de Ricardo:** el administrador elige la modalidad; sucursales solicitan al centro o compran al proveedor según lo habilitado. Continúa la publicación autorizada de inventario de PR #214.
 - **Pantalla:** `smyl-inventory-routing.js` v1, procurement v2, inventario v22/CSS v15; acceso desde Configuración → Clínica → Modalidad de compras (`smyl-settings-hub.js` v12). Sin selector de modalidad en cada compra. Configuración, solicitudes internas, revisión, consolidación de aprobadas, entrega física y confirmación. Web/caché/copias móviles sincronizadas; no se modifica el launcher móvil.

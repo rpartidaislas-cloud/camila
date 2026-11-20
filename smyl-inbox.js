@@ -8,6 +8,8 @@
   var inboxScriptUrl = document.currentScript && document.currentScript.src;
   var emojiCatalogPromise;
   var recentEmoji = [];
+  var messageMenu = null;
+  var messageMenuSequence = 0;
 
   var CONTEXT_DOCK_STORAGE_KEY = 'smyl_inbox_context_docked';
   function initialDockedContextPreference() {
@@ -57,6 +59,7 @@
   var threadNewCount = 0, threadPaintDeferred = false;
   var mediaSession = null;
   function closeChatMedia() {
+    closeMessageMenu(false);
     if (!mediaSession) return;
     mediaSession.abort();
     mediaSession = null;
@@ -1199,6 +1202,7 @@
   }
 
   function closePipelineChat(restoreFocus) {
+    closeMessageMenu(false);
     var id = state.pipelineChatId;
     if (!id) return;
     closeChatMedia();
@@ -1218,6 +1222,7 @@
   }
 
   function setInboxView(view) {
+    closeMessageMenu(false);
     var nextView = view === 'pipeline' ? 'pipeline' : 'list';
     var page = document.getElementById('p-inbox');
     if (state.view !== nextView) {
@@ -1299,16 +1304,111 @@
     var value = state.attachment || state.replyTo;
     box.hidden = !value;
     if (!value) return;
-    var copy = node('div', '');
-    copy.append(node('strong', '', state.attachment ? 'Adjunto listo' : 'Respondiendo a un mensaje'));
-    copy.append(node('span', '', state.attachment ? (state.attachment.name + ' · ' + Math.max(1, Math.round(state.attachment.size / 1024)) + ' KB') : (state.replyTo.content || 'Adjunto').slice(0, 120)));
+    box.setAttribute('role', 'status');
+    box.setAttribute('aria-live', 'polite');
+    box.dataset.kind = state.attachment ? 'attachment' : 'reply';
+    var copy = node('div', 'smyl-inbox-compose-context-copy');
+    var sender = state.replyTo && (state.replyTo.author_type === 'patient' || state.replyTo.role === 'user')
+      ? (selectedConversation()?.contact_name || 'Paciente') : state.replyTo?.author_type === 'team' ? 'Equipo de la clínica' : 'SMYL Asistente';
+    copy.append(node('strong', '', state.attachment ? 'Adjunto listo' : 'Respondiendo a ' + sender));
+    copy.append(node('span', '', state.attachment ? (state.attachment.name + ' · ' + Math.max(1, Math.round(state.attachment.size / 1024)) + ' KB') : replyPreview(state.replyTo)));
     if (state.attachment && attachmentKind(state.attachment) === 'audio') {
       var preview = document.createElement('audio'); preview.controls = true; preview.preload = 'metadata';
       preview.src = URL.createObjectURL(state.attachment); preview.onloadedmetadata = function () { URL.revokeObjectURL(preview.src); };
       copy.append(preview);
     }
-    var clear = node('button', '', 'Quitar'); clear.type = 'button'; clear.onclick = function () { state.attachment = null; state.replyTo = null; var input = document.querySelector('[data-compose-file]'); if (input) input.value = ''; renderComposerContext(); };
+    var clear = node('button', 'smyl-inbox-compose-context-clear', '×'); clear.type = 'button';
+    clear.setAttribute('aria-label', state.attachment ? 'Quitar adjunto' : 'Cancelar respuesta');
+    clear.title = clear.getAttribute('aria-label');
+    clear.onclick = function () { state.attachment = null; state.replyTo = null; var input = document.querySelector('[data-compose-file]'); if (input) input.value = ''; renderComposerContext(); document.querySelector('#smyl-inbox-message')?.focus({preventScroll:true}); };
     box.append(copy, clear);
+  }
+
+  function replyPreview(item) {
+    if (!item) return '';
+    if (chatLocation(item)) return 'Ubicación compartida';
+    var content = String(item.content || '').trim();
+    var kind = {image:'Fotografía', audio:'Audio', document:'Documento', video:'Video', location:'Ubicación'}[item.media_type];
+    return (kind ? kind + (item.media_filename ? ' · ' + item.media_filename : content ? ' · ' + content : '') : content || 'Mensaje').slice(0, 180);
+  }
+
+  function closeMessageMenu(restoreFocus) {
+    var open = messageMenu; if (!open) return;
+    messageMenu = null; state.actionsOpenId = null;
+    document.removeEventListener('pointerdown', outsideMessageMenu, true);
+    document.removeEventListener('focusin', outsideMessageMenu, true);
+    window.removeEventListener('scroll', scrollMessageMenu, true);
+    window.removeEventListener('resize', dismissMessageMenu);
+    window.visualViewport?.removeEventListener('resize', dismissMessageMenu);
+    open.menu.remove(); open.row.classList.remove('show-actions');
+    open.button.setAttribute('aria-expanded', 'false');
+    if (restoreFocus && open.button.isConnected) open.button.focus({preventScroll:true});
+  }
+
+  function outsideMessageMenu(event) {
+    if (messageMenu && !messageMenu.menu.contains(event.target) && !messageMenu.button.contains(event.target)) closeMessageMenu(false);
+  }
+  function dismissMessageMenu() { closeMessageMenu(false); }
+  function scrollMessageMenu(event) {
+    if (messageMenu && !messageMenu.menu.contains(event.target)) closeMessageMenu(false);
+  }
+
+  function openMessageMenu(button, menu, row, item) {
+    var wasOpen = messageMenu?.button === button;
+    closeMessageMenu(false); if (wasOpen) return;
+    closeComposerTools(false); closeBranchMenu(false);
+    messageMenu = {button:button, menu:menu, row:row}; state.actionsOpenId = String(item.id);
+    row.classList.add('show-actions'); button.setAttribute('aria-expanded', 'true');
+    document.body.append(menu);
+    // The top layer avoids clipping by the scrolling history and the Pipeline pane.
+    if (typeof menu.showPopover === 'function') { menu.setAttribute('popover', 'manual'); menu.showPopover(); }
+    var anchor = button.getBoundingClientRect(), bounds = row.closest('[data-thread-body]').getBoundingClientRect();
+    var width = menu.offsetWidth, height = menu.offsetHeight, inset = 8;
+    var leftEdge = Math.max(inset, bounds.left + inset), rightEdge = Math.min(innerWidth - inset, bounds.right - inset);
+    var incoming = row.classList.contains('is-patient'), left = incoming ? anchor.right + 4 : anchor.left - width - 4;
+    var sideFits = left >= leftEdge && left + width <= rightEdge;
+    if (!sideFits) left = Math.max(leftEdge, Math.min(incoming ? anchor.left : anchor.right - width, rightEdge - width));
+    var top = sideFits ? anchor.top : anchor.bottom + 4;
+    var floor = Math.min(innerHeight - inset, bounds.bottom - inset), ceiling = Math.max(inset, bounds.top + inset);
+    if (top + height > floor) top = (sideFits ? anchor.bottom : anchor.top - 4) - height;
+    menu.style.left = Math.max(inset, Math.min(left, innerWidth - width - inset)) + 'px';
+    menu.style.top = Math.max(ceiling, Math.min(top, floor - height)) + 'px';
+    menu.style.maxHeight = Math.max(44, floor - ceiling) + 'px';
+    menuItems(menu)[0]?.focus({preventScroll:true});
+    document.addEventListener('pointerdown', outsideMessageMenu, true);
+    document.addEventListener('focusin', outsideMessageMenu, true);
+    window.addEventListener('scroll', scrollMessageMenu, {capture:true, passive:true});
+    window.addEventListener('resize', dismissMessageMenu);
+    window.visualViewport?.addEventListener('resize', dismissMessageMenu);
+  }
+
+  function messageActions(item, row) {
+    var menu = node('div', 'smyl-inbox-message-menu');
+    menu.id = 'smyl-message-menu-' + (++messageMenuSequence);
+    menu.setAttribute('role', 'menu'); menu.setAttribute('aria-label', 'Opciones del mensaje');
+    function action(label, run, className) {
+      var control = node('button', className || '', label); control.type = 'button';
+      control.setAttribute('role', 'menuitem'); control.tabIndex = -1;
+      control.onclick = function () { closeMessageMenu(true); run(); }; menu.append(control);
+    }
+    if (hasPermission('messages.respond')) {
+      action('Responder', function () { state.replyTo = item; state.attachment = null; renderComposerContext(); document.querySelector('#smyl-inbox-message')?.focus(); }, 'is-primary');
+      action(item.starred ? 'Quitar estrella' : 'Destacar', function () { mutateMessage(item, item.starred ? 'unstar' : 'star'); });
+      action('Reenviar', function () { openForward(item); });
+    }
+    if (item.media_type === 'image' && hasPermission('clinical.write')) action('Enviar a revisión clínica', function () { linkClinicalImage(item); }, 'is-clinical');
+    if (item.author_type === 'assistant' && hasPermission('messages.respond')) action('Evaluar IA', function () { openFeedback(item); }, 'is-copilot');
+    if (hasPermission('messages.manage')) action('Eliminar', function () { mutateMessage(item, 'delete'); }, 'is-danger');
+    if (!menu.childNodes.length) return null;
+    var rail = node('div', 'smyl-inbox-message-actions');
+    var button = node('button', 'smyl-inbox-message-more'); button.type = 'button';
+    button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>';
+    button.setAttribute('aria-label', 'Opciones del mensaje'); button.title = 'Opciones del mensaje';
+    button.setAttribute('aria-haspopup', 'menu'); button.setAttribute('aria-controls', menu.id); button.setAttribute('aria-expanded', 'false');
+    button.onclick = function () { openMessageMenu(button, menu, row, item); };
+    button.onkeydown = function (event) { if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); openMessageMenu(button, menu, row, item); if (event.key === 'ArrowUp') menuItems(menu).at(-1)?.focus(); } };
+    menu.onkeydown = function (event) { if (event.key === 'Tab') { closeMessageMenu(true); return; } menuKeydown(event, menu, closeMessageMenu); };
+    rail.append(button); return rail;
   }
 
   function renderCopilotDraft() {
@@ -1700,6 +1800,8 @@
   function renderMessages(keepPosition) {
     var wrap = document.querySelector('[data-thread-messages]'); var older = document.querySelector('[data-thread-older]');
     if (!wrap || !state.selectedId) return;
+    var menuFocusId = messageMenu && (messageMenu.menu.contains(document.activeElement) || messageMenu.button === document.activeElement) ? state.actionsOpenId : null;
+    closeMessageMenu(false);
     var body = document.querySelector('[data-thread-body]'); var oldHeight = body.scrollHeight, priorTop = body.scrollTop;
     threadPaintDeferred = false;
     var server = state.messages[state.selectedId] || []; var pending = (state.pending[state.selectedId] || []).filter(function (item) { return !item.reconciled; });
@@ -1723,6 +1825,7 @@
       var date = new Date(item.created_at || Date.now()); var day = dayLabel(date);
       if (day !== lastDay) { wrap.append(node('div', 'smyl-inbox-day', day)); lastDay = day; }
       var row = node('div', 'smyl-inbox-message is-' + (item.author_type || (item.role === 'user' ? 'patient' : 'assistant')) + (item.status === 'failed' || item.status === 'unknown' ? ' has-error' : ''));
+      row.dataset.messageId = String(item.id);
       var bubble = node('div', 'smyl-inbox-bubble'); var author = item.author_type === 'patient' ? 'Paciente' : item.author_type === 'team' ? 'Equipo de la clínica' : 'SMYL Asistente';
       // El lado y el color ya dicen quién escribió; solo se rotula a SMYL Asistente (y se deja el nombre para lectores de pantalla).
       if (item.author_type === 'patient' || item.author_type === 'team') bubble.append(node('span', 'smyl-inbox-sr', author + ': '));
@@ -1737,34 +1840,14 @@
       if (item.status === 'failed') { var retryPendingButton = node('button', '', 'Reintentar'); retryPendingButton.type = 'button'; retryPendingButton.onclick = function () { retryPending(item); }; bubble.append(retryPendingButton); }
       else if (item.status === 'unknown') { var refresh = node('button', '', 'Actualizar hilo'); refresh.type = 'button'; refresh.onclick = function () { loadThread(state.selectedId, false); }; bubble.append(refresh); }
       else if (!item.id.toString().startsWith('pending:') && !item.deleted) {
-        var actions = node('div', 'smyl-inbox-message-actions');
-        var secondaryActions = node('div', 'smyl-inbox-message-secondary'); secondaryActions.hidden = true;
-        if (hasPermission('messages.respond')) {
-          var reply = node('button', 'is-primary', 'Responder'); reply.type = 'button'; reply.onclick = function () { state.replyTo = item; state.attachment = null; renderComposerContext(); document.querySelector('[name="message"]').focus(); }; actions.append(reply);
-          [[item.starred ? 'Quitar estrella' : 'Destacar', function () { mutateMessage(item, item.starred ? 'unstar' : 'star'); }], ['Reenviar', function () { openForward(item); }]].forEach(function (action) { var button = node('button', '', action[0]); button.type = 'button'; button.onclick = action[1]; secondaryActions.append(button); });
-        }
-        if (hasPermission('messages.manage')) { var remove = node('button', '', 'Eliminar'); remove.type = 'button'; remove.onclick = function () { mutateMessage(item, 'delete'); }; secondaryActions.append(remove); }
-        if (item.media_type === 'image' && hasPermission('clinical.write')) { var clinical = node('button', 'is-clinical', 'Enviar a revisión clínica'); clinical.type = 'button'; clinical.onclick = function () { linkClinicalImage(item); }; secondaryActions.append(clinical); }
-        if (item.author_type === 'assistant' && hasPermission('messages.respond')) { var feedback = node('button', 'is-copilot', 'Evaluar IA'); feedback.type = 'button'; feedback.onclick = function () { openFeedback(item); }; secondaryActions.append(feedback); }
-        if (secondaryActions.childNodes.length) {
-          var moreActions = node('button', 'smyl-inbox-message-more', 'Más'); moreActions.type = 'button'; moreActions.setAttribute('aria-expanded', 'false');
-          moreActions.onclick = function () { var open = secondaryActions.hidden; secondaryActions.hidden = !open; moreActions.setAttribute('aria-expanded', open ? 'true' : 'false'); };
-          actions.append(moreActions, secondaryActions);
-        }
-        if (actions.childNodes.length) bubble.append(actions);
+        var actions = messageActions(item, row);
+        if (actions) { row.classList.add('has-message-actions'); row.append(actions); }
       }
-      if (String(item.id) === state.actionsOpenId) row.classList.add('show-actions');
-      bubble.addEventListener('click', function (event) {
-        if (!window.matchMedia('(max-width:760px)').matches || event.target.closest('button,a,input,textarea,select')) return;
-        var open = row.classList.contains('show-actions');
-        wrap.querySelectorAll('.smyl-inbox-message.show-actions').forEach(function (other) { other.classList.remove('show-actions'); });
-        state.actionsOpenId = open ? null : String(item.id);
-        if (!open) row.classList.add('show-actions');
-      });
       row.append(bubble); wrap.append(row);
     });
     var page = state.pages[state.selectedId] || {}; if (older) { older.hidden = !page.hasMore; older.disabled = state.loadingThread; }
     if (keepPosition) body.scrollTop = priorTop + body.scrollHeight - oldHeight;
+    if (menuFocusId) Array.from(wrap.querySelectorAll('[data-message-id]')).find(function (row) { return row.dataset.messageId === menuFocusId; })?.querySelector('.smyl-inbox-message-more')?.focus({preventScroll:true});
 
     var finishAccessibleRender = function () {
       if (!wrap.isConnected || wrap.dataset.renderSequence !== renderSequence) return;
@@ -4669,7 +4752,7 @@
     if (!content) return;
     var key = uuid();
     var reply = state.replyTo;
-    var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: content, reply_to: reply ? { id: reply.id, preview: reply.content || 'Adjunto', type: reply.media_type || 'text' } : null, created_at: new Date().toISOString(), status: 'sending' };
+    var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: content, reply_to: reply ? { id: reply.id, preview: replyPreview(reply), type: reply.media_type || 'text' } : null, created_at: new Date().toISOString(), status: 'sending' };
     state.pending[conversation.id] = (state.pending[conversation.id] || []).concat(pending);
     input.value = ''; clearEncryptedDraft(conversation.id); state.replyTo = null; renderComposerContext(); renderMessages(false); requestAnimationFrame(scrollThreadBottom);
     submitMessage(content, key, pending, reply ? { reply_to_message_id: reply.id } : null);
@@ -4748,6 +4831,7 @@
 
   function inboxInteractionProtected() {
     var page = document.getElementById('p-inbox'); if (!page) return false;
+    if (messageMenu) return true;
     if (document.querySelector('[data-smyl-media-dialog][open]')) return true;
     if (page.querySelector('dialog[open]')) return true;
     if (state.contextOpen || state.filterPanelOpen) return true;
