@@ -1,32 +1,60 @@
-/* SMYL · Inicio: lista «Configura tu clínica» */
-.clinic-setup{border:1px solid var(--smyl-border,#d7e0e8);border-radius:12px;background:#fff;color:var(--smyl-ink,#102239);overflow:hidden}
-.clinic-setup-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,220px) auto auto;align-items:center;gap:16px;padding:14px 20px}
-.clinic-setup-eyebrow{display:block;margin:0 0 2px;color:var(--smyl-primary,#194391);font-size:12px;font-weight:600;line-height:16px;letter-spacing:.8px;text-transform:uppercase}
-.clinic-setup-head h2{margin:0;font-size:15px;font-weight:600;line-height:20px}
-.clinic-setup-head p{margin:2px 0 0;color:var(--smyl-text-muted,#667586);font-size:12px;line-height:16px}
-.clinic-setup-bar{height:6px;border-radius:999px;background:#e6ecf2;overflow:hidden}
-.clinic-setup-bar i{display:block;height:100%;border-radius:inherit;background:var(--smyl-accent,#0f766e);transition:width .3s ease}
-.clinic-setup-toggle{padding:0;border:0;background:transparent;color:var(--smyl-primary,#194391);font:600 12px/16px Inter,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
-.clinic-setup-toggle:hover{text-decoration:underline}
-.clinic-setup-dismiss{color:var(--smyl-text-muted,#667586)}
-.clinic-setup-steps{display:grid;margin:0;padding:0;border-top:1px solid #e8edf2;list-style:none}
-.clinic-setup-steps[hidden]{display:none}
-.clinic-setup-step{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:12px;padding:11px 20px;border-top:1px solid #eef2f6}
-.clinic-setup-step:first-child{border-top:0}
-.clinic-setup-step[data-next="true"]{background:var(--smyl-primary-subtle,#edf3fc)}
-.clinic-setup-mark{display:grid;place-items:center;width:20px;height:20px;border:1.5px solid #b7c4d1;border-radius:50%;color:#fff;font-size:11px;font-weight:700;line-height:1}
-.clinic-setup-step[data-done="true"] .clinic-setup-mark{border-color:var(--smyl-success,#087a55);background:var(--smyl-success,#087a55)}
-.clinic-setup-step[data-done="true"] strong{color:var(--smyl-text-muted,#667586);font-weight:500;text-decoration:line-through}
-.clinic-setup-text{display:grid;gap:1px;min-width:0}
-.clinic-setup-text strong{color:var(--smyl-ink,#102239);font-size:13px;font-weight:600;line-height:18px}
-.clinic-setup-text small{color:var(--smyl-text-muted,#667586);font-size:12px;line-height:17px}
-.clinic-setup-action{min-height:30px;padding:0 12px;border:1px solid var(--smyl-border,#d7e0e8);border-radius:8px;background:#fff;color:var(--smyl-primary,#194391);font:600 12px/16px Inter,system-ui,sans-serif;white-space:nowrap;cursor:pointer}
-.clinic-setup-action:hover{background:var(--smyl-primary-subtle,#edf3fc)}
-.clinic-setup-step[data-next="true"] .clinic-setup-action{border-color:var(--smyl-primary,#194391);background:var(--smyl-primary,#194391);color:#fff}
-@media(max-width:700px){
-  .clinic-setup-head{grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;padding:14px 16px}
-  .clinic-setup-copy{order:1}.clinic-setup-dismiss{order:2;align-self:start}.clinic-setup-bar{grid-column:1/-1;order:3}.clinic-setup-toggle:not(.clinic-setup-dismiss){grid-column:1/-1;order:4;justify-self:start}
-  .clinic-setup-step{grid-template-columns:22px minmax(0,1fr);padding:12px 16px}
-  .clinic-setup-action{grid-column:2;justify-self:start;min-height:40px}
+/* Configuración inicial, al final del Inicio. */
+.clinic-setup {
+  color: var(--smyl-ink, #102239);
+  background: var(--smyl-surface, #fff);
+  border: 1px solid var(--smyl-border, #d7e0e8);
+  border-radius: 12px;
+  overflow: hidden;
 }
-.clinic-setup-step[hidden]{display:none}
+#smyl-clinic-setup .clinic-setup-head { margin: 0; }
+#smyl-clinic-setup .clinic-setup-toggle {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 2px 12px;
+  width: 100%; min-height: 48px; margin: 0; padding: 10px 18px;
+  text-align: start; border: 0; border-radius: 0; background: transparent;
+  color: var(--smyl-ink, #102239); cursor: pointer; font: inherit;
+}
+#smyl-clinic-setup .clinic-setup-toggle:hover { background: var(--smyl-surface-subtle, #f6f8fa); }
+.clinic-setup-title { font: 600 14px/20px var(--smyl-font, system-ui, sans-serif); }
+.clinic-setup-progress { font: 400 13px/18px var(--smyl-font, system-ui, sans-serif); color: #506474; }
+.clinic-setup-chevron {
+  width: 8px; height: 8px; flex: none; margin-inline-start: auto; margin-inline-end: 2px;
+  border: solid #526674; border-width: 0 1.6px 1.6px 0; transform: translateY(-2px) rotate(45deg);
+}
+.clinic-setup-toggle[aria-expanded="true"] .clinic-setup-chevron { transform: translateY(2px) rotate(225deg); }
+#smyl-clinic-setup [hidden] { display: none; }
+#smyl-clinic-setup button:focus-visible { outline: 2px solid var(--smyl-focus, #2563eb); outline-offset: -3px; }
+.clinic-setup-details { border-top: 1px solid var(--smyl-border, #d7e0e8); }
+.clinic-setup-steps { list-style: none; margin: 0; padding: 0; }
+.clinic-setup-step {
+  display: grid; grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center; gap: 4px 12px; padding: 10px 18px;
+}
+.clinic-setup-step + .clinic-setup-step { border-top: 1px solid #e8edf1; }
+.clinic-setup-mark {
+  width: 17px; height: 17px; display: grid; place-items: center; box-sizing: border-box;
+  border: 1.5px solid #a5b3bc; border-radius: 50%; font: 700 12px/1 system-ui, sans-serif;
+}
+.clinic-setup-step[data-done="true"] .clinic-setup-mark { background: #e6f4ef; border-color: #aed4c7; color: #176c55; }
+.clinic-setup-text { display: grid; gap: 2px; min-width: 0; }
+.clinic-setup-text strong { color: var(--smyl-ink, #102239); font-size: 14px; font-weight: 600; line-height: 20px; }
+.clinic-setup-step[data-done="true"] strong { color: #526675; font-weight: 400; }
+.clinic-setup-text small { color: #526675; font-size: 13px; line-height: 18px; }
+#smyl-clinic-setup .clinic-setup-action, #smyl-clinic-setup .clinic-setup-dismiss {
+  min-height: 36px; padding: 5px 10px; border-radius: 7px; cursor: pointer;
+  font: 600 13px/18px var(--smyl-font, system-ui, sans-serif);
+}
+.clinic-setup-action { background: #fff; border: 1px solid #c8d6dc; color: #254450; }
+.clinic-setup-step[data-next="true"] .clinic-setup-action { color: #075c56; border-color: #aad2ca; background: #eef7f4; }
+.clinic-setup-action:hover { border-color: #4a8983; }
+.clinic-setup-foot { display: flex; justify-content: flex-end; padding: 2px 12px; border-top: 1px solid #e8edf1; }
+.clinic-setup-dismiss { color: #465e6d; background: transparent; border: 0; }
+.clinic-setup-dismiss:hover { text-decoration: underline; }
+@media (pointer: coarse), (max-width: 700px) {
+  #smyl-clinic-setup .clinic-setup-action, #smyl-clinic-setup .clinic-setup-dismiss { min-height: 44px; }
+}
+@media (max-width: 540px) {
+  #smyl-clinic-setup .clinic-setup-toggle { gap: 2px 8px; padding: 8px 12px; }
+  .clinic-setup-progress { font-size: 12px; }
+  .clinic-setup-step { grid-template-columns: 18px minmax(0, 1fr); gap: 5px 9px; padding: 9px 12px; }
+  .clinic-setup-action { grid-column: 2; justify-self: start; }
+}

@@ -8,6 +8,13 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-19 — Inicio de la clínica
+
+- La jornada, las áreas que requieren atención, los mensajes y el resumen mensual comparten una cuadrícula que responde al ancho disponible. En celular conservan ese orden en una columna. La acción principal es «Nueva cita». «Ver agenda» y «Solo mis citas» están en la jornada.
+- Cada área de atención muestra el motivo y una acción. El indicador cuenta áreas distintas. Si falta información de agenda y alertas, Inicio informa que los pendientes siguen sin actualizar. Los indicadores mensuales distinguen un saldo o conteo de cero de un dato no disponible.
+- La guía de configuración se abre desde una fila al final de Inicio. Mantiene los pasos, los permisos y la opción de ocultarla por hoy.
+- Recursos de web y móvil sincronizados en `smyl-daily-home.js` v20, `smyl-dashboard-v2.css` v2 y `smyl-clinic-setup` JS v7 / CSS v5. La caché del PWA usa `dashboard-operativo-v3`. El recorrido de navegador de Inicio cubre escritorio, tableta y celular con datos de prueba.
+
 ## 2026-11-19 — Tipografía del chat y nota privada de relevo
 
 - La tarjeta de Conversaciones muestra el estado editable con su flecha y conserva su nombre accesible. Cambiarlo utiliza los permisos y el flujo del Pipeline.

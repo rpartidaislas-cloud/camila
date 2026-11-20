@@ -24,25 +24,26 @@ test('solo la ve el propietario, se oculta al completarse y un fallo no cuenta c
   assert.match(script, /!isOwner\(\) \|\| !results \|\| !pending\.length/);
   assert.match(script, /\{ unknown: true \}/);
   assert.match(script, /No pudimos verificarlo ahora/);
-  assert.match(script, /Meta la está revisando/);
+  assert.match(script, /Meta está revisando tu solicitud/);
 });
 
-test('el plegado se recuerda por clínica con almacenamiento tolerante a fallos y empieza plegada y muestra el siguiente paso', () => {
+test('el plegado se recuerda por clínica y el resumen ocupa una sola fila antes de desplegar los pasos', () => {
   assert.match(script, /smyl_clinic_setup_collapsed_/);
-  assert.match(script, /smyl_clinic_setup_height/);
   assert.equal((script.match(/try \{/g) || []).length >= 2, true);
-  assert.match(script, /item\.hidden = state\.collapsed && step\.id !== firstPending/);
+  assert.match(script, /querySelector\('\.clinic-setup-details'\)\.hidden = state\.collapsed/);
+  assert.match(script, /host\.append\(section\)/);
+  assert.doesNotMatch(script, /smyl_clinic_setup_height/);
 });
 
 test('no muestra el nombre del motor de mensajería y el CSS cubre celular', () => {
   assert.doesNotMatch(script, /\bLANA\b|\bLana\b/);
-  assert.match(styles, /@media\(max-width:700px\)/);
-  assert.match(styles, /min-height:40px/);
+  assert.match(styles, /\(max-width: 540px\)/);
+  assert.match(styles, /min-height: 44px/);
 });
 
 test('web, móvil y PWA publican el módulo', () => {
-  assert.match(app, /<link rel="stylesheet" href="smyl-clinic-setup\.css\?v=4">\s*<script defer src="smyl-clinic-setup\.js\?v=6"><\/script>/);
+  assert.match(app, /<link rel="stylesheet" href="smyl-clinic-setup\.css\?v=5">\s*<script defer src="smyl-clinic-setup\.js\?v=7"><\/script>/);
   assert.ok(app.indexOf('smyl-clinic-setup.js') > app.indexOf('smyl-daily-home.js'), 'carga después del Inicio');
-  assert.ok(worker.includes("'/camila/smyl-clinic-setup.js?v=6'") && worker.includes("'/camila/smyl-clinic-setup.css?v=4'"));
+  assert.ok(worker.includes("'/camila/smyl-clinic-setup.js?v=7'") && worker.includes("'/camila/smyl-clinic-setup.css?v=5'"));
   for (const file of ['smyl-clinic-setup.js', 'smyl-clinic-setup.css', 'app.html', 'sw.js']) assert.equal(read('../mobile/www/' + file), read('../' + file), file);
 });
