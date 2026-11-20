@@ -1345,3 +1345,6 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
 .fiscal-capture-chat-empty{margin:0;font-size:13px;color:#5b6f6d}
 @media(max-width:600px){.fiscal-capture-sources{justify-content:stretch}.fiscal-capture-sources>*{flex:1 1 auto;text-align:center}}
 .fiscal-capture [hidden]{display:none!important}
+
+/* Aviso fijo cuando la carga llegó al tope */
+.finance-truncation{margin:0 0 14px;padding:12px 14px;border:1px solid #e3b4ab;border-radius:12px;background:#fdf0ed;color:#7a2d22;font-size:14px;line-height:1.5;font-weight:600}
