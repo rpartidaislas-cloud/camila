@@ -11696,3 +11696,6 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 
 ## 2026-11-20 — Claude — Especificación LANA: aviso al profesional
 - `docs/LANA_AVISO_A_PROFESIONALES.md`: propuesta para quien mantiene LANA (endpoint `POST /inbox/whatsapp/template-to-phone`, plantilla `cita_agendada_profesional_v1`, decisiones pendientes). SMYL no implementó nada del envío todavía; solo documentación.
+
+## 2026-11-20 — Claude — Diagnóstico SQL de la confirmación de citas
+- `docs/pruebas/confirmacion-de-cita-diagnostico.sql` (solo lectura) + nota en `docs/pruebas/README.md`: sirve para la prueba de punta a punta en producción sin tocar datos. Sin cambios de app ni de base.
