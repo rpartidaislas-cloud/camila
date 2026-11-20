@@ -24,8 +24,9 @@ test('la cabecera prioriza identidad y elimina controles duplicados', () => {
   assert.match(buildProjection, /p360-title p360-title-clean/);
   assert.match(buildProjection, /p360-eyebrow/);
   assert.doesNotMatch(buildProjection, /p360-title-tools|data-p360-assistant-head|p360-secure/);
-  // Contacto faltante se corrige desde el encabezado; ya no hay pestaña de facturación oculta.
-  assert.match(script, /\+ Agregar teléfono o correo/);
+  // El contacto se captura y corrige en «Datos del paciente»; el encabezado no lo repite y ya no hay pestaña de facturación oculta.
+  assert.doesNotMatch(buildProjection, /p360-contact-line/);
+  assert.match(script, /function contactRow\(label,value\)/);
   assert.doesNotMatch(script, /var billingTab=/);
 });
 
