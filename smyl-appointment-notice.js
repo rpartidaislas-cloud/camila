@@ -184,14 +184,36 @@
       var offerable = rows.some(function (row) { return row.state === 'ready'; });
       var actionable = rows.some(function (row) { return row.action; });
       if (!offerable && !rows.some(function (row) { return row.state === 'auto'; })) {
-        // Sin nada que enviar: solo se molesta una vez por sesión, y únicamente si hay algo que configurar.
-        var hintKey = 'smyl-notice-hint';
-        var shown = false; try { shown = win.sessionStorage.getItem(hintKey) === '1'; } catch (_) {}
-        if (!actionable || shown) return false;
-        try { win.sessionStorage.setItem(hintKey, '1'); } catch (_) {}
+        // Sin nada que enviar no se abre un diálogo: se avisa con un mensaje discreto (y solo si hay algo que configurar).
+        if (actionable) {
+          var settingsRow = rows.filter(function (row) { return row.action && row.action.id === 'settings'; })[0];
+          toast(settingsRow
+            ? 'No se ofreció avisar por WhatsApp: aún no hay una plantilla aprobada por Meta para este aviso.'
+            : 'No se ofreció avisar por WhatsApp: este paciente no tiene un chat de WhatsApp con la clínica.',
+            settingsRow ? { label: 'Configurar avisos', run: function () { if (win.ir) win.ir('avisos-cita'); } } : null);
+        }
+        return false;
       }
       return show(opts, ctx, rows);
-    }, function () { return false; });
+    }, function () {
+      toast('No pudimos consultar tus plantillas de WhatsApp, así que no se ofreció avisar. Puedes avisar desde la ficha de la cita.', null);
+      return false;
+    });
+  }
+
+  // Mensaje discreto (no bloquea). Como mucho uno cada 2 minutos para no estorbar al registrar varias citas seguidas.
+  function toast(message, action) {
+    if (!win || !win.document) return;
+    var stamp = 0; try { stamp = Number(win.sessionStorage.getItem('smyl-notice-toast') || 0); } catch (_) {}
+    if (Date.now() - stamp < 120000) return;
+    try { win.sessionStorage.setItem('smyl-notice-toast', String(Date.now())); } catch (_) {}
+    var old = win.document.getElementById('notice-toast'); if (old) old.remove();
+    var box = el('div', 'notice-toast'); box.id = 'notice-toast'; box.setAttribute('role', 'status');
+    box.append(el('p', '', message));
+    if (action) { var go = el('button', 'btn btn-secondary btn-sm', action.label); go.type = 'button'; go.onclick = function () { box.remove(); action.run(); }; box.append(go); }
+    var close = el('button', 'notice-toast-close', '×'); close.type = 'button'; close.setAttribute('aria-label', 'Cerrar mensaje'); close.onclick = function () { box.remove(); };
+    box.append(close); win.document.body.append(box);
+    setTimeout(function () { if (box.isConnected) box.remove(); }, 12000);
   }
 
   function show(opts, ctx, rows) {

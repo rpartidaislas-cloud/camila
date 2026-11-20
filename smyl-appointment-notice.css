@@ -22,3 +22,8 @@
 .notice-offer-error{margin:0;color:#8f2f25;font-size:13px}
 .notice-offer-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:4px}
 @media (max-width:600px){.notice-offer{margin:auto 0 0;width:100vw;max-width:100vw;border-radius:18px 18px 0 0}.notice-offer-box{padding:18px 16px 16px}.notice-offer-actions .btn{flex:1}}
+.notice-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483000;display:flex;align-items:center;gap:12px;max-width:min(560px,calc(100vw - 24px));padding:12px 40px 12px 16px;border-radius:14px;background:#12233f;color:#fff;box-shadow:0 12px 36px rgba(14,30,52,.35)}
+.notice-toast p{margin:0;font-size:13px;line-height:1.4}
+.notice-toast .btn{flex:none}
+.notice-toast-close{position:absolute;top:6px;right:8px;border:0;background:transparent;color:#cfd9e6;font-size:20px;line-height:1;cursor:pointer;padding:4px 8px}
+@media (max-width:600px){.notice-toast{bottom:16px;flex-wrap:wrap}}
