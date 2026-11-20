@@ -1,3 +1,9 @@
+## 2026-11-19 — Codex — Icono de filtro en Mensajes
+
+- Petición de Ricardo: sustituir el texto Filtros por el icono. El lanzador usa un embudo, área táctil de 44 px, nombre accesible y ayuda al pasar el cursor. Un punto verde y la etiqueta accesible indican filtros activos; abrir/cerrar y filtrar estado/canal conservan su comportamiento.
+- Inbox JS 84 / CSS 71, registro PWA `chat-filter-icon-v1`, caché, fixture y copias móviles sincronizados. Sin cambios de backend ni datos.
+- Validación: 106 pruebas existentes aprobadas, sin omisiones, 9 controles del release y recorrido visual con estilos completos de la app a 1440, 834 y 390 px. Icono sin texto, filtros activos, teclado/Escape, foco y ancho comprobados. Las otras propuestas de iconos se presentan como recomendaciones, sin cambiar esos controles.
+
 ## 2026-11-20 — Claude — Menú propio para el selector de consultorio y los filtros de Agenda
 
 - Solicitud de Ricardo: el desplegable de sucursales (lista nativa de Windows) se veía plano y con letra grande; mejorarlo, junto con los filtros de la Agenda.
