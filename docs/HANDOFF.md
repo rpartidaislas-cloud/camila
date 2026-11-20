@@ -1,3 +1,11 @@
+## 2026-11-19 — Codex — Iconos de atención y marca del canal en el chat
+
+- Solicitud de Ricardo: convertir los cuatro controles marcados en iconos y mostrar el logo junto al nombre de Instagram, WhatsApp o Messenger.
+- En la cabecera amplia, Responsable usa la persona y la IA usa un robot con indicador de actividad/pausa; Agendar cita usa el calendario y Sugerir con MILA conserva sus destellos. Área táctil de 44 px, nombres accesibles y ayudas con responsable/estado actuales. Los menús compactos conservan sus filas descriptivas. Las acciones, permisos y revisión antes de reanudar la IA siguen siendo los mismos.
+- El logo del canal se muestra junto a su nombre bajo el contacto, en lugar de duplicarlo también sobre el avatar de esa cabecera. Reutiliza las marcas SVG existentes y conserva la información de la ventana de WhatsApp.
+- Inbox JS 86 / CSS 73, registro PWA `chat-control-icons-v1`, caché, fixture, referencias y copias móviles sincronizados. Sin backend, datos ni envíos reales.
+- Validación: 125 pruebas existentes aprobadas, sin omisiones; cinco recorridos visuales/funcionales con estilos completos en escritorio/tablet/celular, las tres plataformas y ambos estados de IA. Se abrieron responsable, revisión de reactivación y agenda; MILA respondió desde un simulador local y conservó el borrador. Nueve controles de release aprobados.
+
 ## 2026-11-19 — Codex — Icono de filtro en Mensajes
 
 - Petición de Ricardo: sustituir el texto Filtros por el icono. El lanzador usa un embudo, área táctil de 44 px, nombre accesible y ayuda al pasar el cursor. Un punto verde y la etiqueta accesible indican filtros activos; abrir/cerrar y filtrar estado/canal conservan su comportamiento.

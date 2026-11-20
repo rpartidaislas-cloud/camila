@@ -42,6 +42,8 @@ async function loadAppStyles(page) {
       document.head.append(copy);
     }
     await Promise.all(loads);
+    // Let layout observers settle after replacing the fixture styles with the app cascade.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   }, { html: shellHead, base: shell.href });
 }
 
