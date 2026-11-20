@@ -11916,3 +11916,10 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - Se protegió el texto escrito durante el procesamiento: si el usuario lo cambia antes de recibir la corrección, la propuesta no sobrescribe ese cambio.
 - Se actualizaron los recursos a `smyl-inbox.js?v=87` y `smyl-inbox.css?v=74`, junto con la caché de la PWA.
 - Se agregaron pruebas unitarias y de navegador para inserción de atajos, edición, eliminación, redacción, deshacer y anchura del compositor.
+
+## 2026-11-19 — Codex — Atribución de mensajería LANA y Meta
+
+- El pie global conserva el aviso de propiedad intelectual y añade una segunda línea discreta: **Mensajería con LANA · Proveedor de tecnología de Meta**, acompañada por el isotipo azul de Meta en 18 px.
+- La atribución enlaza a `https://www.get-lana.com`, abre en una pestaña separada y tiene nombre accesible, foco visible y estado de interacción sin presentar a SMYL como certificado o verificado por Meta.
+- La fecha legal visible se actualizó a 2026. Web y `mobile/www` quedan sincronizados con `smyl-ui-template-v3.css?v=9` y caché `lana-meta-attribution-v1`; en pantallas de 760 px o menos el pie continúa oculto para no invadir el espacio operativo.
+- Verificación integrada sobre la producción vigente: `22/22` contratos focalizados aprobados, `git diff --check` sin errores y revisión visual aprobada en 1440, 820 y 390 px. Publicación autorizada el 19 de noviembre de 2026.

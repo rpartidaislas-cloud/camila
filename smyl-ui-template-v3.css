@@ -1030,13 +1030,58 @@ body.smyl-ui-governed #app-copyright {
   right: 14px;
   bottom: 8px;
   z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
   color: var(--smyl-ui-ink-muted);
   font-family: var(--smyl-ui-font);
   font-size: var(--smyl-ui-text-meta);
   font-weight: var(--smyl-ui-weight-regular);
   letter-spacing: .02em;
-  opacity: .78;
   pointer-events: none;
+}
+
+body.smyl-ui-governed #app-copyright .app-copyright-legal {
+  opacity: .72;
+}
+
+body.smyl-ui-governed #app-copyright .app-meta-provider {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 20px;
+  color: var(--smyl-ui-ink-muted);
+  font-weight: var(--smyl-ui-weight-medium);
+  line-height: 1.25;
+  text-decoration: none;
+  opacity: .82;
+  pointer-events: auto;
+  transition: color 150ms ease, opacity 150ms ease;
+}
+
+body.smyl-ui-governed #app-copyright .app-meta-provider:hover {
+  color: #0866ff;
+  opacity: 1;
+}
+
+body.smyl-ui-governed #app-copyright .app-meta-provider:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid #0866ff;
+  outline-offset: 3px;
+  opacity: 1;
+}
+
+body.smyl-ui-governed #app-copyright .app-meta-provider-mark {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  fill: #0866ff;
+}
+
+body.smyl-ui-governed #app-copyright .app-meta-provider-arrow {
+  font-size: 1em;
+  line-height: 1;
 }
 
 @media (max-width: 760px) {
