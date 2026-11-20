@@ -166,6 +166,154 @@ for (const width of [320, 390, 820, 1440]) {
   });
 }
 
+test('El teclado mantiene el final o el mensaje que se estaba leyendo', async t => {
+  if (!browser) return t.skip('Se necesita Chromium.');
+  const page = await openThreadPreview(t, 390, 'focus&mobile-layout&chat-ux');
+  const body = page.locator('[data-thread-body]');
+  const input = page.locator('#smyl-inbox-message');
+  const nearBottom = () => page.waitForFunction(() => {
+    const el = document.querySelector('[data-thread-body]');
+    return el.scrollHeight - el.clientHeight - el.scrollTop <= 2;
+  }, null, {timeout:3000});
+  await input.tap();
+  await body.evaluate(el => { el.scrollTop = el.scrollHeight; });
+  await nearBottom();
+  await page.setViewportSize({width:390, height:510});
+  await page.waitForFunction(() => document.querySelector('[data-inbox-composer]').getBoundingClientRect().bottom <= 511);
+  await nearBottom();
+  await input.fill('Primera línea\nSegunda línea\nTercera línea');
+  await nearBottom();
+  await body.evaluate(el => { el.scrollTop = (el.scrollHeight - el.clientHeight) / 3; });
+  await page.locator('[data-thread-jump]').waitFor();
+  const at = await body.evaluate(el => {
+    const top = el.getBoundingClientRect().top;
+    const first = Array.from(el.querySelectorAll('[data-message-id]')).find(row => row.getBoundingClientRect().bottom > top + 1);
+    return {id:first.dataset.messageId, offset:first.getBoundingClientRect().top - top};
+  });
+  for (const height of [844, 510]) {
+    await page.setViewportSize({width:390, height});
+    await page.waitForFunction(height =>
+      Math.abs(document.querySelector('[data-inbox-composer]').getBoundingClientRect().bottom - height) <= 2, height);
+    const offset = await body.locator('[data-message-id="' + at.id + '"]').evaluate(row =>
+      row.getBoundingClientRect().top - row.closest('[data-thread-body]').getBoundingClientRect().top);
+    assert.ok(Math.abs(offset - at.offset) <= 2, 'El mensaje leído permanece a la misma altura');
+  }
+  // Algunos teclados reducen la ventana visual y dejan intacta la altura de la página.
+  await body.evaluate(el => { el.scrollTop = el.scrollHeight; });
+  await page.locator('[data-thread-jump]').waitFor({state:'hidden'});
+  await page.evaluate(() => {
+    Object.defineProperty(window.visualViewport, 'height', {configurable:true, value:402});
+    window.visualViewport.dispatchEvent(new Event('resize'));
+  });
+  await page.waitForFunction(() => Math.abs(document.querySelector('[data-inbox-composer]').getBoundingClientRect().bottom - 402) <= 2);
+  await nearBottom();
+  await page.evaluate(() => {
+    delete window.visualViewport.height;
+    window.visualViewport.dispatchEvent(new Event('resize'));
+  });
+  await nearBottom();
+});
+
+test('Dos respuestas táctiles consecutivas conservan el foco y la redacción siguiente', async t => {
+  if (!browser) return t.skip('Se necesita Chromium.');
+  const page = await openThreadPreview(t, 390, 'focus&mobile-layout&chat-ux');
+  const input = page.locator('#smyl-inbox-message');
+  const send = page.locator('[data-compose-send]');
+  await page.evaluate(() => {
+    const original = window.fetch;
+    window.replyRequests = [];
+    window.fetch = (url, init) => {
+      const data = typeof init?.body === 'string' ? JSON.parse(init.body) : {};
+      if (data.action !== 'send') return original(url, init);
+      return new Promise(resolve => {
+        const id = 'reply-' + window.replyRequests.length;
+        window.replyRequests.push({content:data.content, deliver:() => resolve(Response.json({
+          message:{id, content:data.content, author_type:'team', role:'assistant', status:'sent', created_at:new Date().toISOString()},
+        }))});
+      });
+    };
+  });
+  await input.tap();
+  await page.setViewportSize({width:390, height:510});
+  for (const text of ['Sí, tenemos disponibilidad.', '¿Te funciona a las cuatro?']) {
+    await page.keyboard.insertText(text);
+    await send.tap();
+    assert.equal(await input.evaluate(el => document.activeElement === el), true, 'Enviar conserva el cursor');
+    assert.equal(await input.inputValue(), '');
+  }
+  assert.deepEqual(await page.evaluate(() => window.replyRequests.map(r => r.content)), ['Sí, tenemos disponibilidad.', '¿Te funciona a las cuatro?']);
+  await page.keyboard.insertText('Siguiente respuesta');
+  const body = page.locator('[data-thread-body]');
+  const readAt = await body.evaluate(el => {
+    el.scrollTop = 120;
+    return el.scrollTop;
+  });
+  await page.locator('[data-thread-jump]').waitFor();
+  await page.evaluate(() => { window.replyRequests[1].deliver(); window.replyRequests[0].deliver(); });
+  await page.locator('[data-message-id="reply-0"]').waitFor();
+  await page.locator('[data-message-id="reply-1"]').waitFor();
+  assert.equal(await input.inputValue(), 'Siguiente respuesta');
+  assert.equal(await input.evaluate(el => document.activeElement === el), true);
+  assert.ok(Math.abs(await body.evaluate(el => el.scrollTop) - readAt) < 3, 'Un acuse tardío respeta la lectura');
+});
+
+test('El editor largo se amplía y reduce sin perder texto ni selección', async t => {
+  if (!browser) return t.skip('Se necesita Chromium.');
+  const page = await openThreadPreview(t, 390, 'focus&mobile-layout');
+  const input = page.locator('#smyl-inbox-message');
+  const expand = page.locator('[data-compose-expand]');
+  await input.tap();
+  await page.setViewportSize({width:390, height:510});
+  await input.fill('Uno\nDos\nTres');
+  const threeLines = await bounds(page, '[data-inbox-composer]');
+  assert.equal(await expand.isVisible(), false);
+  const longReply = ['Uno','Dos','Tres','Cuatro','Cinco','Seis','Siete','Ocho'].join('\n');
+  await input.fill(longReply);
+  await expand.waitFor();
+  const compact = await input.boundingBox();
+  const collapsedForm = await bounds(page, '[data-inbox-composer]');
+  assert.ok(Math.abs(threeLines.height - collapsedForm.height) <= 2, 'El editor se detiene en tres líneas');
+  assert.ok(await input.evaluate(el => el.clientHeight <= 3 * parseFloat(getComputedStyle(el).lineHeight) + 1),
+    'El área desplazable muestra tres renglones completos');
+  await page.waitForFunction(() => {
+    const el = document.querySelector('#smyl-inbox-message');
+    return el.scrollHeight - el.clientHeight - el.scrollTop <= 2;
+  }, null, {timeout:3000});
+  await input.evaluate(el => el.setSelectionRange(4,7));
+  await expand.tap();
+  assert.equal(await expand.getAttribute('aria-expanded'), 'true');
+  assert.ok((await input.boundingBox()).height > compact.height + 16);
+  await expand.tap();
+  assert.equal(await expand.getAttribute('aria-expanded'), 'false');
+  assert.ok(Math.abs((await input.boundingBox()).height - compact.height) <= 2);
+  assert.equal(await input.inputValue(), longReply);
+  assert.deepEqual(await input.evaluate(el => [el.selectionStart, el.selectionEnd]), [4,7]);
+  await input.fill('Lista');
+  assert.equal(await expand.isVisible(), false);
+});
+
+test('Las respuestas consecutivas comparten rótulo en móvil y respetan los cambios de autor y fecha', async t => {
+  if (!browser) return t.skip('Se necesita Chromium.');
+  const page = await openThreadPreview(t, 390, 'focus&mobile-layout&grouped-replies');
+  const row = i => page.locator('[data-message-id="group-'+i+'"]');
+  const visibleAuthor = async i => row(i).getByText('SMYL Asistente', {exact:true}).evaluateAll(nodes =>
+    nodes.some(el => el.getBoundingClientRect().height > 2 && el.getBoundingClientRect().width > 2));
+  assert.equal(await visibleAuthor(0), true);
+  assert.equal(await visibleAuthor(1), false);
+  assert.equal(await visibleAuthor(3), true, 'Cambio de remitente');
+  assert.equal(await visibleAuthor(4), true, 'Cambio de fecha');
+  for (let i=0; i<5; i++) {
+    assert.ok(await row(i).locator('time').isVisible());
+    assert.ok(await row(i).getByRole('button', {name:'Opciones del mensaje'}).isVisible());
+  }
+  assert.ok(await row(1).getByText('★', {exact:true}).isVisible());
+  await page.setViewportSize({width:1440, height:900});
+  const panel = page.locator('[data-inbox-context-panel]');
+  if (await panel.getAttribute('aria-hidden') === 'false') await panel.getByRole('button', {name:/cerrar.*ficha/i}).click();
+  await page.waitForFunction(() => document.querySelector('.smyl-inbox-thread').clientWidth > 700);
+  assert.equal(await visibleAuthor(1), true, 'El escritorio conserva cada rótulo');
+});
+
 test('WhatsApp conserva la acción de plantilla en el editor móvil', async t => {
   if (!browser) return t.skip('Se necesita Chromium con Playwright.');
   const page = await openThreadPreview(t, 390, 'focus');

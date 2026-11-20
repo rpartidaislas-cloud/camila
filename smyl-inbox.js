@@ -239,11 +239,37 @@
     }, 450);
   }
 
-  // En navegadores sin field-sizing, la altura sigue al texto, también al restaurarlo o insertarlo desde una herramienta.
-  function fitComposerText(input) {
-    if (!input || window.CSS.supports('field-sizing', 'content') || !input.clientWidth) return;
+  function setEditorExpanded(form, button, expanded) {
+    form.classList.toggle('is-editor-expanded', expanded);
+    button.setAttribute('aria-expanded', String(expanded));
+    button.title = expanded ? 'Reducir editor' : 'Ampliar editor';
+    button.setAttribute('aria-label', button.title);
+    button.innerHTML = composeIcon(expanded ? 'collapse' : 'expand');
+  }
+
+  function measureComposerText(input) {
     input.style.setProperty('--smyl-reply-height', '44px');
     input.style.setProperty('--smyl-reply-height', input.scrollHeight + 'px');
+  }
+
+  function fitComposerText(input) {
+    if (!input) return;
+    var form = input.form, button = form.querySelector('[data-compose-expand]');
+    var manualSizing = input.clientWidth && !window.CSS.supports('field-sizing', 'content');
+    if (manualSizing) measureComposerText(input);
+    if (!button) return;
+    var longDraft = false;
+    if (input.value && !input.disabled && input.clientWidth && window.matchMedia('(max-width: 760px)').matches) {
+      var style = getComputedStyle(input);
+      var threeLines = 3 * parseFloat(style.lineHeight) + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+      longDraft = input.scrollHeight > threeLines + 1;
+    }
+    if (!longDraft && form.classList.contains('is-editor-expanded')) setEditorExpanded(form, button, false);
+    if (form.classList.contains('is-long-reply') !== longDraft) {
+      form.classList.toggle('is-long-reply', longDraft);
+      if (manualSizing) measureComposerText(input);
+    }
+    button.hidden = !longDraft;
   }
 
   async function restoreEncryptedDraft(conversationId) {
@@ -408,6 +434,8 @@
     person: '<circle cx="10" cy="8" r="3.5"></circle><path d="M3 20v-2a7 7 0 0 1 12.2-4.7M16 17l2 2 4-5"></path>',
     close: '<path d="m6 6 12 12M18 6 6 18"></path>',
     settings: '<path d="M3 7h6m4 0h8M3 17h10m4 0h4"></path><circle cx="11" cy="7" r="2"></circle><circle cx="15" cy="17" r="2"></circle>',
+    expand: '<path d="M14 4h6v6m0-6-7 7M10 20H4v-6m0 6 7-7"></path>',
+    collapse: '<path d="M20 4l-7 7m0-6v6h6M4 20l7-7m-6 0h6v6"></path>',
     chevron: '<path d="m9 18 6-6-6-6"></path>'
   };
 
@@ -1947,18 +1975,28 @@
       var error = node('div', 'smyl-inbox-thread-state'); error.append(node('strong', '', 'No pudimos cargar el hilo'), node('p', '', state.threadError));
       var retry = node('button', 'btn btn-secondary btn-sm', 'Reintentar'); retry.type = 'button'; retry.onclick = function () { loadThread(state.selectedId, false); }; error.append(retry); wrap.append(error);
     } else if (!items.length) wrap.append(node('div', 'smyl-inbox-thread-state', 'Todavía no hay mensajes en esta conversación.'));
-    var lastDay = '';
+    var lastDay = '', previousSender = null;
     items.forEach(function (item) {
       var date = new Date(item.created_at || Date.now()); var day = dayLabel(date);
-      if (day !== lastDay) { wrap.append(node('div', 'smyl-inbox-day', day)); lastDay = day; }
-      var row = node('div', 'smyl-inbox-message is-' + (item.author_type || (item.role === 'user' ? 'patient' : 'assistant')) + (item.status === 'failed' || item.status === 'unknown' ? ' has-error' : ''));
+      if (day !== lastDay) { wrap.append(node('div', 'smyl-inbox-day', day)); lastDay = day; previousSender = null; }
+      var authorType = item.author_type || (item.role === 'user' ? 'patient' : 'assistant');
+      var hasError = item.status === 'failed' || item.status === 'unknown';
+      var row = node('div', 'smyl-inbox-message is-' + authorType + (hasError ? ' has-error' : ''));
       row.dataset.messageId = String(item.id);
-      var bubble = node('div', 'smyl-inbox-bubble'); var author = item.author_type === 'patient' ? 'Paciente' : item.author_type === 'team' ? 'Equipo de la clínica' : 'SMYL Asistente';
+      var senderId = item.author_id || item.sender_id;
+      var sender = null;
+      if (!item.deleted && !hasError && item.role !== 'system' && ['patient', 'assistant', 'team'].includes(authorType)) {
+        // Un hilo tiene un paciente y un asistente, pero puede tener varios miembros del equipo.
+        if (authorType !== 'team' || senderId) sender = authorType + ':' + (senderId || '');
+      }
+      if (sender && sender === previousSender) row.classList.add('is-continuation');
+      previousSender = sender;
+      var bubble = node('div', 'smyl-inbox-bubble'); var author = authorType === 'patient' ? 'Paciente' : authorType === 'team' ? 'Equipo de la clínica' : 'SMYL Asistente';
       // El lado y el color ya dicen quién escribió; solo se rotula a SMYL Asistente (y se deja el nombre para lectores de pantalla).
-      if (item.author_type === 'patient' || item.author_type === 'team') bubble.append(node('span', 'smyl-inbox-sr', author + ': '));
-      if (!(item.author_type === 'patient' || item.author_type === 'team') || item.starred) {
+      if (authorType === 'patient' || authorType === 'team') bubble.append(node('span', 'smyl-inbox-sr', author + ': '));
+      if (!(authorType === 'patient' || authorType === 'team') || item.starred) {
         var top = node('div', 'smyl-inbox-message-top');
-        if (!(item.author_type === 'patient' || item.author_type === 'team')) top.append(node('small', '', author));
+        if (!(authorType === 'patient' || authorType === 'team')) top.append(node('small', '', author));
         if (item.starred) top.append(node('span', '', '★'));
         bubble.append(top);
       }
@@ -2040,7 +2078,9 @@
     var more = form.querySelector('[data-compose-more]'); var tools = form.querySelector('[data-compose-tools]');
     var templateOnly = Boolean(isWhatsapp && !freeformAllowed);
     form.dataset.mode = templateOnly ? 'template' : 'message';
+    var wasDisabled = input.disabled;
     input.disabled = !canRespond || !freeformAllowed; send.disabled = !canRespond;
+    if (input.disabled !== wasDisabled) fitComposerText(input);
     send.innerHTML = templateOnly
       ? '<span>Elegir plantilla</span>' + composeIcon('template')
       : '<span>Enviar</span>' + composeIcon('send');
@@ -4872,6 +4912,20 @@
     if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(false); else startVoiceRecording();
   }
 
+  function refreshSentConversation(conversationId, content, sentAt) {
+    var conversation = state.conversations.find(function (item) { return item.id === conversationId; });
+    if (conversation) {
+      conversation.paused = true;
+      if (!conversation.last_message_at || Date.parse(sentAt) >= Date.parse(conversation.last_message_at)) {
+        conversation.last_message = content; conversation.last_message_at = sentAt;
+      }
+    }
+    if (state.selectedId !== conversationId) { renderList(); return; }
+    var follow = !window.matchMedia('(max-width: 760px)').matches || atThreadBottom();
+    render();
+    if (follow) requestAnimationFrame(function () { if (state.selectedId === conversationId) scrollThreadBottom(); });
+  }
+
   async function submitMessage(content, key, pending, extra) {
     var conversationId = state.selectedId;
     var epoch = accessEpoch, revision = threadEpoch.get(conversationId);
@@ -4882,16 +4936,7 @@
       pending.reconciled = true;
       if (typeof pending.onSent === 'function') { try { pending.onSent(); } catch (_) {} }
       mergeMessages(conversationId, data.message ? [data.message] : [], false);
-      var conversation = state.conversations.find(function (item) { return item.id === conversationId; });
-      if (conversation) {
-        conversation.paused = true;
-        var sentAt = data.message?.created_at || pending.created_at;
-        if (!conversation.last_message_at || Date.parse(sentAt) >= Date.parse(conversation.last_message_at)) {
-          conversation.last_message = content; conversation.last_message_at = sentAt;
-        }
-      }
-      if (state.selectedId === conversationId) { render(); requestAnimationFrame(scrollThreadBottom); }
-      else renderList();
+      refreshSentConversation(conversationId, content, data.message?.created_at || pending.created_at);
     } catch (error) {
       pending.status = error.code === 'send_unknown' || error.code === 'send_in_progress' ? 'unknown' : 'failed';
       pending.error = error.message;
@@ -4941,9 +4986,10 @@
     try {
       var form = new FormData(); form.append('conversation_id', conversation.id); form.append('kind', kind); form.append('file', file, file.name);
       var data = await requestForm(form, key, 60000); pending.reconciled = true;
-      mergeMessages(conversation.id, data.message ? [data.message] : [], false); conversation.paused = true; conversation.last_message = pending.content; conversation.last_message_at = new Date().toISOString(); render(); requestAnimationFrame(scrollThreadBottom);
+      mergeMessages(conversation.id, data.message ? [data.message] : [], false);
+      refreshSentConversation(conversation.id, pending.content, data.message?.created_at || pending.created_at);
       if (previewUrl) URL.revokeObjectURL(previewUrl);
-    } catch (error) { pending.status = error.code === 'send_unknown' || error.code === 'send_in_progress' ? 'unknown' : 'failed'; pending.error = error.message; renderMessages(false); }
+    } catch (error) { pending.status = error.code === 'send_unknown' || error.code === 'send_in_progress' ? 'unknown' : 'failed'; pending.error = error.message; if (state.selectedId === conversation.id) renderMessages(false); }
   }
 
   async function sendLocation() {
@@ -5382,27 +5428,69 @@
       } else if (event.key === 'Home' || event.key === 'Escape') { event.preventDefault(); wanted = null; save(null); apply(null); }
     });
     // El ancho elegido se vuelve a aplicar cuando cambia la ventana o se abre/cierra la ficha acoplada.
-    var relayout = function () { apply(wanted); fitMobileThread(); };
-    // En Safari el teclado puede reducir sólo la ventana visual. Conserva el espacio del encabezado real de la app.
-    var viewport = window.visualViewport;
-    function fitMobileThread() {
-      if (!page.matches('.activa.show-thread, .activa.pipeline-chat-open') || !window.matchMedia('(max-width: 760px)').matches) {
-        page.style.removeProperty('--smyl-thread-available-height');
-        return;
-      }
-      if (viewport && Math.abs(viewport.scale - 1) > 0.02) return;
-      var top = Math.max(0, page.getBoundingClientRect().top - (viewport ? viewport.offsetTop : 0));
-      var available = (viewport ? viewport.height : window.innerHeight) - top;
-      if (available > 0) page.style.setProperty('--smyl-thread-available-height', Math.floor(available) + 'px');
-    }
-    if (viewport) {
-      viewport.addEventListener('resize', fitMobileThread);
-      viewport.addEventListener('scroll', fitMobileThread);
-    }
+    var relayout = function () { apply(wanted); };
     window.addEventListener('resize', relayout);
     if (window.ResizeObserver) new ResizeObserver(function () { if (!drag) place(); }).observe(workspace);
     if (window.MutationObserver) new MutationObserver(relayout).observe(page, { attributes: true, attributeFilter: ['class'] });
     relayout();
+  }
+
+  function initThreadViewport(page) {
+    var body = page.querySelector('[data-thread-body]');
+    var viewport = window.visualViewport;
+    var mobile = window.matchMedia('(max-width: 760px)');
+    var reading = null, layoutScrollTop = null;
+    function mobileThreadOpen() {
+      return mobile.matches && page.matches('.activa.show-thread, .activa.pipeline-chat-open');
+    }
+    function preserveReadingPosition() {
+      if (!state.selectedId || !mobileThreadOpen() || !body.clientHeight || (viewport && Math.abs(viewport.scale - 1) > 0.02)) {
+        reading = null;
+        layoutScrollTop = null;
+        return;
+      }
+      var height = body.clientHeight, width = body.clientWidth;
+      if (reading && reading.id === state.selectedId && reading.height !== height) {
+        // Un cambio de altura mueve el borde inferior. Quien lee arriba conserva su línea,
+        // incluso si el navegador intentó compensar el cambio con su propio desplazamiento.
+        if (reading.atEnd) body.scrollTop = body.scrollHeight;
+        else if (reading.width === width) body.scrollTop = reading.top;
+        layoutScrollTop = body.scrollTop;
+      }
+      reading = { id:state.selectedId, height:height, width:width, top:body.scrollTop,
+        atEnd:body.scrollHeight - height - body.scrollTop <= 2 };
+    }
+    function fitMobileThread() {
+      if (!mobileThreadOpen()) {
+        page.style.removeProperty('--smyl-thread-available-height');
+        reading = null;
+        layoutScrollTop = null;
+        return;
+      }
+      // En Safari el teclado puede reducir sólo la ventana visual.
+      if (viewport && Math.abs(viewport.scale - 1) > 0.02) return;
+      var top = Math.max(0, page.getBoundingClientRect().top - (viewport ? viewport.offsetTop : 0));
+      var available = (viewport ? viewport.height : window.innerHeight) - top;
+      if (available > 0) page.style.setProperty('--smyl-thread-available-height', Math.floor(available) + 'px');
+      preserveReadingPosition();
+    }
+    body.addEventListener('scroll', function () {
+      preserveReadingPosition();
+      var layoutOnly = layoutScrollTop === body.scrollTop;
+      layoutScrollTop = null;
+      if (atThreadBottom() && !layoutOnly) {
+        if (threadPaintDeferred) scrollThreadBottom(); else resetThreadJump();
+      } else updateThreadJump(!atThreadBottom());
+    }, {passive:true});
+    page.querySelector('[data-inbox-composer]').addEventListener('focusin', preserveReadingPosition);
+    if (window.ResizeObserver) new ResizeObserver(preserveReadingPosition).observe(body);
+    if (viewport) {
+      viewport.addEventListener('resize', fitMobileThread);
+      viewport.addEventListener('scroll', fitMobileThread);
+    }
+    window.addEventListener('resize', fitMobileThread);
+    if (window.MutationObserver) new MutationObserver(fitMobileThread).observe(page, { attributes:true, attributeFilter:['class'] });
+    fitMobileThread();
   }
 
   function init() {
@@ -5460,16 +5548,56 @@
     });
     page.querySelector('[data-inbox-composer]').addEventListener('submit', sendMessage);
     var replyInput = page.querySelector('[name="message"]');
-    replyInput.addEventListener('input', function (event) {
-      fitComposerText(replyInput); scheduleDraftSave(replyInput.value); maybeOpenQuickReplies(event);
+    var mobileReply = window.matchMedia('(max-width: 760px)');
+    var followReplyEnd = false;
+    function revealReplyEnd() {
+      if (followReplyEnd && mobileReply.matches && (document.activeElement === replyInput || document.activeElement === expandReply) &&
+          replyInput.selectionStart === replyInput.value.length && replyInput.selectionEnd === replyInput.value.length) {
+        replyInput.scrollTop = replyInput.scrollHeight;
+      }
+    }
+    var expandReply = node('button'); expandReply.type = 'button'; expandReply.hidden = true;
+    expandReply.dataset.composeExpand = '';
+    expandReply.setAttribute('aria-controls', replyInput.id);
+    setEditorExpanded(replyInput.form, expandReply, false);
+    page.querySelector('[data-compose-more]').before(expandReply);
+    expandReply.addEventListener('click', function () {
+      followReplyEnd = replyInput.scrollHeight - replyInput.clientHeight - replyInput.scrollTop < 2;
+      setEditorExpanded(replyInput.form, expandReply, expandReply.getAttribute('aria-expanded') !== 'true');
+      fitComposerText(replyInput);
+      revealReplyEnd();
     });
-    if (!window.CSS.supports('field-sizing', 'content') && window.ResizeObserver) {
+    // Preserva el teclado en el gesto original. Una confirmación de red posterior no debe recuperar el foco.
+    function keepReplyFocus(event) {
+      if (event.button === 0 && mobileReply.matches && !replyInput.disabled && document.activeElement === replyInput) event.preventDefault();
+    }
+    page.querySelector('[data-compose-send]').addEventListener('pointerdown', keepReplyFocus);
+    expandReply.addEventListener('pointerdown', keepReplyFocus);
+    // Una selección o desplazamiento dentro del texto tiene prioridad sobre seguir el último renglón.
+    function readReplyPosition() { followReplyEnd = false; }
+    replyInput.addEventListener('blur', readReplyPosition);
+    replyInput.addEventListener('pointerdown', readReplyPosition);
+    replyInput.addEventListener('wheel', readReplyPosition, {passive:true});
+    replyInput.addEventListener('click', function () {
+      followReplyEnd = replyInput.scrollHeight - replyInput.clientHeight - replyInput.scrollTop < parseFloat(getComputedStyle(replyInput).lineHeight);
+      revealReplyEnd();
+    });
+    replyInput.addEventListener('input', function (event) {
+      followReplyEnd = replyInput.selectionStart === replyInput.value.length && replyInput.selectionEnd === replyInput.value.length;
+      fitComposerText(replyInput);
+      revealReplyEnd();
+      scheduleDraftSave(replyInput.value);
+      maybeOpenQuickReplies(event);
+    });
+    mobileReply.addEventListener('change', function () { fitComposerText(replyInput); });
+    if (window.ResizeObserver) {
       var lastReplyWidth = 0;
       new ResizeObserver(function () {
         if (replyInput.clientWidth !== lastReplyWidth) {
           lastReplyWidth = replyInput.clientWidth;
           fitComposerText(replyInput);
         }
+        revealReplyEnd();
       }).observe(replyInput);
     }
     page.querySelector('[data-compose-more]').addEventListener('click', toggleComposerTools);
@@ -5543,6 +5671,7 @@
       else { page.classList.remove('show-thread'); closeContext(false); }
     });
     initListResizer(page);
+    initThreadViewport(page);
     initThreadOptions(page);
     page.querySelector('[data-inbox-context]').addEventListener('click', function (event) {
       if (state.contextOpen && contextDocked()) closeContext(false);
@@ -5584,11 +5713,6 @@
       var onDockChange = function () { syncContextAccessibility(); };
       if (dockQuery.addEventListener) dockQuery.addEventListener('change', onDockChange); else if (dockQuery.addListener) dockQuery.addListener(onDockChange);
     }
-    page.querySelector('[data-thread-body]').addEventListener('scroll', function () {
-      if (atThreadBottom()) {
-        if (threadPaintDeferred) scrollThreadBottom(); else resetThreadJump();
-      } else updateThreadJump(true);
-    }, {passive:true});
     page.addEventListener('pointerdown', function (event) {
       if (!event.target.closest('[data-compose-tools],[data-compose-more]')) closeComposerTools(false);
       if (state.filterPanelOpen && !event.target.closest('[data-inbox-filter-panel],[data-inbox-filter-more]')) { state.filterPanelOpen = false; renderFilterControls(); }

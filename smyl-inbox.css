@@ -3492,6 +3492,21 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
   #p-inbox .is-compact .smyl-inbox-med-flag:not([hidden])::after { content: '!'; font: 700 11px/1 var(--inbox-font); }
 }
 
+@container smyl-conversation (max-width: 640px) {
+  #p-inbox .smyl-inbox-message { margin-block-end: 0; }
+  #p-inbox .smyl-inbox-message.is-continuation { margin-block-start: 3px; }
+  #p-inbox .smyl-inbox-message.is-continuation .smyl-inbox-message-top > small {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 /* El compositor responde al ancho del hilo, incluso dentro del Pipeline o con Ficha 360 abierta. */
 .smyl-inbox-thread { container: smyl-conversation / inline-size; }
 @media (max-width: 760px) {
@@ -3717,4 +3732,32 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
   #p-inbox .smyl-quick-actions{display:grid;grid-template-columns:1fr 1fr}
   #p-inbox .smyl-quick-actions [data-quick-back]{margin-right:0}
   #p-inbox .smyl-quick-actions [data-quick-use]{grid-column:1/-1;grid-row:1}
+}
+
+@media (max-width: 760px) {
+  #p-inbox .smyl-inbox-composer textarea {
+    box-sizing: border-box;
+    min-height: 44px;
+    height: var(--smyl-reply-height, 44px);
+    max-height: calc(3 * 1.375em + 22px);
+    padding-block: 11px;
+    line-height: 1.375;
+    overflow-y: auto;
+  }
+  @supports (field-sizing: content) {
+    #p-inbox .smyl-inbox-composer textarea { field-sizing: content; height: auto; }
+  }
+  /* El margen queda fuera de la superficie desplazable: nunca asoma una cuarta línea. */
+  #p-inbox .smyl-inbox-composer.is-long-reply .smyl-inbox-message-row { padding-block: 11px; }
+  #p-inbox .smyl-inbox-composer.is-long-reply textarea {
+    max-height: 4.125em;
+    padding-block: 0;
+  }
+  #p-inbox .smyl-inbox-composer.is-editor-expanded textarea {
+    max-height: clamp(4.125em, calc(var(--smyl-thread-available-height, 100dvh) * .48 - 22px), 258px);
+  }
+  #p-inbox .smyl-inbox-composer[data-mode="template"] [data-compose-expand] { display: none; }
+  @container smyl-conversation (max-width: 640px) {
+    #p-inbox .smyl-inbox-compose-primary { flex-direction: column; gap: 0; }
+  }
 }

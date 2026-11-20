@@ -6,7 +6,7 @@
   <title>SMYL Inbox etapa 7 · QA visual</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="../../smyl-design-system-v2.css?focus=3">
-  <link rel="stylesheet" href="../../smyl-inbox.css?v=74">
+  <link rel="stylesheet" href="../../smyl-inbox.css?v=75">
   <link rel="stylesheet" href="../../smyl-chat-media-viewer.css?v=1">
   <style>
     :root { --azul:#1769e0; --azul-oscuro:#0c4fb8; --gris:#64748b; --borde:#dce3ec; --fondo:#f6f8fb; --blanco:#fff; }
@@ -100,6 +100,14 @@
         {id:'greeting-preview',role:'user',author_type:'patient',content:'Buen día. ¿Me confirman la hora de mi valoración?',status:'sent',created_at:new Date(Date.now()-45*60000).toISOString()},
         {id:'answer-preview',role:'assistant',author_type:'team',content:'Hola, Ana. Tu valoración es hoy a las 10:30 en la sucursal Centro.',status:'sent',created_at:new Date(Date.now()-42*60000).toISOString()}
       );
+    }
+    if (previewParams.has('grouped-replies')) {
+      var groupDay = Date.UTC(2026, 10, 10, 16);
+      messages = ['assistant', 'assistant', 'patient', 'assistant', 'assistant'].map(function (author, index) {
+        return {id:'group-'+index, author_type:author, role:author === 'patient' ? 'user' : 'assistant',
+          content:'Mensaje de prueba '+index, status:'sent', starred:index === 1,
+          created_at:new Date(groupDay + index * 60000 + (index === 4 ? 86400000 : 0)).toISOString()};
+      });
     }
     var demoFiles = [];
     if (previewParams.has('chat-ux')) {
@@ -234,7 +242,7 @@
   <script src="../../smyl-inbox-ficha.js?v=11"></script>
   <script src="../../smyl-chat-pdf.js?v=1"></script>
   <script src="../../smyl-chat-media-viewer.js?v=1"></script>
-  <script src="../../smyl-inbox.js?v=87"></script>
+  <script src="../../smyl-inbox.js?v=88"></script>
   <script>
     window.addEventListener('load', function () {
       window.ir('inbox');

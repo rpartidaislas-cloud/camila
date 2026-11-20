@@ -1,3 +1,9 @@
+## 2026-11-19 — Codex — Lectura y respuestas consecutivas en el chat móvil
+
+- Al abrir y cerrar el teclado o crecer el editor, el historial conserva el último mensaje si estaba al final, o el punto de lectura si se había desplazado. Tocar Enviar mientras se escribe permite seguir redactando.
+- El editor móvil ofrece ampliar y reducir los textos largos. En hilos estrechos, los mensajes consecutivos del mismo autor comparten rótulo y quedan más juntos. Los mensajes del equipo se agrupan cuando se conoce la identidad del remitente.
+- Recursos de chat JS v88 y CSS v75, con referencias en `app.html`, `sw.js` y las copias móviles. Las pruebas de `tests/smyl-inbox-typography-browser.test.mjs` usan conversaciones ficticias para comprobar teclado, foco, envíos consecutivos, expansión del editor y grupos por autor y fecha.
+
 ## 2026-11-19 — Codex — Iconos de atención y marca del canal en el chat
 
 - Solicitud de Ricardo: convertir los cuatro controles marcados en iconos y mostrar el logo junto al nombre de Instagram, WhatsApp o Messenger.
