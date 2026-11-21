@@ -1,3 +1,13 @@
+## 2026-11-21 — Claude Code — Página de pago: el paciente puede cambiar de método
+
+- Petición de Ricardo: que el paciente pueda elegir SPEI y después pagar con tarjeta (o al revés) en el mismo enlace. Esto reemplaza la regla anterior de «un solo método por enlace».
+- `pagar.html`: si el enlace ya tiene una CLABE o una referencia de tienda, esa ficha se abre por defecto con el aviso «Si ya pagaste con ella, no pagues de nuevo… Si prefieres otra forma de pago, elígela abajo». Los demás métodos siguen disponibles.
+- LANA (`promodesk`, task-id `smyl-pago-cambiar-metodo`) hace que ningún pago se pierda:
+  - Cada ficha guarda su propio cargo y el webhook la reconoce aunque el paciente haya cambiado de método.
+  - Antes de crear otro cargo, LANA revisa en Openpay que ninguna ficha previa ya esté pagada.
+  - Si de todos modos llega un segundo pago (pagó con tarjeta y además transfirió), queda en `cargos_excedentes` y se expone como `extra_payments` en `/payments/requests/:id`.
+- **Pendiente en SMYL:** mostrar a la clínica los `extra_payments` (pagos de más que hay que devolver). Hoy el segundo pago no genera recibo en SMYL; la devolución se hace desde el panel de Openpay.
+
 ## 2026-11-21 — Claude Code — Página de pago: un solo método por enlace
 
 - Prueba de Ricardo en sandbox: después de generar la CLABE SPEI en un enlace, la página le dejó llenar la tarjeta completa y hasta el final mostró «Ya generaste una CLABE para este pago».
