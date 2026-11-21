@@ -30,11 +30,11 @@ test('la ventana sigue la política visual y responde en móvil',()=>{
 });
 
 test('web, PWA y móvil publican la misma versión',()=>{
-  assert.match(app,/smyl-finance\.css\?v=46/);
-  assert.match(app,/smyl-finance\.js\?v=62/);
+  assert.match(app,/smyl-finance\.css\?v=47/);
+  assert.match(app,/smyl-finance\.js\?v=63/);
   assert.match(sw,/cash-reconciliation-v1/);
-  assert.match(sw,/smyl-finance\.css\?v=46/);
-  assert.match(sw,/smyl-finance\.js\?v=62/);
+  assert.match(sw,/smyl-finance\.css\?v=47/);
+  assert.match(sw,/smyl-finance\.js\?v=63/);
   assert.equal(read('mobile/www/smyl-finance.js'),js);
   assert.equal(read('mobile/www/smyl-finance.css'),css);
   assert.equal(read('mobile/www/sw.js'),sw);

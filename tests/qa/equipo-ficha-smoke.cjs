@@ -120,7 +120,7 @@ async function team(page) {
   await page.evaluate(() => ir('clinica')); await page.waitForTimeout(1500);
   await page.click('.clinic-admin-tab[data-ca-tab="equipo"]'); await page.waitForTimeout(500);
 }
-const rows = page => page.$$eval('.clinic-admin-person-row', e => e.map(r => ({ name: r.querySelector('strong').textContent, status: r.dataset.status, text: r.innerText })));
+const rows = page => page.$$eval('[data-ca-team-panel="people"] .clinic-admin-person-row', e => e.map(r => ({ name: r.querySelector('strong').textContent, status: r.dataset.status, text: r.innerText })));
 
 server.listen(0, '127.0.0.1', async () => {
   const b = await chromium.launch({executablePath:process.env.SMYL_CHROMIUM}); let fails = 0;
@@ -177,7 +177,7 @@ server.listen(0, '127.0.0.1', async () => {
     console.log('2) interfaz:', JSON.stringify(ui));
     check(!ui.volver, 'ya no debe existir «← Sucursales» en Equipo');
     check(ui.preparacion && ui.cifras, 'el resumen de preparación no debe verse en Equipo');
-    check(ui.filtros.length === 5, 'deben ser 5 filtros');
+    check(ui.filtros.length === 4, 'deben ser 4 filtros simples');
 
     await page.fill('#clinic-admin-people-search', 'ivan'); await page.waitForTimeout(200);
     r = await rows(page); check(r.length === 1 && /Iván/.test(r[0].name), 'la búsqueda sin acentos debe encontrar a Iván: ' + JSON.stringify(r.map(x => x.name)));
@@ -187,7 +187,7 @@ server.listen(0, '127.0.0.1', async () => {
     await page.click('.clinic-admin-filter[data-filter="pending"]'); await page.waitForTimeout(200);
     r = await rows(page); check(r.length === 3, 'Pendientes debe mostrar 3 (2 sin acceso + 1 invitación): ' + r.length);
     await page.click('.clinic-admin-filter[data-filter="all"]'); await page.waitForTimeout(200);
-    const faltas = await page.evaluate(() => [...document.querySelectorAll('.clinic-admin-person-row')].map(r => r.innerText.replace(/\s+/g, ' ')).filter(t => /Falta /.test(t)).map(t => t.slice(0, 40)));
+    const faltas = await page.evaluate(() => [...document.querySelectorAll('[data-ca-team-panel="people"] .clinic-admin-person-row')].map(r => r.innerText.replace(/\s+/g, ' ')).filter(t => /Falta /.test(t)).map(t => t.slice(0, 40)));
     console.log('2b) doctores a los que les falta algo:', JSON.stringify(faltas));
     check(faltas.length === 1 && /Salinas/.test(faltas[0]), 'a quien no tiene horario se le avisa en la lista: ' + JSON.stringify(faltas));
 
@@ -253,6 +253,7 @@ server.listen(0, '127.0.0.1', async () => {
     check(!(await page.evaluate(() => document.getElementById('clinic-admin-person').open)), 'la ficha debe cerrarse');
 
     // Traslado
+    await page.click('[data-ca-team-view="professionals"]'); await page.waitForTimeout(250);
     const viaje = await page.evaluate(() => ({ visible: !document.getElementById('clinic-admin-travel-card').hidden, valor: document.getElementById('clinic-admin-travel-minutes').value, texto: document.getElementById('clinic-admin-travel').innerText }));
     console.log('5) traslado:', JSON.stringify({ visible: viaje.visible, valor: viaje.valor }));
     check(viaje.visible && viaje.valor === '45', 'el margen por omisión debe ser 45');
@@ -271,10 +272,11 @@ server.listen(0, '127.0.0.1', async () => {
     check(aviso && !/TypeError|supabase\.co/.test(aviso.texto) && /internet/.test(aviso.texto), 'el error debe estar en lenguaje normal');
     check(aviso && aviso.reintentar, 'el error debe ofrecer Reintentar');
     await page.evaluate(() => { window.__failTables = null; }); await page.click('#clinic-admin-feedback button:has-text("Reintentar")'); await page.waitForTimeout(1500);
+    await page.click('[data-ca-team-view="people"]'); await page.waitForTimeout(250);
     await page.fill('#clinic-admin-people-search', ''); await page.waitForTimeout(200);
     r = await rows(page); check(r.length === 6, 'tras reintentar debe volver a cargar la lista: ' + r.length);
     const profile=page.locator('select[name="chat_profile"]'), dest=page.locator('select[name="chat_destination"]');
-    const openMember=id=>page.locator('.clinic-admin-person-row[data-person="u:'+id+'"]').click();
+    const openMember=id=>page.locator('[data-ca-team-panel="people"] .clinic-admin-person-row[data-person="u:'+id+'"]').click();
     await openMember('u2');
     await profile.selectOption('agent');
     await page.getByRole('button',{name:'Guardar perfil de chat'}).click();
@@ -313,7 +315,7 @@ server.listen(0, '127.0.0.1', async () => {
       await enlace.evaluate(node => node.click()); await page.waitForTimeout(1200);
       const despues = await page.evaluate(() => ({ h1: (document.querySelector('.settings-hub-detail-copy h1') || {}).textContent, equipo: !document.querySelector('[data-ca-panel="equipo"]').hidden }));
       console.log('7) encabezado dentro de Configuración:', antes, '→', JSON.stringify(despues));
-      check(despues.equipo && despues.h1 === 'Profesionales y roles', 'el encabezado debe cambiar a «Profesionales y roles» al pasar a Equipo: ' + JSON.stringify(despues));
+      check(despues.equipo && despues.h1 === 'Integrantes', 'el encabezado debe cambiar a «Integrantes» al pasar a Equipo: ' + JSON.stringify(despues));
     } else console.log('7) sin enlace a Equipo en este estado (se omite)');
     check(errs.length === 0, 'errores de página: ' + JSON.stringify(errs));
     await ctx.close();
@@ -323,7 +325,7 @@ server.listen(0, '127.0.0.1', async () => {
   {
     const { ctx, page, errs } = await open(b, 'admin', null, () => { window.__noPhone = true; window.__noRules = true; });
     await team(page);
-    await page.click('.clinic-admin-person-row[data-person="p:pr2"]'); await page.waitForTimeout(400);
+    await page.click('[data-ca-team-panel="people"] .clinic-admin-person-row[data-person="p:pr2"]'); await page.waitForTimeout(400);
     const t = await page.evaluate(() => ({ ficha: document.getElementById('clinic-admin-person').innerText, tarjeta: document.getElementById('clinic-admin-travel-card').hidden }));
     console.log('8) base sin actualizar: sin teléfono =', !/Teléfono interno/.test(t.ficha), '· tarjeta de traslado oculta =', t.tarjeta);
     check(/Endodoncia/.test(t.ficha), 'la ficha debe abrir aunque falte la columna del teléfono');
@@ -337,7 +339,7 @@ server.listen(0, '127.0.0.1', async () => {
   {
     const { ctx, page, errs } = await open(b, 'consulta');
     await team(page);
-    await page.click('.clinic-admin-person-row[data-person="p:pr3"]'); await page.waitForTimeout(400);
+    await page.click('[data-ca-team-panel="people"] .clinic-admin-person-row[data-person="p:pr3"]'); await page.waitForTimeout(400);
     const c = await page.evaluate(() => ({
       texto: document.getElementById('clinic-admin-person').innerText,
       editar: !!document.querySelector('.clinic-admin-sheet-edit'), quitar: !!document.querySelector('.clinic-admin-link-danger'), asignar: !!document.querySelector('.clinic-admin-sheet-add'),
@@ -349,7 +351,7 @@ server.listen(0, '127.0.0.1', async () => {
     check(!c.editar && !c.quitar && !c.asignar && !c.zona, 'quien no administra no debe ver editar, quitar, asignar ni la zona delicada');
     check(!c.invitar && !c.agregar, 'quien no administra no debe ver invitar ni agregar doctor');
     await page.click('.clinic-admin-sheet-close'); await page.waitForTimeout(200);
-    await page.locator('.clinic-admin-person-row[data-person="u:u2"]').click();
+    await page.locator('[data-ca-team-panel="people"] .clinic-admin-person-row[data-person="u:u2"]').click();
     check(await page.locator('select[name="chat_profile"]').count()===0,'la consulta no expone perfiles de chat de otras personas');
     check(await page.evaluate(()=>!window.__calls.some(c=>c[1]==='smyl_chat_team_settings')),'la consulta no solicita el directorio privado');
     await page.click('.clinic-admin-sheet-close');
@@ -372,7 +374,7 @@ server.listen(0, '127.0.0.1', async () => {
     check(operacionMovil.sinScroll && operacionMovil.ancho <= operacionMovil.vista && operacionMovil.filtros === 2, 'Sucursales debe adaptarse al celular sin desbordarse');
     await page.click('.clinic-admin-tab[data-ca-tab="equipo"]'); await page.waitForTimeout(500);
     const sinScroll = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
-    await page.click('.clinic-admin-person-row[data-person="p:pr3"]'); await page.waitForTimeout(500);
+    await page.click('[data-ca-team-panel="people"] .clinic-admin-person-row[data-person="p:pr3"]'); await page.waitForTimeout(500);
     const caja = await page.evaluate(() => { const r = document.getElementById('clinic-admin-person').getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), vw: window.innerWidth }; });
     console.log('10) celular:', JSON.stringify({ sinScroll, ...caja }));
     check(sinScroll, 'no debe haber desplazamiento horizontal en el celular');
@@ -385,10 +387,11 @@ server.listen(0, '127.0.0.1', async () => {
   {
     const { ctx, page, errs } = await open(b, 'admin');
     await team(page);
+    await page.click('[data-ca-team-view="professionals"]'); await page.waitForTimeout(250);
     await page.click('#clinic-admin-add-professional'); await page.waitForTimeout(300);
     const inicial = await page.evaluate(() => ({ titulo: document.querySelector('#clinic-admin-create-professional h2').textContent, campo: !document.getElementById('ca-prof-whatsapp').hidden }));
     console.log('11) alta:', JSON.stringify(inicial));
-    check(inicial.titulo === 'Agregar profesional', 'el diálogo debe llamarse «Agregar profesional»');
+    check(inicial.titulo === 'Invitar profesional', 'el diálogo debe llamarse «Invitar profesional»');
     check(inicial.campo, 'el WhatsApp del profesional se pide desde el alta');
     // Correo nuevo: el WhatsApp viaja en la invitación (invite-staff lo guarda y se copia al aceptar).
     let enviado = null;
@@ -421,7 +424,7 @@ server.listen(0, '127.0.0.1', async () => {
       await page.screenshot({ path: path.join(process.env.SMYL_SHOTS, `sucursales-${name}.png`), fullPage: true });
       await team(page);
       await page.screenshot({ path: path.join(process.env.SMYL_SHOTS, `equipo-lista-${name}.png`) });
-      await page.click('.clinic-admin-person-row[data-person="p:pr3"]'); await page.waitForTimeout(500);
+      await page.click('[data-ca-team-panel="people"] .clinic-admin-person-row[data-person="p:pr3"]'); await page.waitForTimeout(500);
       await page.screenshot({ path: path.join(process.env.SMYL_SHOTS, `equipo-ficha-${name}.png`) });
       await ctx.close();
     }

@@ -23,7 +23,7 @@ test('Resumen es el inicio, Pagos y recibos sigue a las cuentas y Facturación c
 });
 
 test('cada recibo abre servicios, pago, responsable y acción fiscal contextual', () => {
-  for (const copy of ['SERVICIOS COBRADOS', 'Conceptos del recibo', 'Total recibido', 'Registró', 'Saldo a favor', 'Abrir recibo']) {
+  for (const copy of ['CONCEPTOS', 'Servicios cobrados', 'Total pagado', 'Registrado por', 'Saldo a favor', 'Abrir recibo']) {
     assert.match(js, new RegExp(copy));
   }
   assert.match(js, /function receiptLines\(receipt\)/);
@@ -65,7 +65,7 @@ test('la bandeja y el detalle se adaptan a PWA sin microtexto', () => {
   assert.ok(block.length > 0);
   assert.match(block, /finance-fiscal-receipt-list>article/);
   assert.match(block, /grid-template-areas:"folio amount" "copy copy" "actions actions"/);
-  assert.match(block, /finance-receipt-detail-body\{grid-template-columns:1fr/);
+  assert.match(block, /finance-receipt-detail-body\{display:grid;grid-template-columns:1fr;align-content:start/);
   assert.match(block, /finance-fiscal-receipt-filters\{[\s\S]*?overflow-x:auto/);
   const tiny = [...block.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].filter((match) => Number(match[1]) < 11);
   assert.equal(tiny.length, 0);
@@ -75,9 +75,9 @@ test('web y PWA publican la misma bandeja versionada', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) {
     assert.equal(read('mobile/www/' + file), read(file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=46/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=62/);
-  assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=23/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=47/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=63/);
+  assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=24/);
   assert.match(read('sw.js'), /professional-finance-v1/);
   assert.match(read('sw.js'), /finanzas-workspace-v5/);
 });

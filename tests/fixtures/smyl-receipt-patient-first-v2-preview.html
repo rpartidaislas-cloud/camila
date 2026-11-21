@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMYL · Recibo</title>
+  <link rel="stylesheet" href="../../smyl-finance.css?v=47">
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:#dfe7eb;font-family:Inter,Arial,sans-serif}.finance-dialog{display:block}.finance-dialog::backdrop{display:none}button{font:inherit}
+  </style>
+</head>
+<body>
+  <dialog open class="finance-dialog finance-receipt-dialog">
+    <section class="finance-receipt-detail">
+      <header class="finance-receipt-head">
+        <div><span class="finance-receipt-paid"><i aria-hidden="true">✓</i> Pago confirmado</span><h2>$10.00 <em>MXN</em></h2><p>Ricardo Partida · 21 nov 2026, 1:48 p. m.</p><small>Recibo #000006</small></div>
+        <button type="button" aria-label="Cerrar recibo">×</button>
+      </header>
+      <div class="finance-receipt-detail-body">
+        <section class="finance-receipt-services">
+          <div><span>CONCEPTOS</span><h3>Servicios cobrados</h3></div>
+          <article><div><strong>Consulta de valoración</strong><small>1 × $10.00</small></div><strong>$10.00</strong></article>
+          <div class="finance-receipt-total"><span>Total pagado</span><strong>$10.00 <em>MXN</em></strong></div>
+        </section>
+        <details class="finance-receipt-meta">
+          <summary>Ver detalles del pago <span aria-hidden="true">⌄</span></summary>
+          <dl><div><dt>Método</dt><dd>Tarjeta</dd></div><div><dt>Sucursal</dt><dd>Círculo Médico Dental</dd></div><div><dt>Referencia</dt><dd>OpenPay · tr…7plnp</dd></div><div><dt>Registrado por</dt><dd>Dd</dd></div></dl>
+        </details>
+      </div>
+      <footer class="finance-receipt-footer">
+        <section class="finance-receipt-fiscal" data-tone="warning"><span aria-hidden="true">!</span><div><small>¿REQUIERE FACTURA?</small><strong>Faltan datos fiscales</strong><p>Agrega los datos fiscales del paciente para preparar su factura.</p></div><button type="button" class="btn btn-primary">Completar datos fiscales</button></section>
+        <div class="finance-receipt-footer-actions"><div><button type="button" class="btn btn-primary"><span aria-hidden="true">⇩</span> Descargar o imprimir</button><button type="button"><span aria-hidden="true">↗</span> Enviar recibo</button></div><p aria-live="polite"></p></div>
+        <small>Comprobante interno de pago. No sustituye un CFDI.</small>
+      </footer>
+    </section>
+  </dialog>
+</body>
+</html>

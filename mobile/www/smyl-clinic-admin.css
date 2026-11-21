@@ -208,15 +208,21 @@
 .clinic-admin-empty{font-size:14px;padding:28px;border-color:var(--ca-border)}
 
 .clinic-admin-team-panel{container:clinic-team / inline-size;width:100%;max-width:100%;min-width:0;overflow:clip}
+.clinic-admin-team-views{display:flex;gap:6px;width:max-content;max-width:100%;margin:0 0 24px;padding:5px;border:1px solid var(--ca-border);border-radius:14px;background:var(--ca-soft);overflow:auto}
+.clinic-admin-team-views button{min-height:42px;padding:0 18px;border:0;border-radius:10px;background:transparent;color:var(--ca-muted);font:inherit;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer}
+.clinic-admin-team-views button[aria-selected="true"]{background:#fff;color:var(--ca-ink);box-shadow:0 1px 3px rgba(11,27,46,.12)}
+.clinic-admin-team-views button:focus-visible{outline:2px solid var(--smyl-ui-accent,#0b8f7d);outline-offset:2px}
+.clinic-admin-team-view-panel{display:block;min-width:0}
+.clinic-admin-team-view-panel[hidden]{display:none}
 .clinic-admin-team-hero{display:grid;grid-template-columns:minmax(0,560px) max-content;align-items:start;justify-content:space-between;gap:24px;min-width:0;margin-bottom:20px;padding:2px 2px 20px;border-bottom:1px solid var(--ca-border)}
 .clinic-admin-team-hero h2{margin:4px 0 5px;font-size:22px;line-height:1.3;letter-spacing:-.02em;color:var(--ca-ink)}
 .clinic-admin-team-hero p{max-width:650px;margin:0;color:var(--ca-muted);font-size:15px}
 .clinic-admin-team-hero .pro-eyebrow{font-size:12px}
-.clinic-admin-team-actions{display:grid;grid-template-columns:repeat(2,max-content);align-items:center;gap:10px;justify-content:end}
+.clinic-admin-team-actions{display:flex;align-items:center;gap:10px;justify-content:end}
 .clinic-admin-team-actions .btn{min-height:44px}
 .clinic-admin-team-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start;min-width:0}
 .clinic-admin-team-grid>*{min-width:0}
-.clinic-admin-people-card,.clinic-admin-pending-card,.clinic-admin-role-card{width:100%;max-width:100%;overflow:hidden}
+.clinic-admin-people-card,.clinic-admin-professionals-card,.clinic-admin-pending-card,.clinic-admin-role-card{width:100%;max-width:100%;overflow:hidden}
 .clinic-admin-role-card{grid-column:1/-1}
 .clinic-admin-section-head{align-items:flex-start;margin-bottom:16px}
 .clinic-admin-section-head>div{min-width:0}
@@ -293,7 +299,9 @@
   .clinic-admin-member-action{grid-area:action}
 }
 @container clinic-team (max-width:620px){
-  .clinic-admin-team-actions{grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+  .clinic-admin-team-views{width:100%}
+  .clinic-admin-team-views button{flex:1;padding-inline:12px}
+  .clinic-admin-team-actions{width:100%}
   .clinic-admin-team-actions .btn{width:100%;padding-inline:10px}
   .clinic-admin-member{grid-template-columns:48px minmax(0,1fr);grid-template-areas:"avatar meta" "controls controls" "action action"}
   .clinic-admin-member-controls,.clinic-admin-member-action{width:100%}
@@ -305,13 +313,12 @@
 }
 @container clinic-team (max-width:460px){
   .clinic-admin-member-controls{grid-template-columns:minmax(0,1fr)}
-  .clinic-admin-team-actions{grid-template-columns:minmax(0,1fr)}
 }
 @media(max-width:760px){
   .clinic-admin-tab,.clinic-admin-dialog .btn,.clinic-admin-dialog .clinic-admin-scope-field select,.clinic-admin-dialog .clinic-admin-active-switch,.clinic-admin-dialog .clinic-admin-permission-pill span{min-height:44px}.clinic-admin-section-head{gap:14px}.clinic-admin-card{padding:20px 16px}.clinic-admin-dialog{padding:22px 18px}
 }
 @media(max-width:440px){
-  .clinic-admin-page{font-size:14px}.clinic-admin-head h1{font-size:28px}.clinic-admin-team-actions{display:grid;grid-template-columns:1fr;width:100%}
+  .clinic-admin-page{font-size:14px}.clinic-admin-head h1{font-size:28px}.clinic-admin-team-actions{width:100%}
   .clinic-admin-tabs{width:100%}.clinic-admin-tab{flex:1;padding-inline:12px}.clinic-admin-form-grid{gap:12px}
 }
 

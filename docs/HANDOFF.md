@@ -117,6 +117,16 @@
 - `smyl-finance.js` v61: el botón **Enlace de pago** se muestra si `camila_tenants.config.pago_en_linea === true` (por clínica) o si `window.SMYL_ONLINE_PAY === true` (pruebas). Así no aparece en clínicas sin Openpay.
 - **Pendiente**: la clínica de SMYL en LANA no tiene Openpay conectado; capturar llaves **sandbox** en el panel de LANA, activar `pago_en_linea` en su config y probar de punta a punta (tarjeta de prueba y SPEI). SMYL no tiene pantalla propia para conectar Openpay (hoy solo en el panel de LANA).
 
+## 2026-11-20 — Codex — Equipo, permisos y profesionales en espacios separados
+
+- Solicitud de Ricardo: dejar de mezclar profesionales y roles dentro de una misma pantalla y elevar la claridad del módulo de Configuración.
+- **Equipo → Integrantes** concentra personas, invitaciones y estado de acceso. Conserva una sola ficha por persona y reemplaza los filtros ambiguos por **Todos / Activos / Invitaciones / Inactivos**.
+- **Equipo → Roles y permisos** contiene únicamente las plantillas y alcances de acceso. Ya no comparte cabecera, acciones ni tarjeta con la lista de personas.
+- **Agenda → Profesionales** reúne a quienes atienden pacientes, su preparación para citas, sedes y margen de traslado. El alta visible se llama **Invitar profesional** y reutiliza el flujo seguro existente; no duplica cuentas ni cambia el backend.
+- Las tres tarjetas de Configuración abren directamente su espacio dentro del mismo módulo. La navegación interna funciona también al abrir **Mi clínica** fuera de Configuración y mantiene una sola fuente de datos.
+- Web/móvil sincronizados en `smyl-clinic-admin.js` v24, CSS v20 y `smyl-settings-hub.js` v16. Sin migraciones ni cambios de permisos o datos.
+- Validación: 43 pruebas enfocadas y el recorrido funcional completo de Equipo aprobados; sintaxis y diff limpios. La prueba real cubre sucursales, invitaciones, ficha profesional, horarios, WhatsApp, traslado, permisos de consulta, alta nueva y cuenta existente. Revisión visual en Chromium de los tres espacios a 1440, 900 y 390 px: nueve recorridos sin desbordamiento horizontal. Publicación autorizada el 21 de noviembre de 2026.
+
 ## 2026-11-20 — Codex — Acciones visibles para archivar sucursales
 
 - Seguimiento de Ricardo: la opción para quitar una clínica no era visible al seleccionar la sucursal principal. La acción existía únicamente al final de los datos de una sede secundaria y desaparecía por completo en la principal.
@@ -12131,3 +12141,14 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Siguen igual a propósito:** cerrar con su botón (Cerrar/Cancelar/×) y con **Esc** (con la confirmación «¿Cerrar sin guardar?» del sistema de ventanas); la paleta de búsqueda `#smyl-command-dialog`, el menú «Más opciones» del celular (`#panel-admin-mobile`), la pantalla de inicio de sesión y todo lo marcado con `data-allow-outside-close`; y los menús/escudos laterales (`.mobile-nav-overlay`, `.fab-overlay`, `.pam-backdrop`, `.usage-nav-scrim`, `.smyl-inbox-context-scrim`), que NO son ventanas. Por eso la regla no usa «cualquier clase con overlay/backdrop».
 - **No incluido:** el comparador de imágenes del editor (`editor-v2.html`, `#compare-modal`, solo lectura) y las ventanas de `simulacion*.html` (no tenían cierre por fondo). Si se quiere, cargar el guardián también allí.
 - **Archivos:** `smyl-modal-guard.js`, `smyl-dialog-system.css` (v3), `app.html`, `sw.js`, copias en `mobile/www/`, `tests/smyl-modal-guard-browser.test.mjs` (7 pruebas de navegador con los 4 patrones reales; sin el guardián 3 de ellas fallan).
+
+## 2026-11-21 — Codex — Recibo interno con lectura para paciente primero
+
+- Se reorganizó el detalle del recibo: estado, importe, paciente, fecha y folio forman un solo encabezado; los conceptos y el total pagado son el contenido principal.
+- Método, sucursal, referencia, responsable, saldo a favor y reembolsos siguen disponibles en «Ver detalles del pago», cerrado inicialmente para evitar exponer información operativa como protagonista.
+- Los conceptos puramente numéricos ya no se presentan como nombres: se usa el servicio del catálogo cuando existe y, si no, «Servicio clínico».
+- Facturación queda como una pregunta contextual («¿Requiere factura?»), separada de las acciones del recibo. Las acciones ahora son «Descargar o imprimir» y «Enviar recibo».
+- La impresión y el texto compartido incluyen conceptos, total pagado, método, fecha y la aclaración de que no sustituyen un CFDI; no incluyen el responsable interno ni la referencia técnica.
+- La clase visual del recibo se aplica antes de abrir el diálogo. En escritorio y tableta se centra con posición fija y límite vertical; en móvil ocupa la pantalla completa. Al abrir otra ventana se retira esa clase para que no herede el centrado ni las dimensiones del recibo.
+- Web y PWA sincronizadas en `smyl-finance.js` v63 y `smyl-finance.css` v47. Pruebas focalizadas: 26/26. Revisión visual: escritorio y tableta centrados, más hoja móvil completa sin recortes. Publicación autorizada el 21 de noviembre de 2026.
+- Archivos: `smyl-finance.js`, `smyl-finance.css`, `app.html`, `sw.js`, copias en `mobile/www/`, fixture `tests/fixtures/smyl-receipt-patient-first-v2-preview.html` y pruebas de recibos/facturación.
