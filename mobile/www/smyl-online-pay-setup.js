@@ -19,12 +19,24 @@
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
   function btn(text, cls, fn) { var b = el('button', cls || 'btn btn-secondary', text); b.type = 'button'; if (fn) b.addEventListener('click', fn); return b; }
 
+  // Diagnóstico visible: si el servidor no devuelve un error legible, se muestra el código HTTP y lo que respondió,
+  // en lugar de un mensaje genérico que esconde la causa (las llaves nunca forman parte de este texto).
+  var ACTION_LABEL = { openpay_status: 'consultar', openpay_connect: 'conectar', openpay_methods: 'guardar los métodos', openpay_disconnect: 'desconectar' };
   async function call(action, extra) {
     if (!window.sb || !window.sb.functions) throw new Error('Sin conexión con SMYL.');
     var res = await window.sb.functions.invoke('smyl-pay', { body: Object.assign({ action: action }, extra || {}) });
-    var data = res && res.data, err = res && res.error;
-    if (err && err.context && typeof err.context.json === 'function') { try { data = await err.context.json(); } catch (e) {} }
-    if (!data || data.error || !data.openpay) throw new Error((data && data.error) || 'No se pudo consultar Openpay.');
+    var data = res && res.data, err = res && res.error, detail = '';
+    if (err) {
+      var ctx = err.context, status = ctx && typeof ctx.status === 'number' ? ctx.status : 0;
+      if (ctx && typeof ctx.text === 'function') {
+        try { var raw = await ctx.text(); try { data = JSON.parse(raw); } catch (e) { detail = String(raw || '').replace(/\s+/g, ' ').slice(0, 160); } } catch (e) {}
+      }
+      if (!data || !data.error) detail = (status ? 'HTTP ' + status + ' · ' : '') + (detail || String(err.message || err.name || 'sin respuesta'));
+    } else if (typeof data === 'string') {
+      detail = 'respuesta inesperada: ' + data.replace(/\s+/g, ' ').slice(0, 160); data = null;
+    }
+    if (data && data.error) throw new Error(data.error);
+    if (!data || !data.openpay) throw new Error('No se pudo ' + (ACTION_LABEL[action] || 'completar') + ' Openpay' + (detail ? ' (' + detail + ')' : '') + '. Si se repite, manda una captura de este mensaje.');
     return data;
   }
 
