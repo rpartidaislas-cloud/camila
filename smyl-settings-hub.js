@@ -46,6 +46,7 @@
       { title: 'Recibos', desc: 'Comprobantes, servicios cobrados y seguimiento fiscal.', group: 'Operación diaria', icon: 'payments', action: 'Abrir', route: 'caja', embed: true, target: '[data-finance-tab="receipts"]' },
       { title: 'Corte de caja', desc: 'Cierra el día y cuadra lo cobrado.', group: 'Operación diaria', icon: 'cash', action: 'Revisar', route: 'caja', embed: true, target: '[data-finance-tab="cash"]' },
       { title: 'Facturación', desc: 'Datos fiscales de la clínica y conexión con Facturapi.', group: 'Facturación y reglas', icon: 'template', action: 'Configurar', route: 'caja', embed: true, element: '#billing-setup', ensure: 'billing' },
+      { title: 'Pagos en línea (Openpay)', desc: 'Conecta tu cuenta Openpay para cobrar con enlace: tarjeta y SPEI.', group: 'Facturación y reglas', icon: 'payments', action: 'Configurar', route: 'caja', embed: true, element: '#online-pay-setup', ensure: 'online-pay' },
       { title: 'Formas de pago y anticipo', desc: 'Métodos aceptados y anticipos de la clínica.', group: 'Facturación y reglas', icon: 'payments', soon: true }
     ] },
     { id: 'cuenta', title: 'Cuenta y seguridad', blurb: 'Plan, protección y preparación operativa.', icon: 'security', items: [
@@ -172,6 +173,7 @@
       node.parentNode.insertBefore(mark, node);
       state.detail = { item: item, node: node, mark: mark, page: !item.element };
       win.ir('configuracion');
+      if (item.ensure === 'online-pay' && win.SmylOnlinePay && typeof win.SmylOnlinePay.ensure === 'function') Promise.resolve(win.SmylOnlinePay.ensure()).catch(function () {});
       if (item.ensure === 'billing' && win.SmylFinance && typeof win.SmylFinance.ensureBilling === 'function') Promise.resolve(win.SmylFinance.ensureBilling()).catch(function () {});
       if (item.element && win.SmylReminders && typeof win.SmylReminders.reload === 'function') Promise.resolve(win.SmylReminders.reload()).catch(function () {});
       if (item.target) {

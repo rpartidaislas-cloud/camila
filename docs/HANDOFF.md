@@ -9,6 +9,22 @@
 - En Revisión profesional, el encabezado «Expediente del paciente», la lista de archivos y la acción de carga comparten el margen interior de la tarjeta. El estado vacío ocupa menos altura. La disposición usa el mismo margen horizontal que el encabezado del odontograma en escritorio y móvil.
 - El cambio está en `smyl-evidence-center-integration.css`, con copias web y móvil y la referencia de precaché actualizada.
 
+## 2026-11-21 — Claude Code — «Pagos en línea (Openpay)»: la clínica conecta su Openpay desde SMYL
+
+- Petición de Ricardo: conectar Openpay desde SMYL con una pantalla como la de LANA (la clínica no entra al panel de LANA).
+- **Pantalla** `smyl-online-pay-setup.js` / `.css` v1 (nuevos), en **Configuración → Finanzas → «Pagos en línea (Openpay)»** (`smyl-settings-hub.js` v15, `ensure: 'online-pay'`). Muestra estado (activo/pausa · modo pruebas/producción, comercio `…últimos 4`), **métodos** Tarjeta y SPEI (Paynet y meses sin intereses como «Próximamente»: la pasarela no los soporta), **Cobro en línea activo** (pausa) y **Credenciales y seguridad** (ID de comercio, llave pública, llave privada con Mostrar; Desconectar / Actualizar credenciales). Sin la palabra LANA en pantalla (marca blanca).
+- **`smyl-pay`**: acciones `openpay_status` (permiso `finance.manage`) y `openpay_connect` / `openpay_methods` / `openpay_disconnect` (**solo el dueño**: `user.id === tenantId`). Llaman a `camila-api` `/payments/openpay*` con la llave LANA de la clínica; las llaves de Openpay solo pasan hacia LANA y nunca se guardan en SMYL ni vuelven al navegador. Al conectar/pausar/desconectar sincroniza `camila_tenants.config.pago_en_linea` (ya no hace falta SQL a mano).
+- **LANA** (repo `promodesk`, task-id `smyl-openpay-config`): módulo `camila-api/pagos-openpay.mjs` que verifica las llaves con Openpay (GET del comercio, en sandbox salvo `openpay_modo=produccion`) antes de guardar; SMYL no puede cambiar el modo.
+- **Despliegue pendiente** (CLI desde la PC de Ricardo): LANA `camila-api`; SMYL `smyl-pay`. Pruebas: `tests/smyl-online-pay-setup.test.mjs`; `tests/smyl-settings-hub.test.mjs` actualizado.
+
+## 2026-11-21 — Claude Code — Cobrar con enlace de pago (Openpay vía LANA) desde Cobrar e «Iniciar tratamiento»
+
+- Petición de Ricardo: poder cobrar con Openpay un trabajo realizado (cargo) o una cotización, no solo el saldo total desde la cuenta.
+- `smyl-finance.js` v62: en la ventana **Cobrar**, nueva forma de pago **«Enlace de pago»** (solo si `onlinePayEnabled()`; no en modo anticipo). Cobra el **saldo completo de los cargos marcados** (`charge_ids` a `smyl-pay`, que ya los soportaba); el importe queda de solo lectura y no se registra pago hasta que el paciente pague (el recibo lo emite `smyl_post_online_payment`). El botón dice «Generar enlace de pago».
+- En **Iniciar tratamiento → Cobrar anticipo**: «Cobrar aquí» (cobro manual de siempre) y «Mandar enlace de pago» con los cargos del lote de la cotización (`proposal_batch_id`).
+- `smyl-finance.css` v46, `sw.js` (`-cobro-enlace-v1`), copias móviles. Pruebas en `tests/smyl-pay-core.test.mjs`.
+- **Sin backend nuevo.** Pendiente (requiere redesplegar `smyl-pay`): cobrar **solo un anticipo** (monto menor al saldo de los cargos, p. ej. 30 %) con enlace; hoy el enlace cobra el saldo completo de los cargos elegidos.
+
 ## 2026-11-20 — Codex — Sondaje guiado con MILA
 
 - La exploración periodontal permite elegir pieza inicial, cara y sentido, y dictar las profundidades por sitio. Cada profesional puede conservar sus preferencias de recorrido. La guía permite corregir la pieza anterior, pausar y revisar los sitios pendientes.

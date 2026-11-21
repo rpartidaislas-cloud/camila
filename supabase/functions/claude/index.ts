@@ -6,6 +6,7 @@ import {
   checkLimitPorIpProspecto,
 } from "../_shared/limits.ts";
 import { makeCors } from "../_shared/cors.ts";
+import { permisoIA, respuestaIAnegada } from "../_shared/privacy.ts";
 import { evaluarTope, inicioDiaUTC, inicioMesUTC, leerTopesRadiografia } from "../_shared/ai-quota.ts";
 import {
   RADIOGRAPH_ACTION,
@@ -283,6 +284,9 @@ async function loadClinicalPhotoSources(tenant: string, actor: string, studyIds:
   if (canAccess !== true) {
     throw clinicalPhotoError("El paciente no está disponible para tu rol clínico.", 403, "patient_access_denied");
   }
+
+  const negada = respuestaIAnegada(await permisoIA(usageAdmin, tenant, patientId));
+  if (negada) throw clinicalPhotoError(negada.body.error, negada.status, negada.body.code);
 
   const { data: assets, error: assetError } = await usageAdmin.from("smyl_clinical_evidence_assets")
     .select("study_id,patient_file_id")

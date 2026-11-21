@@ -50,3 +50,28 @@ test('la migración solo agrega: no borra ni cambia lo existente', () => {
   const versions = fs.readdirSync(root + 'supabase/migrations').map((f) => f.split('_')[0]);
   assert.equal(versions.filter((v) => v === '20261123100000').length, 1);
 });
+
+test('firma remota del aviso por enlace: funciona en PostgreSQL real', { skip: !available && 'no hay un PostgreSQL local disponible' }, () => {
+  const db = 'smyl_c_' + process.pid;
+  assert.ok(pg(`createdb ${db}`), 'crear la base temporal');
+  try {
+    for (const file of ['tests/fixtures/db-privacy-stubs.sql', 'supabase/migrations/20261116210000_smyl_patient_consents.sql', 'supabase/migrations/20261123100000_smyl_privacy_rights.sql', 'supabase/migrations/20261124100000_smyl_consent_remote_links.sql']) {
+      const r = psql(db, sql(file));
+      assert.ok(r.ok, file + '\n' + r.out);
+    }
+    const again = psql(db, sql('supabase/migrations/20261124100000_smyl_consent_remote_links.sql'));
+    assert.ok(again.ok, 'segunda aplicación\n' + again.out);
+    const run = psql(db, sql('tests/fixtures/db-consent-link-scenarios.sql'));
+    assert.ok(run.ok, run.out);
+    assert.match(run.out, /ENLACES OK/);
+  } finally { pg(`dropdb --if-exists ${db}`); }
+});
+
+test('la migración de firma remota solo agrega y no expone tablas', () => {
+  const text = sql('supabase/migrations/20261124100000_smyl_consent_remote_links.sql').replace(/--.*$/gm, '');
+  assert.doesNotMatch(text, /\bdrop (table|column|function)\b/i);
+  assert.match(text, /revoke all on public\.smyl_consent_links from public, anon, authenticated/);
+  assert.doesNotMatch(text, /grant (select|insert|update|delete)[^;]*to (anon|authenticated)/i);
+  assert.match(text, /interval '48 hours'/);
+  assert.match(text, /encode\(sha256\(convert_to\(v_token/);
+});

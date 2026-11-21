@@ -8,7 +8,7 @@ create schema if not exists auth;
 create or replace function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
 grant usage on schema public, auth to authenticated, anon, service_role;
 
-create table public.camila_tenants (id uuid primary key);
+create table public.camila_tenants (id uuid primary key, nombre text);
 create table public.camila_pacientes (tenant_id uuid not null references public.camila_tenants(id), id uuid not null, nombre text, apellido text, telefono text, primary key (tenant_id, id));
 create table public.smyl_audit_events (id bigint generated always as identity primary key, tenant_id uuid, actor_id uuid,
   action text not null check (action in ('insert', 'update', 'delete')), entity_type text not null, entity_id text not null default '',

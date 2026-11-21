@@ -124,3 +124,19 @@ test('Enlace de pago visible solo en clínicas con cobro en línea activado',()=
   assert.match(fin,/onlinePayEnabled\(\)\?'<button type="button" id="account-link">Enlace de pago<\/button>'/);
   assert.doesNotMatch(fin,/window\.SMYL_ONLINE_PAY===true\?'<button/);
 });
+
+// Cobrar con enlace: opción en la ventana de Cobrar y en «Iniciar tratamiento».
+test('Cobrar ofrece «Enlace de pago» con los cargos marcados y sin registrar pago hasta que el paciente pague',()=>{
+  const fin=_rf(new URL('../smyl-finance.js',import.meta.url),'utf8');
+  assert.match(fin,/onlinePayEnabled\(\)&&options\.mode!=='advance'\?'<button type="button" data-method="online">Enlace de pago<\/button>'/);
+  assert.match(fin,/function onlineSelection\(form\)\{var ids=\[\],total=0;form\.querySelectorAll\('input\[name=charge\]:checked'\)/);
+  assert.match(fin,/if\(form\.elements\.method\.value==='online'\)return renderOnlineCheck\(form\);/);
+  assert.match(fin,/if\(f\.elements\.method\.value==='online'\)\{var sel=onlineSelection\(f\);renderOnlineCheck\(f\);if\(!sel\.ids\.length\|\|sel\.total<10\)return;openOnlineLink\(f\.elements\.patient\.value,f\.querySelector\('\[data-payment-submit\]'\),sel\.ids\);return;\}/);
+  assert.match(fin,/body:Object\.assign\(\{action:'create',patient_id:patientId\},chargeIds&&chargeIds\.length\?\{charge_ids:chargeIds\}:\{\}\)/);
+  assert.match(fin,/submit\.textContent=method==='online'\?'Generar enlace de pago'/);
+});
+test('Iniciar tratamiento puede mandar el enlace de los cargos de la cotización',()=>{
+  const fin=_rf(new URL('../smyl-finance.js',import.meta.url),'utf8');
+  assert.match(fin,/data-step-link>Mandar enlace de pago/);
+  assert.match(fin,/c\.proposal_batch_id===batch\.id&&c\.status!=='voided'&&balance\(c\)>0/);
+});
