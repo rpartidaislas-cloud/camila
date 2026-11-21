@@ -1,7 +1,7 @@
 // task-id smyl-openpay-config: la clínica conecta su Openpay a LANA desde Configuración → Finanzas, sin entrar al panel de LANA.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const fn = read('supabase/functions/smyl-pay/index.ts');
@@ -73,10 +73,26 @@ test('Paynet: la migración acepta store y lo registra como "other" para que no 
 
 test('Paynet: pagar.html ofrece «Efectivo en tienda» solo si la clínica lo tiene activo y muestra referencia y código de barras de Openpay', () => {
   const page = read('pagar.html');
-  assert.match(page, /\['paynet', 'Efectivo en tienda', methods\.paynet === true\]/);
+  assert.match(page, /\['paynet', 'Efectivo en tiendas', 'Paynet · Referencia', methods\.paynet === true\]/);
   assert.match(page, /post\(LANA_PAY, \{ accion: 'paynet', token: token \}\)/);
-  assert.match(page, /\/\^https:\\\/\\\/\(\[a-z0-9-\]\+\\\.\)\*openpay\\\.mx\\\/\/\.test\(d\.barcode_url\)/);
+  assert.match(page, /function safeBarcode\(url\) \{ return url && \/\^https:\\\/\\\/\(\[a-z0-9-\]\+\\\.\)\*openpay\\\.mx\\\/\/\.test\(url\)/);
   assert.doesNotMatch(page, /innerHTML/);
+});
+
+test('pagar.html replica las fichas de LANA: SPEI con CIE, tarjeta con aviso de términos y Paynet con las 19 cadenas', () => {
+  const page = read('pagar.html');
+  assert.match(page, /Desde BBVA Bancomer \(CIE\)/);
+  assert.match(page, /row\('Convenio CIE', d\.convenio/);
+  assert.match(page, /Guardar ficha de pago/);
+  assert.match(page, /assets\/openpay\/cards1\.png/);
+  assert.match(page, /terminos-cobro\.html#t=/);
+  assert.match(page, /aviso-privacidad-cobro\.html#t=/);
+  assert.match(page, /btn\.disabled = !ok/);
+  const stores = page.match(/logo: '[a-z0-9A-Z-]+\.webp'/g) || [];
+  assert.equal(stores.length, 19);
+  for (const s of stores) assert.ok(existsSync(new URL('../assets/paynet/' + s.slice(7, -1), import.meta.url)), s);
+  // Las ventanas de impresión escapan todo dato dinámico.
+  assert.match(page, /function esc\(v\)/);
 });
 
 test('la pantalla explica que Openpay opera a través de LANA como aplicación externa', () => {

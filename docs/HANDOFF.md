@@ -1,3 +1,22 @@
+## 2026-11-21 — Claude Code — Página de pago con el diseño de LANA y documentos legales de cobro
+
+- Petición de Ricardo: que cada forma de pago de Openpay se vea en SMYL igual que en LANA (diseño tomado de `promodesk/aceptar.html`), y que los términos y el aviso de privacidad de cobro expliquen el papel de LANA y de SMYL.
+- **`pagar.html` rediseñada**, construida con DOM y sin `innerHTML`:
+  - Tarjetas de método: SPEI, Tarjeta y Efectivo en tiendas.
+  - **Ficha SPEI** con Beneficiario, caja «Total a pagar», «Detalles de la compra» y los pasos «Desde BBVA Bancomer (CIE)» (convenio y referencia) y «Desde cualquier otro banco (SPEI)». Incluye «⬇ Guardar ficha de pago» (ventana de impresión con datos escapados) y «Copiar CLABE».
+  - **Tarjeta**: formulario Openpay con logos (`assets/openpay/`), guía del CVV, bloque «Tu información está protegida» y una casilla de aceptación de Términos y Aviso que habilita el botón de pago.
+  - **Paynet**: código de barras, referencia en grupos de 4, Copiar / WhatsApp (en móvil) / Imprimir o guardar PDF, fecha límite, instrucciones y «Dónde pagar» con las 19 cadenas (`assets/paynet/*.webp`), cada una con su comisión y su monto máximo.
+  - Se conserva la lógica anterior: token en `#t=`, regreso de 3D Secure, sondeo con `view` y modo sandbox estricto.
+- **Documentos nuevos** `terminos-cobro.html` y `aviso-privacidad-cobro.html`:
+  - Roles: la clínica es el comercio y la responsable (LFPDPPP); SMYL es el encargado (plataforma de gestión); LANA es el subencargado y la pasarela tecnológica validada por Openpay; Openpay es el procesador.
+  - Cargan el nombre de la clínica con `smyl-pay` `view` usando el token del enlace.
+  - Son coherentes con `privacidad.html` (clínica responsable, SMYL encargado, LANA subencargado). **Pendiente: revisión de un abogado antes de producción.**
+- LANA (`promodesk`, task-id `smyl-pago-ficha-cie`): `pago-publico` devuelve `convenio`, `referencia` y el vencimiento real. Requiere la migración `20261121140000`.
+- QA visual con APIs simuladas en 1280, 820 y 390 px, sin desbordes ni errores de consola. `tests/smyl-online-pay-setup.test.mjs` cubre la nueva ficha.
+- **Despliegue**:
+  - LANA: aplicar las migraciones `20261121120000` y `20261121140000` y luego desplegar `pago-publico`, `openpay-webhook` (`--no-verify-jwt`) y `camila-api`.
+  - SMYL: `pagar.html` y las páginas legales se publican con el sitio. Sigue pendiente la migración `20261121130000` y el despliegue de `smyl-pay`.
+
 ## 2026-11-21 — Claude Code — Efectivo en tiendas (Paynet) y pantalla de Pagos en línea mejorada
 
 - Petición de Ricardo: habilitar «Efectivo en tiendas» y mejorar la pantalla, dejando claro que Openpay opera vía LANA como aplicación externa (Openpay validó a LANA, no a SMYL).
