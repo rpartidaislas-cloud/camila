@@ -1,3 +1,20 @@
+## 2026-11-21 — Claude Code — Efectivo en tiendas (Paynet) y pantalla de Pagos en línea mejorada
+
+- Petición de Ricardo: habilitar «Efectivo en tiendas» y mejorar la pantalla, dejando claro que Openpay opera vía LANA como aplicación externa (Openpay validó a LANA, no a SMYL).
+- **Paynet (efectivo en tiendas)**:
+  - `pagar.html` tiene una pestaña «Efectivo en tienda» (solo si la clínica la tiene activa). Genera la referencia y muestra el código de barras (solo URLs `*.openpay.mx`); la página se actualiza sola al confirmarse el pago.
+  - Migración `20261121130000_smyl_payment_links_store.sql`: `smyl_payment_links.method` acepta `store`. `smyl_post_online_payment` registra el pago en Finanzas como `other` con la referencia «OpenPay Paynet …», para que **no cuente como efectivo de la caja**; el recibo guarda `method='store'`.
+  - `smyl-pay` mapea `paynet` a `store` y acepta `paynet` en `openpay_methods`.
+  - LANA (`promodesk`, task-id `smyl-openpay-paynet`): acción `paynet` en `pago-publico`, `openpay-webhook` `store`→`paynet`, interruptor en `camila-api`, columna `openpay_barcode_url`.
+- **Pantalla** (`smyl-online-pay-setup.js` v3 / `.css` v2):
+  - Resumen con comercio, modo, métodos visibles y «Procesado por LANA · Openpay».
+  - Interruptor real de Paynet.
+  - Bloque **«Cómo funciona»** (paciente paga, LANA procesa el cobro, SMYL registra el pago) y un aviso: «Openpay opera en SMYL a través de LANA como aplicación externa…».
+  - **Única excepción a la marca blanca**: `tests/smyl-branding-isolation.test.mjs` permite esas frases solo en este archivo.
+- **Despliegue pendiente**:
+  - LANA: aplicar la migración `20261121120000` y desplegar `pago-publico`, `openpay-webhook` (`--no-verify-jwt`) y `camila-api`.
+  - SMYL: aplicar la migración `20261121130000` en el editor SQL y desplegar `smyl-pay`.
+
 ## 2026-11-21 — Claude Code — Pagos en línea: la pantalla muestra la causa real del error
 
 - Ricardo no pudo conectar Openpay: la pantalla decía «No se pudo consultar Openpay.». Los registros de LANA muestran que el estado (`GET /payments/openpay`) respondió 200, pero «Conectar» nunca llegó a LANA (no hay ningún `PUT /payments/openpay/credentials`). Es decir, falla en `smyl-pay` o entre el navegador y `smyl-pay`. Sin acceso a los registros del proyecto SMYL.

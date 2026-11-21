@@ -36,7 +36,7 @@ async function conciliar(link: Json): Promise<Json> {
     if (!response.ok || !req || req.status !== "paid") return link;
     // Misma solicitud y mismo monto que SMYL fijó; cualquier diferencia no se registra.
     if (req.reference !== link.id || Math.round(Number(req.amount) * 100) !== Math.round(Number(link.amount) * 100)) return link;
-    const metodo = req.method === "spei" ? "transfer" : "card";
+    const metodo = req.method === "spei" ? "transfer" : req.method === "paynet" ? "store" : "card";
     const { data, error } = await admin.rpc("smyl_post_online_payment", {
       p_link_id: link.id, p_lana_charge_id: String(req.openpay_charge_id || ""), p_method: metodo, p_paid_at: req.paid_at || new Date().toISOString(),
     });
@@ -120,7 +120,7 @@ async function accionesOpenpay(body: Json, tenantId: string, userId: string, COR
     init = { method: "PUT", body: JSON.stringify({ merchant_id: body.merchant_id, public_key: body.public_key, private_key: body.private_key }) };
   } else if (body.action === "openpay_methods") {
     const cambios: Json = {};
-    for (const k of ["active", "card", "spei"]) if (typeof body[k] === "boolean") cambios[k] = body[k];
+    for (const k of ["active", "card", "spei", "paynet"]) if (typeof body[k] === "boolean") cambios[k] = body[k];
     if (!Object.keys(cambios).length) return json(CORS, 400, { error: "No hay cambios." });
     path = "/payments/openpay/methods";
     init = { method: "PUT", body: JSON.stringify(cambios) };

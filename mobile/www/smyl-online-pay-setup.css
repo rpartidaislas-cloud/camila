@@ -49,3 +49,17 @@
   .online-pay-pair{grid-template-columns:1fr}
   .online-pay-actions .btn{flex:1}
 }
+/* v2: resumen, «Cómo funciona» y aviso de que Openpay opera a través de LANA (aplicación externa validada por Openpay). */
+.online-pay-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0}
+.online-pay-summary>div{padding:12px 14px;border:1px solid #dde6ec;border-radius:12px;background:#fff}
+.online-pay-summary dt{color:#6b7d88;font-size:12px;font-weight:600}
+.online-pay-summary dd{margin:4px 0 0;font-size:15px;font-weight:700;color:#172b3a}
+.online-pay-flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:4px 0 0;padding:0;list-style:none}
+.online-pay-flow-step{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:12px;background:#f6f9fb}
+.online-pay-flow-step strong{display:block;font-size:14px}
+.online-pay-flow-step small{display:block;margin-top:3px;color:#5b6f7b;font-size:12px;line-height:1.45}
+.online-pay-flow-icon,.online-pay-provider-icon{flex-shrink:0;display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#e6f0f3;color:#1f5f6f}
+.online-pay-flow-icon svg,.online-pay-provider-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.online-pay-provider{display:flex;gap:10px;align-items:flex-start;margin:6px 0 0;padding:12px 14px;border:1px solid #cfe3dc;border-radius:12px;background:#f1f8f5;color:#24524a;font-size:13px;line-height:1.5}
+.online-pay-provider-icon{background:#dff0e8;color:#1f6b55}
+@media(max-width:760px){.online-pay-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.online-pay-flow{grid-template-columns:1fr}}
