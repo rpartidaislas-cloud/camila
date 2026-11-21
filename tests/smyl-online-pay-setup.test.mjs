@@ -91,6 +91,9 @@ test('pagar.html replica las fichas de LANA: SPEI con CIE, tarjeta con aviso de 
   const stores = page.match(/logo: '[a-z0-9A-Z-]+\.webp'/g) || [];
   assert.equal(stores.length, 19);
   for (const s of stores) assert.ok(existsSync(new URL('../assets/paynet/' + s.slice(7, -1), import.meta.url)), s);
+  // Un solo método por enlace: si ya hay CLABE o referencia Paynet, solo se muestra esa ficha y se vuelve a abrir sola.
+  assert.match(page, /var locked = cfg\.solicitud && \/\^\(spei\|paynet\)\$\/\.test/);
+  assert.match(page, /if \(locked\) \{ var gen = panel\.querySelector\('\.btn'\); if \(gen\) gen\.click\(\); \}/);
   // Las ventanas de impresión escapan todo dato dinámico.
   assert.match(page, /function esc\(v\)/);
 });

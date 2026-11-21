@@ -1,3 +1,9 @@
+## 2026-11-21 — Claude Code — Página de pago: un solo método por enlace
+
+- Prueba de Ricardo en sandbox: después de generar la CLABE SPEI en un enlace, la página le dejó llenar la tarjeta completa y hasta el final mostró «Ya generaste una CLABE para este pago».
+- `pagar.html`: si `pago-publico` `config` trae `solicitud.metodo` igual a `spei` o `paynet`, se ocultan los demás métodos, se muestra el aviso «Para pagar con otro método, pide un enlace nuevo a tu clínica» y la ficha se abre sola. La acción es idempotente y devuelve la misma CLABE o referencia.
+- La regla de un solo método vive en LANA y evita cobrar dos veces el mismo saldo; no cambia.
+
 ## 2026-11-21 — Claude Code — Página de pago con el diseño de LANA y documentos legales de cobro
 
 - Petición de Ricardo: que cada forma de pago de Openpay se vea en SMYL igual que en LANA (diseño tomado de `promodesk/aceptar.html`), y que los términos y el aviso de privacidad de cobro expliquen el papel de LANA y de SMYL.
