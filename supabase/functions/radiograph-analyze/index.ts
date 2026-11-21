@@ -6,6 +6,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireUser } from '../_shared/auth.ts';
 import { makeCors } from '../_shared/cors.ts';
+import { permisoIA, respuestaIAnegada } from '../_shared/privacy.ts';
 import { createDentalProvider } from '../_shared/radiograph-provider.ts';
 import { runRadiographAnalysis, type AiRunRow, type SourceRow } from '../_shared/radiograph-qc-core.ts';
 
@@ -45,6 +46,15 @@ Deno.serve(async (req: Request) => {
   if (kind !== 'tooth_localization' && kind !== 'finding_candidates') return reply(400, { error: 'Indica el análisis: tooth_localization o finding_candidates.' });
   try {
     const admin = adminClient();
+    // El paciente puede haber negado la IA: se revisa ANTES de pedir la corrida y de mandar la imagen al motor externo.
+    const rawSource = (body as Record<string, unknown>).sourceId;
+    if (typeof rawSource === 'string' && /^[0-9a-f-]{36}$/i.test(rawSource)) {
+      const { data: src } = await admin.from('smyl_radiograph_sources').select('tenant_id,patient_id').eq('id', rawSource).maybeSingle();
+      if (src && src.tenant_id === auth.tenantId && src.patient_id) {
+        const negada = respuestaIAnegada(await permisoIA(admin, src.tenant_id, src.patient_id));
+        if (negada) return reply(negada.status, negada.body);
+      }
+    }
     const result = await runRadiographAnalysis(kind, body, {
       requestRun: async (sourceId, kind, acknowledgeUnconfirmed) => {
         const { data, error } = await asUser.rpc('smyl_radiograph_request_ai_run', { p_source_id: sourceId, p_kind: kind, p_acknowledge_unconfirmed: acknowledgeUnconfirmed });
