@@ -40,7 +40,7 @@ test('pantalla: estado, métodos (Paynet y MSI como próximamente), credenciales
 test('Configuración → Finanzas abre «Pagos en línea (Openpay)» y carga el estado', () => {
   assert.match(hub, /title: 'Pagos en línea \(Openpay\)'.*element: '#online-pay-setup', ensure: 'online-pay'/);
   assert.match(hub, /item\.ensure === 'online-pay' && win\.SmylOnlinePay && typeof win\.SmylOnlinePay\.ensure === 'function'/);
-  for (const f of ['app.html', 'sw.js']) { assert.match(read(f), /smyl-online-pay-setup\.js\?v=2/); assert.match(read(f), /smyl-online-pay-setup\.css\?v=1/); }
+  for (const f of ['app.html', 'sw.js']) { assert.match(read(f), /smyl-online-pay-setup\.js\?v=3/); assert.match(read(f), /smyl-online-pay-setup\.css\?v=2/); }
   for (const f of ['smyl-online-pay-setup.js', 'smyl-online-pay-setup.css', 'smyl-settings-hub.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), 'mobile/www/' + f);
 });
 
@@ -53,4 +53,33 @@ test('si el servidor no devuelve un error legible, se muestra el código HTTP y 
   assert.match(ui, /'No se pudo ' \+ \(ACTION_LABEL\[action\] \|\| 'completar'\) \+ ' Openpay'/);
   assert.match(ui, /openpay_connect: 'conectar'/);
   assert.doesNotMatch(ui, /No se pudo consultar Openpay\./);
+});
+
+// Efectivo en tiendas (Paynet vía Openpay/LANA).
+test('Paynet: pantalla con interruptor real, smyl-pay mapea paynet→store y lo acepta en métodos', () => {
+  assert.match(ui, /switchRow\('store', 'Efectivo en tiendas Paynet', '[^']+', d\.methods\.paynet, lock,/);
+  assert.match(ui, /run\('openpay_methods', \{ paynet: v \}/);
+  assert.match(fn, /const metodo = req\.method === "spei" \? "transfer" : req\.method === "paynet" \? "store" : "card";/);
+  assert.match(fn, /for \(const k of \["active", "card", "spei", "paynet"\]\)/);
+});
+
+test('Paynet: la migración acepta store y lo registra como "other" para que no cuente como efectivo de la caja', () => {
+  const mig = read('supabase/migrations/20261121130000_smyl_payment_links_store.sql');
+  assert.match(mig, /check \(method in \('card','transfer','store'\)\)/);
+  assert.match(mig, /if p_method not in \('card','transfer','store'\)/);
+  assert.match(mig, /v_finance_method := case when p_method = 'store' then 'other' else p_method end;/);
+  assert.match(mig, /'OpenPay Paynet '/);
+});
+
+test('Paynet: pagar.html ofrece «Efectivo en tienda» solo si la clínica lo tiene activo y muestra referencia y código de barras de Openpay', () => {
+  const page = read('pagar.html');
+  assert.match(page, /\['paynet', 'Efectivo en tienda', methods\.paynet === true\]/);
+  assert.match(page, /post\(LANA_PAY, \{ accion: 'paynet', token: token \}\)/);
+  assert.match(page, /\/\^https:\\\/\\\/\(\[a-z0-9-\]\+\\\.\)\*openpay\\\.mx\\\/\/\.test\(d\.barcode_url\)/);
+  assert.doesNotMatch(page, /innerHTML/);
+});
+
+test('la pantalla explica que Openpay opera a través de LANA como aplicación externa', () => {
+  assert.match(ui, /Cómo funciona/);
+  assert.match(ui, /Openpay opera en SMYL a través de LANA como aplicación externa: Openpay validó a LANA como plataforma de pagos/);
 });

@@ -24,8 +24,8 @@ h1{font-size:22px;line-height:1.25;margin:4px 0 2px}
 .line{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
 .line span:last-child{white-space:nowrap;font-variant-numeric:tabular-nums}
 .total{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-size:20px;margin:10px 0 18px}
-.tabs{display:flex;gap:8px;margin-bottom:14px}
-.tab{flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;font:inherit;font-weight:600;cursor:pointer;color:var(--ink)}
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.tab{flex:1 1 30%;min-width:0;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;font:inherit;font-weight:600;cursor:pointer;color:var(--ink)}
 .tab[aria-selected=true]{border-color:var(--blue);color:var(--blue);background:#EFF6FF}
 label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
 input{width:100%;border:1px solid #CBD5E1;border-radius:10px;padding:12px;font:inherit;background:#fff}
@@ -39,6 +39,7 @@ input:focus{outline:2px solid #93C5FD;border-color:var(--blue)}
 .msg.err{background:var(--badbg);color:var(--bad)}
 .msg.ok{background:var(--okbg);color:var(--ok)}
 .msg.info{background:#EFF6FF;color:#1E3A8A}
+.barcode{display:block;max-width:100%;height:auto;margin:8px 0;background:#fff}
 .clabe{font:600 22px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em;word-break:break-all;margin:6px 0}
 .fine{color:var(--muted);font-size:12px;margin-top:16px;text-align:center}
 .done{text-align:center;padding:10px 0}
@@ -141,13 +142,13 @@ input:focus{outline:2px solid #93C5FD;border-color:var(--blue)}
     var methods = cfg.metodos || {};
     var tabs = el('div', { 'class': 'tabs', role: 'tablist' });
     var panel = el('div');
-    var current = methods.tarjeta !== false ? 'card' : 'spei';
+    var current = methods.tarjeta !== false ? 'card' : methods.spei !== false ? 'spei' : 'paynet';
     function paint() {
       Array.prototype.forEach.call(tabs.children, function (t) { t.setAttribute('aria-selected', String(t.getAttribute('data-m') === current)); });
       panel.textContent = '';
-      panel.appendChild(current === 'card' ? cardPanel(v) : speiPanel(v));
+      panel.appendChild(current === 'card' ? cardPanel(v) : current === 'spei' ? speiPanel(v) : paynetPanel(v));
     }
-    [['card', 'Tarjeta', methods.tarjeta !== false], ['spei', 'Transferencia SPEI', methods.spei !== false]].forEach(function (m) {
+    [['card', 'Tarjeta', methods.tarjeta !== false], ['spei', 'Transferencia SPEI', methods.spei !== false], ['paynet', 'Efectivo en tienda', methods.paynet === true]].forEach(function (m) {
       if (!m[2]) return;
       var b = el('button', { type: 'button', 'class': 'tab', role: 'tab', 'data-m': m[0], text: m[1] });
       b.onclick = function () { current = m[0]; paint(); };
@@ -229,6 +230,38 @@ input:focus{outline:2px solid #93C5FD;border-color:var(--blue)}
     copy.onclick = function () { try { navigator.clipboard.writeText(d.clabe); copy.textContent = 'Copiada'; } catch (e) {} };
     box.appendChild(copy);
     if (d.vence) box.appendChild(el('p', { 'class': 'sub', text: 'Vigente hasta el ' + dateTime(d.vence) + '. Esta página se actualiza sola cuando llegue tu pago.' }));
+    startPoll();
+  }
+
+  // Efectivo en tiendas (Paynet vía Openpay): referencia + código de barras; el pago llega cuando el cliente paga en tienda.
+  function paynetPanel(v) {
+    var box = el('div');
+    var btn = el('button', { 'class': 'btn', type: 'button', text: 'Generar referencia para pagar en tienda' });
+    var err = el('div', { 'class': 'msg err', hidden: 'hidden' });
+    btn.onclick = function () {
+      btn.disabled = true; err.hidden = true;
+      post(LANA_PAY, { accion: 'paynet', token: token }).then(function (d) {
+        if (d.status === 'paynet') return showPaynet(box, d);
+        if (d.status === 'pagada') return waiting();
+        btn.disabled = false; err.textContent = d.error || 'No se pudo generar la referencia.'; err.hidden = false;
+      }).catch(function () { btn.disabled = false; err.textContent = 'No pudimos conectar. Inténtalo de nuevo.'; err.hidden = false; });
+    };
+    box.appendChild(el('p', { 'class': 'sub', text: 'Paga en efectivo en tiendas de conveniencia y farmacias afiliadas a Paynet (por ejemplo 7-Eleven, Farmacias del Ahorro, Walmart, Bodega Aurrera). La tienda puede cobrar una comisión.' }));
+    box.appendChild(err); box.appendChild(btn);
+    return box;
+  }
+
+  function showPaynet(box, d) {
+    box.textContent = '';
+    box.appendChild(el('div', { 'class': 'msg info', text: 'Paga exactamente ' + money(d.monto) + ' en caja mostrando esta referencia o el código de barras.' }));
+    box.appendChild(el('div', { 'class': 'clabe', text: String(d.referencia || '').replace(/(.{4})/g, '$1 ').trim() }));
+    if (d.barcode_url && /^https:\/\/([a-z0-9-]+\.)*openpay\.mx\//.test(d.barcode_url)) {
+      box.appendChild(el('img', { 'class': 'barcode', src: d.barcode_url, alt: 'Código de barras de la referencia de pago' }));
+    }
+    var copy = el('button', { 'class': 'btn ghost', type: 'button', text: 'Copiar referencia' });
+    copy.onclick = function () { try { navigator.clipboard.writeText(d.referencia); copy.textContent = 'Copiada'; } catch (e) {} };
+    box.appendChild(copy);
+    if (d.vence) box.appendChild(el('p', { 'class': 'sub', text: 'Paga antes del ' + dateTime(d.vence) + '. Al pagar en tienda, la confirmación puede tardar unos minutos; esta página se actualiza sola.' }));
     startPoll();
   }
 

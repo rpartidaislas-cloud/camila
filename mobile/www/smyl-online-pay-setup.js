@@ -3,7 +3,9 @@
    - Todo pasa por la función smyl-pay (acciones openpay_*). Las llaves viajan solo hacia LANA, que las verifica con Openpay;
      nunca se guardan en SMYL ni vuelven al navegador (solo se muestran los últimos 4 del ID de comercio).
    - Consultar: quien puede cobrar. Conectar, cambiar métodos y desconectar: solo el dueño (el servidor lo vuelve a exigir).
-   - El modo (pruebas/producción) lo decide LANA; aquí solo se muestra. Paynet y meses sin intereses aún no existen. */
+   - El modo (pruebas/producción) lo decide LANA; aquí solo se muestra. Paynet (efectivo en tiendas) sí; meses sin intereses aún no.
+   - Por pedido de Ricardo, la pantalla SÍ nombra a LANA: Openpay validó a LANA como plataforma y SMYL usa su pasarela como
+     aplicación externa. Es la única excepción a la marca blanca (ver tests/smyl-branding-isolation.test.mjs). */
 (function () {
   'use strict';
   var state = { loading: false, data: null, owner: false, error: '', busy: false, showKey: false };
@@ -14,7 +16,11 @@
     bank: '<svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg>',
     store: '<svg viewBox="0 0 24 24"><path d="M4 9l1.5-5h13L20 9M4 9h16v11H4zM9 20v-6h6v6"/></svg>',
     calendar: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>',
-    pause: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg>'
+    pause: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg>',
+    phone: '<svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18h2"/></svg>',
+    link: '<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
+    receipt: '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>',
+    shield: '<svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>'
   };
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
   function btn(text, cls, fn) { var b = el('button', cls || 'btn btn-secondary', text); b.type = 'button'; if (fn) b.addEventListener('click', fn); return b; }
@@ -109,11 +115,42 @@
     return form;
   }
 
+  function iconEl(name, cls) { var i = el('span', cls || 'online-pay-flow-icon'); i.setAttribute('aria-hidden', 'true'); i.innerHTML = ICONS[name] || ''; return i; }
+
+  // Cómo funciona: quién hace qué. Openpay validó a LANA como plataforma de pagos; SMYL la usa como aplicación externa.
+  function howItWorks() {
+    var sec = el('section', 'online-pay-card online-pay-how');
+    sec.append(el('h3', '', 'Cómo funciona'));
+    var flow = el('ol', 'online-pay-flow');
+    [['phone', 'Tu paciente paga', 'Con tarjeta, transferencia SPEI o efectivo en tienda, desde el enlace que le mandas.'],
+     ['link', 'LANA procesa el cobro', 'La pasarela de LANA, validada por Openpay, cobra con TU cuenta Openpay.'],
+     ['receipt', 'SMYL registra el pago', 'Al confirmarse, el pago se aplica a la cuenta del paciente y se emite el recibo.']
+    ].forEach(function (s, i) {
+      var li = el('li', 'online-pay-flow-step');
+      var txt = el('span', ''); txt.append(el('strong', '', (i + 1) + '. ' + s[1]), el('small', '', s[2]));
+      li.append(iconEl(s[0]), txt); flow.append(li);
+    });
+    sec.append(flow);
+    var note = el('p', 'online-pay-provider');
+    note.append(iconEl('shield', 'online-pay-provider-icon'), el('span', '', 'Openpay opera en SMYL a través de LANA como aplicación externa: Openpay validó a LANA como plataforma de pagos y SMYL usa esa integración. El dinero llega directo a la cuenta Openpay de tu clínica; ni SMYL ni LANA lo retienen.'));
+    sec.append(note);
+    return sec;
+  }
+
+  function summary(d) {
+    var box = el('dl', 'online-pay-summary');
+    var activos = [d.methods.card && 'Tarjeta', d.methods.spei && 'SPEI', d.methods.paynet && 'Tiendas'].filter(Boolean);
+    [['Comercio', d.merchant_id_hint || '—'], ['Modo', d.mode === 'production' ? 'Producción' : 'Pruebas'], ['Métodos visibles', activos.length ? activos.join(' · ') : 'Ninguno'], ['Procesado por', 'LANA · Openpay']].forEach(function (r) {
+      var item = el('div', ''); item.append(el('dt', '', r[0]), el('dd', '', r[1])); box.append(item);
+    });
+    return box;
+  }
+
   function render() {
     var root = holder(); root.replaceChildren();
     var d = state.data, connected = !!(d && d.connected), test = !d || d.mode !== 'production';
     var head = el('header', 'online-pay-head');
-    var copy = el('div', ''); copy.append(el('span', 'pro-eyebrow', 'PAGOS EN LÍNEA · OPENPAY'), el('h2', '', connected ? 'Openpay conectado' : 'Conecta tu cuenta Openpay'), el('p', '', 'Tus pacientes pagan con tarjeta o transferencia SPEI desde un enlace. El dinero llega directo a tu cuenta Openpay; al confirmarse, SMYL registra el pago y emite el recibo.'));
+    var copy = el('div', ''); copy.append(el('span', 'pro-eyebrow', 'PAGOS EN LÍNEA · OPENPAY'), el('h2', '', connected ? 'Openpay conectado' : 'Conecta tu cuenta Openpay'), el('p', '', 'Cobra con un enlace: tus pacientes pagan con tarjeta, transferencia SPEI o efectivo en tiendas, y SMYL registra el pago y emite el recibo en cuanto se confirma.'));
     var chip = el('span', 'online-pay-chip', state.loading ? 'Consultando…' : connected ? (d.active ? 'Activo' : 'En pausa') + ' · ' + (test ? 'modo pruebas' : 'producción') : 'No conectado');
     chip.dataset.state = connected ? (d.active ? 'on' : 'paused') : 'off';
     head.append(copy, chip); root.append(head);
@@ -127,7 +164,8 @@
     if (!state.owner) root.append(notice('Solo el dueño de la clínica puede conectar o cambiar Openpay. Aquí puedes consultar el estado.', 'info'));
 
     if (connected) {
-      var status = el('p', 'online-pay-merchant'); status.append(el('strong', '', 'Comercio ' + (d.merchant_id_hint || '')), document.createTextNode(d.active ? ' · el botón «Enlace de pago» aparece en Cobrar y en la cuenta del paciente.' : ' · pausado: no se pueden generar enlaces nuevos.'));
+      root.append(summary(d));
+      var status = el('p', 'online-pay-merchant', d.active ? 'El botón «Enlace de pago» aparece en Cobrar, en la cuenta del paciente y al iniciar un tratamiento.' : 'En pausa: no se pueden generar enlaces nuevos. Los que ya enviaste siguen funcionando.');
       root.append(status);
       var methods = el('section', 'online-pay-card');
       methods.append(el('h3', '', 'Métodos disponibles'), el('p', 'online-pay-help', 'Activa únicamente las formas de pago que quieres ofrecer.'));
@@ -136,7 +174,7 @@
       list.append(
         switchRow('card', 'Tarjeta', 'Crédito y débito con tokenización segura y 3D Secure', d.methods.card, lock, function (v) { run('openpay_methods', { card: v }, v ? 'Tarjeta visible para tus pacientes.' : 'Tarjeta oculta.'); }),
         switchRow('bank', 'Transferencia SPEI', 'CLABE única por pago y conciliación automática', d.methods.spei, lock, function (v) { run('openpay_methods', { spei: v }, v ? 'SPEI visible para tus pacientes.' : 'SPEI oculto.'); }),
-        switchRow('store', 'Efectivo en tiendas Paynet', 'Próximamente', false, true, null, 'Próximamente')
+        switchRow('store', 'Efectivo en tiendas Paynet', 'Referencia y código de barras para pagar en 7-Eleven, farmacias y supermercados afiliados. Se acredita cuando el paciente paga (hasta 3 días).', d.methods.paynet, lock, function (v) { run('openpay_methods', { paynet: v }, v ? 'Efectivo en tiendas visible para tus pacientes.' : 'Efectivo en tiendas oculto.'); })
       );
       methods.append(list); root.append(methods);
       var msi = el('section', 'online-pay-card');
@@ -145,7 +183,9 @@
       var pause = el('section', 'online-pay-card');
       pause.append(switchRow('pause', 'Cobro en línea activo', 'Si lo pausas, no se generan enlaces nuevos; tus llaves se conservan.', d.active, lock, function (v) { run('openpay_methods', { active: v }, v ? 'Cobro en línea activo.' : 'Cobro en línea en pausa.'); }, d.active ? 'Activo' : 'En pausa'));
       root.append(pause);
+      root.append(howItWorks());
     } else {
+      root.append(howItWorks());
       var steps = el('ol', 'online-pay-steps');
       ['Entra a tu panel de Openpay (en pruebas: sandbox-dashboard.openpay.mx).', 'Ve a Configuración → Llaves de API y copia el ID de comercio, la llave pública (pk_…) y la llave privada (sk_…).', 'Pégalas aquí y pulsa «Conectar Openpay». Las verificamos con Openpay antes de guardarlas.'].forEach(function (t) { steps.append(el('li', '', t)); });
       root.append(steps);
