@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireUser, requirePermission } from '../_shared/auth.ts';
 import { makeCors } from '../_shared/cors.ts';
+import { permisoIA, respuestaIAnegada } from '../_shared/privacy.ts';
 import { providerFacts, selectedFacts } from './contract.mjs';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL') || Deno.env.get('SB_URL') || '',
@@ -35,6 +36,8 @@ Deno.serve(async (req: Request) => {
     });
     if (access.error) return json(503, { error: 'No se pudo comprobar el acceso al paciente.' });
     if (access.data !== true) return json(403, { error: 'Tu rol no tiene acceso a este paciente.' });
+    const negada = respuestaIAnegada(await permisoIA(admin, auth.tenantId, body.patientId));
+    if (negada) return json(negada.status, negada.body);
     const key = Deno.env.get('OPENAI_API_KEY');
     if (!key) return json(503, { error: 'MILA no está configurada. Puedes redactar el resumen manualmente.' });
     if (enforce) {

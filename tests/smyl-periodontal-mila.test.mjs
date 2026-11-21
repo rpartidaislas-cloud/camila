@@ -58,10 +58,14 @@ test('el servicio rechaza campos libres, sitios duplicados, cambios huérfanos y
 test('el handler rechaza la falta de permiso, alcance, saldo y respuesta incorrecta sin aplicar un resumen', async () => {
   const code = await readFile(new URL('../supabase/functions/periodontal-summary/index.ts', import.meta.url), 'utf8');
   const executable = stripTypeScriptTypes(code.replace(/^import .*?;\s*$/gm, ''));
-  const setup = new Function('Deno', 'fetch', 'createClient', 'requireUser', 'requirePermission', 'makeCors', 'providerFacts', 'selectedFacts', executable);
+  const setup = new Function('Deno', 'fetch', 'createClient', 'requireUser', 'requirePermission', 'makeCors', 'permisoIA', 'respuestaIAnegada', 'providerFacts', 'selectedFacts', executable);
+  // El candado de privacidad real (privacy.ts + privacy-core.mjs), no uno de mentira.
+  const core = await import('../supabase/functions/_shared/privacy-core.mjs');
+  const privacySrc = stripTypeScriptTypes((await readFile(new URL('../supabase/functions/_shared/privacy.ts', import.meta.url), 'utf8')).replace(/^import .*?;\s*$/gm, '').replace(/^export \{.*?\};\s*$/gm, '').replace(/^export /gm, ''));
+  const { permisoIA, respuestaIAnegada } = new Function('decidirIA', 'MENSAJE_IA_NO_PERMITIDA', 'MENSAJE_IA_NO_VERIFICABLE', privacySrc + '\nreturn { permisoIA, respuestaIAnegada };')(core.decidirIA, core.MENSAJE_IA_NO_PERMITIDA, core.MENSAJE_IA_NO_VERIFICABLE);
   const facts = [{ kind: 'site', site: 'MB', depth: 5 }];
   for (const [condition, status, providerCalls, debits] of [
-    ['anonymous',401,0,0], ['role',403,0,0], ['other-patient',403,0,0], ['no-wallet',402,0,0],
+    ['anonymous',401,0,0], ['role',403,0,0], ['other-patient',403,0,0], ['ai-revoked',403,0,0], ['ai-unverifiable',503,0,0], ['no-wallet',402,0,0],
     ['bad-provider',422,1,0], ['spent-concurrently',402,1,1], ['success',200,1,1]
   ]) {
     let handler, attempts = 0, charges = 0;
@@ -70,6 +74,10 @@ test('el handler rechaza la falta de permiso, alcance, saldo y respuesta incorre
         if (name === 'smyl_actor_can_access_patient_explicit') {
           assert.equal(args.p_domain, 'clinical'); assert.equal(args.p_actor, 'user');
           return { data: condition !== 'other-patient' };
+        }
+        if (name === 'smyl_patient_privacy_state') {
+          assert.equal(args.p_purpose, 'ai_processing'); assert.equal(args.p_tenant, 'clinic');
+          return condition === 'ai-unverifiable' ? { data: null, error: { message: 'down' } } : { data: condition === 'ai-revoked' ? 'revoked' : 'unknown', error: null };
         }
         assert.equal(name, 'smyl_consume'); assert.equal(args.p_resource, 'ai_credits');
         assert.equal(args.p_quantity_units, 1); charges++;
@@ -91,7 +99,7 @@ test('el handler rechaza la falta de permiso, alcance, saldo y respuesta incorre
       },
       () => db, async () => condition === 'anonymous' ? {response: new Response(null,{status:401})} : {user:{id:'user'},tenantId:'clinic'},
       async (_auth, _cors, role) => { assert.equal(role, 'clinical.write'); return condition === 'role' ? new Response(null,{status:403}) : null; },
-      () => ({}), providerFacts, selectedFacts);
+      () => ({}), permisoIA, respuestaIAnegada, providerFacts, selectedFacts);
     const response = await handler(new Request('https://example.test/periodontal-summary', { method: 'POST', body: JSON.stringify({
       patientId: 'deadbeef-0000-4000-8000-000000000001', patientName: 'Private Patient', facts
     }) }));

@@ -273,6 +273,7 @@
     else if (id === 'confirm') confirmData(patient, button);
     else if (id === 'interview') startInterview(step.state === 'done');
     else if (id === 'consent') startConsent();
+    else if (id === 'consent-link') openConsentLink(patient);
     else if (id === 'consent-view') viewConsent();
     else if (id === 'history') openSection(patient.id, 'history');
     else if (id === 'files') openSection(patient.id, 'files');
@@ -573,6 +574,62 @@
     } catch (err) {
       if (state.qr !== q) return;
       body.replaceChildren(el('p', 'co-error', qrError(err)), (function () { var b = el('button', 'co-ghost', 'Cerrar'); b.type = 'button'; b.onclick = closeDialog; return b; })());
+    }
+  }
+
+
+  /* ── Firma desde el celular del paciente ──
+   * Se crea un enlace de un solo uso (vence a las 48 h) a aviso-firma.html. El paciente lee, decide (IA, WhatsApp, promociones),
+   * firma con el dedo y la firma queda en su ficha. Mientras el código está abierto se revisa cada pocos segundos si ya firmó. */
+  function consentLinkUrl(token) { return location.origin + location.pathname.replace(/[^/]*$/, '') + 'aviso-firma.html?token=' + encodeURIComponent(token); }
+  function consentLinkError(err) {
+    var code = err && err.code, msg = String(err && err.message || '');
+    if (code === '42501') return 'Tu rol no permite enviar avisos a firmar.';
+    if (/PGRST202|42883|schema cache/i.test(code + ' ' + msg)) return 'Falta aplicar la migración de firma por enlace en la base de datos.';
+    return 'No se pudo crear el enlace. Revisa tu conexión e inténtalo de nuevo.';
+  }
+  async function openConsentLink(patient) {
+    var d = dialog(); if (!d) return;
+    stopQr();
+    var q = state.qr = { id: patient.id, timer: null, polls: 0 };
+    d.innerHTML = '<div class="co-form co-qr"><header><h2>Que firme desde su celular</h2><button type="button" class="co-x" data-co-cancel aria-label="Cerrar">×</button></header><div data-co-qr-body>' + skHtml('text', { lines: 3, label: 'Preparando el enlace' }) + '</div></div>';
+    d.querySelector('[data-co-cancel]').onclick = closeDialog;
+    d.addEventListener('close', function () { if (state.qr === q) stopQr(); }, { once: true });
+    if (!d.open) d.showModal();
+    var body = d.querySelector('[data-co-qr-body]');
+    try {
+      var token = await rpc('smyl_create_consent_link', { p_patient_id: patient.id });
+      if (state.qr !== q) return;
+      if (!/^[0-9a-f]{64}$/.test(String(token || ''))) throw new Error('Respuesta inesperada.');
+      var url = consentLinkUrl(token), svg = qrSvg(url);
+      body.replaceChildren();
+      var box = el('div', 'co-qrbox'); box.setAttribute('role', 'img'); box.setAttribute('aria-label', 'Código QR para que el paciente firme el aviso de privacidad');
+      if (svg) box.innerHTML = svg; else box.append(el('p', 'co-note-dark', 'No se pudo dibujar el código. Usa el enlace de abajo.'));
+      var hint = el('p', 'co-qrhint', 'Que lo escanee con la cámara de su celular o envíaselo. Sirve una sola vez, vence en 48 horas y un enlace nuevo anula el anterior.');
+      var status = el('p', 'co-qrstatus'); status.setAttribute('role', 'status'); status.dataset.coQrStatus = '';
+      var dot = el('i', 'co-pulse'); dot.setAttribute('aria-hidden', 'true'); status.append(dot, el('span', '', 'Esperando su firma…'));
+      var field = document.createElement('input'); field.className = 'co-qrlink'; field.readOnly = true; field.value = url; field.setAttribute('aria-label', 'Enlace para firmar el aviso'); field.onfocus = function () { field.select(); };
+      var acts = el('div', 'co-actions'), wa = Q.whatsappUrl(patient.telefono, 'Hola, antes de tu atención te pedimos leer y firmar nuestro aviso de privacidad desde tu celular (el enlace vence en 48 horas): ' + url);
+      function act(text, cls, fn) { var b = el('button', cls, text); b.type = 'button'; b.onclick = fn; acts.append(b); return b; }
+      if (wa) act('Enviarlo por WhatsApp', 'co-secondary', function () { window.open(wa, '_blank', 'noopener'); }).dataset.coQrWa = '';
+      var copy = act('Copiar enlace', 'co-secondary', async function () { try { await navigator.clipboard.writeText(url); copy.textContent = 'Enlace copiado'; } catch (e) { field.focus(); field.select(); copy.textContent = 'Selecciona y copia el enlace'; } });
+      act('Cerrar', 'co-ghost', closeDialog);
+      body.append(box, hint, status, field, acts);
+      q.timer = setInterval(async function () {
+        if (state.qr !== q) return;
+        q.polls++;
+        if (q.polls > QR_MAX_POLLS) { clearInterval(q.timer); status.replaceChildren(el('span', '', 'Dejé de esperar. Cierra y vuelve a abrir el enlace si hace falta.')); return; }
+        try {
+          var st = await rpc('smyl_patient_consent_status', { p_patient_id: patient.id });
+          if (state.qr !== q || !st || !st.signed) return;
+          clearInterval(q.timer);
+          status.replaceChildren(el('span', 'co-qrdone', '✓ Ya firmó el aviso.'));
+          acts.replaceChildren(); act('Ver la visita', 'co-submit', function () { closeDialog(); loadVisit(patient.id); });
+        } catch (e) { /* sin conexión un momento: se sigue intentando */ }
+      }, QR_POLL_MS);
+    } catch (err) {
+      if (state.qr !== q) return;
+      body.replaceChildren(el('p', 'co-error', consentLinkError(err)), (function () { var b = el('button', 'co-ghost', 'Cerrar'); b.type = 'button'; b.onclick = closeDialog; return b; })());
     }
   }
 

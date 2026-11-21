@@ -20,6 +20,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requirePermission, requireUser } from "../_shared/auth.ts";
 import { makeCors } from "../_shared/cors.ts";
+import { permisoIA, respuestaIAnegada } from "../_shared/privacy.ts";
 import { lanaRequest } from "../_shared/lana-linked.ts";
 import {
   ALERT_LABELS,
@@ -379,7 +380,10 @@ async function createPrevisit(o: {
   tenantId: string; patient: Row; appt: Row | null; mode: string; via: "whatsapp" | "link";
   actor: Actor; origin: "manual" | "auto"; templateId?: string | null;
 }): Promise<Row> {
-  const { tenantId, patient, appt, mode, via, actor, origin } = o;
+  const { tenantId, patient, appt, via, actor, origin } = o;
+  // Si el paciente no autorizó la IA, la entrevista previa se manda como formulario (sin voz ni asistente).
+  let mode = o.mode;
+  if (mode !== "form" && (await permisoIA(admin, tenantId, String(patient.id))) !== "allowed") mode = "form";
   const label = appt ? appointmentLabel(appt.starts_at) : "";
   const apptEnd = appt ? Date.parse(appt.starts_at) + 24 * 3600_000 : 0;
   const expires = new Date(Math.max(Date.now() + 2 * 3600_000, Math.min(apptEnd || Infinity, Date.now() + 7 * 24 * 3600_000))).toISOString();
@@ -603,6 +607,8 @@ Deno.serve(async (req: Request) => {
       const { data: patient } = await admin.from("camila_pacientes").select("id,nombre,apellido")
         .eq("tenant_id", tenantId).eq("id", patientId).maybeSingle();
       if (!patient) return json(404, { error: "El paciente no pertenece a tu clínica." });
+      const negada = respuestaIAnegada(await permisoIA(admin, tenantId, patientId));
+      if (negada) return json(negada.status, negada.body);
       await purgeExpired();
       // Las sesiones de este profesional que nunca empezaron se descartan; un borrador sin guardar se conserva (aparece en la Historia clínica).
       await admin.from("smyl_mila_interviews").delete()
