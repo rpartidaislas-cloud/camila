@@ -90,6 +90,63 @@ async function manejarCallback(req: Request): Promise<Response> {
   return json({}, 200, { ok: true });
 }
 
+const OPENPAY_ERROR_HUMANO: Record<string, string> = {
+  invalid_credentials: "Openpay rechazó las llaves. En modo pruebas usa las del panel sandbox de Openpay.",
+  openpay_unavailable: "No se pudo verificar con Openpay. Inténtalo de nuevo en un momento.",
+};
+
+// Marca en SMYL si la clínica cobra en línea (muestra u oculta «Enlace de pago»). No toca otras llaves de config.
+async function marcarPagoEnLinea(tenantId: string, activo: boolean) {
+  const { data } = await admin.from("camila_tenants").select("config").eq("id", tenantId).maybeSingle();
+  const config = data?.config && typeof data.config === "object" && !Array.isArray(data.config) ? data.config as Json : {};
+  if (config.pago_en_linea === activo) return;
+  await admin.from("camila_tenants").update({ config: { ...config, pago_en_linea: activo } }).eq("id", tenantId);
+}
+
+async function accionesOpenpay(body: Json, tenantId: string, userId: string, CORS: Record<string, string>): Promise<Response> {
+  const esDueno = userId === tenantId;
+  let path = "/payments/openpay";
+  let init: RequestInit = { method: "GET" };
+  if (body.action === "openpay_status") {
+    // lectura: quien puede cobrar
+  } else if (!esDueno) {
+    return json(CORS, 403, { error: "Solo el dueño de la clínica puede conectar o cambiar Openpay." });
+  } else if (body.action === "openpay_connect") {
+    const campos = ["merchant_id", "public_key", "private_key"];
+    if (campos.some((c) => typeof body[c] !== "string" || !(body[c] as string).trim() || (body[c] as string).length > 200)) {
+      return json(CORS, 400, { error: "Escribe el ID de comercio, la llave pública y la llave privada." });
+    }
+    path = "/payments/openpay/credentials";
+    init = { method: "PUT", body: JSON.stringify({ merchant_id: body.merchant_id, public_key: body.public_key, private_key: body.private_key }) };
+  } else if (body.action === "openpay_methods") {
+    const cambios: Json = {};
+    for (const k of ["active", "card", "spei"]) if (typeof body[k] === "boolean") cambios[k] = body[k];
+    if (!Object.keys(cambios).length) return json(CORS, 400, { error: "No hay cambios." });
+    path = "/payments/openpay/methods";
+    init = { method: "PUT", body: JSON.stringify(cambios) };
+  } else if (body.action === "openpay_disconnect") {
+    path = "/payments/openpay/disconnect";
+    init = { method: "POST", body: "{}" };
+  } else {
+    return json(CORS, 400, { error: "Acción no válida." });
+  }
+  try {
+    const { response, body: lana } = await lanaRequest(tenantId, path, init, 15000);
+    const datos = lana as Json;
+    if (!response.ok) {
+      const code = String(datos.error_code || "");
+      const msg = OPENPAY_ERROR_HUMANO[code] || (typeof datos.error === "string" ? datos.error : "El servidor de pagos no pudo completar la operación.");
+      return json(CORS, response.status >= 400 && response.status < 500 ? response.status : 502, { error: msg, error_code: code || "lana_error" });
+    }
+    const openpay = (datos.openpay || {}) as Json;
+    if (body.action !== "openpay_status") await marcarPagoEnLinea(tenantId, !!openpay.connected && !!openpay.active);
+    return json(CORS, 200, { openpay, owner: esDueno });
+  } catch (e) {
+    const msg = String((e as Error)?.message || e);
+    return json(CORS, 409, { error: /LANA todav/.test(msg) ? "Conecta primero los canales de mensajería de la clínica; el cobro en línea usa esa misma conexión." : "No se pudo contactar al servidor de pagos.", error_code: "lana_unavailable" });
+  }
+}
+
 async function accionesPersonal(req: Request, body: Json, CORS: Record<string, string>): Promise<Response> {
   const { user, tenantId, response: authError } = await requireUser(req, CORS);
   if (authError) return authError;
@@ -98,6 +155,11 @@ async function accionesPersonal(req: Request, body: Json, CORS: Record<string, s
   const asUser = createClient(SB_URL, SB_ANON_KEY, { global: { headers: { Authorization: `Bearer ${jwt}` } } });
   const { data: permitido } = await asUser.rpc("smyl_has_permission", { p_tenant_id: tenantId, p_permission: "finance.manage" });
   if (permitido !== true) return json(CORS, 403, { error: "Tu rol no permite cobrar." });
+
+  // Openpay de la clínica (task-id smyl-openpay-config): SMYL no tiene acceso al panel de LANA, así que la clínica conecta su
+  // cuenta Openpay a su tenant de LANA desde aquí. Consultar: quien puede cobrar. Conectar, métodos y desconectar: solo el dueño.
+  // Las llaves solo pasan hacia LANA (que las verifica con Openpay); nunca se guardan en SMYL ni vuelven al navegador.
+  if (typeof body.action === "string" && body.action.startsWith("openpay_")) return await accionesOpenpay(body, tenantId, user.id, CORS);
 
   const patientId = body.patient_id;
   if (typeof patientId !== "string" || !UUID_RE.test(patientId)) return json(CORS, 400, { error: "Paciente inválido." });
