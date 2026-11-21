@@ -1,3 +1,11 @@
+## 2026-11-21 — Claude Code — Cobrar con enlace de pago (Openpay vía LANA) desde Cobrar e «Iniciar tratamiento»
+
+- Petición de Ricardo: poder cobrar con Openpay un trabajo realizado (cargo) o una cotización, no solo el saldo total desde la cuenta.
+- `smyl-finance.js` v62: en la ventana **Cobrar**, nueva forma de pago **«Enlace de pago»** (solo si `onlinePayEnabled()`; no en modo anticipo). Cobra el **saldo completo de los cargos marcados** (`charge_ids` a `smyl-pay`, que ya los soportaba); el importe queda de solo lectura y no se registra pago hasta que el paciente pague (el recibo lo emite `smyl_post_online_payment`). El botón dice «Generar enlace de pago».
+- En **Iniciar tratamiento → Cobrar anticipo**: «Cobrar aquí» (cobro manual de siempre) y «Mandar enlace de pago» con los cargos del lote de la cotización (`proposal_batch_id`).
+- `smyl-finance.css` v46, `sw.js` (`-cobro-enlace-v1`), copias móviles. Pruebas en `tests/smyl-pay-core.test.mjs`.
+- **Sin backend nuevo.** Pendiente (requiere redesplegar `smyl-pay`): cobrar **solo un anticipo** (monto menor al saldo de los cargos, p. ej. 30 %) con enlace; hoy el enlace cobra el saldo completo de los cargos elegidos.
+
 ## 2026-11-20 — Codex — Periodoncia en la revisión profesional
 
 - El odontograma de Evaluación incorpora una capa periodontal y conserva la pieza seleccionada al alternar las vistas. Desde la pieza se capturan los seis sitios, se consulta el periodontograma completo o se compara una visita con controles cerrados. En celular se abre una hoja inferior al tocar una pieza en la capa Periodoncia.
