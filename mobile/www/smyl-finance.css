@@ -1365,3 +1365,12 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
 .finance-treatment-actions .btn{min-height:44px}
 .finance-payment-success [data-success-schedule]{margin-bottom:8px}
 @media(max-width:600px){.finance-treatment-steps{padding:22px 16px 18px}.finance-treatment-steps li{flex-wrap:wrap}.finance-treatment-steps li>.btn{width:100%}.finance-treatment-actions .btn{flex:1}}
+/* Cobro con enlace (v46): opción «Enlace de pago» en Cobrar y en «Iniciar tratamiento». */
+.finance-method-online p{grid-column:1/-1;margin:0;padding:12px 14px;border-radius:11px;background:#eef6f2;color:#31564e;font-size:13px;line-height:1.5}
+.finance-method-online strong{color:#173f36}
+.finance-payment-methods [data-method="online"]{grid-column:1/-1;border-color:#9cc8b6;color:#1f5f4f;font-weight:600}
+.finance-payment-methods [data-method="online"][aria-pressed="true"]{background:#e6f3ed;border-color:#3d7f70}
+.finance-treatment-step-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.finance-treatment-step-actions .btn{min-height:44px}
+.finance-treatment-steps li>.finance-treatment-step-actions{flex:0 0 auto}
+@media(max-width:600px){.finance-treatment-steps li>.finance-treatment-step-actions{flex:1 1 100%;justify-content:stretch}.finance-treatment-step-actions .btn{flex:1;white-space:normal;padding:8px 10px}}
