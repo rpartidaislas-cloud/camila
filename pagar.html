@@ -323,7 +323,11 @@ h1{font-size:22px;line-height:1.25;margin:4px 0 2px}
       ['spei', 'SPEI', 'Transferencia · Automática', methods.spei !== false],
       ['card', 'Tarjeta', 'Crédito o débito', methods.tarjeta !== false],
       ['paynet', 'Efectivo en tiendas', 'Paynet · Referencia', methods.paynet === true]
-    ].filter(function (o) { return o[3]; });
+    ];
+    // LANA permite un solo método por enlace (para no cobrar dos veces el mismo saldo): si ya se generó una CLABE o una referencia
+    // Paynet, solo se muestra ese método y su ficha se vuelve a abrir sola (la acción es idempotente: no crea otra referencia).
+    var locked = cfg.solicitud && /^(spei|paynet)$/.test(String(cfg.solicitud.metodo || '')) ? cfg.solicitud.metodo : '';
+    opciones = opciones.filter(function (o) { return locked ? o[0] === locked : o[3]; });
     if (!opciones.length) { showMessage('Pago no disponible', 'Esta clínica aún no tiene métodos de pago en línea activos.', 'err'); return; }
     var tabs = el('div', { 'class': 'pago-metodos', role: 'tablist', 'aria-label': 'Forma de pago' });
     var panel = el('div', { 'class': 'pago-detalle', role: 'tabpanel' });
@@ -339,7 +343,12 @@ h1{font-size:22px;line-height:1.25;margin:4px 0 2px}
       b.onclick = function () { current = o[0]; paint(); };
       tabs.appendChild(b);
     });
+    if (locked) {
+      card.appendChild(el('div', { 'class': 'msg info', text: (locked === 'spei' ? 'Ya generaste una CLABE para este pago.' : 'Ya generaste una referencia para pagar en tienda.') + ' Para pagar con otro método, pide un enlace nuevo a tu clínica.' }));
+      tabs.hidden = true;
+    }
     card.appendChild(tabs); card.appendChild(panel); paint();
+    if (locked) { var gen = panel.querySelector('.btn'); if (gen) gen.click(); }
     if (v.expires_at) card.appendChild(el('p', { 'class': 'sub', style: 'margin-top:12px', text: 'Este enlace vence el ' + dateTime(v.expires_at) + ' (hora de Ciudad de México).' }));
   }
 
