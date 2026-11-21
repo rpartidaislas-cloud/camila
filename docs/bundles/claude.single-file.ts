@@ -397,6 +397,52 @@ const corsHeaders = corsPublic;
 return { makeCors, corsPublic, corsHeaders };
 })();
 
+// ── _shared/privacy-core.mjs ──
+const { MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_NO_VERIFICABLE, decidirIA } = (() => {
+// Permiso del paciente para que sus datos pasen por herramientas de IA de proveedores externos (finalidad 'ai_processing').
+// Regla: SOLO se bloquea cuando el paciente lo negó o lo retiró ('revoked'). Un paciente sin decisión registrada ('unknown',
+// el caso de todos los anteriores a esta función) sigue como hasta ahora, para no detener la clínica el día que se publique.
+// Si no se puede comprobar (error de base de datos) se bloquea: ante la duda no se manda nada a un tercero.
+const MENSAJE_IA_NO_PERMITIDA = 'Este paciente no autorizó el uso de inteligencia artificial con sus datos. Captura o revisa esto manualmente.';
+const MENSAJE_IA_NO_VERIFICABLE = 'No se pudo comprobar el permiso de IA del paciente. Inténtalo de nuevo en un momento.';
+
+/** Convierte la respuesta de smyl_patient_privacy_state en una decisión: 'allowed' | 'revoked' | 'unavailable'. */
+function decidirIA(result: any) {
+  if (!result || result.error) return 'unavailable';
+  const state = result.data;
+  if (state === 'revoked') return 'revoked';
+  if (state === 'granted' || state === 'unknown') return 'allowed';
+  return 'unavailable';
+}
+
+return { MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_NO_VERIFICABLE, decidirIA };
+})();
+
+// ── _shared/privacy.ts ──
+const { permisoIA, respuestaIAnegada, MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_NO_VERIFICABLE } = (() => {
+// Candado de privacidad para las funciones que mandan datos de un paciente a una IA externa. La regla vive en privacy-core.mjs.
+
+
+type PermisoIA = 'allowed' | 'revoked' | 'unavailable';
+
+// deno-lint-ignore no-explicit-any
+async function permisoIA(admin: any, tenantId: string, patientId: string): Promise<PermisoIA> {
+  try {
+    const result = await admin.rpc('smyl_patient_privacy_state', { p_tenant: tenantId, p_patient: patientId, p_purpose: 'ai_processing' });
+    return decidirIA(result);
+  } catch { return 'unavailable'; }
+}
+
+/** Respuesta lista para devolver cuando NO se puede usar IA con este paciente; null si se puede continuar. */
+function respuestaIAnegada(permiso: PermisoIA): { status: number; body: { error: string; code: string } } | null {
+  if (permiso === 'allowed') return null;
+  if (permiso === 'revoked') return { status: 403, body: { error: MENSAJE_IA_NO_PERMITIDA, code: 'patient_ai_not_allowed' } };
+  return { status: 503, body: { error: MENSAJE_IA_NO_VERIFICABLE, code: 'patient_ai_unverifiable' } };
+}
+
+return { permisoIA, respuestaIAnegada, MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_NO_VERIFICABLE };
+})();
+
 // ── _shared/ai-quota.ts ──
 const { TOPES_RADIOGRAFIA_PREDETERMINADOS, leerTopesRadiografia, evaluarTope, inicioDiaUTC, inicioMesUTC } = (() => {
 // Tope de análisis de IA por clínica (auditoría del panel admin, 2026-11-06): sin esto, una sesión (o un script con una
@@ -862,6 +908,9 @@ async function loadClinicalPhotoSources(tenant: string, actor: string, studyIds:
   if (canAccess !== true) {
     throw clinicalPhotoError("El paciente no está disponible para tu rol clínico.", 403, "patient_access_denied");
   }
+
+  const negada = respuestaIAnegada(await permisoIA(usageAdmin, tenant, patientId));
+  if (negada) throw clinicalPhotoError(negada.body.error, negada.status, negada.body.code);
 
   const { data: assets, error: assetError } = await usageAdmin.from("smyl_clinical_evidence_assets")
     .select("study_id,patient_file_id")
