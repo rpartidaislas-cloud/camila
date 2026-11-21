@@ -40,10 +40,17 @@ test('pantalla: estado, métodos (Paynet y MSI como próximamente), credenciales
 test('Configuración → Finanzas abre «Pagos en línea (Openpay)» y carga el estado', () => {
   assert.match(hub, /title: 'Pagos en línea \(Openpay\)'.*element: '#online-pay-setup', ensure: 'online-pay'/);
   assert.match(hub, /item\.ensure === 'online-pay' && win\.SmylOnlinePay && typeof win\.SmylOnlinePay\.ensure === 'function'/);
-  for (const f of ['app.html', 'sw.js']) { assert.match(read(f), /smyl-online-pay-setup\.js\?v=1/); assert.match(read(f), /smyl-online-pay-setup\.css\?v=1/); }
+  for (const f of ['app.html', 'sw.js']) { assert.match(read(f), /smyl-online-pay-setup\.js\?v=2/); assert.match(read(f), /smyl-online-pay-setup\.css\?v=1/); }
   for (const f of ['smyl-online-pay-setup.js', 'smyl-online-pay-setup.css', 'smyl-settings-hub.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), 'mobile/www/' + f);
 });
 
 test('estilos sin microtexto', () => {
   for (const m of css.matchAll(/font(?:-size)?:[^;]*?(\d+(?:\.\d+)?)px/g)) assert.ok(Number(m[1]) >= 12, m[0]);
+});
+
+test('si el servidor no devuelve un error legible, se muestra el código HTTP y la respuesta (no un mensaje genérico)', () => {
+  assert.match(ui, /detail = \(status \? 'HTTP ' \+ status \+ ' · ' : ''\)/);
+  assert.match(ui, /'No se pudo ' \+ \(ACTION_LABEL\[action\] \|\| 'completar'\) \+ ' Openpay'/);
+  assert.match(ui, /openpay_connect: 'conectar'/);
+  assert.doesNotMatch(ui, /No se pudo consultar Openpay\./);
 });

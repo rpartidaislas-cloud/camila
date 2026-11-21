@@ -1,3 +1,9 @@
+## 2026-11-21 — Claude Code — Pagos en línea: la pantalla muestra la causa real del error
+
+- Ricardo no pudo conectar Openpay: la pantalla decía «No se pudo consultar Openpay.». Los registros de LANA muestran que el estado (`GET /payments/openpay`) respondió 200, pero «Conectar» nunca llegó a LANA (no hay ningún `PUT /payments/openpay/credentials`). Es decir, falla en `smyl-pay` o entre el navegador y `smyl-pay`. Sin acceso a los registros del proyecto SMYL.
+- `smyl-online-pay-setup.js` v2: si el servidor no devuelve un `error` legible, muestra «No se pudo conectar/consultar… Openpay (HTTP <código> · <respuesta o mensaje>)» en lugar del mensaje genérico. Las llaves no forman parte del texto. `sw.js` (`-pagos-en-linea-diagnostico-v1`) y copias móviles.
+- **Pendiente:** con ese mensaje (o los registros de Edge Functions → `smyl-pay` en Supabase de SMYL) encontrar la causa real.
+
 ## 2026-11-21 — Herramientas clínicas en Consultorio y Agenda
 
 - Consultorio reúne el periodontograma, la entrevista con MILA, las fotografías guiadas y el simulador de carillas. Al abrir una herramienta se elige el paciente. Desde una cita, Agenda y Consultorio toman el expediente asociado y verifican la cita y su sucursal antes de continuar.
