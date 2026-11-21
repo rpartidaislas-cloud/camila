@@ -78,6 +78,9 @@
   function mount(host, initial) {
     let options = initial, tooth = String(initial.tooth || ''), patient = initial.patientId;
     let dialog = null, mila = null, destroyed = false, mode = 'tooth', chartMetric = 'depth';
+    let chartView = 'graph', graph = null, graphTooth = tooth, graphSite = '', captureSite = '';
+    let guide = null, guideSelection = null, guideExamId = '', guideReturn = 'chart';
+    let renderedExam = null, renderedGraphState = '';
     let compareId = '', compareMetric = 'depth', comparisonOpen = false, savePending = false, confirmClose = false;
     let returnFocus = null, pageKey = '', fields = new Map(), message = '', entryOpen = false;
     let dialogBody, dialogTitle, dialogMeta, footer, alert, compareArea;
@@ -141,10 +144,18 @@
       mila?.destroy?.();
       mila = null;
     }
+    function disposeGraph() {
+      graph?.destroy?.();
+      graph = null; renderedExam = null; renderedGraphState = '';
+    }
+    function disposeGuide() {
+      guide?.destroy();
+      guide = null; guideSelection = null; guideExamId = '';
+    }
     function closeDialog(restore = true) {
       if (!dialog) return;
       const target = returnFocus;
-      disposeMila();
+      disposeGuide(); disposeMila(); disposeGraph(); captureSite = '';
       const current = dialog;
       dialog = null; pageKey = ''; fields.clear(); confirmClose = false; compareArea = null; alert = null;
       current.close(); current.remove();
@@ -163,13 +174,14 @@
       return false;
     }
     function requestClose() {
+      if (guide) { guide.requestExit(); return; }
       if (!validFields()) return;
       closeDialog();
     }
     function open(nextMode = 'tooth') {
       if (destroyed || state().canRead === false || state().ready === false) return;
       const next = nextMode === 'chart' || !activeTooth() ? 'chart' : 'tooth';
-      if (dialog) { if (validFields()) { mode = next; renderDialog(true); } return; }
+      if (dialog) { if (!guide && validFields()) { mode = next; renderDialog(true); } return; }
       mode = next;
       returnFocus = document.activeElement;
       message = ''; confirmClose = false;
@@ -207,13 +219,23 @@
     function changeMode(next) {
       if (!validFields()) return;
       mode = next; confirmClose = false; setMessage(''); renderDialog(true);
-      dialogBody.scrollTop = 0; dialogTitle.tabIndex = -1; dialogTitle.focus({preventScroll:true});
+      dialogBody.scrollTop = 0;
+      if (next === 'chart' && captureSite && graph?.focusSelection) graph.focusSelection();
+      else { dialogTitle.tabIndex = -1; dialogTitle.focus({preventScroll:true}); }
     }
-    function chooseTooth(next) {
+    function chooseTooth(next, site = '') {
       if (!teeth.includes(next) || !validFields()) return;
+      captureSite = sites.includes(site) ? site : '';
+      graphTooth = next; graphSite = captureSite;
       tooth = next; mode = 'tooth'; confirmClose = false; setMessage('');
       options.onSelectTooth?.(next);
-      if (!destroyed && dialog) { refreshEntry(); renderDialog(true); dialogBody.scrollTop = 0; }
+      if (!destroyed && dialog) {
+        refreshEntry(); renderDialog(true); dialogBody.scrollTop = 0;
+        if (captureSite) {
+          const target = fields.get(captureSite + '-depth') || dialogBody.querySelector('[data-perio-reading="'+captureSite+'-depth"]');
+          target?.focus(); target?.select?.();
+        }
+      }
     }
     function newExam(s) {
       const area = element('section','perio-start');
@@ -244,8 +266,13 @@
     }
     function measurementInput(s, site, index, metric) {
       const stored = s.current.teeth?.[tooth]?.[site]?.[metric] ?? null;
-      if (s.current.status === 'closed' || !s.canEdit) return element('span','perio-read-value',display(stored));
       const label = metrics[metric] + ' · ' + siteLabel(tooth,index) + ' · pieza ' + tooth;
+      if (s.current.status === 'closed' || !s.canEdit) {
+        const value = element('span','perio-read-value',display(stored));
+        value.tabIndex = -1; value.dataset.perioReading = site + '-' + metric;
+        value.setAttribute('aria-label',label + ' · ' + (stored == null ? 'Sin medir' : display(stored)));
+        return value;
+      }
       let input;
       if (metric === 'bleeding') {
         input = select(label, [['','—'],['yes','Sí'],['no','No']], stored == null ? '' : stored ? 'yes' : 'no', value => {
@@ -283,12 +310,18 @@
       const name = faceName(tooth,start);
       section.append(element('h3','',name));
       const table = gridTable(['Sitio', 'Mesial', 'Central', 'Distal'], name + ' de la pieza ' + tooth);
+      const selectedColumn = sites.indexOf(captureSite) - start;
+      if (selectedColumn >= 0 && selectedColumn < 3) table.tHead.rows[0].cells[selectedColumn + 1].classList.add('perio-selected-site');
       const tbody = table.createTBody();
       for (const [metric, label] of Object.entries(metrics)) {
         const tr = tbody.insertRow(), heading = element('th','',label); heading.scope = 'row';
         if (metric !== 'bleeding') heading.append(element('small','','mm'));
         tr.append(heading);
-        for (let i=start; i<start+3; i++) tr.insertCell().append(measurementInput(s,sites[i],i,metric));
+        for (let i=start; i<start+3; i++) {
+          const cell = tr.insertCell();
+          if (sites[i] === captureSite) cell.classList.add('perio-selected-site');
+          cell.append(measurementInput(s,sites[i],i,metric));
+        }
       }
       section.append(table);
       return section;
@@ -377,6 +410,7 @@
       actions.append(select('Seleccionar pieza',teeth.map(t => [t,'Pieza '+t]),tooth,chooseTooth));
       actions.append(button('Ver periodontograma completo',() => changeMode('chart'),'perio-link')); dialogBody.append(actions);
       if (!s.current) { dialogBody.append(newExam(s)); return; }
+      addGuideButton(actions,s);
       const faces = element('div','perio-faces'); faces.append(face(s,0), face(s,3)); dialogBody.append(faces);
       dialogBody.append(element('p','perio-legend','— Sin medir. Margen positivo si hay recesión y negativo si está coronal a la referencia.'));
       compareArea = element('div'); compareArea.append(comparison(s)); dialogBody.append(compareArea);
@@ -385,11 +419,39 @@
     function chart(s) {
       if (!s.current) { dialogBody.append(newExam(s)); return; }
       const toolbar = element('div','perio-chart-nav');
+      const api = window.SmylPeriodontalGraph;
+      if (typeof api?.mount === 'function') {
+        const views = element('div','perio-views');
+        views.setAttribute('role','group'); views.setAttribute('aria-label','Vista del periodontograma');
+        for (const [value, title] of [['graph','Gráfica'],['table','Tabla']]) {
+          const tab = button(title,() => {
+            if (chartView === value || !validFields()) return;
+            chartView = value; renderDialog(true);
+            dialogBody.querySelector('[data-perio-view="'+chartView+'"]')?.focus({preventScroll:true});
+          },'perio-view');
+          tab.dataset.perioView = value; tab.setAttribute('aria-pressed',String(chartView === value)); views.append(tab);
+        }
+        toolbar.append(views);
+      }
+      if (activeTooth()) toolbar.append(button('Volver a pieza '+tooth,() => changeMode('tooth'),'perio-link'));
+      addGuideButton(toolbar,s);
+      dialogBody.append(toolbar);
+      if (chartView === 'graph' && typeof api?.mount === 'function') {
+        const target = element('div','perio-graph-host');
+        dialogBody.append(target);
+        try {
+          graph = api.mount(target,graphOptions(s));
+          return;
+        } catch {
+          target.remove(); toolbar.remove(); chartView = 'table';
+          setMessage('La gráfica no está disponible. Puedes consultar las mediciones en la tabla.');
+          dialog.classList.remove('perio-wide');
+          chart(s); return;
+        }
+      }
       const label = element('label','perio-metric-label','Medición');
       label.append(select('Medición del periodontograma',Object.entries(metrics),chartMetric,value => { chartMetric = value; renderDialog(true); dialogBody.querySelector('.perio-metric-label select')?.focus(); }));
-      toolbar.append(label);
-      if (activeTooth()) toolbar.append(button('Volver a pieza '+tooth,() => changeMode('tooth'),'perio-link'));
-      dialogBody.append(toolbar);
+      toolbar.insertBefore(label,toolbar.querySelector('.perio-link'));
       dialogBody.append(element('p','perio-legend',chartMetric === 'bleeding' ? 'Sangrado al sondaje · — Sin medir' : metrics[chartMetric] + ' en mm · — Sin medir'));
       const groups = element('div','perio-arches');
       for (const [arch, title] of [[window.SmylDentalModel.upper,'Superior'],[window.SmylDentalModel.lower,'Inferior']]) {
@@ -402,6 +464,7 @@
         const tbody = table.createTBody();
         for (const id of arch.map(String)) {
           const row = tbody.insertRow(), head = element('th');
+          row.dataset.perioRow = id;
           head.scope = 'row';
           const action = button(id,() => chooseTooth(id),'perio-tooth'); action.setAttribute('aria-label','Ver pieza '+id);
           head.append(action); row.append(head);
@@ -410,6 +473,62 @@
         section.append(table); groups.append(section);
       }
       dialogBody.append(groups);
+    }
+    function graphOptions(s) {
+      return {
+        exam:s.current, tooth:graphTooth || undefined, site:graphSite || undefined, missingTeeth:s.missingTeeth, canEdit:editable(s),
+        onSelect(id,site) { if (teeth.includes(id) && sites.includes(site)) { graphTooth = id; graphSite = site; } },
+        onEdit:chooseTooth
+      };
+    }
+    function addGuideButton(toolbar,s) {
+      if (!editable(s) || !window.SmylPeriodontalGuided?.mount || !window.SmylPeriodontalGuidedModel || !options.onApplyBatch) return;
+      toolbar.append(button('Iniciar sondaje guiado',() => {
+        guideReturn = mode;
+        changeMode('guided');
+      },'perio-btn perio-guided-entry'));
+    }
+    function renderGuideGraph(s) {
+      if (!graph || !guideSelection || !s.current) return;
+      const preview = {...s.current,teeth:{...s.current.teeth}};
+      for (const patch of guideSelection.patches || []) {
+        const record = {...preview.teeth[patch.tooth]};
+        for (const {site,value} of patch.changes) record[site] = {...record[site],depth:value};
+        preview.teeth[patch.tooth] = record;
+      }
+      graph.update({exam:preview,tooth:guideSelection.tooth,site:guideSelection.site,missingTeeth:s.missingTeeth});
+    }
+    function guided(s) {
+      const host = element('div','perio-guide-host'), chartHost = element('div','perio-guide-graph');
+      const startTooth = (guideReturn === 'chart' ? graphTooth : tooth) || tooth;
+      const sessionId = s.current.id;
+      guideExamId = sessionId;
+      dialogBody.append(host,chartHost);
+      if (window.SmylPeriodontalGraph?.mount) {
+        graph = window.SmylPeriodontalGraph.mount(chartHost,{exam:s.current,tooth:startTooth,
+          missingTeeth:s.missingTeeth,followOnly:true});
+      }
+      guide = window.SmylPeriodontalGuided.mount(host,{
+        getState:state, preferenceKey:options.preferenceKey || '', tooth:startTooth,
+        onSelectionChange(selection) {
+          if (!host.isConnected || mode !== 'guided' || guideExamId !== sessionId) return;
+          guideSelection = selection;
+          renderGuideGraph(state());
+        },
+        onApplyBatch(patches) {
+          const latest = state();
+          if (!host.isConnected || mode !== 'guided' || latest.current?.id !== sessionId || !editable(latest)) return false;
+          return options.onApplyBatch(patches) === true;
+        },
+        onExit() {
+          if (!host.isConnected || mode !== 'guided') return;
+          if (guideSelection?.tooth) {
+            graphTooth = guideSelection.tooth; graphSite = guideSelection.site;
+          }
+          changeMode(guideReturn);
+          dialogBody?.querySelector('.perio-guided-entry')?.focus({preventScroll:true});
+        }
+      });
     }
     function syncFields() {
       const s = state(), record = s.current?.teeth?.[tooth] || {};
@@ -439,6 +558,7 @@
       const s = state();
       footer.replaceChildren();
       footer.hidden = false;
+      if (mode === 'guided') { footer.hidden = true; return; }
       if (s.conflict) { footer.append(element('p','perio-warning','El expediente tiene una versión más reciente. Revisa el conflicto antes de guardar.')); return; }
       if (!s.current || !s.canEdit) { footer.hidden = true; return; }
       if (s.current.status === 'closed') { footer.append(newExam(s)); return; }
@@ -462,18 +582,39 @@
       const s = state();
       if (s.canRead === false || destroyed) { closeDialog(false); return; }
       const current = s.current;
-      dialogTitle.textContent = mode === 'chart' ? 'Periodontograma completo' : 'Periodoncia · Pieza '+tooth;
+      if (mode === 'guided' && (!current || current.status !== 'draft' || !s.canEdit || s.ready === false ||
+          (guideExamId && guideExamId !== current.id))) {
+        mode = 'chart';
+      }
+      const graphState = mode === 'chart' ? [editable(s),...(s.missingTeeth || [])].join('|') : '';
+      dialogTitle.textContent = mode === 'guided' ? 'Sondaje guiado con MILA' : mode === 'chart' ? 'Periodontograma completo' : 'Periodoncia · Pieza '+tooth;
       dialogMeta.textContent = current ? [formatDate(current.date),current.clinician,current.status === 'closed' ? 'Exploración cerrada' : 'Exploración en curso'].filter(Boolean).join(' · ') : 'Nueva exploración';
-      const nextKey = [patient,tooth,mode,current?.id,current?.status,s.canEdit,s.conflict,s.ready].join('|');
+      const graphAvailable = typeof window.SmylPeriodontalGraph?.mount === 'function';
+      dialog.classList.toggle('perio-wide',mode === 'guided' || (!!current && mode === 'chart' && chartView === 'graph' && graphAvailable));
+      dialog.classList.toggle('perio-guiding',mode === 'guided');
+      const nextKey = mode === 'guided' ? [patient,mode,current.id].join('|') :
+        [patient,tooth,mode,chartView,graphAvailable,current?.id,current?.status,s.canEdit,s.conflict,s.ready].join('|');
       if (force || nextKey !== pageKey) {
-        pageKey = nextKey; disposeMila(); fields.clear(); compareArea = null;
+        pageKey = nextKey; disposeGuide(); disposeMila(); disposeGraph(); fields.clear(); compareArea = null;
         dialogBody.replaceChildren();
         if (s.ready === false) dialogBody.append(element('p','perio-caption','Cargando expediente…'));
+        else if (mode === 'guided') guided(s);
         else if (mode === 'chart') chart(s); else piece(s);
+      } else if (mode === 'guided') {
+        guide?.update();
+        if (current !== renderedExam) renderGuideGraph(s);
       } else {
         syncFields();
         if (mode === 'tooth') drawComparison();
+        else if (graph && (current !== renderedExam || graphState !== renderedGraphState)) graph.update(graphOptions(s));
+        else if (!graph && current !== renderedExam) {
+          for (const row of dialogBody.querySelectorAll('[data-perio-row]')) {
+            const record = current?.teeth?.[row.dataset.perioRow];
+            sites.forEach((site,index) => { row.cells[index+1].textContent = display(record?.[site]?.[chartMetric]); });
+          }
+        }
       }
+      renderedExam = current; renderedGraphState = graphState;
       syncFooter();
     }
     function update(next = {}) {
@@ -482,8 +623,8 @@
       options = {...options,...next};
       patient = options.patientId;
       if (Object.hasOwn(next,'tooth')) tooth = String(next.tooth || '');
-      if (oldPatient !== patient || state().canRead === false) { closeDialog(false); entryOpen=false; comparisonOpen=false; compareId=''; setMessage(''); }
-      if (oldTooth !== tooth) { confirmClose=false; setMessage(''); }
+      if (oldPatient !== patient || state().canRead === false) { closeDialog(false); entryOpen=false; comparisonOpen=false; compareId=''; graphTooth=tooth; graphSite=''; chartView='graph'; setMessage(''); }
+      if (oldTooth !== tooth) { confirmClose=false; graphTooth=tooth; graphSite=''; captureSite=''; setMessage(''); }
       refreshEntry(); renderDialog();
     }
     function destroy() {

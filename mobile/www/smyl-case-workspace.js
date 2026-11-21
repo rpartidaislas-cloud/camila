@@ -300,8 +300,10 @@
   if(!ctx.perioEditor&&ctx.perioHost&&window.SmylPeriodontalReview&&access()){
    ctx.perioEditor=window.SmylPeriodontalReview.mount(ctx.perioHost,{
     tenantId:ctx.tenant,patientId:ctx.patient,tooth:ctx.selectedTooth||'',
+    preferenceKey:window.miUsuario?.id ? ctx.tenant+':'+window.miUsuario.id : '',
     getState:()=>access()?.getState()||{ready:false,canRead:false,canEdit:false},
     onChange:patch=>access()?.onChange(patch)??false,onStart:date=>access()?.onStart(date)??false,
+    onApplyBatch:patches=>access()?.onApplyBatch(patches)??false,
     onSave:options=>access()?.onSave(options)??false,onHistory:()=>access()?.onHistory()??false,
     getFindings:tooth=>access()?.getFindings(tooth)||[],
     onSelectTooth:tooth=>{if(valid(ctx)){ctx.selectedTooth=String(tooth);renderClinicalMap(ctx,ctx.mapSnapshot);}}

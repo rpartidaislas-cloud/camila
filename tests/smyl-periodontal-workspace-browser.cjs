@@ -9,14 +9,15 @@ const output = path.join(root, 'output', 'periodontal-workspace');
 const tenant = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const patient = '11111111-1111-4111-8111-111111111111';
 const scripts = [
-  'smyl-case-model.js', 'smyl-dental-model.js', 'smyl-tooth-map.js', 'smyl-periodontal-context.js',
-  'smyl-periodontal-mila.js', 'smyl-periodontal-review.js', 'smyl-dental-record.js',
+  'smyl-case-model.js', 'smyl-dental-model.js', 'smyl-dental-dictation.js', 'smyl-tooth-map.js', 'smyl-periodontal-context.js',
+  'smyl-periodontal-mila.js', 'smyl-periodontal-graph.js', 'smyl-periodontal-guided-model.js',
+  'smyl-periodontal-guided.js', 'smyl-periodontal-review.js', 'smyl-dental-record.js',
   'smyl-dental-finding-editor.js', 'smyl-case-workspace.js'
 ];
 const styles = [
   'smyl-design-system-v2.css', 'smyl-patient-cases.css', 'smyl-dental-record.css',
   'smyl-dental-finding-editor.css', 'smyl-case-workspace.css', 'smyl-ui-template-v3.css',
-  'smyl-ui-datta-v4.css', 'smyl-periodontal-review.css'
+  'smyl-ui-datta-v4.css', 'smyl-periodontal-graph.css', 'smyl-periodontal-review.css', 'smyl-periodontal-guided.css'
 ];
 
 function installClient({ tenant, patient, actor }) {
@@ -180,7 +181,15 @@ async function scenario(browser, spec) {
     assert.equal(closed.length,1);
     await byName('Ver periodontograma completo').click();
     assert.match(await dialog.locator('h2').innerText(),/completo/);
+    assert.equal(await byName('Gráfica').getAttribute('aria-pressed'),'true');
+    await dialog.getByRole('group',{name:'Sitios periodontales'}).waitFor();
     await scrollSnapshot('arcadas');
+    await byName('Tabla').click();
+    assert.equal(await dialog.getByRole('table',{name:'Arcada Superior'}).count(),1);
+    await byName('Gráfica').click();
+    await byName('Editar sitio').click();
+    await dialog.locator('[data-perio-field="depth"]:focus').waitFor();
+    assert.match(await dialog.locator('h2').innerText(),/16/);
     await page.evaluate(()=>window.testSession(false));
     await dialog.waitFor({state:'detached'});
     assert.deepEqual(errors,[]);
