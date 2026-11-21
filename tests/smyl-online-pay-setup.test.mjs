@@ -91,9 +91,10 @@ test('pagar.html replica las fichas de LANA: SPEI con CIE, tarjeta con aviso de 
   const stores = page.match(/logo: '[a-z0-9A-Z-]+\.webp'/g) || [];
   assert.equal(stores.length, 19);
   for (const s of stores) assert.ok(existsSync(new URL('../assets/paynet/' + s.slice(7, -1), import.meta.url)), s);
-  // Un solo método por enlace: si ya hay CLABE o referencia Paynet, solo se muestra esa ficha y se vuelve a abrir sola.
-  assert.match(page, /var locked = cfg\.solicitud && \/\^\(spei\|paynet\)\$\/\.test/);
-  assert.match(page, /if \(locked\) \{ var gen = panel\.querySelector\('\.btn'\); if \(gen\) gen\.click\(\); \}/);
+  // El paciente puede cambiar de método: la ficha ya generada se abre por defecto, con aviso de no pagar dos veces.
+  assert.match(page, /var previo = cfg\.solicitud && \/\^\(spei\|paynet\)\$\/\.test/);
+  assert.match(page, /Si ya pagaste con ella, no pagues de nuevo/);
+  assert.doesNotMatch(page, /pide un enlace nuevo a tu clínica\.' \}\)\);\s*tabs\.hidden = true/);
   // Las ventanas de impresión escapan todo dato dinámico.
   assert.match(page, /function esc\(v\)/);
 });
