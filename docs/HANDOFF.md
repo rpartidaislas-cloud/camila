@@ -1,3 +1,11 @@
+## 2026-11-21 — Claude Code — «Pagos en línea (Openpay)»: la clínica conecta su Openpay desde SMYL
+
+- Petición de Ricardo: conectar Openpay desde SMYL con una pantalla como la de LANA (la clínica no entra al panel de LANA).
+- **Pantalla** `smyl-online-pay-setup.js` / `.css` v1 (nuevos), en **Configuración → Finanzas → «Pagos en línea (Openpay)»** (`smyl-settings-hub.js` v15, `ensure: 'online-pay'`). Muestra estado (activo/pausa · modo pruebas/producción, comercio `…últimos 4`), **métodos** Tarjeta y SPEI (Paynet y meses sin intereses como «Próximamente»: la pasarela no los soporta), **Cobro en línea activo** (pausa) y **Credenciales y seguridad** (ID de comercio, llave pública, llave privada con Mostrar; Desconectar / Actualizar credenciales). Sin la palabra LANA en pantalla (marca blanca).
+- **`smyl-pay`**: acciones `openpay_status` (permiso `finance.manage`) y `openpay_connect` / `openpay_methods` / `openpay_disconnect` (**solo el dueño**: `user.id === tenantId`). Llaman a `camila-api` `/payments/openpay*` con la llave LANA de la clínica; las llaves de Openpay solo pasan hacia LANA y nunca se guardan en SMYL ni vuelven al navegador. Al conectar/pausar/desconectar sincroniza `camila_tenants.config.pago_en_linea` (ya no hace falta SQL a mano).
+- **LANA** (repo `promodesk`, task-id `smyl-openpay-config`): módulo `camila-api/pagos-openpay.mjs` que verifica las llaves con Openpay (GET del comercio, en sandbox salvo `openpay_modo=produccion`) antes de guardar; SMYL no puede cambiar el modo.
+- **Despliegue pendiente** (CLI desde la PC de Ricardo): LANA `camila-api`; SMYL `smyl-pay`. Pruebas: `tests/smyl-online-pay-setup.test.mjs`; `tests/smyl-settings-hub.test.mjs` actualizado.
+
 ## 2026-11-21 — Claude Code — Cobrar con enlace de pago (Openpay vía LANA) desde Cobrar e «Iniciar tratamiento»
 
 - Petición de Ricardo: poder cobrar con Openpay un trabajo realizado (cargo) o una cotización, no solo el saldo total desde la cuenta.
