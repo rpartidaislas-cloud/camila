@@ -36,9 +36,9 @@ const registro = (page, nombre) => page.evaluate((n) => window.__log.filter((x) 
 // ── Contrato del código (no necesita navegador) ──
 test('app.html carga el módulo puro antes que el Consultorio y arranca en él solo en la app instalada', () => {
   const app = read('app.html');
-  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=6', 'smyl-privacy-notice.js?v=2', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=9'].map((f) => app.indexOf(f));
+  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=6', 'smyl-privacy-notice.js?v=2', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=10'].map((f) => app.indexOf(f));
   assert.ok(orden[0] > 0 && orden.every((x, i) => !i || orden[i - 1] < x), 'los módulos puros cargan antes que la pantalla');
-  assert.match(app, /smyl-consultorio\.css\?v=6/);
+  assert.match(app, /smyl-consultorio\.css\?v=7/);
   assert.match(app, /else if \(smylEsAppInstalada\(\) && document\.getElementById\('p-consultorio'\)\) ir\('consultorio'\)/);
   assert.match(app, /display-mode: standalone/);
   assert.match(app, /window\.navigator\.standalone === true/);
@@ -57,7 +57,7 @@ test('el simulador y el manifiesto llevan al Consultorio y el simulador sigue ac
 
 test('se precarga y las copias móviles son idénticas', () => {
   const sw = read('sw.js');
-  for (const f of ['smyl-consultorio.js?v=9', 'smyl-consultorio.css?v=6', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=6', 'smyl-privacy-notice.js?v=2', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
+  for (const f of ['smyl-consultorio.js?v=10', 'smyl-consultorio.css?v=7', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=6', 'smyl-privacy-notice.js?v=2', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
   for (const f of ['smyl-consultorio.js', 'smyl-consultorio.css', 'smyl-patient-quick.js', 'smyl-visit-model.js', 'smyl-privacy-notice.js', 'smyl-history-interview.js', 'smyl-studio.js', 'simulacion-rapida.html', 'manifest-app.json', 'app.html', 'sw.js']) assert.equal(read(f), read('mobile/www/' + f), f);
 });
 
@@ -690,6 +690,9 @@ async function abrirFirma(query = 'firma=no', quien = 0) {
   await r.page.waitForSelector('[data-co-consent] .co-canvas');
   return r;
 }
+async function decidir(page, ai = true, whatsapp = true, marketing = false) {
+  for (const [k, v] of [['ai_processing', ai], ['whatsapp', whatsapp], ['marketing', marketing]]) await page.click(`[data-co-choice=${k}] .co-ch[data-value=${v ? 'si' : 'no'}]`);
+}
 async function trazar(page, desde = [40, 90]) {
   await page.locator('.co-canvas').scrollIntoViewIfNeeded();
   const caja = await page.$eval('.co-canvas', (n) => { const r = n.getBoundingClientRect(); return { x: r.left, y: r.top }; });
@@ -744,6 +747,9 @@ probar('no se puede guardar hasta consentir y firmar de verdad; un toque suelto 
   await page.mouse.click(caja.x + 50, caja.y + 50);   // un toque
   assert.equal(await page.isDisabled('[data-co-consent-save]'), true, 'un punto no es una firma');
   await trazar(page);
+  assert.equal(await page.isDisabled('[data-co-consent-save]'), true, 'faltan sus decisiones');
+  assert.match(await page.textContent('[data-co-consent-hint]'), /Falta elegir Sí o No en: Inteligencia artificial/);
+  await decidir(page);
   assert.equal(await page.isDisabled('[data-co-consent-save]'), false);
   assert.equal(await page.textContent('[data-co-consent-hint]'), '');
   await page.click('[data-co-consent-clear]');
@@ -754,10 +760,12 @@ probar('no se puede guardar hasta consentir y firmar de verdad; un toque suelto 
 probar('guardar envía el texto exacto que se leyó, su versión, la marca provisional y una imagen PNG con trazo', async () => {
   const { page } = await abrirFirma();
   const mostrado = await textoAviso(page);
-  await leer(page); await page.check('[data-co-consent-check]'); await trazar(page);
+  await leer(page); await page.check('[data-co-consent-check]'); await trazar(page); await decidir(page);
   await page.click('[data-co-consent-save]');
   await page.waitForSelector('.co-success');
   assert.equal(await page.textContent('.co-success'), 'Firma guardada.');
+  const decisiones = await page.evaluate(() => window.__decisiones);
+  assert.deepEqual(decisiones.map((d) => [d.p_patient_id, d.p_purpose, d.p_action]), [['p1', 'ai_processing', 'granted'], ['p1', 'whatsapp', 'granted'], ['p1', 'marketing', 'revoked']], 'cada decisión del paciente se guarda con su fecha');
   const [firma] = await page.evaluate(() => window.__firmas);
   assert.equal(firma.p_patient_id, 'p1');
   assert.equal(firma.p_notice_text, mostrado, 'lo que se guardó es lo que la persona vio');
@@ -777,7 +785,7 @@ probar('firma de un tutor con otro nombre, y ficha por registrar sin nombre prop
   let { page } = await abrirFirma();
   await page.fill('[data-co-consent] .co-field input', 'Rosa Partida');
   await page.click('.co-ch[data-value=guardian]');
-  await leer(page); await page.check('[data-co-consent-check]'); await trazar(page);
+  await leer(page); await page.check('[data-co-consent-check]'); await trazar(page); await decidir(page);
   await page.click('[data-co-consent-save]');
   await page.waitForSelector('.co-success');
   const [firma] = await page.evaluate(() => window.__firmas);
@@ -792,7 +800,7 @@ probar('firma de un tutor con otro nombre, y ficha por registrar sin nombre prop
 probar('si la firma no se guarda se explica y se conserva lo dibujado para reintentar', async () => {
   for (const [err, texto] of [['42501', /no permite registrar firmas/], ['22023', /La firma no es válida/], ['falta', /Falta aplicar la migración de firmas/]]) {
     const { page } = await abrirFirma('firma=no&firmaerr=' + err);
-    await leer(page); await page.check('[data-co-consent-check]'); await trazar(page);
+    await leer(page); await page.check('[data-co-consent-check]'); await trazar(page); await decidir(page);
     await page.click('[data-co-consent-save]');
     await page.waitForSelector('[data-co-consent-error]:not([hidden])');
     assert.match(await page.textContent('[data-co-consent-error]'), texto);
@@ -820,7 +828,7 @@ probar('salir con una firma dibujada pide confirmación; sin dibujar, no', async
 
 probar('la firma no se guarda en el navegador', async () => {
   const { page } = await abrirFirma();
-  await leer(page); await page.check('[data-co-consent-check]'); await trazar(page);
+  await leer(page); await page.check('[data-co-consent-check]'); await trazar(page); await decidir(page);
   const guardado = await page.evaluate(() => JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]));
   assert.doesNotMatch(guardado, /iVBOR|data:image/);
   assert.deepEqual(await page.evaluate(() => Object.keys(sessionStorage)), ['smyl_visit']);
@@ -855,7 +863,7 @@ probar('la pantalla de firma cabe en 390 px, con objetivos táctiles y lienzo de
   const medidas = await page.$$eval('[data-co-consent] .co-ch, [data-co-consent] .co-sgo, [data-co-consent] .co-check, [data-co-consent] .co-field input', (n) => n.map((x) => Math.round(x.getBoundingClientRect().height)));
   assert.ok(medidas.every((h) => h >= 44), 'objetivos táctiles: ' + medidas);
   assert.equal(await page.$eval('.co-canvas', (n) => Math.round(n.getBoundingClientRect().height)), 180);
-  await leer(page); await page.check('[data-co-consent-check]'); await trazar(page);
+  await leer(page); await page.check('[data-co-consent-check]'); await trazar(page); await decidir(page);
   await page.screenshot({ path: process.env.SMYL_CAPTURA_FIRMA || '/tmp/consultorio-firma.png', fullPage: true });
   await page.close();
 });

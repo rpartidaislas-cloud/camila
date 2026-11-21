@@ -650,11 +650,17 @@
     var v = state.visit; if (!v || !v.patient || !PN) return;
     var name = await clinicName();
     if (state.visit !== v) return;
-    state.consent = { patientId: v.patient.id, notice: PN.render(name), clinic: name, strokes: [], relation: 'patient', checked: false, read: false, name: Q.isPending(v.patient) ? '' : Q.displayName(v.patient), saving: false, error: '', onResize: null };
+    state.consent = { patientId: v.patient.id, notice: PN.render(name), clinic: name, strokes: [], relation: 'patient', checked: false, read: false, choice: {}, name: Q.isPending(v.patient) ? '' : Q.displayName(v.patient), saving: false, error: '', onResize: null };
     showView('consent'); renderConsent();
   }
   function consentInk(c) { var cv = c.canvas; return PN.inkOf(c.strokes.map(function (st) { return st.map(function (pt) { return { x: pt.x * cv.clientWidth, y: pt.y * cv.clientHeight }; }); })); }
-  function consentCheck(c) { return PN.validate({ name: c.name, relation: c.relation, read: c.read, checked: c.checked, ink: c.canvas ? consentInk(c) : { ok: false } }); }
+  var CONSENT_CHOICES = [['ai_processing', 'Inteligencia artificial', 'Que la clínica use herramientas de IA de proveedores externos para apoyar su atención (por ejemplo, analizar o simular fotografías). Puede negarse sin que se le niegue la atención.'], ['whatsapp', 'WhatsApp', 'Que la clínica le escriba por WhatsApp para recordatorios de cita y seguimiento.'], ['marketing', 'Promociones', 'Que la clínica le envíe promociones e información de sus servicios.']];
+  function consentCheck(c) {
+    var res = PN.validate({ name: c.name, relation: c.relation, read: c.read, checked: c.checked, ink: c.canvas ? consentInk(c) : { ok: false } });
+    if (!res.ok) return res;
+    for (var i = 0; i < CONSENT_CHOICES.length; i++) if (typeof c.choice[CONSENT_CHOICES[i][0]] !== 'boolean') return { ok: false, field: 'choice', message: 'Falta elegir Sí o No en: ' + CONSENT_CHOICES[i][1] + '.' };
+    return res;
+  }
   function syncConsent() {
     var c = state.consent; if (!c) return;
     var res = consentCheck(c), save = $('[data-co-consent-save]'), hint = $('[data-co-consent-hint]'), clear = $('[data-co-consent-clear]');
@@ -717,6 +723,17 @@
     var ok = el('label', 'co-check'), cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = c.checked; cb.dataset.coConsentCheck = '';
     cb.addEventListener('change', function () { c.checked = cb.checked; syncConsent(); });
     ok.append(cb, el('span', '', 'Leí el aviso de privacidad y doy mi consentimiento.')); host.append(ok);
+    host.append(el('span', 'co-fieldlabel', 'Sus decisiones'));
+    CONSENT_CHOICES.forEach(function (ch) {
+      var grp = el('div', 'co-choicebox'); grp.dataset.coChoice = ch[0];
+      grp.append(el('b', '', ch[1]), el('small', '', ch[2]));
+      var yn = el('div', 'co-choice'); yn.setAttribute('role', 'group'); yn.setAttribute('aria-label', ch[1]);
+      [['si', 'Sí acepto', true], ['no', 'No acepto', false]].forEach(function (o) {
+        var b = ivButton(o[1], 'co-ch co-ch-sm', function () { c.choice[ch[0]] = o[2]; yn.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); }); syncConsent(); });
+        b.dataset.value = o[0]; b.setAttribute('aria-pressed', String(c.choice[ch[0]] === o[2])); yn.append(b);
+      });
+      grp.append(yn); host.append(grp);
+    });
     host.append(el('span', 'co-fieldlabel', 'Firma con el dedo'));
     var pad = el('div', 'co-pad'), cv = document.createElement('canvas'); cv.className = 'co-canvas'; cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', 'Espacio para firmar'); c.canvas = cv; pad.append(cv);
     var clear = ivButton('Borrar', 'co-link-btn co-padclear', function () { c.strokes = []; paintSignature(c); syncConsent(); }); clear.dataset.coConsentClear = ''; pad.append(clear); host.append(pad);
@@ -741,7 +758,12 @@
     try {
       var png = signatureImage(c);
       await rpc('smyl_record_patient_consent', PN.payload({ patientId: c.patientId, clinicName: c.clinic, name: c.name, relation: c.relation, signaturePng: png }));
-      var id = c.patientId; stopConsent(); state.notice = 'Firma guardada.'; showView('visit'); loadVisit(id);
+      /* Las tres decisiones del paciente se guardan aparte (cada una con su fecha); la firma ya quedó guardada. */
+      var failed = 0;
+      for (var k = 0; k < CONSENT_CHOICES.length; k++) {
+        try { await rpc('smyl_set_patient_privacy_choice', { p_patient_id: c.patientId, p_purpose: CONSENT_CHOICES[k][0], p_action: c.choice[CONSENT_CHOICES[k][0]] ? 'granted' : 'revoked', p_note: 'Elegido por el paciente al firmar el aviso en la clínica.' }); } catch (e2) { failed++; }
+      }
+      var id = c.patientId; stopConsent(); state.notice = failed ? 'Firma guardada, pero no se pudieron guardar sus decisiones. Regístralas en Privacidad y derechos.' : 'Firma guardada.'; showView('visit'); loadVisit(id);
     } catch (e) {
       c.saving = false;
       c.error = e && e.code === '42501' ? 'Tu rol no permite registrar firmas.' : /PGRST202|42883|schema cache/i.test((e && e.code || '') + ' ' + (e && e.message || '')) ? 'Falta aplicar la migración de firmas en la base de datos.' : e && e.code === '22023' ? String(e.message || 'Los datos de la firma no son válidos.') : errorText(e);
