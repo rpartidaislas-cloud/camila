@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https://rpxshsiwoxdbuevjjpfw.supabase.co; base-uri 'none'; form-action 'none'">
+<title>Aviso de privacidad de cobro · SMYL</title>
+<meta name="description" content="Cómo se tratan tus datos cuando pagas desde un enlace de pago enviado por tu clínica a través de SMYL.">
+<link rel="icon" href="icons/smyl_pwa.png">
+<style>
+:root{--ink:#102239;--muted:#667586;--line:#D7E0E8;--brand:#194391;--accent:#0F766E;--bg:#F4F7FA}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+header{background:#fff;border-bottom:1px solid var(--line)}
+.bar{max-width:820px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.bar img{height:26px;width:auto;display:block}
+.bar nav{display:flex;gap:18px;font-size:14px}
+a{color:var(--brand)}
+main{max-width:820px;margin:28px auto 56px;padding:0 20px}
+article{background:#fff;border:1px solid var(--line);border-radius:14px;padding:36px 40px;box-shadow:0 4px 14px rgba(16,34,57,.06)}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px;letter-spacing:-.4px}
+.meta{color:var(--muted);font-size:14px;margin:0 0 24px}
+h2{font-size:19px;margin:30px 0 8px}
+p,li{color:#334155}
+ul{padding-left:22px}
+li+li{margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0}
+th,td{text-align:left;border:1px solid var(--line);padding:8px 10px;vertical-align:top}
+th{background:#F8FAFC}
+.box{background:#EDF3FC;border:1px solid #C9D8F0;border-radius:10px;padding:12px 16px;font-size:15px}
+.roles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+.role{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#F8FAFC}
+.role strong{display:block;font-size:15px}
+.role span{display:block;color:var(--accent);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.role p{margin:4px 0 0;font-size:14px}
+footer{max-width:820px;margin:0 auto;padding:0 20px 40px;color:var(--muted);font-size:13px;text-align:center}
+@media(max-width:600px){article{padding:24px 18px}h1{font-size:25px}.roles{grid-template-columns:1fr}table{font-size:13px}}
+</style>
+</head>
+<body>
+<header><div class="bar"><img src="icons/smyl_logo.png" alt="SMYL"><nav><a id="nav-terms" href="terminos-cobro.html">Términos de cobro</a><a id="nav-privacy" href="aviso-privacidad-cobro.html">Privacidad de cobro</a></nav></div></header>
+<main><article>
+<h1>Aviso de privacidad de cobro</h1>
+<p class="meta">Aviso de privacidad integral para pagos en línea, conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) · Última actualización: 21 de noviembre de 2026</p>
+
+<div class="box"><strong>Responsable:</strong> <strong data-clinic>la clínica</strong> que te envió el enlace de pago es la responsable del tratamiento de tus datos. SMYL y LANA tratan tus datos solo por cuenta de la clínica, como <strong>encargados</strong>, para hacer posible el cobro. Este aviso complementa el aviso de privacidad que la clínica te dio como paciente.</div>
+
+<h2>1. Quién trata tus datos y en qué papel</h2>
+<div class="roles">
+  <div class="role"><span>Comercio y responsable</span><strong data-clinic>La clínica</strong><p>Te presta el servicio dental, emite el cobro y recibe el dinero en su propia cuenta Openpay. Decide para qué se usan tus datos.</p></div>
+  <div class="role"><span>Plataforma de gestión</span><strong>SMYL</strong><p>Software que usa la clínica para su agenda, expediente y finanzas. Genera el enlace de pago, registra el pago y emite tu recibo, por cuenta de la clínica.</p></div>
+  <div class="role"><span>Pasarela tecnológica</span><strong>LANA</strong><p>Plataforma de pagos externa, validada por Openpay, que SMYL usa para conectar la cuenta Openpay de la clínica y crear el cargo. No retiene dinero.</p></div>
+  <div class="role"><span>Procesador de pagos</span><strong>Openpay</strong><p>Openpay (grupo BBVA) procesa el cargo con tarjeta, la transferencia SPEI o la referencia de pago en tienda (Paynet) y deposita a la clínica.</p></div>
+</div>
+
+<table>
+  <tr><th>Participante</th><th>Papel conforme a la LFPDPPP</th></tr>
+  <tr><td data-clinic>La clínica</td><td>Responsable. Decide los fines del tratamiento y atiende tus derechos ARCO.</td></tr>
+  <tr><td>SMYL</td><td>Encargado. Trata los datos por instrucciones de la clínica para generar el enlace, registrar el pago y emitir el recibo.</td></tr>
+  <tr><td>LANA</td><td>Subencargado (por cuenta de SMYL y de la clínica). Crea la solicitud de cobro y el cargo en la cuenta Openpay de la clínica, y recibe de Openpay la confirmación.</td></tr>
+  <tr><td>Openpay</td><td>Procesador de pagos. Trata los datos de tu tarjeta y de la operación conforme a su propio aviso de privacidad y a la regulación financiera.</td></tr>
+</table>
+
+<h2>2. Datos que se tratan</h2>
+<ul>
+  <li><strong>Identificación y contacto:</strong> nombre del paciente y, si la clínica lo registró, correo o teléfono.</li>
+  <li><strong>Datos de la operación:</strong> conceptos, importe, método de pago, fecha, folio de recibo, CLABE o referencia generada, identificadores de Openpay y estado del pago.</li>
+  <li><strong>Datos de la tarjeta:</strong> los captura y tokeniza directamente Openpay. SMYL, LANA y la clínica no reciben el número completo, la fecha de vencimiento ni el código de seguridad; como mucho conservan los datos que Openpay reporta del cargo (por ejemplo, la marca o los últimos dígitos).</li>
+  <li><strong>Datos técnicos:</strong> identificador del dispositivo generado por Openpay para prevenir fraudes, dirección IP y datos del navegador.</li>
+</ul>
+<p>Los conceptos pueden revelar indirectamente el tipo de tratamiento dental que recibes. Se tratan con las mismas medidas de confidencialidad que tu expediente y solo se muestran en el enlace que la clínica te envió.</p>
+
+<h2>3. Finalidades</h2>
+<p><strong>Primarias</strong> (necesarias para el pago):</p>
+<ul>
+  <li>Generar y mostrar el enlace con los conceptos y el importe.</li>
+  <li>Procesar el cobro con tarjeta, SPEI o efectivo en tienda.</li>
+  <li>Confirmar el pago, registrarlo en la cuenta de la clínica y emitir tu recibo.</li>
+  <li>Prevenir fraudes, atender aclaraciones y contracargos, y cumplir obligaciones legales y fiscales.</li>
+</ul>
+<p><strong>Secundarias:</strong> ninguna. Los datos del pago no se usan para publicidad ni se venden. SMYL y LANA no los usan para fines propios.</p>
+
+<h2>4. Transferencias y remisiones</h2>
+<p>Para cumplir las finalidades primarias tus datos se <strong>remiten</strong> a SMYL y a LANA como encargados, y se <strong>transfieren</strong> a Openpay (y por su conducto a bancos, redes de tarjetas y cadenas de la red Paynet) para procesar el pago. Estas transferencias son necesarias para la relación entre tú y la clínica, por lo que no requieren tu consentimiento conforme al artículo 37 de la LFPDPPP. Si la clínica emite una factura, comparte los datos fiscales que tú le des con su proveedor de facturación y con el SAT. Los datos también pueden entregarse a autoridades que los requieran conforme a la ley.</p>
+
+<h2>5. Conservación y seguridad</h2>
+<p>Los registros del pago se conservan mientras la clínica mantenga tu expediente y por los plazos que exigen las leyes fiscales y de prevención de fraudes. Se protegen con cifrado en tránsito, controles de acceso por clínica y registros de auditoría. El enlace de pago usa un código único que solo conoce quien lo recibe.</p>
+
+<h2>6. Derechos ARCO y revocación</h2>
+<p>Puedes ejercer tus derechos de Acceso, Rectificación, Cancelación u Oposición, revocar tu consentimiento o limitar el uso de tus datos dirigiéndote a <strong data-clinic>la clínica</strong>, por los medios que indique su aviso de privacidad. La clínica responderá en un máximo de <strong>20 días hábiles</strong> y, si procede, hará efectiva la solicitud en los 15 días hábiles siguientes. SMYL y LANA atenderán las instrucciones verificadas de la clínica. Si no puedes contactar a la clínica, escribe a <a href="mailto:contacto@smyldesign.ai">contacto@smyldesign.ai</a> y haremos llegar tu solicitud a la clínica.</p>
+<p>Algunos datos no se pueden cancelar mientras exista una obligación legal de conservarlos (por ejemplo, registros contables o de aclaraciones).</p>
+
+<h2>7. Cookies y almacenamiento en el navegador</h2>
+<p>La página de pago no usa cookies de publicidad ni de rastreo. Guarda temporalmente el código del enlace en el almacenamiento de la pestaña para poder regresar después de la autenticación 3D Secure; se borra al cerrar la pestaña o al confirmarse el pago. Openpay puede usar tecnologías propias para identificar el dispositivo y prevenir fraudes.</p>
+
+<h2>8. Cambios a este aviso</h2>
+<p>Cualquier cambio a este aviso se publicará en esta misma página con su fecha de actualización. Para dudas o quejas sobre el tratamiento de tus datos puedes acudir al INAI o a la autoridad que la sustituya.</p>
+<p>Consulta también los <a id="lnk-terms" href="terminos-cobro.html">Términos y condiciones de pago</a>.</p>
+</article></main>
+<footer>Pagos procesados por Openpay · Pasarela tecnológica: LANA · Plataforma de gestión clínica: SMYL · Comercio: <span data-clinic>tu clínica</span></footer>
+<script>
+// Muestra el nombre de la clínica que cobra. El token del enlace llega en el fragmento (#t=…), que no viaja al servidor;
+// sin token o si falla la consulta, el documento se lee igual con «la clínica».
+(function () {
+  'use strict';
+  var m = /[#&]t=([a-f0-9]{64})/.exec(location.hash), token = m ? m[1] : '';
+  if (!token) { try { token = sessionStorage.getItem('smyl-pay-token') || ''; } catch (e) {} }
+  if (!/^[a-f0-9]{64}$/.test(token)) return;
+  ['nav-terms', 'nav-privacy', 'lnk-terms', 'lnk-privacy'].forEach(function (id) { var a = document.getElementById(id); if (a) a.href = a.getAttribute('href') + '#t=' + token; });
+  fetch('https://rpxshsiwoxdbuevjjpfw.supabase.co/functions/v1/smyl-pay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'view', token: token }) })
+    .then(function (r) { return r.ok ? r.json() : {}; })
+    .then(function (v) {
+      var name = v && typeof v.clinic === 'string' ? v.clinic.trim() : '';
+      if (!name) return;
+      Array.prototype.forEach.call(document.querySelectorAll('[data-clinic]'), function (n) { n.textContent = name; });
+    })
+    .catch(function () {});
+})();
+</script>
+</body>
+</html>

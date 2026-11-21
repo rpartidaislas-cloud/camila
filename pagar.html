@@ -9,52 +9,174 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://resources.openpay.mx; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src https://rpxshsiwoxdbuevjjpfw.supabase.co https://lgjdzaqjrmmzyrenevfm.supabase.co https://api.openpay.mx https://sandbox-api.openpay.mx; frame-src https://*.openpay.mx; base-uri 'none'; form-action 'none'">
 <title>Pago seguro · SMYL</title>
 <link rel="icon" href="icons/smyl_pwa.png">
+<!-- Diseño de cobro tomado de LANA (promodesk/aceptar.html): tarjetas de método, ficha SPEI con CIE, formulario Openpay y ficha
+     Paynet con cadenas. Los pagos los procesa Openpay mediante la pasarela de LANA; SMYL registra el pago y emite el recibo. -->
 <style>
-:root{--ink:#1F2937;--muted:#6B7280;--line:#E5E7EB;--blue:#2563EB;--blue-d:#1D4ED8;--bg:#F3F6FB;--ok:#047857;--okbg:#ECFDF5;--bad:#B91C1C;--badbg:#FEF2F2}
+:root{--ui-bg:#F4F7FA;--ui-surface:#FFFFFF;--ui-subtle:#F8FAFC;--ui-border:#D7E0E8;--ui-border-strong:#B7C4D1;--ui-text:#102239;--ui-text-2:#526173;--ui-muted:#667586;--ui-brand:#194391;--ui-brand-hover:#12366F;--ui-brand-soft:#EDF3FC;--ui-accent:#0F766E;--ui-accent-soft:#EAF7F5;--ui-info:#194391;--ui-info-soft:#EDF3FC;--ui-info-border:#C9D8F0;--ui-ok:#0F766E;--ui-ok-soft:#EAF7F5;--ui-ok-border:#B5E2DA;--ui-bad:#B42318;--ui-bad-soft:#FEF3F2;--ui-bad-border:#FECDCA;--spei:#194391}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
-main{max-width:480px;margin:0 auto;padding:20px 16px 48px}
-.brand{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 0 18px;color:var(--muted);font-size:14px}
-.brand img{height:24px}
-.card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 4px 14px rgba(16,34,57,.06);padding:22px}
-.eyebrow{font-size:12px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+html{background:var(--ui-bg)}
+body{margin:0;background:var(--ui-bg);color:var(--ui-text);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input{font:inherit}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid rgba(25,67,145,.22);outline-offset:2px}
+main{max-width:760px;margin:0 auto;padding:18px 16px 48px}
+.brand{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 0 16px;color:var(--ui-muted);font-size:13px}
+.brand img{height:22px}
+.card{background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:16px;box-shadow:0 18px 48px rgba(16,24,40,.08);padding:22px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--ui-brand);text-transform:uppercase}
 h1{font-size:22px;line-height:1.25;margin:4px 0 2px}
-.sub{color:var(--muted);font-size:14px;margin:0 0 16px}
-.lines{border-top:1px solid var(--line);margin:12px 0}
-.line{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
+.sub{color:var(--ui-muted);font-size:14px;margin:0 0 14px}
+.lines{border-top:1px solid var(--ui-border);margin:12px 0}
+.line{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--ui-border);font-size:14px}
 .line span:last-child{white-space:nowrap;font-variant-numeric:tabular-nums}
-.total{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-size:20px;margin:10px 0 18px}
-.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.tab{flex:1 1 30%;min-width:0;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;font:inherit;font-weight:600;cursor:pointer;color:var(--ink)}
-.tab[aria-selected=true]{border-color:var(--blue);color:var(--blue);background:#EFF6FF}
-label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
-input{width:100%;border:1px solid #CBD5E1;border-radius:10px;padding:12px;font:inherit;background:#fff}
-input:focus{outline:2px solid #93C5FD;border-color:var(--blue)}
-.row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.btn{width:100%;margin-top:16px;border:0;border-radius:12px;background:var(--blue);color:#fff;font:inherit;font-weight:700;padding:14px;cursor:pointer}
-.btn:hover{background:var(--blue-d)}
-.btn:disabled{opacity:.6;cursor:default}
-.btn.ghost{background:#fff;color:var(--blue);border:1px solid var(--blue);margin-top:10px}
+.total{display:flex;justify-content:space-between;align-items:baseline;font-weight:800;font-size:20px;margin:10px 0 18px}
+.total span:last-child{color:var(--ui-brand)}
 .msg{border-radius:10px;padding:12px 14px;font-size:14px;margin:12px 0}
-.msg.err{background:var(--badbg);color:var(--bad)}
-.msg.ok{background:var(--okbg);color:var(--ok)}
-.msg.info{background:#EFF6FF;color:#1E3A8A}
-.barcode{display:block;max-width:100%;height:auto;margin:8px 0;background:#fff}
-.clabe{font:600 22px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em;word-break:break-all;margin:6px 0}
-.fine{color:var(--muted);font-size:12px;margin-top:16px;text-align:center}
+.msg.err{background:var(--ui-bad-soft);color:var(--ui-bad);border:1px solid var(--ui-bad-border)}
+.msg.ok{background:var(--ui-ok-soft);color:var(--ui-ok)}
+.msg.info{background:var(--ui-info-soft);color:var(--ui-info);border:1px solid var(--ui-info-border)}
+.btn{display:inline-flex;align-items:center;justify-content:center;width:100%;min-height:48px;margin-top:14px;border:0;border-radius:10px;background:var(--ui-brand);color:#fff;font-weight:700;padding:12px 16px;cursor:pointer}
+.btn:hover{background:var(--ui-brand-hover)}
+.btn:disabled{opacity:.5;cursor:default}
 .done{text-align:center;padding:10px 0}
-.done .tick{width:56px;height:56px;border-radius:50%;background:var(--okbg);color:var(--ok);display:grid;place-items:center;font-size:30px;margin:0 auto 10px}
+.done .tick{width:56px;height:56px;border-radius:50%;background:var(--ui-ok-soft);color:var(--ui-ok);display:grid;place-items:center;font-size:30px;margin:0 auto 10px}
 [hidden]{display:none!important}
+/* Tarjetas de método */
+.pago-metodos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:6px 0 10px}
+.pago-btn{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:96px;padding:14px 8px;border:1px solid var(--ui-border);border-radius:12px;background:var(--ui-surface);color:var(--ui-text);text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.pago-btn:hover{border-color:var(--ui-brand)}
+.pago-btn[aria-selected="true"]{border-color:var(--ui-brand);background:var(--ui-brand-soft)}
+.pago-ico{display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--ui-border);border-radius:9px;background:var(--ui-subtle);color:var(--ui-text-2)}
+.pago-btn[aria-selected="true"] .pago-ico{border-color:var(--ui-brand);background:var(--ui-brand);color:#fff}
+.pago-ico svg{width:18px;height:18px}
+.pago-txt{display:flex;flex-direction:column;align-items:center;gap:2px}
+.pago-lbl{font-size:15px;font-weight:700}
+.pago-desc{font-size:12px;color:var(--ui-muted)}
+.pago-detalle{margin-top:6px;padding:16px;border:1px solid var(--ui-border);border-radius:12px;background:var(--ui-surface)}
+.pago-detalle-tit{margin:0 0 10px;color:var(--ui-brand);font-size:12px;font-weight:700}
+/* SPEI */
+.spei-recibo{font-size:13px;color:var(--ui-text)}
+.spei-rh{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;padding-bottom:10px;border-bottom:2px solid var(--ui-border);margin-bottom:14px}
+.spei-rh-comercio{font-size:17px;font-weight:800}
+.spei-rh-tipo{font-size:12px;color:var(--ui-muted)}
+.spei-info-row,.spei-pasos-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.spei-sq{display:inline-block;width:8px;height:8px;background:var(--spei);margin-right:6px;flex-shrink:0}
+.spei-sec-label{font-size:12px;font-weight:700;display:flex;align-items:center;margin-bottom:4px}
+.spei-info-val{font-size:14px;font-weight:700}
+.spei-monto-box{background:var(--spei);color:#fff;border-radius:8px;padding:12px 14px}
+.spei-monto-lbl{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;opacity:.9;margin-bottom:4px}
+.spei-monto-val{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.spei-sec-hd{font-size:14px;font-weight:800;display:flex;align-items:center;margin:14px 0 8px}
+.spei-tabla{width:100%;border-collapse:collapse}
+.spei-td-k{background:var(--ui-subtle);padding:6px 8px;font-size:12px;color:var(--ui-text-2);width:38%;border:1px solid var(--ui-border);vertical-align:top}
+.spei-td-v{padding:6px 8px;font-size:12px;border:1px solid var(--ui-border);word-break:break-all}
+.spei-td-v.spei-clabe{word-break:normal;overflow-wrap:anywhere}
+.spei-clabe{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;font-weight:800;color:var(--ui-brand);letter-spacing:.03em}
+.spei-importe{font-weight:800;color:var(--ui-brand)}
+.spei-pasos-subtit{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ui-muted);margin-bottom:6px}
+.spei-ol{margin:0 0 8px;padding-left:18px;font-size:12px;color:var(--ui-text-2);line-height:1.6}
+.spei-footer{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--ui-border)}
+.spei-btn-imprimir{min-height:40px;font-size:13px;font-weight:700;padding:8px 14px;background:var(--spei);color:#fff;border:0;border-radius:8px;cursor:pointer}
+.op-brand{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ui-muted)}
+/* Tarjeta (Openpay) */
+.openpay-card-form{display:flex;flex-direction:column;gap:16px}
+.openpay-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding-bottom:16px;border-bottom:1px solid var(--ui-border)}
+.openpay-card-kicker{display:block;margin-bottom:4px;color:var(--ui-brand);font-size:12px;font-weight:700}
+.openpay-card-head h4{margin:0;font-size:18px;line-height:1.3}
+.openpay-card-head p{max-width:420px;margin:5px 0 0;color:var(--ui-text-2);font-size:13px;line-height:1.5}
+.openpay-card-amount{flex:0 0 auto;text-align:right}
+.openpay-card-amount span{display:block;margin-bottom:3px;color:var(--ui-muted);font-size:12px;font-weight:600}
+.openpay-card-amount strong{font-size:18px;white-space:nowrap}
+.openpay-acceptance{display:flex;min-height:48px;align-items:center;gap:12px;padding:8px 12px;border:1px solid var(--ui-border);border-radius:10px;background:var(--ui-subtle)}
+.openpay-acceptance>span{color:var(--ui-text-2);font-size:12px;font-weight:600;white-space:nowrap}
+.openpay-acceptance img{display:block;width:auto;max-width:176px;height:18px;object-fit:contain}
+.openpay-acceptance-kind{margin-left:auto;padding-left:12px;border-left:1px solid var(--ui-border);color:var(--ui-muted)!important;font-weight:500!important}
+.openpay-card-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.openpay-card-field{display:flex;min-width:0;flex-direction:column;gap:6px}
+.openpay-card-field label{color:var(--ui-text-2);font-size:13px;font-weight:600}
+.openpay-card-field input{min-height:46px;width:100%;padding:11px 13px;border:1px solid var(--ui-border-strong);border-radius:8px;background:var(--ui-surface);color:var(--ui-text);font-size:16px}
+.openpay-card-field input:focus-visible{outline:0;border-color:var(--ui-brand);box-shadow:0 0 0 3px var(--ui-brand-soft)}
+.openpay-expiry-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.openpay-cvv-input{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px}
+.openpay-cvv-guide{display:flex;align-items:center;gap:6px;color:var(--ui-muted);font-size:12px;line-height:1.25}
+.openpay-cvv-guide img{width:62px;height:28px;object-fit:contain}
+.openpay-payment-meta{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--ui-border);border-radius:10px;background:var(--ui-subtle)}
+.openpay-processor{display:flex;flex:0 0 auto;align-items:center;padding-right:12px;border-right:1px solid var(--ui-border)}
+.openpay-processor img{display:block;width:82px;height:auto}
+.openpay-secure{display:flex;min-width:0;align-items:center;gap:9px;color:var(--ui-text-2);font-size:12px;line-height:1.4}
+.openpay-secure img{flex:0 0 auto;width:22px;height:26px;object-fit:contain}
+.openpay-secure strong{display:block;color:var(--ui-text);font-size:12px}
+.openpay-required-legend{margin:-8px 0 0;color:var(--ui-muted);font-size:12px}
+.openpay-terms-check{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--ui-text-2);line-height:1.5;cursor:pointer}
+.openpay-terms-check input{flex:0 0 auto;width:18px;height:18px;margin-top:2px}
+.openpay-terms-check a{color:var(--ui-text-2);text-underline-offset:2px}
+/* Paynet */
+.paynet-receipt{display:flex;flex-direction:column;gap:16px}
+.paynet-receipt-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:14px;border-bottom:1px solid var(--ui-border)}
+.paynet-wordmark{display:flex;align-items:center;gap:9px;font-size:18px;font-weight:800}
+.paynet-wordmark small{font-size:12px;font-weight:600;color:var(--ui-muted)}
+.paynet-wordmark-mark{display:inline-flex;width:34px;height:34px;align-items:center;justify-content:center;border-radius:9px;background:var(--ui-brand);color:#fff}
+.paynet-wordmark-mark svg{width:20px;height:20px}
+.paynet-receipt-kicker{margin:5px 0 0;color:var(--ui-muted);font-size:12px}
+.paynet-amount{text-align:right}
+.paynet-amount span{display:block;color:var(--ui-muted);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.paynet-amount strong{display:block;margin-top:3px;font-size:20px;font-weight:800}
+.paynet-code-card{padding:18px;border:1px solid var(--ui-border);border-radius:12px;background:var(--ui-surface);text-align:center}
+.paynet-code-label{margin:0 0 10px;color:var(--ui-text-2);font-size:13px;font-weight:600}
+.paynet-barcode{display:block;width:min(100%,520px);max-height:150px;object-fit:contain;margin:0 auto 14px;padding:10px;border-radius:8px;background:#fff}
+.paynet-reference-label{margin:0;color:var(--ui-muted);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.paynet-reference{margin:6px 0 12px;font:800 clamp(22px,5vw,32px)/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;overflow-wrap:anywhere}
+.paynet-copy-status{min-height:16px;margin:7px 0 0;color:var(--ui-ok);font-size:12px}
+.paynet-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:8px}
+.paynet-action{display:inline-flex;min-height:40px;align-items:center;justify-content:center;gap:7px;padding:0 14px;border:1px solid var(--ui-border-strong);border-radius:8px;background:var(--ui-surface);color:var(--ui-text);font-size:13px;font-weight:600;cursor:pointer}
+.paynet-action:hover{border-color:var(--ui-brand);color:var(--ui-brand);background:var(--ui-brand-soft)}
+.paynet-action svg{width:16px;height:16px}
+.paynet-share-whatsapp{display:none}
+.paynet-expiry{margin:0;color:var(--ui-text-2);font-size:13px;text-align:center}
+.paynet-instructions{margin:0;padding:14px 14px 14px 32px;border:1px solid var(--ui-info-border);border-radius:10px;background:var(--ui-info-soft);color:var(--ui-text-2);font-size:13px;line-height:1.55}
+.paynet-instructions li+li{margin-top:5px}
+.paynet-stores{border:1px solid var(--ui-border);border-radius:10px;background:var(--ui-surface);overflow:hidden}
+.paynet-stores summary{padding:13px 14px;font-size:13px;font-weight:700;cursor:pointer;list-style:none}
+.paynet-stores summary::-webkit-details-marker{display:none}
+.paynet-stores summary::after{content:"+";float:right;color:var(--ui-brand);font-size:16px}
+.paynet-stores[open] summary::after{content:"−"}
+.paynet-store-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 12px 12px}
+.paynet-store-card{min-width:0;padding:9px;border:1px solid var(--ui-border);border-radius:9px;background:var(--ui-subtle)}
+.paynet-store-logo{display:flex;height:38px;align-items:center;justify-content:center;margin-bottom:7px;padding:4px 6px;border-radius:6px;background:#fff}
+.paynet-store-logo img{display:block;max-width:100%;max-height:100%;object-fit:contain}
+.paynet-store-name{overflow:hidden;font-size:12px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
+.paynet-store-fee{margin-top:4px;color:var(--ui-text-2);font-size:12px;line-height:1.35}
+.paynet-store-limit{color:var(--ui-muted);font-size:12px;line-height:1.35}
+.paynet-source{margin:0;color:var(--ui-muted);font-size:12px;line-height:1.45}
+.paynet-source a{color:var(--ui-brand);font-weight:600}
+.legal{margin-top:16px;color:var(--ui-muted);font-size:12px;line-height:1.55;text-align:center}
+.legal a{color:var(--ui-text-2)}
+@media(max-width:600px){
+  .card{padding:16px}
+  .pago-metodos{grid-template-columns:1fr}
+  .pago-btn{flex-direction:row;min-height:60px;justify-content:flex-start;text-align:left;gap:12px;padding:10px 12px}
+  .pago-btn .pago-txt{align-items:flex-start}
+  .spei-info-row,.spei-pasos-row{grid-template-columns:1fr}
+  .openpay-card-head,.paynet-receipt-head{align-items:stretch;flex-direction:column;gap:10px}
+  .openpay-card-amount,.paynet-amount{text-align:left}
+  .openpay-acceptance{flex-wrap:wrap}
+  .openpay-acceptance-kind{width:100%;margin-left:0;padding:7px 0 0;border-top:1px solid var(--ui-border);border-left:0}
+  .openpay-card-row{grid-template-columns:1fr}
+  .openpay-payment-meta{align-items:flex-start}
+  .paynet-code-card{padding:14px 10px}
+  .paynet-store-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .paynet-action,.spei-btn-imprimir{width:100%}
+  .paynet-share-whatsapp{display:inline-flex}
+}
 </style>
 <link rel="stylesheet" href="smyl-skeleton.css?v=1">
 <script defer src="smyl-skeleton.js?v=1"></script>
 </head>
 <body>
 <main>
-  <div class="brand"><img src="icons/smyl_pwa.png" alt="" width="24" height="24"><span>Pago seguro</span></div>
+  <div class="brand"><img src="icons/smyl_pwa.png" alt="" width="22" height="22"><span>Pago seguro</span></div>
   <section class="card" id="card" aria-live="polite"><p class="sub">Cargando…</p></section>
   <script>document.addEventListener("DOMContentLoaded",function(){var c=document.getElementById("card");if(window.SmylSkeleton&&c&&c.children.length===1&&c.firstElementChild.className==="sub")c.replaceChildren(window.SmylSkeleton.node("form",{fields:3,label:"Cargando el cobro"}));});</script>
-  <p class="fine">El pago lo procesa OpenPay. Ni SMYL, ni LANA ni tu clínica guardan los datos de tu tarjeta. · <a href="privacidad.html">Aviso de privacidad</a></p>
+  <p class="legal" id="legal">Pagos procesados por Openpay mediante la pasarela de LANA. Ni SMYL, ni LANA ni tu clínica guardan los datos de tu tarjeta.<br><a id="legal-terms" href="terminos-cobro.html">Términos y condiciones de pago</a> · <a id="legal-privacy" href="aviso-privacidad-cobro.html">Aviso de privacidad de cobro</a></p>
 </main>
 <script src="https://resources.openpay.mx/lib/openpay-js/1.2.38/openpay.v1.min.js"></script>
 <script src="https://resources.openpay.mx/lib/openpay-data-js/1.2.38/openpay-data.v1.min.js"></script>
@@ -67,27 +189,84 @@ input:focus{outline:2px solid #93C5FD;border-color:var(--blue)}
   var card = document.getElementById('card');
   var token = '', cfg = null, view = null, poll = null;
 
+  // Cadenas Paynet con comisión al usuario final y monto máximo (directorio oficial de Paynet; mismo listado que LANA).
+  var PAYNET_STORES = Object.freeze([
+    { name: 'Soriana', logo: 'soriana.webp', commission: 12, limit: 35000, coverage: 'Nacional' },
+    { name: '7-Eleven', logo: '7eleven.webp', commission: 12, limit: 15000, coverage: 'Nacional' },
+    { name: 'Farmacias Guadalajara', logo: 'farmaciaGuadalajara.webp', commission: 8, limit: 5000, coverage: 'Nacional' },
+    { name: 'Walmart', logo: 'walmart.webp', commission: 15, limit: 29999, coverage: 'Nacional' },
+    { name: 'Walmart Express', logo: 'walmartExpress.webp', commission: 15, limit: 29999, coverage: 'Nacional' },
+    { name: 'Bodega Aurrera', logo: 'bodegaAurrera.webp', commission: 15, limit: 29999, coverage: 'Nacional' },
+    { name: 'Farmacias del Ahorro', logo: 'farmaciaAhorro.webp', commission: 9, limit: 5000, coverage: 'Nacional' },
+    { name: 'Waldos', logo: 'waldos.webp', commission: 10, limit: 5000, coverage: 'Nacional' },
+    { name: 'Eleczion', logo: 'eleczion.webp', commission: 10, limit: 5000, coverage: 'Nacional' },
+    { name: 'Kiosko', logo: 'kiosko.webp', commission: 12, limit: 29999, coverage: 'Colima, Jalisco, Nayarit y Sinaloa' },
+    { name: 'Circle K', logo: 'circlek.webp', commission: 10, limit: 10000, coverage: 'CDMX, Edo. de México, Nuevo León, Puebla y Querétaro' },
+    { name: 'K', logo: 'tiendas-k.webp', commission: 10, limit: 10000, coverage: 'Querétaro' },
+    { name: 'Extra', logo: 'extra.webp', commission: 10, limit: 10000, coverage: 'Nacional' },
+    { name: 'SYS Tienda', logo: 'systienda.webp', commission: 10, limit: 29999, coverage: 'Nacional' },
+    { name: 'Pagaqui', logo: 'pagaqui.webp', commission: 12, limit: 29999, coverage: 'CDMX' },
+    { name: "Sam's Club", logo: 'sams.webp', commission: 15, limit: 29999, coverage: 'Nacional' },
+    { name: 'Más Bodega', logo: 'mas-bodega.webp', commission: 12, limit: 29999, coverage: 'Nacional' },
+    { name: 'MercaDía', logo: 'mercadia.webp', commission: 12, limit: 29999, coverage: 'Nacional' },
+    { name: 'City Club', logo: 'city-club.webp', commission: 12, limit: 29999, coverage: 'Nacional' }
+  ]);
+
   // El token llega en el fragmento (#t=…) para no viajar al servidor; se guarda solo en esta pestaña porque el regreso de 3D Secure no lo trae.
   try {
     var m = /[#&]t=([a-f0-9]{64})/.exec(location.hash);
     if (m) { sessionStorage.setItem(KEY, m[1]); history.replaceState(null, '', location.pathname + location.search); }
     token = sessionStorage.getItem(KEY) || '';
   } catch (e) { var m2 = /[#&]t=([a-f0-9]{64})/.exec(location.hash); token = m2 ? m2[1] : ''; }
+  // Los documentos legales de cobro reciben el mismo token para mostrar el nombre de la clínica responsable.
+  ['legal-terms', 'legal-privacy'].forEach(function (id) { var a = document.getElementById(id); if (a && token) a.href = a.getAttribute('href') + '#t=' + token; });
 
   function el(tag, props, kids) {
     var n = document.createElement(tag);
     Object.keys(props || {}).forEach(function (k) { if (k === 'text') n.textContent = props[k]; else n.setAttribute(k, props[k]); });
-    (kids || []).forEach(function (c) { if (c) n.appendChild(c); });
+    (kids || []).forEach(function (c) { if (c) n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
     return n;
   }
+  // Íconos de trazo construidos con createElementNS.
+  var ICON_PATHS = {
+    spei: ['M4 7h16M6 7V5h12v2M6 11v6m4-6v6m4-6v6m4-6v6M4 20h16'],
+    card: ['M3 10h18M7 15h4', 'rect:3,5,18,14'],
+    store: ['M4 10v10h16V10M3 10l2-6h14l2 6M8 20v-6h5v6', 'M3 10c1.4 1.7 3.1 1.7 4.5 0 1.4 1.7 3.1 1.7 4.5 0 1.4 1.7 3.1 1.7 4.5 0 1.4 1.7 3.1 1.7 4.5 0'],
+    copy: ['M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2', 'rect:8,8,11,11'],
+    print: ['M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2', 'M6 14h12v7H6z'],
+    share: ['M21 11.5a8.4 8.4 0 0 1-9 8.5 9.5 9.5 0 0 1-4-.9L3 21l1.7-4.8A8.5 8.5 0 1 1 21 11.5Z']
+  };
+  function icon(name) {
+    var NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '1.8'); svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round'); svg.setAttribute('aria-hidden', 'true');
+    (ICON_PATHS[name] || []).forEach(function (d) {
+      var node;
+      if (d.indexOf('rect:') === 0) { var r = d.slice(5).split(','); node = document.createElementNS(NS, 'rect'); node.setAttribute('x', r[0]); node.setAttribute('y', r[1]); node.setAttribute('width', r[2]); node.setAttribute('height', r[3]); node.setAttribute('rx', '2'); }
+      else { node = document.createElementNS(NS, 'path'); node.setAttribute('d', d); }
+      svg.appendChild(node);
+    });
+    return svg;
+  }
   function money(v) { return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(v) || 0); }
-  function dateTime(v) { try { return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(v)); } catch (e) { return ''; } }
+  function mxn(v) { return '$' + Number(v || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' MXN'; }
+  function dateTime(v) { try { return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Mexico_City' }).format(new Date(v)); } catch (e) { return ''; } }
+  function longNow() { var d = new Date(); return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Mexico_City' }) + ', a las ' + d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' }); }
+  function groups(v) { var c = String(v || '').replace(/\s+/g, ''); return (c.match(/.{1,4}/g) || [c]).join(' '); }
+  function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); }
+  function clinicName() { return (view && view.clinic) || 'Tu clínica'; }
+  function concept() { var ls = (view && view.lines) || []; return ls.length === 1 ? ls[0].concept : ls.length ? ls.length + ' conceptos · ' + clinicName() : 'Recibo de pago'; }
   function clear() { card.textContent = ''; }
   function post(url, body) {
     var ctrl = new AbortController(), timer = setTimeout(function () { ctrl.abort(); }, 20000);
     return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctrl.signal })
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { d._status = r.status; return d; }); })
       .then(function (d) { clearTimeout(timer); return d; }, function (e) { clearTimeout(timer); throw e; });
+  }
+  function appendAll(parent, nodes) { nodes.forEach(function (n) { if (n) parent.appendChild(n); }); }
+  function copyText(value, status) {
+    function done(ok) { if (status) status.textContent = ok ? 'Copiado.' : 'No se pudo copiar. Mantén presionado el texto para seleccionarlo.'; }
+    try { navigator.clipboard.writeText(String(value)).then(function () { done(true); }, function () { done(false); }); } catch (e) { done(false); }
   }
 
   function head(v) {
@@ -102,26 +281,21 @@ input:focus{outline:2px solid #93C5FD;border-color:var(--blue)}
     (v.lines || []).forEach(function (l) { box.appendChild(el('div', { 'class': 'line' }, [el('span', { text: l.concept }), el('span', { text: money(l.amount) })])); });
     return [box, el('div', { 'class': 'total' }, [el('span', { text: 'Total a pagar' }), el('span', { text: money(v.amount) })])];
   }
-  function appendAll(parent, nodes) { nodes.forEach(function (n) { if (n) parent.appendChild(n); }); }
-
   function showMessage(title, text, tone) {
     clear();
     appendAll(card, [el('h1', { text: title }), el('div', { 'class': 'msg ' + (tone || 'info'), text: text })]);
   }
-
   function showPaid(v) {
     stopPoll(); try { sessionStorage.removeItem(KEY); } catch (e) {}
     clear();
-    var done = el('div', { 'class': 'done' }, [
+    card.appendChild(el('div', { 'class': 'done' }, [
       el('div', { 'class': 'tick', text: '✓' }),
       el('h1', { text: 'Pago recibido' }),
       el('p', { 'class': 'sub', text: v.receipt_folio ? 'Recibo interno #' + v.receipt_folio + (v.paid_at ? ' · ' + dateTime(v.paid_at) : '') : 'Tu pago se registró correctamente.' })
-    ]);
-    card.appendChild(done);
+    ]));
     appendAll(card, lines(v));
     card.appendChild(el('p', { 'class': 'sub', text: 'Comprobante interno de ' + (v.clinic || 'tu clínica') + '; no sustituye una factura. Puedes cerrar esta página.' }));
   }
-
   function stopPoll() { if (poll) { clearInterval(poll); poll = null; } }
   function startPoll() {
     stopPoll();
@@ -129,63 +303,103 @@ input:focus{outline:2px solid #93C5FD;border-color:var(--blue)}
     poll = setInterval(function () {
       if (++tries > 90) {
         stopPoll();
-        showMessage('Seguimos esperando tu pago', 'Si ya pagaste, tu clínica verá el pago en cuanto el banco lo confirme. Si aún no pagaste, recarga la página para intentarlo de nuevo.', 'info');
+        showMessage('Seguimos esperando tu pago', 'Si ya pagaste, tu clínica verá el pago en cuanto se confirme. Si aún no pagaste, recarga la página para intentarlo de nuevo.', 'info');
         return;
       }
       post(SMYL_PAY, { action: 'view', token: token }).then(function (v) { if (v.status === 'paid') showPaid(v); }).catch(function () {});
     }, 8000);
   }
+  function waiting() {
+    showMessage('Confirmando tu pago…', 'Estamos confirmando tu pago. No cierres esta página; se actualizará sola.', 'info');
+    startPoll();
+  }
 
+  // ───────── Formulario: tarjetas de método (como LANA) ─────────
   function renderForm(v) {
     clear();
     appendAll(card, head(v)); appendAll(card, lines(v));
     var methods = cfg.metodos || {};
-    var tabs = el('div', { 'class': 'tabs', role: 'tablist' });
-    var panel = el('div');
-    var current = methods.tarjeta !== false ? 'card' : methods.spei !== false ? 'spei' : 'paynet';
+    var opciones = [
+      ['spei', 'SPEI', 'Transferencia · Automática', methods.spei !== false],
+      ['card', 'Tarjeta', 'Crédito o débito', methods.tarjeta !== false],
+      ['paynet', 'Efectivo en tiendas', 'Paynet · Referencia', methods.paynet === true]
+    ].filter(function (o) { return o[3]; });
+    if (!opciones.length) { showMessage('Pago no disponible', 'Esta clínica aún no tiene métodos de pago en línea activos.', 'err'); return; }
+    var tabs = el('div', { 'class': 'pago-metodos', role: 'tablist', 'aria-label': 'Forma de pago' });
+    var panel = el('div', { 'class': 'pago-detalle', role: 'tabpanel' });
+    var current = opciones.some(function (o) { return o[0] === 'card'; }) ? 'card' : opciones[0][0];
     function paint() {
       Array.prototype.forEach.call(tabs.children, function (t) { t.setAttribute('aria-selected', String(t.getAttribute('data-m') === current)); });
       panel.textContent = '';
-      panel.appendChild(current === 'card' ? cardPanel(v) : current === 'spei' ? speiPanel(v) : paynetPanel(v));
+      panel.appendChild(current === 'card' ? cardPanel() : current === 'spei' ? speiPanel() : paynetPanel());
     }
-    [['card', 'Tarjeta', methods.tarjeta !== false], ['spei', 'Transferencia SPEI', methods.spei !== false], ['paynet', 'Efectivo en tienda', methods.paynet === true]].forEach(function (m) {
-      if (!m[2]) return;
-      var b = el('button', { type: 'button', 'class': 'tab', role: 'tab', 'data-m': m[0], text: m[1] });
-      b.onclick = function () { current = m[0]; paint(); };
+    opciones.forEach(function (o) {
+      var ico = el('span', { 'class': 'pago-ico' }, [icon(o[0] === 'paynet' ? 'store' : o[0])]);
+      var b = el('button', { type: 'button', 'class': 'pago-btn', role: 'tab', 'data-m': o[0] }, [ico, el('span', { 'class': 'pago-txt' }, [el('span', { 'class': 'pago-lbl', text: o[1] }), el('span', { 'class': 'pago-desc', text: o[2] })])]);
+      b.onclick = function () { current = o[0]; paint(); };
       tabs.appendChild(b);
     });
-    if (!tabs.children.length) { showMessage('Pago no disponible', 'Esta clínica aún no tiene métodos de pago en línea activos.', 'err'); return; }
     card.appendChild(tabs); card.appendChild(panel); paint();
-    if (v.expires_at) card.appendChild(el('p', { 'class': 'sub', text: 'Este enlace vence el ' + dateTime(v.expires_at) + '.' }));
+    if (v.expires_at) card.appendChild(el('p', { 'class': 'sub', style: 'margin-top:12px', text: 'Este enlace vence el ' + dateTime(v.expires_at) + ' (hora de Ciudad de México).' }));
   }
 
-  function field(label, name, attrs) {
-    var a = Object.assign({ name: name, id: 'f-' + name, required: 'required', autocomplete: 'off' }, attrs || {});
-    return [el('label', { 'for': a.id, text: label }), el('input', a)];
+  function termsCheck(onChange) {
+    var input = el('input', { type: 'checkbox', id: 'chk-terminos' });
+    input.onchange = function () { onChange(input.checked); };
+    var t = el('a', { href: 'terminos-cobro.html#t=' + token, target: '_blank', rel: 'noopener', text: 'Términos y condiciones' });
+    var p = el('a', { href: 'aviso-privacidad-cobro.html#t=' + token, target: '_blank', rel: 'noopener', text: 'Aviso de Privacidad' });
+    return el('label', { 'class': 'openpay-terms-check' }, [input, el('span', {}, ['Acepto los ', t, ' y el ', p, ' del cobro'])]);
   }
 
+  // ───────── Tarjeta (Openpay.js tokeniza; el número nunca llega a SMYL ni a LANA) ─────────
+  function cardField(label, id, attrs) {
+    var a = Object.assign({ id: id, name: id, autocomplete: 'off' }, attrs || {});
+    return el('div', { 'class': 'openpay-card-field' }, [el('label', { 'for': id, text: label }), el('input', a)]);
+  }
   function cardPanel() {
-    var form = el('form', { id: 'pay-form', novalidate: 'novalidate' });
-    var err = el('div', { 'class': 'msg err', hidden: 'hidden' });
-    appendAll(form, field('Nombre en la tarjeta', 'holder', { 'data-openpay-card': 'holder_name', autocomplete: 'cc-name', maxlength: '80' }));
-    appendAll(form, field('Número de tarjeta', 'number', { 'data-openpay-card': 'card_number', inputmode: 'numeric', autocomplete: 'cc-number', maxlength: '19' }));
-    var row = el('div', { 'class': 'row' });
-    [['Mes', 'month', 'expiration_month', 'cc-exp-month', '2', 'MM'], ['Año', 'year', 'expiration_year', 'cc-exp-year', '2', 'AA'], ['CVV', 'cvv', 'cvv2', 'cc-csc', '4', '']].forEach(function (f) {
-      var c = el('div'); appendAll(c, field(f[0], f[1], { 'data-openpay-card': f[2], inputmode: 'numeric', autocomplete: f[3], maxlength: f[4], placeholder: f[5] })); row.appendChild(c);
-    });
-    form.appendChild(row);
-    form.appendChild(err);
-    var btn = el('button', { 'class': 'btn', type: 'submit', text: 'Pagar ' + money(view.amount) });
-    form.appendChild(btn);
+    var wrap = el('div');
+    wrap.appendChild(el('p', { 'class': 'pago-detalle-tit', text: 'Pago con tarjeta' }));
+    var form = el('form', { id: 'pay-form', 'class': 'openpay-card-form', novalidate: 'novalidate' });
+    var amount = mxn(view.amount);
+    form.appendChild(el('header', { 'class': 'openpay-card-head' }, [
+      el('div', {}, [el('span', { 'class': 'openpay-card-kicker', text: 'Pago seguro' }), el('h4', { text: 'Tarjeta de crédito o débito' }), el('p', { text: 'Ingresa los datos tal como aparecen en tu tarjeta. La información se enviará cifrada a Openpay.' })]),
+      el('div', { 'class': 'openpay-card-amount' }, [el('span', { text: 'Importe a pagar' }), el('strong', { text: money(view.amount) })])
+    ]));
+    form.appendChild(el('div', { 'class': 'openpay-acceptance' }, [el('span', { text: 'Aceptamos' }), el('img', { src: 'assets/openpay/cards1.png', alt: 'Visa, Mastercard, American Express y Carnet', width: '176', height: '18' }), el('span', { 'class': 'openpay-acceptance-kind', text: 'Crédito y débito' })]));
+    form.appendChild(cardField('Nombre del titular', 'holder', { 'data-openpay-card': 'holder_name', autocomplete: 'cc-name', maxlength: '80', placeholder: 'Como aparece en la tarjeta' }));
+    var number = cardField('Número de tarjeta', 'number', { 'data-openpay-card': 'card_number', inputmode: 'numeric', autocomplete: 'cc-number', maxlength: '19', placeholder: '0000 0000 0000 0000' });
+    number.querySelector('input').addEventListener('input', function () { var d = this.value.replace(/\D/g, '').slice(0, 16); this.value = d.replace(/(.{4})(?=.)/g, '$1 '); });
+    form.appendChild(number);
+    var exp = el('div', { 'class': 'openpay-card-field' }, [el('label', { text: 'Fecha de expiración' }), el('div', { 'class': 'openpay-expiry-fields' }, [
+      el('input', { id: 'month', name: 'month', 'data-openpay-card': 'expiration_month', inputmode: 'numeric', autocomplete: 'cc-exp-month', maxlength: '2', placeholder: 'MM', 'aria-label': 'Mes de expiración' }),
+      el('input', { id: 'year', name: 'year', 'data-openpay-card': 'expiration_year', inputmode: 'numeric', autocomplete: 'cc-exp-year', maxlength: '2', placeholder: 'AA', 'aria-label': 'Año de expiración' })
+    ])]);
+    var cvv = el('div', { 'class': 'openpay-card-field' }, [el('label', { 'for': 'cvv', text: 'Código de seguridad' }), el('div', { 'class': 'openpay-cvv-input' }, [
+      el('input', { id: 'cvv', name: 'cvv', type: 'password', 'data-openpay-card': 'cvv2', inputmode: 'numeric', autocomplete: 'cc-csc', maxlength: '4', placeholder: 'CVV' }),
+      el('span', { 'class': 'openpay-cvv-guide' }, [el('img', { src: 'assets/openpay/cvv.png', alt: 'Ubicación del código de seguridad', width: '62', height: '28' }), el('span', { text: '3 o 4 dígitos' })])
+    ])]);
+    form.appendChild(el('div', { 'class': 'openpay-card-row' }, [exp, cvv]));
+    form.appendChild(el('div', { 'class': 'openpay-payment-meta' }, [
+      el('div', { 'class': 'openpay-processor' }, [el('img', { src: 'assets/openpay/openpay.png', alt: 'Openpay', width: '110', height: '31' })]),
+      el('div', { 'class': 'openpay-secure' }, [el('img', { src: 'assets/openpay/security.png', alt: '', width: '34', height: '40' }), el('span', {}, [el('strong', { text: 'Tu información está protegida' }), 'Los datos se tokenizan de forma segura y no se guardan en SMYL, en LANA ni en tu clínica.'])])
+    ]));
+    form.appendChild(el('p', { 'class': 'openpay-required-legend', text: 'Algunos pagos serán procesados por Openpay' }));
+    var err = el('div', { 'class': 'msg err', role: 'alert', hidden: 'hidden' });
+    var btn = el('button', { 'class': 'btn', type: 'submit', disabled: 'disabled', text: 'Pagar ' + amount });
+    form.appendChild(termsCheck(function (ok) { btn.disabled = !ok; }));
+    form.appendChild(btn); form.appendChild(err);
     form.appendChild(el('input', { type: 'hidden', id: 'deviceIdHiddenFieldName', name: 'deviceIdHiddenFieldName' }));
+    wrap.appendChild(form);
     var devId = '';
-    try { devId = OpenPay.deviceData.setup('pay-form', 'deviceIdHiddenFieldName'); } catch (e) {}
+    setTimeout(function () { try { devId = OpenPay.deviceData.setup('pay-form', 'deviceIdHiddenFieldName'); } catch (e) {} }, 0);
     form.onsubmit = function (ev) {
       ev.preventDefault();
+      if (!document.getElementById('chk-terminos').checked) return;
       err.hidden = true; btn.disabled = true; btn.textContent = 'Procesando…';
-      function fail(msg) { err.textContent = msg; err.hidden = false; btn.disabled = false; btn.textContent = 'Pagar ' + money(view.amount); }
+      function fail(msg) { err.textContent = msg; err.hidden = false; btn.disabled = false; btn.textContent = 'Pagar ' + amount; }
       var ds = devId || document.getElementById('deviceIdHiddenFieldName').value;
       if (!ds) return fail('No se pudo validar tu dispositivo. Recarga la página e inténtalo de nuevo.');
+      var num = document.getElementById('number'); num.value = num.value.replace(/\s+/g, '');
       OpenPay.token.extractFormAndCreate('pay-form', function (res) {
         post(LANA_PAY, { accion: 'tarjeta', token: token, token_id: res.data.id, device_session_id: ds }).then(function (d) {
           if (d.status === '3ds' && /^https:\/\//.test(String(d.redirect_url || ''))) { location.href = d.redirect_url; return; }
@@ -197,72 +411,172 @@ input:focus{outline:2px solid #93C5FD;border-color:var(--blue)}
         fail(d ? 'La tarjeta no es válida: ' + d : 'Revisa los datos de tu tarjeta.');
       });
     };
-    return form;
+    return wrap;
   }
 
-  function waiting() {
-    showMessage('Confirmando tu pago…', 'Estamos confirmando tu pago con el banco. No cierres esta página; se actualizará sola.', 'info');
-    startPoll();
-  }
-
-  function speiPanel(v) {
+  // ───────── SPEI: ficha como la de LANA (CIE de BBVA + SPEI de cualquier banco) ─────────
+  function speiPanel() {
     var box = el('div');
-    var btn = el('button', { 'class': 'btn', type: 'button', text: 'Generar CLABE para transferir' });
+    box.appendChild(el('p', { 'class': 'pago-detalle-tit', text: 'Transferencia SPEI' }));
+    box.appendChild(el('p', { 'class': 'sub', text: 'Genera los datos para transferir el monto exacto desde tu banca en línea. El pago se acredita en minutos y se confirma solo.' }));
     var err = el('div', { 'class': 'msg err', hidden: 'hidden' });
+    var btn = el('button', { 'class': 'btn', type: 'button', text: 'Generar datos para transferir' });
     btn.onclick = function () {
-      btn.disabled = true; err.hidden = true;
+      btn.disabled = true; err.hidden = true; btn.textContent = 'Generando…';
       post(LANA_PAY, { accion: 'spei', token: token }).then(function (d) {
         if (d.status === 'spei') return showSpei(box, d);
         if (d.status === 'pagada') return waiting();
-        btn.disabled = false; err.textContent = d.error || 'No se pudo generar la CLABE.'; err.hidden = false;
-      }).catch(function () { btn.disabled = false; err.textContent = 'No pudimos conectar. Inténtalo de nuevo.'; err.hidden = false; });
+        btn.disabled = false; btn.textContent = 'Generar datos para transferir'; err.textContent = d.error || 'No se pudo generar la CLABE.'; err.hidden = false;
+      }).catch(function () { btn.disabled = false; btn.textContent = 'Generar datos para transferir'; err.textContent = 'No pudimos conectar. Inténtalo de nuevo.'; err.hidden = false; });
     };
-    box.appendChild(el('p', { 'class': 'sub', text: 'Genera una CLABE exclusiva para este pago y transfiere el monto exacto desde tu banca en línea. Se acredita en minutos.' }));
     box.appendChild(err); box.appendChild(btn);
     return box;
   }
-
+  function row(k, v, cls) { return el('tr', {}, [el('td', { 'class': 'spei-td-k', text: k }), el('td', { 'class': 'spei-td-v' + (cls ? ' ' + cls : ''), text: v })]); }
   function showSpei(box, d) {
+    var amount = mxn(d.monto), ref = d.referencia || concept(), banco = d.banco || 'STP', fecha = longNow();
     box.textContent = '';
-    box.appendChild(el('div', { 'class': 'msg info', text: 'Transfiere exactamente ' + money(d.monto) + ' a esta CLABE' + (d.banco ? ' (' + d.banco + ')' : '') + '.' }));
-    box.appendChild(el('div', { 'class': 'clabe', text: d.clabe }));
-    var copy = el('button', { 'class': 'btn ghost', type: 'button', text: 'Copiar CLABE' });
-    copy.onclick = function () { try { navigator.clipboard.writeText(d.clabe); copy.textContent = 'Copiada'; } catch (e) {} };
-    box.appendChild(copy);
-    if (d.vence) box.appendChild(el('p', { 'class': 'sub', text: 'Vigente hasta el ' + dateTime(d.vence) + '. Esta página se actualiza sola cuando llegue tu pago.' }));
+    box.appendChild(el('p', { 'class': 'pago-detalle-tit', text: 'Transferencia SPEI' }));
+    var r = el('div', { 'class': 'spei-recibo' });
+    r.appendChild(el('div', { 'class': 'spei-rh' }, [el('span', { 'class': 'spei-rh-comercio', text: clinicName() }), el('span', { 'class': 'spei-rh-tipo', text: 'Transferencia interbancaria (SPEI)' })]));
+    r.appendChild(el('div', { 'class': 'spei-info-row' }, [
+      el('div', {}, [el('div', { 'class': 'spei-sec-label' }, [el('span', { 'class': 'spei-sq' }), 'Beneficiario']), el('div', { 'class': 'spei-info-val', text: clinicName() })]),
+      el('div', { 'class': 'spei-monto-box' }, [el('div', { 'class': 'spei-monto-lbl', text: 'Total a pagar / MXN' }), el('div', { 'class': 'spei-monto-val', text: amount })])
+    ]));
+    r.appendChild(el('div', { 'class': 'spei-sec-hd' }, [el('span', { 'class': 'spei-sq' }), 'Detalles de la compra']));
+    r.appendChild(el('table', { 'class': 'spei-tabla' }, [el('tbody', {}, [row('Descripción', concept()), row('Fecha y hora', fecha)])]));
+    r.appendChild(el('div', { 'class': 'spei-sec-hd' }, [el('span', { 'class': 'spei-sq' }), 'Pasos para realizar el pago']));
+    var pasos = el('div', { 'class': 'spei-pasos-row' });
+    if (d.convenio) {
+      pasos.appendChild(el('div', {}, [
+        el('div', { 'class': 'spei-pasos-subtit', text: 'Desde BBVA Bancomer (CIE)' }),
+        el('ol', { 'class': 'spei-ol' }, [el('li', { text: 'Accede a Bancomer Móvil o BBVA en línea.' }), el('li', { text: 'Ve a Pagos → Pago de servicios / CIE.' }), el('li', { text: 'Ingresa el convenio y referencia de abajo.' }), el('li', { text: 'Tu pago se confirmará automáticamente.' })]),
+        el('table', { 'class': 'spei-tabla' }, [el('tbody', {}, [row('Convenio CIE', d.convenio, 'spei-clabe'), row('Referencia', ref, 'spei-clabe'), row('Importe', amount, 'spei-importe')])])
+      ]));
+    }
+    pasos.appendChild(el('div', {}, [
+      el('div', { 'class': 'spei-pasos-subtit', text: d.convenio ? 'Desde cualquier otro banco (SPEI)' : 'Desde cualquier banco (SPEI)' }),
+      el('ol', { 'class': 'spei-ol' }, [el('li', { text: 'Accede a tu banca en línea o app.' }), el('li', { text: 'Selecciona transferencia SPEI.' }), el('li', { text: 'Ingresa la CLABE y los datos de abajo.' }), el('li', { text: 'Tu pago se confirmará automáticamente.' })]),
+      el('table', { 'class': 'spei-tabla' }, [el('tbody', {}, [row('Beneficiario', clinicName()), row('Banco destino', banco), row('CLABE', d.clabe, 'spei-clabe'), row('Concepto', ref), row('Importe', amount, 'spei-importe')])])
+    ]));
+    r.appendChild(pasos);
+    if (d.vence) r.appendChild(el('p', { 'class': 'sub', text: 'Vigente hasta el ' + dateTime(d.vence) + ' (hora de Ciudad de México). Esta página se actualiza sola cuando llegue tu pago.' }));
+    var status = el('p', { 'class': 'paynet-copy-status', role: 'status' });
+    var copy = el('button', { type: 'button', 'class': 'paynet-action' }, [icon('copy'), 'Copiar CLABE']);
+    copy.onclick = function () { copyText(d.clabe, status); };
+    var print = el('button', { type: 'button', 'class': 'spei-btn-imprimir', text: '⬇ Guardar ficha de pago' });
+    print.onclick = function () { printSpei(d, fecha); };
+    r.appendChild(el('div', { 'class': 'spei-footer' }, [el('div', { 'class': 'paynet-actions' }, [print, copy]), el('span', { 'class': 'op-brand' }, ['Procesado por ', el('strong', { text: 'Openpay' })])]));
+    r.appendChild(status);
+    box.appendChild(r);
     startPoll();
   }
+  function printSpei(d, fecha) {
+    var popup = window.open('', '_blank', 'width=900,height=820');
+    if (!popup) { alert('Permite ventanas emergentes para guardar la ficha de pago.'); return; }
+    try { popup.opener = null; } catch (e) {}
+    var amount = mxn(d.monto), ref = d.referencia || concept(), banco = d.banco || 'STP', c = clinicName();
+    var styles = '@page{size:A4;margin:10mm}*{box-sizing:border-box}body{margin:0;color:#172033;font:12px/1.5 Arial,sans-serif}.sheet{max-width:190mm;margin:auto}.hd{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:10px;border-bottom:2px solid #172033;margin-bottom:14px}.hd b{font-size:17px}.muted{color:#64748b}.row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px}.monto{background:#194391;color:#fff;border-radius:8px;padding:12px 14px}.monto div:last-child{font-size:20px;font-weight:800}h3{font-size:13px;margin:14px 0 8px}table{width:100%;border-collapse:collapse}td{border:1px solid #e2e8f0;padding:5px 8px}td.k{background:#f1f5f9;color:#475569;width:38%}.v{font-family:monospace;font-weight:800;color:#194391}ol{margin:0 0 8px;padding-left:16px}.sub{font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:6px}.foot{margin-top:14px;color:#64748b;font-size:11px}button{margin-top:14px;padding:8px 14px}@media print{button{display:none}}';
+    function tr(k, v, cls) { return '<tr><td class="k">' + esc(k) + '</td><td' + (cls ? ' class="v"' : '') + '>' + esc(v) + '</td></tr>'; }
+    var cie = d.convenio ? '<div><div class="sub">Desde BBVA Bancomer (CIE)</div><ol><li>Accede a Bancomer Móvil o BBVA en línea.</li><li>Ve a Pagos → Pago de servicios / CIE.</li><li>Ingresa el convenio y referencia de abajo.</li><li>Tu pago se confirmará automáticamente.</li></ol><table>' + tr('Convenio CIE', d.convenio, 1) + tr('Referencia', ref, 1) + tr('Importe', amount, 1) + '</table></div>' : '';
+    var html = '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Ficha SPEI · ' + esc(c) + '</title><style>' + styles + '</style></head><body><div class="sheet">'
+      + '<div class="hd"><b>' + esc(c) + '</b><span class="muted">Transferencia interbancaria (SPEI)</span></div>'
+      + '<div class="row"><div><div class="sub">Beneficiario</div><b>' + esc(c) + '</b></div><div class="monto"><div>TOTAL A PAGAR / MXN</div><div>' + esc(amount) + '</div></div></div>'
+      + '<h3>Detalles de la compra</h3><table>' + tr('Descripción', concept()) + tr('Fecha y hora', fecha) + '</table>'
+      + '<h3>Pasos para realizar el pago</h3><div class="row">' + cie
+      + '<div><div class="sub">' + (d.convenio ? 'Desde cualquier otro banco (SPEI)' : 'Desde cualquier banco (SPEI)') + '</div><ol><li>Accede a tu banca en línea o app.</li><li>Selecciona transferencia SPEI.</li><li>Ingresa la CLABE y los datos de abajo.</li><li>Tu pago se confirmará automáticamente.</li></ol><table>' + tr('Beneficiario', c) + tr('Banco destino', banco) + tr('CLABE', d.clabe, 1) + tr('Concepto', ref) + tr('Importe', amount, 1) + '</table></div></div>'
+      + (d.vence ? '<p>Vigente hasta el ' + esc(dateTime(d.vence)) + ' (hora de Ciudad de México).</p>' : '')
+      + '<p class="foot">Procesado por Openpay mediante la pasarela de LANA. ' + esc(c) + ' registra tu pago en SMYL y emite tu recibo.</p>'
+      + '<button onclick="window.print()">Imprimir o guardar como PDF</button></div></body></html>';
+    popup.document.open(); popup.document.write(html); popup.document.close(); popup.focus();
+    popup.addEventListener('load', function () { setTimeout(function () { popup.print(); }, 400); });
+  }
 
-  // Efectivo en tiendas (Paynet vía Openpay): referencia + código de barras; el pago llega cuando el cliente paga en tienda.
-  function paynetPanel(v) {
+  // ───────── Paynet: efectivo en tiendas (ficha como la de LANA) ─────────
+  function paynetPanel() {
     var box = el('div');
-    var btn = el('button', { 'class': 'btn', type: 'button', text: 'Generar referencia para pagar en tienda' });
+    box.appendChild(el('p', { 'class': 'pago-detalle-tit', text: 'Pago en efectivo con Paynet' }));
+    box.appendChild(el('p', { 'class': 'sub', text: 'Genera una referencia y paga en efectivo en tiendas afiliadas a Paynet (7-Eleven, Walmart, Farmacias del Ahorro y más). La tienda cobra una comisión adicional.' }));
     var err = el('div', { 'class': 'msg err', hidden: 'hidden' });
+    var btn = el('button', { 'class': 'btn', type: 'button', text: 'Generar referencia para pagar en tienda' });
     btn.onclick = function () {
-      btn.disabled = true; err.hidden = true;
+      btn.disabled = true; err.hidden = true; btn.textContent = 'Generando…';
       post(LANA_PAY, { accion: 'paynet', token: token }).then(function (d) {
         if (d.status === 'paynet') return showPaynet(box, d);
         if (d.status === 'pagada') return waiting();
-        btn.disabled = false; err.textContent = d.error || 'No se pudo generar la referencia.'; err.hidden = false;
-      }).catch(function () { btn.disabled = false; err.textContent = 'No pudimos conectar. Inténtalo de nuevo.'; err.hidden = false; });
+        btn.disabled = false; btn.textContent = 'Generar referencia para pagar en tienda'; err.textContent = d.error || 'No se pudo generar la referencia.'; err.hidden = false;
+      }).catch(function () { btn.disabled = false; btn.textContent = 'Generar referencia para pagar en tienda'; err.textContent = 'No pudimos conectar. Inténtalo de nuevo.'; err.hidden = false; });
     };
-    box.appendChild(el('p', { 'class': 'sub', text: 'Paga en efectivo en tiendas de conveniencia y farmacias afiliadas a Paynet (por ejemplo 7-Eleven, Farmacias del Ahorro, Walmart, Bodega Aurrera). La tienda puede cobrar una comisión.' }));
     box.appendChild(err); box.appendChild(btn);
     return box;
   }
-
+  function safeBarcode(url) { return url && /^https:\/\/([a-z0-9-]+\.)*openpay\.mx\//.test(url) ? url : ''; }
+  function storeCards(absolute) {
+    return PAYNET_STORES.map(function (s) {
+      var src = absolute ? new URL('assets/paynet/' + s.logo, document.baseURI).href : 'assets/paynet/' + s.logo;
+      return el('article', { 'class': 'paynet-store-card' }, [
+        el('div', { 'class': 'paynet-store-logo' }, [el('img', { src: src, alt: s.name, loading: 'lazy' })]),
+        el('div', { 'class': 'paynet-store-name', text: s.name }),
+        el('div', { 'class': 'paynet-store-fee' }, ['Comisión: ', el('strong', { text: '$' + s.commission.toFixed(2) })]),
+        el('div', { 'class': 'paynet-store-limit', text: 'Máximo: $' + s.limit.toLocaleString('es-MX') + ' · ' + s.coverage })
+      ]);
+    });
+  }
   function showPaynet(box, d) {
+    var barcode = safeBarcode(d.barcode_url);
     box.textContent = '';
-    box.appendChild(el('div', { 'class': 'msg info', text: 'Paga exactamente ' + money(d.monto) + ' en caja mostrando esta referencia o el código de barras.' }));
-    box.appendChild(el('div', { 'class': 'clabe', text: String(d.referencia || '').replace(/(.{4})/g, '$1 ').trim() }));
-    if (d.barcode_url && /^https:\/\/([a-z0-9-]+\.)*openpay\.mx\//.test(d.barcode_url)) {
-      box.appendChild(el('img', { 'class': 'barcode', src: d.barcode_url, alt: 'Código de barras de la referencia de pago' }));
-    }
-    var copy = el('button', { 'class': 'btn ghost', type: 'button', text: 'Copiar referencia' });
-    copy.onclick = function () { try { navigator.clipboard.writeText(d.referencia); copy.textContent = 'Copiada'; } catch (e) {} };
-    box.appendChild(copy);
-    if (d.vence) box.appendChild(el('p', { 'class': 'sub', text: 'Paga antes del ' + dateTime(d.vence) + '. Al pagar en tienda, la confirmación puede tardar unos minutos; esta página se actualiza sola.' }));
+    box.appendChild(el('p', { 'class': 'pago-detalle-tit', text: 'Pago en efectivo con Paynet' }));
+    var rec = el('section', { 'class': 'paynet-receipt', 'aria-label': 'Ficha de pago Paynet' });
+    rec.appendChild(el('header', { 'class': 'paynet-receipt-head' }, [
+      el('div', {}, [el('div', { 'class': 'paynet-wordmark' }, [el('span', { 'class': 'paynet-wordmark-mark' }, [icon('store')]), el('span', {}, ['Paynet ', el('small', { text: 'por Openpay' })])]), el('p', { 'class': 'paynet-receipt-kicker', text: 'Referencia para pagar en efectivo' })]),
+      el('div', { 'class': 'paynet-amount' }, [el('span', { text: 'Total a pagar' }), el('strong', { text: mxn(d.monto) })])
+    ]));
+    var status = el('p', { 'class': 'paynet-copy-status', role: 'status', 'aria-live': 'polite' });
+    var copy = el('button', { type: 'button', 'class': 'paynet-action' }, [icon('copy'), 'Copiar referencia']);
+    copy.onclick = function () { copyText(String(d.referencia || '').replace(/\s+/g, ''), status); };
+    var share = el('button', { type: 'button', 'class': 'paynet-action paynet-share-whatsapp' }, [icon('share'), 'Compartir por WhatsApp']);
+    share.onclick = function () {
+      var text = ['Referencia de pago Paynet — ' + clinicName(), 'Referencia: ' + groups(d.referencia), 'Monto: ' + mxn(d.monto), d.vence ? 'Fecha límite: ' + dateTime(d.vence) + ' (hora de Ciudad de México)' : ''].filter(Boolean).join('\n');
+      var w = window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener,noreferrer'); if (!w) location.assign('https://wa.me/?text=' + encodeURIComponent(text));
+    };
+    var print = el('button', { type: 'button', 'class': 'paynet-action' }, [icon('print'), 'Imprimir o guardar PDF']);
+    print.onclick = function () { printPaynet(d); };
+    rec.appendChild(el('div', { 'class': 'paynet-code-card' }, [
+      el('p', { 'class': 'paynet-code-label', text: 'Muestra este código desde tu celular o impreso' }),
+      barcode ? el('img', { 'class': 'paynet-barcode', src: barcode, alt: 'Código de barras de la referencia de pago' }) : null,
+      el('p', { 'class': 'paynet-reference-label', text: 'O dicta este número de referencia' }),
+      el('div', { 'class': 'paynet-reference', text: groups(d.referencia) }),
+      el('div', { 'class': 'paynet-actions' }, [copy, share, print]),
+      status
+    ]));
+    if (d.vence) rec.appendChild(el('p', { 'class': 'paynet-expiry' }, [el('strong', { text: 'Fecha límite: ' }), dateTime(d.vence) + ' (hora de Ciudad de México)']));
+    rec.appendChild(el('ol', { 'class': 'paynet-instructions' }, [
+      el('li', { text: 'Acude a una cadena afiliada dentro de la fecha límite.' }),
+      el('li', { text: 'Indica en caja que realizarás un pago en efectivo Paynet y muestra el código o dicta la referencia.' }),
+      el('li', { text: 'Verifica el monto, paga en efectivo y conserva el comprobante. ' + clinicName() + ' recibirá la confirmación automáticamente.' })
+    ]));
+    rec.appendChild(el('details', { 'class': 'paynet-stores' }, [el('summary', { text: 'Dónde pagar: ' + PAYNET_STORES.length + ' cadenas, comisiones y límites' }), el('div', { 'class': 'paynet-store-grid' }, storeCards(false))]));
+    rec.appendChild(el('p', { 'class': 'paynet-source' }, ['Las comisiones son adicionales al monto de la referencia, las cobra cada cadena al usuario final y pueden cambiar. Información consultada en el directorio oficial de ', el('a', { href: 'https://www.paynet.com.mx/', target: '_blank', rel: 'noopener noreferrer', text: 'Paynet' }), '.']));
+    box.appendChild(rec);
     startPoll();
+  }
+  function printPaynet(d) {
+    var popup = window.open('', '_blank', 'width=900,height=850');
+    if (!popup) { alert('Permite ventanas emergentes para imprimir o guardar el PDF.'); return; }
+    try { popup.opener = null; } catch (e) {}
+    var barcode = safeBarcode(d.barcode_url), c = clinicName();
+    var styles = '@page{size:A4;margin:8mm}*{box-sizing:border-box}body{margin:0;color:#172033;font:11.5px/1.4 Arial,sans-serif}.sheet{max-width:194mm;margin:auto}.head{display:flex;justify-content:space-between;gap:16px;padding-bottom:11px;border-bottom:2px solid #194391}.brand{font-size:22px;font-weight:800}.muted{color:#64748b}.amount{text-align:right}.amount strong{display:block;font-size:22px}.code{margin:14px 0;padding:14px;border:1px solid #d0d5dd;border-radius:10px;text-align:center}.barcode{max-width:100%;max-height:120px}.ref{font:800 26px monospace;letter-spacing:.06em}ol{background:#f2f4f7;border-radius:8px;padding:10px 10px 10px 28px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.store{border:1px solid #e4e7ec;border-radius:6px;padding:6px}.store img{display:block;height:24px;max-width:100%;object-fit:contain;margin:0 auto 4px}.store b{display:block;font-size:10px}.store span{display:block;font-size:9px;color:#475467}.source{font-size:9px;color:#64748b}button{margin-top:12px;padding:8px 14px}@media print{button{display:none}}';
+    var stores = PAYNET_STORES.map(function (s) { return '<div class="store"><img src="' + esc(new URL('assets/paynet/' + s.logo, document.baseURI).href) + '" alt="' + esc(s.name) + '"><b>' + esc(s.name) + '</b><span>Comisión: $' + s.commission.toFixed(2) + '</span><span>Máximo: $' + s.limit.toLocaleString('es-MX') + ' · ' + esc(s.coverage) + '</span></div>'; }).join('');
+    var html = '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Referencia Paynet ' + esc(d.referencia) + '</title><style>' + styles + '</style></head><body><main class="sheet">'
+      + '<header class="head"><div><div class="brand">Paynet <span class="muted" style="font-size:12px">por Openpay</span></div><div class="muted">Referencia de pago en efectivo</div></div><div class="amount"><span class="muted">TOTAL A PAGAR</span><strong>' + esc(mxn(d.monto)) + '</strong></div></header>'
+      + '<h2 style="font-size:14px">Detalles de la compra</h2><table style="width:100%"><tr><td class="muted" style="width:38%">Descripción</td><td>' + esc(concept() + ' — ' + c) + '</td></tr><tr><td class="muted">Fecha</td><td>' + esc(longNow()) + '</td></tr></table>'
+      + '<section class="code"><p class="muted">Muestra este código impreso o desde tu celular</p>' + (barcode ? '<img class="barcode" src="' + esc(barcode) + '" alt="Código de barras Paynet">' : '') + '<p class="muted">O dicta este número de referencia</p><div class="ref">' + esc(groups(d.referencia)) + '</div>' + (d.vence ? '<p><strong>Fecha límite:</strong> ' + esc(dateTime(d.vence)) + ' (hora de Ciudad de México)</p>' : '') + '</section>'
+      + '<h2 style="font-size:14px">Instrucciones de pago</h2><ol><li>Acude a una cadena afiliada y solicita un pago en efectivo Paynet.</li><li>Muestra el código o dicta la referencia y verifica que el monto coincida.</li><li>Paga en efectivo y conserva tu comprobante. ' + esc(c) + ' recibirá la confirmación automáticamente.</li></ol>'
+      + '<h2 style="font-size:14px">Puedes realizar el pago en estas cadenas</h2><div class="grid">' + stores + '</div>'
+      + '<p class="source">Comisiones para usuario final y montos máximos consultados en paynet.com.mx. Pueden cambiar sin previo aviso y la disponibilidad depende de la ubicación. La comisión se paga directamente a la cadena y es adicional al monto de esta referencia.</p>'
+      + '<button onclick="window.print()">Imprimir o guardar como PDF</button></main></body></html>';
+    popup.document.open(); popup.document.write(html); popup.document.close(); popup.focus();
+    popup.addEventListener('load', function () { setTimeout(function () { popup.print(); }, 450); });
   }
 
   function init() {
