@@ -12,6 +12,7 @@
   - Cargan el nombre de la clínica con `smyl-pay` `view` usando el token del enlace.
   - Son coherentes con `privacidad.html` (clínica responsable, SMYL encargado, LANA subencargado). **Pendiente: revisión de un abogado antes de producción.**
 - LANA (`promodesk`, task-id `smyl-pago-ficha-cie`): `pago-publico` devuelve `convenio`, `referencia` y el vencimiento real. Requiere la migración `20261121140000`.
+- Colores: paleta de SMYL (azul `#194391`, acento verde azulado `#0F766E`, fondo `#F4F7FA`), sin el morado de LANA.
 - QA visual con APIs simuladas en 1280, 820 y 390 px, sin desbordes ni errores de consola. `tests/smyl-online-pay-setup.test.mjs` cubre la nueva ficha.
 - **Despliegue**:
   - LANA: aplicar las migraciones `20261121120000` y `20261121140000` y luego desplegar `pago-publico`, `openpay-webhook` (`--no-verify-jwt`) y `camila-api`.
