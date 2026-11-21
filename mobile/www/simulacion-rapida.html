@@ -6,6 +6,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>SMYL · Simula tu Sonrisa</title>
+<script>
+var simulacionDeConsultorio = new URLSearchParams(location.search).get('from') === 'consultorio';
+if (simulacionDeConsultorio) document.documentElement.dataset.consultorioCase = 'pending';
+</script>
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
@@ -37,6 +41,12 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 @media(prefers-reduced-motion:reduce){html:focus-within{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 .screen{position:fixed;inset:0;display:none;flex-direction:column}
 .screen.active{display:flex}
+#consultorio-case-gate{display:none}
+html[data-consultorio-case]:not([data-consultorio-case="ready"]) body > :not(#consultorio-case-gate){display:none!important}
+html[data-consultorio-case]:not([data-consultorio-case="ready"]) #consultorio-case-gate{display:grid;align-content:center;justify-items:center;gap:16px;min-height:100%;padding:24px;text-align:center}
+#consultorio-case-gate h1{font-size:22px}
+#consultorio-case-gate p{max-width:38ch;line-height:1.5}
+#consultorio-case-gate a{display:inline-flex;align-items:center;min-height:44px;color:#b9d6ff}
 
 /* ══ INTRO ══ */
 #s-intro{background:linear-gradient(160deg,#0d0820,#0a1628);align-items:center;justify-content:flex-start;padding:max(56px,calc(env(safe-area-inset-top) + 40px)) 24px 32px;overflow-y:auto;gap:0}
@@ -737,13 +747,14 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <script defer src="smyl-analysis-model.js?v=1"></script>
 <script defer src="smyl-analysis-guides.js?v=1"></script>
 <script defer src="smyl-photo-batch.js?v=2"></script>
-<script defer src="smyl-studio.js?v=31"></script>
+<script defer src="smyl-studio.js?v=32"></script>
 <link rel="stylesheet" href="smyl-result-viewer.css?v=1">
 <script defer src="smyl-result-viewer.js?v=2"></script>
 <link rel="stylesheet" href="smyl-patient-cases.css?v=2">
 <script defer src="smyl-case-model.js?v=3"></script>
-<script defer src="smyl-case-client.js?v=1"></script>
-<script defer src="smyl-patient-cases.js?v=8"></script>
+<script defer src="smyl-secure-files.js?v=2"></script>
+<script defer src="smyl-case-client.js?v=3"></script>
+<script defer src="smyl-patient-cases.js?v=13"></script>
 <link rel="stylesheet" href="my-smyl.css?v=1">
 <link rel="stylesheet" href="my-smyl-review.css?v=1">
 <link rel="stylesheet" href="my-smyl-studio.css?v=1">
@@ -757,6 +768,11 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
 <link rel="stylesheet" href="smyl-simulation-workspace-v33.css?v=1">
 </head>
 <body class="sim-workspace-v33">
+<section id="consultorio-case-gate" aria-labelledby="consultorio-case-title">
+  <h1 id="consultorio-case-title">Simulación de carillas</h1>
+  <p id="consultorio-case-status" role="status">Verificando el acceso al expediente…</p>
+  <a href="app.html?ir=consultorio">Volver al consultorio</a>
+</section>
 <div id="flash" role="status" aria-live="polite" aria-atomic="true"></div>
 <div id="app-safe-notice" role="alertdialog" aria-modal="true" aria-labelledby="app-safe-notice-title" aria-describedby="app-safe-notice-detail" style="display:none;position:fixed;inset:0;z-index:100000;background:rgba(7,6,14,.82);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:24px">
   <div style="width:min(100%,360px);background:#171421;border:1px solid rgba(255,255,255,.14);border-radius:18px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.45)">
@@ -2106,7 +2122,8 @@ function cargarTenantConfig(tid) {
   // ya con datos reales, antes de tocar camila_tenants.
   CFG.tenantId = tid;
   // Try localStorage first (fast)
-  var stored = localStorage.getItem('camila_sim_config_' + tid);
+  var stored;
+  try { stored = localStorage.getItem('camila_sim_config_' + tid); } catch (_) {}
   if (stored) {
     try {
       CFG.tenantConfig = JSON.parse(stored);
@@ -2125,7 +2142,7 @@ function cargarTenantConfig(tid) {
     var tenantReal = (miembro && miembro[0] && miembro[0].tenant_id) || tid;
     CFG.tenantId = tenantReal;
     try {
-      var contextoRapido = SmylLanaQuick.bind(CFG, sessionStorage, location.search);
+      var contextoRapido = simulacionDeConsultorio ? null : SmylLanaQuick.bind(CFG, sessionStorage, location.search);
       if(contextoRapido){
         document.getElementById('fn').value=contextoRapido.paciente;
         document.getElementById('ft').value=contextoRapido.telefono;
@@ -2177,6 +2194,11 @@ if (sbAuth && sbAuth.auth) {
   sbAuth.auth.onAuthStateChange(function(event, session) {
     CFG.userToken = (session && session.access_token) || null;
     CFG.userId = (session && session.user && session.user.id) || null;
+    if (simulacionDeConsultorio && document.documentElement.dataset.consultorioCase === 'ready' &&
+        (!CFG.userToken || CFG.userId !== CFG.tenantId)) {
+      document.documentElement.dataset.consultorioCase = 'blocked';
+      document.getElementById('consultorio-case-status').textContent = 'Cambió la sesión. Vuelve al consultorio para abrir el expediente.';
+    }
   });
 }
 
@@ -2308,6 +2330,8 @@ function cerrarSesionSim() {
 }
 
 (function checkLogin() {
+  // El expediente se verifica en smyl-patient-cases antes de mostrar la cámara.
+  if (simulacionDeConsultorio) return;
   // El diagnóstico técnico es deliberadamente local: no necesita sesión,
   // tenant ni API. Debe ganar antes que cualquier otro modo de entrada.
   if (new URLSearchParams(location.search).get('diagnostico') === '1') {
@@ -3091,6 +3115,7 @@ var PROGRESS_TTL_MS = 24 * 60 * 60 * 1000; // 24h — progreso más viejo se des
 
 function progressKey() {
   var actor = CFG.modoProspecto ? 'prospecto' : (CFG.userId || 'usuario');
+  if (CFG.consultorioPatientId) return 'smyl_rapida_progreso_' + CFG.tenantId + '_' + actor + '_paciente_' + CFG.consultorioPatientId;
   return 'smyl_rapida_progreso_' + (CFG.tenantId || 'local') + '_' + actor + (CFG.lanaContext ? '_cita_' + CFG.lanaContext.citaId : '');
 }
 
@@ -5317,6 +5342,10 @@ async function asegurarAutorizacionIA() {
     var renovada = await sbAuth.auth.refreshSession();
     if (renovada.error || !renovada.data || !renovada.data.session) throw new Error('Sesión vencida. Inicia sesión nuevamente.');
     session = renovada.data.session;
+  }
+  if (simulacionDeConsultorio && (document.documentElement.dataset.consultorioCase !== 'ready' ||
+      !CFG.consultorioPatientId || session.user?.id !== CFG.tenantId || session.user.is_anonymous !== false)) {
+    throw new Error('Vuelve al consultorio para verificar el acceso al expediente.');
   }
   CFG.userToken = session.access_token;
   CFG.userId = session.user && session.user.id || CFG.userId;
@@ -13658,7 +13687,8 @@ if ('serviceWorker' in navigator) {
 
 // ══ INSTALL PROMPT ══
 var deferredPrompt = null;
-var installDismissed = localStorage.getItem('camila_install_dismissed');
+var installDismissed;
+try { installDismissed = localStorage.getItem('camila_install_dismissed'); } catch (_) {}
 
 // Android / Desktop — capture beforeinstallprompt
 window.addEventListener('beforeinstallprompt', function(e) {
@@ -13687,7 +13717,7 @@ function installPWA() {
 
 function dismissInstall() {
   document.getElementById('install-banner').classList.remove('show');
-  localStorage.setItem('camila_install_dismissed', '1');
+  try { localStorage.setItem('camila_install_dismissed', '1'); } catch (_) {}
 }
 
 // iOS — show manual instructions after 4 seconds
@@ -13708,7 +13738,7 @@ if (isIOS() && !isInStandaloneMode() && !installDismissed) {
 
 // Hide install UI if already in standalone
 if (isInStandaloneMode()) {
-  localStorage.setItem('camila_install_dismissed', '1');
+  try { localStorage.setItem('camila_install_dismissed', '1'); } catch (_) {}
 }
 
 // ══ APP INSTALLED EVENT ══

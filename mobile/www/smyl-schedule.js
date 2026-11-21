@@ -528,7 +528,15 @@ state.loaded=false;await load(true);remindersChanged();var savedBranchName=(byId
     var mainButton=state.canManage&&main?'<button type="button" class="btn btn-primary" data-transition="'+main[0]+'">'+main[1]+'</button>':'';
     var minorButtons=state.canManage?minor.map(function(x){return '<button type="button" class="sched-ficha-minor'+(x[0]==='cancelled'?' is-danger':'')+'" data-transition="'+x[0]+'">'+x[1]+'</button>';}).join(''):'';
     var rescheduleButton=state.canManage&&a.status==='confirmed'?'<button type="button" class="btn btn-secondary" data-reschedule>Cambiar horario</button>':'';
-    var patientButtons=state.canReadClinical?'<button type="button" class="sched-ficha-minor" data-open-patient>Ficha del paciente</button>'+(['arrived','in_progress','completed'].includes(a.status)?'<button type="button" class="btn btn-secondary" data-open-care>Registrar la consulta</button>':''):'';
+    var linkedPatient=byId(state.patients,a.patient_id);
+    var patientButtons='';
+    if(state.canReadClinical&&a.patient_id){
+      if(window.SmylClinicalTools&&typeof window.SmylClinicalTools.open==='function'){
+        patientButtons+='<button type="button" class="btn btn-secondary" data-open-clinical-tools>Herramientas clínicas</button>';
+      }
+      patientButtons+='<button type="button" class="sched-ficha-minor" data-open-patient>Ficha del paciente</button>';
+      if(['arrived','in_progress','completed'].includes(a.status))patientButtons+='<button type="button" class="btn btn-secondary" data-open-care>Registrar la consulta</button>';
+    }
     var reminders=state.reminders.filter(function(r){return r.appointment_id===a.id;}).map(function(r){return '<li data-status="'+esc(r.status)+'"><span>Aviso '+(r.reminder_type==='2h'?'2 horas':'24 horas')+' antes</span><strong>'+esc(reminderLabel(r.status,r))+'</strong></li>';}).join('');
     var minutes=durationLabel(a,s);
     var pv=previsitInfo(a),pvOpen=a.status==='confirmed'&&new Date(a.starts_at).getTime()>Date.now(),pvSend=state.previsitCanSend&&state.canReadClinical&&window.SmylMilaInterview&&pvOpen,pvReview=pv&&state.canReadClinical&&['answered','alert','in_progress'].indexOf(pv.state)>=0;
@@ -543,7 +551,8 @@ state.loaded=false;await load(true);remindersChanged();var savedBranchName=(byId
       +(billingInfo(a)?'<li class="sched-billing-row"><span>Cobro</span><strong>'+billingChip(a)+(['pending','no_show_pending','due'].indexOf(state.billing[a.id].billing_state)>=0?' <button type="button" class="sched-ficha-minor" data-go-finance>Ir a Finanzas</button>':'')+'</strong></li>':'')
       +(['in_progress','completed'].includes(a.status)?'<li class="sched-material-row" data-material-row hidden><span>Material</span><strong data-material-text></strong></li>':'')
       +(state.canManage&&['confirmed','arrived','in_progress'].includes(a.status)?'<li class="sched-extra"><span>Tiempo</span><strong><span class="sched-extra-now">'+(a.extra_minutes?'+'+a.extra_minutes+' min extra':'Duración estándar')+'</span><span class="sched-extra-chips">'+[15,30,60].map(function(n){return '<button type="button" data-extra="'+n+'"'+((a.extra_minutes||0)+n>240?' disabled':'')+'>+'+n+'</button>';}).join('')+(a.extra_minutes?'<button type="button" data-extra="0">Quitar</button>':'')+'</span></strong></li>':'')
-      +previsitRow+(a.notes?'<li class="is-note"><span>Nota</span><strong>'+esc(a.notes)+'</strong></li>':'')+'</ul>'
+      +(state.canReadClinical&&!a.patient_id?'<li><span>Expediente</span><strong>Esta cita no tiene un paciente vinculado.</strong></li>':'')
+      +(a.patient_id?previsitRow:'')+(a.notes?'<li class="is-note"><span>Nota</span><strong>'+esc(a.notes)+'</strong></li>':'')+'</ul>'
       +(reminders?'<ul class="sched-ficha-reminders" aria-label="Avisos programados">'+reminders+'</ul>':'')
       +'<ul class="sched-ficha-reminders" data-ficha-notices aria-label="Avisos de cita enviados" hidden></ul>'
       +'<section data-ficha-messages hidden></section>'
@@ -552,12 +561,17 @@ state.loaded=false;await load(true);remindersChanged();var savedBranchName=(byId
     (function(){var row=d.querySelector('[data-material-row]');if(!row||!window.SmylInventory||!window.SmylInventory.consumptionStatus)return;window.SmylInventory.consumptionStatus(a).then(function(r){if(!r||(r.state!=='pending'&&r.state!=='done')||!d.contains(row))return;var text=row.querySelector('[data-material-text]');if(r.state==='done'){text.innerHTML='<i class="schedule-billing" data-billing="paid">Registrado</i>';}else{text.innerHTML='<i class="schedule-billing" data-billing="pending">Pendiente</i> <button type="button" class="sched-ficha-minor" data-material-register>Registrar material</button>';text.querySelector('[data-material-register]').onclick=function(){close();window.SmylInventory.openConsumption({patientId:a.patient_id,appointmentId:a.id,serviceId:a.service_id||'',professionalId:a.professional_id||''});};}row.hidden=false;}).catch(function(){});})();
     d.querySelectorAll('[data-extra]').forEach(function(b){b.onclick=async function(){var n=Number(b.dataset.extra),total=n?(a.extra_minutes||0)+n:0;d.querySelectorAll('[data-extra]').forEach(function(x){x.disabled=true;});try{await rpc('smyl_set_appointment_extra',{p_appointment_id:a.id,p_extra_minutes:total,p_extra_reason:'',p_expected_updated_at:a.updated_at});close();state.loaded=false;await load(true);notify(total?'Cita ampliada: +'+total+' min en total.':'Cita con su duración estándar.','success');}catch(err){close();notify(message(err),'error');}};});
     var patient=d.querySelector('[data-open-patient]');if(patient)patient.onclick=function(){close();window.verPaciente(a.patient_id);};
+    var toolsButton=d.querySelector('[data-open-clinical-tools]');
+    if(toolsButton)toolsButton.onclick=function(){
+      close();
+      window.SmylClinicalTools.open({patientId:a.patient_id,patientName:linkedPatient?patientLabel(linkedPatient):'',appointmentId:a.id,branchId:a.branch_id||null});
+    };
     var pvr=d.querySelector('[data-previsit-review]');if(pvr)pvr.onclick=function(){close();window.verPaciente(a.patient_id);};
     var pvs=d.querySelector('[data-previsit-send]');if(pvs)pvs.onclick=function(){var row=byId(state.patients,a.patient_id)||{};close();window.SmylMilaInterview.open({tenant:state.tenant,patient:a.patient_id,view:'previsit',previsitOnly:true,appointmentId:a.id,patientInfo:{id:a.patient_id,nombre:row.nombre||'',apellido:row.apellido||'',telefono:row.telefono||''}});};
     var goFinance=d.querySelector('[data-go-finance]');if(goFinance)goFinance.onclick=function(){close();window.ir('caja');};var care=d.querySelector('[data-open-care]');if(care)care.onclick=function(){close();if(window.SmylPatient360)SmylPatient360.forAppointment(a);};
     var inbox=d.querySelector('[data-open-inbox]');if(inbox)inbox.onclick=function(){close();window.ir('inbox');};
     d.querySelectorAll('[data-transition]').forEach(function(b){b.onclick=function(){transition(a,b.dataset.transition);};});
-    var row=byId(state.patients,a.patient_id)||{id:a.patient_id,nombre:'',apellido:''};
+    var row=linkedPatient||{id:a.patient_id,nombre:'',apellido:''};
     loadNotices(a,d);
     if(window.SmylScheduleMessage&&a.patient_id)window.SmylScheduleMessage.mount(d.querySelector('[data-ficha-messages]'),{tenant:state.tenant,appointment:a,patient:{id:a.patient_id,first:row.nombre,last:row.apellido},service:s&&s.name,professional:p&&p.display_name,branch:br,clinic:clinicLabel(),canMessage:state.canMessage,close:close,onSent:function(text){notify(text,'success');}});
   }

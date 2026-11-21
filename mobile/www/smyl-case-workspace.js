@@ -313,6 +313,42 @@
  }
  function disposePeriodontal(ctx){
   if(ctx?.perioEditor){ctx.perioEditor.destroy();ctx.perioEditor=null;ctx.mapFingerprint='';}
+  ctx?.guidedPhotos?.dispose();if(ctx)ctx.guidedPhotos=null;
+ }
+ async function openChairside(tool,tenant,patient,{isCurrent=()=>true}={}){
+  if(!['periodontal','guided-photos'].includes(tool))throw new Error('Herramienta clínica desconocida.');
+  const screen=document.getElementById('p-paciente-detalle');
+  const samePatient=()=>tenant&&patient&&window.tenantId===tenant&&window.pacienteActual?.id===patient&&
+   !window.pacienteActual._local&&screen?.classList.contains('activa');
+  const moduleReady=tool==='periodontal'?window.SmylPeriodontalReview&&window.SmylDentalProgress?.access:window.SmylGuidedPhotos?.open;
+  if(!moduleReady||!window.SmylPatientFiles?.access||!window.SmylPatient360?.open)throw new Error('La herramienta clínica no terminó de cargar. Actualiza la página y vuelve a intentarlo.');
+  const deadline=Date.now()+30000;
+  while(Date.now()<deadline){
+   if(!isCurrent()||!samePatient())throw new Error('Cambió el paciente o se canceló la apertura.');
+   const ctx=active,profile=window.SmylPatientFiles.access(tenant,patient);
+   const dental=tool==='periodontal'?window.SmylDentalProgress.access(tenant,patient):null;
+   const access=tool==='periodontal'?[profile,dental]:[profile];
+   if(access.some(item=>item?.state==='error'))throw new Error('No se pudo cargar el expediente clínico. Vuelve a abrirlo para reintentar.');
+   if(access.some(item=>item?.state==='restricted'||(item?.state==='ready'&&!item.canRead)))throw new Error('Tu rol no permite consultar el expediente clínico.');
+   if(ctx?.revoked&&ctx.patient===patient&&ctx.tenant===tenant)throw new Error('La sesión cambió. Vuelve a abrir el expediente.');
+   if(valid(ctx)&&ctx.patient===patient&&ctx.tenant===tenant&&access.every(item=>item?.state==='ready')){
+    if(tool==='guided-photos'&&!profile.canWrite)throw new Error('Tu rol no permite guardar fotografías en este expediente.');
+    const current=()=>valid(ctx)&&ctx===active&&samePatient();
+    if(!window.SmylPatient360.open('treatment')||!open('review',false))throw new Error('No se pudo abrir la revisión profesional del paciente.');
+    if(tool==='periodontal'){
+     const editor=periodontalEditor(ctx);
+     if(!editor||!window.SmylDentalProgress.periodontal(tenant,patient)?.getState()?.ready)throw new Error('El periodontograma no está disponible. Vuelve a cargar el expediente.');
+     ctx.mapFilter='periodontal';ctx.mapFingerprint='';renderClinicalMap(ctx,window.SmylDentalProgress.map?.(tenant,patient,ctx.selected?.row?.id));
+     ctx.mapFilters?.periodontal?.focus({preventScroll:true});editor.open('chart');
+    }else{
+     ctx.guidedPhotos?.dispose();
+     ctx.guidedPhotos=await window.SmylGuidedPhotos.open({tenant,patient,current,mayOpen:isCurrent,patientName:[window.pacienteActual.nombre,window.pacienteActual.apellido].filter(Boolean).join(' ')||'este paciente'});
+    }
+    return true;
+   }
+   await new Promise(resolve=>setTimeout(resolve,80));
+  }
+  throw new Error('El expediente tardó en cargar. Revisa la conexión y vuelve a intentarlo.');
  }
  function renderMapInspector(ctx,snapshot,totals){
   if(!ctx.mapInspectorTitle)return;
@@ -653,6 +689,6 @@
   addEventListener('smyl:clinical-photo-status',e=>{const ctx=active,d=e.detail;if(!valid(ctx)||d?.tenant!==ctx.tenant||d.patient!==ctx.patient)return;ctx.clinicalPhotoStatus=d;refresh();});
   window.sb?.auth?.onAuthStateChange?.((event,session)=>{const ctx=active;if(ctx?.root.isConnected&&(session?.user?.id!==ctx.actor||session.user.is_anonymous)){views.clear();disposePeriodontal(ctx);ctx.revoked=true;ctx.entries=null;ctx.selected=null;ctx.receipts.clear();ctx.root.replaceChildren(n('p','cw-overview','La sesión cambió. Abre nuevamente el expediente con la cuenta autorizada.'));}});
  }
- window.SmylCaseWorkspace={open,openRadiographIntake,context(tenant,patient){const ctx=active;if(!valid(ctx)||ctx.tenant!==tenant||ctx.patient!==patient)return null;const entry=ctx.selected;return entry&&entry.current()?{caseId:entry.row.id,isCurrent:()=>valid(ctx)&&ctx.selected===entry&&entry.current()}:null;}};
+ window.SmylCaseWorkspace={open,openChairside,openRadiographIntake,context(tenant,patient){const ctx=active;if(!valid(ctx)||ctx.tenant!==tenant||ctx.patient!==patient)return null;const entry=ctx.selected;return entry&&entry.current()?{caseId:entry.row.id,isCurrent:()=>valid(ctx)&&ctx.selected===entry&&entry.current()}:null;}};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

@@ -566,6 +566,16 @@
     function focusPatientName(){var target=byId('case-actions-box')||byId('fn');if(target)target.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});setTimeout(function(){byId('fn')?.focus();},250);}
     async function runResultPrimary(){
       if(resultActionBusy)return;
+      if(document.documentElement.hasAttribute('data-consultorio-case')){
+        resultActionBusy=true;
+        updateResultPrimary(false);
+        setResultStatus('Guardando en el expediente del paciente…','working');
+        try{
+          var confirmed=await window.guardarCaso();
+          setResultStatus(confirmed?'Simulación guardada en el expediente.':'No se pudo confirmar el guardado. Vuelve a intentarlo.',confirmed?'success':'attention');
+        }finally{resultActionBusy=false;updateResultPrimary(false);}
+        return;
+      }
       if(S._casoGuardado){resultActionBusy=true;updateResultPrimary(true);setResultStatus('Abriendo opciones para compartir…','working');try{var shared=await window.compartirResultadoGuardado();setResultStatus(shared?'Resultado listo para compartir.':'No se compartió el resultado.','');}finally{resultActionBusy=false;updateResultPrimary(true);}return;}
       var name=byId('fn');if(!name||!name.value.trim()){setResultStatus('Completa el nombre del paciente para guardar el resultado.','attention');focusPatientName();return;}
       resultActionBusy=true;updateResultPrimary(false);setResultStatus('Guardando propuesta y fotografías en el expediente…','working');

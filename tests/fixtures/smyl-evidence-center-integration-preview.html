@@ -6,15 +6,24 @@
   <title>SMYL · Evidencia integrada</title>
   <link rel="stylesheet" href="../../smyl-evidence-center.css">
   <link rel="stylesheet" href="../../smyl-evidence-center-integration.css">
+  <link rel="stylesheet" href="../../smyl-case-workspace.css">
   <style>
     *{box-sizing:border-box}body{margin:0;background:#f2f6f8;color:#173334;font-family:"Open Sans",Arial,sans-serif}.shell{width:min(1120px,calc(100% - 32px));margin:28px auto;padding:24px;border:1px solid #dce5ea;border-radius:16px;background:#fff}.cw-evidence-history{padding:20px;background:#edf2f4}.activa{display:block}@media(max-width:600px){.shell{width:100%;margin:0;padding:14px;border:0;border-radius:0}}
   </style>
 </head>
 <body>
   <main class="shell">
-    <section id="p-paciente-detalle" class="activa">
-      <div class="cw-evidence-history">Listado anterior de respaldo</div>
-      <div class="cw-valuation-evidence"></div>
+    <section id="p-paciente-detalle" class="activa cw-enhanced">
+      <section class="cw-evaluation-panel" data-task="findings">
+        <div class="cw-evaluation-panel-body">
+          <section class="cw-clinical-files-source" aria-label="Archivos clínicos consultados en esta revisión">
+            <div class="cw-clinical-files-source-body">
+              <div class="cw-valuation-evidence" hidden></div>
+              <div class="cw-evidence-history">Listado anterior de respaldo</div>
+            </div>
+          </section>
+        </div>
+      </section>
     </section>
   </main>
   <script>

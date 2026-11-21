@@ -40,7 +40,7 @@ test('confirmar, corregir y descartar conservan una decisión profesional explí
 
 test('la carga de fotografías clínicas existe en Evidencia, no en el selector genérico', () => {
   assert.match(patient, /availableTypes=Object\.keys\(FILE_TYPES\)\.filter\(function\(k\)\{return photoFlow\|\|k!==\x27clinical_photo\x27;\}\)/);
-  assert.match(patient, /Las fotografías clínicas se incorporan y clasifican únicamente desde Evidencia/);
+  assert.match(patient, /Agrega fotografías clínicas desde Evidencia o Fotografías guiadas/);
   assert.match(patient, /options\.workflow===\x27clinical_photo\x27/);
 });
 

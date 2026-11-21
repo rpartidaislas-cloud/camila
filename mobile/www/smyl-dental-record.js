@@ -125,7 +125,11 @@
   });
   return ctx.periodontalContext;
  }
- window.SmylDentalProgress={periodontal:periodontalContext,status(tenant,patient,caseId){
+ window.SmylDentalProgress={periodontal:periodontalContext,access(tenant,patient){
+  const ctx=active;
+  if(!ctx||!current(ctx)||ctx.patient!==patient||ctx.tenant!==tenant)return null;
+  return {state:ctx.loadState||(ctx.ready?'ready':'loading'),canRead:ctx.canRead,canWrite:ctx.canWrite};
+ },status(tenant,patient,caseId){
   const ctx=active;if(!ctx||!current(ctx)||ctx.tenant!==tenant||ctx.patient!==patient||!ctx.canRead)return null;
   const review=(ctx.photoReviews||[]).find(r=>r.case_id===caseId),items=review?.document.items||[];
   const stages=review?.document.schema===3&&Array.isArray(review.document.workflow?.stages)?review.document.workflow.stages:[];
@@ -513,12 +517,12 @@
   try{
    Object.assign(ctx,await clinicalCapabilities(ctx.tenant));
    if(!current(ctx))return;
-   if(!ctx.canRead){clearLoading();message(ctx,'Tu rol no permite consultar el mapa dental ni las radiografías. Solicita acceso clínico al administrador.');return;}
+   if(!ctx.canRead){ctx.loadState='restricted';clearLoading();message(ctx,'Tu rol no permite consultar el mapa dental ni las radiografías. Solicita acceso clínico al administrador.');return;}
    await guard(ctx,'read');const row=await checked(sb.from('smyl_dental_records').select('*').eq('tenant_id',ctx.tenant).eq('patient_id',ctx.patient).maybeSingle());
     if(!current(ctx))return;if(row){if(row.tenant_id!==ctx.tenant||row.patient_id!==ctx.patient||!M.validate(row.document,ctx.tenant,ctx.patient))throw new Error('Registro no válido');ctx.doc=row.document;ctx.revision=row.revision;}M.ensureFindings(ctx.doc);ctx.savedDoc=structuredClone(ctx.doc);
    ctx.ready=true;applyAccess(ctx);renderTeeth(ctx);renderStudies(ctx);message(ctx,ctx.canWrite?(row?'Observaciones guardadas · versión '+row.revision:'Sin anotaciones. No se guarda automáticamente.'):(row?'Modo consulta · versión '+row.revision:'Modo consulta · aún no hay anotaciones.'));
    loadStudyArchives(ctx);loadPhotoReviews(ctx);loadRadiographReviews(ctx);loadEvidenceSources(ctx);
-  }catch(e){if(current(ctx)){clearLoading();message(ctx,errorText(e));}}
+  }catch(e){if(current(ctx)){ctx.loadState='error';clearLoading();message(ctx,errorText(e));}}
  }
  function init(){
   const screen=document.getElementById('p-paciente-detalle');if(!screen)return;

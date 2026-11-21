@@ -133,9 +133,9 @@ test('el inspector de pieza reutiliza el mismo odontograma y deriva a la revisi�
 });
 
 test('web, móvil y PWA publican la misma versión', () => {
-  assert.match(app, /smyl-dental-record\.js\?v=34/);
-  assert.match(app, /smyl-case-workspace\.css\?v=32/);
-  assert.match(app, /smyl-case-workspace\.js\?v=45/);
+  assert.match(app, /smyl-dental-record\.js\?v=35/);
+  assert.match(app, /smyl-case-workspace\.css\?v=33/);
+  assert.match(app, /smyl-case-workspace\.js\?v=47/);
   assert.match(worker, /evaluation-separation-v79/);
   for (const file of ['app.html', 'sw.js', 'smyl-dental-dictation.js', 'smyl-dental-dictation.css', 'smyl-dental-record.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));

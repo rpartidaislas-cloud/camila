@@ -28,6 +28,15 @@
       if (!isCurrent() || data.session?.user?.id !== tenant || data.session.user.is_anonymous !== false) M.fail('CASE_CHANGED');
     }
     return {
+      async patient(id) {
+        if (!M.uuid(id)) M.fail('CASE_INVALID');
+        await guard();
+        const row = await checked(client.from('camila_pacientes').select('id,tenant_id,nombre,apellido')
+          .eq('tenant_id', tenant).eq('id', id).single());
+        await guard();
+        if (row?.id !== id || row.tenant_id !== tenant) M.fail('CASE_CHANGED');
+        return row;
+      },
       async patients() {
         await guard();
         let rows = [];

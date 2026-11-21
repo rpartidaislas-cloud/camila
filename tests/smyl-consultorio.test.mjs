@@ -36,7 +36,7 @@ const registro = (page, nombre) => page.evaluate((n) => window.__log.filter((x) 
 // ── Contrato del código (no necesita navegador) ──
 test('app.html carga el módulo puro antes que el Consultorio y arranca en él solo en la app instalada', () => {
   const app = read('app.html');
-  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=5', 'smyl-privacy-notice.js?v=2', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=8'].map((f) => app.indexOf(f));
+  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=5', 'smyl-privacy-notice.js?v=2', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=9'].map((f) => app.indexOf(f));
   assert.ok(orden[0] > 0 && orden.every((x, i) => !i || orden[i - 1] < x), 'los módulos puros cargan antes que la pantalla');
   assert.match(app, /smyl-consultorio\.css\?v=6/);
   assert.match(app, /else if \(smylEsAppInstalada\(\) && document\.getElementById\('p-consultorio'\)\) ir\('consultorio'\)/);
@@ -49,16 +49,16 @@ test('app.html carga el módulo puro antes que el Consultorio y arranca en él s
 
 test('el simulador y el manifiesto llevan al Consultorio y el simulador sigue accesible desde él', () => {
   assert.match(read('smyl-studio.js'), /consultorioLink\.href='app\.html\?ir=consultorio'/);
-  assert.match(read('smyl-consultorio.js'), /data-co-sim href="' \+ esc\(simulatorUrl\(\)\)/);
-  assert.match(read('smyl-consultorio.js'), /'simulacion-rapida\.html\?workspace=professional'/);
+  assert.match(read('smyl-consultorio.js'), /SmylClinicalTools\.mountTools/);
+  assert.match(read('smyl-clinical-tools.js'), /new URL\('simulacion-rapida\.html'/);
   const manifest = JSON.parse(read('manifest-app.json'));
   assert.equal(manifest.shortcuts[0].url, 'app.html?ir=consultorio');
 });
 
 test('se precarga y las copias móviles son idénticas', () => {
   const sw = read('sw.js');
-  for (const f of ['smyl-consultorio.js?v=8', 'smyl-consultorio.css?v=6', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=5', 'smyl-privacy-notice.js?v=2', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
-  for (const f of ['smyl-consultorio.js', 'smyl-consultorio.css', 'smyl-patient-quick.js', 'smyl-visit-model.js', 'smyl-privacy-notice.js', 'smyl-history-interview.js', 'smyl-studio.js', 'simulacion-rapida.html', 'manifest-app.json', 'app.html', 'sw.js']) assert.equal(read(f), read('mobile/www/' + f), f);
+  for (const f of ['smyl-consultorio.js?v=9', 'smyl-consultorio.css?v=6', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=5', 'smyl-privacy-notice.js?v=2', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
+  for (const f of ['smyl-consultorio.js', 'smyl-consultorio.css', 'smyl-clinical-tools.js', 'smyl-clinical-tools.css', 'smyl-guided-photos.js', 'smyl-patient-quick.js', 'smyl-visit-model.js', 'smyl-privacy-notice.js', 'smyl-history-interview.js', 'smyl-studio.js', 'simulacion-rapida.html', 'manifest-app.json', 'app.html', 'sw.js']) assert.equal(read(f), read('mobile/www/' + f), f);
 });
 
 test('los datos de pacientes se pintan con textContent o escapados', () => {
@@ -180,7 +180,7 @@ probar('buscar encuentra pacientes y, si no hay, ofrece crearlo', async () => {
 
 probar('el simulador sigue a un toque y Panel completo, Agenda y Cerrar sesión funcionan', async () => {
   const { page } = await abrir();
-  assert.equal(await page.getAttribute('[data-co-sim]', 'href'), 'simulacion-rapida.html?workspace=professional');
+  assert.equal(await page.getByRole('button', {name:'Simulador de carillas',exact:true}).count(), 1);
   // La pantalla se oculta al navegar, así que se pulsa por código en lugar de con el ratón.
   for (const sel of ['[data-co-panel]', '[data-co-agenda]', '[data-co-logout]']) await page.evaluate((x) => document.querySelector(x).click(), sel);
   assert.deepEqual(await page.evaluate(() => window.__rutas.slice(-2)), ['dashboard', 'agenda']);
@@ -305,14 +305,15 @@ probar('el simulador sale del recorrido con el paciente ya ligado (solo la cuent
   await page.click('.co-step[data-key=simulacion] .co-sec');
   await page.waitForFunction(() => true);
   await new Promise((r) => setTimeout(r, 300));
-  assert.match(pedida, /simulacion-rapida\.html\?workspace=professional&patient=p1&clinic=11111111-1111-4111-8111-111111111111$/);
+  assert.match(pedida, /simulacion-rapida\.html\?workspace=professional&patient=p1&clinic=11111111-1111-4111-8111-111111111111&from=consultorio$/);
   await page.close();
   ({ page } = await visita('rol=staff'));
   pedida = null;
   await page.route('**/simulacion-rapida.html*', (route) => { pedida = route.request().url(); route.abort(); });
   await page.click('.co-step[data-key=simulacion] .co-sec');
   await new Promise((r) => setTimeout(r, 300));
-  assert.match(pedida, /simulacion-rapida\.html\?workspace=professional$/);
+  assert.equal(pedida, null);
+  assert.match(await page.locator('.ct-status').innerText(), /cuenta titular/);
   await page.close();
 });
 

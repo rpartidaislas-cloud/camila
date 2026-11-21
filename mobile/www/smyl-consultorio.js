@@ -26,11 +26,11 @@
   function $(sel) { var r = root(); return r ? r.querySelector(sel) : null; }
   function can(key) { var a = state.access; return !a || a.owner || a.perms.indexOf(key) !== -1; }
   function isOwner() { return window.miRolEquipo === 'dueño'; }
-  function simulatorUrl(patientId) {
-    var url = 'simulacion-rapida.html?workspace=professional';
-    // Igual que la ficha del paciente: solo la cuenta dueña lanza la simulación ya ligada al paciente.
-    if (patientId && state.tenant && isOwner()) url += '&patient=' + encodeURIComponent(patientId) + '&clinic=' + encodeURIComponent(state.tenant);
-    return url;
+  var toolsUnavailable = 'No se pudieron cargar las herramientas clínicas. Actualiza la página para reintentar.';
+  function openClinicalTools(options) {
+    if (window.SmylClinicalTools?.open) return window.SmylClinicalTools.open(options);
+    var note = state.visit ? $('[data-co-visit-note]') : $('[data-co-flash]');
+    if (note) { note.setAttribute('role','status'); note.textContent = toolsUnavailable; note.hidden = false; }
   }
   function openPatient(id) { if (typeof window.verPaciente === 'function') window.verPaciente(id); else if (typeof window.ir === 'function') window.ir('pacientes'); }
   /* Abre el expediente y salta a una de sus secciones (history, files, ...). Usa los mismos accesos que el expediente
@@ -60,16 +60,20 @@
   }
 
   /* ── Datos ── */
+  async function accessFor(tenant) {
+    var user = await window.sb.auth.getUser(), uid = user && user.data && user.data.user && user.data.user.id;
+    if (!uid || !tenant || tenant !== window.tenantId) return null;
+    if (isOwner()) return { owner:true, perms:[] };
+    var roles = await query(window.sb.from('smyl_member_roles').select('role_id').eq('tenant_id', tenant).eq('user_id', uid));
+    var ids = (roles || []).map(function (r) { return r.role_id; }), perms = [];
+    if (ids.length) perms = (await query(window.sb.from('smyl_role_permissions').select('permission_key').eq('tenant_id', tenant).in('role_id', ids))).map(function (r) { return r.permission_key; });
+    return { owner: false, perms: perms };
+  }
   async function loadAccess() {
-    state.accessTenant = state.tenant;
-    try {
-      var user = await window.sb.auth.getUser(), uid = user && user.data && user.data.user && user.data.user.id;
-      if (!uid) { state.access = null; return; }
-      var roles = await query(window.sb.from('smyl_member_roles').select('role_id').eq('tenant_id', state.tenant).eq('user_id', uid));
-      var ids = (roles || []).map(function (r) { return r.role_id; }), perms = [];
-      if (ids.length) perms = (await query(window.sb.from('smyl_role_permissions').select('permission_key').eq('tenant_id', state.tenant).in('role_id', ids))).map(function (r) { return r.permission_key; });
-      state.access = { owner: isOwner(), perms: perms };
-    } catch (e) { state.access = null; }
+    var tenant = state.tenant;
+    state.accessTenant = tenant;
+    var access = await accessFor(tenant).catch(function () { return null; });
+    if (state.tenant === tenant) state.access = access;
   }
   async function namesFor(ids) {
     var unique = Array.from(new Set(ids.filter(Boolean))), out = [];
@@ -84,7 +88,7 @@
     var start = startDay(new Date()), end = new Date(start); end.setDate(end.getDate() + 1);
     try {
       var res = await Promise.all([
-        query(window.sb.from('smyl_appointments').select('id,patient_id,service_id,starts_at,status').eq('tenant_id', state.tenant).gte('starts_at', start.toISOString()).lt('starts_at', end.toISOString()).order('starts_at')),
+        query(window.sb.from('smyl_appointments').select('id,patient_id,branch_id,service_id,starts_at,status').eq('tenant_id', state.tenant).gte('starts_at', start.toISOString()).lt('starts_at', end.toISOString()).order('starts_at')),
         query(window.sb.from('smyl_services').select('id,name').eq('tenant_id', state.tenant)).catch(function () { return []; })
       ]);
       state.rows = (res[0] || []).filter(function (r) { return r.status !== 'cancelled'; });
@@ -119,11 +123,15 @@
     if (!live.length) { host.append(el('p', 'co-note', state.done ? 'Ya terminaste las ' + state.rows.length + ' citas de hoy.' : 'Nadie por atender ahora. Da de alta a quien llegue con el botón de arriba.')); return; }
     var list = el('ul', 'co-people');
     live.forEach(function (r) {
-      var p = state.names[r.patient_id], name = p ? Q.listName(p) : 'Paciente', li = el('li');
-      var btn = el('button', 'co-person'); btn.type = 'button'; btn.dataset.status = r.status; btn.setAttribute('aria-label', 'Empezar la visita de ' + name + ', ' + STATUS[r.status]);
+      var p = state.names[r.patient_id], name = p ? Q.listName(p) : r.patient_id ? 'Paciente' : 'Cita sin paciente vinculado', li = el('li');
+      var btn = el('button', 'co-person'); btn.type = 'button'; btn.dataset.status = r.status;
+      btn.setAttribute('aria-label', r.patient_id ? 'Empezar la visita de ' + name + ', ' + STATUS[r.status] : 'Ver cita sin paciente vinculado');
       var info = el('span', 'co-q'); info.append(el('b', '', name), el('small', '', fmtTime(r.starts_at) + (p && Q.isPending(p) && p.telefono ? ', ' + p.telefono : state.services[r.service_id] ? ', ' + state.services[r.service_id] : '')));
       btn.append(el('span', 'co-av', Q.initials(p && Q.isPending(p) ? '' : name)), info, el('span', 'co-chip', STATUS[r.status]));
-      btn.onclick = function () { openVisit(r.patient_id); };
+      btn.onclick = function () {
+        if (r.patient_id) openVisit(r.patient_id, r.id);
+        else openClinicalTools({appointmentId:r.id,branchId:r.branch_id});
+      };
       li.append(btn); list.append(li);
     });
     host.append(list);
@@ -241,9 +249,12 @@
     return V.build({ patient: v.patient, history: v.history, files: v.files, historyModel: window.SmylHistoryModel, canManage: can('patients.manage'), canWriteClinical: !!I && can('clinical.write'),
       consent: v.consent, consentSummary: PN ? PN.statusText(v.consent, fmtDay) : '', canSignConsent: canSignConsent(), canViewConsent: can('clinical.read') });
   }
-  function appointmentOf(patientId) { return state.rows.filter(function (r) { return r.patient_id === patientId && ORDER.indexOf(r.status) >= 0; })[0] || null; }
-  async function loadVisit(id) {
-    var v = state.visit = { id: id, loading: true, error: '', patient: null, history: undefined, files: undefined, revision: 0, rawDoc: null, next: undefined, consent: undefined };
+  function appointmentOf(patientId, appointmentId) {
+    return state.rows.find(function (r) { return r.patient_id === patientId && (appointmentId ? r.id === appointmentId : ORDER.indexOf(r.status) >= 0); }) || null;
+  }
+  async function loadVisit(id, appointmentId) {
+    if (appointmentId === undefined && state.visit?.id === id) appointmentId = state.visit.appointmentId;
+    var v = state.visit = { id: id, appointmentId:appointmentId || null, loading: true, error: '', patient: null, history: undefined, files: undefined, revision: 0, rawDoc: null, next: undefined, consent: undefined };
     renderVisit();
     try {
       var res = await Promise.all([
@@ -261,7 +272,7 @@
     } catch (e) { if (state.visit !== v) return; v.loading = false; v.error = errorText(e); }
     renderVisit();
   }
-  function openVisit(id) { showView('visit'); loadVisit(id); }
+  function openVisit(id, appointmentId) { showView('visit'); loadVisit(id,appointmentId || null); }
   function closeVisit() { state.visit = null; state.interview = null; stopConsent(); showView('home'); renderResume(); }
   function endVisit() { forget(); state.visit = null; state.interview = null; stopConsent(); state.flash = 'Visita terminada.'; showView('home'); renderResume(); renderFlash(); renderPill('consultorio'); }
   function renderFlash() { var f = $('[data-co-flash]'); if (!f) return; f.textContent = state.flash || ''; f.hidden = !state.flash; state.flash = ''; }
@@ -276,7 +287,7 @@
     else if (id === 'consent-view') viewConsent();
     else if (id === 'history') openSection(patient.id, 'history');
     else if (id === 'files') openSection(patient.id, 'files');
-    else if (id === 'simulator') location.href = simulatorUrl(patient.id);
+    else if (id === 'simulator') openClinicalTools({tool:'simulator',patientId:patient.id,patientName:Q.listName(patient),appointmentId:state.visit.appointmentId});
   }
   async function confirmData(patient, button) {
     button.disabled = true;
@@ -303,7 +314,7 @@
     var back = el('button', 'co-link-btn co-back', '‹ Consultorio'); back.type = 'button'; back.onclick = closeVisit; host.append(back);
     if (v.loading) { host.append(skNode('detail', { label: 'Cargando al paciente' })); return; }
     if (v.error) { var retry = el('button', 'co-retry', 'Intentar de nuevo'); retry.type = 'button'; retry.onclick = function () { loadVisit(v.id); }; host.append(el('p', 'co-note', v.error), retry); return; }
-    var p = v.patient, appt = appointmentOf(p.id), label = Q.listName(p), model = modelFor(v);
+    var p = v.patient, appt = appointmentOf(p.id,v.appointmentId), label = Q.listName(p), model = modelFor(v);
     var head = el('div', 'co-vhead'), who = el('div', 'co-q');
     who.append(el('h1', 'co-vname', label), el('small', '', [p.telefono, appt ? STATUS[appt.status] + ', ' + fmtTime(appt.starts_at) : ''].filter(Boolean).join('. ')));
     head.append(el('span', 'co-av co-av-lg', Q.initials(Q.isPending(p) ? '' : Q.displayName(p))), who); host.append(head);
@@ -325,6 +336,12 @@
     host.lastChild.dataset.coVisitNote = '';
     var full = el('button', 'co-tile co-full', 'Abrir expediente completo'); full.type = 'button'; full.onclick = function () { openPatient(p.id); };
     var close = el('button', 'co-sgo co-close', 'Cerrar la visita'); close.type = 'button'; close.onclick = openClose;
+    var tools = el('button','co-tile co-full','Herramientas clínicas');
+    tools.type = 'button';
+    tools.onclick = function () {
+      openClinicalTools({ patientId:p.id,patientName:label,appointmentId:v.appointmentId,branchId:v.appointmentId && appt ? appt.branch_id : null });
+    };
+    host.insertBefore(tools,bar);
     host.append(full, close);
   }
 
@@ -739,16 +756,19 @@
     var page = el('section', 'pantalla consultorio'); page.id = 'p-consultorio'; page.setAttribute('aria-labelledby', 'co-title');
     page.innerHTML = '<div class="co-wrap"><header class="co-head"><span class="co-logo">SMYL</span><button type="button" class="co-link-btn" data-co-panel>Panel completo</button></header>'
       + '<div data-co-home><h1 id="co-title" data-co-greeting>Consultorio</h1><p class="co-sub" data-co-sub></p><p class="co-flash" data-co-flash role="status" hidden></p><div data-co-resume hidden></div>'
-      + '<button type="button" class="co-primary" data-co-new><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M3 20c0-3.5 3-6 7-6M18 8v6M15 11h6"/></svg>Paciente nuevo</button>'
-      + '<div class="co-pair"><a class="co-tile" data-co-sim href="' + esc(simulatorUrl()) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/></svg>Simulador</a>'
+      + '<div class="co-pair"><button type="button" class="co-primary" data-co-new><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M3 20c0-3.5 3-6 7-6M18 8v6M15 11h6"/></svg>Paciente nuevo</button>'
       + '<button type="button" class="co-tile" data-co-agenda><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>Agenda</button></div>'
       + '<div class="co-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" data-co-q placeholder="Buscar paciente" aria-label="Buscar paciente" autocomplete="off" spellcheck="false"></div>'
       + '<ul class="co-results" data-co-results hidden></ul>'
+      + '<section aria-labelledby="co-tools-heading"><h2 class="co-heading" id="co-tools-heading">Herramientas clínicas</h2><div data-co-clinical-tools></div></section>'
       + '<h2 class="co-heading">En el consultorio</h2><div data-co-list></div>'
       + '<footer class="co-foot"><button type="button" class="co-link-btn" data-co-logout>Cerrar sesión</button></footer></div>'
       + '<div data-co-visit hidden></div><div data-co-interview hidden></div><div data-co-close hidden></div><div data-co-consent hidden></div></div>'
       + '<dialog id="co-dialog" class="co-dialog"></dialog>';
     host.append(page);
+    var toolsHost = page.querySelector('[data-co-clinical-tools]');
+    if (window.SmylClinicalTools?.mountTools) window.SmylClinicalTools.mountTools(toolsHost);
+    else toolsHost.append(el('p','co-note',toolsUnavailable));
     page.querySelector('[data-co-new]').onclick = function () { openNew(); };
     page.querySelector('[data-co-panel]').onclick = function () { if (typeof window.ir === 'function') window.ir('dashboard'); };
     page.querySelector('[data-co-agenda]').onclick = function () { if (typeof window.ir === 'function') window.ir('agenda'); };
@@ -763,6 +783,6 @@
     if (typeof previous === 'function') window.ir = function (name) { var result = previous(name); if (name === 'consultorio') { var q = $('[data-co-q]'); if (q) { q.value = ''; renderResults(null); } state.visit = null; state.interview = null; stopQr(); stopConsent(); showView('home'); renderResume(); load(true); } renderPill(name); return result; };
     window.addEventListener('smyl:appointments-changed', function () { if (state.loaded) load(true); });
   }
-  window.SmylConsultorio = { reload: function () { return load(true); }, openVisit: openVisit };
+  window.SmylConsultorio = { reload: function () { return load(true); }, openVisit: openVisit, accessFor:accessFor };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

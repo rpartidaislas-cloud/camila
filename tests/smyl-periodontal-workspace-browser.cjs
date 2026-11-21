@@ -33,9 +33,11 @@ function installClient({ tenant, patient, actor }) {
   };
   window.sbTimeout = request => Promise.resolve(request);
   window.SmylPatient360 = {
+    open:key=>key==='treatment',
     context: () => ({ ready:true, state:'ready', historyRevision:1, coverage:{pending:[]} }),
     files: () => ({total:0})
   };
+  window.SmylPatientFiles = {access:(t,p)=>t===tenant && p===patient ? {state:'ready',canRead:true,canWrite:true} : null};
   window.sb = {
     auth: {
       getUser: async () => ({data:{user},error:null}),
@@ -67,7 +69,7 @@ async function scenario(browser, spec) {
   const errors = [];
   page.on('pageerror', err => errors.push(err.message));
   page.on('dialog', dialog => dialog.accept());
-  let row = null;
+  let row = null, role = 'write';
   const closed = [];
   const actor=spec.width===768?'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb':tenant;
   await page.exposeFunction('testRead', ({table,filters}) => {
@@ -78,7 +80,7 @@ async function scenario(browser, spec) {
     }
     if (table==='smyl_role_permissions') {
       assert.deepEqual(filters.role_id,['dentist']);
-      return {data:[{permission_key:'clinical.read'},{permission_key:'clinical.write'}],error:null};
+      return {data:(role==='none'?[]:role==='read'?['clinical.read']:['clinical.read','clinical.write']).map(permission_key=>({permission_key})),error:null};
     }
     assert.equal(filters.patient_id,patient);
     return {data:table==='smyl_dental_records'?row:[],error:null};
@@ -124,7 +126,7 @@ async function scenario(browser, spec) {
     const tab = page.locator('#cw-evaluation-task-findings');
     await tab.waitFor({state:'attached'});
     if (await tab.isVisible()) await tab.click();
-    else await page.getByRole('button',{name:'Continuar a revisión',exact:true}).click();
+    else if(await tab.getAttribute('aria-selected')!=='true')await page.getByRole('button',{name:'Continuar a revisión',exact:true}).click();
     await page.locator('.cw-map-filter[data-label="Periodoncia"]').click();
     await page.locator('.cw-clinical-map [data-tooth="16"]').click();
     if (!(await dialog.isVisible())) {
@@ -136,6 +138,14 @@ async function scenario(browser, spec) {
   }
   try {
     await page.goto('https://smyl.test/');
+    await page.waitForFunction(()=>!!window.SmylCaseWorkspace);
+    const launch=()=>page.evaluate(()=>SmylCaseWorkspace.openChairside('periodontal',tenantId,pacienteActual.id));
+    assert.match(await page.evaluate(()=>SmylCaseWorkspace.openChairside('periodontal',tenantId,'otro').catch(e=>e.message)),/paciente/);
+    assert.match(await page.evaluate(()=>SmylCaseWorkspace.openChairside('periodontal',tenantId,pacienteActual.id,{isCurrent:()=>false}).catch(e=>e.message)),/canceló/);
+    assert.equal(await launch(),true);
+    await byName('Iniciar exploración').waitFor();
+    assert.equal(row,null,'Opening an empty chart must not save an examination');
+    await byName('Cerrar periodontograma').click();
     await openTooth();
     await page.evaluate(()=>window.testSession(true));
     await dialog.getByLabel('Fecha de exploración').fill('2026-11-18');
@@ -192,6 +202,15 @@ async function scenario(browser, spec) {
     assert.match(await dialog.locator('h2').innerText(),/16/);
     await page.evaluate(()=>window.testSession(false));
     await dialog.waitFor({state:'detached'});
+    if(actor!==tenant){
+      role='read';await page.reload();await launch();
+      await dialog.getByRole('heading',{name:'Periodontograma completo'}).waitFor();
+      assert.equal(await byName('Guardar mediciones').count(),0);
+      await byName('Cerrar periodontograma').click();
+      role='none';await page.reload();
+      assert.match(await launch().then(()=>'',error=>error.message),/Tu rol/);
+      assert.equal(await dialog.count(),0);
+    }
     assert.deepEqual(errors,[]);
     console.log(`${spec.width} px: captura, guardado, recarga, cierre, comparación y arcadas correctos.`);
   } catch (err) {

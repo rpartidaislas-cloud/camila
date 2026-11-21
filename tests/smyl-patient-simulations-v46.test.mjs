@@ -43,9 +43,9 @@ test('la sección responde en escritorio y móvil con los mismos recursos', () =
   assert.match(styles, /@media\(max-width:700px\)/);
   assert.match(styles, /@media\(max-width:420px\)/);
   assert.match(app, /smyl-patient-cases\.css\?v=3/);
-  assert.match(app, /smyl-patient-cases\.js\?v=12/);
+  assert.match(app, /smyl-patient-cases\.js\?v=13/);
   assert.match(worker, /smyl-patient-cases\.css\?v=3/);
-  assert.match(worker, /smyl-patient-cases\.js\?v=12/);
+  assert.match(worker, /smyl-patient-cases\.js\?v=13/);
   assert.match(worker, /patient-simulations-v70/);
   assert.equal(cases, read('mobile/www/smyl-patient-cases.js'));
   assert.equal(styles, read('mobile/www/smyl-patient-cases.css'));

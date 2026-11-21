@@ -1,3 +1,14 @@
+## 2026-11-21 — Herramientas clínicas en Consultorio y Agenda
+
+- Consultorio reúne el periodontograma, la entrevista con MILA, las fotografías guiadas y el simulador de carillas. Al abrir una herramienta se elige el paciente. Desde una cita, Agenda y Consultorio toman el expediente asociado y verifican la cita y su sucursal antes de continuar.
+- `smyl-clinical-tools.js` reúne los accesos. El periodontograma usa la exploración del expediente. `smyl-guided-photos.js` permite guardar cinco vistas intraorales, retomar la serie y comenzar otra. La entrevista conserva su consentimiento. El simulador vinculado al paciente requiere la cuenta titular.
+- Se actualizaron los recursos web, la precaché de la PWA y las copias móviles. Los recorridos de prueba usan pacientes ficticios, imágenes sintéticas y servicios simulados. Queda pendiente probar la cámara y el micrófono físicos en consultorio.
+
+## 2026-11-21 — Codex — Márgenes de Archivos clínicos
+
+- En Revisión profesional, el encabezado «Expediente del paciente», la lista de archivos y la acción de carga comparten el margen interior de la tarjeta. El estado vacío ocupa menos altura. La disposición usa el mismo margen horizontal que el encabezado del odontograma en escritorio y móvil.
+- El cambio está en `smyl-evidence-center-integration.css`, con copias web y móvil y la referencia de precaché actualizada.
+
 ## 2026-11-20 — Codex — Sondaje guiado con MILA
 
 - La exploración periodontal permite elegir pieza inicial, cara y sentido, y dictar las profundidades por sitio. Cada profesional puede conservar sus preferencias de recorrido. La guía permite corregir la pieza anterior, pausar y revisar los sitios pendientes.

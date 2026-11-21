@@ -609,3 +609,44 @@
 .cw-enhanced .cw-evaluation-panel,.cw-enhanced .cw-evaluation-panel-body,.cw-enhanced .cw-clinical-files-source,.cw-enhanced .cw-clinical-files-source-body{min-width:0;max-width:100%}
 .cw-enhanced .cw-evaluation-panel .cw-clinical-files-source{overflow:visible}
 .cw-enhanced .cw-clinical-files-source-body>.cw-radiograph-shelf[data-canonical-evidence=true]{display:none!important}
+
+.gphoto-dialog{
+ width:min(570px,calc(100vw - 24px));max-height:calc(100dvh - 32px);padding:0;
+ color:#173047;background:white;border:0;border-radius:14px;box-shadow:0 16px 60px #0b1b2e38;
+ font-family:var(--smyl-ui-font,system-ui);font-size:15px;line-height:1.5;overflow-y:auto;overflow-x:hidden;
+}
+.gphoto-dialog::backdrop{background:rgba(11,27,46,.52)}
+.gphoto-dialog h2,.gphoto-dialog h3,.gphoto-dialog p{margin:0}
+.gphoto-header,.gphoto-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 22px}
+.gphoto-header{border-bottom:1px solid #dce4eb}
+.gphoto-header h2{font-size:21px;line-height:1.2}
+.gphoto-patient,.gphoto-stage>p{color:#43596a;overflow-wrap:anywhere}
+.gphoto-body{padding:20px 22px 8px}
+.gphoto-count{font-weight:650;font-size:14px}
+.gphoto-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));list-style:none;padding:0;margin:12px 0 24px;gap:4px}
+.gphoto-steps li{display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;color:#4a5d69;font-size:12px;line-height:1.3}
+.gphoto-step-number{display:grid;place-items:center;background:#edf1f5;color:#425664;border-radius:50%;width:26px;height:26px;font-weight:700}
+.gphoto-steps [data-state=current]{font-weight:700;color:#145a55}
+.gphoto-steps [data-state=current] .gphoto-step-number{background:#0c6a62;color:white}
+.gphoto-steps [data-state=done] .gphoto-step-number{background:#d5efea;color:#145a55}
+.gphoto-stage{display:grid;gap:8px}
+.gphoto-stage h3{font-size:20px;line-height:1.3}
+.gphoto-choices{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.gphoto-choice,.gphoto-secondary,.gphoto-primary{position:relative;display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 13px;border-radius:8px;border:1px solid #a8bac7;color:#233d50;background:white;font-family:inherit;font-size:14px;font-weight:600;line-height:1.2;cursor:pointer}
+.gphoto-primary{background:#0b625b;color:white;border-color:#0b625b}
+.gphoto-primary:disabled{background:#e6ecef;color:#4c6270;border-color:#e6ecef;cursor:default}
+.gphoto-choice input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.gphoto-choice:focus-within,.gphoto-dialog button:focus-visible{outline:3px solid #1e69ae;outline-offset:2px}
+.gphoto-preview{width:100%;max-height:210px;object-fit:contain;background:#edf2f4;border-radius:8px}
+.gphoto-filename,.gphoto-feedback,.gphoto-pending{font-size:13px}
+.gphoto-feedback{margin:0 22px!important;color:#315565}
+.gphoto-feedback:empty{display:none}
+.gphoto-actions{justify-content:flex-end;border-top:1px solid #e0e7ec;margin-top:12px}
+@media(max-width:520px){
+ .gphoto-dialog{width:calc(100vw - 12px);max-width:100vw;max-height:calc(100dvh - 12px)}
+ .gphoto-header,.gphoto-body,.gphoto-actions{padding-left:14px;padding-right:14px}
+ .gphoto-feedback{margin:0 14px!important}
+ .gphoto-preview{max-height:min(180px,20dvh)}
+ .gphoto-actions{position:sticky;bottom:0;z-index:1;background:#fff;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+ .gphoto-actions button{flex:1}
+}
