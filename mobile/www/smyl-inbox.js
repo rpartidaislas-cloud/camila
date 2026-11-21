@@ -2019,6 +2019,8 @@
     if (keepPosition) body.scrollTop = priorTop + body.scrollHeight - oldHeight;
     if (menuFocusId) Array.from(wrap.querySelectorAll('[data-message-id]')).find(function (row) { return row.dataset.messageId === menuFocusId; })?.querySelector('.smyl-inbox-message-more')?.focus({preventScroll:true});
 
+    renderPrivacyNotice(items, body);
+
     var finishAccessibleRender = function () {
       if (!wrap.isConnected || wrap.dataset.renderSequence !== renderSequence) return;
       wrap.setAttribute('aria-busy', 'false');
@@ -2028,6 +2030,20 @@
     };
     if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(finishAccessibleRender);
     else setTimeout(finishAccessibleRender, 0);
+  }
+
+  /* Solicitudes de derechos (ARCO) escritas por el paciente: SMYL avisa y el personal las registra con un clic. No contesta solo. */
+  function renderPrivacyNotice(items, body) {
+    var P = window.SmylPrivacyInbox, conversation = selectedConversation();
+    if (!P || !conversation || !body) return;
+    var ficha = state.clinical[conversation.id];
+    try {
+      P.show({
+        conversationId: conversation.id, channel: conversation.channel, contactName: conversation.contact_name, contactPhone: conversation.contact_phone || '',
+        patientId: ficha && ficha.linked && ficha.patient ? ficha.patient.id : null, canManage: hasPermission('patients.manage'), anchor: body,
+        messages: items.filter(function (item) { return item.author_type === 'patient' && !item.deleted && typeof item.content === 'string'; }).map(function (item) { return { id: String(item.id), text: item.content, at: item.created_at }; })
+      });
+    } catch (e) { /* el aviso es una ayuda: si falla, el hilo sigue igual */ }
   }
 
   function liveWhatsappWindow(conversation) {
