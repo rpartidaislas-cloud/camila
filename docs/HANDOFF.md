@@ -1,3 +1,8 @@
+## 2026-11-21 — Claude Code — Ficha SPEI: aviso de que la confirmación tarda de 15 a 30 minutos
+
+- Prueba real en producción: un SPEI de $10 enviado desde Mercado Pago a las 14:36 lo aplicó Openpay a las 14:52. LANA lo marcó como pagado en la siguiente consulta (`smyl-pago-verificar-openpay`, sin webhook) y SMYL recibió el aviso.
+- `pagar.html`: la ficha SPEI muestra un aviso: «Después de transferir, la confirmación puede tardar de 15 a 30 minutos. No necesitas hacer nada más ni volver a pagar…». También se ajustó el texto previo a generar la CLABE.
+
 ## 2026-11-21 — Claude Code — Página de pago: el paciente puede cambiar de método
 
 - Petición de Ricardo: que el paciente pueda elegir SPEI y después pagar con tarjeta (o al revés) en el mismo enlace. Esto reemplaza la regla anterior de «un solo método por enlace».

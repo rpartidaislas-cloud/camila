@@ -95,6 +95,8 @@ test('pagar.html replica las fichas de LANA: SPEI con CIE, tarjeta con aviso de 
   assert.match(page, /var previo = cfg\.solicitud && \/\^\(spei\|paynet\)\$\/\.test/);
   assert.match(page, /Si ya pagaste con ella, no pagues de nuevo/);
   assert.doesNotMatch(page, /pide un enlace nuevo a tu clínica\.' \}\)\);\s*tabs\.hidden = true/);
+  // SPEI: se avisa que la confirmación puede tardar (Openpay aplica el SPEI en unos 15-30 min, prueba real del 21/11/2026).
+  assert.match(page, /la confirmación puede tardar de 15 a 30 minutos/);
   // Las ventanas de impresión escapan todo dato dinámico.
   assert.match(page, /function esc\(v\)/);
 });
