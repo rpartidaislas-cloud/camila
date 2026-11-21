@@ -9,7 +9,7 @@ create or replace function auth.uid() returns uuid language sql stable as $$ sel
 grant usage on schema public, auth to authenticated, anon, service_role;
 
 create table public.camila_tenants (id uuid primary key, nombre text);
-create table public.camila_pacientes (tenant_id uuid not null references public.camila_tenants(id), id uuid not null, nombre text, apellido text, telefono text, primary key (tenant_id, id));
+create table public.camila_pacientes (tenant_id uuid not null references public.camila_tenants(id), id uuid not null, nombre text, apellido text, telefono text, created_at timestamptz not null default now(), primary key (tenant_id, id));
 create table public.smyl_audit_events (id bigint generated always as identity primary key, tenant_id uuid, actor_id uuid,
   action text not null check (action in ('insert', 'update', 'delete')), entity_type text not null, entity_id text not null default '',
   before_data jsonb, after_data jsonb, created_at timestamptz not null default now());
@@ -27,3 +27,5 @@ create function public.smyl_has_permission(p_tenant uuid, p_perm text) returns b
   as $$ select p_tenant = nullif(current_setting('test.tenant', true), '')::uuid and exists (select 1 from public.test_perms where user_id = auth.uid() and perm = p_perm) $$;
 create function public.smyl_can_access_patient(p_tenant uuid, p_patient uuid, p_domain text default null) returns boolean language sql stable security definer
   as $$ select exists (select 1 from public.camila_pacientes where tenant_id = p_tenant and id = p_patient) $$;
+
+create table if not exists public.camila_lana_handoffs (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, lana_conversation_id uuid not null, lana_channel text not null, patient_id uuid not null, updated_at timestamptz not null default now());

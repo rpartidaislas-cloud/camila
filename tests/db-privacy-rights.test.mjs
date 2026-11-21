@@ -75,3 +75,19 @@ test('la migración de firma remota solo agrega y no expone tablas', () => {
   assert.match(text, /interval '48 hours'/);
   assert.match(text, /encode\(sha256\(convert_to\(v_token/);
 });
+
+test('envío automático del aviso: ajustes, candidatos y reserva única en PostgreSQL real', { skip: !available && 'no hay un PostgreSQL local disponible' }, () => {
+  const db = 'smyl_d_' + process.pid;
+  assert.ok(pg(`createdb ${db}`), 'crear la base temporal');
+  try {
+    for (const file of ['tests/fixtures/db-privacy-stubs.sql', 'supabase/migrations/20261116210000_smyl_patient_consents.sql', 'supabase/migrations/20261123100000_smyl_privacy_rights.sql', 'supabase/migrations/20261124100000_smyl_consent_remote_links.sql', 'supabase/migrations/20261124200000_smyl_privacy_notice_dispatch.sql']) {
+      const r = psql(db, sql(file));
+      assert.ok(r.ok, file + '\n' + r.out);
+    }
+    const again = psql(db, sql('supabase/migrations/20261124200000_smyl_privacy_notice_dispatch.sql'));
+    assert.ok(again.ok, 'segunda aplicación\n' + again.out);
+    const run = psql(db, sql('tests/fixtures/db-privacy-dispatch-scenarios.sql'));
+    assert.ok(run.ok, run.out);
+    assert.match(run.out, /ENVIO OK/);
+  } finally { pg(`dropdb --if-exists ${db}`); }
+});

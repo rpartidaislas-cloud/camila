@@ -121,3 +121,7 @@ verify_jwt = false
 # Sesión clínica y alcance al paciente comprobados dentro del handler con requireUser y requirePermission.
 [functions.periodontal-summary]
 verify_jwt = false
+
+# Aviso de privacidad automático por WhatsApp: sesión y permiso patients.manage comprobados dentro del handler (requireUser + requirePermission).
+[functions.privacy-notice-dispatch]
+verify_jwt = false
