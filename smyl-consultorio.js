@@ -622,16 +622,18 @@
       body.replaceChildren();
       var box = el('div', 'co-qrbox'); box.setAttribute('role', 'img'); box.setAttribute('aria-label', 'Código QR para que el paciente firme el aviso de privacidad');
       if (svg) box.innerHTML = svg; else box.append(el('p', 'co-note-dark', 'No se pudo dibujar el código. Usa el enlace de abajo.'));
-      var hint = el('p', 'co-qrhint', 'Que lo escanee con la cámara de su celular o envíaselo. Sirve una sola vez, vence en 48 horas y un enlace nuevo anula el anterior.');
+      var cap = el('p', 'co-qrcap', 'Escanéalo con la cámara del celular'); 
+      var hint = el('p', 'co-qrhint', 'El enlace sirve una sola vez y vence en 48 horas. Si generas otro, el anterior deja de servir.');
       var status = el('p', 'co-qrstatus'); status.setAttribute('role', 'status'); status.dataset.coQrStatus = '';
       var dot = el('i', 'co-pulse'); dot.setAttribute('aria-hidden', 'true'); status.append(dot, el('span', '', 'Esperando su firma…'));
       var field = document.createElement('input'); field.className = 'co-qrlink'; field.readOnly = true; field.value = url; field.setAttribute('aria-label', 'Enlace para firmar el aviso'); field.onfocus = function () { field.select(); };
+      var more = document.createElement('details'); more.className = 'co-qrmore'; var sum = document.createElement('summary'); sum.textContent = 'Ver el enlace'; more.append(sum, field);
       var acts = el('div', 'co-actions'), wa = Q.whatsappUrl(patient.telefono, 'Hola, antes de tu atención te pedimos leer y firmar nuestro aviso de privacidad desde tu celular (el enlace vence en 48 horas): ' + url);
       function act(text, cls, fn) { var b = el('button', cls, text); b.type = 'button'; b.onclick = fn; acts.append(b); return b; }
-      if (wa) act('Enviarlo por WhatsApp', 'co-secondary', function () { window.open(wa, '_blank', 'noopener'); }).dataset.coQrWa = '';
+      if (wa) act('Enviarlo por WhatsApp', 'co-submit', function () { window.open(wa, '_blank', 'noopener'); }).dataset.coQrWa = '';
       var copy = act('Copiar enlace', 'co-secondary', async function () { try { await navigator.clipboard.writeText(url); copy.textContent = 'Enlace copiado'; } catch (e) { field.focus(); field.select(); copy.textContent = 'Selecciona y copia el enlace'; } });
       act('Cerrar', 'co-ghost', closeDialog);
-      body.append(box, hint, status, field, acts);
+      body.append(box, cap, status, acts, more, hint);
       q.timer = setInterval(async function () {
         if (state.qr !== q) return;
         q.polls++;
