@@ -68,10 +68,10 @@ test('usa solo las funciones de la base con permiso y nunca escribe tablas direc
 test('se publica en la app, el service worker, Configuración y la app móvil', () => {
   for (const f of ['app.html', 'mobile/www/app.html']) {
     const html = read(f);
-    assert.match(html, /<link rel="stylesheet" href="smyl-privacy-rights\.css\?v=1">/);
-    assert.match(html, /<script defer src="smyl-privacy-rights\.js\?v=1"><\/script>/);
+    assert.match(html, /<link rel="stylesheet" href="smyl-privacy-rights\.css\?v=2">/);
+    assert.match(html, /<script defer src="smyl-privacy-rights\.js\?v=2"><\/script>/);
   }
-  for (const f of ['sw.js', 'mobile/www/sw.js']) assert.match(read(f), /smyl-privacy-rights\.js\?v=1[\s\S]*smyl-privacy-rights\.css\?v=1/);
+  for (const f of ['sw.js', 'mobile/www/sw.js']) assert.match(read(f), /smyl-privacy-rights\.js\?v=2[\s\S]*smyl-privacy-rights\.css\?v=2/);
   assert.match(read('smyl-settings-hub.js'), /title: 'Privacidad y derechos'[^\n]*route: 'privacidad'/);
   assert.match(read('smyl-navigation.js'), /'seguridad', 'privacidad', 'sim-config'/);
   assert.match(read('smyl-navigation.js'), /\['Privacidad y derechos', 'privacidad', 'shield'\]/);

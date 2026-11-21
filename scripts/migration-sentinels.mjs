@@ -37,6 +37,7 @@ export const SENTINELAS = {
   '20261122090000': { reapply: true }, // solo create index if not exists (idempotente por diseño)
   '20261123100000': { sentinel: "select (to_regclass('public.smyl_data_rights_requests') is not null and to_regclass('public.smyl_patient_privacy_events') is not null and exists(select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'smyl_export_patient_data')) as ok" },
   '20261124100000': { sentinel: "select (to_regclass('public.smyl_consent_links') is not null and exists(select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'smyl_consent_link_sign')) as ok" },
+  '20261124200000': { sentinel: "select (to_regclass('public.smyl_privacy_settings') is not null and to_regclass('public.smyl_consent_dispatches') is not null and exists(select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'smyl_privacy_dispatch_claim')) as ok" },
 };
 
 // Decide qué hacer con cada versión pendiente. `resultadoSentinela(version)` devuelve true/false (ya consultado).

@@ -268,13 +268,53 @@
     more.append(req, exp); card.append(more); host.append(card);
   }
 
+  /* ── Aviso automático por WhatsApp a pacientes nuevos ── */
+  var autoState = { loaded: false, loading: false, error: '', settings: null, template: null, saving: false };
+  function autoText(reason, ready) {
+    if (ready === false) return 'La plantilla «aviso_privacidad_v1» todavía no está aprobada por WhatsApp. Solicítala en Mensajería → Plantillas y, cuando Meta la apruebe, el envío empezará solo.';
+    if (ready === true) return 'La plantilla está aprobada.';
+    return 'No se pudo comprobar el estado de la plantilla.';
+  }
+  async function loadAuto(force) {
+    if (autoState.loading || (autoState.loaded && !force)) return;
+    autoState.loading = true; autoState.error = ''; render();
+    try {
+      autoState.settings = await rpc('smyl_get_privacy_settings', {});
+      autoState.template = null;
+      try { var st = await win.sb.functions.invoke('privacy-notice-dispatch', { body: { action: 'status' } }); autoState.template = st && st.data && !st.error ? st.data : null; } catch (e) { autoState.template = null; }
+      autoState.loaded = true;
+    } catch (e) { autoState.error = friendly(e); }
+    autoState.loading = false; render();
+  }
+  async function saveAuto(on) {
+    if (autoState.saving) return; autoState.saving = true; render();
+    try { autoState.settings = await rpc('smyl_set_privacy_settings', { p_auto_send: on }); message(on ? 'Listo: el aviso se enviará solo a pacientes nuevos.' : 'Listo: ya no se envía solo.', 'ok'); if (win.SmylPrivacyDispatch) win.SmylPrivacyDispatch.reset(); }
+    catch (e) { message(friendly(e), 'error'); }
+    autoState.saving = false; render();
+  }
+  function renderAuto(host) {
+    if (!autoState.loaded && !autoState.loading && !autoState.error) { loadAuto(false); host.append(el('div', 'priv-empty', 'Cargando…')); return; }
+    if (autoState.loading) { host.append(el('div', 'priv-empty', 'Cargando…')); return; }
+    if (autoState.error) { host.append(el('div', 'priv-empty', autoState.error)); return; }
+    var st = autoState.settings || {}, on = st.auto_send_notice === true, tpl = autoState.template;
+    var card = el('div', 'priv-card');
+    card.append(el('h2', '', 'Mandar el aviso de privacidad a pacientes nuevos'),
+      el('p', 'priv-muted', 'Cuando alguien se registra por WhatsApp, SMYL le manda por ese mismo chat un enlace para leer el aviso, elegir sobre IA, WhatsApp y promociones, y firmar desde su celular. Se manda una sola vez por paciente y solo a quien se creó en los últimos 14 días y aún no firmó. Quien ya dijo que no a WhatsApp no recibe nada.'));
+    var row = el('label', 'priv-switch'), cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = on; cb.disabled = autoState.saving; cb.onchange = function () { saveAuto(cb.checked); };
+    row.append(cb, el('span', '', on ? 'Activado' : 'Apagado')); card.append(row);
+    var ready = tpl ? tpl.template_ready : null;
+    var note = el('p', 'priv-note', autoText('', tpl && tpl.lana_available === false ? null : ready)); note.dataset.state = ready === true ? 'ok' : 'warn'; card.append(note);
+    var stats = el('p', 'priv-muted', 'Enviados en los últimos 30 días: ' + (Number(st.sent_30d) || 0) + (st.last_sent_at ? ' · el último, el ' + new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long' }).format(new Date(st.last_sent_at)) : '') + '.');
+    card.append(stats); host.append(card);
+  }
+
   function render() {
     var content = document.getElementById('priv-content'); if (!content) return;
     content.replaceChildren();
     document.querySelectorAll('[data-priv-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.privTab === state.tab)); });
     if (state.loading) { content.append(el('div', 'priv-empty', 'Cargando…')); return; }
     if (state.error) { content.append(el('div', 'priv-empty', state.error)); return; }
-    if (state.tab === 'patients') renderPatients(content); else renderRequests(content);
+    if (state.tab === 'patients') renderPatients(content); else if (state.tab === 'auto') renderAuto(content); else renderRequests(content);
   }
 
   function build() {
@@ -284,7 +324,7 @@
     var refresh = el('button', 'btn btn-secondary', 'Actualizar'); refresh.type = 'button'; refresh.onclick = function () { loadRequests(); };
     head.append(copy, refresh); page.append(head);
     var tabs = el('div', 'priv-tabs'); tabs.setAttribute('role', 'tablist');
-    [['requests', 'Solicitudes'], ['patients', 'Pacientes']].forEach(function (t) {
+    [['requests', 'Solicitudes'], ['patients', 'Pacientes'], ['auto', 'Aviso automático']].forEach(function (t) {
       var b = el('button', '', t[1]); b.type = 'button'; b.dataset.privTab = t[0]; b.setAttribute('role', 'tab'); b.onclick = function () { state.tab = t[0]; render(); }; tabs.append(b);
     });
     var feedback = el('p', 'priv-feedback'); feedback.id = 'priv-feedback'; feedback.setAttribute('role', 'status'); feedback.setAttribute('aria-live', 'polite');

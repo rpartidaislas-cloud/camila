@@ -55,3 +55,8 @@
 .priv-purposes{display:grid;gap:6px}
 .priv-details{margin:0;padding:10px 12px;border-radius:10px;background:#f3f7f5;font-size:14px;line-height:1.5;white-space:pre-wrap}
 @media(max-width:700px){.priv-head{flex-direction:column}.priv-row{flex-wrap:wrap}.priv-purpose{grid-template-columns:1fr}.priv-dialog{width:100%;max-width:none;height:100dvh;max-height:none;margin:0;border-radius:0}}
+.priv-card h2{margin:0;font-size:19px}
+.priv-switch{display:flex;align-items:center;gap:12px;min-height:48px;font-size:16px;font-weight:600;cursor:pointer}
+.priv-switch input{width:26px;height:26px;accent-color:#1f8a80}
+.priv-note{margin:0;padding:10px 12px;border-radius:10px;background:#fff6dd;color:#7a5200;font-size:14px;line-height:1.45}
+.priv-note[data-state=ok]{background:#e7f4f2;color:#176c64}
