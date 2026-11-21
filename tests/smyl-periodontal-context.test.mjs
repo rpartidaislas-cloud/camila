@@ -45,3 +45,35 @@ test('Un historial que llega después de cambiar de paciente se descarta',async(
   assert.equal(bridge.getState().canRead,false);
   assert.equal(bridge.onStart('2026-11-20'),false);
 });
+
+test('Confirmar un recorrido completo sólo modifica el borrador, de manera atómica',()=>{
+  let edits=0;
+  const {ctx,bridge}=setup({markDirty:()=>{edits++;}});
+  bridge.onStart('2026-11-20');
+  bridge.onChange({tooth:'16',site:'MB',field:'bleeding',value:true});
+  const before=ctx.doc.periodontogram, baseline=edits;
+  const reading=(tooth,value)=>({tooth,changes:[{site:'MB',field:'depth',value}]});
+  assert.equal(bridge.onApplyBatch([reading('16',3),reading('15',21)]),false);
+  assert.equal(edits,baseline);
+  assert.equal(ctx.doc.periodontogram,before);
+  assert.equal(bridge.onApplyBatch([reading('16',0),reading('15',5)]),true);
+  assert.equal(edits,baseline+1);
+  assert.equal(ctx.savedDoc.periodontogram,undefined);
+  assert.deepEqual(ctx.doc.periodontogram.teeth['16'].MB,{depth:0,margin:null,bleeding:true});
+  assert.equal(ctx.doc.periodontogram.teeth['15'].MB.depth,5);
+  ctx.perioConflict=true;
+  assert.equal(bridge.onApplyBatch([reading('14',2)]),false);
+});
+
+test('La gráfica respeta ausencias confirmadas, mediciones previas, implantes y la fecha del registro',()=>{
+  const {ctx,bridge}=setup();
+  const event=(id,tooth,conditionCode)=>model.createFinding({id,tooth,conditionCode,surface:'whole'});
+  ctx.savedDoc.findings={schema:2,events:[
+    event('a','27','missing'),event('b','28','missing'),event('c','28','implant'),event('d','18','missing')
+  ]};
+  bridge.onStart('2026-11-20');
+  bridge.onChange({tooth:'18',site:'MB',field:'depth',value:3});
+  assert.deepEqual([...bridge.getState().missingTeeth],['27']);
+  ctx.doc.periodontogram={...ctx.doc.periodontogram,status:'closed'};
+  assert.deepEqual([...bridge.getState().missingTeeth],[]);
+});

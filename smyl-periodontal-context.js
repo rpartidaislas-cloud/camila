@@ -4,6 +4,7 @@
   function create(ctx, {model, readable, markDirty, saveDocument, readHistory, getFindings, notify}) {
     let history = Object.freeze([]), historyStatus = 'idle', historyRequest = null;
     const snapshots = new WeakMap();
+    let lastDentalRecord, absent = [];
     const editable = () => readable() && ctx.ready && ctx.canWrite && !ctx.busy;
     const draft = () => ctx.doc.periodontogram;
     const clone = value => value == null ? null : structuredClone(value);
@@ -19,6 +20,16 @@
       if (!snapshots.has(exam)) snapshots.set(exam, freeze(clone(exam)));
       return snapshots.get(exam);
     }
+    function missingTeeth(exam) {
+      if (!exam || exam.status !== 'draft') return [];
+      if (lastDentalRecord !== ctx.savedDoc) {
+        const findings = model.activeFindings(ctx.savedDoc);
+        const implants = new Set(findings.filter(item => item.conditionCode === 'implant').map(item => item.tooth));
+        absent = [...new Set(findings.filter(item => item.conditionCode === 'missing' && item.surface === 'whole' && !implants.has(item.tooth)).map(item => item.tooth))];
+        lastDentalRecord = ctx.savedDoc;
+      }
+      return absent.filter(id => !Object.hasOwn(exam.teeth, id));
+    }
 
     function getState() {
       if (!readable()) return {canRead:false, canEdit:false, ready:false, current:null, confirmed:null, history:[]};
@@ -29,7 +40,7 @@
         canRead:true, canEdit:ctx.canWrite, ready:ctx.ready, dirty:!!ctx.dirty && !!ctx.perioDirty, busy:ctx.busy,
         otherChanges:!!ctx.dirty && !!ctx.otherDentalChanges,
         conflict:!!ctx.perioConflict, current:closed || snapshot(current), confirmed:snapshot(saved),
-        previous:previous || null, history,
+        previous:previous || null, history, missingTeeth:missingTeeth(current),
         historyLoading:historyStatus === 'loading', historyError:historyStatus === 'error'
       };
     }
@@ -45,13 +56,8 @@
       if (!editable() || draft()?.status === 'draft') return false;
       return replace(model.createPeriodontalExam(date));
     }
-    function onChange(patch) {
-      if (!editable() || !patch || draft()?.status !== 'draft') return false;
-      const exam = clone(draft());
-      if (Object.hasOwn(patch, 'summary')) {
-        exam.summary = patch.summary;
-        return replace(exam);
-      }
+    function writeSites(exam, patch) {
+      if (!patch || typeof patch !== 'object') return false;
       const tooth = String(patch.tooth);
       if (!model.teeth.includes(tooth)) return false;
       const changes = Array.isArray(patch.changes) ? patch.changes : [patch];
@@ -66,6 +72,24 @@
       }
       if (Object.keys(sites).length) exam.teeth[tooth] = sites;
       else delete exam.teeth[tooth];
+      return true;
+    }
+    function onChange(patch) {
+      if (!editable() || !patch || draft()?.status !== 'draft' || ctx.perioConflict) return false;
+      const exam = clone(draft());
+      if (Object.hasOwn(patch,'summary')) exam.summary = patch.summary;
+      else if (!writeSites(exam,patch)) return false;
+      return replace(exam);
+    }
+    function onApplyBatch(patches) {
+      const current = draft();
+      if (!editable() || ctx.perioConflict || current?.status !== 'draft' || !Array.isArray(patches) || !patches.length) return false;
+      const exam = clone(current), absent = new Set(missingTeeth(current));
+      for (const patch of patches) {
+        if (absent.has(String(patch?.tooth)) || !Array.isArray(patch?.changes) ||
+            !patch.changes.every(change => change?.field === 'depth' && Number.isInteger(change.value)) ||
+            !writeSites(exam,patch)) return false;
+      }
       return replace(exam);
     }
 
@@ -128,7 +152,7 @@
       })();
       return request.promise;
     }
-    return {getState, onStart, onChange, onSave, onHistory, getFindings:tooth => readable() ? getFindings(String(tooth)) : []};
+    return {getState, onStart, onChange, onApplyBatch, onSave, onHistory, getFindings:tooth => readable() ? getFindings(String(tooth)) : []};
   }
   window.SmylPeriodontalContext = {create};
 })();

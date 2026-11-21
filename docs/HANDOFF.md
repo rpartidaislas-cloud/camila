@@ -1,3 +1,21 @@
+## 2026-11-20 — Codex — Sondaje guiado con MILA
+
+- La exploración periodontal permite elegir pieza inicial, cara y sentido, y dictar las profundidades por sitio. Cada profesional puede conservar sus preferencias de recorrido. La guía permite corregir la pieza anterior, pausar y revisar los sitios pendientes.
+- La gráfica y la lista de revisión muestran las lecturas propuestas. Aplicar al borrador incorpora el conjunto al mismo registro que usa la tabla. Guardar mediciones persiste la exploración. Un sitio sin medir conserva su estado vacío y una pieza ausente queda fuera del recorrido.
+- El dictado depende del reconocimiento de voz del navegador. La captura por teclado permite trabajar cuando el micrófono está ocupado o el reconocimiento se interrumpe. La entrega para web y PWA incluye la gráfica anatómica y el dictado de profundidad de sondaje. La validación local utiliza expedientes ficticios y reconocimiento simulado. Queda pendiente comprobar la precisión con micrófono y ruido de consultorio.
+
+## 2026-11-20 — Codex — Anatomía del periodontograma gráfico
+
+- Se redibujaron los perfiles de ambas arcadas, con coronas, relieves y raíces diferenciados por pieza y cara. La separación entre piezas y la ubicación visual de los tres sitios se adaptan al ancho de cada familia.
+- En `smyl-periodontal-graph.js` y su CSS, el gráfico conserva la proporción de los dientes al redimensionar la ventana y al cambiar el rango clínico. El cero del eje permanece anclado al cuello. La sonda y los valores se siguen calculando a partir de la exploración.
+- Se comprobó la geometría en Chromium, incluida la alineación clínica, el recorrido táctil y la edición de mediciones. Vista local con datos ficticios y copias para web y PWA, pendiente de publicación.
+
+## 2026-11-20 — Codex — Gráfica del periodontograma junto al odontograma
+
+- El periodontograma completo abre una gráfica interactiva de la arcada. Permite cambiar de cara, consultar el sitio con una sonda virtual graduada en milímetros o abrir su campo de captura. La tabla y el dictado de sondaje permanecen disponibles.
+- `smyl-periodontal-graph.js` y su hoja de estilos dibujan el margen registrado y el fondo calculado como margen más sondaje, con sentido apical positivo. Los datos parciales dejan huecos. La vista procede del mismo registro que la tabla y conserva la selección al editar. La sonda representa la medición registrada. La lectura automática de fotografías queda fuera de esta entrega.
+- Integración en `smyl-periodontal-review.js` y `smyl-periodontal-context.js`, con recursos compartidos para web y móvil. Pruebas con datos ficticios de cifras con signo, navegación por teclado y tacto, edición y visitas cerradas. Preparado localmente, pendiente de publicación.
+
 ## 2026-11-20 — Codex — Periodoncia en la revisión profesional
 
 - El odontograma de Evaluación incorpora una capa periodontal y conserva la pieza seleccionada al alternar las vistas. Desde la pieza se capturan los seis sitios, se consulta el periodontograma completo o se compara una visita con controles cerrados. En celular se abre una hoja inferior al tocar una pieza en la capa Periodoncia.
