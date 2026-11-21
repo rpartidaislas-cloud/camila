@@ -137,6 +137,7 @@
       if(name==='smyl_patient_consent_status'){var fm=q.get('firma')||'si';
         if(fm==='error')return Promise.resolve({data:null,error:{message:'sin permiso',code:'42501'}});
         return Promise.resolve({data:fm==='si'?{signed:true,id:'c1',signed_at:'2026-11-16T18:00:00Z',signer_name:'Ana López',signer_relation:'patient',notice_version:'modelo-provisional-1',provisional:true}:{signed:false},error:null});}
+      if(name==='smyl_set_patient_privacy_choice'){window.__decisiones=(window.__decisiones||[]);window.__decisiones.push(JSON.parse(JSON.stringify(args)));return Promise.resolve({data:'e-nuevo',error:null});}
       if(name==='smyl_record_patient_consent'){window.__firmas=(window.__firmas||[]);window.__firmas.push(JSON.parse(JSON.stringify(args)));var fe=q.get('firmaerr');
         if(fe==='42501')return Promise.resolve({data:null,error:{code:'42501',message:'No tienes permiso para registrar firmas.'}});
         if(fe==='22023')return Promise.resolve({data:null,error:{code:'22023',message:'La firma no es válida. Vuelve a firmar.'}});

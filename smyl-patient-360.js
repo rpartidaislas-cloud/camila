@@ -253,6 +253,7 @@
       if(!window.SmylHistoryRead){s.historyHost.textContent='No se pudo cargar la vista de la historia clínica. Recarga la página.';return;}
       s.historyHost.innerHTML=window.SmylHistoryRead.render(H.readModel(d,{updated:updated,revision:revision,canWrite:!!s.canWrite}));
       bindHistoryRead(s);
+      if(window.SmylPatientPrivacyPanel)window.SmylPatientPrivacyPanel.mount({host:s.historyHost,tenant:s.tenant,patient:s.patient,phone:(window.pacienteActual||{}).telefono||'',canAct:!!s.canWrite,isCurrent:function(){return current(s);}});
       if(s.canWrite&&window.SmylMilaInterview&&window.SmylMilaInterview.renderPending)window.SmylMilaInterview.renderPending(s.historyHost,s.tenant,s.patient);
     }else{
       var safetyFields=historyStatusEditor('alerts','¿Hay alertas médicas relevantes?',alertsStatus,historyField('Alertas médicas','alerts',alerts.join(', '),'Ej. anticoagulantes, marcapasos',true,''))+historyStatusEditor('allergies','¿Tiene alergias conocidas?',allergiesStatus,historyRepeater('allergy','Alergias','Registra sustancia, reacción y gravedad.',allergyRecords));

@@ -192,3 +192,6 @@
 #p-consultorio .co-sigtext summary{min-height:44px;display:flex;align-items:center;color:#176B63;font-weight:600;cursor:pointer}
 #p-consultorio .co-sigtext p{margin:0 0 8px}
 #p-consultorio .co-sigtext small{color:#5A6E7E}
+#p-consultorio .co-choicebox{margin:0 0 12px;padding:12px;border:1px solid #d6dfdd;border-radius:12px}
+#p-consultorio .co-choicebox b{display:block;font-size:15px;margin-bottom:2px}
+#p-consultorio .co-choicebox small{display:block;margin-bottom:10px;font-size:13px;line-height:1.4;color:#5b7370}
