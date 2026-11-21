@@ -1,7 +1,6 @@
 // Candado de privacidad para las funciones que mandan datos de un paciente a una IA externa. La regla vive en privacy-core.mjs.
 import { decidirIA, MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_NO_VERIFICABLE } from './privacy-core.mjs';
 
-export { MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_NO_VERIFICABLE };
 export type PermisoIA = 'allowed' | 'revoked' | 'unavailable';
 
 // deno-lint-ignore no-explicit-any

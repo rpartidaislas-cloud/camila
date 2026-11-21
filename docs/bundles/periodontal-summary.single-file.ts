@@ -224,9 +224,8 @@ return { MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_NO_VERIFICABLE, decidirIA };
 })();
 
 // ── _shared/privacy.ts ──
-const { permisoIA, respuestaIAnegada, MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_NO_VERIFICABLE } = (() => {
+const { permisoIA, respuestaIAnegada } = (() => {
 // Candado de privacidad para las funciones que mandan datos de un paciente a una IA externa. La regla vive en privacy-core.mjs.
-
 
 type PermisoIA = 'allowed' | 'revoked' | 'unavailable';
 
@@ -245,7 +244,7 @@ function respuestaIAnegada(permiso: PermisoIA): { status: number; body: { error:
   return { status: 503, body: { error: MENSAJE_IA_NO_VERIFICABLE, code: 'patient_ai_unverifiable' } };
 }
 
-return { permisoIA, respuestaIAnegada, MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_NO_VERIFICABLE };
+return { permisoIA, respuestaIAnegada };
 })();
 
 // ── _shared/contract.mjs ──

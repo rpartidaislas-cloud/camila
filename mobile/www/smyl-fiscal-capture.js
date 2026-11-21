@@ -30,8 +30,8 @@
       reader.readAsDataURL(file);
     });
   }
-  async function extract(file) {
-    var res = await window.sb.functions.invoke('fiscal-extract', { body: { file_base64: await readBase64(file), media_type: file.type } });
+  async function extract(file, patientId) {
+    var res = await window.sb.functions.invoke('fiscal-extract', { body: { file_base64: await readBase64(file), media_type: file.type, patient_id: patientId || undefined } });
     var data = res && res.data, err = res && res.error;
     if (err && err.context && typeof err.context.json === 'function') { try { data = await err.context.json(); } catch (e) {} }
     if (!data || data.error) throw new Error((data && data.error) || 'No se pudo leer la constancia. Captura los datos a mano.');
@@ -180,7 +180,7 @@
       if (!TYPES[file.type]) return say('Sube la constancia como PDF, JPG o PNG.', 'error');
       if (file.size > MAX_BYTES) return say('El archivo pesa más de 4 MB. Descarga de nuevo la constancia en PDF o reduce la imagen.', 'error');
       if (busy) return; busy = true; form.querySelector('[data-fiscal-save]').disabled = true; say('Leyendo la constancia…', '');
-      try { applyExtract(await extract(file)); }
+      try { applyExtract(await extract(file, options.patientId)); }
       catch (e) { say(String(e && e.message || 'No se pudo leer la constancia. Captura los datos a mano.'), 'error'); }
       finally { busy = false; form.querySelector('[data-fiscal-save]').disabled = false; }
     });

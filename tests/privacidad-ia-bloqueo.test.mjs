@@ -33,6 +33,8 @@ const WIRED = {
   'periodontal-summary': /respuestaIAnegada\(await permisoIA\(admin, auth\.tenantId, body\.patientId\)\)[\s\S]*?const key = Deno\.env\.get\('OPENAI_API_KEY'\)/,
   claude: /respuestaIAnegada\(await permisoIA\(usageAdmin, tenant, patientId\)\)[\s\S]*?smyl_clinical_evidence_assets/,
   'radiograph-analyze': /respuestaIAnegada\(await permisoIA\(admin, src\.tenant_id, src\.patient_id\)\)[\s\S]*?runRadiographAnalysis\(/,
+  'cloud-classify': /respuestaIAnegada\(await permisoIA\(admin, tenantId, String\(file\.patient_id\)\)\)[\s\S]*?ANTHROPIC_API_KEY/,
+  'fiscal-extract': /respuestaIAnegada\(await permisoIA\(admin, tenantId, body\.patient_id\)\)[\s\S]*?const ahora = new Date\(\)/,
   'mila-interview': /respuestaIAnegada\(await permisoIA\(admin, tenantId, patientId\)\)[\s\S]*?await purgeExpired\(\)/,
 };
 for (const [fn, re] of Object.entries(WIRED)) {
@@ -47,4 +49,11 @@ for (const [fn, re] of Object.entries(WIRED)) {
 test('la entrevista previa pasa a formulario (sin voz ni asistente) si el paciente no autorizó la IA', () => {
   const src = read('supabase/functions/mila-interview/index.ts');
   assert.match(src, /let mode = o\.mode;\s*\n\s*if \(mode !== "form" && \(await permisoIA\(admin, tenantId, String\(patient\.id\)\)\) !== "allowed"\) mode = "form";/);
+});
+
+test('el panel manda de qué paciente es la constancia, para que la función pueda respetar su decisión', () => {
+  const js = read('smyl-fiscal-capture.js');
+  assert.match(js, /invoke\('fiscal-extract', \{ body: \{ file_base64: await readBase64\(file\), media_type: file\.type, patient_id: patientId \|\| undefined \} \}\)/);
+  assert.match(js, /extract\(file, options\.patientId\)/);
+  assert.equal(js, read('mobile/www/smyl-fiscal-capture.js'));
 });

@@ -51,7 +51,10 @@ test('la función exige sesión, cloud.manage y poder ver el archivo; solo sugie
   assert.match(fn, /feature: "cloud_classify"/);
   assert.match(fn, /output_config: \{ format: \{ type: "json_schema", schema: CLASSIFY_SCHEMA \} \}/);
   assert.doesNotMatch(fn, /\.update\(|\.delete\(|smyl_cloud_update_file/);
-  assert.doesNotMatch(fn, /display_name|patient_id/);
+  assert.doesNotMatch(fn, /display_name/);
+  // patient_id se lee SOLO para respetar si el paciente negó la IA; nunca viaja al proveedor ni entra al mensaje.
+  const aProveedor = fn.slice(fn.indexOf('api.anthropic.com'));
+  assert.doesNotMatch(aProveedor, /patient_id|file\.patient/);
   assert.match(read('supabase/config.toml'), /\[functions\.cloud-classify\]\s+verify_jwt = true/);
   assert.match(read('supabase/migrations/20261116230000_smyl_cloud_classify.sql'), /'mila_exam_dictation', 'cloud_classify'/);
 });

@@ -131,9 +131,9 @@ test('Cobros: «Facturar» en el recibo, alta de datos fiscales al vuelo y conti
 test('publicación: scripts cargados antes de Cobros y copias de móvil idénticas', () => {
   for (const html of ['app.html', 'mobile/www/app.html']) {
     const page = read(html);
-    assert.ok(page.indexOf('smyl-fiscal-rules.js?v=2') < page.indexOf('smyl-fiscal-capture.js?v=3'));
-    assert.ok(page.indexOf('smyl-fiscal-capture.js?v=3') < page.indexOf('smyl-finance.js?v=62'));
+    assert.ok(page.indexOf('smyl-fiscal-rules.js?v=2') < page.indexOf('smyl-fiscal-capture.js?v=4'));
+    assert.ok(page.indexOf('smyl-fiscal-capture.js?v=4') < page.indexOf('smyl-finance.js?v=62'));
   }
-  for (const sw of ['sw.js', 'mobile/www/sw.js']) assert.match(read(sw), /smyl-fiscal-rules\.js\?v=2[\s\S]*smyl-fiscal-capture\.js\?v=3/);
+  for (const sw of ['sw.js', 'mobile/www/sw.js']) assert.match(read(sw), /smyl-fiscal-rules\.js\?v=2[\s\S]*smyl-fiscal-capture\.js\?v=4/);
   for (const f of ['smyl-fiscal-rules.js', 'smyl-fiscal-capture.js', 'smyl-finance.js', 'smyl-finance.css']) assert.equal(read(f), read('mobile/www/' + f), f);
 });

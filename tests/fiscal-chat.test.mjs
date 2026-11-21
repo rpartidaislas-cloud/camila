@@ -45,6 +45,6 @@ test('el formulario ofrece «Elegir del chat» solo con chat vinculado y aplica 
   assert.match(capture, /data-fiscal-chat hidden>Elegir del chat</);
   assert.match(capture, /if \(!r\.error && r\.count\) chatButton\.hidden = false;/);
   assert.match(capture, /action: 'fiscal_document', conversation_id: item\.conversation_id, patient_id: patientId, message_id: item\.id/);
-  assert.match(capture, /try \{ applyExtract\(await extract\(file\)\); \}/);
+  assert.match(capture, /try \{ applyExtract\(await extract\(file, options\.patientId\)\); \}/);
   assert.match(capture, /try \{ applyExtract\(await extractFromChat\(options\.patientId, item\)\); \}/);
 });
