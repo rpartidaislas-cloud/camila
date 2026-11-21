@@ -60,6 +60,12 @@
     var host = o.host, main = host.querySelector('.p360-hc-main'), index = host.querySelector('.p360-hc-index');
     if (!main || !index) return Promise.resolve(false);
     var count = host.querySelectorAll('.p360-hc-band').length;
+    o.refresh = function () {
+      var band = host.querySelector('#p360-hc-privacy'), btn = host.querySelector('[data-hc-goto="privacy"]');
+      if (band) band.remove(); if (btn) btn.remove();
+      host.querySelectorAll('.pp-missing').forEach(function (x) { x.remove(); });
+      mount(o);
+    };
     function rpc(name, args) { return win.sb.rpc(name, args).then(function (r) { if (r.error) throw r.error; return r.data; }); }
     function fmt(v) { try { return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(v)); } catch (e) { return String(v); } }
     return Promise.all([
@@ -79,7 +85,7 @@
       index.insertBefore(itpl.content, progress || null);
       var gotoBtn = index.querySelector('[data-hc-goto="privacy"]'), band = host.querySelector('#p360-hc-privacy');
       gotoBtn.onclick = function () { var reduced = win.matchMedia && win.matchMedia('(prefers-reduced-motion: reduce)').matches; band.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); band.focus({ preventScroll: true }); };
-      if (m.missing && progress) { var line = doc.createElement('span'); line.className = 'p360-hc-missing'; line.textContent = 'Falta firmar: ' + m.missing + '.'; progress.append(line); }
+      if (m.missing && progress) { var line = doc.createElement('span'); line.className = 'p360-hc-missing pp-missing'; line.textContent = 'Falta firmar: ' + m.missing + '.'; progress.append(line); }
       var link = band.querySelector('[data-hp-link]'), screen = band.querySelector('[data-hp-screen]'), reqs = band.querySelector('[data-hp-requests]');
       if (link) link.onclick = function () { openLink(o, link); };
       if (screen) screen.onclick = function () { win.ir('consultorio'); win.SmylConsultorio.openVisit(o.patient); };
@@ -110,15 +116,30 @@
       var svg = '';
       if (typeof win.qrcode === 'function') { try { var c = win.qrcode(0, 'M'); c.addData(url); c.make(); svg = c.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); } catch (e) { svg = ''; } }
       if (svg) qr.innerHTML = svg; else qr.textContent = 'Usa el enlace de abajo.';
-      var hint = doc.createElement('p'); hint.textContent = 'Que lo escanee con la cámara de su celular o envíaselo. Sirve una sola vez, vence en 48 horas y un enlace nuevo anula el anterior.';
+      var cap = doc.createElement('p'); cap.className = 'pp-cap'; cap.textContent = 'Escanéalo con la cámara del celular';
+      var status = doc.createElement('p'); status.className = 'pp-status'; status.setAttribute('role', 'status'); status.textContent = 'Esperando su firma…';
       var field = doc.createElement('input'); field.readOnly = true; field.value = url; field.className = 'pp-link'; field.setAttribute('aria-label', 'Enlace para firmar el aviso'); field.onfocus = function () { field.select(); };
+      var more = doc.createElement('details'), sum = doc.createElement('summary'); sum.textContent = 'Ver el enlace'; more.append(sum, field);
+      var hint = doc.createElement('p'); hint.className = 'pp-hint'; hint.textContent = 'El enlace sirve una sola vez y vence en 48 horas. Si generas otro, el anterior deja de servir.';
       var acts = doc.createElement('div'); acts.className = 'pp-acts';
       var quick = win.SmylPatientQuick, wa = quick && o.phone ? quick.whatsappUrl(o.phone, 'Hola, antes de tu atención te pedimos leer y firmar nuestro aviso de privacidad desde tu celular (el enlace vence en 48 horas): ' + url) : '';
-      function act(text, fn) { var b = doc.createElement('button'); b.type = 'button'; b.textContent = text; b.onclick = fn; acts.append(b); return b; }
-      if (wa) act('Enviarlo por WhatsApp', function () { win.open(wa, '_blank', 'noopener'); });
-      var copy = act('Copiar enlace', function () { var p = win.navigator.clipboard ? win.navigator.clipboard.writeText(url) : Promise.reject(); p.then(function () { copy.textContent = 'Enlace copiado'; }, function () { field.focus(); field.select(); copy.textContent = 'Selecciona y copia el enlace'; }); });
-      act('Cerrar', close);
-      body.append(qr, hint, field, acts);
+      function act(text, cls, fn) { var b = doc.createElement('button'); b.type = 'button'; b.className = cls || ''; b.textContent = text; b.onclick = fn; acts.append(b); return b; }
+      if (wa) act('Enviarlo por WhatsApp', 'pp-primary', function () { win.open(wa, '_blank', 'noopener'); });
+      var copy = act('Copiar enlace', '', function () { var p = win.navigator.clipboard ? win.navigator.clipboard.writeText(url) : Promise.reject(); p.then(function () { copy.textContent = 'Enlace copiado'; }, function () { more.open = true; field.focus(); field.select(); copy.textContent = 'Selecciona y copia el enlace'; }); });
+      act('Cerrar', '', close);
+      body.append(qr, cap, status, acts, more, hint);
+      /* Mientras la ventana está abierta se revisa cada pocos segundos si ya firmó; al cerrar, la sección se actualiza. */
+      var polls = 0, signed = false;
+      var timer = setInterval(function () {
+        if (!d.isConnected) { clearInterval(timer); return; }
+        if (++polls > 150) { clearInterval(timer); status.textContent = 'Dejé de esperar. Cierra y vuelve a abrir el enlace si hace falta.'; return; }
+        win.sb.rpc('smyl_patient_consent_status', { p_patient_id: o.patient }).then(function (r) {
+          if (r.error || !r.data || !r.data.signed || signed) return;
+          signed = true; clearInterval(timer); status.textContent = '✓ Ya firmó el aviso.'; status.className = 'pp-status pp-done';
+          acts.replaceChildren(); act('Listo', 'pp-primary', close);
+        }, function () {});
+      }, 4000);
+      d.addEventListener('close', function () { clearInterval(timer); if (signed && o.refresh) o.refresh(); }, { once: true });
     }).catch(function (err) {
       var code = err && err.code, msg = String(err && err.message || '');
       body.textContent = code === '42501' ? 'Tu rol no permite enviar avisos a firmar.' : /PGRST202|42883|schema cache/i.test(code + ' ' + msg) ? 'Falta aplicar la migración de firma por enlace en la base de datos.' : 'No se pudo crear el enlace. Revisa tu conexión e inténtalo de nuevo.';
