@@ -13,3 +13,17 @@
 .catalog-save-branch{border:1px solid #cad8d1;border-radius:9px;background:#fff;padding:8px 14px;font-weight:650;cursor:pointer}
 .catalog-branch-actions small{color:#4b5f5d;font-size:13px}
 .catalog-branch-rows label>span:first-child{display:flex;align-items:baseline;gap:8px}
+/* Buscador de clave del SAT dentro de «Editar servicio» */
+.catalog-sat-search{margin:0 0 12px;padding:12px;border:1px solid #dbe5ee;border-radius:12px;background:#f8fbfc}
+.catalog-sat-row{display:flex;gap:8px;align-items:stretch}
+.catalog-sat-row input{flex:1 1 auto;min-width:0}
+.catalog-sat-row button{flex:0 0 auto;min-height:42px}
+.catalog-sat-results{display:grid;gap:6px;margin-top:10px;max-height:240px;overflow:auto}
+.catalog-sat-results button{display:flex;gap:10px;align-items:baseline;text-align:left;width:100%;padding:9px 11px;border:1px solid #d6e0ea;border-radius:10px;background:#fff;color:#14263f;font:inherit;cursor:pointer}
+.catalog-sat-results button:hover,.catalog-sat-results button:focus-visible{border-color:#0f766e;background:#f1f8f6;outline:none}
+.catalog-sat-results b{flex:0 0 auto;font-variant-numeric:tabular-nums}
+.catalog-sat-results span{min-width:0;font-size:13px;color:#4a5d73}
+.catalog-sat-note{margin:0;font-size:13px;color:#4a5d73}
+.catalog-sat-note[data-error]{color:#9b2c2c}.catalog-sat-note[data-ok]{color:#0f6b4f}
+@media(max-width:560px){.catalog-sat-row{flex-direction:column}.catalog-sat-row button{width:100%}}
+

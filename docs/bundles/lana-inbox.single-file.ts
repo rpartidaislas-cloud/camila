@@ -424,6 +424,46 @@ const corsHeaders = corsPublic;
 return { makeCors, corsPublic, corsHeaders };
 })();
 
+// ── _shared/fiscal-chat.mjs ──
+const { MAX_CHAT_FILE_BYTES, tipoPorFirma, urlDescargable, bytesABase64, esArchivoFiscal } = (() => {
+// Leer la Constancia de Situación Fiscal desde un archivo que el paciente mandó por el chat (sin Deno ni red).
+// lana-inbox descarga el archivo del mensaje (validado contra la conversación del paciente) y lo pasa a fiscal-extract.
+const MAX_CHAT_FILE_BYTES = 4 * 1024 * 1024;
+
+// El tipo se decide por los primeros bytes, no por lo que diga el remitente: solo PDF, PNG o JPG.
+function tipoPorFirma(bytes: any) {
+  if (!bytes || bytes.length < 4) return null;
+  if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "application/pdf"; // %PDF
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  return null;
+}
+
+// Solo https hacia nombres de dominio públicos: nunca IPs, localhost ni nombres internos.
+function urlDescargable(value: any) {
+  let url;
+  try { url = new URL(String(value || "")); } catch { return false; }
+  if (url.protocol !== "https:" || url.username || url.password) return false;
+  const host = url.hostname.toLowerCase();
+  if (!host.includes(".") || host === "localhost" || host.endsWith(".local") || host.endsWith(".internal")) return false;
+  if (/^[\d.]+$/.test(host) || host.includes(":") || host.startsWith("[")) return false;
+  return true;
+}
+
+function bytesABase64(bytes: any) {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(binary);
+}
+
+// Mensajes del chat que pueden ser una constancia: fotos y documentos disponibles.
+function esArchivoFiscal(message: any) {
+  return Boolean(message) && message.deleted !== true && (message.media_type === "image" || message.media_type === "document") && Boolean(message.media_url);
+}
+
+return { MAX_CHAT_FILE_BYTES, tipoPorFirma, urlDescargable, bytesABase64, esArchivoFiscal };
+})();
+
 // ── lana-inbox/index.ts ──
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
@@ -1502,6 +1542,58 @@ async function linkClinicalImage(
   return json(200, { ok: true, link: data });
 }
 
+// Constancia de situación fiscal enviada por el chat: se valida que el mensaje sea de la conversación del paciente,
+// se descarga aquí (el navegador nunca ve la llave de LANA) y se entrega a fiscal-extract con la sesión de quien la pide,
+// así aplican el mismo permiso (finance.manage), los topes y el consumo de créditos de IA. El archivo no se guarda.
+async function fiscalDocumentFromChat(
+  tenantId: string,
+  actor: Actor,
+  conversationId: string,
+  rawPatientId: unknown,
+  rawMessageId: unknown,
+  authorization: string,
+): Promise<Response> {
+  const id = messageId(rawMessageId);
+  const patientId = uuid(rawPatientId);
+  if (!id || !patientId) return json(400, { error: "Elige un archivo del chat." });
+  const { data: handoff } = await admin.from("camila_lana_handoffs").select("patient_id")
+    .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId).maybeSingle();
+  if (!handoff?.patient_id || String(handoff.patient_id) !== patientId) {
+    return json(409, { error: "Ese chat no está vinculado a este paciente.", code: "handoff_required" });
+  }
+  const remote = await lanaRequest(tenantId, `/inbox/conversations/${conversationId}/messages/${id}`, {
+    method: "GET", headers: actorHeaders(actor),
+  }, 15000);
+  if (!remote.response.ok) return json(remote.response.status, { error: String(remote.body.error || "No se pudo consultar el mensaje en LANA.") });
+  const message = remote.body.message as Record<string, unknown> | undefined;
+  if (!esArchivoFiscal(message) || !urlDescargable(message?.media_url)) {
+    return json(409, { error: "Ese mensaje no tiene una foto o documento disponible." });
+  }
+  let bytes: Uint8Array;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    const file = await fetch(String(message!.media_url), { signal: controller.signal, redirect: "follow" }).finally(() => clearTimeout(timer));
+    if (!file.ok) return json(502, { error: "No se pudo descargar el archivo del chat. Pide al paciente que lo envíe de nuevo." });
+    const declared = Number(file.headers.get("content-length") || 0);
+    if (declared > MAX_CHAT_FILE_BYTES) return json(413, { error: "El archivo del chat pesa más de 4 MB. Pide la constancia en PDF." });
+    bytes = new Uint8Array(await file.arrayBuffer());
+  } catch (error) {
+    console.error("[lana-inbox fiscal-document]", (error as Error)?.name || "error");
+    return json(502, { error: "No se pudo descargar el archivo del chat. Intenta de nuevo." });
+  }
+  if (bytes.length > MAX_CHAT_FILE_BYTES) return json(413, { error: "El archivo del chat pesa más de 4 MB. Pide la constancia en PDF." });
+  const mediaType = tipoPorFirma(bytes);
+  if (!mediaType) return json(415, { error: "Ese archivo no es PDF, JPG ni PNG. Elige la foto o el PDF de la constancia." });
+  const extract = await fetch(`${SB_URL}/functions/v1/fiscal-extract`, {
+    method: "POST",
+    headers: { "Authorization": authorization, "apikey": Deno.env.get("SUPABASE_ANON_KEY") || "", "Content-Type": "application/json", "Origin": "https://app.smyldesign.ai" },
+    body: JSON.stringify({ file_base64: bytesABase64(bytes), media_type: mediaType }),
+  });
+  const result = await extract.json().catch(() => ({ error: "No se pudo leer la constancia. Captura los datos a mano." }));
+  return json(extract.status, result as Record<string, unknown>);
+}
+
 const INBOX_PRIORITIES = ["low", "normal", "high", "urgent"];
 const INBOX_AI_FILTERS = ["ai", "human"];
 const INBOX_WINDOW_FILTERS = ["open", "expiring", "expired", "none"];
@@ -1782,6 +1874,11 @@ return scheduleDenied || await appointmentContext(actor, auth.tenantId, conversa
       const channel = text(body.channel, 20);
       if (!["whatsapp", "messenger", "instagram"].includes(channel)) return json(400, { error: "Canal no válido." });
       return await linkClinicalImage(auth.tenantId, actor, conversationId, channel, body.message_id, body.label);
+    }
+    if (action === "fiscal_document") {
+      const denied = requirePermission(actor, "finance.manage", "Tu rol no permite editar los datos fiscales.");
+      if (denied) return denied;
+      return await fiscalDocumentFromChat(auth.tenantId, actor, conversationId, body.patient_id, body.message_id, req.headers.get("Authorization") || "");
     }
     if (action === "rewrite_message") {
       const denied = requirePermission(actor, "messages.respond", "Tu rol no permite preparar respuestas para pacientes.");

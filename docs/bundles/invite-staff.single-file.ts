@@ -304,12 +304,18 @@ Deno.serve(async (req: Request) => {
   const specialty = String(body?.specialty || "").trim();
   const licenseNumber = String(body?.license_number || "").trim();
   const branchId = String(body?.branch_id || "").trim();
+  // WhatsApp del profesional para avisos de citas; al aceptar se copia a smyl_professionals.contact_phone.
+  const contactPhone = memberKind === "professional" ? String(body?.contact_phone || "").trim() : "";
+  const contactPhonePublic = contactPhone !== "" && body?.contact_phone_public === true;
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return jsonError(400, "Correo inválido.");
   if (memberKind === "professional" && nombre.length < 2) {
     return jsonError(400, "Escribe el nombre del profesional.");
   }
   if (specialty.length > 120 || licenseNumber.length > 80) {
     return jsonError(400, "Revisa la especialidad o la cédula profesional.");
+  }
+  if (!/^[0-9 +().-]{0,40}$/.test(contactPhone)) {
+    return jsonError(400, "El WhatsApp solo puede llevar números y los signos + ( ) - .");
   }
   if (memberKind === "professional" && !branchId) {
     return jsonError(400, "Selecciona la primera sucursal del profesional.");
@@ -340,6 +346,7 @@ Deno.serve(async (req: Request) => {
       specialty,
       license_number: licenseNumber,
       branch_id: branchId || null,
+      ...(contactPhone ? { contact_phone: contactPhone, contact_phone_public: contactPhonePublic } : {}),
       invited_by: user.id,
     })
     .select("id")

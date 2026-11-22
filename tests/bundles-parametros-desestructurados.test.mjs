@@ -20,9 +20,12 @@ test('ningún bundle anota `: any` dentro de un parámetro desestructurado', () 
 
 test('el generador deja intactos los parámetros con llaves y anota los sueltos', () => {
   const src = fs.readFileSync(new URL('../scripts/bundle-edge-function.mjs', import.meta.url), 'utf8');
-  assert.match(src, /params\.includes\('\{'\) \|\| params\.includes\('\['\) \|\| params\.includes\('='\)/);
+  assert.match(src, /comas de primer nivel/);
   const facturapi = fs.readFileSync(new URL('facturapi.single-file.ts', dir), 'utf8');
   assert.match(facturapi, /function validarCsd\(\{ cer, key, password \} = \{\}\) \{/);
   assert.match(facturapi, /function puedeActivarProduccion\(\{ mode, status, productionReady, issuerReviewed, policyReviewed, confirmText \} = \{\}\) \{/);
   assert.match(facturapi, /async function huella\(key: any\) \{/);
+  // Los parámetros simples que acompañan a uno desestructurado siguen anotados.
+  const lana = fs.readFileSync(new URL('lana-connection.single-file.ts', dir), 'utf8');
+  assert.match(lana, /function decideLanaLink\(info: any, \{ strict \}\) \{/);
 });
