@@ -17,7 +17,7 @@ const server = http.createServer((req, res) => { let p = decodeURIComponent(req.
   await page.waitForTimeout(4500);
   let x = await badge(); console.log('1) sin abrir Cobros:', JSON.stringify(x)); check(x && x.text === '2' && !x.hidden && /2 pacientes pendientes de cargo/.test(x.aria), 'debe mostrar 2 al iniciar, sin abrir Cobros');
   await page.evaluate(() => ir('caja')); await page.waitForTimeout(2000);
-  const filas = await page.$$eval('.finance-visit-row', e => e.length); x = await badge(); console.log('2) en Cobros:', JSON.stringify(x), 'filas', filas); check(x && x.text === String(filas), 'el numerito debe coincidir con las filas de la lista');
+  const filas = await page.$$eval('#finance-visits .finance-line', e => e.length); x = await badge(); console.log('2) en Cobros:', JSON.stringify(x), 'filas', filas); check(x && x.text === String(filas), 'el numerito debe coincidir con las filas de la lista');
   await page.click('[data-visit-nocharge]'); await page.waitForTimeout(400); await page.click('.finance-nocharge button[type=submit]'); await page.waitForTimeout(1500);
   x = await badge(); console.log('3) tras «Sin cargo»:', JSON.stringify(x)); check(x && x.text === '1' && /1 paciente pendiente/.test(x.aria), 'debe bajar a 1');
   await page.evaluate(() => { window.__db.smyl_appointments.find(a => a.id === 'a6').status = 'arrived'; window.dispatchEvent(new CustomEvent('smyl:appointments-changed')); }); await page.waitForTimeout(1500);

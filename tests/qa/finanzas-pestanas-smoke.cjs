@@ -2,10 +2,12 @@
 // Comprueba: cuatro pestañas y ninguna «Resumen»; cada pestaña muestra solo lo suyo; cifras y avisos de cada pestaña; cabecera igual en todas
 // (Cobrar y Más); un solo nombre por cosa; sumas en centavos ($100.20 en tres pagos de $33.40 queda en cero); caja con cobros y salidas
 // separados; listas de 50 en 50; flechas del teclado; acceso desde Configuración; y que nada se desborda en computadora, tableta y celular.
+// Paso 2: «Por cobrar» (cuatro vistas, un botón por fila, saldo alineado, búsqueda sin acentos, recordatorios) y «Pagos» (periodo, forma de pago,
+// abono/anticipo/reembolso con su nombre, recibo desde su pago y exportación a Excel registrada en Seguridad).
 //   NODE_PATH=$(npm root -g) node tests/qa/finanzas-pestanas-smoke.cjs      (requiere Playwright y Chromium)
 // Sale con código 1 si algo falla. Con SMYL_SHOTS=/carpeta guarda capturas.
 const { chromium } = require('playwright');
-const http = require('http'), fs = require('fs'), path = require('path');
+const http = require('http'), fs = require('fs'), path = require('path'), os = require('os'), zlib = require('zlib');
 const root = path.resolve(__dirname, '..', '..'), shots = process.env.SMYL_SHOTS || '';
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
 const server = http.createServer((req, res) => {
@@ -70,16 +72,27 @@ function seed(extra) {
   }
 }
 
+// Lee un .xlsx (ZIP) sin librerías: devuelve el texto de cada archivo interno.
+function unzip(buf) {
+  const out = {}, end = buf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06])), total = buf.readUInt16LE(end + 10); let at = buf.readUInt32LE(end + 16);
+  for (let i = 0; i < total; i++) {
+    const method = buf.readUInt16LE(at + 10), size = buf.readUInt32LE(at + 20), nameLen = buf.readUInt16LE(at + 28), extra = buf.readUInt16LE(at + 30), comment = buf.readUInt16LE(at + 32), local = buf.readUInt32LE(at + 42);
+    const name = buf.toString('utf8', at + 46, at + 46 + nameLen), start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28), data = buf.subarray(start, start + size);
+    out[name] = (method === 8 ? zlib.inflateRawSync(data) : data).toString('utf8'); at += 46 + nameLen + extra + comment;
+  }
+  return out;
+}
+
 server.listen(0, '127.0.0.1', async () => {
   const browser = await chromium.launch(); let failures = 0;
   const check = (ok, msg) => { if (!ok) { failures += 1; console.log('FALLA · ' + msg); } else console.log('ok · ' + msg); };
   const fake = fs.readFileSync(path.join(__dirname, 'fake-supabase-cobros.js'), 'utf8');
-  async function open(size, extra) {
+  async function open(size, extra, prepare) {
     const ctx = await browser.newContext({ serviceWorkers: 'block', viewport: size, deviceScaleFactor: 1 }); const page = await ctx.newPage(); const errs = [];
     page.on('pageerror', e => errs.push(e.message.slice(0, 200))); page.on('dialog', d => d.dismiss());
     await page.route('**/*', r => { const u = r.request().url(); if (u.includes('@supabase/supabase-js') || u.includes('/vendor/supabase-js-')) return r.fulfill({ status: 200, contentType: 'text/javascript', body: fake }); return u.startsWith('http://127.0.0.1') ? r.continue() : r.abort(); });
     await page.goto(`http://127.0.0.1:${server.address().port}/app.html`, { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(2400);
-    await page.evaluate(seed, extra || 0); await page.evaluate(() => ir('caja'));
+    await page.evaluate(seed, extra || 0); if (prepare) await page.evaluate(prepare); await page.evaluate(() => ir('caja'));
     await page.waitForFunction(() => { const f = document.querySelector('#finance-tab-accounts .finance-tab-figure'); return f && /\$/.test(f.textContent); }, null, { timeout: 30000 });
     await page.waitForTimeout(500);
     return { ctx, page, errs };
@@ -122,8 +135,8 @@ server.listen(0, '127.0.0.1', async () => {
 
   // Nombres: la cabecera y las ventanas que abre.
   await go(page, 'accounts');
-  const visits = await page.$eval('#finance-visits', e => ({ title: e.querySelector('h2').textContent.trim(), buttons: [...new Set([...e.querySelectorAll('.finance-visit-row button')].map(b => b.textContent.trim()))] }));
-  check(/^Citas atendidas sin cobrar\s*2$/.test(visits.title) && visits.buttons.join('|') === 'Registrar cargo|Fue sin costo', 'las citas sin cobrar usan «Registrar cargo» y «Fue sin costo»');
+  const visits = await page.$eval('#finance-visits', e => ({ title: e.querySelector('h2').textContent.trim(), buttons: [...new Set([...e.querySelectorAll('.finance-line button')].map(b => b.textContent.trim()))] }));
+  check(/^Citas atendidas sin cobrar\s*2$/.test(visits.title) && visits.buttons.join('|') === 'Fue sin costo|Registrar cargo', 'las citas sin cobrar usan «Registrar cargo» y «Fue sin costo»');
   await page.click('#p-caja .finance-operations-menu>summary'); await page.waitForTimeout(150);
   const menu = await page.$$eval('#p-caja .finance-operations-menu button strong', els => els.map(e => e.textContent.trim()));
   check(menu.join('|') === 'Registrar cargo|Recibir anticipo|Importar cotización|Política de inasistencia', 'el menú Más ofrece: ' + menu.join(', '));
@@ -138,14 +151,14 @@ server.listen(0, '127.0.0.1', async () => {
   check(titles.cargo === 'Registrar cargo' && titles.anticipo === 'Recibir anticipo' && titles.cobrar === 'Cobrar', 'las ventanas se llaman igual que su botón: ' + JSON.stringify(titles));
 
   // Centavos: la cuenta de $100.20 pagada en tres partes no está pendiente ni vencida, y aparece liquidada.
-  const pending = await page.$$eval('#finance-accounts .finance-row .finance-account-identity strong', els => els.map(e => e.textContent));
-  check(pending.length === 4 && !pending.includes('Ximena Centavos Exactos'), 'la cuenta pagada al centavo no aparece en Pendientes: ' + pending.join(', '));
+  const pending = await page.$$eval('#finance-accounts .finance-line .finance-line-name', els => els.map(e => e.textContent));
+  check(pending.length === 4 && !pending.includes('Ximena Centavos Exactos'), 'la cuenta pagada al centavo no aparece en «Con saldo»: ' + pending.join(', '));
   check((await page.$eval('#finance-account-summary', e => e.textContent)) === '4 cuentas · $5,700.00' && (await page.$eval('#finance-accounts-title', e => e.textContent)) === 'Cuentas con saldo', 'el encabezado dice «Cuentas con saldo · 4 cuentas · $5,700.00»');
   await page.click('#p-caja [data-account-filter="all"]'); await page.waitForTimeout(200);
-  const exact = await page.$$eval('#finance-accounts .finance-row', rows => { const r = rows.find(x => /Centavos Exactos/.test(x.textContent)); return r ? { badge: r.querySelector('.finance-badge').textContent, pay: !!r.querySelector('[data-account-pay]') } : null; });
-  check(exact && exact.badge === 'Liquidada' && !exact.pay, 'esa cuenta sale como Liquidada y sin botón de cobro: ' + JSON.stringify(exact));
+  const exact = await page.$$eval('#finance-accounts .finance-line', rows => { const r = rows.find(x => /Centavos Exactos/.test(x.textContent)); return r ? { state: r.dataset.accountState, amount: r.querySelector('.finance-line-amount').textContent.trim(), pay: !!r.querySelector('[data-account-pay]'), action: r.querySelector('.finance-line-actions .btn').textContent } : null; });
+  check(exact && exact.state === 'settled' && /\$0\.00\s*liquidada/.test(exact.amount) && !exact.pay && exact.action === 'Ver cuenta', 'esa cuenta sale liquidada, con «Ver cuenta» y sin botón de cobro: ' + JSON.stringify(exact));
   await page.click('#p-caja [data-account-filter="overdue"]'); await page.waitForTimeout(200);
-  const overdue = await page.$$eval('#finance-today .finance-today-row .finance-account-identity strong', els => els.map(e => e.textContent));
+  const overdue = await page.$$eval('#finance-accounts .finance-line .finance-line-name', els => els.map(e => e.textContent));
   check(overdue.join() === 'Luis Hernández Ortiz' && (await page.$eval('#finance-accounts-title', e => e.textContent)) === 'Cuentas vencidas', 'Vencidas muestra solo a quien debe fuera de fecha: ' + overdue.join(', '));
   await page.click('#p-caja [data-account-filter="open"]'); await page.waitForTimeout(150);
 
@@ -162,7 +175,7 @@ server.listen(0, '127.0.0.1', async () => {
 
   // ── 2. Clínica grande: listas de 50 en 50 ────────────────────────────────────────────────────
   s = await open({ width: 1440, height: 900 }, 130); page = s.page;
-  const rowCount = () => page.$$eval('#finance-accounts .finance-table>.finance-row:not(.finance-row-head)', els => els.length);
+  const rowCount = () => page.$$eval('#finance-accounts .finance-line', els => els.length);
   const more = () => page.$eval('#finance-accounts .finance-more-rows', e => e.textContent.trim()).catch(() => '');
   const first = [await rowCount(), await more()];
   await page.click('#finance-accounts [data-more-rows="accounts"]'); await page.waitForTimeout(200); const second = [await rowCount(), await more()];
@@ -170,13 +183,15 @@ server.listen(0, '127.0.0.1', async () => {
   console.log('cuentas por páginas:', JSON.stringify([first, second, third]));
   check(first[0] === 50 && /Mostrando 50 de 134/.test(first[1]) && second[0] === 100 && third[0] === 134 && third[1] === '', 'las cuentas se muestran de 50 en 50 hasta completar 134');
   await go(page, 'receipts');
-  const receiptRows = () => page.$$eval('#finance-receipts .finance-fiscal-receipt-list>article', els => els.length);
-  const r1 = await receiptRows(); await page.click('#finance-receipts [data-more-rows="receipts"]'); await page.waitForTimeout(200); const r2 = await receiptRows();
-  check(r1 === 50 && r2 === 100, 'los recibos también van de 50 en 50 (' + r1 + ' → ' + r2 + ')');
-  const ledgerBefore = await page.$$eval('#finance-payments>article', els => els.length);
-  await page.click('#p-caja .finance-receipt-movements>summary'); await page.waitForTimeout(250);
-  const ledgerAfter = await page.$$eval('#finance-payments>article', els => els.length);
-  check(ledgerBefore === 0 && ledgerAfter === 50, 'el libro de pagos se dibuja solo al abrir «Movimientos y correcciones» (' + ledgerBefore + ' → ' + ledgerAfter + ')');
+  const payRows = () => page.$$eval('#finance-payments .finance-line', els => els.length);
+  const todayOnly = await payRows();
+  check(todayOnly === 2, 'Pagos abre en Hoy: 2 filas aunque el historial tenga 138 pagos (' + todayOnly + ')');
+  // Con un periodo amplio, la lista también va de 50 en 50.
+  await page.click('#p-caja [data-pay-period="custom"]'); await page.waitForTimeout(150);
+  await page.fill('#finance-pay-from', new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)); await page.fill('#finance-pay-to', new Date(Date.now() + 86400000).toISOString().slice(0, 10)); await page.waitForTimeout(250);
+  const r1 = await payRows(), wide = await page.$eval('#finance-payments .finance-total-strip span', e => e.textContent);
+  await page.click('#finance-payments [data-more-rows="payments"]'); await page.waitForTimeout(200); const r2 = await payRows();
+  check(r1 === 50 && r2 === 100 && /^138 pagos del /.test(wide), 'en un periodo amplio los pagos van de 50 en 50 (' + r1 + ' → ' + r2 + ') y el total cuenta los 138: ' + wide);
   const timing = await page.evaluate(async () => { const out = {}; for (const tab of ['cash', 'fiscal', 'accounts', 'receipts', 'accounts']) { const b = document.querySelector('#p-caja [data-finance-tab="' + tab + '"]'), t0 = performance.now(); b.click(); out[tab] = Math.max(out[tab] || 0, Math.round(performance.now() - t0)); await new Promise(r => setTimeout(r, 40)); } out.nodos = document.getElementById('p-caja').querySelectorAll('*').length; return out; });
   console.log('cambio de pestaña (ms) y elementos:', JSON.stringify(timing));
   check(Math.max(timing.cash, timing.fiscal, timing.accounts, timing.receipts) < 300 && timing.nodos < 6000, 'cambiar de pestaña es inmediato y la página no se llena de elementos');
@@ -194,7 +209,7 @@ server.listen(0, '127.0.0.1', async () => {
         const cards = [...rootEl.querySelectorAll('.finance-tabcards>button')];
         return { overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, cols: new Set(cards.map(b => Math.round(b.getBoundingClientRect().left))).size,
           clipped: cards.filter(b => { const n = b.querySelector('.finance-tab-figure'); return n.scrollWidth > n.clientWidth + 1 || b.scrollWidth > b.clientWidth + 1 || b.getBoundingClientRect().right > innerWidth + 1; }).length,
-          overlap: [...rootEl.querySelectorAll('.finance-row:not(.finance-row-head),.finance-visit-row')].filter(visible).filter(row => { const kids = [...row.children].filter(visible).map(k => k.getBoundingClientRect()); return kids.some((a, i) => kids.some((b, j) => j > i && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1)); }).length,
+          overlap: [...rootEl.querySelectorAll('.finance-line,.finance-row')].filter(visible).filter(row => { const kids = [...row.children].filter(visible).map(k => k.getBoundingClientRect()); return kids.some((a, i) => kids.some((b, j) => j > i && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1)); }).length,
           tiny: [...rootEl.querySelectorAll('p,span,small,label,button,strong,em,b')].filter(visible).filter(el => el.textContent.trim() && parseFloat(getComputedStyle(el).fontSize) < 11.99).map(el => el.textContent.trim().slice(0, 30)),
           space: Math.round(rootEl.clientWidth - parseFloat(getComputedStyle(rootEl).paddingLeft) - parseFloat(getComputedStyle(rootEl).paddingRight)),
           // Objetivos táctiles: 44 px en celular; en tableta, los 40 px que usa toda la app. Nada más chico que eso.
@@ -212,6 +227,118 @@ server.listen(0, '127.0.0.1', async () => {
     await page.click('#p-caja .finance-operations-menu>summary'); await page.waitForTimeout(120);
     if (size.width <= 820) check(order[0].t === 'Cobrar' && order[0].w > order[1].w * 1.8, `${label}: Cobrar ocupa el ancho y Más queda a su derecha ` + JSON.stringify(order));
     check(s.errs.length === 0, `sin errores de página en ${label}: ` + JSON.stringify(s.errs));
+    await s.ctx.close();
+  }
+
+  // ── 4. Paso 2: «Por cobrar» con filas limpias y «Pagos» por periodo ───────────────────────────
+  // Casos propios: un reembolso de hoy, un recordatorio enviado hace 3 días y un chat de WhatsApp vinculado a la cuenta vencida.
+  const stepTwo = () => {
+    const db = window.__db, T = db.camila_tenants[0].id, now = Date.now(), midnight = new Date(); midnight.setHours(0, 0, 0, 0);
+    const today = part => new Date(midnight.getTime() + (now - midnight.getTime()) * part).toISOString();
+    db.smyl_finance_refunds = [{ id: 'rf1', tenant_id: T, payment_id: 'pay3', amount: 200, reason: 'Se cobró de más en la resina', refunded_at: today(0.9), created_by: T }];
+    db.smyl_finance_refund_allocations = [{ id: 'ra1', tenant_id: T, refund_id: 'rf1', charge_id: 'c6', amount: 200 }];
+    db.smyl_collection_reminders = [{ id: 'cr1', tenant_id: T, patient_id: 'p4', sent_at: new Date(now - 3 * 86400000 - 60000).toISOString() }];
+    db.camila_lana_handoffs = [{ id: 'h1', tenant_id: T, patient_id: 'p4', lana_conversation_id: 'conv-1', lana_channel: 'whatsapp', updated_at: new Date(now - 86400000).toISOString() }];
+    window.__collected = []; window.__exports = [];
+    const inbox = Object.create(window.SmylInbox || {});
+    Object.defineProperties(inbox, { canAccess: { value: () => true }, collect: { value: c => window.__collected.push(c) }, open: { value: () => {} } });
+    window.SmylInbox = inbox;
+    window.SmylSecurity = { recordExport: async d => { window.__exports.push(d); return { ok: true }; } };
+  };
+  s = await open({ width: 1440, height: 900 }, 0, stepTwo); page = s.page;
+  const chips = () => page.$$eval('#p-caja .finance-chips>button', els => els.map(e => e.textContent.trim().replace(/\s+/g, ' ') + (e.getAttribute('aria-pressed') === 'true' ? '*' : '')));
+  const lines = () => page.$$eval('#finance-accounts .finance-line', els => els.map(e => ({ name: e.querySelector('.finance-line-name').textContent, sub: e.querySelector('.finance-line-who small').textContent.trim(), paid: e.querySelector('.finance-line-paid').textContent.trim(), amount: e.querySelector('.finance-line-amount strong').textContent, buttons: [...e.querySelectorAll('.finance-line-actions>.btn')].map(b => b.textContent), danger: e.querySelectorAll('.finance-tag[data-tone=danger]').length, right: Math.round(e.querySelector('.finance-line-amount').getBoundingClientRect().right), button: Math.round(e.querySelector('.finance-line-actions>.btn').getBoundingClientRect().right) })));
+  check((await chips()).join('|') === 'Con saldo 4*|Vencidas 1|A favor 1|Todas', 'Por cobrar tiene cuatro vistas con su conteo: ' + (await chips()).join(' · '));
+  let rows = await lines(); console.log('cuentas con saldo:', JSON.stringify(rows.map(r => [r.name, r.sub, r.paid, r.amount])));
+  check(rows.length === 4 && rows[0].name === 'Luis Hernández Ortiz' && rows.every(r => r.buttons.join() === 'Cobrar'), 'cada fila tiene un solo botón (Cobrar) y la cuenta vencida va primero');
+  check(new Set(rows.map(r => r.right)).size === 1 && new Set(rows.map(r => r.button)).size === 1, 'el saldo y el botón quedan alineados en todas las filas');
+  check(rows.filter(r => r.danger).map(r => r.name).join() === 'Luis Hernández Ortiz', 'solo lo vencido lleva color');
+  check(/^Vencida \$800\.00 desde hace [5-7] días · Avisado hace 3 días$/.test(rows[0].sub) && rows[0].paid === '$700.00 de $3,000.00' && rows[0].amount === '$2,300.00', 'la fila vencida dice cuánto, desde cuándo y cuándo se avisó: ' + rows[0].sub);
+  check(rows.find(r => r.name === 'Elena Castro Núñez').paid === 'Sin abonos todavía' && rows.find(r => r.name === 'Paola Ríos Fuentes').paid === '$400.00 de $1,200.00', 'la columna Pagado muestra el avance real (el reembolso descuenta lo pagado)');
+  await page.click('#finance-accounts .finance-line[data-account-state=overdue] .finance-row-menu>summary'); await page.waitForTimeout(150);
+  const reminder = await page.$$eval('#finance-accounts .finance-row-menu[open] button', els => els.map(e => e.textContent));
+  await page.click('#finance-accounts [data-remind]'); await page.waitForTimeout(150);
+  check(reminder.join('|') === 'Enviar otro recordatorio|Abrir chat|No contactar' && (await page.evaluate(() => window.__collected)).join() === 'conv-1', 'el menú de la cuenta vencida abre el recordatorio en el chat para revisarlo (no se envía solo): ' + reminder.join(', '));
+  await page.click('#finance-accounts .finance-line[data-account-state=overdue] .finance-row-menu>summary');
+  await page.click('#finance-accounts .finance-line[data-account-state=overdue] button.finance-line-who'); await page.waitForTimeout(400);
+  check(await page.$eval('#finance-dialog', e => e.open && e.textContent.includes('Luis Hernández Ortiz')), 'tocar el nombre abre la cuenta completa del paciente');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(250);
+  await page.fill('#finance-search', 'lopez'); await page.waitForTimeout(200); rows = await lines();
+  const found = { title: await page.$eval('#finance-accounts-title', e => e.textContent), chips: await chips(), visits: await page.$$eval('#finance-visits .finance-line strong', els => els.map(e => e.textContent)) };
+  check(rows.length === 1 && rows[0].name === 'Mariana López Vega' && rows[0].buttons.join() === 'Ver cuenta' && found.title === 'Resultados de «lopez»' && !found.chips.some(c => c.endsWith('*')) && found.visits.join() === 'Mariana López Vega', 'buscar «lopez» encuentra a López (sin acento) en cualquier vista, con su cita por cobrar: ' + JSON.stringify(found));
+  await page.fill('#finance-search', ''); await page.waitForTimeout(150);
+  await page.click('#p-caja [data-account-filter="all"]'); await page.waitForTimeout(200); rows = await lines();
+  check(rows.map(r => r.buttons[0]).join() === 'Cobrar,Cobrar,Cobrar,Cobrar,Ver cuenta,Ver cuenta,Ver cuenta' && rows[4].amount === '$500.00' && rows[4].name === 'Andrés Delgado Mora', 'en Todas, quien no debe ofrece «Ver cuenta» y el saldo a favor se lee como tal');
+  const peek = await page.$eval('#finance-visits', e => e.textContent.trim());
+  await page.click('#finance-visits [data-visits-show]'); await page.waitForTimeout(200);
+  check(/^2 citas atendidas sin cobrar · Ver$/.test(peek) && (await chips())[0].endsWith('*') && (await page.$$eval('#finance-visits .finance-line', els => els.length)) === 2, 'fuera de «Con saldo» las citas no desaparecen: un aviso regresa a ellas (' + peek + ')');
+
+  await go(page, 'receipts');
+  const strip = () => page.$eval('#finance-payments .finance-total-strip', e => [...e.children].map(c => c.textContent.trim())).catch(() => []);
+  const pays = () => page.$$eval('#finance-payments .finance-line', els => els.map(e => ({ kind: e.dataset.kind, name: e.querySelector('.finance-line-name').textContent, sub: e.querySelector('.finance-line-who small').textContent.trim(), how: e.querySelector('.finance-line-how span').textContent, amount: e.querySelector('.finance-line-amount strong').textContent, actions: [...e.querySelectorAll('.finance-line-actions>button')].map(b => b.textContent) })));
+  let st = await strip(), list = await pays(); console.log('pagos de hoy:', JSON.stringify(st), JSON.stringify(list.map(x => [x.kind, x.name, x.sub, x.amount])));
+  check(st[0] === '$1,100.00' && st[1] === '2 pagos y 1 reembolso hoy' && st[2] === 'Efectivo $1,300.00 · Tarjeta $0.00 · Transferencia −$200.00', 'Pagos abre en Hoy con el total neto y su desglose: ' + st.join(' | '));
+  check((await tabs(page))[1].figure === st[0], 'la cifra de la pestaña Pagos es la misma que el total de la lista');
+  check(list.map(x => x.kind).join() === 'refund,full,advance' && list[0].amount === '−$200.00' && /^Reembolso Se cobró de más en la resina · pago del /.test(list[0].sub) && list[1].sub === 'Limpieza dental' && list[2].sub === 'Anticipo Queda como saldo a favor', 'cada movimiento dice lo que es: reembolso con su motivo, pago completo sin etiqueta y anticipo');
+  check(list.every(x => x.actions.join() === 'Recibo'), 'cada fila tiene una sola acción a la vista: Recibo');
+  await page.click('#p-caja [data-pay-period="week"]'); await page.waitForTimeout(200); list = await pays(); st = await strip();
+  const partial = list.find(x => x.kind === 'partial');
+  check(list.length === 4 && partial && partial.sub === 'Abono Resina · Reembolsado $200.00' && st[1] === '3 pagos y 1 reembolso en los últimos 7 días', '«7 días» suma el abono de hace dos días, que avisa de su reembolso: ' + (partial && partial.sub));
+  await page.selectOption('#finance-pay-method', 'cash'); await page.waitForTimeout(200); list = await pays(); st = await strip();
+  check(list.length === 2 && list.every(x => x.how === 'Efectivo') && st.join('|') === '$1,300.00|2 pagos en efectivo en los últimos 7 días', 'el filtro de forma de pago deja solo el efectivo: ' + st.join(' | '));
+  await page.selectOption('#finance-pay-method', ''); await page.waitForTimeout(150);
+  await page.click('#finance-payments .finance-line[data-kind=full] [data-open-receipt]'); await page.waitForTimeout(350);
+  check(await page.$eval('#finance-dialog', e => e.open && !!e.querySelector('.finance-receipt-detail') && /Recibo #\d{6}/.test(e.textContent)), '«Recibo» abre el recibo de ese pago');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(250);
+  await page.click('#finance-payments .finance-line[data-kind=full] .finance-row-menu>summary'); await page.click('#finance-payments .finance-row-menu[open] [data-refund]'); await page.waitForTimeout(350);
+  check((await page.$eval('#finance-dialog h2', e => e.textContent.trim())) === 'Registrar reembolso', 'el menú del pago ofrece «Reembolsar pago»');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(250);
+
+  // Exportar: el Excel trae lo mismo que la pantalla y la descarga queda registrada antes de generarse.
+  const [download] = await Promise.all([page.waitForEvent('download', { timeout: 20000 }), page.click('#finance-pay-export')]);
+  const file = path.join(os.tmpdir(), 'smyl-humo-' + download.suggestedFilename()); await download.saveAs(file); await page.waitForTimeout(300);
+  const book = unzip(fs.readFileSync(file)), sheet = book['xl/worksheets/sheet1.xml'] || '', recorded = await page.evaluate(() => window.__exports);
+  check(/^pagos-\d{4}-\d{2}-\d{2}_a_\d{4}-\d{2}-\d{2}\.xlsx$/.test(download.suggestedFilename()) && /<sheet name="Pagos"/.test(book['xl/workbook.xml']) && /<sheet name="Totales"/.test(book['xl/workbook.xml']), 'Exportar descarga un Excel con las hojas Pagos y Totales: ' + download.suggestedFilename());
+  check((sheet.match(/<row /g) || []).length === 5 && ['Paola Ríos Fuentes', 'Reembolso', 'Anticipo', 'Abono', 'Se cobró de más en la resina'].every(x => sheet.includes(x)) && /<v>-200<\/v>/.test(sheet) && /<v>800<\/v>/.test(sheet), 'el Excel lleva los 4 movimientos del periodo con su tipo e importe (el reembolso, en negativo)');
+  check(recorded.length === 1 && recorded[0].record_count === 4 && recorded[0].purpose === 'administration' && /^pagos:/.test(recorded[0].entity_id) && /Se descargó pagos-/.test(await page.$eval('#finance-feedback', e => e.textContent)), 'la exportación queda registrada en Seguridad y se confirma en pantalla: ' + JSON.stringify(recorded));
+  let leaked = false; const onDownload = () => { leaked = true; }; page.on('download', onDownload);
+  await page.evaluate(() => { window.SmylSecurity = { recordExport: async () => { throw new Error('La exportación no quedó registrada.'); } }; });
+  await page.click('#finance-pay-export'); await page.waitForTimeout(1200); page.off('download', onDownload);
+  check(!leaked && /no quedó registrada/.test(await page.$eval('#finance-feedback', e => e.textContent)), 'si la exportación no se puede registrar, no se descarga nada');
+  await page.click('#p-caja [data-pay-period="custom"]'); await page.waitForTimeout(150);
+  await page.fill('#finance-pay-to', '2020-01-31'); await page.fill('#finance-pay-from', '2020-01-01'); await page.waitForTimeout(250);
+  const empty = { text: await page.$eval('#finance-payments .finance-empty', e => e.textContent.trim()), disabled: await page.$eval('#finance-pay-export', e => e.disabled), range: await page.$$eval('#finance-pay-range input', els => els.map(e => e.value).join(' a ')) };
+  check(/^Sin pagos del 1 ene 2020 al 31 ene 2020/.test(empty.text) && empty.disabled && empty.range === '2020-01-01 a 2020-01-31', 'un periodo sin pagos lo dice claro y no deja exportar: ' + JSON.stringify(empty));
+  check(s.errs.length === 0, 'sin errores de página en el recorrido del paso 2: ' + JSON.stringify(s.errs));
+  await s.ctx.close();
+
+  // Las mismas pantallas, con sus casos, en tableta y celular: nada encimado, nada cortado y todo se puede tocar.
+  for (const [label, size] of [['tableta-horizontal', { width: 1024, height: 768 }], ['tableta', { width: 820, height: 1100 }], ['celular', { width: 390, height: 844 }], ['celular-320', { width: 320, height: 760 }]]) {
+    s = await open(size, 0, stepTwo); page = s.page; const bad = [];
+    const audit = async view => {
+      const m = await page.evaluate(() => {
+        const rootEl = document.querySelector('#p-caja'), visible = el => { const st = getComputedStyle(el); return st.display !== 'none' && st.visibility !== 'hidden' && el.getClientRects().length > 0; };
+        const cut = el => { const r = el.getBoundingClientRect(); return r.left < -1 || r.right > innerWidth + 1; };
+        return { overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+          overlap: [...rootEl.querySelectorAll('.finance-line')].filter(visible).filter(row => { const kids = [...row.children].filter(visible).map(k => k.getBoundingClientRect()); return kids.some((a, i) => kids.some((b, j) => j > i && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1)); }).length,
+          cut: [...rootEl.querySelectorAll('.finance-chips>button,.finance-segment>button,.finance-line-amount,.finance-line-actions>*,.finance-tools-end>*')].filter(visible).filter(cut).length,
+          tiny: [...rootEl.querySelectorAll('p,span,small,label,button,strong,em,b')].filter(visible).filter(el => el.textContent.trim() && parseFloat(getComputedStyle(el).fontSize) < 11.99).length,
+          short: rootEl.clientWidth > 780 ? [] : [...rootEl.querySelectorAll('button,summary,select,input')].filter(visible).map(el => ({ t: (el.textContent || el.placeholder || el.id || '').trim().slice(0, 24), h: el.getBoundingClientRect().height })).filter(x => x.h < (innerWidth <= 720 ? 43.5 : 39.5)).map(x => x.t + ' (' + Math.round(x.h) + ')'),
+          rows: rootEl.querySelectorAll('.finance-line').length };
+      });
+      if (m.overflow || m.overlap || m.cut || m.tiny || m.short.length || !m.rows) bad.push(view + ' ' + JSON.stringify(m));
+      if (shots) await page.screenshot({ path: path.join(shots, `finanzas-paso2-${view}-${label}.png`), fullPage: true });
+    };
+    await audit('con-saldo');
+    await page.click('#p-caja [data-account-filter="overdue"]'); await page.waitForTimeout(200); await audit('vencidas');
+    await page.click('#p-caja [data-account-filter="all"]'); await page.waitForTimeout(200); await audit('todas');
+    await go(page, 'receipts'); await audit('pagos-hoy');
+    await page.click('#p-caja [data-pay-period="month"]'); await page.waitForTimeout(200); await audit('pagos-mes');
+    await page.click('#p-caja [data-pay-period="custom"]'); await page.waitForTimeout(200); await page.fill('#finance-pay-from', new Date(Date.now() - 20 * 86400000).toISOString().slice(0, 10)); await page.fill('#finance-pay-to', new Date(Date.now() + 86400000).toISOString().slice(0, 10)); await page.waitForTimeout(200); await audit('pagos-fechas');
+    // El menú de una fila se despliega completo dentro de la pantalla.
+    const kebab = page.locator('#finance-payments .finance-row-menu>summary').last(); await kebab.scrollIntoViewIfNeeded(); await kebab.click(); await page.waitForTimeout(450);
+    const reachable = await page.$eval('#finance-payments .finance-row-menu[open] [data-refund]', el => { const r = el.getBoundingClientRect(), top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight && !!top && el.contains(top); });
+    check(!bad.length && reachable && s.errs.length === 0, `${label}: Por cobrar y Pagos sin desbordes, filas encimadas, texto diminuto ni botones chicos; el menú de la fila se alcanza ` + (bad.length ? bad.join(' · ') : '') + (s.errs.length ? JSON.stringify(s.errs) : ''));
     await s.ctx.close();
   }
 

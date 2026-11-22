@@ -118,6 +118,7 @@ copyFile(path.join(ROOT, 'smyl-consumption.js'), path.join(WWW, 'smyl-consumptio
 copyFile(path.join(ROOT, 'smyl-consumption.css'), path.join(WWW, 'smyl-consumption.css'));
 copyFile(path.join(ROOT, 'smyl-finance.js'), path.join(WWW, 'smyl-finance.js'));
 copyFile(path.join(ROOT, 'smyl-finance.css'), path.join(WWW, 'smyl-finance.css'));
+copyFile(path.join(ROOT, 'smyl-xlsx.js'), path.join(WWW, 'smyl-xlsx.js'));
 copyFile(path.join(ROOT, 'smyl-reports.js'), path.join(WWW, 'smyl-reports.js'));
 copyFile(path.join(ROOT, 'smyl-reports.css'), path.join(WWW, 'smyl-reports.css'));
 copyFile(path.join(ROOT, 'smyl-connections.js'), path.join(WWW, 'smyl-connections.js'));
