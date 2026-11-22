@@ -12427,3 +12427,9 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - Ricardo no encontraba dónde aplicar el saldo a favor (el botón solo estaba dentro de «Ver cuenta»). Ahora la tarjeta del paciente del cobro (`paymentPatientCard`) ofrece **«Usar saldo a favor»** cuando tiene saldo a favor y cargos pendientes y el rol puede cobrar: con un solo cargo abre directo «Aplicar saldo a favor»; con varios, la cuenta del paciente para elegir.
 - Archivos: `smyl-finance.js` v70, `smyl-finance.css` v52 (regla `#finance-dialog .finance-credit-offer`), `app.html`, `sw.js`, copias en `mobile/www/`; `tests/qa/finanzas-saldo-favor-smoke.cjs` cubre la oferta. El SQL ya está pegado en producción (verificado).
 
+## 2026-11-23 — Claude — Finanzas v6 · paso 4, retoque: el Historial de la cuenta muestra «Saldo a favor aplicado»
+
+- Ricardo no veía en el Historial cuándo ni a qué cargo se había aplicado un saldo a favor (solo cambiaba «Aplicado $X» en el pago). `load()` ahora lee `smyl_finance_credit_applications` (mejor esfuerzo: si la tabla no existe, queda vacío) y `openAccount` agrega el movimiento «Saldo a favor aplicado · {cargo}» con quién lo aplicó y «No entra dinero a la caja».
+- **Tratamiento contable (explicado a Ricardo, sin asesoría contable):** aplicar saldo no es ingreso nuevo ni movimiento de caja (el dinero se contó al pagar); es un anticipo que se asigna a un cargo. **No genera ni cambia CFDI**: si el pago ya se facturó, el contador debe indicar cómo manejar la aplicación de anticipo (relación tipo 07 del SAT) y se ajustaría.
+- Archivos: `smyl-finance.js` v71, `app.html`, `sw.js`, copias en `mobile/www/`; `tests/qa/finanzas-saldo-favor-smoke.cjs` cubre el Historial.
+
