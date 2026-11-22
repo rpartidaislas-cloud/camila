@@ -1137,7 +1137,7 @@ async function fetchConTimeout(url: string, opciones: RequestInit, ms: number): 
 }
 
 Deno.serve(async (req: Request) => {
-  const CORS = { ...makeCors(req), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id" };
+  const CORS = { ...makeCors(req), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id, x-smyl-patient-id" };
   // Diagnóstico: esta es la PRIMERA línea de todo el código, antes de
   // revisar la sesión o leer el body. Si ni esto aparece en los logs de una
   // invocación real (POST), la función está muriendo por el tamaño del
@@ -1155,6 +1155,13 @@ Deno.serve(async (req: Request) => {
   const { user, tenantId, response: authError } = auth;
   if (authError) return authError;
   marca("después de requireUser");
+
+  // El simulador abierto desde el expediente dice de qué paciente es la foto: si negó la IA, no sale hacia el proveedor externo.
+  const pacienteSimulador = req.headers.get("x-smyl-patient-id") || "";
+  if (user && tenantId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pacienteSimulador)) {
+    const negadaSimulador = respuestaIAnegada(await permisoIA(usageAdmin, tenantId, pacienteSimulador));
+    if (negadaSimulador) return new Response(JSON.stringify(negadaSimulador.body), { status: negadaSimulador.status, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
+  }
 
   // Modo prospecto (simulacion.html?clinica=<id>, sin sesión): el tenant_id
   // viaja en un header en vez de la sesión.

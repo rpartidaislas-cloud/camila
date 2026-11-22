@@ -2,9 +2,8 @@
 // Es supabase/functions/segment-teeth/index.ts con sus archivos de _shared incluidos,
 // para pegarlo en el editor de Edge Functions del panel de Supabase.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { decode as decodeImage, Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { decode as decodeImage, Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 
 // ── _shared/auth-membership.ts ──
 const { decidirMembresia } = (() => {
@@ -464,6 +463,54 @@ const corsPublic: Record<string, string> = {
 const corsHeaders = corsPublic;
 
 return { makeCors, corsPublic, corsHeaders };
+})();
+
+// ── _shared/privacy-core.mjs ──
+const { MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_SIN_AUTORIZACION, MENSAJE_IA_NO_VERIFICABLE, decidirIA } = (() => {
+// Permiso del paciente para que sus datos pasen por herramientas de IA de proveedores externos (finalidad 'ai_processing').
+// Regla (LFPDPPP: los datos de salud son sensibles y requieren consentimiento EXPRESO): solo se usa la IA cuando el paciente
+// la autorizó ('granted'). Sin decisión registrada ('unknown') o si la retiró ('revoked') no se manda nada a la IA.
+// Si no se puede comprobar (error de base de datos) también se bloquea: ante la duda no se manda nada a un tercero.
+const MENSAJE_IA_NO_PERMITIDA = 'Este paciente no autorizó el uso de inteligencia artificial con sus datos. Captura o revisa esto manualmente.';
+const MENSAJE_IA_SIN_AUTORIZACION = 'Este paciente aún no autoriza el uso de inteligencia artificial. Registra su autorización en Privacidad (o pídele que firme el aviso) antes de usar la IA.';
+const MENSAJE_IA_NO_VERIFICABLE = 'No se pudo comprobar el permiso de IA del paciente. Inténtalo de nuevo en un momento.';
+
+/** Convierte la respuesta de smyl_patient_privacy_state en una decisión: 'allowed' | 'missing' | 'revoked' | 'unavailable'. */
+function decidirIA(result: any) {
+  if (!result || result.error) return 'unavailable';
+  const state = result.data;
+  if (state === 'granted') return 'allowed';
+  if (state === 'revoked') return 'revoked';
+  if (state === 'unknown') return 'missing';
+  return 'unavailable';
+}
+
+return { MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_SIN_AUTORIZACION, MENSAJE_IA_NO_VERIFICABLE, decidirIA };
+})();
+
+// ── _shared/privacy.ts ──
+const { permisoIA, respuestaIAnegada } = (() => {
+// Candado de privacidad para las funciones que mandan datos de un paciente a una IA externa. La regla vive en privacy-core.mjs.
+
+type PermisoIA = 'allowed' | 'missing' | 'revoked' | 'unavailable';
+
+// deno-lint-ignore no-explicit-any
+async function permisoIA(admin: any, tenantId: string, patientId: string): Promise<PermisoIA> {
+  try {
+    const result = await admin.rpc('smyl_patient_privacy_state', { p_tenant: tenantId, p_patient: patientId, p_purpose: 'ai_processing' });
+    return decidirIA(result);
+  } catch { return 'unavailable'; }
+}
+
+/** Respuesta lista para devolver cuando NO se puede usar IA con este paciente; null si se puede continuar. */
+function respuestaIAnegada(permiso: PermisoIA): { status: number; body: { error: string; code: string } } | null {
+  if (permiso === 'allowed') return null;
+  if (permiso === 'revoked') return { status: 403, body: { error: MENSAJE_IA_NO_PERMITIDA, code: 'patient_ai_not_allowed' } };
+  if (permiso === 'missing') return { status: 403, body: { error: MENSAJE_IA_SIN_AUTORIZACION, code: 'patient_ai_consent_missing' } };
+  return { status: 503, body: { error: MENSAJE_IA_NO_VERIFICABLE, code: 'patient_ai_unverifiable' } };
+}
+
+return { permisoIA, respuestaIAnegada };
 })();
 
 // ── _shared/mask-utils.ts ──
@@ -1188,7 +1235,7 @@ async function uploadAll(
 }
 
 serve(async (req) => {
-  const corsHeaders = { ...makeCors(req), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id" };
+  const corsHeaders = { ...makeCors(req), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id, x-smyl-patient-id" };
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   // Falta de configuración, no del usuario: sin esto el fallo salía como
@@ -1210,6 +1257,13 @@ serve(async (req) => {
   // POST sin credenciales.
   const { user, tenantId: tenantIdSesion, response: authError } = await requireUser(req, corsHeaders);
   if (authError) return authError;
+
+  // El simulador abierto desde el expediente dice de qué paciente es la foto: si negó la IA, no sale hacia el proveedor externo.
+  const pacienteSimulador = req.headers.get("x-smyl-patient-id") || "";
+  if (user && tenantIdSesion && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pacienteSimulador)) {
+    const negadaSimulador = respuestaIAnegada(await permisoIA(createClient(SB_URL, SB_SERVICE_ROLE_KEY), tenantIdSesion, pacienteSimulador));
+    if (negadaSimulador) return new Response(JSON.stringify(negadaSimulador.body), { status: negadaSimulador.status, headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" } });
+  }
 
   // La segmentación es un paso interno de UNA simulación. La generación
   // principal ya descuenta esa simulación del plan; volver a descontar por

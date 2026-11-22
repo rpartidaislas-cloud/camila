@@ -59,3 +59,18 @@ test('el panel manda de qué paciente es la constancia, para que la función pue
   assert.match(js, /extract\(file, options\.patientId\)/);
   assert.equal(js, read('mobile/www/smyl-fiscal-capture.js'));
 });
+
+test('el simulador del expediente manda el paciente y claude / segment-teeth respetan si negó la IA', () => {
+  const sim = read('simulacion-rapida.html');
+  assert.match(sim, /q\.get\('workspace'\) === 'professional'/);
+  assert.match(sim, /h\['X-SMYL-Patient-Id'\] = PACIENTE_DEL_EXPEDIENTE/);
+  assert.match(sim, /if \(!CFG\.modoProspecto && PACIENTE_DEL_EXPEDIENTE\)/, 'en modo prospecto no se manda: no hay paciente');
+  assert.equal(sim, read('mobile/www/simulacion-rapida.html'));
+  for (const fn of ['claude', 'segment-teeth']) {
+    const src = read(`supabase/functions/${fn}/index.ts`);
+    assert.match(src, /req\.headers\.get\("x-smyl-patient-id"\)/);
+    assert.match(src, /x-tenant-id, x-smyl-patient-id/, 'el navegador puede mandar la cabecera (CORS)');
+    assert.match(src, /respuestaIAnegada\(await permisoIA\(/);
+    assert.match(read(`docs/bundles/${fn}.single-file.ts`), /x-smyl-patient-id/);
+  }
+});
