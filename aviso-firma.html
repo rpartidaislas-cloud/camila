@@ -88,7 +88,7 @@
     <div class="bar" id="bar" hidden></div>
     <p class="foot">Tecnología SMYL · Tu firma y tus decisiones se guardan en tu expediente</p>
   </div>
-  <script src="smyl-privacy-notice.js?v=2"></script>
+  <script src="smyl-privacy-notice.js?v=3"></script>
   <script>
   (function(){'use strict';
     var URL_BASE='https://rpxshsiwoxdbuevjjpfw.supabase.co',KEY='sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo';
@@ -109,7 +109,7 @@
     var LABELS=['Leer','Decidir','Firmar'];
 
     function render(info){
-      var notice=PN.render(info.clinic_name),s={step:1,strokes:[],relation:'patient',read:false,checked:false,name:'',choice:{},saving:false,cv:null};
+      var notice=PN.render(info.clinic_name,{address:info.clinic_address,email:info.clinic_email}),s={step:1,strokes:[],relation:'patient',read:false,checked:false,name:'',choice:{},saving:false,cv:null};
       document.getElementById('clinic').textContent=info.clinic_name;
       document.getElementById('logo').textContent=String(info.clinic_name||'S').trim().charAt(0).toUpperCase()||'S';
       document.title='Aviso de privacidad · '+info.clinic_name;
@@ -131,7 +131,7 @@
       function step1(){
         main.append(el('h1','','Tu privacidad importa'),el('p','lead','Lee este aviso y decide cómo usa tus datos '+info.clinic_name+'. Toma menos de 2 minutos.'));
         var pts=el('ul','points');['Tus datos de salud se usan para tu atención dental.','Tú decides sobre IA, WhatsApp y promociones.','Puedes pedir acceso, corrección o eliminación de tus datos.'].forEach(function(t){pts.append(el('li','',t));});main.append(pts);
-        if(notice.provisional)main.append(el('div','warn','Texto modelo provisional: la clínica debe revisarlo con su asesor legal.'));
+        if(notice.provisional)main.append(el('div','warn','Aviso incompleto: la clínica aún no registra su domicilio o su correo de contacto.'));
         var box=el('div','notice');box.tabIndex=0;box.setAttribute('role','region');box.setAttribute('aria-label','Texto del aviso de privacidad');
         notice.text.split('\n\n').forEach(function(t){box.append(el('p','',t));});
         var rh=el('div','readhint');rh.dataset.done=String(s.read);rh.textContent=s.read?'✓ Ya lo leíste completo':'Desliza el texto hasta el final para continuar';

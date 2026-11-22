@@ -668,8 +668,10 @@
   async function startConsent() {
     var v = state.visit; if (!v || !v.patient || !PN) return;
     var name = await clinicName();
+    var context = null;
+    try { var ctxRes = await window.sb.rpc('smyl_privacy_notice_context'); context = ctxRes && !ctxRes.error && ctxRes.data ? { address: ctxRes.data.clinic_address, email: ctxRes.data.clinic_email } : null; } catch (e) { context = null; }
     if (state.visit !== v) return;
-    state.consent = { patientId: v.patient.id, notice: PN.render(name), clinic: name, strokes: [], relation: 'patient', checked: false, read: false, choice: {}, name: Q.isPending(v.patient) ? '' : Q.displayName(v.patient), saving: false, error: '', onResize: null };
+    state.consent = { patientId: v.patient.id, notice: PN.render(name, context), clinic: name, context: context, strokes: [], relation: 'patient', checked: false, read: false, choice: {}, name: Q.isPending(v.patient) ? '' : Q.displayName(v.patient), saving: false, error: '', onResize: null };
     showView('consent'); renderConsent();
   }
   function consentInk(c) { var cv = c.canvas; return PN.inkOf(c.strokes.map(function (st) { return st.map(function (pt) { return { x: pt.x * cv.clientWidth, y: pt.y * cv.clientHeight }; }); })); }
@@ -723,7 +725,7 @@
     if (c.onResize) window.removeEventListener('resize', c.onResize);
     host.replaceChildren();
     var top = el('div', 'co-ivtop'); top.append(ivButton('‹ Volver a la visita', 'co-link-btn', leaveConsent), el('span', 'co-ivname', v && v.patient ? (Q.isPending(v.patient) ? 'Por registrar' : Q.displayName(v.patient)) : '')); host.append(top);
-    if (c.notice.provisional) { var warn = el('p', 'co-warn', 'Texto modelo provisional. Revísalo con tu asesor legal antes de usarlo con pacientes.'); warn.dataset.coProvisional = ''; host.append(warn); }
+    if (c.notice.provisional) { var warn = el('p', 'co-warn', 'Aviso incompleto: registra el domicilio de la sucursal y el correo de la clínica en Configuración. Conviene que tu asesor legal revise el aviso.'); warn.dataset.coProvisional = ''; host.append(warn); }
     var title = el('h1', 'co-qtitle', c.notice.title); title.tabIndex = -1; host.append(title);
     host.append(el('p', 'co-hint', 'Pásale el celular al paciente para que lea y firme.'));
     var box = el('div', 'co-notice'); box.tabIndex = 0; box.setAttribute('role', 'region'); box.setAttribute('aria-label', 'Texto del aviso de privacidad');
@@ -776,7 +778,7 @@
     c.saving = true; c.error = ''; syncConsent();
     try {
       var png = signatureImage(c);
-      await rpc('smyl_record_patient_consent', PN.payload({ patientId: c.patientId, clinicName: c.clinic, name: c.name, relation: c.relation, signaturePng: png }));
+      await rpc('smyl_record_patient_consent', PN.payload({ patientId: c.patientId, clinicName: c.clinic, context: c.context, name: c.name, relation: c.relation, signaturePng: png }));
       /* Las tres decisiones del paciente se guardan aparte (cada una con su fecha); la firma ya quedó guardada. */
       var failed = 0;
       for (var k = 0; k < CONSENT_CHOICES.length; k++) {

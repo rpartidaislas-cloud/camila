@@ -1,32 +1,43 @@
 /* SMYL · Aviso de privacidad y firma en pantalla: reglas puras (sin DOM ni red).
  *
- * IMPORTANTE: el texto de abajo es un MODELO PROVISIONAL. Es genérico y no sustituye el aviso de privacidad de cada clínica
- * (que debe identificar al responsable, su domicilio y los medios para ejercer derechos ARCO). Debe revisarlo el asesor legal
- * de la clínica antes de usarlo con pacientes. Cada firma guarda el texto exacto que se mostró, su versión y la marca
- * `provisional`, para poder distinguir después las firmas hechas con este modelo. Para usar el aviso propio de la clínica:
- * reemplazar NOTICE (texto y `version`) y poner `provisional:false`; las firmas anteriores conservan su texto y su versión. */
+ * Aviso de privacidad INTEGRAL modelo para clínicas (LFPDPPP publicada en el DOF el 20 de marzo de 2025): identifica al
+ * responsable con su domicilio y contacto, los datos (incluidos los sensibles de salud), las finalidades primarias y
+ * secundarias, encargados y transferencias (también internacionales), derechos ARCO con plazos, revocación, limitación de
+ * uso, cambios y autoridad. {CLINICA}, {DOMICILIO} y {CORREO} se llenan con los datos de cada clínica. Es un modelo:
+ * conviene que el asesor legal de la clínica lo revise. Cada firma guarda el texto exacto, su versión y su huella; las
+ * firmas anteriores conservan su texto. Para un aviso propio: reemplazar NOTICE (texto y `version`). */
 (function(root,factory){var api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.SmylPrivacyNotice=api;})(globalThis,function(){
   'use strict';
   var NOTICE={
-    version:'modelo-provisional-2',
-    provisional:true,
-    title:'Aviso de privacidad',
+    version:'smyl-integral-2026-11-v3',
+    provisional:false,
+    title:'Aviso de privacidad integral',
     paragraphs:[
-      'Responsable: {CLINICA}. Sus datos personales, incluidos los de salud (datos personales sensibles), serán tratados para crear y mantener su expediente clínico, brindarle atención dental, agendar y dar seguimiento a sus citas, y comunicarnos con usted, por ejemplo por WhatsApp o por llamada.',
-      'Sus datos podrán ser consultados por el personal de la clínica que participa en su atención. No se transferirán a terceros sin su consentimiento, salvo en los casos que la ley permita.',
-      'Para apoyar su atención (por ejemplo, analizar o simular fotografías), la clínica puede usar herramientas de inteligencia artificial de proveedores externos que tratan esas imágenes y datos por cuenta de la clínica y solo para esa finalidad. Usted puede negarse a este uso, o retirar su permiso en cualquier momento, sin que se le niegue la atención dental. Si lo permite, la clínica lo registrará por separado.',
-      'Usted puede ejercer sus derechos de acceso, rectificación, cancelación y oposición (ARCO) y revocar su consentimiento solicitándolo a la clínica por los medios que ella le indique.',
-      'Al firmar, usted confirma que leyó este aviso y otorga su consentimiento expreso para el tratamiento de sus datos personales y sensibles para las finalidades anteriores.'
+      'Responsable. {CLINICA}, con domicilio en {DOMICILIO}, es responsable del tratamiento de sus datos personales. Para cualquier asunto de privacidad puede escribir a {CORREO} o acudir a la recepción de la clínica.',
+      'Datos que tratamos. Datos de identificación y contacto (nombre, fecha de nacimiento, sexo, domicilio, CURP, teléfono y correo), datos de facturación si los solicita y datos personales sensibles de salud: historia clínica, antecedentes, alergias, medicamentos, odontograma, fotografías y radiografías dentales, notas clínicas, recetas y consentimientos.',
+      'Finalidades necesarias. Integrar y conservar su expediente clínico (por lo menos 5 años, conforme a la NOM-004-SSA3-2012), brindarle atención odontológica, elaborar presupuestos y recetas, agendar, confirmar y recordarle sus citas, cobrar y facturar, y cumplir obligaciones legales.',
+      'Finalidades adicionales, que puede rechazar sin que se le niegue la atención: (a) usar herramientas de inteligencia artificial de proveedores externos para apoyar el análisis o la simulación de sus fotografías; (b) enviarle por WhatsApp avisos que no sean de sus citas; (c) enviarle promociones o información de la clínica. Puede aceptarlas o rechazarlas al firmar este aviso y cambiar su decisión en cualquier momento escribiendo a {CORREO}.',
+      'Encargados y transferencias. La clínica usa la plataforma SMYL y sus proveedores, que tratan sus datos solo por cuenta y siguiendo instrucciones de la clínica, bajo contrato y medidas de seguridad: alojamiento de datos (Supabase sobre Amazon Web Services), mensajería (Meta, WhatsApp), pagos (Stripe u Openpay), facturación (Facturapi) y, solo si usted lo autoriza, inteligencia artificial (OpenAI, Anthropic y Google). Algunos de ellos están fuera de México, principalmente en los Estados Unidos. No vendemos sus datos ni los transferimos a terceros para sus propios fines, salvo en los casos que la ley permite sin su consentimiento, por ejemplo cuando lo requiera una autoridad de salud o judicial.',
+      'Derechos ARCO y revocación. Usted puede acceder a sus datos, rectificarlos, cancelarlos u oponerse a su tratamiento, y revocar su consentimiento, con una solicitud a {CORREO} o en la recepción que indique su nombre, un medio para responderle, una identificación (o la de su representante) y una descripción clara de lo que pide. Le responderemos en un máximo de 20 días hábiles y, si procede, lo haremos efectivo dentro de los 15 días hábiles siguientes. La cancelación del expediente clínico queda sujeta al plazo de conservación que exige la ley.',
+      'Limitar el uso. Puede pedir por los mismos medios que limitemos el uso o la divulgación de sus datos, por ejemplo que no le enviemos promociones.',
+      'Cambios. Si este aviso cambia, se lo informaremos en la recepción y por el medio de contacto que nos dio; si cambian las finalidades, le pediremos firmar de nuevo.',
+      'Este aviso se emite conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares. Si considera que su derecho a la protección de datos fue vulnerado, puede acudir a la autoridad de protección de datos personales competente.',
+      'Al firmar, usted confirma que leyó este aviso y otorga su consentimiento expreso y por escrito para el tratamiento de sus datos personales y sensibles para las finalidades necesarias descritas.'
     ]
   };
   var MIN_POINTS=12,MIN_LENGTH=60;   // una firma real tiene trazo: unos cuantos puntos o un toque suelto no cuentan
 
   /* El texto que se muestra y se guarda: con el nombre de la clínica puesto. */
-  function render(clinicName){
+  /* ctx opcional: {address, email}. Sin domicilio o correo se indica cómo obtenerlos (y se marca como pendiente). */
+  function render(clinicName,ctx){
+    ctx=ctx||{};
     var name=String(clinicName==null?'':clinicName).trim()||'la clínica';
-    return {version:NOTICE.version,provisional:NOTICE.provisional,title:NOTICE.title,text:NOTICE.paragraphs.join('\n\n').replace('{CLINICA}',name)};
+    var address=String(ctx.address||'').trim()||'el domicilio de la clínica que se le muestra en recepción';
+    var email=String(ctx.email||'').trim()||'el correo de contacto de la clínica';
+    var text=NOTICE.paragraphs.join('\n\n').split('{CLINICA}').join(name).split('{DOMICILIO}').join(address).split('{CORREO}').join(email);
+    return {version:NOTICE.version,provisional:NOTICE.provisional||!String(ctx.address||'').trim()||!String(ctx.email||'').trim(),title:NOTICE.title,text:text};
   }
-  function paragraphs(clinicName){return render(clinicName).text.split('\n\n');}
+  function paragraphs(clinicName,ctx){return render(clinicName,ctx).text.split('\n\n');}
 
   /* strokes: [[{x,y},…],…] en píxeles del lienzo. Mide cuánto se trazó. */
   function inkOf(strokes){
@@ -50,7 +61,7 @@
 
   /* Argumentos de smyl_record_patient_consent. */
   function payload(o){
-    var n=render(o.clinicName);
+    var n=render(o.clinicName,o.context);
     return {p_patient_id:o.patientId,p_notice_version:n.version,p_notice_text:n.text,p_provisional:n.provisional,p_signer_name:String(o.name||'').trim(),p_signer_relation:o.relation,p_signature_png:o.signaturePng};
   }
 

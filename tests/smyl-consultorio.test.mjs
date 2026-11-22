@@ -724,8 +724,8 @@ probar('el paso de privacidad dice si falta, quién y cuándo firmó, o que no s
 probar('la pantalla de firma muestra el texto con el nombre de la clínica y avisa que es un modelo provisional', async () => {
   const { page, errores } = await abrirFirma();
   assert.equal(await page.isVisible('[data-co-provisional]'), true);
-  assert.match(await page.textContent('[data-co-provisional]'), /Texto modelo provisional\. Revísalo con tu asesor legal/);
-  assert.match(await textoAviso(page), /^Responsable: Diseño de Sonrisas\./);
+  assert.match(await page.textContent('[data-co-provisional]'), /Aviso incompleto: registra el domicilio/);
+  assert.match(await textoAviso(page), /^Responsable\. Diseño de Sonrisas, con domicilio en/);
   assert.equal(await page.inputValue('[data-co-consent] .co-field input'), 'Cristian Partida', 'propone el nombre del paciente');
   assert.deepEqual(errores, []);
   await page.close();
@@ -770,7 +770,7 @@ probar('guardar envía el texto exacto que se leyó, su versión, la marca provi
   const [firma] = await page.evaluate(() => window.__firmas);
   assert.equal(firma.p_patient_id, 'p1');
   assert.equal(firma.p_notice_text, mostrado, 'lo que se guardó es lo que la persona vio');
-  assert.equal(firma.p_notice_version, 'modelo-provisional-2');
+  assert.equal(firma.p_notice_version, 'smyl-integral-2026-11-v3');
   assert.equal(firma.p_provisional, true);
   assert.equal(firma.p_signer_name, 'Cristian Partida');
   assert.equal(firma.p_signer_relation, 'patient');
