@@ -1,3 +1,15 @@
+## 2026-11-22 — Claude Code — Tratamientos como capítulos del expediente (parte 2, base de datos)
+
+- Migración nueva **`20261126180000_smyl_treatments.sql`** (no aplicada en producción: la aplica el usuario). Aditiva: no altera `smyl_clinical_plans`, notas, cotizaciones ni citas.
+- Tabla `smyl_treatments` (UN tratamiento activo por paciente; cerrado/abandonado/cancelado es inmutable; no se elimina, igual que `smyl_informed_consents`; auditada con `smyl_audit_row`). Guarda título, motivo, ASA, riesgo de caries, próxima revisión (3/6/12 meses) y `plan_snapshot`/`plan_revision` al cerrar.
+- RPC: `smyl_list_treatments`, `smyl_get_treatment`, `smyl_open_treatment`, `smyl_update_treatment`, `smyl_close_treatment`. Permisos `clinical.read`/`clinical.write` + `smyl_can_access_patient`. La tabla no se lee directo.
+- `smyl_open_treatment` exige que el anterior esté cerrado y **reinicia el plan de trabajo en blanco como una revisión más** (con su versión en `smyl_clinical_versions`); las cotizaciones emitidas conservan su `plan_revision`. `smyl_close_treatment` congela el plan. Cierre por abandono exige nota de la hoja de egreso (NOM-013-SSA2-2015, 9.7).
+- Notas, cotizaciones y citas se asignan a un tratamiento **por fecha** (`opened_at`..`closed_at`); no se les agregó columna para no tocar las notas firmadas inmutables.
+- Relleno: cada paciente con plan recibe «Tratamiento inicial» (activo). Un trigger crea uno si se guarda por primera vez un plan sin tratamiento activo.
+- No toqué `smyl_patient_last_clinical_activity` (otra sesión la redefine en retención y consentimientos). Pendiente: que cuente la actividad de tratamientos si se desea.
+- Probado con PostgreSQL 16 local (17 casos: abrir, cerrar, abandonar, permisos, otra clínica, eliminar, índice de un solo activo, auditoría, idempotencia) y analizado con pglast. `tests/smyl-treatments-migration.test.mjs`.
+- Limitación v1: un solo tratamiento activo a la vez (para no romper lo que lee el plan único del paciente). Pendiente: pantalla (selector de capítulos, «Nuevo tratamiento», Diagnóstico «nuevo / de antes») y la parte 3 (plan desde hallazgos, presupuesto automático, aceptación parcial).
+
 ## 2026-11-22 — Respuestas con archivos en SMYL Asistente
 
 - En Canales → SMYL Asistente → Preguntas frecuentes se abre el editor de reglas. Carillas aparece como propuesta inicial. Cada regla combina tema, intención, excepciones y canales con un mensaje y un archivo de la biblioteca privada de la clínica.
