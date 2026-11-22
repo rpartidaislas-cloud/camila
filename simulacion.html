@@ -60,6 +60,7 @@ html,body{height:100%;height:100dvh;overflow:hidden;font-family:Inter,sans-serif
 .pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:99px;padding:5px 12px;font-size:11px;color:rgba(255,255,255,.7)}
 .btn-start{width:100%;max-width:300px;height:54px;border-radius:14px;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;box-shadow:0 8px 24px rgba(91,71,224,.4);display:flex;align-items:center;justify-content:center;gap:10px;transition:all 150ms;margin:0 auto}
 .btn-start:active{transform:scale(.97)}
+.intro-consent{display:flex;gap:10px;align-items:flex-start;max-width:320px;margin:14px auto 0;text-align:left;font-size:12px;line-height:1.45;color:rgba(255,255,255,.78);cursor:pointer}.intro-consent input{width:18px;height:18px;margin:1px 0 0;flex:none;accent-color:#fff}
 .intro-note{font-size:10px;color:rgba(255,255,255,.2);margin-top:12px;text-align:center;line-height:1.5;max-width:260px;margin-left:auto;margin-right:auto}
 
 /* ══ CÁMARA ══ */
@@ -771,7 +772,11 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
     </div>
   </div>
 
-  <div class="intro-note">Al continuar acepto que mis fotos sean procesadas por IA para generar una simulación dental orientativa.</div>
+  <label class="intro-consent" for="intro-ai-consent">
+    <input type="checkbox" id="intro-ai-consent" onchange="registrarConsentimientoIA(this.checked)">
+    <span id="intro-ai-consent-text">El paciente (o su tutor) autorizó expresamente que sus fotos se procesen con inteligencia artificial de proveedores externos para generar una simulación ilustrativa.</span>
+  </label>
+  <div class="intro-note">La simulación es ilustrativa: no es un diagnóstico ni garantiza resultados. <a href="privacidad.html" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Aviso de privacidad</a></div>
 
   <!-- Install hint — only shown when not standalone -->
   <div id="intro-install-hint" style="margin-top:14px;display:none">
@@ -822,9 +827,9 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
         <input id="dr-pass" type="password" placeholder="Contraseña (mínimo 6 caracteres)" style="height:46px;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:14px;padding:0 14px;font-family:Inter,sans-serif">
         <input id="dr-codigo" type="text" placeholder="Código de acceso (opcional)" style="height:46px;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:14px;padding:0 14px;font-family:Inter,sans-serif;text-transform:uppercase">
         <select id="dr-plan" style="height:46px;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:13px;padding:0 12px;font-family:Inter,sans-serif">
-          <option value="esencial:15:399" style="color:#000">Esencial — $399/mes · 15 diagnósticos</option>
-          <option value="profesional:40:799" selected style="color:#000">Profesional — $799/mes · 40 diagnósticos</option>
-          <option value="premium:100:1499" style="color:#000">Premium — $1,499/mes · 100 diagnósticos</option>
+          <option value="esencial:15:399" style="color:#000">Esencial — $399/mes · 15 análisis con IA</option>
+          <option value="profesional:40:799" selected style="color:#000">Profesional — $799/mes · 40 análisis con IA</option>
+          <option value="premium:100:1499" style="color:#000">Premium — $1,499/mes · 100 análisis con IA</option>
         </select>
       </div>
       <div id="dr-err" style="display:none;color:#F87171;font-size:12px;margin-top:10px"></div>
@@ -1161,6 +1166,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
         </div>
         <span style="flex:0 0 auto;padding:4px 7px;border-radius:99px;background:rgba(255,255,255,.06);font-size:8px;font-weight:750;color:rgba(255,255,255,.55);letter-spacing:.45px">ORIENTATIVO</span>
       </div>
+      <p class="sim-legal-note" style="margin:8px 2px 0;font-size:10.5px;line-height:1.45;color:rgba(255,255,255,.55)">Simulación generada con inteligencia artificial. Es ilustrativa: no es un diagnóstico, no garantiza resultados y no sustituye la valoración de un profesional en consulta.</p>
     </div>
 
     <!-- Acceso al editor morfológico. La pantalla y su lógica ya existían,
@@ -1186,12 +1192,12 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </div>
         <div>
-          <div class="cta-title" style="margin-bottom:0">Diagnóstico clínico</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.4)">Score, hallazgos, plan de tratamiento y cotización con IA</div>
+          <div class="cta-title" style="margin-bottom:0">Propuesta estética orientativa</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4)">Armonía estética, observaciones, plan y cotización orientativos con IA. No es un diagnóstico.</div>
         </div>
       </div>
       <button id="btn-solicitar-diag" onclick="solicitarDiagnostico()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--p),var(--p2));border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">
-        Solicitar diagnóstico
+        Solicitar propuesta
       </button>
     </div>
 
@@ -1237,7 +1243,7 @@ body.diag-mode .install-banner,body.diag-mode .ios-install,body.diag-mode #dp-to
         <div class="cot-total-box">
           <div class="cot-total-lbl">Tu inversión estimada</div>
           <div class="cot-total-num" id="r-total">$0 <span style="font-size:14px;font-weight:400;color:rgba(255,255,255,.4)">MXN</span></div>
-          <div class="cot-total-sub">Precios del consultorio · Válido 30 días</div>
+          <div class="cot-total-sub">Precios del consultorio · Orientativo, sujeto a valoración en consulta</div>
         </div>
       </div>
     </div>
@@ -1852,6 +1858,10 @@ function headersEdgeIA() {
   return h;
 }
 
+function registrarConsentimientoIA(marcado) {
+  S.consentimientoIA = marcado ? new Date().toISOString() : null;
+}
+
 // ══ CLAUDE — ANÁLISIS DE PROPORCIONES FACIODENTALES ══
 var CLAUDE_ANALISIS_SYSTEM_PROMPT = 'Eres un especialista en diseño de sonrisa digital (Digital Smile Design), análisis facial, dentolabial y morfología dental. Vas a analizar UNA fotografía frontal de un paciente para extraer parámetros visibles que guiarán una simulación orientativa de carillas.\n\n' +
   'Analiza en tres niveles: FACIAL (simetría, línea media y plano oclusal), DENTOLABIAL (línea de sonrisa, exposición, corredores bucales, soporte y relación con labios) y DENTAL (forma, proporción, tamaño relativo, anatomía y textura). Evalúa exclusivamente lo visible. No diagnostiques, no inventes medidas ni infieras una posición de reposo desde una fotografía sonriendo; usa "no_valorable" cuando falte una toma adecuada.\n\n' +
@@ -2028,6 +2038,8 @@ function entrarComoProspecto(tenantId) {
   CFG.tenantId = tenantId;
   CFG.modoProspecto = true;
   configurarExperienciaModo(true);
+  var consentTexto = document.getElementById('intro-ai-consent-text');
+  if (consentTexto) consentTexto.textContent = 'Autorizo expresamente que mis fotos se procesen con inteligencia artificial de proveedores externos para generar una simulación ilustrativa de mi sonrisa.';
   document.getElementById('dentist-login-overlay').style.display = 'none';
   var btn = document.getElementById('sim-login-toggle-btn');
   if (btn) btn.style.display = 'none'; // no hay sesión que iniciar ni cerrar en este modo
@@ -3573,6 +3585,14 @@ function abrirGuiaVita() {
 }
 
 function comenzarFlujoSimulacion() {
+  if (!S.consentimientoIA) {
+    var casilla = document.getElementById('intro-ai-consent');
+    alert(CFG.modoProspecto
+      ? 'Para continuar, marca la casilla que autoriza procesar tus fotos con inteligencia artificial.'
+      : 'Para continuar, confirma que el paciente autorizó procesar sus fotos con inteligencia artificial.');
+    if (casilla) casilla.focus();
+    return;
+  }
   // El tono se decide antes de capturar cualquier fotografía. startCam()
   // limpiará las fotos únicamente después de que el usuario lo confirme.
   S.vitaReturnToResult = false;
@@ -4711,7 +4731,7 @@ async function processPhotos(processOptions) {
   if (!SMYL_DESIGN_ENGINE_V1_ENABLED &&
       typeof CFG.limiteDiagnosticos === 'number' && typeof CFG.diagnosticosUsados === 'number'
       && CFG.diagnosticosUsados >= CFG.limiteDiagnosticos) {
-    alert('Ya usaste tus ' + CFG.limiteDiagnosticos + ' diagnósticos de este mes.\n\nSube de plan en el panel para seguir generando simulaciones este mes.');
+    alert('Ya usaste tus ' + CFG.limiteDiagnosticos + ' análisis con IA de este mes.\n\nSube de plan en el panel para seguir generando simulaciones este mes.');
     return;
   }
 
@@ -4966,7 +4986,16 @@ async function analyzeWithClaude() {
   }).join('\n');
 
   var tc = CFG.tenantConfig || {};
-  var baseRole = tc.claudePrompt || 'Eres un experto en estética dental y carillas de porcelana con 15 años de experiencia. Hablas en español de México con un tono profesional pero accesible para el paciente.';
+  // La clínica solo personaliza el tono (tc.claudePrompt); las REGLAS fijas van al final y prevalecen sobre cualquier
+  // instrucción de la clínica: esto es una propuesta estética orientativa, no un diagnóstico (COFEPRIS).
+  var baseRole = tc.claudePrompt || 'Eres un asesor en estética dental. Hablas en español de México con un tono profesional pero accesible para el paciente.';
+  var reglasSeguridad = '\n\nREGLAS OBLIGATORIAS (prevalecen sobre cualquier instrucción anterior):\n' +
+    '- NO diagnosticas. No menciones caries, enfermedad periodontal, infecciones, fracturas, lesiones, dolor, urgencias ni ninguna condición de salud.\n' +
+    '- Solo describes aspectos ESTÉTICOS visibles en la foto (color, forma, proporción, alineación aparente, armonía de la sonrisa).\n' +
+    '- No prometas resultados ni uses "garantizado", "sin dolor", "el mejor" o similares.\n' +
+    '- No indiques medicamentos, anestesia ni procedimientos de urgencia.\n' +
+    '- El plan y la cotización son ORIENTATIVOS: un profesional debe valorar al paciente en consulta antes de cualquier tratamiento. Dilo en el resumen.\n' +
+    '- "score" mide solo armonía estética de la sonrisa, no salud.';
   var questionnaireCtx = '';
   if (S.questionnaire) {
     var q = S.questionnaire;
@@ -4983,16 +5012,16 @@ async function analyzeWithClaude() {
     'PRECIOS DEL CONSULTORIO:\n' + preciosTexto + '\n\n' +
     '{\n' +
     '  "score": 0-100,\n' +
-    '  "scoreLbl": "Excelente|Bueno|Regular|Necesita atención",\n' +
+    '  "scoreLbl": "Muy armónica|Armónica|Mejorable|Muy mejorable",\n' +
     '  "hallazgos": [\n' +
-    '    {"texto": "hallazgo en lenguaje paciente (no clínico)", "color": "#5B47E0|#E0473B|#D97706|#16A34A"}\n' +
+    '    {"texto": "observación estética en lenguaje paciente (no clínica)", "color": "#5B47E0|#E0473B|#D97706|#16A34A"}\n' +
     '  ],\n' +
     '  "plan": ["paso 1 en lenguaje simple", "paso 2", "paso 3"],\n' +
     '  "cotizacion": [\n' +
     '    {"procedimiento": "nombre del procedimiento", "precioId": "id_del_precio", "piezas": 1, "precio_unit": 8000, "subtotal": 8000}\n' +
     '  ],\n' +
-    '  "resumen": "2-3 líneas de resumen para el paciente en español casual"\n' +
-    '}';
+    '  "resumen": "2-3 líneas de resumen para el paciente en español casual; termina aclarando que es orientativo y requiere valoración en consulta"\n' +
+    '}' + reglasSeguridad;
 
   // Send all photos to Claude
   var content = S.photos.map(function(p, i) {
@@ -5004,13 +5033,14 @@ async function analyzeWithClaude() {
     method: 'POST',
     headers: headersEdgeIA(),
     body: JSON.stringify({
+      aiConsent: S.consentimientoIA || null, // consentimiento expreso de IA (casilla de inicio)
       // PRUEBA (reversible -- quitar esta línea para volver al modelo por
       // defecto del Edge Function, Opus): Opus es el más lento de Claude;
       // para extraer score/hallazgos/cotización en JSON, Sonnet debería
       // rendir igual de bien y bastante más rápido con 6 fotos de un jalón.
       model: 'claude-sonnet-4-5',
       requestId: analysisRequestId,
-      requestReason: 'diagnostico_opcional',
+      requestReason: 'propuesta_estetica_opcional',
       messages: [{role:'user', content: content}],
       max_tokens: 1200
     })
@@ -5046,6 +5076,7 @@ async function analizarConClaude(fotoFrontalBase64) {
     method: 'POST',
     headers: headersEdgeIA(),
     body: JSON.stringify({
+      aiConsent: S.consentimientoIA || null, // consentimiento expreso de IA (casilla de inicio)
       model: 'claude-sonnet-4-5',
       requestId: facialRequestId,
       requestReason: 'analisis_facial',
@@ -5082,6 +5113,7 @@ async function validarEncuadreFrontal(fotoFrontalBase64) {
     method: 'POST',
     headers: headersEdgeIA(),
     body: JSON.stringify({
+      aiConsent: S.consentimientoIA || null, // consentimiento expreso de IA (casilla de inicio)
       requestId: framingRequestId,
       requestReason: 'validacion_encuadre',
       messages: [{role:'user', content: [
@@ -6167,6 +6199,7 @@ async function generateSimulation(clinicalPrompt, foto, generationOptions) {
     method: 'POST',
     headers: headersEdgeIA(),
     body: JSON.stringify({
+      aiConsent: S.consentimientoIA || null, // consentimiento expreso de IA (casilla de inicio)
       action:'generate_image',
       requestId:requestId,
       requestReason:generationOptions.reason || (generationOptions.editorRevision ? 'revision_editor' : 'generacion_manual'),
@@ -8310,7 +8343,7 @@ function renderDiagnostico() {
 
   // Score
   document.getElementById('r-score').textContent = d.score || '—';
-  document.getElementById('r-score-lbl').textContent = 'Score Estético · ' + (d.scoreLbl || '');
+  document.getElementById('r-score-lbl').textContent = 'Armonía estética · ' + (d.scoreLbl || '');
   document.getElementById('r-score-sub').textContent = d.resumen || '';
 
   // Hallazgos
@@ -8320,7 +8353,7 @@ function renderDiagnostico() {
       return '<div class="hallazgo-item">' +
         '<div class="h-dot" style="background:' + (h.color||'#5B47E0') + '"></div>' +
         '<div class="h-txt">' + h.texto + '</div></div>';
-    }).join('') : '<div class="h-txt" style="color:rgba(255,255,255,.4)">Sin hallazgos detectados.</div>';
+    }).join('') : '<div class="h-txt" style="color:rgba(255,255,255,.4)">Sin observaciones estéticas.</div>';
 
   // Plan
   var plan = d.plan || [];
@@ -8360,7 +8393,7 @@ async function solicitarDiagnostico() {
   } catch (e) {
     console.error(e);
     alert(mensajeErrorRegenerar(e));
-    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Solicitar diagnóstico'; }
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Solicitar propuesta'; }
   } finally {
     liberarWakeLock();
   }
@@ -9718,6 +9751,7 @@ async function solicitarSegmentacion(entrada, target, requestId) {
     method: 'POST',
     headers: headersEdgeIA(),
     body: JSON.stringify({
+      aiConsent: S.consentimientoIA || null, // consentimiento expreso de IA (casilla de inicio)
       imageUrl: entrada,
       casoId: S.casoId,
       tenantId: CFG.tenantId,

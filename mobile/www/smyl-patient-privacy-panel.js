@@ -20,7 +20,7 @@
     var s = info && info.state;
     if (s === 'granted') return { label: label, text: 'Sí acepta', state: 'ok', badge: 'Aceptó' };
     if (s === 'revoked') return { label: label, text: purpose === 'ai_processing' ? 'No acepta. La IA no procesará sus datos.' : 'No acepta.', state: 'alert', badge: 'No acepta' };
-    if (s === 'unknown') return { label: label, text: 'Aún no ha decidido.', state: 'pending', badge: 'Sin decidir' };
+    if (s === 'unknown') return { label: label, text: purpose === 'ai_processing' ? 'Aún no lo autoriza. La IA no procesará sus datos hasta que lo autorice.' : 'Aún no ha decidido.', state: 'pending', badge: 'Sin decidir' };
     return { label: label, text: 'No se pudo comprobar.', state: 'empty', badge: '' };
   }
   /* consent: undefined/null = no se pudo leer; privacy: objeto por finalidad o null; openRequests: número o null. */

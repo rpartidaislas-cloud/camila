@@ -69,28 +69,119 @@ async function readBodyWithLimit(res: Response, maxBytes = MAX_REMOTE_IMAGE_BYTE
 return { constantTimeEqual, parseAllowedHostSuffixes, isAllowedRemoteUrl, isAllowedImageSource, MAX_REMOTE_IMAGE_BYTES, readBodyWithLimit };
 })();
 
+// ── _shared/privacy-core.mjs ──
+const { MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_SIN_AUTORIZACION, MENSAJE_IA_NO_VERIFICABLE, decidirIA } = (() => {
+// Permiso del paciente para que sus datos pasen por herramientas de IA de proveedores externos (finalidad 'ai_processing').
+// Regla (LFPDPPP: los datos de salud son sensibles y requieren consentimiento EXPRESO): solo se usa la IA cuando el paciente
+// la autorizó ('granted'). Sin decisión registrada ('unknown') o si la retiró ('revoked') no se manda nada a la IA.
+// Si no se puede comprobar (error de base de datos) también se bloquea: ante la duda no se manda nada a un tercero.
+const MENSAJE_IA_NO_PERMITIDA = 'Este paciente no autorizó el uso de inteligencia artificial con sus datos. Captura o revisa esto manualmente.';
+const MENSAJE_IA_SIN_AUTORIZACION = 'Este paciente aún no autoriza el uso de inteligencia artificial. Registra su autorización en Privacidad (o pídele que firme el aviso) antes de usar la IA.';
+const MENSAJE_IA_NO_VERIFICABLE = 'No se pudo comprobar el permiso de IA del paciente. Inténtalo de nuevo en un momento.';
+
+/** Convierte la respuesta de smyl_patient_privacy_state en una decisión: 'allowed' | 'missing' | 'revoked' | 'unavailable'. */
+function decidirIA(result: any) {
+  if (!result || result.error) return 'unavailable';
+  const state = result.data;
+  if (state === 'granted') return 'allowed';
+  if (state === 'revoked') return 'revoked';
+  if (state === 'unknown') return 'missing';
+  return 'unavailable';
+}
+
+return { MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_SIN_AUTORIZACION, MENSAJE_IA_NO_VERIFICABLE, decidirIA };
+})();
+
+// ── _shared/privacy.ts ──
+const { permisoIA, respuestaIAnegada } = (() => {
+// Candado de privacidad para las funciones que mandan datos de un paciente a una IA externa. La regla vive en privacy-core.mjs.
+
+type PermisoIA = 'allowed' | 'missing' | 'revoked' | 'unavailable';
+
+// deno-lint-ignore no-explicit-any
+async function permisoIA(admin: any, tenantId: string, patientId: string): Promise<PermisoIA> {
+  try {
+    const result = await admin.rpc('smyl_patient_privacy_state', { p_tenant: tenantId, p_patient: patientId, p_purpose: 'ai_processing' });
+    return decidirIA(result);
+  } catch { return 'unavailable'; }
+}
+
+/** Respuesta lista para devolver cuando NO se puede usar IA con este paciente; null si se puede continuar. */
+function respuestaIAnegada(permiso: PermisoIA): { status: number; body: { error: string; code: string } } | null {
+  if (permiso === 'allowed') return null;
+  if (permiso === 'revoked') return { status: 403, body: { error: MENSAJE_IA_NO_PERMITIDA, code: 'patient_ai_not_allowed' } };
+  if (permiso === 'missing') return { status: 403, body: { error: MENSAJE_IA_SIN_AUTORIZACION, code: 'patient_ai_consent_missing' } };
+  return { status: 503, body: { error: MENSAJE_IA_NO_VERIFICABLE, code: 'patient_ai_unverifiable' } };
+}
+
+return { permisoIA, respuestaIAnegada };
+})();
+
+// ── _shared/foto-core.mjs ──
+const { MOTIVOS_NO_APTA, MENSAJES_PACIENTE, AVISO_SIMULACION, interpretarCalidad } = (() => {
+// Lógica pura de analizar-foto (sin red), para poder probarla con node --test.
+// Ningún texto escrito por la IA llega al paciente: solo se usan estos mensajes fijos.
+
+const MOTIVOS_NO_APTA = ['no_se_ven_dientes', 'borrosa', 'oscura', 'muy_lejos', 'otra'];
+
+const MENSAJES_PACIENTE = Object.freeze({
+  revision: 'Recibimos tu foto. Un profesional de la clínica la revisará y te contactará para orientarte. Si tienes dolor fuerte, sangrado o un golpe, llama a la clínica o acude a urgencias.',
+  simulacion: 'Te compartimos una simulación ilustrativa de cómo podría verse tu sonrisa. No es un diagnóstico ni garantiza resultados: un profesional de la clínica revisará tu caso en consulta.',
+  no_se_ven_dientes: 'No alcanzamos a ver tus dientes en la foto. ¿Nos mandas otra sonriendo de frente, mostrando los dientes de arriba?',
+  borrosa: 'La foto salió un poco borrosa. ¿Nos mandas otra con el celular firme y sonriendo de frente?',
+  oscura: 'La foto quedó oscura. ¿Nos mandas otra con buena luz, de preferencia cerca de una ventana?',
+  muy_lejos: 'La foto está muy lejos. ¿Nos mandas otra más de cerca, sonriendo de frente?',
+  otra: 'No pudimos usar esta foto. ¿Nos mandas otra sonriendo de frente, con buena luz?',
+});
+
+const AVISO_SIMULACION = 'Imagen generada con inteligencia artificial. Es ilustrativa: no es un diagnóstico, no sustituye la valoración de un profesional y no garantiza resultados.';
+
+/** Convierte la respuesta del modelo en { apta, motivo } usando solo valores de la lista cerrada. */
+function interpretarCalidad(texto: any) {
+  let parsed = null;
+  try { parsed = JSON.parse(String(texto || '').replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim()); } catch { parsed = null; }
+  if (!parsed || typeof parsed !== 'object') return { apta: false, motivo: 'otra' };
+  if (parsed.apta === true) return { apta: true, motivo: 'ninguno' };
+  const motivo = MOTIVOS_NO_APTA.includes(parsed.motivo) ? parsed.motivo : 'otra';
+  return { apta: false, motivo };
+}
+
+return { MOTIVOS_NO_APTA, MENSAJES_PACIENTE, AVISO_SIMULACION, interpretarCalidad };
+})();
+
 // ── analizar-foto/index.ts ──
 // supabase/functions/analizar-foto/index.ts
 //
 // Endpoint server-to-server llamado por LANA cuando un paciente envía una
 // foto dental por WhatsApp/Instagram (vertical = salud).
 //
-// Recibe la URL de la imagen + datos del paciente, genera diagnóstico con
-// GPT-4o Vision y simulación de sonrisa con GPT Image 2, sube la simulación
-// al bucket "camila-analisis", y notifica de vuelta a LANA vía callback_url.
+// NO DIAGNOSTICA. No describe el estado dental, no sugiere tratamientos ni
+// decide urgencias: eso lo hace un profesional de la clínica (COFEPRIS: un
+// software que diagnostica es un dispositivo médico). Solo:
+//   1. Comprueba que el paciente AUTORIZÓ el uso de IA (finalidad ai_processing,
+//      consentimiento expreso; LFPDPPP). Sin autorización no se manda nada a la IA.
+//   2. Revisa si la foto sirve para una simulación estética (se ven los dientes,
+//      luz, enfoque). La IA solo elige de una lista cerrada; su texto no sale.
+//   3. Si sirve, genera una simulación ILUSTRATIVA de sonrisa con GPT Image.
+//   4. Avisa a LANA con mensajes fijos para el paciente y la marca
+//      requiere_revision_profesional: true (la clínica debe revisar la foto).
 //
 // Auth entrante:  Authorization: Bearer <LANA_API_KEY>
 // Auth saliente:  Authorization: Bearer <callback_secret>  (al notificar)
 //
 // Body de entrada (POST JSON):
-//   { tenant_id, canal, sender_id, nombre_paciente?,
+//   { tenant_id, canal, sender_id, patient_id?, nombre_paciente?,
 //     imagen_url, callback_url, callback_secret }
+//   patient_id: paciente de SMYL ya vinculado a la conversación. Sin él no se usa IA.
 //
 // Body de notificación saliente (POST JSON a callback_url):
 //   { tenant_id, canal, sender_id, nombre_paciente?,
-//     diagnostico, tratamientos_sugeridos, zona_afectada, requiere_urgente,
+//     estado: 'simulacion_lista' | 'foto_no_apta' | 'revision_profesional',
+//     ia_usada, motivo?, foto_apta?, motivo_no_apta?,
+//     mensaje_paciente, aviso_simulacion?, requiere_revision_profesional: true,
 //     imagen_original_url, imagen_simulacion_url? }
-//   En error: { tenant_id, canal, sender_id, error: true, error_message }
+//   En error: { tenant_id, canal, sender_id, error: true, error_message, mensaje_paciente,
+//               requiere_revision_profesional: true }
 //
 // Responde 200 inmediatamente y procesa en background (EdgeRuntime.waitUntil).
 
@@ -143,7 +234,7 @@ Deno.serve(async (req: Request) => {
     return jsonResp({ error: "Body inválido (se esperaba JSON)" }, 400);
   }
 
-  const { tenant_id, canal, sender_id, nombre_paciente, imagen_url, callback_url, callback_secret } = body;
+  const { tenant_id, canal, sender_id, patient_id, nombre_paciente, imagen_url, callback_url, callback_secret } = body;
 
   if (!tenant_id || !canal || !sender_id || !imagen_url || !callback_url || !callback_secret) {
     return jsonResp({
@@ -158,6 +249,9 @@ Deno.serve(async (req: Request) => {
   }
   if (typeof canal !== "string" || canal.length > 40 || typeof sender_id !== "string" || sender_id.length > 120) {
     return jsonResp({ error: "canal o sender_id inválido" }, 400);
+  }
+  if (patient_id != null && (typeof patient_id !== "string" || !UUID_RE.test(patient_id))) {
+    return jsonResp({ error: "patient_id inválido" }, 400);
   }
   if (nombre_paciente != null && (typeof nombre_paciente !== "string" || nombre_paciente.length > 200)) {
     return jsonResp({ error: "nombre_paciente inválido" }, 400);
@@ -177,6 +271,7 @@ Deno.serve(async (req: Request) => {
 
   const tarea = procesarFotoDental({
     job_id, tenant_id, canal, sender_id,
+    patient_id: patient_id || null,
     nombre_paciente: nombre_paciente || null,
     imagen_url,
     callback_url,
@@ -203,15 +298,27 @@ async function procesarFotoDental(opts: {
   tenant_id: string;
   canal: string;
   sender_id: string;
+  patient_id: string | null;
   nombre_paciente: string | null;
   imagen_url: string;
   callback_url: string;
   callback_secret: string;
 }): Promise<void> {
-  const { job_id, tenant_id, canal, sender_id, nombre_paciente, imagen_url, callback_url, callback_secret } = opts;
+  const { job_id, tenant_id, canal, sender_id, patient_id, nombre_paciente, imagen_url, callback_url, callback_secret } = opts;
+  const base = { tenant_id, canal, sender_id, nombre_paciente: nombre_paciente || undefined, imagen_original_url: imagen_url, requiere_revision_profesional: true };
 
   try {
-    // 1. Descargar la imagen dental
+    // 1. Consentimiento expreso del paciente para usar IA. Sin paciente vinculado o sin autorización:
+    //    no se descarga ni se manda nada a la IA; la clínica revisa la foto.
+    const permiso = patient_id ? await permisoIA(admin, tenant_id, patient_id) : "missing";
+    if (permiso !== "allowed") {
+      const motivo = !patient_id ? "paciente_no_vinculado" : permiso === "revoked" ? "ia_no_autorizada" : permiso === "missing" ? "ia_sin_autorizacion" : "permiso_no_verificable";
+      console.log(`[analizar-foto] job_id=${job_id} sin IA: ${motivo}`);
+      await notificarCallback(callback_url, callback_secret, { ...base, estado: "revision_profesional", ia_usada: false, motivo, mensaje_paciente: MENSAJES_PACIENTE.revision });
+      return;
+    }
+
+    // 2. Descargar la foto
     const imagenRes = await fetch(imagen_url, { redirect: "error" });
     if (!imagenRes.ok) {
       throw new Error(`No se pudo descargar la imagen: HTTP ${imagenRes.status}`);
@@ -220,10 +327,14 @@ async function procesarFotoDental(opts: {
     const imagenBytes = await readBodyWithLimit(imagenRes);
     const imagenBase64 = bytesABase64(imagenBytes);
 
-    // 2. Diagnóstico con GPT-4o Vision
-    const diagnostico = await diagnosticarFoto(imagenBase64, mimeType);
+    // 3. ¿La foto sirve para una simulación estética? (no es una valoración clínica)
+    const calidad = await revisarCalidadFoto(imagenBase64, mimeType);
+    if (!calidad.apta) {
+      await notificarCallback(callback_url, callback_secret, { ...base, estado: "foto_no_apta", ia_usada: true, foto_apta: false, motivo_no_apta: calidad.motivo, mensaje_paciente: (MENSAJES_PACIENTE as Record<string, string>)[calidad.motivo] || MENSAJES_PACIENTE.otra });
+      return;
+    }
 
-    // 3. Simulación de sonrisa (se intenta; si falla no bloquea el callback)
+    // 4. Simulación ilustrativa (si falla, la clínica revisa la foto igualmente)
     let imagen_simulacion_url: string | null = null;
     try {
       imagen_simulacion_url = await generarSimulacion(imagenBase64, mimeType, job_id, tenant_id);
@@ -231,7 +342,7 @@ async function procesarFotoDental(opts: {
       console.error(`[analizar-foto] job_id=${job_id} — simulación no disponible:`, e);
     }
 
-    // Piloto comercial: registra un crédito IA por análisis completado. Si no
+    // Piloto comercial: registra un crédito IA por foto procesada. Si no
     // hay saldo aún, smyl_consume lo deja como meter_only y no interrumpe LANA.
     const { error: usageError } = await admin.rpc("smyl_consume", {
       p_tenant_id: tenant_id,
@@ -241,23 +352,16 @@ async function procesarFotoDental(opts: {
       p_source_type: "analizar_foto",
       p_source_id: job_id,
       p_provider: "openai",
-      p_provider_model: "gpt-4o",
+      p_provider_model: OPENAI_IMAGE_MODEL,
       p_metadata: { canal },
       p_enforce: false,
     });
     if (usageError) console.error(`[analizar-foto] job_id=${job_id} — medición pendiente:`, usageError.message);
 
-    // 4. Notificar a LANA
-    await notificarCallback(callback_url, callback_secret, {
-      tenant_id, canal, sender_id,
-      nombre_paciente: nombre_paciente || undefined,
-      diagnostico: diagnostico.diagnostico,
-      tratamientos_sugeridos: diagnostico.tratamientos_sugeridos,
-      zona_afectada: diagnostico.zona_afectada,
-      requiere_urgente: diagnostico.requiere_urgente,
-      imagen_original_url: imagen_url,
-      imagen_simulacion_url: imagen_simulacion_url || undefined,
-    });
+    // 5. Notificar a LANA (sin ningún contenido clínico)
+    await notificarCallback(callback_url, callback_secret, imagen_simulacion_url
+      ? { ...base, estado: "simulacion_lista", ia_usada: true, foto_apta: true, mensaje_paciente: MENSAJES_PACIENTE.simulacion, aviso_simulacion: AVISO_SIMULACION, imagen_simulacion_url }
+      : { ...base, estado: "revision_profesional", ia_usada: true, foto_apta: true, motivo: "simulacion_no_disponible", mensaje_paciente: MENSAJES_PACIENTE.revision });
 
     console.log(`[analizar-foto] job_id=${job_id} completado`);
   } catch (e) {
@@ -267,34 +371,26 @@ async function procesarFotoDental(opts: {
       await notificarCallback(callback_url, callback_secret, {
         tenant_id, canal, sender_id,
         error: true,
-        error_message: String(e),
+        error_message: String(e).slice(0, 300),
+        mensaje_paciente: MENSAJES_PACIENTE.revision,
+        requiere_revision_profesional: true,
       });
     } catch (_e2) { /* ignorar si el callback mismo falla */ }
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GPT-4o Vision: diagnóstico estructurado
+// GPT-4o: ¿la foto sirve para una simulación estética? (NO es diagnóstico)
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface DiagnosticoResult {
-  diagnostico: string;
-  tratamientos_sugeridos: string[];
-  zona_afectada: string;
-  requiere_urgente: boolean;
-}
-
-async function diagnosticarFoto(imagenBase64: string, mimeType: string): Promise<DiagnosticoResult> {
+async function revisarCalidadFoto(imagenBase64: string, mimeType: string): Promise<{ apta: boolean; motivo: string }> {
   if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY no configurada");
 
   const instruccion = [
-    "Eres un asistente dental. Analiza esta fotografía dental y devuelve ÚNICAMENTE JSON válido con el siguiente esquema exacto:",
-    '{"diagnostico":"descripción clínica breve del estado dental observado (máx. 200 caracteres)",',
-    '"tratamientos_sugeridos":["tratamiento1","tratamiento2"],',
-    '"zona_afectada":"descripción de la zona (ej: incisivos superiores, molares inferiores)",',
-    '"requiere_urgente":false}',
-    "Si la imagen no muestra claramente la dentadura, escribe diagnostico: 'Foto no analizable — no se distingue la dentadura' y deja los arreglos vacíos.",
-    "Responde SOLO con el JSON, sin markdown ni texto adicional.",
+    "Revisa SOLO la calidad técnica de esta foto para hacer una simulación estética de sonrisa.",
+    "NO evalúes la salud dental: no describas dientes, encías, caries, manchas, enfermedades, tratamientos ni urgencias.",
+    "Responde ÚNICAMENTE JSON: {\"apta\": true|false, \"motivo\": uno de " + JSON.stringify(MOTIVOS_NO_APTA.concat(["ninguno"])) + "}.",
+    "apta=true solo si se ve una sonrisa con los dientes superiores frontales, con luz y enfoque suficientes.",
   ].join(" ");
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -305,19 +401,15 @@ async function diagnosticarFoto(imagenBase64: string, mimeType: string): Promise
     },
     body: JSON.stringify({
       model: "gpt-4o",
-      max_tokens: 512,
+      max_tokens: 60,
+      store: false,
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "user",
           content: [
             { type: "text", text: instruccion },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:${mimeType};base64,${imagenBase64}`,
-                detail: "high",
-              },
-            },
+            { type: "image_url", image_url: { url: `data:${mimeType};base64,${imagenBase64}`, detail: "low" } },
           ],
         },
       ],
@@ -326,31 +418,10 @@ async function diagnosticarFoto(imagenBase64: string, mimeType: string): Promise
 
   if (!res.ok) {
     const err = await res.text().catch(() => "");
-    throw new Error(`GPT-4o Vision error (${res.status}): ${err.slice(0, 200)}`);
+    throw new Error(`GPT-4o error (${res.status}): ${err.slice(0, 200)}`);
   }
-
   const data = await res.json();
-  const texto = data.choices?.[0]?.message?.content || "";
-
-  try {
-    const limpio = texto.replace(/^```json?\s*/i, "").replace(/\s*```$/i, "").trim();
-    const parsed = JSON.parse(limpio);
-    return {
-      diagnostico: String(parsed.diagnostico || "Sin diagnóstico disponible").slice(0, 500),
-      tratamientos_sugeridos: Array.isArray(parsed.tratamientos_sugeridos)
-        ? parsed.tratamientos_sugeridos.map(String).slice(0, 10)
-        : [],
-      zona_afectada: String(parsed.zona_afectada || "").slice(0, 200),
-      requiere_urgente: Boolean(parsed.requiere_urgente),
-    };
-  } catch {
-    return {
-      diagnostico: texto.slice(0, 500) || "No se pudo generar diagnóstico.",
-      tratamientos_sugeridos: [],
-      zona_afectada: "",
-      requiere_urgente: false,
-    };
-  }
+  return interpretarCalidad(data.choices?.[0]?.message?.content || "");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -372,7 +443,7 @@ async function generarSimulacion(
     "Keep the patient's real features, lighting, background, and jaw structure exactly as they are.",
     "Only modify the visible upper teeth: whiten, align, and add natural-looking ceramic veneers.",
     "Do NOT alter skin, hair, lips, eyes, or any other part of the image.",
-    "The result must look like a real dental before/after photo.",
+    "This is an illustrative cosmetic preview, not a clinical prediction.",
   ].join(" ");
 
   const formData = new FormData();
@@ -424,12 +495,10 @@ async function generarSimulacion(
     throw new Error(`Storage upload error (${uploadRes.status}): ${err.slice(0, 200)}`);
   }
 
-  // Enlace firmado y con vencimiento. Si el bucket sigue siendo público (o la firma falla), se cae a la
-  // URL pública anterior para no romper la entrega; conviene volver privado el bucket en el panel.
+  // Solo enlace firmado y con vencimiento (el bucket es privado). Nunca una URL pública.
   const firmada = await admin.storage.from(ANALISIS_BUCKET).createSignedUrl(path, SIMULACION_URL_SEGUNDOS);
-  if (!firmada.error && firmada.data?.signedUrl) return firmada.data.signedUrl;
-  console.error("[analizar-foto] no se pudo firmar la simulación; se usa la URL pública:", firmada.error?.message);
-  return `${SB_URL}/storage/v1/object/public/${ANALISIS_BUCKET}/${path}`;
+  if (firmada.error || !firmada.data?.signedUrl) throw new Error("No se pudo firmar la simulación: " + (firmada.error?.message || "sin URL"));
+  return firmada.data.signedUrl;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -61,8 +61,8 @@ test('una imagen no evaluable permite continuar sin convertirla en una revisión
 test('web y PWA usan la misma versión del flujo multiescala', () => {
   const app = read('app.html');
   const worker = read('sw.js');
-  assert.match(app, /smyl-radiograph-analysis-client\.js\?v=13/);
-  assert.match(app, /smyl-radiograph-review\.js\?v=33/);
+  assert.match(app, /smyl-radiograph-analysis-client\.js\?v=14/);
+  assert.match(app, /smyl-radiograph-review\.js\?v=34/);
   assert.match(app, /smyl-radiograph-workbench\.css\?v=26/);
   assert.match(app, /smyl-dental-record\.js\?v=35/);
   assert.match(worker, /radiograph-multiscale-abstention-v16/);
