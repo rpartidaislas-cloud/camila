@@ -169,15 +169,20 @@ revoke all on function public.smyl_add_vital_signs(uuid, timestamptz, jsonb) fro
 grant execute on function public.smyl_save_clinical_background(uuid, integer, jsonb) to authenticated;
 grant execute on function public.smyl_add_vital_signs(uuid, timestamptz, jsonb) to authenticated;
 
--- Retención: antecedentes y signos vitales también cuentan como expediente.
+-- Retención: antecedentes y signos vitales también cuentan como expediente; las recetas, si su módulo está instalado
+-- (20261125130000_smyl_prescriptions.sql). plpgsql para poder incluir la tabla de recetas solo cuando exista.
 create or replace function public.smyl_patient_last_clinical_activity(p_tenant uuid, p_patient uuid)
 returns timestamptz
-language sql
+language plpgsql
 stable
 security definer
 set search_path = pg_catalog, public
 as $$
-  select max(t) from (
+declare
+  v_last timestamptz;
+  v_rx timestamptz;
+begin
+  select max(t) into v_last from (
     select max(greatest(created_at, updated_at)) t from public.smyl_clinical_notes where tenant_id = p_tenant and patient_id = p_patient
     union all select max(updated_at) from public.smyl_patient_histories where tenant_id = p_tenant and patient_id = p_patient
     union all select max(updated_at) from public.smyl_dental_records where tenant_id = p_tenant and patient_id = p_patient
@@ -187,12 +192,17 @@ as $$
     union all select max(greatest(created_at, updated_at)) from public.smyl_clinical_evidence_studies where tenant_id = p_tenant and patient_id = p_patient
     union all select max(greatest(created_at, updated_at)) from public.mila_clinical_notes where tenant_id = p_tenant and paciente_id = p_patient
     union all select max(signed_at) from public.smyl_informed_consents where tenant_id = p_tenant and patient_id = p_patient
-    union all select max(issued_at) from public.smyl_prescriptions where tenant_id = p_tenant and patient_id = p_patient
     union all select max(updated_at) from public.smyl_patient_clinical_background where tenant_id = p_tenant and patient_id = p_patient
     union all select max(measured_at) from public.smyl_patient_vital_signs where tenant_id = p_tenant and patient_id = p_patient
     union all select case when exists (select 1 from public.smyl_patient_consents c where c.tenant_id = p_tenant and c.patient_id = p_patient)
                           then clock_timestamp() end
   ) actos;
+  if to_regclass('public.smyl_prescriptions') is not null then
+    execute 'select max(issued_at) from public.smyl_prescriptions where tenant_id = $1 and patient_id = $2' into v_rx using p_tenant, p_patient;
+    if v_rx is not null and (v_last is null or v_rx > v_last) then v_last := v_rx; end if;
+  end if;
+  return v_last;
+end;
 $$;
 revoke all on function public.smyl_patient_last_clinical_activity(uuid, uuid) from public, anon, authenticated;
 

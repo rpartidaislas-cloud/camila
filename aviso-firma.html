@@ -150,7 +150,7 @@
         });
       }
       function step3(){
-        main.append(el('h1','','Tu firma'),el('p','lead','Escribe tu nombre y firma con el dedo en el recuadro.'));
+        main.append(el('h1','','Tu firma'),el('p','lead','Con tu firma confirmas que leíste el aviso y registras lo que decidiste sobre IA, WhatsApp y promociones. Escribe tu nombre y firma con el dedo en el recuadro.'));
         var c1=el('div','card'),who=el('label','f','Nombre completo'),inp=document.createElement('input');inp.type='text';inp.maxLength=150;inp.autocomplete='name';inp.value=s.name;inp.oninput=function(){s.name=inp.value;sync();};who.append(inp);c1.append(who);
         var seg=el('div','seg');seg.setAttribute('role','group');seg.setAttribute('aria-label','Quién firma');
         [['patient','Firmo yo, el paciente'],['guardian','Firmo como tutor']].forEach(function(o){var b=el('button','',o[1]);b.type='button';b.setAttribute('aria-pressed',String(o[0]===s.relation));b.onclick=function(){s.relation=o[0];seg.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});sync();};seg.append(b);});

@@ -24,12 +24,11 @@
 .ic-feedback{margin:0;min-height:18px;font-size:13px;color:#b91c1c}
 .ic-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 @media (max-width:560px){.ic-row{grid-template-columns:1fr}.ic-list li{flex-direction:column;align-items:flex-start;padding:12px 16px}.ic-empty{padding:12px 16px}}
-/* Recetas (smyl-prescriptions.js) — reutiliza el diálogo de consentimiento */
+/* Grupos de campos (los usa smyl-clinical-background.js) */
 .rx-item{border:1px solid var(--smyl-ui-border,#d9e2ec);border-radius:10px;padding:10px 12px;margin:0 0 8px}
 .rx-item legend{font-size:12px;font-weight:700;padding:0 4px}
 .rx-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .rx-wide{grid-column:1/-1}
-.rx-add,.rx-remove{justify-self:start;border:0;background:none;color:var(--acento,#1e40af);font-size:13px;cursor:pointer;padding:4px 0}
 @media (max-width:560px){.rx-grid{grid-template-columns:1fr}}
 .bg-vitals-h{padding:12px 22px 0;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--texto2,#475569)}
 @media (max-width:560px){.bg-vitals-h{padding:10px 16px 0}}

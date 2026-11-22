@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><title>Flujo de receta (datos ficticios)</title>
+<link rel="stylesheet" href="../../smyl-prescription.css">
+<style>body{font:14px system-ui;margin:20px}.page-content{padding:20px;background:#eef2f7}</style></head>
+<body><div class="page-content" id="app"><h1>Pantalla de la app (ficticia)</h1><p>Este texto NO debe salir al imprimir la receta.</p><button id="abrir">Receta médica</button></div>
+<script>
+window.tenantId = 'T1'; window.__calls = []; window.__prints = 0;
+var hist = [];
+window.sb = {
+  rpc: async function (name, args) {
+    window.__calls.push({ name: name, args: args });
+    if (name === 'smyl_issue_prescription') {
+      var row = { id: args.p_id, status: 'issued', issued_at: new Date().toISOString(), snapshot: { folio: 'R-00000' + (hist.length + 1), issued_at: new Date().toISOString(),
+        professional: { name: 'Dra. Ana Ruiz', specialty: 'Endodoncia', license_number: '1234567', license_institution: 'UdeG' },
+        clinic: { name: 'Clínica Sol', address: 'Av. Siempre Viva 123, Guadalajara', phone: '33 0000 0000' }, patient: { name: 'María Pérez', age_label: '34 años' },
+        diagnosis: args.p_diagnosis, indications: args.p_indications, items: args.p_items.map(function (i) { return Object.assign({}, i, { duration: i.duration_days + ' días' }); }) } };
+      hist.unshift(row); return { data: row, error: null };
+    }
+    if (name === 'smyl_void_prescription') { var r = hist.find(function (x) { return x.id === args.p_id; }); r.status = 'voided'; r.void_reason = args.p_reason; return { data: r, error: null }; }
+    return { data: null, error: { message: 'desconocida' } };
+  },
+  from: function (table) {
+    var q = { select: function () { return q; }, eq: function () { return q; }, order: function () { return q; }, limit: function () { return q; },
+      maybeSingle: function () { return Promise.resolve({ data: { document: { allergy_records: [{ substance: 'Penicilina' }], allergies_status: 'yes' } }, error: null }); },
+      then: function (res) { return Promise.resolve({ data: table === 'smyl_prescriptions' ? hist : [], error: null }).then(res); } };
+    return q;
+  }
+};
+window.print = function () { window.__prints++; };
+</script>
+<script src="../../smyl-prescription-model.js"></script><script src="../../smyl-prescription-print.js"></script><script src="../../smyl-prescriptions.js"></script>
+<script>document.getElementById('abrir').onclick = function () { SmylPrescriptions.open({ patientId: 'P1', patientName: 'María Pérez' }); };</script>
+</body></html>

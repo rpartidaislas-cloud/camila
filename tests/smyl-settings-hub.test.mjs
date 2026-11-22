@@ -15,8 +15,9 @@ test('las secciones siguen las tareas administrativas de la clínica', () => {
   assert.ok(hub.SECTIONS.every(section => section.icon), 'cada área necesita un icono funcional');
   assert.ok(hub.SECTIONS.every(section => section.items.every(item => item.group && item.icon)), 'cada tarea debe pertenecer a un grupo y tener icono');
   assert.deepEqual(hub.groupedItems(hub.SECTIONS[4]).map(group => [group.name, group.items.length]), [
-    ['Cuentas conectadas', 3],
-    ['Atención automática', 5]
+    ['Cuentas de mensajería', 3],
+    ['Asistente', 2],
+    ['Mensajes automáticos', 3]
   ]);
 });
 
@@ -76,10 +77,10 @@ test('la configuración se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-settings-hub.js', 'smyl-settings-hub.css', 'smyl-navigation.js', 'smyl-clinic-setup.js', 'smyl-professional-v3.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=16/);
-  assert.match(read('app.html'), /smyl-settings-hub\.css\?v=5/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=16/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=5/);
+  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=17/);
+  assert.match(read('app.html'), /smyl-settings-hub\.css\?v=6/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=17/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=6/);
 });
 
 test('el espacio evita el título duplicado y separa las tareas en grupos y filas', () => {
@@ -132,7 +133,7 @@ test('Integrantes, permisos, profesionales, Facturación y Recordatorios se mues
   // Se reubica el mismo elemento y una marca de posición guarda su lugar para devolverlo al salir.
   assert.match(source, /document\.createComment\('settings-hub'\)/);
   assert.match(source, /detail\.mark\.parentNode\.insertBefore\(detail\.node, detail\.mark\)/);
-  assert.match(source, /if \(route !== 'configuracion'\) restoreDetail\(\);/);
+  assert.match(source, /if \(route !== 'configuracion'\) \{ channelView = null; restoreDetail\(\); \}/);
   assert.match(source, /if \(!node\) return go\(item\);/);
   assert.match(source, /host\.append\(detail\.node\)/);
   assert.doesNotMatch(source, /cloneNode|innerHTML\s*=/);

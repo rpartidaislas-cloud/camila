@@ -1,129 +1,178 @@
-/* SMYL · Recetas médicas (LGS art. 240; Reglamento de Insumos para la Salud arts. 28-30).
- * Sección «Recetas» en la historia clínica: lista las emitidas y permite emitir una nueva con medicamentos en
- * denominación genérica, presentación, dosis, vía, frecuencia y duración. Los datos del médico, del consultorio y
- * del paciente los toma el servidor. Se confirma la identidad antes de emitir y se imprime para firma autógrafa.
- * No sirve para medicamentos controlados (grupos I a III). Todo texto entra escapado. */
-(function (root, factory) { var api = factory(); if (typeof module === 'object' && module.exports) module.exports = api; else root.SmylPrescriptions = api; })(globalThis, function () {
+/* SMYL · Receta médica: captura, emisión e impresión desde la consulta.
+ *
+ * La emisión la valida y la registra la función SQL smyl_issue_prescription (profesional de la sesión con cédula, domicilio del
+ * consultorio, datos de cada medicamento, sin controlados, antibióticos ≤ 30 días, folio consecutivo, receta inmutable). Aquí solo se
+ * captura, se avisa antes de enviar y se imprime la copia congelada. IMPORTANTE: los requisitos legales NO se han contrastado con el
+ * texto oficial (docs/RECETA_REQUISITOS.md): validar con un abogado o asesor sanitario antes de usarla con pacientes reales.
+ */
+(function () {
   'use strict';
-  var ROUTES = ['Oral', 'Tópica (en la boca)', 'Sublingual', 'Enjuague bucal', 'Intramuscular', 'Intravenosa', 'Otra'];
-  var FIELDS = [['generic_name', 'Denominación genérica', 'Ej. Ibuprofeno'], ['brand_name', 'Nombre comercial (opcional)', ''], ['presentation', 'Presentación', 'Ej. Tabletas de 400 mg'], ['dose', 'Dosis', 'Ej. 1 tableta'], ['frequency', 'Frecuencia', 'Ej. Cada 8 horas'], ['duration', 'Duración', 'Ej. 3 días']];
+  var M = window.SmylPrescriptionModel, P = window.SmylPrescriptionPrint;
+  if (!M || !P) { console.error('[SMYL] receta: faltan smyl-prescription-model.js o smyl-prescription-print.js'); return; }
 
-  function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
-  function fmtDate(v) { try { return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(v)); } catch (e) { return String(v); } }
+  var ctx = null;
 
-  function validateItem(it) {
-    var required = ['generic_name', 'presentation', 'dose', 'route', 'frequency', 'duration'];
-    for (var i = 0; i < required.length; i++) if (!it[required[i]] || !String(it[required[i]]).trim()) return 'Completa ' + ({ generic_name: 'la denominación genérica', presentation: 'la presentación', dose: 'la dosis', route: 'la vía', frequency: 'la frecuencia', duration: 'la duración' })[required[i]] + ' de cada medicamento.';
-    return '';
+  function n(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function btn(text, cls, fn) { var b = n('button', cls || 'btn btn-secondary', text); b.type = 'button'; if (fn) b.addEventListener('click', fn); return b; }
+  function when(v) { try { return new Date(v).toLocaleString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } }
+  function say(text, tone) { var host = ctx && ctx.status; if (!host) return; host.replaceChildren(); if (!text) return; var p = n('p', 'rx-note rx-' + (tone || 'info'), text); p.setAttribute('role', tone === 'error' ? 'alert' : 'status'); host.append(p); }
+
+  async function rpc(name, args) {
+    var res = await window.sb.rpc(name, args);
+    if (res.error) throw new Error(res.error.message || 'No se pudo completar la acción.');
+    return res.data;
   }
 
-  /** HTML imprimible con todos los datos que exige la ley y espacio para la firma autógrafa. */
-  function printable(rx) {
-    var p = rx.prescriber || {}, c = rx.clinic || {}, pt = rx.patient || {};
-    return '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Receta ' + esc(rx.folio) + '</title><style>'
-      + 'body{font:13px/1.5 Arial,sans-serif;color:#111;max-width:720px;margin:24px auto;padding:0 20px}header{border-bottom:2px solid #111;padding-bottom:10px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}'
-      + 'h1{font-size:18px;margin:0}small{color:#444}.pt{margin:14px 0;display:flex;gap:24px;flex-wrap:wrap}ol{padding-left:20px}li{margin:0 0 10px}.firma{margin-top:56px;width:280px;border-top:1px solid #111;padding-top:6px}'
-      + '.void{color:#b91c1c;font-weight:700;font-size:16px;border:2px solid #b91c1c;padding:6px 10px;display:inline-block}footer{margin-top:24px;font-size:11px;color:#555}</style></head><body>'
-      + (rx.voided_at ? '<p class="void">RECETA ANULADA el ' + esc(fmtDate(rx.voided_at)) + ' — ' + esc(rx.void_reason) + '</p>' : '')
-      + '<header><div><h1>' + esc(p.name) + '</h1><div>Cédula profesional ' + esc(p.license) + ' · ' + esc(p.institution) + '</div>'
-      + (p.specialty ? '<div>' + esc(p.specialty) + (p.specialty_license ? ' · Cédula de especialidad ' + esc(p.specialty_license) : '') + '</div>' : '') + '</div>'
-      + '<div style="text-align:right"><b>' + esc(c.name) + '</b><br><small>' + esc(c.branch) + '<br>' + esc(c.address) + (c.phone ? '<br>Tel. ' + esc(c.phone) : '') + '</small></div></header>'
-      + '<div class="pt"><span><b>Paciente:</b> ' + esc(pt.name) + '</span>' + (pt.age ? '<span><b>Edad:</b> ' + esc(pt.age) + '</span>' : '') + (pt.sex ? '<span><b>Sexo:</b> ' + esc(pt.sex) + '</span>' : '') + '<span><b>Fecha:</b> ' + esc(fmtDate(rx.issued_at)) + '</span><span><b>Folio:</b> ' + esc(rx.folio) + '</span></div>'
-      + '<b>Rx</b><ol>' + (rx.items || []).map(function (it) { return '<li><b>' + esc(it.generic_name) + '</b>' + (it.brand_name ? ' (' + esc(it.brand_name) + ')' : '') + ' — ' + esc(it.presentation) + '<br>' + esc(it.dose) + ', vía ' + esc(String(it.route).toLowerCase()) + ', ' + esc(it.frequency) + ' durante ' + esc(it.duration) + (it.notes ? '<br><small>' + esc(it.notes) + '</small>' : '') + '</li>'; }).join('') + '</ol>'
-      + (rx.instructions ? '<p><b>Indicaciones:</b> ' + esc(rx.instructions) + '</p>' : '')
-      + '<div class="firma">Firma del médico</div>'
-      + '<footer>Huella del documento (SHA-256): ' + esc(rx.document_sha256) + '</footer></body></html>';
+  // Impresión: se monta SOLO la hoja y las reglas de impresión de smyl-prescription.css ocultan el resto de la página.
+  function printRow(row) {
+    var old = document.getElementById('rx-print-root'); if (old) old.remove();
+    var root = n('div', 'rx-print-root'); root.id = 'rx-print-root'; root.append(P.render(M.toSheet(row)));
+    document.body.append(root); document.body.classList.add('rx-printing');
+    var done = function () { document.body.classList.remove('rx-printing'); root.remove(); window.removeEventListener('afterprint', done); };
+    window.addEventListener('afterprint', done);
+    setTimeout(function () { window.print(); }, 60);
   }
 
-  /* ── Navegador ── */
-  function rpc(name, args) { return globalThis.sb.rpc(name, args).then(function (r) { if (r.error) throw r.error; return r.data; }); }
-  function errText(err) {
-    var msg = String(err && err.message || ''), code = err && err.code;
-    if (/PGRST202|42883|schema cache/i.test(code + ' ' + msg)) return 'Falta aplicar la migración de recetas en la base de datos.';
-    return msg || 'No se pudo completar. Intenta de nuevo.';
-  }
-  function print(rx) {
-    var w = window.open('', '_blank');
-    if (!w) { window.alert('Permite las ventanas emergentes para imprimir la receta.'); return; }
-    w.document.open(); w.document.write(printable(rx)); w.document.close(); w.focus(); setTimeout(function () { w.print(); }, 300);
+  function blankItem() { return { generic: '', brand: '', strength: '', form: '', dose: '', route: 'oral', frequency: '', duration_days: '', quantity: '' }; }
+
+  function field(label, key, item, attrs, list) {
+    var wrap = n('label', 'rx-field'); wrap.append(n('span', '', label));
+    var input = n('input'); input.value = item[key] == null ? '' : item[key];
+    Object.keys(attrs || {}).forEach(function (k) { input.setAttribute(k, attrs[k]); });
+    if (list) input.setAttribute('list', list);
+    input.addEventListener('input', function () { item[key] = input.value; say(''); refreshChecks(); });
+    wrap.append(input); return wrap;
   }
 
-  function itemHtml(i) {
-    return '<fieldset class="rx-item" data-i="' + i + '"><legend>Medicamento ' + (i + 1) + '</legend><div class="rx-grid">'
-      + FIELDS.map(function (f) { return '<label>' + f[1] + '<input name="' + f[0] + '" maxlength="160" placeholder="' + esc(f[2]) + '"></label>'; }).join('')
-      + '<label>Vía<select name="route">' + ROUTES.map(function (r) { return '<option>' + esc(r) + '</option>'; }).join('') + '</select></label>'
-      + '<label class="rx-wide">Notas (opcional)<input name="notes" maxlength="500"></label></div>'
-      + (i ? '<button type="button" class="rx-remove">Quitar</button>' : '') + '</fieldset>';
+  function renderItems() {
+    var host = ctx.itemsHost; host.replaceChildren();
+    ctx.items.forEach(function (item, i) {
+      var box = n('fieldset', 'rx-item'); box.append(n('legend', '', 'Medicamento ' + (i + 1)));
+      var grid = n('div', 'rx-grid');
+      grid.append(
+        field('Nombre genérico *', 'generic', item, { maxlength: '120', autocomplete: 'off' }, 'rx-suggest'),
+        field('Marca (opcional)', 'brand', item, { maxlength: '120' }),
+        field('Concentración', 'strength', item, { maxlength: '60', placeholder: 'Ej. 500 mg' }),
+        field('Presentación *', 'form', item, { maxlength: '60', placeholder: 'tabletas, cápsulas…' }, 'rx-forms'),
+        field('Dosis *', 'dose', item, { maxlength: '120', placeholder: 'Ej. 1 cápsula' }),
+        field('Vía *', 'route', item, { maxlength: '60' }, 'rx-routes'),
+        field('Frecuencia *', 'frequency', item, { maxlength: '80', placeholder: 'Ej. cada 8 horas' }),
+        field('Duración (días) *', 'duration_days', item, { type: 'number', min: '1', max: '365', inputmode: 'numeric' }),
+        field('Cantidad a surtir *', 'quantity', item, { maxlength: '60', placeholder: 'Ej. 21 cápsulas' })
+      );
+      box.append(grid);
+      var tag = n('p', 'rx-item-tag'); tag.dataset.item = String(i); box.append(tag);
+      if (ctx.items.length > 1) box.append(btn('Quitar', 'rx-link', function () { ctx.items.splice(i, 1); renderItems(); refreshChecks(); }));
+      host.append(box);
+    });
+    ctx.add.disabled = ctx.items.length >= M.MAX_ITEMS;
   }
 
-  async function openNew(o) {
-    var doc = document, d = doc.createElement('dialog'); d.className = 'ic-dialog rx-dialog';
-    var branches = [];
-    try { var r = await globalThis.sb.from('smyl_branches').select('id,name,address_line,is_default').eq('tenant_id', o.tenant).eq('active', true).order('is_default', { ascending: false }); branches = r.data || []; } catch (e) { branches = []; }
-    d.innerHTML = '<form class="ic-box"><header><h2>Nueva receta</h2><button type="button" class="ic-x" aria-label="Cerrar">×</button></header>'
-      + '<p class="ic-help">Escribe cada medicamento con su denominación genérica. Tu nombre, cédula, institución y el domicilio del consultorio se agregan solos. <b>No uses esta receta para medicamentos controlados</b>: requieren recetario especial.</p>'
-      + '<label>Consultorio<select name="branch">' + branches.map(function (b) { return '<option value="' + esc(b.id) + '">' + esc(b.name) + (b.address_line ? '' : ' (sin domicilio)') + '</option>'; }).join('') + '</select></label>'
-      + '<div class="rx-items">' + itemHtml(0) + '</div><button type="button" class="rx-add">+ Agregar otro medicamento</button>'
-      + '<label>Indicaciones generales (opcional)<textarea name="instructions" rows="2" maxlength="3000"></textarea></label>'
-      + '<p class="ic-feedback" role="status"></p>'
-      + '<div class="ic-actions"><button type="button" class="btn btn-secondary ic-cancel">Cancelar</button><button type="submit" class="btn btn-primary">Emitir e imprimir</button></div></form>';
-    doc.body.append(d);
-    var form = d.querySelector('form'), list = d.querySelector('.rx-items'), feedback = d.querySelector('.ic-feedback');
-    function close() { try { d.close(); } catch (e) {} d.remove(); }
-    d.querySelector('.ic-x').onclick = close; d.querySelector('.ic-cancel').onclick = close;
-    d.querySelector('.rx-add').onclick = function () { var n = list.querySelectorAll('.rx-item').length; if (n >= 12) return; list.insertAdjacentHTML('beforeend', itemHtml(n)); };
-    form.addEventListener('input', function () { feedback.textContent = ''; });
-    list.addEventListener('click', function (e) { if (e.target.classList.contains('rx-remove')) e.target.closest('.rx-item').remove(); });
-    form.onsubmit = async function (e) {
-      e.preventDefault();
-      if (!branches.length) { feedback.textContent = 'Registra una sucursal con domicilio en Configuración.'; return; }
-      var items = Array.prototype.map.call(list.querySelectorAll('.rx-item'), function (fs) { var it = {}; fs.querySelectorAll('input,select').forEach(function (x) { it[x.name] = x.value.trim(); }); return it; });
-      for (var i = 0; i < items.length; i++) { var p = validateItem(items[i]); if (p) { feedback.textContent = p; return; } }
-      var submit = form.querySelector('[type=submit]'); submit.disabled = true; feedback.textContent = '';
-      try {
-        if (globalThis.SmylAuthGuard && !(await globalThis.SmylAuthGuard.reauthenticate(globalThis.sb, 'emitir la receta'))) { submit.disabled = false; return; }
-        var rx = await rpc('smyl_issue_prescription', { p_patient_id: o.patient, p_branch_id: form.branch.value, p_items: items, p_instructions: form.instructions.value.trim() });
-        close(); print(rx); if (o.refresh) o.refresh();
-      } catch (err) { feedback.textContent = errText(err); submit.disabled = false; }
-    };
-    d.showModal();
+  // Avisos en vivo: antibiótico, controlado y alergias. Informan; el servidor es quien decide.
+  function refreshChecks() {
+    if (!ctx) return;
+    ctx.itemsHost.querySelectorAll('.rx-item-tag').forEach(function (tag) {
+      var item = ctx.items[Number(tag.dataset.item)] || {}, c = M.classify(item.generic, item.brand), text = '', tone = '';
+      if (c.controlled.length) { text = 'Parece un medicamento controlado: SMYL no emite recetas con estupefacientes ni psicotrópicos.'; tone = 'error'; }
+      else if (c.antibiotic) { text = 'Antibiótico: máximo ' + M.ANTIBIOTIC_MAX_DAYS + ' días. La farmacia puede retener esta receta.'; tone = 'warn'; }
+      tag.textContent = text; tag.dataset.tone = tone; tag.hidden = !text;
+    });
+    var warns = M.allergyWarnings(ctx.items, ctx.allergy);
+    ctx.allergyWarn.replaceChildren(); ctx.allergyWarn.hidden = !warns.length;
+    warns.forEach(function (w) { ctx.allergyWarn.append(n('p', 'rx-note rx-error', 'Medicamento ' + w.item + ' ' + w.reason + ': ' + w.allergy + '. Confirma con el paciente antes de emitir.')); });
   }
 
-  function render(rows, number, canAct) {
-    var list = rows === null ? '<p class="ic-empty">No se pudieron consultar las recetas.</p>'
-      : !rows.length ? '<p class="ic-empty">Aún no hay recetas emitidas.</p>'
-      : '<ul class="ic-list">' + rows.map(function (r) {
-        return '<li data-state="' + (r.voided_at ? 'revoked' : 'ok') + '"><div><b>Folio ' + esc(r.folio) + ' · ' + esc((r.items || []).map(function (it) { return it.generic_name; }).join(', ')) + '</b><small>' + esc(fmtDate(r.issued_at)) + ' · ' + esc((r.prescriber || {}).name) + ' (Céd. ' + esc((r.prescriber || {}).license) + ')' + (r.voided_at ? ' · Anulada: ' + esc(r.void_reason) : '') + '</small></div>'
-          + '<div class="ic-li-acts"><button type="button" class="p360-hc-edit" data-rx-print="' + esc(r.id) + '">Imprimir</button>' + (canAct && !r.voided_at ? '<button type="button" class="p360-hc-edit" data-rx-void="' + esc(r.id) + '">Anular</button>' : '') + '</div></li>';
-      }).join('') + '</ul>';
-    return '<section class="p360-hc-band" id="p360-hc-rx" data-tone="rx" tabindex="-1" aria-labelledby="p360-hc-rx-t">'
-      + '<header class="p360-hc-band-h"><div class="p360-hc-title"><span class="p360-hc-num" aria-hidden="true">' + Number(number) + '</span><div><h3 id="p360-hc-rx-t">Recetas</h3><small>Emitidas con los datos que exige la ley; se imprimen para firma.</small></div></div>'
-      + (canAct ? '<div class="pp-actions"><button type="button" class="p360-hc-edit" data-rx-new>Nueva receta</button></div>' : '') + '</header>' + list + '</section>';
+  async function loadAllergies() {
+    try {
+      var res = await window.sb.from('smyl_patient_histories').select('document').eq('tenant_id', window.tenantId).eq('patient_id', ctx.patientId).maybeSingle();
+      ctx.allergy = res.error ? null : M.allergiesOf(res.data && res.data.document);
+    } catch (e) { ctx.allergy = null; }
+    if (!ctx) return;
+    ctx.allergyNote.textContent = M.allergyNote(ctx.allergy); refreshChecks();
   }
 
-  function mount(o) {
-    var doc = globalThis.document;
-    if (!o || !o.host || !globalThis.sb || !doc) return Promise.resolve(false);
-    var host = o.host, main = host.querySelector('.p360-hc-main'), index = host.querySelector('.p360-hc-index');
-    if (!main || !index) return Promise.resolve(false);
-    o.refresh = function () { var b = host.querySelector('#p360-hc-rx'), g = host.querySelector('[data-hc-goto="rx"]'); if (b) b.remove(); if (g) g.remove(); mount(o); };
-    return rpc('smyl_list_prescriptions', { p_patient_id: o.patient }).catch(function () { return null; }).then(function (rows) {
-      if (o.isCurrent && !o.isCurrent()) return false;
-      if (!host.isConnected || host.querySelector('#p360-hc-rx')) return false;
-      var number = host.querySelectorAll('.p360-hc-band').length + 1, tpl = doc.createElement('template');
-      tpl.innerHTML = render(rows, number, !!o.canAct);
-      main.insertBefore(tpl.content, main.querySelector('.p360-hc-footer') || null);
-      var itpl = doc.createElement('template');
-      itpl.innerHTML = '<button type="button" data-hc-goto="rx"><span class="p360-hc-dot" data-state="neutral" aria-hidden="true"></span>' + number + ' · Recetas</button>';
-      index.insertBefore(itpl.content, index.querySelector('.p360-hc-progress') || null);
-      var band = host.querySelector('#p360-hc-rx');
-      index.querySelector('[data-hc-goto="rx"]').onclick = function () { band.scrollIntoView({ block: 'start' }); band.focus({ preventScroll: true }); };
-      var add = band.querySelector('[data-rx-new]'); if (add) add.onclick = function () { openNew(o); };
-      band.querySelectorAll('[data-rx-print]').forEach(function (b) { b.onclick = function () { var rx = (rows || []).find(function (r) { return r.id === b.dataset.rxPrint; }); if (rx) print(rx); }; });
-      band.querySelectorAll('[data-rx-void]').forEach(function (b) { b.onclick = function () { var reason = window.prompt('¿Por qué se anula esta receta?'); if (!reason) return; rpc('smyl_void_prescription', { p_id: b.dataset.rxVoid, p_reason: reason }).then(o.refresh, function (e) { window.alert(errText(e)); }); }; });
-      return true;
+  async function loadHistory() {
+    try {
+      var res = await window.sb.from('smyl_prescriptions').select('id,folio,status,issued_at,has_antibiotic,void_reason,snapshot,issued_by')
+        .eq('tenant_id', window.tenantId).eq('patient_id', ctx.patientId).order('issued_at', { ascending: false }).limit(20);
+      if (res.error) throw res.error;
+      ctx.history = res.data || [];
+    } catch (e) { ctx.history = null; }
+    renderHistory();
+  }
+
+  function renderHistory() {
+    if (!ctx) return; var host = ctx.historyHost; host.replaceChildren();
+    if (ctx.history === null) { host.append(n('p', 'rx-note rx-info', 'No se pudo consultar el historial de recetas.')); return; }
+    if (!ctx.history.length) { host.append(n('p', 'rx-note rx-info', 'Este paciente aún no tiene recetas.')); return; }
+    ctx.history.forEach(function (row) {
+      var item = n('div', 'rx-prev'), voided = row.status === 'voided';
+      var meds = (row.snapshot && row.snapshot.items || []).map(function (i) { return i.generic; }).join(', ');
+      var info = n('div'); info.append(n('strong', '', (row.snapshot && row.snapshot.folio || 'Receta') + (voided ? ' · ANULADA' : '')), n('small', '', when(row.issued_at) + (meds ? ' · ' + meds : '') + (voided && row.void_reason ? ' · Motivo: ' + row.void_reason : '')));
+      var acts = n('div', 'rx-prev-acts');
+      acts.append(btn('Reimprimir', 'rx-link', function () { printRow(row); }));
+      if (!voided) acts.append(btn('Anular', 'rx-link rx-danger', function () { voidDialog(row, item); }));
+      item.append(info, acts); host.append(item);
     });
   }
 
-  return { ROUTES: ROUTES, validateItem: validateItem, printable: printable, render: render, mount: mount, esc: esc };
-});
+  function voidDialog(row, anchor) {
+    var old = anchor.querySelector('.rx-void'); if (old) { old.remove(); return; }
+    var box = n('div', 'rx-void'), input = n('input'); input.maxLength = 300; input.placeholder = 'Motivo de la anulación (mínimo 5 caracteres)'; input.setAttribute('aria-label', 'Motivo de la anulación');
+    var go = btn('Confirmar anulación', 'rx-link rx-danger', async function () {
+      go.disabled = true;
+      try { await rpc('smyl_void_prescription', { p_id: row.id, p_reason: input.value }); say('Receta anulada.', 'ok'); await loadHistory(); }
+      catch (e) { go.disabled = false; say(e.message, 'error'); }
+    });
+    box.append(input, go); anchor.append(box); input.focus();
+  }
+
+  async function issue() {
+    var problems = M.issues(ctx.items, ctx.declare.checked);
+    if (problems.length) { say(problems[0], 'error'); return; }
+    ctx.submit.disabled = true; say('Emitiendo receta…', 'info');
+    try {
+      var row = await rpc('smyl_issue_prescription', {
+        p_id: ctx.rxId, p_idempotency_key: ctx.key, p_patient_id: ctx.patientId, p_branch_id: ctx.branchId || null, p_appointment_id: ctx.appointmentId || null,
+        p_diagnosis: ctx.diagnosis.value, p_indications: ctx.indications.value, p_items: M.payload(ctx.items), p_declare_not_controlled: ctx.declare.checked
+      });
+      row = Array.isArray(row) ? row[0] : row;
+      say('Receta ' + (row.snapshot && row.snapshot.folio || '') + ' emitida. Se abrirá la impresión.', 'ok');
+      ctx.rxId = crypto.randomUUID(); ctx.key = crypto.randomUUID(); // la siguiente receta usa otra llave; ante un error se reintenta con la misma
+      ctx.items = [blankItem()]; ctx.diagnosis.value = ''; ctx.indications.value = ''; ctx.declare.checked = false; renderItems(); refreshChecks();
+      await loadHistory(); printRow(row);
+    } catch (e) { say(e.message, 'error'); }
+    ctx.submit.disabled = false;
+  }
+
+  function open(opts) {
+    opts = opts || {};
+    if (!window.sb || !window.tenantId || !opts.patientId) return;
+    if (ctx && ctx.dialog) ctx.dialog.remove();
+    var dlg = n('dialog', 'rx-dialog'); dlg.setAttribute('aria-label', 'Receta médica');
+    ctx = { dialog: dlg, patientId: opts.patientId, branchId: opts.branchId || null, appointmentId: opts.appointmentId || null, items: [blankItem()], allergy: null, history: undefined,
+      rxId: crypto.randomUUID(), key: crypto.randomUUID() };
+    var form = n('form'); form.method = 'dialog';
+    var head = n('div', 'rx-dlg-head'); head.append(n('h2', '', 'Receta médica'), n('p', '', opts.patientName || ''), btn('Cerrar', 'rx-link', function () { dlg.close(); }));
+    ctx.allergyNote = n('p', 'rx-note rx-info', 'Consultando alergias…'); ctx.allergyWarn = n('div'); ctx.allergyWarn.hidden = true;
+    ctx.status = n('div'); ctx.status.setAttribute('aria-live', 'polite');
+    ctx.itemsHost = n('div');
+    ctx.add = btn('+ Agregar medicamento', 'btn btn-secondary', function () { if (ctx.items.length < M.MAX_ITEMS) { ctx.items.push(blankItem()); renderItems(); refreshChecks(); } });
+    var dx = n('label', 'rx-field'); dx.append(n('span', '', 'Diagnóstico (opcional)')); ctx.diagnosis = n('input'); ctx.diagnosis.maxLength = 240; dx.append(ctx.diagnosis);
+    var ind = n('label', 'rx-field'); ind.append(n('span', '', 'Indicaciones al paciente')); ctx.indications = n('textarea'); ctx.indications.rows = 3; ctx.indications.maxLength = 900; ind.append(ctx.indications);
+    var dec = n('label', 'rx-check'); ctx.declare = n('input'); ctx.declare.type = 'checkbox'; ctx.declare.addEventListener('change', function () { say(''); }); dec.append(ctx.declare, n('span', '', 'Confirmo que esta receta no incluye medicamentos controlados (estupefacientes ni psicotrópicos).'));
+    ctx.submit = btn('Emitir e imprimir', 'btn btn-primary'); ctx.submit.type = 'submit';
+    var lists = n('div'); lists.hidden = true;
+    [['rx-suggest', M.SUGGESTIONS], ['rx-forms', M.FORMS], ['rx-routes', M.ROUTES]].forEach(function (pair) {
+      var dl = n('datalist'); dl.id = pair[0]; pair[1].forEach(function (v) { var o = n('option'); o.value = v; dl.append(o); }); lists.append(dl);
+    });
+    ctx.historyHost = n('div');
+    form.append(head, ctx.allergyNote, ctx.allergyWarn, dx, ctx.itemsHost, ctx.add, ind, dec, ctx.status, ctx.submit, n('h3', '', 'Recetas anteriores'), ctx.historyHost, lists);
+    form.addEventListener('submit', function (e) { e.preventDefault(); issue(); });
+    dlg.append(form); document.body.append(dlg);
+    dlg.addEventListener('close', function () { dlg.remove(); if (ctx && ctx.dialog === dlg) ctx = null; });
+    renderItems(); dlg.showModal(); loadAllergies(); loadHistory();
+  }
+
+  window.SmylPrescriptions = { open: open };
+})();

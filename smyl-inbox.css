@@ -3823,3 +3823,7 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
   #p-inbox .smyl-suggest-list em { grid-column: 2; justify-self: start; }
   #p-inbox .smyl-suggest-head .btn, #p-inbox .smyl-suggest-actions .btn { flex: 1 1 100%; }
 }
+
+/* Botones de «Sugerir horarios» y «Lista de espera» */
+#p-inbox .smyl-suggest-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 620px) { #p-inbox .smyl-suggest-buttons { width: 100%; } #p-inbox .smyl-suggest-buttons .btn { flex: 1 1 100%; } }

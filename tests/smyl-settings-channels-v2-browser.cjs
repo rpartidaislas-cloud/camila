@@ -1,4 +1,5 @@
 const path = require('node:path');
+const assert = require('node:assert/strict');
 
 function loadPlaywright() {
   const candidates = [
@@ -37,6 +38,13 @@ const { chromium } = loadPlaywright();
       await context.close();
       throw error;
     }
+    await page.waitForFunction(() => document.querySelector('.settings-account-count')?.textContent === '1 de 3 conectadas');
+    for (const channel of ['whatsapp','messenger','instagram']) {
+      const card = page.locator('[data-account="' + channel + '"]');
+      assert.ok(await card.locator('img').evaluate(img => img.complete && img.naturalWidth && img.src.endsWith('/' + img.closest('button').dataset.account + '.svg')));
+      assert.equal(await card.locator('.settings-account-action').innerText(), channel === 'instagram' ? 'Administrar' : 'Conectar');
+    }
+    assert.equal(await page.locator('[data-account="instagram"] .settings-account-name').innerText(),'@smyl.clinic');
     const settings = await page.evaluate(() => ({
       categories: document.querySelectorAll('.settings-hub-nav-item').length,
       rows: document.querySelectorAll('.settings-hub-row').length,
@@ -48,6 +56,38 @@ const { chromium } = loadPlaywright();
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
     }));
     if (process.env.SMYL_QA_SCREENSHOTS) await page.screenshot({ path: path.join(process.env.SMYL_QA_SCREENSHOTS, `settings-${item.name}.png`), fullPage: true });
+    if (item.name === 'desktop') {
+      // Una respuesta tardía de otra clínica jamás debe volver a pintar una cuenta.
+      await page.evaluate(() => {
+        window.SmylSettingsHub.open('agenda');
+        const fetchNormally = window.fetch;
+        window.fetch = (url, options) => {
+          if (!String(url).includes('/lana-channels')) return fetchNormally(url, options);
+          return new Promise(resolve => { window.completePreviousClinic = () => resolve(new Response(JSON.stringify({can_manage:true, channels:[{channel:'instagram',connected:true,display_name:'@anterior'}]}))); });
+        };
+        window.SmylSettingsHub.open('canales');
+      });
+      await page.waitForFunction(() => typeof window.completePreviousClinic === 'function');
+      await page.evaluate(() => {
+        window.tenantId = 'otra-clinica-demo';
+        window.fetch = async () => new Response('{}', {status:503});
+        window.SmylSettingsHub.open('canales');
+      });
+      await page.getByRole('button', {name:'Reintentar consulta'}).waitFor();
+      await page.evaluate(() => window.completePreviousClinic());
+      assert.equal(await page.locator('.settings-account[data-state="unknown"]').count(),3);
+      assert.equal(await page.getByText('@anterior').count(),0);
+      await page.evaluate(() => {
+        window.fetch = async () => new Response(JSON.stringify({can_manage:false,channels:[{channel:'instagram',connected:true,display_name:'@otra'}]}));
+      });
+      await page.getByRole('button', {name:'Reintentar consulta'}).click();
+      await page.getByText('@otra', {exact:true}).waitFor();
+      assert.equal(await page.locator('[data-account="instagram"] .settings-account-action').innerText(), 'Ver canal');
+      assert.equal(await page.locator('[data-account="messenger"] .settings-account-status').innerText(), 'Sin verificar');
+      assert.equal(await page.locator('.settings-account-count').innerText(),'');
+      await page.reload();
+      await page.waitForSelector('html[data-qa-ready="true"]');
+    }
     await page.evaluate(() => window.SmylSettingsHub.open('agenda'));
     await page.waitForFunction(() => document.querySelector('.settings-hub-panel-head h1')?.textContent.trim() === 'Agenda');
     const agenda = await page.evaluate(() => ({
@@ -60,7 +100,12 @@ const { chromium } = loadPlaywright();
     if (process.env.SMYL_QA_SCREENSHOTS) await page.screenshot({ path: path.join(process.env.SMYL_QA_SCREENSHOTS, `agenda-${item.name}.png`), fullPage: true });
     await page.evaluate(() => window.SmylSettingsHub.open('canales'));
     await page.waitForFunction(() => document.querySelector('.settings-hub-panel-head h1')?.textContent.trim() === 'Canales');
-    await page.locator('.settings-hub-row').filter({ hasText: 'WhatsApp Business' }).click();
+    for (const channel of ['messenger','instagram']) {
+      await page.locator('[data-account="' + channel + '"]').click();
+      await page.locator('#p-conexiones.activa [data-connection-pane="' + channel + '"]:visible').waitFor();
+      await page.getByRole('button', {name:'Volver a Configuración'}).click();
+    }
+    await page.locator('[data-account="whatsapp"]').click();
     await page.waitForFunction(() => document.getElementById('p-conexiones')?.classList.contains('activa') && !document.querySelector('[data-connection-pane="whatsapp"]')?.hidden);
     await page.waitForFunction(() => document.querySelector('[data-lana-status]')?.textContent.trim() === 'Mensajería activa' && document.querySelector('[data-channel-row="whatsapp"]')?.dataset.state === 'pending');
     const whatsapp = await page.evaluate(min => {
@@ -95,6 +140,6 @@ const { chromium } = loadPlaywright();
   }
   await browser.close();
   console.log(JSON.stringify(report, null, 2));
-  const failed = report.some(item => item.errors.length || item.settings.categories !== 7 || item.settings.rows !== 7 || item.settings.groups !== 2 || item.settings.panelTitle !== 'Canales' || item.settings.pickerValue !== 'canales' || item.settings.duplicatedTitle || !/Canales/.test(item.settings.current || '') || item.settings.overflow || item.agenda.rows !== 4 || item.agenda.groups !== 3 || item.agenda.current !== 'Agenda' || item.agenda.pickerValue !== 'agenda' || item.agenda.overflow || item.whatsapp.tabs !== 8 || item.whatsapp.visiblePanes !== 1 || item.whatsapp.title !== 'WhatsApp Business' || item.whatsapp.rows !== 1 || item.whatsapp.tools !== 4 || item.whatsapp.modeChoices !== 2 || item.whatsapp.modeButtons !== 2 || item.whatsapp.navGroups !== 3 || !item.whatsapp.logo || !item.whatsapp.accountLogo || item.whatsapp.scope !== 'Se configura al conectar' || item.whatsapp.minControl < item.whatsapp.expectedMin - .5 || item.whatsapp.overflow || !item.automations.visible || item.automations.tools !== 3);
+  const failed = report.some(item => item.errors.length || item.settings.categories !== 7 || item.settings.rows !== 5 || item.settings.groups !== 3 || item.settings.panelTitle !== 'Canales' || item.settings.pickerValue !== 'canales' || item.settings.duplicatedTitle || !/Canales/.test(item.settings.current || '') || item.settings.overflow || item.agenda.rows !== 5 || item.agenda.groups !== 3 || !/^Agenda/.test(item.agenda.current) || item.agenda.pickerValue !== 'agenda' || item.agenda.overflow || item.whatsapp.tabs !== 8 || item.whatsapp.visiblePanes !== 1 || item.whatsapp.title !== 'WhatsApp Business' || item.whatsapp.rows !== 1 || item.whatsapp.tools !== 4 || item.whatsapp.modeChoices !== 2 || item.whatsapp.modeButtons !== 2 || item.whatsapp.navGroups !== 3 || !item.whatsapp.logo || !item.whatsapp.accountLogo || item.whatsapp.scope !== 'Se configura al conectar' || item.whatsapp.minControl < item.whatsapp.expectedMin - .5 || item.whatsapp.overflow || !item.automations.visible || item.automations.tools !== 3);
   if (failed) process.exitCode = 1;
 })().catch(error => { console.error(error); process.exitCode = 1; process.exit(); });
