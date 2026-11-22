@@ -270,7 +270,7 @@ function readLanaContract(body: any) {
 //  - no strict (alta automática o verificación de un enlace ya existente): sólo se rechaza un producto distinto de "smyl";
 //    si LANA aún no informa el producto, se acepta pero queda marcado como "sin verificar".
 // Resultado: { ok, verified, code, message }
-function decideLanaLink(info: any, { strict }) {
+function decideLanaLink(info, { strict }) {
   const product = info && info.product ? info.product : null;
   if (product === SMYL_PRODUCT) return { ok: true, verified: true, code: "", message: "" };
   if (product) {
@@ -442,7 +442,7 @@ function datosLegales(issuer: any) {
 }
 
 // Archivos del CSD recibidos del navegador. `cer` y `key` son { name, size }.
-function validarCsd({ cer, key: any, password } = {}) {
+function validarCsd({ cer, key, password } = {}) {
   const ok = (f, ext) => f && typeof f.name === "string" && f.name.toLowerCase().endsWith(ext) && Number.isFinite(f.size) && f.size >= 200 && f.size <= 65536;
   if (!ok(cer, ".cer")) return { ok: false, error: "Sube el archivo del certificado (termina en .cer)." };
   if (!ok(key, ".key")) return { ok: false, error: "Sube el archivo de la llave privada (termina en .key)." };
@@ -473,7 +473,7 @@ function rfcCoincide(rfcCertificado: any, rfcClinica: any) {
 }
 
 // Compuerta de producción: todo debe cumplirse en el servidor.
-function puedeActivarProduccion({ mode, status: any, productionReady: any, issuerReviewed: any, policyReviewed: any, confirmText } = {}) {
+function puedeActivarProduccion({ mode, status, productionReady, issuerReviewed, policyReviewed, confirmText } = {}) {
   if (mode !== "platform") return { ok: false, error: "La producción se activa solo con la cuenta de plataforma de SMYL." };
   if (status !== "connected") return { ok: false, error: "Primero activa la facturación de la clínica." };
   if (!issuerReviewed) return { ok: false, error: "Faltan los datos fiscales revisados de la clínica." };
