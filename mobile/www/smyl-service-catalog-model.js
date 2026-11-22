@@ -100,7 +100,7 @@
     return {
       template_key: row.template_key || null,
       name: String(row.name || '').trim(), patient_name: String(row.patient_name || row.name || '').trim(),
-      description: String(row.description || '').trim(), category: row.category || 'other', specialty: row.specialty || row.category || 'general',
+      description: String(row.description || '').trim(), prep_instructions: String(row.prep_instructions || '').trim(), category: row.category || 'other', specialty: row.specialty || row.category || 'general',
       duration_minutes: Number(row.duration_minutes || 60), reference_price: Number.isFinite(price) ? price : null,
       currency: row.currency || 'MXN', scope_type: row.scope_type || 'session', pricing_mode: row.pricing_mode || 'fixed',
       sat_product_service_code: String(row.sat_product_service_code || '').trim() || null,
@@ -113,6 +113,7 @@
   function validate(input) {
     var row = normalize(input), errors = [];
     if (row.name.length < 2 || row.name.length > 100) errors.push('El nombre debe tener entre 2 y 100 caracteres.');
+    if (row.prep_instructions.length > 400) errors.push('Las instrucciones antes de la cita admiten hasta 400 caracteres.');
     if (!oneOf(CATEGORIES,row.category)) errors.push('La categoría no es válida.');
     if (!oneOf(SCOPES,row.scope_type)) errors.push('La unidad clínica no es válida.');
     if (!oneOf(PRICING,row.pricing_mode)) errors.push('La modalidad de precio no es válida.');

@@ -3800,3 +3800,26 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
 }
 /* La barra «Conversaciones | Pipeline» ocupa menos altura. */
 #p-inbox .smyl-inbox-top { min-height: 0; padding-block: 6px; }
+
+/* ── «Sugerir horarios» en Agendar cita ── */
+#p-inbox .smyl-inbox-availability-suggest { margin: 0 0 12px; padding: 12px 14px; border: 1px solid #cfe3de; border-radius: 14px; background: #f5faf8; }
+#p-inbox .smyl-suggest-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+#p-inbox .smyl-suggest-head strong { display: block; font-size: 14px; color: #12312c; }
+#p-inbox .smyl-suggest-head span { display: block; margin-top: 2px; color: #5f716b; font-size: 12px; line-height: 1.4; }
+#p-inbox .smyl-suggest-body:empty { display: none; }
+#p-inbox .smyl-suggest-body { margin-top: 10px; }
+#p-inbox .smyl-suggest-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+#p-inbox .smyl-suggest-list li { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid #dce6e3; border-radius: 12px; background: #fff; }
+#p-inbox .smyl-suggest-n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: #135e59; color: #fff; font: 700 13px/1 var(--inbox-font, inherit); }
+#p-inbox .smyl-suggest-list strong { display: block; font-size: 14px; }
+#p-inbox .smyl-suggest-list small { display: block; margin-top: 2px; color: #5f716b; font-size: 12px; }
+#p-inbox .smyl-suggest-list em { font-style: normal; font-size: 11px; font-weight: 700; color: #135e59; background: #e3f2ee; padding: 3px 8px; border-radius: 99px; white-space: nowrap; }
+#p-inbox .smyl-suggest-note { margin: 8px 0 0; color: #5f716b; font-size: 12px; line-height: 1.45; }
+#p-inbox .smyl-suggest-body[data-state="error"] .smyl-suggest-note { color: #8a1f1f; }
+#p-inbox .smyl-suggest-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+#p-inbox .smyl-suggest-actions .btn { min-height: 40px; }
+@media (max-width: 620px) {
+  #p-inbox .smyl-suggest-list li { grid-template-columns: 28px 1fr; }
+  #p-inbox .smyl-suggest-list em { grid-column: 2; justify-self: start; }
+  #p-inbox .smyl-suggest-head .btn, #p-inbox .smyl-suggest-actions .btn { flex: 1 1 100%; }
+}
