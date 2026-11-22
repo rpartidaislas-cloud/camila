@@ -14,3 +14,15 @@
 @media(max-width:600px){.pc-entry{align-items:stretch;flex-direction:column;padding:20px}.pc-entry h2{font-size:20px}.pc-dialog{padding:22px}.pc-card{flex-direction:column;align-items:stretch}.pc-pair{gap:8px}.pc-pair figcaption{padding:10px;font-size:11px}.pc-gallery{padding:20px}#pc-submit,#pc-open-patient{width:100%;box-sizing:border-box}}
 @media(max-width:700px){.pc-gallery-header{align-items:stretch;flex-direction:column;padding:18px}.pc-gallery-actions,.pc-gallery-actions .pc-primary{width:100%}.pc-gallery-notice{align-items:flex-start;flex-direction:column;padding:12px 18px}.pc-case-summary>div{padding:12px}.p360-root [data-p360-panel="simulations"] .pc-case-list{padding:14px}.p360-root [data-p360-panel="simulations"] .pc-card{padding:14px}}
 @media(max-width:420px){.pc-case-summary{grid-template-columns:1fr}.pc-case-summary>div{display:flex;align-items:center;justify-content:space-between;border-right:0;border-bottom:1px solid #e5ebf1}.pc-case-summary>div:last-child{border-bottom:0}.pc-case-summary strong{margin:0;font-size:16px}}
+
+/* Cobro de la simulación y crédito para carillas */
+.pc-credit{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:0 0 12px;padding:10px 14px;border-radius:12px;background:#e6f5f1;color:#0b4f43;font-size:13px}
+.pc-credit strong{font-size:14px}
+.pc-billing{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.pc-billing .pc-secondary{min-height:40px}
+.pc-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:650;line-height:1.5;background:#eef1f4;color:#4f5d6c}
+.pc-chip.is-paid{background:#e3f6ec;color:#1c6a4c}
+.pc-chip.is-due{background:#fff2e0;color:#9a5a12}
+.pc-chip.is-credit{background:#eaf1fb;color:#2c5282}
+.pc-chip.is-credited{background:#efe9fb;color:#5b3c99}
+.pc-billing-hint{color:#5b6b7a;font-size:12px}
