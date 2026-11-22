@@ -34,6 +34,8 @@ copyFile(path.join(ROOT, 'smyl-professional-directory.js'), path.join(WWW, 'smyl
 copyFile(path.join(ROOT, 'smyl-professional-directory.css'), path.join(WWW, 'smyl-professional-directory.css'));
 copyFile(path.join(ROOT, 'smyl-ui-template-v3.css'), path.join(WWW, 'smyl-ui-template-v3.css'));
 copyFile(path.join(ROOT, 'smyl-navigation.js'), path.join(WWW, 'smyl-navigation.js'));
+copyFile(path.join(ROOT, 'smyl-photo-url-refresh.js'), path.join(WWW, 'smyl-photo-url-refresh.js'));
+copyFile(path.join(ROOT, 'smyl-auth-guard.js'), path.join(WWW, 'smyl-auth-guard.js'));
 copyFile(path.join(ROOT, 'smyl-navigation.css'), path.join(WWW, 'smyl-navigation.css'));
 copyFile(path.join(ROOT, 'smyl-settings-hub.js'), path.join(WWW, 'smyl-settings-hub.js'));
 copyFile(path.join(ROOT, 'smyl-settings-hub.css'), path.join(WWW, 'smyl-settings-hub.css'));

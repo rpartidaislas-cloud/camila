@@ -214,6 +214,7 @@
 <link rel="stylesheet" href="smyl-clinical-review-v33.css?v=1">
 <link rel="stylesheet" href="smyl-skeleton.css?v=1">
 <script defer src="smyl-skeleton.js?v=1"></script>
+<script src="smyl-photo-url-refresh.js?v=1"></script>
 </head>
 <body class="clinical-review-v33">
   <!-- ══ LOGIN OPCIONAL — mismo Supabase Auth que simulacion.html/app.html ══
@@ -2620,7 +2621,7 @@ async function firmarUrlStorage(path) {
   const resp = await fetch(`${base}/storage/v1/object/sign/${FOTOS_BUCKET}/${path}`, {
     method: 'POST',
     headers: { 'apikey': DB_KEY, 'Authorization': 'Bearer ' + (userToken || DB_KEY), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ expiresIn: 31536000 }), // ~1 año
+    body: JSON.stringify({ expiresIn: 604800 }), // 7 días; smyl-photo-url-refresh.js lo renueva si vence
   });
   if (!resp.ok) throw new Error(await resp.text().catch(() => String(resp.status)));
   const data = await resp.json();

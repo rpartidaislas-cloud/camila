@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requirePermission, requireUser } from "../_shared/auth.ts";
+import { permisoIA, respuestaIAnegada } from "../_shared/privacy.ts";
 import { makeCors } from "../_shared/cors.ts";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
@@ -147,6 +148,18 @@ Deno.serve(async (req: Request) => {
   if (!ALLOWED_MIME.has(mime)) return json(415, { error: "Formato de audio no permitido." });
   if (audio.size <= 0 || audio.size > MAX_BYTES) return json(413, { error: "El dictado debe pesar menos de 10 MB." });
   const clientDuration = Math.max(1, Math.min(MAX_SECONDS, Math.ceil(Number(form.get("duracion_segundos")) || 1)));
+
+  // El dictado habla de un paciente: se comprueba que autorizó el uso de IA antes de mandar el audio.
+  const pacienteId = String(form.get("paciente_id") || "");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pacienteId)) {
+    return json(400, { error: "Falta el paciente del dictado: necesitamos comprobar que autorizó el uso de IA." });
+  }
+  {
+    const { data: paciente } = await admin.from("camila_pacientes").select("id").eq("id", pacienteId).eq("tenant_id", tenantId).maybeSingle();
+    if (!paciente) return json(404, { error: "El paciente no pertenece a tu clínica." });
+    const negada = respuestaIAnegada(await permisoIA(admin, tenantId, pacienteId));
+    if (negada) return json(negada.status, negada.body);
+  }
 
   if (CONSUMABLES_ENFORCED) {
     const { data: wallet } = await admin.from("smyl_wallets").select("balance_units")

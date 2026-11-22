@@ -18,6 +18,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="smyl-browser-privacy.js?v=1"></script>
 <script src="smyl-sentry.js?v=3"></script>
+<script src="smyl-photo-url-refresh.js?v=1"></script>
+<script src="smyl-auth-guard.js?v=1"></script>
 <script src="smyl-secure-files.js?v=2"></script>
 <link rel="stylesheet" href="smyl-security-center.css?v=2">
 <script src="smyl-security-center.js?v=3"></script>
@@ -968,14 +970,14 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-clinic.css?v=13">
 <script defer src="smyl-clinical-model.js?v=3"></script>
 <script defer src="smyl-treatment-plan-model.js?v=1"></script>
-<script defer src="smyl-treatment-plan-client.js?v=1"></script>
+<script defer src="smyl-treatment-plan-client.js?v=2"></script>
 <script defer src="smyl-clinic.js?v=26"></script>
 <link rel="stylesheet" href="smyl-patient-360.css?v=21">
 <link rel="stylesheet" href="smyl-patient-privacy-panel.css?v=2">
 <link rel="stylesheet" href="smyl-mila-interview.css?v=5">
 <script defer src="smyl-history-model.js?v=3"></script>
 <script defer src="smyl-history-read.js?v=4"></script>
-<script defer src="smyl-patient-privacy-panel.js?v=2"></script>
+<script defer src="smyl-patient-privacy-panel.js?v=3"></script>
 <script defer src="smyl-patient-360.js?v=35"></script>
 <script defer src="vendor/qrcode-generator-1.4.4.js"></script>
 <script defer src="smyl-mila-interview.js?v=7"></script>
@@ -1015,8 +1017,8 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-dental-dictation.js?v=2"></script>
 <script defer src="smyl-radiograph-review-model.js?v=9"></script>
 <script defer src="smyl-radiograph-review-store.js?v=2"></script>
-<script defer src="smyl-radiograph-analysis-client.js?v=13"></script>
-<script defer src="smyl-radiograph-review.js?v=33"></script>
+<script defer src="smyl-radiograph-analysis-client.js?v=14"></script>
+<script defer src="smyl-radiograph-review.js?v=34"></script>
 <script defer src="smyl-radiograph-contracts.js?v=2"></script>
 <script defer src="smyl-radiograph-review-model-v2.js?v=1"></script>
 <script defer src="smyl-radiograph-report.js?v=3"></script>
@@ -1110,13 +1112,13 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <div id="ag-reg-ok" style="display:none;background:var(--color-success-subtle);border:1px solid #86EFAC;color:#15803D;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px"></div>
       <div class="fg" style="margin-bottom:13px"><label>Nombre completo</label><input type="text" id="ag-r-nombre" placeholder="Dr. / Dra. ..."></div>
       <div class="fg" style="margin-bottom:13px"><label for="ag-r-email">Correo electrónico</label><input type="email" id="ag-r-email" placeholder="tu@clinica.com" autocomplete="email"></div>
-      <div class="fg" style="margin-bottom:13px"><label>Contraseña</label><input type="password" id="ag-r-pass" placeholder="Mínimo 6 caracteres"></div>
+      <div class="fg" style="margin-bottom:13px"><label>Contraseña</label><input type="password" id="ag-r-pass" placeholder="Mínimo 10 caracteres, con letras y números"></div>
       <div class="fg" style="margin-bottom:13px"><label>Código de acceso</label><input type="text" id="ag-r-codigo" placeholder="Del curso o promocional" style="text-transform:uppercase"></div>
       <div class="fg" style="margin-bottom:16px"><label>Plan</label>
         <select id="ag-r-plan">
-          <option value="esencial:15:399">Esencial — $399/mes · 15 diagnósticos</option>
-          <option value="profesional:40:799" selected>Profesional — $799/mes · 40 diagnósticos</option>
-          <option value="premium:100:1499">Premium — $1,499/mes · 100 diagnósticos</option>
+          <option value="esencial:15:399">Esencial — $399/mes · 15 análisis con IA</option>
+          <option value="profesional:40:799" selected>Profesional — $799/mes · 40 análisis con IA</option>
+          <option value="premium:100:1499">Premium — $1,499/mes · 100 análisis con IA</option>
         </select>
       </div>
       <button class="btn btn-primary btn-full ag-submit" id="ag-btn-registro" onclick="hacerRegistroAppGate()" style="width:100%;justify-content:center;margin-top:0">Crear mi cuenta</button>
@@ -1153,7 +1155,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <div class="plan-chip plan-profesional" id="sb-plan-chip">✦ Profesional</div>
       <div class="uso-wrap">
         <div class="uso-bar"><div class="uso-fill" id="uso-fill" style="width:0%"></div></div>
-        <div class="uso-txt" id="uso-txt">0 / 40 diagnósticos</div>
+        <div class="uso-txt" id="uso-txt">0 / 40 análisis con IA</div>
       </div>
     </div>
     <div class="nav-items">
@@ -1280,7 +1282,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
             </div>
             <div class="stat-num" id="st-disp">-</div>
-            <div class="stat-lbl">Diagnósticos disponibles</div>
+            <div class="stat-lbl">Análisis con IA disponibles</div>
           </div>
           <div class="stat-card stat-azul">
             <div class="stat-icon">
@@ -1354,7 +1356,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
             <div class="card">
               <div class="card-title">Progreso del mes</div>
               <div id="dash-progreso">
-                <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:8px">— de 40 diagnósticos usados</div>
+                <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:8px">— de 40 análisis con IA usados</div>
                 <div style="background:var(--color-border);border-radius:99px;height:6px;overflow:hidden">
                   <div style="background:var(--color-primary);height:100%;border-radius:99px;width:0%;transition:width .4s" id="dash-prog-bar"></div>
                 </div>
@@ -1478,7 +1480,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 
         <!-- PASO 1: Documentación -->
         <div id="paso-1">
-          <div class="alerta alerta-warn" id="alerta-limite">⚠️ Alcanzaste tu límite de diagnósticos este mes.</div>
+          <div class="alerta alerta-warn" id="alerta-limite">⚠️ Alcanzaste tu límite de análisis con IA este mes.</div>
           <div class="card">
             <div class="card-title">📋 Datos del Caso</div>
             <div class="form-grid">
@@ -1504,7 +1506,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           </div>
           <div class="card">
             <div class="card-title">📸 Fotografías Clínicas</div>
-            <p style="font-size:12px;color:var(--texto3);margin-bottom:14px">Sube hasta 4 imágenes. Más fotos = diagnóstico más preciso.</p>
+            <p style="font-size:12px;color:var(--texto3);margin-bottom:14px">Sube hasta 4 imágenes. Más fotos = propuesta más completa.</p>
             <div class="upload-grid">
               <div class="upload-slot" id="slot-0" ondragover="dragSobre(event,0)" ondragleave="dragFuera(0)" ondrop="dropImg(event,0)">
                 <input type="file" accept="image/*" onchange="cargarImg(this,0)">
@@ -1584,7 +1586,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           <div class="loading-ia" id="loading-ia">
             <div class="sk-region" role="status" aria-live="polite" data-skeleton="kpis" style="max-width:420px"><span class="sk-sr">Analizando caso clínico</span><div aria-hidden="true"><div class="sk-kpis"><div class="sk-kpi"><span class="sk sk-line w-40"></span><span class="sk sk-line is-xl w-60"></span></div><div class="sk-kpi"><span class="sk sk-line w-40"></span><span class="sk sk-line is-xl w-60"></span></div><div class="sk-kpi"><span class="sk sk-line w-40"></span><span class="sk sk-line is-xl w-60"></span></div></div></div></div>
             <div style="font-size:15px;font-weight:600;color:var(--texto)">Analizando caso clínico...</div>
-            <div style="font-size:12px;color:var(--texto3)">La IA está evaluando imágenes y generando el diagnóstico</div>
+            <div style="font-size:12px;color:var(--texto3)">La IA está preparando la propuesta estética orientativa</div>
             <div class="ia-progress">
               <div class="ia-step-loading" id="ia-s1">⏳ Procesando fotografías...</div>
               <div class="ia-step-loading" id="ia-s2">⏳ Análisis facial y dental...</div>
@@ -1603,7 +1605,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
               </div>
             </div>
             <div class="card">
-              <div class="card-title">🔬 Diagnóstico Clínico</div>
+              <div class="card-title">🔬 Propuesta estética orientativa</div>
               <div class="rep-grid">
                 <div class="rep-sec"><h4>🔍 Lo que encontramos</h4><div id="r-hallazgos"></div></div>
                 <div class="rep-sec"><h4>🦷 Dientes afectados</h4><div id="r-dientes"></div></div>
@@ -2067,15 +2069,15 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
         <!-- Configuración interna: se conserva en DOM para compatibilidad, no se expone al dentista. -->
         <div class="card advanced-ai-settings" aria-hidden="true" hidden>
           <div class="card-title">🤖 Instrucciones para la IA</div>
-          <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Personaliza cómo la IA genera el diagnóstico y la simulación para tus pacientes.</p>
+          <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Personaliza el tono con el que la IA presenta la propuesta y la simulación. SMYL siempre añade sus reglas: no diagnostica ni promete resultados.</p>
 
           <div class="fg">
             <label>Instrucción para Gemini (simulación visual)</label>
             <textarea id="sc-gemini-prompt" rows="3" placeholder="Ej. Genera carillas de porcelana e.max ultra-realistas. Mantén exactamente la misma persona, solo cambia los dientes. Resultado natural, no exagerado..."></textarea>
           </div>
           <div class="fg">
-            <label>Instrucción para Claude (diagnóstico y cotización)</label>
-            <textarea id="sc-claude-prompt" rows="3" placeholder="Ej. Eres un experto en estética dental con 15 años de experiencia en carillas. Genera un diagnóstico detallado pero en lenguaje accesible para el paciente..."></textarea>
+            <label>Tono de la propuesta (Claude)</label>
+            <textarea id="sc-claude-prompt" rows="3" placeholder="Ej. Eres un experto en estética dental con 15 años de experiencia en carillas. Explica la propuesta estética con calidez y en lenguaje accesible para el paciente..."></textarea>
           </div>
           <div class="fg">
             <label>Materiales que usas (para la cotización)</label>
@@ -2102,6 +2104,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
             </div>
             <button class="btn btn-primary" id="mc-guardar" style="margin-top:12px" onclick="guardarPerfil()">💾 Guardar mis datos</button>
           </div>
+          <div class="card" id="mc-mfa"></div>
         </div>
       </div>
 
@@ -2477,8 +2480,8 @@ function aplicarIconosSVG() {
   // disparar el observer — un ciclo infinito que cuelga la pestaña.
   document.querySelectorAll('.card-title').forEach(function(el) {
     if (el.dataset.iconApplied) return;
-    if (el.textContent.includes('Diagnóstico Clínico') || el.textContent.includes('🔬')) {
-      el.innerHTML = SVG_LUPA + ' Diagnóstico Clínico';
+    if (el.textContent.includes('Diagnóstico Clínico') || el.textContent.includes('Propuesta estética orientativa') || el.textContent.includes('🔬')) {
+      el.innerHTML = SVG_LUPA + ' Propuesta estética orientativa';
       el.dataset.iconApplied = '1';
     }
   });
@@ -2789,9 +2792,9 @@ var PRECIOS_DEFAULT = [
 ];
 
 var PLANES = {
-  esencial:    {label:'Esencial',    precio:'$399',  limite:15,  features:['15 diagnósticos/mes','Análisis IA básico','Cotización automática','1 usuario']},
-  profesional: {label:'Profesional', precio:'$799',  limite:40,  features:['40 diagnósticos/mes','Análisis IA completo','Chatbot de pacientes','Historial ilimitado','3 usuarios']},
-  premium:     {label:'Premium',     precio:'$1,499',limite:100, features:['100 diagnósticos/mes','Análisis IA avanzado','Colaboraciones TeamUp','Marca personalizada','Usuarios ilimitados']},
+  esencial:    {label:'Esencial',    precio:'$399',  limite:15,  features:['15 análisis con IA/mes','Análisis IA básico','Cotización automática','1 usuario']},
+  profesional: {label:'Profesional', precio:'$799',  limite:40,  features:['40 análisis con IA/mes','Análisis IA completo','Chatbot de pacientes','Historial ilimitado','3 usuarios']},
+  premium:     {label:'Premium',     precio:'$1,499',limite:100, features:['100 análisis con IA/mes','Análisis IA avanzado','Colaboraciones TeamUp','Marca personalizada','Usuarios ilimitados']},
 };
 
 // ══════════════════════════════════════════
@@ -2869,6 +2872,19 @@ function cerrarSesion() {
 // INICIO
 // ══════════════════════════════════════════
 async function continuarConUsuario(authUser) {
+  // Verificación en dos pasos: si la cuenta la tiene activa, la sesión no continúa sin el código.
+  if (window.SmylAuthGuard) {
+    var segundoPaso = false;
+    try { segundoPaso = await SmylAuthGuard.ensureSecondFactor(sb); } catch (e) { segundoPaso = false; }
+    if (!segundoPaso) {
+      try { await sb.auth.signOut(); } catch (e) {}
+      location.reload();
+      return;
+    }
+    // Expedientes clínicos: la sesión se cierra tras 30 minutos sin actividad.
+    SmylAuthGuard.startIdleLogout(function () { cerrarSesion(); });
+    SmylAuthGuard.renderCard(sb, document.getElementById('mc-mfa'));
+  }
   miUsuario = authUser;
   document.getElementById('auth-gate-overlay').style.display = 'none';
   var layoutEl = document.querySelector('.layout');
@@ -3286,7 +3302,8 @@ async function hacerRegistroAppGate() {
   var errEl = document.getElementById('ag-reg-err');
   errEl.style.display = 'none';
   if (!nombre || !email || !pass) { errEl.textContent = 'Completa todos los campos'; errEl.style.display = 'block'; return; }
-  if (pass.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres'; errEl.style.display = 'block'; return; }
+  var problemaPass = (window.SmylAuthGuard ? SmylAuthGuard.passwordProblem(pass) : (pass.length < 10 ? 'La contraseña debe tener al menos 10 caracteres.' : ''));
+  if (problemaPass) { errEl.textContent = problemaPass; errEl.style.display = 'block'; return; }
   if (codigo && codigo !== CODIGO_ACCESO_APP) { errEl.textContent = 'Código de acceso incorrecto'; errEl.style.display = 'block'; return; }
 
   var partes = planVal.split(':');
@@ -3393,7 +3410,8 @@ function mostrarNuevaPassword(authUser) {
     var p2 = document.getElementById('recovery-pass2').value;
     var errEl = document.getElementById('recovery-pass-err');
     errEl.style.display = 'none';
-    if (p1.length < 8) { errEl.textContent = 'Usa una contraseña de al menos 8 caracteres.'; errEl.style.display = 'block'; return; }
+    var problemaP1 = (window.SmylAuthGuard ? SmylAuthGuard.passwordProblem(p1) : (p1.length < 10 ? 'La contraseña debe tener al menos 10 caracteres.' : ''));
+    if (problemaP1) { errEl.textContent = problemaP1; errEl.style.display = 'block'; return; }
     if (p1 !== p2) { errEl.textContent = 'Las contraseñas no coinciden.'; errEl.style.display = 'block'; return; }
     var btn = document.getElementById('recovery-pass-btn');
     btn.disabled = true; btn.textContent = 'Guardando...';
@@ -3419,7 +3437,7 @@ function mostrarSetPasswordInvitado(authUser) {
     '<div style="background:var(--color-surface,#fff);border-radius:12px;padding:28px;max-width:380px;width:100%">' +
     '<div style="font-size:18px;font-weight:700;margin-bottom:6px">¡Bienvenido/a al equipo!</div>' +
     '<p style="font-size:13px;color:var(--texto3);margin-bottom:16px">Crea una contraseña para tu cuenta (' + smylEsc(authUser.email || '') + ') antes de continuar.</p>' +
-    '<input type="password" id="invite-pass1" placeholder="Contraseña (mínimo 6 caracteres)" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;margin-bottom:8px;box-sizing:border-box">' +
+    '<input type="password" id="invite-pass1" placeholder="Contraseña (mínimo 10 caracteres, con letras y números)" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;margin-bottom:8px;box-sizing:border-box">' +
     '<input type="password" id="invite-pass2" placeholder="Repite la contraseña" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;margin-bottom:8px;box-sizing:border-box">' +
     '<div id="invite-pass-err" style="display:none;color:#B91C1C;font-size:12px;margin-bottom:8px"></div>' +
     '<button id="invite-pass-btn" class="btn btn-primary" style="width:100%;justify-content:center">Guardar y entrar →</button>' +
@@ -3431,7 +3449,8 @@ function mostrarSetPasswordInvitado(authUser) {
     var p2 = document.getElementById('invite-pass2').value;
     var errEl = document.getElementById('invite-pass-err');
     errEl.style.display = 'none';
-    if (p1.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.'; errEl.style.display = 'block'; return; }
+    var problemaInv = (window.SmylAuthGuard ? SmylAuthGuard.passwordProblem(p1) : (p1.length < 10 ? 'La contraseña debe tener al menos 10 caracteres.' : ''));
+    if (problemaInv) { errEl.textContent = problemaInv; errEl.style.display = 'block'; return; }
     if (p1 !== p2) { errEl.textContent = 'Las contraseñas no coinciden.'; errEl.style.display = 'block'; return; }
     var btn = document.getElementById('invite-pass-btn');
     btn.disabled = true; btn.textContent = 'Guardando...';
@@ -3465,7 +3484,7 @@ function renderSidebar() {
 
   var pct = Math.min(100, Math.round(usado / limite * 100));
   document.getElementById('uso-fill').style.width = pct + '%';
-  document.getElementById('uso-txt').textContent = usado + ' / ' + limite + ' diagnósticos';
+  document.getElementById('uso-txt').textContent = usado + ' / ' + limite + ' análisis con IA';
 }
 
 // ══════════════════════════════════════════
@@ -3897,7 +3916,7 @@ async function irAPaso2() {
   var usadoActual = tenantData.diagnosticos_usados || 0;
   var limiteActual = tenantData.limite_diagnosticos || 40;
   if (usadoActual >= limiteActual) {
-    alert('Ya usaste tus ' + limiteActual + ' diagnósticos de este mes (plan ' + (PLANES[tenantData.plan] ? PLANES[tenantData.plan].label : tenantData.plan) + ').\n\nSube de plan en "Mi Cuenta" para seguir generando diagnósticos este mes.');
+    alert('Ya usaste tus ' + limiteActual + ' análisis con IA de este mes (plan ' + (PLANES[tenantData.plan] ? PLANES[tenantData.plan].label : tenantData.plan) + ').\n\nSube de plan en "Mi Cuenta" para seguir generando diagnósticos este mes.');
     return;
   }
 
@@ -4316,7 +4335,7 @@ async function ejecutarAnalisisIA() {
 }
 
 function mostrarAnalisis(r, nombre) {
-  document.getElementById('r-nombre').textContent = 'Tu Diagnóstico — ' + nombre;
+  document.getElementById('r-nombre').textContent = 'Tu propuesta orientativa — ' + nombre;
   document.getElementById('r-fecha').textContent = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
   document.getElementById('r-score').textContent = (r.score||0) + '/10';
 
@@ -4958,7 +4977,7 @@ async function generarPDF() {
   // Diagnóstico
   var diagHTML = '';
   if (r.hallazgos || r.dientes || r.plan) {
-    diagHTML = '<div class="seccion"><div class="sec-titulo">🔬 Diagnóstico Clínico</div><div class="diag-grid">';
+    diagHTML = '<div class="seccion"><div class="sec-titulo">🔬 Propuesta estética orientativa</div><div class="diag-grid">';
     if (r.hallazgos && r.hallazgos.length) {
       diagHTML += '<div class="diag-col"><div class="diag-sub">Hallazgos</div>' + r.hallazgos.map(function(h) { return '<div class="diag-item warn">• ' + h + '</div>'; }).join('') + '</div>';
     }
@@ -5481,7 +5500,7 @@ function renderPlan() {
 
   var pct = Math.min(100, Math.round(usado / limite * 100));
   document.getElementById('mc-uso-detalle').innerHTML =
-    '<strong>' + usado + '</strong> de <strong>' + limite + '</strong> diagnósticos usados este mes<br>' +
+    '<strong>' + usado + '</strong> de <strong>' + limite + '</strong> análisis con IA usados este mes<br>' +
     '<div class="uso-bar" style="height:6px;margin:6px 0"><div class="uso-fill" style="width:' + pct + '%"></div></div>' +
     '<span style="font-size:11px;color:var(--texto3)">Renovación: ' + vence.toLocaleDateString('es-MX', {day:'numeric', month:'long', year:'numeric'}) + '</span>';
 }

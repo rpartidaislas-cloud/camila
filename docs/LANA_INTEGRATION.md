@@ -197,56 +197,71 @@ bucket privado y existe una URL HTTPS firmada. La Edge Function también exige
 que `url_resultado` sea HTTPS y pertenezca al mismo origen web de SMYL que
 realizó la petición; no acepta enlaces externos proporcionados por el cliente.
 
-## 2. Recibir una foto desde LANA
+## 2. Recibir una foto desde LANA (`analizar-foto`) — sin diagnóstico
 
-En el stack actual, `/api/analizar-foto` se implementa como una Edge Function:
+`analizar-foto` **no diagnostica**: no describe el estado dental, no sugiere
+tratamientos ni decide urgencias (COFEPRIS: un software que diagnostica es un
+dispositivo médico). Solo revisa si la foto sirve para una simulación estética
+y, si sirve, genera una simulación **ilustrativa**. Toda foto queda marcada
+para que un profesional de la clínica la revise.
 
 ```text
 POST https://<proyecto-smyl>.supabase.co/functions/v1/analizar-foto
-Authorization: Bearer <LANA_WEBHOOK_SECRET>
+Authorization: Bearer <LANA_API_KEY>
 Content-Type: application/json
-Idempotency-Key: <identificador-estable-opcional>
 ```
 
 Body:
 
 ```json
 {
-  "tenant_id": "<uuid-v4>",
-  "cita_id": 123,
-  "paciente_nombre": "Juan García",
-  "paciente_telefono": "+523313445614",
-  "imagen_url": "https://.../imagen.jpg",
-  "origen": "whatsapp"
+  "tenant_id": "<uuid>",
+  "canal": "whatsapp",
+  "sender_id": "<id del contacto>",
+  "patient_id": "<uuid del paciente de SMYL vinculado a la conversación>",
+  "nombre_paciente": "Juan",
+  "imagen_url": "https://<host permitido>/imagen.jpg",
+  "callback_url": "https://<host permitido>/...",
+  "callback_secret": "<secreto para el callback>"
 }
 ```
 
-La función valida el secreto y el tenant, reserva una fila y responde:
+Responde `{"ok":true,"job_id":"<uuid>"}` y procesa en segundo plano.
+
+**Consentimiento (LFPDPPP):** solo se usa IA si `patient_id` viene y ese
+paciente **autorizó** la finalidad `ai_processing`. Sin `patient_id`, sin
+autorización registrada o si la retiró, no se descarga ni se manda la foto a la
+IA: el callback llega con `estado: "revision_profesional"` e `ia_usada: false`.
+
+Callback (POST a `callback_url`, `Authorization: Bearer <callback_secret>`):
 
 ```json
-{"recibido":true,"simulacion_id":"<uuid>"}
+{
+  "tenant_id": "<uuid>", "canal": "whatsapp", "sender_id": "...",
+  "estado": "simulacion_lista | foto_no_apta | revision_profesional",
+  "ia_usada": true,
+  "motivo": "paciente_no_vinculado | ia_sin_autorizacion | ia_no_autorizada | permiso_no_verificable | simulacion_no_disponible",
+  "foto_apta": true,
+  "motivo_no_apta": "no_se_ven_dientes | borrosa | oscura | muy_lejos | otra",
+  "mensaje_paciente": "Texto fijo, seguro para enviar tal cual al paciente",
+  "aviso_simulacion": "Imagen generada con IA. Es ilustrativa: no es un diagnóstico…",
+  "requiere_revision_profesional": true,
+  "imagen_original_url": "...",
+  "imagen_simulacion_url": "https://… (firmada, 7 días)"
+}
 ```
 
-Después ejecuta en segundo plano:
+En error: `{ error: true, error_message, mensaje_paciente, requiere_revision_profesional: true }`.
 
-1. descarga HTTPS controlada, con límite de 8 MB y bloqueo de destinos de red
-   privada;
-2. análisis con `gpt-4o-2024-11-20`, imagen de entrada y JSON Schema estricto;
-3. persistencia del diagnóstico y estado;
-4. webhook `analisis_completado` a LANA;
-5. hasta tres reintentos después del intento inicial, con esperas de 2, 4 y
-   8 segundos para errores de red o respuestas 5xx. Los 4xx no se repiten.
+Reglas para LANA:
 
-La generación de la imagen “después” queda reservada en
-`imagen_simulacion_url`, actualmente `null` (fase 2).
-
-### Semántica de errores asíncronos
-
-No es técnicamente posible devolver `500` por un fallo de GPT después de haber
-devuelto el `200` inmediato. En este contrato asíncrono, fallos de descarga o
-GPT dejan `estado='error'`, guardan `error_procesamiento` y **no** llaman el
-webhook de completado. Errores previos a reservar el trabajo (secreto, payload,
-tenant o base de datos) sí regresan 4xx/5xx directamente.
+- Enviar al paciente **solo** `mensaje_paciente` (y, si existe, la simulación
+  acompañada de `aviso_simulacion`). Ya no existen `diagnostico`,
+  `tratamientos_sugeridos`, `zona_afectada` ni `requiere_urgente`.
+- Con `requiere_revision_profesional: true`, pasar la conversación a la
+  clínica para que un profesional revise la foto.
+- La IA de la foto solo elige de una lista cerrada (`motivo_no_apta`); ningún
+  texto libre del modelo sale hacia el paciente.
 
 ## Base de datos
 
