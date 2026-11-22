@@ -200,3 +200,10 @@
 #p-consultorio .co-qrmore summary{cursor:pointer;color:#176c64;font-weight:600;padding:6px 0}
 #p-consultorio .co-qrmore .co-qrlink{margin-top:8px}
 #p-consultorio .co-qrhint{margin:12px 0 0;font-size:13px;text-align:center;color:#5b7370}
+#p-consultorio .co-choice-what{margin:0 0 14px;font-size:15px;line-height:1.5;color:#2b3a4a}
+#p-consultorio .co-choice-ask{margin:0 0 8px;font-size:15px;font-weight:700}
+#p-consultorio .co-choice-opt{display:block;width:100%;margin:0 0 10px;padding:14px 16px;border:2px solid #d6dfdd;border-radius:14px;background:#fff;color:#0F2236;text-align:left;font:inherit;cursor:pointer}
+#p-consultorio .co-choice-opt strong{display:block;font-size:16px}
+#p-consultorio .co-choice-opt span{display:block;margin-top:2px;font-size:14px;color:#526465}
+#p-consultorio .co-choice-opt:hover,#p-consultorio .co-choice-opt:focus-visible{border-color:#1f8a80}
+#p-consultorio .co-qrwhat{margin:0 0 12px;font-size:14px;line-height:1.5;color:#2b3a4a}

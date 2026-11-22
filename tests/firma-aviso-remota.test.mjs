@@ -38,9 +38,11 @@ test('la página manda exactamente los argumentos que espera la función de la b
   assert.deepEqual(sent, expected);
 });
 
-test('Consultorio ofrece «Enviar al celular del paciente» y espera la firma', () => {
+test('Consultorio: «Pedir firma» pregunta dónde firma y, por celular, espera la firma', () => {
   const js = read('smyl-consultorio.js');
-  assert.match(js, /id === 'consent-link'\) openConsentLink/);
+  assert.match(js, /id === 'consent'\) openConsentChoice\(patient\)/);
+  assert.match(js, /openConsentLink\(patient\); \}, 'coChoicePhone'/);
+  assert.match(js, /startConsent\(\); \}, 'coChoiceHere'/);
   assert.match(js, /rpc\('smyl_create_consent_link'/);
   assert.match(js, /aviso-firma\.html\?token=/);
   assert.match(js, /rpc\('smyl_patient_consent_status'/);
@@ -54,7 +56,7 @@ test('versiones y caché del panel y su copia móvil', () => {
   for (const f of ['app.html', 'mobile/www/app.html']) {
     const t = read(f);
     assert.match(t, /smyl-consultorio\.js\?v=13/);
-    assert.match(t, /smyl-visit-model\.js\?v=6/);
+    assert.match(t, /smyl-visit-model\.js\?v=7/);
   }
   assert.match(sw, /firma-aviso-remota-v1/);
   assert.match(read('mobile/www/sw.js'), /firma-aviso-remota-v1/);

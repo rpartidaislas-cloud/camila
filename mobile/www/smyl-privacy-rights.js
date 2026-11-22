@@ -1,5 +1,6 @@
-/* SMYL · Privacidad y derechos de los pacientes: solicitudes ARCO (acceso, rectificación, cancelación, oposición y revocación),
-   decisiones de privacidad por finalidad y exportación de datos del paciente. Todo pasa por funciones de la base con permiso
+/* SMYL · Derechos de los pacientes sobre sus datos (ARCO: acceso, rectificación, cancelación, oposición y revocación), dentro de CADA paciente
+   (sección «Consentimiento de privacidad» del expediente). Ya no hay una pantalla aparte en Configuración. Incluye el interruptor del aviso
+   automático, que vive en Mensajería → Plantillas, junto a la plantilla del aviso. Registra solicitudes, decisiones por finalidad y exportación de datos. Todo pasa por funciones de la base con permiso
    patients.manage (smyl_open_data_request, smyl_update_data_request, smyl_set_patient_privacy_choice, smyl_patient_privacy_status,
    smyl_export_patient_data). El texto que se muestra es de la base: aquí no se arma HTML con datos, solo textContent. */
 (function (root, factory) {
@@ -18,7 +19,8 @@
     marketing: { label: 'Promociones y mercadotecnia', help: 'Promociones, campañas y comunicaciones comerciales.' }
   };
   var STATE_LABEL = { granted: 'Lo permite', revoked: 'Lo retiró', unknown: 'Sin registrar' };
-  var state = { requests: [], names: {}, filter: 'open', tab: 'requests', loading: false, error: '', tenant: null, patient: null, patientQuery: '', results: [] };
+  var state = { names: {} };
+  var ctx = { after: null, notify: null };
 
   // ── Reglas puras ──
   function dayNumber(value) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value || '')); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) / 86400000 : NaN; }
@@ -70,7 +72,11 @@
   function select(options, value) {
     var s = el('select'); Object.keys(options).forEach(function (k) { var o = el('option', '', options[k]); o.value = k; s.append(o); }); if (value) s.value = value; return s;
   }
-  function message(text, tone) { var host = document.getElementById('priv-feedback'); if (!host) return; host.textContent = text || ''; host.dataset.tone = tone || ''; }
+  /* Los avisos van a la línea de estado de la sección del paciente que esté abierta. */
+  function message(text, tone) {
+    if (ctx.notify) { ctx.notify(text || '', tone || ''); return; }
+    var host = document.querySelector('.pp-feedback'); if (!host) return; host.textContent = text || ''; host.dataset.tone = tone || '';
+  }
   function dialog(title) {
     var old = document.getElementById('priv-dialog'); if (old) old.remove();
     var d = el('dialog', 'priv-dialog'); d.id = 'priv-dialog';
@@ -88,78 +94,32 @@
     if (result.error) throw result.error;
     return result.data;
   }
+  function done() { if (typeof ctx.after === 'function') return ctx.after(); }
 
-  async function loadRequests() {
-    if (!win || !win.sb || !win.tenantId || state.loading) return;
-    state.loading = true; state.tenant = win.tenantId; state.error = ''; render();
-    try {
-      var res = await win.sb.from('smyl_data_rights_requests').select('*').eq('tenant_id', win.tenantId).order('due_on', { ascending: true }).limit(300);
-      if (res.error) throw res.error;
-      state.requests = res.data || [];
-      var ids = state.requests.map(function (r) { return r.patient_id; }).filter(function (v, i, a) { return v && a.indexOf(v) === i; });
-      state.names = {};
-      if (ids.length) {
-        var pats = await win.sb.from('camila_pacientes').select('id,nombre,apellido').eq('tenant_id', win.tenantId).in('id', ids);
-        (pats.data || []).forEach(function (p) { state.names[p.id] = fullName(p); });
-      }
-    } catch (error) { state.error = friendly(error); }
-    finally { state.loading = false; render(); }
-  }
-
-  async function searchPatients(text) {
-    var q = String(text || '').trim();
-    if (q.length < 2) return [];
-    var term = q.replace(/[%,()]/g, ' ').trim();
-    var res = await win.sb.from('camila_pacientes').select('id,nombre,apellido,telefono').eq('tenant_id', win.tenantId)
-      .or('nombre.ilike.%' + term + '%,apellido.ilike.%' + term + '%').order('nombre').limit(12);
-    if (res.error) throw res.error;
-    return res.data || [];
-  }
-
-  function patientPicker(onPick) {
-    var wrap = el('div', 'priv-picker'); var input = el('input'); input.type = 'search'; input.placeholder = 'Buscar paciente por nombre'; input.autocomplete = 'off';
-    var list = el('div', 'priv-picker-list'); var timer = null;
-    input.oninput = function () {
-      clearTimeout(timer);
-      timer = setTimeout(async function () {
-        list.replaceChildren();
-        try {
-          var rows = await searchPatients(input.value);
-          rows.forEach(function (p) {
-            var b = el('button', 'priv-picker-item', fullName(p) + (p.telefono ? ' · ' + p.telefono : '')); b.type = 'button';
-            b.onclick = function () { list.replaceChildren(); input.value = fullName(p); onPick(p); }; list.append(b);
-          });
-          if (!rows.length && input.value.trim().length >= 2) list.append(el('p', 'priv-muted', 'Sin resultados.'));
-        } catch (error) { list.append(el('p', 'priv-muted', friendly(error))); }
-      }, 250);
-    };
-    wrap.append(input, list); return wrap;
-  }
-
-  // ── Nueva solicitud ──
-  function openNewRequest(preset) {
-    var box = dialog('Nueva solicitud de derechos'); var chosen = preset || null;
+  /* Nueva solicitud de ESTE paciente (el paciente ya viene elegido). */
+  function openNewRequest(patient) {
+    var box = dialog('Registrar solicitud de derechos'), name = fullName(patient);
     var right = select(RIGHTS, 'access'), channel = select(CHANNELS, 'in_person');
-    var who = el('input'); who.maxLength = 150; who.placeholder = 'Nombre de quien solicita'; who.value = chosen ? fullName(chosen) : '';
-    var contact = el('input'); contact.maxLength = 200; contact.placeholder = 'Teléfono o correo (opcional)';
+    var who = el('input'); who.maxLength = 150; who.placeholder = 'Nombre de quien solicita'; who.value = name;
+    var contact = el('input'); contact.maxLength = 200; contact.placeholder = 'Teléfono o correo (opcional)'; contact.value = patient.telefono || '';
     var details = el('textarea'); details.maxLength = 2000; details.rows = 3; details.placeholder = 'Qué pide la persona, con sus palabras.';
-    var received = el('input'); received.type = 'date'; received.max = todayText(); received.value = todayText();
-    var picked = el('p', 'priv-muted', chosen ? 'Paciente: ' + fullName(chosen) : 'Sin paciente seleccionado (úsalo solo si no tiene ficha).');
-    var picker = patientPicker(function (p) { chosen = p; if (!who.value.trim()) who.value = fullName(p); picked.textContent = 'Paciente: ' + fullName(p); });
-    box.form.append(el('p', 'priv-muted', 'Tienes 20 días hábiles para responder desde que la recibes. El plazo se calcula solo.'), field('Paciente', picker), picked,
+    var received = el('input'); received.type = 'date'; received.max = todayText(); received.value = (patient && patient.receivedOn) || todayText();
+    if (patient && patient.details) details.value = patient.details;
+    if (patient && patient.right && RIGHTS[patient.right]) right.value = patient.right;
+    if (patient && patient.channel && CHANNELS[patient.channel]) channel.value = patient.channel;
+    box.form.append(el('p', 'priv-muted', 'Paciente: ' + name + '. Tienes 20 días hábiles para responder desde que la recibes; el plazo se calcula solo.'),
       field('Derecho que ejerce', right), field('Por dónde llegó', channel), field('Quién solicita', who), field('Contacto', contact), field('Fecha en que se recibió', received), field('Detalle', details));
     var ok = actions(box.form, box.close, 'Registrar solicitud');
     box.form.onsubmit = async function (event) {
       event.preventDefault(); ok.disabled = true;
       try {
-        await rpc('smyl_open_data_request', { p_patient_id: chosen ? chosen.id : null, p_right: right.value, p_channel: channel.value, p_requester_name: who.value, p_requester_contact: contact.value, p_details: details.value, p_received_on: received.value || null });
-        box.close(); message('Solicitud registrada. El plazo corre desde hoy.', 'ok'); await loadRequests();
+        await rpc('smyl_open_data_request', { p_patient_id: patient.id, p_right: right.value, p_channel: channel.value, p_requester_name: who.value, p_requester_contact: contact.value, p_details: details.value, p_received_on: received.value || null });
+        box.close(); message('Solicitud registrada. El plazo corre desde la fecha en que se recibió.', 'ok'); await done();
       } catch (error) { ok.disabled = false; message(friendly(error), 'error'); }
     };
     box.d.showModal();
   }
 
-  // ── Atender solicitud ──
   async function exportData(patient) {
     try {
       var data = await rpc('smyl_export_patient_data', { p_patient_id: patient.id });
@@ -168,6 +128,11 @@
       document.body.append(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
       message('Datos descargados. La historia clínica, las fotos y los documentos se entregan aparte, desde el expediente.', 'ok');
     } catch (error) { message(friendly(error), 'error'); }
+  }
+
+  async function setChoice(patient, purpose, action) {
+    try { await rpc('smyl_set_patient_privacy_choice', { p_patient_id: patient.id, p_purpose: purpose, p_action: action, p_note: '' }); message('Decisión registrada.', 'ok'); await done(); }
+    catch (error) { message(friendly(error), 'error'); }
   }
 
   async function openAttend(request) {
@@ -196,151 +161,87 @@
     var cancel = el('button', 'btn btn-secondary', 'Cerrar'); cancel.type = 'button'; cancel.onclick = box.close;
     var review = el('button', 'btn btn-secondary', 'Marcar en revisión'); review.type = 'button';
     var reject = el('button', 'btn btn-secondary', 'Rechazar'); reject.type = 'button';
-    var done = el('button', 'btn btn-primary', 'Dar por atendida'); done.type = 'button';
-    row.append(cancel, review, reject, done); box.form.append(row);
+    var finish = el('button', 'btn btn-primary', 'Dar por atendida'); finish.type = 'button';
+    row.append(cancel, review, reject, finish); box.form.append(row);
     var act = async function (status, button) {
       button.disabled = true;
       try {
         var revoke = Object.keys(checks).filter(function (k) { return checks[k].checked; });
         await rpc('smyl_update_data_request', { p_id: request.id, p_status: status, p_resolution: resolution.value, p_identity_verified: verified.checked, p_revoke_purposes: status === 'completed' && revoke.length ? revoke : null });
-        box.close(); message(status === 'in_review' ? 'Solicitud en revisión.' : status === 'completed' ? 'Solicitud atendida y cerrada.' : 'Solicitud rechazada y cerrada.', 'ok'); await loadRequests();
+        box.close(); message(status === 'in_review' ? 'Solicitud en revisión.' : status === 'completed' ? 'Solicitud atendida y cerrada.' : 'Solicitud rechazada y cerrada.', 'ok'); await done();
       } catch (error) { button.disabled = false; message(friendly(error), 'error'); }
     };
-    review.onclick = function () { act('in_review', review); }; reject.onclick = function () { act('rejected', reject); }; done.onclick = function () { act('completed', done); };
+    review.onclick = function () { act('in_review', review); }; reject.onclick = function () { act('rejected', reject); }; finish.onclick = function () { act('completed', finish); };
     box.form.onsubmit = function (e) { e.preventDefault(); };
     box.d.showModal();
   }
 
-  // ── Pestaña «Solicitudes» ──
-  function renderRequests(host) {
-    var today = todayText(), c = counts(state.requests, today);
-    var bar = el('div', 'priv-bar');
-    var f = select({ open: 'Abiertas', closed: 'Cerradas', all: 'Todas' }, state.filter); f.setAttribute('aria-label', 'Filtrar solicitudes'); f.onchange = function () { state.filter = f.value; render(); };
-    var summary = el('p', 'priv-summary', c.open ? plural(c.open, 'solicitud abierta', 'solicitudes abiertas') + (c.overdue ? ' · ' + plural(c.overdue, 'vencida', 'vencidas') : '') : 'No hay solicitudes abiertas.');
-    if (c.overdue) summary.dataset.tone = 'error';
-    var add = el('button', 'btn btn-primary', 'Nueva solicitud'); add.type = 'button'; add.onclick = function () { openNewRequest(null); };
-    bar.append(summary, f, add); host.append(bar);
-    var rows = visible(state.requests, state.filter);
-    if (!rows.length) { host.append(el('div', 'priv-empty', state.filter === 'open' ? 'Cuando un paciente pida acceso, corrección, cancelación u oposición, regístralo aquí para llevar el plazo.' : 'No hay solicitudes en esta vista.')); return; }
+  /* Solicitudes de un paciente: lista (abiertas primero) con «Atender» y el botón para registrar una nueva. */
+  async function loadPatientRequests(patientId) {
+    var res = await win.sb.from('smyl_data_rights_requests').select('*').eq('tenant_id', win.tenantId).eq('patient_id', patientId).order('received_on', { ascending: false }).limit(50);
+    if (res.error) throw res.error;
+    return res.data || [];
+  }
+  function renderPatientRequests(host, patient, requests) {
+    host.replaceChildren();
+    var today = todayText(), c = counts(requests, today);
+    state.names[patient.id] = fullName(patient);
+    var head = el('div', 'pp-arco-head');
+    head.append(el('strong', '', 'Si el paciente pide algo sobre sus datos'));
+    var open = el('p', 'priv-muted', c.open ? plural(c.open, 'solicitud abierta', 'solicitudes abiertas') + (c.overdue ? ' · ' + plural(c.overdue, 'vencida', 'vencidas') : '') + '.' : 'Sin solicitudes abiertas.');
+    if (c.overdue) open.dataset.tone = 'error';
+    head.append(open); host.append(head);
     var list = el('div', 'priv-list');
-    rows.forEach(function (r) {
-      var info = dueInfo(r, today); var row = el('article', 'priv-row'); row.dataset.kind = info.kind;
-      var main = el('div', 'priv-row-main'); main.append(el('strong', '', r.requester_name), el('span', '', RIGHTS[r.right_type] + ' · ' + CHANNELS[r.channel]), el('small', '', 'Recibida el ' + r.received_on + (r.patient_id ? ' · ' + (state.names[r.patient_id] || 'Paciente') : '')));
+    requests.slice().sort(function (a, b) { return (isOpen(b) ? 1 : 0) - (isOpen(a) ? 1 : 0); }).slice(0, 8).forEach(function (r) {
+      var info = dueInfo(r, today), row = el('article', 'priv-row'); row.dataset.kind = info.kind;
+      var main = el('div', 'priv-row-main'); main.append(el('strong', '', RIGHTS[r.right_type]), el('small', '', 'Recibida el ' + r.received_on + ' · ' + CHANNELS[r.channel]));
       var chip = el('span', 'priv-chip', info.text); chip.dataset.kind = info.kind;
-      var open = el('button', 'btn btn-secondary', isOpen(r) ? 'Atender' : 'Ver'); open.type = 'button'; open.onclick = function () { openAttend(r); };
-      row.append(main, chip, open); list.append(row);
+      var btn = el('button', 'btn btn-secondary', isOpen(r) ? 'Atender' : 'Ver'); btn.type = 'button'; btn.onclick = function () { openAttend(r); };
+      row.append(main, chip, btn); list.append(row);
     });
-    host.append(list);
+    if (requests.length) host.append(list);
+    var acts = el('div', 'priv-actions');
+    var add = el('button', 'btn btn-secondary', 'Registrar solicitud'); add.type = 'button'; add.onclick = function () { openNewRequest(patient); };
+    var exp = el('button', 'btn btn-secondary', 'Descargar copia de sus datos'); exp.type = 'button'; exp.onclick = function () { exportData(patient); };
+    acts.append(add, exp); host.append(acts);
+  }
+  /* host: contenedor dentro de la sección del paciente. patient: { id, nombre, apellido, telefono }. after: se llama al cambiar algo. */
+  async function mountPatient(host, patient, o) {
+    o = o || {};
+    ctx.after = async function () { try { renderPatientRequests(host, patient, await loadPatientRequests(patient.id)); } catch (e) { /* la lista queda como estaba */ } if (o.onChange) o.onChange(); };
+    ctx.notify = o.notify || null;
+    try { renderPatientRequests(host, patient, await loadPatientRequests(patient.id)); }
+    catch (error) { host.replaceChildren(el('p', 'priv-muted', friendly(error))); }
   }
 
-  // ── Pestaña «Pacientes» ──
-  async function selectPatient(p) {
-    state.patient = { patient: p, privacy: null, notice: null, error: '' }; render();
-    try {
-      var results = await Promise.all([rpc('smyl_patient_privacy_status', { p_patient_id: p.id }), rpc('smyl_patient_consent_status', { p_patient_id: p.id }).catch(function () { return null; })]);
-      state.patient.privacy = results[0]; state.patient.notice = results[1];
-    } catch (error) { state.patient.error = friendly(error); }
-    render();
-  }
-  async function setChoice(p, purpose, action) {
-    try { await rpc('smyl_set_patient_privacy_choice', { p_patient_id: p.id, p_purpose: purpose, p_action: action, p_note: '' }); message('Decisión registrada.', 'ok'); await selectPatient(p); }
-    catch (error) { message(friendly(error), 'error'); }
-  }
-  function renderPatients(host) {
-    var picker = patientPicker(function (p) { selectPatient(p); }); host.append(el('p', 'priv-muted', 'Busca a un paciente para ver y registrar lo que permite.'), picker);
-    var cur = state.patient; if (!cur) return;
-    var card = el('section', 'priv-card'); var p = cur.patient;
-    card.append(el('h3', '', fullName(p)));
-    if (cur.error) { card.append(el('p', 'priv-muted', cur.error)); host.append(card); return; }
-    var notice = cur.notice && cur.notice.signed ? 'Aviso de privacidad firmado el ' + String(cur.notice.signed_at || '').slice(0, 10) + (cur.notice.signer_name ? ' por ' + cur.notice.signer_name : '') + '.' : 'Aviso de privacidad sin firmar.';
-    var noticeLine = el('p', 'priv-notice', notice); noticeLine.dataset.state = cur.notice && cur.notice.signed ? 'ok' : 'pending'; card.append(noticeLine);
-    Object.keys(PURPOSES).forEach(function (key) {
-      var s = cur.privacy && cur.privacy[key] || { state: 'unknown' }; var row = el('div', 'priv-purpose'); row.dataset.state = s.state;
-      var copy = el('div'); copy.append(el('strong', '', PURPOSES[key].label), el('small', '', PURPOSES[key].help));
-      var chip = el('span', 'priv-chip', STATE_LABEL[s.state] + (s.at ? ' · ' + String(s.at).slice(0, 10) : '')); chip.dataset.state = s.state;
-      var grant = el('button', 'btn btn-secondary', 'Registrar que lo permite'); grant.type = 'button'; grant.disabled = s.state === 'granted'; grant.onclick = function () { setChoice(p, key, 'granted'); };
-      var revoke = el('button', 'btn btn-secondary', 'Registrar que lo retira'); revoke.type = 'button'; revoke.disabled = s.state === 'revoked'; revoke.onclick = function () { setChoice(p, key, 'revoked'); };
-      var btns = el('div', 'priv-purpose-actions'); btns.append(grant, revoke); row.append(copy, chip, btns); card.append(row);
-    });
-    var more = el('div', 'priv-actions');
-    var req = el('button', 'btn btn-secondary', 'Registrar solicitud de derechos'); req.type = 'button'; req.onclick = function () { openNewRequest(p); };
-    var exp = el('button', 'btn btn-secondary', 'Descargar copia de sus datos'); exp.type = 'button'; exp.onclick = function () { exportData(p); };
-    more.append(req, exp); card.append(more); host.append(card);
+  /* ── Aviso automático por WhatsApp a pacientes nuevos: interruptor para Mensajería → Plantillas ── */
+  async function autoControl(opts) {
+    opts = opts || {};
+    var box = el('div', 'priv-auto');
+    box.append(el('p', 'priv-muted', 'Cargando…'));
+    var settings = null;
+    try { settings = await rpc('smyl_get_privacy_settings', {}); }
+    catch (error) { box.replaceChildren(el('p', 'priv-muted', error && error.code === '42501' ? 'Solo quien gestiona pacientes puede activar el envío automático.' : friendly(error))); return box; }
+    function paint() {
+      box.replaceChildren();
+      var on = settings && settings.auto_send_notice === true;
+      box.append(el('strong', '', 'Enviarla sola a pacientes nuevos'),
+        el('p', 'priv-muted', 'Cuando alguien se registra por WhatsApp, SMYL le manda por ese mismo chat el enlace para firmar su consentimiento de privacidad. Una sola vez por paciente, solo a quien se creó en los últimos 14 días y aún no firmó. Quien ya dijo que no a WhatsApp no recibe nada.'));
+      var row = el('label', 'priv-switch'), cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = on;
+      cb.onchange = async function () {
+        cb.disabled = true;
+        try { settings = await rpc('smyl_set_privacy_settings', { p_auto_send: cb.checked }); if (win.SmylPrivacyDispatch) win.SmylPrivacyDispatch.reset(); }
+        catch (error) { cb.checked = !cb.checked; var err = el('p', 'priv-note', friendly(error)); box.append(err); }
+        paint();
+      };
+      row.append(cb, el('span', '', on ? 'Activado' : 'Apagado')); box.append(row);
+      if (opts.approved === false) { var note = el('p', 'priv-note', 'Primero solicita esta plantilla a WhatsApp. Hasta que Meta la apruebe, el envío automático no manda nada.'); box.append(note); }
+      box.append(el('p', 'priv-muted', 'Enviados en los últimos 30 días: ' + (Number(settings && settings.sent_30d) || 0) + (settings && settings.last_sent_at ? ' · el último, el ' + new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long' }).format(new Date(settings.last_sent_at)) : '') + '.'));
+    }
+    paint();
+    return box;
   }
 
-  /* ── Aviso automático por WhatsApp a pacientes nuevos ── */
-  var autoState = { loaded: false, loading: false, error: '', settings: null, template: null, saving: false };
-  function autoText(reason, ready) {
-    if (ready === false) return 'La plantilla «aviso_privacidad_v1» todavía no está aprobada por WhatsApp. Solicítala en Mensajería → Plantillas y, cuando Meta la apruebe, el envío empezará solo.';
-    if (ready === true) return 'La plantilla está aprobada.';
-    return 'No se pudo comprobar el estado de la plantilla.';
-  }
-  async function loadAuto(force) {
-    if (autoState.loading || (autoState.loaded && !force)) return;
-    autoState.loading = true; autoState.error = ''; render();
-    try {
-      autoState.settings = await rpc('smyl_get_privacy_settings', {});
-      autoState.template = null;
-      try { var st = await win.sb.functions.invoke('privacy-notice-dispatch', { body: { action: 'status' } }); autoState.template = st && st.data && !st.error ? st.data : null; } catch (e) { autoState.template = null; }
-      autoState.loaded = true;
-    } catch (e) { autoState.error = friendly(e); }
-    autoState.loading = false; render();
-  }
-  async function saveAuto(on) {
-    if (autoState.saving) return; autoState.saving = true; render();
-    try { autoState.settings = await rpc('smyl_set_privacy_settings', { p_auto_send: on }); message(on ? 'Listo: el aviso se enviará solo a pacientes nuevos.' : 'Listo: ya no se envía solo.', 'ok'); if (win.SmylPrivacyDispatch) win.SmylPrivacyDispatch.reset(); }
-    catch (e) { message(friendly(e), 'error'); }
-    autoState.saving = false; render();
-  }
-  function renderAuto(host) {
-    if (!autoState.loaded && !autoState.loading && !autoState.error) { loadAuto(false); host.append(el('div', 'priv-empty', 'Cargando…')); return; }
-    if (autoState.loading) { host.append(el('div', 'priv-empty', 'Cargando…')); return; }
-    if (autoState.error) { host.append(el('div', 'priv-empty', autoState.error)); return; }
-    var st = autoState.settings || {}, on = st.auto_send_notice === true, tpl = autoState.template;
-    var card = el('div', 'priv-card');
-    card.append(el('h2', '', 'Mandar el aviso de privacidad a pacientes nuevos'),
-      el('p', 'priv-muted', 'Cuando alguien se registra por WhatsApp, SMYL le manda por ese mismo chat un enlace para leer el aviso, elegir sobre IA, WhatsApp y promociones, y firmar desde su celular. Se manda una sola vez por paciente y solo a quien se creó en los últimos 14 días y aún no firmó. Quien ya dijo que no a WhatsApp no recibe nada.'));
-    var row = el('label', 'priv-switch'), cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = on; cb.disabled = autoState.saving; cb.onchange = function () { saveAuto(cb.checked); };
-    row.append(cb, el('span', '', on ? 'Activado' : 'Apagado')); card.append(row);
-    var ready = tpl ? tpl.template_ready : null;
-    var note = el('p', 'priv-note', autoText('', tpl && tpl.lana_available === false ? null : ready)); note.dataset.state = ready === true ? 'ok' : 'warn'; card.append(note);
-    var stats = el('p', 'priv-muted', 'Enviados en los últimos 30 días: ' + (Number(st.sent_30d) || 0) + (st.last_sent_at ? ' · el último, el ' + new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long' }).format(new Date(st.last_sent_at)) : '') + '.');
-    card.append(stats); host.append(card);
-  }
-
-  function render() {
-    var content = document.getElementById('priv-content'); if (!content) return;
-    content.replaceChildren();
-    document.querySelectorAll('[data-priv-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.privTab === state.tab)); });
-    if (state.loading) { content.append(el('div', 'priv-empty', 'Cargando…')); return; }
-    if (state.error) { content.append(el('div', 'priv-empty', state.error)); return; }
-    if (state.tab === 'patients') renderPatients(content); else if (state.tab === 'auto') renderAuto(content); else renderRequests(content);
-  }
-
-  function build() {
-    var page = el('section', 'pantalla priv-page'); page.id = 'p-privacidad';
-    var head = el('header', 'priv-head'); var copy = el('div');
-    copy.append(el('span', 'pro-eyebrow', 'CONFIGURACIÓN · PROTECCIÓN'), el('h1', '', 'Privacidad y derechos'), el('p', '', 'Solicitudes de acceso, rectificación, cancelación y oposición (ARCO) y lo que cada paciente permite sobre sus datos.'));
-    var refresh = el('button', 'btn btn-secondary', 'Actualizar'); refresh.type = 'button'; refresh.onclick = function () { loadRequests(); };
-    head.append(copy, refresh); page.append(head);
-    var tabs = el('div', 'priv-tabs'); tabs.setAttribute('role', 'tablist');
-    [['requests', 'Solicitudes'], ['patients', 'Pacientes'], ['auto', 'Aviso automático']].forEach(function (t) {
-      var b = el('button', '', t[1]); b.type = 'button'; b.dataset.privTab = t[0]; b.setAttribute('role', 'tab'); b.onclick = function () { state.tab = t[0]; render(); }; tabs.append(b);
-    });
-    var feedback = el('p', 'priv-feedback'); feedback.id = 'priv-feedback'; feedback.setAttribute('role', 'status'); feedback.setAttribute('aria-live', 'polite');
-    var content = el('div', 'priv-content'); content.id = 'priv-content';
-    page.append(tabs, feedback, content);
-    var host = document.querySelector('.contenido'); if (host) host.append(page);
-  }
-
-  function init() {
-    if (!win || !win.ir || document.getElementById('p-privacidad')) return;
-    if (win.TITULOS) win.TITULOS.privacidad = 'Privacidad y derechos';
-    build();
-    var previous = win.ir;
-    win.ir = function (route) { var result = previous(route); if (route === 'privacidad') { if (!state.requests.length || state.tenant !== win.tenantId) loadRequests(); else render(); } return result; };
-  }
-
-  if (win && win.document) { if (win.document.readyState === 'loading') win.document.addEventListener('DOMContentLoaded', init); else init(); }
-  return { RIGHTS: RIGHTS, CHANNELS: CHANNELS, STATUS: STATUS, PURPOSES: PURPOSES, dueInfo: dueInfo, counts: counts, visible: visible, isOpen: isOpen, revocablePurposes: revocablePurposes, fileName: fileName, friendly: friendly, todayText: todayText };
+  return { RIGHTS: RIGHTS, CHANNELS: CHANNELS, STATUS: STATUS, PURPOSES: PURPOSES, dueInfo: dueInfo, counts: counts, visible: visible, isOpen: isOpen, revocablePurposes: revocablePurposes, fileName: fileName, friendly: friendly, todayText: todayText,
+    mountPatient: mountPatient, openNewRequest: openNewRequest, openAttend: openAttend, exportData: exportData, setChoice: setChoice, autoControl: autoControl };
 });

@@ -96,17 +96,18 @@
     box.setAttribute('role', 'status');
     var text = el('div', 'priv-banner-text');
     if (done) {
-      text.append(el('strong', '', 'Solicitud de derechos registrada'), el('span', '', ' · ' + hit.label + '. Atiéndela en Privacidad y derechos.'));
+      text.append(el('strong', '', 'Solicitud de derechos registrada'), el('span', '', ' · ' + hit.label + '. Atiéndela en el expediente del paciente, en «Consentimiento de privacidad».'));
     } else {
       text.append(el('strong', '', 'Posible solicitud de derechos: ' + hit.label), el('q', '', snippet(hit.text)));
-      if (o.canManage) text.append(el('small', '', 'Tienes 20 días hábiles para responder. Antes de entregar o borrar datos, confirma que quien escribe es el paciente.'));
+      if (o.canManage && o.patientId) text.append(el('small', '', 'Tienes 20 días hábiles para responder. Antes de entregar o borrar datos, confirma que quien escribe es el paciente.'));
+      else if (o.canManage) text.append(el('small', '', 'Para registrarla, primero liga esta conversación a un paciente: la solicitud se atiende en su expediente.'));
       else text.append(el('small', '', 'Avisa a quien administra la privacidad de la clínica para que la registre.'));
     }
     var acts = el('div', 'priv-banner-acts');
     function btn(label, cls, fn) { var b = el('button', cls, label); b.type = 'button'; b.onclick = fn; acts.append(b); return b; }
-    if (done) { btn('Ver solicitudes', 'priv-primary', function () { if (typeof win.ir === 'function') win.ir('privacidad'); }); }
+    if (done) { if (o.patientId && typeof win.verPaciente === 'function') btn('Abrir expediente', 'priv-primary', function () { win.verPaciente(o.patientId); }); }
     else {
-      if (o.canManage) btn('Registrar solicitud', 'priv-primary', function () { openForm(o, hit, box); });
+      if (o.canManage && o.patientId) btn('Registrar solicitud', 'priv-primary', function () { openForm(o, hit, box); });
       btn('No es una solicitud', '', function () { mark('dismissed', hit.id, 1); box.remove(); });
     }
     box.append(text, acts);
@@ -122,7 +123,6 @@
     var name = field('Quién solicita', doc.createElement('input')); name.type = 'text'; name.maxLength = 150; name.value = o.contactName || '';
     var contact = field('Contacto', doc.createElement('input')); contact.type = 'text'; contact.maxLength = 150; contact.value = o.contactPhone || '';
     var details = field('Lo que pidió', doc.createElement('textarea')); details.rows = 4; details.maxLength = 2000; details.value = hit.text;
-    if (!o.patientId) form.append(el('p', 'priv-note', 'Esta conversación aún no está ligada a un paciente. La solicitud se registra sin paciente; ligarla después es opcional.'));
     var err = el('p', 'priv-error'); err.hidden = true; err.setAttribute('role', 'alert'); form.append(err);
     var acts = el('div', 'priv-form-acts'), cancel = el('button', '', 'Cancelar'), ok = el('button', 'priv-primary', 'Registrar'); cancel.type = 'button'; ok.type = 'submit'; acts.append(cancel, ok); form.append(acts); d.append(form);
     function close() { try { d.close(); } catch (e) {} d.remove(); }

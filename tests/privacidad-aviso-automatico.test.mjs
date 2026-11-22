@@ -89,13 +89,13 @@ test('el panel no hace nada si la clínica lo tiene apagado o no hay permiso', a
   delete globalThis.sb; delete globalThis.tenantId; delete globalThis.__settings;
 });
 
-test('la pantalla tiene la pestaña, la migración está en el centinela y las copias móviles son iguales', () => {
+test('el interruptor usa las funciones del ajuste, la migración está en el centinela y las copias móviles son iguales', () => {
   const ui = read('smyl-privacy-rights.js');
-  assert.match(ui, /\['auto', 'Aviso automático'\]/);
+  assert.match(ui, /autoControl/);
   assert.match(ui, /smyl_set_privacy_settings/);
   assert.match(ui, /smyl_get_privacy_settings/);
   assert.match(read('scripts/migration-sentinels.mjs'), /'20261124200000'/);
   for (const f of ['smyl-privacy-rights.js', 'smyl-privacy-rights.css', 'smyl-privacy-dispatch.js', 'smyl-template-catalog.js']) assert.equal(read(f), read('mobile/www/' + f), f);
-  for (const f of ['app.html', 'mobile/www/app.html']) { const a = read(f); assert.match(a, /smyl-privacy-dispatch\.js\?v=1/); assert.match(a, /smyl-privacy-rights\.js\?v=2/); }
+  for (const f of ['app.html', 'mobile/www/app.html']) { const a = read(f); assert.match(a, /smyl-privacy-dispatch\.js\?v=1/); assert.match(a, /smyl-privacy-rights\.js\?v=3/); }
   for (const f of ['sw.js', 'mobile/www/sw.js']) { const a = read(f); assert.match(a, /\/camila\/smyl-privacy-dispatch\.js\?v=1/); assert.match(a, /aviso-automatico-v1/); }
 });

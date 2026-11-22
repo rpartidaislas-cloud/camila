@@ -15,8 +15,13 @@
     window.TITULOS={};
     window.SUPA_URL='https://qa.invalid';
     window.SUPA_KEY='qa-key';
+    window.tenantId='clinica-demo';
+    window.miUsuario={id:'titular-demo'};
+    window.miRolEquipo='dueño';
     window.ir=function(route){document.querySelectorAll('.pantalla').forEach(function(page){page.classList.toggle('activa',page.id==='p-'+route);});return true;};
     window.sb={auth:{getSession:async function(){return {data:{session:{access_token:'qa-session'}}};}}};
+    window.sb.from=function(){return {count:1,select(){return this;},eq(){return this;},maybeSingle(){return Promise.resolve({data:{enabled:true}});}};};
+    window.sb.functions={invoke:async function(){return {data:{templates:[]}};}};
     window.fetch=async function(url){
       if(String(url).includes('/lana-connection')) return new Response(JSON.stringify({connected:true,estado:'conectada',can_manage:true,fingerprint:'QA123456',last_verified_at:'2026-11-09T12:00:00.000Z'}),{status:200,headers:{'Content-Type':'application/json'}});
       if(String(url).includes('/lana-channels')) return new Response(JSON.stringify({ok:true,can_manage:true,channels:[{channel:'whatsapp',connected:false},{channel:'messenger',connected:false},{channel:'instagram',connected:true,display_name:'@smyl.clinic'}]}),{status:200,headers:{'Content-Type':'application/json'}});
@@ -24,6 +29,7 @@
     };
   </script>
   <script defer src="smyl-connections.js"></script>
+  <script defer src="smyl-clinic-setup.js"></script>
   <script defer src="smyl-settings-hub.js"></script>
   <script defer src="smyl-navigation.js"></script>
 </head>

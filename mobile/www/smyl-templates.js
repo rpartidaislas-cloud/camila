@@ -219,6 +219,13 @@
     });
     details.append(list); article.append(details);
 
+    /* El aviso de privacidad se puede mandar solo a pacientes nuevos: el interruptor vive junto a su plantilla. */
+    if (template.id === 'aviso_privacidad_v1' && window.SmylPrivacyRights && typeof window.SmylPrivacyRights.autoControl === 'function') {
+      var autoHost = el('div', 'tpl-auto');
+      article.append(autoHost);
+      window.SmylPrivacyRights.autoControl({ approved: state.remote ? statusKey(template) === 'APPROVED' : null }).then(function (node) { autoHost.append(node); });
+    }
+
     var actions = el('footer', 'tpl-actions');
     var key = statusKey(template);
     if (state.remote && key === 'NONE') actions.append(requestButton(template));

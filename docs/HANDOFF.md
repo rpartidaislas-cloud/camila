@@ -1,3 +1,9 @@
+## 2026-11-22 — Configuración de canales
+
+- En Configuración → Canales, WhatsApp Business, Messenger e Instagram aparecen con los mismos logos que la bandeja. Cada tarjeta abre su pestaña de conexión e identifica la cuenta cuando el servicio devuelve su nombre o teléfono. El bloque Asistente agrupa configuración y pruebas. Mensajes automáticos reúne las plantillas, los avisos de cita y las reglas.
+- Inicio y Configuración comparten la lectura de canales en curso en `smyl-clinic-setup.js`. El resumen de cuentas de `smyl-settings-hub.js` respeta los permisos devueltos por el servicio. Una consulta fallida permite reintentar. Una respuesta parcial muestra las cuentas pendientes de verificar y omite el total.
+- Recursos sincronizados con la PWA y `mobile/www`. Verificación en Chromium a 320, 390, 820 y 1280 px con cuentas simuladas, incluyendo errores de conexión, permisos de lectura y cambios de clínica.
+
 ## 2026-11-22 — Claude Code — Pacientes: la fila completa abre el expediente
 
 - `smyl-clinic.js` v27 / `smyl-patients-directory.css` v3: se quitan el botón «Abrir expediente», el menú «…» (Agendar cita / Editar datos) y cualquier botón de la fila. Toda la fila abre el expediente; el nombre es un botón accesible por teclado y hay una flecha «›» al final (oculta en móvil). «Editar datos» sigue en el expediente.
@@ -12306,3 +12312,13 @@ Revisión completa de cumplimiento hecha en esta sesión; esta entrega cubre los
 - **Aplicar:** pegar el SQL **antes** de publicar la web (sin la tabla, la pestaña muestra «No pudimos cargar la lista de espera» y nada más se afecta).
 - **Pruebas:** `tests/smyl-waitlist-core.test.mjs` (9), `tests/lista-espera.test.mjs` (6) y humo de navegador `tests/qa/lista-espera-smoke.cjs` (31 comprobaciones, escritorio y celular). Con datos de ejemplo, no con una agenda real.
 - **Archivos:** `smyl-waitlist-core.js`, `smyl-waitlist.js`, `smyl-waitlist.css` (nuevos), `smyl-schedule.js` v58, `smyl-inbox.js` v94, `smyl-inbox.css` v79, `app.html`, `sw.js`, copias en `mobile/www/`.
+
+## 2026-11-23 — Claude Code — Lista de espera: «Ofrecer» usa la plantilla de WhatsApp cuando la ventana de 24 h está cerrada
+- **Hallazgo:** la plantilla ya existía en el catálogo (`cita_lista_espera_v1`, Utilidad: «Hola {{1}}, se liberó un horario en {{2}} para el {{3}} a las {{4}}. Si te interesa, responde a este mensaje en las próximas horas para reservarlo.», variables nombre / clínica / fecha / hora). **No se creó ni se cambió ninguna plantilla ni el catálogo, y no hay nada que redesplegar en Supabase.** Faltaba conectarla.
+- **Qué cambia (solo frontend):** `SmylInbox.compose(conversationId, text, options)` (v95) ahora decide: **ventana abierta u otro canal → texto libre en el compositor** (como antes); **WhatsApp con la ventana cerrada y `options.template` → abre el diálogo de plantillas con `cita_lista_espera_v1` elegida y las 4 variables llenas** y devuelve `'template'`; **si el paciente tiene la ventana cerrada y la clínica NO tiene aprobada esa plantilla → avisa («Solicítala en Mensajería → Plantillas») y devuelve `false`**. Nunca envía por sí solo.
+- **La oferta se registra cuando de verdad ocurre:** con texto libre, al dejarlo escrito; con plantilla, **solo cuando la persona la envía** (`onSent`). Antes se registraba al pulsar «Ofrecer» aunque no se enviara nada.
+- **Variables** (`SmylWaitlistCore.templateVariables`, puro): nombre, sucursal («en Clínica Centro»), fecha en minúsculas sin coma («miércoles 25 de noviembre») y hora («10:00 a.m.»), en la zona horaria de la sucursal.
+- **Para usarla la clínica debe solicitarla:** Mensajería → Plantillas → «Se liberó un horario» → Solicitar. Meta tarda de minutos a 48 h. Riesgo: Meta puede reclasificarla como Marketing (cobra distinto y exige consentimiento); el texto responde a una petición del paciente y evita lenguaje promocional.
+- **No hecho:** variante con botones rápidos («Sí, lo quiero» / «Ahora no») —habría que crear una plantilla nueva y regenerar el catálogo y el bundle de `whatsapp-templates`—; el aviso a la lista de espera no se envía solo.
+- **Pruebas:** `tests/smyl-waitlist-core.test.mjs` (12), `tests/lista-espera.test.mjs` (7), humo `tests/qa/lista-espera-smoke.cjs` (41: ahora cubre texto libre, plantilla y plantilla no aprobada) y **`tests/qa/compose-plantilla-smoke.cjs` (14) que prueba `SmylInbox.compose` en el Inbox real** (ventana vencida con y sin plantilla aprobada, sin plantilla pedida y otro canal).
+- **Archivos:** `smyl-waitlist-core.js` v2, `smyl-waitlist.js` v2, `smyl-inbox.js` v95, `app.html`, `sw.js`, copias en `mobile/www/`.

@@ -84,3 +84,8 @@
 }
 
 .tpl-status-skeleton{display:block;min-width:180px;flex:1 1 180px;max-width:320px}
+.tpl-auto{margin:12px 0 4px;padding:12px 14px;border:1px solid #d6dfdd;border-radius:12px;background:#f7faf9}
+.tpl-auto .priv-switch{display:flex;align-items:center;gap:12px;min-height:44px;font-weight:600;cursor:pointer}
+.tpl-auto .priv-switch input{width:24px;height:24px;accent-color:#1f8a80}
+.tpl-auto .priv-muted{margin:6px 0;font-size:13px;line-height:1.5;color:#526465}
+.tpl-auto .priv-note{margin:6px 0;padding:8px 10px;border-radius:8px;background:#fff6dd;color:#7a5200;font-size:13px}
