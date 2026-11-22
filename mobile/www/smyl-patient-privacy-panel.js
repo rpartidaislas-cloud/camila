@@ -4,6 +4,7 @@
  * Textos del paciente y del servidor entran siempre escapados. */
 (function (root, factory) { var api = factory(); if (typeof module === 'object' && module.exports) module.exports = api; else root.SmylPatientPrivacyPanel = api; })(globalThis, function () {
   'use strict';
+  var KEY_LABEL = { ai_processing: 'la inteligencia artificial', whatsapp: 'WhatsApp', marketing: 'las promociones' };
   var PURPOSES = [['ai_processing', 'Inteligencia artificial'], ['whatsapp', 'WhatsApp'], ['marketing', 'Promociones']];
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
 
@@ -23,16 +24,14 @@
     if (s === 'unknown') return { label: label, text: purpose === 'ai_processing' ? 'Aún no lo autoriza. La IA no procesará sus datos hasta que lo autorice.' : 'Aún no ha decidido.', state: 'pending', badge: 'Sin decidir' };
     return { label: label, text: 'No se pudo comprobar.', state: 'empty', badge: '' };
   }
-  /* consent: undefined/null = no se pudo leer; privacy: objeto por finalidad o null; openRequests: número o null. */
+  /* consent: undefined/null = no se pudo leer; privacy: objeto por finalidad o null */
   function model(input, fmt) {
     input = input || {};
     var rows = [noticeRow(input.consent, fmt)], privacy = input.privacy || null;
     PURPOSES.forEach(function (p) { rows.push(decisionRow(p[0], p[1], privacy ? privacy[p[0]] : null)); });
-    var open = Number(input.openRequests) || 0;
-    if (open > 0) rows.push({ label: 'Solicitudes de derechos', text: open + (open === 1 ? ' solicitud abierta' : ' solicitudes abiertas'), state: 'pending', badge: 'Abierta' });
     var pending = rows.some(function (r) { return r.state === 'pending'; });
     var signed = !!(input.consent && input.consent.signed);
-    return { rows: rows, signed: signed, state: pending ? 'pending' : rows.some(function (r) { return r.state === 'empty'; }) ? 'neutral' : 'ok', missing: signed ? '' : 'Aviso de privacidad', hasOpenRequests: open > 0 };
+    return { rows: rows, signed: signed, state: pending ? 'pending' : rows.some(function (r) { return r.state === 'empty'; }) ? 'neutral' : 'ok', missing: signed ? '' : 'Aviso de privacidad' };
   }
   function rowHtml(row) {
     var lines = Array.isArray(row.lines) && row.lines.length ? row.lines : [row.text || ''];
@@ -42,15 +41,14 @@
   function render(m, number, actions) {
     actions = actions || {};
     var btns = '';
-    if (!m.signed && actions.link) btns += '<button type="button" class="p360-hc-edit" data-hp-link>Enviar al celular</button>';
-    if (!m.signed && actions.screen) btns += '<button type="button" class="p360-hc-edit" data-hp-screen>Firmar en pantalla</button>';
-    if (m.hasOpenRequests && actions.requests) btns += '<button type="button" class="p360-hc-edit" data-hp-requests>Ver solicitudes</button>';
+    if (!m.signed && actions.link) btns += '<button type="button" class="p360-hc-edit" data-hp-link>Que firme en su celular</button>';
     return '<section class="p360-hc-band" id="p360-hc-privacy" data-tone="privacy" data-state="' + esc(m.state) + '" tabindex="-1" aria-labelledby="p360-hc-privacy-t">'
-      + '<header class="p360-hc-band-h"><div class="p360-hc-title"><span class="p360-hc-num" aria-hidden="true">' + Number(number) + '</span><div><h3 id="p360-hc-privacy-t">Privacidad y consentimientos</h3><small>Aviso firmado y lo que el paciente permite hacer con sus datos.</small></div></div><div class="pp-actions">' + btns + '</div></header>'
-      + '<dl class="p360-hc-rows">' + m.rows.map(rowHtml).join('') + '</dl></section>';
+      + '<header class="p360-hc-band-h"><div class="p360-hc-title"><span class="p360-hc-num" aria-hidden="true">' + Number(number) + '</span><div><h3 id="p360-hc-privacy-t">Consentimiento de privacidad</h3><small>Lo que firmó el paciente y lo que permite sobre sus datos.</small></div></div><div class="pp-actions">' + btns + '</div></header>'
+      + '<dl class="p360-hc-rows">' + m.rows.map(rowHtml).join('') + '</dl>'
+      + (actions.arco ? '<div class="pp-arco"><p class="pp-feedback" role="status" aria-live="polite"></p><div data-pp-arco></div></div>' : '') + '</section>';
   }
   function indexButton(number, m) {
-    return '<button type="button" data-hc-goto="privacy"><span class="p360-hc-dot" data-state="' + esc(m.state === 'neutral' ? 'neutral' : m.state) + '" aria-hidden="true"></span>' + Number(number) + ' · Privacidad</button>';
+    return '<button type="button" data-hc-goto="privacy"><span class="p360-hc-dot" data-state="' + esc(m.state === 'neutral' ? 'neutral' : m.state) + '" aria-hidden="true"></span>' + Number(number) + ' · Consentimiento</button>';
   }
 
   /* ── Navegador ── */
@@ -70,14 +68,13 @@
     function fmt(v) { try { return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(v)); } catch (e) { return String(v); } }
     return Promise.all([
       rpc('smyl_patient_consent_status', { p_patient_id: o.patient }).catch(function () { return undefined; }),
-      rpc('smyl_patient_privacy_status', { p_patient_id: o.patient }).catch(function () { return null; }),
-      win.sb.from('smyl_data_rights_requests').select('id', { count: 'exact', head: true }).eq('tenant_id', o.tenant).eq('patient_id', o.patient).in('status', ['received', 'in_review']).then(function (r) { return r.error ? null : r.count; }, function () { return null; })
+      rpc('smyl_patient_privacy_status', { p_patient_id: o.patient }).catch(function () { return null; })
     ]).then(function (res) {
       if (o.isCurrent && !o.isCurrent()) return false;
       if (!host.isConnected || host.querySelector('#p360-hc-privacy')) return false;
-      var m = model({ consent: res[0], privacy: res[1], openRequests: res[2] }, fmt), number = count + 1;
+      var m = model({ consent: res[0], privacy: res[1] }, fmt), number = count + 1;
       var tpl = doc.createElement('template');
-      tpl.innerHTML = render(m, number, { link: !!o.canAct, screen: !!o.canAct && !!(win.SmylConsultorio && win.ir), requests: true });
+      tpl.innerHTML = render(m, number, { link: !!o.canAct, arco: !!o.canAct && !!o.patientRow && !!win.SmylPrivacyRights });
       var footer = main.querySelector('.p360-hc-footer');
       main.insertBefore(tpl.content, footer || null);
       var progress = index.querySelector('.p360-hc-progress'), itpl = doc.createElement('template');
@@ -85,11 +82,25 @@
       index.insertBefore(itpl.content, progress || null);
       var gotoBtn = index.querySelector('[data-hc-goto="privacy"]'), band = host.querySelector('#p360-hc-privacy');
       gotoBtn.onclick = function () { var reduced = win.matchMedia && win.matchMedia('(prefers-reduced-motion: reduce)').matches; band.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); band.focus({ preventScroll: true }); };
-      if (m.missing && progress) { var line = doc.createElement('span'); line.className = 'p360-hc-missing pp-missing'; line.textContent = 'Falta firmar: ' + m.missing + '.'; progress.append(line); }
-      var link = band.querySelector('[data-hp-link]'), screen = band.querySelector('[data-hp-screen]'), reqs = band.querySelector('[data-hp-requests]');
+      if (m.missing && progress) { var line = doc.createElement('span'); line.className = 'p360-hc-missing pp-missing'; line.textContent = 'Falta la firma del consentimiento de privacidad.'; progress.append(line); }
+      var link = band.querySelector('[data-hp-link]');
       if (link) link.onclick = function () { openLink(o, link); };
-      if (screen) screen.onclick = function () { win.ir('consultorio'); win.SmylConsultorio.openVisit(o.patient); };
-      if (reqs) reqs.onclick = function () { if (typeof win.ir === 'function') win.ir('privacidad'); };
+      var arco = band.querySelector('[data-pp-arco]');
+      if (arco && win.SmylPrivacyRights) {
+        var fb = band.querySelector('.pp-feedback');
+        win.SmylPrivacyRights.mountPatient(arco, Object.assign({ id: o.patient }, o.patientRow), { notify: function (text, tone) { fb.textContent = text; fb.dataset.tone = tone; }, onChange: function () { if (o.refresh) o.refresh(); } });
+      }
+      /* «Cambiar» en cada decisión: registra el cambio con su fecha (por ejemplo, si el paciente dice en persona que ya no quiere WhatsApp). */
+      if (res[1] && win.SmylPrivacyRights && o.canAct) {
+        var KEY = { 'Inteligencia artificial': 'ai_processing', 'WhatsApp': 'whatsapp', 'Promociones': 'marketing' };
+        band.querySelectorAll('.p360-hc-row').forEach(function (row) {
+          var key = KEY[(row.querySelector('dt') || {}).textContent]; if (!key) return;
+          var st = res[1][key] && res[1][key].state, granted = st === 'granted';
+          var b = doc.createElement('button'); b.type = 'button'; b.className = 'pp-change'; b.textContent = granted ? 'Cambiar a No' : 'Cambiar a Sí';
+          b.onclick = function () { if (win.confirm(granted ? '¿Registrar que el paciente ya NO acepta ' + KEY_LABEL[key] + '?' : '¿Registrar que el paciente SÍ acepta ' + KEY_LABEL[key] + '?')) win.SmylPrivacyRights.setChoice(Object.assign({ id: o.patient }, o.patientRow), key, granted ? 'revoked' : 'granted'); };
+          var cell = row.querySelector('.p360-hc-st'); if (cell) cell.append(b);
+        });
+      }
       return true;
     });
   }
@@ -127,7 +138,8 @@
       if (wa) act('Enviarlo por WhatsApp', 'pp-primary', function () { win.open(wa, '_blank', 'noopener'); });
       var copy = act('Copiar enlace', '', function () { var p = win.navigator.clipboard ? win.navigator.clipboard.writeText(url) : Promise.reject(); p.then(function () { copy.textContent = 'Enlace copiado'; }, function () { more.open = true; field.focus(); field.select(); copy.textContent = 'Selecciona y copia el enlace'; }); });
       act('Cerrar', '', close);
-      body.append(qr, cap, status, acts, more, hint);
+      var what = doc.createElement('p'); what.className = 'pp-what'; what.textContent = 'El paciente va a firmar que leyó cómo la clínica cuida sus datos personales y de salud, y a decidir si permite IA, WhatsApp y promociones. Decir que no no cambia su atención.';
+      body.append(what, qr, cap, status, acts, more, hint);
       /* Mientras la ventana está abierta se revisa cada pocos segundos si ya firmó; al cerrar, la sección se actualiza. */
       var polls = 0, signed = false;
       var timer = setInterval(function () {

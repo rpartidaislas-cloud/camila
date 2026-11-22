@@ -38,10 +38,10 @@
 
   /* consent: undefined = no se pudo leer, {signed:false} o {signed:true,…}. summary: texto ya armado de quién y cuándo firmó. */
   function consentStep(consent,o){
-    var base={key:'privacidad',title:'Aviso de privacidad',counts:true},sign={id:'consent',label:'Pedir firma',primary:true},remote={id:'consent-link',label:'Enviar al celular del paciente'};
-    if(consent===undefined)return Object.assign(base,{state:'unknown',text:'Ábrelo para ver si está firmado.',actions:o.canSign?[sign,remote]:[]});
+    var base={key:'privacidad',title:'Consentimiento de privacidad',counts:true},sign={id:'consent',label:'Pedir firma',primary:true};
+    if(consent===undefined)return Object.assign(base,{state:'unknown',text:'Ábrelo para ver si el paciente ya firmó.',actions:o.canSign?[sign]:[]});
     if(consent&&consent.signed)return Object.assign(base,{state:'done',text:o.summary||'Firmado.',actions:o.canView?[{id:'consent-view',label:'Ver firma'}]:[]});
-    return Object.assign(base,{state:'todo',text:'Falta su firma.',actions:o.canSign?[sign,remote]:[]});
+    return Object.assign(base,{state:'todo',text:'El paciente aún no firma que conoce cómo cuidamos sus datos y que decide sobre IA, WhatsApp y promociones.',actions:o.canSign?[sign]:[]});
   }
 
   function simulationStep(){return {key:'simulacion',title:'Simulación',counts:false,state:'optional',text:'Para mostrársela al paciente.',actions:[{id:'simulator',label:'Abrir el simulador'}]};}
