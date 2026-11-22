@@ -1091,11 +1091,11 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
 #p-caja .finance-chips>button[aria-pressed=true]{border-color:var(--smyl-ink,#102239);background:var(--smyl-ink,#102239);color:#fff}
 #p-caja .finance-chips>button[aria-pressed=true] em{color:rgba(255,255,255,.74)}
 #p-caja .finance-segment{display:inline-flex;padding:3px;border:1px solid var(--smyl-border,#d7e0e8);border-radius:10px;background:var(--smyl-canvas,#f3f7fa)}
-#p-caja .finance-segment>button{min-height:32px;padding:0 13px;border:0;border-radius:7px;background:transparent;box-shadow:none;color:var(--smyl-text-secondary,#526173);font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer}
+#p-caja .finance-segment>button{min-height:34px;padding:0 13px;border:0;border-radius:7px;background:transparent;box-shadow:none;color:var(--smyl-text-secondary,#526173);font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer}
 #p-caja .finance-segment>button:hover{color:var(--smyl-ink,#102239)}
 #p-caja .finance-segment>button[aria-pressed=true]{background:var(--smyl-surface,#fff);box-shadow:0 1px 2px rgba(16,34,57,.16);color:var(--smyl-ink,#102239)}
 #p-caja .finance-tools-end{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-#p-caja .finance-tools-end .btn{min-height:40px}
+#p-caja .finance-tools-end .btn{min-height:42px}
 #p-caja .finance-date-range{display:flex;flex:1 0 100%;flex-wrap:wrap;align-items:center;gap:8px 14px}
 #p-caja .finance-date-range[hidden]{display:none}
 #p-caja .finance-date-range label{display:inline-flex;align-items:center;gap:8px;color:var(--smyl-text-secondary,#526173);font-size:13px;font-weight:600}
@@ -1194,8 +1194,10 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
   #p-caja .finance-chips>button{flex:1 1 auto;justify-content:center;padding:0 8px}
   #p-caja .finance-segment{display:flex;flex:1 0 100%}
   #p-caja .finance-segment>button{flex:1 1 0;padding:0 6px}
-  #p-caja .finance-tools-end{flex:1 0 100%;flex-wrap:nowrap}
-  #p-caja .finance-tools-end select{flex:1 1 auto;min-width:0}
+  #p-caja .finance-tools-end{flex:1 0 100%}
+  #p-caja .finance-tools-end select{flex:999 1 auto;max-width:100%}
+  /* El filtro nunca se recorta: si no cabe junto a «Exportar», el botón baja a su propio renglón. */
+  #p-caja .finance-tools-end .btn{flex:1 0 auto;justify-content:center}
   #p-caja .finance-date-range label{flex:1 1 140px}
   #p-caja .finance-date-range input{flex:1 1 auto;min-width:0}
   #p-caja .finance-line[data-cols=accounts]{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"who amount" "paid actions"}
@@ -1209,9 +1211,11 @@ body.smyl-ui-governed .contenido .finance-charge-form :is(.finance-discount-inpu
   /* En celular el nombre completo importa más que un renglón: no se recorta. */
   #p-caja .finance-line-name{white-space:normal}
 }
-/*contenedor*/@container finance-workspace (max-width:560px){#p-caja .finance-list-tools #finance-search{flex:1 0 100%;max-width:none}#p-caja .finance-chips{flex:1 0 100%;flex-wrap:nowrap}#p-caja .finance-chips>button{flex:1 1 auto;justify-content:center;padding:0 8px}#p-caja .finance-segment{display:flex;flex:1 0 100%}#p-caja .finance-segment>button{flex:1 1 0;padding:0 6px}#p-caja .finance-tools-end{flex:1 0 100%;flex-wrap:nowrap}#p-caja .finance-tools-end select{flex:1 1 auto;min-width:0}#p-caja .finance-date-range label{flex:1 1 140px}#p-caja .finance-date-range input{flex:1 1 auto;min-width:0}#p-caja .finance-line[data-cols=accounts]{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"who amount" "paid actions"}#p-caja .finance-line[data-cols=accounts]>.finance-line-amount{align-self:start}#p-caja .finance-line[data-cols=visits]{grid-template-columns:minmax(0,1fr);grid-template-areas:"who" "paid" "actions";row-gap:2px}#p-caja .finance-line[data-cols=visits]>.finance-line-actions{margin-top:4px}#p-caja .finance-line[data-cols=payments]{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"who amount" "who how" "when actions"}#p-caja .finance-line[data-cols=payments]>.finance-line-who{align-self:start}#p-caja .finance-line[data-cols=payments]>.finance-line-amount{align-self:start}#p-caja .finance-line[data-cols=payments]>:is(.finance-line-when,.finance-line-actions){margin-top:4px}#p-caja .finance-line-name{white-space:normal}}
+/*contenedor*/@container finance-workspace (max-width:560px){#p-caja .finance-list-tools #finance-search{flex:1 0 100%;max-width:none}#p-caja .finance-chips{flex:1 0 100%;flex-wrap:nowrap}#p-caja .finance-chips>button{flex:1 1 auto;justify-content:center;padding:0 8px}#p-caja .finance-segment{display:flex;flex:1 0 100%}#p-caja .finance-segment>button{flex:1 1 0;padding:0 6px}#p-caja .finance-tools-end{flex:1 0 100%}#p-caja .finance-tools-end select{flex:999 1 auto;max-width:100%}#p-caja .finance-tools-end .btn{flex:1 0 auto;justify-content:center}#p-caja .finance-date-range label{flex:1 1 140px}#p-caja .finance-date-range input{flex:1 1 auto;min-width:0}#p-caja .finance-line[data-cols=accounts]{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"who amount" "paid actions"}#p-caja .finance-line[data-cols=accounts]>.finance-line-amount{align-self:start}#p-caja .finance-line[data-cols=visits]{grid-template-columns:minmax(0,1fr);grid-template-areas:"who" "paid" "actions";row-gap:2px}#p-caja .finance-line[data-cols=visits]>.finance-line-actions{margin-top:4px}#p-caja .finance-line[data-cols=payments]{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"who amount" "who how" "when actions"}#p-caja .finance-line[data-cols=payments]>.finance-line-who{align-self:start}#p-caja .finance-line[data-cols=payments]>.finance-line-amount{align-self:start}#p-caja .finance-line[data-cols=payments]>:is(.finance-line-when,.finance-line-actions){margin-top:4px}#p-caja .finance-line-name{white-space:normal}}
 @media(max-width:420px){
   /* Las cuatro vistas siempre a la vista, sin deslizar: en celular forman dos pares. */
   #p-caja .finance-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  /* Los periodos se reparten según su texto: «Este mes» no cabe en un cuarto exacto de un celular angosto. */
+  #p-caja .finance-segment>button{flex:1 1 auto}
 }
-/*contenedor*/@container finance-workspace (max-width:420px){#p-caja .finance-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
+/*contenedor*/@container finance-workspace (max-width:420px){#p-caja .finance-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#p-caja .finance-segment>button{flex:1 1 auto}}

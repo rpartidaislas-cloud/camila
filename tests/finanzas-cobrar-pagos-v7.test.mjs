@@ -231,7 +231,9 @@ test('las citas sin cobrar usan las mismas filas y nunca desaparecen sin aviso',
 
 test('«Pagos»: periodo, forma de pago y exportación arriba; pagos y reembolsos en una sola lista', () => {
   assert.match(src, /<div class="finance-segment" role="group" aria-label="Periodo">'\+PAY_PERIODS\.map\(/);
-  assert.match(src, /<select id="finance-pay-method" aria-label="Forma de pago"><option value="">Todas las formas de pago<\/option>'\+METHOD_ORDER\.map\(/);
+  // El texto del filtro es corto a propósito: «Todas las formas de pago» se cortaba junto a «Exportar» en celulares de menos de 410 px.
+  assert.match(src, /<select id="finance-pay-method" aria-label="Forma de pago"><option value="">Todas las formas<\/option>'\+METHOD_ORDER\.map\(/);
+  assert.doesNotMatch(src, /Todas las formas de pago/);
   assert.match(src, /<button type="button" class="btn btn-secondary" id="finance-pay-export"[^>]*>Exportar<\/button>/);
   assert.match(src, /<div class="finance-date-range" id="finance-pay-range" hidden><label>Del <input type="date" id="finance-pay-from"><\/label><label>al <input type="date" id="finance-pay-to"><\/label><\/div>/);
   assert.match(src, /<div class="finance-cols" data-cols="payments" aria-hidden="true"><span>Fecha<\/span><span>Paciente y concepto<\/span><span>Forma de pago<\/span><span>Importe<\/span><span><\/span><\/div>/);
@@ -272,6 +274,17 @@ test('los estilos: columnas alineadas, color solo donde hace falta y acomodo por
   // En pantallas táctiles todo mide al menos 44 px, también las opciones del menú de una fila.
   assert.match(block, /#p-caja :is\(\.finance-chips>button,\.finance-segment>button,\.finance-line-actions \.btn,\.finance-tools-end \.btn,\.finance-visits-peek,button\.finance-line-who\)\{min-height:44px\}/);
   assert.match(block, /#p-caja \.finance-line \.finance-row-menu button\{min-height:44px\}/);
+  // La barra de «Pagos»: periodos, filtro y «Exportar» miden lo mismo (42 px) y el filtro nunca se recorta:
+  // en celular crece hasta llenar el renglón y, si no cabe junto a «Exportar», el botón baja a su propio renglón.
+  assert.match(block, /#p-caja \.finance-segment\{[^}]*padding:3px;border:1px solid/); assert.match(block, /#p-caja \.finance-segment>button\{min-height:34px;/);
+  assert.match(block, /#p-caja \.finance-tools-end\{display:flex;flex-wrap:wrap;align-items:center;gap:8px\}/);
+  assert.match(block, /#p-caja \.finance-tools-end \.btn\{min-height:42px\}/);
+  assert.match(block, /#p-caja \.finance-tools-end\{flex:1 0 100%\}/);
+  assert.match(block, /#p-caja \.finance-tools-end select\{flex:999 1 auto;max-width:100%\}/);
+  assert.match(block, /#p-caja \.finance-tools-end \.btn\{flex:1 0 auto;justify-content:center\}/);
+  assert.doesNotMatch(block, /finance-tools-end\{[^}]*nowrap|finance-tools-end select\{[^}]*min-width:0/);
+  // En celular los periodos se reparten según su texto («Este mes» no cabe en un cuarto exacto de 320 px).
+  assert.match(block, /@media\(max-width:420px\)\{[^@]*#p-caja \.finance-segment>button\{flex:1 1 auto\}/);
   const tiny = [...block.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].filter((m) => Number(m[1]) < 12);
   assert.equal(tiny.length, 0, 'sin texto menor a 12 px');
   // La limpieza se llevó las reglas de las listas viejas.
@@ -280,7 +293,7 @@ test('los estilos: columnas alineadas, color solo donde hace falta y acomodo por
 
 test('versiones publicadas y copias de la app móvil al día', () => {
   const app = read('app.html'), sw = read('sw.js');
-  assert.match(app, /smyl-finance\.css\?v=49/); assert.match(app, /smyl-finance\.js\?v=65/);
-  assert.match(sw, /smyl-finance\.js\?v=65/); assert.match(sw, /smyl-finance\.css\?v=49/); assert.match(sw, /finanzas-cobrar-pagos-v7/);
+  assert.match(app, /smyl-finance\.css\?v=50/); assert.match(app, /smyl-finance\.js\?v=66/);
+  assert.match(sw, /smyl-finance\.js\?v=66/); assert.match(sw, /smyl-finance\.css\?v=50/); assert.match(sw, /finanzas-cobrar-pagos-v7-pagos-filtro-v8/);
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-xlsx.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + file), read(file), file);
 });
