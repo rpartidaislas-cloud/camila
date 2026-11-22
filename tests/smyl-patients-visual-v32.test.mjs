@@ -30,12 +30,11 @@ test('el directorio crea una tabla clínica enfocada en continuidad y acciones c
   assert.match(clinic, /el\('table', 'clinic-patient-table'\)/);
   assert.match(clinic, /el\('div', 'clinic-patient-identity-inner'\)/);
   assert.match(clinic, /\['Paciente', 'Atención', 'Estado', 'Acciones'\]/);
-  assert.match(clinic, /Abrir expediente/);
-  assert.match(clinic, /clinic-patient-menu-panel/);
+  assert.match(clinic, /Abrir expediente de /);
+  assert.doesNotMatch(clinic, /clinic-patient-menu-panel/);
   assert.match(clinic, /Cita programada/);
   assert.match(clinic, /Seguimiento pendiente/);
   assert.match(clinic, /Datos por completar/);
-  assert.match(clinic, /Agendar cita para /);
   assert.match(clinic, /Abrir expediente de /);
   assert.match(clinic, /patientEmptyState\('Sin resultados'/);
   assert.match(clinic, /patientEmptyState\('Aún no hay pacientes'/);
@@ -43,7 +42,7 @@ test('el directorio crea una tabla clínica enfocada en continuidad y acciones c
 });
 
 test('la capa visual final gobierna escritorio, tablet y móvil sin depender de estilos globales', () => {
-  assert.match(app, /smyl-patients-directory\.css\?v=2[\s\S]*smyl-ui-datta-v4\.css\?v=2/);
+  assert.match(app, /smyl-patients-directory\.css\?v=3[\s\S]*smyl-ui-datta-v4\.css\?v=2/);
   assert.match(directory, /#p-pacientes \.patient-directory-header/);
   assert.match(directory, /#p-pacientes \.clinic-patient-table/);
   assert.match(directory, /@media\(max-width:820px\)/);

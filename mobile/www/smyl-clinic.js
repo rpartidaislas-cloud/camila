@@ -833,7 +833,7 @@
       var initials = [(p.nombre || '').slice(0, 1), (p.apellido || '').slice(0, 1)].join('').toUpperCase() || '?';
       var avatar = el('div', 'clinic-avatar', initials);
       avatar.setAttribute('aria-hidden', 'true');
-      var name = el('div', 'clinic-patient-name'); name.append(el('strong', '', fullName(p) || 'Paciente sin nombre'));
+      var name = el('div', 'clinic-patient-name'); var nameOpen = button(fullName(p) || 'Paciente sin nombre', function () { verPaciente(p.id); }, 'clinic-patient-name-open'); nameOpen.setAttribute('aria-label', 'Abrir expediente de ' + patientName); name.append(nameOpen);
       var contactParts = [];
       if (p.telefono) contactParts.push(displayPhone(p.telefono));
       if (p.email) contactParts.push(p.email);
@@ -854,20 +854,8 @@
       state.append(status, el('small', 'clinic-patient-status-detail', stateInfo.detail));
 
       var actions = el('td', 'clinic-patient-actions'); actions.dataset.label = 'Acciones';
-      var open = button('Abrir expediente', function () { verPaciente(p.id); }, 'btn btn-secondary btn-sm clinic-patient-open');
-      open.setAttribute('aria-label', 'Abrir expediente de ' + patientName); actions.append(open);
-      if (!p._local) {
-        var menu = el('details', 'clinic-patient-menu'), menuTrigger = el('summary');
-        menuTrigger.setAttribute('aria-label', 'Más acciones para ' + patientName);
-        menuTrigger.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>';
-        var menuPanel = el('div', 'clinic-patient-menu-panel');
-        if (window.SmylSchedule && typeof window.SmylSchedule.bookFor === 'function') {
-          var schedule = button('Agendar cita', function () { menu.open = false; window.SmylSchedule.bookFor(p); }, 'clinic-patient-menu-action');
-          schedule.setAttribute('aria-label', 'Agendar cita para ' + patientName); menuPanel.append(schedule);
-        }
-        menuPanel.append(button('Editar datos', function () { menu.open = false; abrirModalPaciente(p.id); }, 'clinic-patient-menu-action'));
-        menu.append(menuTrigger, menuPanel); actions.append(menu);
-      }
+      // Toda la fila abre el expediente (el nombre es el control accesible por teclado); sin botones aparte.
+      var chevron = el('span', 'clinic-patient-chevron', '›'); chevron.setAttribute('aria-hidden', 'true'); actions.append(chevron);
       row.append(patientCell, attention, state, actions); body.append(row);
     });
       table.append(body); host.append(table);
