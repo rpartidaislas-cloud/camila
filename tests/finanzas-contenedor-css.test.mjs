@@ -37,7 +37,7 @@ test('Finanzas declara su contenedor y cada copia sigue a su «@media» con el m
 
 test('las copias solo llevan reglas de la página y nunca apuntan al propio contenedor', () => {
   const classes = pageClasses(js);
-  for (const name of ['finance-tabcards', 'finance-line', 'finance-line-who', 'finance-meter', 'finance-row', 'finance-chips', 'finance-segment', 'finance-session']) assert.ok(classes.has(name), name);
+  for (const name of ['finance-tabcards', 'finance-line', 'finance-line-who', 'finance-meter', 'finance-chips', 'finance-segment', 'finance-turn', 'finance-breakdown', 'finance-fold', 'finance-setup-strip', 'finance-line-state']) assert.ok(classes.has(name), name);
   for (const block of blocks) {
     let depth = 0, end = -1; const open = css.indexOf('{', block.index);
     for (let k = open; k < css.length; k++) { if (css[k] === '{') depth++; else if (css[k] === '}') { depth--; if (!depth) { end = k; break; } } }
@@ -63,5 +63,5 @@ test('con poco espacio las pestañas pasan a dos columnas y las filas se apilan,
   assert.match(narrow, /\.finance-chips>button/);
   assert.match(narrow, /min-height:44px/);
   // Las ventanas viven fuera del contenedor: siguen dependiendo del ancho de la pantalla y no se copian reglas solo de ventana.
-  assert.doesNotMatch(css.split('\n').filter((l) => l.startsWith('/*contenedor*/')).join('\n'), /\{[^}]*\}\.finance-collection-guide>|^\/\*contenedor\*\/@container[^{]*\{\.finance-close-form/m);
+  assert.doesNotMatch(css.split('\n').filter((l) => l.startsWith('/*contenedor*/')).join('\n'), /\{[^}]*\}\.finance-collection-guide>|\.finance-cut-form|\.finance-cut-row|\.finance-money-box/m);
 });

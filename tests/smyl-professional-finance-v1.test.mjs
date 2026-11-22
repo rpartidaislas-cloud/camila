@@ -34,7 +34,8 @@ test('la migración conserva acceso y protege operaciones sensibles en el servid
 });
 
 test('Caja muestra responsabilidad individual y supervisión explícita', () => {
-  for (const copy of ['Mi caja abierta', 'Responsable:', 'Cajas abiertas del equipo', 'Revisar corte', 'Abrir mi caja']) {
+  // Mi caja dice de quién es y desde cuándo; las del equipo, quién las abrió. Hacerle el corte a otra persona exige supervisar la caja.
+  for (const copy of ['Mi caja · ', 'La abriste ', 'Cajas abiertas del equipo', 'data-supervise-cash="\'\\+s\\.id\\+\'">Hacer corte', 'Abrir mi caja', 'Cortes anteriores']) {
     assert.match(finance, new RegExp(copy));
   }
   assert.match(finance, /opened_by===state\.actor/);

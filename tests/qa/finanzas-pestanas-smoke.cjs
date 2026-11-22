@@ -124,9 +124,9 @@ server.listen(0, '127.0.0.1', async () => {
   check(!/Panorama financiero|asuntos? por atender|Del saldo al cierre|ORDEN DE TRABAJO|ESTADO FINANCIERO/.test(text), 'el Resumen repetido ya no existe');
 
   await go(page, 'cash');
-  const cash = await page.$eval('#finance-cash', e => ({ dl: [...e.querySelectorAll('dl dt')].map((dt, i) => dt.textContent + '=' + e.querySelectorAll('dl dd')[i].textContent), buttons: [...e.querySelectorAll('button')].map(b => b.textContent.trim()) }));
+  const cash = await page.$eval('#finance-cash', e => ({ dl: [...e.querySelectorAll('.finance-turn .finance-breakdown>div')].map(d => d.querySelector('dt').textContent + '=' + d.querySelector('dd').textContent), buttons: [...e.querySelectorAll('button')].map(b => b.textContent.trim()) }));
   console.log('caja:', JSON.stringify(cash));
-  check(cash.dl.join('|') === 'Fondo inicial=$500.00|Cobros en efectivo=$1,300.00|Salidas=−$120.00|Efectivo esperado=$1,680.00', 'Caja separa lo cobrado ($1,300.00) de las salidas (−$120.00) y cuadra en $1,680.00');
+  check(cash.dl.join('|') === 'Fondo inicial=$500.00|Cobros en efectivo · 2=+ $1,300.00|Entradas=$0.00|Salidas · 1=− $120.00|Efectivo que debe haber=$1,680.00', 'Caja separa lo cobrado ($1,300.00, en 2 cobros) de las salidas (− $120.00) y cuadra en $1,680.00');
   const cashButtons = await page.$$eval('#p-caja button', els => els.filter(e => e.offsetParent !== null).map(e => e.textContent.trim()).filter(x => /corte|Entrada|salida/i.test(x)));
   check(cashButtons.join('|') === 'Entrada o salida|Hacer corte', 'en Caja los botones aparecen una sola vez: ' + cashButtons.join(', '));
   await go(page, 'fiscal');
@@ -341,6 +341,185 @@ server.listen(0, '127.0.0.1', async () => {
     const kebab = page.locator('#finance-payments .finance-row-menu>summary').last(); await kebab.scrollIntoViewIfNeeded(); await kebab.click(); await page.waitForTimeout(450);
     const reachable = await page.$eval('#finance-payments .finance-row-menu[open] [data-refund]', el => { const r = el.getBoundingClientRect(), top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight && !!top && el.contains(top); });
     check(!bad.length && reachable && s.errs.length === 0, `${label}: Por cobrar y Pagos sin desbordes, filas encimadas, texto diminuto, filtros recortados ni botones chicos; el menú de la fila se alcanza ` + (bad.length ? bad.join(' · ') : '') + (s.errs.length ? JSON.stringify(s.errs) : ''));
+    await s.ctx.close();
+  }
+
+  // ── 5. Paso 3: Caja con su historia, corte sin columnas cortadas, cobro con pasos 1-2-3 y Facturación en una lista ──
+  // Casos propios: equipo con nombre, cobros de hoy con tarjeta y transferencia, una entrada, un reembolso en efectivo, la caja abierta
+  // de un compañero, siete cortes anteriores (uno con faltante y notas) y facturas en todos sus estados.
+  const stepThree = () => {
+    const db = window.__db, T = db.camila_tenants[0].id, H = 3600e3, D = 24 * H, now = Date.now(), midnight = new Date(); midnight.setHours(0, 0, 0, 0);
+    const today = part => new Date(midnight.getTime() + (now - midnight.getTime()) * part).toISOString(), iso = ms => new Date(now - ms).toISOString();
+    const money = n => '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    db.camila_usuarios = [{ id: T, tenant_id: T, nombre: 'Ana Torres', email: '', activo: true }, { id: 'u2', tenant_id: T, nombre: 'Luis Pérez', email: '', activo: true }];
+    db.smyl_finance_payments.forEach(p => { p.created_by = T; p.branch_id = p.branch_id || 'b1'; });
+    const pay = (id, pid, amount, method, at, more) => { db.smyl_finance_payments.push(Object.assign({ id, tenant_id: T, patient_id: pid, amount, method, reference: '', paid_at: at, received_by: T, created_by: T, branch_id: 'b1' }, more || {})); db.smyl_finance_receipts.push({ id: 'r-' + id, tenant_id: T, payment_id: id, folio: 109 + db.smyl_finance_receipts.length, issued_at: at }); };
+    pay('pay9', 'p1', 950, 'card', today(0.75)); pay('pay10', 'p2', 1200, 'transfer', today(0.65)); pay('pay11', 'p3', 350, 'cash', today(0.55), { cash_session_id: 'cs1' });
+    db.smyl_cash_adjustments.push({ id: 'adj2', tenant_id: T, cash_session_id: 'cs1', direction: 'in', amount: 200, reason: 'Cambio para dar feria', created_at: today(0.52), created_by: T });
+    db.smyl_finance_refunds = [{ id: 'rf9', tenant_id: T, payment_id: 'pay11', amount: 50, reason: 'Descuento aplicado después de cobrar', refunded_at: today(0.85), created_by: T }];
+    const notes = (exp, cnt, extra) => 'Cierre de turno. Conciliación: Efectivo esperado ' + money(exp) + ', reportado ' + money(cnt) + ', diferencia ' + (cnt < exp ? '-' : '') + money(Math.abs(cnt - exp)) + '; Tarjetas esperado $1,200.00, reportado $1,200.00, diferencia $0.00; Transferencias esperado $0.00, reportado $0.00, diferencia $0.00; Cheques esperado $0.00, reportado $0.00, diferencia $0.00; Otros esperado $0.00, reportado $0.00, diferencia $0.00' + (extra || '');
+    const closed = (id, who, days, exp, cnt, extra) => ({ id, tenant_id: T, branch_id: 'b1', opened_by: who, opened_at: iso(days * D + 9 * H), status: 'closed', opening_cash: 500, expected_cash: exp, counted_cash: cnt, variance: Math.round((cnt - exp) * 100) / 100, close_notes: notes(exp, cnt, extra), closed_by: who, closed_at: iso(days * D), revision: 2 });
+    db.smyl_cash_sessions.push(closed('k1', T, 1, 2450, 2450), closed('k2', T, 2, 1980, 1960, '. Motivo: Error de captura. Notas: Se dio cambio de más a un paciente.'), closed('k3', 'u2', 3, 3120, 3120), closed('k4', T, 4, 1575.5, 1625.5, '. Motivo: Ingreso no registrado'), closed('k5', T, 5, 890, 890), closed('k6', T, 6, 700, 700), closed('k7', 'u2', 7, 640, 640),
+      { id: 'cs-x', tenant_id: T, branch_id: 'b1', opened_by: 'u2', opened_at: today(0.4), status: 'open', opening_cash: 300, revision: 1 });
+    pay('pay12', 'p1', 400, 'cash', today(0.5), { cash_session_id: 'cs-x', created_by: 'u2', received_by: 'u2' });
+    // Facturación: un cargo liquidado con un solo pago es «por facturar»; además, borradores, emitidas y una cancelada.
+    const profile = (pid, name, rfc) => ({ tenant_id: T, patient_id: pid, legal_name: name, rfc, fiscal_regime: '612', tax_postal_code: '44100', cfdi_use: 'D01', email: 'paciente@correo.mx' });
+    db.smyl_patient_fiscal_profiles.push(profile('p6', 'CARLOS AGUILAR PEÑA', 'AUPC850312AB1'), profile('p4', 'LUIS HERNANDEZ ORTIZ', 'HEOL900101XY2'), profile('p9', 'XIMENA CENTAVOS EXACTOS', 'CEEX920720QW3'), profile('p3', 'ELENA CASTRO NUÑEZ', 'CANE800101AA1'));
+    const full = (id, pid, amount, days, concept) => { db.smyl_finance_charges.push({ id: 'c-' + id, tenant_id: T, patient_id: pid, status: 'open', total_amount: amount, created_at: iso((days + 1) * D), concept, due_on: null, branch_id: 'b1' }); pay(id, pid, amount, 'card', iso(days * D)); db.smyl_finance_payment_allocations.push({ id: 'al-' + id, tenant_id: T, payment_id: id, charge_id: 'c-' + id, amount }); };
+    full('pf1', 'p3', 2400, 1, 'Corona de zirconia'); full('pf2', 'p1', 650, 2, 'Blanqueamiento'); full('pf3', 'p4', 1800, 14, 'Endodoncia'); full('pf4', 'p9', 900, 20, 'Guarda oclusal'); full('pf5', 'p6', 1500, 24, 'Extracción'); full('pf6', 'p3', 700, 27, 'Radiografía panorámica'); full('pf7', 'p4', 1100, 32, 'Resina estética');
+    const draft = (id, pid, payment, amount, days, more) => Object.assign({ id, tenant_id: T, patient_id: pid, payment_id: payment, status: 'draft', sandbox_status: 'pending', cfdi_version: '4.0', fiscal_snapshot: { amount, rfc: (db.smyl_patient_fiscal_profiles.find(f => f.patient_id === pid) || {}).rfc, email: 'paciente@correo.mx' }, created_at: iso(days * D) }, more || {});
+    db.smyl_cfdi_drafts.push(draft('d3', 'p4', 'pf3', 1800, 13, { sandbox_status: 'passed', sandbox_report: { errors: [] } }),
+      draft('d4', 'p9', 'pf4', 900, 19, { sandbox_status: 'blocked', sandbox_report: { errors: [{ field: 'tax_postal_code', message: 'Código postal fiscal del receptor inválido.' }, { field: 'fiscal_regime', message: 'Régimen fiscal del receptor inválido.' }] } }),
+      draft('d5', 'p6', 'pf5', 1500, 23, { status: 'issued', sandbox_status: 'passed', provider: 'Facturapi', external_uuid: '6F1B2C3D-4E5F-4A6B-8C7D-9E0F1A2B3C4D', stamped_at: iso(23 * D), last_emailed_at: iso(22 * D), last_emailed_to: 'carlos.aguilar@correo.mx' }),
+      draft('d6', 'p3', 'pf6', 700, 26, { status: 'cancelled', sandbox_status: 'passed', provider: 'Facturapi', external_uuid: 'A1B2C3D4-0000-4111-8222-333344445555', stamped_at: iso(26 * D) }),
+      draft('d7', 'p4', 'pf7', 1100, 31, { status: 'issued', sandbox_status: 'passed', provider: 'Facturapi', external_uuid: '0F9E8D7C-6B5A-4433-9221-100F0E0D0C0B', stamped_at: iso(31 * D) }));
+    db.smyl_cfdi_cancellation_plans = [{ id: 'cp1', tenant_id: T, draft_id: 'd7', status: 'planned', reason_code: '02', created_at: iso(D) }];
+  };
+  const flat = v => String(v).replace(/\s+/g, ' ').trim();
+  const calls = (pg, name) => pg.evaluate(n => window.__calls.filter(c => c[0] === 'rpc' && c[1] === n).map(c => c[2]), name);
+  const dialogOpen = pg => pg.$eval('#finance-dialog', d => d.open);
+  const closeDialog = async pg => { await pg.evaluate(() => { const d = document.getElementById('finance-dialog'); d.dataset.smylDirty = 'false'; if (d.open) d.close(); }); await pg.waitForTimeout(150); };
+  // Nada dentro de la ventana se sale de ella ni obliga a desplazarla de lado.
+  const dialogFits = pg => pg.$eval('#finance-dialog', d => { const box = d.getBoundingClientRect(); return d.scrollWidth <= d.clientWidth + 1 && [...d.querySelectorAll('*')].filter(n => n.getClientRects().length && !n.closest('.sr-only')).every(n => { const r = n.getBoundingClientRect(); return r.left >= box.left - 1 && r.right <= box.right + 1; }); });
+
+  s = await open({ width: 1440, height: 900 }, 0, stepThree); page = s.page;
+  await go(page, 'cash');
+  const turn = await page.$eval('#finance-cash', e => { const flat = v => String(v).replace(/\s+/g, ' ').trim(); return {
+    head: flat(e.querySelector('.finance-turn-head').textContent), ledger: [...e.querySelectorAll('.finance-turn .finance-breakdown>div')].map(d => flat(d.querySelector('dt').textContent) + ' = ' + flat(d.querySelector('dd').textContent)),
+    group: flat(e.querySelector('.finance-turn>.finance-group').textContent), moves: [...e.querySelectorAll('.finance-line[data-cols=moves]')].map(r => ({ kind: r.dataset.kind, title: r.querySelector('.finance-line-name').textContent, amount: flat(r.querySelector('.finance-line-amount').textContent) })),
+    team: [...e.querySelectorAll('.finance-cash-team .finance-fold>summary')].map(x => flat(x.textContent)), cuts: [...e.querySelectorAll('.finance-cash-cuts .finance-fold>summary')].map(x => flat(x.textContent)), cutsNote: flat(e.querySelector('.finance-cash-cuts .finance-group').textContent),
+    buttons: [...e.querySelectorAll('button')].filter(b => b.checkVisibility()).map(b => b.textContent.trim()), dark: e.querySelectorAll('.btn-primary').length, foot: flat(e.querySelector('.finance-list-foot').textContent) }; });
+  console.log('turno:', JSON.stringify(turn));
+  check(/^Abierta Mi caja · PrincipalLa abriste hoy a las? \d{1,2}:\d{2} [ap]\.m\.Entrada o salidaHacer corte$/.test(turn.head), 'mi turno dice de quién es la caja y desde cuándo: ' + turn.head);
+  check(turn.ledger.join(' | ') === 'Fondo inicial = $500.00 | Cobros en efectivo · 3 = + $1,650.00 | Reembolsos en efectivo · 1 = − $50.00 | Entradas · 1 = + $200.00 | Salidas · 1 = − $120.00 | Efectivo que debe haber = $2,180.00' && (await tabs(page))[2].figure === '$2,180.00', 'el desglose va renglón por renglón hasta los $2,180.00 que debe haber (la cifra de la pestaña)');
+  const toCents = t => Math.round(Number(t.replace(/[^0-9.]/g, '')) * 100) * (t.includes('−') ? -1 : 1);
+  check(turn.group === 'Movimientos del turno7 movimientos' && turn.moves.length === 7 && turn.moves.reduce((sum, m) => sum + toCents(m.amount), 0) === 218000 && turn.moves[6].kind === 'open' && turn.moves.map(m => m.kind).sort().join() === 'in,open,out,payment,payment,payment,refund', 'los 7 movimientos del turno suman $2,180.00 y terminan en la apertura');
+  check(turn.buttons.filter(b => b === 'Entrada o salida').length === 1 && turn.buttons.filter(b => b === 'Hacer corte').length === 1 && turn.dark === 0, 'los botones del turno aparecen una sola vez y ninguno es oscuro');
+  check(turn.team.length === 1 && /^Luis Pérez\$700\.00Principal · abierta hoy a las? /.test(turn.team[0]), 'la caja abierta del equipo dice de quién es y cuánto debe haber: ' + turn.team[0]);
+  check(turn.cuts.length === 5 && turn.cutsNote === 'Cortes anterioresÚltimos 5' && turn.cuts[0] === 'Ayer · Ana TorresSin diferenciaDebía haber $2,450.00 · Se contó $2,450.00' && /Ana TorresFaltaron \$20\.00Debía haber \$1,980\.00 · Se contó \$1,960\.00$/.test(turn.cuts[1]) && /Luis PérezSin diferencia/.test(turn.cuts[2]) && /Ana TorresSobraron \$50\.00Debía haber \$1,575\.50 · Se contó \$1,625\.50$/.test(turn.cuts[3]), 'cortes anteriores: quién, cuánto debía haber, cuánto se contó y la diferencia');
+  await page.click('#finance-cash .finance-cash-cuts .finance-fold:nth-of-type(2)>summary'); await page.waitForTimeout(200);
+  const cutDetail = flat(await page.$eval('#finance-cash .finance-cash-cuts .finance-fold[open] .finance-fold-body', e => e.textContent));
+  check(/Debía haber\s*\$1,980\.00\s*Se contó\s*\$1,960\.00\s*Diferencia\s*−\$20\.00/.test(cutDetail) && /Otras formas de pago\. Tarjetas: debía haber \$1,200\.00 y se reportó \$1,200\.00/.test(cutDetail) && /Motivo\. Error de captura/.test(cutDetail) && /Notas\. Se dio cambio de más a un paciente\./.test(cutDetail), 'al abrir un corte se ve su detalle, el motivo y las notas: ' + cutDetail.slice(0, 160));
+  await page.click('#finance-cash [data-more-cuts]'); await page.waitForTimeout(250);
+  check((await page.$$eval('#finance-cash .finance-cash-cuts .finance-fold', els => els.length)) === 7 && !(await page.$('#finance-cash [data-more-cuts]')), '«Ver todos los cortes» muestra los 7');
+  await page.click('#finance-cash .finance-cash-team .finance-fold>summary'); await page.waitForTimeout(200);
+  check(flat(await page.$eval('#finance-cash .finance-cash-team .finance-fold[open] .finance-fold-body', e => e.textContent)) === 'Fondo inicial$300.00Cobros en efectivo · 1+ $400.00Entradas$0.00Salidas$0.00Efectivo que debe haber$700.00Hacer corte', 'la caja de un compañero muestra su desglose y, a quien supervisa, «Hacer corte»');
+  await page.click('#finance-cash .finance-line[data-kind=payment] button.finance-line-who'); await page.waitForTimeout(450);
+  check((await dialogOpen(page)) && /Recibo #0001\d\d/.test(await page.$eval('#finance-dialog', d => d.textContent)), 'un cobro del turno abre su recibo'); await closeDialog(page);
+
+  // Corte de caja: cuatro columnas completas, total al final, y nada cuenta como diferencia antes de escribirlo.
+  await page.click('#finance-close-cash'); await page.waitForTimeout(500);
+  const cut = () => page.$eval('#finance-dialog', d => { const flat = v => String(v).replace(/\s+/g, ' ').trim(); return {
+    title: flat(d.querySelector('h2').textContent), sub: flat(d.querySelector('.smyl-dialog-header p').textContent), head: [...d.querySelectorAll('.finance-cut-head>span')].map(x => x.textContent),
+    rows: [...d.querySelectorAll('.finance-cut-row[data-close-method]')].map(r => flat(r.querySelector('strong').textContent) + ' ' + flat(r.querySelector('b').textContent) + ' ' + flat(r.querySelector('output').textContent)),
+    total: [...d.querySelectorAll('.finance-cut-total>*')].map(x => flat(x.textContent)).join(' '), issue: d.querySelector('[data-close-resolution]').hidden ? '' : flat(d.querySelector('[data-close-resolution-total]').textContent), required: d.querySelector('[name=varianceReason]').required,
+    actions: [...d.querySelectorAll('.smyl-dialog-footer button')].map(x => x.textContent.trim()), upper: /CONCILIACIÓN|DIFERENCIA DETECTADA/.test(d.textContent) }; });
+  let c = await cut(); console.log('corte:', JSON.stringify(c));
+  check(c.title === 'Corte de caja' && /^Principal · Ana Torres · abierta hoy a las? .* · (\d+ h )?\d+ min$/.test(c.sub) && c.head.join('|') === 'Forma de pago|Debe haber|Se contó|Diferencia' && !c.upper && c.actions.join('|') === 'Cancelar|Hacer corte', 'el corte se llama «Corte de caja», con columnas Debe haber · Se contó · Diferencia');
+  check(c.rows.join(' | ') === 'Efectivo $2,180.00 — | Tarjetas $950.00 — | Transferencias $1,200.00 — | Cheques $0.00 $0.00 | Otros $0.00 $0.00' && c.total === 'Total $4,330.00 — —' && c.issue === '' && !c.required, 'antes de escribir, ninguna casilla vacía cuenta como diferencia');
+  check(await dialogFits(page), 'en computadora ninguna columna del corte se sale de la ventana');
+  await page.click('#finance-dialog .smyl-dialog-footer [data-close]'); await page.waitForTimeout(250);
+  check(!(await dialogOpen(page)), '«Cancelar» cierra el corte');
+  await page.click('#finance-close-cash'); await page.waitForTimeout(450);
+  await page.click('#finance-dialog button[type=submit]'); await page.waitForTimeout(300);
+  check((await calls(page, 'smyl_close_cash_session')).length === 0 && (await dialogOpen(page)) && (await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-close-count'))) === 'cash', 'con una casilla vacía el corte no se guarda y señala la casilla que falta');
+  await page.click('#finance-dialog .finance-cut-coins>summary'); await page.fill('#finance-dialog [data-denomination="1000"]', '2'); await page.fill('#finance-dialog [data-denomination="10"]', '1');
+  await page.fill('#finance-dialog [data-close-count="card"]', '950'); await page.fill('#finance-dialog [data-close-count="transfer"]', '1200'); await page.waitForTimeout(150);
+  c = await cut();
+  check((await page.inputValue('#finance-dialog [data-close-count="cash"]')) === '2010.00' && c.rows[0] === 'Efectivo $2,180.00 −$170.00' && c.rows[1] === 'Tarjetas $950.00 $0.00' && c.total === 'Total $4,330.00 $4,160.00 −$170.00' && c.issue === 'Faltan $170.00' && c.required, 'al contar billetes y monedas se llena el efectivo, y el corte avisa «Faltan $170.00» y pide el motivo');
+  await page.click('#finance-dialog button[type=submit]'); await page.waitForTimeout(350);
+  check((await calls(page, 'smyl_close_cash_session')).length === 0 && (await dialogOpen(page)), 'sin motivo, el corte con diferencia no se guarda');
+  await page.selectOption('#finance-dialog [name=varianceReason]', 'capture_error'); await page.fill('#finance-dialog [name=notes]', 'Se dio cambio de más.'); await page.click('#finance-dialog button[type=submit]'); await page.waitForTimeout(900);
+  const sent = (await calls(page, 'smyl_close_cash_session'))[0] || {};
+  check(sent.p_session_id === 'cs1' && sent.p_counted_cash === 2010 && sent.p_notes === 'Cierre de turno. Conciliación: Efectivo esperado $2,180.00, reportado $2,010.00, diferencia -$170.00; Tarjetas esperado $950.00, reportado $950.00, diferencia $0.00; Transferencias esperado $1,200.00, reportado $1,200.00, diferencia $0.00; Cheques esperado $0.00, reportado $0.00, diferencia $0.00; Otros esperado $0.00, reportado $0.00, diferencia $0.00. Motivo: Error de captura. Notas: Se dio cambio de más.', 'el corte guarda el efectivo contado y la conciliación completa en sus notas: ' + JSON.stringify(sent).slice(0, 140));
+  check(!(await dialogOpen(page)) && /Corte guardado\. Faltaron \$170\.00\./.test(await page.$eval('#finance-feedback', e => e.textContent)), 'al guardar avisa «Corte guardado. Faltaron $170.00.»');
+
+  // Entrada o salida: se llama igual que su botón y dice lo que va a registrar.
+  await page.click('#finance-adjust'); await page.waitForTimeout(450);
+  const adjust = async () => ({ title: await page.$eval('#finance-dialog h2', e => e.textContent.trim()), submit: await page.$eval('#finance-dialog [data-adjust-submit]', e => e.textContent.trim()) });
+  const out = await adjust(); await page.selectOption('#finance-dialog [name=direction]', 'in'); const into = await adjust();
+  await page.fill('#finance-dialog [name=amount]', '50'); await page.fill('#finance-dialog [name=reason]', 'Cambio de la doctora'); await page.click('#finance-dialog [data-adjust-submit]'); await page.waitForTimeout(800);
+  const moved = (await calls(page, 'smyl_post_cash_adjustment'))[0] || {};
+  check(out.title === 'Entrada o salida' && out.submit === 'Registrar salida' && into.submit === 'Registrar entrada' && moved.p_direction === 'in' && moved.p_amount === 50 && moved.p_cash_session_id === 'cs1' && moved.p_reason === 'Cambio de la doctora', '«Entrada o salida» registra la entrada con su motivo: ' + JSON.stringify(moved).slice(0, 120));
+
+  // Cobro: tres pasos numerados y «Cancelar» que cierra (antes no hacía nada).
+  await go(page, 'accounts'); await page.click('#finance-accounts [data-account-pay]'); await page.waitForTimeout(600);
+  const steps = await page.$$eval('#finance-dialog .finance-payment-section-head', els => els.map(e => e.querySelector('span').textContent + ' ' + e.querySelector('strong').textContent));
+  check(steps.join(' | ') === '1 ¿A quién le cobras? | 2 ¿Cuánto recibió la clínica? | 3 Forma de pago' && !/COBRO SEGURO/.test(await page.$eval('#finance-dialog', d => d.textContent)), 'el cobro numera sus tres pasos: ' + steps.join(' | '));
+  const money1 = await page.$eval('#finance-dialog .finance-payment-amount>span', el => { const cs = getComputedStyle(el), input = el.querySelector('input'), sign = el.querySelector('b').getBoundingClientRect(); return { wrapper: cs.borderTopWidth, input: getComputedStyle(input).borderTopWidth, room: parseFloat(getComputedStyle(input).paddingLeft) >= sign.right - input.getBoundingClientRect().left }; });
+  check(money1.wrapper === '0px' && money1.input === '1px' && money1.room, 'el importe lleva un solo recuadro y el signo de pesos no se encima con la cifra: ' + JSON.stringify(money1));
+  await page.click('#finance-dialog .finance-payment-footer [data-close]'); await page.waitForTimeout(250);
+  check(!(await dialogOpen(page)), '«Cancelar» cierra el cobro');
+  await page.click('#finance-guided-collection'); await page.waitForTimeout(450); await page.click('#finance-dialog footer [data-close]'); await page.waitForTimeout(250);
+  check(!(await dialogOpen(page)), '«Cancelar» cierra «Cobrar»');
+
+  // Facturación: el estado en una línea, cuatro filtros y un solo botón por fila.
+  await go(page, 'fiscal');
+  const setupStrip = await page.$eval('#finance-fiscal .finance-setup-strip', e => ({ text: e.textContent.replace(/\s+/g, ' ').trim(), buttons: e.querySelectorAll('button').length, steps: e.querySelectorAll('.finance-setup-steps i').length, on: e.querySelectorAll('.finance-setup-steps i.on').length }));
+  check(setupStrip.text === 'Falta configurar 1 de 4 pasos listosMientras esté en pruebas, las facturas no tienen validez fiscal.Terminar configuración' && setupStrip.buttons === 1 && setupStrip.steps === 4 && setupStrip.on === 1 && (await tabs(page))[3].note === 'Falta configurar', 'el estado de la configuración cabe en una línea, con un solo botón: ' + setupStrip.text);
+  const invoiceChips = () => page.$$eval('#finance-fiscal .finance-chips>button', els => els.map(e => e.textContent.trim().replace(/\s+/g, ' ') + (e.getAttribute('aria-pressed') === 'true' ? '*' : '')).join(' | '));
+  check((await invoiceChips()) === 'Borradores 3* | Emitidas 2 | Canceladas 1 | Por facturar 3' && /^3\s*borradores$/.test((await tabs(page))[3].figure), 'una sola lista con cuatro filtros; abre en Borradores, igual que la cifra de la pestaña');
+  const invoices = () => page.$$eval('#finance-fiscal .finance-line', els => els.map(e => { const flat = v => String(v).replace(/\s+/g, ' ').trim(); return { name: e.querySelector('.finance-line-name').textContent, sub: flat(e.querySelector('.finance-line-who small').textContent), tag: e.querySelector('.finance-tag') ? e.querySelector('.finance-tag').textContent : '', notes: [...e.querySelectorAll('.finance-line-state small')].map(x => x.textContent), amount: flat(e.querySelector('.finance-line-amount').textContent),
+    buttons: [...e.querySelectorAll('.finance-line-actions>button')].map(b => b.textContent.trim()), plain: [...e.querySelectorAll('.finance-line-actions>button')].filter(b => !/\bbtn btn-secondary\b|finance-link-action/.test(b.className)).length, menu: [...e.querySelectorAll('.finance-row-menu button')].map(b => b.textContent.trim()) }; }));
+  let inv = await invoices(); console.log('borradores:', JSON.stringify(inv));
+  check(inv.length === 3 && inv.every(r => r.buttons.length === 1 && r.plain === 0) && inv.map(r => r.tag + '→' + r.buttons[0]).join(' | ') === 'Borrador sin validar→Validar | Borrador validado→Validar de nuevo | Con observaciones→Validar de nuevo', 'cada borrador dice su estado y trae un solo botón, del mismo estilo');
+  check(inv[0].name === 'Sofía Mendoza Ruiz' && inv[0].sub === 'Recibo 000101 · XAXX010101000' && inv[0].amount === '$1,600.00' && inv[2].notes.join(' ') === 'Código postal fiscal del receptor inválido. Régimen fiscal del receptor inválido.', 'la fila dice el recibo y el RFC, y las observaciones de la validación se leen completas');
+  await page.click('#finance-fiscal [data-invoice-filter="issued"]'); await page.waitForTimeout(200); inv = await invoices();
+  check(inv.map(r => r.tag + '→' + r.buttons.join('+')).join(' | ') === 'Emitida de prueba→Reenviar | Emitida de prueba→Enviar' && inv[0].menu.join('|') === 'Descargar PDF|Descargar XML|Planear cancelación|Ver recibo|Datos fiscales del paciente' && inv[1].notes.some(n => n === 'Cancelación planeada; aún no se envía (motivo 02)') && inv[0].notes[0] === 'Folio fiscal 6F1B2C3D-4E5F-4A6B-8C7D-9E0F1A2B3C4D', 'las emitidas son «de prueba» mientras no haya producción; enviar va al frente y lo demás en «•••»');
+  await page.click('#finance-fiscal .finance-line:first-child .finance-row-menu>summary'); await page.waitForTimeout(450);
+  check(await page.$eval('#finance-fiscal .finance-row-menu[open]>div', el => { const r = el.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight; }), 'el menú de una factura se despliega dentro de la pantalla');
+  await page.click('#finance-fiscal .finance-row-menu[open] [data-plan-cancel]'); await page.waitForTimeout(450);
+  check((await dialogOpen(page)) && (await page.$eval('#finance-dialog h2', e => e.textContent.trim())) === 'Planear cancelación', 'las acciones del menú abren la misma ventana de siempre'); await closeDialog(page);
+  await page.click('#finance-fiscal [data-invoice-filter="cancelled"]'); await page.waitForTimeout(200); inv = await invoices();
+  check(inv.length === 1 && inv[0].tag === 'Cancelada de prueba' && inv[0].buttons.join() === 'Acuse PDF' && inv[0].menu.join('|') === 'Acuse XML|Factura PDF|Factura XML|Ver recibo|Datos fiscales del paciente', 'una cancelada ofrece su acuse al frente');
+  await page.click('#finance-fiscal [data-invoice-filter="pending"]'); await page.waitForTimeout(200); inv = await invoices();
+  check(inv.length === 3 && inv.map(r => r.name + ' ' + r.amount + ' ' + (r.tag || r.notes[0]) + ' ' + r.buttons.join('+')).join(' | ') === 'Carlos Aguilar Peña $800.00 Datos fiscales completos Recibo+Facturar | Elena Castro Núñez $2,400.00 Datos fiscales completos Recibo+Facturar | Mariana López Vega $650.00 Faltan datos fiscales Recibo+Facturar', '«Por facturar» trae solo los pagos completos sin factura (ni abonos ni anticipos): ' + inv.map(r => r.name).join(', '));
+  await page.evaluate(() => { window.confirm = () => true; });
+  await page.click('#finance-fiscal .finance-line:nth-child(2) [data-invoice-payment]'); await page.waitForTimeout(900);
+  const prepared = (await calls(page, 'smyl_prepare_cfdi_draft_v3'))[0] || {};
+  check(prepared.p_payment_id === 'pf1' && /^Borradores \d+\*/.test(await invoiceChips()), '«Facturar» prepara el borrador de ese pago y la lista queda en Borradores');
+  // Desde el recibo, «Ir a Facturación» abre el filtro donde está esa factura.
+  await go(page, 'receipts'); await page.click('#p-caja [data-pay-period="custom"]'); await page.waitForTimeout(200); await page.fill('#finance-pay-from', new Date(Date.now() - 40 * 86400000).toISOString().slice(0, 10)); await page.fill('#finance-pay-to', new Date(Date.now() + 86400000).toISOString().slice(0, 10)); await page.waitForTimeout(250);
+  await page.click('#finance-payments [data-open-receipt="r-pf5"]'); await page.waitForTimeout(450); await page.click('#finance-dialog [data-receipt-fiscal]'); await page.waitForTimeout(500);
+  check((await visiblePanels(page)).join() === 'fiscal' && /Emitidas 2\*/.test(await invoiceChips()) && !!(await page.$('#finance-fiscal [data-draft-id="d5"]')), 'desde el recibo, «Ir a Facturación» llega a la factura emitida');
+  check(s.errs.length === 0, 'sin errores de página en el recorrido del paso 3: ' + JSON.stringify(s.errs));
+  await s.ctx.close();
+
+  // Las mismas pantallas y ventanas en tableta y celular: nada encimado, nada cortado y todo se puede tocar.
+  for (const [label, size] of [['tableta-horizontal', { width: 1024, height: 768 }], ['tableta', { width: 820, height: 1100 }], ['celular', { width: 390, height: 844 }], ['celular-360', { width: 360, height: 780 }], ['celular-320', { width: 320, height: 760 }]]) {
+    s = await open(size, 0, stepThree); page = s.page; const bad = [];
+    const audit = async view => {
+      const m = await page.evaluate(() => {
+        const rootEl = document.querySelector('#p-caja'), visible = el => { const st = getComputedStyle(el); return st.display !== 'none' && st.visibility !== 'hidden' && el.getClientRects().length > 0; };
+        const cutOff = el => { const r = el.getBoundingClientRect(); return r.left < -1 || r.right > innerWidth + 1; };
+        return { overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+          overlap: [...rootEl.querySelectorAll('.finance-line,.finance-fold>summary,.finance-turn-head,.finance-setup-strip')].filter(visible).filter(row => { const kids = [...row.children].filter(visible).map(k => k.getBoundingClientRect()); return kids.some((a, i) => kids.some((b, j) => j > i && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1)); }).length,
+          cut: [...rootEl.querySelectorAll('.finance-chips>button,.finance-line-amount,.finance-line-actions>*,.finance-turn-actions>*,.finance-breakdown dd,.finance-fold>summary>*,.finance-setup-strip>*')].filter(visible).filter(cutOff).length,
+          tiny: [...rootEl.querySelectorAll('p,span,small,label,button,strong,em,b,dt,dd,summary')].filter(visible).filter(el => el.textContent.trim() && parseFloat(getComputedStyle(el).fontSize) < 11.99).length,
+          short: rootEl.clientWidth > 780 ? [] : [...rootEl.querySelectorAll('[data-finance-panel]:not([hidden]) :is(button,summary,select,input)')].filter(visible).map(el => ({ t: (el.textContent || el.id || '').trim().slice(0, 24), h: el.getBoundingClientRect().height })).filter(x => x.h < (innerWidth <= 720 ? 43.5 : 39.5)).map(x => x.t + ' (' + Math.round(x.h) + ')') };
+      });
+      if (m.overflow || m.overlap || m.cut || m.tiny || m.short.length) bad.push(view + ' ' + JSON.stringify(m));
+      if (shots) await page.screenshot({ path: path.join(shots, `finanzas-paso3-${view}-${label}.png`), fullPage: true });
+    };
+    await go(page, 'cash'); await audit('caja');
+    await page.evaluate(() => document.querySelectorAll('#finance-cash details').forEach(d => { d.open = true; })); await page.waitForTimeout(200); await audit('caja-desplegada');
+    // El corte: ninguna columna se sale, los botones quedan a la vista y, en celular, cada cifra lleva su nombre.
+    await page.click('#finance-close-cash'); await page.waitForTimeout(500);
+    await page.fill('#finance-dialog [data-close-count="cash"]', '2010'); await page.waitForTimeout(150);
+    const cutBox = await page.$eval('#finance-dialog', d => { const box = d.getBoundingClientRect(), foot = d.querySelector('.smyl-dialog-footer').getBoundingClientRect(), row = d.querySelector('.finance-cut-row[data-close-method]'), cells = [...row.children].map(x => x.getBoundingClientRect()), head = getComputedStyle(d.querySelector('.finance-cut-head')).display;
+      return { inside: box.left >= 0 && box.right <= innerWidth + 1 && box.bottom <= innerHeight + 1, foot: foot.bottom <= innerHeight + 1 && foot.top >= 0, noOverlap: cells.every((a, i) => cells.every((b, j) => j <= i || !(a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1))), labelled: head !== 'none' || getComputedStyle(row.querySelector('[data-label]'), '::before').content.includes('Debe haber'), total: d.querySelector('.finance-cut-total').getBoundingClientRect().height > 30, touch: innerWidth > 640 || [...d.querySelectorAll('input,select,button,summary')].filter(x => x.getClientRects().length).every(x => x.getBoundingClientRect().height >= 43.5) }; });   // en celular, donde la ventana ocupa la pantalla, todo mide 44 px
+    const cutFits = await dialogFits(page); await closeDialog(page);
+    // Facturación en cada filtro, y el menú de una fila dentro de la pantalla.
+    await go(page, 'fiscal'); await audit('borradores');
+    for (const f of ['issued', 'cancelled', 'pending']) { await page.click('#finance-fiscal [data-invoice-filter="' + f + '"]'); await page.waitForTimeout(200); await audit(f); }
+    await page.click('#finance-fiscal [data-invoice-filter="issued"]'); await page.waitForTimeout(200);
+    const dots = page.locator('#finance-fiscal .finance-row-menu>summary').last(); await dots.scrollIntoViewIfNeeded(); await dots.click(); await page.waitForTimeout(450);
+    const menuOk = await page.$eval('#finance-fiscal .finance-row-menu[open]>div', el => { const r = el.getBoundingClientRect(), last = el.lastElementChild.getBoundingClientRect(), top = document.elementFromPoint(last.left + last.width / 2, last.top + last.height / 2); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight && !!top && el.contains(top); });
+    // El cobro ocupa la pantalla completa en celular y sus pasos siguen numerados.
+    await go(page, 'accounts'); await page.click('#finance-accounts [data-account-pay]'); await page.waitForTimeout(600);
+    const payBox = await page.$eval('#finance-dialog', d => { const r = d.getBoundingClientRect(); return { full: innerWidth > 640 || (Math.round(r.left) === 0 && Math.round(r.width) === innerWidth), steps: [...d.querySelectorAll('.finance-payment-section-head>span')].map(x => x.textContent).join('') }; });
+    await closeDialog(page);
+    check(!bad.length && cutFits && Object.values(cutBox).every(Boolean) && menuOk && payBox.full && payBox.steps === '123' && s.errs.length === 0, `${label}: Caja, el corte, el cobro y Facturación sin desbordes, filas encimadas, texto diminuto ni botones chicos ` + (bad.length ? bad.join(' · ') : '') + (cutFits && Object.values(cutBox).every(Boolean) ? '' : ' corte ' + JSON.stringify(cutBox) + ' cabe=' + cutFits) + (menuOk ? '' : ' menú fuera de la pantalla') + (payBox.full && payBox.steps === '123' ? '' : ' cobro ' + JSON.stringify(payBox)) + (s.errs.length ? JSON.stringify(s.errs) : ''));
     await s.ctx.close();
   }
 

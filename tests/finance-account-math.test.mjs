@@ -200,7 +200,8 @@ test('Centavos: la caja separa cobros, reembolsos, entradas y salidas, y el espe
   };
   const f = build(state), flow = f.cashFlow({ id: 's1', opening_cash: 500 });
   // «Cobros en efectivo» es lo cobrado ($1,300.00); antes se mostraba ya con las salidas restadas ($1,180.00).
-  assert.deepEqual(flow, { opening: 50000, collected: 130000, refunded: 10, added: 20, removed: 12000, expected: 168010 });
+  // Cada renglón dice además cuántos movimientos lo forman (lo que muestra el desglose de Caja).
+  assert.deepEqual(flow, { opening: 50000, collected: 130000, refunded: 10, added: 20, removed: 12000, payments: 2, refunds: 1, ins: 1, outs: 1, expected: 168010 });
   assert.equal(f.cashExpected({ id: 's1', opening_cash: 500 }), 1680.1);
   assert.equal(f.cashExpected({ id: 's2', opening_cash: 0 }), 61);
 });

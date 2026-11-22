@@ -59,9 +59,10 @@ test('migración: solo el destinatario enmascarado y acción «email» en la bit
 test('Cobros: botón Enviar/Reenviar, destinatario editable y última vez enviado', () => {
   const js = read('smyl-finance.js');
   assert.match(js, /data-email-cfdi/);
-  assert.match(js, /d\.status==='issued'&&state\.canInvoice\?'<button data-email-cfdi/);
+  // En una emitida, «Enviar» (o «Reenviar») es el botón de la fila; solo con permiso para facturar.
+  assert.match(js, /if\(state\.canInvoice\)\{[\s\S]{0,700}else if\(d\.status==='issued'\)\{[\s\S]{0,260}else main=button\('data-email-cfdi',d\.last_emailed_at\?'Reenviar':'Enviar'\);/);
   assert.match(js, /d\.last_emailed_at\?'Reenviar por correo':'Enviar por correo'/);
   assert.match(js, /facturapiAction\(\{action:'send_email',draft_id:draft\.id,email:email\}\)/);
-  assert.match(js, /Enviado a '\+esc\(d\.last_emailed_to/);
+  assert.match(js, /'Enviada a '\+esc\(d\.last_emailed_to\|\|'el paciente'\)\+' · '\+esc\(whenLabel\(d\.last_emailed_at\)\)/);
   assert.equal(js, read('mobile/www/smyl-finance.js'));
 });

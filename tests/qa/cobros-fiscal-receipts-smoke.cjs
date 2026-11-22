@@ -102,13 +102,15 @@ const server = http.createServer((req, res) => {
   await page.waitForTimeout(250);
   const fiscal = await page.$eval('[data-finance-panel="fiscal"]', panel => ({
     receiptLists: panel.querySelectorAll('.finance-line[data-cols=payments]').length,
-    drafts: panel.querySelectorAll('.finance-drafts article').length,
-    note: panel.querySelector('.finance-fiscal-note').textContent.trim()
+    drafts: panel.querySelectorAll('.finance-line[data-cols=invoices][data-invoice-state=drafts]').length,
+    chips: [...panel.querySelectorAll('.finance-chips>button')].map(b => b.textContent.trim().replace(/\s+/g, ' ')).join(' | '),
+    note: panel.querySelector('.finance-list-foot').textContent.trim()
   }));
   console.log('3) facturación separada:', JSON.stringify(fiscal));
   check(fiscal.receiptLists === 0, 'Facturación no debe repetir la lista de pagos');
   check(fiscal.drafts === 1, 'Facturación debe conservar sus borradores');
-  check(fiscal.note.includes('Proceso fiscal independiente'), 'Facturación debe explicar su alcance');
+  check(/^Borradores 1 \| Emitidas 0 \| Canceladas 0 \| Por facturar \d+$/.test(fiscal.chips), 'Facturación filtra una sola lista: ' + fiscal.chips);
+  check(fiscal.note.includes('Una factura siempre nace de un recibo'), 'Facturación debe explicar su alcance');
 
   await page.click('[data-finance-tab="receipts"]');
   for (const viewport of [{ width: 390, height: 844, label: 'movil-390' }, { width: 320, height: 760, label: 'movil-320' }]) {
