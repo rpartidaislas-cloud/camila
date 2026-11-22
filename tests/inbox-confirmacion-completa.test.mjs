@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 const read = (f) => readFileSync(new URL("../" + f, import.meta.url), "utf8");
 const inbox = read("smyl-inbox.js"), app = read("app.html"), sw = read("sw.js");
-const sql = read("supabase/migrations/20261122120000_smyl_visit_instructions.sql");
+const sql = read("supabase/migrations/20261122150000_smyl_visit_instructions.sql");
 
 test("la migración es aditiva, idempotente, con límites y sin permisos ni funciones nuevas", () => {
   assert.match(sql, /add column if not exists arrival_notes text not null default ''/);
