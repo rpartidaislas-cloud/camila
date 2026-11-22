@@ -5,7 +5,7 @@ const read = (f) => readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 
 test('el perfil público muestra cédula con institución, cédula de especialidad y aviso de publicidad', () => {
   const html = read('dentista.html');
-  assert.match(html, /'Cédula profesional: ' \+ esc\(p\.license_number\) \+ \(p\.license_institution/);
+  assert.match(html, /Cédula profesional: ' \+ esc\(p\.license_number\) \+ \(p\.license_institution/);
   assert.match(html, /Cédula de especialidad: /);
   assert.match(html, /Aviso de publicidad COFEPRIS: /);
   assert.match(read('smyl-professional-directory.js'), /name="advertising_notice"/);
