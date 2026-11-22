@@ -36,9 +36,9 @@ const registro = (page, nombre) => page.evaluate((n) => window.__log.filter((x) 
 // ── Contrato del código (no necesita navegador) ──
 test('app.html carga el módulo puro antes que el Consultorio y arranca en él solo en la app instalada', () => {
   const app = read('app.html');
-  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=6', 'smyl-privacy-notice.js?v=2', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=12'].map((f) => app.indexOf(f));
+  const orden = ['smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=7', 'smyl-privacy-notice.js?v=2', 'smyl-history-interview.js?v=1', 'smyl-consultorio.js?v=13'].map((f) => app.indexOf(f));
   assert.ok(orden[0] > 0 && orden.every((x, i) => !i || orden[i - 1] < x), 'los módulos puros cargan antes que la pantalla');
-  assert.match(app, /smyl-consultorio\.css\?v=8/);
+  assert.match(app, /smyl-consultorio\.css\?v=9/);
   assert.match(app, /else if \(smylEsAppInstalada\(\) && document\.getElementById\('p-consultorio'\)\) ir\('consultorio'\)/);
   assert.match(app, /display-mode: standalone/);
   assert.match(app, /window\.navigator\.standalone === true/);
@@ -57,7 +57,7 @@ test('el simulador y el manifiesto llevan al Consultorio y el simulador sigue ac
 
 test('se precarga y las copias móviles son idénticas', () => {
   const sw = read('sw.js');
-  for (const f of ['smyl-consultorio.js?v=12', 'smyl-consultorio.css?v=8', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=6', 'smyl-privacy-notice.js?v=2', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
+  for (const f of ['smyl-consultorio.js?v=13', 'smyl-consultorio.css?v=9', 'smyl-patient-quick.js?v=1', 'smyl-visit-model.js?v=7', 'smyl-privacy-notice.js?v=2', 'smyl-history-interview.js?v=1']) assert.ok(sw.includes("'/camila/" + f + "'"), f);
   for (const f of ['smyl-consultorio.js', 'smyl-consultorio.css', 'smyl-clinical-tools.js', 'smyl-clinical-tools.css', 'smyl-guided-photos.js', 'smyl-patient-quick.js', 'smyl-visit-model.js', 'smyl-privacy-notice.js', 'smyl-history-interview.js', 'smyl-studio.js', 'simulacion-rapida.html', 'manifest-app.json', 'app.html', 'sw.js']) assert.equal(read(f), read('mobile/www/' + f), f);
 });
 
@@ -510,7 +510,7 @@ probar('el cierre resume lo hecho y lo que falta, sin bloquear nada', async () =
   const { page, errores } = await cierre();
   assert.equal(await page.textContent('[data-co-close] .co-qtitle'), 'Cerrar la visita');
   const filas = await page.$$eval('.co-closing li', (n) => n.map((x) => [x.dataset.state, x.querySelector('b').textContent]));
-  assert.deepEqual(filas, [['done', 'Datos del paciente'], ['done', 'Aviso de privacidad'], ['todo', 'Historia clínica'], ['done', 'Fotos y radiografía']]);
+  assert.deepEqual(filas, [['done', 'Datos del paciente'], ['done', 'Consentimiento de privacidad'], ['todo', 'Historia clínica'], ['done', 'Fotos y radiografía']]);
   assert.match(await page.textContent('[data-co-close] .co-hint'), /Quedó pendiente 1 cosa\. Puedes terminar la visita igual/);
   assert.equal(await page.isEnabled('.co-end'), true, 'terminar siempre se puede');
   assert.deepEqual(errores, []);
@@ -688,6 +688,7 @@ probar('sin permiso para gestionar pacientes no hay QR; y el código cabe en 390
 async function abrirFirma(query = 'firma=no', quien = 0) {
   const r = await visita(query, quien);
   await r.page.click('.co-step[data-key=privacidad] .co-sgo');
+  await r.page.click('[data-co-choice-here]');
   await r.page.waitForSelector('[data-co-consent] .co-canvas');
   return r;
 }
@@ -708,7 +709,7 @@ const textoAviso = (page) => page.$$eval('.co-notice p', (n) => n.map((x) => x.t
 probar('el paso de privacidad dice si falta, quién y cuándo firmó, o que no se pudo comprobar', async () => {
   let { page } = await visita('firma=no');
   let p = (await pasos(page))[1];
-  assert.deepEqual([p.k, p.s, p.t, p.a], ['privacidad', 'todo', 'Falta su firma.', ['Pedir firma', 'Enviar al celular del paciente']]);
+  assert.deepEqual([p.k, p.s, p.t, p.a], ['privacidad', 'todo', 'El paciente aún no firma que conoce cómo cuidamos sus datos y que decide sobre IA, WhatsApp y promociones.', ['Pedir firma']]);
   assert.equal(await page.textContent('.co-vprogress'), '2 de 4 pasos listos.');
   await page.close();
   ({ page } = await visita('firma=si'));
@@ -717,7 +718,7 @@ probar('el paso de privacidad dice si falta, quién y cuándo firmó, o que no s
   await page.close();
   ({ page } = await visita('firma=error'));
   p = (await pasos(page))[1];
-  assert.deepEqual([p.s, p.t], ['unknown', 'Ábrelo para ver si está firmado.']);
+  assert.deepEqual([p.s, p.t], ['unknown', 'Ábrelo para ver si el paciente ya firmó.']);
   await page.close();
 });
 

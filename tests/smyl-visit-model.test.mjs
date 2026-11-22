@@ -107,10 +107,10 @@ test('aviso de privacidad: firmado, sin firmar y sin poder comprobar, con sus ac
   const paso = (input) => V.build({ patient: completo, history: null, files: [], historyModel: H, ...input }).steps[1];
   const ids = (s) => s.actions.map((a) => a.id + (a.primary ? '*' : ''));
   assert.deepEqual([paso({}).key, paso({}).state], ['privacidad', 'unknown'], 'sin lectura no se da por firmado ni por faltante');
-  assert.deepEqual(ids(paso({ canSignConsent: true })), ['consent*', 'consent-link'], 'aun sin saberlo se puede pedir la firma (no duplica si ya estaba)');
+  assert.deepEqual(ids(paso({ canSignConsent: true })), ['consent*'], 'aun sin saberlo se puede pedir la firma (no duplica si ya estaba)');
   assert.deepEqual(ids(paso({})), []);
   const falta = paso({ consent: { signed: false }, canSignConsent: true });
-  assert.deepEqual([falta.state, falta.text, ids(falta)], ['todo', 'Falta su firma.', ['consent*', 'consent-link']]);
+  assert.deepEqual([falta.state, falta.text, ids(falta)], ['todo', 'El paciente aún no firma que conoce cómo cuidamos sus datos y que decide sobre IA, WhatsApp y promociones.', ['consent*']]);
   assert.deepEqual(ids(paso({ consent: { signed: false } })), [], 'sin permiso para firmar no hay botón');
   const hecho = paso({ consent: { signed: true }, consentSummary: 'Firmado por Ana.', canViewConsent: true, canSignConsent: true });
   assert.deepEqual([hecho.state, hecho.text, ids(hecho)], ['done', 'Firmado por Ana.', ['consent-view']]);

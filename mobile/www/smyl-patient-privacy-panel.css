@@ -22,3 +22,4 @@
 .pp-acts button{min-height:48px;padding:0 14px;border:1px solid #bac7d5;border-radius:12px;background:#fff;color:#0f2236;font:600 15px/1 inherit;cursor:pointer}
 .pp-acts button.pp-primary{border-color:#1f8a80;background:#1f8a80;color:#fff}
 @media (max-width:640px){.pp-actions{justify-content:flex-start}}
+.pp-what{margin:0 0 12px;font-size:14px;line-height:1.5;color:#2b3a4a}

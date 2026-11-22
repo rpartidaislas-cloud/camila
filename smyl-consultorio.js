@@ -283,8 +283,7 @@
     else if (id === 'link') { if (typeof window.enviarEnlaceRegistro === 'function') window.enviarEnlaceRegistro({ id: patient.id, telefono: patient.telefono }, button); }
     else if (id === 'confirm') confirmData(patient, button);
     else if (id === 'interview') startInterview(step.state === 'done');
-    else if (id === 'consent') startConsent();
-    else if (id === 'consent-link') openConsentLink(patient);
+    else if (id === 'consent') openConsentChoice(patient);
     else if (id === 'consent-view') viewConsent();
     else if (id === 'history') openSection(patient.id, 'history');
     else if (id === 'files') openSection(patient.id, 'files');
@@ -595,6 +594,20 @@
   }
 
 
+  /* «Pedir firma»: una sola puerta. Se explica qué firma el paciente y se elige DÓNDE firma. */
+  function openConsentChoice(patient) {
+    var d = dialog(); if (!d) return;
+    d.innerHTML = '<div class="co-form co-qr"><header><h2>Consentimiento de privacidad</h2><button type="button" class="co-x" data-co-cancel aria-label="Cerrar">×</button></header><div data-co-choice-body></div></div>';
+    d.querySelector('[data-co-cancel]').onclick = closeDialog;
+    var body = d.querySelector('[data-co-choice-body]');
+    body.append(el('p', 'co-choice-what', 'El paciente va a firmar que leyó cómo la clínica cuida sus datos personales y de salud, y va a decidir si permite el uso de inteligencia artificial, WhatsApp y promociones. Decir que no no cambia su atención.'));
+    body.append(el('p', 'co-choice-ask', '¿Dónde va a firmar?'));
+    function opt(title, text, fn, attr) { var b = el('button', 'co-choice-opt'); b.type = 'button'; b.dataset[attr] = ''; b.append(el('strong', '', title), el('span', '', text)); b.onclick = fn; body.append(b); }
+    opt('En esta pantalla', 'Le pasas este celular o tablet y firma con el dedo.', function () { closeDialog(); startConsent(); }, 'coChoiceHere');
+    opt('En su celular', 'Escanea un código QR o le mandas un enlace por WhatsApp.', function () { openConsentLink(patient); }, 'coChoicePhone');
+    if (!d.open) d.showModal();
+  }
+
   /* ── Firma desde el celular del paciente ──
    * Se crea un enlace de un solo uso (vence a las 48 h) a aviso-firma.html. El paciente lee, decide (IA, WhatsApp, promociones),
    * firma con el dedo y la firma queda en su ficha. Mientras el código está abierto se revisa cada pocos segundos si ya firmó. */
@@ -633,7 +646,8 @@
       if (wa) act('Enviarlo por WhatsApp', 'co-submit', function () { window.open(wa, '_blank', 'noopener'); }).dataset.coQrWa = '';
       var copy = act('Copiar enlace', 'co-secondary', async function () { try { await navigator.clipboard.writeText(url); copy.textContent = 'Enlace copiado'; } catch (e) { field.focus(); field.select(); copy.textContent = 'Selecciona y copia el enlace'; } });
       act('Cerrar', 'co-ghost', closeDialog);
-      body.append(box, cap, status, acts, more, hint);
+      var what = el('p', 'co-qrwhat', 'El paciente va a firmar que leyó cómo la clínica cuida sus datos personales y de salud, y a decidir si permite IA, WhatsApp y promociones. Decir que no no cambia su atención.');
+      body.append(what, box, cap, status, acts, more, hint);
       q.timer = setInterval(async function () {
         if (state.qr !== q) return;
         q.polls++;
@@ -725,7 +739,7 @@
     var top = el('div', 'co-ivtop'); top.append(ivButton('‹ Volver a la visita', 'co-link-btn', leaveConsent), el('span', 'co-ivname', v && v.patient ? (Q.isPending(v.patient) ? 'Por registrar' : Q.displayName(v.patient)) : '')); host.append(top);
     if (c.notice.provisional) { var warn = el('p', 'co-warn', 'Texto modelo provisional. Revísalo con tu asesor legal antes de usarlo con pacientes.'); warn.dataset.coProvisional = ''; host.append(warn); }
     var title = el('h1', 'co-qtitle', c.notice.title); title.tabIndex = -1; host.append(title);
-    host.append(el('p', 'co-hint', 'Pásale el celular al paciente para que lea y firme.'));
+    host.append(el('p', 'co-hint', 'Pásale el celular al paciente. Con su firma confirma que leyó cómo la clínica cuida sus datos personales y de salud, y registra qué permite sobre IA, WhatsApp y promociones. Decir que no no cambia su atención.'));
     var box = el('div', 'co-notice'); box.tabIndex = 0; box.setAttribute('role', 'region'); box.setAttribute('aria-label', 'Texto del aviso de privacidad');
     c.notice.text.split('\n\n').forEach(function (par) { box.append(el('p', '', par)); }); host.append(box);
     var more = el('p', 'co-note', 'Desliza el texto hasta el final para poder aceptarlo.'); more.dataset.coConsentMore = ''; host.append(more);
