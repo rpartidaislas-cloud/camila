@@ -68,7 +68,7 @@ test('el servidor limita la corrección, conserva hechos verificables y registra
 test('web y PWA comparten exactamente las herramientas', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), inbox);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=92/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=77/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=93/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=78/);
   assert.match(read('../sw.js'), /inbox-composer-rewrite-v1/);
 });

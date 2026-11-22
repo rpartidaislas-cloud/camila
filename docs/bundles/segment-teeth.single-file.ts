@@ -1242,6 +1242,14 @@ serve(async (req) => {
   }
 
   const { imageUrl, casoId, tenantId: tenantIdBody, target: targetRaw } = body || {};
+  // Consentimiento expreso de IA capturado en pantalla (ver claude/index.ts). Con SMYL_REQUIRE_SIM_AI_CONSENT=true es obligatorio.
+  const consentimientoIA = typeof body?.aiConsent === "string" && !Number.isNaN(Date.parse(body.aiConsent));
+  console.log(JSON.stringify({ event: "simulation_ai_consent", fn: "segment-teeth", attested: consentimientoIA }));
+  if (!consentimientoIA && Deno.env.get("SMYL_REQUIRE_SIM_AI_CONSENT") === "true") {
+    return new Response(JSON.stringify({ error: "Falta confirmar que el paciente autorizó procesar sus fotos con IA.", code: "patient_ai_consent_missing" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
   const target: Target = targetRaw === "gum" || targetRaw === "treatment" ? targetRaw : "tooth";
   if (!imageUrl) {
     return new Response(JSON.stringify({ error: "imageUrl es requerido" }), {

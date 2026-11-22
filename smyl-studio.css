@@ -583,3 +583,16 @@ body.smyl-organized #s-res #case-actions-box{background:#0d1c31!important;color:
  .flow-shade-row .flow-holder-brand img{width:26px}
  .flow-shade-row .flow-holder-brand b{font:700 7px/1.2 Inter,sans-serif}
 }
+
+/* Arreglos rápidos (nov-2026) */
+/* La lista de la foto es un recordatorio, no una validación: íconos neutros en vez de ✓ fijos. */
+.flow-photo-readiness span:before{content:none}
+.flow-photo-readiness span b{margin-right:4px;font-weight:700;color:#8ae0d1}
+/* El botón principal del resultado ya guarda en paciente: no se repite abajo (salvo en el flujo de consultorio). */
+html.smyl-result-primary-saves:not([data-consultorio-case]) #pc-save-entry{display:none}
+/* «ANTES» y la etiqueta del tono no se encimen en pantallas angostas. */
+.ba-tag{max-width:calc(50% - 16px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Error del lote: el detalle técnico va plegado. */
+details.smyl-batch-errors{padding-left:0;margin-top:8px;color:#5b6b7a}
+details.smyl-batch-errors summary{cursor:pointer;font-weight:600;min-height:32px;display:flex;align-items:center}
+details.smyl-batch-errors ul{margin:4px 0 0;padding-left:18px}
