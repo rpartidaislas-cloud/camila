@@ -717,7 +717,8 @@
     function fitHeader() {
       var width = head.clientWidth;
       if (!width) { closeThreadOptions(false); return; }
-      var compact = width <= 700;
+      // Chat simple v2: responsable, sucursal e IA viven siempre en «Opciones del chat»; el encabezado deja solo al paciente y Agendar.
+      var compact = true;
       if (compact === head.classList.contains('is-compact')) return;
       var focused = document.activeElement;
       var focusInControls = owner.contains(focused) || branch.contains(focused) || mode.contains(focused);
@@ -3373,7 +3374,9 @@
 
     if (linked && !ficha.clinical_restricted && hasPermission('schedule.read')) {
       var patientId = ficha.patient.id, historyKey = careHistoryKey(id, patientId);
-      sections.push(careHistorySection(careHistoryCache.get(historyKey), open.careHistory, function () { loadCareHistory(id, patientId, true); }));
+      // Sin visitas completadas no hay nada que mostrar: la sección se omite (mientras consulta o si falla, sí se ve).
+      var historyEntry = careHistoryCache.get(historyKey);
+      if (!(historyEntry && historyEntry.index && !historyEntry.index.branches.size)) sections.push(careHistorySection(historyEntry, open.careHistory, function () { loadCareHistory(id, patientId, true); }));
     }
 
     sections.forEach(function (section) { section.open = Boolean(open[section.id]); });

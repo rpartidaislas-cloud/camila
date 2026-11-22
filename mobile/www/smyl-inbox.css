@@ -3790,3 +3790,13 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
   }
   #p-inbox .smyl-inbox-care-label { display: inline; font: 600 13px/1 var(--inbox-font); white-space: nowrap; }
 }
+
+/* ── Chat simple v2: encabezado con una sola entrada de opciones y barra de vistas más baja ── */
+/* Con la IA en pausa, el botón de opciones lo avisa con un punto: el estado no se pierde al guardarlo en el menú. */
+#p-inbox [data-thread-options] { position: relative; }
+#p-inbox .smyl-inbox-thread-head:has([data-thread-mode][aria-checked="false"]) [data-thread-options]::after {
+  content: ''; position: absolute; top: 7px; right: 7px; width: 9px; height: 9px; border-radius: 50%;
+  background: #c98a14; box-shadow: 0 0 0 2px #fff;
+}
+/* La barra «Conversaciones | Pipeline» ocupa menos altura. */
+#p-inbox .smyl-inbox-top { min-height: 0; padding-block: 6px; }
