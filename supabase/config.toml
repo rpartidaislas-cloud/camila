@@ -125,3 +125,7 @@ verify_jwt = false
 # Aviso de privacidad automático por WhatsApp: sesión y permiso patients.manage comprobados dentro del handler (requireUser + requirePermission).
 [functions.privacy-notice-dispatch]
 verify_jwt = false
+
+# Horarios libres para el asistente de IA de LANA (solo lectura). verify_jwt=false: la autentica la firma HMAC (SMYL_LANA_SCHEDULING_SECRET).
+[functions.lana-scheduling]
+verify_jwt = false
