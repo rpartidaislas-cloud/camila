@@ -65,13 +65,17 @@
      ctx.evaluationCta.hidden=true;disabled=true;action=()=>{};
     }else{label=flow.reviewLabel||'Continuar revisión';disabled=!!flow.reviewDisabled;action=()=>{if(ctx.reviewAction)ctx.reviewAction();};}
   }else if(task==='closure'){
-   status=flow.reviewComplete?'Evaluación lista para preparar la propuesta':'Aún hay pendientes en la evaluación';
-   if(flow.reviewComplete){label='Continuar a propuesta';action=()=>open('plan');}
+   status=flow.reviewComplete?'Diagnóstico listo para armar el plan':'Aún hay pendientes en el diagnóstico';
+   if(flow.reviewComplete){label='Confirmar diagnóstico';action=()=>open('plan');}
    else{label=ctx.contextState?.reviewed?'Volver a valoración':'Volver a contexto';action=()=>showEvaluationTask(ctx,ctx.contextState?.reviewed?'findings':'context');}
   }
   if(ctx.evaluationFooterStatus)copy(ctx.evaluationFooterStatus,status);
   copy(ctx.evaluationCta,label);ctx.evaluationCta.disabled=disabled;ctx.evaluationAction=action;
+  syncDock(ctx);
  }
+ // Ruta del tratamiento: cuatro etapas con un estado claro y una sola acción principal.
+ const ROUTE=[['evaluation','Diagnóstico'],['plan','Plan de tratamiento'],['approval','Presupuesto y aceptación'],['followup','En tratamiento']];
+ const ROUTE_HINT={plan:'Se habilita al confirmar el diagnóstico',approval:'Se habilita al aprobar el plan',followup:'Se habilita al preparar el presupuesto'};
  function open(id,focus=true){
   const ctx=active;if(!valid(ctx))return false;
   const requested=id;id=moduleId(id);if(!ctx.modules[id])return false;
@@ -87,9 +91,43 @@
    const target=requested==='review'||requested==='photos'?ctx.reviewSection:section.details;
    section.summary.focus({preventScroll:true});(target||section.details).scrollIntoView({block:'start',behavior:'instant'});
   }
-  syncNav(ctx);
+  syncNav(ctx);syncDock(ctx);
   rememberView(ctx);
   return true;
+ }
+
+ function routeViewing(ctx){return ctx.activeStage==='approval'||ctx.activeStage==='followup'?ctx.activeStage:moduleId(ctx.activeStage);}
+ function syncRoute(ctx){
+  const f=ctx.routeFlags;if(!f||!ctx.nav)return;
+  const current=ROUTE.map(r=>r[0]).find(id=>!f.done[id])||'followup';ctx.routeCurrent=current;let done=0;
+  ROUTE.forEach(([id],index)=>{const b=ctx.nav[id];if(!b)return;const isDone=!!f.done[id];if(isDone)done++;
+   const tone=isDone?'done':id===current?'current':'locked',text=isDone?'Listo':id===current?'En curso'+(f.status[id]?' · '+f.status[id]:''):ROUTE_HINT[id]||'';
+   b.dataset.route=tone;copy(b.querySelector('.cw-step-num'),isDone?'✓':String(index+1));copy(b.querySelector('.cw-step-status'),text);b.setAttribute('aria-label',b.dataset.label+' · '+text);});
+  if(ctx.routeFill)ctx.routeFill.style.width=Math.round(done/ROUTE.length*100)+'%';
+  syncDock(ctx);
+ }
+ // Una sola acción principal, fija al pie: refleja el botón real de la etapa actual (no duplica su lógica).
+ function syncDock(ctx){
+  if(!ctx?.root||!ctx.routeFlags)return;
+  if(!ctx.dock){ctx.dock=n('footer','cw-route-dock');ctx.dock.setAttribute('aria-label','Siguiente paso del tratamiento');const text=n('div','cw-route-dock-text');ctx.dockTitle=n('strong','');ctx.dockSub=n('span','');text.append(ctx.dockTitle,ctx.dockSub);ctx.dockButton=btn('',()=>ctx.dockRun?.(),true);ctx.dock.append(text,ctx.dockButton);ctx.root.append(ctx.dock);
+   // Fija a la ventana pero alineada al área de Tratamiento (el contenedor con scroll no admite sticky).
+   const place=()=>{if(!ctx.root.isConnected)return;const r=ctx.root.getBoundingClientRect();if(!r.width)return;ctx.dock.style.left=Math.round(r.left)+'px';ctx.dock.style.width=Math.round(r.width)+'px';const nav=document.querySelector('.pro-mobile-nav'),navUp=nav&&getComputedStyle(nav).display!=='none'?nav.offsetHeight:0;ctx.dock.style.bottom=navUp+'px';ctx.dock.dataset.floating=String(navUp>0);};ctx.placeDock=place;if(window.ResizeObserver){ctx.dockObserver=new ResizeObserver(place);ctx.dockObserver.observe(ctx.root);}addEventListener('resize',place,{passive:true});}
+  ctx.placeDock?.();
+  const order=ROUTE.map(r=>r[0]),current=ctx.routeCurrent||'evaluation',viewing=routeViewing(ctx),label=Object.fromEntries(ROUTE);
+  let title='',sub='',action='',disabled=false,hidden=false,run=null;
+  if(viewing&&viewing!==current&&order.includes(viewing)){
+   const past=order.indexOf(viewing)<order.indexOf(current);
+   title=past?'Estás viendo una etapa terminada':'Esta etapa todavía no está disponible';sub=past?'Puedes consultarla o corregirla.':(ROUTE_HINT[viewing]||'')+'.';action='Ir a '+label[current];run=()=>open(current);
+  }else if(current==='evaluation'){
+   const cta=ctx.evaluationCta;title='Diagnóstico · '+(ctx.evaluationFooterStatus?.textContent||'en curso');action=cta?.textContent||'Continuar';disabled=!!cta?.disabled;hidden=!cta||cta.hidden;run=()=>ctx.evaluationAction?.();
+  }else if(current==='plan'){
+   const checks=ctx.planChecks||{};title='Plan de tratamiento · '+(ctx.routeFlags.status.plan||'');sub=['assessment','treatments'].map(id=>checks[id]?.textContent||'').filter(Boolean).join(' · ');action=ctx.planNext?.textContent||'Aprobar plan';disabled=!!ctx.planNext?.disabled;run=()=>ctx.planNext?.click();
+  }else if(current==='approval'){
+   title='Presupuesto · '+(ctx.shareHint?.textContent||'prepáralo desde el plan aprobado');action=ctx.quoteButton?.textContent||'Preparar presupuesto';disabled=!!ctx.quoteButton?.disabled;run=()=>ctx.quoteButton?.click();
+  }else{
+   title='En tratamiento · registra cada avance con su evolución';sub='El cierre se documenta con una evolución firmada; SMYL no cierra casos automáticamente.';action=ctx.evolveButton?.textContent||'Registrar evolución';disabled=!ctx.evolveButton||ctx.evolveButton.disabled;run=()=>ctx.evolveButton?.click();
+  }
+  copy(ctx.dockTitle,title);copy(ctx.dockSub,sub);ctx.dockSub.hidden=!sub;copy(ctx.dockButton,action);ctx.dockButton.disabled=disabled;ctx.dockButton.hidden=hidden||!action;ctx.dockRun=run;
  }
  function module(ctx,id,index,title,subtitle){
   const details=n('section','cw-module'),summary=n('header','cw-summary'),text=n('span','cw-module-title');details.dataset.module=id;details.dataset.active='false';summary.id='cw-module-title-'+id;summary.tabIndex=-1;details.setAttribute('aria-labelledby',summary.id);
@@ -517,9 +555,9 @@
   const readiness=n('span','cw-evolution-readiness',ready?'Listo para documentar cierre':notes.drafts?'Evolución en borrador':notes.signed?'Seguimiento activo':'Primer control pendiente');readiness.dataset.state=ready?'done':notes.drafts?'pending':'neutral';head.append(copyBox,readiness);ctx.evolution.append(head);
   const metrics=n('dl','cw-evolution-metrics');[['Evoluciones',notes.total||0,(notes.signed||0)+' firmadas'],['Citas completadas',appointments.completed||0,appointments.upcoming?(appointments.upcoming+' próximas'):'Sin próxima cita'],['Piezas en seguimiento',teeth.following||0,(teeth.done||0)+' realizadas'],['Hallazgos confirmados',confirmed,'Revisión profesional']].forEach(([label,value,detail])=>{const item=n('div');item.append(n('dt','',label),n('dd','',String(value)),n('small','',detail));metrics.append(item);});ctx.evolution.append(metrics);
   const body=n('div','cw-evolution-body'),latest=n('section','cw-evolution-latest');latest.append(n('span','cw-kicker','ÚLTIMO CONTROL'),n('strong','',notes.latest?notes.latest.label:'Sin evolución registrada'),n('p','',notes.latest?shortDate(notes.latest.createdAt)+' · '+(notes.latest.status==='signed'?'Firmada e inmutable':'Borrador pendiente de firma'):'Registra la primera evolución para iniciar el historial clínico del caso.'));
-  const route=n('ol','cw-evolution-route');[['Evaluación',dental?.ready?'Odontograma disponible':'Mapa pendiente',!!dental?.ready],['Propuesta',clinical?.ready?'Propuesta revisada':'Propuesta por completar',!!clinical?.ready],['Seguimiento',notes.signed?'Historial iniciado':'Registrar evolución',!!notes.signed]].forEach(([title,detail,done])=>{const item=n('li');item.dataset.done=String(done);item.append(n('span','',done?'✓':'○'),n('div','',null));item.lastChild.append(n('strong','',title),n('small','',detail));route.append(item);});body.append(latest,route);ctx.evolution.append(body);
+  body.append(latest);ctx.evolution.append(body);
   const actions=n('div','cw-evolution-actions');
-  const evolve=btn(notes.drafts?'Continuar evolución':'Registrar evolución',()=>window.SmylPatientProgress?.newEvolution(),true);evolve.disabled=!progress?.ready||progress.canWrite===false;
+  const evolve=btn(notes.drafts?'Continuar evolución':'Registrar evolución',()=>window.SmylPatientProgress?.newEvolution(),true);evolve.disabled=!progress?.ready||progress.canWrite===false;ctx.evolveButton=evolve;evolve.classList.add('cw-dock-mirrored');
   const map=btn('Actualizar odontograma',()=>{open('evaluation');ctx.mapHost?.scrollIntoView({block:'center',behavior:'smooth'});});
   const history=btn('Ver historial clínico',()=>window.SmylPatient360?.open('notes'));
   actions.append(evolve,map,history);ctx.evolution.append(actions,n('p','cw-evolution-note',ready?'El cierre se documenta con una evolución firmada y el odontograma actualizado; SMYL no cierra casos automáticamente.':'Completa los pendientes clínicos antes de documentar el cierre.'));
@@ -539,19 +577,20 @@
   const quick=n('nav','cw-quick-links');quick.setAttribute('aria-label','Áreas del expediente');
   [['Resumen','overview'],['Expediente','history'],['Tratamiento','plan'],['Actividad','appointments']].forEach(([label,key])=>{const action=btn(label,()=>key==='plan'?open('plan'):window.SmylPatient360?.open(key));action.dataset.patientSection=key;quick.append(action);});root.append(quick);
   ctx.overview=n('p','cw-stage-status');ctx.overview.setAttribute('role','status');root.append(ctx.overview);ctx.nav={};
-  const evaluation=module(ctx,'evaluation','01','Evaluación','Contexto, revisión profesional y conclusión clínica.');evaluation.details.dataset.active='true';ctx.activeStage='evaluation';
-  const plan=module(ctx,'plan','02','Propuesta','Valoración, procedimientos y fases.');plan.details.hidden=true;
-  const approval=module(ctx,'approval','03','Aceptación','Cotización, consentimiento y decisión.');approval.details.hidden=true;
-  const followup=module(ctx,'followup','04','Seguimiento e historial','Citas, evoluciones y trabajo realizado.');followup.details.hidden=true;
+  const evaluation=module(ctx,'evaluation','01','Diagnóstico','Seguridad clínica, odontograma y hallazgos confirmados.');evaluation.details.dataset.active='true';ctx.activeStage='evaluation';
+  const plan=module(ctx,'plan','02','Plan de tratamiento','Valoración, procedimientos y fases.');plan.details.hidden=true;
+  const approval=module(ctx,'approval','03','Presupuesto y aceptación','Presupuesto, consentimiento y decisión del paciente.');approval.details.hidden=true;
+  const followup=module(ctx,'followup','04','En tratamiento','Citas, evoluciones y trabajo realizado.');followup.details.hidden=true;
   const progress=n('nav','cw-nav');progress.setAttribute('aria-label','Etapas del caso');
-  [['evaluation','Evaluación'],['plan','Propuesta'],['approval','Aceptación'],['followup','Seguimiento']].forEach(([id,label])=>{const step=n('button','',label);step.type='button';step.dataset.label=label;step.onclick=()=>open(id);ctx.nav[id]=step;progress.append(step);});
-  ctx.overview.before(progress);
+  ROUTE.forEach(([id,label],index)=>{const step=n('button','cw-step');step.type='button';step.dataset.label=label;step.dataset.route=index?'locked':'current';const text=n('span','cw-step-text');text.append(n('strong','',label),n('small','cw-step-status',index?'':'En curso'));step.append(n('span','cw-step-num',String(index+1)),text);step.onclick=()=>open(id);ctx.nav[id]=step;progress.append(step);});
+  root.classList.add('cw-route-v1');ctx.overview.hidden=true;ctx.overview.before(progress);
+  const routeBar=n('div','cw-route-bar');routeBar.setAttribute('aria-hidden','true');ctx.routeFill=n('span','');routeBar.append(ctx.routeFill);ctx.overview.before(routeBar);
   const evaluationFlow=n('section','cw-evaluation-flow');ctx.evaluationFlow=evaluationFlow;ctx.evaluationMobileProgress=n('p','cw-evaluation-mobile-progress','Paso 1 de 3 · Contexto');ctx.evaluationTaskList=n('ol','cw-evaluation-tasks');ctx.evaluationTaskList.setAttribute('role','tablist');ctx.evaluationTaskList.setAttribute('aria-label','Tareas de la evaluación');ctx.evaluationPanels=n('div','cw-evaluation-panels');ctx.evaluationTasks={};evaluationFlow.append(ctx.evaluationMobileProgress,ctx.evaluationTaskList,ctx.evaluationPanels);evaluation.body.append(evaluationFlow);
   ctx.contextPart=evaluationTask(ctx,'context','01','Contexto','Historia y alertas');
   ctx.reviewPart=evaluationTask(ctx,'findings','02','Revisión profesional','Comprobar y decidir');ctx.reviewSection=ctx.reviewPart.root;
   ctx.closePart=evaluationTask(ctx,'closure','03','Conclusión','Hallazgos confirmados');
   ctx.contextCopy=n('p','cw-evaluation-intro','Confirma la seguridad clínica antes de revisar imágenes.');ctx.contextPart.body.append(ctx.contextCopy);mountContext(ctx,patient);
-  const versionNote=n('aside','cw-version-note'),versionCopy=n('div');versionCopy.append(n('strong','','Versiones guardadas'),n('p','','Cada guardado crea una nueva versión. Lo anterior no se reemplaza.'));ctx.planHistory=btn('Ver historial',()=>{const history=document.getElementById('clinic-history');if(!history)return;history.hidden=false;history.open=true;history.scrollIntoView({block:'start',behavior:'smooth'});});versionNote.append(n('span','','✓'),versionCopy,ctx.planHistory);plan.body.append(versionNote);
+  const versionNote=n('aside','cw-version-note'),versionCopy=n('div');versionCopy.append(n('strong','','Versiones guardadas'),n('p','','Cada guardado crea una nueva versión. Lo anterior no se reemplaza.'));ctx.planHistory=btn('Ver historial',()=>{const history=document.getElementById('clinic-history');if(!history)return;history.hidden=false;history.open=true;history.scrollIntoView({block:'start',behavior:'smooth'});});versionNote.append(n('span','','✓'),versionCopy,ctx.planHistory);
   const clinical=screen.querySelector('.clinic-workspace');if(clinical)plan.body.append(clinical);
   const sourceRoot=n('section','cw-clinical-files-source'),sourceBody=n('div','cw-clinical-files-source-body'),sourceBadge=n('span','cw-part-badge','Cargando');sourceRoot.setAttribute('aria-label','Archivos clínicos consultados en esta revisión');sourceBadge.hidden=true;sourceRoot.append(sourceBody,sourceBadge);ctx.evidencePart={root:sourceRoot,body:sourceBody,badge:sourceBadge};ctx.evidenceSection=sourceRoot;ctx.reviewPart.body.append(sourceRoot);
   ctx.evidenceTimeline=n('section','cw-evidence-history');ctx.photoHint=n('p','cw-help','Cada original se conserva una sola vez. Aquí sólo eliges qué fuente revisar.');ctx.photoHint.hidden=true;ctx.valuationEvidence=n('section','cw-valuation-evidence');ctx.valuationEvidence.hidden=true;ctx.valuationEvidence.setAttribute('aria-label','Archivos clínicos disponibles para revisión');ctx.evidencePart.body.append(ctx.valuationEvidence,ctx.evidenceTimeline,ctx.photoHint);
@@ -569,17 +608,17 @@
   const mapLegend=n('div','cw-map-legend');ctx.mapLegend=mapLegend;[['manual','Clínica'],['periodontal','Con registro periodontal'],['photo','Fotografía confirmada'],['radiograph','Hallazgo radiográfico confirmado'],['pending','IA por revisar']].forEach(([tone,label])=>mapLegend.append(n('span','cw-map-key cw-map-key-'+tone,label)));clinicalMap.append(mapLegend);
   ctx.reviewHelp=n('p','cw-help','La IA sugiere; el dentista confirma. Revisa cada fuente y decide qué hallazgos pasan a la conclusión clínica.');ctx.reviewPart.body.append(ctx.reviewHelp);
   const closeSummary=n('section','cw-evaluation-close');ctx.closeTitle=n('h3','','Conclusión pendiente');ctx.closeCopy=n('p','','Comprueba el contexto, los archivos consultados y las decisiones profesionales antes de preparar la propuesta.');const closeFacts=n('dl','cw-evaluation-close-facts'),contextFact=n('div',''),evidenceFact=n('div',''),findingsFact=n('div','');contextFact.append(n('dt','','Contexto'),ctx.closeContext=n('dd','','Sin revisar'));evidenceFact.append(n('dt','','Archivos consultados'),ctx.closeEvidence=n('dd','','Sin comprobar'));findingsFact.append(n('dt','','Hallazgos confirmados'),ctx.closeFindings=n('dd','','Pendiente'));closeFacts.append(contextFact,evidenceFact,findingsFact);closeSummary.append(ctx.closeTitle,ctx.closeCopy,closeFacts);ctx.closePart.body.append(closeSummary,clinicalMap);
-  const evaluationFoot=n('footer','cw-evaluation-footer');ctx.evaluationFooterStatus=n('span','cw-evaluation-footer-status','Cargando contexto clínico');ctx.evaluationCta=btn('Continuar a revisión',()=>{if(valid(ctx)&&ctx.evaluationAction)ctx.evaluationAction();},true);ctx.evaluationCta.classList.add('cw-evaluation-cta');evaluationFoot.append(ctx.evaluationFooterStatus,ctx.evaluationCta);evaluationFlow.append(evaluationFoot);showEvaluationTask(ctx,resume.task,false);
+  const evaluationFoot=n('footer','cw-evaluation-footer');ctx.evaluationFooterStatus=n('span','cw-evaluation-footer-status','Cargando contexto clínico');ctx.evaluationCta=btn('Continuar a revisión',()=>{if(valid(ctx)&&ctx.evaluationAction)ctx.evaluationAction();},true);ctx.evaluationCta.classList.add('cw-evaluation-cta','cw-dock-mirrored');evaluationFoot.append(ctx.evaluationFooterStatus,ctx.evaluationCta);evaluationFlow.append(evaluationFoot);showEvaluationTask(ctx,resume.task,false);
   const planProgress=n('ul','cw-checklist');ctx.planChecks={};
-  for(const [id,label] of [['assessment','Completar valoración'],['treatments','Elegir tratamientos'],['approved','Revisar propuesta']]){const item=n('li','',label);item.dataset.label=label;planProgress.append(item);ctx.planChecks[id]=item;}
+  for(const [id,label] of [['assessment','Completar valoración'],['treatments','Elegir tratamientos'],['approved','Aprobar plan']]){const item=n('li','',label);item.dataset.label=label;planProgress.append(item);ctx.planChecks[id]=item;}
   plan.body.prepend(planProgress);
   ctx.shareHint=n('p','cw-help');approval.body.append(ctx.shareHint);
-  approval.body.append(n('p','cw-share-copy','La cotización usa la propuesta revisada. La presentación visual es opcional y nunca incluye antecedentes ni notas internas.'));
-  ctx.planNext=btn('Revisar propuesta',()=>document.getElementById('clinic-review')?.click(),true);const planFoot=n('div','cw-module-footer');planFoot.append(ctx.planNext);plan.body.append(planFoot);
-  ctx.quoteButton=btn('Preparar cotización',()=>window.SmylProposals?.forPatient(ctx.patient),true);
+  approval.body.append(n('p','cw-share-copy','El presupuesto usa el plan aprobado. La presentación visual es opcional y nunca incluye antecedentes ni notas internas.'));
+  ctx.planNext=btn('Aprobar plan',()=>document.getElementById('clinic-review')?.click(),true);const planFoot=n('div','cw-module-footer cw-dock-mirrored');planFoot.append(ctx.planNext);plan.body.append(planFoot);
+  ctx.quoteButton=btn('Preparar presupuesto',()=>window.SmylProposals?.forPatient(ctx.patient),true);
   ctx.shareButton=btn('Preparar presentación mySmyl',()=>{if(ctx.selected?.current())ctx.selected.present();});
-  ctx.fixPlan=btn('Completar propuesta',()=>{open('plan');document.getElementById('clinic-assessment')?.focus({preventScroll:true});});
-  const actions=n('div','cw-action-row');actions.append(ctx.quoteButton,ctx.shareButton,ctx.fixPlan);approval.body.append(actions,n('p','cw-help','Preparar una cotización o crear un enlace no envía nada automáticamente. El profesional conserva la revisión final.'));
+  ctx.fixPlan=btn('Ir al plan',()=>{open('plan');document.getElementById('clinic-assessment')?.focus({preventScroll:true});});
+  const actions=n('div','cw-action-row');actions.append(ctx.quoteButton,ctx.shareButton,ctx.fixPlan);approval.body.append(actions,n('p','cw-help','Preparar un presupuesto o crear un enlace no envía nada automáticamente. El profesional conserva la revisión final.'));
   ctx.history=btn('Consultar enlaces y solicitudes',()=>{if(valid(ctx)&&ctx.selected?.current())ctx.selected.present();});
   const past=n('details','cw-contact');past.append(n('summary','','Presentaciones anteriores'),n('p','cw-help','Consulta su vigencia o revoca un acceso desde «Enlaces anteriores y mensajes del paciente». Abrirlo no crea ni envía una propuesta.'),ctx.history);approval.body.append(past);
   ctx.evolution=n('section','cw-evolution');followup.body.append(ctx.evolution);
@@ -644,35 +683,35 @@
   partState(ctx.reviewPart,reviewLabel,findingsComplete?'done':hasReviewActivity?'neutral':'pending');copy(ctx.reviewText,reviewCopy);
   const reviewDisabled=!dental?.ready||dental.busy||dental.dirty;
   const evaluationComplete=findingsComplete&&contextReviewed;
-  partState(ctx.closePart,evaluationComplete?'Lista para la propuesta':'Pendiente',evaluationComplete?'done':'pending');
-  copy(ctx.closeTitle,evaluationComplete?'Conclusión lista para la propuesta':'Conclusión pendiente');
-  copy(ctx.closeCopy,evaluationComplete?'El contexto, los archivos consultados y los hallazgos profesionales quedaron revisados en esta sesión.':'Completa la revisión profesional antes de preparar la propuesta.');
+  partState(ctx.closePart,evaluationComplete?'Lista para el plan':'Pendiente',evaluationComplete?'done':'pending');
+  copy(ctx.closeTitle,evaluationComplete?'Diagnóstico listo para el plan':'Conclusión pendiente');
+  copy(ctx.closeCopy,evaluationComplete?'El contexto, los archivos consultados y los hallazgos profesionales quedaron revisados en esta sesión.':'Completa la revisión profesional antes de armar el plan.');
   copy(ctx.closeContext,contextState?.stale?'Cambió · revisar':contextReviewed?'Revisado en esta sesión':contextState?.state==='attention'?'Alertas por revisar':'Sin revisar');
   copy(ctx.closeEvidence,evidenceLabel);copy(ctx.closeFindings,reviewLabel);
   ctx.studyItems=dental?.studyItems||[];ctx.sourceData={photos:photoCount,photoPending,photoConfirmed:(dental?.confirmed||0)+(photoStatus?.reviewed||0),studies:ctx.studyItems.length,rxPending,rxUnresolved,rxConfirmed:dental?.rxConfirmed||0,firstStudy:ctx.studyItems.find(study=>!study.reviewed)?.id||ctx.studyItems[0]?.id||'',files:files?.total||0,teethFollowing:dental?.teeth?.following||0,teethDone:dental?.teeth?.done||0};
   ctx.findingsActionState={entry,dental,photoCount,photoPending,rxPending,rxUnresolved,findingsComplete,evaluationComplete,reviewDisabled,hasReview:hasReviewActivity,firstPhotoStudy:photoStatus?.firstStudyId||'',firstPendingPhotoStudy:photoStatus?.firstPendingStudyId||''};
   renderClinicalMap(ctx,window.SmylDentalProgress?.map?.(ctx.tenant,ctx.patient,entry?.row.id));
   syncFindingsAction(ctx);
-  state(ctx,'evaluation',evaluationComplete?'Lista para propuesta':contextState?.stale?'Contexto actualizado':!contextReviewed?'Contexto por revisar':hasReviewActivity?'Revisión en curso':'Requiere revisión',evaluationComplete?'done':hasReviewActivity?'neutral':'pending');
+  state(ctx,'evaluation',evaluationComplete?'Diagnóstico listo':contextState?.stale?'Contexto actualizado':!contextReviewed?'Contexto por revisar':hasReviewActivity?'Revisión en curso':'Requiere revisión',evaluationComplete?'done':hasReviewActivity?'neutral':'pending');
   const planComplete=evaluationComplete&&clinical?.ready;
   ctx.planHistory.disabled=!document.getElementById('clinic-history');
-  state(ctx,'plan',clinical?.saving?'Guardando':clinical?.dirty?'Cambios sin guardar':clinical?.ready?'Propuesta revisada':clinical?.saved?'Borrador guardado':clinical?.available?'Por completar':'No disponible',clinical?.ready?'done':'pending');
+  state(ctx,'plan',clinical?.saving?'Guardando':clinical?.dirty?'Cambios sin guardar':clinical?.ready?'Plan aprobado':clinical?.saved?'Borrador guardado':clinical?.available?'Por completar':'No disponible',clinical?.ready?'done':'pending');
   for(const [id,done] of [['assessment',clinical?.assessment],['treatments',clinical?.treatments],['approved',clinical?.ready]]){const item=ctx.planChecks[id];copy(item,(done?'✓ ':'○ ')+item.dataset.label);item.dataset.done=String(!!done);}
-  if(clinical?.ready&&!evaluationComplete){copy(ctx.planNext,'Terminar evaluación');ctx.planNext.disabled=false;ctx.planNext.onclick=()=>{open('evaluation');showEvaluationTask(ctx,contextReviewed?'findings':'context');};}
-  else if(!clinical?.ready){const reviewButton=document.getElementById('clinic-review');copy(ctx.planNext,'Revisar propuesta');ctx.planNext.disabled=!reviewButton||reviewButton.disabled;ctx.planNext.onclick=()=>reviewButton?.click();}
-  else {copy(ctx.planNext,'Continuar a aceptación');ctx.planNext.disabled=!planComplete;ctx.planNext.onclick=()=>open('approval');}
+  if(clinical?.ready&&!evaluationComplete){copy(ctx.planNext,'Terminar diagnóstico');ctx.planNext.disabled=false;ctx.planNext.onclick=()=>{open('evaluation');showEvaluationTask(ctx,contextReviewed?'findings':'context');};}
+  else if(!clinical?.ready){const reviewButton=document.getElementById('clinic-review');copy(ctx.planNext,'Aprobar plan');ctx.planNext.disabled=!reviewButton||reviewButton.disabled;ctx.planNext.onclick=()=>reviewButton?.click();}
+  else {copy(ctx.planNext,'Continuar al presupuesto');ctx.planNext.disabled=!planComplete;ctx.planNext.onclick=()=>open('approval');}
   const quoteReady=!!clinical?.ready,eligible=pairs>0&&planComplete;
   renderEvolution(ctx,progress,dental,clinical);
   const receipt=ctx.receipts.get(entry?.row.id),created=eligible&&receipt&&Date.parse(receipt.expiresAt)>Date.now()&&receipt.revision===clinical?.revision;
   state(ctx,'approval',created?'Preparada':quoteReady?'Lista para preparar':'Pendiente',created?'done':quoteReady?'neutral':'pending');
   state(ctx,'followup',created?'En curso':'Pendiente',created?'done':'pending');
-  copy(ctx.shareHint,!clinical?.ready?'Falta revisar y guardar la propuesta.':!pairs?'La propuesta ya puede cotizarse. La presentación visual estará disponible cuando exista una foto con simulación guardada.':'Propuesta lista para cotizar y comparación visual disponible para la presentación.');
-  const canQuote=!!window.SmylProposals;ctx.quoteButton.disabled=!quoteReady||!canQuote;ctx.quoteButton.title=canQuote?'':'Cotizaciones todavía no está disponible.';ctx.shareButton.disabled=!eligible;ctx.fixPlan.hidden=!!clinical?.ready;ctx.followupButton.hidden=!created;ctx.followupActions.hidden=!created;
+  copy(ctx.shareHint,!clinical?.ready?'Aprueba el plan para preparar el presupuesto.':!pairs?'El plan ya puede presupuestarse. La presentación visual estará disponible cuando exista una foto con simulación guardada.':'Plan listo para presupuestar, con comparación visual para la presentación.');
+  ctx.quoteButton.classList.add('cw-dock-mirrored');const canQuote=!!window.SmylProposals;ctx.quoteButton.disabled=!quoteReady||!canQuote;ctx.quoteButton.title=canQuote?'':'Cotizaciones todavía no está disponible.';ctx.shareButton.disabled=!eligible;ctx.fixPlan.hidden=!!clinical?.ready;ctx.followupButton.hidden=!created;ctx.followupActions.hidden=!created;
   ctx.history.disabled=!entry;
   if(created)copy(ctx.shareHint,'Se creó un enlace en esta sesión. Compártelo junto con el código por separado. SMYL no confirma si ya lo enviaste.');
-  // Suggested route, not a claim that all clinical issues were evaluated.
-  copy(ctx.overview,!evaluationComplete?'Siguiente acción · Completa la evaluación.':!clinical?.ready?'Siguiente acción · Prepara la propuesta.':!created?'Siguiente acción · Registra la aceptación.':'Siguiente acción · Continúa el seguimiento.');
-  syncNav(ctx);
+  // Ruta sugerida: no afirma que todo lo clínico quedó evaluado; el profesional decide.
+  ctx.routeFlags={done:{evaluation:evaluationComplete,plan:!!planComplete,approval:!!created,followup:false},status:{evaluation:ctx.modules.evaluation.badge.textContent,plan:ctx.modules.plan.badge.textContent,approval:ctx.modules.approval.badge.textContent,followup:ctx.modules.followup.badge.textContent}};
+  syncNav(ctx);syncRoute(ctx);
  }
  function init(){
   const screen=document.getElementById('p-paciente-detalle');if(!screen)return;

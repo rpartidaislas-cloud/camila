@@ -1,3 +1,13 @@
+## 2026-11-22 — Claude Code — Tratamiento como ruta de 4 etapas (parte 1, solo interfaz)
+
+- `smyl-case-workspace.js` v48 / `.css` v34: las etapas se llaman Diagnóstico, Plan de tratamiento, Presupuesto y aceptación, En tratamiento (`const ROUTE`).
+- Barra de etapas numerada con estado (`syncRoute`): Listo / En curso · estado / «Se habilita al…», más barra de avance.
+- Una sola acción fija al pie (`syncDock`): refleja el botón real de la etapa actual (`evaluationCta`, `planNext`, `quoteButton`, `evolveButton`, que se ocultan con `.cw-dock-mirrored`). Es `position:fixed` alineada al área de Tratamiento por ResizeObserver, porque `.main` tiene overflow y `sticky` no funciona. Se sube sobre `.pro-mobile-nav` cuando está visible.
+- Quitado: la línea «Siguiente acción ·», la mini-ruta de 3 pasos en Seguimiento, la caja duplicada de «Versiones guardadas», la rejilla repetida de alergias/medicamentos/condiciones y «Datos administrativos» en el contexto, y `#clinic-proposal` / `#clinic-review` dentro de la ruta (los lleva la barra fija).
+- Textos: «Aprobar plan», «Preparar presupuesto», «Continuar al presupuesto», «Confirmar diagnóstico».
+- Pendiente (parte 2): plan armado desde los hallazgos, presupuesto automático, aceptación parcial registrada y lista de avance por procedimiento. Hoy «Presupuesto y aceptación» se marca Listo solo al crear la presentación mySmyl, igual que antes.
+- Prototipo aprobado por el usuario: https://claude.ai/artifact/48id2ZTw7nu7hVMi6SRDhe
+
 ## 2026-11-22 — Configuración de canales
 
 - En Configuración → Canales, WhatsApp Business, Messenger e Instagram aparecen con los mismos logos que la bandeja. Cada tarjeta abre su pestaña de conexión e identifica la cuenta cuando el servicio devuelve su nombre o teléfono. El bloque Asistente agrupa configuración y pruebas. Mensajes automáticos reúne las plantillas, los avisos de cita y las reglas.
@@ -12334,3 +12344,9 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **No hecho:** variante con botones rápidos («Sí, lo quiero» / «Ahora no») —habría que crear una plantilla nueva y regenerar el catálogo y el bundle de `whatsapp-templates`—; el aviso a la lista de espera no se envía solo.
 - **Pruebas:** `tests/smyl-waitlist-core.test.mjs` (12), `tests/lista-espera.test.mjs` (7), humo `tests/qa/lista-espera-smoke.cjs` (41: ahora cubre texto libre, plantilla y plantilla no aprobada) y **`tests/qa/compose-plantilla-smoke.cjs` (14) que prueba `SmylInbox.compose` en el Inbox real** (ventana vencida con y sin plantilla aprobada, sin plantilla pedida y otro canal).
 - **Archivos:** `smyl-waitlist-core.js` v2, `smyl-waitlist.js` v2, `smyl-inbox.js` v95, `app.html`, `sw.js`, copias en `mobile/www/`.
+
+## 2026-11-25 — Claude Code — Agenda con IA, paso 1: contrato de solo lectura para LANA (sugiere, no agenda)
+- **Qué hay:** migración `20261125150000_smyl_ai_scheduling.sql` (copia: `docs/sql-agenda-ia-pegar-en-supabase.sql`; ajustes por clínica, servicios permitidos, bitácora, RPC `smyl_set_ai_scheduling`; apagado por defecto), Edge Function `lana-scheduling` (`verify_jwt=false`, firma HMAC con secreto `SMYL_LANA_SCHEDULING_SECRET`; bundle `docs/bundles/lana-scheduling.single-file.ts`), núcleo puro `_shared/lana-scheduling-core.mjs` y motor compartido generado con `scripts/sync-schedule-suggest.mjs` (no editar `_shared/schedule-suggest-core.mjs` a mano), tarjeta «Agenda con IA» en Agenda → ajustes (`smyl-ai-scheduling.js/.css` v1).
+- **Contrato para quien mantiene LANA:** `docs/LANA_AGENDA_CONTRATO.md`. **La herramienta del lado de LANA no existe aún ni está verificada.**
+- **Para activar:** aplicar el SQL, desplegar `lana-scheduling` y crear el secreto `SMYL_LANA_SCHEDULING_SECRET` (≥32 caracteres, igual en LANA), luego encender la tarjeta y elegir servicios (recomendado: solo valoración).
+- **Pruebas:** `tests/lana-scheduling-core.test.mjs` (15).
