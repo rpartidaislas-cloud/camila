@@ -503,3 +503,10 @@ body.smyl-ui-governed #p-pacientes .patient-loading span::after{
 @media(prefers-reduced-motion:reduce){
   body.smyl-ui-governed #p-pacientes :is(.patient-insight,.clinic-patient-table tbody tr,.patient-directory-header>.btn){transition:none}
 }
+
+body.smyl-ui-governed #p-pacientes .clinic-patient-row{cursor:pointer}
+body.smyl-ui-governed #p-pacientes .clinic-patient-row:hover{background:#f6fafb}
+body.smyl-ui-governed #p-pacientes .clinic-patient-name-open{display:block;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;font-weight:700;text-align:left;cursor:pointer}
+body.smyl-ui-governed #p-pacientes .clinic-patient-name-open:focus-visible{outline:2px solid #2f7d74;outline-offset:3px;border-radius:4px}
+body.smyl-ui-governed #p-pacientes .clinic-patient-chevron{display:inline-block;margin-left:10px;vertical-align:middle;color:#7b8fa3;font-size:22px;line-height:1}
+@media(max-width:700px){body.smyl-ui-governed #p-pacientes .clinic-patient-chevron{display:none}}
