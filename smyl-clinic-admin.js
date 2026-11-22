@@ -372,6 +372,7 @@
         '<div class="clinic-admin-field"><label for="ca-branch-name">Nombre de la sucursal</label><input id="ca-branch-name" name="name" maxlength="100" required value="' + esc(branch.name) + '"' + disabled + '></div>' +
         '<div class="clinic-admin-field"><label for="ca-branch-phone">Teléfono</label><input id="ca-branch-phone" name="phone" type="tel" maxlength="40" value="' + esc(branch.phone) + '"' + disabled + '></div>' +
         '<div class="clinic-admin-field clinic-admin-field-wide"><label for="ca-branch-address">Dirección</label><input id="ca-branch-address" name="address_line" maxlength="180" value="' + esc(branch.address_line) + '"' + disabled + '></div>' +
+        (Object.prototype.hasOwnProperty.call(branch, 'arrival_notes') ? '<div class="clinic-admin-field clinic-admin-field-wide"><label for="ca-branch-arrival">Cómo llegar o estacionarse <em>(opcional)</em></label><input id="ca-branch-arrival" name="arrival_notes" maxlength="300" placeholder="Ej. Estacionamiento en el sótano; sube al piso 2." value="' + esc(branch.arrival_notes) + '"' + disabled + '><small>Se incluye en el mensaje de confirmación que recibe el paciente.</small></div>' : '') +
         '<div class="clinic-admin-field"><label for="ca-branch-city">Ciudad</label><input id="ca-branch-city" name="city" maxlength="90" value="' + esc(branch.city) + '"' + disabled + '></div>' +
         '<div class="clinic-admin-field"><label for="ca-branch-state">Estado</label><input id="ca-branch-state" name="state" maxlength="90" value="' + esc(branch.state) + '"' + disabled + '></div>' +
         '<div class="clinic-admin-field"><label for="ca-branch-postal">Código postal</label><input id="ca-branch-postal" name="postal_code" maxlength="16" value="' + esc(branch.postal_code) + '"' + disabled + '></div>' +
@@ -1504,7 +1505,7 @@
       var auth = await window.sb.auth.getUser();
       state.actor = auth.data && auth.data.user ? auth.data.user.id : null;
       var results = await Promise.all([
-        query(window.sb.from('smyl_branches').select('id,tenant_id,name,address_line,city,state,postal_code,phone,timezone,is_default,active,created_at').eq('tenant_id', tenant).order('is_default', { ascending: false }).order('name')),
+        query(window.sb.from('smyl_branches').select('*').eq('tenant_id', tenant).order('is_default', { ascending: false }).order('name')),
         query(window.sb.from('smyl_rooms').select('id,tenant_id,branch_id,name,room_type,exclusive_use,active').eq('tenant_id', tenant).order('name')),
         query(window.sb.from('smyl_clinic_hours').select('id,tenant_id,branch_id,weekday,starts_at,ends_at,active').eq('tenant_id', tenant).order('weekday').order('starts_at')),
         query(window.sb.from('camila_usuarios').select('id,tenant_id,rol,nombre,email,activo,created_at').eq('tenant_id', tenant).order('created_at')),
@@ -1564,12 +1565,12 @@
       event.preventDefault();
       var data = new FormData(form);
       mutate(function () {
-        return query(window.sb.from('smyl_branches').update({
+        return query(window.sb.from('smyl_branches').update(Object.assign({
           name: String(data.get('name') || '').trim(), phone: String(data.get('phone') || '').trim(),
           address_line: String(data.get('address_line') || '').trim(), city: String(data.get('city') || '').trim(),
           state: String(data.get('state') || '').trim(), postal_code: String(data.get('postal_code') || '').trim(),
           timezone: String(data.get('timezone') || 'America/Mexico_City')
-        }).eq('tenant_id', state.tenant).eq('id', branch.id).select('id').single());
+        }, Object.prototype.hasOwnProperty.call(branch, 'arrival_notes') ? { arrival_notes: String(data.get('arrival_notes') || '').trim().slice(0, 300) } : {})).eq('tenant_id', state.tenant).eq('id', branch.id).select('id').single());
       }, 'Sucursal actualizada.').then(function (ok) { if (ok) { state.branchStep[branch.id] = 'operacion'; renderBranchDetail(); } });
     });
     document.getElementById('clinic-admin-room-form')?.addEventListener('submit', function (event) {
