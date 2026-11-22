@@ -347,7 +347,7 @@ test('los estilos del paso 3: mismas filas y etiquetas, acomodo por espacio y ve
 
 test('versiones publicadas y copias de la app móvil al día', () => {
   const app = read('app.html'), sw = read('sw.js');
-  assert.match(app, /smyl-finance\.css\?v=51/); assert.match(app, /smyl-finance\.js\?v=68/);
-  assert.match(sw, /smyl-finance\.js\?v=68/); assert.match(sw, /smyl-finance\.css\?v=51/); assert.match(sw, /finanzas-caja-facturacion-v9/);
+  assert.match(app, /smyl-finance\.css\?v=51/); assert.match(app, /smyl-finance\.js\?v=69/);
+  assert.match(sw, /smyl-finance\.js\?v=69/); assert.match(sw, /smyl-finance\.css\?v=51/); assert.match(sw, /finanzas-caja-facturacion-v9/);
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + file), read(file), file);
 });

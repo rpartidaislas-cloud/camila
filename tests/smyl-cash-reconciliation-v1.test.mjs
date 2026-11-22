@@ -31,10 +31,10 @@ test('la ventana usa el marco común de las ventanas y cabe en celular',()=>{
 
 test('web, PWA y móvil publican la misma versión',()=>{
   assert.match(app,/smyl-finance\.css\?v=51/);
-  assert.match(app,/smyl-finance\.js\?v=68/);
+  assert.match(app,/smyl-finance\.js\?v=69/);
   assert.match(sw,/cash-reconciliation-v1/);
   assert.match(sw,/smyl-finance\.css\?v=51/);
-  assert.match(sw,/smyl-finance\.js\?v=68/);
+  assert.match(sw,/smyl-finance\.js\?v=69/);
   assert.equal(read('mobile/www/smyl-finance.js'),js);
   assert.equal(read('mobile/www/smyl-finance.css'),css);
   assert.equal(read('mobile/www/sw.js'),sw);
