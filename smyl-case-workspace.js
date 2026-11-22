@@ -584,6 +584,7 @@
   const progress=n('nav','cw-nav');progress.setAttribute('aria-label','Etapas del caso');
   ROUTE.forEach(([id,label],index)=>{const step=n('button','cw-step');step.type='button';step.dataset.label=label;step.dataset.route=index?'locked':'current';const text=n('span','cw-step-text');text.append(n('strong','',label),n('small','cw-step-status',index?'':'En curso'));step.append(n('span','cw-step-num',String(index+1)),text);step.onclick=()=>open(id);ctx.nav[id]=step;progress.append(step);});
   root.classList.add('cw-route-v1');ctx.overview.hidden=true;ctx.overview.before(progress);
+  const chapters=window.SmylTreatments?.attach?.(ctx);if(chapters)progress.before(chapters);
   const routeBar=n('div','cw-route-bar');routeBar.setAttribute('aria-hidden','true');ctx.routeFill=n('span','');routeBar.append(ctx.routeFill);ctx.overview.before(routeBar);
   const evaluationFlow=n('section','cw-evaluation-flow');ctx.evaluationFlow=evaluationFlow;ctx.evaluationMobileProgress=n('p','cw-evaluation-mobile-progress','Paso 1 de 3 · Contexto');ctx.evaluationTaskList=n('ol','cw-evaluation-tasks');ctx.evaluationTaskList.setAttribute('role','tablist');ctx.evaluationTaskList.setAttribute('aria-label','Tareas de la evaluación');ctx.evaluationPanels=n('div','cw-evaluation-panels');ctx.evaluationTasks={};evaluationFlow.append(ctx.evaluationMobileProgress,ctx.evaluationTaskList,ctx.evaluationPanels);evaluation.body.append(evaluationFlow);
   ctx.contextPart=evaluationTask(ctx,'context','01','Contexto','Historia y alertas');
@@ -711,7 +712,7 @@
   if(created)copy(ctx.shareHint,'Se creó un enlace en esta sesión. Compártelo junto con el código por separado. SMYL no confirma si ya lo enviaste.');
   // Ruta sugerida: no afirma que todo lo clínico quedó evaluado; el profesional decide.
   ctx.routeFlags={done:{evaluation:evaluationComplete,plan:!!planComplete,approval:!!created,followup:false},status:{evaluation:ctx.modules.evaluation.badge.textContent,plan:ctx.modules.plan.badge.textContent,approval:ctx.modules.approval.badge.textContent,followup:ctx.modules.followup.badge.textContent}};
-  syncNav(ctx);syncRoute(ctx);
+  syncNav(ctx);syncRoute(ctx);window.SmylTreatments?.sync?.(ctx,{planSaved:!!clinical?.saved});
  }
  function init(){
   const screen=document.getElementById('p-paciente-detalle');if(!screen)return;

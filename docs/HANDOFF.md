@@ -1,3 +1,13 @@
+## 2026-11-22 — Claude Code — Tratamientos como capítulos del expediente (parte 3, pantalla)
+
+- Migración `20261126180000_smyl_treatments.sql` **ya aplicada en producción** (comprobado: tabla, 3 disparadores, RLS, 4 «Tratamiento inicial» creados, `authenticated` ejecuta, `anon` no).
+- Nuevo `smyl-treatments.js` v1 (UMD, lógica pura probada con `node`): franja «Tratamientos» dentro de la pestaña Tratamiento, montada por `smyl-case-workspace.js` v49 con `SmylTreatments.attach(ctx)` y `sync(ctx,{planSaved})`. CSS en `smyl-case-workspace.css` v35 (`.cw-ch-*`, `.cw-viewing-closed`).
+- Chips de capítulos; «+ Nuevo tratamiento» (motivo; si hay uno en curso, lo cierra eligiendo terminado / el paciente no regresó con nota de egreso obligatoria / cancelado); «Cerrar tratamiento»; ASA, riesgo de caries y próxima revisión en tres toques (el riesgo sugiere 12/6/3 meses). Abrir o cerrar llama a `window.verPaciente(id)` para reconstruir el expediente porque el plan de trabajo cambió en el servidor.
+- Al consultar un tratamiento cerrado (`smyl_get_treatment`) se muestra su plan congelado en solo lectura y se ocultan la ruta, las etapas y la barra fija (`.cw-viewing-closed`).
+- Defensivo: si las funciones no existen o no hay permiso (`PGRST202`/`42883`/`42501`), la franja se oculta y el expediente sigue como antes.
+- Pendiente: Diagnóstico con «nuevo / de antes», pasar pendientes de un tratamiento al siguiente, que las cotizaciones antiguas no aparezcan como «plan desactualizado», y la parte de plan desde hallazgos / presupuesto automático / aceptación parcial. Un solo tratamiento activo por paciente (limitación v1).
+- Pruebas: `tests/smyl-treatments-ui.test.mjs`; probado en navegador con simulador de las 5 funciones (datos, ver cerrado, nuevo con cierre y errores, migración ausente, celular).
+
 ## 2026-11-22 — Claude Code — Tratamientos como capítulos del expediente (parte 2, base de datos)
 
 - Migración nueva **`20261126180000_smyl_treatments.sql`** (no aplicada en producción: la aplica el usuario). Aditiva: no altera `smyl_clinical_plans`, notas, cotizaciones ni citas.
