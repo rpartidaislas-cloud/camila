@@ -69,7 +69,7 @@ test('Caja: las 7 tablas grandes usan la carga completa y el aviso aparece si se
   assert.doesNotMatch(js, /from\('smyl_finance_charges'\)\.select\('\*'\)\.eq\('tenant_id',state\.tenant\)\.order\('created_at',\{ascending:false\}\)\.limit\(500\)/);
   assert.match(js, /state\.truncated=\[\];loadingSkeleton\(true\)/);
   assert.match(js, /function renderTruncationBanner\(\)/);
-  assert.match(js, /function render\(\)\{renderTruncationBanner\(\);/);
+  assert.match(js, /function render\(\)\{[^\n]*renderTruncationBanner\(\);/);
   assert.match(js, /setAttribute\('role','alert'\)/);
   assert.equal(js, fs.readFileSync(new URL('../mobile/www/smyl-finance.js', import.meta.url), 'utf8'));
 });

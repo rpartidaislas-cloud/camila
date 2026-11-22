@@ -11,10 +11,10 @@ const css = read('smyl-finance.css');
 const draftMigration = read('supabase/migrations/20261013020000_smyl_proposal_finance_v1.sql');
 const financeSchema = read('supabase/migrations/20261012330000_smyl_finance.sql');
 
-test('Resumen es el inicio, Pagos y recibos sigue a las cuentas y Facturación conserva un espacio independiente', () => {
-  assert.match(js, /tab:'summary'/);
-  assert.match(js, /dataset\.financeTab='receipts'/);
-  assert.match(js, /dataset\.financePanel='receipts'/);
+test('Por cobrar es el inicio, Pagos sigue a las cuentas y Facturación conserva un espacio independiente', () => {
+  assert.match(js, /tab:'accounts'/);
+  assert.match(js, /\['accounts','Por cobrar'\],\['receipts','Pagos'\]/);
+  assert.match(js, /<section data-finance-panel="receipts" id="finance-panel-receipts"/);
   assert.match(js, /<h2>Facturación<\/h2>/);
   assert.match(js, /Proceso fiscal independiente/);
   assert.match(js, /Las facturas comienzan desde un recibo/);
@@ -27,7 +27,7 @@ test('cada recibo abre servicios, pago, responsable y acción fiscal contextual'
     assert.match(js, new RegExp(copy));
   }
   assert.match(js, /function receiptLines\(receipt\)/);
-  assert.match(js, /state\.allocations\.filter/);
+  assert.match(js, /acctIndex\(\)\.allocByPayment\.get\(payment\.id\)/);
   assert.match(js, /charge\.concept/);
   assert.match(js, /openReceiptDetails/);
   assert.match(js, /data-receipt-print/);
@@ -35,7 +35,7 @@ test('cada recibo abre servicios, pago, responsable y acción fiscal contextual'
 });
 
 test('un recibo con borrador no vuelve a ofrecer preparar factura', () => {
-  assert.match(js, /draft=state\.drafts\.find\(function\(d\)\{return d\.payment_id===receipt\.payment_id;\}\)/);
+  assert.match(js, /draft=byKey\(state\.drafts,'payment_id',receipt\.payment_id\)/);
   assert.match(js, /bucket=draft\?\(draft\.status==='issued'\?'issued':'draft'\):'pending'/);
   assert.match(js, /if\(item\.code==='ready'\)fiscalAction='<button[^']*data-receipt-invoice/);
   assert.match(js, /else if\(item\.draft\)fiscalAction='<button[^']*data-receipt-fiscal/);
@@ -75,8 +75,8 @@ test('web y PWA publican la misma bandeja versionada', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) {
     assert.equal(read('mobile/www/' + file), read(file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=47/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=63/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=48/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=64/);
   assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=24/);
   assert.match(read('sw.js'), /professional-finance-v1/);
   assert.match(read('sw.js'), /finanzas-workspace-v5/);

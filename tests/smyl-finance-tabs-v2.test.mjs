@@ -1,4 +1,4 @@
-// Finanzas v5: un resumen orienta el trabajo y separa cuentas, pagos, caja y facturación.
+// Finanzas v6: cuatro pestañas con su cifra (Por cobrar, Pagos, Caja y Facturación); ya no hay pestaña Resumen.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -6,14 +6,13 @@ import fs from 'node:fs';
 const read = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 const js = read('smyl-finance.js');
 const css = read('smyl-finance.css');
-const nav = js.slice(js.indexOf('<nav class="finance-tabs"'), js.indexOf('</nav>', js.indexOf('<nav class="finance-tabs"')));
+const nav = (js.match(/var TABS=\[[^\n]*?\]\]/) || [''])[0];
 
-test('Finanzas conserva cinco destinos claros y abre con Resumen', () => {
-  assert.match(js, /nav\.prepend\(summaryTab\)/);
-  assert.match(js, /accountTab\.after\(receiptTab\)/);
-  assert.match(js, /if\(paymentTab\)paymentTab\.remove\(\)/);
-  for (const label of ["'Resumen'", 'Cuentas por cobrar', 'Pagos y recibos', '>Caja<', '>Facturación<']) assert.ok(js.includes(label), label);
-  for (const old of ['Por cobrar hoy', 'Corte de caja', 'Preparación CFDI', 'Plantillas']) assert.ok(!nav.includes(old), old);
+test('Finanzas tiene cuatro destinos claros y abre en Por cobrar', () => {
+  assert.equal(nav, "var TABS=[['accounts','Por cobrar'],['receipts','Pagos'],['cash','Caja'],['fiscal','Facturación']]");
+  assert.match(js, /<nav class="finance-tabcards" role="tablist" aria-label="Secciones de Finanzas">'\+TABS\.map\(/);
+  assert.doesNotMatch(js, /data-finance-tab="(summary|payments|today)"/);
+  for (const old of ['Resumen', 'Cuentas por cobrar', 'Pagos y recibos', 'Por cobrar hoy', 'Corte de caja', 'Preparación CFDI', 'Plantillas']) assert.ok(!nav.includes(old), old);
   const hub = read('smyl-settings-hub.js');
   for (const id of ['receipts', 'cash']) assert.match(hub, new RegExp('data-finance-tab="' + id + '"'));
   // La configuración fiscal ya no es una pestaña de Cobros: Configuración incrusta #billing-setup.
@@ -22,7 +21,7 @@ test('Finanzas conserva cinco destinos claros y abre con Resumen', () => {
 
 test('«Por cobrar» reúne los filtros, con «Vencidas» en lugar de la pestaña «Por cobrar hoy»', () => {
   const filters = [...js.matchAll(/data-account-filter="(\w+)"/g)].map((m) => m[1]);
-  assert.deepEqual(filters, ['attention', 'overdue', 'open', 'credit', 'settled', 'all']);
+  assert.deepEqual(filters, ['open', 'overdue', 'credit', 'all', 'attention', 'settled']);
   assert.match(js, /overdueMode=state\.accountFilter==='overdue'/);
   assert.match(js, /if\(overdueMode\)\{renderToday\(\);return;\}/);
   assert.match(js, /if\(state\.tab!=='accounts'\|\|state\.accountFilter!=='overdue'\)return;/);
@@ -32,16 +31,18 @@ test('«Por cobrar» reúne los filtros, con «Vencidas» en lugar de la pestañ
   assert.match(css, /\.finance-list-summary\{/);
 });
 
-test('cada cifra abre la pestaña o el filtro que la explica y es operable con teclado', () => {
-  assert.match(js, /var METRIC_GO=\[\['accounts','open'[^\]]*\],\['receipts',''[^\]]*\],\['accounts','credit'[^\]]*\],\['cash',''[^\]]*\]\]/);
-  assert.match(js, /role="button" tabindex="0" data-metric-tab=/);
-  assert.match(js, /e\.key==='Enter'\|\|e\.key===' '/);
-  assert.match(css, /\.finance-metrics article\[role=button\]:focus-visible/);
+test('cada pestaña lleva su cifra, se abre con un clic y se recorre con las flechas del teclado', () => {
+  assert.match(js, /<button type="button" role="tab" id="finance-tab-'\+t\[0\]\+'" data-finance-tab="'\+t\[0\]\+'"/);
+  assert.match(js, /<strong class="finance-tab-figure">—<\/strong><small class="finance-tab-note"><\/small>/);
+  assert.match(js, /b\.onkeydown=function\(e\)\{if\(e\.key!=='ArrowRight'&&e\.key!=='ArrowLeft'\)return;/);
+  assert.match(css, /#p-caja \.finance-tabcards>button\[aria-selected=true\]\{/);
 });
 
-test('la franja «Por revisar» desapareció: cada indicador lleva su siguiente paso como enlace', () => {
+test('las franjas de resumen desaparecieron: cada aviso vive en la pestaña donde se resuelve', () => {
   assert.doesNotMatch(js, /finance-focus-list|SEGUIMIENTO FINANCIERO|Cartera al día|id="finance-focus"|renderCollectionFocus|POR REVISAR/);
-  assert.match(js, /data-metric-sub="overdue">Ver vencidas/);
+  assert.doesNotMatch(js, /finance-overview|finance-flow|Panorama financiero|Del saldo al cierre|data-metric-/);
+  assert.match(js, /if\(f\.overdueCents>0\)due\.push\('<b>'\+money\(f\.overdueCents\/100\)\+' vencido<\/b>'\)/);
+  assert.match(js, /class="finance-session-warn" role="status">Lleva más de 18 horas abierta\. Haz el corte para cerrar el turno\./);
   assert.match(js, /Abrir mi caja/);
   assert.match(js, /Abierta hace más de 18 h/);
 });
@@ -59,13 +60,13 @@ test('el módulo tiene identidad profesional, acciones contextuales y sin avisos
   assert.match(js, /finance-page-head finance-actionsbar/);
   assert.doesNotMatch(js, /finance-titlebar|GESTIÓN FINANCIERA/);
   assert.match(js, /function renderFinanceActions\(\)/);
-  assert.match(js, /Registrar pago/);
+  assert.match(js, /class="btn btn-primary" id="finance-guided-collection">Cobrar<\/button>/);
   assert.match(js, /finance-operations-menu/);
   assert.match(js, /render\(\);notify\(''\);\}catch\(e\)/, 'al cargar bien se limpia el aviso de carga');
   assert.match(js, /notify\.timer=setTimeout\(function\(\)\{h\.replaceChildren\(\);\},action\?15000:6000\)/);
   assert.match(css, /\.finance-page>h1\{position:absolute/);
   assert.match(css, /\.finance-actionsbar\{/);
-  assert.match(css, /@media screen and \(max-width:420px\)\{[\s\S]*?\.finance-metrics\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(css, /@media\(max-width:560px\)\{\s*#p-caja \.finance-tabcards\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
 });
 
 test('el cobro guiado es de un solo paso, con opción sugerida, datos útiles y aviso de caja', () => {
@@ -90,7 +91,7 @@ test('la cuenta del paciente separa el texto, muestra estado y último pago, y o
   assert.match(acc, /Último pago/);
   assert.match(acc, /data-account-tab="payments"[^>]*>Historial/);
   assert.match(acc, /<summary>Liquidados \(/);
-  assert.match(acc, /id="account-advance">Registrar anticipo/);
+  assert.match(acc, /id="account-advance">Recibir anticipo/);
   assert.match(acc, /snapshot\.due>0\?\(onlinePayEnabled\(\)\?'<button type="button" id="account-link">Enlace de pago<\/button>':''\)\+'<button type="button" class="btn btn-primary" id="account-pay">Cobrar/);
   assert.match(acc, /data-account-receipt/);
   assert.match(acc, /shareReceipt\(/);
@@ -301,19 +302,17 @@ test('Inventario: «Registrar consumo», «Ajustar inventario» y «Comprar y re
   for (const f of ['smyl-inventory.js', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
 
-test('Finanzas abre en Resumen y conserva la cuenta detallada con sus filtros', () => {
-  assert.match(js, /actor:null,tab:'summary'/);
-  // El contador de la pestaña es el mismo del menú: pacientes pendientes de cargo.
-  assert.match(js, /var tabBadge=document\.querySelector\('\[data-finance-tab="accounts"\] em'\);if\(tabBadge\)\{tabBadge\.textContent=String\(rows\.length\)/);
+test('Finanzas abre en Por cobrar y conserva la cuenta detallada con sus filtros', () => {
+  assert.match(js, /actor:null,tab:'accounts'/);
+  // El número de citas sin cobrar de la pestaña es el mismo del menú (pendingVisits).
+  assert.match(js, /if\(f\.visits\)due\.push\(plural\(f\.visits,'cita sin cobrar','citas sin cobrar'\)\)/);
   assert.doesNotMatch(js, /tabCount\.textContent=String\(openCount\)/);
-  assert.match(js, /accountTab\.after\(receiptTab\)/, 'Pagos y recibos queda después de Cuentas por cobrar');
-  assert.match(js, /nav\.prepend\(summaryTab\)/, 'Resumen queda al inicio');
   assert.match(js, /var MORE_FILTERS=\['attention','settled'\]/);
   assert.match(js, /<option value="attention">Requieren acción<\/option><option value="settled">Liquidadas<\/option>/);
   assert.match(js, /class="finance-link-action" data-visit-nocharge=/);
   assert.match(js, /Sin abonos todavía/);
   assert.match(js, /Todo cobrado por ahora/);
-  assert.match(js, /actionsbar=el\('header','finance-page-head finance-actionsbar'\)/);
+  assert.match(js, /<header class="finance-page-head finance-actionsbar"><div class="finance-head-actions"><\/div><\/header>/);
   assert.match(css, /#p-caja \.finance-account-open::after\{content:" →"\}/);
   const app = read('app.html'), shell = read('smyl-professional-v3.css');
   assert.match(app, /new MutationObserver\(function\(\)\{place\(\);\}\)/, 'el pie de derechos siempre queda al final del contenido');
@@ -337,15 +336,15 @@ test('Cobros paso 3: precio de lista, cobro en la fila, «Con movimientos», sig
   assert.match(js, /openPayment\(button\.dataset\.accountPay,\{mode:'balance'\}\)/);
   // «Todas» pasa a «Con movimientos»: las cuentas vacías quedan en una línea y aparecen al buscar.
   assert.match(js, /if\(f==='all'\)return Boolean\(search\)\|\|state\.showEmptyAccounts\|\|x\.s\.charges\.length>0\|\|x\.s\.credit>0/);
-  assert.match(js, /all:'Con movimientos'/);
+  assert.match(js, /data-account-filter="all">Con movimientos <\/button>/);
   assert.match(js, /data-toggle-empty/);
   // Aviso con el siguiente pendiente después de cobrar o cerrar sin cargo.
   assert.match(js, /function notifyNextVisit\(text\)/);
   assert.match(js, /label:'Siguiente: '\+name\(a\.patient_id\)\+' →'/);
   assert.match(js, /fromVisit\)\{await reload\(\);notifyNextVisit\(chargeText\);\}/);
   // Corte visible y último filtro recordado por dispositivo y clínica.
-  assert.match(js, /<u class="finance-metric-cut">Abierta hace más de 18 h · Hacer corte<\/u>/);
+  assert.match(js, /f\.sessionOld\?'Abierta hace más de 18 h'/);
   assert.match(js, /smyl_finance_filter_'\+\(state\.tenant\|\|''\)/);
-  assert.match(css, /\.finance-metric-cut\{/);
+  assert.match(css, /#p-caja \.finance-session-warn\{/);
   assert.doesNotMatch(js, /\.from\('smyl_finance_[a-z_]*'\)\.insert|\.update\(/);
 });
