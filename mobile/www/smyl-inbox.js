@@ -3648,7 +3648,7 @@
       if (primary.id === 'schedule') {
         primaryButton.setAttribute('aria-label', primary.label);
         primaryButton.title = primary.label;
-        primaryButton.innerHTML = composeIcon('calendar');
+        primaryButton.innerHTML = composeIcon('calendar') + '<span class="smyl-inbox-care-label" aria-hidden="true">Agendar</span>';
       }
       primaryButton.type = 'button'; primaryButton.dataset.threadPrimaryAction = primary.id; primaryButton.onclick = primary.run; host.append(primaryButton);
     }

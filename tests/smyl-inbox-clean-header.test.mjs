@@ -61,8 +61,8 @@ test('el responsable y el relevo privado comparten un solo acceso en el encabeza
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=90/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=75/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=91/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=76/);
 });
 
 test('la cabecera grande se reemplaza por una barra delgada y los contadores viven en las pestañas', () => {
