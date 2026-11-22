@@ -4,7 +4,7 @@ const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidire
 const COMPOSER_TOOLBOX_CACHE = CACHE_VERSION + '-inbox-toolbox-v6-periodontograma-v4';
 const CHAT_WRITING_TOOLS_CACHE = COMPOSER_TOOLBOX_CACHE + '-inbox-writing-tools-v7-picker-v8-atencion-v9-chat-access-v1-citas-pipeline-v2-panel-v2';
 const ANATOMICAL_ODONTOGRAM_CACHE = CHAT_WRITING_TOOLS_CACHE + '-chat-media-v1-inbox-header-v1-thread-ux-v5-chat-compact-v2-evidence-single-entry-fix-v1-radiograph-anatomic-odontogram-v20-radiograph-mobile-workspace-v22-radiograph-visual-architecture-v23-radiograph-fit-action-v24-evidence-library-v25-radiograph-crop-view-v26-radiograph-unified-review-v27-patient-reload-continuity-v1-clinical-file-layout-v28-radiograph-crop-editor-v29';
-const STATIC_CACHE = ANATOMICAL_ODONTOGRAM_CACHE + '-chat-control-icons-v1-inventory-policy-v1-collection-visual-v1-static-evidence-center-ux-v6-clinical-categories-v1-evidence-single-intake-v1-payments-ledger-ux-v1-evidence-workspace-v1-finance-workspace-v4-fiscal-receipts-v1-mila-interview-qr-v1-mila-voice-interview-v1-mila-dialog-v3-mila-live-orb-v1-mila-live-v2-summary-fix-v1-mila-orb-v3-mila-previsit-v1-orb-round-v1-online-pay-v1-oculto-v1-previsit-agenda-v1-mila-turnos-v1-mi-cuenta-personal-v1-mi-consultorio-v1-equipo-ficha-v1-branch-scope-v1-receipt-professional-v1-propuesta-compartida-v1-propuesta-aviso-v1-correcciones-revision-v1-quick-replies-v1-inbox-composer-rewrite-v1-lana-meta-attribution-v1-inicio-sin-nueva-cita-v1-branches-team-v2-branch-actions-v1-clinical-files-inset-v1-clinical-tools-v1-simulador-arreglos-v1-receta-base-v1-diseno-sonrisa-v1';
+const STATIC_CACHE = ANATOMICAL_ODONTOGRAM_CACHE + '-chat-control-icons-v1-inventory-policy-v1-collection-visual-v1-static-evidence-center-ux-v6-clinical-categories-v1-evidence-single-intake-v1-payments-ledger-ux-v1-evidence-workspace-v1-finance-workspace-v4-fiscal-receipts-v1-mila-interview-qr-v1-mila-voice-interview-v1-mila-dialog-v3-mila-live-orb-v1-mila-live-v2-summary-fix-v1-mila-orb-v3-mila-previsit-v1-orb-round-v1-online-pay-v1-oculto-v1-previsit-agenda-v1-mila-turnos-v1-mi-cuenta-personal-v1-mi-consultorio-v1-equipo-ficha-v1-branch-scope-v1-receipt-professional-v1-propuesta-compartida-v1-propuesta-aviso-v1-correcciones-revision-v1-quick-replies-v1-inbox-composer-rewrite-v1-lana-meta-attribution-v1-inicio-sin-nueva-cita-v1-branches-team-v2-branch-actions-v1-clinical-files-inset-v1-clinical-tools-v1-simulador-arreglos-v1-receta-base-v1-diseno-sonrisa-v1-receta-v1';
 const DYNAMIC_CACHE = ANATOMICAL_ODONTOGRAM_CACHE + '-collection-visual-v1-dynamic-evidence-center-ux-v6-clinical-categories-v1-evidence-single-intake-v1-payments-ledger-ux-v1-evidence-workspace-v1-finance-workspace-v4-fiscal-receipts-v1-lana-meta-attribution-v1';
 
 // Archivos que se cachean al instalar
@@ -79,9 +79,13 @@ const STATIC_FILES = [
   '/camila/icons/ui/my-smyl-example-after.svg',
   '/camila/smyl-patient-cases.css?v=4',
   '/camila/smyl-proposals.css?v=16',
+  '/camila/smyl-prescription.css?v=1',
   '/camila/smyl-proposals.js?v=26',
   '/camila/smyl-proposal-model.js?v=4',
   '/camila/smyl-proposal-print.js?v=7',
+  '/camila/smyl-prescription-model.js?v=1',
+  '/camila/smyl-prescription-print.js?v=1',
+  '/camila/smyl-prescriptions.js?v=1',
   '/camila/smyl-treatment-quote-stage3.js?v=1',
   '/camila/smyl-treatment-quote-stage3.css?v=3',
   '/camila/smyl-treatment-plan-model.js?v=1',
@@ -200,7 +204,7 @@ const STATIC_FILES = [
   '/camila/smyl-daily-home.css?v=17',
   '/camila/smyl-clinical-tools.js?v=1',
   '/camila/smyl-clinical-tools.css?v=1',
-  '/camila/smyl-consultorio.js?v=12',
+  '/camila/smyl-consultorio.js?v=13',
   '/camila/smyl-consultorio.css?v=8',
   '/camila/smyl-patient-quick.js?v=1',
   '/camila/smyl-visit-model.js?v=6',

@@ -58,10 +58,13 @@ test("las leyendas legales solo aparecen si se pasan: este módulo no inventa co
   assert.match(src, /NO afirma\s*\n?\s*\*?\s*cumplir ninguna norma|NO afirma/);
 });
 
-test("hoja: media carta vertical y solo la hoja se imprime", () => {
+test("hoja: media carta vertical con página con nombre y reglas de impresión que NO afectan a otras impresiones de la app", () => {
   const css = read("smyl-prescription.css");
-  assert.match(css, /@page\{size:5\.5in 8\.5in/);
-  assert.match(css, /body \*\{visibility:hidden\}/);
+  assert.match(css, /@page rx\{size:5\.5in 8\.5in/);
+  assert.ok(!/@media print\{[^}]*@page\{size/.test(css), "sin @page global");
+  assert.match(css, /body\.rx-printing > \*:not\(\.rx-print-root\)\{display:none!important\}/);
+  assert.ok(!/(^|\n)\s*body \*\{visibility:hidden\}/.test(css), "sin regla global que oculte la página");
+  assert.match(css, /\.rx-print-root\{display:none\}/);
 });
 
 test("perfil del profesional: institución que expidió el título, privada y con respaldo si la base aún no tiene la columna", () => {
