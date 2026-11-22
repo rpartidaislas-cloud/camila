@@ -1,3 +1,13 @@
+## 2026-11-22 — Claude Code — Verificación antes del procedimiento y registro de anestesia (sin migración)
+
+- Nuevo `smyl-procedure-safety.js` v1 (UMD, lógica pura probada con `node`) + `smyl-patient-360.js` v38 / `.css` v22 + `smyl-treatments.js` v3. Bloque opcional **«Procedimiento»** dentro del formulario de la nota de evolución (`openNote`): «Esta nota incluye un procedimiento».
+- Al activarlo: pieza o sitio, **confirmar el sitio** (único paso que siempre bloquea), «revisé las alergias» (muestra las del expediente vía `SmylPatient360.context`), «hay consentimiento firmado», presión arterial de hoy (precargada de `smyl_patient_vital_signs` si es de hoy; **obligatoria si el tratamiento activo es ASA II o más**, vía `SmylTreatments.current(patient)`), y anestesia (lidocaína 2% / articaína 4% con epinefrina, mepivacaína 3%; cartuchos con + / −; mg y barra frente al máximo por peso: 7 mg/kg tope 500 mg, mepivacaína 6,6 mg/kg tope 400 mg, cartucho de 1,8 ml). El peso sale de los signos vitales; si no hay, se escribe ahí mismo.
+- Se guarda en `document.procedure` de la nota (`{v:1, site, checks, bp, anesthesia}`). **No hay migración**: el documento de la nota es libre y la firma (`smyl_sign_clinical_note`) calcula el SHA-256 del texto completo, así que queda cubierto e inmutable al firmar. `noteSummary` agrega «Procedimiento: …» al resumen.
+- Decisión: una dosis sobre el máximo **avisa en rojo pero no bloquea** (el registro debe reflejar lo que se administró) y queda `over_max:true` en la nota. Sin peso no se inventa un máximo.
+- Constantes de dosis: referencia habitual para adultos sanos; **conviene que un odontólogo las valide** antes de presumirlas como protocolo. No sustituyen el criterio clínico.
+- Pendiente: mostrar el bloque en la impresión/PDF de la nota; que el consentimiento se verifique contra `smyl_informed_consents` en vez de palomita manual; ASA visible en la cabecera del paciente.
+- Pruebas: `tests/smyl-procedure-safety.test.mjs` (8) y navegador con signos vitales simulados (sin pieza, sin sitio, sin alergias, dosis ok/cerca/sobre el máximo, nota enviada).
+
 ## 2026-11-22 — Claude Code — Diagnóstico con hallazgos «nuevos» y «de antes» (sin migración)
 
 - `smyl-treatments.js` v2 (`attachFindings` / `syncFindings`) + `smyl-case-workspace.js` v50 / `.css` v36: sección «Hallazgos de «<tratamiento>»» al inicio de **Revisión profesional** con chips «N nuevos · M de antes»; los nuevos en lista, los de antes plegados y en gris («quedan en el odontograma, no se borran»). «Sin guardar» marca los que siguen en borrador.

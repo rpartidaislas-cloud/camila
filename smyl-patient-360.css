@@ -1163,3 +1163,43 @@
 .p360-visit-status[data-status="cancelled"]{background:#eceff3;color:#56606c}
 @media(max-width:900px){.p360-context-grid,.p360-visits-grid{grid-template-columns:1fr}.p360-visits-card li{grid-template-columns:84px minmax(0,1fr) auto}}
 @media(max-width:480px){.p360-visits-card li{grid-template-columns:minmax(0,1fr) auto}.p360-visits-card time{grid-column:1 / -1}}
+
+/* Verificación antes del procedimiento y anestesia (dentro de la nota de evolución) */
+.p360-proc{margin:16px 0 0;padding:14px 16px;border:1px solid #cdded5;border-radius:12px;background:#f7faf8;display:grid;gap:14px}
+.p360-proc-legend{padding:0 6px;font-size:12px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:#1d6b64}
+.p360-proc-switch{display:flex;align-items:flex-start;gap:12px;cursor:pointer}
+.p360-proc-switch input,.p360-proc-check input{flex:none;width:22px;height:22px;margin-top:2px;accent-color:#1d6b64}
+.p360-proc-switch span,.p360-proc-check span{display:grid;gap:2px}
+.p360-proc-switch small,.p360-proc-check small{font-size:13px;font-weight:400;color:#5c6b7c}
+.p360-proc-body{display:grid;gap:14px}
+.p360-proc-body[hidden]{display:none}
+.p360-proc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.p360-proc-grid label,.p360-proc-bp{display:grid;gap:6px;font-size:13px;font-weight:650;color:#26384c}
+.p360-proc-grid input,.p360-proc-weight input{min-height:44px;padding:0 12px;border:1px solid #cfd9e2;border-radius:10px;background:#fff;font:inherit;font-size:14px}
+.p360-proc-bp>div{display:flex;align-items:center;gap:8px}
+.p360-proc-bp input{width:92px;text-align:center}
+.p360-proc-bp small{font-weight:400;color:#5c6b7c}
+.p360-proc-checks{display:grid;gap:8px}
+.p360-proc-check{display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border:1px solid #dbe3ea;border-radius:10px;background:#fff;cursor:pointer}
+.p360-proc-check.is-key{border:2px solid #9a6511;background:#fffbf0}
+.p360-proc-check.is-key:has(input:checked){border-color:#2c7a4b;background:#eef7f1}
+.p360-proc-anest{display:grid;gap:10px}
+.p360-proc-h{font-size:13px;font-weight:700;color:#26384c}
+.p360-proc-pick{display:flex;flex-wrap:wrap;gap:6px}
+.p360-proc-pick button{min-height:44px;padding:0 14px;border:1px solid #cfd9e2;border-radius:999px;background:#fff;color:#0b1b2e;font:inherit;font-size:14px;font-weight:650;cursor:pointer}
+.p360-proc-pick button[aria-pressed=true]{border-color:#0b1b2e;background:#0b1b2e;color:#fff}
+.p360-proc-dose{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+.p360-proc-dose[hidden],.p360-proc-meter[hidden],.p360-proc-weight[hidden],.p360-proc-warn[hidden]{display:none}
+.p360-proc-stepper{display:inline-flex;align-items:center;border:1px solid #cfd9e2;border-radius:10px;overflow:hidden;background:#fff}
+.p360-proc-stepper button{width:48px;height:48px;border:0;background:#f1f5f8;font-size:22px;font-weight:700;color:#0b1b2e;cursor:pointer}
+.p360-proc-stepper output{min-width:48px;text-align:center;font-weight:750;font-size:17px;font-variant-numeric:tabular-nums}
+.p360-proc-dose-text small{color:#5c6b7c}
+.p360-proc-meter{height:12px;border-radius:999px;background:#e1e8ee;overflow:hidden}
+.p360-proc-meter span{display:block;height:100%;width:0;background:#2c7a4b;transition:width .2s ease}
+.p360-proc-meter[data-level=warn] span{background:#b9801c}
+.p360-proc-meter[data-level=over] span{background:#b4372b}
+.p360-proc-weight{display:grid;gap:6px;max-width:220px;font-size:13px;font-weight:650;color:#26384c}
+.p360-proc-warn{margin:0;padding:9px 12px;border:1px solid #ebd6a5;border-radius:9px;background:#fffbf0;color:#7a5410;font-size:13px;font-weight:600}
+.p360-proc-meter[data-level=over]~.p360-proc-warn{border-color:#e1b8b0;background:#fdf0ed;color:#8a3324}
+.p360-proc input:focus-visible,.p360-proc button:focus-visible{outline:3px solid #1d6b64;outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.p360-proc-meter span{transition:none}}
