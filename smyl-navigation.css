@@ -20,7 +20,7 @@
 .panel-admin-mobile .pam-sheet{width:100%;max-height:100dvh}
 .pam-scroll{padding-bottom:18px}
 .pam-group+.pam-group{margin-top:10px;padding-top:10px;border-top:1px solid var(--color-border)}
-.pam-collapsible-group>summary{display:flex;align-items:center;justify-content:space-between;min-height:38px;padding:0 12px;cursor:pointer;list-style:none}
+.pam-collapsible-group>summary{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:0 12px;cursor:pointer;list-style:none}
 .pam-collapsible-group>summary::-webkit-details-marker{display:none}
 .pam-group-toggle{font-size:18px;transition:transform 160ms ease}
 .pam-collapsible-group[open] .pam-group-toggle{transform:rotate(180deg)}
@@ -72,7 +72,7 @@ body.smyl-mobile-sheet-open .pro-mobile-nav{pointer-events:none}
 .pro-sidebar-toggle{position:absolute;top:22px;right:14px;z-index:2;display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.04);color:rgba(255,255,255,.72);cursor:pointer}
 .pro-sidebar-toggle:hover{background:rgba(255,255,255,.1);color:#fff}.pro-sidebar-toggle:focus-visible{outline:2px solid #6ed8ce;outline-offset:2px}
 .pro-sidebar-toggle svg{transition:transform 180ms ease}
-body.smyl-sidebar-collapsed .sidebar{width:72px}
+body.smyl-sidebar-collapsed .sidebar{width:var(--smyl-sidebar-collapsed,4rem)}
 body.smyl-sidebar-collapsed .pro-sidebar-toggle svg{transform:rotate(180deg)}
 body.smyl-sidebar-collapsed .sidebar :is(.sb-logo span,.sb-user-info,.sb-user-chevron,.plan-chip,.uso-wrap,.pro-nav-label,.pro-nav-group summary){display:none}
 body.smyl-sidebar-collapsed .sidebar .sb-logo img{visibility:hidden}

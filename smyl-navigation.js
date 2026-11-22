@@ -119,6 +119,7 @@
     var summary = document.createElement('summary');
     summary.innerHTML = '<span class="pro-nav-group-icon">' + icon(iconName || 'reports', 18) + '</span><span class="pro-nav-group-label">' + label + '</span><span class="pro-nav-group-count" hidden></span><span class="pro-nav-chevron" aria-hidden="true">' + CHEVRON + '</span>';
     summary.dataset.tooltip = label;
+    summary.title = label;
     summary.setAttribute('aria-label', label);
     details.append(summary);
     var flyout = document.createElement('div');
@@ -169,6 +170,7 @@
     PRIMARY.forEach(function (entry) { nav.append(navItem(entry, false)); });
     nav.append(sectionLabel('Comunicación'));
     nav.append(detailsGroup('Mensajería', MESSAGING, false, 'messages'));
+    nav.append(sectionLabel('Gestión'));
     nav.append(detailsGroup('Negocio', BUSINESS, false, 'reports'));
     SETTINGS.forEach(function (entry) { nav.append(navItem(entry, false)); });
     var registry = document.createElement('div');
@@ -567,7 +569,8 @@
     if (!wrap) {
       wrap = document.createElement('div');
       wrap.className = 'sb-quick';
-      logo.after(wrap);
+      var headerEnd = sidebar.querySelector('.sb-branch') || logo;
+      headerEnd.after(wrap);
     }
     wrap.append(button);
   }

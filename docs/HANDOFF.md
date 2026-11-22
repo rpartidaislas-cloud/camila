@@ -1,3 +1,8 @@
+## 2026-11-22 — Menú lateral compacto
+
+- En escritorio la barra mide 216 px abierta y 64 px al contraerse. La flecha conserva la preferencia del navegador. Las opciones usan texto de 13 px y filas de 38 px con ratón. Negocio y Configuración quedan bajo Gestión. Cuando aparece el selector de consultorio, el encabezado muestra el nombre una sola vez.
+- En tablet táctil las filas tienen al menos 44 px. En celular la navegación inferior y las filas del panel mantienen 52 px, y la cabecera desplegable de Mensajería tiene un mínimo de 44 px. En ventanas bajas el submenú del modo contraído se abre fuera del área de desplazamiento.
+- Se actualizaron la navegación, la plantilla visual, las referencias de la PWA y sus copias en `mobile/www`. El recorrido `tests/smyl-shell-browser.cjs` comprueba los anchos, el espacio disponible, la preferencia tras recargar, el acceso al submenú y los controles táctiles en seis tamaños.
 ## 2026-11-22 — Claude Code — Verificación antes del procedimiento y registro de anestesia (sin migración)
 
 - Nuevo `smyl-procedure-safety.js` v1 (UMD, lógica pura probada con `node`) + `smyl-patient-360.js` v38 / `.css` v22 + `smyl-treatments.js` v3. Bloque opcional **«Procedimiento»** dentro del formulario de la nota de evolución (`openNote`): «Esta nota incluye un procedimiento».

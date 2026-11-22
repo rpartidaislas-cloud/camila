@@ -1203,8 +1203,9 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
    ========================================================================== */
 @media (min-width: 48.0625rem) {
   body.smyl-ui-governed.smyl-management-v3 {
-    --smyl-sidebar-expanded: 16rem;
-    --smyl-sidebar-collapsed: 5.5rem;
+    --smyl-sidebar-expanded: 13.5rem;
+    --smyl-sidebar-collapsed: 4rem;
+    --smyl-sidebar-row: 2.375rem;
     --smyl-sidebar-radius: 1.75rem;
     --smyl-sidebar-ease: cubic-bezier(.22, 1, .36, 1);
   }
@@ -1477,7 +1478,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
   }
 
   body.smyl-ui-governed.smyl-management-v3 .pro-sidebar-toggle {
-    top: 3.45rem;
+    top: .85rem;
     right: -.9rem;
     width: 1.9rem;
     height: 1.9rem;
@@ -1503,9 +1504,9 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
   }
 
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-logo {
-    justify-content: center;
-    min-height: 4.75rem;
-    padding-inline: 0;
+    justify-content: flex-start;
+    min-height: 3.5rem;
+    padding: 0 .55rem;
   }
 
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-logo > div {
@@ -1518,6 +1519,9 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
 
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-logo::before {
     display: grid;
+    width: 1.65rem;
+    height: 1.75rem;
+    border-radius: .5rem;
   }
 
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-user {
@@ -1543,8 +1547,8 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
 
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-primary-nav .pro-nav-item {
     justify-content: center;
-    min-height: 3rem;
-    padding-inline: .7rem;
+    min-height: var(--smyl-sidebar-row);
+    padding-inline: 0;
     gap: 0;
     overflow: visible;
   }
@@ -1559,20 +1563,22 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
 
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-group {
     position: relative;
-    margin-top: .55rem;
-    padding-top: .55rem;
+    margin: 0;
+    padding: 0;
   }
 
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-group summary {
+    position: relative;
     display: flex;
-    min-height: 3rem;
+    min-height: var(--smyl-sidebar-row);
     align-items: center;
     justify-content: center;
     padding: 0;
     list-style: none;
   }
 
-  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-group-icon { display: grid; }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-group-icon { display: grid; margin: 0; }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-group-count { position: absolute; right: 0; top: 0; }
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-group :is(.pro-nav-group-label, .pro-nav-chevron) { display: none; }
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-flyout {
     position: absolute;
@@ -1639,7 +1645,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
   }
 
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-sidebar-toggle {
-    right: -.9rem;
+    right: -1.125rem;
   }
 
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-foot {
@@ -1669,6 +1675,17 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     overflow-y: auto;
   }
 
+  /* Anclar el submenú a la barra permite usarlo fuera del área con scroll. */
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-group { position: static; }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-flyout {
+    top: auto;
+    bottom: .75rem;
+    left: calc(100% + .375rem);
+    max-height: calc(100% - 1.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-item::after,
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .smyl-sidebar-quick::after {
     display: none;
@@ -1687,14 +1704,12 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
 
 /* Menú lateral v2 (maqueta aprobada 2026-11-08): cabecera única, «Nueva cita» arriba,
    iconos sueltos, activa evidente, grupos que se abren al entrar y usuario abajo. */
-@media (min-width: 761px) {
-  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar { width: 17rem; }
-
+@media (min-width: 48.0625rem) {
   /* Cabecera: marca + logo + nombre de la clínica. */
   body.smyl-ui-governed.smyl-management-v3 .sb-logo {
     min-height: 0;
     gap: .7rem;
-    padding: 1.2rem 1.1rem .9rem;
+    padding: 1rem .875rem .65rem;
     border-bottom-color: transparent;
   }
   body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sb-logo::before {
@@ -1719,9 +1734,11 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
   }
 
   /* «Nueva cita»: botón con borde y atajo, bajo la cabecera. */
+  body.smyl-ui-governed.smyl-management-v3 .sidebar:has(.sb-branch) .sb-clinic-name,
+  body.smyl-ui-governed.smyl-management-v3 .sb-branch label { display: none; }
   body.smyl-ui-governed.smyl-management-v3 .sb-quick { padding: 0 .85rem .35rem; }
   body.smyl-ui-governed.smyl-management-v3 .sb-quick .smyl-sidebar-quick {
-    min-height: 2.75rem;
+    min-height: var(--smyl-sidebar-row);
     margin: 0;
     justify-content: flex-start;
     gap: .6rem;
@@ -1730,7 +1747,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     border-radius: .7rem;
     background: rgba(110, 216, 206, .08);
     color: #d9f6f2;
-    font: 600 var(--smyl-ui-text-body-sm)/1.2 var(--smyl-ui-font);
+    font: 600 var(--smyl-ui-text-label)/1.2 var(--smyl-ui-font);
   }
   body.smyl-ui-governed.smyl-management-v3 .sb-quick .smyl-sidebar-quick:hover { background: rgba(110, 216, 206, .15); color: #fff; }
   body.smyl-ui-governed.smyl-management-v3 .sb-quick .smyl-sidebar-quick > span:first-child { display: grid; place-items: center; }
@@ -1748,11 +1765,11 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
 
   /* Secciones. */
   body.smyl-ui-governed.smyl-management-v3 .pro-nav-section {
-    padding: 1.15rem .75rem .45rem;
+    padding: .85rem .625rem .3rem;
     color: rgba(200, 222, 228, .5);
     font-size: var(--smyl-ui-text-meta);
     font-weight: 600;
-    letter-spacing: .11em;
+    letter-spacing: .07em;
     text-transform: uppercase;
   }
   body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-app-nav > .pro-nav-section:first-child { padding-top: .6rem; }
@@ -1763,18 +1780,18 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     position: relative;
     display: flex;
     align-items: center;
-    min-height: 2.75rem;
+    min-height: var(--smyl-sidebar-row);
     margin-bottom: .1rem;
-    padding: 0 .75rem;
-    gap: .75rem;
+    padding: 0 .625rem;
+    gap: .55rem;
     overflow: visible;
     border: 1px solid transparent;
     border-radius: .65rem;
     background: transparent;
     box-shadow: none;
     color: rgba(222, 234, 239, .78);
-    font-size: var(--smyl-ui-text-body);
-    font-weight: 500;
+    font-size: var(--smyl-ui-text-label);
+    font-weight: 400;
     letter-spacing: 0;
     line-height: 1.3;
     text-transform: none;
@@ -1853,9 +1870,8 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     border-left: 1px solid rgba(255, 255, 255, .1);
   }
   body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group .pro-nav-flyout .pro-nav-item {
-    min-height: 2.5rem;
+    min-height: var(--smyl-sidebar-row);
     padding-left: .75rem;
-    font-size: var(--smyl-ui-text-body-sm);
   }
   body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group .pro-nav-flyout .pro-nav-icon { display: none; }
   body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group .pro-nav-flyout .pro-nav-item:is(.activo, [aria-current='page'])::before { left: calc(-.6rem - 1px); }
@@ -1933,8 +1949,18 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
   body.smyl-ui-governed.smyl-management-v3 .sb-user-menu .sb-user-menu-item:is(:hover, :focus-visible) { outline: none; background: rgba(255, 255, 255, .07); color: #fff; }
   body.smyl-ui-governed.smyl-management-v3 .sb-user-menu .btn-cerrar:is(:hover, :focus-visible) { background: rgba(248, 113, 113, .1); color: #fca5a5; }
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-flyout .pro-nav-item { gap: .75rem; }
+  body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-flyout .pro-nav-item::after { content: none; }
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-nav-flyout .pro-nav-item .pro-nav-count { position: static; margin-left: auto; }
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-account { flex-direction: column; gap: .35rem; }
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-account .sb-user { padding: .3rem; }
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-user-menu { right: auto; bottom: 0; left: calc(100% + .9rem); width: 12rem; }
+}
+
+@media (min-width: 48.0625rem) and (any-pointer: coarse) {
+  body.smyl-ui-governed.smyl-management-v3 { --smyl-sidebar-row: 2.75rem; }
+  body.smyl-ui-governed.smyl-management-v3 .pro-sidebar-toggle { top: .375rem; }
+  body.smyl-ui-governed.smyl-management-v3 .sidebar :is(.sb-branch-field, .sb-user, .sb-user-menu-item, .sb-user-more, .pro-sidebar-toggle) {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
 }

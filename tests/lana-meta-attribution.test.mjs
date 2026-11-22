@@ -20,7 +20,7 @@ test('la atribución es discreta, accesible y se distribuye en la PWA', () => {
   assert.match(styles, /\.app-meta-provider:focus-visible/);
   assert.match(styles, /\.app-meta-provider-mark/);
   assert.match(styles, /fill:\s*#0866ff/);
-  assert.match(worker, /smyl-ui-template-v3\.css\?v=9/);
+  assert.match(worker, /smyl-ui-template-v3\.css\?v=\d+/);
   assert.match(worker, /lana-meta-attribution-v1/);
   assert.equal(app, mobile);
   assert.equal(styles, read('../mobile/www/smyl-ui-template-v3.css'));
