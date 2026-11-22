@@ -21,13 +21,13 @@ test('la ficha conserva una sola identidad y accesos rápidos del paciente', () 
 });
 
 test('el recorrido separa evaluación, propuesta, aceptación y seguimiento', () => {
-  for (const label of ['Evaluación', 'Propuesta', 'Aceptación', 'Seguimiento e historial', 'Preparar cotización']) {
+  for (const label of ['Diagnóstico', 'Plan de tratamiento', 'Presupuesto y aceptación', 'En tratamiento', 'Preparar presupuesto']) {
     assert.match(flow, new RegExp(label));
   }
-  assert.match(flow, /const approval=module\(ctx,'approval','03','Aceptación'/);
-  assert.match(flow, /const followup=module\(ctx,'followup','04','Seguimiento e historial'/);
+  assert.match(flow, /const approval=module\(ctx,'approval','03','Presupuesto y aceptación'/);
+  assert.match(flow, /const followup=module\(ctx,'followup','04','En tratamiento'/);
   assert.match(flow, /id==='share'\?'approval'/);
-  assert.match(flow, /copy\(ctx\.planNext,'Continuar a aceptación'\)/);
+  assert.match(flow, /copy\(ctx\.planNext,'Continuar al presupuesto'\)/);
   assert.match(flow, /ctx\.planNext\.onclick=\(\)=>open\('approval'\)/);
   assert.match(flow, /const quoteReady=!!clinical\?\.ready,eligible=pairs>0&&planComplete/);
   assert.match(flow, /ctx\.quoteButton\.disabled=!quoteReady/);
@@ -44,8 +44,8 @@ test('Agenda abre la ficha para cualquier rol con clinical.read', () => {
 });
 
 test('web, móvil y PWA publican la misma etapa', () => {
-  assert.match(app, /smyl-case-workspace\.js\?v=47/);
-  assert.match(app, /smyl-case-workspace\.css\?v=33/);
+  assert.match(app, /smyl-case-workspace\.js\?v=48/);
+  assert.match(app, /smyl-case-workspace\.css\?v=34/);
   assert.match(app, /smyl-patient-360\.js\?v=37/);
   assert.match(app, /smyl-schedule\.js\?v=(?:1[1-9]|[2-9][0-9])/);
   assert.match(worker, /smyl-v263-lana-connection-recovery/);
