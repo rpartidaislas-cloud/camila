@@ -1974,7 +1974,10 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
         <div class="card">
           <div class="card-title">📲 Link para pacientes potenciales</div>
           <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Compártelo en redes o WhatsApp: cualquiera lo abre, se toma su propia foto desde su casa y ve su simulación con tu marca y tus precios reales -- sin necesitar cuenta ni que tú estés presente. Cuando dejan sus datos al final, te llega como un nuevo caso marcado como prospecto.</p>
-          <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="copiarLinkProspecto()" id="btn-link-prospecto">📋 Copiar link para pacientes</button>
+          <!-- Pausado: simulacion*.html rechaza el modo prospecto (asegurarAutorizacionIA) hasta reforzar su acceso. Mientras, el enlace
+               llevaría al paciente a una pantalla que termina en error, así que no se ofrece. -->
+          <p style="font-size:12px;margin:0 0 10px;padding:8px 10px;border-radius:8px;background:#fff5e6;color:#7a4a0e">⏸ Pausado por ahora mientras reforzamos la seguridad del acceso público. Tus pacientes pueden simularse contigo en consulta.</p>
+          <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="copiarLinkProspecto()" id="btn-link-prospecto" disabled aria-disabled="true">📋 Copiar link para pacientes</button>
         </div>
 
         <!-- Branding -->

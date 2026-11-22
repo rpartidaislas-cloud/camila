@@ -23,7 +23,7 @@
   function summary(){const photos=targets();return {count:photos.length,ready:photos.filter(p=>state(p)==='ready').length,review:photos.filter(p=>state(p)==='review').length};}
   function element(tag,cls,text){const el=document.createElement(tag);if(cls)el.className=cls;if(text)el.textContent=text;return el;}
   function button(text,action,cls='flow-secondary'){const el=element('button',cls,text);el.type='button';el.onclick=action;return el;}
-  async function run(){
+  async function run(opts={}){
     if(active||DEVICE_DIAG_ACTIVE)return;
     const photos=targets();if(!photos.length)return;
     active=true;
@@ -49,7 +49,7 @@
     dialog.append(heading,description,list);if(refs.length)dialog.append(referenceList);dialog.append(consent,status,actions);document.body.append(dialog);
     const names={new:'Por generar',ready:'Lista · se conserva',review:'Generada · falta revisar',generating:'Generando…',accepted:'Lista',failed:'Pendiente · no se completó',discarded:'Descartada · original conservado',stopped:'Pendiente · sin iniciar'};
     function paint(){rows.forEach(row=>{row.statusEl.textContent=names[row.status];row.statusEl.dataset.status=row.status;row.statusEl.title=row.error?.message||'';});}
-    let processing=false,stop=false;
+    let processing=false,stop=false,retry=false;
     let cancelWait=()=>{};
     const watch=setInterval(()=>{if(!current()){stop=true;dialog.close();dialog.hidden=true;cancelWait(false);}},200);
     function close(){dialog.close();dialog.remove();if(previous?.isConnected)previous.focus();}
@@ -61,7 +61,8 @@
       const newCount=rows.filter(r=>r.status==='new').length,waiting=rows.filter(r=>r.status==='review').length;
       description.textContent=newCount?'Se generarán '+newCount+' '+(newCount===1?'foto':'fotos')+', una por una. Después revisarás los resultados. Las que ya están listas se conservan.':waiting?'Tus imágenes ya están generadas. Revísalas sin volver a llamar a la IA.':'Todas las fotos seleccionadas ya tienen su simulación.';
       consent.hidden=!newCount;
-      const authorized=await new Promise(resolve=>{
+      // «Reintentar» viene de este mismo diálogo, ya autorizado: no se vuelve a pedir la casilla.
+      const authorized=opts.retry&&newCount?(paint(),dialog.showModal(),true):await new Promise(resolve=>{
         cancelWait=resolve;
         const cancel=button('Volver a las fotos',()=>resolve(false));
         const start=button(newCount?'Generar '+newCount+' '+(newCount===1?'foto':'fotos'):waiting?'Revisar generadas':'Ver simulaciones',()=>{if(!newCount||check.checked)resolve(true);},'flow-primary');start.id='smyl-batch-start';start.disabled=!!newCount;
@@ -121,21 +122,29 @@
         if(current())saveProgress('s-vita');paint();
       }
       if(!current())return;
-      processing=false;paint();heading.textContent='Tus fotos, en un solo lugar';
+      processing=false;paint();
       const ready=rows.filter(r=>r.status==='ready'||r.status==='accepted').length;
-      status.textContent=ready+' de '+rows.length+' simulaciones listas.';
       const failures=rows.filter(r=>r.status==='failed');
+      heading.textContent=failures.length?(ready?'Algunas fotos no se completaron':'No se pudo completar la simulación'):'Tus fotos, en un solo lugar';
+      status.textContent=ready+' de '+rows.length+' simulaciones listas.';
       description.textContent=ready===rows.length?'Puedes cambiar de vista para comparar cada antes y después.':'Las simulaciones aceptadas se conservan. Vuelve a las fotos para continuar con las pendientes. Un intento interrumpido puede haber consumido cupo; no lo repetimos automáticamente.';
-      if(failures.length){const errors=element('ul','smyl-batch-errors');failures.forEach(row=>errors.append(element('li','',label(row.photo.view)+': '+String(row.error.message||'No se completó la imagen.').slice(0,300))));description.after(errors);}
+      if(failures.length){
+        // El detalle técnico queda plegado; a la vista solo qué foto faltó y que se puede reintentar.
+        description.textContent=(ready?'Las listas se conservan. ':'')+'Puedes reintentar '+(failures.length===1?'la foto que faltó':'las '+failures.length+' fotos que faltaron')+'. Si una imagen falló después de enviarse, pudo contar como simulación.';
+        const errors=element('details','smyl-batch-errors');errors.append(element('summary','','Ver detalle'));const list=element('ul');failures.forEach(row=>list.append(element('li','',label(row.photo.view)+': '+String(row.error.message||'No se completó la imagen.').slice(0,300))));errors.append(list);description.after(errors);
+      }
+      const quotaStop=failures.some(row=>[401,402,403,429].includes(Number(row.error?.status)));
       await new Promise(resolve=>{
         cancelWait=resolve;
         actions.append(button('Volver a las fotos',()=>resolve(false)));
+        if(failures.length&&!quotaStop)actions.append(button('↻ Reintentar',()=>resolve('retry'),ready?'flow-secondary':'flow-primary'));
         if(ready)actions.append(button('Ver simulaciones',()=>resolve(true),'flow-primary'));
         dialog.oncancel=e=>{e.preventDefault();resolve(false);};
-      }).then(async view=>{if(view)await viewResults();});
+      }).then(async view=>{if(view==='retry')retry=true;else if(view)await viewResults();});
     }finally{
       clearInterval(watch);if(processing)liberarWakeLock();active=false;close();
     }
+    if(retry&&current())return run({retry:true});
   }
   root.SmylPhotoBatch={run,summary,targets,state,isActive:()=>active};
 })(window);

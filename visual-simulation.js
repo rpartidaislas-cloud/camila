@@ -202,17 +202,17 @@
       let direct=false;
       if(!consent){
         const controls=document.createElement('div');controls.className='sv-actions';
-        const zoom=document.createElement('button');zoom.type='button';zoom.textContent='Acercar comparación ×2';zoom.setAttribute('aria-pressed','false');
-        zoom.onclick=()=>{const on=zoom.getAttribute('aria-pressed')!=='true';zoom.setAttribute('aria-pressed',String(on));zoom.textContent=on?'Ver encuadre completo':'Acercar comparación ×2';comparison.querySelectorAll('img').forEach(img=>{img.style.transform=on?'scale(2)':'none';});};controls.append(zoom);
+        const zoom=document.createElement('button');zoom.type='button';zoom.textContent='🔍 Acercar a la boca';zoom.setAttribute('aria-pressed','false');
+        zoom.onclick=()=>{const on=zoom.getAttribute('aria-pressed')!=='true';zoom.setAttribute('aria-pressed',String(on));zoom.textContent=on?'Ver foto completa':'🔍 Acercar a la boca';comparison.querySelectorAll('img').forEach(img=>{img.style.transform=on?'scale(2)':'none';});};controls.append(zoom);
         if(rawBefore&&rawAfter){
-          const toggle=document.createElement('button');toggle.type='button';toggle.textContent='Revisar salida IA sin mezcla';toggle.setAttribute('aria-pressed','false');
+          const toggle=document.createElement('button');toggle.type='button';toggle.textContent='Ver imagen sin fusionar';toggle.setAttribute('aria-pressed','false');
           const hint=document.createElement('p');hint.className='sv-footnote';hint.textContent='El zoom amplía ambas vistas por igual. La salida sin mezcla permite comprobar si el cambio ya falta en la imagen generada; no genera otra imagen.';
-          toggle.onclick=()=>{direct=!direct;toggle.setAttribute('aria-pressed',String(direct));toggle.textContent=direct?'Volver al resultado integrado':'Revisar salida IA sin mezcla';const imgs=comparison.querySelectorAll('img'),labels=comparison.querySelectorAll('figcaption');imgs[0].src=direct?rawBefore:before;imgs[1].src=direct?rawAfter:after;labels[0].textContent=direct?'Antes · recorte enviado a IA':sources[0][0];labels[1].textContent=direct?'Salida directa IA · solo diagnóstico':sources[1][0];check.checked=false;check.disabled=direct;yes.disabled=true;hint.textContent=direct?'Vista de diagnóstico: no se puede aceptar esta salida sin integrar. Si aquí tampoco hay alineación, ajustar la unión no la corregirá.':'Revisa el resultado integrado antes de aceptarlo. No se ha generado otra imagen.';};controls.append(toggle);comparison.after(hint);
+          toggle.onclick=()=>{direct=!direct;toggle.setAttribute('aria-pressed',String(direct));toggle.textContent=direct?'Ver resultado final':'Ver imagen sin fusionar';const imgs=comparison.querySelectorAll('img'),labels=comparison.querySelectorAll('figcaption');imgs[0].src=direct?rawBefore:before;imgs[1].src=direct?rawAfter:after;labels[0].textContent=direct?'Antes · recorte enviado a IA':sources[0][0];labels[1].textContent=direct?'Salida directa IA · solo diagnóstico':sources[1][0];check.checked=false;check.disabled=direct;yes.disabled=true;hint.textContent=direct?'Vista de diagnóstico: no se puede aceptar esta salida sin integrar. Si aquí tampoco hay alineación, ajustar la unión no la corregirá.':'Revisa el resultado integrado antes de aceptarlo. No se ha generado otra imagen.';};controls.append(toggle);comparison.after(hint);
         }
         comparison.before(controls);
       }
       if(!consent&&adjust){
-        const button=document.createElement('button');button.type='button';button.textContent='Ajustar unión · sin IA';
+        const button=document.createElement('button');button.type='button';button.textContent='✎ Ajustar bordes';
         dialog.querySelector('.sv-actions').prepend(button);
         button.onclick=async()=>{button.disabled=true;yes.disabled=true;check.checked=false;try{const url=await adjust();if(url){after=url;if(!direct)comparison.querySelectorAll('img')[1].src=url;}}catch(error){dialog.querySelector('.sv-description').textContent=error.message;}finally{button.disabled=false;}};
       }
