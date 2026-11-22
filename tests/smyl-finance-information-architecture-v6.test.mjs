@@ -47,7 +47,7 @@ test('la cabecera es la misma en las cuatro pestañas: Cobrar y el menú Más', 
   for (const duplicate of ['finance-header-adjust', 'finance-header-close', 'finance-header-open', 'finance-header-billing', 'Realizar corte', 'Configurar facturación', 'Entrada / salida']) {
     assert.ok(!finance.includes(duplicate), duplicate);
   }
-  assert.match(finance, /id="finance-adjust">Entrada o salida<\/button><button class="btn btn-primary" id="finance-close-cash">Hacer corte<\/button>/);
+  assert.match(finance, /<button type="button" class="btn btn-secondary"'\+\(first\?' id="finance-adjust"':''\)\+' data-adjust="'\+s\.id\+'">Entrada o salida<\/button><button type="button" class="btn btn-secondary"'\+\(first\?' id="finance-close-cash"':''\)\+' data-close-cash="'\+s\.id\+'">Hacer corte<\/button>/);
   assert.match(finance, /id="finance-open-billing-setup">'\+\(ready\?'Ver configuración':'Terminar configuración'\)/);
   assert.doesNotMatch(finance, /id="finance-walk-in"/);
 });
@@ -88,7 +88,8 @@ test('solo se dibuja la pestaña visible y las listas largas van de 50 en 50', (
   assert.match(finance, /PAGE_ROWS=50/);
   assert.match(finance, /function moreRows\(total,shown,key\)\{return total>shown\?/);
   for (const key of ['accounts', 'payments']) assert.match(finance, new RegExp("moreRows\\([a-zA-Z.]+,[a-zA-Z.]+,'" + key + "'\\)"));
-  assert.match(finance, /shown:\{accounts:50,payments:50\}/);
+  assert.match(finance, /shown:\{accounts:50,payments:50,moves:12,cuts:5,invoices:50\}/);
+  assert.match(finance, /var host=document\.getElementById\('finance-fiscal'\);if\(!host\|\|state\.tab!=='fiscal'\)return;/);
   // Sin recorridos de tabla completa por fila: recibos, borradores y datos fiscales se buscan por índice.
   assert.match(finance, /function byKey\(a,key,id\)/);
   assert.doesNotMatch(finance, /state\.receipts\.find\(function/);
@@ -120,7 +121,7 @@ test('la capa visual nueva evita microtexto, se adapta al celular y ya no deja e
   assert.match(block, /@media\(max-width:720px\)\{/);
   assert.match(block, /@media\(max-width:560px\)\{\s*#p-caja \.finance-tabcards\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   // En pantallas táctiles, lo que se toca mide al menos 44 px.
-  assert.match(block, /#p-caja :is\(\.finance-link-action,\.finance-more-rows \.btn,\.finance-session \.finance-actions \.btn\)\{min-height:44px\}/);
+  assert.match(block, /#p-caja :is\(\.finance-link-action,\.finance-more-rows \.btn\)\{min-height:44px\}/);
   assert.match(block, /#p-caja \.finance-operations-menu>summary\{[^}]*min-height:44px/);
   // La regla «.finance-summary-panel{display:grid}» ganaba al atributo hidden y dejaba el Resumen visible en todas las pestañas.
   assert.doesNotMatch(css, /finance-summary|finance-overview|finance-priority-list|\.finance-flow|\.finance-metrics|\.finance-tabs(?![\w-])|\.finance-bar(?![\w-])/);
@@ -132,10 +133,10 @@ test('web y PWA comparten la misma entrega versionada', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-xlsx.js', 'smyl-navigation.js', 'smyl-professional-v3.js', 'smyl-settings-hub.js', 'smyl-consultorio.js', 'smyl-proposals.js', 'app.html', 'sw.js']) {
     assert.equal(read(file), read('mobile/www/' + file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=50/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=67/);
-  assert.match(read('sw.js'), /smyl-finance\.js\?v=67/);
-  assert.match(read('sw.js'), /smyl-finance\.css\?v=50/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=51/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=68/);
+  assert.match(read('sw.js'), /smyl-finance\.js\?v=68/);
+  assert.match(read('sw.js'), /smyl-finance\.css\?v=51/);
   assert.match(read('sw.js'), /finanzas-pestanas-v6/);
   assert.match(read('sw.js'), /finanzas-cobrar-pagos-v7/);
 });

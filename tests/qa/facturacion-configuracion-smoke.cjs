@@ -56,7 +56,7 @@ const server = http.createServer((req, res) => {
   // Cobros → Facturación: solo una franja de estado, sin tarjetas de configuración.
   await page.evaluate(() => window.ir('caja')); await page.waitForTimeout(800);
   await page.click('[data-finance-tab="fiscal"]'); await page.waitForTimeout(500);
-  check(await page.$('.finance-fiscal-status') !== null, 'Cobros → Facturación muestra la franja de estado');
+  check(await page.$('#finance-fiscal .finance-setup-strip') !== null && (await page.$$('#finance-fiscal .finance-setup-strip button')).length === 1, 'Cobros → Facturación muestra la franja de estado, con un solo botón');
   check(await page.$('#finance-issuer, #finance-pac, #finance-facturapi') === null, 'Cobros → Facturación ya no tiene emisor/PAC/Facturapi');
   // Configuración → Cobros → Facturación
   await page.evaluate(() => window.SmylSettingsHub.openItem('cobros', 'Facturación')); await page.waitForTimeout(1200);

@@ -13,7 +13,8 @@ test("la configuración fiscal vive en Configuración → Cobros → Facturació
 
 test("Cobros → Facturación solo conserva una franja de estado que lleva a Configuración", () => {
   assert.match(js, /function fiscalStatusStrip\(\)/);
-  assert.match(js, /\+fiscalStatusStrip\(\)\+draftsHtml\+receivers/);
+  assert.match(js, /host\.innerHTML=fiscalStatusStrip\(\)\+'<div class="finance-list-tools">/);
+  assert.equal(js.split('id="finance-open-billing-setup"').length - 1, 1, 'un solo botón lleva a la configuración');
   assert.doesNotMatch(js, /id="finance-issuer"|id="finance-pac"|id="finance-facturapi"/);
 });
 

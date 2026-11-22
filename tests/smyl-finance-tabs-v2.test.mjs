@@ -319,10 +319,10 @@ test('Finanzas abre en Por cobrar y conserva la cuenta detallada con sus filtros
   assert.match(shell, /\.contenido>#app-copyright\{position:static[^}]*height:0/);
 });
 
-test('Cobros paso 2: la ayuda de caja vive en «Mi turno» y los botones sin clase usan el estilo de la app', () => {
-  assert.doesNotMatch(js, /<h2>Reglas de caja<\/h2>/);
-  assert.match(js, /<details class="finance-cash-help"><summary>¿Cómo funciona la caja\?<\/summary>/);
-  for (const id of ['finance-adjust']) assert.match(js, new RegExp(`<button class="btn btn-secondary" id="${id}">`));
+test('Cobros paso 2: la ayuda de caja cabe en una línea al pie y los botones usan el estilo de la app', () => {
+  assert.doesNotMatch(js, /<h2>Reglas de caja<\/h2>|finance-cash-help|¿Cómo funciona la caja\?/);
+  assert.match(js, /<p class="finance-list-foot">Los pagos con tarjeta o transferencia no entran a la caja: se revisan al hacer el corte\.<\/p>/);
+  assert.match(js, /<button type="button" class="btn btn-secondary"'\+\(first\?' id="finance-adjust"':''\)\+' data-adjust="'\+s\.id\+'">Entrada o salida<\/button>/);
   assert.match(js, /class="btn btn-secondary" data-supervise-cash=/);
   assert.match(css, /#p-caja \.finance-segment\{display:inline-flex;padding:3px;/);
   assert.match(css, /#p-caja :is\(\.finance-chips>button,\.finance-segment>button,[^{]*\)\{min-height:44px\}/);

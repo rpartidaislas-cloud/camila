@@ -29,7 +29,9 @@ test('la función: el acuse solo con la cancelación aceptada y nombre de archiv
 
 test('Cobros: botones de acuse solo en comprobantes cancelados', () => {
   const js = read('smyl-finance.js');
-  assert.match(js, /d\.status==='cancelled'\?'<button data-download-cfdi="'\+d\.id\+'" data-kind="acuse_pdf">Acuse PDF/);
-  assert.match(js, /data-kind="acuse_xml">Acuse XML/);
+  // El acuse solo se ofrece en la rama de las canceladas: «Acuse PDF» al frente y «Acuse XML» en el menú de la fila.
+  assert.match(js, /\}else\{main=file\('acuse_pdf','Acuse PDF',true\);menu\.push\(file\('acuse_xml','Acuse XML'\),file\('pdf','Factura PDF'\),file\('xml','Factura XML'\)\);\}/);
+  assert.match(js, /function file\(kind,label,primary\)\{return '<button type="button"'\+\(primary\?' class="btn btn-secondary"':''\)\+' data-download-cfdi="'\+d\.id\+'" data-kind="'\+kind\+'">'\+label\+'<\/button>';\}/);
+  assert.equal(js.split("'acuse_pdf'").length - 1, 1);
   assert.equal(js, read('mobile/www/smyl-finance.js'));
 });

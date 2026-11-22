@@ -20,7 +20,7 @@ const MARK = '/*contenedor*/';
 const CONTAINER = 'finance-workspace';
 
 // Clases que existen dentro de la página (y no solo en ventanas): salen del HTML que arman build() y el dibujo de cada pestaña.
-const PAGE_FUNCTIONS = ['build', 'renderVisits', 'renderAccounts', 'accountLine', 'meter', 'renderPayments', 'renderCash', 'renderFiscal', 'fiscalStatusStrip', 'renderTruncationBanner', 'moreRows', 'notify', 'sk', 'loadingSkeleton', 'renderFinanceActions', 'renderTabs'];
+const PAGE_FUNCTIONS = ['build', 'renderVisits', 'renderAccounts', 'accountLine', 'meter', 'renderPayments', 'renderCash', 'turnBlock', 'moveLine', 'cashLedger', 'ledgerRow', 'ledgerTotal', 'cutRow', 'teamRow', 'foldRow', 'cutTag', 'renderFiscal', 'invoiceLine', 'pendingLine', 'rowMenu', 'fiscalStatusStrip', 'renderTruncationBanner', 'moreRows', 'notify', 'sk', 'loadingSkeleton', 'renderFinanceActions', 'renderTabs'];
 export function pageClasses(js) {
   const out = new Set();
   for (const name of PAGE_FUNCTIONS) {
