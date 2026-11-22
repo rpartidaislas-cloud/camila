@@ -43,7 +43,7 @@ test('la historia de evidencia es progresiva y móvil', () => {
 });
 
 test('web, móvil y PWA publican la misma etapa', () => {
-  assert.match(app, /smyl-patient-360\.js\?v=37/);
+  assert.match(app, /smyl-patient-360\.js\?v=38/);
   assert.match(app, /smyl-dental-record\.js\?v=35/);
   assert.match(app, /smyl-case-workspace\.css\?v=36/);
   assert.match(app, /smyl-case-workspace\.js\?v=50/);

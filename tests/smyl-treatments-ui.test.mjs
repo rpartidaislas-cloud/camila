@@ -78,11 +78,11 @@ test('la sección de hallazgos se monta en Revisión profesional y se refresca c
 
 test('web, móvil y PWA distribuyen la franja de tratamientos', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-treatments\.js\?v=2/);
+    assert.match(read(file), /smyl-treatments\.js\?v=3/);
     assert.match(read(file), /smyl-case-workspace\.js\?v=50/);
   }
   assert.ok(read('app.html').indexOf('smyl-treatments.js') < read('app.html').indexOf('smyl-case-workspace.js'), 'la franja carga antes del expediente');
-  assert.match(read('sw.js'), /-tratamientos-capitulos-v1-hallazgos-nuevos-v1';/);
+  assert.match(read('sw.js'), /-tratamientos-capitulos-v1-hallazgos-nuevos-v1-verificacion-anestesia-v1';/);
   for (const file of ['smyl-treatments.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);
   }

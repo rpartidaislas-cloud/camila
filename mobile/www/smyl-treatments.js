@@ -106,6 +106,10 @@
   function alive(ctx) { return !!(ctx && ctx.root && ctx.root.isConnected && ctx.treatments); }
   function activeOf(st) { return (st.list || []).filter(function (t) { return t.status === 'active'; })[0] || null; }
 
+  // Último tratamiento activo conocido por paciente (lo consulta el bloque de verificación de las notas).
+  var CURRENT = {};
+  function current(patientId) { return CURRENT[patientId] || null; }
+
   function attach(ctx) {
     var st = { list: null, loading: false, unavailable: false, error: '', viewing: null, panel: null, busy: false, details: {}, form: { text: '', outcome: 'closed', note: '' } };
     ctx.treatments = st;
@@ -133,6 +137,7 @@
       st.unavailable = false; st.error = '';
       st.list = Array.isArray(result.data) ? result.data : [];
       if (st.viewing && !st.list.some(function (t) { return t.id === st.viewing; })) st.viewing = null;
+      CURRENT[ctx.patient] = activeOf(st);
     }
     render(ctx);
     if (ctx.treatmentFindings && window.SmylDentalProgress && typeof window.SmylDentalProgress.map === 'function') {
@@ -464,7 +469,7 @@
 
   return {
     splitFindings: splitFindings, baselineIdsFrom: baselineIdsFrom, findingText: findingText,
-    attachFindings: attachFindings, syncFindings: syncFindings,
+    attachFindings: attachFindings, syncFindings: syncFindings, current: current,
     statusLabel: statusLabel, suggestedRecall: suggestedRecall, titleFrom: titleFrom, closeError: closeError,
     chapterMeta: chapterMeta, snapshotSummary: snapshotSummary, listError: listError, OUTCOMES: OUTCOMES,
     attach: attach, sync: sync
