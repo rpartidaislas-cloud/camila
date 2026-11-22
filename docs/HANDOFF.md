@@ -12443,3 +12443,9 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **Tratamiento contable (explicado a Ricardo, sin asesoría contable):** aplicar saldo no es ingreso nuevo ni movimiento de caja (el dinero se contó al pagar); es un anticipo que se asigna a un cargo. **No genera ni cambia CFDI**: si el pago ya se facturó, el contador debe indicar cómo manejar la aplicación de anticipo (relación tipo 07 del SAT) y se ajustaría.
 - Archivos: `smyl-finance.js` v71, `app.html`, `sw.js`, copias en `mobile/www/`; `tests/qa/finanzas-saldo-favor-smoke.cjs` cubre el Historial.
 
+## 2026-11-23 — Claude — Finanzas v6 · paso 4 (parte 2): decisiones sobre lo que NO se hizo
+
+- **Limpieza final de estilos:** `dead.py` no encuentra ninguna clase sin uso en `smyl-finance.css` (0 de 227); la poda del paso 3 ya las quitó. No se tocó la hoja.
+- **Tipo propio de exportación (`payments_xlsx`): no se hizo.** No es solo SQL: el tipo vive en la restricción de `smyl_export_events`, en `smyl_record_export_server` y en la Edge Function `security-monitor` (que habría que volver a publicar), más las etiquetas de Seguridad. El beneficio es solo el rótulo («Reporte CSV · Administración» hoy). Si se quiere, hacerlo junto con otro cambio de Seguridad.
+- **«Descargar solo lo que se ve»: no se hizo, a propósito.** `load()` baja hasta 10,000 filas por tabla y todas las pestañas calculan con esos arreglos; las asignaciones y reembolsos no traen `patient_id`, así que no se pueden recortar por paciente sin una RPC nueva. Medido con 4,000 pagos y 3,600 recibos por facturar, cada pestaña se dibuja en 10–20 ms, y en clínicas pequeñas el costo es la descarga inicial. `smyl_finance_account_balances` ya existe para cuando haga falta (p. ej. clínicas de decenas de miles de movimientos).
+
