@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 const read = (p) => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
-const sql = read('../supabase/migrations/20261123100000_smyl_simulation_billing.sql');
+const sql = read('../supabase/migrations/20261123110500_smyl_simulation_billing.sql');
 
 test('la simulación se cobra una vez, con el precio del catálogo y ligada a la simulación guardada', () => {
   assert.match(sql, /add column if not exists simulation_case_id uuid references public\.smyl_patient_case_archive\(id\)/);

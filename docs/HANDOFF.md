@@ -271,7 +271,7 @@
 - **Ficha** (`smyl-patient-360.js`): pestaña nueva **Diseño de sonrisa** (`data-p360-tab="smile"`) con la galería de simulaciones; Tratamiento queda solo con el plan. Los enlaces a `simulations` abren la pestaña nueva.
 - **Cobro** (`smyl-patient-cases.js`/`.css`): cada simulación guardada muestra «💳 Cobrar simulación · $X» (con `finance.manage` y precio en el catálogo), o «Pagada / Por pagar» y «Se descuenta si acepta carillas / Descontada de carillas». Arriba, «$X a favor para carillas» (la simulación cobrada más reciente aún sin usar).
 - **Descuento** (`smyl-finance.js`, «Crear cargos desde cotización aceptada»): si la propuesta trae carillas y hay una simulación cobrada sin usar, aparece «Descontar la simulación cobrada (−$X)», marcado por defecto; llama a `smyl_post_proposal_charges_v2`. Sin esa casilla se usa la función original.
-- **Migración** `20261123100000_smyl_simulation_billing.sql`:
+- **Migración** `20261123110500_smyl_simulation_billing.sql`:
   - columnas `simulation_case_id` (cargo → simulación, única por simulación abierta) y `simulation_credit_charge_id` (línea de carillas → cargo de simulación descontado, único);
   - `smyl_post_simulation_charge` (usa `smyl_post_charge`, sucursal predeterminada si no se indica);
   - `smyl_patient_simulation_billing` (`finance.read`);
