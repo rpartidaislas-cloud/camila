@@ -31,9 +31,9 @@ test('Finanzas normaliza objetivos táctiles, estados, tablas y foco', () => {
   assert.match(finance, /\.finance-page :where\(button,[^}]+:focus-visible\{outline:3px solid/);
   assert.match(finance, /\.finance-empty,\.finance-restricted\{[^}]*min-height:152px/);
   assert.match(finance, /\.finance-notice\{min-height:50px/);
-  assert.match(finance, /\.finance-row-head\{min-height:42px;font-size:12px/);
+  assert.match(finance, /#p-caja \.finance-cols\{min-height:32px;background:#f8fafb;[^}]*font-size:12px/);
   assert.match(finance, /#p-caja \.finance-tabcards>button\[aria-selected=true\]\{border-color:var\(--smyl-accent,#0f766e\)/);
-  assert.match(finance, /\.finance-payment-check-head span,[^{]+\{font-size:12px/);
+  assert.match(finance, /\.finance-payment-check>p,\.finance-payment-check ul\{font-size:12px/);
   assert.match(finance, /@media screen and \(max-width:720px\)[\s\S]*?min-height:44px/);
   assert.match(finance, /@media\(max-width:560px\)\{\s*#p-caja \.finance-tabcards\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(finance, /grid-template-areas:"identity action" "amount amount"/);

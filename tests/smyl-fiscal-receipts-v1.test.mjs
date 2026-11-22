@@ -18,14 +18,17 @@ test('Por cobrar es el inicio, Pagos sigue a las cuentas y Facturación conserva
   assert.match(js, /<h2>Facturación<\/h2>/);
   assert.match(js, /Proceso fiscal independiente/);
   assert.match(js, /Las facturas comienzan desde un recibo/);
-  assert.match(js, /function renderReceipts\(\)/);
+  assert.match(js, /function renderPayments\(\)/);
   assert.match(js, /function renderFiscal\(\)/);
 });
 
 test('cada recibo abre servicios, pago, responsable y acción fiscal contextual', () => {
-  for (const copy of ['CONCEPTOS', 'Servicios cobrados', 'Total pagado', 'Registrado por', 'Saldo a favor', 'Abrir recibo']) {
+  for (const copy of ['CONCEPTOS', 'Servicios cobrados', 'Total pagado', 'Registrado por', 'Saldo a favor']) {
     assert.match(js, new RegExp(copy));
   }
+  // El recibo se abre desde su pago, en la lista de Pagos.
+  assert.match(js, /<button type="button" class="finance-link-action" data-open-receipt="'\+receipt\.id\+'" aria-label="Recibo '/);
+  assert.match(js, /b\.onclick=function\(\)\{openReceiptDetails\(by\(state\.receipts,b\.dataset\.openReceipt\)\);\}/);
   assert.match(js, /function receiptLines\(receipt\)/);
   assert.match(js, /acctIndex\(\)\.allocByPayment\.get\(payment\.id\)/);
   assert.match(js, /charge\.concept/);
@@ -60,13 +63,13 @@ test('preparar factura reutiliza la operación fiscal segura existente', () => {
   assert.doesNotMatch(js, /from\('smyl_cfdi_drafts'\)\.insert/);
 });
 
-test('la bandeja y el detalle se adaptan a PWA sin microtexto', () => {
+test('la lista de pagos y el detalle del recibo se adaptan a PWA sin microtexto', () => {
   const block = css.slice(css.indexOf('/* Facturación v2'));
   assert.ok(block.length > 0);
-  assert.match(block, /finance-fiscal-receipt-list>article/);
-  assert.match(block, /grid-template-areas:"folio amount" "copy copy" "actions actions"/);
+  // En celular cada pago acomoda paciente e importe arriba; fecha y recibo abajo.
+  assert.match(block, /#p-caja \.finance-line\[data-cols=payments\]\{grid-template-columns:minmax\(0,1fr\) auto;grid-template-areas:"who amount" "who how" "when actions"\}/);
   assert.match(block, /finance-receipt-detail-body\{display:grid;grid-template-columns:1fr;align-content:start/);
-  assert.match(block, /finance-fiscal-receipt-filters\{[\s\S]*?overflow-x:auto/);
+  assert.doesNotMatch(css, /finance-fiscal-receipt-list|finance-fiscal-receipt-filters/, 'la bandeja vieja de recibos ya no existe');
   const tiny = [...block.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].filter((match) => Number(match[1]) < 11);
   assert.equal(tiny.length, 0);
 });
@@ -75,8 +78,8 @@ test('web y PWA publican la misma bandeja versionada', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) {
     assert.equal(read('mobile/www/' + file), read(file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=48/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=64/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=49/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=65/);
   assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=24/);
   assert.match(read('sw.js'), /professional-finance-v1/);
   assert.match(read('sw.js'), /finanzas-workspace-v5/);

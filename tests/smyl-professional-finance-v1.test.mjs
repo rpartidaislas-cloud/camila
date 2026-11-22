@@ -42,11 +42,14 @@ test('Caja muestra responsabilidad individual y supervisión explícita', () => 
   assert.match(finance, /function actorName\(id\)/);
 });
 
-test('Por cobrar queda primero y el libro de pagos pasa a movimientos secundarios', () => {
+test('Por cobrar queda primero y los reembolsos viven en la misma lista de Pagos', () => {
   assert.match(finance, /var TABS=\[\['accounts','Por cobrar'\],\['receipts','Pagos'\]/);
   assert.doesNotMatch(finance, /data-finance-tab="summary"|'Resumen'/);
-  assert.match(finance, /Movimientos y correcciones/);
-  assert.match(finance, /<details class="finance-receipt-movements">[^']*<div id="finance-payments" class="finance-ledger"><\/div><\/details>/);
+  // El libro aparte («Movimientos y correcciones») desapareció: pagos y reembolsos se leen juntos, por periodo.
+  assert.doesNotMatch(finance, /Movimientos y correcciones|finance-receipt-movements/);
+  assert.match(finance, /state\.refunds\.forEach\(function\(r\)\{var t=Date\.parse\(r\.refunded_at\)\|\|0;if\(t>=range\.from&&t<range\.to\)add\('refund',/);
+  assert.match(finance, /<span class="finance-tag" data-tone="danger">Reembolso<\/span>/);
+  assert.match(finance, /<div id="finance-payments"><\/div>/);
   assert.match(finance, /actor:null,tab:'accounts'/);
 });
 
