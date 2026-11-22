@@ -750,7 +750,9 @@
             '<section class="hero" aria-labelledby="profile-name"><div class="hero-inner"><div class="portrait">' +
             (image ? '<img src="' + esc(image) + '" alt="Fotografía profesional de ' + esc(p.display_name) + '">' : '<span aria-label="Perfil profesional de ' + esc(p.display_name) + '">' + esc(initials(p.display_name)) + '</span>') +
             '</div><div><span class="eyebrow">Perfil profesional dental</span><h1 id="profile-name">' + esc(p.display_name) + '</h1><div class="specialty">' + esc(p.specialty || "Odontología general") + (city ? " · " + esc(city) : "") + '</div><p class="headline">' + esc(p.headline || "Atención dental basada en una valoración cuidadosa y un plan explicado con claridad.") + '</p><div class="trust"><span data-verified="' + String(Boolean(p.verified_profile)) + '">' + esc(verificationCopy) + '</span>' +
-            (p.license_number ? '<span>Cédula: ' + esc(p.license_number) + '</span>' : '') +
+            (p.license_number ? '<span>Cédula profesional: ' + esc(p.license_number) + (p.license_institution ? ' · ' + esc(p.license_institution) : '') + '</span>' : '') +
+            (p.specialty_license ? '<span>Cédula de especialidad: ' + esc(p.specialty_license) + '</span>' : '') +
+            (p.advertising_notice ? '<span>Aviso de publicidad COFEPRIS: ' + esc(p.advertising_notice) + '</span>' : '') +
             (p.accepts_new_patients ? '<span>Recibe nuevos pacientes</span>' : '<span>Atención a pacientes actuales</span>') +
             (languages.length ? '<span>Atención en ' + esc(languages.join(", ")) + '</span>' : '') +
             '</div></div><div class="hero-cta-panel" data-available="' + canRequest + '"><strong>' + (canRequest ? "Solicita tu primera valoración" : "Disponibilidad en actualización") + '</strong><p>' + (canRequest ? "Comparte tu preferencia y el equipo confirmará el espacio contigo." : "Consulta directamente con la clínica antes de acudir.") + '</p>' +

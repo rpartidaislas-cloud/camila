@@ -105,7 +105,22 @@
     return promise.then(null, function () { return fallback; });
   }
 
+  // Credenciales para recetas (institución del título y cédula de especialidad): se leen aparte y se mezclan,
+  // para que la lista funcione igual si la base aún no tiene esas columnas.
+  async function withCredentials(rows, tenant) {
+    try {
+      var creds = await query(window.sb.from('smyl_professionals').select('id,license_institution,specialty_license').eq('tenant_id', tenant));
+      var byId = {}; (creds || []).forEach(function (c) { byId[c.id] = c; });
+      state.credentialsSupported = true;
+      return (rows || []).map(function (r) { var c = byId[r.id] || {}; return Object.assign({}, r, { license_institution: c.license_institution || '', specialty_license: c.specialty_license || '' }); });
+    } catch (e) { state.credentialsSupported = false; return rows; }
+  }
+
   async function loadProfessionals(tenant) {
+    return withCredentials(await loadProfessionalRows(tenant), tenant);
+  }
+
+  async function loadProfessionalRows(tenant) {
     var base = 'id,tenant_id,user_id,display_name,specialty,license_number,color_token,active';
     try {
       // WhatsApp del profesional (migración de mensajes de citas): si la base aún no lo tiene, se lee sin él.
@@ -1163,6 +1178,11 @@
     field('display_name', 'Nombre', professional.display_name, { required: 'required', minlength: '2', maxlength: '120', autocomplete: 'off' });
     field('specialty', 'Especialidad', professional.specialty, { maxlength: '80' });
     field('license_number', 'Cédula profesional', professional.license_number, { maxlength: '30' });
+    if (state.credentialsSupported) {
+      field('license_institution', 'Institución que expidió el título', professional.license_institution, { maxlength: '160', placeholder: 'Ej. Universidad de Guadalajara' });
+      field('specialty_license', 'Cédula de especialidad (si aplica)', professional.specialty_license, { maxlength: '30' });
+      form.append(el('p', 'clinic-admin-hint', 'La cédula y la institución aparecen en recetas y notas firmadas.'));
+    }
     if (state.phoneSupported) field('phone', 'Teléfono interno', professional.phone, { type: 'tel', inputmode: 'tel', maxlength: '40', pattern: '[0-9 +.\\(\\)\\-]{0,40}', placeholder: 'Ej. 33 1234 5678', autocomplete: 'off' });
     if (state.contactSupported) {
       field('contact_phone', 'WhatsApp del profesional', professional.contact_phone, { type: 'tel', inputmode: 'tel', maxlength: '40', pattern: '[0-9 +.\\(\\)\\-]{0,40}', placeholder: 'Ej. 33 1234 5678', autocomplete: 'off' });
@@ -1186,6 +1206,10 @@
         license_number: String(data.get('license_number') || '').trim()
       };
       if (state.phoneSupported) changes.phone = String(data.get('phone') || '').trim();
+      if (state.credentialsSupported) {
+        changes.license_institution = String(data.get('license_institution') || '').trim();
+        changes.specialty_license = String(data.get('specialty_license') || '').trim();
+      }
       if (state.contactSupported) {
         changes.contact_phone = String(data.get('contact_phone') || '').trim();
         changes.contact_phone_public = data.get('contact_phone_public') === 'on' && !!changes.contact_phone;
@@ -1634,7 +1658,7 @@
     var dialog = document.getElementById('clinic-admin-dialog');
     var branches = state.branches.filter(function (row) { return row.active; });
     if (!branches.length) { feedback('Crea una sucursal antes de agregar profesionales.', 'error'); return; }
-    dialog.innerHTML = '<form id="clinic-admin-create-professional"><div class="clinic-admin-dialog-heading"><div><span class="pro-eyebrow">EQUIPO CLÍNICO</span><h2>Agregar profesional</h2></div><span class="clinic-admin-dialog-step">Acceso + perfil</span></div><p>Si el correo ya pertenece a tu clínica, SMYL configurará su perfil y su rol sin enviar otro correo. Si es nuevo, recibirá una invitación segura.</p><div class="clinic-admin-form-grid"><div class="clinic-admin-field clinic-admin-field-wide"><label for="ca-prof-email">Correo de acceso</label><input id="ca-prof-email" name="email" type="email" maxlength="254" required autocomplete="email" placeholder="ana@clinica.com"><small>Usa el mismo correo con el que entra a SMYL.</small></div><div id="ca-prof-account-state" class="clinic-admin-account-state clinic-admin-field-wide" hidden aria-live="polite"></div><div class="clinic-admin-field clinic-admin-field-wide"><label for="ca-prof-name">Nombre profesional</label><input id="ca-prof-name" name="display_name" maxlength="120" required autocomplete="name" placeholder="Dra. Ana López"></div><div class="clinic-admin-field"><label for="ca-prof-specialty">Especialidad</label><input id="ca-prof-specialty" name="specialty" maxlength="120" placeholder="Ortodoncia"></div><div class="clinic-admin-field"><label for="ca-prof-license">Cédula profesional</label><input id="ca-prof-license" name="license_number" maxlength="80" inputmode="numeric" placeholder="Opcional"></div>' + (state.contactSupported ? '<div id="ca-prof-whatsapp" class="clinic-admin-field clinic-admin-field-wide"><label for="ca-prof-contact">WhatsApp del profesional</label><input id="ca-prof-contact" name="contact_phone" type="tel" inputmode="tel" maxlength="40" pattern="[0-9 +.\\(\\)\\-]{0,40}" autocomplete="off" placeholder="Ej. 33 1234 5678"><small>Es el número donde SMYL le avisará de sus citas para que atienda el chat. No se muestra a los pacientes.</small><label class="clinic-admin-sheet-check"><input type="checkbox" name="contact_phone_public"><span>Compartir este número con los pacientes en los mensajes de cita</span></label></div>' : '') + '<div class="clinic-admin-field clinic-admin-field-wide"><label for="ca-prof-branch">Sede inicial</label><select id="ca-prof-branch" name="branch_id" required><option value="">Selecciona una sede</option>' + branches.map(function (branch) { return '<option value="' + branch.id + '"' + (branch.id === preselectedBranchId ? ' selected' : '') + '>' + esc(branch.name) + '</option>'; }).join('') + '</select><small>Después podrás vincularlo a otras sucursales y definir un horario distinto en cada una.</small></div></div><div class="clinic-admin-invite-note"><strong>Rol inicial</strong><span>Quedará como Odontólogo, con acceso a sus pacientes, su agenda y el expediente clínico según las funciones configuradas para ese rol.</span></div><div class="clinic-admin-actions"><button type="button" class="btn btn-secondary" data-ca-close>Cancelar</button><button type="submit" class="btn btn-primary" data-ca-submit>Continuar</button></div></form>';
+    dialog.innerHTML = '<form id="clinic-admin-create-professional"><div class="clinic-admin-dialog-heading"><div><span class="pro-eyebrow">EQUIPO CLÍNICO</span><h2>Agregar profesional</h2></div><span class="clinic-admin-dialog-step">Acceso + perfil</span></div><p>Si el correo ya pertenece a tu clínica, SMYL configurará su perfil y su rol sin enviar otro correo. Si es nuevo, recibirá una invitación segura.</p><div class="clinic-admin-form-grid"><div class="clinic-admin-field clinic-admin-field-wide"><label for="ca-prof-email">Correo de acceso</label><input id="ca-prof-email" name="email" type="email" maxlength="254" required autocomplete="email" placeholder="ana@clinica.com"><small>Usa el mismo correo con el que entra a SMYL.</small></div><div id="ca-prof-account-state" class="clinic-admin-account-state clinic-admin-field-wide" hidden aria-live="polite"></div><div class="clinic-admin-field clinic-admin-field-wide"><label for="ca-prof-name">Nombre profesional</label><input id="ca-prof-name" name="display_name" maxlength="120" required autocomplete="name" placeholder="Dra. Ana López"></div><div class="clinic-admin-field"><label for="ca-prof-specialty">Especialidad</label><input id="ca-prof-specialty" name="specialty" maxlength="120" placeholder="Ortodoncia"></div><div class="clinic-admin-field"><label for="ca-prof-license">Cédula profesional</label><input id="ca-prof-license" name="license_number" maxlength="80" inputmode="numeric" placeholder="Necesaria para firmar notas y recetas"></div>' + (state.contactSupported ? '<div id="ca-prof-whatsapp" class="clinic-admin-field clinic-admin-field-wide"><label for="ca-prof-contact">WhatsApp del profesional</label><input id="ca-prof-contact" name="contact_phone" type="tel" inputmode="tel" maxlength="40" pattern="[0-9 +.\\(\\)\\-]{0,40}" autocomplete="off" placeholder="Ej. 33 1234 5678"><small>Es el número donde SMYL le avisará de sus citas para que atienda el chat. No se muestra a los pacientes.</small><label class="clinic-admin-sheet-check"><input type="checkbox" name="contact_phone_public"><span>Compartir este número con los pacientes en los mensajes de cita</span></label></div>' : '') + '<div class="clinic-admin-field clinic-admin-field-wide"><label for="ca-prof-branch">Sede inicial</label><select id="ca-prof-branch" name="branch_id" required><option value="">Selecciona una sede</option>' + branches.map(function (branch) { return '<option value="' + branch.id + '"' + (branch.id === preselectedBranchId ? ' selected' : '') + '>' + esc(branch.name) + '</option>'; }).join('') + '</select><small>Después podrás vincularlo a otras sucursales y definir un horario distinto en cada una.</small></div></div><div class="clinic-admin-invite-note"><strong>Rol inicial</strong><span>Quedará como Odontólogo, con acceso a sus pacientes, su agenda y el expediente clínico según las funciones configuradas para ese rol.</span></div><div class="clinic-admin-actions"><button type="button" class="btn btn-secondary" data-ca-close>Cancelar</button><button type="submit" class="btn btn-primary" data-ca-submit>Continuar</button></div></form>';
     dialog.querySelector('.pro-eyebrow').textContent = 'AGENDA Y ATENCIÓN';
     dialog.querySelector('h2').textContent = 'Invitar profesional';
     dialog.querySelector('form > p').textContent = 'Si el correo ya pertenece a tu clínica, SMYL completará su perfil sin enviar otra invitación. Si es nuevo, recibirá un acceso seguro.';
