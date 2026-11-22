@@ -25,7 +25,7 @@ test('la página exige leer, decidir las tres opciones, aceptar y firmar antes d
   assert.match(page, /typeof s\.choice\[CHOICES\[i\]\[0\]\]!=='boolean'/, 'ninguna decisión viene marcada de antemano');
   assert.match(page, /touch-action:none/);
   assert.match(page, /pointerdown/);
-  assert.match(page, /smyl-privacy-notice\.js\?v=2/);
+  assert.match(page, /smyl-privacy-notice\.js\?v=3/);
   const sizes = [...page.matchAll(/font-size:(\d+)px/g)].map((m) => Number(m[1]));
   assert.ok(sizes.every((n) => n >= 12), 'tipografía mínima legible en celular');
 });

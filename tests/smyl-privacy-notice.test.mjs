@@ -8,28 +8,31 @@ import { createRequire } from 'node:module';
 const N = createRequire(import.meta.url)('../smyl-privacy-notice.js');
 const trazo = (n, paso = 10) => [Array.from({ length: n }, (_, i) => ({ x: i * paso, y: (i % 3) * 5 }))];
 
-test('el texto lleva el nombre de la clínica, está marcado como provisional y no deja marcas sin reemplazar', () => {
-  const n = N.render('Diseño de Sonrisas');
-  assert.equal(n.provisional, true);
-  assert.equal(n.version, 'modelo-provisional-2');
-  assert.match(n.text, /Responsable: Diseño de Sonrisas\./);
+test('aviso integral: nombre, domicilio y correo de la clínica; sin ellos queda marcado como incompleto', () => {
+  const ctx = { address: 'Av. Juárez 100, Guadalajara', email: 'privacidad@clinica.mx' };
+  const n = N.render('Diseño de Sonrisas', ctx);
+  assert.equal(n.provisional, false);
+  assert.equal(n.version, 'smyl-integral-2026-11-v3');
+  assert.match(n.text, /Responsable\. Diseño de Sonrisas, con domicilio en Av\. Juárez 100, Guadalajara/);
+  assert.match(n.text, /privacidad@clinica\.mx/);
   assert.doesNotMatch(n.text, /\{|\}/);
   assert.ok(n.text.length >= 50 && n.text.length <= 8000, 'cabe en lo que acepta la base');
-  assert.match(N.render('  ').text, /Responsable: la clínica\./);
-  assert.equal(N.paragraphs('X').length, 5);
+  assert.equal(N.render('X').provisional, true, 'sin domicilio ni correo no se presenta como completo');
+  assert.match(N.render('  ', ctx).text, /Responsable\. la clínica,/);
+  assert.equal(N.paragraphs('X').length, 10);
 });
 
-test('cubre lo mínimo: finalidades, datos sensibles, terceros, derechos ARCO y consentimiento expreso', () => {
-  const t = N.render('X').text;
-  for (const re of [/de salud \(datos personales sensibles\)/, /finalidades|para crear y mantener/, /terceros/, /acceso, rectificación, cancelación y oposición/, /consentimiento expreso/]) assert.match(t, re);
+test('cubre lo que pide la LFPDPPP 2025: datos sensibles, finalidades, encargados, transferencias, ARCO con plazos, revocación y consentimiento expreso', () => {
+  const t = N.render('X', { address: 'A', email: 'e@x.mx' }).text;
+  for (const re of [/datos personales sensibles de salud/, /Finalidades necesarias/, /Finalidades adicionales, que puede rechazar/, /Encargados y transferencias/, /fuera de México/, /acceder a sus datos, rectificarlos, cancelarlos u oponerse/, /20 días hábiles/, /15 días hábiles/, /revocar su consentimiento/, /Limitar el uso/, /Ley Federal de Protección de Datos Personales en Posesión de los Particulares/, /consentimiento expreso y por escrito/]) assert.match(t, re);
+  assert.doesNotMatch(t, /INAI/);
 });
 
-test('avisa del uso de IA con proveedores externos, que se puede negar o retirar, y que no condiciona la atención', () => {
+test('avisa del uso de IA con proveedores externos como finalidad que puede rechazar sin perder la atención', () => {
   const t = N.render('X').text;
   assert.match(t, /inteligencia artificial de proveedores externos/);
-  assert.match(t, /por cuenta de la clínica y solo para esa finalidad/);
-  assert.match(t, /negarse a este uso, o retirar su permiso en cualquier momento, sin que se le niegue la atención dental/);
-  assert.match(t, /lo registrará por separado/);
+  assert.match(t, /solo si usted lo autoriza, inteligencia artificial \(OpenAI, Anthropic y Google\)/);
+  assert.match(t, /puede rechazar sin que se le niegue la atención/);
 });
 
 test('un toque suelto o muy poco trazo no es firma; un trazo real sí', () => {
@@ -56,7 +59,10 @@ test('los argumentos de la base llevan exactamente el texto mostrado, su versió
   const p = N.payload({ patientId: 'p1', clinicName: 'Diseño de Sonrisas', name: ' Ana López ', relation: 'patient', signaturePng: 'data:image/png;base64,iVBORw0KGgoAAAA' });
   assert.deepEqual(Object.keys(p), ['p_patient_id', 'p_notice_version', 'p_notice_text', 'p_provisional', 'p_signer_name', 'p_signer_relation', 'p_signature_png']);
   assert.equal(p.p_notice_text, N.render('Diseño de Sonrisas').text);
-  assert.equal(p.p_provisional, true);
+  assert.equal(p.p_provisional, true, 'sin domicilio ni correo de la clínica');
+  const q = N.payload({ patientId: 'p1', clinicName: 'C', context: { address: 'A 1', email: 'e@x.mx' }, name: 'Ana', relation: 'patient', signaturePng: 'x' });
+  assert.equal(q.p_notice_text, N.render('C', { address: 'A 1', email: 'e@x.mx' }).text);
+  assert.equal(q.p_provisional, false);
   assert.equal(p.p_signer_name, 'Ana López');
 });
 

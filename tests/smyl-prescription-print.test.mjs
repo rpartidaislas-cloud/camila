@@ -67,15 +67,16 @@ test("hoja: media carta vertical con página con nombre y reglas de impresión q
   assert.match(css, /\.rx-print-root\{display:none\}/);
 });
 
-test("perfil del profesional: institución que expidió el título, privada y con respaldo si la base aún no tiene la columna", () => {
+test("perfil del profesional: institución que expidió el título (y cédula de especialidad), con respaldo si la base aún no tiene las columnas", () => {
   const sql = read("supabase/migrations/20261122100000_smyl_professional_license_institution.sql");
   assert.match(sql, /add column if not exists license_institution text not null default ''/);
   assert.match(sql, /char_length\(license_institution\) <= 120/);
-  assert.ok(!/public_profile|smyl_professional_profiles|grant/i.test(sql.replace(/--.*$/gm, "")), "no se expone en el directorio público ni cambia permisos");
   const js = read("smyl-clinic-admin.js");
-  assert.match(js, /institutionSupported: false/);
-  assert.match(js, /select\('id,license_institution'\)/);
-  assert.match(js, /catch \(error\) \{ state\.institutionSupported = false; \}/);
-  assert.match(js, /if \(state\.institutionSupported\) changes\.license_institution/);
-  assert.match(js, /Institución que expidió tu título/);
+  assert.match(js, /select\('id,license_institution,specialty_license'\)/);
+  assert.match(js, /state\.credentialsSupported = false; state\.institutionSupported = false; return rows;/);
+  assert.match(js, /if \(state\.credentialsSupported\) \{\s+changes\.license_institution/);
+  assert.match(js, /Institución que expidió el título/);
+  assert.match(js, /maxlength: '120'/);
+  // Se publica en el directorio: la Ley General de Salud (art. 83) pide mostrar la institución que expidió el título.
+  assert.match(read("supabase/migrations/20261126160000_smyl_public_profile_compliance.sql"), /professional\.license_institution,/);
 });
