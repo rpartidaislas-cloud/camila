@@ -343,6 +343,12 @@
       openClinicalTools({ patientId:p.id,patientName:label,appointmentId:v.appointmentId,branchId:v.appointmentId && appt ? appt.branch_id : null });
     };
     host.insertBefore(tools,bar);
+    // Receta médica: captura, emisión e impresión (la validación legal vive en la función SQL; ver docs/RECETA_REQUISITOS.md).
+    if (window.SmylPrescriptions && typeof window.SmylPrescriptions.open === 'function') {
+      var rx = el('button', 'co-tile co-full', 'Receta médica'); rx.type = 'button';
+      rx.onclick = function () { window.SmylPrescriptions.open({ patientId: p.id, patientName: label, appointmentId: v.appointmentId || null, branchId: appt ? appt.branch_id : null }); };
+      host.insertBefore(rx, bar);
+    }
     host.append(full, close);
   }
 

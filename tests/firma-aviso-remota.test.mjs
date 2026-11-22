@@ -53,7 +53,7 @@ test('Consultorio ofrece «Enviar al celular del paciente» y espera la firma', 
 test('versiones y caché del panel y su copia móvil', () => {
   for (const f of ['app.html', 'mobile/www/app.html']) {
     const t = read(f);
-    assert.match(t, /smyl-consultorio\.js\?v=12/);
+    assert.match(t, /smyl-consultorio\.js\?v=13/);
     assert.match(t, /smyl-visit-model\.js\?v=6/);
   }
   assert.match(sw, /firma-aviso-remota-v1/);
