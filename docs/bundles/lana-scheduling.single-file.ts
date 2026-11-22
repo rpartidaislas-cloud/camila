@@ -71,7 +71,7 @@ function readLanaContract(body: any) {
 //  - no strict (alta automática o verificación de un enlace ya existente): sólo se rechaza un producto distinto de "smyl";
 //    si LANA aún no informa el producto, se acepta pero queda marcado como "sin verificar".
 // Resultado: { ok, verified, code, message }
-function decideLanaLink(info, { strict }) {
+function decideLanaLink(info: any, { strict }) {
   const product = info && info.product ? info.product : null;
   if (product === SMYL_PRODUCT) return { ok: true, verified: true, code: "", message: "" };
   if (product) {

@@ -11,6 +11,7 @@ import { smylAdmin } from "../_shared/lana-linked.ts";
 import {
   FACTURAPI_BASE, LIVE_KEY_RE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion,
   datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd,
+  leerProductosSat, textoBusquedaSat,
   FORMAS_PAGO, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura,
   parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, descarga,
 } from "../_shared/facturapi-core.mjs";
@@ -348,6 +349,19 @@ Deno.serve(async (req) => {
   if (platformActions.includes(action) && !USER_KEY) { console.error("[facturapi] falta FACTURAPI_USER_KEY"); return json(CORS, 503, { error: "La facturación automática aún no está configurada en el servidor." }); }
 
   try {
+    // ── Buscar la ClaveProdServ de un servicio en el catálogo oficial del SAT (lo sirve Facturapi; no depende de producción) ──
+    if (action === "search_sat_products") {
+      if (!row || row.status !== "connected" || !row.secret_ciphertext) return json(CORS, 409, { error: "Conecta Facturapi en Configuración → Facturación para buscar claves del SAT." });
+      const q = textoBusquedaSat(body.q);
+      if (!q) return json(CORS, 400, { error: "Escribe al menos 3 letras del servicio." });
+      let key: string;
+      try { key = await descifrar(MASTER, tenantId, row.secret_ciphertext, row.secret_iv); }
+      catch { return json(CORS, 500, { error: "No se pudo leer la llave guardada. Vuelve a conectar Facturapi." }); }
+      const r = await fp(`/catalogs/products?q=${encodeURIComponent(q)}&limit=12`, {}, key);
+      if (!r.ok || !r.body || typeof r.body !== "object") return json(CORS, 502, { error: "Facturapi no pudo buscar claves en este momento. Intenta de nuevo." });
+      return json(CORS, 200, { results: leerProductosSat(r.body) });
+    }
+
     // ── cuenta propia (avanzado), solo pruebas ──
     if (action === "connect") {
       if (row?.mode === "platform" && row?.organization_id) return json(CORS, 409, { error: "Esta clínica usa la cuenta de SMYL. Desconéctala primero si quieres usar tu propia cuenta." });

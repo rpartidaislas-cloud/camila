@@ -309,3 +309,19 @@ export const DESCARGAS = {
 export function descarga(kind) {
   return Object.prototype.hasOwnProperty.call(DESCARGAS, kind) ? DESCARGAS[kind] : DESCARGAS.pdf;
 }
+
+// ───────────── Catálogo SAT (búsqueda de ClaveProdServ) ─────────────
+// Facturapi sirve el catálogo oficial del SAT; aquí solo se lee la respuesta de forma defensiva: { data: [{ key, description }] }.
+// Una clave válida son 8 dígitos. Se devuelven a lo más `max` resultados, con la descripción recortada.
+export function leerProductosSat(body, max = 12) {
+  const lista = body && typeof body === "object" && Array.isArray(body.data) ? body.data : [];
+  return lista
+    .map((x) => ({ key: String((x && x.key) || "").trim(), description: String((x && x.description) || "").replace(/\s+/g, " ").trim().slice(0, 200) }))
+    .filter((x) => /^\d{8}$/.test(x.key))
+    .slice(0, max);
+}
+// Texto de búsqueda: sin espacios de más, entre 3 y 60 caracteres; "" si no sirve.
+export function textoBusquedaSat(value) {
+  const q = String(value || "").replace(/\s+/g, " ").trim().slice(0, 60);
+  return q.length >= 3 ? q : "";
+}

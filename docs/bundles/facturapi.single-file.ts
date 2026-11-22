@@ -270,7 +270,7 @@ function readLanaContract(body: any) {
 //  - no strict (alta automática o verificación de un enlace ya existente): sólo se rechaza un producto distinto de "smyl";
 //    si LANA aún no informa el producto, se acepta pero queda marcado como "sin verificar".
 // Resultado: { ok, verified, code, message }
-function decideLanaLink(info, { strict }) {
+function decideLanaLink(info: any, { strict }) {
   const product = info && info.product ? info.product : null;
   if (product === SMYL_PRODUCT) return { ok: true, verified: true, code: "", message: "" };
   if (product) {
@@ -364,7 +364,7 @@ return { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin: admin };
 })();
 
 // ── _shared/facturapi-core.mjs ──
-const { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, DESCARGAS, descarga } = (() => {
+const { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, DESCARGAS, descarga, leerProductosSat, textoBusquedaSat } = (() => {
 // Lógica pura de la conexión Facturapi (sin Deno ni red): validación de llave, cifrado y lectura de la organización.
 // Solo sandbox: la llave debe ser de pruebas (sk_test_…). Las llaves live se rechazan.
 const FACTURAPI_BASE = "https://www.facturapi.io/v2";
@@ -677,7 +677,23 @@ function descarga(kind: any) {
   return Object.prototype.hasOwnProperty.call(DESCARGAS, kind) ? DESCARGAS[kind] : DESCARGAS.pdf;
 }
 
-return { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, DESCARGAS, descarga };
+// ───────────── Catálogo SAT (búsqueda de ClaveProdServ) ─────────────
+// Facturapi sirve el catálogo oficial del SAT; aquí solo se lee la respuesta de forma defensiva: { data: [{ key, description }] }.
+// Una clave válida son 8 dígitos. Se devuelven a lo más `max` resultados, con la descripción recortada.
+function leerProductosSat(body: any, max = 12) {
+  const lista = body && typeof body === "object" && Array.isArray(body.data) ? body.data : [];
+  return lista
+    .map((x) => ({ key: String((x && x.key) || "").trim(), description: String((x && x.description) || "").replace(/\s+/g, " ").trim().slice(0, 200) }))
+    .filter((x) => /^\d{8}$/.test(x.key))
+    .slice(0, max);
+}
+// Texto de búsqueda: sin espacios de más, entre 3 y 60 caracteres; "" si no sirve.
+function textoBusquedaSat(value: any) {
+  const q = String(value || "").replace(/\s+/g, " ").trim().slice(0, 60);
+  return q.length >= 3 ? q : "";
+}
+
+return { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, DESCARGAS, descarga, leerProductosSat, textoBusquedaSat };
 })();
 
 // ── facturapi/index.ts ──
@@ -1021,6 +1037,19 @@ Deno.serve(async (req) => {
   if (platformActions.includes(action) && !USER_KEY) { console.error("[facturapi] falta FACTURAPI_USER_KEY"); return json(CORS, 503, { error: "La facturación automática aún no está configurada en el servidor." }); }
 
   try {
+    // ── Buscar la ClaveProdServ de un servicio en el catálogo oficial del SAT (lo sirve Facturapi; no depende de producción) ──
+    if (action === "search_sat_products") {
+      if (!row || row.status !== "connected" || !row.secret_ciphertext) return json(CORS, 409, { error: "Conecta Facturapi en Configuración → Facturación para buscar claves del SAT." });
+      const q = textoBusquedaSat(body.q);
+      if (!q) return json(CORS, 400, { error: "Escribe al menos 3 letras del servicio." });
+      let key: string;
+      try { key = await descifrar(MASTER, tenantId, row.secret_ciphertext, row.secret_iv); }
+      catch { return json(CORS, 500, { error: "No se pudo leer la llave guardada. Vuelve a conectar Facturapi." }); }
+      const r = await fp(`/catalogs/products?q=${encodeURIComponent(q)}&limit=12`, {}, key);
+      if (!r.ok || !r.body || typeof r.body !== "object") return json(CORS, 502, { error: "Facturapi no pudo buscar claves en este momento. Intenta de nuevo." });
+      return json(CORS, 200, { results: leerProductosSat(r.body) });
+    }
+
     // ── cuenta propia (avanzado), solo pruebas ──
     if (action === "connect") {
       if (row?.mode === "platform" && row?.organization_id) return json(CORS, 409, { error: "Esta clínica usa la cuenta de SMYL. Desconéctala primero si quieres usar tu propia cuenta." });
