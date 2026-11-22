@@ -42,7 +42,22 @@
     return token;
   }
 
-  async function whatsappConnected() {
+  // Comparte la lectura en curso entre Inicio y Canales sin persistir nombres ni números.
+  var channelRead = null;
+  function readChannels() {
+    var tenant = window.tenantId, actor = window.miUsuario && window.miUsuario.id;
+    if (!tenant || !window.sb) return Promise.reject(new Error('Clínica no disponible'));
+    if (channelRead && channelRead.tenant === tenant && channelRead.actor === actor) return channelRead.promise;
+    var read = { tenant: tenant, actor: actor };
+    channelRead = read;
+    read.promise = fetchChannels().then(function (overview) {
+      if (window.tenantId !== tenant || (window.miUsuario && window.miUsuario.id) !== actor) throw new Error('Cambió la sesión');
+      return overview;
+    }).finally(function () { if (channelRead === read) channelRead = null; });
+    return read.promise;
+  }
+
+  async function fetchChannels() {
     var controller = new AbortController();
     var timer = setTimeout(function () { controller.abort(); }, 15000);
     try {
@@ -50,8 +65,12 @@
       var data = await response.json().catch(function () { return {}; });
       if (!response.ok) throw new Error('canales');
       if (!Array.isArray(data.channels)) throw new Error('Canales no disponibles');
-      var channels = data.channels;
-      return channels.some(function (item) { return item && item.channel === 'whatsapp' && item.connected; });
+      var accounts = {};
+      data.channels.forEach(function (item) {
+        if (!item || !['whatsapp','messenger','instagram'].includes(item.channel) || typeof item.connected !== 'boolean') return;
+        accounts[item.channel] = { connected: item.connected, name: item.connected ? String(item.display_name || item.display_phone_number || '') : '' };
+      });
+      return { accounts: accounts, canManage: data.can_manage === true };
     } finally { clearTimeout(timer); }
   }
 
@@ -90,7 +109,7 @@
       var rows = await Promise.all([
         settle(count(window.sb.from('smyl_clinic_hours').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant).eq('active', true))),
         settle(count(window.sb.from('camila_pacientes').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant))),
-        settle(whatsappConnected()),
+        settle(readChannels()),
         settle(templateState()),
         settle(reminderState()),
         settle(count(window.sb.from('smyl_services').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant).eq('active', true))),
@@ -100,7 +119,7 @@
       state.results = {
         hours: rows[0].ok ? { done: rows[0].value > 0 } : { unknown: true },
         patient: rows[1].ok ? { done: rows[1].value > 0 } : { unknown: true },
-        whatsapp: rows[2].ok ? { done: rows[2].value } : { unknown: true },
+        whatsapp: rows[2].ok && rows[2].value.accounts.whatsapp ? { done: rows[2].value.accounts.whatsapp.connected } : { unknown: true },
         template: rows[3].ok ? { done: rows[3].value === 'done', waiting: rows[3].value === 'pending' } : { unknown: true },
         reminders: rows[4].ok ? { done: rows[4].value } : { unknown: true }
       };
@@ -200,6 +219,7 @@
       };
     }
     window.SmylClinicSetup = Object.freeze({
+      readChannels: readChannels,
       reload: function () { return load(true); },
       results: function () { return isOwner() && state.tenant === window.tenantId ? state.results : null; }
     });
