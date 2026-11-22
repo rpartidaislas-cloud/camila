@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 const read = (f) => readFileSync(new URL("../" + f, import.meta.url), "utf8");
-const sql = read("supabase/migrations/20261123100000_smyl_waitlist.sql");
+const sql = read("supabase/migrations/20261123120000_smyl_waitlist.sql");
 const mod = read("smyl-waitlist.js"), sched = read("smyl-schedule.js"), inbox = read("smyl-inbox.js"), app = read("app.html"), sw = read("sw.js");
 
 test("migración: una entrada activa por paciente y servicio, lectura con schedule.read y escritura solo por RPC", () => {
