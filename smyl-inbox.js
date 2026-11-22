@@ -101,6 +101,7 @@
     page.querySelector('[data-thread-name]').textContent = '';
     page.querySelector('[data-thread-meta]').textContent = '';
     page.querySelector('[data-thread-messages]').replaceChildren();
+    renderFileSuggestion([]);
     var owner = page.querySelector('[data-thread-assign]'); delete owner.dataset.conversationId;
     page.querySelector('[data-thread-owner-name]').textContent = 'Sin asignar';
     render();
@@ -295,7 +296,7 @@
   }
 
   function setComposerText(value) {
-    var input = document.querySelector('[name="message"]'); if (!input) return;
+    var input = document.getElementById('smyl-inbox-message'); if (!input) return;
     input.value = String(value || '').slice(0, 4000);
     fitComposerText(input); scheduleDraftSave(input.value);
     input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -489,7 +490,7 @@
             '<div class="smyl-inbox-transcript"><div class="smyl-inbox-thread-body" data-thread-body tabindex="-1" aria-label="Historial de mensajes" role="region"><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div id="smyl-thread-log" data-thread-messages role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div></div>' +
               '<button type="button" class="smyl-inbox-jump" data-thread-jump aria-controls="smyl-thread-log" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-6-6 6 6 6-6"/></svg><span>Ir al final</span></button><span class="smyl-inbox-sr" role="status" data-thread-jump-status></span></div>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
-            '<form class="smyl-inbox-composer" data-inbox-composer><label class="smyl-inbox-sr" for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window aria-live="polite" hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><p class="smyl-compose-save-warning" data-compose-save-warning role="status" hidden>No se pudo guardar el texto para esta sesión.</p><div class="smyl-inbox-compose-surface" data-compose-surface><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-card"><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea></div><div class="smyl-inbox-compose-bar" role="group" aria-label="Acciones de respuesta"><div class="smyl-inbox-compose-primary"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-compose-tools" aria-label="Abrir herramientas de mensaje" title="Herramientas">' + composeIcon('plus') + '</button></div><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden><div class="smyl-inbox-compose-actions"><button type="button" class="smyl-inbox-compose-copilot" title="Sugerir con MILA" data-compose-copilot aria-label="Sugerir con MILA">' + composeIcon('mila') + '<span>Sugerir con MILA</span></button><button type="submit" class="smyl-inbox-send" data-compose-send aria-label="Enviar mensaje"><span>Enviar</span>' + composeIcon('send') + '</button></div></div></div><div class="smyl-inbox-compose-tools" id="smyl-inbox-compose-tools" data-compose-tools role="menu" aria-label="Herramientas de mensaje" hidden><button type="button" data-compose-attach role="menuitem" aria-label="Adjuntar archivo">' + composeIcon('attach') + '<span><strong>Adjuntar</strong><small>Foto, archivo o audio</small></span></button><button type="button" data-compose-quick role="menuitem" aria-label="Respuesta rápida">' + composeIcon('quick') + '<span><strong>Respuesta rápida</strong><small>Insertar texto del equipo</small></span></button><button type="button" data-compose-rewrite role="menuitem" aria-label="Mejorar redacción con MILA">' + composeIcon('rewrite') + '<span><strong>Mejorar redacción</strong><small>Corregir el texto actual de la caja</small></span></button><button type="button" data-compose-emoji role="menuitem" aria-label="Agregar emoji">' + composeIcon('smile') + '<span><strong>Emoji</strong><small>Insertar en el mensaje</small></span></button><button type="button" data-compose-template role="menuitem">' + composeIcon('template') + '<span><strong>Plantilla</strong><small>Mensaje aprobado</small></span></button><button type="button" data-compose-schedule role="menuitem">' + composeIcon('calendar') + '<span><strong>Programar</strong><small>Enviar después</small></span></button><button type="button" data-compose-record role="menuitem" aria-pressed="false">' + composeIcon('mic') + '<span><strong>Nota de voz</strong><small>Grabar audio</small></span></button><button type="button" data-compose-location role="menuitem" aria-label="Enviar ubicación actual">' + composeIcon('location') + '<span><strong>Enviar ubicación</strong><small>Ubicación actual o enlace de Maps</small></span></button></div></div></div></form>' +
+            '<form class="smyl-inbox-composer" data-inbox-composer><label class="smyl-inbox-sr" for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window aria-live="polite" hidden></div><div class="media-reply-offer" data-media-offer aria-live="polite" hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><p class="smyl-compose-save-warning" data-compose-save-warning role="status" hidden>No se pudo guardar el texto para esta sesión.</p><div class="smyl-inbox-compose-surface" data-compose-surface><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-card"><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea></div><div class="smyl-inbox-compose-bar" role="group" aria-label="Acciones de respuesta"><div class="smyl-inbox-compose-primary"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-compose-tools" aria-label="Abrir herramientas de mensaje" title="Herramientas">' + composeIcon('plus') + '</button></div><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,video/mp4,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden><div class="smyl-inbox-compose-actions"><button type="button" class="smyl-inbox-compose-copilot" title="Sugerir con MILA" data-compose-copilot aria-label="Sugerir con MILA">' + composeIcon('mila') + '<span>Sugerir con MILA</span></button><button type="submit" class="smyl-inbox-send" data-compose-send aria-label="Enviar mensaje"><span>Enviar</span>' + composeIcon('send') + '</button></div></div></div><div class="smyl-inbox-compose-tools" id="smyl-inbox-compose-tools" data-compose-tools role="menu" aria-label="Herramientas de mensaje" hidden><button type="button" data-compose-attach role="menuitem" aria-label="Adjuntar archivo">' + composeIcon('attach') + '<span><strong>Adjuntar</strong><small>Foto, archivo o audio</small></span></button><button type="button" data-compose-quick role="menuitem" aria-label="Respuesta rápida">' + composeIcon('quick') + '<span><strong>Respuesta rápida</strong><small>Insertar texto del equipo</small></span></button><button type="button" data-compose-rewrite role="menuitem" aria-label="Mejorar redacción con MILA">' + composeIcon('rewrite') + '<span><strong>Mejorar redacción</strong><small>Corregir el texto actual de la caja</small></span></button><button type="button" data-compose-emoji role="menuitem" aria-label="Agregar emoji">' + composeIcon('smile') + '<span><strong>Emoji</strong><small>Insertar en el mensaje</small></span></button><button type="button" data-compose-template role="menuitem">' + composeIcon('template') + '<span><strong>Plantilla</strong><small>Mensaje aprobado</small></span></button><button type="button" data-compose-schedule role="menuitem">' + composeIcon('calendar') + '<span><strong>Programar</strong><small>Enviar después</small></span></button><button type="button" data-compose-record role="menuitem" aria-pressed="false">' + composeIcon('mic') + '<span><strong>Nota de voz</strong><small>Grabar audio</small></span></button><button type="button" data-compose-location role="menuitem" aria-label="Enviar ubicación actual">' + composeIcon('location') + '<span><strong>Enviar ubicación</strong><small>Ubicación actual o enlace de Maps</small></span></button></div></div></div></form>' +
           '</div>' +
         '</main>' +
         '<section class="smyl-inbox-offline" data-inbox-offline hidden aria-live="polite"></section>' +
@@ -1394,7 +1395,7 @@
       var localEcho = false;
       if (item.client_request_id) {
         (state.pending[conversationId] || []).forEach(function (pending) {
-          if (pending.key === item.client_request_id) { pending.reconciled = true; localEcho = true; }
+          if (pending.key === item.client_request_id) { pending.reconciled = true; localEcho = true; pending.onMediaConfirmed?.(); }
         });
       }
       if (!prepend && !item.deleted && !localEcho && !map.has(String(item.id))) added++;
@@ -1898,6 +1899,8 @@
       bubble.append(chatMediaButton(item, state.selectedId, true));
     } else if (item.media_type === 'audio' && mediaUrl) {
       var audio = document.createElement('audio'); audio.controls = true; audio.preload = 'metadata'; audio.src = mediaUrl; bubble.append(audio);
+    } else if (item.media_type === 'video' && mediaUrl) {
+      var video = document.createElement('video'); video.controls=true; video.playsInline=true; video.preload='metadata'; video.src=mediaUrl; bubble.append(video);
     } else if (item.media_type === 'document' && mediaUrl) {
       var attachment = document.createElement('a'); attachment.className = 'smyl-inbox-attachment'; attachment.href = mediaUrl; attachment.target = '_blank'; attachment.rel = 'noopener noreferrer';
       attachment.textContent = '📄 ' + (item.media_filename || 'Abrir documento'); bubble.append(attachment);
@@ -1951,6 +1954,54 @@
       dialog.close(); mergeMessages(select.value, data.message ? [data.message] : [], false); mergeConversations([{ id: select.value, last_message: data.message && data.message.content, last_message_at: new Date().toISOString(), paused: true }], false); renderList();
     } catch (error) { window.alert(error.message || 'No se pudo reenviar el mensaje.'); }
   }
+
+  const suggestedAttachments = new WeakSet();
+  let mediaLookup = '', checkedMediaAt = 0, mediaSequence = 0;
+  function renderFileSuggestion(items) {
+    const box = document.querySelector('[data-media-offer]');
+    if (!box || !window.SmylMediaReplies || typeof window.sb?.rpc !== 'function') return;
+    const conv = selectedConversation(), epoch = accessEpoch;
+    const last = [...items].reverse().find(m => !m.deleted && (m.role === 'user' || m.author_type === 'patient' || m.author_type === 'team'));
+    const allowed = conv && canOperate(conv,'messages.respond') && liveWhatsappWindow(conv)?.freeform_allowed !== false;
+    const key = allowed && last && (last.role==='user'||last.author_type==='patient') && last.content
+      ? [epoch,window.tenantId,conv.id,last.id,last.content].join('|') : '';
+    if(key && mediaLookup===key && Date.now()-checkedMediaAt<60000) return;
+    const seq=++mediaSequence;
+    mediaLookup=key;checkedMediaAt=Date.now();box.hidden=true;box.replaceChildren();
+    if(!key) return;
+    const current=()=>seq===mediaSequence && epoch===accessEpoch && state.selectedId===conv.id && canOperate(selectedConversation(),'messages.respond');
+    const lookup=()=>window.sb.rpc('smyl_suggest_media_reply',{p_message:last.content,p_channel:conv.channel});
+    Promise.resolve(lookup()).then(({data,error})=>{
+      if(error || !current() || !data?.length) return;
+      const title=node('span','',data.length===1?'Sugerencia · '+data[0].title:'Respuesta sugerida');
+      const picker=document.createElement('select');picker.setAttribute('aria-label','Respuesta con archivo');
+      data.forEach(r=>picker.add(new Option(r.title,r.id)));picker.hidden=data.length===1;
+      const use=node('button','','Preparar respuesta');use.type='button';
+      use.onclick=async()=>{
+        const input=document.getElementById('smyl-inbox-message');
+        if(!current()||input.disabled) return;
+        const prior=input.value, attachment=state.attachment, reply=state.replyTo, choice=picker.value;
+        if((prior.trim()||attachment||reply) && !window.confirm('¿Reemplazar la respuesta que estás preparando?'))return;
+        use.disabled=true;
+        try {
+          const refreshed=await lookup();
+          const active=refreshed.data?.find(r=>r.id===choice);
+          if(refreshed.error||!active)throw new Error('Esta sugerencia ya no está disponible.');
+          const media=await window.sb.storage.from(window.SmylMediaReplies.bucket).download(active.asset);
+          if(media.error||!media.data)throw new Error('No se pudo cargar el archivo. Intenta de nuevo.');
+          if(!current()||input.disabled)return;
+          if(input.value!==prior||state.attachment!==attachment||state.replyTo!==reply)throw new Error('El mensaje cambió. Vuelve a preparar la respuesta.');
+          const file=new File([media.data],window.SmylMediaReplies.filename(active.asset),{type:media.data.type});
+          suggestedAttachments.add(file);
+          if(!chooseAttachment(file))return;
+          setComposerText(active.reply_text);box.hidden=true;
+        } catch(err){if(current())title.textContent=err.message;}
+        finally{use.disabled=false;}
+      };
+      box.append(title,picker,use);box.hidden=false;
+    }).catch(()=>{});
+  }
+  window.addEventListener('smyl:media-rules-changed',()=>{mediaLookup='';if(state.selectedId)renderMessages(true);});
 
   function renderMessages(keepPosition) {
     var wrap = document.querySelector('[data-thread-messages]'); var older = document.querySelector('[data-thread-older]');
@@ -2020,6 +2071,7 @@
     if (menuFocusId) Array.from(wrap.querySelectorAll('[data-message-id]')).find(function (row) { return row.dataset.messageId === menuFocusId; })?.querySelector('.smyl-inbox-message-more')?.focus({preventScroll:true});
 
     renderPrivacyNotice(items, body);
+    renderFileSuggestion(items);
 
     var finishAccessibleRender = function () {
       if (!wrap.isConnected || wrap.dataset.renderSequence !== renderSequence) return;
@@ -5049,6 +5101,7 @@
       var data = await request('POST', {}, payload, key, 35000);
       if (epoch !== accessEpoch || revision !== threadEpoch.get(conversationId)) return;
       pending.reconciled = true;
+      pending.onMediaConfirmed?.();
       if (typeof pending.onSent === 'function') { try { pending.onSent(); } catch (_) {} }
       mergeMessages(conversationId, data.message ? [data.message] : [], false);
       refreshSentConversation(conversationId, content, data.message?.created_at || pending.created_at);
@@ -5068,38 +5121,54 @@
     if (!conversation || !canOperate(conversation, 'messages.respond')) return;
     var waWindow = liveWhatsappWindow(conversation);
     if (waWindow && !waWindow.freeform_allowed) { openTemplateDialog(); return; }
-    if (state.attachment) { sendAttachment(state.attachment); return; }
+    var mediaFile = state.attachment;
+    if (mediaFile && (!suggestedAttachments.has(mediaFile) || !content)) { sendAttachment(mediaFile); return; }
     if (!content) return;
     var key = uuid();
     var reply = state.replyTo;
     var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: content, reply_to: reply ? { id: reply.id, preview: replyPreview(reply), type: reply.media_type || 'text' } : null, created_at: new Date().toISOString(), status: 'sending' };
+    if (mediaFile) {
+      var sendEpoch = accessEpoch;
+      state.attachment = null;
+      pending.onMediaConfirmed = function () {
+        pending.onMediaConfirmed = null;
+        if (sendEpoch === accessEpoch) sendAttachment(mediaFile, conversation);
+      };
+    }
     state.pending[conversation.id] = (state.pending[conversation.id] || []).concat(pending);
     input.value = ''; fitComposerText(input); clearEncryptedDraft(conversation.id); state.replyTo = null; renderComposerContext(); renderMessages(false); requestAnimationFrame(scrollThreadBottom);
     submitMessage(content, key, pending, reply ? { reply_to_message_id: reply.id } : null);
   }
 
   function attachmentKind(file) {
-    return String(file.type || '').startsWith('image/') ? 'image' : String(file.type || '').startsWith('audio/') ? 'audio' : 'document';
+    return String(file.type || '').startsWith('image/') ? 'image' : String(file.type || '').startsWith('audio/') ? 'audio' : file.type === 'video/mp4' ? 'video' : 'document';
+  }
+
+  function attachmentUploadKind(file) {
+    const kind = attachmentKind(file);
+    return kind === 'audio' && suggestedAttachments.has(file) ? 'audio_clip' : kind;
   }
 
   function chooseAttachment(file) {
     if (!file) return;
-    var kind = attachmentKind(file); var max = kind === 'audio' ? 16 : kind === 'image' ? 10 : 25;
+    var kind = attachmentKind(file); var max = kind === 'audio' || kind === 'video' ? 16 : kind === 'image' ? 10 : 25;
     if (file.size > max * 1024 * 1024) { window.alert('El archivo supera el límite de ' + max + ' MB.'); return; }
     var conversation = selectedConversation();
-    if (kind === 'audio' && conversation && conversation.channel !== 'whatsapp') { window.alert('Las notas de voz solo están disponibles en WhatsApp.'); return; }
+    if (kind === 'audio' && conversation && conversation.channel !== 'whatsapp' && !suggestedAttachments.has(file)) { window.alert('Las notas de voz solo están disponibles en WhatsApp.'); return; }
     if (kind === 'document' && conversation && conversation.channel === 'instagram') { window.alert('Instagram no permite enviar documentos.'); return; }
     state.attachment = file; state.replyTo = null; renderComposerContext(); return true;
   }
 
-  async function sendAttachment(file) {
-    var conversation = selectedConversation(); if (!conversation || !file) return;
+  async function sendAttachment(file, destination) {
+    var conversation = destination || selectedConversation(); if (!conversation || !file) return;
     var waWindow = liveWhatsappWindow(conversation); if (waWindow && !waWindow.freeform_allowed) { window.alert('La ventana de WhatsApp venció. Usa una plantilla aprobada.'); return; }
-    var kind = attachmentKind(file); var key = uuid(); var previewUrl = kind === 'image' || kind === 'audio' ? URL.createObjectURL(file) : null;
-    var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: kind === 'image' ? '📷 Imagen' : kind === 'audio' ? '🎤 Nota de voz' : '📄 ' + file.name, media_type: kind, media_url: previewUrl, created_at: new Date().toISOString(), status: 'sending', file: file };
-    state.pending[conversation.id] = (state.pending[conversation.id] || []).concat(pending); state.attachment = null; renderComposerContext(); renderMessages(false); requestAnimationFrame(scrollThreadBottom);
+    var kind = attachmentKind(file); var key = uuid(); var previewUrl = ['image','audio','video'].includes(kind) ? URL.createObjectURL(file) : null;
+    var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: kind === 'video' ? 'Video' : kind === 'image' ? '📷 Imagen' : kind === 'audio' ? (suggestedAttachments.has(file) ? 'Audio' : '🎤 Nota de voz') : '📄 ' + file.name, media_type: kind, media_url: previewUrl, created_at: new Date().toISOString(), status: 'sending', file: file };
+    state.pending[conversation.id] = (state.pending[conversation.id] || []).concat(pending);
+    if (!destination) state.attachment = null;
+    if (state.selectedId === conversation.id) { renderComposerContext(); renderMessages(false); requestAnimationFrame(scrollThreadBottom); }
     try {
-      var form = new FormData(); form.append('conversation_id', conversation.id); form.append('kind', kind); form.append('file', file, file.name);
+      var form = new FormData(); form.append('conversation_id', conversation.id); form.append('kind', attachmentUploadKind(file)); form.append('file', file, file.name);
       var data = await requestForm(form, key, 60000); pending.reconciled = true;
       mergeMessages(conversation.id, data.message ? [data.message] : [], false);
       refreshSentConversation(conversation.id, pending.content, data.message?.created_at || pending.created_at);
@@ -5137,7 +5206,7 @@
   function retryPending(item) {
     item.status = 'sending'; renderMessages(false);
     if (item.file) {
-      var conversationId = state.selectedId; var kind = attachmentKind(item.file); var form = new FormData();
+      var conversationId = state.selectedId; var kind = attachmentUploadKind(item.file); var form = new FormData();
       form.append('conversation_id', conversationId); form.append('kind', kind); form.append('file', item.file, item.file.name);
       requestForm(form, item.key, 60000).then(function (data) {
         item.reconciled = true; mergeMessages(conversationId, data.message ? [data.message] : [], false); render(); requestAnimationFrame(scrollThreadBottom);

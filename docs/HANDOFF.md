@@ -1,3 +1,10 @@
+## 2026-11-22 — Respuestas con archivos en SMYL Asistente
+
+- En Canales → SMYL Asistente → Preguntas frecuentes se abre el editor de reglas. Carillas aparece como propuesta inicial. Cada regla combina tema, intención, excepciones y canales con un mensaje y un archivo de la biblioteca privada de la clínica.
+- Una prueba positiva habilita la activación de esa revisión. Las ediciones posteriores se guardan en un borrador independiente. El equipo prepara la sugerencia en el chat, puede editarla y la envía expresamente. Para fotos, clips de audio y videos se utiliza el envío privado de adjuntos de la bandeja.
+- Entrega coordinada con `camila-api` en el repositorio de mensajería (video MP4 y clips MP3/M4A). Aplicar la migración `20261122210000_smyl_assistant_media_replies.sql` y desplegar esa función antes de publicar el frontend. PWA y `mobile/www` incluyen los mismos recursos.
+- Las pruebas usan material ficticio. `tests/smyl-media-replies.test.mjs` comprueba aislamiento, reglas, revisiones y activación en Postgres. `tests/smyl-media-replies-browser.cjs` recorre capacitación, biblioteca, vista previa y envío simulado en el chat.
+
 ## 2026-11-22 — Claude Code — Tratamiento como ruta de 4 etapas (parte 1, solo interfaz)
 
 - `smyl-case-workspace.js` v48 / `.css` v34: las etapas se llaman Diagnóstico, Plan de tratamiento, Presupuesto y aceptación, En tratamiento (`const ROUTE`).

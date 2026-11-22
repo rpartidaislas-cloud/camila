@@ -128,6 +128,7 @@ copyFile(path.join(ROOT, 'smyl-reports.js'), path.join(WWW, 'smyl-reports.js'));
 copyFile(path.join(ROOT, 'smyl-reports.css'), path.join(WWW, 'smyl-reports.css'));
 copyFile(path.join(ROOT, 'smyl-connections.js'), path.join(WWW, 'smyl-connections.js'));
 copyFile(path.join(ROOT, 'smyl-connections.css'), path.join(WWW, 'smyl-connections.css'));
+for (const file of ['smyl-media-replies.js', 'smyl-media-replies.css']) copyFile(path.join(ROOT, file), path.join(WWW, file));
 copyFile(path.join(ROOT, 'smyl-security-center.js'), path.join(WWW, 'smyl-security-center.js'));
 copyFile(path.join(ROOT, 'smyl-security-center.css'), path.join(WWW, 'smyl-security-center.css'));
 copyFile(path.join(ROOT, 'smyl-google-calendar.js'), path.join(WWW, 'smyl-google-calendar.js'));
