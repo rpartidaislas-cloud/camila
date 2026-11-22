@@ -264,6 +264,21 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-22 — Claude Code — Simulador: arreglos rápidos tras la revisión (guardar, reintentar, saldo, etiquetas, peso)
+
+Hechos a pedido del usuario (aunque lo visual suele ser de Codex). Sin tocar prompts ni backend.
+- **«Guardar en expediente» no hacía nada en la vista profesional** (pedía el nombre en `#fn`, oculto ahí). Ahora el botón principal y el de la barra del celular usan el mismo flujo que «Guardar en un paciente» (`#pc-save-entry`, `smyl-patient-cases.js`) y copian su texto (Guardar en paciente / Abrir ficha del paciente / Reintentar guardado). El botón duplicado de abajo se oculta (`html.smyl-result-primary-saves`), salvo en el flujo de consultorio. `smyl-studio.js`.
+- **Error de la IA con «↻ Reintentar»** (`smyl-photo-batch.js`): título propio («No se pudo completar la simulación» / «Algunas fotos no se completaron»), detalle técnico plegado en «Ver detalle», aviso honesto de que pudo contar como simulación. Reintentar no vuelve a pedir la casilla de autorización; no aparece si el error es de cupo o sesión (401/402/403/429).
+- **Saldo**: junto a «Generar» dice «Te quedan N este mes» (de `CFG.limiteDiagnosticos − CFG.diagnosticosUsados`; el servidor sigue siendo quien descuenta).
+- **Lista de la foto**: ya no marca ✓ fijos (no valida nada); íconos neutros y «Revisa la foto».
+- **Diálogo de revisión de la IA** centrado (`margin:auto`) y botones sin jerga: «✎ Ajustar bordes», «🔍 Acercar a la boca», «Ver imagen sin fusionar» / «Ver resultado final» (`visual-simulation.js`; `tests/quick-modes-browser.cjs` actualizado).
+- **Etiquetas ANTES / tono** ya no se enciman en celular (ancho máximo con «…»).
+- **Guía facial** de 1 MB (PNG 1254 px) → `icons/ui/smyl-face-capture-guide-v2.webp` de 33 KB.
+- **Link para pacientes** en Ajustes de simulación: desactivado con aviso «Pausado», porque el modo prospecto está pausado en el servidor y el enlace terminaba en error.
+- Versiones: `smyl-studio.js?v=33`, `.css?v=32`, `smyl-photo-batch.js?v=3`, `visual-simulation.js?v=33`, `.css?v=6`, caché `simulador-arreglos-v1`; `mobile/www` sincronizado.
+- Verificado con Playwright (Supabase e IA simulados, cara sintética) a 1280 y 390: guardar abre el diálogo de paciente; diálogo de IA centrado y dentro de la pantalla; etiquetas sin encimarse; error → Reintentar hace una segunda generación sin pedir la casilla. Suite: mismas fallas que `main` (radiografías, plantilla v3, marca LANA y pruebas de navegador del chat), ninguna nueva.
+- Siguiente: pestaña «Diseño de sonrisa» en la ficha y la simulación como servicio con cobro; luego el flujo de 4 pasos y el plan por fases.
+
 ## 2026-11-22 — Claude Code — Simulaciones: «Guardar en la ficha» volvía a fallar (guía de color)
 
 - Desde #118 (8-nov) `smyl-case-model.js` manda `settings.shadeGuide` (classical | bleached), pero `smyl_save_patient_case` rechazaba toda llave desconocida con «Invalid case settings». Comprobado en producción: la última simulación guardada es del 7-oct-2026 (21 en total) y la función no conocía `shadeGuide`.
