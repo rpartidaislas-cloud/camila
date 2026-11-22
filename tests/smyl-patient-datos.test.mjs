@@ -40,7 +40,7 @@ test('el contacto vive solo en Datos del paciente (con Agregar si falta) y la fi
 
 test('web, móvil y PWA publican Datos del paciente', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-patient-360\.js\?v=36/);
+    assert.match(read(file), /smyl-patient-360\.js\?v=37/);
     assert.match(read(file), /smyl-patient-360\.css\?v=21/);
     assert.match(read(file), /smyl-professional-v3\.js\?v=15/);
     assert.match(read(file), /smyl-professional-v3\.css\?v=13/);
@@ -52,7 +52,7 @@ test('web, móvil y PWA publican Datos del paciente', () => {
 
 test('organización v2: pestañas clínicas en orden de consulta y lo administrativo fuera de ellas', () => {
   const tabs = [...p360.matchAll(/data-p360-tab="([a-z]+)"[^>]*>([^<]+)</g)].map((m) => m[2]);
-  assert.deepEqual(tabs, ['Resumen', 'Historia clínica', 'Evoluciones y citas', 'Tratamiento', 'Imágenes y estudios']);
+  assert.deepEqual(tabs, ['Resumen', 'Historia clínica', 'Evoluciones y citas', 'Tratamiento', 'Diseño de sonrisa', 'Imágenes y estudios']);
   assert.match(p360, /visits:\['notes','appointments'\]/, 'evoluciones y citas dejan de estar escondidas');
   assert.match(p360, /<dialog class="p360-drawer"/, 'datos del paciente en panel lateral');
   assert.match(p360, /function renderFlags\(s\)/);

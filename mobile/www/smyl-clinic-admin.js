@@ -53,7 +53,7 @@
     professionals: [], professionalBranches: [], invitations: [], canClinic: false, canTeam: false,
     canAssignRoles: false, canScheduleRead: false, canScheduleManage: false, hoursDraft: null,
     people: [], personFilter: 'all', personQuery: '', professionalQuery: '', person: null, editing: false,
-    proHours: [], profiles: [], conflicts: [], phoneSupported: true, contactSupported: false, travelSupported: false, travelMargin: 45
+    proHours: [], profiles: [], conflicts: [], phoneSupported: true, contactSupported: false, institutionSupported: false, travelSupported: false, travelMargin: 45
   };
 
   function esc(value) {
@@ -111,9 +111,9 @@
     try {
       var creds = await query(window.sb.from('smyl_professionals').select('id,license_institution,specialty_license').eq('tenant_id', tenant));
       var byId = {}; (creds || []).forEach(function (c) { byId[c.id] = c; });
-      state.credentialsSupported = true;
+      state.credentialsSupported = true; state.institutionSupported = true;
       return (rows || []).map(function (r) { var c = byId[r.id] || {}; return Object.assign({}, r, { license_institution: c.license_institution || '', specialty_license: c.specialty_license || '' }); });
-    } catch (e) { state.credentialsSupported = false; return rows; }
+    } catch (e) { state.credentialsSupported = false; state.institutionSupported = false; return rows; }
   }
 
   async function loadProfessionals(tenant) {
@@ -1179,9 +1179,9 @@
     field('specialty', 'Especialidad', professional.specialty, { maxlength: '80' });
     field('license_number', 'Cédula profesional', professional.license_number, { maxlength: '30' });
     if (state.credentialsSupported) {
-      field('license_institution', 'Institución que expidió el título', professional.license_institution, { maxlength: '160', placeholder: 'Ej. Universidad de Guadalajara' });
+      field('license_institution', 'Institución que expidió el título', professional.license_institution, { maxlength: '120', placeholder: 'Ej. Universidad de Guadalajara' });
       field('specialty_license', 'Cédula de especialidad (si aplica)', professional.specialty_license, { maxlength: '30' });
-      form.append(el('p', 'clinic-admin-hint', 'La cédula y la institución aparecen en recetas y notas firmadas.'));
+      form.append(el('p', 'clinic-admin-hint', 'Aparecen en tus recetas, en tus notas firmadas y en tu perfil público (la Ley General de Salud, art. 83, pide mostrar la institución que expidió el título).'));
     }
     if (state.phoneSupported) field('phone', 'Teléfono interno', professional.phone, { type: 'tel', inputmode: 'tel', maxlength: '40', pattern: '[0-9 +.\\(\\)\\-]{0,40}', placeholder: 'Ej. 33 1234 5678', autocomplete: 'off' });
     if (state.contactSupported) {

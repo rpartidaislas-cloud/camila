@@ -60,7 +60,7 @@ test('el CSS nuevo no baja de 12 px y se apila en pantallas angostas', () => {
 test('la copia móvil y la caché publican las mismas versiones', () => {
   for (const file of ['smyl-patient-360.js', 'smyl-patient-360.css', 'smyl-professional-v3.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + file), read(file), `mobile/www/${file} difiere`);
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-patient-360\.js\?v=36/);
+    assert.match(read(file), /smyl-patient-360\.js\?v=37/);
     assert.match(read(file), /smyl-patient-360\.css\?v=21/);
     assert.match(read(file), /smyl-professional-v3\.js\?v=15/);
   }

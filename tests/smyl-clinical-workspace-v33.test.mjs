@@ -59,12 +59,12 @@ test('Pacientes prioriza identidad y separa una acción accesible del menú cont
   const clinic = read('smyl-clinic.js');
   const css = read('smyl-patients-directory.css');
   assert.doesNotMatch(clinic, /row\.tabIndex = 0/);
-  assert.match(clinic, /button\('Abrir expediente'/);
-  assert.match(clinic, /button\('Agendar cita'/);
-  assert.match(clinic, /clinic-patient-menu-panel/);
+  assert.match(clinic, /clinic-patient-name-open/);
+  assert.doesNotMatch(clinic, /button\('Agendar cita'/);
+  assert.doesNotMatch(clinic, /clinic-patient-menu-panel/);
+  assert.doesNotMatch(clinic, /button\('Abrir expediente'/);
   assert.match(clinic, /bindPatientMenuDismiss/);
   assert.match(css, /td:first-child\{width:39%;padding-left:22px\}/);
-  assert.match(css, /clinic-patient-menu-action\{[\s\S]*?min-height:44px/);
 });
 
 test('la navegación móvil contiene las cinco tareas correctas y el sheet es modal', () => {
