@@ -17,7 +17,9 @@ test('Cobros ofrece «Abrir chat» sólo si el paciente tiene chat vinculado, le
   for (const base of ['', 'mobile/www/']) {
     const f = read(base + 'smyl-finance.js');
     assert.match(f, /from\('camila_lana_handoffs'\)\.select\('patient_id,lana_conversation_id,lana_channel,updated_at'\)/);
-    assert.match(f, /chatLinks\[x\.p\.id\]\?'<details class="finance-row-menu">[^']*'\+esc\(name\(x\.p\.id\)\)\+'[^']*<button type="button" data-chat=/);
+    assert.match(f, /link=chatLinks\[id\]/);
+    assert.match(f, /if\(link\)menu\.push\('<button type="button" data-chat="'\+id\+'">Abrir chat<\/button>'\)/);
+    assert.match(f, /menu\.length\?'<details class="finance-row-menu"><summary aria-label="Más acciones para '\+label\+'">/);
     assert.match(f, /window\.SmylInbox\.open\(l\.conversation\)/);
     assert.match(f, /accountSummary:accountSummary,\s*contactContext:contactContext,\s*account:function\(patientId\)/);
   }
@@ -174,9 +176,11 @@ test('Finanzas: filtro «Vencidas» de Por cobrar sin envíos automáticos (cada
     const f = read(base + 'smyl-finance.js');
     assert.match(f, /var TABS=\[\['accounts','Por cobrar'\],\['receipts','Pagos'\],\['cash','Caja'\],\['fiscal','Facturación'\]\]/);
     assert.doesNotMatch(f, /data-finance-tab="today"/);
-    assert.match(f, /data-account-filter="overdue">Vencidas/);
-    assert.match(f, /<div id="finance-today" hidden><\/div>/);
-    assert.match(f, /var item=chatLinks\[button\.dataset\.todaySend\];if\(item\)window\.SmylInbox\.collect\(item\.conversation\)/);
+    assert.match(f, /data-account-filter="overdue" aria-pressed="false">Vencidas/);
+    // Las vencidas son filas de la misma lista; su menú ofrece el recordatorio, que siempre se revisa en el chat antes de enviarse.
+    assert.doesNotMatch(f, /finance-today|renderToday/);
+    assert.match(f, /if\(late&&link&&!blocked&&link\.channel==='whatsapp'&&window\.SmylInbox&&window\.SmylInbox\.collect\)menu\.push\('<button type="button" data-remind=/);
+    assert.match(f, /var item=chatLinks\[button\.dataset\.remind\];if\(item\)window\.SmylInbox\.collect\(item\.conversation\)/);
     assert.match(f, /from\('smyl_collection_reminders'\)/);
     assert.match(f, /from\('smyl_collection_prefs'\)/);
     assert.doesNotMatch(f, /smyl_log_collection_reminder/, 'el registro lo hace el chat al enviar, no Cobros');

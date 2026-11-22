@@ -15,7 +15,7 @@ test('la hoja publicada está al día con el generador (y el generador es establ
   const again = containerize(css, js);
   assert.equal(again.css, css, 'corre «node scripts/finanzas-contenedor-css.mjs» después de cambiar un @media de página');
   assert.equal(containerize(again.css, js).css, again.css);
-  assert.ok(again.blocks >= 30 && again.rules >= 150, again.blocks + ' bloques, ' + again.rules + ' reglas');
+  assert.ok(again.blocks >= 25 && again.rules >= 120, again.blocks + ' bloques, ' + again.rules + ' reglas');
   assert.equal(blocks.length, again.blocks);
   assert.doesNotMatch(strip(css), /@container finance-workspace/);
   assert.equal(css, read('mobile/www/smyl-finance.css'));
@@ -37,7 +37,7 @@ test('Finanzas declara su contenedor y cada copia sigue a su «@media» con el m
 
 test('las copias solo llevan reglas de la página y nunca apuntan al propio contenedor', () => {
   const classes = pageClasses(js);
-  for (const name of ['finance-tabcards', 'finance-visit-row', 'finance-row', 'finance-account-filters', 'finance-fiscal-receipt-list', 'finance-session']) assert.ok(classes.has(name), name);
+  for (const name of ['finance-tabcards', 'finance-line', 'finance-line-who', 'finance-meter', 'finance-row', 'finance-chips', 'finance-segment', 'finance-session']) assert.ok(classes.has(name), name);
   for (const block of blocks) {
     let depth = 0, end = -1; const open = css.indexOf('{', block.index);
     for (let k = open; k < css.length; k++) { if (css[k] === '{') depth++; else if (css[k] === '}') { depth--; if (!depth) { end = k; break; } } }
@@ -49,11 +49,18 @@ test('las copias solo llevan reglas de la página y nunca apuntan al propio cont
   }
 });
 
+test('una marca suelta (sin su bloque) no se lleva la regla que le sigue', () => {
+  // Pasó al limpiar reglas viejas: el bloque generado quedó vacío, se borró, y la marca huérfana hacía que se eliminara la regla siguiente.
+  const media = '@media(max-width:620px){.a{color:red}}';
+  assert.equal(strip(media + '\n/*contenedor*/\n.finance-section-copy{margin:0}\n'), media + '\n.finance-section-copy{margin:0}\n');
+  assert.equal(strip(media + '\n/*contenedor*/@container finance-workspace (max-width:620px){.a{color:red}}\n.b{margin:0}\n'), media + '\n.b{margin:0}\n');
+});
+
 test('con poco espacio las pestañas pasan a dos columnas y las filas se apilan, aunque la pantalla sea ancha', () => {
   assert.match(css, /\/\*contenedor\*\/@container finance-workspace \(max-width:560px\)\{#p-caja \.finance-tabcards\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   const narrow = blocks.filter((b) => Number(b[1]) >= 700).map((b) => css.slice(b.index, css.indexOf('\n', b.index) < 0 ? css.length : css.indexOf('\n', b.index))).join('\n');
-  assert.match(narrow, /\.finance-visit-row/);
-  assert.match(narrow, /\.finance-account-filters/);
+  assert.match(narrow, /\.finance-line\[data-cols=accounts\]/);
+  assert.match(narrow, /\.finance-chips>button/);
   assert.match(narrow, /min-height:44px/);
   // Las ventanas viven fuera del contenedor: siguen dependiendo del ancho de la pantalla y no se copian reglas solo de ventana.
   assert.doesNotMatch(css.split('\n').filter((l) => l.startsWith('/*contenedor*/')).join('\n'), /\{[^}]*\}\.finance-collection-guide>|^\/\*contenedor\*\/@container[^{]*\{\.finance-close-form/m);

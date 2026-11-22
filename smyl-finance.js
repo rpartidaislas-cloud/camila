@@ -1,7 +1,7 @@
 /* SMYL · Etapa 5: caja, pagos, recibos internos y preparación fiscal. */
 (function(){
   'use strict';
-  var state={noShowFee:0,settingsReady:false,visitAppointments:[],visitCharges:[],noCharge:[],noChargeReady:false,loaded:false,loading:false,tenant:null,actor:null,tab:'accounts',accountFilter:'open',fiscalReceiptFilter:'all',canRead:false,canManage:false,canCash:false,canSuperviseCash:false,canInvoice:false,patients:[],team:[],branches:[],services:[],appointments:[],proposals:[],proposalBatches:[],charges:[],payments:[],allocations:[],refunds:[],refundAllocations:[],receipts:[],sessions:[],adjustments:[],fiscal:[],drafts:[],issuer:null,pac:null,cancellations:[],fiscalReadiness:null,rolePermissions:[],memberRoles:[],truncated:[],shown:{accounts:50,receipts:50,ledger:50}};
+  var state={noShowFee:0,settingsReady:false,visitAppointments:[],visitCharges:[],noCharge:[],noChargeReady:false,loaded:false,loading:false,tenant:null,actor:null,tab:'accounts',accountFilter:'open',payPeriod:'today',payMethod:'',payFrom:'',payTo:'',canRead:false,canManage:false,canCash:false,canSuperviseCash:false,canInvoice:false,patients:[],team:[],branches:[],services:[],appointments:[],proposals:[],proposalBatches:[],charges:[],payments:[],allocations:[],refunds:[],refundAllocations:[],receipts:[],sessions:[],adjustments:[],fiscal:[],drafts:[],issuer:null,pac:null,cancellations:[],fiscalReadiness:null,rolePermissions:[],memberRoles:[],truncated:[],shown:{accounts:50,payments:50}};
   // Las cuatro pestañas de Finanzas. Los ids no cambian: Configuración abre «receipts» y «cash» por su id.
   var TABS=[['accounts','Por cobrar'],['receipts','Pagos'],['cash','Caja'],['fiscal','Facturación']],PAGE_ROWS=50;
   function moreRows(total,shown,key){return total>shown?'<div class="finance-more-rows"><span>Mostrando '+shown+' de '+total+'</span><button type="button" class="btn btn-secondary" data-more-rows="'+key+'">Mostrar '+Math.min(PAGE_ROWS,total-shown)+' más</button></div>':'';}
@@ -21,7 +21,7 @@
     state.allocations.forEach(function(a){var v=cents(a.amount);paid.set(a.charge_id,(paid.get(a.charge_id)||0)+v);add(allocByPayment,a.payment_id,a);var p=by(state.payments,a.payment_id);if(p)c(p.patient_id).app+=v;});
     state.refundAllocations.forEach(function(a){paid.set(a.charge_id,(paid.get(a.charge_id)||0)-cents(a.amount));});
     state.charges.forEach(function(ch){add(byPatient,ch.patient_id,ch);});
-    state.payments.forEach(function(p){c(p.patient_id).rec+=cents(p.amount);});
+    state.payments.forEach(function(p){var r=c(p.patient_id),t=Date.parse(p.paid_at)||0;r.rec+=cents(p.amount);if(t>=(r.lastAt||0)){r.lastAt=t;r.last=p.paid_at;}});
     state.refunds.forEach(function(r){add(refundByPayment,r.payment_id,r);var p=by(state.payments,r.payment_id);if(p)c(p.patient_id).ref+=cents(r.amount);});
     acct={k:k,n:k.map(function(a){return a.length;}),paid:paid,byPatient:byPatient,credit:cr,allocByPayment:allocByPayment,refundByPayment:refundByPayment};return acct;}
   function money(n){return Number(n||0).toLocaleString('es-MX',{style:'currency',currency:'MXN'});}
@@ -62,7 +62,7 @@
   function balance(charge){return balanceCents(charge)/100;}
   function patientBalance(id){return sumBalance(acctIndex().byPatient.get(id));}
   function patientCredit(id){return creditCents(id)/100;}
-  function accountSnapshot(id){var charges=(acctIndex().byPatient.get(id)||[]).filter(function(c){return c.status!=='voided';}),today=new Date();today.setHours(0,0,0,0);var totalC=charges.reduce(function(s,c){return s+cents(c.total_amount);},0),paidC=charges.reduce(function(s,c){return s+paidCents(c);},0),dueC=charges.reduce(function(s,c){return s+balanceCents(c);},0),open=charges.filter(function(c){return balanceCents(c)>0;}),overdue=open.filter(function(c){return c.due_on&&new Date(c.due_on+'T00:00:00')<today;}),next=open.filter(function(c){return c.due_on;}).sort(function(a,b){return String(a.due_on).localeCompare(String(b.due_on));})[0],creditC=creditCents(id),overdueC=overdue.reduce(function(s,c){return s+balanceCents(c);},0);return {charges:charges,total:totalC/100,paid:paidC/100,due:dueC/100,credit:creditC/100,dueCents:dueC,creditCents:creditC,overdueCents:overdueC,overdue:overdue,next:next,progress:totalC?Math.min(100,Math.round(paidC/totalC*100)):0,last:charges.slice().sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);})[0]};}
+  function accountSnapshot(id){var ix=acctIndex(),charges=(ix.byPatient.get(id)||[]).filter(function(c){return c.status!=='voided';}),today=new Date();today.setHours(0,0,0,0);var totalC=charges.reduce(function(s,c){return s+cents(c.total_amount);},0),paidC=charges.reduce(function(s,c){return s+paidCents(c);},0),dueC=charges.reduce(function(s,c){return s+balanceCents(c);},0),open=charges.filter(function(c){return balanceCents(c)>0;}),overdue=open.filter(function(c){return c.due_on&&new Date(c.due_on+'T00:00:00')<today;}),next=open.filter(function(c){return c.due_on;}).sort(function(a,b){return String(a.due_on).localeCompare(String(b.due_on));})[0],creditC=creditCents(id),overdueC=overdue.reduce(function(s,c){return s+balanceCents(c);},0),openTotalC=open.reduce(function(s,c){return s+cents(c.total_amount);},0),first=overdue.reduce(function(m,c){return !m||String(c.due_on)<m?String(c.due_on):m;},''),paidInfo=ix.credit.get(id)||{};return {charges:charges,total:totalC/100,paid:paidC/100,due:dueC/100,credit:creditC/100,totalCents:totalC,dueCents:dueC,creditCents:creditC,overdueCents:overdueC,openTotalCents:openTotalC,overdueDays:first?Math.max(1,Math.round((today-new Date(first+'T00:00:00'))/86400000)):0,lastPaid:paidInfo.last||null,lastPaidAt:paidInfo.lastAt||0,overdue:overdue,next:next,progress:totalC?Math.min(100,Math.round(paidC/totalC*100)):0,last:charges.slice().sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);})[0]};}
   function dueLabel(charge){if(!charge||!charge.due_on)return 'Sin fecha de vencimiento';var today=new Date();today.setHours(0,0,0,0);var due=new Date(charge.due_on+'T00:00:00'),days=Math.round((due-today)/86400000);if(days<0)return 'Vencido hace '+Math.abs(days)+' día'+(Math.abs(days)===1?'':'s');if(days===0)return 'Vence hoy';if(days<=7)return 'Vence en '+days+' día'+(days===1?'':'s');return 'Vence '+date(charge.due_on);}
   function proposalBatch(proposal){return state.proposalBatches.find(function(x){return x.proposal_id===proposal.id&&x.proposal_revision===proposal.revision;});}
   function proposalTotal(proposal){return Number(proposal.total_cents||0)/100;}
@@ -80,6 +80,105 @@
   }
   function plural(n,one,many){return n+' '+(n===1?one:many);}
   function sinceLabel(iso){var d=new Date(iso),time=new Intl.DateTimeFormat('es-MX',{hour:'numeric',minute:'2-digit'}).format(d);return d.toDateString()===new Date().toDateString()?'las '+time:new Intl.DateTimeFormat('es-MX',{day:'numeric',month:'short'}).format(d)+', '+time;}
+  // Texto sin acentos ni mayúsculas, para que «lopez» encuentre a «López».
+  function fold(v){return String(v==null?'':v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+  function dayOf(d,shift){return new Date(d.getFullYear(),d.getMonth(),d.getDate()+(shift||0));}
+  // Fecha de una fila: «Hoy 6:46 p.m.», «Ayer 6:46 p.m.», «19 nov 9:46 p.m.» o «19 nov 2025» si es de otro año.
+  function whenLabel(iso){var d=new Date(iso);if(!iso||isNaN(d.getTime()))return '—';var now=new Date(),t=d.getTime(),today=dayOf(now).getTime(),time=new Intl.DateTimeFormat('es-MX',{hour:'numeric',minute:'2-digit'}).format(d);if(t>=today&&t<dayOf(now,1).getTime())return 'Hoy '+time;if(t>=dayOf(now,-1).getTime()&&t<today)return 'Ayer '+time;return d.getFullYear()===now.getFullYear()?new Intl.DateTimeFormat('es-MX',{day:'numeric',month:'short'}).format(d)+' '+time:date(d);}
+  // Día relativo sin hora: relDay(x,'','el ') → «hoy», «ayer» o «el 19 nov»; relDay(x,'de ','del ') → «de hoy», «de ayer» o «del 19 nov».
+  function relDay(iso,near,far){var d=new Date(iso);if(!iso||isNaN(d.getTime()))return '';var now=new Date(),t=dayOf(d).getTime();return t===dayOf(now).getTime()?near+'hoy':t===dayOf(now,-1).getTime()?near+'ayer':far+(d.getFullYear()===now.getFullYear()?new Intl.DateTimeFormat('es-MX',{day:'numeric',month:'short'}).format(d):date(d));}
+  function dayKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function parseDay(v){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v||''));return m?new Date(Number(m[1]),Number(m[2])-1,Number(m[3])):null;}
+  // «Pagos» se consulta por periodo. Abre en Hoy, igual que la cifra de su pestaña; «Fechas» empieza en el mes anterior, que es lo que suele pedir el contador.
+  var PAY_PERIODS=[['today','Hoy'],['week','7 días'],['month','Este mes'],['custom','Fechas']],METHOD_ORDER=['cash','card','transfer','check','other'],METHOD_PHRASE={cash:'en efectivo',card:'con tarjeta',transfer:'por transferencia',check:'con cheque',other:'con otra forma de pago'};
+  function payRange(){
+    var now=new Date(),first=dayOf(now),last=dayOf(now),text='hoy';
+    if(state.payPeriod==='week'){first=dayOf(now,-6);text='en los últimos 7 días';}
+    else if(state.payPeriod==='month'){first=new Date(now.getFullYear(),now.getMonth(),1);text='este mes';}
+    else if(state.payPeriod==='custom'){var a=parseDay(state.payFrom),b=parseDay(state.payTo);if(a&&b){first=a<=b?a:b;last=a<=b?b:a;text=first.getTime()===last.getTime()?'el '+date(first):'del '+date(first)+' al '+date(last);}}
+    return {from:first.getTime(),to:dayOf(last,1).getTime(),fromDay:dayKey(first),toDay:dayKey(last),text:text};
+  }
+  function setPayPeriod(period){
+    if(period==='custom'&&!(parseDay(state.payFrom)&&parseDay(state.payTo))){var now=new Date();state.payFrom=dayKey(new Date(now.getFullYear(),now.getMonth()-1,1));state.payTo=dayKey(new Date(now.getFullYear(),now.getMonth(),0));}
+    state.payPeriod=PAY_PERIODS.some(function(p){return p[0]===period;})?period:'today';state.shown.payments=PAGE_ROWS;renderPayments();
+  }
+  // Importe con signo legible: «−$200.00» (el mismo signo de las filas de reembolso).
+  function signed(c){return (c<0?'−':'')+money(Math.abs(c)/100);}
+  // Pagos y reembolsos del periodo, del más reciente al más antiguo. El total y el desglose son netos: pagos menos reembolsos.
+  function paymentsView(){
+    var range=payRange(),method=state.payMethod,events=[],byMethod={},total=0,paid=0,refunded=0;
+    function add(kind,t,row,payment,amount){var m=payment?payment.method:'';byMethod[m]=(byMethod[m]||0)+amount;if(method&&m!==method)return;events.push({kind:kind,t:t,row:row,payment:payment,cents:amount});total+=amount;if(kind==='payment')paid+=1;else refunded+=1;}
+    state.payments.forEach(function(p){var t=Date.parse(p.paid_at)||0;if(t>=range.from&&t<range.to)add('payment',t,p,p,cents(p.amount));});
+    state.refunds.forEach(function(r){var t=Date.parse(r.refunded_at)||0;if(t>=range.from&&t<range.to)add('refund',t,r,by(state.payments,r.payment_id)||null,-cents(r.amount));});
+    events.sort(function(a,b){return b.t-a.t;});
+    return {range:range,events:events,totalCents:total,payments:paid,refunds:refunded,byMethod:byMethod};
+  }
+  // Qué fue cada pago: completo (sin etiqueta), abono (cubre solo parte de un cargo) o anticipo (no se aplicó a ningún cargo y queda a favor).
+  function paymentFacts(p){
+    var ix=acctIndex(),allocations=ix.allocByPayment.get(p.id)||[],amount=cents(p.amount),applied=0,partial=false,concepts=[];
+    allocations.forEach(function(a){var charge=by(state.charges,a.charge_id),v=cents(a.amount);applied+=v;if(!charge)return;if(v<cents(charge.total_amount))partial=true;var label=receiptConcept(charge);if(concepts.indexOf(label)<0)concepts.push(label);});
+    var refunded=Math.min(amount,(ix.refundByPayment.get(p.id)||[]).reduce(function(s,r){return s+cents(r.amount);},0));
+    // Un reembolso primero deshace lo aplicado a cargos; solo el resto sale del saldo a favor.
+    return {kind:!allocations.length?'advance':partial?'partial':'full',label:!allocations.length?'Anticipo':partial?'Abono':'Pago',concepts:concepts,concept:concepts.length?concepts[0]+(concepts.length>1?' + '+(concepts.length-1)+' más':''):'',creditCents:Math.max(0,(amount-applied)-Math.max(0,refunded-applied)),refundedCents:refunded};
+  }
+  // Estado de la factura de un pago, solo si ya tiene borrador o factura: 'en preparación', 'emitida' o 'cancelada'.
+  function invoiceState(p){var d=byKey(state.drafts,'payment_id',p.id);return !d?'':d.status==='issued'?'emitida':d.status==='cancelled'?'cancelada':'en preparación';}
+  function renderPayments(){
+    var host=document.getElementById('finance-payments');if(!host||state.tab!=='receipts')return;
+    var view=paymentsView(),events=view.events,shown=events.slice(0,state.shown.payments),page=document.getElementById('p-caja'),custom=state.payPeriod==='custom',from=document.getElementById('finance-pay-from'),to=document.getElementById('finance-pay-to'),counts=[];
+    page.querySelectorAll('[data-pay-period]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.payPeriod===state.payPeriod));});
+    document.getElementById('finance-pay-range').hidden=!custom;
+    if(custom){from.value=view.range.fromDay;to.value=view.range.toDay;}
+    document.getElementById('finance-pay-method').value=state.payMethod;
+    document.getElementById('finance-pay-export').disabled=!events.length;
+    if(view.payments)counts.push(plural(view.payments,'pago','pagos'));if(view.refunds)counts.push(plural(view.refunds,'reembolso','reembolsos'));
+    var split=state.payMethod?'':METHOD_ORDER.filter(function(m,i){return i<3||view.byMethod[m];}).map(function(m){return PAYMENT_METHODS[m]+' '+signed(view.byMethod[m]||0);}).join(' · '),
+      phrase=state.payMethod?' '+METHOD_PHRASE[state.payMethod]:'',anyOlder=state.payPeriod==='today'&&(state.payments.length||state.refunds.length);
+    function line(e){
+      var p=e.payment,patient=esc(p?name(p.patient_id):'Paciente'),open=function(sub){return p?'<button type="button" class="finance-line-who" data-account="'+p.patient_id+'" title="Abrir la cuenta"><strong class="finance-line-name">'+patient+'</strong><small>'+sub+'</small></button>':'<div class="finance-line-who"><strong class="finance-line-name">Paciente</strong><small>'+sub+'</small></div>';},
+        receipt=p&&byKey(state.receipts,'payment_id',p.id),how=p?'<span>'+esc(PAYMENT_METHODS[p.method]||p.method)+'</span>'+(p.reference?'<small>'+esc(p.reference)+'</small>':''):'<span>—</span>',
+        see=receipt?'<button type="button" class="finance-link-action" data-open-receipt="'+receipt.id+'" aria-label="Recibo '+String(receipt.folio||0).padStart(6,'0')+' de '+patient+'">Recibo</button>':'<small>Sin recibo</small>';
+      if(e.kind==='refund'){var r=e.row;return '<article class="finance-line" data-cols="payments" data-kind="refund" role="listitem"><div class="finance-line-when">'+whenLabel(r.refunded_at)+'</div>'+open('<span class="finance-tag" data-tone="danger">Reembolso</span> '+esc(r.reason||'Sin motivo capturado')+(p?' · pago '+relDay(p.paid_at,'de ','del '):''))+'<div class="finance-line-how">'+how+'</div><div class="finance-line-amount"><strong>'+signed(-cents(r.amount))+'</strong></div><div class="finance-line-actions">'+see+'</div></article>';}
+      var f=paymentFacts(p),bits=[],invoice=invoiceState(p),left=cents(p.amount)-f.refundedCents;
+      if(f.concept)bits.push(esc(f.concept));
+      if(f.kind==='advance'&&!f.refundedCents)bits.push('Queda como saldo a favor');else if(f.creditCents>0)bits.push(money(f.creditCents/100)+' a favor');
+      if(f.refundedCents)bits.push('<span class="finance-line-neg">'+(left>0?'Reembolsado '+money(f.refundedCents/100):'Reembolsado')+'</span>');
+      if(invoice)bits.push('Factura '+invoice);
+      return '<article class="finance-line" data-cols="payments" data-kind="'+f.kind+'" role="listitem"><div class="finance-line-when">'+whenLabel(p.paid_at)+'</div>'+open((f.kind==='advance'?'<span class="finance-tag" data-tone="ok">Anticipo</span> ':f.kind==='partial'?'<span class="finance-tag">Abono</span> ':'')+bits.join(' · '))+'<div class="finance-line-how">'+how+'</div><div class="finance-line-amount"><strong>'+money(p.amount)+'</strong></div><div class="finance-line-actions">'
+        +(state.canManage&&state.canRefund&&left>0?'<details class="finance-row-menu"><summary aria-label="Más acciones del pago de '+patient+'">•••</summary><div><button type="button" data-refund="'+p.id+'">Reembolsar pago</button></div></details>':'')+see+'</div></article>';
+    }
+    host.innerHTML=events.length?'<div class="finance-total-strip" aria-live="polite"><strong>'+signed(view.totalCents)+'</strong><span>'+counts.join(' y ')+phrase+' '+view.range.text+'</span>'+(split?'<span>'+split+'</span>':'')+'</div><div class="finance-cols" data-cols="payments" aria-hidden="true"><span>Fecha</span><span>Paciente y concepto</span><span>Forma de pago</span><span>Importe</span><span></span></div><div class="finance-lines" role="list">'+shown.map(line).join('')+'</div>'+moreRows(events.length,shown.length,'payments')+'<p class="finance-list-foot">Los reembolsos aparecen en esta misma lista, en rojo y con su motivo.</p>'
+      :'<div class="finance-empty"><strong>Sin pagos'+phrase+' '+view.range.text+'</strong><p>'+(state.payMethod?'Prueba con otra forma de pago o cambia el periodo.':state.payPeriod==='today'?'Los pagos que registres con «Cobrar» aparecerán aquí.':'Prueba con otro periodo.')+'</p>'+(anyOlder?'<button type="button" class="finance-link-action" data-pay-jump="week">Ver los últimos 7 días</button>':'')+'</div>';
+    host.querySelectorAll('[data-account]').forEach(function(b){b.onclick=function(){openAccount(b.dataset.account);};});
+    host.querySelectorAll('[data-open-receipt]').forEach(function(b){b.onclick=function(){openReceiptDetails(by(state.receipts,b.dataset.openReceipt));};});
+    host.querySelectorAll('[data-refund]').forEach(function(b){b.onclick=function(){openRefund(by(state.payments,b.dataset.refund));};});
+    var jump=host.querySelector('[data-pay-jump]');if(jump)jump.onclick=function(){setPayPeriod(jump.dataset.payJump);};
+    bindMoreRows(host,'payments',renderPayments);
+  }
+  // Exporta a Excel lo mismo que se ve: periodo y forma de pago elegidos. Queda registrado en Seguridad antes de generarse el archivo
+  // (como «reporte de administración»: es el tipo de exportación que el servidor ya acepta para cualquier rol que consulta la clínica).
+  async function exportPayments(button){
+    var view=paymentsView(),events=view.events,range=view.range;if(!events.length)return;
+    button.disabled=true;
+    try{
+      if(!window.SmylSecurity||!window.SmylXlsx)throw new Error('La exportación no está disponible en este momento. Recarga la página.');
+      await window.SmylSecurity.recordExport({export_type:'executive_csv',entity_type:'executive_report',entity_id:'pagos:'+range.fromDay+':'+range.toDay+':'+(state.payMethod||'todas'),record_count:events.length,purpose:'administration'});
+    }catch(e){button.disabled=false;notify(e&&e.message||'No se pudo registrar la exportación.','error');return;}
+    try{
+      var member=function(id){var m=state.team.find(function(x){return x.id===id;});return m&&m.nombre||'';},rows=events.map(function(e){
+        var p=e.payment,receipt=p&&byKey(state.receipts,'payment_id',p.id),branch=p&&by(state.branches,p.branch_id),f=p&&e.kind==='payment'?paymentFacts(p):null,invoice=f?invoiceState(p):'';
+        return [e.kind==='refund'?e.row.refunded_at:p.paid_at,receipt?String(receipt.folio||0).padStart(6,'0'):'',p?name(p.patient_id):'Paciente',f?f.label:'Reembolso',f?f.concepts.join(', ')||'Saldo a favor':e.row.reason||'',p?PAYMENT_METHODS[p.method]||p.method:'',p&&p.reference||'',e.cents/100,branch&&branch.name||'',member(e.row.created_by),f?(invoice?invoice.charAt(0).toUpperCase()+invoice.slice(1):'Sin factura'):''];
+      }),period=range.fromDay===range.toDay?date(parseDay(range.fromDay)):'Del '+date(parseDay(range.fromDay))+' al '+date(parseDay(range.toDay)),
+        totals=[['Periodo',period],['Forma de pago',state.payMethod?PAYMENT_METHODS[state.payMethod]:'Todas'],['Pagos',{value:view.payments,type:'number'}],['Reembolsos',{value:view.refunds,type:'number'}],[{value:'Total cobrado (pagos menos reembolsos)',type:'bold'},{value:view.totalCents/100,type:'moneyBold'}]]
+          .concat(state.payMethod?[]:METHOD_ORDER.filter(function(m){return view.byMethod[m];}).map(function(m){return [PAYMENT_METHODS[m],{value:view.byMethod[m]/100,type:'money'}];}),[['Generado',{value:new Date(),type:'datetime'}]]),
+        file='pagos-'+range.fromDay+(range.toDay!==range.fromDay?'_a_'+range.toDay:'')+'.xlsx';
+      await window.SmylXlsx.download(file,[
+        {name:'Pagos',filter:true,columns:[{header:'Fecha',width:18,type:'datetime'},{header:'Recibo',width:10},{header:'Paciente',width:30},{header:'Tipo',width:12},{header:'Concepto',width:36},{header:'Forma de pago',width:16},{header:'Referencia',width:28},{header:'Importe',width:14,type:'money'},{header:'Sucursal',width:18},{header:'Registró',width:20},{header:'Factura',width:16}],rows:rows},
+        {name:'Totales',columns:[{header:'Concepto',width:40},{header:'Valor',width:36}],rows:totals}]);
+      notify('Se descargó '+file+' con '+plural(events.length,'movimiento','movimientos')+'.','success');
+    }catch(e){notify('No se pudo generar el archivo. Intenta de nuevo.','error');}
+    button.disabled=!paymentsView().events.length;
+  }
   function renderTabs(){
     var page=document.getElementById('p-caja');if(!page||!page.querySelector('[data-finance-tab]'))return;
     var f=tabFacts(),due=[];if(state.canRead)renderNavBadge(f.visits);
@@ -123,88 +222,70 @@
   window.addEventListener('smyl:inbox-access',resetChatLinks);
   window.addEventListener('smyl:chat-routing-changed',resetChatLinks);
   function openChat(patientId){var l=chatLinks[patientId];if(l&&window.SmylInbox&&typeof window.SmylInbox.open==='function')window.SmylInbox.open(l.conversation);}
-  var MORE_FILTERS=['attention','settled'],ACCOUNT_TITLES={open:'Cuentas con saldo',overdue:'Cuentas vencidas',credit:'Saldos a favor',all:'Todas las cuentas',attention:'Cuentas que requieren acción',settled:'Cuentas liquidadas'};
   // Una cuenta comunica una sola situación financiera y una sola acción principal.
+  // «Por cobrar» tiene cuatro vistas. Buscar por nombre encuentra cualquier cuenta, sin importar la vista elegida.
+  var ACCOUNT_FILTERS=['open','overdue','credit','all'],ACCOUNT_TITLES={open:'Cuentas con saldo',overdue:'Cuentas vencidas',credit:'Saldos a favor',all:'Todas las cuentas'};
+  function accountSearch(){var input=document.getElementById('finance-search');return fold(input&&input.value).trim();}
+  function matchAccount(s,filter){return filter==='overdue'?s.overdue.length>0:filter==='open'?s.dueCents>0:filter==='credit'?s.creditCents>0:s.charges.length>0||s.creditCents>0;}
+  // Orden: vencidas (más días primero), con saldo (mayor primero), a favor, liquidadas (pago más reciente) y sin movimientos.
+  function accountRank(s){return s.overdue.length?0:s.dueCents>0?1:s.creditCents>0?2:s.charges.length?3:4;}
+  function compareAccounts(a,b){var ra=accountRank(a.s),rb=accountRank(b.s),d=ra-rb;if(!d)d=ra===0?b.s.overdueDays-a.s.overdueDays||b.s.overdueCents-a.s.overdueCents:ra===1?b.s.dueCents-a.s.dueCents:ra===2?b.s.creditCents-a.s.creditCents:ra===3?b.s.lastPaidAt-a.s.lastPaidAt:0;return d||name(a.p.id).localeCompare(name(b.p.id),'es');}
+  function setAccountFilter(filter){var input=document.getElementById('finance-search');if(input)input.value='';state.accountFilter=ACCOUNT_FILTERS.indexOf(filter)!==-1?filter:'open';state.shown.accounts=PAGE_ROWS;renderVisits();renderAccounts();}
+  function meter(part,total){var pct=total>0?Math.max(2,Math.min(100,Math.round(part/total*100))):0;return '<i class="finance-meter" aria-hidden="true"><u style="width:'+pct+'%"></u></i><small>'+money(part/100)+' de '+money(total/100)+'</small>';}
+  // Una fila por cuenta: nombre (abre la cuenta), lo pagado, el saldo alineado y un solo botón. Solo lo vencido lleva color.
+  function accountLine(x){
+    var s=x.s,id=x.p.id,label=esc(name(id)),debt=s.dueCents>0,late=s.overdue.length>0,creditOnly=!debt&&s.creditCents>0,settled=!debt&&!creditOnly&&s.charges.length>0,
+      link=chatLinks[id],blocked=collectMeta.blocked[id],reminded=collectMeta.reminders[id],ago=reminded?daysAgo(reminded):null,sub,paid='',amount,menu=[];
+    if(late)sub='<span class="finance-tag" data-tone="danger">Vencida</span> '+(s.overdueCents<s.dueCents?money(s.overdueCents/100)+' ':'')+'desde hace '+plural(s.overdueDays,'día','días')+(blocked?' · <span class="finance-tag">No contactar</span>':ago!==null?' · Avisado '+agoLabel(ago):'');
+    else if(debt)sub=esc(s.next?dueLabel(s.next):'Sin fecha de vencimiento');
+    else if(creditOnly||settled)sub=s.lastPaid?'Último pago '+relDay(s.lastPaid,'','el '):creditOnly?'Saldo a favor sin aplicar':'Sin saldo pendiente';
+    else sub='Sin movimientos';
+    if(debt&&s.creditCents>0)sub+=' · '+money(s.creditCents/100)+' a favor';
+    if(debt)paid=s.openTotalCents>s.dueCents?meter(s.openTotalCents-s.dueCents,s.openTotalCents):'<small>Sin abonos todavía</small>';
+    else if(creditOnly)paid='<small>Sin cargos pendientes</small>';
+    else if(settled)paid=meter(s.totalCents,s.totalCents);
+    amount=debt?'<strong>'+money(s.dueCents/100)+'</strong>':creditOnly?'<strong data-tone="ok">'+money(s.creditCents/100)+'</strong><small>a favor</small>':settled?'<strong data-tone="quiet">'+money(0)+'</strong><small>liquidada</small>':'<strong data-tone="quiet">—</strong>';
+    if(late&&link&&!blocked&&link.channel==='whatsapp'&&window.SmylInbox&&window.SmylInbox.collect)menu.push('<button type="button" data-remind="'+id+'">'+(ago!==null&&ago<7?'Enviar otro recordatorio':'Enviar recordatorio')+'</button>');
+    if(link)menu.push('<button type="button" data-chat="'+id+'">Abrir chat</button>');
+    if(late&&!blocked)menu.push('<button type="button" data-contact-block="'+id+'">No contactar</button>');
+    else if(late&&state.canManage)menu.push('<button type="button" data-contact-allow="'+id+'">Permitir recordatorios</button>');
+    return '<article class="finance-line" data-cols="accounts" data-account-state="'+(late?'overdue':debt?'due':creditOnly?'credit':settled?'settled':'empty')+'" role="listitem"><button type="button" class="finance-line-who" data-account="'+id+'" title="Abrir la cuenta"><strong class="finance-line-name">'+label+'</strong><small>'+sub+'</small></button><div class="finance-line-paid">'+paid+'</div><div class="finance-line-amount"><span class="finance-sr">Saldo </span>'+amount+'</div><div class="finance-line-actions">'
+      +(menu.length?'<details class="finance-row-menu"><summary aria-label="Más acciones para '+label+'">•••</summary><div>'+menu.join('')+'</div></details>':'')
+      +(debt&&state.canManage?'<button type="button" class="btn btn-secondary" data-account-pay="'+id+'" aria-label="Cobrar a '+label+'">Cobrar</button>':'<button type="button" class="btn btn-secondary" data-account="'+id+'" aria-label="Ver la cuenta de '+label+'">Ver cuenta</button>')+'</div></article>';
+  }
   function renderAccounts(){
-    if(state.tab!=='accounts')return;
-    // El último filtro elegido se recuerda en este dispositivo (por clínica).
-    var filterKey='smyl_finance_filter_'+(state.tenant||'');
-    if(!state.filterRestored&&state.tenant){state.filterRestored=true;try{var savedFilter=window.localStorage.getItem(filterKey);if(['open','overdue','credit','all','attention','settled'].indexOf(savedFilter)!==-1)state.accountFilter=savedFilter;}catch(_){}}
-    else if(state.filterRestored){try{window.localStorage.setItem(filterKey,state.accountFilter);}catch(_){}}
-    var search=(document.getElementById('finance-search').value||'').toLowerCase(),
-      snaps=state.patients.map(function(p){return {p:p,s:accountSnapshot(p.id)};}),
-      match=function(x,f){
-        if(f==='attention')return x.s.overdue.length||x.s.credit>0;
-        if(f==='overdue')return x.s.overdue.length>0;
-        if(f==='open')return x.s.due>0;
-        if(f==='credit')return x.s.credit>0;
-        if(f==='settled')return x.s.charges.length&&x.s.due===0&&!x.s.credit;
-        if(f==='all')return Boolean(search)||state.showEmptyAccounts||x.s.charges.length>0||x.s.credit>0;
-        return true;
-      },
-      rows=snaps.filter(function(x){return (!search||name(x.p.id).toLowerCase().includes(search))&&match(x,state.accountFilter);}).sort(function(a,b){return b.s.overdue.length-a.s.overdue.length||b.s.due-a.s.due||b.s.credit-a.s.credit;}),
-      overdueMode=state.accountFilter==='overdue',listHost=document.getElementById('finance-accounts'),todayHost=document.getElementById('finance-today'),summaryHost=document.getElementById('finance-account-summary'),titleHost=document.getElementById('finance-accounts-title');
+    var host=document.getElementById('finance-accounts');if(!host||state.tab!=='accounts')return;
+    var input=document.getElementById('finance-search'),typed=String(input&&input.value||'').trim(),search=fold(typed),filter=search?'':state.accountFilter,
+      all=state.patients.map(function(p){return {p:p,s:accountSnapshot(p.id)};}),
+      rows=all.filter(function(x){return search?fold(name(x.p.id)).indexOf(search)!==-1:matchAccount(x.s,filter);}).sort(compareAccounts),shown=rows.slice(0,state.shown.accounts),sum={due:0,late:0,credit:0};
     document.querySelectorAll('#p-caja [data-account-filter]').forEach(function(button){
-      button.setAttribute('aria-pressed',String(button.dataset.accountFilter===state.accountFilter));
-      // «Requieren acción» y «Liquidadas» viven en «Más filtros»; solo se muestran mientras están elegidas.
-      button.hidden=MORE_FILTERS.indexOf(button.dataset.accountFilter)!==-1&&state.accountFilter!==button.dataset.accountFilter;
-      var count=button.querySelector('em');
-      if(count)count.textContent=String(snaps.filter(function(x){return match(x,button.dataset.accountFilter);}).length);
+      var f=button.dataset.accountFilter,count=button.querySelector('em');
+      // Mientras se busca, ninguna vista queda marcada: la búsqueda recorre todas las cuentas.
+      button.setAttribute('aria-pressed',String(f===filter));
+      if(count)count.textContent=String(all.filter(function(x){return matchAccount(x.s,f);}).length);
     });
-    var filterStrip=document.querySelector('.finance-account-filters'),selectedFilter=filterStrip&&filterStrip.querySelector('[aria-pressed="true"]');
-    if(filterStrip&&selectedFilter&&filterStrip.scrollWidth>filterStrip.clientWidth)requestAnimationFrame(function(){selectedFilter.scrollIntoView({block:'nearest',inline:'center'});});
-    if(titleHost)titleHost.textContent=ACCOUNT_TITLES[state.accountFilter]||'Cuentas';
-    if(summaryHost){
-      var totals=rows.reduce(function(out,x){out.due+=x.s.dueCents;out.credit+=x.s.creditCents;return out;},{due:0,credit:0});
-      summaryHost.textContent=overdueMode?'Ordenadas por días de atraso':rows.length+' cuenta'+(rows.length===1?'':'s');
-      if(rows.length&&state.accountFilter==='open')summaryHost.textContent+=' · '+money(totals.due/100);
-      if(rows.length&&state.accountFilter==='credit')summaryHost.textContent+=' · '+money(totals.credit/100);
-    }
-    listHost.hidden=overdueMode;
-    if(todayHost)todayHost.hidden=!overdueMode;
-    if(overdueMode){renderToday();return;}
-    var hiddenEmpty=state.accountFilter==='all'&&!search&&!state.showEmptyAccounts?snaps.filter(function(x){return !x.s.charges.length&&!(x.s.credit>0);}).length:0,emptyFold=state.accountFilter==='all'&&!search&&(hiddenEmpty||state.showEmptyAccounts)?'<div class="finance-empty-fold"><span>'+(state.showEmptyAccounts?'Mostrando también a los pacientes sin movimientos.':hiddenEmpty+(hiddenEmpty===1?' paciente sin movimientos':' pacientes sin movimientos')+' (aparecen al buscarlos por nombre).')+'</span><button type="button" data-toggle-empty>'+(state.showEmptyAccounts?'Ocultar':'Ver')+'</button></div>':'',shownRows=rows.slice(0,state.shown.accounts);
-    listHost.innerHTML=rows.length?'<div class="finance-table"><div class="finance-row finance-row-head"><span>Paciente</span><span>Estado de cuenta</span><span>Importe</span><span>Acción</span></div>'+shownRows.map(function(x){
-      var s=x.s,hasDebt=s.due>0,creditOnly=!hasDebt&&s.credit>0,settled=s.charges.length&&!hasDebt&&!s.credit,
-        status=s.overdue.length?'Vencida':hasDebt?'Pendiente':creditOnly?'A favor':settled?'Liquidada':'Sin movimientos',
-        tone=s.overdue.length?'danger':hasDebt?'due':creditOnly?'credit':settled?'paid':'neutral',
-        context=hasDebt&&s.total&&s.paid<=0?'<div class="finance-account-note finance-account-quiet"><small>Sin abonos todavía</small></div>':hasDebt&&s.total?'<div class="finance-account-progress"><span><b>'+s.progress+'% cubierto</b><small>'+money(s.paid)+' de '+money(s.total)+'</small></span><i><u style="width:'+s.progress+'%"></u></i></div>':creditOnly?'<div class="finance-account-note"><strong>Saldo a favor disponible</strong><small>Listo para aplicar a un cargo.</small></div>':'<div class="finance-account-note"><strong>'+(settled?'Cuenta al corriente':'Sin actividad financiera')+'</strong><small>'+(settled?'No hay pagos pendientes.':'Aún no se han registrado cargos.')+'</small></div>',
-        amountLabel=hasDebt?'Por cobrar':creditOnly?'Saldo a favor':settled?'Estado':'Cuenta',
-        amount=hasDebt?money(s.due):creditOnly?'+'+money(s.credit):settled?'Sin saldo':'—',
-        detail=hasDebt?(s.next?dueLabel(s.next):'Sin fecha de vencimiento'):creditOnly?'Saldo a favor sin aplicar':s.last?'Sin saldo pendiente':'Sin cargos',
-        chat=chatLinks[x.p.id]?'<details class="finance-row-menu"><summary aria-label="Más acciones para '+esc(name(x.p.id))+'">•••</summary><div><button type="button" data-chat="'+x.p.id+'">Abrir chat</button></div></details>':'';
-      return '<article class="finance-row" data-account-state="'+tone+'"><div class="finance-account-identity"><strong>'+esc(name(x.p.id))+'</strong><small>'+esc(detail)+'</small></div><div class="finance-account-context">'+context+'</div><div class="finance-account-amount"><span>'+amountLabel+'</span><strong>'+amount+'</strong><span class="finance-badge" data-tone="'+tone+'">'+status+'</span>'+(hasDebt&&s.credit?'<small>Además, '+money(s.credit)+' a favor</small>':'')+'</div><div class="finance-row-actions">'+(hasDebt&&state.canManage?'<button type="button" class="btn btn-primary finance-row-pay" data-account-pay="'+x.p.id+'">Cobrar '+money(s.due)+'</button>':'')+'<button type="button" class="finance-account-open" data-account="'+x.p.id+'">Abrir cuenta</button>'+chat+'</div></article>';
-    }).join('')+'</div>'+moreRows(rows.length,shownRows.length,'accounts')+emptyFold:(state.accountFilter==='open'&&!search?'<div class="finance-empty finance-empty-clear"><strong>'+(pendingVisits().length?'No hay cuentas con saldo pendiente':'Todo cobrado por ahora')+'</strong><p>'+(pendingVisits().length?'Registra los cargos de las citas atendidas y aparecerán aquí.':'Cuando un paciente termine su cita, aparecerá aquí para que registres el cargo.')+'</p>'+(state.canManage?'<button type="button" class="btn btn-primary" data-empty-collect>Cobrar</button>':'')+'</div>':'<div class="finance-empty"><strong>Sin cuentas en esta vista</strong><p>Cambia el filtro o ajusta la búsqueda.</p></div>');
-    var emptyCollect=listHost.querySelector('[data-empty-collect]');if(emptyCollect)emptyCollect.onclick=function(){openGuidedCollection();};
-    listHost.querySelectorAll('[data-account]').forEach(function(button){button.onclick=function(){openAccount(button.dataset.account);};});
-    listHost.querySelectorAll('[data-account-pay]').forEach(function(button){button.onclick=function(){openPayment(button.dataset.accountPay,{mode:'balance'});};});
-    var toggleEmpty=listHost.querySelector('[data-toggle-empty]');if(toggleEmpty)toggleEmpty.onclick=function(){state.showEmptyAccounts=!state.showEmptyAccounts;renderAccounts();};
-    listHost.querySelectorAll('[data-chat]').forEach(function(button){button.onclick=function(){openChat(button.dataset.chat);};});
-    bindMoreRows(listHost,'accounts',renderAccounts);
+    rows.forEach(function(x){sum.due+=x.s.dueCents;sum.late+=x.s.overdueCents;sum.credit+=x.s.creditCents;});
+    var title=search?'Resultados de «'+esc(typed)+'»':ACCOUNT_TITLES[filter],
+      summary=!rows.length?'':search?plural(rows.length,'paciente','pacientes'):plural(rows.length,'cuenta','cuentas')+(filter==='open'?' · '+money(sum.due/100):filter==='overdue'?' · '+money(sum.late/100)+' vencido':filter==='credit'?' · '+money(sum.credit/100)+' a favor':''),
+      visits=pendingVisits().length,
+      empty=search?['Sin resultados para «'+esc(typed)+'»','Revisa cómo está escrito el nombre.']
+        :filter==='open'?(visits?['No hay cuentas con saldo','Registra el cargo de las citas atendidas y aparecerán aquí.']:['Todo cobrado por ahora','Cuando un paciente termine su cita, aparecerá aquí para registrar su cargo.'])
+        :filter==='overdue'?['Nadie con saldo vencido','Cuando un cargo pase su fecha de vencimiento, el paciente aparecerá aquí.']
+        :filter==='credit'?['Nadie tiene saldo a favor','Los anticipos que aún no se usan aparecen aquí.']
+        :['Aún no hay cuentas con movimientos','Usa «Cobrar» para registrar el primer cargo.'],
+      foot=filter==='overdue'?'Ordenadas por días de atraso. Cada recordatorio se revisa antes de enviarse.':filter==='all'?'Toca el nombre de un paciente para abrir su cuenta completa. Quien no tiene movimientos aparece al buscarlo.':'Toca el nombre de un paciente para abrir su cuenta completa.';
+    host.innerHTML='<header class="finance-group"><h2 id="finance-accounts-title">'+title+'</h2><p id="finance-account-summary" aria-live="polite">'+summary+'</p></header>'
+      +(rows.length?'<div class="finance-cols" data-cols="accounts" aria-hidden="true"><span>Paciente</span><span>Pagado</span><span>Saldo</span><span></span></div><div class="finance-lines" role="list">'+shown.map(accountLine).join('')+'</div>'+moreRows(rows.length,shown.length,'accounts')+'<p class="finance-list-foot">'+foot+'</p>'
+        :'<div class="finance-empty"><strong>'+empty[0]+'</strong><p>'+empty[1]+'</p></div>');
+    host.querySelectorAll('[data-account]').forEach(function(button){button.onclick=function(){openAccount(button.dataset.account);};});
+    host.querySelectorAll('[data-account-pay]').forEach(function(button){button.onclick=function(){openPayment(button.dataset.accountPay,{mode:'balance'});};});
+    host.querySelectorAll('[data-chat]').forEach(function(button){button.onclick=function(){openChat(button.dataset.chat);};});
+    host.querySelectorAll('[data-remind]').forEach(function(button){button.onclick=function(){var item=chatLinks[button.dataset.remind];if(item)window.SmylInbox.collect(item.conversation);};});
+    host.querySelectorAll('[data-contact-block]').forEach(function(button){button.onclick=function(){setCollectPref(button.dataset.contactBlock,true);};});
+    host.querySelectorAll('[data-contact-allow]').forEach(function(button){button.onclick=function(){setCollectPref(button.dataset.contactAllow,false);};});
+    bindMoreRows(host,'accounts',renderAccounts);
   }
 
-  function renderPayments(){
-    var host=document.getElementById('finance-payments');if(!host||state.tab!=='receipts')return;
-    // El libro vive dentro de «Movimientos y correcciones»: solo se dibuja mientras ese bloque está abierto.
-    var box=host.closest('details');if(box&&!box.open){host.replaceChildren();return;}
-    var methods={cash:'Efectivo',card:'Tarjeta',transfer:'Transferencia',check:'Cheque',other:'Otro'};
-    var events=state.payments.map(function(p){return {kind:'payment',t:Date.parse(p.paid_at)||0,row:p};})
-      .concat(state.refunds.map(function(r){return {kind:'refund',t:Date.parse(r.refunded_at)||0,row:r};}))
-      .sort(function(a,b){return b.t-a.t;}),shown=events.slice(0,state.shown.ledger);
-    host.innerHTML=shown.length?shown.map(function(e){
-      if(e.kind==='payment'){
-        var p=e.row,receipt=byKey(state.receipts,'payment_id',p.id),folio=receipt?String(receipt.folio).padStart(6,'0'):'',patientName=name(p.patient_id);
-        var receiptAction=receipt?'<button type="button" class="finance-receipt-action" data-receipt="'+receipt.id+'">Ver recibo</button>':'';
-        var refundAction=state.canManage&&state.canRefund?'<details class="finance-row-menu"><summary aria-label="Más acciones para '+esc(patientName)+'">•••</summary><div><button type="button" data-refund="'+p.id+'">Reembolsar pago</button></div></details>':'';
-        return '<article data-kind="payment"><div class="finance-ledger-icon">$</div><div class="finance-ledger-copy"><strong>'+esc(patientName)+'</strong><p>'+esc(methods[p.method]||p.method)+(p.reference?' · '+esc(p.reference):'')+'</p><small>'+date(p.paid_at,true)+'</small></div><aside class="finance-ledger-summary"><div class="finance-ledger-total"><strong>'+money(p.amount)+'</strong><span>Confirmado</span></div><div class="finance-ledger-actions">'+(receipt?'<small>Recibo '+folio+'</small>':'<small>Sin recibo</small>')+receiptAction+refundAction+'</div></aside></article>';
-      }
-      var r=e.row,p=by(state.payments,r.payment_id);
-      return '<article data-kind="refund"><div class="finance-ledger-icon">↩</div><div class="finance-ledger-copy"><strong>Reembolso · '+esc(p?name(p.patient_id):'Paciente')+'</strong><p>'+esc(r.reason)+'</p><small>'+date(r.refunded_at,true)+'</small></div><aside class="finance-ledger-summary"><div class="finance-ledger-total"><strong>−'+money(r.amount)+'</strong><span>Reembolsado</span></div></aside></article>';
-    }).join('')+moreRows(events.length,shown.length,'ledger'):'<div class="finance-empty"><strong>Aún no hay pagos</strong><p>Los pagos y reembolsos aparecerán en este libro.</p></div>';
-    host.querySelectorAll('[data-receipt]').forEach(function(b){b.onclick=function(){printReceipt(by(state.receipts,b.dataset.receipt));};});
-    host.querySelectorAll('[data-refund]').forEach(function(b){b.onclick=function(){openRefund(by(state.payments,b.dataset.refund));};});
-    bindMoreRows(host,'ledger',renderPayments);
-  }
   // Efectivo de un turno, en centavos y por separado: lo cobrado, lo reembolsado y lo que entró o salió sin ser cobro.
   function cashFlow(s){var out={opening:cents(s.opening_cash),collected:0,refunded:0,added:0,removed:0};
     state.payments.forEach(function(p){if(p.cash_session_id===s.id&&p.method==='cash')out.collected+=cents(p.amount);});
@@ -235,19 +316,6 @@
     return {receipt:receipt,payment:payment,draft:draft,profile:profile,bucket:bucket,code:code,label:label,tone:tone};
   }
   function receiptLines(receipt){var payment=receipt&&by(state.payments,receipt.payment_id);if(!payment)return[];return (acctIndex().allocByPayment.get(payment.id)||[]).map(function(a){var charge=by(state.charges,a.charge_id);return charge?{charge:charge,amount:Number(a.amount||0)}:null;}).filter(Boolean);}
-  function receiptServices(receipt){var lines=receiptLines(receipt);if(!lines.length)return'Saldo a favor sin servicios aplicados';var first=lines[0].charge.concept;return lines.length===1?first:first+' + '+(lines.length-1)+' servicio'+(lines.length===2?'':'s');}
-  function renderReceipts(){
-    var host=document.getElementById('finance-receipts');if(!host||state.tab!=='receipts')return;
-    var filters=[['all','Todos'],['pending','Sin factura'],['draft','En preparación'],['issued','Facturados']],items=state.receipts.map(fiscalReceiptItem).sort(function(a,b){return String(b.receipt.issued_at||'').localeCompare(String(a.receipt.issued_at||''))||Number(b.receipt.folio||0)-Number(a.receipt.folio||0);});
-    if(!filters.some(function(f){return f[0]===state.fiscalReceiptFilter;}))state.fiscalReceiptFilter='all';
-    var visible=items.filter(function(item){return state.fiscalReceiptFilter==='all'||item.bucket===state.fiscalReceiptFilter;}),counts={pending:0,draft:0,issued:0,all:items.length};items.forEach(function(item){counts[item.bucket]+=1;});
-    // Las listas largas se muestran de 50 en 50: dibujar miles de filas de una vez congelaba la pantalla.
-    var shown=visible.slice(0,state.shown.receipts);
-    host.innerHTML='<section class="finance-fiscal-receipts finance-receipts-workspace"><header><div><h3>Pagos</h3><p>Cada pago trae su recibo. Ábrelo para ver el detalle, enviarlo o iniciar su factura.</p></div><strong>'+counts.all+' recibo'+(counts.all===1?'':'s')+'</strong></header><nav class="finance-fiscal-receipt-filters" aria-label="Filtrar recibos">'+filters.map(function(filter){return '<button type="button" data-receipt-filter="'+filter[0]+'" aria-pressed="'+String(state.fiscalReceiptFilter===filter[0])+'">'+filter[1]+' <em>'+counts[filter[0]]+'</em></button>';}).join('')+'</nav><div class="finance-fiscal-receipt-list">'+(shown.length?shown.map(function(item){var receipt=item.receipt,payment=item.payment,folio=String(receipt.folio||0).padStart(6,'0'),method=payment?(PAYMENT_METHODS[payment.method]||payment.method):'Pago no disponible';return '<article data-receipt-state="'+item.bucket+'"><div class="finance-fiscal-receipt-folio"><span>RECIBO</span><strong>#'+folio+'</strong></div><div class="finance-fiscal-receipt-copy"><strong>'+esc(payment?name(payment.patient_id):'Paciente')+'</strong><p>'+esc(receiptServices(receipt))+'</p><small>'+date(receipt.issued_at||(payment&&payment.paid_at),true)+' · '+esc(method)+(payment&&payment.reference?' · '+esc(payment.reference):'')+'</small></div><div class="finance-fiscal-receipt-amount"><strong>'+money(payment&&payment.amount)+'</strong><span class="finance-badge" data-tone="'+item.tone+'">'+esc(item.label)+'</span></div><div class="finance-fiscal-receipt-actions"><button type="button" class="btn btn-primary" data-open-receipt="'+receipt.id+'">Abrir recibo</button></div></article>';}).join('')+moreRows(visible.length,shown.length,'receipts'):'<div class="finance-empty"><strong>Sin recibos en esta vista</strong><p>Cada pago registrado genera aquí su recibo.</p></div>')+'</div></section>';
-    host.querySelectorAll('[data-receipt-filter]').forEach(function(b){b.onclick=function(){state.fiscalReceiptFilter=b.dataset.receiptFilter;state.shown.receipts=PAGE_ROWS;renderReceipts();};});
-    host.querySelectorAll('[data-open-receipt]').forEach(function(b){b.onclick=function(){openReceiptDetails(by(state.receipts,b.dataset.openReceipt));};});
-    bindMoreRows(host,'receipts',renderReceipts);
-  }
   function renderFiscal(){
     var rows=state.fiscal,drafts=state.drafts,report=state.fiscalReadiness||{checks:[],ready:false},issuer=state.issuer||{},pac=state.pac||{};
     var draftsHtml=drafts.length?'<section class="finance-drafts"><h3>Borradores y ciclo fiscal</h3>'+drafts.map(function(d){var r=d.sandbox_report||{},errors=Array.isArray(r.errors)?r.errors:[],tone=d.status==='cancelled'?'':d.status==='issued'?'paid':d.status==='rejected'?'due':d.sandbox_status==='passed'?'paid':d.sandbox_status==='blocked'?'due':'',label=d.status==='cancelled'?'Cancelado en sandbox':d.status==='issued'?'Timbrado en sandbox · '+esc(d.provider||'PAC'):d.status==='submitted'?'Timbrado en proceso':d.status==='rejected'?'Rechazado por el PAC':d.sandbox_status==='passed'?'Prevalidación local aprobada':d.sandbox_status==='blocked'?'Correcciones pendientes':'Sin validar',plan=state.cancellations.find(function(x){return x.draft_id===d.id&&(x.status==='planned'||x.status==='submitted');}),lastRej=state.cancellations.filter(function(x){return x.draft_id===d.id&&x.status==='rejected';}).sort(function(a,b){return String(b.created_at).localeCompare(String(a.created_at));})[0];return '<article data-draft-id="'+d.id+'"><div><strong>'+esc(name(d.patient_id))+'</strong><small>CFDI '+esc(d.cfdi_version||'4.0')+' · '+money((d.fiscal_snapshot||{}).amount)+(d.external_uuid?' · '+esc(d.external_uuid):'')+'</small></div><div><span class="finance-badge" data-tone="'+tone+'">'+label+'</span>'+(errors.length?'<small>'+errors.length+' observación(es)</small>':'')+(d.provider_message?'<small>'+esc(d.provider_message)+'</small>':'')+(d.last_emailed_at?'<small>Enviado a '+esc(d.last_emailed_to||'el paciente')+' · '+esc(new Date(d.last_emailed_at).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}))+'</small>':'')+(plan?'<small>Cancelación '+esc(plan.reason_code)+(plan.status==='submitted'?' enviada; esperando respuesta':' planeada; aún no enviada')+'</small>'+(plan.provider_message?'<small>'+esc(plan.provider_message)+'</small>':''):(d.status==='issued'&&lastRej?'<small>Cancelación rechazada'+(lastRej.provider_message?': '+esc(lastRej.provider_message):'')+'</small>':''))+'</div>'+(state.canInvoice?'<div class="finance-draft-actions">'+(d.status==='draft'||d.status==='rejected'?'<button data-validate-cfdi="'+d.id+'">'+(d.sandbox_status==='pending'?'Prevalidar':'Validar de nuevo')+'</button>':'')+(d.sandbox_status==='passed'&&(d.status==='draft'||d.status==='rejected')&&pacConnected()?'<button class="btn btn-primary" data-stamp-cfdi="'+d.id+'">Timbrar en sandbox</button>':'')+(d.status==='submitted'?'<button data-reconcile-cfdi="'+d.id+'">Verificar estado</button>':'')+(d.status==='issued'&&state.canInvoice?'<button data-email-cfdi="'+d.id+'">'+(d.last_emailed_at?'Reenviar por correo':'Enviar por correo')+'</button>':'')+((d.status==='issued'||d.status==='cancelled')?'<button data-download-cfdi="'+d.id+'" data-kind="pdf">PDF</button><button data-download-cfdi="'+d.id+'" data-kind="xml">XML</button>':'')+(d.status==='cancelled'?'<button data-download-cfdi="'+d.id+'" data-kind="acuse_pdf">Acuse PDF</button><button data-download-cfdi="'+d.id+'" data-kind="acuse_xml">Acuse XML</button>':'')+(d.status==='issued'&&!plan?'<button data-plan-cancel="'+d.id+'">Planear cancelación</button>':'')+(d.status==='issued'&&plan&&plan.status==='planned'&&pacConnected()?'<button class="btn btn-danger" data-cancel-cfdi="'+d.id+'">Cancelar en Facturapi (sandbox)</button>':'')+(d.status==='issued'&&plan&&plan.status==='submitted'?'<button data-cancelcheck-cfdi="'+d.id+'">Verificar cancelación</button>':'')+'</div>':'')+'</article>';}).join('')+'</section>':'';
@@ -460,11 +528,10 @@
 
   // Filtro «Vencidas» de Por cobrar: pacientes con saldo vencido, ordenados por atraso, con último aviso, preferencia de contacto y acciones.
   var collectMeta={tenant:null,reminders:{},blocked:{}};
-  async function loadCollectMeta(){if(collectMeta.tenant===state.tenant||!state.tenant)return;collectMeta.tenant=state.tenant;try{var since=new Date(Date.now()-30*86400000).toISOString();var out=await Promise.all([q(window.sb.from('smyl_collection_reminders').select('patient_id,sent_at').eq('tenant_id',state.tenant).gte('sent_at',since).order('sent_at',{ascending:false}).limit(3000)),q(window.sb.from('smyl_collection_prefs').select('patient_id,whatsapp_blocked').eq('tenant_id',state.tenant).eq('whatsapp_blocked',true).limit(2000))]);var rem={},blk={};(out[0]||[]).forEach(function(r){if(!rem[r.patient_id])rem[r.patient_id]=r.sent_at;});(out[1]||[]).forEach(function(r){blk[r.patient_id]=true;});collectMeta.reminders=rem;collectMeta.blocked=blk;renderToday();}catch(e){}}
+  async function loadCollectMeta(){if(collectMeta.tenant===state.tenant||!state.tenant)return;collectMeta.tenant=state.tenant;try{var since=new Date(Date.now()-30*86400000).toISOString();var out=await Promise.all([q(window.sb.from('smyl_collection_reminders').select('patient_id,sent_at').eq('tenant_id',state.tenant).gte('sent_at',since).order('sent_at',{ascending:false}).limit(3000)),q(window.sb.from('smyl_collection_prefs').select('patient_id,whatsapp_blocked').eq('tenant_id',state.tenant).eq('whatsapp_blocked',true).limit(2000))]);var rem={},blk={};(out[0]||[]).forEach(function(r){if(!rem[r.patient_id])rem[r.patient_id]=r.sent_at;});(out[1]||[]).forEach(function(r){blk[r.patient_id]=true;});collectMeta.reminders=rem;collectMeta.blocked=blk;renderAccounts();}catch(e){}}
   function daysAgo(iso){var t=new Date(iso||0).getTime();return t>0?Math.floor((Date.now()-t)/86400000):null;}
   function agoLabel(d){return d===0?'hoy':d===1?'ayer':'hace '+d+' días';}
-  function collectRows(){var today=new Date();today.setHours(0,0,0,0);return state.patients.map(function(p){return {p:p,s:accountSnapshot(p.id)};}).filter(function(x){return x.s.overdue.length;}).map(function(x){var first=x.s.overdue.reduce(function(m,c){return !m||String(c.due_on)<String(m)?c.due_on:m;},null);x.days=first?Math.max(0,Math.round((today-new Date(first+'T00:00:00'))/86400000)):0;x.amountCents=x.s.overdueCents;x.amount=x.amountCents/100;return x;}).sort(function(a,b){return b.days-a.days||b.amountCents-a.amountCents;});}
-  async function setCollectPref(patientId,blocked){if(!window.confirm(blocked?'¿Dejar de enviar recordatorios de cobro por WhatsApp a este paciente?':'¿Volver a permitir recordatorios de cobro por WhatsApp a este paciente?'))return;try{await rpc('smyl_set_collection_pref',{p_patient_id:patientId,p_blocked:blocked,p_reason:blocked?'Marcado desde Finanzas':null});if(blocked)collectMeta.blocked[patientId]=true;else delete collectMeta.blocked[patientId];renderToday();}catch(err){notify(message(err),'error');}}
+  async function setCollectPref(patientId,blocked){if(!window.confirm(blocked?'¿Dejar de enviar recordatorios de cobro por WhatsApp a este paciente?':'¿Volver a permitir recordatorios de cobro por WhatsApp a este paciente?'))return;try{await rpc('smyl_set_collection_pref',{p_patient_id:patientId,p_blocked:blocked,p_reason:blocked?'Marcado desde Finanzas':null});if(blocked)collectMeta.blocked[patientId]=true;else delete collectMeta.blocked[patientId];renderAccounts();}catch(err){notify(message(err),'error');}}
   var teamTenant=null;
   async function loadFinanceTeam(){if(!state.tenant||teamTenant===state.tenant)return;teamTenant=state.tenant;try{state.team=await q(window.sb.from('camila_usuarios').select('id,nombre,email,activo').eq('tenant_id',state.tenant).eq('activo',true).limit(500))||[];renderCash();}catch(e){state.team=[];}}
   // Aviso fijo (no se borra solo) cuando alguna tabla llegó al tope de carga: los saldos podrían estar incompletos.
@@ -481,7 +548,7 @@
     document.querySelectorAll('#p-caja [data-finance-tab]').forEach(function(b){var on=b.dataset.financeTab===state.tab;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1;});
     document.querySelectorAll('#p-caja [data-finance-panel]').forEach(function(p){p.hidden=p.dataset.financePanel!==state.tab;});
     if(state.tab==='accounts'){renderVisits();renderAccounts();}
-    else if(state.tab==='receipts'){renderReceipts();renderPayments();}
+    else if(state.tab==='receipts')renderPayments();
     else if(state.tab==='cash')renderCash();
     else if(state.tab==='fiscal')renderFiscal();
   }
@@ -509,16 +576,24 @@
   // Después de registrar un cargo o cerrar una visita sin cargo: cuántas quedan y un atajo a la siguiente.
   function notifyNextVisit(text){var rest=pendingVisits();if(!rest.length)return notify(text,'success');var a=rest[0];notify(text+' '+(rest.length===1?'Queda 1 pendiente.':'Quedan '+rest.length+' pendientes.'),'success',{label:'Siguiente: '+name(a.patient_id)+' →',run:function(){if(state.canManage)openCharge(a.patient_id,a.status==='no_show'?{due:'0',appointmentId:a.id,noShow:true}:{due:'0',appointmentId:a.id});}});}
   function closedVisits(){var byId={};state.visitAppointments.forEach(function(a){byId[a.id]=a;});return state.noCharge.filter(function(n){return byId[n.appointment_id];}).sort(function(a,b){return new Date(b.decided_at)-new Date(a.decided_at);}).slice(0,10).map(function(n){return {n:n,a:byId[n.appointment_id]};});}
-  function visitPrice(a){var sv=by(state.services,a.service_id),price=sv&&Number(priceFor(sv,a.branch_id));return price>0&&a.status!=='no_show'?' · Precio de lista <b>'+money(price)+'</b>':'';}
+  function visitPrice(a){var sv=by(state.services,a.service_id),price=sv&&Number(priceFor(sv,a.branch_id));return price>0&&a.status!=='no_show'?'Precio de lista <b>'+money(price)+'</b>':'';}
   function visitLabel(a){var s=by(state.services,a.service_id);return date(a.starts_at,true)+(s?' · '+s.name:'');}
   // Material usado por cita (viene de Inventario; solo informativo, nunca entra al recibo ni a la factura).
   function materialLine(d){if(!d||d.state!=='done')return '';return d.lines.map(function(l){return esc(l.name)+' × '+Number(l.quantity).toLocaleString('es-MX',{maximumFractionDigits:3});}).join(', ');}
   function materialCost(d){return d&&d.cost>0?' · Costo '+money(d.cost)+(d.uncosted>0?' (hay insumos sin costo)':''):(d&&d.uncosted>0?' · Algunos insumos no tienen costo':'');}
   async function fillVisitMaterial(host){var inv=window.SmylInventory;if(!inv||!inv.consumptionBatch)return;var apps=pendingVisits().filter(function(a){return a.status!=='no_show';}),res=await inv.consumptionBatch(apps);if(!host.isConnected)return;host.querySelectorAll('[data-visit-material]').forEach(function(n){var r=res[n.dataset.visitMaterial];if(!r||(r.state!=='pending'&&r.state!=='done'))return;if(r.state==='done'){n.innerHTML='<i class="finance-material-chip" data-state="done">Material registrado</i>';}else{n.innerHTML='<i class="finance-material-chip" data-state="pending">Material pendiente</i>'+(r.canRegister?' <button type="button" class="finance-material-link" data-material-register="'+esc(n.dataset.visitMaterial)+'">Registrar material</button>':' <small>Lo registra quien atendió.</small>');}n.hidden=false;});host.querySelectorAll('[data-material-register]').forEach(function(b){b.onclick=function(){var a=allAppointments().find(function(x){return x.id===b.dataset.materialRegister;});if(a)inv.openConsumption({patientId:a.patient_id,appointmentId:a.id,serviceId:a.service_id||'',professionalId:a.professional_id||''});};});}
-  function renderVisits(){var host=document.getElementById('finance-visits');if(!host)return;var rows=pendingVisits(),closed=closedVisits();
-    if(state.tab!=='accounts'||(!rows.length&&!closed.length)){host.hidden=true;host.innerHTML='';return;}
-    var labels={completed:['Listo para cobrar','due'],in_progress:['En consulta','info'],arrived:['En espera','info'],no_show:['No vino','void']},html='';
-    if(rows.length)html+='<article class="finance-card finance-visits-card"><header><div><h2>Citas atendidas sin cobrar <em>'+rows.length+'</em></h2><p>Registra lo que se hizo o márcala sin costo. Nada se cobra solo.</p></div></header><div class="finance-visit-list">'+rows.map(function(a){var l=labels[a.status]||labels.arrived;return '<article class="finance-visit-row" data-visit-state="'+esc(a.status)+'"><div><strong>'+esc(name(a.patient_id))+(String(a.notes||'').indexOf('Llegó sin cita')===0?' <span class="finance-badge" data-tone="paid">Sin cita previa</span>':'')+'</strong><small>'+esc(visitLabel(a))+visitPrice(a)+'</small><small class="finance-visit-material" data-visit-material="'+a.id+'" hidden></small></div><span class="finance-badge" data-tone="'+l[1]+'">'+l[0]+'</span><div class="finance-row-actions">'+(state.canManage?(a.status==='no_show'?'<button type="button" class="btn btn-primary" data-visit-noshow="'+a.id+'">Cobrar inasistencia · '+money(state.noShowFee)+'</button>'+(state.noChargeReady?'<button type="button" class="finance-link-action" data-visit-waive="'+a.id+'">Perdonar</button>':''):'<button type="button" class="btn btn-primary" data-visit-charge="'+a.id+'">Registrar cargo</button>'+(state.noChargeReady?'<button type="button" class="finance-link-action" data-visit-nocharge="'+a.id+'">Fue sin costo</button>':'')):'<small>Tu rol puede consultar, no registrar cobros.</small>')+'</div></article>';}).join('')+'</div></article>';
+  function renderVisits(){var host=document.getElementById('finance-visits');if(!host)return;
+    if(state.tab!=='accounts'){host.hidden=true;host.innerHTML='';return;}
+    var search=accountSearch(),inView=Boolean(search)||state.accountFilter==='open',pending=pendingVisits(),rows=search?pending.filter(function(a){return fold(name(a.patient_id)).indexOf(search)!==-1;}):pending,closed=inView&&!search?closedVisits():[];
+    // Fuera de «Con saldo» las citas no se listan, pero nunca desaparecen sin aviso: queda una línea para volver a ellas.
+    if(!inView){host.hidden=!pending.length;host.innerHTML=pending.length?'<button type="button" class="finance-visits-peek" data-visits-show>'+plural(pending.length,'cita atendida sin cobrar','citas atendidas sin cobrar')+' · <b>Ver</b></button>':'';var peek=host.querySelector('[data-visits-show]');if(peek)peek.onclick=function(){setAccountFilter('open');};return;}
+    if(!rows.length&&!closed.length){host.hidden=true;host.innerHTML='';return;}
+    var notes={in_progress:'sigue en consulta',arrived:'en sala de espera'},html='';
+    if(rows.length)html+='<header class="finance-group"><h2>Citas atendidas sin cobrar <em>'+rows.length+'</em></h2><p>Registra lo que se hizo o márcala sin costo. Nada se cobra solo.</p></header><div class="finance-lines" role="list">'+rows.map(function(a){
+      var service=by(state.services,a.service_id),noShow=a.status==='no_show',label=esc(name(a.patient_id)),sub=[whenLabel(a.starts_at)];
+      if(service)sub.push(esc(service.name));if(notes[a.status])sub.push(notes[a.status]);if(String(a.notes||'').indexOf('Llegó sin cita')===0)sub.push('llegó sin cita');
+      return '<article class="finance-line" data-cols="visits" data-visit-state="'+esc(a.status)+'" role="listitem"><div class="finance-line-who"><strong class="finance-line-name">'+label+'</strong><small>'+sub.join(' · ')+'</small><small class="finance-visit-material" data-visit-material="'+a.id+'" hidden></small></div><div class="finance-line-paid"><small>'+(noShow?'<span class="finance-tag">No vino</span>':visitPrice(a))+'</small></div><div class="finance-line-actions">'
+        +(state.canManage?(noShow?(state.noChargeReady?'<button type="button" class="finance-link-action" data-visit-waive="'+a.id+'">Perdonar</button>':'')+'<button type="button" class="btn btn-secondary" data-visit-noshow="'+a.id+'">Cobrar inasistencia · '+money(state.noShowFee)+'</button>':(state.noChargeReady?'<button type="button" class="finance-link-action" data-visit-nocharge="'+a.id+'">Fue sin costo</button>':'')+'<button type="button" class="btn btn-secondary" data-visit-charge="'+a.id+'" aria-label="Registrar cargo de '+label+'">Registrar cargo</button>'):'<small>Tu rol puede consultar, no registrar cobros.</small>')+'</div></article>';}).join('')+'</div>';
     if(closed.length)html+='<details class="finance-visits-closed"><summary>Cerradas sin costo ('+closed.length+')</summary><div>'+closed.map(function(x){return '<div class="finance-visit-closed-row"><span><strong>'+esc(name(x.a.patient_id))+'</strong><small>'+esc(visitLabel(x.a))+' · '+esc(x.n.reason==='waived'?'Inasistencia perdonada':NO_CHARGE_REASONS[x.n.reason]||'Otro')+'</small></span>'+(state.canManage?'<button type="button" data-visit-reopen="'+x.a.id+'">Reabrir</button>':'')+'</div>';}).join('')+'</div></details>';
     host.hidden=false;host.innerHTML=html;
     if(rows.length)fillVisitMaterial(host).catch(function(){});
@@ -852,42 +927,25 @@
   function build(){var page=el('section','pantalla finance-page');page.id='p-caja';
     page.innerHTML='<h1>Finanzas</h1><header class="finance-page-head finance-actionsbar"><div class="finance-head-actions"></div></header><div id="finance-feedback" aria-live="polite"></div>'
       +'<nav class="finance-tabcards" role="tablist" aria-label="Secciones de Finanzas">'+TABS.map(function(t){return '<button type="button" role="tab" id="finance-tab-'+t[0]+'" data-finance-tab="'+t[0]+'" aria-selected="'+String(t[0]===state.tab)+'" aria-controls="finance-panel-'+t[0]+'"'+(t[0]===state.tab?'':' tabindex="-1"')+'><span class="finance-tab-name">'+t[1]+'</span><strong class="finance-tab-figure">—</strong><small class="finance-tab-note"></small></button>';}).join('')+'</nav>'
-      +'<section data-finance-panel="accounts" id="finance-panel-accounts" role="tabpanel" aria-labelledby="finance-tab-accounts"><section id="finance-visits" class="finance-visits" aria-live="polite" hidden></section><article class="finance-card finance-accounts-card"><header class="finance-accounts-heading"><div><h2 id="finance-accounts-title">Cuentas con saldo</h2></div><p id="finance-account-summary" aria-live="polite"></p></header><div class="finance-toolbar"><input id="finance-search" type="search" placeholder="Buscar por nombre" aria-label="Buscar cuenta de paciente"><div class="finance-account-filters"><button type="button" data-account-filter="open" aria-pressed="true">Pendientes <em></em></button><button type="button" data-account-filter="overdue">Vencidas <em></em></button><button type="button" data-account-filter="credit">A favor <em></em></button><button type="button" data-account-filter="all">Con movimientos </button><button type="button" data-account-filter="attention" hidden>Requieren acción <em></em></button><button type="button" data-account-filter="settled" hidden>Liquidadas </button><select class="finance-more-filters" aria-label="Más filtros"><option value="">Más filtros</option><option value="attention">Requieren acción</option><option value="settled">Liquidadas</option></select></div></div><p class="finance-section-copy">Ordenadas por prioridad. Ningún cobro se realiza automáticamente.</p><div id="finance-accounts"></div><div id="finance-today" hidden></div></article></section>'
-      +'<section data-finance-panel="receipts" id="finance-panel-receipts" role="tabpanel" aria-labelledby="finance-tab-receipts" hidden><article class="finance-card finance-receipts-card"><div id="finance-receipts"></div><details class="finance-receipt-movements"><summary>Movimientos y correcciones</summary><p>Pagos y reembolsos auditados, separados de la operación cotidiana.</p><div id="finance-payments" class="finance-ledger"></div></details></article></section>'
+      +'<section data-finance-panel="accounts" id="finance-panel-accounts" role="tabpanel" aria-labelledby="finance-tab-accounts"><article class="finance-card finance-list-card"><div class="finance-list-tools"><input id="finance-search" type="search" placeholder="Buscar paciente" aria-label="Buscar paciente por nombre" autocomplete="off"><div class="finance-chips" role="group" aria-label="Vistas de cuentas"><button type="button" data-account-filter="open" aria-pressed="true">Con saldo <em></em></button><button type="button" data-account-filter="overdue" aria-pressed="false">Vencidas <em></em></button><button type="button" data-account-filter="credit" aria-pressed="false">A favor <em></em></button><button type="button" data-account-filter="all" aria-pressed="false">Todas</button></div></div><section id="finance-visits" class="finance-visits" aria-live="polite" hidden></section><div id="finance-accounts"></div></article></section>'
+      +'<section data-finance-panel="receipts" id="finance-panel-receipts" role="tabpanel" aria-labelledby="finance-tab-receipts" hidden><article class="finance-card finance-list-card"><div class="finance-list-tools"><div class="finance-segment" role="group" aria-label="Periodo">'+PAY_PERIODS.map(function(p){return '<button type="button" data-pay-period="'+p[0]+'" aria-pressed="'+String(p[0]===state.payPeriod)+'">'+p[1]+'</button>';}).join('')+'</div><div class="finance-tools-end"><select id="finance-pay-method" aria-label="Forma de pago"><option value="">Todas las formas</option>'+METHOD_ORDER.map(function(m){return '<option value="'+m+'">'+PAYMENT_METHODS[m]+'</option>';}).join('')+'</select><button type="button" class="btn btn-secondary" id="finance-pay-export" title="Descarga en Excel los pagos del periodo">Exportar</button></div><div class="finance-date-range" id="finance-pay-range" hidden><label>Del <input type="date" id="finance-pay-from"></label><label>al <input type="date" id="finance-pay-to"></label></div></div><div id="finance-payments"></div></article></section>'
       +'<section data-finance-panel="cash" id="finance-panel-cash" role="tabpanel" aria-labelledby="finance-tab-cash" hidden><article class="finance-card finance-cash-card"><header><div><h2>Caja</h2><p>Apertura, movimientos de efectivo y corte por responsable y sucursal.</p></div></header><div id="finance-cash"></div><details class="finance-cash-help"><summary>¿Cómo funciona la caja?</summary><ul><li>El efectivo requiere una sesión abierta.</li><li>Tarjeta y transferencia se registran sin alterar el efectivo esperado.</li><li>Toda entrada o salida exige un motivo.</li></ul></details></article></section>'
       +'<section data-finance-panel="fiscal" id="finance-panel-fiscal" role="tabpanel" aria-labelledby="finance-tab-fiscal" hidden><article class="finance-card finance-fiscal-card"><header><div><h2>Facturación</h2><p>Borradores, validación y emisión fiscal a partir de pagos confirmados.</p></div></header><div id="finance-fiscal"></div></article></section>'
       +'<dialog id="finance-dialog" class="finance-dialog"></dialog>';
     document.querySelector('.contenido').append(page);var print=el('section','finance-print');print.id='finance-print';document.body.append(print);
     var tabs=Array.prototype.slice.call(page.querySelectorAll('[data-finance-tab]'));
     tabs.forEach(function(b,i){b.onclick=function(){showTab(b.dataset.financeTab);};b.onkeydown=function(e){if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;e.preventDefault();var next=tabs[(i+(e.key==='ArrowRight'?1:tabs.length-1))%tabs.length];showTab(next.dataset.financeTab);next.focus();};});
-    page.querySelectorAll('[data-account-filter]').forEach(function(b){b.onclick=function(){state.accountFilter=b.dataset.accountFilter;state.shown.accounts=PAGE_ROWS;renderAccounts();};});
-    var more=page.querySelector('.finance-more-filters');more.onchange=function(){if(more.value){state.accountFilter=more.value;more.value='';state.shown.accounts=PAGE_ROWS;renderAccounts();}};
-    page.querySelector('#finance-search').oninput=function(){state.shown.accounts=PAGE_ROWS;renderAccounts();};
-    page.querySelector('.finance-receipt-movements').ontoggle=function(){state.shown.ledger=PAGE_ROWS;renderPayments();};
+    page.querySelectorAll('[data-account-filter]').forEach(function(b){b.onclick=function(){setAccountFilter(b.dataset.accountFilter);};});
+    page.querySelector('#finance-search').oninput=function(){state.shown.accounts=PAGE_ROWS;renderVisits();renderAccounts();};
+    page.querySelectorAll('[data-pay-period]').forEach(function(b){b.onclick=function(){setPayPeriod(b.dataset.payPeriod);};});
+    page.querySelector('#finance-pay-method').onchange=function(e){state.payMethod=e.currentTarget.value;state.shown.payments=PAGE_ROWS;renderPayments();};
+    [['from','payFrom'],['to','payTo']].forEach(function(k){page.querySelector('#finance-pay-'+k[0]).onchange=function(e){if(!e.currentTarget.value)return;state[k[1]]=e.currentTarget.value;if(state.payFrom>state.payTo)state[k[0]==='from'?'payTo':'payFrom']=e.currentTarget.value;state.shown.payments=PAGE_ROWS;renderPayments();};});
+    page.querySelector('#finance-pay-export').onclick=function(e){exportPayments(e.currentTarget);};
+    // Un solo menú de fila abierto a la vez, y siempre a la vista: si la fila está al fondo de la pantalla, la página se desplaza lo justo.
+    page.addEventListener('toggle',function(e){var menu=e.target;if(!menu.classList||!menu.classList.contains('finance-row-menu')||!menu.open)return;page.querySelectorAll('.finance-row-menu[open]').forEach(function(other){if(other!==menu)other.open=false;});var box=menu.querySelector('div');if(box)box.scrollIntoView({block:'nearest'});},true);
     page.querySelector('#finance-dialog').onclick=function(e){if(e.target===e.currentTarget)e.currentTarget.close();};
-    window.addEventListener('resize',function(){var strip=document.querySelector('.finance-account-filters'),active=strip&&strip.querySelector('[aria-pressed="true"]');if(strip&&active&&strip.scrollWidth>strip.clientWidth)active.scrollIntoView({block:'nearest',inline:'center'});});
   }
   function navigation(){window.TITULOS.caja='Finanzas';var primary=document.querySelector('.pro-primary-nav');if(primary&&!primary.querySelector('[onclick="ir(\'caja\')"]')){var b=el('button','nav-item','Finanzas');b.type='button';b.setAttribute('onclick',"ir('caja')");var inventory=primary.querySelector('[onclick="ir(\'inventario\')"]');if(inventory)inventory.after(b);else primary.append(b);}var mobile=document.querySelector('.pro-mobile-nav');if(mobile&&!mobile.querySelector('[onclick="ir(\'caja\')"]')){var m=el('button','nav-item','Finanzas');m.type='button';m.setAttribute('onclick',"ir('caja')");var i=mobile.querySelector('[onclick="ir(\'inventario\')"]');if(i)i.after(m);else mobile.append(m);}}
-  function renderToday(){
-    var host=document.getElementById('finance-today');
-    if(!host)return;
-    if(state.tab!=='accounts'||state.accountFilter!=='overdue')return;
-    var search=((document.getElementById('finance-search')||{}).value||'').toLowerCase(),rows=collectRows().filter(function(x){return !search||name(x.p.id).toLowerCase().includes(search);}),total=rows.reduce(function(sum,x){return sum+x.amountCents;},0)/100,shownRows=rows.slice(0,state.shown.accounts);
-    host.innerHTML=rows.length?'<div class="finance-list-summary"><div><strong>'+rows.length+' paciente'+(rows.length===1?'':'s')+' con saldo vencido · '+money(total)+'</strong><small>Ordenados por días de atraso. Los recordatorios siempre se revisan antes de enviarse.</small></div></div><div class="finance-today-list">'+shownRows.map(function(x){
-      var id=x.p.id,link=chatLinks[id],blocked=collectMeta.blocked[id],last=collectMeta.reminders[id],days=last?daysAgo(last):null,recent=days!==null&&days<7,status=blocked?'No contactar':recent?'Avisado '+agoLabel(days):last?'Último aviso '+agoLabel(days):'Sin aviso reciente',tone=blocked?'danger':recent?'paid':'due',menu=[];
-      if(link&&!blocked&&window.SmylInbox&&window.SmylInbox.collect&&link.channel==='whatsapp')menu.push('<button type="button" data-today-send="'+id+'">'+(recent?'Enviar otro recordatorio':'Enviar recordatorio')+'</button>');
-      if(link)menu.push('<button type="button" data-chat="'+id+'">Abrir chat</button>');
-      if(blocked){if(state.canManage)menu.push('<button type="button" data-today-allow="'+id+'">Permitir recordatorios</button>');}
-      else menu.push('<button type="button" data-today-block="'+id+'">No contactar</button>');
-      return '<article class="finance-today-row"><div class="finance-account-identity"><strong>'+esc(name(id))+'</strong><small>'+x.s.overdue.length+' cargo'+(x.s.overdue.length===1?'':'s')+' · '+x.days+' día'+(x.days===1?'':'s')+' de atraso</small></div><div class="finance-account-amount"><span>Vencido</span><strong>'+money(x.amount)+'</strong><span class="finance-badge" data-tone="'+tone+'">'+esc(status)+'</span></div><div class="finance-row-actions"><button type="button" class="finance-account-open" data-account="'+id+'">Abrir cuenta</button>'+(menu.length?'<details class="finance-row-menu"><summary aria-label="Más acciones para '+esc(name(id))+'">•••</summary><div>'+menu.join('')+'</div></details>':'')+'</div></article>';
-    }).join('')+'</div>'+moreRows(rows.length,shownRows.length,'accounts'):'<div class="finance-empty"><strong>'+(search?'Sin resultados en Vencidas':'Nadie con saldo vencido')+'</strong><p>'+(search?'Ajusta la búsqueda o cambia de filtro.':'Cuando un cargo pase su fecha de vencimiento, el paciente aparecerá aquí.')+'</p></div>';
-    host.querySelectorAll('[data-account]').forEach(function(button){button.onclick=function(){openAccount(button.dataset.account);};});
-    host.querySelectorAll('[data-chat]').forEach(function(button){button.onclick=function(){openChat(button.dataset.chat);};});
-    host.querySelectorAll('[data-today-send]').forEach(function(button){button.onclick=function(){var item=chatLinks[button.dataset.todaySend];if(item)window.SmylInbox.collect(item.conversation);};});
-    host.querySelectorAll('[data-today-block]').forEach(function(button){button.onclick=function(){setCollectPref(button.dataset.todayBlock,true);};});
-    host.querySelectorAll('[data-today-allow]').forEach(function(button){button.onclick=function(){setCollectPref(button.dataset.todayAllow,false);};});
-    bindMoreRows(host,'accounts',renderToday);
-  }
   // ── Numerito en el menú: pacientes pendientes de cargo ─────────────────────────────────────────────────
   // Mismo criterio que la lista de Cobros (cita que llegó, sin cargo vigente, sin «sin cargo» y con servicio de precio ≠ $0), calculado con
   // la función de sólo lectura smyl_appointment_billing sin abrir Cobros. Sin permiso finance.read la función no devuelve nada y no se muestra.

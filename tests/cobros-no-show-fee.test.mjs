@@ -43,7 +43,7 @@ test('el monto se define en «Más → Política de inasistencia», sólo para q
 });
 
 test('la fila «No vino» va al final de la lista, y el numerito del menú la cuenta', () => {
-  assert.match(js, /no_show:\['No vino','void'\]/);
+  assert.match(js, /noShow\?'<span class="finance-tag">No vino<\/span>'/);
   assert.match(js, /rank=\{completed:0,in_progress:1,arrived:2,no_show:3\}/);
   assert.match(js, /r\.billing_state==='pending'\|\|r\.billing_state==='no_show_pending'/);
   assert.match(js, /x\.n\.reason==='waived'\?'Inasistencia perdonada'/);
@@ -60,8 +60,8 @@ test('la migración y las versiones quedan publicadas y sincronizadas con la app
   assert.ok(fs.existsSync(path.join(root, 'supabase/migrations/20261108160000_smyl_no_show_fee.sql')));
   assert.match(read('.github/workflows/smyl-pendientes-cargo-migracion.yml'), /20261108160000_smyl_no_show_fee\.sql/);
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-finance\.js\?v=64/);
-    assert.match(read(file), /smyl-finance\.css\?v=48/);
+    assert.match(read(file), /smyl-finance\.js\?v=66/);
+    assert.match(read(file), /smyl-finance\.css\?v=50/);
     assert.match(read(file), /smyl-schedule\.js\?v=57/);
   }
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-schedule.js', 'app.html', 'sw.js']) {
