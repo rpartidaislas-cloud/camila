@@ -313,7 +313,7 @@ server.listen(0, '127.0.0.1', async () => {
   await s.ctx.close();
 
   // Las mismas pantallas, con sus casos, en tableta y celular: nada encimado, nada cortado y todo se puede tocar.
-  for (const [label, size] of [['tableta-horizontal', { width: 1024, height: 768 }], ['tableta', { width: 820, height: 1100 }], ['celular', { width: 390, height: 844 }], ['celular-320', { width: 320, height: 760 }]]) {
+  for (const [label, size] of [['tableta-horizontal', { width: 1024, height: 768 }], ['tableta', { width: 820, height: 1100 }], ['celular', { width: 390, height: 844 }], ['celular-360', { width: 360, height: 780 }], ['celular-320', { width: 320, height: 760 }]]) {
     s = await open(size, 0, stepTwo); page = s.page; const bad = [];
     const audit = async view => {
       const m = await page.evaluate(() => {
@@ -323,10 +323,12 @@ server.listen(0, '127.0.0.1', async () => {
           overlap: [...rootEl.querySelectorAll('.finance-line')].filter(visible).filter(row => { const kids = [...row.children].filter(visible).map(k => k.getBoundingClientRect()); return kids.some((a, i) => kids.some((b, j) => j > i && a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1)); }).length,
           cut: [...rootEl.querySelectorAll('.finance-chips>button,.finance-segment>button,.finance-line-amount,.finance-line-actions>*,.finance-tools-end>*')].filter(visible).filter(cut).length,
           tiny: [...rootEl.querySelectorAll('p,span,small,label,button,strong,em,b')].filter(visible).filter(el => el.textContent.trim() && parseFloat(getComputedStyle(el).fontSize) < 11.99).length,
+          // Un filtro desplegable debe mostrar completa la opción elegida: se compara con un gemelo sin límite de ancho que solo lleva esa opción.
+          clipped: [...rootEl.querySelectorAll('.finance-list-tools select')].filter(visible).filter(el => { const twin = el.cloneNode(false); twin.removeAttribute('id'); twin.appendChild(el.options[el.selectedIndex].cloneNode(true)); twin.style.cssText = 'position:absolute;visibility:hidden;width:auto;min-width:0;max-width:none'; el.parentNode.appendChild(twin); const need = twin.getBoundingClientRect().width; twin.remove(); return el.getBoundingClientRect().width < need - 0.5; }).length,
           short: rootEl.clientWidth > 780 ? [] : [...rootEl.querySelectorAll('button,summary,select,input')].filter(visible).map(el => ({ t: (el.textContent || el.placeholder || el.id || '').trim().slice(0, 24), h: el.getBoundingClientRect().height })).filter(x => x.h < (innerWidth <= 720 ? 43.5 : 39.5)).map(x => x.t + ' (' + Math.round(x.h) + ')'),
           rows: rootEl.querySelectorAll('.finance-line').length };
       });
-      if (m.overflow || m.overlap || m.cut || m.tiny || m.short.length || !m.rows) bad.push(view + ' ' + JSON.stringify(m));
+      if (m.overflow || m.overlap || m.cut || m.tiny || m.clipped || m.short.length || !m.rows) bad.push(view + ' ' + JSON.stringify(m));
       if (shots) await page.screenshot({ path: path.join(shots, `finanzas-paso2-${view}-${label}.png`), fullPage: true });
     };
     await audit('con-saldo');
@@ -338,7 +340,7 @@ server.listen(0, '127.0.0.1', async () => {
     // El menú de una fila se despliega completo dentro de la pantalla.
     const kebab = page.locator('#finance-payments .finance-row-menu>summary').last(); await kebab.scrollIntoViewIfNeeded(); await kebab.click(); await page.waitForTimeout(450);
     const reachable = await page.$eval('#finance-payments .finance-row-menu[open] [data-refund]', el => { const r = el.getBoundingClientRect(), top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight && !!top && el.contains(top); });
-    check(!bad.length && reachable && s.errs.length === 0, `${label}: Por cobrar y Pagos sin desbordes, filas encimadas, texto diminuto ni botones chicos; el menú de la fila se alcanza ` + (bad.length ? bad.join(' · ') : '') + (s.errs.length ? JSON.stringify(s.errs) : ''));
+    check(!bad.length && reachable && s.errs.length === 0, `${label}: Por cobrar y Pagos sin desbordes, filas encimadas, texto diminuto, filtros recortados ni botones chicos; el menú de la fila se alcanza ` + (bad.length ? bad.join(' · ') : '') + (s.errs.length ? JSON.stringify(s.errs) : ''));
     await s.ctx.close();
   }
 
