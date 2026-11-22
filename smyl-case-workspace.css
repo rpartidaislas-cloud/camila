@@ -687,3 +687,54 @@
  .cw-route-v1 .cw-route-dock .pc-primary{width:100%}
 }
 @media(prefers-reduced-motion:reduce){.cw-route-v1 .cw-route-bar span{transition:none}}
+
+/* Tratamientos como capítulos · franja de capítulos, datos del tratamiento y consulta de un tratamiento cerrado */
+.cw-chapters{display:grid;gap:12px;margin:0 0 14px;padding:14px 16px;border:1px solid #dbe3ea;border-radius:12px;background:#fff}
+.cw-chapters[hidden]{display:none}
+.cw-ch-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.cw-ch-title{display:grid;gap:2px}
+.cw-ch-title strong{font-size:15px;color:#0b1b2e}
+.cw-ch-actions{display:flex;gap:8px;flex-wrap:wrap}
+.cw-ch-btn{min-height:40px;padding:0 14px;border:1px solid #cfd9e2;border-radius:10px;background:#fff;color:#0b1b2e;font:inherit;font-size:13.5px;font-weight:650;cursor:pointer}
+.cw-ch-btn:hover{border-color:#1d6b64}
+.cw-ch-btn:disabled{opacity:.5;cursor:not-allowed}
+.cw-ch-primary{border-color:#1d6b64;background:#1d6b64;color:#fff}
+.cw-ch-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.cw-ch-chip{flex:none;display:grid;gap:2px;min-width:190px;max-width:260px;padding:10px 12px;border:1px solid #dbe3ea;border-radius:12px;background:#fff;color:#0b1b2e;text-align:left;font:inherit;cursor:pointer}
+.cw-ch-chip strong{font-size:14px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cw-ch-chip small{font-size:12.5px;color:#5c6b7c}
+.cw-ch-chip[data-status=active] small{color:#1d6b64;font-weight:650}
+.cw-ch-chip[aria-pressed=true]{border-color:#0b1b2e;box-shadow:0 0 0 2px #0b1b2e inset}
+.cw-ch-chip:focus-visible,.cw-ch-btn:focus-visible,.cw-ch-pill:focus-visible{outline:3px solid #1d6b64;outline-offset:2px}
+.cw-ch-error{margin:0;padding:9px 12px;border:1px solid #e1b8b0;border-radius:9px;background:#fdf0ed;color:#8a3324;font-size:13px}
+.cw-ch-warn{margin:0;padding:9px 12px;border:1px solid #ebd6a5;border-radius:9px;background:#fffbf0;color:#7a5410;font-size:13px}
+.cw-ch-panel{display:grid;gap:12px;padding:14px;border:1px solid #cdded5;border-radius:12px;background:#f7faf8}
+.cw-ch-panel h3,.cw-ch-card h3{margin:0;font-size:16px}
+.cw-ch-field{display:grid;gap:6px;font-size:13px;font-weight:650;color:#26384c}
+.cw-ch-field textarea{width:100%;min-height:64px;padding:10px 12px;border:1px solid #cfd9e2;border-radius:10px;background:#fff;color:#0b1b2e;font:inherit;font-size:14px;font-weight:400;resize:vertical}
+.cw-ch-outcomes{display:grid;gap:8px}
+.cw-ch-outcome{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid #dbe3ea;border-radius:10px;background:#fff;cursor:pointer}
+.cw-ch-outcome input{margin-top:3px;width:18px;height:18px;accent-color:#1d6b64}
+.cw-ch-outcome span{display:grid;gap:1px}
+.cw-ch-outcome small{color:#5c6b7c;font-size:12.5px}
+.cw-ch-submit{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.cw-ch-data{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:flex-end;padding-top:12px;border-top:1px solid #e6ecf1}
+.cw-ch-group{display:grid;gap:6px}
+.cw-ch-group-label{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5c6b7c}
+.cw-ch-pick{display:flex;gap:6px;flex-wrap:wrap}
+.cw-ch-pill{min-height:40px;min-width:44px;padding:0 14px;border:1px solid #cfd9e2;border-radius:999px;background:#fff;color:#0b1b2e;font:inherit;font-size:14px;font-weight:650;cursor:pointer}
+.cw-ch-pill[aria-pressed=true]{border-color:#0b1b2e;background:#0b1b2e;color:#fff}
+.cw-ch-data .cw-help{flex-basis:100%;margin:0}
+.cw-ch-card{display:grid;gap:10px;padding:16px;border:1px solid #dbe3ea;border-radius:12px;background:#f8fafb}
+.cw-ch-card-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:10px}
+.cw-ch-card h4{margin:6px 0 0;font-size:13px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:#5c6b7c}
+.cw-ch-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:0}
+.cw-ch-facts div{display:grid;gap:2px}
+.cw-ch-facts dt{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5c6b7c}
+.cw-ch-facts dd{margin:0;font-size:14px;color:#0b1b2e}
+.cw-ch-plan{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.cw-ch-plan li{display:grid;gap:1px;padding:9px 12px;border:1px solid #dbe3ea;border-radius:10px;background:#fff}
+.cw-ch-plan small{color:#5c6b7c;font-size:12.5px}
+/* Al consultar un tratamiento cerrado se oculta la ruta y sus etapas: es solo lectura */
+.cw-viewing-closed .cw-nav,.cw-viewing-closed .cw-route-bar,.cw-viewing-closed>.cw-module,.cw-viewing-closed .cw-route-dock,.cw-viewing-closed .cw-stage-status{display:none!important}
+@media(max-width:600px){.cw-ch-chip{min-width:160px}.cw-ch-actions{width:100%}.cw-ch-actions .cw-ch-btn{flex:1}.cw-ch-submit .cw-ch-btn{flex:1}}

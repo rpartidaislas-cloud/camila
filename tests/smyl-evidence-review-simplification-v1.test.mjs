@@ -40,7 +40,7 @@ test('la evaluación no dibuja un segundo resumen del mismo archivo', () => {
 });
 
 test('web, móvil y PWA distribuyen la simplificación con versiones nuevas', () => {
-  assert.match(app, /smyl-case-workspace\.js\?v=48/);
+  assert.match(app, /smyl-case-workspace\.js\?v=49/);
   assert.match(app, /smyl-clinical-photo-review\.js\?v=5/);
   assert.match(app, /smyl-evidence-center\.css\?v=8/);
   assert.match(app, /smyl-evidence-center-integration\.js\?v=12/);
