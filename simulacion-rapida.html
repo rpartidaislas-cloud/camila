@@ -2079,9 +2079,12 @@ var CFG = {
 // checkAndConsumeLimitProspecto en supabase/functions/_shared/limits.ts)
 // para que nadie intente drenar el cupo de una clínica ajena a punta de
 // scripts solo por conocer su link público.
+var PACIENTE_DEL_EXPEDIENTE = (function () { try { var q = new URLSearchParams(location.search); var v = q.get('patient') || ''; return q.get('workspace') === 'professional' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v) ? v : ''; } catch (e) { return ''; } })();
 function headersEdgeIA() {
   var h = {'Content-Type':'application/json', 'Authorization':'Bearer ' + (CFG.userToken || CFG.edgeKey)};
   if (CFG.modoProspecto && CFG.tenantId) h['X-Tenant-Id'] = CFG.tenantId;
+  // Abierto desde el expediente (?patient=): el servidor revisa si el paciente negó el uso de IA antes de mandar su foto a un proveedor.
+  if (!CFG.modoProspecto && PACIENTE_DEL_EXPEDIENTE) h['X-SMYL-Patient-Id'] = PACIENTE_DEL_EXPEDIENTE;
   return h;
 }
 
