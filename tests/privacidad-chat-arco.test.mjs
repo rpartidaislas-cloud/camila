@@ -64,7 +64,7 @@ test('el chat llama al aviso con lo que escribió el paciente; web y móvil igua
   assert.match(inbox, /hasPermission\('patients\.manage'\)/);
   for (const f of ['smyl-inbox.js', 'smyl-privacy-inbox.js', 'smyl-privacy-inbox.css']) assert.equal(read(f), read('mobile/www/' + f), f);
   assert.doesNotMatch(read('smyl-privacy-inbox.js'), /innerHTML/);
-  for (const f of ['app.html', 'mobile/www/app.html']) { const a = read(f); assert.match(a, /smyl-privacy-inbox\.js\?v=1/); assert.match(a, /smyl-privacy-inbox\.css\?v=1/); assert.ok(a.indexOf('smyl-privacy-inbox.js') < a.indexOf('smyl-inbox.js?v=90')); }
+  for (const f of ['app.html', 'mobile/www/app.html']) { const a = read(f); assert.match(a, /smyl-privacy-inbox\.js\?v=1/); assert.match(a, /smyl-privacy-inbox\.css\?v=1/); assert.ok(a.indexOf('smyl-privacy-inbox.js') < a.indexOf('smyl-inbox.js?v=91')); }
   for (const f of ['sw.js', 'mobile/www/sw.js']) { const a = read(f); assert.match(a, /\/camila\/smyl-privacy-inbox\.js\?v=1/); assert.match(a, /privacidad-chat-v1/); }
 });
 
