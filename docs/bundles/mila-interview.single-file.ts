@@ -203,31 +203,33 @@ return { makeCors, corsPublic, corsHeaders };
 })();
 
 // ── _shared/privacy-core.mjs ──
-const { MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_NO_VERIFICABLE, decidirIA } = (() => {
+const { MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_SIN_AUTORIZACION, MENSAJE_IA_NO_VERIFICABLE, decidirIA } = (() => {
 // Permiso del paciente para que sus datos pasen por herramientas de IA de proveedores externos (finalidad 'ai_processing').
-// Regla: SOLO se bloquea cuando el paciente lo negó o lo retiró ('revoked'). Un paciente sin decisión registrada ('unknown',
-// el caso de todos los anteriores a esta función) sigue como hasta ahora, para no detener la clínica el día que se publique.
-// Si no se puede comprobar (error de base de datos) se bloquea: ante la duda no se manda nada a un tercero.
+// Regla (LFPDPPP: los datos de salud son sensibles y requieren consentimiento EXPRESO): solo se usa la IA cuando el paciente
+// la autorizó ('granted'). Sin decisión registrada ('unknown') o si la retiró ('revoked') no se manda nada a la IA.
+// Si no se puede comprobar (error de base de datos) también se bloquea: ante la duda no se manda nada a un tercero.
 const MENSAJE_IA_NO_PERMITIDA = 'Este paciente no autorizó el uso de inteligencia artificial con sus datos. Captura o revisa esto manualmente.';
+const MENSAJE_IA_SIN_AUTORIZACION = 'Este paciente aún no autoriza el uso de inteligencia artificial. Registra su autorización en Privacidad (o pídele que firme el aviso) antes de usar la IA.';
 const MENSAJE_IA_NO_VERIFICABLE = 'No se pudo comprobar el permiso de IA del paciente. Inténtalo de nuevo en un momento.';
 
-/** Convierte la respuesta de smyl_patient_privacy_state en una decisión: 'allowed' | 'revoked' | 'unavailable'. */
+/** Convierte la respuesta de smyl_patient_privacy_state en una decisión: 'allowed' | 'missing' | 'revoked' | 'unavailable'. */
 function decidirIA(result: any) {
   if (!result || result.error) return 'unavailable';
   const state = result.data;
+  if (state === 'granted') return 'allowed';
   if (state === 'revoked') return 'revoked';
-  if (state === 'granted' || state === 'unknown') return 'allowed';
+  if (state === 'unknown') return 'missing';
   return 'unavailable';
 }
 
-return { MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_NO_VERIFICABLE, decidirIA };
+return { MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_SIN_AUTORIZACION, MENSAJE_IA_NO_VERIFICABLE, decidirIA };
 })();
 
 // ── _shared/privacy.ts ──
 const { permisoIA, respuestaIAnegada } = (() => {
 // Candado de privacidad para las funciones que mandan datos de un paciente a una IA externa. La regla vive en privacy-core.mjs.
 
-type PermisoIA = 'allowed' | 'revoked' | 'unavailable';
+type PermisoIA = 'allowed' | 'missing' | 'revoked' | 'unavailable';
 
 // deno-lint-ignore no-explicit-any
 async function permisoIA(admin: any, tenantId: string, patientId: string): Promise<PermisoIA> {
@@ -241,6 +243,7 @@ async function permisoIA(admin: any, tenantId: string, patientId: string): Promi
 function respuestaIAnegada(permiso: PermisoIA): { status: number; body: { error: string; code: string } } | null {
   if (permiso === 'allowed') return null;
   if (permiso === 'revoked') return { status: 403, body: { error: MENSAJE_IA_NO_PERMITIDA, code: 'patient_ai_not_allowed' } };
+  if (permiso === 'missing') return { status: 403, body: { error: MENSAJE_IA_SIN_AUTORIZACION, code: 'patient_ai_consent_missing' } };
   return { status: 503, body: { error: MENSAJE_IA_NO_VERIFICABLE, code: 'patient_ai_unverifiable' } };
 }
 

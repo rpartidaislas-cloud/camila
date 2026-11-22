@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Receta · vista de diseño (datos ficticios)</title>
+<link rel="stylesheet" href="../../smyl-prescription.css">
+<style>body{margin:0;background:#eef2f7;padding:24px}.note{max-width:140mm;margin:0 auto 12px;font:12px system-ui;color:#6b7280}</style>
+</head><body>
+<p class="note">Vista de diseño con datos ficticios. No es una receta ni cumple ninguna norma: el contenido legal se verifica aparte.</p>
+<div id="root"></div>
+<script src="../../smyl-prescription-print.js"></script>
+<script>
+var params = new URLSearchParams(location.search);
+var sample = {
+  folio: 'R-000123', issued_at: '2026-11-22',
+  professional: { name: 'Dra. Ana Ejemplo Ruiz', specialty: 'Cirujana dentista · Endodoncia', license_number: '1234567', license_institution: 'Universidad de Ejemplo' },
+  clinic: { name: 'Clínica Dental Ejemplo', address: 'Av. Siempre Viva 123, Col. Centro, Guadalajara, Jalisco', phone: '33 0000 0000' },
+  patient: { name: 'Paciente de Prueba', age_label: '34 años' },
+  diagnosis: 'Pulpitis irreversible sintomática pieza 36',
+  items: [
+    { generic: 'Amoxicilina', strength: '500 mg', form: 'cápsulas', dose: '1 cápsula', route: 'oral', frequency: 'cada 8 horas', duration: '7 días', quantity: '21 cápsulas' },
+    { generic: 'Ibuprofeno', brand: 'Marca de ejemplo', strength: '400 mg', form: 'tabletas', dose: '1 tableta', route: 'oral', frequency: 'cada 8 horas si hay dolor', duration: '3 días', quantity: '9 tabletas' }
+  ],
+  indications: 'Tomar con alimentos. Enjuagues con agua tibia y sal después de cada comida. Volver a consulta en 7 días o antes si hay inflamación o fiebre.',
+  legends: []
+};
+if (params.get('caso') === 'malicioso') {
+  sample.professional.name = '"><img src=x onerror="window.__pwn=1">';
+  sample.patient.name = '<script>window.__pwn=1<\/script>';
+  sample.items[0].generic = '<svg onload="window.__pwn=1">';
+  sample.indications = '<b onmouseover="window.__pwn=1">x</b>';
+}
+if (params.get('caso') === 'vacio') sample = {};
+document.getElementById('root').append(SmylPrescriptionPrint.render(sample));
+window.__issues = SmylPrescriptionPrint.sheetIssues(sample);
+</script></body></html>

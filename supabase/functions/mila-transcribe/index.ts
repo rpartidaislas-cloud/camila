@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requirePermission, requireUser } from "../_shared/auth.ts";
+import { permisoIA, respuestaIAnegada } from "../_shared/privacy.ts";
 import { makeCors } from "../_shared/cors.ts";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
@@ -84,6 +85,7 @@ async function buildClinicalDraft(transcript: string): Promise<Record<string, un
     headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: NOTE_MODEL,
+      store: false,
       input: [
         {
           role: "system",
@@ -141,10 +143,15 @@ Deno.serve(async (req: Request) => {
 
   const patientRaw = form.get("paciente_id");
   const pacienteId = patientRaw == null || patientRaw === "" ? null : String(patientRaw);
-  if (pacienteId !== null && !isUuid(pacienteId)) return json(400, { error: "paciente_id inválido." });
-  if (pacienteId) {
+  // Una consulta grabada siempre contiene datos de salud de alguien: se exige el paciente para comprobar
+  // que autorizó el uso de IA (consentimiento expreso, LFPDPPP) antes de mandar el audio a un tercero.
+  if (pacienteId === null) return json(400, { error: "Elige al paciente antes de grabar: necesitamos comprobar que autorizó el uso de IA." });
+  if (!isUuid(pacienteId)) return json(400, { error: "paciente_id inválido." });
+  {
     const { data: paciente } = await admin.from("camila_pacientes").select("id").eq("id", pacienteId).eq("tenant_id", tenantId).maybeSingle();
     if (!paciente) return json(404, { error: "El paciente no pertenece a tu clínica." });
+    const negada = respuestaIAnegada(await permisoIA(admin, tenantId, pacienteId));
+    if (negada) return json(negada.status, negada.body);
   }
 
   const clientDuration = Math.max(1, Math.min(14_400, Math.ceil(Number(form.get("duracion_segundos")) || 1)));

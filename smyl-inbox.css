@@ -3761,3 +3761,65 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
     #p-inbox .smyl-inbox-compose-primary { flex-direction: column; gap: 0; }
   }
 }
+
+/* ── Chat simple v1: menos señales repetidas, lectura más densa y acciones con nombre ── */
+/* 1) Filtros en un solo renglón (antes se partían en 2×2). */
+#p-inbox .smyl-inbox-filters { flex-wrap: nowrap; gap: 0; overflow-x: auto; scrollbar-width: none; }
+#p-inbox .smyl-inbox-filters::-webkit-scrollbar { display: none; }
+#p-inbox .smyl-inbox-filters button { flex: 1 0 auto; min-width: 0; padding: 0 5px; gap: 3px; font-size: 12px; letter-spacing: -.005em; }
+#p-inbox .smyl-inbox-filters button b { min-width: 15px; height: 15px; padding: 0 3px; font-size: 11px; }
+/* 2) La urgencia ya se ve en la pestaña «Por atender» y en la etiqueta de la fila: el aviso queda solo para lectores de pantalla. */
+#p-inbox .smyl-inbox-queue-summary[data-inbox-queue-summary] {
+  position: absolute; width: 1px; height: 1px; min-height: 0; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); border: 0;
+}
+/* 3) La etapa en la lista es un dato secundario: texto discreto, sin franja de color. */
+#p-inbox .smyl-inbox-list-card-footer { margin-bottom: 6px; background: transparent; }
+#p-inbox .smyl-inbox-list-stage { color: var(--inbox-muted, #64748b); }
+#p-inbox .smyl-inbox-list-stage select { font-weight: 400; }
+#p-inbox .smyl-inbox-list-stage:is(:hover, :focus-within) { color: var(--inbox-primary, #135e59); }
+#p-inbox .smyl-inbox-list-card:has(> .smyl-inbox-row.active) .smyl-inbox-list-card-footer { background: transparent; }
+/* 4) Mensajes cortos: la hora va en la misma línea en cualquier ancho (antes solo en celular). */
+#p-inbox .smyl-inbox-bubble.is-brief > p { display: inline; }
+#p-inbox .smyl-inbox-bubble.is-brief > time { display: inline-block; margin: 0 0 0 8px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#p-inbox .smyl-inbox-bubble.is-brief { padding-block: 8px; }
+/* 5) Con espacio suficiente, «Agendar» lleva su nombre. */
+#p-inbox .smyl-inbox-care-label { display: none; }
+@container smyl-thread-head (min-width: 620px) {
+  #p-inbox .smyl-inbox-thread-head .smyl-inbox-carebar .smyl-inbox-care-action[data-thread-primary-action="schedule"] {
+    flex: 0 0 auto; width: auto; max-width: none; padding: 0 14px 0 12px; gap: 8px;
+  }
+  #p-inbox .smyl-inbox-care-label { display: inline; font: 600 13px/1 var(--inbox-font); white-space: nowrap; }
+}
+
+/* ── Chat simple v2: aviso de IA en pausa en el menú compacto y barra de vistas más baja ── */
+/* En tableta y celular la IA vive dentro de «Opciones del chat»: con la IA en pausa, el botón lo avisa con un punto. */
+#p-inbox [data-thread-options] { position: relative; }
+#p-inbox .smyl-inbox-thread-head:has([data-thread-mode][aria-checked="false"]) [data-thread-options]::after {
+  content: ''; position: absolute; top: 7px; right: 7px; width: 9px; height: 9px; border-radius: 50%;
+  background: #c98a14; box-shadow: 0 0 0 2px #fff;
+}
+/* La barra «Conversaciones | Pipeline» ocupa menos altura. */
+#p-inbox .smyl-inbox-top { min-height: 0; padding-block: 6px; }
+
+/* ── «Sugerir horarios» en Agendar cita ── */
+#p-inbox .smyl-inbox-availability-suggest { margin: 0 0 12px; padding: 12px 14px; border: 1px solid #cfe3de; border-radius: 14px; background: #f5faf8; }
+#p-inbox .smyl-suggest-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+#p-inbox .smyl-suggest-head strong { display: block; font-size: 14px; color: #12312c; }
+#p-inbox .smyl-suggest-head span { display: block; margin-top: 2px; color: #5f716b; font-size: 12px; line-height: 1.4; }
+#p-inbox .smyl-suggest-body:empty { display: none; }
+#p-inbox .smyl-suggest-body { margin-top: 10px; }
+#p-inbox .smyl-suggest-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+#p-inbox .smyl-suggest-list li { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid #dce6e3; border-radius: 12px; background: #fff; }
+#p-inbox .smyl-suggest-n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: #135e59; color: #fff; font: 700 13px/1 var(--inbox-font, inherit); }
+#p-inbox .smyl-suggest-list strong { display: block; font-size: 14px; }
+#p-inbox .smyl-suggest-list small { display: block; margin-top: 2px; color: #5f716b; font-size: 12px; }
+#p-inbox .smyl-suggest-list em { font-style: normal; font-size: 11px; font-weight: 700; color: #135e59; background: #e3f2ee; padding: 3px 8px; border-radius: 99px; white-space: nowrap; }
+#p-inbox .smyl-suggest-note { margin: 8px 0 0; color: #5f716b; font-size: 12px; line-height: 1.45; }
+#p-inbox .smyl-suggest-body[data-state="error"] .smyl-suggest-note { color: #8a1f1f; }
+#p-inbox .smyl-suggest-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+#p-inbox .smyl-suggest-actions .btn { min-height: 40px; }
+@media (max-width: 620px) {
+  #p-inbox .smyl-suggest-list li { grid-template-columns: 28px 1fr; }
+  #p-inbox .smyl-suggest-list em { grid-column: 2; justify-self: start; }
+  #p-inbox .smyl-suggest-head .btn, #p-inbox .smyl-suggest-actions .btn { flex: 1 1 100%; }
+}

@@ -15,7 +15,7 @@ const server = http.createServer((req, res) => { let p = decodeURIComponent(req.
   await page.route('**/*', r => { const u = r.request().url(); if (u.includes('@supabase/supabase-js') || u.includes('/vendor/supabase-js-')) return r.fulfill({ status: 200, contentType: 'text/javascript', body: fs.readFileSync(path.join(__dirname, 'fake-supabase-agenda.js'), 'utf8') }); return u.startsWith('http://127.0.0.1') ? r.continue() : r.abort(); });
   await page.goto(`http://127.0.0.1:${server.address().port}/app.html`, { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(2500);
   const badge = () => page.evaluate(() => { const c = document.querySelector('.pro-app-nav [data-route="caja"] .pro-nav-count'); return c && !c.hidden ? c.textContent : '0'; });
-  const rows = () => page.$$eval('.finance-visit-row', els => els.map(e => ({ n: e.querySelector('strong').textContent, b: e.querySelector('.finance-badge').textContent, btns: [...e.querySelectorAll('button')].map(x => x.textContent) })));
+  const rows = () => page.$$eval('#finance-visits .finance-line', els => els.map(e => ({ n: e.querySelector('strong').textContent, b: (e.querySelector('.finance-tag') || { textContent: '' }).textContent, btns: [...e.querySelectorAll('button')].map(x => x.textContent) })));
   await page.evaluate(() => ir('caja')); await page.waitForTimeout(2000);
   let r = await rows(); console.log('1) apagado por omisión:', JSON.stringify(r.map(x => x.b))); check(!r.some(x => x.b === 'No vino'), 'sin monto configurado la inasistencia no debe aparecer');
   const base = await badge();

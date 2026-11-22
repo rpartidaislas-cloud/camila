@@ -426,7 +426,7 @@ h1{font-size:22px;line-height:1.25;margin:4px 0 2px}
   function speiPanel() {
     var box = el('div');
     box.appendChild(el('p', { 'class': 'pago-detalle-tit', text: 'Transferencia SPEI' }));
-    box.appendChild(el('p', { 'class': 'sub', text: 'Genera los datos para transferir el monto exacto desde tu banca en línea. El pago se acredita en minutos y se confirma solo.' }));
+    box.appendChild(el('p', { 'class': 'sub', text: 'Genera los datos para transferir el monto exacto desde tu banca en línea. La confirmación puede tardar de 15 a 30 minutos después de transferir y llega sola.' }));
     var err = el('div', { 'class': 'msg err', hidden: 'hidden' });
     var btn = el('button', { 'class': 'btn', type: 'button', text: 'Generar datos para transferir' });
     btn.onclick = function () {
@@ -468,7 +468,8 @@ h1{font-size:22px;line-height:1.25;margin:4px 0 2px}
       el('table', { 'class': 'spei-tabla' }, [el('tbody', {}, [row('Beneficiario', clinicName()), row('Banco destino', banco), row('CLABE', d.clabe, 'spei-clabe'), row('Concepto', ref), row('Importe', amount, 'spei-importe')])])
     ]));
     r.appendChild(pasos);
-    if (d.vence) r.appendChild(el('p', { 'class': 'sub', text: 'Vigente hasta el ' + dateTime(d.vence) + ' (hora de Ciudad de México). Esta página se actualiza sola cuando llegue tu pago.' }));
+    r.appendChild(el('div', { 'class': 'msg info', text: 'Después de transferir, la confirmación puede tardar de 15 a 30 minutos. No necesitas hacer nada más ni volver a pagar: tu clínica recibirá el pago y tu recibo aparecerá aquí cuando se confirme.' }));
+    if (d.vence) r.appendChild(el('p', { 'class': 'sub', text: 'Vigente hasta el ' + dateTime(d.vence) + ' (hora de Ciudad de México).' }));
     var status = el('p', { 'class': 'paynet-copy-status', role: 'status' });
     var copy = el('button', { type: 'button', 'class': 'paynet-action' }, [icon('copy'), 'Copiar CLABE']);
     copy.onclick = function () { copyText(d.clabe, status); };

@@ -57,7 +57,7 @@ test('web y PWA distribuyen el mismo flujo y fuerzan una caché nueva', () => {
   const app = read('app.html');
   const worker = read('sw.js');
   for (const tag of [
-    'smyl-radiograph-review.js?v=33',
+    'smyl-radiograph-review.js?v=34',
     'smyl-dental-record.js?v=35',
     'smyl-case-workspace.js?v=47',
     'smyl-evidence-center-integration.js?v=12',

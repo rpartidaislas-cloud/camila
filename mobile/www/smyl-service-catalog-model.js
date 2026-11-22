@@ -52,6 +52,7 @@
     p('periodontic-scaling','periodontic','Raspado y alisado radicular','quadrant','per_quadrant',60,SAT.dentist,'periodontic'),
     p('periodontic-gingivectomy','periodontic','Gingivectomía','quadrant','per_quadrant',90,SAT.dentist,'periodontic'),
     p('periodontic-crown-lengthening','periodontic','Alargamiento coronario','tooth','per_tooth',90,SAT.dentist,'periodontic'),
+    p('periodontic-gingivoplasty','periodontic','Gingivoplastia / contorneado gingival','arch','per_arch',60,SAT.dentist,'periodontic'),
     p('periodontic-graft','periodontic','Injerto periodontal','quadrant','per_quadrant',120,SAT.dentist,'periodontic'),
     p('surgery-extraction','surgery','Extracción simple','tooth','per_tooth',45,SAT.oral_surgery,'surgery'),
     p('surgery-complex-extraction','surgery','Extracción quirúrgica','tooth','per_tooth',90,SAT.oral_surgery,'surgery'),
@@ -69,6 +70,7 @@
     p('aesthetic-ceramic-veneer','aesthetic','Carilla cerámica','tooth','per_tooth',75,SAT.dentist,'aesthetic'),
     p('aesthetic-mockup','aesthetic','Encerado diagnóstico y mock-up','package','package',90,SAT.dentist,'aesthetic'),
     p('aesthetic-contouring','aesthetic','Contorneado estético','teeth','per_tooth',60,SAT.dentist,'aesthetic'),
+    p('aesthetic-smile-simulation','aesthetic','Simulación de diseño de sonrisa','general','fixed',30,SAT.dentist,'aesthetic'),
     p('ortho-study','orthodontic','Estudio de ortodoncia','package','package',90,SAT.orthodontics,'orthodontic'),
     p('ortho-brackets','orthodontic','Colocación de brackets','package','package',120,SAT.orthodontics,'orthodontic'),
     p('ortho-control','orthodontic','Control de ortodoncia','session','per_session',30,SAT.orthodontics,'orthodontic'),
@@ -100,7 +102,7 @@
     return {
       template_key: row.template_key || null,
       name: String(row.name || '').trim(), patient_name: String(row.patient_name || row.name || '').trim(),
-      description: String(row.description || '').trim(), category: row.category || 'other', specialty: row.specialty || row.category || 'general',
+      description: String(row.description || '').trim(), prep_instructions: String(row.prep_instructions || '').trim(), category: row.category || 'other', specialty: row.specialty || row.category || 'general',
       duration_minutes: Number(row.duration_minutes || 60), reference_price: Number.isFinite(price) ? price : null,
       currency: row.currency || 'MXN', scope_type: row.scope_type || 'session', pricing_mode: row.pricing_mode || 'fixed',
       sat_product_service_code: String(row.sat_product_service_code || '').trim() || null,
@@ -113,6 +115,7 @@
   function validate(input) {
     var row = normalize(input), errors = [];
     if (row.name.length < 2 || row.name.length > 100) errors.push('El nombre debe tener entre 2 y 100 caracteres.');
+    if (row.prep_instructions.length > 400) errors.push('Las instrucciones antes de la cita admiten hasta 400 caracteres.');
     if (!oneOf(CATEGORIES,row.category)) errors.push('La categoría no es válida.');
     if (!oneOf(SCOPES,row.scope_type)) errors.push('La unidad clínica no es válida.');
     if (!oneOf(PRICING,row.pricing_mode)) errors.push('La modalidad de precio no es válida.');

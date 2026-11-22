@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requirePermission, requireUser } from "../_shared/auth.ts";
+import { permisoIA, respuestaIAnegada } from "../_shared/privacy.ts";
 import { makeCors } from "../_shared/cors.ts";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
@@ -135,6 +136,8 @@ Deno.serve(async (req: Request) => {
   if (pacienteId) {
     const { data: paciente } = await admin.from("camila_pacientes").select("id").eq("id", pacienteId).eq("tenant_id", tenantId).maybeSingle();
     if (!paciente) return json(404, { error: "El paciente no pertenece a tu clínica." });
+    const negada = respuestaIAnegada(await permisoIA(admin, tenantId, pacienteId));
+    if (negada) return json(negada.status, negada.body);
   }
 
   if (CONSUMABLES_ENFORCED) {
