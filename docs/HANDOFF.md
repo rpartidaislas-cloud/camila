@@ -12421,3 +12421,9 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **Pantalla:** en la cuenta del paciente, cada cargo con saldo ofrece **«Aplicar saldo a favor»** si el paciente tiene saldo a favor y el rol puede cobrar. La ventana propone el máximo posible, no deja pasarse y confirma con «Saldo a favor aplicado: $X.» (`openApplyCredit`). Se abre sobre la cuenta, igual que «Anular cargo».
 - **Hallazgo:** el saldo a favor de la pantalla es **del paciente**, no de un pago (`creditCents`: pagos − reembolsos − aplicaciones); por eso la función reparte entre sus pagos. Hasta que Ricardo pegue el SQL, el botón existe pero la operación responde que no existe; conviene pegarlo antes de que alguien lo use.
 - **Archivos:** `smyl-finance.js` v69, `app.html`, `sw.js` (caché `…-finanzas-motor-v10`), copias en `mobile/www/`; migración; pruebas `tests/finanzas-motor-pglite.test.mjs` (4, en Postgres real en memoria: saldos, permisos, aislamiento entre clínicas, reparto, límites e idempotencia) y `tests/qa/finanzas-saldo-favor-smoke.cjs`; pines de versión (v68→v69).
+
+## 2026-11-23 — Claude — Finanzas v6 · paso 4, retoque: «Usar saldo a favor» también desde «Cobrar»
+
+- Ricardo no encontraba dónde aplicar el saldo a favor (el botón solo estaba dentro de «Ver cuenta»). Ahora la tarjeta del paciente del cobro (`paymentPatientCard`) ofrece **«Usar saldo a favor»** cuando tiene saldo a favor y cargos pendientes y el rol puede cobrar: con un solo cargo abre directo «Aplicar saldo a favor»; con varios, la cuenta del paciente para elegir.
+- Archivos: `smyl-finance.js` v70, `smyl-finance.css` v52 (regla `#finance-dialog .finance-credit-offer`), `app.html`, `sw.js`, copias en `mobile/www/`; `tests/qa/finanzas-saldo-favor-smoke.cjs` cubre la oferta. El SQL ya está pegado en producción (verificado).
+
