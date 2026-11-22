@@ -71,7 +71,7 @@ function readLanaContract(body: any) {
 //  - no strict (alta automática o verificación de un enlace ya existente): sólo se rechaza un producto distinto de "smyl";
 //    si LANA aún no informa el producto, se acepta pero queda marcado como "sin verificar".
 // Resultado: { ok, verified, code, message }
-function decideLanaLink(info: any, { strict }) {
+function decideLanaLink(info, { strict }) {
   const product = info && info.product ? info.product : null;
   if (product === SMYL_PRODUCT) return { ok: true, verified: true, code: "", message: "" };
   if (product) {
@@ -368,7 +368,7 @@ function validar(body: any, now: any) {
 
 async function registrar(deps: any, event: any) { try { await deps.log(event); } catch { /* la bitácora nunca debe romper una respuesta */ } }
 
-async function manejar({ raw, signature: any, now = new Date(), secret, deps }) {
+async function manejar({ raw, signature, now = new Date(), secret, deps }) {
   if (typeof secret !== "string" || secret.length < 32) return fail(503, "not_configured", "La integración no está configurada en el servidor.");
   if (!(await firmaValida(secret, raw, signature))) return fail(403, "bad_signature", "Firma inválida.");
   let body;

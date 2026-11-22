@@ -100,7 +100,10 @@ function loadShared(file) {
   // Los .mjs no declaran tipos; el bundle es TypeScript estricto, así que se anotan los parámetros sueltos.
   if (file.endsWith('.mjs')) {
     code = code.replace(/function\s*(\w*)\s*\(([^)]*)\)/g, (match, name, params) => {
-      const typed = params.split(',').map((param) => (/^\s*\w+\s*$/.test(param) ? param.trim() + ': any' : param.trim())).filter(Boolean).join(', ');
+      // Solo se anotan los parámetros simples. Un parámetro con llaves, corchetes o valor por omisión (p. ej. `{ cer, key, password } = {}`)
+      // se deja tal cual: partirlo por comas convertía `key` en `key: any`, que en JavaScript renombra la variable y rompe la función.
+      const typed = params.includes('{') || params.includes('[') || params.includes('=') ? params.trim()
+        : params.split(',').map((param) => (/^\s*\w+\s*$/.test(param) ? param.trim() + ': any' : param.trim())).filter(Boolean).join(', ');
       return 'function ' + name + '(' + typed + ')';
     });
   }
