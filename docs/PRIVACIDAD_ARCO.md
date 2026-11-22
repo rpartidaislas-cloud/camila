@@ -11,10 +11,10 @@ Texto legal del aviso: **borrador** (`modelo-provisional-2`). Un abogado debe re
 | Firma en la clínica | Consultorio → «Pedir firma». Pide las 3 decisiones | `smyl-consultorio.js` |
 | Firma desde el celular del paciente | Enlace de un solo uso, vence a las 48 h. Página pública sin cuenta | `aviso-firma.html` · `smyl_consent_links` · RPC `smyl_create_consent_link`, `smyl_consent_link_info`, `smyl_consent_link_sign` |
 | Decisiones por finalidad | IA, WhatsApp, promociones; cada cambio es un registro inmutable | `smyl_patient_privacy_events` · `smyl_set_patient_privacy_choice` |
-| Solicitudes ARCO | Registro con plazo de 20 días hábiles | `smyl_data_rights_requests` · pantalla «Privacidad y derechos» |
-| Sección en el expediente | «6 · Privacidad» en la Historia clínica | `smyl-patient-privacy-panel.js` |
+| Solicitudes ARCO | Registro con plazo de 20 días hábiles, **dentro de cada paciente** (ya no hay pantalla en Configuración) | `smyl_data_rights_requests` · `smyl-privacy-rights.js` (`mountPatient`) |
+| Sección en el expediente | «6 · Consentimiento» en la Historia clínica: aviso firmado, 3 decisiones (con «Cambiar»), solicitudes del paciente y copia de sus datos | `smyl-patient-privacy-panel.js` |
 | Aviso de posible solicitud en el chat | Detecta frases claras de ARCO y deja registrar con un clic | `smyl-privacy-inbox.js` |
-| Aviso automático por WhatsApp | A pacientes nuevos, con la plantilla `aviso_privacidad_v1`. Apagado por defecto | `privacy-notice-dispatch` · `smyl_privacy_settings` · `smyl_consent_dispatches` |
+| Aviso automático por WhatsApp | A pacientes nuevos, con la plantilla `aviso_privacidad_v1`. Apagado por defecto. El interruptor está en **Mensajería → Plantillas**, junto a la plantilla | `privacy-notice-dispatch` · `smyl_privacy_settings` · `smyl_consent_dispatches` |
 | Candado de IA | Si el paciente negó la IA, no se manda a un proveedor externo | `_shared/privacy.ts` + `privacy-core.mjs` |
 
 ## Regla del candado de IA
@@ -58,3 +58,4 @@ Texto legal del aviso: **borrador** (`modelo-provisional-2`). Un abogado debe re
 | 2026-11-21 | Aviso de posible solicitud ARCO en el chat | `smyl-privacy-inbox.js` |
 | 2026-11-21 | Aviso automático a pacientes nuevos | Migración `20261124200000`, `privacy-notice-dispatch` |
 | 2026-11-21 | Error propio: bundles con declaración duplicada (BOOT_ERROR) en las 4 funciones con candado | Corregido; candado extendido a `cloud-classify` y `fiscal-extract`; prueba de compilación de bundles |
+| 2026-11-22 | Consentimiento más claro; los derechos pasan a cada paciente | «Pedir firma» pregunta dónde firma; se quita «Privacidad y derechos» de Configuración; el interruptor del aviso automático se mueve a Plantillas |

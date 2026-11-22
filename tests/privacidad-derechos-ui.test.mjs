@@ -65,15 +65,32 @@ test('usa solo las funciones de la base con permiso y nunca escribe tablas direc
   assert.match(src, /\.from\('smyl_data_rights_requests'\)\.select\('\*'\)\.eq\('tenant_id', win\.tenantId\)/);
 });
 
-test('se publica en la app, el service worker, Configuración y la app móvil', () => {
+test('se publica en la app, el service worker y la app móvil; ya NO hay entrada en Configuración', () => {
   for (const f of ['app.html', 'mobile/www/app.html']) {
     const html = read(f);
     assert.match(html, /<link rel="stylesheet" href="smyl-privacy-rights\.css\?v=2">/);
-    assert.match(html, /<script defer src="smyl-privacy-rights\.js\?v=2"><\/script>/);
+    assert.match(html, /<script defer src="smyl-privacy-rights\.js\?v=3"><\/script>/);
   }
-  for (const f of ['sw.js', 'mobile/www/sw.js']) assert.match(read(f), /smyl-privacy-rights\.js\?v=2[\s\S]*smyl-privacy-rights\.css\?v=2/);
-  assert.match(read('smyl-settings-hub.js'), /title: 'Privacidad y derechos'[^\n]*route: 'privacidad'/);
-  assert.match(read('smyl-navigation.js'), /'seguridad', 'privacidad', 'sim-config'/);
-  assert.match(read('smyl-navigation.js'), /\['Privacidad y derechos', 'privacidad', 'shield'\]/);
+  for (const f of ['sw.js', 'mobile/www/sw.js']) assert.match(read(f), /smyl-privacy-rights\.js\?v=3[\s\S]*smyl-privacy-rights\.css\?v=2/);
+  assert.doesNotMatch(read('smyl-settings-hub.js'), /Privacidad y derechos/);
+  assert.doesNotMatch(read('smyl-navigation.js'), /'privacidad'|Privacidad y derechos/);
+  assert.doesNotMatch(read('smyl-privacy-rights.js'), /p-privacidad|win\.ir = function/, 'ya no es una pantalla: vive dentro de cada paciente');
   for (const f of ['smyl-privacy-rights.js', 'smyl-privacy-rights.css', 'smyl-settings-hub.js', 'smyl-navigation.js', 'smyl-privacy-notice.js']) assert.equal(read(f), read('mobile/www/' + f), f);
+});
+
+test('los derechos viven en cada paciente: lista, registrar, atender, cambiar una decisión y copia de datos', () => {
+  const lib = read('smyl-privacy-rights.js');
+  for (const name of ['mountPatient', 'openNewRequest', 'openAttend', 'exportData', 'setChoice', 'autoControl']) assert.match(lib, new RegExp(name + ':'));
+  assert.match(lib, /\.eq\('patient_id', patientId\)/, 'solo las solicitudes de ESE paciente');
+  const panel = read('smyl-patient-privacy-panel.js');
+  assert.match(panel, /SmylPrivacyRights\.mountPatient\(arco/);
+  assert.match(panel, /SmylPrivacyRights\.setChoice\(/);
+  assert.match(read('smyl-patient-360.js'), /patientRow:window\.pacienteActual/);
+});
+
+test('el interruptor del aviso automático está junto a su plantilla en Mensajería → Plantillas', () => {
+  const t = read('smyl-templates.js');
+  assert.match(t, /template\.id === 'aviso_privacidad_v1' && window\.SmylPrivacyRights/);
+  assert.match(t, /SmylPrivacyRights\.autoControl\(/);
+  assert.equal(t, read('mobile/www/smyl-templates.js'));
 });

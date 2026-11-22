@@ -4,6 +4,7 @@
  * Textos del paciente y del servidor entran siempre escapados. */
 (function (root, factory) { var api = factory(); if (typeof module === 'object' && module.exports) module.exports = api; else root.SmylPatientPrivacyPanel = api; })(globalThis, function () {
   'use strict';
+  var KEY_LABEL = { ai_processing: 'la inteligencia artificial', whatsapp: 'WhatsApp', marketing: 'las promociones' };
   var PURPOSES = [['ai_processing', 'Inteligencia artificial'], ['whatsapp', 'WhatsApp'], ['marketing', 'Promociones']];
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
 
@@ -43,7 +44,8 @@
     if (!m.signed && actions.link) btns += '<button type="button" class="p360-hc-edit" data-hp-link>Que firme en su celular</button>';
     return '<section class="p360-hc-band" id="p360-hc-privacy" data-tone="privacy" data-state="' + esc(m.state) + '" tabindex="-1" aria-labelledby="p360-hc-privacy-t">'
       + '<header class="p360-hc-band-h"><div class="p360-hc-title"><span class="p360-hc-num" aria-hidden="true">' + Number(number) + '</span><div><h3 id="p360-hc-privacy-t">Consentimiento de privacidad</h3><small>Lo que firmó el paciente y lo que permite sobre sus datos.</small></div></div><div class="pp-actions">' + btns + '</div></header>'
-      + '<dl class="p360-hc-rows">' + m.rows.map(rowHtml).join('') + '</dl></section>';
+      + '<dl class="p360-hc-rows">' + m.rows.map(rowHtml).join('') + '</dl>'
+      + (actions.arco ? '<div class="pp-arco"><p class="pp-feedback" role="status" aria-live="polite"></p><div data-pp-arco></div></div>' : '') + '</section>';
   }
   function indexButton(number, m) {
     return '<button type="button" data-hc-goto="privacy"><span class="p360-hc-dot" data-state="' + esc(m.state === 'neutral' ? 'neutral' : m.state) + '" aria-hidden="true"></span>' + Number(number) + ' · Consentimiento</button>';
@@ -72,7 +74,7 @@
       if (!host.isConnected || host.querySelector('#p360-hc-privacy')) return false;
       var m = model({ consent: res[0], privacy: res[1] }, fmt), number = count + 1;
       var tpl = doc.createElement('template');
-      tpl.innerHTML = render(m, number, { link: !!o.canAct });
+      tpl.innerHTML = render(m, number, { link: !!o.canAct, arco: !!o.canAct && !!o.patientRow && !!win.SmylPrivacyRights });
       var footer = main.querySelector('.p360-hc-footer');
       main.insertBefore(tpl.content, footer || null);
       var progress = index.querySelector('.p360-hc-progress'), itpl = doc.createElement('template');
@@ -83,6 +85,22 @@
       if (m.missing && progress) { var line = doc.createElement('span'); line.className = 'p360-hc-missing pp-missing'; line.textContent = 'Falta la firma del consentimiento de privacidad.'; progress.append(line); }
       var link = band.querySelector('[data-hp-link]');
       if (link) link.onclick = function () { openLink(o, link); };
+      var arco = band.querySelector('[data-pp-arco]');
+      if (arco && win.SmylPrivacyRights) {
+        var fb = band.querySelector('.pp-feedback');
+        win.SmylPrivacyRights.mountPatient(arco, Object.assign({ id: o.patient }, o.patientRow), { notify: function (text, tone) { fb.textContent = text; fb.dataset.tone = tone; }, onChange: function () { if (o.refresh) o.refresh(); } });
+      }
+      /* «Cambiar» en cada decisión: registra el cambio con su fecha (por ejemplo, si el paciente dice en persona que ya no quiere WhatsApp). */
+      if (res[1] && win.SmylPrivacyRights && o.canAct) {
+        var KEY = { 'Inteligencia artificial': 'ai_processing', 'WhatsApp': 'whatsapp', 'Promociones': 'marketing' };
+        band.querySelectorAll('.p360-hc-row').forEach(function (row) {
+          var key = KEY[(row.querySelector('dt') || {}).textContent]; if (!key) return;
+          var st = res[1][key] && res[1][key].state, granted = st === 'granted';
+          var b = doc.createElement('button'); b.type = 'button'; b.className = 'pp-change'; b.textContent = granted ? 'Cambiar a No' : 'Cambiar a Sí';
+          b.onclick = function () { if (win.confirm(granted ? '¿Registrar que el paciente ya NO acepta ' + KEY_LABEL[key] + '?' : '¿Registrar que el paciente SÍ acepta ' + KEY_LABEL[key] + '?')) win.SmylPrivacyRights.setChoice(Object.assign({ id: o.patient }, o.patientRow), key, granted ? 'revoked' : 'granted'); };
+          var cell = row.querySelector('.p360-hc-st'); if (cell) cell.append(b);
+        });
+      }
       return true;
     });
   }
