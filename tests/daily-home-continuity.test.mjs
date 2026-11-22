@@ -78,7 +78,7 @@ test('La mesa de trabajo se distribuye en web, PWA y vista de QA', () => {
   assert.match(app, /smyl-daily-home\.js\?v=21/);
   assert.match(app, /smyl-dashboard-v2\.css\?v=2/);
   assert.ok(app.indexOf('smyl-dashboard-v2.css?v=2') > app.indexOf('smyl-ui-template-v3.css?v=9'), 'la capa del dashboard debe gobernar después de la plantilla global');
-  assert.match(app, /smyl-clinic-setup\.js\?v=7/);
+  assert.match(app, /smyl-clinic-setup\.js\?v=8/);
   assert.match(app, /smyl-lana-attention\.js\?v=5/);
   assert.match(worker, /meta-cards-v13/);
   assert.match(worker, /patient-simulations-v70/);

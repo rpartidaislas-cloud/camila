@@ -1,3 +1,9 @@
+## 2026-11-22 — Configuración de canales
+
+- En Configuración → Canales, WhatsApp Business, Messenger e Instagram aparecen con los mismos logos que la bandeja. Cada tarjeta abre su pestaña de conexión e identifica la cuenta cuando el servicio devuelve su nombre o teléfono. El bloque Asistente agrupa configuración y pruebas. Mensajes automáticos reúne las plantillas, los avisos de cita y las reglas.
+- Inicio y Configuración comparten la lectura de canales en curso en `smyl-clinic-setup.js`. El resumen de cuentas de `smyl-settings-hub.js` respeta los permisos devueltos por el servicio. Una consulta fallida permite reintentar. Una respuesta parcial muestra las cuentas pendientes de verificar y omite el total.
+- Recursos sincronizados con la PWA y `mobile/www`. Verificación en Chromium a 320, 390, 820 y 1280 px con cuentas simuladas, incluyendo errores de conexión, permisos de lectura y cambios de clínica.
+
 ## 2026-11-21 — Claude Code — Página de pago: el paciente puede cambiar de método
 
 - Petición de Ricardo: que el paciente pueda elegir SPEI y después pagar con tarjeta (o al revés) en el mismo enlace. Esto reemplaza la regla anterior de «un solo método por enlace».
