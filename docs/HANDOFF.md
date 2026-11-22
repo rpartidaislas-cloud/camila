@@ -1,3 +1,8 @@
+## 2026-11-22 — Claude Code — Pacientes: la fila completa abre el expediente
+
+- `smyl-clinic.js` v27 / `smyl-patients-directory.css` v3: se quitan el botón «Abrir expediente», el menú «…» (Agendar cita / Editar datos) y cualquier botón de la fila. Toda la fila abre el expediente; el nombre es un botón accesible por teclado y hay una flecha «›» al final (oculta en móvil). «Editar datos» sigue en el expediente.
+- SW suffix `-pacientes-fila-v1`; copias en `mobile/www/`. Tests de v32/v33 actualizados.
+
 ## 2026-11-21 — Claude Code — Ficha SPEI: aviso de que la confirmación tarda de 15 a 30 minutos
 
 - Prueba real en producción: un SPEI de $10 enviado desde Mercado Pago a las 14:36 lo aplicó Openpay a las 14:52. LANA lo marcó como pagado en la siguiente consulta (`smyl-pago-verificar-openpay`, sin webhook) y SMYL recibió el aviso.
@@ -272,6 +277,22 @@
 - **LEGAL — leer `docs/RECETA_REQUISITOS.md`**: los requisitos salen de fuentes secundarias y NO están contrastados con el texto oficial (los sitios oficiales estaban bloqueados). Las listas de controlados y de antibióticos son una red de apoyo, NO una lista legal (pueden fallar). No se imprime ninguna leyenda legal. Sin firma electrónica. Un abogado/asesor sanitario debe validar antes de usarla con pacientes reales.
 - **Para activarla**: aplicar `20261125130000_smyl_prescriptions.sql` (la de la institución, `20261122100000`, ya está aplicada) y que cada doctor tenga perfil de profesional vinculado a su usuario, con cédula, y la sucursal con domicilio.
 - **No incluido**: botón en la ficha del paciente (solo Consultorio), catálogo de medicamentos validado, receta electrónica, folio por profesional, PDF para enviar al paciente.
+## 2026-11-23 — Claude Code — Diseño de sonrisa en la ficha: la simulación se cobra y se descuenta de las carillas
+
+- **Decisión del usuario:** la simulación tiene precio fijo y se descuenta si el paciente acepta carillas.
+- **Catálogo** (`smyl-service-catalog-model.js`): plantillas nuevas `aesthetic-smile-simulation` («Simulación de diseño de sonrisa», precio que pone la clínica) y `periodontic-gingivoplasty` («Gingivoplastia / contorneado gingival»).
+- **Ficha** (`smyl-patient-360.js`): pestaña nueva **Diseño de sonrisa** (`data-p360-tab="smile"`) con la galería de simulaciones; Tratamiento queda solo con el plan. Los enlaces a `simulations` abren la pestaña nueva.
+- **Cobro** (`smyl-patient-cases.js`/`.css`): cada simulación guardada muestra «💳 Cobrar simulación · $X» (con `finance.manage` y precio en el catálogo), o «Pagada / Por pagar» y «Se descuenta si acepta carillas / Descontada de carillas». Arriba, «$X a favor para carillas» (la simulación cobrada más reciente aún sin usar).
+- **Descuento** (`smyl-finance.js`, «Crear cargos desde cotización aceptada»): si la propuesta trae carillas y hay una simulación cobrada sin usar, aparece «Descontar la simulación cobrada (−$X)», marcado por defecto; llama a `smyl_post_proposal_charges_v2`. Sin esa casilla se usa la función original.
+- **Migración** `20261123110500_smyl_simulation_billing.sql`:
+  - columnas `simulation_case_id` (cargo → simulación, única por simulación abierta) y `simulation_credit_charge_id` (línea de carillas → cargo de simulación descontado, único);
+  - `smyl_post_simulation_charge` (usa `smyl_post_charge`, sucursal predeterminada si no se indica);
+  - `smyl_patient_simulation_billing` (`finance.read`);
+  - `smyl_post_proposal_charges_v2` = la original + descuento en las líneas de carillas (plantilla o nombre «carilla»), cada línea conserva ≥ 1 centavo, el lote guarda el total ya descontado y el detalle en `source_snapshot.simulation_credit`. La función original no cambia.
+  - **Requiere aplicarla en el SQL Editor.** Validada con el parser de PostgreSQL (`pglast`), no ejecutada contra una base real.
+- Pruebas: `tests/smyl-simulation-billing.test.mjs` (nueva); `smyl-patient-simulations-v46` y `service-catalog-model` actualizadas. Galería verificada en Playwright con datos ficticios a 1100 y 390 px (cobrar → «Por pagar» + aviso de crédito). El diálogo de «Crear cargos» no se probó en navegador.
+- Versiones: `smyl-patient-360.js?v=36`, `smyl-patient-cases.js?v=14` / `.css?v=4`, `smyl-finance.js?v=67`, `smyl-service-catalog-model.js?v=3`, caché `diseno-sonrisa-v1`; `mobile/www` sincronizado.
+- Pendiente: que la propuesta al paciente muestre el crédito; plan por fases (ortodoncia → encía → carillas); flujo de 4 pasos del simulador.
 
 ## 2026-11-22 — Claude Code — Receta médica: base técnica (SIN contenido legal verificado)
 
