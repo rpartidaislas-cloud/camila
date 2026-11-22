@@ -93,6 +93,6 @@ test('Cobros ya no se limita a los primeros 500 pacientes: completa los nombres 
     assert.match(f, /async function ensurePatientNames\(\)\{/);
     assert.match(f, /\[state\.charges,state\.payments,state\.appointments,state\.visitAppointments,state\.proposals,state\.fiscal\]/);
     assert.match(f, /\.in\('id',ids\.slice\(i,i\+100\)\)/);
-    assert.match(f, /state\.fiscalReadiness=rows\[19\]\|\|null;await loadVisits\(\);await ensurePatientNames\(\);state\.loaded=true;/);
+    assert.match(f, /state\.fiscalReadiness=rows\[19\]\|\|null;try\{state\.creditApps=[\s\S]*?catch\(e\)\{state\.creditApps=\[\];\}await loadVisits\(\);await ensurePatientNames\(\);state\.loaded=true;/);
   }
 });

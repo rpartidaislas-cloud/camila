@@ -22,12 +22,17 @@ const server = http.createServer((req, res) => { let p = decodeURIComponent(req.
     db.camila_pacientes.push({ id: 'pc1', tenant_id: T, nombre: 'Marisol Saldo', apellido: 'Favor', email: '', telefono: '', created_at: new Date(now).toISOString(), notas: '', alertas_medicas: [] });
     db.smyl_finance_charges.push({ id: 'cc1', tenant_id: T, patient_id: 'pc1', status: 'open', total_amount: 600, created_at: new Date(now - 864e5).toISOString(), concept: 'Limpieza profunda', due_on: null, branch_id: 'b1' });
     db.smyl_finance_payments.push({ id: 'pc-pay', tenant_id: T, patient_id: 'pc1', amount: 1000, method: 'card', reference: '', paid_at: new Date(now - 3600e3).toISOString(), received_by: T, created_by: T, branch_id: 'b1' });
+    db.smyl_finance_credit_applications = [{ id: 'ca1', tenant_id: T, patient_id: 'pc1', charge_id: 'cc1', amount: 120, created_at: new Date(now - 1800e3).toISOString(), created_by: T }];
     db.smyl_finance_receipts.push({ id: 'pc-r', tenant_id: T, payment_id: 'pc-pay', folio: 900, issued_at: new Date(now - 3600e3).toISOString() });
   });
   await page.evaluate(() => ir('caja')); await page.waitForTimeout(3000);
   await page.click('#finance-accounts [data-account="pc1"]'); await page.waitForTimeout(600);
   const buttons = () => page.$$eval('#finance-dialog [data-account-credit]', e => e.map(x => x.textContent.trim()));
   check((await buttons()).join('|') === 'Aplicar saldo a favor', 'el cargo con saldo ofrece «Aplicar saldo a favor» (' + (await buttons()).join('|') + ')');
+  await page.click('#finance-dialog [data-account-tab="payments"]'); await page.waitForTimeout(250);
+  const hist = await page.$eval('#finance-dialog [data-kind="credit"]', e => e.textContent.replace(/\s+/g, ' ')).catch(() => '');
+  check(/Saldo a favor aplicado · Limpieza profunda/.test(hist) && /\$120\.00/.test(hist) && /No entra dinero a la caja/.test(hist), 'el Historial muestra la aplicación del saldo a favor: ' + hist.slice(0, 120));
+  await page.click('#finance-dialog [data-account-tab="charges"]'); await page.waitForTimeout(150);
   await page.click('#finance-dialog [data-account-credit="cc1"]'); await page.waitForTimeout(500);
   const form = await page.$eval('#finance-dialog', d => ({ title: d.querySelector('h2').textContent.trim(), text: d.querySelector('p').textContent.replace(/\s+/g, ' '), amount: d.querySelector('[name=amount]').value, max: d.querySelector('[name=amount]').max, actions: [...d.querySelectorAll('.finance-actions button')].map(x => x.textContent.trim()) }));
   check(form.title === 'Aplicar saldo a favor' && /debe \$600\.00/.test(form.text) && /tiene \$1,000\.00 a favor/.test(form.text), 'la ventana dice cuánto debe y cuánto tiene a favor: ' + form.text.slice(0, 120));
