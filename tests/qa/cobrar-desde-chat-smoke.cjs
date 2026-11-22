@@ -49,7 +49,7 @@ const server = http.createServer((req, res) => {
   await page.evaluate(() => ir('caja')); await page.waitForTimeout(1500);
   await page.evaluate(() => document.getElementById('finance-guided-collection').click()); await page.waitForTimeout(500);
   const pay = await page.evaluate(() => { const d = document.getElementById('finance-dialog'); const r = d.getBoundingClientRect(); return { open: d.open, form: !!d.querySelector('.finance-collection-guide'), w: Math.round(r.width), caja: document.getElementById('p-caja').offsetParent !== null }; });
-  check(pay.open && pay.form && pay.w > 300 && pay.caja, 'desde Cobros «Cobrar a paciente» sigue abriendo igual: ' + JSON.stringify(pay));
+  check(pay.open && pay.form && pay.w > 300 && pay.caja, 'desde Finanzas «Cobrar» sigue abriendo igual: ' + JSON.stringify(pay));
   console.log('errores de página:', errs.join('|') || 'ninguno'); if (errs.length) fails++;
   await b.close(); server.close(); process.exit(fails ? 1 : 0);
 });

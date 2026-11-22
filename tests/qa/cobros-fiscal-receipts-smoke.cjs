@@ -86,7 +86,7 @@ const server = http.createServer((req, res) => {
   await page.waitForTimeout(250);
   const detail = await page.$eval('.finance-receipt-detail', dialog => ({
     service: dialog.querySelector('.finance-receipt-services article strong').textContent,
-    applied: dialog.querySelector('.finance-receipt-services article>div:last-child strong').textContent,
+    applied: dialog.querySelector('.finance-receipt-services article>strong').textContent,
     fiscal: [...dialog.querySelectorAll('footer button')].map(button => button.textContent.trim())
   }));
   console.log('2) detalle:', JSON.stringify(detail));

@@ -10,13 +10,13 @@ const styles = read('../smyl-finance.css');
 const dialogSystem = read('../smyl-dialog-system.js');
 
 test('la cartera prioriza vencimientos, créditos y cortes verificables', () => {
-  assert.match(finance, /Ver vencidas/);
+  assert.match(finance, / vencido<\/b>/);
   assert.match(finance, /Saldo a favor/);
-  assert.match(finance, /Aplicar a una cuenta/);
+  assert.match(finance, /Saldos a favor/);
   assert.match(finance, /Hacer corte/);
   assert.match(finance, /accountSnapshot/);
   assert.match(finance, /dueLabel/);
-  assert.match(finance, /ningún cargo se ejecuta automáticamente/i);
+  assert.match(finance, /Ningún cobro se realiza automáticamente/);
 });
 
 test('cada cuenta comunica avance sin inventar estados financieros', () => {
@@ -41,7 +41,7 @@ test('el pago se revisa antes de enviarse a la operación atómica', () => {
 });
 
 test('el registro profesional guía paciente, importe, método, aplicación y recibo', () => {
-  for (const copy of ['CUENTA DEL PACIENTE', 'Liquidar ', 'Registrar anticipo', 'Forma de pago', 'Aplicar a cargos', 'PAGO REGISTRADO', 'Imprimir recibo', 'Compartir']) {
+  for (const copy of ['CUENTA DEL PACIENTE', 'Liquidar ', 'Recibir anticipo', 'Forma de pago', 'Aplicar a cargos', 'PAGO REGISTRADO', 'Imprimir recibo', 'Compartir']) {
     assert.match(finance, new RegExp(copy));
   }
   assert.match(finance, /data-allocation/);
@@ -57,7 +57,7 @@ test('el registro profesional guía paciente, importe, método, aplicación y re
 });
 
 test('el cobro cotidiano parte del paciente y decide la operación sin mezclar movimientos', () => {
-  for (const copy of ['Cobrar a paciente', 'Cobrar saldo', 'Servicio de hoy', 'Cotización aceptada', 'Registrar anticipo', 'Agregar cargo']) {
+  for (const copy of ['<h2>Cobrar</h2>', 'Cobrar saldo', 'Servicio de hoy', 'Cotización aceptada', 'Recibir anticipo', 'Registrar cargo']) {
     assert.match(finance, new RegExp(copy));
   }
   assert.match(finance, /function openGuidedCollection\(patientId\)/);
@@ -79,8 +79,8 @@ test('el cobro cotidiano parte del paciente y decide la operación sin mezclar m
 });
 
 test('web, móvil y PWA publican la etapa cinco sincronizada', () => {
-  assert.match(app, /smyl-finance\.css\?v=47/);
-  assert.match(app, /smyl-finance\.js\?v=63/);
+  assert.match(app, /smyl-finance\.css\?v=48/);
+  assert.match(app, /smyl-finance\.js\?v=64/);
   assert.match(worker, /collection-visual-v1/);
   assert.match(worker, /smyl-v267-guided-collection-sentry-v1/);
   for (const file of ['app.html', 'sw.js', 'smyl-finance.js', 'smyl-finance.css', 'smyl-dialog-system.js']) {

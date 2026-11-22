@@ -17,7 +17,7 @@ test('Cobros ofrece «Abrir chat» sólo si el paciente tiene chat vinculado, le
   for (const base of ['', 'mobile/www/']) {
     const f = read(base + 'smyl-finance.js');
     assert.match(f, /from\('camila_lana_handoffs'\)\.select\('patient_id,lana_conversation_id,lana_channel,updated_at'\)/);
-    assert.match(f, /chatLinks\[x\.p\.id\]\?'<button data-chat=/);
+    assert.match(f, /chatLinks\[x\.p\.id\]\?'<details class="finance-row-menu">[^']*'\+esc\(name\(x\.p\.id\)\)\+'[^']*<button type="button" data-chat=/);
     assert.match(f, /window\.SmylInbox\.open\(l\.conversation\)/);
     assert.match(f, /accountSummary:accountSummary,\s*contactContext:contactContext,\s*account:function\(patientId\)/);
   }
@@ -169,14 +169,14 @@ test('el chat no toca tablas ni el tenant: usa SmylFinance.contactContext', () =
   for (const base of ['', 'mobile/www/']) assert.doesNotMatch(read(base + 'smyl-inbox.js'), /tenant_id|window\.tenantId|smyl_collection_(prefs|reminders)'\)/);
 });
 
-test('Finanzas: filtro «Vencidas» de Cuentas por cobrar sin envíos automáticos (cada recordatorio pasa por el chat)', () => {
+test('Finanzas: filtro «Vencidas» de Por cobrar sin envíos automáticos (cada recordatorio pasa por el chat)', () => {
   for (const base of ['', 'mobile/www/']) {
     const f = read(base + 'smyl-finance.js');
-    assert.match(f, /<button data-finance-tab="accounts" aria-selected="false">Cuentas por cobrar<em hidden><\/em><\/button>/);
+    assert.match(f, /var TABS=\[\['accounts','Por cobrar'\],\['receipts','Pagos'\],\['cash','Caja'\],\['fiscal','Facturación'\]\]/);
     assert.doesNotMatch(f, /data-finance-tab="today"/);
     assert.match(f, /data-account-filter="overdue">Vencidas/);
     assert.match(f, /<div id="finance-today" hidden><\/div>/);
-    assert.match(f, /window\.SmylInbox\.collect\(l\.conversation\)/);
+    assert.match(f, /var item=chatLinks\[button\.dataset\.todaySend\];if\(item\)window\.SmylInbox\.collect\(item\.conversation\)/);
     assert.match(f, /from\('smyl_collection_reminders'\)/);
     assert.match(f, /from\('smyl_collection_prefs'\)/);
     assert.doesNotMatch(f, /smyl_log_collection_reminder/, 'el registro lo hace el chat al enviar, no Cobros');
