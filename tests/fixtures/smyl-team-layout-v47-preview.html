@@ -15,41 +15,36 @@
     <aside class="side"><strong>smyl</strong><span>Agenda</span><span>Pacientes</span><span>Mensajes</span><span class="active">Configuración</span></aside>
     <main class="contenido">
       <section class="clinic-admin-page">
-        <div class="clinic-admin-tabs"><button class="clinic-admin-tab">Sucursales y horarios</button><button class="clinic-admin-tab" aria-label="Equipo, roles y profesionales" aria-selected="true">Equipo y roles</button></div>
+        <div class="clinic-admin-tabs"><button class="clinic-admin-tab">Sucursales y horarios</button><button class="clinic-admin-tab" aria-label="Equipo de la clínica" aria-selected="true">Equipo</button></div>
         <section class="clinic-admin-panel clinic-admin-team-panel" data-ca-panel="equipo">
-          <header class="clinic-admin-team-hero">
-            <div><span class="pro-eyebrow">PERSONAS Y ACCESO</span><h2>Equipo de la clínica</h2><p>Administra cada persona desde una sola ficha: define su acceso, su rol y la sede donde trabaja.</p></div>
-            <div class="clinic-admin-team-actions"><button class="btn">Invitar integrante</button><button class="btn btn-primary">Agregar doctor</button></div>
-          </header>
-          <div class="clinic-admin-team-grid">
+          <nav class="clinic-admin-team-views" role="tablist"><button role="tab" data-view="people" aria-selected="true">Integrantes</button><button role="tab" data-view="roles" aria-selected="false">Roles y permisos</button><button role="tab" data-view="professionals" aria-selected="false">Profesionales</button></nav>
+          <section class="clinic-admin-team-view-panel" data-panel="people">
+            <header class="clinic-admin-team-hero"><div><span class="pro-eyebrow">PERSONAS</span><h2>Integrantes</h2><p>Administra quién pertenece a la clínica. Cada persona conserva una sola ficha de acceso.</p></div><div class="clinic-admin-team-actions"><button class="btn btn-primary">Invitar integrante</button></div></header>
             <article class="clinic-admin-card clinic-admin-people-card">
-              <div class="clinic-admin-section-head"><div><h2>Personas con acceso</h2><p class="clinic-admin-card-intro">Los cambios de rol y sede se guardan directamente en cada ficha.</p></div></div>
+              <div class="clinic-admin-section-head"><div><h2>Equipo de la clínica</h2><p class="clinic-admin-card-intro">Abre una ficha para revisar contacto, rol y estado de acceso.</p></div><span class="clinic-admin-section-count">2 personas</span></div>
+              <div class="clinic-admin-team-toolbar"><label class="clinic-admin-search"><span class="clinic-admin-sr">Buscar</span><input placeholder="Buscar por nombre, correo o sede"></label><div class="clinic-admin-filters"><button class="clinic-admin-filter" aria-pressed="true">Todos · 2</button><button class="clinic-admin-filter">Activos · 2</button><button class="clinic-admin-filter">Invitaciones · 0</button></div></div>
               <div class="clinic-admin-people-list">
-                <article class="clinic-admin-member" data-active="true">
-                  <div class="clinic-admin-avatar">DH</div>
-                  <div class="clinic-admin-member-meta"><div class="clinic-admin-member-title"><strong>Ana Torres</strong><span class="clinic-admin-person-kind is-team">Equipo</span></div><small>ana@clinica.test</small></div>
-                  <div class="clinic-admin-member-controls"><label class="clinic-admin-member-field is-role"><span>Rol</span><select><option>Recepción</option></select></label><label class="clinic-admin-member-field is-branch"><span>Sede principal</span><select><option>Círculo Médico Dental</option></select></label></div>
-                </article>
-                <article class="clinic-admin-member" data-active="true">
-                  <div class="clinic-admin-avatar">D</div>
-                  <div class="clinic-admin-member-meta"><div class="clinic-admin-member-title"><strong>Dra. Elena Ruiz</strong><span class="clinic-admin-person-kind">Doctor</span></div><small>elena@clinica.test</small><p>Diseño de sonrisas · Céd. DEMO-001</p></div>
-                  <div class="clinic-admin-member-controls"><label class="clinic-admin-member-field is-role"><span>Rol</span><select disabled><option>Propietario</option></select></label><label class="clinic-admin-member-field is-branch"><span>Sede principal</span><select><option>Círculo Médico Dental</option></select></label></div>
-                </article>
+                <button class="clinic-admin-person-row"><span class="clinic-admin-avatar">AT</span><span class="clinic-admin-person-main"><span class="clinic-admin-person-title"><strong>Ana Torres</strong><span class="clinic-admin-person-kind is-team">Integrante</span></span><small>ana@clinica.test</small></span><span class="clinic-admin-person-where"><span class="clinic-admin-chip">Sucursal Centro</span></span><span class="clinic-admin-person-flags"><span class="clinic-admin-flag">Activo</span></span><span class="clinic-admin-person-go">›</span></button>
+                <button class="clinic-admin-person-row"><span class="clinic-admin-avatar">ER</span><span class="clinic-admin-person-main"><span class="clinic-admin-person-title"><strong>Dra. Elena Ruiz</strong><span class="clinic-admin-person-kind">Atiende pacientes</span></span><small>Diseño de sonrisas · Céd. DEMO-001</small></span><span class="clinic-admin-person-where"><span class="clinic-admin-chip">Sucursal Centro</span></span><span class="clinic-admin-person-flags"><span class="clinic-admin-flag">Activo</span></span><span class="clinic-admin-person-go">›</span></button>
               </div>
             </article>
-            <aside class="clinic-admin-card clinic-admin-pending-card">
-              <div class="clinic-admin-section-head"><div><h2>Por completar</h2><p class="clinic-admin-card-intro">Invitaciones pendientes o perfiles profesionales sin acceso.</p></div></div>
-              <div class="clinic-admin-pending-empty"><span aria-hidden="true"></span><strong>Todo al día</strong><p>No hay invitaciones ni perfiles pendientes de vincular.</p></div>
-            </aside>
+          </section>
+          <section class="clinic-admin-team-view-panel" data-panel="roles" hidden>
+            <header class="clinic-admin-team-hero"><div><span class="pro-eyebrow">ACCESO</span><h2>Roles y permisos</h2><p>Define qué información puede consultar y qué acciones puede realizar cada rol.</p></div><div class="clinic-admin-team-actions"><button class="btn btn-primary">Crear rol</button></div></header>
             <article class="clinic-admin-card clinic-admin-role-card">
-              <div class="clinic-admin-section-head"><div><h2>Roles y funciones</h2><p class="clinic-admin-card-intro">Configura qué puede hacer cada rol y hasta dónde llega su acceso a la información.</p></div><button class="btn">Crear rol</button></div>
+              <div class="clinic-admin-section-head"><div><h2>Roles de la clínica</h2><p class="clinic-admin-card-intro">Las personas reciben un rol; aquí configuras sus permisos, no sus datos.</p></div><span class="clinic-admin-section-count">2 roles</span></div>
               <details class="clinic-admin-role"><summary><span><strong>Administrador</strong><small>Operación general sin gestión de suscripción.</small></span><b>24 funciones</b></summary></details>
               <details class="clinic-admin-role"><summary><span><strong>Asistente clínico</strong><small>Apoyo clínico y operativo.</small></span><b>8 funciones</b></summary></details>
             </article>
-          </div>
+          </section>
+          <section class="clinic-admin-team-view-panel" data-panel="professionals" hidden>
+            <header class="clinic-admin-team-hero"><div><span class="pro-eyebrow">AGENDA Y ATENCIÓN</span><h2>Profesionales</h2><p>Configura quién atiende pacientes, en qué sedes y si está listo para recibir citas.</p></div><div class="clinic-admin-team-actions"><button class="btn btn-primary">Invitar profesional</button></div></header>
+            <article class="clinic-admin-card clinic-admin-professionals-card"><div class="clinic-admin-section-head"><div><h2>Profesionales de la clínica</h2><p class="clinic-admin-card-intro">Abre una ficha para asignar sedes, revisar disponibilidad y completar su perfil clínico.</p></div><span class="clinic-admin-section-count">1 profesional</span></div><div class="clinic-admin-people-list"><button class="clinic-admin-person-row"><span class="clinic-admin-avatar">ER</span><span class="clinic-admin-person-main"><span class="clinic-admin-person-title"><strong>Dra. Elena Ruiz</strong><span class="clinic-admin-person-kind">Atiende pacientes</span></span><small>Diseño de sonrisas · Céd. DEMO-001</small></span><span class="clinic-admin-person-where"><span class="clinic-admin-chip">Sucursal Centro</span></span><span class="clinic-admin-person-flags"><span class="clinic-admin-flag">Lista para citas</span></span><span class="clinic-admin-person-go">›</span></button></div></article>
+          </section>
         </section>
       </section>
     </main>
   </div>
+  <script>document.querySelectorAll('[data-view]').forEach(function(button){button.addEventListener('click',function(){document.querySelectorAll('[data-view]').forEach(function(item){item.setAttribute('aria-selected',String(item===button));});document.querySelectorAll('[data-panel]').forEach(function(panel){panel.hidden=panel.dataset.panel!==button.dataset.view;});});});</script>
 </body>
 </html>

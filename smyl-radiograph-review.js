@@ -272,7 +272,7 @@
     processing=true;setMode('processing','MILA está transcribiendo y mejorando la redacción clínica…');
     try{
      const auth=await session();if(!auth)throw new Error('Tu sesión terminó. Vuelve a iniciar sesión para dictar.');
-     const form=new FormData();const extension=blob.type.includes('mp4')?'m4a':blob.type.includes('ogg')?'ogg':'webm';form.append('audio',blob,'conclusion.'+extension);form.append('duracion_segundos',String(duration));form.append('contexto','radiograph_conclusion');
+     const form=new FormData();const extension=blob.type.includes('mp4')?'m4a':blob.type.includes('ogg')?'ogg':'webm';form.append('audio',blob,'conclusion.'+extension);form.append('duracion_segundos',String(duration));form.append('contexto','radiograph_conclusion');form.append('paciente_id',String(window.pacienteActual?.id||''));
      const response=await fetch(window.SUPA_URL+'/functions/v1/mila-clinical-dictation',{method:'POST',headers:{Authorization:'Bearer '+auth.access_token,apikey:window.SUPA_KEY},body:form});let payload={};try{payload=await response.json();}catch(_){ }
      if(!response.ok)throw new Error(payload.error||'No se pudo procesar el dictado.');if(disposed)return;
      const transcript=String(payload.transcript||'').trim(),professionalText=String(payload.professional_text||transcript).trim();if(!transcript||!professionalText)throw new Error('MILA no reconoció texto en el dictado.');const current=text.value.trim(),combined=current?current+' '+professionalText:professionalText;if(combined.length>(text.maxLength||600))throw new Error('El dictado es demasiado largo para esta conclusión. Acórtalo y vuelve a dictar.');text.value=combined;text.dispatchEvent(new Event('input',{bubbles:true}));text.focus({preventScroll:true});

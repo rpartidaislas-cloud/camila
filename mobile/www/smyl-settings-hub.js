@@ -19,10 +19,12 @@
       { title: 'Directorio profesional', desc: 'Perfil público para recibir solicitudes de cita.', group: 'Presencia', icon: 'profile', action: 'Editar perfil', route: 'directorio' }
     ] },
     { id: 'equipo', title: 'Equipo', blurb: 'Personas, invitaciones y permisos.', icon: 'team', items: [
-      { title: 'Profesionales y roles', desc: 'Invita personas y define qué puede hacer cada rol.', group: 'Equipo de la clínica', icon: 'team', action: 'Administrar', route: 'clinica', embed: true, target: '[data-ca-tab="equipo"]' },
+      { title: 'Integrantes', desc: 'Invita personas y administra su acceso a la clínica.', group: 'Personas', icon: 'team', action: 'Administrar', route: 'clinica', embed: true, target: '[data-ca-team-view="people"]' },
+      { title: 'Roles y permisos', desc: 'Define qué puede consultar y hacer cada rol.', group: 'Acceso', icon: 'security', action: 'Configurar', route: 'clinica', embed: true, target: '[data-ca-team-view="roles"]' },
       { title: 'Mi cuenta', desc: 'Datos personales y preferencias de acceso.', group: 'Cuenta personal', icon: 'profile', action: 'Abrir', route: 'mi-cuenta' }
     ] },
     { id: 'agenda', title: 'Agenda', blurb: 'Disponibilidad, calendarios y avisos de cita.', icon: 'calendar', items: [
+      { title: 'Profesionales', desc: 'Define quién atiende, sus sedes y preparación para recibir citas.', group: 'Disponibilidad', icon: 'team', action: 'Administrar', route: 'clinica', embed: true, target: '[data-ca-team-view="professionals"]' },
       { title: 'Horarios y servicios', desc: 'Define quién atiende, dónde y en qué horarios.', group: 'Disponibilidad', icon: 'clock', action: 'Configurar', route: 'agenda', target: '[data-schedule-tab="settings"]' },
       { title: 'Google Calendar', desc: 'Sincroniza el calendario profesional y revisa cambios.', group: 'Calendarios y confirmación', icon: 'sync', action: 'Administrar', route: 'agenda', target: '#schedule-google-calendar' },
       { title: 'Confirmaciones', desc: 'Solicitudes que todavía necesitan horario o aprobación.', group: 'Calendarios y confirmación', icon: 'check', action: 'Revisar', route: 'agenda', target: '[data-schedule-tab="requests"]' },

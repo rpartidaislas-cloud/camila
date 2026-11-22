@@ -71,22 +71,23 @@ const server = http.createServer((req, res) => {
   await page.click('[data-finance-tab="receipts"]');
   await page.waitForTimeout(400);
 
-  const receipts = await page.$$eval('[data-finance-panel="receipts"] .finance-fiscal-receipt-list>article', rows => rows.map(row => ({
-    folio: row.querySelector('.finance-fiscal-receipt-folio strong').textContent,
-    state: row.querySelector('.finance-badge').textContent,
-    service: row.querySelector('.finance-fiscal-receipt-copy p').textContent,
-    actions: [...row.querySelectorAll('button')].map(button => button.textContent.trim())
+  const receipts = await page.$$eval('[data-finance-panel="receipts"] .finance-line[data-cols=payments]', rows => rows.map(row => ({
+    patient: row.querySelector('.finance-line-name').textContent,
+    detail: row.querySelector('.finance-line-who small').textContent,
+    amount: row.querySelector('.finance-line-amount strong').textContent,
+    actions: [...row.querySelectorAll('.finance-line-actions>button')].map(button => button.textContent.trim())
   })));
-  console.log('1) recibos:', JSON.stringify(receipts));
-  check(receipts.length === 3, 'debe mostrar los tres recibos sin mezclarlos con Facturación');
-  check(receipts.every(row => row.actions.length === 1 && row.actions[0] === 'Abrir recibo'), 'cada recibo debe tener una sola acción principal');
-  check(receipts.some(row => row.service === 'Consulta'), 'el recibo debe anticipar el servicio cobrado');
+  console.log('1) pagos de hoy:', JSON.stringify(receipts));
+  check(receipts.length === 3, 'debe mostrar los tres pagos de hoy sin mezclarlos con Facturación');
+  check(receipts.every(row => row.actions.length === 1 && row.actions[0] === 'Recibo'), 'cada pago debe tener una sola acción a la vista: su recibo');
+  check(receipts.some(row => row.detail.includes('Consulta')), 'el pago debe anticipar el servicio cobrado');
+  check(receipts.filter(row => row.detail.includes('Factura en preparación')).length === 1, 'solo el pago con borrador menciona su factura');
 
   await page.click('[data-open-receipt="r-draft"]');
   await page.waitForTimeout(250);
   const detail = await page.$eval('.finance-receipt-detail', dialog => ({
     service: dialog.querySelector('.finance-receipt-services article strong').textContent,
-    applied: dialog.querySelector('.finance-receipt-services article>div:last-child strong').textContent,
+    applied: dialog.querySelector('.finance-receipt-services article>strong').textContent,
     fiscal: [...dialog.querySelectorAll('footer button')].map(button => button.textContent.trim())
   }));
   console.log('2) detalle:', JSON.stringify(detail));
@@ -100,12 +101,12 @@ const server = http.createServer((req, res) => {
   await page.click('[data-finance-tab="fiscal"]');
   await page.waitForTimeout(250);
   const fiscal = await page.$eval('[data-finance-panel="fiscal"]', panel => ({
-    receiptLists: panel.querySelectorAll('.finance-fiscal-receipt-list').length,
+    receiptLists: panel.querySelectorAll('.finance-line[data-cols=payments]').length,
     drafts: panel.querySelectorAll('.finance-drafts article').length,
     note: panel.querySelector('.finance-fiscal-note').textContent.trim()
   }));
   console.log('3) facturación separada:', JSON.stringify(fiscal));
-  check(fiscal.receiptLists === 0, 'Facturación no debe repetir la bandeja de recibos');
+  check(fiscal.receiptLists === 0, 'Facturación no debe repetir la lista de pagos');
   check(fiscal.drafts === 1, 'Facturación debe conservar sus borradores');
   check(fiscal.note.includes('Proceso fiscal independiente'), 'Facturación debe explicar su alcance');
 
@@ -117,7 +118,7 @@ const server = http.createServer((req, res) => {
       const visible = element => { const style = getComputedStyle(element); return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0; };
       const under12 = [...root.querySelectorAll('p,span,small,label,button,strong,em')].filter(visible).filter(element => element.textContent.trim() && parseFloat(getComputedStyle(element).fontSize) < 11.99).map(element => element.textContent.trim().slice(0, 35));
       const shortTargets = [...root.querySelectorAll('button')].filter(visible).map(element => ({ text: element.textContent.trim(), rect: element.getBoundingClientRect() })).filter(item => item.rect.height < 43.5 || item.rect.width < 43.5).map(item => item.text);
-      const filters = root.querySelector('.finance-fiscal-receipt-filters');
+      const filters = root.querySelector('.finance-segment');
       return {
         overflow: root.scrollWidth > root.clientWidth + 1,
         under12,
@@ -129,7 +130,7 @@ const server = http.createServer((req, res) => {
     check(!metrics.overflow, `${viewport.label} no debe desbordar horizontalmente`);
     check(metrics.under12.length === 0, `${viewport.label} no debe mostrar microtexto`);
     check(metrics.shortTargets.length === 0, `${viewport.label} debe conservar objetivos táctiles`);
-    check(metrics.filterRows === 1, `${viewport.label} debe mantener los filtros en una fila`);
+    check(metrics.filterRows === 1, `${viewport.label} debe mantener el periodo en una fila`);
     await page.screenshot({ path: path.join(shots, `cobros-recibos-${viewport.label}.png`), fullPage: true });
     await page.click('[data-open-receipt]'); await page.waitForTimeout(180);
     const dialogMetrics = await page.$eval('.finance-receipt-detail', dialog => {

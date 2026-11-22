@@ -1,0 +1,35 @@
+/* SMYL · Receta médica — hoja de impresión (diseño). Media carta vertical; el usuario puede imprimirla en carta desde el diálogo. */
+.rx-paper{box-sizing:border-box;width:139.7mm;min-height:200mm;margin:0 auto;padding:10mm 11mm 9mm;background:#fff;color:#111827;font:12px/1.45 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;border:1px solid #d1d5db}
+.rx-paper *{box-sizing:border-box}
+.rx-head{display:flex;justify-content:space-between;gap:10mm;padding-bottom:4mm;border-bottom:2px solid #194391}
+.rx-doctor,.rx-clinic{display:flex;flex-direction:column;gap:1px}
+.rx-doctor-name{font-size:16px;letter-spacing:-.2px}
+.rx-doctor-line{font-size:11px;color:#374151}
+.rx-clinic{text-align:right;font-size:11px;color:#374151;max-width:48mm}
+.rx-meta{display:grid;grid-template-columns:2.2fr .8fr 1.3fr .9fr;gap:3mm;padding:3mm 0;border-bottom:1px solid #e5e7eb}
+.rx-meta-cell{display:flex;flex-direction:column;min-width:0}
+.rx-meta-cell small,.rx-diagnosis small,.rx-indications small{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#6b7280}
+.rx-meta-cell strong{font-size:12px;overflow-wrap:anywhere}
+.rx-diagnosis{margin:2mm 0 0;font-size:11.5px}
+.rx-body{position:relative;flex:1;padding:4mm 0 2mm 8mm;min-height:80mm}
+.rx-rp{position:absolute;left:0;top:3mm;font:italic 700 20px/1 Georgia,serif;color:#194391}
+.rx-items{margin:0;padding-left:5mm;display:flex;flex-direction:column;gap:3.5mm}
+.rx-item-name{font-size:13px}
+.rx-item-brand{color:#4b5563}
+.rx-item-how,.rx-item-qty{margin:1px 0 0;font-size:12px}
+.rx-item-qty{color:#374151}
+.rx-indications{margin-top:2mm;padding-top:2mm;border-top:1px dashed #d1d5db}
+.rx-indications p{margin:2px 0 0;font-size:11.5px;white-space:pre-wrap}
+.rx-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:8mm;margin-top:6mm}
+.rx-sign{flex:1;text-align:center}
+.rx-sign-line{display:block;border-bottom:1px solid #111827;height:14mm;margin-bottom:1mm}
+.rx-sign small,.rx-stamp small{font-size:9.5px;color:#6b7280}
+.rx-stamp{width:34mm;height:22mm;border:1px dashed #9ca3af;border-radius:3mm;display:flex;align-items:flex-end;justify-content:center;padding-bottom:1.5mm}
+.rx-legend{margin:3mm 0 0;font-size:9px;line-height:1.35;color:#4b5563}
+@media print{
+  @page{size:5.5in 8.5in;margin:0}
+  body *{visibility:hidden}
+  .rx-print-root,.rx-print-root *{visibility:visible}
+  .rx-print-root{position:absolute;left:0;top:0;width:100%}
+  .rx-paper{border:0;margin:0;width:100%;min-height:100vh}
+}

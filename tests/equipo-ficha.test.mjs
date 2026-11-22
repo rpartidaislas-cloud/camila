@@ -47,7 +47,7 @@ test('la regla de traslado se guarda con la función de la base y se valida ante
 });
 
 test('el encabezado de Configuración sigue al área en que estás y Equipo no muestra el resumen de Sucursales', () => {
-  assert.match(js, /var HUB_ITEMS = \{ operacion: \['clinica', 'Sucursales y espacios'\], equipo: \['equipo', 'Profesionales y roles'\] \}/);
+  assert.match(js, /var HUB_ITEMS = \{ operacion: \['clinica', 'Sucursales y espacios'\], equipo: \['equipo', 'Integrantes'\] \}/);
   assert.match(js, /\['clinic-admin-readiness', 'clinic-admin-metrics'\]\.forEach\(function \(id\) \{ var node = document\.getElementById\(id\); if \(node\) node\.hidden = state\.tab === 'equipo'/);
   assert.match(js, /goTab\(button\.dataset\.caTabTarget\)/);
   assert.match(js, /addEventListener\('click', function \(\) \{ goTab\('equipo'\); \}\)/);
@@ -70,8 +70,8 @@ test('el CSS nuevo no baja de 12 px ni agrega microtexto', () => {
 
 test('la copia móvil y la caché publican la misma versión', () => {
   for (const file of ['smyl-clinic-admin.js', 'smyl-clinic-admin.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + file), read(file), `mobile/www/${file} difiere`);
-  assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=23/);
-  assert.match(read('app.html'), /smyl-clinic-admin\.css\?v=19/);
-  assert.match(read('sw.js'), /\/camila\/smyl-clinic-admin\.js\?v=23/);
-  assert.match(read('sw.js'), /\/camila\/smyl-clinic-admin\.css\?v=19/);
+  assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=25/);
+  assert.match(read('app.html'), /smyl-clinic-admin\.css\?v=20/);
+  assert.match(read('sw.js'), /\/camila\/smyl-clinic-admin\.js\?v=25/);
+  assert.match(read('sw.js'), /\/camila\/smyl-clinic-admin\.css\?v=20/);
 });

@@ -76,9 +76,9 @@ test('la configuración se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-settings-hub.js', 'smyl-settings-hub.css', 'smyl-navigation.js', 'smyl-clinic-setup.js', 'smyl-professional-v3.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=15/);
+  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=16/);
   assert.match(read('app.html'), /smyl-settings-hub\.css\?v=5/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=15/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=16/);
   assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=5/);
 });
 
@@ -98,7 +98,9 @@ test('el espacio evita el título duplicado y separa las tareas en grupos y fila
 
 test('cada tarjeta abre la pestaña exacta de su pantalla y las pantallas ofrecen volver a Configuración', () => {
   const targets = Object.fromEntries(hub.SECTIONS.flatMap(s => s.items).filter(i => i.target).map(i => [i.title, i.target]));
-  assert.equal(targets['Profesionales y roles'], '[data-ca-tab="equipo"]');
+  assert.equal(targets['Integrantes'], '[data-ca-team-view="people"]');
+  assert.equal(targets['Roles y permisos'], '[data-ca-team-view="roles"]');
+  assert.equal(targets['Profesionales'], '[data-ca-team-view="professionals"]');
   assert.equal(targets['Sucursales y espacios'], '[data-ca-tab="operacion"]');
   assert.equal(targets['Facturación'], undefined); // se incrusta por elemento, no por pestaña
   assert.equal(targets['WhatsApp Business'], '[data-connection-tab="whatsapp"]');
@@ -118,12 +120,14 @@ test('cada tarjeta abre la pestaña exacta de su pantalla y las pantallas ofrece
   assert.doesNotMatch(read('smyl-navigation.js').match(/var SETTINGS_ROUTES = \[[^\]]+\]/)[0], /plantillas/);
 });
 
-test('Profesionales, Facturación y Recordatorios se muestran dentro de Configuración sin copiarse', () => {
+test('Integrantes, permisos, profesionales, Facturación y Recordatorios se muestran dentro de Configuración sin copiarse', () => {
   const embedded = Object.fromEntries(hub.SECTIONS.flatMap(s => s.items).filter(i => i.embed).map(i => [i.title, i]));
-  assert.deepEqual(Object.keys(embedded).sort(), ['Corte de caja', 'Facturación', 'Pagos en línea (Openpay)', 'Profesionales y roles', 'Recibos', 'Recordatorios de cita', 'Sucursales y espacios']);
+  assert.deepEqual(Object.keys(embedded).sort(), ['Corte de caja', 'Facturación', 'Integrantes', 'Pagos en línea (Openpay)', 'Profesionales', 'Recibos', 'Recordatorios de cita', 'Roles y permisos', 'Sucursales y espacios']);
   assert.equal(embedded['Recordatorios de cita'].element, '#schedule-reminders-card');
   assert.equal(embedded['Facturación'].element, '#billing-setup');
-  assert.equal(embedded['Profesionales y roles'].route, 'clinica');
+  assert.equal(embedded['Integrantes'].route, 'clinica');
+  assert.equal(embedded['Roles y permisos'].route, 'clinica');
+  assert.equal(embedded['Profesionales'].route, 'clinica');
   const source = read('smyl-settings-hub.js');
   // Se reubica el mismo elemento y una marca de posición guarda su lugar para devolverlo al salir.
   assert.match(source, /document\.createComment\('settings-hub'\)/);

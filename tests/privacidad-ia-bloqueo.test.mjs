@@ -7,10 +7,12 @@ import { decidirIA, MENSAJE_IA_NO_PERMITIDA } from '../supabase/functions/_share
 const root = fileURLToPath(new URL('..', import.meta.url));
 const read = (f) => fs.readFileSync(root + f, 'utf8');
 
-test('solo se bloquea la IA cuando el paciente la negó o la retiró; sin decisión sigue igual', () => {
+test('la IA solo se usa con autorización expresa: sin decisión registrada también se bloquea', () => {
   assert.equal(decidirIA({ data: 'revoked', error: null }), 'revoked');
   assert.equal(decidirIA({ data: 'granted', error: null }), 'allowed');
-  assert.equal(decidirIA({ data: 'unknown', error: null }), 'allowed', 'los pacientes anteriores no se detienen');
+  assert.equal(decidirIA({ data: 'unknown', error: null }), 'missing', 'datos de salud: consentimiento expreso (LFPDPPP)');
+  const ts = read('supabase/functions/_shared/privacy.ts');
+  assert.match(ts, /permiso === 'missing'\) return \{ status: 403, body: \{ error: MENSAJE_IA_SIN_AUTORIZACION, code: 'patient_ai_consent_missing' \} \}/);
 });
 
 test('ante un error o una respuesta rara se bloquea (no se manda nada a un tercero)', () => {

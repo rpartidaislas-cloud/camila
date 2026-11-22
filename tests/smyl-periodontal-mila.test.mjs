@@ -62,10 +62,10 @@ test('el handler rechaza la falta de permiso, alcance, saldo y respuesta incorre
   // El candado de privacidad real (privacy.ts + privacy-core.mjs), no uno de mentira.
   const core = await import('../supabase/functions/_shared/privacy-core.mjs');
   const privacySrc = stripTypeScriptTypes((await readFile(new URL('../supabase/functions/_shared/privacy.ts', import.meta.url), 'utf8')).replace(/^import .*?;\s*$/gm, '').replace(/^export \{.*?\};\s*$/gm, '').replace(/^export /gm, ''));
-  const { permisoIA, respuestaIAnegada } = new Function('decidirIA', 'MENSAJE_IA_NO_PERMITIDA', 'MENSAJE_IA_NO_VERIFICABLE', privacySrc + '\nreturn { permisoIA, respuestaIAnegada };')(core.decidirIA, core.MENSAJE_IA_NO_PERMITIDA, core.MENSAJE_IA_NO_VERIFICABLE);
+  const { permisoIA, respuestaIAnegada } = new Function('decidirIA', 'MENSAJE_IA_NO_PERMITIDA', 'MENSAJE_IA_NO_VERIFICABLE', 'MENSAJE_IA_SIN_AUTORIZACION', privacySrc + '\nreturn { permisoIA, respuestaIAnegada };')(core.decidirIA, core.MENSAJE_IA_NO_PERMITIDA, core.MENSAJE_IA_NO_VERIFICABLE, core.MENSAJE_IA_SIN_AUTORIZACION);
   const facts = [{ kind: 'site', site: 'MB', depth: 5 }];
   for (const [condition, status, providerCalls, debits] of [
-    ['anonymous',401,0,0], ['role',403,0,0], ['other-patient',403,0,0], ['ai-revoked',403,0,0], ['ai-unverifiable',503,0,0], ['no-wallet',402,0,0],
+    ['anonymous',401,0,0], ['role',403,0,0], ['other-patient',403,0,0], ['ai-revoked',403,0,0], ['ai-missing',403,0,0], ['ai-unverifiable',503,0,0], ['no-wallet',402,0,0],
     ['bad-provider',422,1,0], ['spent-concurrently',402,1,1], ['success',200,1,1]
   ]) {
     let handler, attempts = 0, charges = 0;
@@ -77,7 +77,7 @@ test('el handler rechaza la falta de permiso, alcance, saldo y respuesta incorre
         }
         if (name === 'smyl_patient_privacy_state') {
           assert.equal(args.p_purpose, 'ai_processing'); assert.equal(args.p_tenant, 'clinic');
-          return condition === 'ai-unverifiable' ? { data: null, error: { message: 'down' } } : { data: condition === 'ai-revoked' ? 'revoked' : 'unknown', error: null };
+          return condition === 'ai-unverifiable' ? { data: null, error: { message: 'down' } } : { data: condition === 'ai-revoked' ? 'revoked' : condition === 'ai-missing' ? 'unknown' : 'granted', error: null };
         }
         assert.equal(name, 'smyl_consume'); assert.equal(args.p_resource, 'ai_credits');
         assert.equal(args.p_quantity_units, 1); charges++;

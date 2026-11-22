@@ -22,14 +22,14 @@ const section=html.slice(html.indexOf('<div class="screen vita-screen"'),html.in
  await page.evaluate(()=>{const c=document.createElement('canvas');c.width=240;c.height=120;window.mock=c.toDataURL();window.requests=[];window.fetch=async(_,args)=>{requests.push(JSON.parse(args.body));return new Response(JSON.stringify({imageBase64:mock.split(',')[1],mimeType:'image/png'}),{headers:{'content-type':'application/json'}});};window.done=false;SmylVisualSimulation.run({original:mock,options:{mode:'alignment',arch:'lower'},requestId:'fixture',endpoint:'/mock',headers:{},authorize:async()=>{},prepare:async()=>({dataUrl:mock,b64:mock.split(',')[1]}),compose:async url=>url,save:()=>{},discard:()=>{},accept:meta=>window.meta=meta}).then(()=>window.done=true);});
  const dialog=page.locator('dialog');await dialog.waitFor();assert.match(await dialog.locator('.sv-material').textContent(),/Alineación visual.*Inferiores/);await dialog.locator('input').check();await dialog.locator('[data-action=accept]').click();
  await page.getByRole('heading',{name:'Compara antes de presentar'}).waitFor();
- await page.getByRole('button',{name:'Acercar comparación ×2'}).click();
+ await page.getByRole('button',{name:'Acercar a la boca'}).click();
  assert.equal(await dialog.locator('.sv-comparison img').first().evaluate(el=>el.style.transform),'scale(2)');
- await page.getByRole('button',{name:'Revisar salida IA sin mezcla'}).click();
+ await page.getByRole('button',{name:'Ver imagen sin fusionar'}).click();
  assert.equal(await dialog.locator('input').isDisabled(),true);
  assert.equal(await dialog.locator('[data-action=accept]').isDisabled(),true);
  await page.screenshot({path:'../output/alignment-diagnostic-'+width+'.png'});
  assert.equal(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth),true);
- await page.getByRole('button',{name:'Volver al resultado integrado'}).click();
+ await page.getByRole('button',{name:'Ver resultado final'}).click();
  assert.equal(await dialog.locator('input').isChecked(),false);
  await dialog.locator('input').check();await dialog.locator('[data-action=accept]').click();await page.waitForFunction(()=>done);
  assert.equal(await page.evaluate(()=>requests.length),1);assert.equal(await page.evaluate(()=>meta.visualOptions.arch),'lower');assert.doesNotMatch(await page.evaluate(()=>requests[0].prompt),/CERAMIC CONSTRUCTION/);

@@ -54,7 +54,15 @@ for (const [width,height] of [[1512,982],[1024,860],[390,844]]) {
 test('Ficha 360: diferencia sin registros, datos parciales y error', async(t)=>{
   if (!browser) return t.skip(skipReason);
   const page = await browser.newPage({viewport:{width:1512,height:982}}); t.after(()=>page.close());
-  for (const [mode,expected] of [['empty','No hay visitas completadas visibles.'],['error','No se pudo consultar el historial'],['missing','Sucursal no disponible']]) {
+  // Sin visitas completadas la sección no aparece (chat simple v2); el error y los datos parciales sí se muestran.
+  await page.goto(fixture.href + '?focus=1&care-history=empty');
+  await page.waitForSelector('html[data-preview-ready="true"]');
+  const emptyPanel = page.locator('[data-inbox-context-panel]');
+  if (await emptyPanel.getAttribute('aria-hidden') === 'true') await page.locator('[data-inbox-context]').click();
+  await emptyPanel.locator('[data-f360-section="citas"]').waitFor();
+  await page.waitForTimeout(600);
+  assert.equal(await emptyPanel.locator('[data-f360-section="careHistory"]').count(), 0, 'sin visitas, el historial no ocupa espacio');
+  for (const [mode,expected] of [['error','No se pudo consultar el historial'],['missing','Sucursal no disponible']]) {
     const {toggle,history}=await openPatient(page,mode); await toggle.click();
     await history.locator('.smyl-f360-section-body').getByText(expected,{exact:false}).first().waitFor();
     if(mode==='missing') assert.match(await history.innerText(), /Profesional no registrado[\s\S]*Fecha no registrada/);

@@ -41,10 +41,10 @@ test('la Agenda avisa cuando el filtro esconde citas y deja verlas todas', () =>
 
 test('web, móvil y PWA publican el arreglo', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-schedule\.js\?v=56/);
+    assert.match(read(file), /smyl-schedule\.js\?v=57/);
     assert.match(read(file), /smyl-schedule-board\.js\?v=3/);
     assert.match(read(file), /smyl-schedule\.css\?v=37/);
-    assert.match(read(file), /smyl-inbox\.js\?v=90/);
+    assert.match(read(file), /smyl-inbox\.js\?v=93/);
   }
   assert.match(read('sw.js'), /-agenda-clic-horario-v1-chat-cita-agenda-v1-agenda-filtro-aviso-v1(-|')/);
   for (const file of ['smyl-schedule.js', 'smyl-inbox.js', 'smyl-schedule-board.js', 'smyl-schedule.css', 'app.html', 'sw.js']) {

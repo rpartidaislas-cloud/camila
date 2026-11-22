@@ -8,7 +8,7 @@ const styles = read('../smyl-clinic-admin.css');
 
 test('agregar doctor reutiliza una cuenta de la clínica sin reenviar correo', () => {
   assert.match(script, /function memberByEmail/);
-  assert.match(script, /function professionalForMember/);
+  assert.match(script, /function professionalProfileForMember/);
   assert.match(script, /existing \? await configureExistingDoctor/);
   assert.match(script, /rpc\('smyl_create_professional'/);
   assert.match(script, /rpc\('smyl_set_member_role'/);
@@ -25,12 +25,13 @@ test('el correo sólo se usa para accesos realmente nuevos', () => {
   assert.match(script, /Ese correo ya usa SMYL/);
 });
 
-test('equipo y profesionales se presentan como una sola ficha por persona', () => {
-  assert.match(script, /<h2>Personas<\/h2>/);
-  assert.match(script, /professionalForMember\(user\.id\)/);
-  assert.match(script, /person\.doctor \? 'Profesional' : 'Equipo'/);
-  assert.match(script, /Toca a una persona para ver su ficha/);
-  assert.match(script, /row\.active && !row\.user_id/);
+test('integrantes y profesionales comparten una ficha sin compartir el espacio de configuración', () => {
+  assert.match(script, /<h2>Equipo de la clínica<\/h2>/);
+  assert.match(script, /professionalProfileForMember\(user\.id\)/);
+  assert.match(script, /person\.doctor \? 'Atiende pacientes' : 'Integrante'/);
+  assert.match(script, /data-ca-team-panel="professionals"/);
+  assert.match(script, /data-ca-team-panel="roles"/);
+  assert.match(script, /state\.professionals\.filter\(function \(row\) \{ return !row\.user_id; \}\)/);
 });
 
 test('el módulo aplica escala legible, controles táctiles y composición responsive', () => {

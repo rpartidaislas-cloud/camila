@@ -16,7 +16,7 @@
    if(user.error||user.data?.user?.id!==tenant||user.data.user.is_anonymous!==false)throw changed();
    const session=await client.auth.getSession(),s=session.data?.session;check();
    if(session.error||s?.user?.id!==tenant||s.user.is_anonymous!==false||!s.access_token)throw changed();
-   const body=JSON.stringify({action:'suggest_treatment_plan_v1',requestId:crypto.randomUUID(),context:input});
+   const body=JSON.stringify({action:'suggest_treatment_plan_v1',requestId:crypto.randomUUID(),patientId:window.pacienteActual?.id||null,context:input});
    if(body.length>90000)throw new Error('La información clínica es demasiado extensa para preparar el borrador.');
    const response=await fetch(url.href,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+s.access_token,apikey:publicKey},body,signal:controller.signal,cache:'no-store',credentials:'omit',redirect:'error'});check();
    if(!response.ok){

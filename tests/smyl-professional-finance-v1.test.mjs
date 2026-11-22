@@ -42,13 +42,15 @@ test('Caja muestra responsabilidad individual y supervisión explícita', () => 
   assert.match(finance, /function actorName\(id\)/);
 });
 
-test('Resumen queda primero y el libro de pagos pasa a movimientos secundarios', () => {
-  assert.match(finance, /nav\.prepend\(summaryTab\)/);
-  assert.match(finance, /accountTab\.after\(receiptTab\)/);
-  assert.match(finance, /if\(paymentTab\)paymentTab\.remove\(\)/);
-  assert.match(finance, /Movimientos y correcciones/);
-  assert.match(finance, /data-receipt-ledger/);
-  assert.match(finance, /state\.tab='summary'/);
+test('Por cobrar queda primero y los reembolsos viven en la misma lista de Pagos', () => {
+  assert.match(finance, /var TABS=\[\['accounts','Por cobrar'\],\['receipts','Pagos'\]/);
+  assert.doesNotMatch(finance, /data-finance-tab="summary"|'Resumen'/);
+  // El libro aparte («Movimientos y correcciones») desapareció: pagos y reembolsos se leen juntos, por periodo.
+  assert.doesNotMatch(finance, /Movimientos y correcciones|finance-receipt-movements/);
+  assert.match(finance, /state\.refunds\.forEach\(function\(r\)\{var t=Date\.parse\(r\.refunded_at\)\|\|0;if\(t>=range\.from&&t<range\.to\)add\('refund',/);
+  assert.match(finance, /<span class="finance-tag" data-tone="danger">Reembolso<\/span>/);
+  assert.match(finance, /<div id="finance-payments"><\/div>/);
+  assert.match(finance, /actor:null,tab:'accounts'/);
 });
 
 test('web y PWA conservan paridad de código y caché', () => {
