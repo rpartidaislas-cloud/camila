@@ -230,7 +230,7 @@ const STATIC_FILES = [
   '/camila/smyl-chat-media-viewer.js?v=1',
   '/camila/smyl-chat-media-viewer.css?v=1',
   '/camila/smyl-privacy-inbox.js?v=2',
-  '/camila/smyl-inbox.js?v=93',
+  '/camila/smyl-inbox.js?v=95',
   '/camila/assets/emoji/catalog-es-v1.json',
   '/camila/smyl-inbox.css?v=79',
   '/camila/smyl-privacy-inbox.css?v=1',
