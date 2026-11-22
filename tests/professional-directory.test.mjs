@@ -180,7 +180,7 @@ test('el paciente ve confianza y solicita una cita sin confirmación automática
 });
 
 test('directorio profesional se distribuye igual en web y PWA',()=>{
-  assert.match(app,/smyl-professional-directory\.js\?v=13/);
+  assert.match(app,/smyl-professional-directory\.js\?v=14/);
   assert.match(app,/smyl-professional-directory\.css\?v=13/);
   assert.match(sw,/smyl-v263-lana-connection-recovery/);
   assert.match(sw,/dentista\.html/);
