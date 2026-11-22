@@ -717,8 +717,7 @@
     function fitHeader() {
       var width = head.clientWidth;
       if (!width) { closeThreadOptions(false); return; }
-      // Chat simple v2: responsable, sucursal e IA viven siempre en «Opciones del chat»; el encabezado deja solo al paciente y Agendar.
-      var compact = true;
+      var compact = width <= 700;
       if (compact === head.classList.contains('is-compact')) return;
       var focused = document.activeElement;
       var focusInControls = owner.contains(focused) || branch.contains(focused) || mode.contains(focused);
