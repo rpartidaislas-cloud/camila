@@ -1,7 +1,7 @@
-/* SMYL · Receta médica — hoja de impresión (solo DISEÑO).
+/* SMYL · Receta médica — hoja de impresión.
  *
- * Esta pieza dibuja la receta a partir de un objeto simple; todavía NO está conectada a la consulta, no guarda nada y NO afirma
- * cumplir ninguna norma: el contenido legal obligatorio (artículos del Reglamento de Insumos para la Salud, leyendas, reglas de
+ * Esta pieza dibuja la receta a partir de un objeto simple (lo usa smyl-prescriptions.js); no guarda nada y NO afirma
+ * cumplir ninguna norma (ver docs/RECETA_REQUISITOS.md): el contenido legal obligatorio (artículos del Reglamento de Insumos para la Salud, leyendas, reglas de
  * antibióticos y medicamentos controlados) se verifica con las fuentes oficiales y se completa en otra etapa. Hasta entonces el
  * módulo solo sabe mostrar datos y avisar qué le falta a la hoja para verse completa (`sheetIssues`).
  *
