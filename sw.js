@@ -12,6 +12,8 @@ const STATIC_FILES = [
   '/camila/vendor/supabase-js-2.117.3.js',
   '/camila/smyl-browser-privacy.js?v=1',
   '/camila/smyl-sentry.js?v=3',
+  '/camila/smyl-photo-url-refresh.js?v=1',
+  '/camila/smyl-auth-guard.js?v=1',
   '/camila/smyl-freeze-watchdog.js?v=1',
   '/camila/smyl-freeze-watchdog-worker.js?v=1',
   '/camila/vendor/sentry-browser-10.78.0.min.js?v=1',

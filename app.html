@@ -18,6 +18,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="smyl-browser-privacy.js?v=1"></script>
 <script src="smyl-sentry.js?v=3"></script>
+<script src="smyl-photo-url-refresh.js?v=1"></script>
+<script src="smyl-auth-guard.js?v=1"></script>
 <script src="smyl-secure-files.js?v=2"></script>
 <link rel="stylesheet" href="smyl-security-center.css?v=2">
 <script src="smyl-security-center.js?v=3"></script>
@@ -1109,7 +1111,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <div id="ag-reg-ok" style="display:none;background:var(--color-success-subtle);border:1px solid #86EFAC;color:#15803D;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px"></div>
       <div class="fg" style="margin-bottom:13px"><label>Nombre completo</label><input type="text" id="ag-r-nombre" placeholder="Dr. / Dra. ..."></div>
       <div class="fg" style="margin-bottom:13px"><label for="ag-r-email">Correo electrónico</label><input type="email" id="ag-r-email" placeholder="tu@clinica.com" autocomplete="email"></div>
-      <div class="fg" style="margin-bottom:13px"><label>Contraseña</label><input type="password" id="ag-r-pass" placeholder="Mínimo 6 caracteres"></div>
+      <div class="fg" style="margin-bottom:13px"><label>Contraseña</label><input type="password" id="ag-r-pass" placeholder="Mínimo 10 caracteres, con letras y números"></div>
       <div class="fg" style="margin-bottom:13px"><label>Código de acceso</label><input type="text" id="ag-r-codigo" placeholder="Del curso o promocional" style="text-transform:uppercase"></div>
       <div class="fg" style="margin-bottom:16px"><label>Plan</label>
         <select id="ag-r-plan">
@@ -2098,6 +2100,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
             </div>
             <button class="btn btn-primary" id="mc-guardar" style="margin-top:12px" onclick="guardarPerfil()">💾 Guardar mis datos</button>
           </div>
+          <div class="card" id="mc-mfa"></div>
         </div>
       </div>
 
@@ -2865,6 +2868,19 @@ function cerrarSesion() {
 // INICIO
 // ══════════════════════════════════════════
 async function continuarConUsuario(authUser) {
+  // Verificación en dos pasos: si la cuenta la tiene activa, la sesión no continúa sin el código.
+  if (window.SmylAuthGuard) {
+    var segundoPaso = false;
+    try { segundoPaso = await SmylAuthGuard.ensureSecondFactor(sb); } catch (e) { segundoPaso = false; }
+    if (!segundoPaso) {
+      try { await sb.auth.signOut(); } catch (e) {}
+      location.reload();
+      return;
+    }
+    // Expedientes clínicos: la sesión se cierra tras 30 minutos sin actividad.
+    SmylAuthGuard.startIdleLogout(function () { cerrarSesion(); });
+    SmylAuthGuard.renderCard(sb, document.getElementById('mc-mfa'));
+  }
   miUsuario = authUser;
   document.getElementById('auth-gate-overlay').style.display = 'none';
   var layoutEl = document.querySelector('.layout');
@@ -3282,7 +3298,8 @@ async function hacerRegistroAppGate() {
   var errEl = document.getElementById('ag-reg-err');
   errEl.style.display = 'none';
   if (!nombre || !email || !pass) { errEl.textContent = 'Completa todos los campos'; errEl.style.display = 'block'; return; }
-  if (pass.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres'; errEl.style.display = 'block'; return; }
+  var problemaPass = (window.SmylAuthGuard ? SmylAuthGuard.passwordProblem(pass) : (pass.length < 10 ? 'La contraseña debe tener al menos 10 caracteres.' : ''));
+  if (problemaPass) { errEl.textContent = problemaPass; errEl.style.display = 'block'; return; }
   if (codigo && codigo !== CODIGO_ACCESO_APP) { errEl.textContent = 'Código de acceso incorrecto'; errEl.style.display = 'block'; return; }
 
   var partes = planVal.split(':');
@@ -3389,7 +3406,8 @@ function mostrarNuevaPassword(authUser) {
     var p2 = document.getElementById('recovery-pass2').value;
     var errEl = document.getElementById('recovery-pass-err');
     errEl.style.display = 'none';
-    if (p1.length < 8) { errEl.textContent = 'Usa una contraseña de al menos 8 caracteres.'; errEl.style.display = 'block'; return; }
+    var problemaP1 = (window.SmylAuthGuard ? SmylAuthGuard.passwordProblem(p1) : (p1.length < 10 ? 'La contraseña debe tener al menos 10 caracteres.' : ''));
+    if (problemaP1) { errEl.textContent = problemaP1; errEl.style.display = 'block'; return; }
     if (p1 !== p2) { errEl.textContent = 'Las contraseñas no coinciden.'; errEl.style.display = 'block'; return; }
     var btn = document.getElementById('recovery-pass-btn');
     btn.disabled = true; btn.textContent = 'Guardando...';
@@ -3415,7 +3433,7 @@ function mostrarSetPasswordInvitado(authUser) {
     '<div style="background:var(--color-surface,#fff);border-radius:12px;padding:28px;max-width:380px;width:100%">' +
     '<div style="font-size:18px;font-weight:700;margin-bottom:6px">¡Bienvenido/a al equipo!</div>' +
     '<p style="font-size:13px;color:var(--texto3);margin-bottom:16px">Crea una contraseña para tu cuenta (' + smylEsc(authUser.email || '') + ') antes de continuar.</p>' +
-    '<input type="password" id="invite-pass1" placeholder="Contraseña (mínimo 6 caracteres)" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;margin-bottom:8px;box-sizing:border-box">' +
+    '<input type="password" id="invite-pass1" placeholder="Contraseña (mínimo 10 caracteres, con letras y números)" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;margin-bottom:8px;box-sizing:border-box">' +
     '<input type="password" id="invite-pass2" placeholder="Repite la contraseña" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;margin-bottom:8px;box-sizing:border-box">' +
     '<div id="invite-pass-err" style="display:none;color:#B91C1C;font-size:12px;margin-bottom:8px"></div>' +
     '<button id="invite-pass-btn" class="btn btn-primary" style="width:100%;justify-content:center">Guardar y entrar →</button>' +
@@ -3427,7 +3445,8 @@ function mostrarSetPasswordInvitado(authUser) {
     var p2 = document.getElementById('invite-pass2').value;
     var errEl = document.getElementById('invite-pass-err');
     errEl.style.display = 'none';
-    if (p1.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.'; errEl.style.display = 'block'; return; }
+    var problemaInv = (window.SmylAuthGuard ? SmylAuthGuard.passwordProblem(p1) : (p1.length < 10 ? 'La contraseña debe tener al menos 10 caracteres.' : ''));
+    if (problemaInv) { errEl.textContent = problemaInv; errEl.style.display = 'block'; return; }
     if (p1 !== p2) { errEl.textContent = 'Las contraseñas no coinciden.'; errEl.style.display = 'block'; return; }
     var btn = document.getElementById('invite-pass-btn');
     btn.disabled = true; btn.textContent = 'Guardando...';
