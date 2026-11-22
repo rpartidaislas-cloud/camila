@@ -92,6 +92,7 @@ const STATIC_FILES = [
   '/camila/smyl-patient-privacy-panel.js?v=3',
   '/camila/smyl-informed-consent.js?v=1',
   '/camila/smyl-informed-consent.css?v=1',
+  '/camila/smyl-prescriptions.js?v=1',
   '/camila/smyl-patient-360.js?v=35',
   '/camila/smyl-mila-interview.js?v=7',
   '/camila/smyl-mila-interview.css?v=5',
