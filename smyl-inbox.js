@@ -3373,7 +3373,9 @@
 
     if (linked && !ficha.clinical_restricted && hasPermission('schedule.read')) {
       var patientId = ficha.patient.id, historyKey = careHistoryKey(id, patientId);
-      sections.push(careHistorySection(careHistoryCache.get(historyKey), open.careHistory, function () { loadCareHistory(id, patientId, true); }));
+      // Sin visitas completadas no hay nada que mostrar: la sección se omite (mientras consulta o si falla, sí se ve).
+      var historyEntry = careHistoryCache.get(historyKey);
+      if (!(historyEntry && historyEntry.index && !historyEntry.index.branches.size)) sections.push(careHistorySection(historyEntry, open.careHistory, function () { loadCareHistory(id, patientId, true); }));
     }
 
     sections.forEach(function (section) { section.open = Boolean(open[section.id]); });
