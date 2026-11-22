@@ -12324,3 +12324,8 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **Aplicar:** pegar el SQL **antes** de publicar la web (sin la tabla, la pestaña muestra «No pudimos cargar la lista de espera» y nada más se afecta).
 - **Pruebas:** `tests/smyl-waitlist-core.test.mjs` (9), `tests/lista-espera.test.mjs` (6) y humo de navegador `tests/qa/lista-espera-smoke.cjs` (31 comprobaciones, escritorio y celular). Con datos de ejemplo, no con una agenda real.
 - **Archivos:** `smyl-waitlist-core.js`, `smyl-waitlist.js`, `smyl-waitlist.css` (nuevos), `smyl-schedule.js` v58, `smyl-inbox.js` v94, `smyl-inbox.css` v79, `app.html`, `sw.js`, copias en `mobile/www/`.
+
+## 2026-11-22 — Claude Code — Publicado en producción: cumplimiento fase 2 y recetas
+- Aplicadas y registradas en `schema_migrations`: `20261126100000` a `20261126160000` (retención, firma v2, consentimiento informado, cédula de especialidad, antecedentes/signos vitales, contexto del aviso, perfiles públicos) y, con autorización del dueño, `20261125130000_smyl_prescriptions.sql` (módulo de recetas de la otra sesión, PR #262).
+- El candado de retención (`smyl_patient_last_clinical_activity`, plpgsql) incluye las recetas porque su tabla ya existe.
+- Recordatorio de la otra sesión: los requisitos legales de la receta (docs/RECETA_REQUISITOS.md) deben validarse con un abogado antes de usarla con pacientes reales.
