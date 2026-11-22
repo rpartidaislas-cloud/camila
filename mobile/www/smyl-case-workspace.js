@@ -585,10 +585,11 @@
   ROUTE.forEach(([id,label],index)=>{const step=n('button','cw-step');step.type='button';step.dataset.label=label;step.dataset.route=index?'locked':'current';const text=n('span','cw-step-text');text.append(n('strong','',label),n('small','cw-step-status',index?'':'En curso'));step.append(n('span','cw-step-num',String(index+1)),text);step.onclick=()=>open(id);ctx.nav[id]=step;progress.append(step);});
   root.classList.add('cw-route-v1');ctx.overview.hidden=true;ctx.overview.before(progress);
   const chapters=window.SmylTreatments?.attach?.(ctx);if(chapters)progress.before(chapters);
+  const findingsBox=window.SmylTreatments?.attachFindings?.(ctx);
   const routeBar=n('div','cw-route-bar');routeBar.setAttribute('aria-hidden','true');ctx.routeFill=n('span','');routeBar.append(ctx.routeFill);ctx.overview.before(routeBar);
   const evaluationFlow=n('section','cw-evaluation-flow');ctx.evaluationFlow=evaluationFlow;ctx.evaluationMobileProgress=n('p','cw-evaluation-mobile-progress','Paso 1 de 3 · Contexto');ctx.evaluationTaskList=n('ol','cw-evaluation-tasks');ctx.evaluationTaskList.setAttribute('role','tablist');ctx.evaluationTaskList.setAttribute('aria-label','Tareas de la evaluación');ctx.evaluationPanels=n('div','cw-evaluation-panels');ctx.evaluationTasks={};evaluationFlow.append(ctx.evaluationMobileProgress,ctx.evaluationTaskList,ctx.evaluationPanels);evaluation.body.append(evaluationFlow);
   ctx.contextPart=evaluationTask(ctx,'context','01','Contexto','Historia y alertas');
-  ctx.reviewPart=evaluationTask(ctx,'findings','02','Revisión profesional','Comprobar y decidir');ctx.reviewSection=ctx.reviewPart.root;
+  ctx.reviewPart=evaluationTask(ctx,'findings','02','Revisión profesional','Comprobar y decidir');ctx.reviewSection=ctx.reviewPart.root;if(findingsBox)ctx.reviewPart.body.prepend(findingsBox);
   ctx.closePart=evaluationTask(ctx,'closure','03','Conclusión','Hallazgos confirmados');
   ctx.contextCopy=n('p','cw-evaluation-intro','Confirma la seguridad clínica antes de revisar imágenes.');ctx.contextPart.body.append(ctx.contextCopy);mountContext(ctx,patient);
   const versionNote=n('aside','cw-version-note'),versionCopy=n('div');versionCopy.append(n('strong','','Versiones guardadas'),n('p','','Cada guardado crea una nueva versión. Lo anterior no se reemplaza.'));ctx.planHistory=btn('Ver historial',()=>{const history=document.getElementById('clinic-history');if(!history)return;history.hidden=false;history.open=true;history.scrollIntoView({block:'start',behavior:'smooth'});});versionNote.append(n('span','','✓'),versionCopy,ctx.planHistory);
@@ -691,7 +692,8 @@
   copy(ctx.closeEvidence,evidenceLabel);copy(ctx.closeFindings,reviewLabel);
   ctx.studyItems=dental?.studyItems||[];ctx.sourceData={photos:photoCount,photoPending,photoConfirmed:(dental?.confirmed||0)+(photoStatus?.reviewed||0),studies:ctx.studyItems.length,rxPending,rxUnresolved,rxConfirmed:dental?.rxConfirmed||0,firstStudy:ctx.studyItems.find(study=>!study.reviewed)?.id||ctx.studyItems[0]?.id||'',files:files?.total||0,teethFollowing:dental?.teeth?.following||0,teethDone:dental?.teeth?.done||0};
   ctx.findingsActionState={entry,dental,photoCount,photoPending,rxPending,rxUnresolved,findingsComplete,evaluationComplete,reviewDisabled,hasReview:hasReviewActivity,firstPhotoStudy:photoStatus?.firstStudyId||'',firstPendingPhotoStudy:photoStatus?.firstPendingStudyId||''};
-  renderClinicalMap(ctx,window.SmylDentalProgress?.map?.(ctx.tenant,ctx.patient,entry?.row.id));
+  const mapSnapshot=window.SmylDentalProgress?.map?.(ctx.tenant,ctx.patient,entry?.row.id);
+  renderClinicalMap(ctx,mapSnapshot);window.SmylTreatments?.syncFindings?.(ctx,mapSnapshot);
   syncFindingsAction(ctx);
   state(ctx,'evaluation',evaluationComplete?'Diagnóstico listo':contextState?.stale?'Contexto actualizado':!contextReviewed?'Contexto por revisar':hasReviewActivity?'Revisión en curso':'Requiere revisión',evaluationComplete?'done':hasReviewActivity?'neutral':'pending');
   const planComplete=evaluationComplete&&clinical?.ready;

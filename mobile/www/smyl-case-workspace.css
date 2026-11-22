@@ -738,3 +738,23 @@
 /* Al consultar un tratamiento cerrado se oculta la ruta y sus etapas: es solo lectura */
 .cw-viewing-closed .cw-nav,.cw-viewing-closed .cw-route-bar,.cw-viewing-closed>.cw-module,.cw-viewing-closed .cw-route-dock,.cw-viewing-closed .cw-stage-status{display:none!important}
 @media(max-width:600px){.cw-ch-chip{min-width:160px}.cw-ch-actions{width:100%}.cw-ch-actions .cw-ch-btn{flex:1}.cw-ch-submit .cw-ch-btn{flex:1}}
+
+/* Hallazgos de este tratamiento · nuevos frente a los de antes */
+.cw-ch-findings{display:grid;gap:10px;margin:0 0 14px;padding:14px 16px;border:1px solid #cdded5;border-radius:12px;background:#f7faf8}
+.cw-ch-findings[hidden]{display:none}
+.cw-ch-find-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.cw-ch-find-head>div:first-child{display:grid;gap:2px}
+.cw-ch-find-head strong{font-size:15px;color:#0b1b2e}
+.cw-ch-find-chips{display:flex;gap:6px;flex-wrap:wrap}
+.cw-ch-find-chip{padding:3px 10px;border-radius:999px;font-size:13px;font-weight:650;white-space:nowrap}
+.cw-ch-find-chip[data-kind=new]{background:#e7eef8;color:#2a5d9c}
+.cw-ch-find-chip[data-kind=old]{border:1px dashed #b9c4cf;color:#6a7889}
+.cw-ch-find-list{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.cw-ch-find-list li{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid #dbe3ea;border-radius:10px;background:#fff;font-size:14px}
+.cw-ch-find-list.is-old li{background:#f3f5f7;color:#7b8794}
+.cw-ch-find-tooth{flex:none;min-width:38px;padding:3px 6px;border:1px solid #cfd9e2;border-radius:8px;background:#fff;font-weight:700;font-size:13px;text-align:center;font-variant-numeric:tabular-nums}
+.cw-ch-find-label{flex:1;min-width:0}
+.cw-ch-find-draft{flex:none;padding:2px 8px;border-radius:999px;background:#fbf1dd;color:#9a6511;font-size:12px;font-weight:650}
+.cw-ch-find-old summary{min-height:40px;display:flex;align-items:center;cursor:pointer;font-size:13.5px;font-weight:650;color:#5c6b7c}
+.cw-ch-find-old .cw-ch-find-list{margin-top:6px}
+.cw-viewing-closed .cw-ch-findings{display:none!important}

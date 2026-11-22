@@ -62,6 +62,23 @@
       })
     };
   }
+  // Hallazgos «nuevos» (de este tratamiento) y «de antes» (ya estaban cuando se abrió). Se compara contra los ids de la
+  // versión del odontograma vigente al abrir el tratamiento; el primer tratamiento del paciente no tiene «de antes».
+  function splitFindings(findings, baselineIds) {
+    var base = baselineIds instanceof Set ? baselineIds : new Set(baselineIds || []);
+    var fresh = [], before = [];
+    (findings || []).forEach(function (f) { (base.has(f.id) ? before : fresh).push(f); });
+    return { fresh: fresh, before: before };
+  }
+  function baselineIdsFrom(document) {
+    var events = document && document.findings && Array.isArray(document.findings.events) ? document.findings.events : [];
+    return events.map(function (e) { return e && e.id; }).filter(Boolean);
+  }
+  function findingText(f) {
+    var model = typeof window !== 'undefined' ? window.SmylDentalModel : null;
+    if (model && typeof model.findingLabel === 'function') { try { return model.findingLabel(f); } catch (_) { /* usa el texto simple */ } }
+    return ['Pieza ' + f.tooth, f.surface, f.condition].filter(Boolean).join(' · ');
+  }
   function listError(error) {
     var code = error && (error.code || '');
     var text = String((error && error.message) || '');
@@ -118,6 +135,10 @@
       if (st.viewing && !st.list.some(function (t) { return t.id === st.viewing; })) st.viewing = null;
     }
     render(ctx);
+    if (ctx.treatmentFindings && window.SmylDentalProgress && typeof window.SmylDentalProgress.map === 'function') {
+      ctx.treatmentFindings.key = '';
+      syncFindings(ctx, window.SmylDentalProgress.map(ctx.tenant, ctx.patient, ctx.selected && ctx.selected.row && ctx.selected.row.id));
+    }
   }
 
   // El flujo principal avisa si ya se guardó el primer plan: si no había tratamientos, se vuelve a consultar.
@@ -357,7 +378,93 @@
     return card;
   }
 
+  function attachFindings(ctx) {
+    var host = el('section', 'cw-ch-findings');
+    host.setAttribute('aria-label', 'Hallazgos de este tratamiento');
+    host.hidden = true;
+    ctx.treatmentFindings = { host: host, key: '', busy: false, baselines: {} };
+    return host;
+  }
+
+  async function baselineFor(ctx, treatment) {
+    var cache = ctx.treatmentFindings.baselines;
+    if (treatment.seq <= 1) return new Set();
+    if (cache[treatment.id]) return cache[treatment.id];
+    if (!window.sb || typeof window.sb.from !== 'function') return null;
+    var result;
+    try {
+      result = await window.sb.from('smyl_dental_versions').select('revision,document')
+        .eq('tenant_id', ctx.tenant).eq('patient_id', ctx.patient).lte('updated_at', treatment.opened_at)
+        .order('revision', { ascending: false }).limit(1);
+    } catch (_) { return null; }
+    if (!result || result.error) return null;
+    var row = Array.isArray(result.data) ? result.data[0] : result.data;
+    var ids = new Set(row ? baselineIdsFrom(row.document) : []);
+    cache[treatment.id] = ids;
+    return ids;
+  }
+
+  // Se llama con cada refresco del expediente: solo recalcula si cambió el tratamiento activo o el odontograma.
+  async function syncFindings(ctx, map) {
+    var st = ctx && ctx.treatments, box = ctx && ctx.treatmentFindings;
+    if (!box || !st || st.unavailable || !st.list) { if (box) box.host.hidden = true; return; }
+    var active = activeOf(st);
+    if (!active || !map || !map.teeth || !window.SmylDentalProgress || typeof window.SmylDentalProgress.findingsForTooth !== 'function') { box.host.hidden = true; return; }
+    var teeth = Object.keys(map.teeth).filter(function (t) { return map.teeth[t] && map.teeth[t].findings > 0; });
+    var key = [active.id, map.revision, teeth.map(function (t) { return t + ':' + map.teeth[t].findings; }).join(',')].join('|');
+    if (box.key === key || box.busy) return;
+    box.busy = true;
+    var findings = [];
+    teeth.forEach(function (tooth) {
+      var snap = window.SmylDentalProgress.findingsForTooth(ctx.tenant, ctx.patient, tooth);
+      (snap && snap.findings || []).forEach(function (f) { if (!f.superseded && f.state !== 'resolved') findings.push(f); });
+    });
+    var baseline = await baselineFor(ctx, active);
+    box.busy = false;
+    if (!alive(ctx)) return;
+    if (!baseline) { box.host.hidden = true; return; }
+    box.key = key;
+    renderFindings(ctx, active, splitFindings(findings, baseline));
+  }
+
+  function renderFindings(ctx, active, groups) {
+    var host = ctx.treatmentFindings.host;
+    host.hidden = false;
+    host.replaceChildren();
+    var head = el('div', 'cw-ch-find-head'), title = el('div', '');
+    title.append(el('span', 'cw-kicker', 'DE ESTE TRATAMIENTO'), el('strong', '', 'Hallazgos de «' + active.title + '»'));
+    var chips = el('div', 'cw-ch-find-chips');
+    var fresh = el('span', 'cw-ch-find-chip', groups.fresh.length + (groups.fresh.length === 1 ? ' nuevo' : ' nuevos')); fresh.dataset.kind = 'new';
+    chips.append(fresh);
+    if (groups.before.length) { var old = el('span', 'cw-ch-find-chip', groups.before.length + ' de antes'); old.dataset.kind = 'old'; chips.append(old); }
+    head.append(title, chips);
+    host.append(head);
+    if (!groups.fresh.length && !groups.before.length) {
+      host.append(el('p', 'cw-help', 'Todavía no hay hallazgos. Toca una pieza del odontograma para registrar el primero.'));
+      return;
+    }
+    function list(items, cls) {
+      var ul = el('ul', 'cw-ch-find-list ' + cls);
+      items.forEach(function (f) {
+        var li = el('li', '');
+        li.append(el('span', 'cw-ch-find-tooth', f.tooth), el('span', 'cw-ch-find-label', f.condition + (f.surface ? ' · ' + f.surface : '')));
+        if (f.draft) li.append(el('span', 'cw-ch-find-draft', 'Sin guardar'));
+        ul.append(li);
+      });
+      return ul;
+    }
+    if (groups.fresh.length) host.append(list(groups.fresh, 'is-new'));
+    else host.append(el('p', 'cw-help', 'Aún no hay hallazgos nuevos en este tratamiento.'));
+    if (groups.before.length) {
+      var d = el('details', 'cw-ch-find-old'), sum = el('summary', '', 'De antes (' + groups.before.length + ') · quedan en el odontograma, no se borran');
+      d.append(sum, list(groups.before, 'is-old'));
+      host.append(d);
+    }
+  }
+
   return {
+    splitFindings: splitFindings, baselineIdsFrom: baselineIdsFrom, findingText: findingText,
+    attachFindings: attachFindings, syncFindings: syncFindings,
     statusLabel: statusLabel, suggestedRecall: suggestedRecall, titleFrom: titleFrom, closeError: closeError,
     chapterMeta: chapterMeta, snapshotSummary: snapshotSummary, listError: listError, OUTCOMES: OUTCOMES,
     attach: attach, sync: sync
