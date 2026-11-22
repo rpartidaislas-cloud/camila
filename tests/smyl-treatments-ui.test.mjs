@@ -53,13 +53,36 @@ test('el expediente monta la franja y llama a las funciones del servidor', () =>
   assert.match(read('smyl-case-workspace.css'), /\.cw-viewing-closed \.cw-nav/);
 });
 
+test('los hallazgos se separan en nuevos y de antes según el odontograma vigente al abrir el tratamiento', () => {
+  const findings = [{ id: 'a', tooth: '46' }, { id: 'b', tooth: '36' }, { id: 'c', tooth: '36' }];
+  const doc = { findings: { schema: 2, events: [{ id: 'a' }, { id: 'zzz' }, null, {}] } };
+  assert.deepEqual(M.baselineIdsFrom(doc), ['a', 'zzz']);
+  const groups = M.splitFindings(findings, M.baselineIdsFrom(doc));
+  assert.deepEqual(groups.before.map((f) => f.id), ['a']);
+  assert.deepEqual(groups.fresh.map((f) => f.id), ['b', 'c']);
+  assert.deepEqual(M.splitFindings(findings, []).before, [], 'el primer tratamiento no tiene hallazgos de antes');
+  assert.deepEqual(M.baselineIdsFrom(null), []);
+  assert.equal(M.findingText({ tooth: '36', surface: 'O', condition: 'Caries' }), 'Pieza 36 · O · Caries');
+});
+
+test('la sección de hallazgos se monta en Revisión profesional y se refresca con el odontograma', () => {
+  const workspace = read('smyl-case-workspace.js');
+  assert.match(workspace, /window\.SmylTreatments\?\.attachFindings\?\.\(ctx\)/);
+  assert.match(workspace, /ctx\.reviewPart\.body\.prepend\(findingsBox\)/);
+  assert.match(workspace, /window\.SmylTreatments\?\.syncFindings\?\.\(ctx,mapSnapshot\)/);
+  const ui = read('smyl-treatments.js');
+  assert.match(ui, /from\('smyl_dental_versions'\)/);
+  assert.match(ui, /\.lte\('updated_at', treatment\.opened_at\)/);
+  assert.match(read('smyl-case-workspace.css'), /\.cw-ch-find-list\.is-old li/);
+});
+
 test('web, móvil y PWA distribuyen la franja de tratamientos', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-treatments\.js\?v=1/);
-    assert.match(read(file), /smyl-case-workspace\.js\?v=49/);
+    assert.match(read(file), /smyl-treatments\.js\?v=2/);
+    assert.match(read(file), /smyl-case-workspace\.js\?v=50/);
   }
   assert.ok(read('app.html').indexOf('smyl-treatments.js') < read('app.html').indexOf('smyl-case-workspace.js'), 'la franja carga antes del expediente');
-  assert.match(read('sw.js'), /-tratamientos-capitulos-v1';/);
+  assert.match(read('sw.js'), /-tratamientos-capitulos-v1-hallazgos-nuevos-v1';/);
   for (const file of ['smyl-treatments.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);
   }

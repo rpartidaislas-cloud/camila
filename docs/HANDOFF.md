@@ -1,3 +1,11 @@
+## 2026-11-22 — Claude Code — Diagnóstico con hallazgos «nuevos» y «de antes» (sin migración)
+
+- `smyl-treatments.js` v2 (`attachFindings` / `syncFindings`) + `smyl-case-workspace.js` v50 / `.css` v36: sección «Hallazgos de «<tratamiento>»» al inicio de **Revisión profesional** con chips «N nuevos · M de antes»; los nuevos en lista, los de antes plegados y en gris («quedan en el odontograma, no se borran»). «Sin guardar» marca los que siguen en borrador.
+- **Sin cambio de base de datos ni de documento:** los hallazgos del odontograma (`smyl_dental_records.document.findings.events`) no tienen fecha y la validación es estricta, así que no se les agregó. «De antes» = ids que ya estaban en la versión del odontograma vigente al abrir el tratamiento (`smyl_dental_versions`, `updated_at <= opened_at`, cacheado por tratamiento). El primer tratamiento del paciente (seq 1) no tiene «de antes».
+- Se recalcula solo si cambia el tratamiento activo, la revisión del odontograma o los conteos por pieza; se oculta si no hay tratamientos, no hay permiso o el servidor no tiene las funciones. Oculto también al consultar un tratamiento cerrado.
+- Limitación conocida: un hallazgo que se **corrige** en el tratamiento nuevo (supersede) aparece como nuevo y el anterior desaparece de la lista activa. Y los hallazgos de fotos/radiografías «por confirmar» no se cuentan aquí (solo los del odontograma).
+- Pruebas: `tests/smyl-treatments-ui.test.mjs` (lógica pura + montaje) y navegador con odontograma simulado.
+
 ## 2026-11-22 — Claude Code — Tratamientos como capítulos del expediente (parte 3, pantalla)
 
 - Migración `20261126180000_smyl_treatments.sql` **ya aplicada en producción** (comprobado: tabla, 3 disparadores, RLS, 4 «Tratamiento inicial» creados, `authenticated` ejecuta, `anon` no).
