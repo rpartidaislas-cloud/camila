@@ -42,13 +42,12 @@ test('Caja muestra responsabilidad individual y supervisión explícita', () => 
   assert.match(finance, /function actorName\(id\)/);
 });
 
-test('Resumen queda primero y el libro de pagos pasa a movimientos secundarios', () => {
-  assert.match(finance, /nav\.prepend\(summaryTab\)/);
-  assert.match(finance, /accountTab\.after\(receiptTab\)/);
-  assert.match(finance, /if\(paymentTab\)paymentTab\.remove\(\)/);
+test('Por cobrar queda primero y el libro de pagos pasa a movimientos secundarios', () => {
+  assert.match(finance, /var TABS=\[\['accounts','Por cobrar'\],\['receipts','Pagos'\]/);
+  assert.doesNotMatch(finance, /data-finance-tab="summary"|'Resumen'/);
   assert.match(finance, /Movimientos y correcciones/);
-  assert.match(finance, /data-receipt-ledger/);
-  assert.match(finance, /state\.tab='summary'/);
+  assert.match(finance, /<details class="finance-receipt-movements">[^']*<div id="finance-payments" class="finance-ledger"><\/div><\/details>/);
+  assert.match(finance, /actor:null,tab:'accounts'/);
 });
 
 test('web y PWA conservan paridad de código y caché', () => {

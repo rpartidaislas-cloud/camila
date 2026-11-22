@@ -1,7 +1,7 @@
-// Humo de navegador de «Pacientes pendientes de cargo» en Cobros, con un Supabase simulado (tests/qa/fake-supabase-cobros.js).
+// Humo de navegador de «Citas atendidas sin cobrar» en Finanzas (pestaña Por cobrar), con un Supabase simulado (tests/qa/fake-supabase-cobros.js).
 //   NODE_PATH=$(npm root -g) node tests/qa/cobros-pending-visits-smoke.cjs      (requiere Playwright y Chromium)
 // Comprueba: la lista (3 pacientes; excluye Revisión de $0, cita ya cobrada y cita no llegada), el formulario de cargo con la
-// cita y el servicio ya elegidos, «Sin cargo» con motivo, «Reabrir» y que una llegada nueva aparece sin recargar. Sale con código 1 si algo falla.
+// cita y el servicio ya elegidos, «Fue sin costo» con motivo, «Reabrir» y que una llegada nueva aparece sin recargar. Sale con código 1 si algo falla.
 const { chromium } = require('playwright');
 const http = require('http'), fs = require('fs'), path = require('path');
 const root = path.resolve(__dirname, '..', '..'), S = __dirname; // los datos viven en fake-supabase-cobros.js; las capturas se guardan en la carpeta temporal
@@ -29,14 +29,14 @@ const server = http.createServer((req, res) => { let p = decodeURIComponent(req.
   await page.screenshot({ path: shots + '/cobros-pendientes.png' });
   await page.click('[data-visit-charge="a2"]'); await page.waitForTimeout(600);
   const form = await page.evaluate(() => { const f = document.querySelector('.finance-charge-form'); return f && { paciente: f.elements.patient.value.slice(0, 2), cita: f.elements.appointment.value, servicio: f.elements.service.value, precio: f.elements.price.value, concepto: f.elements.concept.value }; });
-  console.log('2) Agregar cargo →', JSON.stringify(form)); check(form && form.cita === 'a2' && form.servicio === 's1' && form.precio === '800.00', 'Agregar cargo debe abrir el formulario con cita y servicio elegidos');
+  console.log('2) Registrar cargo →', JSON.stringify(form)); check(form && form.cita === 'a2' && form.servicio === 's1' && form.precio === '800.00', 'Registrar cargo debe abrir el formulario con cita y servicio elegidos');
   await page.screenshot({ path: shots + '/cobros-agregar-cargo.png' });
   await page.evaluate(() => document.getElementById('finance-dialog').close()); await page.waitForTimeout(200);
   await page.click('[data-visit-nocharge="a1"]'); await page.waitForTimeout(400);
   await page.screenshot({ path: shots + '/cobros-sin-cargo.png' });
   await page.selectOption('.finance-nocharge select[name=reason]', 'review'); await page.fill('.finance-nocharge input[name=note]', 'Control'); await page.click('.finance-nocharge button[type=submit]'); await page.waitForTimeout(1500);
-  check(await page.$eval('.finance-visits-closed summary', e => e.textContent).then(t => /\(1\)/.test(t)).catch(() => false), '«Sin cargo» debe dejarla en Cerradas sin cargo (1)');
-  console.log('3) tras «Sin cargo» a1:', JSON.stringify((await rows()).map(r => r.nombre)), '| cerradas:', await page.$eval('.finance-visits-closed summary', e => e.textContent).catch(() => 'no hay'));
+  check(await page.$eval('.finance-visits-closed summary', e => e.textContent).then(t => /\(1\)/.test(t)).catch(() => false), '«Fue sin costo» debe dejarla en Cerradas sin costo (1)');
+  console.log('3) tras «Fue sin costo» a1:', JSON.stringify((await rows()).map(r => r.nombre)), '| cerradas:', await page.$eval('.finance-visits-closed summary', e => e.textContent).catch(() => 'no hay'));
   console.log('   rpc:', JSON.stringify(await page.evaluate(() => window.__calls.filter(c => c[0] === 'rpc' && c[1].includes('no_charge')).map(c => [c[1], c[2].p_reason, c[2].p_note]))));
   await page.click('.finance-visits-closed summary'); await page.click('[data-visit-reopen="a1"]'); await page.waitForTimeout(1500);
   const r4 = (await rows()).map(r => r.nombre); console.log('4) tras reabrir:', JSON.stringify(r4)); check(r4.length === 3, 'reabrir debe devolverla a pendientes');
@@ -51,14 +51,15 @@ const server = http.createServer((req, res) => { let p = decodeURIComponent(req.
       const visible = element => { const style = getComputedStyle(element); return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0; };
       const under12 = [...root.querySelectorAll('p,span,small,label,button,strong')].filter(visible).filter(element => element.textContent.trim() && parseFloat(getComputedStyle(element).fontSize) < 11.99).map(element => element.textContent.trim().slice(0, 40));
       const shortTargets = [...root.querySelectorAll('button,input,[role="button"]')].filter(visible).map(element => ({ text: element.textContent.trim().slice(0, 30), box: element.getBoundingClientRect() })).filter(item => item.box.height < 43.5 || item.box.width < 43.5).map(item => item.text);
-      const tab = root.querySelector('.finance-tabs'), filters = root.querySelector('.finance-account-filters');
-      return { overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, under12, shortTargets, tabRows: Math.round(tab.scrollHeight / tab.querySelector('button').getBoundingClientRect().height), filterRows: Math.round(filters.scrollHeight / filters.querySelector('button').getBoundingClientRect().height) };
+      const tab = root.querySelector('.finance-tabcards'), filters = root.querySelector('.finance-account-filters');
+      return { overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1, under12, shortTargets, tabCols: new Set([...tab.querySelectorAll('button')].map(button => Math.round(button.getBoundingClientRect().left))).size, tabsVisible: [...tab.querySelectorAll('button')].every(button => { const box = button.getBoundingClientRect(); return box.width > 120 && box.right <= window.innerWidth + 1; }), filterRows: Math.round(filters.scrollHeight / filters.querySelector('button').getBoundingClientRect().height) };
     });
     console.log(`   ${label}:`, JSON.stringify(metrics));
     check(!metrics.overflow, `${label} no debe desbordar horizontalmente`);
     check(metrics.under12.length === 0, `${label} no debe mostrar microtexto`);
     check(metrics.shortTargets.length === 0, `${label} debe conservar objetivos táctiles`);
-    check(metrics.tabRows === 1 && metrics.filterRows === 1, `${label} debe mantener pestañas y filtros en una fila`);
+    check(metrics.tabCols === 2 && metrics.tabsVisible, `${label} debe mostrar las cuatro pestañas completas en dos columnas`);
+    check(metrics.filterRows === 1, `${label} debe mantener los filtros en una fila`);
     await page.locator('.finance-accounts-card').scrollIntoViewIfNeeded(); await page.waitForTimeout(150);
     await page.screenshot({ path: shots + `/cobros-cuentas-${label}.png` });
   };
