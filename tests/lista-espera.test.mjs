@@ -20,10 +20,11 @@ test("migración: una entrada activa por paciente y servicio, lectura con schedu
 });
 
 test("la lista de espera nunca envía mensajes ni agenda: solo deja el texto en el chat para que una persona lo envíe", () => {
-  assert.match(mod, /window\.SmylInbox\.compose\(conv, text\)/);
+  assert.match(mod, /window\.SmylInbox\.compose\(conv, text, \{/);
   assert.doesNotMatch(mod, /sendTemplate|action: 'send'|smyl_create_appointment|smyl_inbox_confirm_appointment_request/);
-  assert.match(inbox, /compose: async function \(conversationId, text\) \{[^}]*setComposerText\(text\)/);
-  assert.doesNotMatch(inbox.slice(inbox.indexOf("compose: async function"), inbox.indexOf("sendTemplate: async function")), /request\('POST'/);
+  const compose = inbox.slice(inbox.indexOf("compose: async function"), inbox.indexOf("sendTemplate: async function"));
+  assert.match(compose, /setComposerText\(text\); return true;/);
+  assert.doesNotMatch(compose, /request\('POST'|action: 'send'|sendTemplate\(/);
 });
 
 test("solo quien administra la agenda recibe avisos y ve acciones", () => {
@@ -50,9 +51,22 @@ test("chat: «Poner en lista de espera» pasa la conversación y el chat no toca
 test("se publica en web, PWA y móvil con el motor antes del módulo", () => {
   assert.ok(app.indexOf("smyl-waitlist-core.js") > 0 && app.indexOf("smyl-waitlist-core.js") < app.indexOf("smyl-waitlist.js") && app.indexOf("smyl-waitlist.js") < app.indexOf("smyl-schedule.js"));
   assert.match(app, /smyl-waitlist\.css\?v=1/);
-  for (const f of ["smyl-waitlist-core.js", "smyl-waitlist.js", "smyl-waitlist.css"]) assert.match(sw, new RegExp("/camila/" + f.replace(".", "\\.") + "\\?v=1"));
+  for (const [f, v] of [["smyl-waitlist-core.js", 2], ["smyl-waitlist.js", 2], ["smyl-waitlist.css", 1]]) assert.match(sw, new RegExp("/camila/" + f.replace(".", "\\.") + "\\?v=" + v));
   for (const f of ["smyl-waitlist-core.js", "smyl-waitlist.js", "smyl-waitlist.css", "smyl-schedule.js", "smyl-inbox.js", "app.html", "sw.js"]) {
     assert.ok(existsSync(new URL("../mobile/www/" + f, import.meta.url)), "falta mobile/www/" + f);
     assert.equal(read("mobile/www/" + f), read(f), "mobile/www/" + f + " no coincide");
   }
+});
+
+test("con la ventana de WhatsApp cerrada se usa la plantilla aprobada y la oferta se registra solo al enviarla", () => {
+  const compose = inbox.slice(inbox.indexOf("compose: async function"), inbox.indexOf("sendTemplate: async function"));
+  assert.match(compose, /options\.template && conversation && conversation\.channel === 'whatsapp' && windowNow && !windowNow\.freeform_allowed/);
+  assert.match(compose, /state\.templates\.some\(function \(item\) \{ return names\.indexOf\(item\.name\) !== -1; \}\)/);   // sin plantilla aprobada: avisa y no abre nada
+  assert.match(compose, /openTemplateDialog\(names, \{ variables: options\.template\.variables \|\| \[\], onSent: options\.onSent \|\| null \}\)/);
+  assert.match(compose, /return 'template';/);
+  assert.match(mod, /template: \{ names: \[Core\.OFFER_TEMPLATE\], variables: Core\.templateVariables\(/);
+  assert.match(mod, /onSent: register/);
+  assert.match(mod, /if \(result === 'template'\) toast\(/);
+  assert.match(mod, /else if \(result\) \{ await register\(\);/);        // texto libre: se registra al dejarlo escrito; plantilla: solo con onSent
+  assert.match(mod, /Solicítala en Mensajería → Plantillas/);
 });

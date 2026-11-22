@@ -5910,8 +5910,26 @@
   window.SmylInbox = {
     canAccess: chatEnabled,
     open: function (conversationId) { window.ir('inbox'); return openConversation(conversationId); },
-    // Abre la conversación y deja el texto escrito en el compositor para que una persona lo revise y lo envíe (nunca lo envía).
-    compose: async function (conversationId, text) { window.ir('inbox'); await openConversation(conversationId); if (state.selectedId !== conversationId) return false; setComposerText(text); return true; },
+    // Abre la conversación para que una persona revise y envíe (nunca envía por sí solo).
+    //  · Con la ventana de 24 h de WhatsApp abierta (o en otros canales): deja `text` escrito en el compositor y devuelve true.
+    //  · Con la ventana cerrada y `options.template` = { names, variables, missingText }: abre esa plantilla aprobada con las variables ya llenas
+    //    y devuelve 'template' (`options.onSent` se llama solo si la persona la envía). Sin la plantilla aprobada avisa y devuelve false.
+    compose: async function (conversationId, text, options) {
+      options = options || {}; window.ir('inbox'); await openConversation(conversationId);
+      if (state.selectedId !== conversationId) return false;
+      var conversation = selectedConversation(), windowNow = conversation ? liveWhatsappWindow(conversation) : null;
+      if (options.template && conversation && conversation.channel === 'whatsapp' && windowNow && !windowNow.freeform_allowed) {
+        var names = Array.isArray(options.template.names) ? options.template.names : [];
+        try { await loadTemplates(); } catch (_) { return false; }
+        if (!state.templates.some(function (item) { return names.indexOf(item.name) !== -1; })) {
+          window.alert(options.template.missingText || 'No hay una plantilla aprobada para este mensaje. Solicítala en Mensajería → Plantillas; Meta suele tardar de unos minutos a 48 horas.');
+          return false;
+        }
+        await openTemplateDialog(names, { variables: options.template.variables || [], onSent: options.onSent || null });
+        return 'template';
+      }
+      setComposerText(text); return true;
+    },
     sendTemplate: async function (conversationId, options) { options = options || {}; window.ir('inbox'); await openConversation(conversationId); if (state.selectedId !== conversationId || !chatEnabled()) return; await openTemplateDialog(options.preferred, options); },
     collect: async function (conversationId) { window.ir('inbox'); await openConversation(conversationId); if (state.selectedId !== conversationId || !chatEnabled()) return; await openCobroTemplate(); },
     openOperations: async function () { window.ir('inbox'); if (await refreshAccess() && hasPermission('messages.manage')) openOperations(); },

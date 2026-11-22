@@ -223,17 +223,21 @@
     d.querySelectorAll('[data-wl-offer]').forEach(function (b) {
       b.onclick = async function () {
         var i = Number(b.dataset.wlOffer), c = found[i], conv = conversations[i], err = d.querySelector('[data-wl-error]'); err.hidden = true; b.disabled = true; b.textContent = 'Preparando…';
+        var firstName = String(patientName(c.entry.patient_id)).split(' ')[0], placeName = branch && branch.name;
+        var text = Core.offerMessage({ firstName: firstName, service: look.service(c.entry.service_id), when: when, professional: look.professional(slot.professional_id), branch: placeName });
+        var register = async function () { try { await rpc('smyl_waitlist_offer', { p_id: c.entry.id, p_offered_start: slot.starts_at }); changed(); if (currentHost) refresh(currentHost); } catch (ex) { toast(message(ex), null); } };
         try {
-          await rpc('smyl_waitlist_offer', { p_id: c.entry.id, p_offered_start: slot.starts_at });
-          var svc = look.service(c.entry.service_id);
-          var text = Core.offerMessage({ firstName: String(patientName(c.entry.patient_id)).split(' ')[0], service: svc, when: when, professional: look.professional(slot.professional_id), branch: branch && branch.name });
-          changed();
+          if (!window.SmylInbox || typeof window.SmylInbox.compose !== 'function') throw new Error('No pudimos abrir el chat.');
           d.close();
-          if (window.SmylInbox && typeof window.SmylInbox.compose === 'function') {
-            var ok = await window.SmylInbox.compose(conv, text);
-            toast(ok ? 'Quedó escrito el mensaje en el chat. Revísalo y envíalo.' : 'Se registró la oferta, pero no pudimos abrir el chat.', null);
-          } else toast('Se registró la oferta, pero no pudimos abrir el chat.', null);
-        } catch (ex) { b.disabled = false; b.textContent = 'Ofrecer'; err.textContent = message(ex); err.hidden = false; }
+          // Ventana de 24 h abierta: texto libre. Cerrada: plantilla aprobada «Se liberó un horario» con las variables ya llenas.
+          var result = await window.SmylInbox.compose(conv, text, {
+            template: { names: [Core.OFFER_TEMPLATE], variables: Core.templateVariables({ firstName: firstName, place: placeName, startsAt: slot.starts_at, timeZone: slot.timezone }),
+              missingText: 'La ventana de 24 horas de WhatsApp de este paciente está cerrada y todavía no tienes aprobada la plantilla «Se liberó un horario». Solicítala en Mensajería → Plantillas (Meta tarda de minutos a 48 horas) y vuelve a ofrecer el horario.' },
+            onSent: register,
+          });
+          if (result === 'template') toast('Revisa la plantilla y envíala. La oferta se registra cuando se envíe.', null);
+          else if (result) { await register(); toast('Quedó escrito el mensaje en el chat. Revísalo y envíalo.', null); }
+        } catch (ex) { if (d.open) { b.disabled = false; b.textContent = 'Ofrecer'; err.textContent = message(ex); err.hidden = false; } else toast(message(ex), null); }
       };
     });
     if (!d.open) d.showModal();

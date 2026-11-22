@@ -101,3 +101,33 @@ test("datos inválidos o ausentes no rompen el motor", () => {
   assert.deepEqual(W.matches([null, {}, { service_id: "s1", status: "waiting" }], slotAt(25, 10), { now: NOW }).length, 1);
   assert.doesNotThrow(() => W.localParts("2026-11-25T16:00:00Z", "Zona/Inventada"));
 });
+
+test("variables de la plantilla «Se liberó un horario»: nombre, lugar, fecha y hora en la zona de la sucursal", () => {
+  assert.equal(W.OFFER_TEMPLATE, "cita_lista_espera_v1");
+  const v = W.templateVariables({ firstName: "Ana", place: "Clínica Centro", startsAt: "2026-11-25T16:00:00Z", timeZone: TZ });
+  assert.equal(v.length, 4);
+  assert.equal(v[0], "Ana");
+  assert.equal(v[1], "Clínica Centro");
+  assert.equal(v[2], "miércoles 25 de noviembre");           // minúsculas y sin coma: «para el miércoles 25 de noviembre»
+  assert.match(v[3], /^10:00 a\. ?m\.$/);                      // 16:00 UTC = 10:00 en México
+  // otra zona horaria cambia la hora y puede cambiar el día
+  assert.equal(W.templateVariables({ startsAt: "2026-11-26T05:30:00Z", timeZone: TZ })[2], "miércoles 25 de noviembre");
+  assert.equal(W.templateVariables({ startsAt: "2026-11-26T05:30:00Z", timeZone: "UTC" })[2], "jueves 26 de noviembre");
+});
+
+test("las variables de la plantilla nunca salen vacías ni rompen con datos ausentes", () => {
+  const v = W.templateVariables({});
+  assert.deepEqual(v.slice(0, 2), ["paciente", "la clínica"]);
+  assert.doesNotThrow(() => W.templateVariables({ startsAt: "2026-11-25T16:00:00Z", timeZone: "Zona/Inventada" }));
+  assert.equal(W.templateVariables({ firstName: "A\u0000na\nB" })[0], "A na B");
+});
+
+test("la plantilla existe en el catálogo con las mismas cuatro variables que se envían", () => {
+  const catalog = require("../smyl-template-catalog.js");
+  const t = catalog.TEMPLATES.find((x) => x.id === W.OFFER_TEMPLATE);
+  assert.ok(t, "falta la plantilla en el catálogo");
+  assert.equal(t.category, "UTILITY");
+  assert.equal(t.variables.length, 4);
+  assert.deepEqual(t.variables.map((x) => x.source), ["patient_first_name", "clinic", "date", "time"]);
+  assert.match(t.body, /se liberó un horario en \{\{2\}\} para el \{\{3\}\} a las \{\{4\}\}/);
+});
