@@ -53,7 +53,7 @@
     professionals: [], professionalBranches: [], invitations: [], canClinic: false, canTeam: false,
     canAssignRoles: false, canScheduleRead: false, canScheduleManage: false, hoursDraft: null,
     people: [], personFilter: 'all', personQuery: '', professionalQuery: '', person: null, editing: false,
-    proHours: [], profiles: [], conflicts: [], phoneSupported: true, contactSupported: false, travelSupported: false, travelMargin: 45
+    proHours: [], profiles: [], conflicts: [], phoneSupported: true, contactSupported: false, institutionSupported: false, travelSupported: false, travelMargin: 45
   };
 
   function esc(value) {
@@ -105,7 +105,19 @@
     return promise.then(null, function () { return fallback; });
   }
 
+  // Institución que expidió el título (receta impresa). Se lee aparte: si la base aún no tiene la columna, el resto sigue igual.
   async function loadProfessionals(tenant) {
+    var rows = await loadProfessionalsBase(tenant);
+    try {
+      var extra = await query(window.sb.from('smyl_professionals').select('id,license_institution').eq('tenant_id', tenant));
+      var byId = {}; (extra || []).forEach(function (row) { byId[row.id] = row.license_institution || ''; });
+      (rows || []).forEach(function (row) { if (Object.prototype.hasOwnProperty.call(byId, row.id)) row.license_institution = byId[row.id]; });
+      state.institutionSupported = true;
+    } catch (error) { state.institutionSupported = false; }
+    return rows;
+  }
+
+  async function loadProfessionalsBase(tenant) {
     var base = 'id,tenant_id,user_id,display_name,specialty,license_number,color_token,active';
     try {
       // WhatsApp del profesional (migración de mensajes de citas): si la base aún no lo tiene, se lee sin él.
@@ -1162,6 +1174,10 @@
     field('display_name', 'Nombre', professional.display_name, { required: 'required', minlength: '2', maxlength: '120', autocomplete: 'off' });
     field('specialty', 'Especialidad', professional.specialty, { maxlength: '80' });
     field('license_number', 'Cédula profesional', professional.license_number, { maxlength: '30' });
+    if (state.institutionSupported) {
+      field('license_institution', 'Institución que expidió tu título', professional.license_institution, { maxlength: '120', placeholder: 'Ej. Universidad de Guadalajara', autocomplete: 'off' });
+      form.append(el('p', 'clinic-admin-hint', 'Aparece en tus recetas impresas. No se muestra en tu perfil público.'));
+    }
     if (state.phoneSupported) field('phone', 'Teléfono interno', professional.phone, { type: 'tel', inputmode: 'tel', maxlength: '40', pattern: '[0-9 +.\\(\\)\\-]{0,40}', placeholder: 'Ej. 33 1234 5678', autocomplete: 'off' });
     if (state.contactSupported) {
       field('contact_phone', 'WhatsApp del profesional', professional.contact_phone, { type: 'tel', inputmode: 'tel', maxlength: '40', pattern: '[0-9 +.\\(\\)\\-]{0,40}', placeholder: 'Ej. 33 1234 5678', autocomplete: 'off' });
@@ -1184,6 +1200,7 @@
         specialty: String(data.get('specialty') || '').trim(),
         license_number: String(data.get('license_number') || '').trim()
       };
+      if (state.institutionSupported) changes.license_institution = String(data.get('license_institution') || '').trim();
       if (state.phoneSupported) changes.phone = String(data.get('phone') || '').trim();
       if (state.contactSupported) {
         changes.contact_phone = String(data.get('contact_phone') || '').trim();
