@@ -650,3 +650,40 @@
  .gphoto-actions{position:sticky;bottom:0;z-index:1;background:#fff;padding-bottom:max(12px,env(safe-area-inset-bottom))}
  .gphoto-actions button{flex:1}
 }
+
+/* Ruta de tratamiento v1 · cuatro etapas numeradas con estado, avance y una sola acción fija */
+.cw-enhanced .cw-route-v1 .cw-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 10px;padding:0;border:0;border-radius:0;background:transparent;overflow:visible}
+.cw-enhanced .cw-route-v1 .cw-nav .cw-step{display:flex;align-items:flex-start;gap:12px;min-height:76px;padding:13px 14px;border:1px solid #dbe3ea;border-radius:12px;background:#fff;color:#0b1b2e;text-align:left;white-space:normal;box-shadow:none!important;font-size:14px}
+.cw-enhanced .cw-route-v1 .cw-nav .cw-step::before,.cw-enhanced .cw-route-v1 .cw-nav .cw-step::after{display:none!important;content:none!important}
+.cw-enhanced .cw-route-v1 .cw-step-num{flex:none;display:grid;place-items:center;width:30px;height:30px;border:2px solid #cfd9e2;border-radius:50%;background:#fff;color:#6a7889;font-size:14px;font-weight:750}
+.cw-enhanced .cw-route-v1 .cw-step-text{display:grid;gap:3px;min-width:0}
+.cw-enhanced .cw-route-v1 .cw-step-text strong{font-size:14.5px;line-height:1.25;font-weight:750}
+.cw-enhanced .cw-route-v1 .cw-step-status{color:#6a7889;font-size:13px;line-height:1.35}
+.cw-enhanced .cw-route-v1 .cw-step[data-route=done] .cw-step-num{border-color:#2c7a4b;background:#2c7a4b;color:#fff}
+.cw-enhanced .cw-route-v1 .cw-step[data-route=done] .cw-step-status{color:#2c7a4b;font-weight:650}
+.cw-enhanced .cw-route-v1 .cw-step[data-route=current]{border-color:#1d6b64;box-shadow:0 0 0 3px #e2f0ee!important}
+.cw-enhanced .cw-route-v1 .cw-step[data-route=current] .cw-step-num{border-color:#1d6b64;color:#1d6b64}
+.cw-enhanced .cw-route-v1 .cw-step[data-route=current] .cw-step-status{color:#1d6b64;font-weight:650}
+.cw-enhanced .cw-route-v1 .cw-step[data-route=locked]{background:#f6f8fa}
+.cw-enhanced .cw-route-v1 .cw-step[aria-current=step]{outline:2px solid #0b1b2e;outline-offset:2px;border-bottom-width:1px;color:#0b1b2e}
+.cw-enhanced .cw-route-v1 .cw-step:focus-visible{outline:3px solid #1d6b64;outline-offset:2px}
+.cw-route-v1 .cw-route-bar{height:4px;margin:0 0 16px;border-radius:4px;background:#e1e8ee;overflow:hidden}
+.cw-route-v1 .cw-route-bar span{display:block;width:0;height:100%;background:#2c7a4b;transition:width .3s ease}
+.cw-route-v1 .cw-dock-mirrored,.cw-route-v1 .cw-evaluation-footer,.cw-route-v1 .cw-version-note,.cw-route-v1 .cw-context-grid,.cw-route-v1 .cw-context-admin,.cw-enhanced #clinic-proposal,.cw-route-v1 #clinic-review{display:none!important}
+.cw-enhanced .cw-route-v1{padding-bottom:96px}
+.cw-route-v1 .cw-route-dock{position:fixed;bottom:0;left:0;width:100%;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border:1px solid #dbe3ea;border-bottom:0;border-radius:12px 12px 0 0;background:#fff;box-shadow:0 -8px 22px rgba(11,27,46,.08)}
+.cw-route-v1 .cw-route-dock[data-floating=true]{border-radius:12px;border-bottom:1px solid #dbe3ea;padding:10px 12px}
+.cw-route-v1 .cw-route-dock-text{display:grid;gap:2px;min-width:0}
+.cw-route-v1 .cw-route-dock-text strong{font-size:14.5px;line-height:1.35;color:#0b1b2e}
+.cw-route-v1 .cw-route-dock-text span{font-size:13px;line-height:1.4;color:#5c6b7c}
+.cw-route-v1 .cw-route-dock .pc-primary{flex:none;min-height:46px;padding:0 20px;font-size:14.5px}
+@media(max-width:820px){
+ .cw-enhanced .cw-route-v1 .cw-nav{gap:6px}
+ .cw-enhanced .cw-route-v1 .cw-nav .cw-step{flex-direction:column;align-items:center;gap:6px;min-height:70px;padding:10px 6px;text-align:center}
+ .cw-enhanced .cw-route-v1 .cw-step-text strong{font-size:12.5px}
+ .cw-enhanced .cw-route-v1 .cw-step-status{display:none}
+ .cw-enhanced .cw-route-v1{padding-bottom:150px}
+ .cw-route-v1 .cw-route-dock{flex-wrap:wrap;gap:8px}
+ .cw-route-v1 .cw-route-dock .pc-primary{width:100%}
+}
+@media(prefers-reduced-motion:reduce){.cw-route-v1 .cw-route-bar span{transition:none}}

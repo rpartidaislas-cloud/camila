@@ -1,3 +1,13 @@
+## 2026-11-22 — Claude Code — Tratamiento como ruta de 4 etapas (parte 1, solo interfaz)
+
+- `smyl-case-workspace.js` v48 / `.css` v34: las etapas se llaman Diagnóstico, Plan de tratamiento, Presupuesto y aceptación, En tratamiento (`const ROUTE`).
+- Barra de etapas numerada con estado (`syncRoute`): Listo / En curso · estado / «Se habilita al…», más barra de avance.
+- Una sola acción fija al pie (`syncDock`): refleja el botón real de la etapa actual (`evaluationCta`, `planNext`, `quoteButton`, `evolveButton`, que se ocultan con `.cw-dock-mirrored`). Es `position:fixed` alineada al área de Tratamiento por ResizeObserver, porque `.main` tiene overflow y `sticky` no funciona. Se sube sobre `.pro-mobile-nav` cuando está visible.
+- Quitado: la línea «Siguiente acción ·», la mini-ruta de 3 pasos en Seguimiento, la caja duplicada de «Versiones guardadas», la rejilla repetida de alergias/medicamentos/condiciones y «Datos administrativos» en el contexto, y `#clinic-proposal` / `#clinic-review` dentro de la ruta (los lleva la barra fija).
+- Textos: «Aprobar plan», «Preparar presupuesto», «Continuar al presupuesto», «Confirmar diagnóstico».
+- Pendiente (parte 2): plan armado desde los hallazgos, presupuesto automático, aceptación parcial registrada y lista de avance por procedimiento. Hoy «Presupuesto y aceptación» se marca Listo solo al crear la presentación mySmyl, igual que antes.
+- Prototipo aprobado por el usuario: https://claude.ai/artifact/48id2ZTw7nu7hVMi6SRDhe
+
 ## 2026-11-22 — Configuración de canales
 
 - En Configuración → Canales, WhatsApp Business, Messenger e Instagram aparecen con los mismos logos que la bandeja. Cada tarjeta abre su pestaña de conexión e identifica la cuenta cuando el servicio devuelve su nombre o teléfono. El bloque Asistente agrupa configuración y pruebas. Mensajes automáticos reúne las plantillas, los avisos de cita y las reglas.
