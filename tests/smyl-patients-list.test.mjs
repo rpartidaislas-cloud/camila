@@ -45,7 +45,7 @@ test('los estados esperan a la agenda y sólo alertan si no existe ningún conta
 });
 
 test('Agendar cita abre Nueva cita con el paciente ya elegido y sin la marca de cotización aceptada', () => {
-  assert.match(clinic, /window\.SmylSchedule\.bookFor\(p\)/);
+  assert.doesNotMatch(clinic, /window\.SmylSchedule\.bookFor\(p\)/, 'la lista ya no tiene botón de agendar: toda la fila abre el expediente');
   const schedule = read('smyl-schedule.js');
   assert.match(schedule, /bookFor:function\(p\)/);
   assert.match(schedule, /cachePatients\(\[p\]\);openNew\(null,null\);/);
