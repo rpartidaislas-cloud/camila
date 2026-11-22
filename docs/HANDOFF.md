@@ -1,3 +1,8 @@
+## 2026-11-22 — Claude Code — Pacientes: la fila completa abre el expediente
+
+- `smyl-clinic.js` v27 / `smyl-patients-directory.css` v3: se quitan el botón «Abrir expediente», el menú «…» (Agendar cita / Editar datos) y cualquier botón de la fila. Toda la fila abre el expediente; el nombre es un botón accesible por teclado y hay una flecha «›» al final (oculta en móvil). «Editar datos» sigue en el expediente.
+- SW suffix `-pacientes-fila-v1`; copias en `mobile/www/`. Tests de v32/v33 actualizados.
+
 ## 2026-11-21 — Claude Code — Ficha SPEI: aviso de que la confirmación tarda de 15 a 30 minutos
 
 - Prueba real en producción: un SPEI de $10 enviado desde Mercado Pago a las 14:36 lo aplicó Openpay a las 14:52. LANA lo marcó como pagado en la siguiente consulta (`smyl-pago-verificar-openpay`, sin webhook) y SMYL recibió el aviso.
