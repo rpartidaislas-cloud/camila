@@ -264,6 +264,21 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-22 — Claude Code — Simulador: arreglos rápidos tras la revisión (guardar, reintentar, saldo, etiquetas, peso)
+
+Hechos a pedido del usuario (aunque lo visual suele ser de Codex). Sin tocar prompts ni backend.
+- **«Guardar en expediente» no hacía nada en la vista profesional** (pedía el nombre en `#fn`, oculto ahí). Ahora el botón principal y el de la barra del celular usan el mismo flujo que «Guardar en un paciente» (`#pc-save-entry`, `smyl-patient-cases.js`) y copian su texto (Guardar en paciente / Abrir ficha del paciente / Reintentar guardado). El botón duplicado de abajo se oculta (`html.smyl-result-primary-saves`), salvo en el flujo de consultorio. `smyl-studio.js`.
+- **Error de la IA con «↻ Reintentar»** (`smyl-photo-batch.js`): título propio («No se pudo completar la simulación» / «Algunas fotos no se completaron»), detalle técnico plegado en «Ver detalle», aviso honesto de que pudo contar como simulación. Reintentar no vuelve a pedir la casilla de autorización; no aparece si el error es de cupo o sesión (401/402/403/429).
+- **Saldo**: junto a «Generar» dice «Te quedan N este mes» (de `CFG.limiteDiagnosticos − CFG.diagnosticosUsados`; el servidor sigue siendo quien descuenta).
+- **Lista de la foto**: ya no marca ✓ fijos (no valida nada); íconos neutros y «Revisa la foto».
+- **Diálogo de revisión de la IA** centrado (`margin:auto`) y botones sin jerga: «✎ Ajustar bordes», «🔍 Acercar a la boca», «Ver imagen sin fusionar» / «Ver resultado final» (`visual-simulation.js`; `tests/quick-modes-browser.cjs` actualizado).
+- **Etiquetas ANTES / tono** ya no se enciman en celular (ancho máximo con «…»).
+- **Guía facial** de 1 MB (PNG 1254 px) → `icons/ui/smyl-face-capture-guide-v2.webp` de 33 KB.
+- **Link para pacientes** en Ajustes de simulación: desactivado con aviso «Pausado», porque el modo prospecto está pausado en el servidor y el enlace terminaba en error.
+- Versiones: `smyl-studio.js?v=33`, `.css?v=32`, `smyl-photo-batch.js?v=3`, `visual-simulation.js?v=33`, `.css?v=6`, caché `simulador-arreglos-v1`; `mobile/www` sincronizado.
+- Verificado con Playwright (Supabase e IA simulados, cara sintética) a 1280 y 390: guardar abre el diálogo de paciente; diálogo de IA centrado y dentro de la pantalla; etiquetas sin encimarse; error → Reintentar hace una segunda generación sin pedir la casilla. Suite: mismas fallas que `main` (radiografías, plantilla v3, marca LANA y pruebas de navegador del chat), ninguna nueva.
+- Siguiente: pestaña «Diseño de sonrisa» en la ficha y la simulación como servicio con cobro; luego el flujo de 4 pasos y el plan por fases.
+
 ## 2026-11-22 — Claude Code — Simulaciones: «Guardar en la ficha» volvía a fallar (guía de color)
 
 - Desde #118 (8-nov) `smyl-case-model.js` manda `settings.shadeGuide` (classical | bleached), pero `smyl_save_patient_case` rechazaba toda llave desconocida con «Invalid case settings». Comprobado en producción: la última simulación guardada es del 7-oct-2026 (21 en total) y la función no conocía `shadeGuide`.
@@ -12194,6 +12209,17 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - **Prueba actualizada:** `tests/smyl-inbox-ficha-care-history-browser.test.mjs` ahora afirma que, sin visitas, la sección no aparece (antes esperaba «No hay visitas completadas visibles.»).
 - **Archivos:** `smyl-inbox.js` v92, `smyl-inbox.css` v77, `app.html`, `sw.js`, fixture, copias en `mobile/www/`.
 
+## 2026-11-22 — Claude Code — Cumplimiento (COFEPRIS / LFPDPPP / NOM-004-024): semana 1
+Revisión completa de cumplimiento hecha en esta sesión; esta entrega cubre los riesgos críticos.
+- **analizar-foto ya no diagnostica** (`supabase/functions/analizar-foto/index.ts` + `foto-core.mjs`): solo revisa si la foto sirve (lista cerrada) y genera una simulación ilustrativa; mensajes fijos para el paciente, `requiere_revision_profesional: true`, `store:false`, sin URL pública. Sin `patient_id` o sin autorización de IA no manda nada a la IA. **Contrato con LANA cambiado** (ya no existen `diagnostico`, `tratamientos_sugeridos`, `zona_afectada`, `requiere_urgente`): ver `docs/LANA_INTEGRATION.md` §2. LANA debe adaptarse.
+- **IA solo con consentimiento expreso**: `privacy-core.mjs` → `unknown` ahora es `missing` (403 `patient_ai_consent_missing`). Se revisa también en mila-transcribe (paciente obligatorio, `store:false`), mila-realtime-session, mila-clinical-dictation (el cliente manda `paciente_id`) y en radiografía/plan de tratamiento de `claude` (los clientes mandan `patientId`). **Al desplegar, la IA se detiene para todo paciente sin autorización registrada**: las clínicas deben registrarla en Privacidad o con la firma del aviso.
+- **Simulación**: casilla obligatoria de consentimiento de IA en `simulacion.html` (viaja como `aiConsent` en el cuerpo; el servidor lo registra y lo exige solo con `SMYL_REQUIRE_SIM_AI_CONSENT=true`, porque revision-clinica, simulacion-rapida y editor aún no muestran la casilla). `claude` añade reglas fijas de seguridad (no diagnosticar, no prometer) a toda petición genérica.
+- **Sin lenguaje de diagnóstico**: «Diagnóstico clínico» → «Propuesta estética orientativa»; planes en «análisis con IA»; aviso «no es un diagnóstico ni garantiza resultados» en el resultado.
+- **camila_casos**: migración `20261125120000_smyl_camila_casos_clinical_scope.sql` (leer `clinical.read`, escribir `clinical.write`, sin anon). Probada en PGlite.
+- **Fotos**: enlaces firmados de 7 días (antes 1 año); `smyl-photo-url-refresh.js` renueva el enlace al mostrar una foto vencida.
+- **Acceso**: `smyl-auth-guard.js` — contraseña ≥10 con letras y números, cierre a los 30 min sin actividad, verificación en dos pasos (TOTP) en Mi cuenta y al entrar.
+- **PENDIENTE en producción (requiere autorización del dueño)**: aplicar migraciones `20261119200000` y `20261125120000`; desplegar analizar-foto, claude, segment-teeth, mila-transcribe, mila-realtime-session, mila-clinical-dictation, periodontal-summary, radiograph-analyze, cloud-classify, fiscal-extract, mila-interview (cambió `_shared/privacy-core.mjs`) e invite-staff; en Auth: `password_min_length=10` con letras y dígitos.
+- Siguientes fases del plan: consentimiento informado por procedimiento, firma de notas con reautenticación y cédula, recetas, secciones faltantes de la historia clínica, bloqueo de retención de 5 años, aviso modelo definitivo, perfiles públicos (permiso de publicidad, institución), revisión legal COFEPRIS.
 ## 2026-11-22 — Claude — Finanzas v6 · paso 2: «Por cobrar» con filas limpias y «Pagos» por periodo con exportación a Excel
 
 - **Contexto.** Segundo de los 4 pasos que aprobó Ricardo. **Los pasos 3 (Caja con movimientos y cortes anteriores; Facturación) y 4 (saldos calculados en la base de datos) siguen en curso de mi lado**: avisa antes de tocar `smyl-finance.js` / `smyl-finance.css`.

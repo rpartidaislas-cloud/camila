@@ -16,7 +16,7 @@ test('el servidor fija modelo, esfuerzo y esquema; el navegador solo manda promp
   assert.match(fn, /body\?\.action === RADIOGRAPH_ACTION \|\| body\?\.action === RADIOGRAPH_MAP_ACTION\) \{\s*if \(!user \|\| user\.id !== tenantEfectivo\)/, 'solo sesión profesional');
   const client = read('smyl-radiograph-analysis-client.js');
   assert.match(client, /ask\('analyze_dental_radiograph_v1'/);
-  assert.match(client, /JSON\.stringify\(\{action,requestId,system:promptSystem,messages:/, 'solo manda acción, prompt e imagen');
+  assert.match(client, /JSON\.stringify\(\{action,requestId,patientId:window\.pacienteActual\?\.id\|\|null,system:promptSystem,messages:/, 'solo manda acción, paciente (para su permiso de IA), prompt e imagen');
   assert.doesNotMatch(client, /JSON\.stringify\(\{model,/, 'el navegador no elige modelo');
   assert.match(client, /2576\/Math\.max/);
 });
