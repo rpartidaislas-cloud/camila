@@ -122,6 +122,55 @@
     });
   }
 
+  /** Confirma la identidad antes de una acción sensible (firmar una nota): código de dos pasos si la cuenta lo tiene,
+   *  si no, la contraseña. Renueva la sesión, y el servidor lo comprueba en el token (amr). Devuelve true si se confirmó. */
+  async function reauthenticate(sb, purpose) {
+    if (!sb || !sb.auth) return false;
+    var factors = [];
+    try { factors = sb.auth.mfa ? await verifiedTotp(sb) : []; } catch (_) { factors = []; }
+    var userRes = await sb.auth.getUser();
+    var user = userRes && userRes.data && userRes.data.user;
+    var providers = (user && user.app_metadata && user.app_metadata.providers) || [];
+    var usesPassword = !!(user && user.email) && (providers.indexOf('email') !== -1 || !providers.length);
+    if (!factors.length && !usesPassword) {
+      window.alert('Para ' + (purpose || 'continuar') + ' necesitamos confirmar tu identidad. Activa la verificación en dos pasos en Mi cuenta o vuelve a iniciar sesión.');
+      return false;
+    }
+    return new Promise(function (resolve) {
+      var ui = dialogShell('Confirma tu identidad', factors.length
+        ? 'Para ' + (purpose || 'continuar') + ', escribe el código de 6 dígitos de tu app autenticadora.'
+        : 'Para ' + (purpose || 'continuar') + ', escribe tu contraseña.');
+      var input = factors.length ? codeInput() : el('input');
+      if (!factors.length) {
+        input.type = 'password'; input.autocomplete = 'current-password'; input.setAttribute('aria-label', 'Contraseña');
+        input.style.cssText = 'width:100%;box-sizing:border-box;font-size:16px;padding:10px;border:1px solid #cbd5e1;border-radius:10px';
+      }
+      ui.body.append(input);
+      var cancel = btn('Cancelar'), ok = btn('Confirmar', true);
+      ui.actions.append(cancel, ok);
+      var done = function (value) { ui.dialog.close(); ui.dialog.remove(); resolve(value); };
+      cancel.addEventListener('click', function () { done(false); });
+      var submit = async function () {
+        ok.disabled = true; ui.feedback.textContent = '';
+        var res;
+        if (factors.length) {
+          var code = input.value.replace(/\D/g, '');
+          if (code.length !== 6) { ok.disabled = false; ui.feedback.textContent = 'El código tiene 6 dígitos.'; return; }
+          res = await sb.auth.mfa.challengeAndVerify({ factorId: factors[0].id, code: code });
+        } else {
+          if (!input.value) { ok.disabled = false; ui.feedback.textContent = 'Escribe tu contraseña.'; return; }
+          res = await sb.auth.signInWithPassword({ email: user.email, password: input.value });
+        }
+        ok.disabled = false;
+        if (res && res.error) { ui.feedback.textContent = factors.length ? 'Código incorrecto o vencido.' : 'La contraseña no coincide.'; input.select(); return; }
+        done(true);
+      };
+      ok.addEventListener('click', submit);
+      input.addEventListener('keydown', function (e) { if (e.key === 'Enter') submit(); });
+      ui.dialog.showModal(); input.focus();
+    });
+  }
+
   /** Activa la verificación en dos pasos: muestra el QR, pide el primer código y confirma. */
   async function openSetup(sb, onChange) {
     var ui = dialogShell('Activar verificación en dos pasos', 'Escanea el código con Google Authenticator, Microsoft Authenticator u otra app compatible y escribe el código que te muestre.');
@@ -200,6 +249,7 @@
     startIdleLogout: startIdleLogout,
     stopIdleLogout: stopIdleLogout,
     ensureSecondFactor: ensureSecondFactor,
+    reauthenticate: reauthenticate,
     renderCard: renderCard
   });
 })(window);

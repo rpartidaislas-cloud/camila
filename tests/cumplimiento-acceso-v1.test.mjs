@@ -33,7 +33,7 @@ test('acceso: contraseña de 10+ con letras y números, cierre por inactividad y
   assert.match(guard, /nextLevel !== 'aal2' \|\| level\.data\.currentLevel === 'aal2'/);
   assert.match(guard, /challengeAndVerify/);
   const app = read('app.html');
-  assert.match(app, /<script src="smyl-auth-guard\.js\?v=1"><\/script>/);
+  assert.match(app, /<script src="smyl-auth-guard\.js\?v=2"><\/script>/);
   assert.match(app, /SmylAuthGuard\.ensureSecondFactor\(sb\)[\s\S]{0,200}if \(!segundoPaso\)/);
   assert.match(app, /SmylAuthGuard\.startIdleLogout\(function \(\) \{ cerrarSesion\(\); \}\)/);
   assert.match(app, /id="mc-mfa"/);
@@ -41,6 +41,6 @@ test('acceso: contraseña de 10+ con letras y números, cierre por inactividad y
   for (const f of ['simulacion.html', 'simulacion-rapida.html']) assert.match(read(f), /pass\.length < 10 \|\| !\/\[A-Za-z\]\/\.test\(pass\)/, f);
   for (const f of ['smyl-auth-guard.js', 'smyl-photo-url-refresh.js', 'app.html']) assert.equal(read('mobile/www/' + f), read(f), 'copia móvil ' + f);
   const sw = read('sw.js');
-  assert.match(sw, /smyl-auth-guard\.js\?v=1/);
+  assert.match(sw, /smyl-auth-guard\.js\?v=2/);
   assert.match(sw, /smyl-photo-url-refresh\.js\?v=1/);
 });
