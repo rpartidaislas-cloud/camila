@@ -4349,15 +4349,11 @@
     setComposerText(lines.join('\n')); document.querySelector('[data-availability-dialog]').close();
   }
 
-  // Datos de la sucursal y del servicio para el mensaje de confirmación. Se leen con la sesión de la persona (RLS); si algo falla se usa el mensaje corto.
+  // Datos de la sucursal y del servicio para el mensaje de confirmación: los lee el módulo de Agenda (con su tenant y permisos); si algo falla se usa el mensaje corto.
   async function visitConfirmationText(firstName, slot) {
-    if (!window.SmylVisitMessage || !window.sb || !window.tenantId) return '';
-    var tenant = window.tenantId;
-    var results = await Promise.all([
-      window.sb.from('smyl_branches').select('*').eq('tenant_id', tenant).eq('id', slot.branch_id).maybeSingle(),
-      window.sb.from('smyl_services').select('*').eq('tenant_id', tenant).eq('id', slot.service_id).maybeSingle(),
-    ]);
-    var branch = results[0] && results[0].data, service = results[1] && results[1].data;
+    if (!window.SmylVisitMessage || !window.SmylSchedule || typeof window.SmylSchedule.visitInfo !== 'function') return '';
+    var info = await window.SmylSchedule.visitInfo(slot.branch_id, slot.service_id);
+    var branch = info && info.branch, service = info && info.service;
     if (!branch && !service) return '';
     return window.SmylVisitMessage.build({ firstName: firstName, slot: slot, branch: branch || { name: slot.branch_name }, service: service || {} }).text;
   }

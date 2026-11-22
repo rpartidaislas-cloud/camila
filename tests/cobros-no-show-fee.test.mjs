@@ -62,7 +62,7 @@ test('la migración y las versiones quedan publicadas y sincronizadas con la app
   for (const file of ['app.html', 'sw.js']) {
     assert.match(read(file), /smyl-finance\.js\?v=64/);
     assert.match(read(file), /smyl-finance\.css\?v=48/);
-    assert.match(read(file), /smyl-schedule\.js\?v=56/);
+    assert.match(read(file), /smyl-schedule\.js\?v=57/);
   }
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-schedule.js', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);

@@ -30,9 +30,10 @@ test("el chat arma el mensaje completo con la sesión de la persona y conserva e
   assert.match(book, /visitConfirmationText\(firstName, slot\)\.then\(/);
   assert.match(book, /\.catch\(function \(\) \{\}\)/);
   const helper = inbox.slice(inbox.indexOf("async function visitConfirmationText"), inbox.indexOf("async function loadAvailabilityRequests"));
-  assert.match(helper, /window\.sb\.from\('smyl_branches'\)/);
-  assert.match(helper, /window\.sb\.from\('smyl_services'\)/);
-  assert.doesNotMatch(helper, /request\('POST'|action: 'send'/);     // nunca envía: solo escribe en el compositor
+  assert.match(helper, /window\.SmylSchedule\.visitInfo\(slot\.branch_id, slot\.service_id\)/);   // los datos los lee Agenda, no el chat
+  assert.doesNotMatch(inbox, /window\.tenantId|tenant_id/);                                 // el chat no toca tablas ni el tenant
+  assert.match(read("smyl-schedule.js"), /visitInfo:async function\(branchId,serviceId\)/);
+  assert.doesNotMatch(helper, /request\('POST'|action: 'send'/);                                      // nunca envía: solo escribe en el compositor
 });
 
 test("el redactor se publica en web, PWA y móvil y carga antes del Inbox", () => {

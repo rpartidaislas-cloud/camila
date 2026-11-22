@@ -63,10 +63,9 @@ const server = http.createServer((req, res) => {
     // confirmar una cita: el mensaje del chat queda completo (dónde, mapa, cómo llegar, qué hacer antes, calendario)
     await page.click('[data-thread-primary-action="schedule"]'); await page.waitForSelector('[data-availability-dialog][open]'); await page.waitForTimeout(1200);
     await page.evaluate(() => {
-      window.tenantId = 'tenant-preview';
       const rows = { smyl_branches: { id: 'branch-centro', name: 'Clínica Centro', address_line: 'Av. Juárez 120', city: 'Zapopan', state: 'Jalisco', postal_code: '45050', phone: '33 1234 5678', arrival_notes: 'Estacionamiento en el sótano; sube al piso 2.', timezone: 'America/Mexico_City' },
         smyl_services: { id: 'service-valuation', name: 'Valoración dental integral', prep_instructions: 'Llega 10 minutos antes y trae tus estudios previos.' } };
-      window.sb.from = (table) => { const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: rows[table] || null, error: null }) }; return q; };
+      window.SmylSchedule = Object.assign(window.SmylSchedule || {}, { visitInfo: async () => ({ branch: rows.smyl_branches, service: rows.smyl_services }) });
     });
     await page.click('[data-availability-mode="list"]'); await page.waitForSelector('.smyl-inbox-availability-slot', { timeout: 8000 });
     await page.click('.smyl-inbox-availability-slot'); await page.waitForSelector('[data-availability-book]:not([hidden])');
