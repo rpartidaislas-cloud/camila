@@ -264,6 +264,13 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-22 — Claude Code — Receta médica: base técnica (SIN contenido legal verificado)
+
+- **Estado**: solo se hizo lo que no depende de la norma. **No hay módulo de receta en la consulta todavía** y nada aquí afirma cumplir la ley. La lista de requisitos legales (Reglamento de Insumos para la Salud, Ley General de Salud, acuerdo de antibióticos, NOM-004/024) **NO está verificada**: los dominios oficiales (diputados.gob.mx, dof.gob.mx, gob.mx, salud.gob.mx) estaban bloqueados en la red de la sesión (el proxy respondía 403). Pendiente: permitirlos en el entorno (o pegar los artículos) y verificar ANTES de escribir la lógica de la receta.
+- **Perfil del doctor**: campo nuevo «Institución que expidió tu título» (`smyl_professionals.license_institution`, migración `20261122100000_smyl_professional_license_institution.sql`). Privado: no se publica en el directorio. Se lee aparte, así que sin la migración el formulario sigue igual (patrón `institutionSupported`, como el teléfono). **Requiere aplicar la migración.**
+- **Hoja de impresión (diseño)**: `smyl-prescription-print.js` + `smyl-prescription.css`, media carta vertical, firma autógrafa y sello, todo con `textContent`. Aún NO está cargada en `app.html` ni conectada a datos. `sheetIssues()` avisa qué le falta a la hoja para verse completa; NO es la lista legal. Las leyendas normativas solo salen si se pasan (`legends`); el módulo no inventa ninguna. Vista con datos ficticios: `tests/fixtures/smyl-prescription-preview.html`; verificada en Chromium (1 página de 396×612 pt, XSS no se ejecuta).
+- **Siguiente**: (1) verificar la norma con las fuentes; (2) decidir alcance (¿solo medicamentos no controlados?); (3) tabla de recetas (folio consecutivo, inmutable, anulación con motivo, auditoría), aviso de alergias desde la historia clínica, botón en el Consultorio y marca aparte para antibióticos; (4) revisión de un abogado o asesor sanitario antes de usarla con pacientes reales.
+- Pruebas: `tests/smyl-prescription-print.test.mjs` (6); suite completa sin fallas nuevas frente a `main`.
 ## 2026-11-22 — Claude Code — Simulador: arreglos rápidos tras la revisión (guardar, reintentar, saldo, etiquetas, peso)
 
 Hechos a pedido del usuario (aunque lo visual suele ser de Codex). Sin tocar prompts ni backend.
