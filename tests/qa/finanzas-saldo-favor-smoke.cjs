@@ -36,6 +36,13 @@ const server = http.createServer((req, res) => { let p = decodeURIComponent(req.
   const call = await page.evaluate(() => (window.__calls || []).filter(c => c[0] === 'rpc' && c[1] === 'smyl_apply_credit_to_charge').map(c => c[2])[0]);
   check(call && call.p_patient_id === 'pc1' && call.p_charge_id === 'cc1' && call.p_amount === 250.5 && /^[0-9a-f-]{36}$/.test(call.p_idempotency_key) && /^[0-9a-f-]{36}$/.test(call.p_id), 'envía paciente, cargo, importe y llaves: ' + JSON.stringify(call));
   check(/Saldo a favor aplicado: \$250\.50/.test(await page.$eval('#finance-feedback', e => e.textContent)), 'avisa «Saldo a favor aplicado: $250.50.»');
+  // Desde «Cobrar»: la tarjeta del paciente ofrece usar el saldo a favor; con un solo cargo pendiente abre directo la ventana de aplicarlo.
+  await page.evaluate(() => { const d = document.getElementById('finance-dialog'); if (d && d.open) d.close(); }); await page.waitForTimeout(300);
+  await page.click('#finance-accounts [data-account-pay="pc1"]'); await page.waitForTimeout(700);
+  const offer = await page.$eval('#finance-dialog [data-payment-patient]', e => (e.querySelector('.finance-credit-offer') || {}).textContent || '');
+  check(/Tiene \$[\d,.]+ a favor/.test(offer) && /Usar saldo a favor/.test(offer), 'el cobro ofrece «Usar saldo a favor»: ' + offer.replace(/\s+/g, ' ').slice(0, 100));
+  await page.click('#finance-dialog [data-use-credit]'); await page.waitForTimeout(600);
+  check(await page.$eval('#finance-dialog h2', e => e.textContent.trim()) === 'Aplicar saldo a favor', 'con un solo cargo pendiente abre «Aplicar saldo a favor»');
   console.log('errores de página:', JSON.stringify(errs)); if (errs.length) fails++;
   await b.close(); server.close(); process.exit(fails ? 1 : 0);
 });
