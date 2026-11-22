@@ -21,14 +21,14 @@ test('Finanzas tiene cuatro destinos claros y abre en Por cobrar', () => {
 
 test('«Por cobrar» reúne los filtros, con «Vencidas» en lugar de la pestaña «Por cobrar hoy»', () => {
   const filters = [...js.matchAll(/data-account-filter="(\w+)"/g)].map((m) => m[1]);
-  assert.deepEqual(filters, ['open', 'overdue', 'credit', 'all', 'attention', 'settled']);
-  assert.match(js, /overdueMode=state\.accountFilter==='overdue'/);
-  assert.match(js, /if\(overdueMode\)\{renderToday\(\);return;\}/);
-  assert.match(js, /if\(state\.tab!=='accounts'\|\|state\.accountFilter!=='overdue'\)return;/);
-  assert.match(js, /<div id="finance-today" hidden><\/div>/);
-  assert.match(js, /data-today-send/);
-  assert.match(js, /finance-list-summary/);
-  assert.match(css, /\.finance-list-summary\{/);
+  assert.deepEqual(filters, ['open', 'overdue', 'credit', 'all']);
+  assert.match(js, /var ACCOUNT_FILTERS=\['open','overdue','credit','all'\]/);
+  // Las vencidas son filas de la misma lista (ya no hay una lista aparte): mismas columnas y, además, su menú de recordatorios.
+  assert.doesNotMatch(js, /renderToday|finance-today|overdueMode|finance-list-summary/);
+  assert.match(js, /function matchAccount\(s,filter\)\{return filter==='overdue'\?s\.overdue\.length>0:filter==='open'\?s\.dueCents>0:filter==='credit'\?s\.creditCents>0:/);
+  assert.match(js, /data-remind="'\+id\+'"/);
+  assert.match(js, /Cada recordatorio se revisa antes de enviarse\./);
+  assert.match(css, /#p-caja \.finance-tag\[data-tone=danger\]\{/);
 });
 
 test('cada pestaña lleva su cifra, se abre con un clic y se recorre con las flechas del teclado', () => {
@@ -307,13 +307,13 @@ test('Finanzas abre en Por cobrar y conserva la cuenta detallada con sus filtros
   // El número de citas sin cobrar de la pestaña es el mismo del menú (pendingVisits).
   assert.match(js, /if\(f\.visits\)due\.push\(plural\(f\.visits,'cita sin cobrar','citas sin cobrar'\)\)/);
   assert.doesNotMatch(js, /tabCount\.textContent=String\(openCount\)/);
-  assert.match(js, /var MORE_FILTERS=\['attention','settled'\]/);
-  assert.match(js, /<option value="attention">Requieren acción<\/option><option value="settled">Liquidadas<\/option>/);
+  assert.doesNotMatch(js, /MORE_FILTERS|finance-more-filters|Requieren acción|data-account-filter="(attention|settled)"/);
   assert.match(js, /class="finance-link-action" data-visit-nocharge=/);
   assert.match(js, /Sin abonos todavía/);
   assert.match(js, /Todo cobrado por ahora/);
   assert.match(js, /<header class="finance-page-head finance-actionsbar"><div class="finance-head-actions"><\/div><\/header>/);
-  assert.match(css, /#p-caja \.finance-account-open::after\{content:" →"\}/);
+  // El nombre del paciente (con su línea de estado) es el botón que abre la cuenta.
+  assert.match(css, /#p-caja button\.finance-line-who:hover \.finance-line-name\{color:var\(--smyl-accent,#0f766e\);text-decoration:underline/);
   const app = read('app.html'), shell = read('smyl-professional-v3.css');
   assert.match(app, /new MutationObserver\(function\(\)\{place\(\);\}\)/, 'el pie de derechos siempre queda al final del contenido');
   assert.match(shell, /\.contenido>#app-copyright\{position:static[^}]*height:0/);
@@ -324,27 +324,28 @@ test('Cobros paso 2: la ayuda de caja vive en «Mi turno» y los botones sin cla
   assert.match(js, /<details class="finance-cash-help"><summary>¿Cómo funciona la caja\?<\/summary>/);
   for (const id of ['finance-adjust']) assert.match(js, new RegExp(`<button class="btn btn-secondary" id="${id}">`));
   assert.match(js, /class="btn btn-secondary" data-supervise-cash=/);
-  assert.match(css, /#p-caja \.finance-fiscal-receipt-filters\{display:flex;gap:6px;overflow-x:auto/);
-  assert.match(css, /#p-caja \.finance-fiscal-receipt-filters button\{flex:0 0 auto;justify-content:center;min-width:112px;min-height:44px/);
+  assert.match(css, /#p-caja \.finance-segment\{display:inline-flex;padding:3px;/);
+  assert.match(css, /#p-caja :is\(\.finance-chips>button,\.finance-segment>button,[^{]*\)\{min-height:44px\}/);
 });
 
-test('Cobros paso 3: precio de lista, cobro en la fila, «Con movimientos», siguiente pendiente, corte visible y filtro recordado', () => {
+test('Cobros paso 3: precio de lista, cobro en la fila, «Todas», siguiente pendiente y corte visible', () => {
   // Precio de lista del servicio en cada pendiente (el total real, con impuestos, se confirma en el diálogo).
-  assert.match(js, /function visitPrice\(a\)\{var sv=by\(state\.services,a\.service_id\),price=sv&&Number\(priceFor\(sv,a\.branch_id\)\);return price>0&&a\.status!=='no_show'\?' · Precio de lista <b>'/);
-  // «Cobrar $» en la fila reutiliza el cobro de saldo existente.
-  assert.match(js, /data-account-pay="'\+x\.p\.id\+'">Cobrar '\+money\(s\.due\)/);
+  assert.match(js, /function visitPrice\(a\)\{var sv=by\(state\.services,a\.service_id\),price=sv&&Number\(priceFor\(sv,a\.branch_id\)\);return price>0&&a\.status!=='no_show'\?'Precio de lista <b>'/);
+  // «Cobrar» en la fila reutiliza el cobro de saldo existente; el importe ya está en la columna Saldo.
+  assert.match(js, /data-account-pay="'\+id\+'" aria-label="Cobrar a '\+label\+'">Cobrar<\/button>/);
   assert.match(js, /openPayment\(button\.dataset\.accountPay,\{mode:'balance'\}\)/);
-  // «Todas» pasa a «Con movimientos»: las cuentas vacías quedan en una línea y aparecen al buscar.
-  assert.match(js, /if\(f==='all'\)return Boolean\(search\)\|\|state\.showEmptyAccounts\|\|x\.s\.charges\.length>0\|\|x\.s\.credit>0/);
-  assert.match(js, /data-account-filter="all">Con movimientos <\/button>/);
-  assert.match(js, /data-toggle-empty/);
+  // «Todas» lista las cuentas con movimientos; quien no tiene ninguno aparece al buscarlo por nombre.
+  assert.match(js, /:s\.charges\.length>0\|\|s\.creditCents>0;\}/);
+  assert.match(js, /data-account-filter="all" aria-pressed="false">Todas<\/button>/);
+  assert.match(js, /Quien no tiene movimientos aparece al buscarlo\./);
+  assert.doesNotMatch(js, /data-toggle-empty|showEmptyAccounts/);
   // Aviso con el siguiente pendiente después de cobrar o cerrar sin cargo.
   assert.match(js, /function notifyNextVisit\(text\)/);
   assert.match(js, /label:'Siguiente: '\+name\(a\.patient_id\)\+' →'/);
   assert.match(js, /fromVisit\)\{await reload\(\);notifyNextVisit\(chargeText\);\}/);
-  // Corte visible y último filtro recordado por dispositivo y clínica.
+  // Corte visible. Finanzas abre siempre en «Con saldo»: lo primero que se ve es lo que hay que cobrar (ya no se recuerda el último filtro).
   assert.match(js, /f\.sessionOld\?'Abierta hace más de 18 h'/);
-  assert.match(js, /smyl_finance_filter_'\+\(state\.tenant\|\|''\)/);
+  assert.doesNotMatch(js, /smyl_finance_filter_/);
   assert.match(css, /#p-caja \.finance-session-warn\{/);
   assert.doesNotMatch(js, /\.from\('smyl_finance_[a-z_]*'\)\.insert|\.update\(/);
 });

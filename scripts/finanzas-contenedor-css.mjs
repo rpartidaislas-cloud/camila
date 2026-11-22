@@ -20,7 +20,7 @@ const MARK = '/*contenedor*/';
 const CONTAINER = 'finance-workspace';
 
 // Clases que existen dentro de la página (y no solo en ventanas): salen del HTML que arman build() y el dibujo de cada pestaña.
-const PAGE_FUNCTIONS = ['build', 'renderVisits', 'renderAccounts', 'renderToday', 'renderReceipts', 'renderPayments', 'renderCash', 'renderFiscal', 'fiscalStatusStrip', 'renderTruncationBanner', 'moreRows', 'notify', 'sk', 'loadingSkeleton', 'renderFinanceActions', 'renderTabs'];
+const PAGE_FUNCTIONS = ['build', 'renderVisits', 'renderAccounts', 'accountLine', 'meter', 'renderPayments', 'renderCash', 'renderFiscal', 'fiscalStatusStrip', 'renderTruncationBanner', 'moreRows', 'notify', 'sk', 'loadingSkeleton', 'renderFinanceActions', 'renderTabs'];
 export function pageClasses(js) {
   const out = new Set();
   for (const name of PAGE_FUNCTIONS) {
@@ -41,8 +41,12 @@ function closeOf(text, open) { let d = 0; for (let k = open; k < text.length; k+
 export function strip(css) {
   let out = '', i = 0;
   for (;;) { const a = css.indexOf(MARK, i); if (a < 0) { out += css.slice(i); break; }
-    const open = css.indexOf('{', a), close = closeOf(css, open); let start = a; if (css[start - 1] === '\n') start--;
-    out += css.slice(i, start); i = close + 1; }
+    let start = a; if (css[start - 1] === '\n') start--;
+    out += css.slice(i, start);
+    // Solo se quita lo que de verdad es un bloque generado. Una marca suelta (su bloque se borró en una limpieza) no debe llevarse la regla que le sigue.
+    if (css.startsWith('@container ' + CONTAINER + ' ', a + MARK.length)) i = closeOf(css, css.indexOf('{', a)) + 1;
+    else i = a + MARK.length;
+  }
   return out;
 }
 
