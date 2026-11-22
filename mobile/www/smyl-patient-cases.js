@@ -302,8 +302,43 @@
         [['Sesiones',cases],['Fotografías',photos],['Simulaciones',results]].forEach(item=>{const card=node('div');card.append(node('span','',item[0]),node('strong','',ready?String(item[1]):'—'));summary.append(card);});
         dispatchEvent(new CustomEvent('smyl:patient-simulations-updated',{detail:{tenant,patient,ready,cases,photos,results}}));
       };
+      // Cobro de la simulación: precio del catálogo («Simulación de diseño de sonrisa»), una vez por simulación,
+      // y se descuenta de las carillas al iniciar el tratamiento (smyl_post_proposal_charges_v2).
+      const billingBoxes = new Map(), credit = node('aside','pc-credit'); credit.hidden = true; notice.after(credit);
+      const money = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(Number(v)||0);
+      async function loadBilling() {
+        let info;
+        try { const r = await sb.rpc('smyl_patient_simulation_billing',{p_patient_id:patient}); if (r.error) throw r.error; info = r.data; }
+        catch (_) { return; } // Sin permiso de finanzas o migración pendiente: la galería sigue igual, sin cobros.
+        if (!current() || !info) return;
+        const byCase = new Map((info.charges||[]).map(c => [c.case_id,c]));
+        // Se descuenta una simulación por tratamiento: la cobrada más reciente que aún no se ha usado.
+        const next = (info.charges||[]).find(c => !c.credited_charge_id);
+        credit.hidden = !next;
+        if (next) credit.replaceChildren(node('strong','','💳 '+money(next.total)+' a favor para carillas'),node('span','','Si acepta carillas, se descuenta al iniciar el tratamiento.'));
+        billingBoxes.forEach((box,caseId) => {
+          const charge = byCase.get(caseId); box.replaceChildren(); box.hidden = false;
+          if (charge) {
+            const paid = Number(charge.paid) >= Number(charge.total);
+            box.append(node('span','pc-chip '+(paid?'is-paid':'is-due'),(paid?'✓ Pagada · ':'💳 Por pagar · ')+money(charge.total)));
+            if (charge.credited_charge_id) box.append(node('span','pc-chip is-credited','↘ Descontada de carillas'));
+            else if (charge === next) box.append(node('span','pc-chip is-credit','↘ Se descuenta si acepta carillas'));
+          } else if (info.can_charge && Number(info.price) > 0) {
+            const charge = button('💳 Cobrar simulación · '+money(info.price), async () => {
+              if (!window.confirm('¿Registrar el cobro de esta simulación por '+money(info.price)+'?\n\nSi el paciente acepta carillas, este importe se le descontará.')) return;
+              charge.disabled = true; charge.textContent = 'Registrando…';
+              try { const r = await sb.rpc('smyl_post_simulation_charge',{p_id:crypto.randomUUID(),p_idempotency_key:crypto.randomUUID(),p_case_id:caseId}); if (r.error) throw r.error; }
+              catch (error) { window.alert(error?.message || 'No se pudo registrar el cobro.'); }
+              if (current()) loadBilling();
+            }, 'pc-secondary');
+            box.append(charge);
+          } else if (info.can_charge) {
+            box.append(node('small','pc-billing-hint','Para cobrarla, ponle precio a «Simulación de diseño de sonrisa» en Servicios y tarifas.'));
+          } else box.hidden = true;
+        });
+      }
       async function load() {
-        gallery.dataset.loadState = 'loading'; gallery.smylCaseEntries = [];
+        gallery.dataset.loadState = 'loading'; gallery.smylCaseEntries = []; billingBoxes.clear(); credit.hidden = true;
         publishSummary(false,0,0,0);
         body.replaceChildren(skeleton('cards',{count:3,media:true,label:'Consultando sus simulaciones'}));
         if (pacienteActual._local || window.miRolEquipo !== 'dueño') { gallery.dataset.loadState = 'unavailable'; body.textContent = 'La consulta de este archivo visual requiere una ficha en nube y la cuenta titular.'; return; }
@@ -360,10 +395,12 @@
             });comparison.dataset.workspaceAction='comparison';tools.append(comparison);
             const preview=button('Vista previa de mySmyl',()=>openMyPreview(api,row,current));preview.dataset.workspaceAction='preview';
             const previewHelp=node('small','','Consulta rápida. Para enviar la propuesta, usa la etapa Compartir.');previewHelp.dataset.workspaceAction='preview';tools.append(preview,previewHelp);
+            const billing=node('div','pc-billing');billing.dataset.caseBilling=row.id;billing.hidden=true;description.append(billing);billingBoxes.set(row.id,billing);
             card.append(description,actions); body.append(card);
             gallery.smylCaseEntries.push({row,card,review:()=>reviewEntry.click(),present:()=>window.MySmylPortal?.open({api,row,current}),current});
           });
           gallery.dataset.loadState = 'ready';
+          loadBilling();
         } catch (error) { if (current()) { gallery.dataset.loadState = 'error'; publishSummary(false,0,0,0); body.replaceChildren(node('p','',['PGRST202','42883','CASE_UNAVAILABLE'].includes(error.code) ? 'El archivo seguro de simulaciones aún no está activado para esta clínica. No se mostrará información incompleta ni copias locales.' : M.message(error)),button('Volver a consultar', load)); } }
       }
       load();
