@@ -264,6 +264,12 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-22 — Claude Code — Simulaciones: «Guardar en la ficha» volvía a fallar (guía de color)
+
+- Desde #118 (8-nov) `smyl-case-model.js` manda `settings.shadeGuide` (classical | bleached), pero `smyl_save_patient_case` rechazaba toda llave desconocida con «Invalid case settings». Comprobado en producción: la última simulación guardada es del 7-oct-2026 (21 en total) y la función no conocía `shadeGuide`.
+- Migración `20261122120000_smyl_patient_case_shade_guide.sql`: misma función, ahora acepta `shadeGuide` opcional con esos dos valores; el resto de la validación es idéntica. **Requiere aplicarla en el SQL Editor.** Prueba `tests/smyl-patient-case-shade-guide.test.mjs` compara las llaves que manda el simulador con las que acepta la función.
+- Pendiente: entre el 7-oct y el 8-nov tampoco hubo guardados; puede ser falta de uso u otra causa. Verificar guardando una simulación tras aplicar la migración.
+
 ## 2026-11-19 — Conversación móvil
 
 - En un hilo de hasta 700 px, la cabecera muestra al paciente, la acción principal y «Opciones del chat». El panel reúne los controles existentes de responsable, sucursal y asistente; la nota privada se sigue consultando desde el responsable. En un hilo más ancho los mismos controles regresan a la cabecera.
