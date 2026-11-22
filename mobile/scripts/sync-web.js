@@ -39,6 +39,7 @@ copyFile(path.join(ROOT, 'smyl-auth-guard.js'), path.join(WWW, 'smyl-auth-guard.
 copyFile(path.join(ROOT, 'smyl-informed-consent.js'), path.join(WWW, 'smyl-informed-consent.js'));
 copyFile(path.join(ROOT, 'smyl-informed-consent.css'), path.join(WWW, 'smyl-informed-consent.css'));
 copyFile(path.join(ROOT, 'smyl-prescriptions.js'), path.join(WWW, 'smyl-prescriptions.js'));
+copyFile(path.join(ROOT, 'smyl-clinical-background.js'), path.join(WWW, 'smyl-clinical-background.js'));
 copyFile(path.join(ROOT, 'smyl-navigation.css'), path.join(WWW, 'smyl-navigation.css'));
 copyFile(path.join(ROOT, 'smyl-settings-hub.js'), path.join(WWW, 'smyl-settings-hub.js'));
 copyFile(path.join(ROOT, 'smyl-settings-hub.css'), path.join(WWW, 'smyl-settings-hub.css'));
