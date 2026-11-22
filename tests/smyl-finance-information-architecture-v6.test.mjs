@@ -27,7 +27,7 @@ test('Finanzas abre en Por cobrar: cuatro pestañas con cifra y sin pestaña Res
 
 test('la página se arma una sola vez, ya en su forma final', () => {
   assert.doesNotMatch(finance, /upgradeFinanceWorkspace|upgradeFinanceActions|var buildBase=build|renderVisitsBase|renderAccounts=function|renderToday=function|renderVisits=function/);
-  for (const name of ['build', 'renderAccounts', 'renderToday', 'renderVisits', 'renderCash', 'renderReceipts', 'renderPayments', 'renderFiscal']) {
+  for (const name of ['build', 'renderAccounts', 'accountLine', 'renderVisits', 'renderCash', 'renderPayments', 'renderFiscal']) {
     assert.equal(finance.split('function ' + name + '(').length - 1, 1, name + ' debe tener una sola definición');
   }
   assert.match(finance, /<header class="finance-page-head finance-actionsbar"><div class="finance-head-actions"><\/div><\/header>/);
@@ -70,7 +70,7 @@ test('solo se dibuja la pestaña visible y las listas largas van de 50 en 50', (
   const panel = finance.slice(finance.indexOf('function renderPanel()'), finance.indexOf('function showTab('));
   assert.match(panel, /p\.hidden=p\.dataset\.financePanel!==state\.tab/);
   assert.match(panel, /if\(state\.tab==='accounts'\)\{renderVisits\(\);renderAccounts\(\);\}/);
-  assert.match(panel, /else if\(state\.tab==='receipts'\)\{renderReceipts\(\);renderPayments\(\);\}/);
+  assert.match(panel, /else if\(state\.tab==='receipts'\)renderPayments\(\);/);
   assert.match(panel, /else if\(state\.tab==='cash'\)renderCash\(\);/);
   assert.match(panel, /else if\(state\.tab==='fiscal'\)renderFiscal\(\);/);
   // Cambiar de pestaña no vuelve a dibujar todo: solo marca la pestaña y dibuja su panel.
@@ -79,15 +79,16 @@ test('solo se dibuja la pestaña visible y las listas largas van de 50 en 50', (
   // Al terminar de cargar la página deja de anunciarse como ocupada (antes se quedaba en aria-busy="true").
   assert.match(finance, /renderPanel\(\);renderBillingSetup\(\);var page=document\.getElementById\('p-caja'\);if\(page\)page\.setAttribute\('aria-busy','false'\);/);
   // Cada lista se salta si su pestaña no está a la vista.
-  assert.match(finance, /function renderAccounts\(\)\{\n    if\(state\.tab!=='accounts'\)return;/);
-  assert.match(finance, /var host=document\.getElementById\('finance-receipts'\);if\(!host\|\|state\.tab!=='receipts'\)return;/);
+  assert.match(finance, /function renderAccounts\(\)\{\n    var host=document\.getElementById\('finance-accounts'\);if\(!host\|\|state\.tab!=='accounts'\)return;/);
+  assert.match(finance, /var host=document\.getElementById\('finance-payments'\);if\(!host\|\|state\.tab!=='receipts'\)return;/);
   assert.match(finance, /var host=document\.getElementById\('finance-cash'\);if\(!host\|\|state\.tab!=='cash'\)return;/);
-  // El libro de pagos solo se dibuja mientras «Movimientos y correcciones» está abierto.
-  assert.match(finance, /var box=host\.closest\('details'\);if\(box&&!box\.open\)\{host\.replaceChildren\(\);return;\}/);
+  // Pagos solo recorre el periodo elegido (abre en Hoy): no dibuja el historial completo.
+  assert.match(finance, /payPeriod:'today'/);
+  assert.match(finance, /if\(t>=range\.from&&t<range\.to\)add\('payment',t,p,p,cents\(p\.amount\)\)/);
   assert.match(finance, /PAGE_ROWS=50/);
   assert.match(finance, /function moreRows\(total,shown,key\)\{return total>shown\?/);
-  for (const key of ['accounts', 'receipts', 'ledger']) assert.match(finance, new RegExp("moreRows\\([a-zA-Z.]+,[a-zA-Z.]+,'" + key + "'\\)"));
-  assert.match(finance, /shown:\{accounts:50,receipts:50,ledger:50\}/);
+  for (const key of ['accounts', 'payments']) assert.match(finance, new RegExp("moreRows\\([a-zA-Z.]+,[a-zA-Z.]+,'" + key + "'\\)"));
+  assert.match(finance, /shown:\{accounts:50,payments:50\}/);
   // Sin recorridos de tabla completa por fila: recibos, borradores y datos fiscales se buscan por índice.
   assert.match(finance, /function byKey\(a,key,id\)/);
   assert.doesNotMatch(finance, /state\.receipts\.find\(function/);
@@ -119,7 +120,7 @@ test('la capa visual nueva evita microtexto, se adapta al celular y ya no deja e
   assert.match(block, /@media\(max-width:720px\)\{/);
   assert.match(block, /@media\(max-width:560px\)\{\s*#p-caja \.finance-tabcards\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   // En pantallas táctiles, lo que se toca mide al menos 44 px.
-  assert.match(block, /#p-caja :is\(\.finance-link-action,\.finance-account-open,\.finance-row-pay,\.finance-more-rows \.btn,\.finance-session \.finance-actions \.btn\)\{min-height:44px\}/);
+  assert.match(block, /#p-caja :is\(\.finance-link-action,\.finance-more-rows \.btn,\.finance-session \.finance-actions \.btn\)\{min-height:44px\}/);
   assert.match(block, /#p-caja \.finance-operations-menu>summary\{[^}]*min-height:44px/);
   // La regla «.finance-summary-panel{display:grid}» ganaba al atributo hidden y dejaba el Resumen visible en todas las pestañas.
   assert.doesNotMatch(css, /finance-summary|finance-overview|finance-priority-list|\.finance-flow|\.finance-metrics|\.finance-tabs(?![\w-])|\.finance-bar(?![\w-])/);
@@ -128,12 +129,13 @@ test('la capa visual nueva evita microtexto, se adapta al celular y ya no deja e
 });
 
 test('web y PWA comparten la misma entrega versionada', () => {
-  for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-navigation.js', 'smyl-professional-v3.js', 'smyl-settings-hub.js', 'smyl-consultorio.js', 'smyl-proposals.js', 'app.html', 'sw.js']) {
+  for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-xlsx.js', 'smyl-navigation.js', 'smyl-professional-v3.js', 'smyl-settings-hub.js', 'smyl-consultorio.js', 'smyl-proposals.js', 'app.html', 'sw.js']) {
     assert.equal(read(file), read('mobile/www/' + file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=48/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=64/);
-  assert.match(read('sw.js'), /smyl-finance\.js\?v=64/);
-  assert.match(read('sw.js'), /smyl-finance\.css\?v=48/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=50/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=66/);
+  assert.match(read('sw.js'), /smyl-finance\.js\?v=66/);
+  assert.match(read('sw.js'), /smyl-finance\.css\?v=50/);
   assert.match(read('sw.js'), /finanzas-pestanas-v6/);
+  assert.match(read('sw.js'), /finanzas-cobrar-pagos-v7/);
 });
