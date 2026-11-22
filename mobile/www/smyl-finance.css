@@ -1257,3 +1257,7 @@ dialog[data-smyl-dialog-system="true"][open] .finance-allocation-input>input[typ
   /* …y sus botones miden 44 px, como todo lo que se toca en Finanzas. */
   body>#finance-dialog .smyl-dialog-footer button{min-height:44px!important}
 }
+/* Finanzas v6 · paso 4: «Usar saldo a favor» dentro del cobro (ventana: no se copia a @container). */
+#finance-dialog .finance-credit-offer{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;padding:10px 12px;border:1px solid #cfe5df;border-radius:12px;background:#f1f8f6}
+#finance-dialog .finance-credit-offer p{margin:0;flex:1 1 220px;font-size:13px;color:#2c4a44}
+
