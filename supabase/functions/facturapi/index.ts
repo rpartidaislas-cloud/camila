@@ -11,7 +11,7 @@ import { smylAdmin } from "../_shared/lana-linked.ts";
 import {
   FACTURAPI_BASE, LIVE_KEY_RE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion,
   datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd,
-  leerProductosSat, textoBusquedaSat, descripcionServicioSat, leerConsultasSat, unirCandidatosSat, leerSeleccionSat,
+  SAT_CONSULTAS_RESPALDO, leerProductosSat, textoBusquedaSat, descripcionServicioSat, leerConsultasSat, unirCandidatosSat, leerSeleccionSat,
   SAT_CONSULTAS_SCHEMA, SAT_SELECCION_SCHEMA, SAT_SYSTEM_CONSULTAS, SAT_SYSTEM_SELECCION, SERVICIO_SCHEMA, SERVICIO_SYSTEM, leerServicioSugerido, sumarUso,
   FORMAS_PAGO, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura,
   parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, descarga,
@@ -211,15 +211,21 @@ async function puedeUsarIA(tenantId: string, CORS: Record<string, string>): Prom
 }
 // Claves del SAT: busca cada consulta en el catálogo oficial y la IA elige solo entre las claves reales encontradas.
 async function sugerirClaveSat(tenantId: string, aiKey: string, key: string, texto: string, consultas: string[]) {
+  // Cada búsqueda deja su resultado (código HTTP y cuántas claves) para poder explicar un resultado vacío.
+  const diagnostico: Array<{ q: string; status: number; n: number }> = [];
   const buscar = async (q: string) => {
     const r = await fp(`/catalogs/products?q=${encodeURIComponent(q)}&limit=10`, {}, key);
-    return r.ok && r.body && typeof r.body === "object" ? leerProductosSat(r.body, 10) : [];
+    const lista = r.ok && r.body && typeof r.body === "object" ? leerProductosSat(r.body, 10) : [];
+    diagnostico.push({ q, status: r.status, n: lista.length });
+    return lista;
   };
-  const candidatos = unirCandidatosSat(await Promise.all(consultas.map(buscar)));
-  if (!candidatos.length) return { suggestions: [], candidates: [], queries: consultas, llamadas: [] as Array<{ usage: Json | null; id: string | null }> };
+  let candidatos = unirCandidatosSat(await Promise.all(consultas.map(buscar)));
+  // Si las palabras de la IA no encontraron nada, se prueba con palabras generales del catálogo dental (así se llaman los servicios del SAT).
+  if (!candidatos.length) candidatos = unirCandidatosSat(await Promise.all(SAT_CONSULTAS_RESPALDO.filter((q) => !consultas.includes(q)).map(buscar)));
+  if (!candidatos.length) return { suggestions: [], candidates: [], queries: consultas, diagnostico, llamadas: [] as Array<{ usage: Json | null; id: string | null }> };
   const ia = await llamarIA(aiKey, SAT_SYSTEM_SELECCION, `${texto}\n\nClaves reales del catálogo:\n${candidatos.map((c) => `${c.key} — ${c.description}`).join("\n")}`, SAT_SELECCION_SCHEMA);
   await medirIA(tenantId, ia);
-  return { suggestions: ia.ok ? leerSeleccionSat(ia.text, candidatos) : [], candidates: candidatos, queries: consultas, llamadas: [{ usage: ia.usage, id: ia.id }] };
+  return { suggestions: ia.ok ? leerSeleccionSat(ia.text, candidatos) : [], candidates: candidatos, queries: consultas, diagnostico, llamadas: [{ usage: ia.usage, id: ia.id }] };
 }
 
 async function timbrado(req: Request, CORS: Record<string, string>, tenantId: string, actor: string, body: Json): Promise<Response> {
@@ -444,7 +450,8 @@ Deno.serve(async (req) => {
       catch { return json(CORS, 500, { error: "No se pudo leer la llave guardada. Vuelve a conectar Facturapi." }); }
       const r = await fp(`/catalogs/products?q=${encodeURIComponent(q)}&limit=12`, {}, key);
       if (!r.ok || !r.body || typeof r.body !== "object") return json(CORS, 502, { error: "Facturapi no pudo buscar claves en este momento. Intenta de nuevo." });
-      return json(CORS, 200, { results: leerProductosSat(r.body) });
+      const results = leerProductosSat(r.body);
+      return json(CORS, 200, { results, ...(results.length ? {} : { diagnostico: [{ q, status: r.status, n: 0 }] }) });
     }
 
     // ── La IA sugiere la ClaveProdServ: propone palabras de búsqueda, el catálogo oficial devuelve claves reales y solo se elige entre ellas ──
@@ -465,7 +472,7 @@ Deno.serve(async (req) => {
       if (!consultas.length) consultas = [textoBusquedaSat(servicio.name)].filter(Boolean);
       const sat = await sugerirClaveSat(tenantId, listo.aiKey, key, texto, consultas);
       await registrarConsumo(tenantId, [{ usage: ia1.usage, id: ia1.id }, ...sat.llamadas], "sat_suggest", ia1.ok);
-      return json(CORS, 200, { suggestions: sat.suggestions, candidates: sat.candidates, queries: sat.queries });
+      return json(CORS, 200, { suggestions: sat.suggestions, candidates: sat.candidates, queries: sat.queries, diagnostico: sat.diagnostico });
     }
 
     // ── La IA sugiere el servicio completo (todo menos el precio): especialidad, alcance, cobro, duración, textos y clave SAT. Es una sugerencia que la persona revisa. ──
@@ -486,7 +493,7 @@ Deno.serve(async (req) => {
         try {
           const key = await descifrar(MASTER, tenantId, row.secret_ciphertext, row.secret_iv);
           const r = await sugerirClaveSat(tenantId, listo.aiKey, key, `Servicio: ${servicio.name}${fields.description ? `\nDescripción: ${fields.description}` : ""}`, queries.length ? queries : [textoBusquedaSat(servicio.name)].filter(Boolean));
-          sat = { suggestions: r.suggestions, candidates: r.candidates, queries: r.queries }; llamadas = [...llamadas, ...r.llamadas];
+          sat = { suggestions: r.suggestions, candidates: r.candidates, queries: r.queries, diagnostico: r.diagnostico }; llamadas = [...llamadas, ...r.llamadas];
         } catch { sat = null; }
       }
       await registrarConsumo(tenantId, llamadas, "service_suggest", true);

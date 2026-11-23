@@ -12523,3 +12523,10 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **Archivos:** `smyl-service-catalog-model.js` v4, `smyl-service-catalog.js` v15, `.css` v6, `facturapi` (bundle con el campo nuevo en el esquema), `app.html`, `sw.js`, copias en `mobile/www/`. Pruebas en `tests/service-catalog-model.test.mjs` (reglas de la base) y `tests/facturapi-buscador-sat.test.mjs`. Sin SQL nuevo.
 - **Ya funciona:** la IA responde en producción (la llave `ANTHROPIC_API_KEY` se corrigió).
 
+## 2026-11-23 — Claude — «Sugerir todo con IA»: la parte fiscal salía vacía («No encontré claves para este servicio»)
+
+- **Síntoma (Ricardo):** la IA llenó lo clínico, pero la clave SAT no; la pantalla decía «No encontré claves…» sin explicar nada.
+- **Causa probable:** la búsqueda en el catálogo (`GET /v2/catalogs/products?q=`) volvió vacía y la función no distinguía «Facturapi no respondió», «respondió con error» y «sin coincidencias». No se pudo confirmar sin ver Facturapi real.
+- **Qué cambia:** cada búsqueda deja su `diagnostico` (`q`, código HTTP, cantidad) y la pantalla lo muestra como «Detalle técnico: «…» → Facturapi 200, 0 claves». Si las palabras de la IA no encuentran nada, se prueban palabras generales del catálogo dental (`SAT_CONSULTAS_RESPALDO`: odontólogos, dentistas, higienista dental). También aplica a «Buscar». `smyl-service-catalog.js` v16; hay que volver a publicar `facturapi`.
+- **Pendiente:** con el detalle técnico real, corregir la causa (¿parámetro `q`, forma de la respuesta, clave de prueba sin acceso al catálogo?).
+

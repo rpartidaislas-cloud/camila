@@ -338,6 +338,8 @@ export const SAT_SELECCION_SCHEMA = {
   type: "object", additionalProperties: false, required: ["picks"],
   properties: { picks: { type: "array", items: { type: "object", additionalProperties: false, required: ["key", "reason"], properties: { key: { type: "string" }, reason: { type: "string" } } } } },
 };
+// Palabras generales con las que el catálogo del SAT nombra los servicios dentales; se usan si las que propuso la IA no encuentran nada.
+export const SAT_CONSULTAS_RESPALDO = ["odontólogos", "dentistas", "higienista dental"];
 export const SAT_SYSTEM_CONSULTAS = [
   "Ayudas a un consultorio dental en México a encontrar la ClaveProdServ del SAT (catálogo c_ClaveProdServ) de uno de sus servicios.",
   "Devuelve de 2 a 4 consultas CORTAS (1 a 3 palabras, en español) para buscar en el catálogo oficial. Usa el lenguaje del catálogo",
