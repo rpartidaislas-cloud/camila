@@ -12498,3 +12498,9 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **Pantalla (`smyl-service-catalog.js` v13, `.css` v5):** botón «Sugerir todo con IA» arriba del formulario. Llena especialidad, «se aplica a», «cómo se cobra» y duración (traen valor por omisión), **no pisa** descripción ni instrucciones que la persona ya escribió, y llena la clave SAT (y E48/02 si están vacías) solo si el servicio no está marcado como revisado. Los campos llenados quedan marcados; un aviso lista lo que se llenó y trae «Deshacer». El precio no se toca y nada se guarda hasta «Guardar».
 - **Pruebas:** `tests/facturapi-buscador-sat.test.mjs` (esquemas sin restricciones, lectura válida, suma de tokens, consumo, pantalla). Probado en navegador con respuestas simuladas; no contra Anthropic ni Facturapi reales. **Hay que volver a publicar `facturapi`** (bundle de ~1,650 líneas) y confirmar `ANTHROPIC_API_KEY`.
 
+## 2026-11-23 — Claude — Corrección: «La IA no dio una respuesta clara» en «Sugerir todo con IA»
+
+- **Síntoma (primera prueba de Ricardo con la función ya publicada):** la función arrancó y respondió, pero la sugerencia decía «La IA no dio una respuesta clara».
+- **Causa:** `llamarIA` usaba `max_tokens: 1500`. Con Haiku 5.5 el tope debe cubrir razonamiento + JSON (lo documenta `fiscal-core.mjs`; la lectura de constancias usa `FISCAL_EXTRACT_MAX_TOKENS` = 4000), así que la respuesta salía cortada y no se podía leer.
+- **Corrección:** `max_tokens: FISCAL_EXTRACT_MAX_TOKENS`. Ahora también se registra en los logs el `stop_reason` cuando la IA no termina normal y, si la sugerencia es ilegible, `ia_ok` / `stop` / `respuesta_vacía`; el `stop_reason` queda en `smyl_ai_usage_log`. Prueba en `tests/facturapi-buscador-sat.test.mjs`. **Hay que volver a publicar `facturapi`.**
+

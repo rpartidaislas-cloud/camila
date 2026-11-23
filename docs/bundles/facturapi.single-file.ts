@@ -1148,31 +1148,33 @@ async function llamarFacturapi(key: string, path: string, init: RequestInit = {}
 
 // ───────────── Sugerencia de clave SAT con IA ─────────────
 // Una llamada corta a Claude (modelo económico) con salida estructurada. Solo viaja el nombre, la categoría y la descripción del servicio.
-async function llamarIA(aiKey: string, system: string, texto: string, schema: Json): Promise<{ ok: boolean; text: string; usage: Json | null; id: string | null; ms: number }> {
+async function llamarIA(aiKey: string, system: string, texto: string, schema: Json): Promise<{ ok: boolean; text: string; usage: Json | null; id: string | null; ms: number; stop: string | null }> {
   const inicio = Date.now();
   try {
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST", signal: AbortSignal.timeout(FISCAL_EXTRACT_TIMEOUT_MS),
       headers: { "content-type": "application/json", "x-api-key": aiKey, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({
-        model: FISCAL_EXTRACT_MODEL, max_tokens: 1500, system,
+        model: FISCAL_EXTRACT_MODEL, max_tokens: FISCAL_EXTRACT_MAX_TOKENS, system,
         messages: [{ role: "user", content: [{ type: "text", text: texto }] }],
         output_config: { effort: "low", format: { type: "json_schema", schema } },
       }),
     });
     const msg = await resp.json().catch(() => ({}));
-    if (!resp.ok) { console.error("[facturapi] la IA rechazó la solicitud:", resp.status, String(msg?.error?.type || "")); return { ok: false, text: "", usage: null, id: null, ms: Date.now() - inicio }; }
+    if (!resp.ok) { console.error("[facturapi] la IA rechazó la solicitud:", resp.status, String(msg?.error?.type || "")); return { ok: false, text: "", usage: null, id: null, ms: Date.now() - inicio, stop: `api_${resp.status}` }; }
     const text = Array.isArray(msg.content) ? msg.content.filter((b: Json) => b?.type === "text").map((b: Json) => b.text).join("") : "";
-    return { ok: true, text, usage: msg.usage || null, id: msg.id || null, ms: Date.now() - inicio };
-  } catch { return { ok: false, text: "", usage: null, id: null, ms: Date.now() - inicio }; }
+    // «max_tokens» aquí significa que el razonamiento + la respuesta no cupieron: la respuesta llega cortada y no se puede leer.
+    if (msg.stop_reason && msg.stop_reason !== "end_turn") console.error("[facturapi] la IA terminó con:", msg.stop_reason);
+    return { ok: true, text, usage: msg.usage || null, id: msg.id || null, ms: Date.now() - inicio, stop: typeof msg.stop_reason === "string" ? msg.stop_reason : null };
+  } catch { return { ok: false, text: "", usage: null, id: null, ms: Date.now() - inicio, stop: "error_de_red" }; }
 }
 // Se mide en el mismo registro y con el mismo tope que la lectura de constancias (feature «fiscal_extract»): no requiere migración.
-async function medirIA(tenantId: string, r: { ok: boolean; usage: Json | null; id: string | null; ms: number }) {
+async function medirIA(tenantId: string, r: { ok: boolean; usage: Json | null; id: string | null; ms: number; stop: string | null }) {
   const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : null);
   const { error } = await admin.from("smyl_ai_usage_log").insert({
     tenant_id: tenantId, feature: "fiscal_extract", model: FISCAL_EXTRACT_MODEL, request_id: r.id ? `sat:${r.id}`.slice(0, 120) : null, outcome: r.ok ? "ok" : "error",
     input_tokens: n(r.usage?.input_tokens), output_tokens: n(r.usage?.output_tokens), cache_read_tokens: n(r.usage?.cache_read_input_tokens),
-    cache_write_tokens: n(r.usage?.cache_creation_input_tokens), duration_ms: n(r.ms), stop_reason: null, estimated_cost_usd: costoEstimadoUsd(FISCAL_EXTRACT_MODEL, r.usage),
+    cache_write_tokens: n(r.usage?.cache_creation_input_tokens), duration_ms: n(r.ms), stop_reason: r.stop ? r.stop.slice(0, 40) : null, estimated_cost_usd: costoEstimadoUsd(FISCAL_EXTRACT_MODEL, r.usage),
   });
   if (error) console.error("[facturapi] no se pudo medir la IA:", error.message);
 }
@@ -1475,7 +1477,7 @@ Deno.serve(async (req) => {
       const ia1 = await llamarIA(listo.aiKey, SERVICIO_SYSTEM, texto, SERVICIO_SCHEMA);
       await medirIA(tenantId, ia1);
       const campos = ia1.ok ? leerServicioSugerido(ia1.text) : null;
-      if (!campos) { await registrarConsumo(tenantId, [{ usage: ia1.usage, id: ia1.id }], "service_suggest", false); return json(CORS, 502, { error: "La IA no dio una respuesta clara. Llena el servicio a mano." }); }
+      if (!campos) { console.error("[facturapi] sugerencia de servicio ilegible; ia_ok:", ia1.ok, "stop:", ia1.stop, "respuesta_vacía:", !ia1.text); await registrarConsumo(tenantId, [{ usage: ia1.usage, id: ia1.id }], "service_suggest", false); return json(CORS, 502, { error: "La IA no dio una respuesta clara. Llena el servicio a mano." }); }
       const { queries, ...fields } = campos;
       // Clave SAT: solo si Facturapi está conectado (el catálogo del SAT lo sirve Facturapi); si no, el resto de la sugerencia sigue valiendo.
       let sat: Json | null = null, llamadas: Array<{ usage: Json | null; id: string | null }> = [{ usage: ia1.usage, id: ia1.id }];

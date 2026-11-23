@@ -148,3 +148,12 @@ test('«Sugerir todo con IA» llena el formulario sin tocar el precio, no pisa t
   assert.match(fill, /!reviewed/);
   assert.equal(ui, read('mobile/www/smyl-service-catalog.js'));
 });
+
+test('la llamada a la IA reserva tokens para el razonamiento y la respuesta (1,500 dejaba la respuesta cortada)', () => {
+  const fn = read('supabase/functions/facturapi/index.ts');
+  assert.match(fn, /max_tokens: FISCAL_EXTRACT_MAX_TOKENS/); assert.doesNotMatch(fn, /max_tokens: 1500/);
+  const core = read('supabase/functions/_shared/fiscal-core.mjs');
+  assert.ok(Number(core.match(/FISCAL_EXTRACT_MAX_TOKENS = (\d+)/)[1]) >= 4000);
+  assert.match(fn, /sugerencia de servicio ilegible; ia_ok:/);
+});
+
