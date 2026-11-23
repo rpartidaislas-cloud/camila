@@ -52,7 +52,7 @@ test('el editor de servicios trae el buscador, no marca el servicio como revisad
   assert.doesNotMatch(ui.slice(ui.indexOf('satBox.onclick'), ui.indexOf("d.querySelector('form').onsubmit")), /fiscal_reviewed/);
   assert.equal(ui, read('mobile/www/smyl-service-catalog.js'));
   assert.equal(read('smyl-service-catalog.css'), read('mobile/www/smyl-service-catalog.css'));
-  assert.match(read('app.html'), /smyl-service-catalog\.js\?v=14/); assert.match(read('app.html'), /smyl-service-catalog\.css\?v=5/);
+  assert.match(read('app.html'), /smyl-service-catalog\.js\?v=15/); assert.match(read('app.html'), /smyl-service-catalog\.css\?v=6/);
 });
 
 test('la IA nunca puede inventar una clave: solo se aceptan las que estaban entre los candidatos', () => {
@@ -104,10 +104,10 @@ test('los esquemas de la IA no llevan restricciones de arreglos ni de números (
 
 test('leerServicioSugerido solo deja valores válidos y nunca trae precio', () => {
   const r = leerServicioSugerido(JSON.stringify({ category: 'preventive', scope_type: 'session', pricing_mode: 'per_session', duration_minutes: 47, description: '  Limpia   los dientes. ', prep_instructions: '', sat_queries: ['higienista dental', 'odontólogos', '85122002'], reference_price: 999 }));
-  assert.deepEqual(r, { category: 'preventive', scope_type: 'session', pricing_mode: 'per_session', duration_minutes: 45, description: 'Limpia los dientes.', prep_instructions: '', queries: ['higienista dental', 'odontólogos'] });
+  assert.deepEqual(r, { category: 'preventive', scope_type: 'session', pricing_mode: 'per_session', duration_minutes: 45, description: 'Limpia los dientes.', prep_instructions: '', tax_treatment: null, queries: ['higienista dental', 'odontólogos'] });
   assert.equal('reference_price' in r, false);
   const mala = leerServicioSugerido(JSON.stringify({ category: 'inventada', scope_type: 'x', pricing_mode: 5, duration_minutes: 9999, description: 7, prep_instructions: null, sat_queries: 'x' }));
-  assert.deepEqual(mala, { category: null, scope_type: null, pricing_mode: null, duration_minutes: null, description: '7', prep_instructions: '', queries: [] });
+  assert.deepEqual(mala, { category: null, scope_type: null, pricing_mode: null, duration_minutes: null, description: '7', prep_instructions: '', tax_treatment: null, queries: [] });
   assert.equal(leerServicioSugerido('no es json'), null); assert.equal(leerServicioSugerido('null'), null);
   assert.equal(leerServicioSugerido(JSON.stringify({ duration_minutes: 5 })).duration_minutes, null); assert.equal(leerServicioSugerido(JSON.stringify({ duration_minutes: 480 })).duration_minutes, 480);
 });

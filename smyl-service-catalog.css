@@ -37,4 +37,4 @@
 .catalog-ai-status{margin:10px 0 0;font-size:13px;color:#14263f}
 .catalog-ai-status [data-error]{color:#9b2c2c}
 .catalog-ai-filled{outline:2px solid #0f766e55!important;outline-offset:1px;background-color:#f1f8f6!important}
-
+.catalog-tax{display:grid;gap:4px;margin:0 0 12px}.catalog-tax small{color:#4a5d73}
