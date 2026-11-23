@@ -12207,6 +12207,24 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 - `smyl-clinic-admin.js?v=19` / `.css?v=15`: la ficha del doctor abre con una lista de preparación: sede y horario (indispensables), WhatsApp para avisos y acceso a SMYL (recomendados). En la lista de Equipo aparece «Falta sede / horario» a quien no puede recibir citas. Solo frontend; sin migración.
 - PENDIENTE (no construido): aviso por WhatsApp al profesional cuando se le agenda una cita. Hoy solo se puede escribir al profesional por una conversación de LANA ya vinculada (`smyl_professional_whatsapp_links`, que el propio doctor vincula con `link_my_professional`); un doctor «Sin acceso» no puede vincularla y SMYL no puede iniciar conversación por número. Requiere definir con LANA el envío de plantilla a un número, o aceptar que solo avise a quienes vincularon su chat.
 
+## 2026-11-20 — Claude — Especificación LANA: aviso al profesional
+- `docs/LANA_AVISO_A_PROFESIONALES.md`: propuesta para quien mantiene LANA (endpoint `POST /inbox/whatsapp/template-to-phone`, plantilla `cita_agendada_profesional_v1`, decisiones pendientes). SMYL no implementó nada del envío todavía; solo documentación.
+
+## 2026-11-20 — Claude — Diagnóstico SQL de la confirmación de citas
+- `docs/pruebas/confirmacion-de-cita-diagnostico.sql` (solo lectura) + nota en `docs/pruebas/README.md`: sirve para la prueba de punta a punta en producción sin tocar datos. Sin cambios de app ni de base.
+
+## 2026-11-23 — Claude — Planes nuevos (fase 1) y plan de Openpay
+- `app.html`: `PLANES` = Esencial $299 / Profesional $899 / Premium $1,499 (anual con 2 meses gratis), modal «Elige tu plan» con selector mensual/anual (sobrescribe el ancho forzado de `smyl-dialog-system.css` con `#modal-planes .modal`). Se quitó el código de Stripe del navegador; «Elegir plan» y «Gestionar suscripción» avisan que el pago con Openpay se está activando. `LIMITE_USUARIOS_POR_PLAN` = 3 / 10 / sin tope (solo texto de ayuda en Equipo).
+- `docs/OPENPAY_SUSCRIPCIONES.md`: diseño de la fase 2 (cobro con Openpay: tokenización, `openpay-subscribe`, `openpay-webhook`, gestión propia, paquetes extra) y fase 3 (entitlements en el servidor). Requiere la cuenta de Openpay de SMYL (merchant id + llaves como secrets). Las funciones `stripe-*` y `smyl-consumables-*` siguen en el repo sin cambios.
+- NO hecho: cobro real, acreditación de tokens/GB/timbres incluidos, límites de sucursales/usuarios en servidor, `limite_diagnosticos` sigue vigente en el servidor.
+
+## 2026-11-23 — Claude — Suscripciones con Openpay (fase 2, sandbox)
+- Nuevo: `_shared/openpay-plans.mjs`, `_shared/openpay-billing-core.mjs` (lógica con dependencias inyectadas, 11 pruebas), `_shared/openpay-runtime.ts`, Edge Functions `openpay-billing` (JWT, solo dueño) y `openpay-billing-webhook` (sin JWT, HTTP Basic), bundles en `docs/bundles/`, migración `20261123140000_smyl_openpay_billing.sql` (tablas solo para servicio + `smyl_billing_summary()`), `smyl-billing.js?v=1` (formulario con openpay.js, gestionar suscripción) y `scripts/openpay-create-plans.mjs`.
+- Probado: la lógica contra el sandbox REAL de Openpay (rechazo 3001, contratar, subir de plan, cancelar/reactivar, cambiar tarjeta, webhook); migración en Postgres local (idempotente); pantalla en Playwright con openpay.js simulado. NO probado: openpay.js real en el navegador, el webhook real de Openpay, ni producción.
+- Hallazgos: tope de $10,000 por cobro de plan → Premium anual = 2 pagos semestrales de $7,495. El comercio de Openpay es compartido con LANA (webhooks `charge.succeeded` de LANA); recomendado un comercio aparte para suscripciones.
+- Los 6 planes de sandbox ya existen en Openpay y vienen registrados en la migración. Stripe: `app.html` ya no lo usa; las funciones `stripe-*` y `smyl-consumables-*` siguen en el repo.
+- Las llaves de sandbox se compartieron en el chat (no están en el repo; `tests/openpay-billing-contract.test.mjs` las busca). Hay que cargarlas como secrets en Supabase.
+
 ## 2026-11-19 — Claude Code — «Agregar profesional» pide el WhatsApp del profesional
 - Se integró la rama `claude/epic-newton-m7mac3` (WhatsApp del profesional, horario y lista de preparación en la ficha) con main y con el renombre «doctor» → «profesional».
 - `smyl-clinic-admin.js?v=20` / `.css?v=16`: el diálogo «Agregar profesional» muestra «WhatsApp del profesional» y «Compartir este número con los pacientes…» cuando el correo ya es de la clínica; guarda en `smyl_professionals.contact_phone` / `contact_phone_public` (el mismo dato que «Editar datos» en la ficha). Si el profesional ya estaba vinculado, precarga su número.
