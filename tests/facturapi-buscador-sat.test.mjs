@@ -52,7 +52,7 @@ test('el editor de servicios trae el buscador, no marca el servicio como revisad
   assert.doesNotMatch(ui.slice(ui.indexOf('satBox.onclick'), ui.indexOf("d.querySelector('form').onsubmit")), /fiscal_reviewed/);
   assert.equal(ui, read('mobile/www/smyl-service-catalog.js'));
   assert.equal(read('smyl-service-catalog.css'), read('mobile/www/smyl-service-catalog.css'));
-  assert.match(read('app.html'), /smyl-service-catalog\.js\?v=13/); assert.match(read('app.html'), /smyl-service-catalog\.css\?v=5/);
+  assert.match(read('app.html'), /smyl-service-catalog\.js\?v=14/); assert.match(read('app.html'), /smyl-service-catalog\.css\?v=5/);
 });
 
 test('la IA nunca puede inventar una clave: solo se aceptan las que estaban entre los candidatos', () => {
