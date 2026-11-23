@@ -66,10 +66,12 @@
       return data;
     }
     function satItem(r,ai){return '<button type="button" role="option" data-sat-pick="'+esc(r.key)+'"'+(ai?' data-ai="true"':'')+'><b>'+esc(r.key)+'</b><span>'+esc(r.description)+(r.reason?'<em>'+esc(r.reason)+'</em>':'')+'</span></button>';}
+    // Qué pasó con cada búsqueda (código de Facturapi y cuántas claves), para entender un resultado vacío.
+    function satDiag(list){if(!Array.isArray(list)||!list.length)return '';return '<br><small>Detalle técnico: '+list.map(function(x){return '«'+esc(x.q)+'» → '+(x.status?'Facturapi '+esc(x.status):'sin respuesta')+', '+esc(x.n)+' claves';}).join(' · ')+'</small>';}
     function satRender(data){
       var picks=Array.isArray(data.suggestions)?data.suggestions:[],picked={};picks.forEach(function(r){picked[r.key]=1;});
       var others=(Array.isArray(data.candidates)?data.candidates:[]).filter(function(r){return !picked[r.key];}).slice(0,8);
-      if(!picks.length&&!others.length){satShow('<p class="catalog-sat-note">No encontré claves para este servicio. Prueba el buscador con otra palabra.</p>');return;}
+      if(!picks.length&&!others.length){satShow('<p class="catalog-sat-note">No encontré claves para este servicio. Prueba el buscador con otra palabra.'+satDiag(data.diagnostico)+'</p>');return;}
       satShow((picks.length?'<p class="catalog-sat-note"><strong>Sugeridas por la IA</strong> (de la mejor a la menos buena)</p>'+picks.map(function(r){return satItem(r,true);}).join(''):'<p class="catalog-sat-note">La IA no encontró una clave clara. Estas son las más cercanas del catálogo:</p>')
         +(picks.length&&others.length?'<p class="catalog-sat-note">Otras claves encontradas</p>':'')+others.map(function(r){return satItem(r,false);}).join('')
         +'<p class="catalog-sat-note">La IA solo elige entre claves reales del catálogo del SAT. Confírmala con tu contador.</p>');
@@ -132,6 +134,7 @@
       try{
         var data=await satCall({action:'search_sat_products',q:q});
         if(!Array.isArray(data.results))throw new Error('No se pudo buscar.');
+        if(!data.results.length&&data.diagnostico){satShow('<p class="catalog-sat-note">No encontré claves con ese texto.'+satDiag(data.diagnostico)+'</p>');return;}
         satShow(data.results.length?data.results.map(function(r){return '<button type="button" role="option" data-sat-pick="'+esc(r.key)+'"><b>'+esc(r.key)+'</b><span>'+esc(r.description)+'</span></button>';}).join(''):'<p class="catalog-sat-note">No encontré claves con ese texto. Prueba con otra palabra (por ejemplo «dentista» u «odontología»).</p>');
       }catch(x){satShow('<p class="catalog-sat-note" data-error>'+esc(x.message||'No se pudo buscar.')+'</p>');}
       finally{satGo.disabled=false;satGo.textContent='Buscar';}
