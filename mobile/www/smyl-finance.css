@@ -1260,4 +1260,8 @@ dialog[data-smyl-dialog-system="true"][open] .finance-allocation-input>input[typ
 /* Finanzas v6 · paso 4: «Usar saldo a favor» dentro del cobro (ventana: no se copia a @container). */
 #finance-dialog .finance-credit-offer{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;padding:10px 12px;border:1px solid #cfd7e5;border-radius:12px;background:#f1f8f6}
 #finance-dialog .finance-credit-offer p{margin:0;flex:1 1 220px;font-size:13px;color:#2b2f4b}
+/* Cobro: la sucursal sale del consultorio activo (se muestra como nota) y el precio de lista indica de qué sucursal es. */
+#finance-dialog .finance-branch-note{margin:0;padding:8px 12px;border-radius:10px;background:#f2f6fb;color:#33465c;font-size:13px}
+#finance-dialog [data-price-hint]{display:block;margin-top:4px;font-size:12px;color:#5b6d82}
+#finance-dialog [data-price-hint]:empty{display:none}
 

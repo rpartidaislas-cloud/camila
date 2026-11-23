@@ -12539,3 +12539,14 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **Qué cambia:** cada búsqueda deja su `diagnostico` (`q`, código HTTP, cantidad) y la pantalla lo muestra como «Detalle técnico: «…» → Facturapi 200, 0 claves». Si las palabras de la IA no encuentran nada, se prueban palabras generales del catálogo dental (`SAT_CONSULTAS_RESPALDO`: odontólogos, dentistas, higienista dental). También aplica a «Buscar». `smyl-service-catalog.js` v16; hay que volver a publicar `facturapi`.
 - **Pendiente:** con el detalle técnico real, corregir la causa (¿parámetro `q`, forma de la respuesta, clave de prueba sin acceso al catálogo?).
 
+## 2026-11-23 — Claude — Cobro: sucursal automática, precio por sucursal y «Concepto» sin repetir al servicio
+
+- **Pedido de Ricardo:** (1) quitar el selector de sucursal del cobro (ya está en su consultorio); (2) que el precio siga a la sucursal, también en cotizaciones; (3) «Servicio» y «Concepto» repetían el mismo texto.
+- **Hallazgo:** ya existe el «consultorio activo» (`SmylBranchScope.get()`, el selector bajo el logo), pero el cobro partía de la sucursal **predeterminada** de la clínica, por eso el precio salía siempre el de la principal. Cotizaciones ya repreciaban por sucursal, pero también partían de la predeterminada.
+- **Qué cambia (`smyl-finance.js` v72, `.css` v53, `smyl-proposals.js` v27):**
+  - Ayudantes `myBranchId()` (consultorio activo si no es «Todos» y existe) y `pickBranch()`. **Registrar cargo** y **Cobrar** parten de esa sucursal y **ocultan el selector**; muestran «Se registra en {sucursal}». Con «Todos los consultorios» o sin selector, el selector se mantiene. **Abrir mi caja** propone la sucursal activa.
+  - Si se liga una **cita de otra sucursal**, el cargo sigue a la cita y la nota lo dice («la sucursal de la cita»); al quitar la cita vuelve a la del consultorio y se reprecia. El precio sigue a la sucursal salvo que se haya escrito a mano; una nota muestra «Precio de lista de {sucursal}».
+  - **Servicio / Concepto:** el primero ofrece «Otro concepto (sin servicio del catálogo)». Con servicio elegido, «Concepto» pasa a «Detalle (opcional)» y el cargo se guarda como «{Servicio} · {detalle}»; sin servicio, «Concepto» es obligatorio como antes.
+  - **Cotizaciones:** `initialBranch` = la de la cotización, si no el consultorio activo, si no la predeterminada.
+- **Pruebas:** `tests/cobros-cargo-fiscal.test.mjs` fija los cambios; probado en navegador con dos sucursales y precios distintos (500 / 700). Nada de SQL.
+
