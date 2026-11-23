@@ -55,6 +55,10 @@ test('la ventana: errores dentro, citas del paciente, sucursal automática, venc
     assert.match(f, /defaultBranch=pickBranch\(\),mine=myBranchId\(\)/);
     assert.match(f, /function repriceForBranch\(\)/); assert.match(f, /data-concept-label/); assert.match(f, /Detalle \(opcional\)/);
     assert.match(f, /concept=\(s\?s\.name\+\(typed\?' · '\+typed:''\):typed\)\.slice\(0,240\)/);
+    // Menos campos a la vista: la cita solo si el paciente tiene, el descuento y el calendario solo cuando se piden.
+    assert.match(f, /data-appointment-wrap hidden/); assert.match(f, /\.hidden=!list\.length/);
+    assert.match(f, /data-show-discount>Agregar descuento<\/button><label data-discount-wrap hidden>/);
+    assert.match(f, /data-due="custom">Otra fecha<\/button><input name="due" type="date" aria-label="Fecha de vencimiento" hidden>/);
     assert.match(f, /data-price-hint/); assert.match(f, /Otro concepto \(sin servicio del catálogo\)/);
     assert.match(f, /data-due="0">Hoy<\/button><button type="button" data-due="15">15 días/);
     assert.match(f, /Sin fecha: nunca aparecerá como vencido ni en «Vencidas»\./);

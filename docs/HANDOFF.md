@@ -12550,3 +12550,7 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
   - **Cotizaciones:** `initialBranch` = la de la cotización, si no el consultorio activo, si no la predeterminada.
 - **Pruebas:** `tests/cobros-cargo-fiscal.test.mjs` fija los cambios; probado en navegador con dos sucursales y precios distintos (500 / 700). Nada de SQL.
 
+## 2026-11-23 — Claude — Registrar cargo: menos campos a la vista (`smyl-finance.js` v73, `.css` v54)
+
+- «Cita» solo aparece si el paciente tiene citas; «Descuento» queda detrás del enlace «Agregar descuento»; el calendario de vencimiento aparece con «Otra fecha» (los botones Hoy / 15 días / 30 días / Sin fecha lo vuelven a ocultar). Sin cambio en lo que se guarda. Pendiente de proponer a Ricardo: mostrar en cada línea de cotización de qué sucursal es el precio y revisar que la agenda use el precio de la sucursal al crear una cita.
+
