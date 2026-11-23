@@ -83,7 +83,7 @@
   function syncGoogle(){if(window.SmylGoogleCalendar)window.SmylGoogleCalendar.sync();}
   function activeAppointments(){return state.appointments.filter(function(a){return a.status!=='cancelled';});}
 
-  function capabilities(){var owner=window.miRolEquipo==='dueño';var authId=state.actor;var ids=new Set(state.memberRoles.filter(function(r){return r.user_id===authId;}).map(function(r){return r.role_id;}));var perms=new Set(state.rolePermissions.filter(function(r){return ids.has(r.role_id);}).map(function(r){return r.permission_key;}));state.canManage=owner||perms.has('schedule.manage');state.canManagePatients=owner||perms.has('patients.manage');state.canReadClinical=owner||perms.has('clinical.read');state.canMessage=owner||perms.has('messages.respond');state.canFinance=owner||perms.has('finance.read');}
+  function capabilities(){var owner=window.miRolEquipo==='dueño';var authId=state.actor;var ids=new Set(state.memberRoles.filter(function(r){return r.user_id===authId;}).map(function(r){return r.role_id;}));var perms=new Set(state.rolePermissions.filter(function(r){return ids.has(r.role_id);}).map(function(r){return r.permission_key;}));state.canManage=owner||perms.has('schedule.manage');state.canManagePatients=owner||perms.has('patients.manage');state.canReadClinical=owner||perms.has('clinical.read');state.canUploadCloud=owner||(perms.has('cloud.read')&&perms.has('cloud.upload'));state.canMessage=owner||perms.has('messages.respond');state.canFinance=owner||perms.has('finance.read');}
 
   function renderHeader(){var r=range(),title;if(state.view==='day')title=fmtDate(r.start,{weekday:'long',day:'numeric',month:'long'});else if(state.view==='month')title=fmtDate(state.date,{month:'long',year:'numeric'});else if(state.view==='agenda')title='Próximos 14 días · '+fmtDate(r.start,{day:'numeric',month:'short'});else title=fmtDate(r.start,{day:'numeric',month:'short'})+' — '+fmtDate(plusDays(r.end,-1),{day:'numeric',month:'short',year:'numeric'});document.getElementById('schedule-period').textContent=title;document.getElementById('schedule-period').dataset.long=String(state.view==='day'||state.view==='month');document.querySelectorAll('[data-schedule-view]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.scheduleView===state.view));});}
   function todayAppointments(){var today=isoDay(new Date());return activeAppointments().filter(function(a){return isoDay(a.starts_at)===today;});}
@@ -533,6 +533,7 @@ state.loaded=false;await load(true);remindersChanged();var savedBranchName=(byId
     var linkedPatient=byId(state.patients,a.patient_id);
     var patientButtons='';
     if(state.canReadClinical&&a.patient_id){
+      if(state.canUploadCloud&&window.SmylCloud&&window.SmylCloud.openFromAppointment)patientButtons+='<button type="button" class="sched-ficha-minor" data-cloud-appointment>Subir archivos</button>';
       if(window.SmylClinicalTools&&typeof window.SmylClinicalTools.open==='function'){
         patientButtons+='<button type="button" class="btn btn-secondary" data-open-clinical-tools>Herramientas clínicas</button>';
       }
@@ -563,6 +564,24 @@ state.loaded=false;await load(true);remindersChanged();var savedBranchName=(byId
     (function(){var row=d.querySelector('[data-material-row]');if(!row||!window.SmylInventory||!window.SmylInventory.consumptionStatus)return;window.SmylInventory.consumptionStatus(a).then(function(r){if(!r||(r.state!=='pending'&&r.state!=='done')||!d.contains(row))return;var text=row.querySelector('[data-material-text]');if(r.state==='done'){text.innerHTML='<i class="schedule-billing" data-billing="paid">Registrado</i>';}else{text.innerHTML='<i class="schedule-billing" data-billing="pending">Pendiente</i> <button type="button" class="sched-ficha-minor" data-material-register>Registrar material</button>';text.querySelector('[data-material-register]').onclick=function(){close();window.SmylInventory.openConsumption({patientId:a.patient_id,appointmentId:a.id,serviceId:a.service_id||'',professionalId:a.professional_id||''});};}row.hidden=false;}).catch(function(){});})();
     d.querySelectorAll('[data-extra]').forEach(function(b){b.onclick=async function(){var n=Number(b.dataset.extra),total=n?(a.extra_minutes||0)+n:0;d.querySelectorAll('[data-extra]').forEach(function(x){x.disabled=true;});try{await rpc('smyl_set_appointment_extra',{p_appointment_id:a.id,p_extra_minutes:total,p_extra_reason:'',p_expected_updated_at:a.updated_at});close();state.loaded=false;await load(true);notify(total?'Cita ampliada: +'+total+' min en total.':'Cita con su duración estándar.','success');}catch(err){close();notify(message(err),'error');}};});
     var patient=d.querySelector('[data-open-patient]');if(patient)patient.onclick=function(){close();window.verPaciente(a.patient_id);};
+    var uploadButton=d.querySelector('[data-cloud-appointment]');
+    if(uploadButton)uploadButton.onclick=async function(){
+      uploadButton.disabled=true;
+      try {
+        await window.SmylCloud.openFromAppointment({tenant:state.tenant,patientId:a.patient_id,appointmentId:a.id,patientName:name,
+          when:fmtDate(new Date(a.starts_at),{day:'numeric',month:'long',year:'numeric'})+' · '+fmtTime(a.starts_at),
+          isOpen:function(){return d.open && uploadButton.isConnected;},
+          onSaved:function(text){
+            if(!uploadButton.isConnected)return;
+            var note=d.querySelector('[data-cloud-success]');
+            if(!note){
+              note=document.createElement('p');note.dataset.cloudSuccess='';note.setAttribute('role','status');
+              uploadButton.closest('footer').before(note);
+            }
+            note.textContent=text;
+          }});
+      } catch(error){notify(message(error),'error');} finally {uploadButton.disabled=false;}
+    };
     var toolsButton=d.querySelector('[data-open-clinical-tools]');
     if(toolsButton)toolsButton.onclick=function(){
       close();

@@ -1,3 +1,10 @@
+## 2026-11-22 — Nube del consultorio
+
+- Agenda y la visita de Consultorio abren el mismo cargador con el paciente y la cita seleccionados. La carga directa admite elegir paciente, posponer el destino o marcar uso del consultorio. La vinculación es metadato del mismo archivo.
+- Nube busca por archivo, paciente y folio EXP; Archivos, Por organizar y Compartidos usan los permisos actuales. La ficha de archivo solo aparece al seleccionar. Los pendientes incluyen tipo faltante o destino sin decidir, incluidos archivos anteriores.
+- Aplicar `20261127100000_smyl_cloud_organization.sql` antes de publicar el cliente. Asigna un número de expediente estable, incorpora el destino del consultorio, mantiene la firma de carga compatible mediante un argumento opcional y añade búsqueda con las políticas de acceso actuales. Folio visible en el expediente y en Nube.
+- Web y copias móviles sincronizadas. La prueba `tests/smyl-cloud-organization-browser.cjs` recorre agenda, carga múltiple, respuesta interrumpida, destino y búsqueda en escritorio, tablet y celular. Verificada la migración con PostgreSQL 17 temporal y datos ficticios. En la revisión ampliada ya fallaba en la versión anterior una aserción global de la Ficha 360 del chat. Publicación de la aplicación posterior a la actualización de datos.
+
 ## 2026-11-23 — Claude Code — Procedimiento como pantalla propia (herramienta + pestaña Consulta)
 
 - `smyl-procedure-safety.js` **v2**: ya NO es un bloque dentro del formulario de la nota. Es una pantalla (`SmylProcedureSafety.open({tenant,patient,patientName,appointmentId})`) con tres tipos: **Sin anestesia** (sitio + alergias; presión opcional), **Con anestesia** (+ anestésico y cartuchos; presión obligatoria si el tratamiento activo es ASA II o más) y **Cirugía** (presión siempre; anestésico opcional). El ASA se lee con `smyl_list_treatments`; peso y presión de hoy, de `smyl_patient_vital_signs`.

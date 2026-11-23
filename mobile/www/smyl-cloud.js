@@ -14,7 +14,7 @@
   var CATEGORIES = [['photo', 'Foto'], ['xray', 'Rayos X'], ['document', 'Documento'], ['consent', 'Consentimiento'], ['other', 'Otro']];
   var CATEGORY_LABEL = { photo: 'Foto', xray: 'Rayos X', document: 'Documento', consent: 'Consentimiento', other: 'Otro' };
   var state = { summary: null, files: [], view: { kind: 'all', value: '' }, search: '', selectedId: '', mode: 'grid', loading: false, error: '', tenant: null,
-    patients: {}, thumbs: {}, appointments: {}, uploading: false, notice: null, listToken: 0, shares: {}, sharedIds: [], sharesReady: null, suggestions: {}, suggesting: {}, patientHints: {} };
+    recordNumbers: {}, hasMore: false, searchTimer: null, patients: {}, thumbs: {}, appointments: {}, uploading: false, notice: null, listToken: 0, shares: {}, sharedIds: [], sharesReady: null, suggestions: {}, suggesting: {}, patientHints: {} };
 
   function formatBytes(value) {
     var bytes = Math.max(0, Number(value) || 0);
@@ -59,33 +59,58 @@
   function uuid() { return win.crypto && win.crypto.randomUUID ? win.crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }); }
 
   // ---------- datos ----------
-  async function loadSummary() { state.summary = await rpc('smyl_cloud_summary'); }
+  function useTenant(tenant) {
+    if (state.tenant === tenant) return;
+    ++state.listToken;
+    clearTimeout(state.searchTimer);
+    Object.assign(state, { tenant: tenant, files: [], summary: null, patients: {}, recordNumbers: {}, appointments: {}, thumbs: {}, shares: {}, sharedIds: [], sharesReady: null, suggestions: {}, suggesting: {}, patientHints: {}, selectedId: '', search: '', view: {kind:'all', value:''}, notice: null, hasMore:false });
+  }
+  async function loadSummary() {
+    var tenant = state.tenant;
+    var summary = await rpc('smyl_cloud_summary');
+    if (tenant !== state.tenant || tenant !== win.tenantId) return;
+    if (summary.permissions.read) {
+      var pending = await sb().from('smyl_cloud_files').select('id', { count:'exact', head:true })
+        .eq('tenant_id', tenant).eq('status', 'active').eq('needs_organization', true);
+      if (pending.error) throw pending.error;
+      summary.counts.pending = pending.count;
+    }
+    if (tenant === state.tenant && tenant === win.tenantId) state.summary = summary;
+  }
 
-  async function loadFiles() {
+  async function loadFiles(append) {
     if (!perms().read) { state.files = []; return; }
     var token = ++state.listToken; var view = state.view;
-    var query = sb().from('smyl_cloud_files').select('id,folder_id,category,patient_id,appointment_id,display_name,storage_path,mime_type,size_bytes,notes,status,created_at,trashed_at')
-      .eq('tenant_id', state.tenant).eq('status', view.kind === 'trash' ? 'trashed' : 'active').order('created_at', { ascending: false }).limit(200);
+    var term = state.search.trim();
+    var source = term ? sb().rpc('smyl_cloud_search_files', { p_search: term }) : sb().from('smyl_cloud_files');
+    var query = source.select('id,folder_id,category,patient_id,appointment_id,clinic_use,display_name,storage_path,mime_type,size_bytes,notes,status,created_at,trashed_at')
+      .eq('tenant_id', state.tenant).eq('status', view.kind === 'trash' ? 'trashed' : 'active')
+      .order('created_at', { ascending: false }).order('id', { ascending: false }).limit(51);
+    if (append && state.files.length) {
+      var last = state.files[state.files.length - 1];
+      query = query.or('created_at.lt.' + last.created_at + ',and(created_at.eq.' + last.created_at + ',id.lt.' + last.id + ')');
+    }
     if (view.kind === 'recent') query = query.gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString());
     else if (view.kind === 'category') query = query.eq('category', view.value);
-    else if (view.kind === 'unclassified') query = query.is('category', null);
-    else if (view.kind === 'nopatient') query = query.is('patient_id', null);
+    else if (view.kind === 'pending') query = query.eq('needs_organization', true);
     else if (view.kind === 'folder') query = query.eq('folder_id', view.value);
     else if (view.kind === 'patient') query = query.eq('patient_id', view.value);
-    else if (view.kind === 'shared') { if (!state.sharedIds.length) { state.files = []; return; } query = query.in('id', state.sharedIds); }
-    var term = escapeLike(state.search); if (term) query = query.ilike('display_name', '%' + term + '%');
-    var result = await query; if (result.error) throw result.error;
+    else if (view.kind === 'shared') { if (!state.sharedIds.length) { state.files = []; state.hasMore = false; return; } query = query.in('id', state.sharedIds); }
+    var result = await query;
     if (token !== state.listToken) return;
-    state.files = result.data || [];
+    if (result.error) throw result.error;
+    var rows = result.data || [];
+    state.hasMore = rows.length > 50;
+    state.files = (append ? state.files : []).concat(rows.slice(0,50));
     await Promise.all([loadPatientNames(), loadThumbs()]);
   }
 
   async function loadPatientNames() {
-    var ids = Array.from(new Set(state.files.map(function (f) { return f.patient_id; }).filter(function (id) { return id && !state.patients[id]; })));
+    var ids = Array.from(new Set(state.files.map(function (f) { return f.patient_id; }).filter(function (id) { return id && !state.recordNumbers[id]; })));
     if (!ids.length) return;
     try {
-      var result = await sb().from('camila_pacientes').select('id,nombre,apellido').eq('tenant_id', state.tenant).in('id', ids);
-      (result.data || []).forEach(function (person) { state.patients[person.id] = patientLabel(person); });
+      var result = await sb().from('camila_pacientes').select('id,nombre,apellido,record_number').eq('tenant_id', state.tenant).in('id', ids);
+      (result.data || []).forEach(function (person) { state.patients[person.id] = patientLabel(person); state.recordNumbers[person.id] = person.record_number; });
     } catch (_) {}
   }
 
@@ -101,14 +126,15 @@
 
   async function refresh(opts) {
     if (!sb() || !win.tenantId) return;
-    state.tenant = win.tenantId; state.loading = true; state.error = ''; render();
+    useTenant(win.tenantId); state.loading = true; state.error = ''; render();
     try { await loadSummary(); await loadShares(); await loadFiles(); }
     catch (error) { state.error = friendly(error, 'No se pudo cargar la Nube.'); }
     finally { state.loading = false; render(); }
   }
-  async function reloadList() {
-    try { await loadFiles(); } catch (error) { state.error = friendly(error); }
-    render();
+  async function reloadList(append) {
+    var token = state.listToken + 1;
+    try { await loadFiles(append); } catch (error) { if (token === state.listToken) state.error = friendly(error); }
+    if (token === state.listToken) render();
   }
 
   // ---------- acciones ----------
@@ -156,20 +182,25 @@
       var link = document.createElement('a'); link.href = result.data.signedUrl; link.rel = 'noopener'; document.body.append(link); link.click(); link.remove();
     } catch (error) { notice(friendly(error, 'No se pudo preparar la descarga.'), 'error'); renderNotice(); }
   }
-  async function loadAppointments(patientId) {
-    if (!patientId || state.appointments[patientId]) return;
+  async function loadAppointments(patientId, linkedId) {
+    var cached = state.appointments[patientId];
+    if (!patientId || (cached && (!linkedId || cached.some(function (a) { return a.id === linkedId; })))) return;
     try {
       var result = await sb().from('smyl_appointments').select('id,starts_at,status').eq('tenant_id', state.tenant).eq('patient_id', patientId).order('starts_at', { ascending: false }).limit(12);
-      state.appointments[patientId] = result.data || [];
+      var rows = result.data || [];
+      if (linkedId && !rows.some(function (a) { return a.id === linkedId; })) {
+        var single = await sb().from('smyl_appointments').select('id,starts_at,status').eq('tenant_id', state.tenant).eq('patient_id',patientId).eq('id',linkedId).maybeSingle();
+        if (single.data) rows.push(single.data);
+      }
+      state.appointments[patientId] = rows;
     } catch (_) { state.appointments[patientId] = []; }
     render();
   }
   async function searchPatients(term) {
-    var text = escapeLike(term); if (text.length < 2) return [];
-    var result = await sb().from('camila_pacientes').select('id,nombre,apellido,telefono').eq('tenant_id', state.tenant)
-      .or('nombre.ilike.%' + text + '%,apellido.ilike.%' + text + '%,telefono.ilike.%' + text + '%').limit(8);
+    var text = term.trim(); if (!text) return [];
+    var result = await sb().rpc('smyl_cloud_find_patients', {p_search:text}).order('apellido').order('nombre').order('id').limit(8);
     if (result.error) throw result.error;
-    (result.data || []).forEach(function (person) { state.patients[person.id] = patientLabel(person); });
+    (result.data || []).forEach(function (person) { state.patients[person.id] = patientLabel(person); state.recordNumbers[person.id] = person.record_number; });
     return result.data || [];
   }
 
@@ -304,22 +335,52 @@
     render();
   }
   // ---------- subir ----------
-  function openUpload(initialFiles) {
+  async function openFromAppointment(context) {
+    if (!context || !context.patientId || !context.appointmentId || context.tenant !== win.tenantId) throw new Error('Vuelve a abrir la cita en la clínica actual.');
+    useTenant(context.tenant);
+    var summary = await rpc('smyl_cloud_summary');
+    if (win.tenantId !== context.tenant || !context.isOpen()) return;
+    if (!summary.permissions.read || !summary.permissions.upload || !summary.permissions.clinical) throw new Error('Tu rol no permite subir archivos de pacientes a la Nube.');
+    openUpload(null, context, summary);
+  }
+  function openUpload(initialFiles, context, summary) {
+    if (document.getElementById('cloud-upload-title')) return;
+    var tenant = win.tenantId;
+    summary = summary || state.summary;
+    if (!summary || !summary.permissions.upload) return;
+    var clinical = summary.permissions.clinical;
     var dialog = el('dialog', 'cloud-dialog'); dialog.setAttribute('aria-labelledby', 'cloud-upload-title');
     var form = el('form'); form.method = 'dialog';
-    form.append(el('h3', '', 'Subir archivos'), el('p', 'cloud-dialog-copy', 'JPG, PNG, WebP o PDF de hasta 20 MB. Se verifican antes de guardarse y cuentan en tu almacenamiento.'));
-    var items = []; var pickedPatient = null;
+    var title = el('h3', '', 'Subir archivos'); title.id = 'cloud-upload-title';
+    form.append(title, el('p', 'cloud-dialog-copy', 'JPG, PNG, WebP o PDF de hasta 20 MB. Se verifican antes de guardarse y cuentan en tu almacenamiento.'));
+    var items = []; var pickedPatient = context ? context.patientId : null;
+    if (context) {
+      var linked = el('div', 'cloud-upload-context');
+      linked.append(el('b', '', context.patientName), el('span', '', 'Cita · ' + context.when));
+      form.append(linked);
+    }
     var drop = el('label', 'cloud-drop'); var input = document.createElement('input'); input.type = 'file'; input.multiple = true; input.accept = MIME.join(','); input.hidden = true;
+    drop.tabIndex = 0; drop.setAttribute('role','button');
+    drop.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } };
     drop.append(document.createTextNode('Suelta tus archivos aquí o '), el('u', '', 'explora'), input);
     var list = el('div', 'cloud-upload-list');
     var meta = el('div', 'cloud-upload-meta');
     var folderSelect = document.createElement('select'); folderSelect.append(new Option('Sin carpeta', ''));
-    ((state.summary && state.summary.folders) || []).forEach(function (folder) { folderSelect.append(new Option(folder.name, folder.id)); });
+    (summary.folders || []).forEach(function (folder) { folderSelect.append(new Option(folder.name, folder.id)); });
     var folderLabel = el('label', '', 'Carpeta'); folderLabel.append(folderSelect);
-    var patientBox = el('div', 'cloud-field'); var patientLabelNode = el('label', '', 'Paciente (opcional)'); var patientInput = document.createElement('input'); patientInput.type = 'search'; patientInput.placeholder = 'Buscar paciente…'; patientInput.autocomplete = 'off';
+    var patientBox = el('div', 'cloud-field'); var patientLabelNode = el('label', '', 'Paciente (opcional)'); var patientInput = document.createElement('input'); patientInput.type = 'search'; patientInput.placeholder = 'Nombre o expediente…'; patientInput.autocomplete = 'off';
     var patientHits = el('div', 'cloud-hits'); patientBox.append(patientLabelNode, patientInput, patientHits);
-    if (!perms().clinical) { patientBox.hidden = true; }
-    meta.append(folderLabel, patientBox);
+    patientInput.id = 'cloud-upload-patient'; patientLabelNode.htmlFor = patientInput.id;
+    var destination = document.createElement('select');
+    destination.append(new Option('Elegir después', 'later'));
+    if (clinical) destination.append(new Option('Expediente de paciente', 'patient'));
+    destination.append(new Option('Uso del consultorio', 'clinic'));
+    var destinationLabel = el('label', '', 'Destino'); destinationLabel.append(destination);
+    patientBox.hidden = true;
+    destination.onchange = function () { patientBox.hidden = destination.value !== 'patient'; paint(); };
+    if (!context) meta.append(destinationLabel);
+    meta.append(folderLabel);
+    if (!context && clinical) meta.append(patientBox);
     var status = el('p', 'cloud-upload-status'); status.setAttribute('role', 'status');
     var actions = el('div', 'cloud-dialog-actions'); var cancel = btn('Cancelar', 'btn btn-secondary', function () { dialog.close(); });
     var save = btn('Guardar', 'btn btn-primary'); save.disabled = true; save.type = 'submit'; actions.append(cancel, save);
@@ -332,18 +393,21 @@
         row.append(el('b', '', item.file.name), el('small', '', formatBytes(item.file.size) + (item.error ? ' · ' + item.error : item.done ? ' · Guardado' : '')));
         if (!item.error && !item.done) {
           var select = document.createElement('select'); select.setAttribute('aria-label', 'Tipo de ' + item.file.name); select.append(new Option('Sin clasificar', ''));
-          CATEGORIES.forEach(function (entry) { if (!perms().clinical && ['photo', 'xray', 'consent'].indexOf(entry[0]) !== -1) return; select.append(new Option(entry[1], entry[0])); });
-          select.value = item.category; select.onchange = function () { item.category = select.value; };
-          var remove = btn('Quitar', 'cloud-link', function () { items.splice(index, 1); paint(); }); row.append(select, remove);
+          CATEGORIES.forEach(function (entry) { if ((!clinical || destination.value === 'clinic') && ['photo', 'xray', 'consent'].indexOf(entry[0]) !== -1) return; select.append(new Option(entry[1], entry[0])); });
+          if (destination.value === 'clinic' && ['photo','xray','consent'].includes(item.category)) item.category = '';
+          select.value = item.category; select.disabled = state.uploading; select.onchange = function () { item.category = select.value; };
+          var remove = btn('Quitar', 'cloud-link', function () { items.splice(index, 1); paint(); }); remove.disabled = state.uploading; row.append(select, remove);
         }
+        if (item.retryable && !state.uploading) row.append(btn('Reintentar', 'cloud-link', function () { item.error = ''; item.retryable = false; paint(); }));
         list.append(row);
       });
       var valid = items.filter(function (item) { return !item.error && !item.done; });
-      save.disabled = state.uploading || !valid.length;
+      save.disabled = state.uploading || !valid.length || (destination.value === 'patient' && !pickedPatient);
       var bytes = valid.reduce(function (sum, item) { return sum + item.file.size; }, 0);
       if (!state.uploading) status.textContent = valid.length ? 'Se guardarán ' + valid.length + (valid.length === 1 ? ' archivo' : ' archivos') + ' (' + formatBytes(bytes) + ').' : '';
     }
     function add(files) {
+      if (state.uploading) return;
       Array.from(files || []).forEach(function (file) { items.push({ file: file, category: guessCategory(file), error: checkFile(file), done: false }); });
       paint();
     }
@@ -353,50 +417,67 @@
     drop.addEventListener('drop', function (event) { event.preventDefault(); drop.classList.remove('is-over'); add(event.dataTransfer && event.dataTransfer.files); });
     var timer = null;
     patientInput.oninput = function () {
-      pickedPatient = null; clearTimeout(timer); patientHits.innerHTML = '';
+      pickedPatient = null; paint(); clearTimeout(timer); patientHits.innerHTML = ''; var value = patientInput.value;
       timer = setTimeout(async function () {
         try {
-          var people = await searchPatients(patientInput.value); patientHits.innerHTML = '';
+          var people = await searchPatients(value); if (value !== patientInput.value || tenant !== win.tenantId || !dialog.open) return; patientHits.innerHTML = '';
           people.forEach(function (person) {
-            var hit = btn(patientLabel(person) + (person.telefono ? ' · ' + person.telefono : ''), 'cloud-hit', function () { pickedPatient = person.id; patientInput.value = patientLabel(person); patientHits.innerHTML = ''; });
+            var hit = btn(patientLabel(person) + ' · EXP-' + person.record_number, 'cloud-hit', function () { pickedPatient = person.id; patientInput.value = patientLabel(person); patientHits.innerHTML = ''; paint(); });
             patientHits.append(hit);
           });
-        } catch (_) {}
+        } catch (error) { if (dialog.open && value === patientInput.value) patientHits.textContent = friendly(error); }
       }, 250);
     };
     form.addEventListener('submit', async function (event) {
-      event.preventDefault(); if (state.uploading) return;
+      event.preventDefault(); if (state.uploading || save.disabled) return;
+      if (tenant !== win.tenantId) { dialog.close(); return; }
       var queue = items.filter(function (item) { return !item.error && !item.done; }); if (!queue.length) return;
-      state.uploading = true; save.disabled = true; cancel.disabled = true;
+      var target = { tenant:tenant, folder:folderSelect.value || null, patient:context ? context.patientId : destination.value === 'patient' ? pickedPatient : null,
+        appointment:context ? context.appointmentId : null, clinicUse:!context && destination.value === 'clinic' };
+      var outcome = '';
+      state.uploading = true; cancel.disabled = destination.disabled = folderSelect.disabled = patientInput.disabled = true; paint();
       try {
         var check = await rpc('smyl_cloud_upload_check', { p_size: queue.reduce(function (sum, item) { return sum + item.file.size; }, 0) });
         if (check && check.ok === false) { status.textContent = 'No hay espacio suficiente. Libera espacio o amplía tu plan (Configuración → Almacenamiento).'; throw new Error('__full'); }
         for (var i = 0; i < queue.length; i++) {
           var item = queue[i]; status.textContent = 'Subiendo ' + (i + 1) + ' de ' + queue.length + '…';
-          try { await uploadOne(item, { folder: folderSelect.value || null, patient: pickedPatient }); item.done = true; }
-          catch (error) { item.error = friendly(error, 'No se pudo guardar.'); }
+          try { if (tenant !== win.tenantId) throw new Error('La clínica ha cambiado.'); await uploadOne(item, target); item.done = true; }
+          catch (error) { item.retryable = true; item.error = friendly(error, 'No se pudo guardar.'); }
           paint();
         }
         var failed = queue.filter(function (item) { return item.error; }).length;
-        await Promise.all([loadSummary(), loadFiles()]);
-        render();
-        if (!failed) { notice(queue.length === 1 ? 'Archivo guardado en la Nube.' : queue.length + ' archivos guardados en la Nube.', 'success'); dialog.close(); }
-        else status.textContent = failed + ' no se pudo guardar. Revisa la lista.';
-      } catch (error) { if (error.message !== '__full') status.textContent = friendly(error, 'No se pudo subir.'); }
-      finally { state.uploading = false; cancel.disabled = false; paint(); }
+        if (tenant !== win.tenantId) { dialog.close(); return; }
+        if (!context) await refresh();
+        if (!failed) {
+          var message = queue.length === 1 ? 'Archivo guardado en la Nube.' : queue.length + ' archivos guardados en la Nube.';
+          if (context) context.onSaved(message); else notice(message, 'success');
+          if (!items.some(function (item) { return item.error; })) dialog.close();
+          else outcome = 'Los archivos válidos se guardaron. Revisa los que tienen errores.';
+        } else outcome = 'Revisa los archivos que faltan. Puedes reintentar cada carga.';
+      } catch (error) { outcome = error.message === '__full' ? status.textContent : friendly(error, 'No se pudo subir.'); }
+      finally { state.uploading = false; cancel.disabled = destination.disabled = folderSelect.disabled = patientInput.disabled = false; paint(); if (outcome) status.textContent = outcome; }
     });
     dialog.addEventListener('close', function () { dialog.remove(); });
+    dialog.addEventListener('cancel', function (event) { if (state.uploading) event.preventDefault(); });
     dialog.showModal(); if (initialFiles && initialFiles.length) add(initialFiles); else paint();
   }
 
   async function uploadOne(item, target) {
-    var file = item.file; var id = uuid(); var path = state.tenant + '/' + id + '/' + safeName(file.name); var registered = false;
+    var file = item.file; var id = item.id || uuid();
+    if (item.id) {
+      var previous = await sb().from('smyl_cloud_files').select('id').eq('tenant_id', target.tenant).eq('id', id).maybeSingle();
+      if (previous.error) throw previous.error;
+      if (previous.data) return;
+    }
+    item.id = id;
+    var path = target.tenant + '/' + id + '/' + safeName(file.name); var registered = false;
     try {
       var sha = await win.SmylSecureFiles.sha256(file);
-      var upload = await sb().storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false }); if (upload.error) throw upload.error;
+      var upload = await sb().storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+      if (upload.error && !['409','Duplicate','ResourceAlreadyExists'].includes(String(upload.error.statusCode || upload.error.error || upload.error.code))) throw upload.error;
       await win.SmylSecureFiles.verify(sb(), BUCKET, path, file, sha);
       await rpc('smyl_cloud_register_file', { p_id: id, p_display_name: file.name, p_storage_path: path, p_mime_type: file.type, p_size_bytes: file.size, p_sha256: sha,
-        p_folder_id: target.folder, p_patient_id: target.patient, p_appointment_id: null, p_category: item.category || null });
+        p_folder_id: target.folder, p_patient_id: target.patient, p_appointment_id: target.appointment, p_category: item.category || null, p_clinic_use: target.clinicUse });
       registered = true;
     } finally {
       if (!registered) { try { await sb().storage.from(BUCKET).remove([path]); } catch (_) {} }
@@ -404,32 +485,32 @@
   }
 
   // ---------- pantalla ----------
-  function setView(kind, value) { state.view = { kind: kind, value: value || '' }; state.selectedId = ''; reloadList(); }
+  function setView(kind, value) { state.notice = null; clearTimeout(state.searchTimer); state.view = { kind: kind, value: value || '' }; state.selectedId = ''; reloadList(); }
   function isActive(kind, value) { return state.view.kind === kind && (value === undefined || state.view.value === value); }
 
   function renderSidebar(host) {
     var counts = (state.summary && state.summary.counts) || {}; var can = perms();
     host.innerHTML = '';
-    var up = btn('＋ Subir archivos', 'btn btn-primary cloud-upload-btn', function () { openUpload(); }); up.disabled = !can.upload; if (!can.upload) up.title = 'Tu rol no permite subir archivos.'; host.append(up);
     function item(label, kind, value, count, extra) {
       var button = el('button', 'cloud-nav' + (isActive(kind, value) ? ' is-active' : '')); button.type = 'button'; button.append(el('span', '', label));
       if (count !== undefined && count !== null) button.append(el('em', '', String(count)));
-      button.onclick = function () { setView(kind, value); }; if (extra) button.append(extra); return button;
+      if (isActive(kind,value)) button.setAttribute('aria-current','page'); button.onclick = function () { setView(kind, value); }; if (extra) button.append(extra); return button;
     }
     var nav = el('nav', 'cloud-views'); nav.setAttribute('aria-label', 'Vistas de la Nube');
-    nav.append(item('Todos los archivos', 'all', '', counts.total), item('Recientes', 'recent', '', counts.recent), item('Sin clasificar', 'unclassified', '', counts.unclassified), item('Sin paciente', 'nopatient', '', counts.no_patient));
+    nav.append(item('Archivos', 'all', '', counts.total), item('Por organizar', 'pending', '', counts.pending));
     if (can.share && state.sharesReady) nav.append(item('Compartidos', 'shared', '', state.sharedIds.length));
     host.append(nav);
+    var filters = el('details', 'cloud-filters'); filters.open = state.filtersOpen || false; filters.ontoggle = function () { if (filters.isConnected) state.filtersOpen = filters.open; }; filters.append(el('summary', '', 'Más filtros')); filters.append(item('Recientes', 'recent', '', counts.recent)); host.append(filters);
     var types = el('nav', 'cloud-views'); types.setAttribute('aria-label', 'Tipos de archivo'); types.append(el('h4', '', 'Tipos'));
     [['photo', 'Fotos'], ['xray', 'Rayos X'], ['document', 'Documentos'], ['consent', 'Consentimientos']].forEach(function (entry) { types.append(item(entry[1], 'category', entry[0], counts[entry[0]])); });
-    host.append(types);
+    filters.append(types);
     var folders = el('nav', 'cloud-views'); folders.setAttribute('aria-label', 'Carpetas'); folders.append(el('h4', '', 'Carpetas'));
     ((state.summary && state.summary.folders) || []).forEach(function (folder) { folders.append(item(folder.name, 'folder', folder.id, folder.files)); });
     if (can.manage) folders.append(btn('＋ Nueva carpeta', 'cloud-link', function () { saveFolder(null); }));
-    host.append(folders);
+    filters.append(folders);
     var people = (state.summary && state.summary.patients) || [];
-    if (people.length) { var byPatient = el('nav', 'cloud-views'); byPatient.setAttribute('aria-label', 'Por paciente'); byPatient.append(el('h4', '', 'Por paciente')); people.forEach(function (person) { byPatient.append(item(person.name || 'Paciente', 'patient', person.patient_id, person.files)); }); host.append(byPatient); }
-    var other = el('nav', 'cloud-views'); other.append(item('Papelera', 'trash', '', counts.trashed)); host.append(other);
+    if (people.length) { var byPatient = el('nav', 'cloud-views'); byPatient.setAttribute('aria-label', 'Por paciente'); byPatient.append(el('h4', '', 'Por paciente')); people.forEach(function (person) { byPatient.append(item(person.name || 'Paciente', 'patient', person.patient_id, person.files)); }); filters.append(byPatient); }
+    var other = el('nav', 'cloud-views'); other.append(item('Papelera', 'trash', '', counts.trashed)); filters.append(other);
     var storage = (state.summary && state.summary.storage) || {}; var limit = Number(storage.limit_bytes) || 0; var used = Number(storage.used_bytes) || 0;
     var meter = el('div', 'cloud-meter'); meter.append(el('b', '', 'Almacenamiento'));
     if (limit) { var bar = el('div', 'cloud-meter-bar'); var fill = el('i'); fill.style.width = Math.min(100, used / limit * 100) + '%'; bar.append(fill); meter.append(bar, el('span', '', formatBytes(used) + ' de ' + formatBytes(limit))); }
@@ -444,11 +525,11 @@
     var body = el('span', 'cloud-file-body'); body.append(el('b', '', file.display_name), el('small', '', dateLabel(file.created_at) + ' · ' + formatBytes(file.size_bytes)));
     var chips = el('span', 'cloud-chips');
     chips.append(el('i', 'cloud-chip' + (file.category ? '' : ' is-warn'), file.category ? CATEGORY_LABEL[file.category] : 'Sin clasificar'));
-    chips.append(file.patient_id ? el('i', 'cloud-chip is-ok', state.patients[file.patient_id] || 'Paciente') : el('i', 'cloud-chip is-warn', 'Sin paciente'));
+    chips.append(file.patient_id ? el('i', 'cloud-chip is-ok', (state.patients[file.patient_id] || 'Paciente') + (state.recordNumbers[file.patient_id] ? ' · EXP-' + state.recordNumbers[file.patient_id] : '')) : el('i', file.clinic_use ? 'cloud-chip' : 'cloud-chip is-warn', file.clinic_use ? 'Consultorio' : 'Falta destino'));
     if (!file.category && state.suggestions[file.id]) chips.append(el('i', 'cloud-chip is-ai', '✦ ' + CATEGORY_LABEL[state.suggestions[file.id].category] + '?'));
     if (state.sharedIds.indexOf(file.id) !== -1) chips.append(el('i', 'cloud-chip is-share', 'Compartido'));
     body.append(chips); tile.append(preview, body);
-    tile.onclick = function () { state.selectedId = state.selectedId === file.id ? '' : file.id; if (file.patient_id) loadAppointments(file.patient_id); render(); };
+    tile.onclick = function () { state.selectedId = state.selectedId === file.id ? '' : file.id; if (file.patient_id) loadAppointments(file.patient_id, file.appointment_id); render(); };
     return tile;
   }
 
@@ -456,7 +537,9 @@
     host.innerHTML = '';
     var file = state.files.find(function (f) { return f.id === state.selectedId; });
     host.classList.toggle('is-open', Boolean(file));
-    if (!file) { host.append(el('p', 'cloud-empty-detail', 'Elige un archivo para ver sus datos y vincularlo.')); return; }
+    host.hidden = !file;
+    host.parentElement.classList.toggle('with-detail', Boolean(file));
+    if (!file) return;
     var can = perms(); var inTrash = file.status === 'trashed';
     var close = btn('Cerrar', 'cloud-link cloud-detail-close', function () { state.selectedId = ''; render(); }); host.append(close);
     var pv = el('div', 'cloud-detail-preview');
@@ -483,15 +566,34 @@
       if (can.manage) line.append(btn('Quitar', 'cloud-link', function () { patchFile(file.id, { patient_id: '' }); })); patientBlock.append(line);
       var appts = state.appointments[file.patient_id] || [];
       var apptSelect = document.createElement('select'); apptSelect.disabled = !can.manage; apptSelect.setAttribute('aria-label', 'Cita vinculada'); apptSelect.append(new Option('Sin cita', ''));
+      if (file.appointment_id && !appts.some(function (appt) { return appt.id === file.appointment_id; })) apptSelect.append(new Option('Cita vinculada', file.appointment_id));
       appts.forEach(function (appt) { apptSelect.append(new Option(dateLabel(appt.starts_at) + ' · ' + appt.status, appt.id)); }); apptSelect.value = file.appointment_id || '';
       apptSelect.onchange = function () { patchFile(file.id, { appointment_id: apptSelect.value }); };
       var apptLabel = el('label', '', 'Cita'); apptLabel.append(apptSelect); patientBlock.append(apptLabel);
+      if (state.recordNumbers[file.patient_id]) patientBlock.append(el('small', '', 'Expediente EXP-' + state.recordNumbers[file.patient_id]));
     } else if (can.manage && can.clinical) {
       var search = document.createElement('input'); search.type = 'search'; search.placeholder = 'Buscar paciente para vincular…'; search.autocomplete = 'off';
       var hits = el('div', 'cloud-hits'); var timer = null;
-      search.oninput = function () { clearTimeout(timer); hits.innerHTML = ''; timer = setTimeout(async function () { try { (await searchPatients(search.value)).forEach(function (person) { hits.append(btn(patientLabel(person) + (person.telefono ? ' · ' + person.telefono : ''), 'cloud-hit', function () { patchFile(file.id, { patient_id: person.id }); })); }); } catch (_) {} }, 250); };
+      search.oninput = function () {
+        clearTimeout(timer); hits.replaceChildren(); var term = search.value;
+        timer = setTimeout(async function () {
+          try {
+            var people = await searchPatients(term);
+            if (!search.isConnected || search.value !== term) return;
+            people.forEach(function (person) {
+              hits.append(btn(patientLabel(person) + ' · EXP-' + person.record_number, 'cloud-hit', function () { patchFile(file.id, {patient_id:person.id}); }));
+            });
+          } catch (error) { if (search.isConnected && search.value === term) hits.textContent = friendly(error); }
+        },250);
+      };
       patientBlock.append(search, hits);
     } else patientBlock.append(el('small', '', 'Sin paciente vinculado.'));
+    if (!file.patient_id && (!file.category || ['document','other'].includes(file.category))) {
+      var usage = el('label', 'cloud-usage');
+      var check = document.createElement('input'); check.type = 'checkbox'; check.checked = !!file.clinic_use; check.disabled = !can.manage;
+      check.onchange = function () { patchFile(file.id, {clinic_use:check.checked}); };
+      usage.append(check, document.createTextNode('Uso del consultorio')); patientBlock.append(usage);
+    }
     fields.append(patientBlock);
     var notes = document.createElement('textarea'); notes.rows = 3; notes.maxLength = 1000; notes.value = file.notes || ''; notes.disabled = !can.manage; notes.placeholder = 'Notas del archivo';
     notes.onchange = function () { patchFile(file.id, { notes: notes.value }); };
@@ -508,7 +610,7 @@
       }
       if (ai.childNodes.length) host.insertBefore(ai, fields);
     }
-    if (can.manage && can.clinical && !file.patient_id) {
+    if (can.manage && can.clinical && !file.patient_id && !file.clinic_use) {
       hintPatients(file); var hints = state.patientHints[file.id] || [];
       if (hints.length) {
         var hintBox = el('div', 'cloud-ai is-patient'); hintBox.append(el('b', '', 'Posible paciente por el nombre del archivo'), el('small', '', 'Es solo una pista. Elige a la persona correcta o ignórala.'));
@@ -542,39 +644,53 @@
 
   function render() {
     var page = document.getElementById('p-nube'); if (!page) return;
+    var up = page.querySelector('[data-cloud-upload]'); up.hidden = !perms().read || !perms().upload || !!state.error;
+    var hadSearchFocus = document.activeElement && document.activeElement.matches('#p-nube .cloud-search');
+    var selection = hadSearchFocus ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
     var sidebar = page.querySelector('[data-cloud-side]'); var main = page.querySelector('[data-cloud-main]'); var detail = page.querySelector('[data-cloud-detail]');
+    if (state.error || !perms().read) { detail.hidden = true; detail.parentElement.classList.remove('with-detail'); }
     if (state.loading && !state.summary) { main.innerHTML = ''; if (win.SmylSkeleton) { var skh = el('div', 'cloud-state'); skh.innerHTML = win.SmylSkeleton.html('media', { count: 12, label: 'Abriendo la Nube' }); main.append(skh); } else main.append(el('p', 'cloud-state', 'Abriendo la Nube…')); sidebar.innerHTML = ''; detail.innerHTML = ''; return; }
     if (state.error) { main.innerHTML = ''; var box = el('div', 'cloud-state is-warn'); box.append(el('p', '', state.error), btn('Reintentar', 'btn btn-secondary btn-sm', function () { refresh(); })); main.append(box); sidebar.innerHTML = ''; detail.innerHTML = ''; return; }
     if (!perms().read) { main.innerHTML = ''; main.append(el('p', 'cloud-state', 'Tu rol no tiene acceso a la Nube. Pide a quien administra la clínica el permiso «Ver la Nube».')); sidebar.innerHTML = ''; detail.innerHTML = ''; return; }
     renderSidebar(sidebar);
     main.innerHTML = '';
-    var tools = el('div', 'cloud-tools'); var search = document.createElement('input'); search.type = 'search'; search.className = 'cloud-search'; search.placeholder = 'Buscar por nombre…'; search.value = state.search; search.setAttribute('aria-label', 'Buscar archivos');
-    var timer = null; search.oninput = function () { state.search = search.value; clearTimeout(timer); timer = setTimeout(function () { reloadList().then(function () { var again = document.querySelector('#p-nube .cloud-search'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } }); }, 300); };
+    var tools = el('div', 'cloud-tools'); var search = document.createElement('input'); search.type = 'search'; search.className = 'cloud-search'; search.placeholder = 'Archivo, paciente o expediente…'; search.value = state.search; search.setAttribute('aria-label', 'Buscar por archivo, paciente o expediente');
+    search.oninput = function () {
+      state.search = search.value; state.notice = null; state.selectedId = ''; ++state.listToken; clearTimeout(state.searchTimer);
+      state.searchTimer = setTimeout(function () { reloadList(); }, 230);
+    };
     var modeBtn = btn(state.mode === 'grid' ? '☰ Lista' : '▦ Cuadrícula', 'btn btn-secondary btn-sm', function () { state.mode = state.mode === 'grid' ? 'list' : 'grid'; render(); });
     tools.append(search, modeBtn); main.append(tools);
-    var title = { all: 'Todos los archivos', recent: 'Recientes', unclassified: 'Sin clasificar', nopatient: 'Sin paciente', trash: 'Papelera', shared: 'Compartidos', category: 'Tipo: ' + (CATEGORY_LABEL[state.view.value] || ''), folder: 'Carpeta', patient: 'Paciente' }[state.view.kind];
+    if (hadSearchFocus) { search.focus({preventScroll:true}); search.setSelectionRange(selection[0],selection[1]); }
+    var title = { all: 'Todos los archivos', recent: 'Recientes', pending: 'Por organizar', trash: 'Papelera', shared: 'Compartidos', category: 'Tipo: ' + (CATEGORY_LABEL[state.view.value] || ''), folder: 'Carpeta', patient: 'Paciente' }[state.view.kind];
     if (state.view.kind === 'folder') { var folder = ((state.summary.folders) || []).find(function (f) { return f.id === state.view.value; }); title = 'Carpeta: ' + (folder ? folder.name : ''); }
     if (state.view.kind === 'patient') title = 'Paciente: ' + (state.patients[state.view.value] || '');
     var head = el('div', 'cloud-head'); head.append(el('h2', '', title));
     if (state.view.kind === 'folder' && perms().manage) { head.append(btn('Renombrar', 'cloud-link', function () { saveFolder(state.view.value); }), btn('Eliminar carpeta', 'cloud-link cloud-danger', function () { deleteFolder(state.view.value); })); }
-    if (state.view.kind === 'unclassified' && perms().manage && state.files.length) head.append(btn('✦ Sugerir tipos con IA (hasta 10)', 'cloud-link', suggestMany));
-    if (state.view.kind === 'trash' && perms().manage && state.files.length) head.append(btn('Vaciar papelera', 'cloud-link cloud-danger', function () { deleteForever(state.files.map(function (f) { return f.id; })); }));
+    if (state.view.kind === 'pending' && perms().manage && state.files.some(function (f) { return !f.category && f.mime_type !== 'application/pdf'; })) head.append(btn('✦ Sugerir tipos con IA (hasta 10)', 'cloud-link', suggestMany));
+    if (state.view.kind === 'trash' && perms().manage && state.files.length) head.append(btn('Eliminar archivos visibles', 'cloud-link cloud-danger', function () { deleteForever(state.files.map(function (f) { return f.id; })); }));
     main.append(head);
+    if (state.view.kind === 'pending' && state.files.length) main.append(el('p', 'cloud-hint', 'Abre un archivo para completar su tipo o indicar a quién pertenece.'));
     var live = el('div', 'cloud-notice'); live.id = 'cloud-notice'; live.hidden = true; main.append(live);
     if (!state.files.length) {
       var empty = el('div', 'cloud-empty');
-      empty.append(el('strong', '', state.search ? 'No hay archivos con ese nombre.' : state.view.kind === 'trash' ? 'La papelera está vacía.' : 'Todavía no hay archivos aquí.'));
-      if (!state.search && state.view.kind !== 'trash' && perms().upload) empty.append(el('p', '', 'Sube fotos, radiografías o documentos y vincúlalos a un paciente.'), btn('Subir archivos', 'btn btn-primary btn-sm', function () { openUpload(); }));
+      empty.append(el('strong', '', state.search ? 'No hay coincidencias en esta vista.' : state.view.kind === 'pending' ? 'Todo está organizado.' : state.view.kind === 'trash' ? 'La papelera está vacía.' : 'Todavía no hay archivos aquí.'));
+      if (state.search) empty.append(btn('Limpiar búsqueda', 'cloud-link', function () { state.search = ''; reloadList(); }));
+      else if (state.view.kind === 'all' && perms().upload) empty.append(el('p', '', 'Usa «Subir archivos» para guardar el primer archivo de la clínica.'));
       main.append(empty);
     } else {
       var grid = el('div', 'cloud-grid' + (state.mode === 'list' ? ' is-list' : '')); state.files.forEach(function (file) { grid.append(fileTile(file)); }); main.append(grid);
+      if (state.hasMore) { var more = btn('Ver más archivos','btn btn-secondary btn-sm',function () { more.disabled = true; reloadList(true); }); main.append(more); }
     }
     renderNotice(); renderDetail(detail);
   }
 
   function build() {
     var page = el('section', 'pantalla cloud-page'); page.id = 'p-nube';
-    var head = el('header', 'cloud-page-head'); var copy = el('div'); copy.append(el('span', 'pro-eyebrow', 'ARCHIVO DE LA CLÍNICA'), el('h1', '', 'Nube'), el('p', '', 'Fotos, radiografías y documentos en un solo lugar, ordenados y vinculados a tus pacientes.')); head.append(copy);
+    var head = el('header', 'cloud-page-head');
+    var copy = el('div'); copy.append(el('h1', '', 'Nube'), el('p', '', 'Archivo del consultorio'));
+    var upload = btn('Subir archivos', 'btn btn-primary cloud-upload-btn', function () { openUpload(); });
+    upload.dataset.cloudUpload = ''; upload.hidden = true; head.append(copy, upload);
     var layout = el('div', 'cloud-layout'); var side = el('aside', 'cloud-side'); side.dataset.cloudSide = ''; var main = el('div', 'cloud-main'); main.dataset.cloudMain = ''; var detail = el('aside', 'cloud-detail'); detail.dataset.cloudDetail = '';
     layout.append(side, main, detail); page.append(head, layout);
     page.addEventListener('dragover', function (event) { if (perms().upload && event.dataTransfer && Array.prototype.indexOf.call(event.dataTransfer.types || [], 'Files') !== -1) event.preventDefault(); });
@@ -591,5 +707,5 @@
   }
 
   if (win && win.document) { if (win.document.readyState === 'loading') win.document.addEventListener('DOMContentLoaded', init); else init(); }
-  return { formatBytes: formatBytes, safeName: safeName, guessCategory: guessCategory, checkFile: checkFile, trashDaysLeft: trashDaysLeft, escapeLike: escapeLike };
+  return { openFromAppointment: openFromAppointment, formatBytes: formatBytes, safeName: safeName, guessCategory: guessCategory, checkFile: checkFile, trashDaysLeft: trashDaysLeft, escapeLike: escapeLike };
 });

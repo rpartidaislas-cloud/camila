@@ -894,7 +894,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-waitlist-core.js?v=2"></script>
 <script defer src="smyl-waitlist.js?v=2"></script>
 <script defer src="smyl-ai-scheduling.js?v=1"></script>
-<script defer src="smyl-schedule.js?v=58"></script>
+<script defer src="smyl-schedule.js?v=59"></script>
 <script defer src="smyl-google-calendar.js?v=3"></script>
 <script defer src="smyl-schedule-message.js?v=5"></script>
 <script defer src="smyl-schedule-setup.js?v=2"></script>
@@ -932,8 +932,8 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-notice-settings.js?v=1"></script>
 <link rel="stylesheet" href="smyl-appointment-notice.css?v=2">
 <script defer src="smyl-appointment-notice.js?v=3"></script>
-<link rel="stylesheet" href="smyl-cloud.css?v=3">
-<script defer src="smyl-cloud.js?v=4"></script>
+<link rel="stylesheet" href="smyl-cloud.css?v=4">
+<script defer src="smyl-cloud.js?v=5"></script>
 <link rel="stylesheet" href="smyl-connections.css?v=21">
 <link rel="stylesheet" href="smyl-media-replies.css?v=1">
 <script defer src="smyl-media-replies.js?v=1"></script>
@@ -951,7 +951,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-privacy-notice.js?v=3"></script>
 <script defer src="smyl-history-interview.js?v=1"></script>
 <script defer src="smyl-clinical-tools.js?v=2"></script>
-<script defer src="smyl-consultorio.js?v=13"></script>
+<script defer src="smyl-consultorio.js?v=14"></script>
 <link rel="stylesheet" href="smyl-clinic-setup.css?v=5">
 <script defer src="smyl-clinic-setup.js?v=8"></script>
 <link rel="stylesheet" href="smyl-settings-hub.css?v=6">
@@ -991,7 +991,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-informed-consent.js?v=1"></script>
 <script defer src="smyl-clinical-background.js?v=1"></script>
 <script defer src="smyl-procedure-safety.js?v=2"></script>
-<script defer src="smyl-patient-360.js?v=39"></script>
+<script defer src="smyl-patient-360.js?v=40"></script>
 <script defer src="vendor/qrcode-generator-1.4.4.js"></script>
 <script defer src="smyl-mila-interview.js?v=7"></script>
 <link rel="stylesheet" href="smyl-patient-record-stage2.css?v=2">
@@ -3743,6 +3743,7 @@ async function verPaciente(id) {
   var edad = p.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) + ' años' : '-';
   document.getElementById('det-info-rapida').textContent = edad + (p.email ? ' · ' + p.email : '') + (p.telefono ? ' · ' + p.telefono : '');
   document.getElementById('det-info-grid').innerHTML = [
+    ...(p.record_number ? [{lbl:'Expediente', val:'EXP-' + p.record_number}] : []),
     {lbl:'Email', val: p.email||'-'},
     {lbl:'Teléfono', val: p.telefono||'-'},
     {lbl:'Edad', val: edad},

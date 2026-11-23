@@ -67,5 +67,5 @@ test('la pantalla solo sugiere: confirmar es una acción explícita y la pista d
   assert.match(ui, /sin nombre ni datos del paciente/);
   assert.doesNotMatch(ui.slice(ui.indexOf('async function suggestType'), ui.indexOf('async function suggestMany')), /patchFile|smyl_cloud_update_file/);
   for (const file of ['smyl-cloud.js', 'smyl-cloud.css', 'app.html', 'sw.js']) assert.equal(read(file), read(`mobile/www/${file}`), file);
-  assert.match(read('app.html'), /smyl-cloud\.js\?v=4/);
+  assert.match(read('app.html'), /smyl-cloud\.js\?v=5/);
 });
