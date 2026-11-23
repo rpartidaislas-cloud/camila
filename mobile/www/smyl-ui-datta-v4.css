@@ -66,7 +66,7 @@ body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .nav-item:
 /* Subtítulos de sección: el original rondaba 4:1 de contraste; con este valor pasa de 7:1. */
 body.smyl-ui-governed.smyl-management-v3 .pro-nav-section,
 body.smyl-ui-governed.smyl-management-v3 .pro-nav-group summary {
-  color: rgba(215, 235, 238, .66);
+  color: rgba(215, 225, 238, .66);
 }
 .layout .sb-logo h1 { font-weight: 600; letter-spacing: 0; }
 

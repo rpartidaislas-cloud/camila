@@ -33,7 +33,7 @@
   }
   function showStatus(caso){
     const box=document.getElementById('case-actions-box');if(!box||!caso.lana_origen)return;
-    const p=document.createElement('p');p.setAttribute('role','status');p.style.cssText='padding:12px;border:1px solid #526477;border-radius:10px;color:#d8eaf4';
+    const p=document.createElement('p');p.setAttribute('role','status');p.style.cssText='padding:12px;border:1px solid #526477;border-radius:10px;color:#d8e4f4';
     p.textContent=caso.lana_sincronizado?'LANA confirmó la recepción del caso.':'Guardado en SMYL. Envío a LANA pendiente; no vuelvas a generar la imagen.';
     box.append(p);
   }

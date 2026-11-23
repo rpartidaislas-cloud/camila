@@ -31,7 +31,7 @@
 .rp-print-doc h1 { margin: 4px 0 8px; font-size: 22px; }
 .rp-print-doc h2 { margin: 16px 0 4px; font-size: 14px; letter-spacing: .04em; text-transform: uppercase; color: #526174; }
 .rp-print-doc p, .rp-print-doc li { font-size: 13px; line-height: 1.55; }
-.rp-print-kicker { color: #38a99d; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.rp-print-kicker { color: #1a56c7; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .rp-print-notice { padding: 8px 10px; border-left: 4px solid #8a5a05; background: #fff8e7; }
 @media (max-width: 959px) { .rp-workspace { grid-template-columns: 1fr; } .rp-action-buttons button { flex: 1 1 100%; } }
 @media print { body > *:not(.rp-print) { display: none !important; } .rp-print { position: static; width: auto; max-height: none; border: 0; } .rp-print .rr-confirm-actions { display: none; } }

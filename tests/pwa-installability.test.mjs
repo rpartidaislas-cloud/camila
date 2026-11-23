@@ -17,9 +17,9 @@ function pngDimensions(path) {
 test('la PWA usa una identidad visual coherente con el panel instalado', () => {
   assert.equal(manifest.display, 'standalone');
   assert.equal(manifest.orientation, 'any');
-  assert.equal(manifest.theme_color, '#0B1B2E');
+  assert.equal(manifest.theme_color, '#1b2477');
   assert.equal(manifest.background_color, '#F4F7FA');
-  assert.match(app, /<meta name="theme-color" content="#0B1B2E">/);
+  assert.match(app, /<meta name="theme-color" content="#1b2477">/);
   assert.match(app, /rel="icon"[^>]+icons\/smyl_pwa\.png\?v=2/);
   assert.match(app, /rel="apple-touch-icon"[^>]+icons\/smyl_pwa\.png\?v=2/);
   assert.deepEqual(pngDimensions('icons/smyl_pwa.png'), [513, 513]);

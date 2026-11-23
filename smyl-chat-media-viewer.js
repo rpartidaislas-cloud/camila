@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const colors = [['Coral', '#ef5048'], ['Azul', '#1689e4'], ['Verde', '#15a487'],
+  const colors = [['Coral', '#ef5048'], ['Azul', '#1689e4'], ['Verde', '#1834e7'],
     ['Amarillo', '#ffd643'], ['Blanco', '#ffffff'], ['Negro', '#192330']];
   const icons = {
     image: '<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 3-3 6 6"/>',

@@ -8,7 +8,7 @@
   'use strict';
 
   var CATEGORIES = {
-    'smyl-clinical-files': { label: 'Expediente clínico', color: '#0F766E' },
+    'smyl-clinical-files': { label: 'Expediente clínico', color: '#142bc3' },
     'smyl-radiographs': { label: 'Radiografías', color: '#7C5CD6' },
     'smyl-case-photos': { label: 'Fotos y simulaciones', color: '#E0961B' },
     'smyl-proposal-photos': { label: 'Propuestas', color: '#2F6BD0' },

@@ -21,7 +21,7 @@ test('la navegación principal refleja el trabajo completo de una clínica denta
 
 test('el sistema visual reduce ruido y conserva jerarquía responsive',()=>{
   assert.match(styles,/--color-primary:#194391/);
-  assert.match(styles,/\.sidebar\{width:248px;background:#102239/);
+  assert.match(styles,/\.sidebar\{width:248px;background:#0e153b/);
   assert.match(styles,/\.pro-mobile-nav\{grid-template-columns:repeat\(5/);
   assert.match(styles,/position:fixed;z-index:850/);
   assert.match(styles,/backdrop-filter:none/);

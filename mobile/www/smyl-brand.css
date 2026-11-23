@@ -1,0 +1,164 @@
+/* SMYL · Capa de marca v1.
+ *
+ * Los colores salen del logo: cian #2cc7ec → azul #3a9dfa → índigo #6366ff → violeta #7750ff (el mismo degradado
+ * del botón «Entrar a SMYL»). Esta capa se carga al final de app.html y define los tokens de marca, el degradado de
+ * los botones principales, los lavados suaves del fondo y el menú lateral. El resto de colores del sistema ya pasó de
+ * verde azulado a azul/índigo en cada hoja; aquí solo viven las decisiones de marca. */
+:root {
+  --smyl-brand-cyan: #2cc7ec;
+  --smyl-brand-blue: #3a9dfa;
+  --smyl-brand-royal: #4a78ff;
+  --smyl-brand-indigo: #5b5cf0;
+  --smyl-brand-violet: #7750ff;
+  --smyl-brand-ink: #2d3a9e;          /* texto/acento oscuro con buen contraste sobre blanco (≈8:1) */
+  --smyl-brand-ink-hover: #232f86;
+  --smyl-brand-tint: #eef1ff;
+  --smyl-brand-tint-strong: #e0e6ff;
+  --smyl-brand-line: #c9d3f5;
+  --smyl-brand-gradient: linear-gradient(135deg, #2cc7ec 0%, #3a9dfa 34%, #5575ff 68%, #7750ff 100%);
+  --smyl-brand-gradient-button: linear-gradient(90deg, #3b82f6 0%, #4f5ae8 55%, #5b4fe6 100%);
+
+  /* Tokens existentes que pasan a la marca. */
+  --color-primary: #3347c8;
+  --color-primary-hover: #2a3bb0;
+  --color-primary-subtle: #eef1ff;
+  --color-primary-border: #c9d3f5;
+  --color-accent: #4f5ae8;
+  --color-accent-hover: #3f49cc;
+  --color-accent-subtle: #eef1ff;
+  --gradient-primary: var(--smyl-brand-gradient);
+  --azul: #3347c8; --azul-s: #eef1ff; --azul-b: #c9d3f5;
+  --violeta: #5b4fe6; --violeta-s: #f0eeff; --violeta-b: #d5d0fb;
+  --teal: #4f5ae8; --teal-s: #eef1ff;
+  --smyl-primary: #3347c8;
+  --smyl-primary-hover: #2a3bb0;
+  --smyl-primary-subtle: #eef1ff;
+}
+body.smyl-ui-governed {
+  --smyl-ui-primary: #2d3a9e;
+  --smyl-ui-primary-hover: #232f86;
+  --smyl-ui-primary-soft: #eceffe;
+  --smyl-ui-accent: #4f5ae8;
+  --smyl-ui-accent-soft: #eef1ff;
+  --smyl-ui-surface-accent: #eef1fb;
+  --smyl-ui-focus: #4f6df5;
+}
+meta[name="theme-color"] { color: #1c2680; }
+
+/* Fondo del panel: lavados suaves cian (arriba a la izquierda) y violeta (abajo a la derecha). */
+body.smyl-ui-governed.smyl-management-v3 .layout {
+  background:
+    radial-gradient(60rem 36rem at 6% -6%, rgba(44, 199, 236, .10), transparent 62%),
+    radial-gradient(52rem 34rem at 100% 104%, rgba(119, 80, 255, .09), transparent 60%),
+    var(--smyl-ui-canvas);
+}
+
+/* Botones principales: el degradado del logo. */
+body.smyl-ui-governed .btn-primary,
+body.smyl-ui-governed .layout .btn-primary,
+body.smyl-ui-governed .pro-app .btn-primary {
+  border-color: transparent;
+  background: var(--smyl-brand-gradient-button);
+  color: #fff;
+  box-shadow: 0 .55rem 1.2rem -.7rem rgba(79, 90, 232, .75);
+}
+body.smyl-ui-governed .btn-primary:hover,
+body.smyl-ui-governed .layout .btn-primary:hover,
+body.smyl-ui-governed .pro-app .btn-primary:hover {
+  border-color: transparent;
+  background: var(--smyl-brand-gradient-button);
+  filter: brightness(.94) saturate(1.05);
+  box-shadow: 0 .7rem 1.4rem -.7rem rgba(79, 90, 232, .85);
+}
+body.smyl-ui-governed .btn-primary:disabled { filter: none; box-shadow: none; }
+
+/* ── Menú lateral ─────────────────────────────────────────────────────────────────────────────── */
+@media (min-width: 761px) {
+  body.smyl-ui-governed.smyl-management-v3 .sidebar {
+    border-color: rgba(150, 170, 255, .20);
+    background:
+      radial-gradient(18rem 14rem at 0% 0%, rgba(44, 199, 236, .26), transparent 70%),
+      radial-gradient(20rem 18rem at 100% 100%, rgba(119, 80, 255, .38), transparent 68%),
+      linear-gradient(168deg, #1a2a8c 0%, #1b2477 46%, #231b72 100%);
+    box-shadow:
+      0 2rem 4rem -2rem rgba(30, 28, 110, .65),
+      inset 0 1px rgba(255, 255, 255, .06);
+  }
+  body.smyl-ui-governed.smyl-management-v3 .sidebar::before {
+    background:
+      radial-gradient(circle at 42% -5%, rgba(120, 190, 255, .16), transparent 12rem),
+      linear-gradient(120deg, rgba(255, 255, 255, .035), transparent 48%);
+  }
+
+  /* Cabecera: logo en blanco y nombre de la clínica. */
+  body.smyl-ui-governed.smyl-management-v3 .sb-logo .sb-clinic-name { color: rgba(214, 224, 255, .72); }
+  body.smyl-ui-governed.smyl-management-v3 .sb-logo::before {
+    border-color: rgba(190, 205, 255, .35);
+    background: var(--smyl-brand-gradient);
+    color: #fff;
+    box-shadow: 0 .5rem 1.1rem -.5rem rgba(44, 199, 236, .7), inset 0 1px rgba(255, 255, 255, .25);
+  }
+
+  /* «Nueva cita» */
+  body.smyl-ui-governed.smyl-management-v3 .sb-quick .smyl-sidebar-quick {
+    border-color: rgba(255, 255, 255, .22);
+    background: linear-gradient(90deg, rgba(44, 199, 236, .30), rgba(119, 80, 255, .38));
+    color: #fff;
+    box-shadow: inset 0 1px rgba(255, 255, 255, .12);
+  }
+  body.smyl-ui-governed.smyl-management-v3 .sb-quick .smyl-sidebar-quick:hover {
+    background: linear-gradient(90deg, rgba(44, 199, 236, .42), rgba(119, 80, 255, .52));
+    color: #fff;
+  }
+  body.smyl-ui-governed.smyl-management-v3 .smyl-sidebar-quick-key { border-color: rgba(255, 255, 255, .28); color: rgba(235, 240, 255, .85); }
+
+  /* Secciones y opciones */
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-section { color: rgba(205, 216, 255, .55); }
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item,
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group > summary { color: rgba(232, 238, 255, .86); }
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:hover,
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group > summary:hover { background: rgba(255, 255, 255, .08); }
+  body.smyl-ui-governed.smyl-management-v3 :is(.sidebar .pro-nav-item .pro-nav-icon, .pro-nav-group-icon) { color: rgba(196, 210, 255, .72); }
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:hover .pro-nav-icon,
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group > summary:hover .pro-nav-group-icon { color: #fff; }
+
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:is(.activo, [aria-current='page']) {
+    background: linear-gradient(90deg, rgba(58, 157, 250, .30), rgba(119, 80, 255, .22));
+    color: #fff;
+  }
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:is(.activo, [aria-current='page'])::before {
+    background: linear-gradient(180deg, #2cc7ec, #7750ff);
+    box-shadow: 0 0 .9rem rgba(44, 199, 236, .65);
+  }
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:is(.activo, [aria-current='page']) .pro-nav-icon { color: #bfe9ff; }
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-chevron { color: rgba(196, 210, 255, .6); }
+  body.smyl-ui-governed.smyl-management-v3 .pro-nav-group-count,
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item .pro-nav-count { background: linear-gradient(135deg, #3a9dfa, #7750ff); }
+
+  /* Usuario, selector de consultorio y pie */
+  body.smyl-ui-governed.smyl-management-v3 .sb-avatar { background: var(--smyl-brand-gradient); color: #fff; }
+  .sb-branch-field { border-color: rgba(190, 205, 255, .20); background: rgba(255, 255, 255, .05); color: #eef2ff; }
+  .sb-branch-field:hover { background: rgba(255, 255, 255, .10); border-color: rgba(190, 205, 255, .34); }
+  .sb-branch-field:focus-within { border-color: #8fb4ff; box-shadow: 0 0 0 2px rgba(120, 160, 255, .30); }
+  .sb-branch label { color: rgba(205, 216, 255, .55); }
+  .sb-branch-icon { color: rgba(196, 210, 255, .8); }
+  .sb-branch-chev { color: rgba(196, 210, 255, .65); }
+  body.smyl-ui-governed.smyl-management-v3 .pro-sidebar-toggle {
+    border-color: rgba(190, 205, 255, .35);
+    background: #232c96;
+    color: #e6ecff;
+    box-shadow: 0 .65rem 1.35rem -.65rem rgba(20, 20, 90, .9);
+  }
+  body.smyl-ui-governed.smyl-management-v3 .pro-sidebar-toggle:hover { background: #3347c8; }
+}
+
+/* Menú propio de los selectores, variante oscura. */
+.smyl-select-menu.is-dark {
+  border-color: rgba(190, 205, 255, .26);
+  background: #1c2478;
+  box-shadow: 0 20px 44px -14px rgba(10, 10, 70, .7);
+}
+.smyl-select-menu.is-dark .smyl-select-menu-option.is-active { background: rgba(255, 255, 255, .10); }
+.smyl-select-menu.is-dark .smyl-select-menu-check { color: #8fe0ff; }
+.smyl-select-menu .smyl-select-menu-option.is-active { background: var(--smyl-brand-tint); }
+.smyl-select-menu .smyl-select-menu-check { color: var(--smyl-brand-indigo); }

@@ -2,12 +2,12 @@
 #smyl-daily-home {
   --home-ink: #132c40;
   --home-muted: #506579;
-  --home-line: #d6e1e8;
-  --home-line-soft: #e5ecf0;
+  --home-line: #d6dee8;
+  --home-line-soft: #e5eaf0;
   --home-surface: #fff;
   --home-subtle: #f5f8fa;
-  --home-teal: #096f69;
-  --home-teal-soft: #e9f6f3;
+  --home-teal: #0b23bf;
+  --home-teal-soft: #e9eff6;
   --home-navy: #122d43;
   --home-amber: #8a5209;
   --home-amber-soft: #fff4df;
@@ -53,7 +53,7 @@
   border-radius: 9px;
   background: var(--home-navy);
 }
-#smyl-daily-home .daily-home-bar-btn.is-primary:hover { background: #21445b; }
+#smyl-daily-home .daily-home-bar-btn.is-primary:hover { background: #344299; }
 
 body.smyl-ui-governed #smyl-daily-home .daily-home-workbench,
 #smyl-daily-home .daily-home-workbench {
@@ -69,7 +69,7 @@ body.smyl-ui-governed #smyl-daily-home .daily-home-card,
   border: 1px solid var(--home-line);
   border-radius: 13px;
   background: var(--home-surface);
-  box-shadow: 0 2px 6px rgba(22, 49, 67, .035);
+  box-shadow: 0 2px 6px rgba(21, 27, 68, .035);
   overflow: clip;
   order: 0;
 }
@@ -116,16 +116,16 @@ body.smyl-ui-governed #smyl-daily-home .daily-home-card,
 #smyl-daily-home .daily-home-now-card > header {
   min-height: 73px;
   border-bottom: 0;
-  background: linear-gradient(105deg, #122d43, #153b48);
+  background: linear-gradient(105deg, #101945, #25328a);
 }
 #smyl-daily-home .daily-home-now-card > header h2 { color: #fff; font-size: 20px; }
-#smyl-daily-home .daily-home-now-card > header .daily-home-day-count { color: #cfdee3; }
+#smyl-daily-home .daily-home-now-card > header .daily-home-day-count { color: #ccdbe6; }
 #smyl-daily-home .daily-home-card-actions button,
 #smyl-daily-home .daily-home-card-actions .daily-home-chip.is-toggle {
   min-height: 36px;
   padding: 0 10px;
   margin: 0;
-  border: 1px solid #668492;
+  border: 1px solid #516fa7;
   border-radius: 7px;
   background: transparent;
   color: #fff;
@@ -137,9 +137,9 @@ body.smyl-ui-governed #smyl-daily-home .daily-home-card,
 #smyl-daily-home .daily-home-card-actions button:hover,
 #smyl-daily-home .daily-home-card-actions .daily-home-chip.is-toggle:hover,
 #smyl-daily-home .daily-home-card-actions .daily-home-chip.is-toggle[aria-pressed="true"] {
-  border-color: #a3d5cc;
-  background: #d9eeea;
-  color: #103c3b;
+  border-color: #9dc0db;
+  background: #d9e2ee;
+  color: #0f153d;
 }
 #smyl-daily-home .daily-home-card-actions button[aria-pressed="true"]::before { content: "✓"; }
 #smyl-daily-home .daily-home-chips { border-bottom: 1px solid var(--home-line-soft); }
@@ -169,7 +169,7 @@ body.smyl-ui-governed #smyl-daily-home .daily-home-card,
   overflow-wrap: anywhere;
 }
 #smyl-daily-home .daily-home-now { color: var(--home-teal); }
-#smyl-daily-home .daily-home-now::before, #smyl-daily-home .daily-home-now::after { background: #99c9c3; }
+#smyl-daily-home .daily-home-now::before, #smyl-daily-home .daily-home-now::after { background: #93b5cf; }
 #smyl-daily-home .daily-home-next-list time { color: var(--home-teal); }
 
 #smyl-daily-home .daily-home-priorities > header [data-home-priority-count] {

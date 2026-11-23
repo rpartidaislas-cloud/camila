@@ -2,7 +2,7 @@
 .rv2-stage { position: relative; }
 .rv2-overlay { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .rv2-overlay .rv2-shape { fill: rgba(241, 185, 62, .08); stroke: #f1b93e; stroke-width: 2.5px; stroke-dasharray: 8 5; cursor: pointer; pointer-events: auto; }
-.rv2-overlay .rv2-shape-confirmed { fill: rgba(56, 169, 157, .12); stroke: #38a99d; stroke-dasharray: none; stroke-width: 3px; }
+.rv2-overlay .rv2-shape-confirmed { fill: rgba(26, 86, 199, .12); stroke: #1a56c7; stroke-dasharray: none; stroke-width: 3px; }
 .rv2-overlay .rv2-shape-corrected { fill: rgba(102, 86, 168, .12); stroke: #b9a7ff; stroke-dasharray: 2 5; stroke-width: 3px; }
 .rv2-overlay .rv2-shape-rejected { fill: none; stroke: #9aa7b5; stroke-dasharray: 1 6; stroke-width: 2px; }
 .rv2-overlay .rv2-shape-finding { stroke-linejoin: round; }
@@ -34,7 +34,7 @@
 .rv2-steps button, .rv2-actions button, .rv2-qc .rr-primary { min-height: 44px; }
 .rv2-body { display: grid; gap: 10px; }
 .rv2-figure { margin: 0; display: grid; gap: 4px; justify-items: start; }
-.rv2-crop { display: block; max-width: 100%; height: auto; border: 1px solid var(--rr-line); border-radius: 8px; background: #0b1320; }
+.rv2-crop { display: block; max-width: 100%; height: auto; border: 1px solid var(--rr-line); border-radius: 8px; background: #0a0e21; }
 .rv2-figure figcaption { color: var(--rr-meta); font-size: 12px; }
 .rv2-block { display: grid; gap: 4px; }
 .rv2-block > span:first-child { color: var(--rr-meta); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
@@ -64,6 +64,6 @@
 
 /* Contraste AA (≥ 4.5:1) sobre las superficies claras de la mesa v2, informe, comparador y validación:
    los colores atenuados heredados de la mesa v1 quedaban entre 2.7:1 y 4.2:1. */
-.rv2-dialog .rr-step,.rp-dialog .rr-step,.rl-dialog .rr-step,.rv-dialog .rr-step{color:#0b6b62}
+.rv2-dialog .rr-step,.rp-dialog .rr-step,.rl-dialog .rr-step,.rv-dialog .rr-step{color:#0f25b9}
 .rv2-dialog .rr-section-label,.rv2-dialog .rr-gesture-hint,.rv2-dialog .rv2-block>span:first-child,.rv2-dialog figcaption,.rv2-dialog .rr-location,
 .rp-dialog .rr-section-label,.rl-dialog .rr-section-label,.rv-dialog .rr-section-label,.rl-dialog .rr-location,.rp-dialog .rr-location{color:#4a586d}

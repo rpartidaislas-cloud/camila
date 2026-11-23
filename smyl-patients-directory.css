@@ -3,8 +3,8 @@
 body.smyl-ui-governed #p-pacientes{
   --patient-navy:#0b1f35;
   --patient-navy-2:#12314c;
-  --patient-teal:#61cbbd;
-  --patient-teal-dark:#176d65;
+  --patient-teal:#447ee7;
+  --patient-teal-dark:#2235b4;
   --patient-ink:#102036;
   --patient-muted:#64748b;
   --patient-line:#dce5ee;
@@ -39,10 +39,10 @@ body.smyl-ui-governed #p-pacientes .patient-directory-header{
   min-height:142px;
   padding:26px 28px;
   overflow:hidden;
-  border:1px solid rgba(93,147,174,.24);
+  border:1px solid rgba(66, 113, 201,.24);
   border-radius:18px;
   background:
-    radial-gradient(circle at 84% 20%,rgba(97,203,189,.20),transparent 31%),
+    radial-gradient(circle at 84% 20%,rgba(68, 126, 231,.20),transparent 31%),
     linear-gradient(135deg,var(--patient-navy),var(--patient-navy-2));
   box-shadow:0 18px 44px -32px rgba(7,24,42,.75);
 }
@@ -64,7 +64,7 @@ body.smyl-ui-governed #p-pacientes .patient-directory-header::after{
 body.smyl-ui-governed #p-pacientes .patient-directory-heading{position:relative;z-index:1;min-width:0}
 body.smyl-ui-governed #p-pacientes .patient-directory-header .smyl-ui-eyebrow{
   margin:0 0 7px;
-  color:#83ded2;
+  color:#7bb8e6;
   font-size:12px;
   font-weight:700;
   letter-spacing:.11em;
@@ -97,7 +97,7 @@ body.smyl-ui-governed #p-pacientes .patient-directory-header>.btn{
   font-size:13px;
   font-weight:700;
 }
-body.smyl-ui-governed #p-pacientes .patient-directory-header>.btn:hover{background:#effaf8;border-color:#effaf8;transform:translateY(-1px)}
+body.smyl-ui-governed #p-pacientes .patient-directory-header>.btn:hover{background:#eff4fa;border-color:#eff4fa;transform:translateY(-1px)}
 
 body.smyl-ui-governed #p-pacientes .patient-directory-insights{
   display:grid;
@@ -128,8 +128,8 @@ body.smyl-ui-governed #p-pacientes .patient-insight::after{
   height:3px;
   background:transparent;
 }
-body.smyl-ui-governed #p-pacientes .patient-insight:hover{border-color:#b8d4d1;box-shadow:0 15px 34px -28px rgba(11,31,53,.9);transform:translateY(-1px)}
-body.smyl-ui-governed #p-pacientes .patient-insight.is-active{border-color:#92cfc7;box-shadow:0 0 0 3px rgba(97,203,189,.12)}
+body.smyl-ui-governed #p-pacientes .patient-insight:hover{border-color:#b4c8d8;box-shadow:0 15px 34px -28px rgba(11,31,53,.9);transform:translateY(-1px)}
+body.smyl-ui-governed #p-pacientes .patient-insight.is-active{border-color:#8bb5d6;box-shadow:0 0 0 3px rgba(68, 126, 231,.12)}
 body.smyl-ui-governed #p-pacientes .patient-insight.is-active::after{background:var(--patient-teal)}
 body.smyl-ui-governed #p-pacientes .patient-insight:disabled{cursor:wait;opacity:.68;transform:none;box-shadow:none}
 body.smyl-ui-governed #p-pacientes .patient-insight-icon{
@@ -138,7 +138,7 @@ body.smyl-ui-governed #p-pacientes .patient-insight-icon{
   width:46px;
   height:46px;
   border-radius:13px;
-  background:#eaf6f4;
+  background:#eaeff6;
   color:var(--patient-teal-dark);
 }
 body.smyl-ui-governed #p-pacientes .patient-insight:nth-child(2) .patient-insight-icon{background:#eaf0f7;color:#28547a}
@@ -174,7 +174,7 @@ body.smyl-ui-governed #p-pacientes .patient-search-field .search-inp{
   font-size:14px;
 }
 body.smyl-ui-governed #p-pacientes .patient-search-field .search-inp::placeholder{color:#8491a2}
-body.smyl-ui-governed #p-pacientes .patient-search-field .search-inp:focus{border-color:#3c8c84;box-shadow:0 0 0 3px rgba(97,203,189,.20);background:#fff}
+body.smyl-ui-governed #p-pacientes .patient-search-field .search-inp:focus{border-color:#2451a4;box-shadow:0 0 0 3px rgba(68, 126, 231,.20);background:#fff}
 body.smyl-ui-governed #p-pacientes .patient-filter-group{display:grid;gap:7px;min-width:0}
 body.smyl-ui-governed #p-pacientes .patient-filter-pills{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;gap:5px;width:100%;padding:4px;border:1px solid #dbe4ec;border-radius:12px;background:#f3f6f9}
 body.smyl-ui-governed #p-pacientes .patient-filter-pills button{
@@ -240,8 +240,8 @@ body.smyl-ui-governed #p-pacientes .clinic-patient-table td{
   line-height:1.45;
 }
 body.smyl-ui-governed #p-pacientes .clinic-patient-table tbody tr{position:relative;cursor:pointer;transition:background-color .14s ease,box-shadow .14s ease}
-body.smyl-ui-governed #p-pacientes .clinic-patient-table tbody tr:hover{background:#f4faf9;box-shadow:inset 3px 0 0 var(--patient-teal)}
-body.smyl-ui-governed #p-pacientes .clinic-patient-table tbody tr:focus-visible{outline:2px solid #2f7f78;outline-offset:-2px;background:#f4faf9}
+body.smyl-ui-governed #p-pacientes .clinic-patient-table tbody tr:hover{background:#f4f7fa;box-shadow:inset 3px 0 0 var(--patient-teal)}
+body.smyl-ui-governed #p-pacientes .clinic-patient-table tbody tr:focus-visible{outline:2px solid #4252bd;outline-offset:-2px;background:#f4f7fa}
 body.smyl-ui-governed #p-pacientes .clinic-patient-table tbody tr:last-child td{border-bottom:0}
 body.smyl-ui-governed #p-pacientes .clinic-patient-table .clinic-patient-row{display:table-row;border:0;background:transparent}
 body.smyl-ui-governed #p-pacientes .clinic-patient-identity-inner{gap:13px}
@@ -249,10 +249,10 @@ body.smyl-ui-governed #p-pacientes .clinic-patient-identity .clinic-avatar{
   width:46px;
   height:46px;
   flex:0 0 46px;
-  border:1px solid #bcded8;
+  border:1px solid #b8d0e2;
   border-radius:14px;
-  background:linear-gradient(145deg,#e9f7f4,#dcece9);
-  color:#155f58;
+  background:linear-gradient(145deg,#e9eff7,#dce3ec);
+  color:#2132a5;
   font-size:13px;
   font-weight:700;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.82);
@@ -262,7 +262,7 @@ body.smyl-ui-governed #p-pacientes .clinic-patient-name small{max-width:390px;ma
 body.smyl-ui-governed #p-pacientes .clinic-patient-agenda{display:grid;gap:3px;margin:0}
 body.smyl-ui-governed #p-pacientes .clinic-patient-agenda strong{color:#26384f;font-size:13px;font-weight:700;line-height:1.4}
 body.smyl-ui-governed #p-pacientes .clinic-patient-agenda small{color:#68778b;font-size:12px;font-weight:500;line-height:1.35}
-body.smyl-ui-governed #p-pacientes .clinic-patient-agenda[data-tone=next] strong{color:#0e6e57}
+body.smyl-ui-governed #p-pacientes .clinic-patient-agenda[data-tone=next] strong{color:#132aba}
 body.smyl-ui-governed #p-pacientes .clinic-patient-state{vertical-align:middle}
 body.smyl-ui-governed #p-pacientes .clinic-patient-status{
   display:inline-flex;
@@ -294,7 +294,7 @@ body.smyl-ui-governed #p-pacientes .clinic-patient-open{
   font-weight:700;
   vertical-align:middle;
 }
-body.smyl-ui-governed #p-pacientes .clinic-patient-open:hover{border-color:#8ebfb9;background:#eff8f6;color:#105c55}
+body.smyl-ui-governed #p-pacientes .clinic-patient-open:hover{border-color:#87abc6;background:#eff3f8;color:#192ba5}
 body.smyl-ui-governed #p-pacientes .clinic-patient-menu{position:relative;display:inline-block;margin-left:7px;vertical-align:middle}
 body.smyl-ui-governed #p-pacientes .clinic-patient-menu>summary{
   display:grid;
@@ -309,7 +309,7 @@ body.smyl-ui-governed #p-pacientes .clinic-patient-menu>summary{
 }
 body.smyl-ui-governed #p-pacientes .clinic-patient-menu>summary::-webkit-details-marker{display:none}
 body.smyl-ui-governed #p-pacientes .clinic-patient-menu>summary:hover,
-body.smyl-ui-governed #p-pacientes .clinic-patient-menu[open]>summary{border-color:#8ebfb9;background:#eff8f6;color:#105c55}
+body.smyl-ui-governed #p-pacientes .clinic-patient-menu[open]>summary{border-color:#87abc6;background:#eff3f8;color:#192ba5}
 body.smyl-ui-governed #p-pacientes .clinic-patient-menu-panel{
   position:absolute;
   z-index:30;
@@ -335,7 +335,7 @@ body.smyl-ui-governed #p-pacientes .clinic-patient-menu-action{
   font-weight:600;
   text-align:left;
 }
-body.smyl-ui-governed #p-pacientes .clinic-patient-menu-action:hover{background:#eef6f4;color:#105c55}
+body.smyl-ui-governed #p-pacientes .clinic-patient-menu-action:hover{background:#eef1f6;color:#192ba5}
 body.smyl-ui-governed #p-pacientes .clinic-patient-message{padding:16px}
 body.smyl-ui-governed #p-pacientes .clinic-patient-empty{min-height:300px}
 
@@ -507,6 +507,6 @@ body.smyl-ui-governed #p-pacientes .patient-loading span::after{
 body.smyl-ui-governed #p-pacientes .clinic-patient-row{cursor:pointer}
 body.smyl-ui-governed #p-pacientes .clinic-patient-row:hover{background:#f6fafb}
 body.smyl-ui-governed #p-pacientes .clinic-patient-name-open{display:block;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;font-weight:700;text-align:left;cursor:pointer}
-body.smyl-ui-governed #p-pacientes .clinic-patient-name-open:focus-visible{outline:2px solid #2f7d74;outline-offset:3px;border-radius:4px}
+body.smyl-ui-governed #p-pacientes .clinic-patient-name-open:focus-visible{outline:2px solid #4253bb;outline-offset:3px;border-radius:4px}
 body.smyl-ui-governed #p-pacientes .clinic-patient-chevron{display:inline-block;margin-left:10px;vertical-align:middle;color:#7b8fa3;font-size:22px;line-height:1}
 @media(max-width:700px){body.smyl-ui-governed #p-pacientes .clinic-patient-chevron{display:none}}
