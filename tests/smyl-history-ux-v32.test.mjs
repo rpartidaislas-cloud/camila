@@ -134,10 +134,10 @@ test('Web, móvil y PWA publican la misma versión de Historia clínica', () => 
   assert.equal(app, mobileApp);
   assert.equal(read('smyl-patient-360.js'), read('mobile/www/smyl-patient-360.js'));
   assert.equal(css, read('mobile/www/smyl-patient-360.css'));
-  assert.match(app, /smyl-patient-360\.css\?v=22/);
-  assert.match(sw, /smyl-patient-360\.css\?v=22/);
-  assert.match(app, /smyl-patient-360\.js\?v=38/);
-  assert.match(sw, /smyl-patient-360\.js\?v=38/);
+  assert.match(app, /smyl-patient-360\.css\?v=23/);
+  assert.match(sw, /smyl-patient-360\.css\?v=23/);
+  assert.match(app, /smyl-patient-360\.js\?v=39/);
+  assert.match(sw, /smyl-patient-360\.js\?v=39/);
   assert.match(sw, /history-focused-v71/);
 });
 

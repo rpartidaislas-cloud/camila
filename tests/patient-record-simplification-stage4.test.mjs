@@ -10,7 +10,7 @@ const recordCss = read('../smyl-patient-360.css');
 const app = read('../app.html');
 
 test('la ficha ordena la navegación clínica en el orden de una consulta', () => {
-  for (const label of ['Resumen','Historia clínica','Evoluciones y citas','Tratamiento','Imágenes y estudios']) assert.match(record, new RegExp(`>${label}<`));
+  for (const label of ['Resumen','Historia clínica','Consulta','Tratamiento','Imágenes y estudios']) assert.match(record, new RegExp(`>${label}<`));
   assert.doesNotMatch(record, /data-p360-scroll="p360-cases"/);
   assert.match(record, /data-p360-tab="treatment"/);
   assert.match(record, /p360-treatment-hidden/);
@@ -41,9 +41,9 @@ test('simulaciones permanece fuera del archivo de evidencia', () => {
 });
 
 test('la simplificación se distribuye en web, móvil y PWA', () => {
-  assert.match(app, /smyl-patient-360\.css\?v=22/);
-  assert.match(app, /smyl-patient-360\.js\?v=38/);
-  assert.match(app, /smyl-case-workspace\.js\?v=50/);
+  assert.match(app, /smyl-patient-360\.css\?v=23/);
+  assert.match(app, /smyl-patient-360\.js\?v=39/);
+  assert.match(app, /smyl-case-workspace\.js\?v=51/);
   assert.match(read('../sw.js'), /smyl-v263-lana-connection-recovery/);
   assert.equal(app, read('../mobile/www/app.html'));
   assert.equal(read('../smyl-patient-360.js'), read('../mobile/www/smyl-patient-360.js'));

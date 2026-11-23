@@ -5,6 +5,7 @@
   const tools = [
     { id: 'periodontal', label: 'Periodontograma', detail: 'Sondaje por pieza', icon: '<path d="M4 18h16M5 14l4-4 4 2 6-7M5 17v2m4-2v2m4-2v2m4-2v2"/>' },
     { id: 'interview', label: 'Entrevista con MILA', detail: 'Historia clínica', icon: '<rect x="9" y="3" width="6" height="12" rx="3"/><path d="M6 10v2a6 6 0 0 0 12 0v-2m-6 8v3m-3 0h6"/>' },
+    { id: 'procedure', label: 'Procedimiento', detail: 'Verificación y anestesia', icon: '<path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="8"/>' },
     { id: 'guided-photos', label: 'Fotografías guiadas', detail: 'Serie intraoral', icon: '<path d="M3 7h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="13" r="3.4"/>' },
     { id: 'simulator', label: 'Simulador de carillas', detail: 'Diseño de sonrisa', icon: '<path d="M3 10c3 1.7 6 2.5 9 2.5s6-.8 9-2.5c-1.2 5-5.1 8-9 8s-7.8-3-9-8Zm5 2v3m4-2.5V16m4-4v3"/>' }
   ];
@@ -145,16 +146,18 @@
         url.search = new URLSearchParams({workspace:'professional',patient:person.id,clinic:s.tenant,from:'consultorio'}).toString();
         location.assign(url.href);
       } else {
-        if (tool.id === 'interview') {
+        if (tool.id === 'interview' || tool.id === 'procedure') {
           const access = await window.SmylConsultorio?.accessFor?.(s.tenant);
           ensureCurrent(s);
-          if (!access || (!access.owner && !(access.perms.includes('clinical.read') && access.perms.includes('clinical.write')))) throw new Error('Tu cuenta necesita permiso de lectura y edición clínica para iniciar la entrevista.');
+          if (!access || (!access.owner && !(access.perms.includes('clinical.read') && access.perms.includes('clinical.write')))) throw new Error('Tu cuenta necesita permiso de lectura y edición clínica para ' + (tool.id === 'procedure' ? 'registrar un procedimiento.' : 'iniciar la entrevista.'));
         }
         if (typeof window.verPaciente !== 'function' || !(await window.verPaciente(person.id))) throw new Error('No se pudo abrir el expediente seleccionado.');
         ensureCurrent(s);
         const selected = window.pacienteActual;
         if (selected?.id !== person.id || selected._local || (selected.tenant_id && selected.tenant_id !== s.tenant) || !document.querySelector('#p-paciente-detalle.activa')) throw new Error('El paciente activo cambió. Vuelve a elegir la herramienta.');
-        const opened = tool.id === 'interview'
+        const opened = tool.id === 'procedure'
+          ? window.SmylProcedureSafety?.open({tenant:s.tenant,patient:person.id,patientName:person.name,appointmentId:s.appointmentId})
+          : tool.id === 'interview'
           ? window.SmylMilaInterview?.open({tenant:s.tenant,patient:person.id,patientInfo:patient,appointmentId:s.appointmentId,view:'clinic',returnFocus:document.querySelector('#p-paciente-detalle .clinic-back')})
           : await window.SmylCaseWorkspace?.openChairside(tool.id,s.tenant,person.id,{isCurrent:() => current(s)});
         if (!opened) throw new Error('No se pudo abrir la herramienta. Inténtalo de nuevo.');
