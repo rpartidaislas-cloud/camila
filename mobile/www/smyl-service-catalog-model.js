@@ -13,6 +13,10 @@
     ['aesthetic','Estética y carillas'],['orthodontic','Ortodoncia'],['implantology','Implantología'],
     ['pediatric','Odontopediatría'],['emergency','Urgencias'],['imaging','Imagen y laboratorio'],['other','Otros']
   ];
+  // Tratamiento de IVA del servicio (la base lo exige distinto de «pendiente» para poder marcarlo como revisado). Exento y con IVA llevan ObjetoImp 02; no objeto, 01.
+  var TAX_TREATMENTS = [
+    ['pending','Pendiente de definir'],['exempt','Exento de IVA (servicios dentales profesionales)'],['rate','Con IVA 16 %'],['non_object','No objeto de IVA']
+  ];
   var SCOPES = [
     ['session','Sesión'],['tooth','Pieza'],['teeth','Varias piezas'],['surface','Superficie dental'],
     ['quadrant','Cuadrante o sextante'],['arch','Arcada'],['phase','Fase'],['package','Paquete'],['general','General']
@@ -52,6 +56,7 @@
     p('periodontic-scaling','periodontic','Raspado y alisado radicular','quadrant','per_quadrant',60,SAT.dentist,'periodontic'),
     p('periodontic-gingivectomy','periodontic','Gingivectomía','quadrant','per_quadrant',90,SAT.dentist,'periodontic'),
     p('periodontic-crown-lengthening','periodontic','Alargamiento coronario','tooth','per_tooth',90,SAT.dentist,'periodontic'),
+    p('periodontic-gingivoplasty','periodontic','Gingivoplastia / contorneado gingival','arch','per_arch',60,SAT.dentist,'periodontic'),
     p('periodontic-graft','periodontic','Injerto periodontal','quadrant','per_quadrant',120,SAT.dentist,'periodontic'),
     p('surgery-extraction','surgery','Extracción simple','tooth','per_tooth',45,SAT.oral_surgery,'surgery'),
     p('surgery-complex-extraction','surgery','Extracción quirúrgica','tooth','per_tooth',90,SAT.oral_surgery,'surgery'),
@@ -69,6 +74,7 @@
     p('aesthetic-ceramic-veneer','aesthetic','Carilla cerámica','tooth','per_tooth',75,SAT.dentist,'aesthetic'),
     p('aesthetic-mockup','aesthetic','Encerado diagnóstico y mock-up','package','package',90,SAT.dentist,'aesthetic'),
     p('aesthetic-contouring','aesthetic','Contorneado estético','teeth','per_tooth',60,SAT.dentist,'aesthetic'),
+    p('aesthetic-smile-simulation','aesthetic','Simulación de diseño de sonrisa','general','fixed',30,SAT.dentist,'aesthetic'),
     p('ortho-study','orthodontic','Estudio de ortodoncia','package','package',90,SAT.orthodontics,'orthodontic'),
     p('ortho-brackets','orthodontic','Colocación de brackets','package','package',120,SAT.orthodontics,'orthodontic'),
     p('ortho-control','orthodontic','Control de ortodoncia','session','per_session',30,SAT.orthodontics,'orthodontic'),
@@ -97,15 +103,19 @@
   function normalize(input) {
     var row = input || {};
     var price = row.reference_price === '' || row.reference_price == null ? null : Number(row.reference_price);
+    var treatment = TAX_TREATMENTS.some(function (t) { return t[0] === row.tax_treatment; }) ? row.tax_treatment : 'pending';
+    var rate = row.tax_rate === '' || row.tax_rate == null ? NaN : Number(row.tax_rate);
     return {
       template_key: row.template_key || null,
       name: String(row.name || '').trim(), patient_name: String(row.patient_name || row.name || '').trim(),
-      description: String(row.description || '').trim(), category: row.category || 'other', specialty: row.specialty || row.category || 'general',
+      description: String(row.description || '').trim(), prep_instructions: String(row.prep_instructions || '').trim(), category: row.category || 'other', specialty: row.specialty || row.category || 'general',
       duration_minutes: Number(row.duration_minutes || 60), reference_price: Number.isFinite(price) ? price : null,
       currency: row.currency || 'MXN', scope_type: row.scope_type || 'session', pricing_mode: row.pricing_mode || 'fixed',
       sat_product_service_code: String(row.sat_product_service_code || '').trim() || null,
       sat_unit_code: String(row.sat_unit_code || '').trim().toUpperCase() || null,
-      tax_object_code: String(row.tax_object_code || '').trim() || null,
+      tax_treatment: treatment, tax_rate: treatment === 'rate' ? (Number.isFinite(rate) ? rate : 0.16) : null,
+      // La base exige que el objeto de impuesto coincida con el tratamiento: se deriva aquí para que nunca se contradigan.
+      tax_object_code: treatment === 'non_object' ? '01' : (treatment === 'exempt' || treatment === 'rate') ? '02' : (String(row.tax_object_code || '').trim() || null),
       fiscal_status: row.fiscal_status === 'reviewed' ? 'reviewed' : 'pending', active: row.active !== false,
       featured: row.featured === true
     };
@@ -113,6 +123,7 @@
   function validate(input) {
     var row = normalize(input), errors = [];
     if (row.name.length < 2 || row.name.length > 100) errors.push('El nombre debe tener entre 2 y 100 caracteres.');
+    if (row.prep_instructions.length > 400) errors.push('Las instrucciones antes de la cita admiten hasta 400 caracteres.');
     if (!oneOf(CATEGORIES,row.category)) errors.push('La categoría no es válida.');
     if (!oneOf(SCOPES,row.scope_type)) errors.push('La unidad clínica no es válida.');
     if (!oneOf(PRICING,row.pricing_mode)) errors.push('La modalidad de precio no es válida.');
@@ -121,10 +132,12 @@
     if (row.sat_product_service_code && !/^\d{8}$/.test(row.sat_product_service_code)) errors.push('Clave SAT debe contener 8 dígitos.');
     if (row.sat_unit_code && !/^[A-Z0-9]{1,8}$/.test(row.sat_unit_code)) errors.push('Clave de unidad SAT no válida.');
     if (row.tax_object_code && !/^\d{2}$/.test(row.tax_object_code)) errors.push('Objeto de impuesto debe contener 2 dígitos.');
+    if (row.tax_rate != null && !(row.tax_rate >= 0 && row.tax_rate <= 1)) errors.push('La tasa de IVA no es válida.');
+    if (row.fiscal_status === 'reviewed' && row.tax_treatment === 'pending') errors.push('Elige el tratamiento de IVA (exento, con IVA o no objeto) para marcar el servicio como revisado.');
     return errors;
   }
   function presetInsert(preset, tenantId, actorId) {
     var row = normalize(preset); row.tenant_id=tenantId; row.created_by=actorId; row.template_key=preset.key; row.fiscal_status='pending'; return row;
   }
-  return Object.freeze({categories:CATEGORIES,scopes:SCOPES,pricingModes:PRICING,presets:PRESETS,satSuggestions:SAT,normalize:normalize,validate:validate,presetInsert:presetInsert});
+  return Object.freeze({categories:CATEGORIES,scopes:SCOPES,pricingModes:PRICING,taxTreatments:TAX_TREATMENTS,presets:PRESETS,satSuggestions:SAT,normalize:normalize,validate:validate,presetInsert:presetInsert});
 });

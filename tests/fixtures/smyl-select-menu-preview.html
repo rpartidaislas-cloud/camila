@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>*{box-sizing:border-box;margin:0}body{font-family:system-ui;background:#f4f6f8}select{font-size:16px!important}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:272px;background:#10283a;padding:12px}</style>
+<link rel="stylesheet" href="../../smyl-select-menu.css">
+<style>
+.sb-branch-field{position:relative;display:flex;align-items:center;min-height:36px;border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;padding:0 10px}
+.sb-branch select{position:absolute;inset:0;width:100%;height:100%;opacity:0}
+</style></head>
+<body class="smyl-ui-governed">
+<aside class="sidebar"><div class="sb-branch"><div class="sb-branch-field"><span>Sucursal Centro</span>
+<select id="sb-branch-select" aria-label="Consultorio que administras">
+<option value="b1">Circulo Medico Dental</option><option value="b2" selected>Sucursal Centro</option><option value="b3">Sucursal Lomas Verdes</option><option value="b4">Sucursal Plaza Sol</option><option value="all">Todos los consultorios</option>
+</select></div></div></aside>
+<main style="margin-left:300px;padding:40px">
+<section id="p-agenda"><div class="schedule-filters">
+<label class="schedule-filter"><span>Sucursal</span><select id="schedule-branch" aria-label="Filtrar sucursal"><option value="">Todas las sucursales</option><option value="b1">Circulo Medico Dental</option><option value="b2">Sucursal Centro</option><option value="b3">Sucursal Lomas Verdes</option><option value="b4">Sucursal Plaza Sol</option><option value="b5">Sucursal Andares</option><option value="b6">Sucursal Tlaquepaque</option></select></label>
+<label class="schedule-filter"><span>Sillón</span><select id="schedule-room" aria-label="Filtrar por sillón"><option value="">Todos los sillones</option><option value="r1">Sillón 1</option></select></label>
+</div></section>
+<select id="otro"><option>Otro</option><option>Otra</option></select>
+</main>
+<script>window.changes=[];document.addEventListener('change',function(e){window.changes.push(e.target.id+'='+e.target.value);});</script>
+<script src="../../smyl-select-menu.js"></script>
+</body></html>

@@ -10,12 +10,18 @@
   const displayName = p => [p.nombre, p.apellido].filter(Boolean).join(' ');
   let busy = false, attempt = null, saved = null, api = null, snap = null, connectionTenant = null, sequence = 0;
   let linkedPatient = null, linkedTenant = null, autoAttempt = null, autoSnap = null, lastAutoSnap = null, autoBusy = false, autoFailed = false;
+  const consultorioCase = document.documentElement.hasAttribute('data-consultorio-case');
   const equalSnap = (a,b) => a && b && a.photos.length === b.photos.length && a.photos.every((p,i) => p.view === b.photos[i].view && p.original === b.photos[i].original && p.result === b.photos[i].result);
   function autoStatus(message) { if ($('pc-state')) $('pc-state').textContent = message; }
-  async function autoSave(retry) {
+  let autoTask = null;
+  function autoSave(retry) {
+    if (!autoTask) autoTask = saveAcceptedViews(retry).finally(() => { autoTask = null; });
+    return autoTask;
+  }
+  async function saveAcceptedViews(retry) {
     if (!linkedPatient || autoBusy || busy || !professionalStudio() || CFG.tenantId !== linkedTenant || CFG.userId !== linkedTenant || (autoFailed && !retry)) return;
     let next; try { next = M.snapshot(S); } catch (_) { return; }
-    if (!autoAttempt && equalSnap(next,lastAutoSnap)) return;
+    if (!autoAttempt && equalSnap(next,lastAutoSnap)) return true;
     autoBusy = true; autoStatus('Guardando en ' + displayName(linkedPatient) + '…');
     try {
       const tenant = linkedTenant, patient = linkedPatient.id;
@@ -23,14 +29,16 @@
       const client = await C.connect(window.sbAuth, tenant, current);
       if (!autoAttempt) { autoSnap = next; const id = crypto.randomUUID(); autoAttempt = {id,patient_id:patient,...await M.prepare(next,tenant,id)}; }
       await client.save(autoAttempt);
+      if (!current()) return false;
       lastAutoSnap = autoSnap; autoAttempt = null; autoFailed = false;
       autoStatus('Guardado en ' + displayName(linkedPatient) + ' · sin aprobar tratamiento');
       $('pc-save-entry').textContent = 'Abrir ficha del paciente';
+      return true;
     } catch (_) { autoFailed = true; autoStatus('No se pudo confirmar el guardado. Conserva esta pantalla.'); $('pc-save-entry').textContent = 'Reintentar guardado'; }
     finally { autoBusy = false; }
   }
   const inStudio = () => typeof CFG !== 'undefined' && typeof S !== 'undefined';
-  const professionalStudio = () => inStudio() && !CFG.modoProspecto && (new URLSearchParams(location.search).get('workspace') === 'professional' || (!!CFG.userId && CFG.userId === CFG.tenantId));
+  const professionalStudio = () => inStudio() && !CFG.modoProspecto && (!consultorioCase || document.documentElement.dataset.consultorioCase === 'ready') && (new URLSearchParams(location.search).get('workspace') === 'professional' || (!!CFG.userId && CFG.userId === CFG.tenantId));
   function studioCurrent() {
     return professionalStudio() && CFG.tenantId === connectionTenant && CFG.userId === connectionTenant;
   }
@@ -45,6 +53,7 @@
     $('pc-patient').required = !fresh; $('pc-patient').disabled = fresh;
   }
   async function openSave() {
+    if (consultorioCase) return autoSave(true);
     if (!professionalStudio() || busy) return;
     if (saved && snapshotMatches()) { $('pc-save-dialog').showModal(); return; }
     $('pc-save-dialog').showModal();
@@ -114,9 +123,14 @@
     const entry = node('section', 'pc-entry');
     const text = node('div'), status = node('p','','Sin guardar en paciente'); status.id = 'pc-state'; status.setAttribute('role','status');
     text.append(node('h2','','Tu simulación'),status);
+    async function reviewConsultorioCase() {
+      if (!await autoSave(true) || !professionalStudio() || CFG.userId !== linkedTenant || CFG.tenantId !== linkedTenant) return;
+      location.href = 'app.html#patient=' + encodeURIComponent(linkedPatient.id);
+    }
     const start = button('Guardar en un paciente', () => {
       if (autoBusy) return;
       if (autoFailed) return autoSave(true);
+      if (consultorioCase) return reviewConsultorioCase();
       if (linkedPatient) { location.href = 'app.html#patient=' + encodeURIComponent(linkedPatient.id); return; }
       return openSave();
     }, 'pc-primary'); start.id = 'pc-save-entry'; entry.append(text,start);
@@ -124,13 +138,44 @@
     // Only the professional workspace uses the new connector. Public lead/LANA
     // legacy flows remain untouched and are not called as fallback by this route.
     const previousSave = window.guardarCaso;
-    window.guardarCaso = function () { return professionalStudio() ? openSave() : previousSave(); };
+    window.guardarCaso = function () { return consultorioCase || professionalStudio() ? openSave() : previousSave(); };
     const sync = () => { entry.hidden = !professionalStudio(); if ($('case-actions-box')) $('case-actions-box').hidden = professionalStudio(); };
     new MutationObserver(sync).observe(document.body, { attributes:true, attributeFilter:['class'], subtree:true }); sync();
     const params = new URLSearchParams(location.search), requestedPatient = params.get('patient'), requestedTenant = params.get('clinic');
+    async function openConsultorioCase() {
+      try {
+        if (params.get('workspace') !== 'professional' || params.has('clinica') || params.has('origen') || params.has('diagnostico') ||
+            !M.uuid(requestedTenant) || !M.uuid(requestedPatient) || !window.SmylSecureFiles?.verify) throw new Error();
+        const auth = await window.sbAuth.auth.getSession();
+        const session = auth.data?.session;
+        if (auth.error || !session?.access_token || session.user?.id !== requestedTenant || session.user.is_anonymous !== false) throw new Error();
+        CFG.userToken = session.access_token;
+        CFG.userId = session.user.id;
+        await cargarTenantConfig(requestedTenant);
+        const current = () => !!CFG.userToken && !CFG.modoProspecto && CFG.userId === requestedTenant && CFG.tenantId === requestedTenant;
+        const client = await C.connect(window.sbAuth, requestedTenant, current);
+        const patient = await client.patient(requestedPatient);
+        if (!current()) throw new Error();
+        linkedPatient = patient; linkedTenant = requestedTenant; CFG.consultorioPatientId = patient.id;
+        const name = displayName(patient) || 'Paciente';
+        for (const caption of document.querySelectorAll('.flow-home > p:first-of-type, #s-photos .flow-title > p')) {
+          caption.textContent = 'Expediente de ' + name;
+        }
+        autoStatus('Paciente: ' + name + ' · las vistas aceptadas se guardarán en su expediente');
+        $('pc-save-entry').textContent = 'Abrir ficha del paciente';
+        configurarExperienciaModo(false);
+        actualizarBotonLoginSim();
+        show('s-intro');
+        document.documentElement.dataset.consultorioCase = 'ready';
+        sync();
+      } catch (_) {
+        document.documentElement.dataset.consultorioCase = 'blocked';
+        $('consultorio-case-status').textContent = 'No se pudo verificar el acceso a este expediente. Vuelve al consultorio e inténtalo de nuevo con la cuenta titular.';
+      }
+    }
     let linking = false;
     async function tick() {
-      if (M.uuid(requestedPatient) && !linkedPatient && !linking && professionalStudio() && CFG.userId) {
+      if (!consultorioCase && M.uuid(requestedPatient) && !linkedPatient && !linking && professionalStudio() && CFG.userId) {
         linking = true;
         try {
           if (CFG.tenantId !== requestedTenant || CFG.userId !== requestedTenant) throw new Error('Wrong clinic');
@@ -143,6 +188,13 @@
         } catch (_) { autoStatus('No se pudo verificar la ficha. Selecciona el paciente para guardar.'); }
       }
       await autoSave(false);
+    }
+    if (consultorioCase) {
+      // La revisión del caso vinculado vive en su ficha. El editor antiguo crea un caso independiente.
+      window.abrirRevisionClinica = reviewConsultorioCase;
+      $('btn-revision-clinica').textContent = 'Revisar en el expediente';
+      openConsultorioCase();
+      addEventListener('pageshow', event => { if (event.persisted) location.reload(); });
     }
     setInterval(tick,1500); tick();
     addEventListener('beforeunload', e => { let pending=false; try { pending=linkedPatient && !equalSnap(M.snapshot(S),lastAutoSnap); } catch (_) {} if (busy || attempt || autoBusy || autoAttempt || pending) { e.preventDefault(); e.returnValue = ''; } });
@@ -250,8 +302,43 @@
         [['Sesiones',cases],['Fotografías',photos],['Simulaciones',results]].forEach(item=>{const card=node('div');card.append(node('span','',item[0]),node('strong','',ready?String(item[1]):'—'));summary.append(card);});
         dispatchEvent(new CustomEvent('smyl:patient-simulations-updated',{detail:{tenant,patient,ready,cases,photos,results}}));
       };
+      // Cobro de la simulación: precio del catálogo («Simulación de diseño de sonrisa»), una vez por simulación,
+      // y se descuenta de las carillas al iniciar el tratamiento (smyl_post_proposal_charges_v2).
+      const billingBoxes = new Map(), credit = node('aside','pc-credit'); credit.hidden = true; notice.after(credit);
+      const money = v => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(Number(v)||0);
+      async function loadBilling() {
+        let info;
+        try { const r = await sb.rpc('smyl_patient_simulation_billing',{p_patient_id:patient}); if (r.error) throw r.error; info = r.data; }
+        catch (_) { return; } // Sin permiso de finanzas o migración pendiente: la galería sigue igual, sin cobros.
+        if (!current() || !info) return;
+        const byCase = new Map((info.charges||[]).map(c => [c.case_id,c]));
+        // Se descuenta una simulación por tratamiento: la cobrada más reciente que aún no se ha usado.
+        const next = (info.charges||[]).find(c => !c.credited_charge_id);
+        credit.hidden = !next;
+        if (next) credit.replaceChildren(node('strong','','💳 '+money(next.total)+' a favor para carillas'),node('span','','Si acepta carillas, se descuenta al iniciar el tratamiento.'));
+        billingBoxes.forEach((box,caseId) => {
+          const charge = byCase.get(caseId); box.replaceChildren(); box.hidden = false;
+          if (charge) {
+            const paid = Number(charge.paid) >= Number(charge.total);
+            box.append(node('span','pc-chip '+(paid?'is-paid':'is-due'),(paid?'✓ Pagada · ':'💳 Por pagar · ')+money(charge.total)));
+            if (charge.credited_charge_id) box.append(node('span','pc-chip is-credited','↘ Descontada de carillas'));
+            else if (charge === next) box.append(node('span','pc-chip is-credit','↘ Se descuenta si acepta carillas'));
+          } else if (info.can_charge && Number(info.price) > 0) {
+            const charge = button('💳 Cobrar simulación · '+money(info.price), async () => {
+              if (!window.confirm('¿Registrar el cobro de esta simulación por '+money(info.price)+'?\n\nSi el paciente acepta carillas, este importe se le descontará.')) return;
+              charge.disabled = true; charge.textContent = 'Registrando…';
+              try { const r = await sb.rpc('smyl_post_simulation_charge',{p_id:crypto.randomUUID(),p_idempotency_key:crypto.randomUUID(),p_case_id:caseId}); if (r.error) throw r.error; }
+              catch (error) { window.alert(error?.message || 'No se pudo registrar el cobro.'); }
+              if (current()) loadBilling();
+            }, 'pc-secondary');
+            box.append(charge);
+          } else if (info.can_charge) {
+            box.append(node('small','pc-billing-hint','Para cobrarla, ponle precio a «Simulación de diseño de sonrisa» en Servicios y tarifas.'));
+          } else box.hidden = true;
+        });
+      }
       async function load() {
-        gallery.dataset.loadState = 'loading'; gallery.smylCaseEntries = [];
+        gallery.dataset.loadState = 'loading'; gallery.smylCaseEntries = []; billingBoxes.clear(); credit.hidden = true;
         publishSummary(false,0,0,0);
         body.replaceChildren(skeleton('cards',{count:3,media:true,label:'Consultando sus simulaciones'}));
         if (pacienteActual._local || window.miRolEquipo !== 'dueño') { gallery.dataset.loadState = 'unavailable'; body.textContent = 'La consulta de este archivo visual requiere una ficha en nube y la cuenta titular.'; return; }
@@ -308,10 +395,12 @@
             });comparison.dataset.workspaceAction='comparison';tools.append(comparison);
             const preview=button('Vista previa de mySmyl',()=>openMyPreview(api,row,current));preview.dataset.workspaceAction='preview';
             const previewHelp=node('small','','Consulta rápida. Para enviar la propuesta, usa la etapa Compartir.');previewHelp.dataset.workspaceAction='preview';tools.append(preview,previewHelp);
+            const billing=node('div','pc-billing');billing.dataset.caseBilling=row.id;billing.hidden=true;description.append(billing);billingBoxes.set(row.id,billing);
             card.append(description,actions); body.append(card);
             gallery.smylCaseEntries.push({row,card,review:()=>reviewEntry.click(),present:()=>window.MySmylPortal?.open({api,row,current}),current});
           });
           gallery.dataset.loadState = 'ready';
+          loadBilling();
         } catch (error) { if (current()) { gallery.dataset.loadState = 'error'; publishSummary(false,0,0,0); body.replaceChildren(node('p','',['PGRST202','42883','CASE_UNAVAILABLE'].includes(error.code) ? 'El archivo seguro de simulaciones aún no está activado para esta clínica. No se mostrará información incompleta ni copias locales.' : M.message(error)),button('Volver a consultar', load)); } }
       }
       load();

@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Aviso de privacidad · SMYL</title>
+  <meta name="theme-color" content="#0B1B2E">
+  <link rel="icon" href="icons/smyl_pwa.png">
+  <style>
+    :root{--navy:#0B1B2E;--ink:#17283c;--muted:#5d6b7c;--line:#dde5ee;--bg:#f3f6fb;--teal:#2a40d1;--teal-d:#2235b3;--tealbg:#e7edf4;--warn:#7a5200;--warnbg:#fff6dd;--bad:#a02a1d;--badbg:#fdecea}
+    *{box-sizing:border-box}
+    html{-webkit-text-size-adjust:100%}
+    body{margin:0;min-height:100vh;min-height:100dvh;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+    .app{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;max-width:560px;margin:0 auto}
+    .head{padding:calc(14px + env(safe-area-inset-top)) 20px 14px;background:var(--navy);color:#fff}
+    .who{display:flex;align-items:center;gap:12px}
+    .logo{flex:none;width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-weight:700;font-size:18px}
+    .who small{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.72}
+    .who b{display:block;font-size:17px;line-height:1.25}
+    .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:14px 0 0;padding:0;list-style:none}
+    .steps li{font-size:12px;font-weight:600;color:rgba(255,255,255,.55)}
+    .steps li i{display:block;height:4px;border-radius:2px;background:rgba(255,255,255,.2);margin-bottom:6px}
+    .steps li[data-s=done],.steps li[aria-current=step]{color:#fff}
+    .steps li[data-s=done] i{background:#65a8db}
+    .steps li[aria-current=step] i{background:#fff}
+    main{flex:1;padding:20px 16px 12px}
+    h1{font-size:23px;line-height:1.2;margin:0 0 4px;letter-spacing:-.01em}
+    .lead{margin:0 0 16px;color:var(--muted);font-size:15px}
+    .points{display:grid;gap:10px;margin:0 0 14px;padding:12px 14px;list-style:none;border-radius:14px;background:#fff;border:1px solid var(--line)}
+    .points li{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.4}
+    .points li::before{content:"";flex:none;width:8px;height:8px;margin-top:6px;border-radius:50%;background:var(--teal)}
+    .notice{max-height:46vh;overflow:auto;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:#fff;-webkit-overflow-scrolling:touch}
+    .notice:focus-visible{outline:3px solid #88b7da;outline-offset:2px}
+    .notice p{margin:0 0 12px;font-size:15px;line-height:1.55;color:#22344a}
+    .notice p:last-child{margin-bottom:0}
+    .readhint{display:flex;align-items:center;gap:8px;margin:10px 2px 0;font-size:14px;color:var(--muted)}
+    .readhint[data-done=true]{color:var(--teal-d);font-weight:600}
+    .warn{margin:0 0 14px;padding:10px 12px;border-radius:10px;background:var(--warnbg);color:var(--warn);font-size:13px}
+    .choice{margin:0 0 12px;padding:16px;border-radius:16px;background:#fff;border:1px solid var(--line)}
+    .choice h2{margin:0 0 2px;font-size:17px}
+    .choice p{margin:0 0 12px;font-size:14px;line-height:1.45;color:var(--muted)}
+    .yn{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .yn button{min-height:52px;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font:inherit;font-size:16px;font-weight:600;cursor:pointer;transition:background .12s,border-color .12s}
+    .yn button[aria-pressed=true][data-v=si]{background:var(--teal);border-color:var(--teal);color:#fff}
+    .yn button[aria-pressed=true][data-v=no]{background:var(--navy);border-color:var(--navy);color:#fff}
+    .card{padding:16px;border-radius:16px;background:#fff;border:1px solid var(--line);margin:0 0 12px}
+    label.f{display:block;font-weight:600;font-size:14px}
+    input[type=text]{display:block;width:100%;height:52px;margin-top:6px;padding:0 14px;border:2px solid var(--line);border-radius:12px;font:inherit;font-size:17px;background:#fff;color:var(--ink)}
+    input[type=text]:focus{outline:none;border-color:var(--teal)}
+    .seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 0}
+    .seg button{min-height:48px;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+    .seg button[aria-pressed=true]{border-color:var(--teal);background:var(--tealbg);color:var(--teal-d)}
+    .padwrap{position:relative}
+    canvas{display:block;width:100%;height:210px;border:2px dashed #9db3c4;border-radius:14px;background:#fff;touch-action:none}
+    .padhint{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;color:#9aa9b8;font-size:15px}
+    .padhint[hidden]{display:none}
+    .clear{position:absolute;right:8px;top:8px;min-height:36px;padding:0 12px;border:0;border-radius:8px;background:#eef2f6;color:var(--ink);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+    .clear:disabled{opacity:.4}
+    .check{display:flex;gap:12px;align-items:flex-start;margin:14px 2px 0;font-size:15px;line-height:1.4}
+    .check input{flex:none;width:26px;height:26px;margin:0;accent-color:var(--teal)}
+    .hint{min-height:22px;margin:10px 2px 0;font-size:14px;color:var(--warn)}
+    .error{margin:10px 0 0;padding:11px 13px;border-radius:10px;background:var(--badbg);color:var(--bad);font-size:14px}
+    .bar{position:sticky;bottom:0;display:flex;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:rgba(243,246,251,.94);backdrop-filter:blur(8px);border-top:1px solid var(--line)}
+    .btn{flex:1;min-height:54px;border:0;border-radius:14px;background:var(--teal);color:#fff;font:inherit;font-size:17px;font-weight:700;cursor:pointer}
+    .btn:disabled{background:#b9c7d4;cursor:not-allowed}
+    .btn.ghost{flex:0 0 auto;padding:0 20px;background:#fff;color:var(--ink);border:2px solid var(--line);font-weight:600}
+    button:focus-visible{outline:3px solid #88b7da;outline-offset:2px}
+    .state{padding:44px 12px 24px;text-align:center}
+    .mark{width:76px;height:76px;margin:0 auto 18px;border-radius:50%;display:grid;place-items:center;font-size:38px;background:var(--tealbg);color:var(--teal-d)}
+    .mark.bad{background:var(--warnbg);color:var(--warn)}
+    .state h1{font-size:26px}
+    .state p{color:var(--muted);margin:0 auto 10px;max-width:380px}
+    .recap{margin:18px 0 0;padding:6px 16px;border-radius:16px;background:#fff;border:1px solid var(--line);text-align:left}
+    .recap div{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);font-size:15px}
+    .recap div:last-child{border-bottom:0}
+    .recap b{font-weight:600}.recap span{font-weight:700}
+    .recap span[data-v=si]{color:var(--teal-d)}
+    .foot{padding:6px 20px calc(18px + env(safe-area-inset-bottom));text-align:center;font-size:12px;color:#8a97a6}
+    @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="head"><div class="who"><span class="logo" id="logo" aria-hidden="true">S</span><div><small>Aviso de privacidad</small><b id="clinic">Cargando…</b></div></div><ol class="steps" id="steps" hidden></ol></header>
+    <main id="main"><p class="lead">Cargando…</p></main>
+    <div class="bar" id="bar" hidden></div>
+    <p class="foot">Tecnología SMYL · Tu firma y tus decisiones se guardan en tu expediente</p>
+  </div>
+  <script src="smyl-privacy-notice.js?v=3"></script>
+  <script>
+  (function(){'use strict';
+    var URL_BASE='https://rpxshsiwoxdbuevjjpfw.supabase.co',KEY='sb_publishable_2YmASbqlTpFXz12VxzzKJw_m9TWVLLo';
+    var PN=window.SmylPrivacyNotice,main=document.getElementById('main'),bar=document.getElementById('bar'),stepsEl=document.getElementById('steps'),token=new URLSearchParams(location.search).get('token')||'';
+    function el(tag,cls,text){var n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n;}
+    function state(mark,title,text,bad){main.replaceChildren();bar.hidden=true;stepsEl.hidden=true;var d=el('div','state');d.append(el('div','mark'+(bad?' bad':''),mark),el('h1','',title),el('p','',text));main.append(d);return d;}
+    async function rpc(name,args){
+      var r=await fetch(URL_BASE+'/rest/v1/rpc/'+name,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY,Authorization:'Bearer '+KEY},body:JSON.stringify(args)});
+      var body=await r.json().catch(function(){return{};});
+      if(!r.ok)throw new Error(body&&body.message?body.message:'No pudimos completar la operación.');
+      return body;
+    }
+    var CHOICES=[
+      ['ai','Inteligencia artificial','Que la clínica use herramientas de IA de proveedores externos para apoyar tu atención, por ejemplo analizar o simular fotografías. Puedes decir que no sin perder tu atención.'],
+      ['whatsapp','WhatsApp','Que la clínica te escriba por WhatsApp para recordatorios de cita y seguimiento.'],
+      ['marketing','Promociones','Que la clínica te envíe promociones e información de sus servicios.']
+    ];
+    var LABELS=['Leer','Decidir','Firmar'];
+
+    function render(info){
+      var notice=PN.render(info.clinic_name,{address:info.clinic_address,email:info.clinic_email}),s={step:1,strokes:[],relation:'patient',read:false,checked:false,name:'',choice:{},saving:false,cv:null};
+      document.getElementById('clinic').textContent=info.clinic_name;
+      document.getElementById('logo').textContent=String(info.clinic_name||'S').trim().charAt(0).toUpperCase()||'S';
+      document.title='Aviso de privacidad · '+info.clinic_name;
+
+      function drawSteps(){
+        stepsEl.hidden=false;stepsEl.replaceChildren();
+        LABELS.forEach(function(t,i){var li=el('li'),n=i+1;li.dataset.s=n<s.step?'done':n===s.step?'now':'next';if(n===s.step)li.setAttribute('aria-current','step');li.append(el('i'),document.createTextNode(n+'. '+t));stepsEl.append(li);});
+      }
+      function ink(){var cv=s.cv;if(!cv)return{ok:false};return PN.inkOf(s.strokes.map(function(st){return st.map(function(p){return{x:p.x*cv.clientWidth,y:p.y*cv.clientHeight};});}));}
+      function allChosen(){return CHOICES.every(function(c){return typeof s.choice[c[0]]==='boolean';});}
+      function can(){
+        if(s.step===1)return {ok:s.read,message:'Desliza el aviso hasta el final para continuar.'};
+        if(s.step===2){for(var i=0;i<CHOICES.length;i++)if(typeof s.choice[CHOICES[i][0]]!=='boolean')return{ok:false,message:'Elige Sí o No en: '+CHOICES[i][1]+'.'};return{ok:true};}
+        return PN.validate({name:s.name,relation:s.relation,read:s.read,checked:s.checked,ink:ink()});
+      }
+      var nextBtn,backBtn,hint;
+      function sync(){var v=can();if(nextBtn)nextBtn.disabled=s.saving||!v.ok;if(hint)hint.textContent=s.saving||v.ok?'':v.message;var clear=main.querySelector('.clear');if(clear)clear.disabled=!s.strokes.length;var ph=main.querySelector('.padhint');if(ph)ph.hidden=s.strokes.length>0;}
+
+      function step1(){
+        main.append(el('h1','','Tu privacidad importa'),el('p','lead','Lee este aviso y decide cómo usa tus datos '+info.clinic_name+'. Toma menos de 2 minutos.'));
+        var pts=el('ul','points');['Tus datos de salud se usan para tu atención dental.','Tú decides sobre IA, WhatsApp y promociones.','Puedes pedir acceso, corrección o eliminación de tus datos.'].forEach(function(t){pts.append(el('li','',t));});main.append(pts);
+        if(notice.provisional)main.append(el('div','warn','Aviso incompleto: la clínica aún no registra su domicilio o su correo de contacto.'));
+        var box=el('div','notice');box.tabIndex=0;box.setAttribute('role','region');box.setAttribute('aria-label','Texto del aviso de privacidad');
+        notice.text.split('\n\n').forEach(function(t){box.append(el('p','',t));});
+        var rh=el('div','readhint');rh.dataset.done=String(s.read);rh.textContent=s.read?'✓ Ya lo leíste completo':'Desliza el texto hasta el final para continuar';
+        function check(){if(!s.read&&box.scrollTop+box.clientHeight>=box.scrollHeight-6){s.read=true;rh.dataset.done='true';rh.textContent='✓ Ya lo leíste completo';sync();}}
+        box.addEventListener('scroll',check);main.append(box,rh);setTimeout(check,0);
+      }
+      function step2(){
+        main.append(el('h1','','Tus decisiones'),el('p','lead','Elige una opción en cada una. Puedes decir que no y tu atención no cambia.'));
+        CHOICES.forEach(function(c){
+          var g=el('section','choice');g.append(el('h2','',c[1]),el('p','',c[2]));
+          var yn=el('div','yn');yn.setAttribute('role','group');yn.setAttribute('aria-label',c[1]);
+          [['si','Sí acepto',true],['no','No acepto',false]].forEach(function(o){
+            var b=el('button','',o[1]);b.type='button';b.dataset.key=c[0];b.dataset.v=o[0];b.setAttribute('aria-pressed',String(s.choice[c[0]]===o[2]));
+            b.onclick=function(){s.choice[c[0]]=o[2];yn.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});sync();};yn.append(b);
+          });g.append(yn);main.append(g);
+        });
+      }
+      function step3(){
+        main.append(el('h1','','Tu firma'),el('p','lead','Con tu firma confirmas que leíste el aviso y registras lo que decidiste sobre IA, WhatsApp y promociones. Escribe tu nombre y firma con el dedo en el recuadro.'));
+        var c1=el('div','card'),who=el('label','f','Nombre completo'),inp=document.createElement('input');inp.type='text';inp.maxLength=150;inp.autocomplete='name';inp.value=s.name;inp.oninput=function(){s.name=inp.value;sync();};who.append(inp);c1.append(who);
+        var seg=el('div','seg');seg.setAttribute('role','group');seg.setAttribute('aria-label','Quién firma');
+        [['patient','Firmo yo, el paciente'],['guardian','Firmo como tutor']].forEach(function(o){var b=el('button','',o[1]);b.type='button';b.setAttribute('aria-pressed',String(o[0]===s.relation));b.onclick=function(){s.relation=o[0];seg.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});sync();};seg.append(b);});
+        c1.append(seg);main.append(c1);
+        var c2=el('div','card'),pad=el('div','padwrap'),cv=document.createElement('canvas');cv.setAttribute('role','img');cv.setAttribute('aria-label','Espacio para firmar con el dedo');s.cv=cv;
+        var ph=el('div','padhint','Firma aquí');ph.setAttribute('aria-hidden','true');
+        var clear=el('button','clear','Borrar');clear.type='button';clear.onclick=function(){s.strokes=[];paint();sync();};
+        pad.append(cv,ph,clear);c2.append(pad);
+        var ck=el('label','check'),cb=document.createElement('input');cb.type='checkbox';cb.checked=s.checked;cb.onchange=function(){s.checked=cb.checked;sync();};ck.append(cb,el('span','','Leí el aviso de privacidad y doy mi consentimiento.'));c2.append(ck);
+        main.append(c2);
+        var drawing=null;
+        function at(e){var r=cv.getBoundingClientRect();return{x:Math.min(1,Math.max(0,(e.clientX-r.left)/r.width)),y:Math.min(1,Math.max(0,(e.clientY-r.top)/r.height))};}
+        cv.addEventListener('pointerdown',function(e){if(s.saving)return;e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(x){}drawing=[at(e)];s.strokes.push(drawing);paint();sync();});
+        cv.addEventListener('pointermove',function(e){if(!drawing)return;e.preventDefault();drawing.push(at(e));paint();});
+        function end(){if(!drawing)return;drawing=null;sync();}
+        cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
+        setTimeout(paint,0);
+      }
+      function paint(){
+        var cv=s.cv;if(!cv||s.step!==3)return;
+        var ctx=cv.getContext('2d'),dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+        if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+        ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);ctx.lineWidth=2.8;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#0B1B2E';
+        s.strokes.forEach(function(st){ctx.beginPath();st.forEach(function(p,i){if(i)ctx.lineTo(p.x*w,p.y*h);else ctx.moveTo(p.x*w,p.y*h);});if(st.length===1)ctx.lineTo(st[0].x*w+0.1,st[0].y*h);ctx.stroke();});
+      }
+      window.addEventListener('resize',function(){paint();sync();});
+      function image(){
+        var out=document.createElement('canvas'),tries=[[600,200],[450,150],[300,100]],png='';
+        for(var i=0;i<tries.length;i++){
+          out.width=tries[i][0];out.height=tries[i][1];var ctx=out.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,out.width,out.height);
+          ctx.lineWidth=3;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#0F2236';
+          s.strokes.forEach(function(st){ctx.beginPath();st.forEach(function(p,k){var x=p.x*out.width,y=p.y*out.height;if(k)ctx.lineTo(x,y);else ctx.moveTo(x,y);});if(st.length===1)ctx.lineTo(st[0].x*out.width+0.1,st[0].y*out.height);ctx.stroke();});
+          png=out.toDataURL('image/png');if(png.length<=110000)break;
+        }
+        return png;
+      }
+      var errBox;
+      async function send(){
+        var v=can();if(!v.ok||s.saving)return;
+        s.saving=true;nextBtn.textContent='Enviando…';errBox.hidden=true;sync();
+        try{
+          await rpc('smyl_consent_link_sign',{p_token:token,p_notice_version:notice.version,p_notice_text:notice.text,p_provisional:notice.provisional,p_signer_name:s.name.trim(),p_signer_relation:s.relation,p_signature_png:image(),p_ai:s.choice.ai,p_whatsapp:s.choice.whatsapp,p_marketing:s.choice.marketing});
+          var first=s.name.trim().split(/\s+/)[0]||'';
+          var d=state('✓','¡Listo'+(first?', '+first:'')+'!','Tu firma y tus decisiones quedaron guardadas en tu expediente. Ya puedes cerrar esta página.');
+          var recap=el('div','recap');recap.setAttribute('aria-label','Tus decisiones');
+          CHOICES.forEach(function(c){var r=el('div'),v2=el('span',s.choice[c[0]]?'Sí':'No');v2.dataset.v=s.choice[c[0]]?'si':'no';r.append(el('b','',c[1]),v2);recap.append(r);});
+          d.append(recap);window.scrollTo(0,0);
+        }catch(x){s.saving=false;nextBtn.textContent='Firmar y enviar';errBox.textContent=x.message;errBox.hidden=false;sync();}
+      }
+      function go(n){s.step=n;draw();window.scrollTo(0,0);}
+      function draw(){
+        drawSteps();main.replaceChildren();s.cv=null;
+        if(s.step===1)step1();else if(s.step===2)step2();else step3();
+        hint=el('p','hint','');errBox=el('div','error');errBox.hidden=true;errBox.setAttribute('role','alert');main.append(hint,errBox);
+        bar.replaceChildren();bar.hidden=false;
+        if(s.step>1){backBtn=el('button','btn ghost','Atrás');backBtn.type='button';backBtn.onclick=function(){go(s.step-1);};bar.append(backBtn);}
+        nextBtn=el('button','btn',s.step<3?'Continuar':'Firmar y enviar');nextBtn.type='button';nextBtn.onclick=function(){if(s.step<3){if(can().ok)go(s.step+1);}else send();};bar.append(nextBtn);
+        sync();
+      }
+      draw();
+    }
+    async function init(){
+      if(!PN)return state('!','No se pudo cargar','Recarga la página.',true);
+      if(!/^[0-9a-f]{64}$/.test(token))return state('!','Enlace no disponible','Pide a la clínica un enlace nuevo.',true);
+      try{var info=await rpc('smyl_consent_link_info',{p_token:token});
+        if(!info||!info.available)return state('!','Enlace no disponible','Este enlace ya se usó o venció. Pide a la clínica uno nuevo.',true);
+        render(info);}
+      catch(x){state('!','Enlace no disponible',x.message,true);}
+    }
+    init();
+  })();
+  </script>
+</body>
+</html>

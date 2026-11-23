@@ -202,6 +202,54 @@ const corsHeaders = corsPublic;
 return { makeCors, corsPublic, corsHeaders };
 })();
 
+// ── _shared/privacy-core.mjs ──
+const { MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_SIN_AUTORIZACION, MENSAJE_IA_NO_VERIFICABLE, decidirIA } = (() => {
+// Permiso del paciente para que sus datos pasen por herramientas de IA de proveedores externos (finalidad 'ai_processing').
+// Regla (LFPDPPP: los datos de salud son sensibles y requieren consentimiento EXPRESO): solo se usa la IA cuando el paciente
+// la autorizó ('granted'). Sin decisión registrada ('unknown') o si la retiró ('revoked') no se manda nada a la IA.
+// Si no se puede comprobar (error de base de datos) también se bloquea: ante la duda no se manda nada a un tercero.
+const MENSAJE_IA_NO_PERMITIDA = 'Este paciente no autorizó el uso de inteligencia artificial con sus datos. Captura o revisa esto manualmente.';
+const MENSAJE_IA_SIN_AUTORIZACION = 'Este paciente aún no autoriza el uso de inteligencia artificial. Registra su autorización en Privacidad (o pídele que firme el aviso) antes de usar la IA.';
+const MENSAJE_IA_NO_VERIFICABLE = 'No se pudo comprobar el permiso de IA del paciente. Inténtalo de nuevo en un momento.';
+
+/** Convierte la respuesta de smyl_patient_privacy_state en una decisión: 'allowed' | 'missing' | 'revoked' | 'unavailable'. */
+function decidirIA(result: any) {
+  if (!result || result.error) return 'unavailable';
+  const state = result.data;
+  if (state === 'granted') return 'allowed';
+  if (state === 'revoked') return 'revoked';
+  if (state === 'unknown') return 'missing';
+  return 'unavailable';
+}
+
+return { MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_SIN_AUTORIZACION, MENSAJE_IA_NO_VERIFICABLE, decidirIA };
+})();
+
+// ── _shared/privacy.ts ──
+const { permisoIA, respuestaIAnegada } = (() => {
+// Candado de privacidad para las funciones que mandan datos de un paciente a una IA externa. La regla vive en privacy-core.mjs.
+
+type PermisoIA = 'allowed' | 'missing' | 'revoked' | 'unavailable';
+
+// deno-lint-ignore no-explicit-any
+async function permisoIA(admin: any, tenantId: string, patientId: string): Promise<PermisoIA> {
+  try {
+    const result = await admin.rpc('smyl_patient_privacy_state', { p_tenant: tenantId, p_patient: patientId, p_purpose: 'ai_processing' });
+    return decidirIA(result);
+  } catch { return 'unavailable'; }
+}
+
+/** Respuesta lista para devolver cuando NO se puede usar IA con este paciente; null si se puede continuar. */
+function respuestaIAnegada(permiso: PermisoIA): { status: number; body: { error: string; code: string } } | null {
+  if (permiso === 'allowed') return null;
+  if (permiso === 'revoked') return { status: 403, body: { error: MENSAJE_IA_NO_PERMITIDA, code: 'patient_ai_not_allowed' } };
+  if (permiso === 'missing') return { status: 403, body: { error: MENSAJE_IA_SIN_AUTORIZACION, code: 'patient_ai_consent_missing' } };
+  return { status: 503, body: { error: MENSAJE_IA_NO_VERIFICABLE, code: 'patient_ai_unverifiable' } };
+}
+
+return { permisoIA, respuestaIAnegada };
+})();
+
 // ── _shared/ai-quota.ts ──
 const { TOPES_RADIOGRAFIA_PREDETERMINADOS, leerTopesRadiografia, evaluarTope, inicioDiaUTC, inicioMesUTC } = (() => {
 // Tope de análisis de IA por clínica (auditoría del panel admin, 2026-11-06): sin esto, una sesión (o un script con una
@@ -360,9 +408,14 @@ Deno.serve(async (req: Request) => {
   const asUser = createClient(SB_URL, SB_ANON_KEY, { global: { headers: { Authorization: `Bearer ${jwt}` } } });
   const { data: puede } = await asUser.rpc("smyl_has_permission", { p_tenant_id: tenantId, p_permission: "cloud.manage" });
   if (puede !== true) return json(CORS, 403, { error: "Tu rol no permite organizar los archivos de la Nube." });
-  const { data: file } = await asUser.from("smyl_cloud_files").select("id, mime_type, status").eq("id", body.file_id).eq("tenant_id", tenantId).maybeSingle();
+  const { data: file } = await asUser.from("smyl_cloud_files").select("id, mime_type, status, patient_id").eq("id", body.file_id).eq("tenant_id", tenantId).maybeSingle();
   if (!file || file.status !== "active") return json(CORS, 404, { error: "El archivo no existe o no tienes acceso." });
   if (!String(file.mime_type).startsWith("image/")) return json(CORS, 422, { error: "Solo se sugiere el tipo de imágenes." });
+  // Si el archivo es de un paciente que no autorizó la IA, la imagen no sale hacia el proveedor externo.
+  if (file.patient_id) {
+    const negada = respuestaIAnegada(await permisoIA(admin, tenantId, String(file.patient_id)));
+    if (negada) return json(CORS, negada.status, negada.body);
+  }
 
   const ahora = new Date();
   const [dia, mes] = await Promise.all(

@@ -4,6 +4,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
 import { makeCors } from "../_shared/cors.ts";
+import { permisoIA, respuestaIAnegada } from "../_shared/privacy.ts";
 import { inicioDiaUTC, inicioMesUTC } from "../_shared/ai-quota.ts";
 import {
   FISCAL_EXTRACT_MODEL, FISCAL_EXTRACT_MAX_TOKENS, FISCAL_EXTRACT_EFFORT, FISCAL_EXTRACT_TIMEOUT_MS, FISCAL_SCHEMA, FISCAL_SYSTEM,
@@ -52,6 +53,12 @@ Deno.serve(async (req: Request) => {
   const asUser = createClient(SB_URL, SB_ANON_KEY, { global: { headers: { Authorization: `Bearer ${jwt}` } } });
   const { data: puede } = await asUser.rpc("smyl_has_permission", { p_tenant_id: tenantId, p_permission: "finance.manage" });
   if (puede !== true) return json(CORS, 403, { error: "Tu rol no permite editar los datos fiscales." });
+
+  // La constancia es un dato personal del paciente: si el panel dice de quién es y no autorizó la IA, no se manda a Anthropic.
+  if (typeof body.patient_id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.patient_id)) {
+    const negada = respuestaIAnegada(await permisoIA(admin, tenantId, body.patient_id));
+    if (negada) return json(CORS, negada.status, negada.body);
+  }
 
   const ahora = new Date();
   const [dia, mes] = await Promise.all(

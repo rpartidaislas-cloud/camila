@@ -20,7 +20,7 @@ test('la aplicación carga el contrato antes del centro y la integración despu�
   const evidenceWorkspace = app.indexOf('smyl-evidence-workspace.js?v=1');
   const categories = app.indexOf('smyl-evidence-categories.js?v=1');
   const center = app.indexOf('smyl-evidence-center.js?v=12');
-  const workspace = app.indexOf('smyl-case-workspace.js?v=44');
+  const workspace = app.indexOf('smyl-case-workspace.js?v=51');
   const integration = app.indexOf('smyl-evidence-center-integration.js?v=12');
   assert.ok(model > -1 && model < evidenceWorkspace && evidenceWorkspace < center);
   assert.ok(model < categories && categories < center);
@@ -38,8 +38,8 @@ test('el service worker precarga todos los recursos del centro clínico', () => 
   assert.match(serviceWorker, /smyl-evidence-center\.js\?v=12/);
   assert.match(serviceWorker, /smyl-evidence-center\.css\?v=8/);
   assert.match(serviceWorker, /smyl-evidence-center-integration\.js\?v=12/);
-  assert.match(serviceWorker, /smyl-case-workspace\.js\?v=44/);
-  assert.match(serviceWorker, /smyl-evidence-center-integration\.css\?v=6/);
+  assert.match(serviceWorker, /smyl-case-workspace\.js\?v=51/);
+  assert.match(serviceWorker, /smyl-evidence-center-integration\.css\?v=7/);
 });
 
 test('la versión móvil es un espejo exacto de los recursos publicados', () => {

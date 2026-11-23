@@ -51,14 +51,14 @@ test('comparison preserves vertical page scrolling on mobile', () => {
 });
 
 test('studio assets are cache-busted together', () => {
-  assert.match(html, /smyl-studio\.css\?v=31/);
-  assert.match(html, /smyl-studio\.js\?v=31/);
+  assert.match(html, /smyl-studio\.css\?v=32/);
+  assert.match(html, /smyl-studio\.js\?v=33/);
   assert.match(sw, /simulator-ux-v6/);
   assert.match(sw, /shade-compare-v9/);
   assert.match(sw, /bleach-bl-v10/);
   assert.match(sw, /result-views-v11/);
-  assert.match(sw, /smyl-studio\.css\?v=31/);
-  assert.match(sw, /smyl-studio\.js\?v=31/);
+  assert.match(sw, /smyl-studio\.css\?v=32/);
+  assert.match(sw, /smyl-studio\.js\?v=33/);
 });
 
 test('mobile tone selection compares VITA and exactly four BL shades in stacked rows', () => {

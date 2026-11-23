@@ -8,6 +8,8 @@
   var inboxScriptUrl = document.currentScript && document.currentScript.src;
   var emojiCatalogPromise;
   var recentEmoji = [];
+  var messageMenu = null;
+  var messageMenuSequence = 0;
 
   var CONTEXT_DOCK_STORAGE_KEY = 'smyl_inbox_context_docked';
   function initialDockedContextPreference() {
@@ -25,8 +27,8 @@
     conversations: [], total: 0, offset: 0, limit: 30, hasMore: false, pipelineToday: false,
     filter: 'all', channel: '', search: '', selectedId: null, filterPanelOpen: false, branches: [], branchFilter: '', branchMenu: null,
     messages: {}, pages: {}, pending: {}, loadingList: false, loadingThread: false,
-    listError: '', threadError: '', syncedAt: null, actor: null, stages: [],
-    threadController: null, contextOpen: false, contextSections: {}, contextReturnFocus: null, f360Open: null, f360Visits: {}, f360VisitsAll: {}, f360Movements: {}, f360File: {}, f360Filter: {}, f360Shared: {}, f360Summary: {}, contextDockedPreferred: initialDockedContextPreference(), polling: false,
+    listError: '', threadError: '', syncedAt: null, actor: null, stages: [], stageCatalogStatus: 'idle',
+    threadController: null, contextOpen: false, contextSections: {}, contextReturnFocus: null, f360Open: null, f360Tab: {}, f360Visits: {}, f360VisitsAll: {}, f360Movements: {}, f360File: {}, f360Filter: {}, f360Shared: {}, f360Summary: {}, contextDockedPreferred: initialDockedContextPreference(), polling: false,
     replyTo: null, attachment: null, clinical: {}, clinicalLoading: {},
     copilot: {}, copilotLoading: {},
     templates: [], templatesLoaded: false, templatesLoading: false,
@@ -40,7 +42,7 @@
     view: 'list', pipelineDragId: null, pipelineChatId: null, pipelineOpening: false, actionsOpenId: null, badgeFailures: 0,
     draftSaveTimer: null,
     recorder: null, recorderStream: null, recorderChunks: [], recorderStartedAt: 0, recorderTimer: null, recordingCancelled: false,
-    availabilityCatalog: null, availabilityMode: 'calendar', availabilityLoading: false, availabilitySlots: [], availabilityRequests: [], availabilitySelected: [], availabilityAction: '', availabilityError: '', availabilityEmptyReason: '', appointmentContext: {}, appointmentContextLoading: {}, patientLinking: {}, patientLinkChecked: {},
+    suggestShown: [], suggestResult: null, suggestBusy: false, availabilityCatalog: null, availabilityMode: 'calendar', availabilityLoading: false, availabilitySlots: [], availabilityRequests: [], availabilitySelected: [], availabilityAction: '', availabilityError: '', availabilityEmptyReason: '', appointmentContext: {}, appointmentContextLoading: {}, patientLinking: {}, patientLinkChecked: {},
   };
 
   function node(tag, cls, text) {
@@ -54,8 +56,10 @@
   var threadEpoch = new Map(), openSequence = 0, routingRevision = 0;
   var teamsByConversation = new Map();
   var pendingPipelineSnapshots = new Set();
+  var threadNewCount = 0, threadPaintDeferred = false;
   var mediaSession = null;
   function closeChatMedia() {
+    closeMessageMenu(false);
     if (!mediaSession) return;
     mediaSession.abort();
     mediaSession = null;
@@ -66,7 +70,7 @@
 
   function forgetChat(id) {
     if (!id) return;
-    if (state.selectedId === id) closeChatMedia();
+    if (state.selectedId === id) { closeChatMedia(); closeThreadOptions(false); resetThreadJump(); }
     teamsByConversation.delete(id);
     pendingPipelineSnapshots.delete(id);
     routingRevision++;
@@ -74,7 +78,7 @@
     if (state.selectedId !== id) persistEncryptedDraft(id, '').catch(function () {});
     state.conversations = state.conversations.filter(function (item) { return item.id !== id; });
     ['messages','pages','pending','clinical','clinicalLoading','copilot','scheduled','appointmentContext','patientLinkChecked',
-      'f360Visits','f360VisitsAll','f360Movements','f360File','f360Filter','f360Shared','f360Summary'].forEach(function (key) { delete state[key][id]; });
+      'f360Tab','f360Visits','f360VisitsAll','f360Movements','f360File','f360Filter','f360Shared','f360Summary'].forEach(function (key) { delete state[key][id]; });
     state.bulkSelected.delete(id);
     window.dispatchEvent(new CustomEvent('smyl:inbox-removed',{detail:{id:id}}));
     if (state.pipelineChatId === id) {
@@ -93,10 +97,11 @@
     var input = page.querySelector('[name="message"]'); if (input) input.value = '';
     clearEncryptedDraft(id);
     document.querySelectorAll('#p-inbox dialog[open], dialog[data-chat-transfer][open], dialog.smyl-inbox-branch-dialog[open]').forEach(function (dialog) { dialog.close(); });
-    page.querySelector('[data-handoff] p').textContent = '';
+    renderHandoffNote(null);
     page.querySelector('[data-thread-name]').textContent = '';
     page.querySelector('[data-thread-meta]').textContent = '';
     page.querySelector('[data-thread-messages]').replaceChildren();
+    renderFileSuggestion([]);
     var owner = page.querySelector('[data-thread-assign]'); delete owner.dataset.conversationId;
     page.querySelector('[data-thread-owner-name]').textContent = 'Sin asignar';
     render();
@@ -113,6 +118,7 @@
       return;
     }
     accessEpoch++; state.actor = next; state.badgeFailures = 0;
+    state.stages = []; state.stageCatalogStatus = 'idle';
     teamsByConversation.clear();
     pendingPipelineSnapshots.clear();
     if (old) {
@@ -120,6 +126,7 @@
       threadEpoch.clear();
       forgetChat(state.selectedId);
       state.conversations = []; state.operations = null;
+      state.f360Tab = {}; state.f360Filter = {}; state.f360File = {}; state.f360Shared = {};
       state.messages = {}; state.clinical = {}; state.syncedAt = null; state.total = 0;
       state.didAutoOpen = false; state.filter = 'all'; state.pipelineToday = false; renderNavBadge(0);
     }
@@ -233,15 +240,51 @@
     }, 450);
   }
 
+  function setEditorExpanded(form, button, expanded) {
+    form.classList.toggle('is-editor-expanded', expanded);
+    button.setAttribute('aria-expanded', String(expanded));
+    button.title = expanded ? 'Reducir editor' : 'Ampliar editor';
+    button.setAttribute('aria-label', button.title);
+    button.innerHTML = composeIcon(expanded ? 'collapse' : 'expand');
+  }
+
+  function measureComposerText(input) {
+    input.style.setProperty('--smyl-reply-height', '44px');
+    input.style.setProperty('--smyl-reply-height', input.scrollHeight + 'px');
+  }
+
+  function fitComposerText(input) {
+    if (!input) return;
+    var form = input.form, button = form.querySelector('[data-compose-expand]');
+    var manualSizing = input.clientWidth && !window.CSS.supports('field-sizing', 'content');
+    if (manualSizing) measureComposerText(input);
+    if (!button) return;
+    var longDraft = false;
+    if (input.value && !input.disabled && input.clientWidth && window.matchMedia('(max-width: 760px)').matches) {
+      var style = getComputedStyle(input);
+      var threeLines = 3 * parseFloat(style.lineHeight) + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+      longDraft = input.scrollHeight > threeLines + 1;
+    }
+    if (!longDraft && form.classList.contains('is-editor-expanded')) setEditorExpanded(form, button, false);
+    if (form.classList.contains('is-long-reply') !== longDraft) {
+      form.classList.toggle('is-long-reply', longDraft);
+      if (manualSizing) measureComposerText(input);
+    }
+    button.hidden = !longDraft;
+  }
+
   async function restoreEncryptedDraft(conversationId) {
     var input = document.querySelector('[name="message"]'); if (!input) return;
-    input.value = ''; showSaveWarning(false);
+    input.value = ''; fitComposerText(input); showSaveWarning(false);
     var envelope = draftEnvelope(); var stored = envelope[conversationId]; if (!stored) return;
     try {
       var plain = await window.crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytesFromBase64(stored.iv) }, await draftKey(), bytesFromBase64(stored.ciphertext));
       var draft = JSON.parse(new TextDecoder().decode(plain));
       if (draft.conversation_id !== conversationId || Number(draft.expires_at) < Date.now()) throw new Error('expired');
-      if (state.selectedId === conversationId && !input.value) input.value = String(draft.content || '').slice(0, 4000);
+      if (state.selectedId === conversationId && !input.value) {
+        input.value = String(draft.content || '').slice(0, 4000);
+        fitComposerText(input);
+      }
     } catch (_) {
       delete envelope[conversationId]; window.sessionStorage.setItem(DRAFT_STORE, JSON.stringify(envelope));
     }
@@ -253,8 +296,11 @@
   }
 
   function setComposerText(value) {
-    var input = document.querySelector('[name="message"]'); if (!input) return;
-    input.value = String(value || '').slice(0, 4000); scheduleDraftSave(input.value); input.focus();
+    var input = document.getElementById('smyl-inbox-message'); if (!input) return;
+    input.value = String(value || '').slice(0, 4000);
+    fitComposerText(input); scheduleDraftSave(input.value);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.focus();
   }
 
   async function request(method, query, payload, key, timeoutMs, requestController) {
@@ -321,7 +367,7 @@
   var CHANNEL_MARKS = {
     whatsapp: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#25D366"/><path fill="#fff" d="M12.04 5.2a6.8 6.8 0 0 0-5.84 10.3L5.3 18.8l3.4-.9a6.8 6.8 0 1 0 3.34-12.7Zm3.9 9.6c-.17.47-.97.9-1.35.95-.35.05-.78.07-1.26-.08-.29-.09-.66-.22-1.14-.43-2-.87-3.3-2.9-3.4-3.04-.1-.13-.81-1.08-.81-2.06 0-.98.51-1.46.7-1.66.18-.2.39-.25.52-.25h.38c.12 0 .29-.05.45.35.17.4.57 1.38.62 1.48.05.1.08.22.02.35-.07.13-.1.22-.2.33-.1.12-.2.26-.29.35-.1.1-.2.2-.09.4.12.2.52.86 1.12 1.39.77.69 1.42.9 1.62 1 .2.1.32.08.44-.05.12-.14.5-.58.64-.78.13-.2.27-.17.45-.1.18.07 1.17.55 1.37.65.2.1.33.15.38.23.05.09.05.5-.12.97Z"/></svg>',
     instagram: '<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="smyl-ig-gradient" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#FEC053"/><stop offset=".35" stop-color="#F2203E"/><stop offset=".7" stop-color="#B729A8"/><stop offset="1" stop-color="#5342D6"/></linearGradient></defs><circle cx="12" cy="12" r="12" fill="url(#smyl-ig-gradient)"/><rect x="6.3" y="6.3" width="11.4" height="11.4" rx="3.4" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="12" cy="12" r="2.7" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="15.6" cy="8.4" r="1" fill="#fff"/></svg>',
-    messenger: '<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="smyl-ms-gradient" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#0099FF"/><stop offset="1" stop-color="#A033FF"/></linearGradient></defs><circle cx="12" cy="12" r="12" fill="url(#smyl-ms-gradient)"/><path fill="#fff" d="M12 5.2c-3.9 0-6.8 2.86-6.8 6.73 0 2 .8 3.7 2.12 4.9v2.17l1.98-1.1c.8.23 1.6.34 2.7.34 3.9 0 6.8-2.86 6.8-6.7S15.9 5.2 12 5.2Z"/><path fill="#7B3CFF" d="m7.6 13.6 2.7-2.9 1.5 1.5 2.6-1.5-2.7 2.9-1.5-1.5-2.6 1.5Z"/></svg>'
+    messenger: '<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="smyl-ms-gradient" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#0059ff"/><stop offset="1" stop-color="#A033FF"/></linearGradient></defs><circle cx="12" cy="12" r="12" fill="url(#smyl-ms-gradient)"/><path fill="#fff" d="M12 5.2c-3.9 0-6.8 2.86-6.8 6.73 0 2 .8 3.7 2.12 4.9v2.17l1.98-1.1c.8.23 1.6.34 2.7.34 3.9 0 6.8-2.86 6.8-6.7S15.9 5.2 12 5.2Z"/><path fill="#7B3CFF" d="m7.6 13.6 2.7-2.9 1.5 1.5 2.6-1.5-2.7 2.9-1.5-1.5-2.6 1.5Z"/></svg>'
   };
 
   // Insignia con la marca del canal; se coloca en la esquina del avatar.
@@ -348,6 +394,20 @@
     return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
   }
 
+  var transcriptClock = new Intl.DateTimeFormat('es-MX', {hour: '2-digit', minute: '2-digit', hourCycle: 'h23'});
+
+  function messageStatus(item) {
+    var delivery = {sending: 'Enviando…', failed: 'No se envió', unknown: 'Confirmación pendiente'};
+    if (delivery[item.status]) return node('span', 'smyl-inbox-message-status', delivery[item.status]);
+    var date = new Date(item.created_at || '');
+    var stamp = node('time', 'smyl-inbox-message-status', '');
+    if (Number.isFinite(date.getTime())) {
+      stamp.dateTime = date.toISOString();
+      stamp.textContent = transcriptClock.format(date);
+    }
+    return stamp;
+  }
+
   function scheduledStatusLabel(status) {
     return status === 'pendiente' ? 'Pendiente'
       : status === 'enviando' ? 'Enviando'
@@ -371,7 +431,12 @@
     moveStage: '<path d="M3 4h7v6H3zM14 14h7v6h-7zM13 7h5v4m-3-3 3 3 3-3"></path>',
     mic: '<rect x="9" y="3" width="6" height="12" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"></path>',
     location: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle>',
+    bot: '<rect x="4" y="7" width="16" height="13" rx="3"></rect><path d="M12 3v4M2 12v4M22 12v4M8 16h8"></path><circle cx="8.5" cy="11.5" r=".5"></circle><circle cx="15.5" cy="11.5" r=".5"></circle>',
     person: '<circle cx="10" cy="8" r="3.5"></circle><path d="M3 20v-2a7 7 0 0 1 12.2-4.7M16 17l2 2 4-5"></path>',
+    close: '<path d="m6 6 12 12M18 6 6 18"></path>',
+    settings: '<path d="M3 7h6m4 0h8M3 17h10m4 0h4"></path><circle cx="11" cy="7" r="2"></circle><circle cx="15" cy="17" r="2"></circle>',
+    expand: '<path d="M14 4h6v6m0-6-7 7M10 20H4v-6m0 6 7-7"></path>',
+    collapse: '<path d="M20 4l-7 7m0-6v6h6M4 20l7-7m-6 0h6v6"></path>',
     chevron: '<path d="m9 18 6-6-6-6"></path>'
   };
 
@@ -383,10 +448,10 @@
     var page = node('section', 'pantalla smyl-inbox-page');
     page.id = 'p-inbox';
     page.innerHTML =
+      '<div class="smyl-inbox-sync-warning" data-inbox-live role="status" hidden><span></span></div>' +
       '<header class="smyl-inbox-top">' +
         '<h1 class="smyl-inbox-sr">Mensajes</h1>' +
         '<div class="smyl-inbox-view-toggle" role="tablist" aria-label="Vista de Mensajes"><button type="button" role="tab" data-inbox-view="list" aria-selected="true" aria-controls="smyl-inbox-workspace" tabindex="0">Conversaciones</button><button type="button" role="tab" data-inbox-view="pipeline" aria-selected="false" aria-controls="smyl-inbox-pipeline" tabindex="-1">Pipeline</button></div>' +
-        '<div class="smyl-inbox-top-actions"><button type="button" class="smyl-inbox-notify" data-inbox-notify aria-pressed="false">Avisos</button><button type="button" class="smyl-inbox-health" data-inbox-operations data-state="loading"><i></i><span>Revisando operación</span></button><div class="smyl-inbox-live" data-inbox-live><i></i><span>Sincronización segura</span></div></div>' +
       '</header>' +
       '<section class="smyl-inbox-pipeline" id="smyl-inbox-pipeline" data-inbox-pipeline aria-label="Pipeline de pacientes por etapa" hidden>' +
         '<div class="smyl-inbox-pipeline-bar"><div class="smyl-inbox-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" placeholder="Buscar paciente" aria-label="Buscar en el pipeline" data-pipeline-search></div><div class="smyl-inbox-pipeline-filters" role="tablist" aria-label="Filtrar pipeline"><button type="button" role="tab" aria-selected="true" tabindex="0" data-inbox-filter="all" class="active">Todas</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="unread">Sin leer</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="attention">Por atender</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="mine">Mías</button></div><button type="button" class="smyl-inbox-pipeline-today" data-pipeline-today aria-pressed="false">' + composeIcon('calendar') + 'Citas de hoy</button><button type="button" class="smyl-inbox-pipeline-more" data-pipeline-more hidden>Cargar más</button></div>' +
@@ -394,12 +459,13 @@
       '</section>' +
       '<div class="smyl-inbox-workspace" id="smyl-inbox-workspace">' +
         '<aside class="smyl-inbox-list-pane" aria-label="Bandeja de conversaciones">' +
-          '<div class="smyl-inbox-list-head"><div class="smyl-inbox-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" placeholder="Buscar paciente" aria-label="Buscar conversación" data-inbox-search></div><div class="smyl-inbox-branchbar" data-inbox-branchbar hidden></div><button type="button" class="smyl-inbox-filter-toggle" data-inbox-filter-more aria-expanded="false" aria-haspopup="true" aria-controls="smyl-inbox-filter-panel">Filtros</button></div>' +
+          '<div class="smyl-inbox-list-head"><div class="smyl-inbox-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" placeholder="Buscar paciente" aria-label="Buscar conversación" data-inbox-search></div><div class="smyl-inbox-branchbar" data-inbox-branchbar hidden></div><button type="button" class="smyl-inbox-filter-toggle" data-inbox-filter-more aria-expanded="false" aria-controls="smyl-inbox-filter-panel" aria-label="Filtros" title="Filtros"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 4h18l-7 8v7l-4 2v-9L3 4Z"></path></svg></button></div>' +
           '<div class="smyl-inbox-filters" role="tablist" aria-label="Filtrar conversaciones">' +
-            '<button type="button" role="tab" aria-selected="true" tabindex="0" data-inbox-filter="all" class="active">Todas</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="unread">Sin leer</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="attention">Por atender</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="mine">Mías</button>' +
+            '<div class="smyl-inbox-filter-pair" role="presentation"><button type="button" role="tab" aria-selected="true" tabindex="0" data-inbox-filter="all" class="active">Todas</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="unread">Sin leer</button></div>' +
+            '<div class="smyl-inbox-filter-pair" role="presentation"><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="attention">Por atender</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="mine">Mías</button></div>' +
           '</div>' +
           '<div class="smyl-inbox-branch-strip" data-inbox-branch-strip hidden></div>' +
-          '<div class="smyl-inbox-filter-panel" id="smyl-inbox-filter-panel" data-inbox-filter-panel aria-label="Filtros avanzados" hidden><span class="smyl-inbox-filter-label">Mostrar</span><div class="smyl-inbox-secondary-filters"><button type="button" data-inbox-filter="unassigned">Sin asignar</button><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="pinned">Fijadas</button></div><label>Canal<select data-inbox-channel aria-label="Filtrar por canal"><option value="">Todos</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option></select></label><div class="smyl-inbox-list-tools"><button type="button" data-inbox-bulk aria-pressed="false">Seleccionar varias</button><button type="button" data-inbox-refresh aria-label="Actualizar bandeja">Actualizar ahora</button></div></div>' +
+          '<section class="smyl-inbox-filter-panel" id="smyl-inbox-filter-panel" data-inbox-filter-panel aria-label="Filtros de conversaciones" hidden><fieldset><legend>Estado</legend><div class="smyl-inbox-secondary-filters"><button type="button" data-inbox-filter="unassigned">Sin asignar</button><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="pinned">Fijadas</button></div></fieldset><label>Canal<select data-inbox-channel aria-label="Filtrar por canal"><option value="">Todos los canales</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option></select></label></section>' +
           '<div class="smyl-inbox-queue-summary" data-inbox-queue-summary role="status" aria-live="polite"></div><div class="smyl-inbox-queue-summary" data-inbox-handoff-status role="status" aria-live="polite" hidden></div>' +
           '<div class="smyl-inbox-list" data-inbox-list></div>' +
           '<div class="smyl-inbox-bulkbar" data-inbox-bulkbar hidden></div>' +
@@ -410,11 +476,21 @@
           '<div class="smyl-inbox-pipeline-loading" data-pipeline-opening hidden><button type="button" data-pipeline-cancel>Volver al Pipeline</button><p role="status">Abriendo conversación…</p></div>' +
           '<div class="smyl-inbox-thread-empty" data-inbox-thread-empty><div class="smyl-inbox-empty-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg></div><span class="smyl-inbox-eyebrow">CENTRO DE ATENCIÓN</span><h2>Continúa el siguiente caso</h2><p>Abre una conversación para responder, consultar el expediente y coordinar la cita sin cambiar de pantalla.</p><div class="smyl-inbox-empty-steps"><span><b>1</b>Revisa el motivo</span><span><b>2</b>Consulta agenda</span><span><b>3</b>Confirma el seguimiento</span></div><button type="button" class="btn btn-primary" data-inbox-open-next>Abrir siguiente conversación</button></div>' +
           '<div class="smyl-inbox-thread" data-inbox-thread hidden>' +
-            '<header class="smyl-inbox-thread-head"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención" title="Ver la ficha del paciente" aria-expanded="false" aria-controls="smyl-inbox-context-panel"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><span class="smyl-inbox-med-flag" data-thread-medical hidden></span></button><div class="smyl-inbox-thread-branchwrap" data-thread-branch-wrap hidden><button type="button" class="smyl-inbox-iconchip is-labeled" data-thread-branch-chip aria-haspopup="menu" aria-expanded="false"></button></div><button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button><nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Siguiente acción del paciente"></nav><div class="smyl-inbox-owner-control" data-thread-owner>' + composeIcon('person') + '<span class="smyl-inbox-owner-copy"><small>Atiende el chat</small><strong data-thread-owner-name>Sin asignar</strong></span><select data-thread-assign aria-label="Asignar responsable del chat"></select><button type="button" data-thread-owner-retry hidden>Reintentar</button></div></header>' +
-            '<details class="smyl-chat-note" data-handoff hidden><summary>Nota privada de relevo</summary><p></p></details><div class="smyl-inbox-thread-body" data-thread-body><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div data-thread-messages role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div></div>' +
-            '<button type="button" class="smyl-inbox-jump" data-thread-jump hidden>Ir al final</button>' +
+            '<header class="smyl-inbox-thread-head">' +
+              '<div class="smyl-inbox-thread-contact"><button type="button" class="smyl-inbox-back" data-inbox-back aria-label="Volver a la bandeja"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="smyl-inbox-patient-summary" data-inbox-context aria-label="Abrir paciente y atención" title="Ver la ficha del paciente" aria-expanded="false" aria-controls="smyl-inbox-context-panel"><div class="smyl-inbox-avatar" data-thread-avatar></div><div class="smyl-inbox-thread-person"><strong data-thread-name></strong><span data-thread-meta></span></div><span class="smyl-inbox-med-flag" data-thread-medical hidden></span></button>' +
+                '<button type="button" class="smyl-inbox-owner-control" data-thread-owner aria-haspopup="dialog" aria-controls="smyl-chat-owner">' + composeIcon('person') + '<span class="smyl-inbox-owner-copy"><small>Atiende el chat</small><strong data-thread-owner-name>Sin asignar</strong></span></button></div>' +
+              '<div class="smyl-inbox-thread-actions">' +
+                '<div class="smyl-inbox-thread-branchwrap" data-thread-branch-wrap hidden><button type="button" class="smyl-inbox-iconchip is-labeled" data-thread-branch-chip aria-haspopup="menu" aria-expanded="false"></button></div>' +
+                '<button type="button" class="smyl-inbox-mode-button" data-thread-mode role="switch" aria-checked="true"><span class="smyl-inbox-mode-mark" aria-hidden="true">' + composeIcon('bot') + '<svg class="smyl-inbox-mode-status is-paused" viewBox="0 0 12 12"><path d="M4 3v6M8 3v6"></path></svg><svg class="smyl-inbox-mode-status is-active" viewBox="0 0 12 12"><path d="m4 2 5 4-5 4Z"></path></svg></span><span class="smyl-inbox-switch" aria-hidden="true"><i></i></span><span data-thread-state>IA activa</span></button>' +
+                '<nav class="smyl-inbox-carebar" data-thread-carebar aria-label="Siguiente acción del paciente"></nav>' +
+                '<button type="button" data-thread-options aria-label="Opciones del chat" title="Opciones del chat" aria-controls="smyl-thread-options" aria-expanded="false" hidden>' + composeIcon('settings') + '</button>' +
+              '</div>' +
+              '<div id="smyl-thread-options" data-thread-options-panel role="group" aria-label="Opciones del chat" tabindex="-1" hidden></div>' +
+            '</header>' +
+            '<div class="smyl-inbox-transcript"><div class="smyl-inbox-thread-body" data-thread-body tabindex="-1" aria-label="Historial de mensajes" role="region"><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div id="smyl-thread-log" data-thread-messages role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div></div>' +
+              '<button type="button" class="smyl-inbox-jump" data-thread-jump aria-controls="smyl-thread-log" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-6-6 6 6 6-6"/></svg><span>Ir al final</span></button><span class="smyl-inbox-sr" role="status" data-thread-jump-status></span></div>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
-            '<form class="smyl-inbox-composer" data-inbox-composer><label class="smyl-inbox-sr" for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window aria-live="polite" hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><p class="smyl-compose-save-warning" data-compose-save-warning role="status" hidden>No se pudo guardar el texto para esta sesión.</p><div class="smyl-inbox-compose-surface" data-compose-surface><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-card"><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea></div><div class="smyl-inbox-compose-bar" role="group" aria-label="Acciones de respuesta"><div class="smyl-inbox-compose-primary"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-compose-tools" aria-label="Abrir herramientas de mensaje" title="Herramientas">' + composeIcon('plus') + '</button></div><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden><div class="smyl-inbox-compose-actions"><button type="button" class="smyl-inbox-compose-copilot" data-compose-copilot aria-label="Sugerir con MILA">' + composeIcon('mila') + '<span>Sugerir con MILA</span></button><button type="submit" class="smyl-inbox-send" data-compose-send aria-label="Enviar mensaje"><span>Enviar</span>' + composeIcon('send') + '</button></div></div></div><div class="smyl-inbox-compose-tools" id="smyl-inbox-compose-tools" data-compose-tools role="menu" aria-label="Herramientas de mensaje" hidden><button type="button" data-compose-attach role="menuitem" aria-label="Adjuntar archivo">' + composeIcon('attach') + '<span><strong>Adjuntar</strong><small>Foto, archivo o audio</small></span></button><button type="button" data-compose-quick role="menuitem" aria-label="Respuesta rápida">' + composeIcon('quick') + '<span><strong>Respuesta rápida</strong><small>Insertar texto del equipo</small></span></button><button type="button" data-compose-rewrite role="menuitem" aria-label="Mejorar redacción con MILA">' + composeIcon('rewrite') + '<span><strong>Mejorar redacción</strong><small>Ortografía y claridad con MILA</small></span></button><button type="button" data-compose-emoji role="menuitem" aria-label="Agregar emoji">' + composeIcon('smile') + '<span><strong>Emoji</strong><small>Insertar en el mensaje</small></span></button><button type="button" data-compose-template role="menuitem">' + composeIcon('template') + '<span><strong>Plantilla</strong><small>Mensaje aprobado</small></span></button><button type="button" data-compose-schedule role="menuitem">' + composeIcon('calendar') + '<span><strong>Programar</strong><small>Enviar después</small></span></button><button type="button" data-compose-record role="menuitem" aria-pressed="false">' + composeIcon('mic') + '<span><strong>Nota de voz</strong><small>Grabar audio</small></span></button><button type="button" data-compose-location role="menuitem" aria-label="Enviar ubicación actual">' + composeIcon('location') + '<span><strong>Enviar ubicación</strong><small>Ubicación actual o enlace de Maps</small></span></button></div></div></div></form>' +
+            '<form class="smyl-inbox-composer" data-inbox-composer><label class="smyl-inbox-sr" for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window aria-live="polite" hidden></div><div class="media-reply-offer" data-media-offer aria-live="polite" hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><p class="smyl-compose-save-warning" data-compose-save-warning role="status" hidden>No se pudo guardar el texto para esta sesión.</p><div class="smyl-inbox-compose-surface" data-compose-surface><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-card"><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea></div><div class="smyl-inbox-compose-bar" role="group" aria-label="Acciones de respuesta"><div class="smyl-inbox-compose-primary"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-compose-tools" aria-label="Abrir herramientas de mensaje" title="Herramientas">' + composeIcon('plus') + '</button></div><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,video/mp4,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden><div class="smyl-inbox-compose-actions"><button type="button" class="smyl-inbox-compose-copilot" title="Sugerir con MILA" data-compose-copilot aria-label="Sugerir con MILA">' + composeIcon('mila') + '<span>Sugerir con MILA</span></button><button type="submit" class="smyl-inbox-send" data-compose-send aria-label="Enviar mensaje"><span>Enviar</span>' + composeIcon('send') + '</button></div></div></div><div class="smyl-inbox-compose-tools" id="smyl-inbox-compose-tools" data-compose-tools role="menu" aria-label="Herramientas de mensaje" hidden><button type="button" data-compose-attach role="menuitem" aria-label="Adjuntar archivo">' + composeIcon('attach') + '<span><strong>Adjuntar</strong><small>Foto, archivo o audio</small></span></button><button type="button" data-compose-quick role="menuitem" aria-label="Respuesta rápida">' + composeIcon('quick') + '<span><strong>Respuesta rápida</strong><small>Insertar texto del equipo</small></span></button><button type="button" data-compose-rewrite role="menuitem" aria-label="Mejorar redacción con MILA">' + composeIcon('rewrite') + '<span><strong>Mejorar redacción</strong><small>Corregir el texto actual de la caja</small></span></button><button type="button" data-compose-emoji role="menuitem" aria-label="Agregar emoji">' + composeIcon('smile') + '<span><strong>Emoji</strong><small>Insertar en el mensaje</small></span></button><button type="button" data-compose-template role="menuitem">' + composeIcon('template') + '<span><strong>Plantilla</strong><small>Mensaje aprobado</small></span></button><button type="button" data-compose-schedule role="menuitem">' + composeIcon('calendar') + '<span><strong>Programar</strong><small>Enviar después</small></span></button><button type="button" data-compose-record role="menuitem" aria-pressed="false">' + composeIcon('mic') + '<span><strong>Nota de voz</strong><small>Grabar audio</small></span></button><button type="button" data-compose-location role="menuitem" aria-label="Enviar ubicación actual">' + composeIcon('location') + '<span><strong>Enviar ubicación</strong><small>Ubicación actual o enlace de Maps</small></span></button></div></div></div></form>' +
           '</div>' +
         '</main>' +
         '<section class="smyl-inbox-offline" data-inbox-offline hidden aria-live="polite"></section>' +
@@ -425,10 +501,13 @@
         '<dialog class="smyl-inbox-copilot-dialog" data-copilot-feedback><form><span class="smyl-inbox-eyebrow">CALIDAD DE IA</span><h2>Evalúa esta respuesta</h2><p>Tu comentario queda para revisión; no modifica ni publica la capacitación automáticamente.</p><label>Resultado<select data-feedback-rating required><option value="helpful">Útil</option><option value="needs_improvement">Necesita mejora</option><option value="unsafe">Insegura o fuera de límites</option></select></label><label>¿Qué mejorarías?<textarea data-feedback-comment maxlength="1000" rows="3"></textarea></label><label>Respuesta ideal · opcional<textarea data-feedback-ideal maxlength="4000" rows="4"></textarea></label><footer><button type="button" class="btn btn-secondary" data-feedback-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Guardar evaluación</button></footer></form></dialog>' +
         '<dialog class="smyl-inbox-copilot-dialog smyl-inbox-template-dialog" data-template-dialog><form><span class="smyl-inbox-eyebrow">WHATSAPP · PLANTILLA APROBADA</span><h2>Volver a contactar</h2><p>Meta permite estas plantillas incluso cuando la ventana de 24 horas ya venció.</p><label>Plantilla<select data-template-select required></select></label><div class="smyl-inbox-template-preview" data-template-preview></div><div data-template-variables></div><footer><button type="button" class="btn btn-secondary" data-template-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Enviar plantilla</button></footer></form></dialog>' +
         '<dialog class="smyl-inbox-copilot-dialog smyl-inbox-schedule-dialog" data-schedule-dialog><form><span class="smyl-inbox-eyebrow">WHATSAPP · ENVÍO PROGRAMADO</span><h2>Programar seguimiento</h2><p>El envío se procesa una sola vez. Si el texto libre quedaría fuera de la ventana, usa una plantilla aprobada.</p><label>Fecha y hora<input type="datetime-local" data-schedule-at required></label><label>Tipo<select data-schedule-type><option value="text">Texto libre</option><option value="template">Plantilla aprobada</option></select></label><label data-schedule-text-wrap>Mensaje<textarea data-schedule-text maxlength="4000" rows="4"></textarea></label><div data-schedule-template-wrap hidden><label>Plantilla<select data-schedule-template></select></label><div class="smyl-inbox-template-preview" data-schedule-preview></div><div data-schedule-variables></div></div><footer><button type="button" class="btn btn-secondary" data-schedule-cancel>Cancelar</button><button type="submit" class="btn btn-primary">Programar</button></footer></form></dialog>' +
-        '<dialog class="smyl-v2-dialog smyl-inbox-productivity-dialog smyl-inbox-availability-dialog" data-availability-dialog><header><div class="smyl-inbox-availability-heading"><h2 tabindex="-1">Agendar cita</h2><p class="smyl-inbox-availability-context"><span data-availability-patient>Paciente por vincular</span><span aria-hidden="true">·</span><span data-availability-location>Tu clínica</span></p></div><button type="button" class="smyl-inbox-dialog-close" data-availability-close aria-label="Cerrar agenda"><span aria-hidden="true">×</span></button></header><aside class="smyl-inbox-availability-patient-alert" data-availability-patient-alert hidden><div><strong>Confirma la identidad del paciente</strong><span>Vincula esta conversación para registrar la cita en el expediente correcto.</span></div><button type="button" class="btn btn-secondary btn-sm" data-availability-link-patient>Vincular paciente</button></aside><form data-availability-form><div class="smyl-inbox-availability-primary-fields"><label>Servicio<select data-availability-service required></select></label><label>Sucursal<select data-availability-branch title="Todas las sucursales"><option value="">Todas las sucursales</option></select></label><label>Profesional<select data-availability-professional><option value="">Todo el equipo</option></select></label></div><div class="smyl-inbox-availability-period"><div class="smyl-inbox-availability-presets" aria-label="Periodo de búsqueda"><span>Periodo</span><button type="button" data-availability-preset="7">7 días</button><button type="button" data-availability-preset="14">15 días</button><button type="button" data-availability-preset="next">Próxima semana</button><button type="button" data-availability-custom>Fechas personalizadas</button></div><div class="smyl-inbox-availability-dates" data-availability-date-fields hidden><label>Desde<input type="date" data-availability-from required></label><label>Hasta<input type="date" data-availability-to required></label></div><button class="btn btn-primary" type="submit">Buscar horarios</button></div></form><section class="smyl-inbox-availability-board"><header><div><strong data-availability-scope>Disponibilidad del equipo</strong><span data-availability-period-label></span></div><div class="smyl-inbox-availability-modes" role="group" aria-label="Vista de disponibilidad"><button type="button" data-availability-mode="calendar" aria-pressed="true">Calendario</button><button type="button" data-availability-mode="list" aria-pressed="false">Lista</button></div></header><div data-availability-results></div></section><footer class="smyl-inbox-availability-offer" hidden><span data-availability-selection>0 horarios seleccionados</span><label class="smyl-inbox-availability-notify" data-availability-notify-wrap hidden><input type="checkbox" data-availability-notify checked> Preparar el mensaje de confirmación en el chat</label><button type="button" class="btn btn-primary" data-availability-book hidden>Confirmar cita</button><button type="button" class="btn btn-primary" data-availability-prepare disabled>Agregar opciones al mensaje</button></footer></dialog>' +
-        '<dialog class="smyl-inbox-productivity-dialog inbox-tool-dialog" data-quick-dialog aria-labelledby="smyl-quick-heading"><header><h2 id="smyl-quick-heading">Respuestas rápidas</h2><button type="button" data-quick-close aria-label="Cerrar respuestas rápidas">×</button></header>' +
-          '<div data-quick-content><section data-quick-library><div class="smyl-quick-toolbar"><input type="search" data-quick-search placeholder="Buscar una respuesta" aria-label="Buscar una respuesta"><button type="button" data-quick-new>Redactar respuesta</button></div><div class="smyl-quick-list" data-quick-list></div></section>' +
-          '<form class="smyl-quick-editor" data-quick-form hidden><label data-quick-name>Atajo<input name="shortcut" type="text" placeholder="Ej. bienvenida" maxlength="40" autocapitalize="none" autocomplete="off" spellcheck="false"></label><label>Mensaje<textarea name="replyText" rows="4" maxlength="4000" required placeholder="Escribe la respuesta…"></textarea></label>' +
+        '<dialog class="smyl-v2-dialog smyl-inbox-productivity-dialog smyl-inbox-availability-dialog" data-availability-dialog><header><div class="smyl-inbox-availability-heading"><h2 tabindex="-1">Agendar cita</h2><p class="smyl-inbox-availability-context"><span data-availability-patient>Paciente por vincular</span><span aria-hidden="true">·</span><span data-availability-location>Tu clínica</span></p></div><button type="button" class="smyl-inbox-dialog-close" data-availability-close aria-label="Cerrar agenda"><span aria-hidden="true">×</span></button></header><aside class="smyl-inbox-availability-patient-alert" data-availability-patient-alert hidden><div><strong>Confirma la identidad del paciente</strong><span>Vincula esta conversación para registrar la cita en el expediente correcto.</span></div><button type="button" class="btn btn-secondary btn-sm" data-availability-link-patient>Vincular paciente</button></aside><form data-availability-form><div class="smyl-inbox-availability-primary-fields"><label>Servicio<select data-availability-service required></select></label><label>Sucursal<select data-availability-branch title="Todas las sucursales"><option value="">Todas las sucursales</option></select></label><label>Profesional<select data-availability-professional><option value="">Todo el equipo</option></select></label></div><div class="smyl-inbox-availability-period"><div class="smyl-inbox-availability-presets" aria-label="Periodo de búsqueda"><span>Periodo</span><button type="button" data-availability-preset="7">7 días</button><button type="button" data-availability-preset="14">15 días</button><button type="button" data-availability-preset="next">Próxima semana</button><button type="button" data-availability-custom>Fechas personalizadas</button></div><div class="smyl-inbox-availability-dates" data-availability-date-fields hidden><label>Desde<input type="date" data-availability-from required></label><label>Hasta<input type="date" data-availability-to required></label></div><button class="btn btn-primary" type="submit">Buscar horarios</button></div></form><section class="smyl-inbox-availability-suggest" data-availability-suggest aria-label="Sugerencia de horarios"><div class="smyl-suggest-head"><div><strong>Sugerir horarios al paciente</strong><span>Tres opciones variadas, de una sola sucursal, ya ordenadas.</span></div><div class="smyl-suggest-buttons"><button type="button" class="btn btn-secondary" data-availability-suggest-run>Sugerir 3 horarios</button><button type="button" class="btn btn-secondary" data-availability-waitlist title="Si no encuentra horario o quiere uno más pronto">Poner en lista de espera</button></div></div><div class="smyl-suggest-body" data-availability-suggest-results aria-live="polite"></div></section><section class="smyl-inbox-availability-board"><header><div><strong data-availability-scope>Disponibilidad del equipo</strong><span data-availability-period-label></span></div><div class="smyl-inbox-availability-modes" role="group" aria-label="Vista de disponibilidad"><button type="button" data-availability-mode="calendar" aria-pressed="true">Calendario</button><button type="button" data-availability-mode="list" aria-pressed="false">Lista</button></div></header><div data-availability-results></div></section><footer class="smyl-inbox-availability-offer" hidden><span data-availability-selection>0 horarios seleccionados</span><label class="smyl-inbox-availability-notify" data-availability-notify-wrap hidden><input type="checkbox" data-availability-notify checked> Preparar el mensaje de confirmación en el chat</label><button type="button" class="btn btn-primary" data-availability-book hidden>Confirmar cita</button><button type="button" class="btn btn-primary" data-availability-prepare disabled>Agregar opciones al mensaje</button></footer></dialog>' +
+        '<dialog class="smyl-inbox-productivity-dialog inbox-tool-dialog" id="smyl-chat-owner" data-owner-dialog aria-labelledby="smyl-owner-heading"><header><h2 id="smyl-owner-heading">Atiende el chat</h2><button type="button" data-owner-close aria-label="Cerrar responsable del chat">×</button></header>' +
+          '<div class="smyl-chat-owner-body"><label>Responsable<select data-thread-assign aria-label="Asignar responsable del chat"></select></label><p class="smyl-chat-owner-status" data-owner-status role="status" hidden></p><button type="button" class="btn btn-secondary" data-thread-owner-retry hidden>Reintentar</button>' +
+          '<section class="smyl-chat-note-content" data-handoff aria-labelledby="smyl-owner-note-title" hidden><h3 id="smyl-owner-note-title">Nota privada de relevo</h3><p></p></section></div></dialog>' +
+        '<dialog class="smyl-inbox-productivity-dialog inbox-tool-dialog" data-quick-dialog aria-labelledby="smyl-quick-heading"><header><div><span class="smyl-quick-kicker">BIBLIOTECA DEL EQUIPO</span><h2 id="smyl-quick-heading">Respuestas rápidas</h2><p>Inserta un mensaje preparado sin enviarlo automáticamente.</p></div><button type="button" data-quick-close aria-label="Cerrar respuestas rápidas"><span aria-hidden="true">×</span></button></header>' +
+          '<div data-quick-content><section data-quick-library><div class="smyl-quick-toolbar"><label class="smyl-quick-search"><span class="smyl-inbox-sr">Buscar una respuesta</span><input type="search" data-quick-search placeholder="Buscar por atajo o texto" aria-label="Buscar por atajo o texto"></label><button type="button" data-quick-new><span aria-hidden="true">＋</span> Nueva respuesta</button></div><div class="smyl-quick-overview"><p data-quick-summary aria-live="polite">Consultando biblioteca…</p><small>Consejo: escribe <b>/atajo</b> en el mensaje para abrir esta lista.</small></div><div class="smyl-quick-list" data-quick-list role="list"></div></section>' +
+          '<form class="smyl-quick-editor" data-quick-form hidden><div class="smyl-quick-editor-heading"><span>RESPUESTA DEL EQUIPO</span><strong data-quick-editor-title>Nueva respuesta</strong><p>Guárdala para reutilizarla o insértala sólo en esta conversación.</p></div><label data-quick-name>Atajo<div class="smyl-quick-shortcut-field"><span aria-hidden="true">/</span><input name="shortcut" type="text" placeholder="bienvenida" maxlength="40" autocapitalize="none" autocomplete="off" spellcheck="false"></div><small>Usa letras, números, guiones o guiones bajos.</small></label><label>Mensaje<textarea name="replyText" rows="5" maxlength="4000" required placeholder="Escribe la respuesta…"></textarea></label>' +
           '<div class="smyl-quick-actions"><button type="button" data-quick-back>Volver</button><button type="button" data-quick-delete hidden>Eliminar</button><button type="button" data-quick-save>Guardar para el equipo</button><button type="submit" data-quick-use>Insertar en el chat</button></div></form><p data-quick-status role="status" hidden></p></div></dialog>' +
         '<dialog class="smyl-inbox-productivity-dialog smyl-inbox-emoji-dialog" data-emoji-dialog aria-labelledby="smyl-emoji-heading"><header><h2 id="smyl-emoji-heading">Emojis</h2><button type="button" data-emoji-close aria-label="Cerrar emojis">×</button></header><div data-emoji-content></div></dialog>' +
         '<dialog class="smyl-inbox-productivity-dialog" data-search-dialog><header><div><span class="smyl-inbox-eyebrow">HISTORIAL CANÓNICO</span><h2>Buscar dentro del hilo</h2><p>La búsqueda se realiza en el historial completo, incluso sobre mensajes no cargados.</p></div><button type="button" data-search-close>Cerrar</button></header><form data-thread-search-form><input type="search" data-thread-search-input minlength="2" maxlength="160" placeholder="Ej. valoración, cita o presupuesto" required><button class="btn btn-primary" type="submit">Buscar</button></form><div data-search-results></div></dialog>' +
@@ -485,9 +564,9 @@
   }
 
   var CLINIC_PIPELINE_STAGES = [
-    { id: 'smyl:confirmed', name: 'Cita confirmada', color: '#276B99' },
+    { id: 'smyl:confirmed', name: 'Cita confirmada', color: '#3045cf' },
     { id: 'smyl:arrived', name: 'Llegó', color: '#9A650E' },
-    { id: 'smyl:attended', name: 'Atendido', color: '#147060' }
+    { id: 'smyl:attended', name: 'Atendido', color: '#1d31b9' }
   ];
   var pendingStageMoves = new Set();
 
@@ -501,14 +580,36 @@
     return stage ? stage.name : 'Sin etapa';
   }
 
+  function stageSelectFor(item, inList) {
+    var select = document.createElement('select');
+    select.setAttribute('aria-label', 'Cambiar etapa de ' + item.contact_name);
+    if (inList) select.dataset.listStage = item.id;
+    select.append(new Option('Sin etapa', ''));
+    pipelineStages().filter(function (stage) { return !stage.archived || stage.id === item.stage_id; }).forEach(function (stage) {
+      var option = new Option(stage.name + (stage.archived ? ' · Archivada' : ''), stage.id);
+      option.disabled = Boolean(stage.archived); select.append(option);
+    });
+    if (item.stage_id && !Array.from(select.options).some(function (option) { return option.value === item.stage_id; })) {
+      var unknown = new Option('Etapa actual sin identificar', item.stage_id); unknown.disabled = true; select.append(unknown);
+    }
+    if (state.stageCatalogStatus === 'error') {
+      var retry = new Option('Reintentar carga de etapas del equipo', ''); retry.dataset.retryStages = ''; select.append(retry);
+    }
+    select.disabled = pendingStageMoves.has(item.id);
+    select.value = item.stage_id || '';
+    select.onchange = function () {
+      if (select.selectedOptions[0]?.hasAttribute('data-retry-stages')) {
+        select.value = item.stage_id || ''; loadStages(); return;
+      }
+      if (select.value !== (item.stage_id || '')) moveConversationStage(item, select.value, select);
+    };
+    return select;
+  }
+
   function renderBulkBar() {
     var bar = document.querySelector('[data-inbox-bulkbar]');
-    var toggle = document.querySelector('[data-inbox-bulk]');
-    if (!bar || !toggle) return;
-    toggle.hidden = !hasPermission('messages.manage');
+    if (!bar) return;
     if (!hasPermission('messages.manage')) { state.bulkMode = false; state.bulkSelected.clear(); }
-    toggle.setAttribute('aria-pressed', state.bulkMode ? 'true' : 'false');
-    toggle.textContent = state.bulkMode ? 'Cancelar' : 'Seleccionar';
     bar.hidden = !state.bulkMode;
     if (!state.bulkMode) { bar.innerHTML = ''; return; }
     var priorAssignee = bar.querySelector('[aria-label="Responsable para seleccionadas"]')?.value;
@@ -589,6 +690,76 @@
     document.removeEventListener('mousedown', outsideBranchMenu, true);
     if (open.menu && open.menu.parentNode) open.menu.remove();
     if (open.button) { open.button.setAttribute('aria-expanded', 'false'); if (restoreFocus) open.button.focus(); }
+  }
+
+  function closeThreadOptions(restoreFocus) {
+    var panel = document.querySelector('[data-thread-options-panel]');
+    if (!panel || panel.hidden) return;
+    var trigger = document.querySelector('[data-thread-options]');
+    if (state.branchMenu && panel.contains(state.branchMenu.wrap)) closeBranchMenu(false);
+    panel.hidden = true;
+    trigger.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) trigger.focus({preventScroll:true});
+  }
+
+  function initThreadOptions(page) {
+    var head = page.querySelector('.smyl-inbox-thread-head');
+    var contact = head.querySelector('.smyl-inbox-thread-contact');
+    var actions = head.querySelector('.smyl-inbox-thread-actions');
+    var owner = head.querySelector('[data-thread-owner]');
+    var branch = head.querySelector('[data-thread-branch-wrap]');
+    var mode = head.querySelector('[data-thread-mode]');
+    var primary = head.querySelector('[data-thread-carebar]');
+    var trigger = head.querySelector('[data-thread-options]');
+    var panel = head.querySelector('[data-thread-options-panel]');
+
+    // El panel de Pipeline y la ficha pueden estrechar el hilo en un monitor grande.
+    // Mover los controles existentes mantiene su estado y sus permisos al cambiar de ancho.
+    function fitHeader() {
+      var width = head.clientWidth;
+      if (!width) { closeThreadOptions(false); return; }
+      var compact = width <= 700;
+      if (compact === head.classList.contains('is-compact')) return;
+      var focused = document.activeElement;
+      var focusInControls = owner.contains(focused) || branch.contains(focused) || mode.contains(focused);
+      if (state.branchMenu && state.branchMenu.wrap === branch) closeBranchMenu(false);
+      closeThreadOptions(false);
+      trigger.hidden = !compact;
+      head.classList.toggle('is-compact', compact);
+      if (compact) {
+        panel.append(owner, branch, mode);
+        if (focusInControls) trigger.focus({preventScroll:true});
+      } else {
+        contact.append(owner);
+        primary.before(branch, mode);
+        if (focusInControls || focused === trigger || focused === panel) {
+          var target = focusInControls && focused.isConnected ? focused : (owner.disabled ? contact.querySelector('[data-inbox-context]') : owner);
+          target.focus({preventScroll:true});
+        }
+      }
+    }
+    trigger.addEventListener('click', function () {
+      if (!panel.hidden) { closeThreadOptions(true); return; }
+      panel.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+      var first = Array.from(panel.querySelectorAll('button:enabled')).find(function (button) { return button.getClientRects().length; });
+      (first || panel).focus({preventScroll:true});
+    });
+    document.addEventListener('pointerdown', function (event) {
+      if (!panel.hidden && !panel.contains(event.target) && !trigger.contains(event.target) && !event.target.closest('dialog[open]')) closeThreadOptions(false);
+    }, true);
+    document.addEventListener('focusin', function (event) {
+      if (!panel.hidden && !panel.contains(event.target) && event.target !== trigger && !event.target.closest('dialog[open]')) closeThreadOptions(false);
+    });
+    head.addEventListener('keydown', function (event) {
+      if (panel.hidden || event.key !== 'Escape' || event.defaultPrevented) return;
+      event.preventDefault();
+      if (state.branchMenu && panel.contains(state.branchMenu.wrap)) closeBranchMenu(true);
+      else closeThreadOptions(true);
+    });
+    fitHeader();
+    if (window.ResizeObserver) new ResizeObserver(fitHeader).observe(head);
+    else window.addEventListener('resize', fitHeader);
   }
   function outsideBranchMenu(event) {
     if (state.branchMenu && !state.branchMenu.wrap.contains(event.target)) closeBranchMenu(false);
@@ -685,7 +856,10 @@
     wrap.hidden = !multiBranch();
     if (!multiBranch()) { closeBranchMenu(false); return; }
     var current = conversation.branch, canAssign = hasPermission('messages.manage');
-    button.innerHTML = BRANCH_ICON; button.append(node('span', '', current ? current.name : 'Sin sucursal'));
+    button.innerHTML = BRANCH_ICON;
+    var copy = node('span', 'smyl-thread-branch-copy');
+    copy.append(node('small', 'smyl-thread-option-label', 'Sucursal'), node('span', '', current ? current.name : 'Sin sucursal'));
+    button.append(copy);
     button.dataset.state = current ? 'set' : 'none';
     button.disabled = !canAssign;
     button.title = current && current.source === 'ai' ? 'La eligió el paciente en la conversación' : canAssign ? 'Cambiar la sucursal de esta conversación' : 'Sucursal de esta conversación';
@@ -743,15 +917,19 @@
       if (button.getAttribute('role') === 'tab') {
         button.setAttribute('aria-selected', selected ? 'true' : 'false');
         button.tabIndex = selected ? 0 : -1;
+        if (filter === 'all' && ['unassigned', 'paused', 'pinned'].indexOf(state.filter) !== -1) button.tabIndex = 0;
       } else button.setAttribute('aria-pressed', selected ? 'true' : 'false');
-      var shownCount = filterCount(filter); button.innerHTML = '<span>' + labels[filter] + '</span>' + (shownCount || filter === 'all' ? '<b>' + shownCount + '</b>' : '');
+      // Counts belong to queue tabs. The popover is a compact choice, not another queue summary.
+      var shownCount = button.getAttribute('role') === 'tab' ? filterCount(filter) : 0;
+      button.innerHTML = '<span>' + labels[filter] + '</span>' + (shownCount || filter === 'all' ? '<b>' + shownCount + '</b>' : '');
     });
     var toggle = document.querySelector('[data-inbox-filter-more]');
     var panel = document.querySelector('[data-inbox-filter-panel]');
     if (toggle) {
       toggle.setAttribute('aria-expanded', state.filterPanelOpen ? 'true' : 'false');
       toggle.dataset.active = advanced ? 'true' : 'false';
-      toggle.textContent = advanced ? 'Filtros · activos' : 'Filtros';
+      toggle.setAttribute('aria-label', advanced ? 'Filtros activos' : 'Filtros');
+      toggle.title = toggle.getAttribute('aria-label');
     }
     if (panel) panel.hidden = !state.filterPanelOpen;
   }
@@ -759,6 +937,10 @@
   function toggleInboxFilters() {
     state.filterPanelOpen = !state.filterPanelOpen;
     renderFilterControls();
+    if (state.filterPanelOpen) {
+      var panel = document.querySelector('[data-inbox-filter-panel]');
+      (panel.querySelector('[aria-pressed="true"]:not([hidden])') || panel.querySelector('button:not([hidden])') || panel.querySelector('select')).focus({preventScroll:true});
+    }
   }
 
   function rovingTabsKeydown(event) {
@@ -804,6 +986,7 @@
     var summary = document.querySelector('[data-inbox-queue-summary]');
     if (!list) return;
     renderBulkBar(); renderFilterControls(); renderBranchBar();
+    var focusedStage = list.contains(document.activeElement) && document.activeElement.dataset.listStage;
     list.innerHTML = '';
     if (state.loadingList && !state.conversations.length) {
       list.innerHTML = sk('list', { rows: 6, label: 'Cargando conversaciones' });
@@ -856,12 +1039,17 @@
       if (multiBranch() && item.branch && item.branch.source === 'ai') meta.lastChild.title = 'La eligió el paciente en la conversación';
       if (multiBranch() && !item.branch) { meta.lastChild.title = 'Sin sucursal'; meta.lastChild.setAttribute('role', 'img'); meta.lastChild.setAttribute('aria-label', 'Sin sucursal'); }
       copy.append(top, preview, meta);
-      var appointmentLine = appointmentCardLine(item.appointment);
-      if (appointmentLine) copy.append(appointmentLine);
-      else if (item.appointment) button.title = appointmentStatusLabel(item.appointment.status);
+      var canPickStage = !state.bulkMode && canTransfer(item);
       var currentStage = stageName(item.stage_id);
-      if (currentStage !== 'Sin etapa' && (item.pipeline?.source !== 'agenda' || !appointmentLine)) {
-        copy.append(node('span', 'smyl-inbox-row-stage-line', 'Etapa · ' + currentStage));
+      var appointmentLine = appointmentCardLine(item.appointment);
+      var sharesAppointmentStatus = canPickStage && appointmentLine &&
+        CLINIC_PIPELINE_STAGES.some(function (stage) { return stage.id === item.stage_id; }) &&
+        currentStage === appointmentStatusLabel(item.appointment.status);
+      if (sharesAppointmentStatus) button.setAttribute('aria-description', appointmentLine.textContent);
+      else if (appointmentLine) copy.append(appointmentLine);
+      else if (item.appointment) button.title = appointmentStatusLabel(item.appointment.status);
+      if (!canPickStage && currentStage !== 'Sin etapa' && (item.pipeline?.source !== 'agenda' || !appointmentLine)) {
+        copy.append(node('span', 'smyl-inbox-row-stage-line', currentStage));
       }
       button.append(avatar, copy);
       if (item.unread_count) button.append(node('span', 'smyl-inbox-unread', String(Math.min(99, item.unread_count))));
@@ -872,13 +1060,25 @@
         }
         openConversation(item.id);
       });
-      list.append(button);
+      if (canPickStage) {
+        var card = node('article', 'smyl-inbox-list-card');
+        card.dataset.listConversationId = item.id;
+        if (pendingStageMoves.has(item.id)) card.setAttribute('aria-busy', 'true');
+        var footer = node('div', 'smyl-inbox-list-card-footer');
+        var stageControl = node('div', 'smyl-inbox-list-stage');
+        stageControl.append(stageSelectFor(item, true));
+        footer.append(stageControl);
+        var date = sharesAppointmentStatus && appointmentLine.querySelector('time');
+        if (date) { date.title = appointmentLine.textContent; footer.append(date); }
+        card.append(button, footer); list.append(card);
+      } else list.append(button);
     });
+    if (focusedStage) list.querySelector('[data-list-stage="' + CSS.escape(focusedStage) + '"]')?.focus({preventScroll:true});
     if (more) { more.hidden = !state.hasMore; more.disabled = state.loadingList; more.textContent = state.loadingList ? 'Cargando…' : 'Cargar más conversaciones'; }
     renderPipeline();
   }
 
-  var PIPELINE_COLORS = ['#2F6FA3', '#28796E', '#7A5AA6', '#B7791F', '#2E8B57', '#B4536A', '#5B6B7A'];
+  var PIPELINE_COLORS = ['#2F6FA3', '#394ab9', '#7A5AA6', '#B7791F', '#2E8B57', '#B4536A', '#5B6B7A'];
 
   function appointmentStatusLabel(status) {
     var labels = { confirmed:'Cita confirmada', arrived:'Llegó', checked_in:'Llegó', in_progress:'En consulta', completed:'Atendido', attended:'Atendido',
@@ -980,12 +1180,7 @@
       // Alternativa al arrastre para pantallas táctiles y teclado.
       var move = node('label', 'smyl-inbox-pipeline-move'); move.title = 'Mover a otra etapa';
       var moveIcon = node('span'); moveIcon.setAttribute('aria-hidden', 'true'); moveIcon.innerHTML = composeIcon('moveStage');
-      var select = document.createElement('select'); select.setAttribute('aria-label', 'Cambiar etapa de ' + item.contact_name);
-      select.append(new Option('Sin etapa', ''));
-      pipelineStages().filter(function (stage) { return !stage.archived || stage.id === item.stage_id; }).forEach(function (stage) { select.append(new Option(stage.name, stage.id)); });
-      select.disabled = busy;
-      select.value = item.stage_id || '';
-      select.onchange = function () { moveConversationStage(item, select.value); };
+      var select = stageSelectFor(item, false);
       move.append(moveIcon, select); card.append(move);
       card.addEventListener('dragstart', function (event) {
         if (!card.draggable || event.target.closest('select, label')) { event.preventDefault(); return; }
@@ -1065,26 +1260,30 @@
   async function saveConversationStage(conversation, stageId) {
     if (!canTransfer(conversation)) throw new Error('Este chat está fuera de tu alcance.');
     if (pendingStageMoves.has(conversation.id)) throw new Error('El cambio de etapa sigue en curso.');
+    var epoch = accessEpoch;
     pendingStageMoves.add(conversation.id);
     try {
       var revision = conversation.pipeline?.revision ?? 0;
       var data = await request('POST', {}, { action: 'stage', conversation_id: conversation.id, target_stage_id: stageId || null, expected_revision: revision }, uuid());
+      if (epoch !== accessEpoch) return;
       var current = state.conversations.find(function (item) { return item.id === conversation.id; });
       if (current) applyConversationResult(current, data);
     } catch (error) {
-      if (error.status === 409) {
+      if (epoch === accessEpoch && error.status === 409) {
         var fresh = await request('GET', { action:'messages', conversation_id:conversation.id, limit:1 });
-        if (fresh.conversation?.id === conversation.id) mergeConversations([fresh.conversation], false);
+        if (epoch === accessEpoch && fresh.conversation?.id === conversation.id) mergeConversations([fresh.conversation], false);
         throw new Error('La etapa cambió mientras la editabas. Revisa la etapa actual y vuelve a elegir.');
       }
       throw error;
     } finally { pendingStageMoves.delete(conversation.id); }
   }
 
-  async function moveConversationStage(conversation, stageId) {
+  async function moveConversationStage(conversation, stageId, origin) {
     var board = document.querySelector('[data-pipeline-board]');
     var status = document.querySelector('[data-pipeline-status]');
-    var control = board?.querySelector('[data-conversation-id="' + CSS.escape(conversation.id) + '"] select');
+    var fromList = Boolean(origin?.hasAttribute('data-list-stage'));
+    var view = state.view, epoch = accessEpoch;
+    var control = origin || board?.querySelector('[data-conversation-id="' + CSS.escape(conversation.id) + '"] select');
     var hadFocus = control && control === document.activeElement;
     if (control) { control.disabled = true; control.closest('article').setAttribute('aria-busy','true'); }
     var feedback;
@@ -1094,12 +1293,17 @@
     } catch (error) {
       feedback = error.message || 'No se pudo cambiar la etapa.';
     }
-    render();
-    if (status && state.view === 'pipeline') status.textContent = feedback;
+    if (epoch !== accessEpoch) return;
+    renderList();
+    if (state.selectedId === conversation.id) renderThreadHeader();
+    if (fromList) announceHandoff(feedback);
+    else if (status && state.view === 'pipeline') status.textContent = feedback;
     else if (document.querySelector('[data-settings-dialog][open] [data-stage-status]')) document.querySelector('[data-settings-dialog] [data-stage-status]').textContent = feedback;
     else announceHandoff(feedback);
-    if (hadFocus && state.view === 'pipeline' && (document.activeElement === document.body || board.contains(document.activeElement))) {
-      board.querySelector('[data-conversation-id="' + CSS.escape(conversation.id) + '"] select')?.focus();
+    if (hadFocus && state.view === view && document.activeElement === document.body) {
+      var next = fromList ? document.querySelector('[data-list-stage="' + CSS.escape(conversation.id) + '"]')
+        : board?.querySelector('[data-conversation-id="' + CSS.escape(conversation.id) + '"] select');
+      next?.focus({preventScroll:true});
     }
   }
 
@@ -1135,9 +1339,10 @@
   }
 
   function closePipelineChat(restoreFocus) {
+    closeMessageMenu(false);
     var id = state.pipelineChatId;
     if (!id) return;
-    closeChatMedia();
+    closeChatMedia(); closeThreadOptions(false);
     openSequence++;
     var page = document.getElementById('p-inbox');
     closeComposerTools(false); closeBranchMenu(false);
@@ -1154,10 +1359,11 @@
   }
 
   function setInboxView(view) {
+    closeMessageMenu(false);
     var nextView = view === 'pipeline' ? 'pipeline' : 'list';
     var page = document.getElementById('p-inbox');
     if (state.view !== nextView) {
-      closeChatMedia();
+      closeChatMedia(); closeThreadOptions(false);
       if (state.pipelineChatId) closePipelineChat(false); else openSequence++;
       state.contextOpen = false; state.contextReturnFocus = null;
       closeBranchMenu(false); closeComposerTools(false);
@@ -1184,16 +1390,20 @@
   function mergeMessages(conversationId, items, prepend) {
     var existing = state.messages[conversationId] || [];
     var map = new Map(existing.map(function (item) { return [String(item.id), item]; }));
+    var added = 0;
     (items || []).forEach(function (item) {
+      var localEcho = false;
       if (item.client_request_id) {
         (state.pending[conversationId] || []).forEach(function (pending) {
-          if (pending.key === item.client_request_id) pending.reconciled = true;
+          if (pending.key === item.client_request_id) { pending.reconciled = true; localEcho = true; pending.onMediaConfirmed?.(); }
         });
       }
+      if (!prepend && !item.deleted && !localEcho && !map.has(String(item.id))) added++;
       map.set(String(item.id), item);
     });
     state.messages[conversationId] = Array.from(map.values()).sort(function (a, b) { return new Date(a.created_at || 0) - new Date(b.created_at || 0); });
     state.pending[conversationId] = (state.pending[conversationId] || []).filter(function (item) { return !item.reconciled; });
+    return added;
   }
 
   function atThreadBottom() {
@@ -1201,10 +1411,28 @@
     return !body || body.scrollHeight - body.scrollTop - body.clientHeight < 80;
   }
 
+  function updateThreadJump(away) {
+    var jump = document.querySelector('[data-thread-jump]'); if (!jump) return;
+    var label = threadNewCount ? threadNewCount + (threadNewCount === 1 ? ' mensaje nuevo' : ' mensajes nuevos') : 'Ir al final';
+    var copy = jump.querySelector('span'); if (copy.textContent !== label) copy.textContent = label;
+    jump.classList.toggle('has-new-messages', threadNewCount > 0);
+    jump.setAttribute('aria-label', threadNewCount ? label + ' · Ir al final' : label);
+    var announce = document.querySelector('[data-thread-jump-status]');
+    var announcement = threadNewCount ? label : '';
+    if (announce.textContent !== announcement) announce.textContent = announcement;
+    jump.hidden = !away && !threadNewCount;
+  }
+
+  function resetThreadJump() {
+    threadNewCount = 0; threadPaintDeferred = false;
+    updateThreadJump(false);
+  }
+
   function scrollThreadBottom() {
     var body = document.querySelector('[data-thread-body]');
+    if (threadPaintDeferred && state.selectedId) renderMessages(false);
     if (body) body.scrollTop = body.scrollHeight;
-    var jump = document.querySelector('[data-thread-jump]'); if (jump) jump.hidden = true;
+    resetThreadJump();
   }
 
   function renderComposerContext() {
@@ -1214,16 +1442,112 @@
     var value = state.attachment || state.replyTo;
     box.hidden = !value;
     if (!value) return;
-    var copy = node('div', '');
-    copy.append(node('strong', '', state.attachment ? 'Adjunto listo' : 'Respondiendo a un mensaje'));
-    copy.append(node('span', '', state.attachment ? (state.attachment.name + ' · ' + Math.max(1, Math.round(state.attachment.size / 1024)) + ' KB') : (state.replyTo.content || 'Adjunto').slice(0, 120)));
+    box.setAttribute('role', 'status');
+    box.setAttribute('aria-live', 'polite');
+    box.dataset.kind = state.attachment ? 'attachment' : 'reply';
+    var copy = node('div', 'smyl-inbox-compose-context-copy');
+    var sender = state.replyTo && (state.replyTo.author_type === 'patient' || state.replyTo.role === 'user')
+      ? (selectedConversation()?.contact_name || 'Paciente') : state.replyTo?.author_type === 'team' ? 'Equipo de la clínica' : 'SMYL Asistente';
+    copy.append(node('strong', '', state.attachment ? 'Adjunto listo' : 'Respondiendo a ' + sender));
+    copy.append(node('span', '', state.attachment ? (state.attachment.name + ' · ' + Math.max(1, Math.round(state.attachment.size / 1024)) + ' KB') : replyPreview(state.replyTo)));
     if (state.attachment && attachmentKind(state.attachment) === 'audio') {
       var preview = document.createElement('audio'); preview.controls = true; preview.preload = 'metadata';
       preview.src = URL.createObjectURL(state.attachment); preview.onloadedmetadata = function () { URL.revokeObjectURL(preview.src); };
       copy.append(preview);
     }
-    var clear = node('button', '', 'Quitar'); clear.type = 'button'; clear.onclick = function () { state.attachment = null; state.replyTo = null; var input = document.querySelector('[data-compose-file]'); if (input) input.value = ''; renderComposerContext(); };
+    var clear = node('button', 'smyl-inbox-compose-context-clear', '×'); clear.type = 'button';
+    clear.setAttribute('aria-label', state.attachment ? 'Quitar adjunto' : 'Cancelar respuesta');
+    clear.title = clear.getAttribute('aria-label');
+    clear.onclick = function () { state.attachment = null; state.replyTo = null; var input = document.querySelector('[data-compose-file]'); if (input) input.value = ''; renderComposerContext(); document.querySelector('#smyl-inbox-message')?.focus({preventScroll:true}); };
     box.append(copy, clear);
+  }
+
+  function replyPreview(item) {
+    if (!item) return '';
+    if (chatLocation(item)) return 'Ubicación compartida';
+    var content = String(item.content || '').trim();
+    var kind = {image:'Fotografía', audio:'Audio', document:'Documento', video:'Video', location:'Ubicación'}[item.media_type];
+    return (kind ? kind + (item.media_filename ? ' · ' + item.media_filename : content ? ' · ' + content : '') : content || 'Mensaje').slice(0, 180);
+  }
+
+  function closeMessageMenu(restoreFocus) {
+    var open = messageMenu; if (!open) return;
+    messageMenu = null; state.actionsOpenId = null;
+    document.removeEventListener('pointerdown', outsideMessageMenu, true);
+    document.removeEventListener('focusin', outsideMessageMenu, true);
+    window.removeEventListener('scroll', scrollMessageMenu, true);
+    window.removeEventListener('resize', dismissMessageMenu);
+    window.visualViewport?.removeEventListener('resize', dismissMessageMenu);
+    open.menu.remove(); open.row.classList.remove('show-actions');
+    open.button.setAttribute('aria-expanded', 'false');
+    if (restoreFocus && open.button.isConnected) open.button.focus({preventScroll:true});
+  }
+
+  function outsideMessageMenu(event) {
+    if (messageMenu && !messageMenu.menu.contains(event.target) && !messageMenu.button.contains(event.target)) closeMessageMenu(false);
+  }
+  function dismissMessageMenu() { closeMessageMenu(false); }
+  function scrollMessageMenu(event) {
+    if (messageMenu && !messageMenu.menu.contains(event.target)) closeMessageMenu(false);
+  }
+
+  function openMessageMenu(button, menu, row, item) {
+    var wasOpen = messageMenu?.button === button;
+    closeMessageMenu(false); if (wasOpen) return;
+    closeComposerTools(false); closeBranchMenu(false);
+    messageMenu = {button:button, menu:menu, row:row}; state.actionsOpenId = String(item.id);
+    row.classList.add('show-actions'); button.setAttribute('aria-expanded', 'true');
+    document.body.append(menu);
+    // The top layer avoids clipping by the scrolling history and the Pipeline pane.
+    if (typeof menu.showPopover === 'function') { menu.setAttribute('popover', 'manual'); menu.showPopover(); }
+    var anchor = button.getBoundingClientRect(), bounds = row.closest('[data-thread-body]').getBoundingClientRect();
+    var width = menu.offsetWidth, height = menu.offsetHeight, inset = 8;
+    var leftEdge = Math.max(inset, bounds.left + inset), rightEdge = Math.min(innerWidth - inset, bounds.right - inset);
+    var incoming = row.classList.contains('is-patient'), left = incoming ? anchor.right + 4 : anchor.left - width - 4;
+    var sideFits = left >= leftEdge && left + width <= rightEdge;
+    if (!sideFits) left = Math.max(leftEdge, Math.min(incoming ? anchor.left : anchor.right - width, rightEdge - width));
+    var bubbleBounds = row.querySelector('.smyl-inbox-bubble').getBoundingClientRect();
+    var top = sideFits ? anchor.top : Math.max(anchor.bottom, bubbleBounds.bottom) + 4;
+    var floor = Math.min(innerHeight - inset, bounds.bottom - inset), ceiling = Math.max(inset, bounds.top + inset);
+    if (top + height > floor) top = (sideFits ? anchor.bottom : Math.min(anchor.top, bubbleBounds.top) - 4) - height;
+    menu.style.left = Math.max(inset, Math.min(left, innerWidth - width - inset)) + 'px';
+    menu.style.top = Math.max(ceiling, Math.min(top, floor - height)) + 'px';
+    menu.style.maxHeight = Math.max(44, floor - ceiling) + 'px';
+    menuItems(menu)[0]?.focus({preventScroll:true});
+    document.addEventListener('pointerdown', outsideMessageMenu, true);
+    document.addEventListener('focusin', outsideMessageMenu, true);
+    window.addEventListener('scroll', scrollMessageMenu, {capture:true, passive:true});
+    window.addEventListener('resize', dismissMessageMenu);
+    window.visualViewport?.addEventListener('resize', dismissMessageMenu);
+  }
+
+  function messageActions(item, row) {
+    var menu = node('div', 'smyl-inbox-message-menu');
+    menu.id = 'smyl-message-menu-' + (++messageMenuSequence);
+    menu.setAttribute('role', 'menu'); menu.setAttribute('aria-label', 'Opciones del mensaje');
+    function action(label, run, className) {
+      var control = node('button', className || '', label); control.type = 'button';
+      control.setAttribute('role', 'menuitem'); control.tabIndex = -1;
+      control.onclick = function () { closeMessageMenu(true); run(); }; menu.append(control);
+    }
+    if (hasPermission('messages.respond')) {
+      action('Responder', function () { state.replyTo = item; state.attachment = null; renderComposerContext(); document.querySelector('#smyl-inbox-message')?.focus(); }, 'is-primary');
+      action(item.starred ? 'Quitar estrella' : 'Destacar', function () { mutateMessage(item, item.starred ? 'unstar' : 'star'); });
+      action('Reenviar', function () { openForward(item); });
+    }
+    if (item.media_type === 'image' && hasPermission('clinical.write')) action('Enviar a revisión clínica', function () { linkClinicalImage(item); }, 'is-clinical');
+    if (item.author_type === 'assistant' && hasPermission('messages.respond')) action('Evaluar IA', function () { openFeedback(item); }, 'is-copilot');
+    if (hasPermission('messages.manage')) action('Eliminar', function () { mutateMessage(item, 'delete'); }, 'is-danger');
+    if (!menu.childNodes.length) return null;
+    var rail = node('div', 'smyl-inbox-message-actions');
+    var button = node('button', 'smyl-inbox-message-more'); button.type = 'button';
+    button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>';
+    button.setAttribute('aria-label', 'Opciones del mensaje'); button.title = 'Opciones del mensaje';
+    button.setAttribute('aria-haspopup', 'menu'); button.setAttribute('aria-controls', menu.id); button.setAttribute('aria-expanded', 'false');
+    button.onclick = function () { openMessageMenu(button, menu, row, item); };
+    button.onkeydown = function (event) { if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); openMessageMenu(button, menu, row, item); if (event.key === 'ArrowUp') menuItems(menu).at(-1)?.focus(); } };
+    menu.onkeydown = function (event) { if (event.key === 'Tab') { closeMessageMenu(true); return; } menuKeydown(event, menu, closeMessageMenu); };
+    rail.append(button); return rail;
   }
 
   function renderCopilotDraft() {
@@ -1234,18 +1558,28 @@
     var result = conversationId && state.copilot[conversationId];
     var loadingMode = conversationId && state.copilotLoading[conversationId];
     var loading = loadingMode === 'draft' || loadingMode === 'rewrite';
-    var isRewrite = loadingMode === 'rewrite' || Boolean(result && result.mode === 'rewrite');
-    panel.hidden = !loading && !(result && (result.mode === 'draft' || result.mode === 'rewrite'));
+    var appliedRewrite = Boolean(result && result.mode === 'rewrite_applied');
+    var isRewrite = loadingMode === 'rewrite' || Boolean(result && (result.mode === 'rewrite' || result.mode === 'rewrite_applied'));
+    panel.hidden = !loading && !(result && (result.mode === 'draft' || result.mode === 'rewrite' || result.mode === 'rewrite_applied'));
     if (panel.hidden) return;
     var head = node('div', 'smyl-inbox-copilot-head');
     head.append(
       node('strong', '', isRewrite ? 'MILA · Redacción' : 'SMYL Copilot'),
-      node('span', '', isRewrite ? 'Ortografía y claridad · no enviado' : 'Borrador interno · no enviado')
+      node('span', '', appliedRewrite ? 'Aplicada en la caja · no enviada' : isRewrite ? 'Ortografía y claridad · no enviado' : 'Borrador interno · no enviado')
     );
     panel.append(head);
     if (loading) {
       panel.append(skNode('text', { lines: 3, label: isRewrite ? 'Corrigiendo ortografía y claridad sin cambiar el sentido' : 'Revisando el hilo y la capacitación publicada' }));
       return;
+    }
+    if (appliedRewrite) {
+      panel.append(node('p', 'smyl-inbox-rewrite-applied', 'Texto corregido en la caja. Revísalo antes de enviar.'));
+      var appliedActions = node('div', 'smyl-inbox-copilot-actions');
+      var undo = node('button', 'btn btn-secondary btn-sm', 'Deshacer'); undo.type = 'button';
+      undo.onclick = function () { setComposerText(result.original_text || ''); delete state.copilot[conversationId]; renderCopilotDraft(); };
+      var done = node('button', 'btn btn-primary btn-sm', 'Listo'); done.type = 'button';
+      done.onclick = function () { delete state.copilot[conversationId]; renderCopilotDraft(); document.querySelector('[name="message"]')?.focus(); };
+      appliedActions.append(undo, done); panel.append(appliedActions); return;
     }
     if (result.requires_human) panel.append(node('p', 'is-warning', 'Copilot detectó contenido que requiere atención humana. Revisa con especial cuidado.'));
     var suggestion = result.rewritten_text || result.draft || '';
@@ -1283,8 +1617,8 @@
   async function rewriteComposerText() {
     var conversation = selectedConversation();
     var input = document.querySelector('[name="message"]');
-    var source = input && input.value.trim();
-    if (!source) {
+    var source = input && input.value;
+    if (!source || !source.trim()) {
       window.alert('Escribe primero el mensaje que quieres mejorar.');
       if (input) input.focus();
       return null;
@@ -1298,7 +1632,14 @@
         source_text: source,
       }, uuid(), 35000);
       if (state.selectedId !== conversation.id) return null;
-      state.copilot[conversation.id] = Object.assign({ mode: 'rewrite' }, data);
+      var suggestion = String(data && data.rewritten_text || '').trim();
+      if (!suggestion) throw new Error('MILA no devolvió una versión corregida.');
+      if (input.value === source) {
+        setComposerText(suggestion);
+        state.copilot[conversation.id] = Object.assign({}, data, { mode: 'rewrite_applied', original_text: source, rewritten_text: suggestion });
+      } else {
+        state.copilot[conversation.id] = Object.assign({ mode: 'rewrite' }, data);
+      }
       return data;
     } catch (error) {
       window.alert(error.message || 'MILA no pudo mejorar la redacción. Tu texto original no cambió.');
@@ -1488,26 +1829,87 @@
     return button;
   }
 
+  function locationCoordinate(value, limit) {
+    if (typeof value !== 'number' && (typeof value !== 'string' || !/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(value.trim()))) return null;
+    var n = Number(value);
+    return Number.isFinite(n) && Math.abs(n) <= limit ? n : null;
+  }
+
+  function coordinateMap(lat, lng) {
+    var latitude = locationCoordinate(lat, 90), longitude = locationCoordinate(lng, 180);
+    if (latitude === null || longitude === null) return '';
+    return 'https://www.google.com/maps?q=' + encodeURIComponent(latitude + ',' + longitude);
+  }
+
+  function chatMapLink(raw) {
+    if (typeof raw !== 'string' || raw.length > 2048 || /[\s\\]/.test(raw)) return '';
+    try {
+      var url = new URL(raw);
+      if (url.protocol !== 'https:' || url.username || url.password || url.port) return '';
+      // Never expand short links or request a map preview; only allow official map hosts.
+      if (url.hostname === 'maps.app.goo.gl' && /^\/[A-Za-z0-9_-]{5,100}\/?$/.test(url.pathname)) return url.origin + url.pathname;
+      if (!/^(?:(?:www\.)?google\.com(?:\.mx)?|maps\.google\.com(?:\.mx)?)$/.test(url.hostname)) return '';
+      if (!/^\/maps(?:\/search)?\/?$/.test(url.pathname) && !(url.hostname.startsWith('maps.') && url.pathname === '/')) return '';
+      var pair = (url.searchParams.get('query') || url.searchParams.get('q') || '').split(',');
+      return pair.length === 2 ? coordinateMap(pair[0], pair[1]) : '';
+    } catch (_) { return ''; }
+  }
+
+  function chatLocation(item) {
+    if (!item || item.deleted || (item.media_type && item.media_type !== 'text' && item.media_type !== 'location')) return null;
+    var native = item.media_type === 'location';
+    var text = String(item.content || '').trim(), lines = text.split(/\r?\n/);
+    var url = '', caption = text, candidate = chatMapLink(lines[lines.length - 1].trim());
+    if (native) {
+      var loc = item.location || item;
+      url = coordinateMap(loc.latitude, loc.longitude) || chatMapLink(item.media_url);
+    }
+    if (candidate && (!url || candidate === url)) {
+      url = candidate; caption = lines.slice(0, -1).join('\n').trim();
+    }
+    if (!url) return null;
+    var generic = /^(?:📍\s*)?(?:ubicaci[oó]n(?: actual| compartida)?|location)$/i.test(caption);
+    return { url: url, caption: generic ? '' : caption };
+  }
+
+  function chatLocationCard(place) {
+    var link = node('a', 'smyl-inbox-attachment smyl-chat-location');
+    link.href = place.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.referrerPolicy = 'no-referrer';
+    link.setAttribute('aria-label', 'Abrir mapa de la ubicación compartida (se abre en otra pestaña)');
+    var icon = node('span', 'smyl-chat-location-icon'); icon.innerHTML = composeIcon('location');
+    var copy = node('span', 'smyl-chat-location-copy');
+    copy.append(node('strong', '', 'Ubicación compartida'), node('span', '', 'Abrir mapa ↗'));
+    link.append(icon, copy); return link;
+  }
+
   function appendMessageMedia(bubble, item) {
     if (item.deleted) { bubble.append(node('p', 'smyl-inbox-deleted', 'Mensaje eliminado del panel')); return; }
     if (item.reply_to) {
       var quote = node('div', 'smyl-inbox-quote'); quote.append(node('strong', '', 'Respuesta a'), node('span', '', item.reply_to.preview || 'Mensaje citado')); bubble.append(quote);
     }
     if (item.forwarded) bubble.append(node('span', 'smyl-inbox-forwarded', '↪ Reenviado'));
+    var place = chatLocation(item);
+    if (place) {
+      if (place.caption) bubble.append(node('p', '', place.caption));
+      bubble.append(chatLocationCard(place)); return;
+    }
     var kind = chatMediaKind(item);
     var mediaUrl = item.file && item.file instanceof Blob ? item.media_url : chatFileUrl(item.media_url);
     if (kind) {
       bubble.append(chatMediaButton(item, state.selectedId, true));
     } else if (item.media_type === 'audio' && mediaUrl) {
       var audio = document.createElement('audio'); audio.controls = true; audio.preload = 'metadata'; audio.src = mediaUrl; bubble.append(audio);
-    } else if ((item.media_type === 'document' || item.media_type === 'location') && mediaUrl) {
+    } else if (item.media_type === 'video' && mediaUrl) {
+      var video = document.createElement('video'); video.controls=true; video.playsInline=true; video.preload='metadata'; video.src=mediaUrl; bubble.append(video);
+    } else if (item.media_type === 'document' && mediaUrl) {
       var attachment = document.createElement('a'); attachment.className = 'smyl-inbox-attachment'; attachment.href = mediaUrl; attachment.target = '_blank'; attachment.rel = 'noopener noreferrer';
-      attachment.textContent = item.media_type === 'location' ? '📍 Abrir ubicación' : '📄 ' + (item.media_filename || 'Abrir documento'); bubble.append(attachment);
+      attachment.textContent = '📄 ' + (item.media_filename || 'Abrir documento'); bubble.append(attachment);
     }
     var content = (item.content || '').trim();
     var defaultCaption = (kind === 'image' && /^(?:📷|📸|🖼️?)?\s*(?:imagen|foto(?:grafía)?)$/i.test(content))
       || (kind === 'pdf' && content.replace(/^📄\s*/, '') === (item.media_filename || (item.file && item.file.name)));
     if (!defaultCaption && (content || !item.media_type)) bubble.append(node('p', '', content || 'Mensaje sin texto'));
+    else if (item.media_type === 'location' && !content) bubble.append(node('p', '', 'Ubicación sin enlace disponible'));
   }
 
   async function mutateMessage(item, action) {
@@ -1553,10 +1955,61 @@
     } catch (error) { window.alert(error.message || 'No se pudo reenviar el mensaje.'); }
   }
 
+  const suggestedAttachments = new WeakSet();
+  let mediaLookup = '', checkedMediaAt = 0, mediaSequence = 0;
+  function renderFileSuggestion(items) {
+    const box = document.querySelector('[data-media-offer]');
+    if (!box || !window.SmylMediaReplies || typeof window.sb?.rpc !== 'function') return;
+    const conv = selectedConversation(), epoch = accessEpoch;
+    const last = [...items].reverse().find(m => !m.deleted && (m.role === 'user' || m.author_type === 'patient' || m.author_type === 'team'));
+    const allowed = conv && canOperate(conv,'messages.respond') && liveWhatsappWindow(conv)?.freeform_allowed !== false;
+    const key = allowed && last && (last.role==='user'||last.author_type==='patient') && last.content
+      ? [epoch,window.tenantId,conv.id,last.id,last.content].join('|') : '';
+    if(key && mediaLookup===key && Date.now()-checkedMediaAt<60000) return;
+    const seq=++mediaSequence;
+    mediaLookup=key;checkedMediaAt=Date.now();box.hidden=true;box.replaceChildren();
+    if(!key) return;
+    const current=()=>seq===mediaSequence && epoch===accessEpoch && state.selectedId===conv.id && canOperate(selectedConversation(),'messages.respond');
+    const lookup=()=>window.sb.rpc('smyl_suggest_media_reply',{p_message:last.content,p_channel:conv.channel});
+    Promise.resolve(lookup()).then(({data,error})=>{
+      if(error || !current() || !data?.length) return;
+      const title=node('span','',data.length===1?'Sugerencia · '+data[0].title:'Respuesta sugerida');
+      const picker=document.createElement('select');picker.setAttribute('aria-label','Respuesta con archivo');
+      data.forEach(r=>picker.add(new Option(r.title,r.id)));picker.hidden=data.length===1;
+      const use=node('button','','Preparar respuesta');use.type='button';
+      use.onclick=async()=>{
+        const input=document.getElementById('smyl-inbox-message');
+        if(!current()||input.disabled) return;
+        const prior=input.value, attachment=state.attachment, reply=state.replyTo, choice=picker.value;
+        if((prior.trim()||attachment||reply) && !window.confirm('¿Reemplazar la respuesta que estás preparando?'))return;
+        use.disabled=true;
+        try {
+          const refreshed=await lookup();
+          const active=refreshed.data?.find(r=>r.id===choice);
+          if(refreshed.error||!active)throw new Error('Esta sugerencia ya no está disponible.');
+          const media=await window.sb.storage.from(window.SmylMediaReplies.bucket).download(active.asset);
+          if(media.error||!media.data)throw new Error('No se pudo cargar el archivo. Intenta de nuevo.');
+          if(!current()||input.disabled)return;
+          if(input.value!==prior||state.attachment!==attachment||state.replyTo!==reply)throw new Error('El mensaje cambió. Vuelve a preparar la respuesta.');
+          const file=new File([media.data],window.SmylMediaReplies.filename(active.asset),{type:media.data.type});
+          suggestedAttachments.add(file);
+          if(!chooseAttachment(file))return;
+          setComposerText(active.reply_text);box.hidden=true;
+        } catch(err){if(current())title.textContent=err.message;}
+        finally{use.disabled=false;}
+      };
+      box.append(title,picker,use);box.hidden=false;
+    }).catch(()=>{});
+  }
+  window.addEventListener('smyl:media-rules-changed',()=>{mediaLookup='';if(state.selectedId)renderMessages(true);});
+
   function renderMessages(keepPosition) {
     var wrap = document.querySelector('[data-thread-messages]'); var older = document.querySelector('[data-thread-older]');
     if (!wrap || !state.selectedId) return;
-    var body = document.querySelector('[data-thread-body]'); var oldHeight = body.scrollHeight;
+    var menuFocusId = messageMenu && (messageMenu.menu.contains(document.activeElement) || messageMenu.button === document.activeElement) ? state.actionsOpenId : null;
+    closeMessageMenu(false);
+    var body = document.querySelector('[data-thread-body]'); var oldHeight = body.scrollHeight, priorTop = body.scrollTop;
+    threadPaintDeferred = false;
     var server = state.messages[state.selectedId] || []; var pending = (state.pending[state.selectedId] || []).filter(function (item) { return !item.reconciled; });
     var items = server.concat(pending).sort(function (a, b) { return new Date(a.created_at || 0) - new Date(b.created_at || 0); });
     // El historial se reconstruye completo. Silenciamos el live region durante esa operación
@@ -1573,53 +2026,52 @@
       var error = node('div', 'smyl-inbox-thread-state'); error.append(node('strong', '', 'No pudimos cargar el hilo'), node('p', '', state.threadError));
       var retry = node('button', 'btn btn-secondary btn-sm', 'Reintentar'); retry.type = 'button'; retry.onclick = function () { loadThread(state.selectedId, false); }; error.append(retry); wrap.append(error);
     } else if (!items.length) wrap.append(node('div', 'smyl-inbox-thread-state', 'Todavía no hay mensajes en esta conversación.'));
-    var lastDay = '';
+    var lastDay = '', previousSender = null;
     items.forEach(function (item) {
       var date = new Date(item.created_at || Date.now()); var day = dayLabel(date);
-      if (day !== lastDay) { wrap.append(node('div', 'smyl-inbox-day', day)); lastDay = day; }
-      var row = node('div', 'smyl-inbox-message is-' + (item.author_type || (item.role === 'user' ? 'patient' : 'assistant')) + (item.status === 'failed' || item.status === 'unknown' ? ' has-error' : ''));
-      var bubble = node('div', 'smyl-inbox-bubble'); var author = item.author_type === 'patient' ? 'Paciente' : item.author_type === 'team' ? 'Equipo de la clínica' : 'SMYL Asistente';
+      if (day !== lastDay) { wrap.append(node('div', 'smyl-inbox-day', day)); lastDay = day; previousSender = null; }
+      var authorType = item.author_type || (item.role === 'user' ? 'patient' : 'assistant');
+      var hasError = item.status === 'failed' || item.status === 'unknown';
+      var row = node('div', 'smyl-inbox-message is-' + authorType + (hasError ? ' has-error' : ''));
+      row.dataset.messageId = String(item.id);
+      var senderId = item.author_id || item.sender_id;
+      var sender = null;
+      if (!item.deleted && !hasError && item.role !== 'system' && ['patient', 'assistant', 'team'].includes(authorType)) {
+        // Un hilo tiene un paciente y un asistente, pero puede tener varios miembros del equipo.
+        if (authorType !== 'team' || senderId) sender = authorType + ':' + (senderId || '');
+      }
+      if (sender && sender === previousSender) row.classList.add('is-continuation');
+      previousSender = sender;
+      var bubble = node('div', 'smyl-inbox-bubble'); var author = authorType === 'patient' ? 'Paciente' : authorType === 'team' ? 'Equipo de la clínica' : 'SMYL Asistente';
       // El lado y el color ya dicen quién escribió; solo se rotula a SMYL Asistente (y se deja el nombre para lectores de pantalla).
-      if (item.author_type === 'patient' || item.author_type === 'team') bubble.append(node('span', 'smyl-inbox-sr', author + ': '));
-      if (!(item.author_type === 'patient' || item.author_type === 'team') || item.starred) {
+      if (authorType === 'patient' || authorType === 'team') bubble.append(node('span', 'smyl-inbox-sr', author + ': '));
+      if (!(authorType === 'patient' || authorType === 'team') || item.starred) {
         var top = node('div', 'smyl-inbox-message-top');
-        if (!(item.author_type === 'patient' || item.author_type === 'team')) top.append(node('small', '', author));
+        if (!(authorType === 'patient' || authorType === 'team')) top.append(node('small', '', author));
         if (item.starred) top.append(node('span', '', '★'));
         bubble.append(top);
       }
       appendMessageMedia(bubble, item);
-      var status = node('span', 'smyl-inbox-message-status', item.status === 'sending' ? 'Enviando…' : item.status === 'failed' ? 'No se envió' : item.status === 'unknown' ? 'Confirmación pendiente' : timeLabel(item.created_at)); bubble.append(status);
+      var stamp = messageStatus(item);
+      var plainText = bubble.lastElementChild;
+      if (stamp.dateTime && bubble.childElementCount === 2 && bubble.firstElementChild.classList.contains('smyl-inbox-sr') && plainText.tagName === 'P' && plainText.textContent.length <= 30) {
+        bubble.classList.add('is-brief');
+      }
+      bubble.append(stamp);
       if (item.status === 'failed') { var retryPendingButton = node('button', '', 'Reintentar'); retryPendingButton.type = 'button'; retryPendingButton.onclick = function () { retryPending(item); }; bubble.append(retryPendingButton); }
       else if (item.status === 'unknown') { var refresh = node('button', '', 'Actualizar hilo'); refresh.type = 'button'; refresh.onclick = function () { loadThread(state.selectedId, false); }; bubble.append(refresh); }
       else if (!item.id.toString().startsWith('pending:') && !item.deleted) {
-        var actions = node('div', 'smyl-inbox-message-actions');
-        var secondaryActions = node('div', 'smyl-inbox-message-secondary'); secondaryActions.hidden = true;
-        if (hasPermission('messages.respond')) {
-          var reply = node('button', 'is-primary', 'Responder'); reply.type = 'button'; reply.onclick = function () { state.replyTo = item; state.attachment = null; renderComposerContext(); document.querySelector('[name="message"]').focus(); }; actions.append(reply);
-          [[item.starred ? 'Quitar estrella' : 'Destacar', function () { mutateMessage(item, item.starred ? 'unstar' : 'star'); }], ['Reenviar', function () { openForward(item); }]].forEach(function (action) { var button = node('button', '', action[0]); button.type = 'button'; button.onclick = action[1]; secondaryActions.append(button); });
-        }
-        if (hasPermission('messages.manage')) { var remove = node('button', '', 'Eliminar'); remove.type = 'button'; remove.onclick = function () { mutateMessage(item, 'delete'); }; secondaryActions.append(remove); }
-        if (item.media_type === 'image' && hasPermission('clinical.write')) { var clinical = node('button', 'is-clinical', 'Enviar a revisión clínica'); clinical.type = 'button'; clinical.onclick = function () { linkClinicalImage(item); }; secondaryActions.append(clinical); }
-        if (item.author_type === 'assistant' && hasPermission('messages.respond')) { var feedback = node('button', 'is-copilot', 'Evaluar IA'); feedback.type = 'button'; feedback.onclick = function () { openFeedback(item); }; secondaryActions.append(feedback); }
-        if (secondaryActions.childNodes.length) {
-          var moreActions = node('button', 'smyl-inbox-message-more', 'Más'); moreActions.type = 'button'; moreActions.setAttribute('aria-expanded', 'false');
-          moreActions.onclick = function () { var open = secondaryActions.hidden; secondaryActions.hidden = !open; moreActions.setAttribute('aria-expanded', open ? 'true' : 'false'); };
-          actions.append(moreActions, secondaryActions);
-        }
-        if (actions.childNodes.length) bubble.append(actions);
+        var actions = messageActions(item, row);
+        if (actions) { row.classList.add('has-message-actions'); row.append(actions); }
       }
-      if (String(item.id) === state.actionsOpenId) row.classList.add('show-actions');
-      bubble.addEventListener('click', function (event) {
-        if (!window.matchMedia('(max-width:760px)').matches || event.target.closest('button,a,input,textarea,select')) return;
-        var open = row.classList.contains('show-actions');
-        wrap.querySelectorAll('.smyl-inbox-message.show-actions').forEach(function (other) { other.classList.remove('show-actions'); });
-        state.actionsOpenId = open ? null : String(item.id);
-        if (!open) row.classList.add('show-actions');
-      });
       row.append(bubble); wrap.append(row);
     });
     var page = state.pages[state.selectedId] || {}; if (older) { older.hidden = !page.hasMore; older.disabled = state.loadingThread; }
-    if (keepPosition) body.scrollTop = body.scrollHeight - oldHeight;
+    if (keepPosition) body.scrollTop = priorTop + body.scrollHeight - oldHeight;
+    if (menuFocusId) Array.from(wrap.querySelectorAll('[data-message-id]')).find(function (row) { return row.dataset.messageId === menuFocusId; })?.querySelector('.smyl-inbox-message-more')?.focus({preventScroll:true});
+
+    renderPrivacyNotice(items, body);
+    renderFileSuggestion(items);
 
     var finishAccessibleRender = function () {
       if (!wrap.isConnected || wrap.dataset.renderSequence !== renderSequence) return;
@@ -1630,6 +2082,20 @@
     };
     if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(finishAccessibleRender);
     else setTimeout(finishAccessibleRender, 0);
+  }
+
+  /* Solicitudes de derechos (ARCO) escritas por el paciente: SMYL avisa y el personal las registra con un clic. No contesta solo. */
+  function renderPrivacyNotice(items, body) {
+    var P = window.SmylPrivacyInbox, conversation = selectedConversation();
+    if (!P || !conversation || !body) return;
+    var ficha = state.clinical[conversation.id];
+    try {
+      P.show({
+        conversationId: conversation.id, channel: conversation.channel, contactName: conversation.contact_name, contactPhone: conversation.contact_phone || '',
+        patientId: ficha && ficha.linked && ficha.patient ? ficha.patient.id : null, canManage: hasPermission('patients.manage'), anchor: body,
+        messages: items.filter(function (item) { return item.author_type === 'patient' && !item.deleted && typeof item.content === 'string'; }).map(function (item) { return { id: String(item.id), text: item.content, at: item.created_at }; })
+      });
+    } catch (e) { /* el aviso es una ayuda: si falla, el hilo sigue igual */ }
   }
 
   function liveWhatsappWindow(conversation) {
@@ -1680,7 +2146,9 @@
     var more = form.querySelector('[data-compose-more]'); var tools = form.querySelector('[data-compose-tools]');
     var templateOnly = Boolean(isWhatsapp && !freeformAllowed);
     form.dataset.mode = templateOnly ? 'template' : 'message';
+    var wasDisabled = input.disabled;
     input.disabled = !canRespond || !freeformAllowed; send.disabled = !canRespond;
+    if (input.disabled !== wasDisabled) fitComposerText(input);
     send.innerHTML = templateOnly
       ? '<span>Elegir plantilla</span>' + composeIcon('template')
       : '<span>Enviar</span>' + composeIcon('send');
@@ -1696,7 +2164,7 @@
     var hasSecondaryTool = Array.from(tools.querySelectorAll('button')).some(function (button) { return !button.hidden && !button.disabled; });
     more.hidden = !hasSecondaryTool;
     if (!hasSecondaryTool) closeComposerTools(false);
-    input.placeholder = isWhatsapp && !freeformAllowed ? 'Ventana vencida: selecciona una plantilla aprobada' : 'Escribe una respuesta…';
+    input.placeholder = isWhatsapp && !freeformAllowed ? 'Ventana vencida: selecciona una plantilla aprobada' : 'Responder…';
   }
 
   async function loadTemplates() {
@@ -1951,17 +2419,6 @@
     } catch (error) { window.alert(error.message || 'No se pudo reintentar el mensaje.'); }
   }
 
-  function renderOperationsChip() {
-    var button = document.querySelector('[data-inbox-operations]');
-    if (!button) return;
-    var span = button.querySelector('span');
-    if (state.operationsLoading && !state.operations) { button.dataset.state = 'loading'; span.textContent = 'Revisando operación'; return; }
-    if (state.operationsError && !state.operations) { button.dataset.state = 'attention'; span.textContent = 'Estado no disponible'; return; }
-    var status = state.operations && state.operations.health && state.operations.health.status;
-    button.dataset.state = status === 'healthy' ? 'healthy' : status === 'action_required' ? 'critical' : 'attention';
-    span.textContent = status === 'healthy' ? 'Operación estable' : status === 'action_required' ? 'Requiere atención' : 'Revisar operación';
-  }
-
   function operationsSummary() {
     var operations = state.operations;
     if (!operations) return { loaded: false, status: state.operationsError ? 'unavailable' : 'loading', alerts: [] };
@@ -2047,7 +2504,6 @@
   }
 
   function renderOperations() {
-    renderOperationsChip();
     var content = document.querySelector('[data-operations-content]');
     if (!content) return;
     var reportButton = document.querySelector('[data-pilot-report]'); if (reportButton) reportButton.disabled = !state.operations;
@@ -2248,7 +2704,7 @@
     var reportWindow = window.open('', '_blank');
     if (!reportWindow) { window.alert('Permite ventanas emergentes para imprimir o guardar el informe como PDF.'); return; }
     reportWindow.opener = null;
-    reportWindow.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SMYL · Informe operativo del piloto</title><style>body{max-width:820px;margin:0 auto;padding:36px;font-family:Arial,sans-serif;color:#173149}h1{margin:0 0 6px;font-size:26px}.meta{margin:0 0 24px;color:#607286}.smyl-inbox-report-summary{position:relative;padding:18px;border:1px solid #bfd8d2;border-radius:10px;background:#f4faf8}.smyl-inbox-report-summary>span{font-size:10px;font-weight:bold;letter-spacing:.08em;color:#5c756f}.smyl-inbox-report-summary h3{margin:7px 0 4px;font-size:20px}.smyl-inbox-report-summary p{margin:0;color:#5c6d7c}.smyl-inbox-report-status{margin-top:12px;font-weight:bold}.smyl-inbox-report-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}.smyl-inbox-operations-metric{padding:12px;border:1px solid #d9e2e8;border-radius:8px}.smyl-inbox-operations-metric span,.smyl-inbox-operations-metric strong,.smyl-inbox-operations-metric small{display:block}.smyl-inbox-operations-metric span,.smyl-inbox-operations-metric small{color:#657687;font-size:11px}.smyl-inbox-operations-metric strong{margin:5px 0;font-size:20px}.smyl-inbox-report-section{margin-top:22px}.smyl-inbox-report-section h3{padding-bottom:8px;border-bottom:1px solid #dce4ea;font-size:15px}.smyl-inbox-report-list,.smyl-inbox-report-evidence,.smyl-inbox-report-alerts{padding:0;list-style:none}.smyl-inbox-report-list li,.smyl-inbox-report-evidence li,.smyl-inbox-report-alerts li{display:flex;gap:10px;margin:9px 0;padding:10px;background:#f8fafb;border-radius:7px}.smyl-inbox-report-list i,.smyl-inbox-report-evidence i,.smyl-inbox-report-alerts i{font-style:normal;font-weight:bold}.smyl-inbox-report-list strong,.smyl-inbox-report-list span,.smyl-inbox-report-evidence strong,.smyl-inbox-report-evidence span,.smyl-inbox-report-alerts strong,.smyl-inbox-report-alerts span{display:block}.smyl-inbox-report-list span,.smyl-inbox-report-evidence span,.smyl-inbox-report-alerts span{margin-top:3px;color:#657687;font-size:12px}.smyl-inbox-report-disclaimer{margin-top:24px;padding:12px;border-left:3px solid #72899a;background:#f4f7f9;color:#526474;font-size:11px;line-height:1.5}@media print{body{padding:0}@page{margin:16mm}}@media(max-width:600px){body{padding:20px}.smyl-inbox-report-metrics{grid-template-columns:1fr 1fr}}</style></head><body><h1>Informe operativo del piloto</h1><p class="meta">SMYL · Mensajes</p>' + content.innerHTML + '</body></html>');
+    reportWindow.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SMYL · Informe operativo del piloto</title><style>body{max-width:820px;margin:0 auto;padding:36px;font-family:Arial,sans-serif;color:#173149}h1{margin:0 0 6px;font-size:26px}.meta{margin:0 0 24px;color:#607286}.smyl-inbox-report-summary{position:relative;padding:18px;border:1px solid #bbcedc;border-radius:10px;background:#f4faf8}.smyl-inbox-report-summary>span{font-size:10px;font-weight:bold;letter-spacing:.08em;color:#4c6085}.smyl-inbox-report-summary h3{margin:7px 0 4px;font-size:20px}.smyl-inbox-report-summary p{margin:0;color:#5c6d7c}.smyl-inbox-report-status{margin-top:12px;font-weight:bold}.smyl-inbox-report-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}.smyl-inbox-operations-metric{padding:12px;border:1px solid #d9e0e8;border-radius:8px}.smyl-inbox-operations-metric span,.smyl-inbox-operations-metric strong,.smyl-inbox-operations-metric small{display:block}.smyl-inbox-operations-metric span,.smyl-inbox-operations-metric small{color:#657687;font-size:11px}.smyl-inbox-operations-metric strong{margin:5px 0;font-size:20px}.smyl-inbox-report-section{margin-top:22px}.smyl-inbox-report-section h3{padding-bottom:8px;border-bottom:1px solid #dce4ea;font-size:15px}.smyl-inbox-report-list,.smyl-inbox-report-evidence,.smyl-inbox-report-alerts{padding:0;list-style:none}.smyl-inbox-report-list li,.smyl-inbox-report-evidence li,.smyl-inbox-report-alerts li{display:flex;gap:10px;margin:9px 0;padding:10px;background:#f8fafb;border-radius:7px}.smyl-inbox-report-list i,.smyl-inbox-report-evidence i,.smyl-inbox-report-alerts i{font-style:normal;font-weight:bold}.smyl-inbox-report-list strong,.smyl-inbox-report-list span,.smyl-inbox-report-evidence strong,.smyl-inbox-report-evidence span,.smyl-inbox-report-alerts strong,.smyl-inbox-report-alerts span{display:block}.smyl-inbox-report-list span,.smyl-inbox-report-evidence span,.smyl-inbox-report-alerts span{margin-top:3px;color:#657687;font-size:12px}.smyl-inbox-report-disclaimer{margin-top:24px;padding:12px;border-left:3px solid #72899a;background:#f4f6f9;color:#526474;font-size:11px;line-height:1.5}@media print{body{padding:0}@page{margin:16mm}}@media(max-width:600px){body{padding:20px}.smyl-inbox-report-metrics{grid-template-columns:1fr 1fr}}</style></head><body><h1>Informe operativo del piloto</h1><p class="meta">SMYL · Mensajes</p>' + content.innerHTML + '</body></html>');
     reportWindow.document.close(); reportWindow.focus(); setTimeout(function () { reportWindow.print(); }, 250);
   }
 
@@ -2299,6 +2755,7 @@
     var section = active.closest && active.closest('[data-section]');
     var scope = section || panel; var items = focusableWithin(scope);
     return {
+      conversationId: state.selectedId, view: state.f360Tab[state.selectedId] || 'profile',
       section: section && section.dataset.section || '',
       index: Math.max(0, items.indexOf(active)),
       label: active.getAttribute && active.getAttribute('aria-label') || '',
@@ -2312,7 +2769,8 @@
     if (!snapshot) return;
     setTimeout(function () {
       var panel = document.querySelector('[data-inbox-context-panel]');
-      if (!state.contextOpen || !panel || panel.getAttribute('aria-hidden') === 'true') return;
+      if (!state.contextOpen || !panel || panel.getAttribute('aria-hidden') === 'true' || state.selectedId !== snapshot.conversationId || (state.f360Tab[state.selectedId] || 'profile') !== snapshot.view) return;
+      if (document.activeElement !== document.body && !panel.contains(document.activeElement)) return;
       var scope = panel;
       if (snapshot.section) {
         scope = Array.from(panel.querySelectorAll('[data-section]')).find(function (section) { return section.dataset.section === snapshot.section; }) || panel;
@@ -2323,7 +2781,7 @@
         || items.find(function (item) { return snapshot.text && item.tagName === snapshot.tag && item.textContent.trim() === snapshot.text; })
         || items[Math.min(snapshot.index, Math.max(0, items.length - 1))]
         || panel.querySelector('.smyl-inbox-context-close') || panel;
-      if (target && typeof target.focus === 'function') target.focus();
+      if (target && typeof target.focus === 'function') target.focus({preventScroll:true});
     }, 0);
   }
 
@@ -2356,11 +2814,6 @@
       trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
       trigger.setAttribute('aria-label', open && docked ? 'Ocultar Ficha 360 del paciente' : 'Abrir Ficha 360 del paciente');
     }
-    var close = panel.querySelector('.smyl-inbox-context-close');
-    if (close) {
-      close.textContent = docked ? 'Ocultar panel' : 'Cerrar';
-      close.setAttribute('aria-label', docked ? 'Ocultar Ficha 360 del paciente' : 'Cerrar Ficha 360 del paciente');
-    }
   }
 
   function openContext(trigger) {
@@ -2392,7 +2845,10 @@
     state.contextReturnFocus = null;
     rememberDockedContext(false);
     renderContext();
-    if (restoreFocus !== false && target && document.contains(target) && typeof target.focus === 'function') target.focus({preventScroll:true});
+    if (restoreFocus !== false) {
+      if (!target || !document.contains(target)) target = document.querySelector('[data-inbox-context]');
+      if (target && typeof target.focus === 'function') target.focus({preventScroll:true});
+    }
   }
 
   function trapContextFocus(event) {
@@ -2465,10 +2921,54 @@
     var header = node('div', 'smyl-inbox-context-head');
     var contextTitle = node('h2', '', conversation.contact_name); contextTitle.id = 'smyl-inbox-context-title';
     header.append(node('span', 'smyl-inbox-eyebrow', 'FICHA 360 DEL PACIENTE'), contextTitle);
-    var close = node('button', 'smyl-inbox-context-close', 'Cerrar'); close.type = 'button'; close.setAttribute('aria-label', 'Cerrar ficha del paciente'); close.onclick = function () { closeContext(true); };
+    var close = node('button', 'smyl-inbox-context-close'); close.type = 'button';
+    close.title = 'Cerrar ficha del paciente'; close.setAttribute('aria-label', close.title);
+    close.innerHTML = composeIcon('close'); close.onclick = function () { closeContext(true); };
     header.append(close); wrap.append(header);
-
     var ficha = state.clinical[conversation.id];
+    var showFiles = hasPermission('messages.read') && typeof window.SmylInboxFicha?.files === 'function';
+    var view = showFiles && state.f360Tab[conversation.id] === 'files' ? 'files' : 'profile';
+    var content = showFiles ? appendContextTabs(wrap, header, conversation.id, view) : wrap;
+    if (view === 'files') {
+      content.append(buildFichaFiles(conversation, ficha));
+      if (state.contextOpen) loadFicha360Files(conversation.id, false);
+    } else {
+      renderProfileView(content, conversation, ficha);
+      prepareFicha360Data(conversation, ficha);
+    }
+    renderConversationSettings();
+    syncContextAccessibility();
+    restoreContextFocus(focusSnapshot);
+  }
+
+  function appendContextTabs(wrap, header, id, view) {
+    var tabs = node('div', 'smyl-f360-tabs');
+    tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Vistas del paciente');
+    tabs.addEventListener('keydown', rovingTabsKeydown);
+    header.append(tabs);
+    var activePanel;
+    ['profile', 'files'].forEach(function (key) {
+      var active = key === view;
+      var tab = node('button', '', key === 'profile' ? 'Ficha' : 'Archivos');
+      tab.type = 'button'; tab.dataset.f360Tab = key; tab.id = 'smyl-f360-tab-' + key;
+      tab.setAttribute('role', 'tab'); tab.setAttribute('aria-selected', String(active)); tab.tabIndex = active ? 0 : -1;
+      var panel = node('div', 'smyl-f360-tab-panel');
+      panel.dataset.f360Panel = key; panel.id = 'smyl-f360-panel-' + key; panel.tabIndex = 0;
+      panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', tab.id);
+      panel.hidden = !active; tab.setAttribute('aria-controls', panel.id);
+      tab.onclick = function () {
+        if (active || state.selectedId !== id || !tab.isConnected) return;
+        state.f360Tab[id] = key; tab.focus({preventScroll:true});
+        var side = wrap.closest('[data-inbox-context-panel]'); if (side) side.scrollTop = 0;
+        renderContext();
+      };
+      tabs.append(tab); wrap.append(panel);
+      if (active) activePanel = panel;
+    });
+    return activePanel;
+  }
+
+  function renderProfileView(wrap, conversation, ficha) {
     var summaryZone = document.createDocumentFragment();
     var citasZone = document.createDocumentFragment();
     var cobrosZone = document.createDocumentFragment();
@@ -2513,7 +3013,7 @@
       if (!accountPatient) accountStatus.append(node('p', '', 'Vincula al paciente para ver su saldo y cobrar desde esta conversación.'));
       else if (state.accountLoading && state.accountLoading[conversation.id]) accountStatus.append(skNode('text', { lines: 2, label: 'Consultando cuenta' }));
       else if (!accountInfo || !accountInfo.data) {
-        accountStatus.append(node('strong', '', 'Saldo no disponible'), node('small', '', 'No pudimos cargar la cuenta.'));
+        accountStatus.append(node('strong', 'is-unavailable', 'Saldo no disponible'), node('small', '', 'No pudimos cargar la cuenta.'));
         var retryAccount = node('button', 'smyl-inbox-link', 'Reintentar'); retryAccount.type = 'button';
         retryAccount.onclick = function () { loadAccountContext(conversation.id); }; accountStatus.append(retryAccount);
       }
@@ -2579,19 +3079,6 @@
     }
 
     wrap.append(buildFicha360(conversation, ficha, { summary: summaryZone, citas: citasZone, cobros: cobrosZone }));
-    var tools = node('nav', 'smyl-f360-tools'); tools.setAttribute('aria-label', 'Acciones de la ficha');
-    permittedCareActions(conversation).forEach(function (action) {
-      if (action.id !== 'record' && action.id !== 'quote') return;
-      var link = node('button', 'smyl-f360-tools-link', action.label);
-      link.type = 'button'; link.onclick = action.run; tools.append(link);
-    });
-    var settings = node('button', 'smyl-f360-tools-link', 'Ajustes del chat');
-    settings.type = 'button'; settings.dataset.threadSettings = ''; settings.setAttribute('aria-haspopup', 'dialog');
-    settings.onclick = openConversationSettings; tools.append(settings); wrap.append(tools);
-    prepareFicha360Data(conversation, ficha);
-    renderConversationSettings();
-    syncContextAccessibility();
-    restoreContextFocus(focusSnapshot);
   }
 
   // Herramientas operativas del hilo. El responsable se edita únicamente desde la cabecera.
@@ -2716,7 +3203,7 @@
   }
 
   // Qué bloques de la ficha deja abiertos la persona; vive en memoria durante la sesión (el chat no persiste nada en el navegador).
-  var F360_OPEN_DEFAULT = { summary: false, cuenta: true, citas: true, files: false };
+  var F360_OPEN_DEFAULT = { summary: false, cuenta: true, citas: true };
   function f360OpenState() {
     if (!state.f360Open) state.f360Open = Object.assign({}, F360_OPEN_DEFAULT);
     return state.f360Open;
@@ -2794,7 +3281,7 @@
       if (!branch.doctors.has(doctorKey)) branch.doctors.set(doctorKey, { name:who, dates:[] });
       branch.doctors.get(doctorKey).dates.push(v.attended_at);
     });
-    var first = branches.values().next().value, peek = 'Sin registros';
+    var first = branches.values().next().value, peek = 'Sin visitas visibles';
     if (first) {
       peek = first.name + ' · ' + first.latestName;
       var others = Array.from(branches.keys()).filter(function (key) { return key && branches.get(key) !== first; }).length;
@@ -2806,12 +3293,12 @@
   function careHistorySection(entry, open, onRetry) {
     var index = entry && entry.index;
     var peek = index ? index.peek : entry && entry.error ? 'No disponible' : 'Consultando…';
-    var section = { id:'careHistory', title:'Atenciones realizadas', peek:{ text:peek, tone:'muted' } };
+    var section = { id:'careHistory', title:'Historial de visitas', peek:{ text:peek, tone:'muted' } };
     if (!open) return section;
     var body = node('div', 'smyl-f360-care'); section.node = body;
     if (!index || !index.branches.size) {
-      var hint = entry && entry.error ? 'No se pudo consultar el historial.' : index ? 'No hay atenciones realizadas registradas a las que tengas acceso.' : 'Consultando atenciones…';
-      body.append(!index && !(entry && entry.error) ? skNode('text', { lines: 2, label: 'Consultando atenciones' }) : node('p', 'smyl-f360-note', hint));
+      var hint = entry && entry.error ? 'No se pudo consultar el historial.' : index ? 'No hay visitas completadas visibles.' : 'Consultando visitas…';
+      body.append(!index && !(entry && entry.error) ? skNode('text', { lines: 2, label: 'Consultando visitas' }) : node('p', 'smyl-f360-note', hint));
       if (entry && entry.error) {
         var retry = node('button', 'smyl-f360-link', 'Reintentar'); retry.type = 'button'; retry.onclick = onRetry; body.append(retry);
       }
@@ -2831,7 +3318,7 @@
     }
     index.branches.forEach(function (branch, branchKey) {
       var group = node('details', 'smyl-f360-care-group'), heading = node('summary', 'smyl-f360-care-heading');
-      heading.append(node('strong', '', branch.name), node('span', '', branch.count === 1 ? '1 atención' : branch.count + ' atenciones'));
+      heading.append(node('strong', '', branch.name), node('span', '', branch.count === 1 ? '1 visita' : branch.count + ' visitas'));
       if (index.branches.size > 1) heading.append(node('small', '', branch.latestName + ' · ' + (careDate(branch.latestAt) || 'Fecha no registrada')));
       group.append(heading);
       disclosure(group, JSON.stringify(['branch', branchKey]), index.branches.size === 1, function () {
@@ -2841,7 +3328,7 @@
           if (doctor.dates.length === 1) row.append(dateNode(doctor.dates[0]));
           else {
             var dates = node('details', 'smyl-f360-care-dates');
-            dates.append(node('summary', '', doctor.dates.length + ' atenciones · Última: ' + (careDate(doctor.dates[0]) || 'fecha no registrada')));
+            dates.append(node('summary', '', doctor.dates.length + ' visitas · Última: ' + (careDate(doctor.dates[0]) || 'fecha no registrada')));
             disclosure(dates, JSON.stringify(['dates', branchKey, doctorKey]), false, function () {
               var dateList = node('ul', 'smyl-f360-care-days');
               doctor.dates.forEach(function (stamp) { var li = node('li'); li.append(dateNode(stamp)); dateList.append(li); });
@@ -2855,7 +3342,7 @@
       });
       body.append(group);
     });
-    if (entry.truncated) body.append(node('p', 'smyl-f360-note', 'Se muestran las 1,000 atenciones más recientes a las que tienes acceso.'));
+    if (entry.truncated) body.append(node('p', 'smyl-f360-note', 'Se muestran las 1,000 visitas completadas más recientes a las que tienes acceso.'));
     return section;
   }
 
@@ -2928,6 +3415,7 @@
         if (!citas.childElementCount || visits.loading || visits.error || items.length) citas.append(F.visits({
           items: items, loading: Boolean(visits.loading) && !items.length, error: visits.error || '', showAll: Boolean(state.f360VisitsAll[id]),
           isUpcoming: isUpcomingVisit, formatDate: availabilityDate,
+          onManage: hasPermission('schedule.manage') && window.SmylSchedule && typeof window.SmylSchedule.openAppointmentAction === 'function' ? manageVisit : null,
           onShowAll: function () { state.f360VisitsAll[id] = !state.f360VisitsAll[id]; renderContext(); },
           onRetry: function () { if (linked) loadPatientVisits(id, ficha.patient.id, true); },
         }));
@@ -2937,24 +3425,10 @@
 
     if (linked && !ficha.clinical_restricted && hasPermission('schedule.read')) {
       var patientId = ficha.patient.id, historyKey = careHistoryKey(id, patientId);
-      sections.push(careHistorySection(careHistoryCache.get(historyKey), open.careHistory, function () { loadCareHistory(id, patientId, true); }));
+      // Sin visitas completadas no hay nada que mostrar: la sección se omite (mientras consulta o si falla, sí se ve).
+      var historyEntry = careHistoryCache.get(historyKey);
+      if (!(historyEntry && historyEntry.index && !historyEntry.index.branches.size)) sections.push(careHistorySection(historyEntry, open.careHistory, function () { loadCareHistory(id, patientId, true); }));
     }
-
-    // Archivos que ha compartido por el chat.
-    var cache = state.f360Shared[id] || {};
-    var reviewed = {}; ((ficha && ficha.clinical_images) || []).forEach(function (link) { if (link.lana_message_id) reviewed[link.lana_message_id] = true; });
-    var mediaCount = (cache.items || []).filter(function (item) { return ['image', 'document', 'audio', 'video'].indexOf(item.media_type) !== -1; }).length;
-    sections.push({ id: 'files', title: 'Archivos', peek: cache.loading && !cache.items ? { text: 'Consultando…', tone: 'muted' } : { text: mediaCount ? mediaCount + (mediaCount === 1 ? ' archivo' : ' archivos') : 'Sin archivos', tone: 'muted' }, node: F.files({
-      items: cache.items || [], loading: Boolean(cache.loading) && !cache.items, error: cache.error || '', filter: state.f360Filter[id] || 'all', selectedId: state.f360File[id] || '',
-      reviewed: reviewed, canReview: hasPermission('clinical.write') && canOperate(conversation, 'clinical.write'), channelLabel: channelLabel(conversation.channel),
-      onFilter: function (value) { state.f360Filter[id] = value; state.f360File[id] = ''; renderContext(); },
-      onSelect: function (value) { state.f360File[id] = value; renderContext(); },
-      makeOpenButton: function (item) { return chatMediaKind(item) ? chatMediaButton(item, id, false) : null; },
-      thumbnail: function (item) { return mediaThumbnail(item, 'Foto'); },
-      fileUrl: chatFileUrl,
-      onReview: function (item) { linkClinicalImage(item); },
-      onRetry: function () { loadFicha360Files(id, true); },
-    }) });
 
     sections.forEach(function (section) { section.open = Boolean(open[section.id]); });
     return F.shell({
@@ -2963,6 +3437,23 @@
         : hasPermission('clinical.read') && !linked && !state.patientLinking[conversation.id] ? { unlinked: true, onLink: function () { openPatientContext(conversation.id); } } : null,
       onCompleteHistory: function () { openPatientContext(conversation.id); },
       sections: sections, onToggle: toggleF360Section,
+    });
+  }
+
+  function buildFichaFiles(conversation, ficha) {
+    var id = conversation.id;
+    var cache = state.f360Shared[id] || {};
+    var reviewed = {}; ((ficha && ficha.clinical_images) || []).forEach(function (link) { if (link.lana_message_id) reviewed[link.lana_message_id] = true; });
+    return window.SmylInboxFicha.files({
+      items: cache.items || [], loading: !state.f360Shared[id] || (Boolean(cache.loading) && !cache.items), error: cache.error || '', filter: state.f360Filter[id] || 'all', selectedId: state.f360File[id] || '',
+      reviewed: reviewed, canReview: hasPermission('clinical.write') && canOperate(conversation, 'clinical.write'), channelLabel: channelLabel(conversation.channel),
+      onFilter: function (value) { state.f360Filter[id] = value; state.f360File[id] = ''; renderContext(); },
+      onSelect: function (value) { state.f360File[id] = value; renderContext(); },
+      makeOpenButton: function (item) { return chatMediaKind(item) ? chatMediaButton(item, id, false) : null; },
+      thumbnail: function (item) { return mediaThumbnail(item, 'Foto'); },
+      fileUrl: chatFileUrl,
+      onReview: function (item) { if (state.selectedId === id) linkClinicalImage(item); },
+      onRetry: function () { loadFicha360Files(id, true); },
     });
   }
 
@@ -2975,8 +3466,6 @@
     if (!state.contextOpen) return;
     var id = conversation.id; var open = f360OpenState();
     if (open.summary && hasPermission('messages.read') && !state.f360Summary[id]) loadStoredSummary(id);
-    var cache = state.f360Shared[id];
-    if (!cache || (open.files && !cache.loading && Date.now() - (cache.at || 0) > 30000)) loadFicha360Files(id, false);
     var patientId = ficha && ficha.linked && ficha.patient && ficha.patient.id;
     if (!patientId) return;
     if (!ficha.clinical_restricted && hasPermission('schedule.read')) loadCareHistory(id, patientId, false);
@@ -3082,14 +3571,18 @@
   }
 
   async function loadFicha360Files(conversationId, force) {
+    if (!hasPermission('messages.read') || state.selectedId !== conversationId) return;
+    var epoch = accessEpoch, revision = threadEpoch.get(conversationId);
     var cache = state.f360Shared[conversationId];
-    if (cache && cache.loading) return;
+    if (cache && (cache.loading || (!force && Date.now() - cache.at < 30000))) return;
     state.f360Shared[conversationId] = Object.assign({}, cache, { loading: true, error: '', at: Date.now() });
     if (force && state.selectedId === conversationId) renderContext();
     try {
       var data = await request('GET', { action: 'shared', conversation_id: conversationId, limit: 60 });
+      if (epoch !== accessEpoch || revision !== threadEpoch.get(conversationId)) return;
       state.f360Shared[conversationId] = { items: data.items || [], loading: false, error: '', at: Date.now() };
     } catch (error) {
+      if (epoch !== accessEpoch || revision !== threadEpoch.get(conversationId)) return;
       state.f360Shared[conversationId] = Object.assign({}, state.f360Shared[conversationId], { loading: false, error: (error && error.message) || 'No se pudieron consultar los archivos.', at: Date.now() });
     }
     if (state.selectedId === conversationId && state.contextOpen) renderContext();
@@ -3206,6 +3699,11 @@
     var primary = primaryCareAction(conversation, actions);
     if (primary) {
       var primaryButton = node('button', 'smyl-inbox-care-action is-primary', primary.label);
+      if (primary.id === 'schedule') {
+        primaryButton.setAttribute('aria-label', primary.label);
+        primaryButton.title = primary.label;
+        primaryButton.innerHTML = composeIcon('calendar') + '<span class="smyl-inbox-care-label" aria-hidden="true">Agendar</span>';
+      }
       primaryButton.type = 'button'; primaryButton.dataset.threadPrimaryAction = primary.id; primaryButton.onclick = primary.run; host.append(primaryButton);
     }
   }
@@ -3229,6 +3727,7 @@
 
   function renderThreadHeader() {
     var conversation = selectedConversation();
+    renderHandoffNote(conversation);
     var empty = document.querySelector('[data-inbox-thread-empty]');
     var thread = document.querySelector('[data-inbox-thread]');
     if (!conversation) {
@@ -3241,7 +3740,6 @@
     var headerAvatar = document.querySelector('[data-thread-avatar]');
     headerAvatar.textContent = initials(conversation.contact_name);
     headerAvatar.dataset.channel = conversation.channel;
-    headerAvatar.append(channelBadge(conversation.channel));
     document.querySelector('[data-thread-name]').textContent = conversation.contact_name;
     var threadFicha = state.clinical[conversation.id];
     var actorRole = state.actor && state.actor.role_name;
@@ -3253,11 +3751,11 @@
     renderThreadBranchChip(conversation);
     if (headerWindow && headerWindow.status !== 'expired') threadMeta.push('Ventana 24 h: quedan ' + durationLabel(headerWindow.remaining_seconds));
     var meta = document.querySelector('[data-thread-meta]');
-    meta.textContent = threadMeta.join(' · ');
-    if (conversation.assignment && conversation.assignment.name) {
-      var compactOwner = node('span', 'smyl-inbox-owner-inline', ' · Atiende: ' + conversation.assignment.name);
-      meta.append(compactOwner);
-    }
+    var channelLogo = node('span', 'smyl-inbox-thread-channel-logo');
+    channelLogo.setAttribute('aria-hidden', 'true');
+    channelLogo.innerHTML = (CHANNEL_MARKS[conversation.channel] || '').replace(/smyl-(ig|ms)-gradient/g, 'smyl-thread-$1-gradient');
+    channelLogo.hidden = !CHANNEL_MARKS[conversation.channel];
+    meta.replaceChildren(channelLogo, node('span', 'smyl-inbox-thread-channel-text', threadMeta.join(' · ')));
     // Aviso visible aunque la ficha esté cerrada; solo con permiso clínico (el servidor ya filtra el alcance).
     var medicalFlag = document.querySelector('[data-thread-medical]');
     var medicalItems = hasPermission('clinical.read') && threadFicha && threadFicha.linked && threadFicha.patient && threadFicha.patient.medical_alerts ? (threadFicha.patient.medical_alerts.items || []) : [];
@@ -3271,6 +3769,7 @@
     var mode = document.querySelector('[data-thread-mode]');
     stateLabel.textContent = conversation.paused ? (state.copilotLoading[conversation.id] === 'summary' ? 'Preparando…' : 'IA pausada') : 'IA activa';
     mode.dataset.state = conversation.paused ? 'resume' : 'pause';
+    mode.title = stateLabel.textContent + (conversation.paused ? ' · Activar IA' : ' · Pausar IA');
     mode.setAttribute('aria-checked', conversation.paused ? 'false' : 'true');
     mode.setAttribute('aria-label', conversation.paused ? 'IA pausada: activar para que SMYL Asistente vuelva a responder' : 'IA activa: desactivar para tomar el control de la conversación');
     mode.disabled = !canOperate(conversation, 'messages.manage') || Boolean(state.copilotLoading[conversation.id]);
@@ -3314,20 +3813,32 @@
     renderList(); renderThreadHeader(); renderMessages(false); renderCopilotDraft();
   }
 
+  function renderHandoffNote(conversation) {
+    var note = document.querySelector('[data-handoff]');
+    if (!note) return;
+    var dialog = note.closest('dialog');
+    var allowed = conversation && conversation.id === state.selectedId && canTransfer(conversation);
+    if (dialog.open && (!allowed || dialog.dataset.thread !== conversation.id)) {
+      var transfer = document.querySelector('dialog[data-chat-transfer][open]');
+      if (transfer && transfer.dataset.chatTransfer === dialog.dataset.thread) transfer.close();
+      dialog.close();
+    }
+    var text = allowed ? (conversation.private_handoff_note || '').trim() : '';
+    var body = note.querySelector('p');
+    if (body.textContent !== text) body.textContent = text;
+    note.hidden = !text;
+  }
+
   function renderChatOwner(conversation) {
     var wrap = document.querySelector('[data-thread-owner]');
     if (!wrap || !conversation) return;
-    var select = wrap.querySelector('select'), label = wrap.querySelector('[data-thread-owner-name]'), retry = wrap.querySelector('button');
+    var dialog = document.querySelector('[data-owner-dialog]');
+    var select = dialog.querySelector('select'), retry = dialog.querySelector('[data-thread-owner-retry]');
     var assignment = conversation.assignment, current = assignment ? (assignment.actor_id || '__legacy') : '';
     var name = assignment && assignment.name || 'Sin asignar';
-    var note = document.querySelector('[data-handoff]');
-    note.hidden = !conversation.private_handoff_note;
-    note.querySelector('p').textContent = conversation.private_handoff_note || '';
-    if (note.dataset.thread !== conversation.id) { note.open = false; note.dataset.thread = conversation.id; }
     var allowed = canTransfer(conversation);
     var roster = teamFor(conversation);
     var canChoose = allowed && roster.status === 'ready' && Boolean(roster.members.some(function (m) { return m.id !== current; }) || (assignment && state.actor.chat_access === 'coordinator'));
-    var display = allowed && roster.status === 'loading' && !assignment ? 'Cargando equipo…' : name;
     // Avoid replacing options under an open native picker when the conversation polls.
     var signature = JSON.stringify([conversation.id, current, name, state.actor && state.actor.chat_access, roster.status, roster.members.map(function (m) { return [m.id, m.name, m.kind]; })]);
     if (select.dataset.signature !== signature) {
@@ -3342,13 +3853,19 @@
       }
     }
     select.value = current; select.disabled = !canChoose; select.dataset.conversationId = conversation.id;
-    label.textContent = display;
+    wrap.querySelector('[data-thread-owner-name]').textContent = name;
     var description = 'Responsable del chat: ' + name;
+    wrap.setAttribute('aria-label', 'Atiende el chat: ' + name);
+    wrap.title = description;
     var unavailable = allowed && roster.status === 'error';
     select.setAttribute('aria-label', description + (canChoose ? '. Cambiar responsable' : ''));
-    wrap.dataset.editable = String(canChoose); wrap.dataset.error = String(unavailable);
-    wrap.title = unavailable ? 'No se pudo cargar el equipo. Reintentar' : description + (canChoose ? ' · Cambiar' : allowed && !roster.members.length && roster.status === 'ready' ? ' · No hay integrantes disponibles' : '');
-    retry.hidden = !unavailable; retry.setAttribute('aria-label', 'Reintentar carga del equipo para asignar el chat');
+    wrap.disabled = !allowed;
+    var status = dialog.querySelector('[data-owner-status]');
+    var hint = unavailable ? 'No se pudo cargar el equipo.' : roster.status === 'loading' ? 'Cargando equipo…' :
+      allowed && !canChoose ? 'No hay otros responsables disponibles.' : '';
+    if (status.textContent !== hint) status.textContent = hint;
+    status.hidden = !hint;
+    retry.hidden = !unavailable; retry.setAttribute('aria-label', 'Reintentar carga del equipo');
   }
 
   function announceHandoff(message, conversationId) {
@@ -3412,6 +3929,8 @@
         var result = await request('POST', {}, payload, uuid());
         if (dialog.open) dialog.close();
         if (state.selectedId !== conversationId) return;
+        var ownerDialog = document.querySelector('[data-owner-dialog]');
+        if (ownerDialog.open && ownerDialog.dataset.thread === conversationId) ownerDialog.close();
         routingRevision++;
         window.dispatchEvent(new Event('smyl:chat-routing-changed'));
         if (result.can_operate === false || state.actor.chat_access === 'agent' && result.assigned_actor_id !== state.actor.id) forgetChat(conversationId);
@@ -3421,7 +3940,7 @@
           current.assignment = result.assigned_actor_id ? { source: 'smyl', actor_id: result.assigned_actor_id, name: result.assigned_actor_name || member && member.name } : null;
           current.assignment_version = result.assignment_version;
           if (typeof result.can_operate === 'boolean') current.can_operate = result.can_operate;
-          current.private_handoff_note = result.private_handoff_note || payload.private_note;
+          current.private_handoff_note = Object.hasOwn(result, 'private_handoff_note') ? result.private_handoff_note : payload.private_note;
           render();
         }
         var confirmation = member ? 'Chat asignado a ' + member.name + '.' : 'Chat devuelto a Sin asignar.';
@@ -3469,8 +3988,19 @@
   }
 
   async function loadStages() {
-    try { var data = await request('GET', { action: 'stages' }); state.stages = data.stages || []; render(); }
-    catch (_) { state.stages = []; render(); }
+    if (!chatEnabled() || state.stageCatalogStatus === 'loading') return;
+    var epoch = accessEpoch;
+    state.stageCatalogStatus = 'loading';
+    try {
+      var data = await request('GET', { action: 'stages' });
+      if (epoch !== accessEpoch) return;
+      state.stages = Array.isArray(data.stages) ? data.stages : [];
+      state.stageCatalogStatus = 'ready';
+    } catch (_) {
+      if (epoch !== accessEpoch) return;
+      state.stageCatalogStatus = 'error';
+    }
+    renderList(); renderConversationSettings();
   }
 
   async function loadClinicalContext(conversationId) {
@@ -3790,6 +4320,77 @@
     renderAvailabilityResults();
   }
 
+  // «Sugerir horarios»: el servidor calcula lo libre; SmylScheduleSuggest solo elige y ordena hasta tres opciones.
+  var SUGGEST_DAYS = 14;
+  function suggestHost() { return document.querySelector('[data-availability-suggest-results]'); }
+  function suggestMessage(text, tone) {
+    var host = suggestHost(); if (!host) return;
+    host.innerHTML = ''; host.dataset.state = tone || 'info';
+    var p = document.createElement('p'); p.className = 'smyl-suggest-note'; p.textContent = text; host.append(p);
+  }
+  function resetSuggestion() {
+    state.suggestShown = []; state.suggestResult = null;
+    var host = suggestHost(); if (host) { host.innerHTML = ''; delete host.dataset.state; }
+    var run = document.querySelector('[data-availability-suggest-run]'); if (run) run.textContent = 'Sugerir 3 horarios';
+  }
+  function renderSuggestion(result) {
+    var host = suggestHost(); if (!host) return;
+    host.innerHTML = ''; host.dataset.state = result.options.length ? 'ready' : 'empty';
+    var period = 'en los próximos ' + SUGGEST_DAYS + ' días';
+    if (!result.options.length) { suggestMessage(window.SmylScheduleSuggest.describe(result, period), 'empty'); return; }
+    var list = document.createElement('ol'); list.className = 'smyl-suggest-list';
+    result.options.forEach(function (option, index) {
+      var slot = option.slot, item = document.createElement('li');
+      var n = document.createElement('span'); n.className = 'smyl-suggest-n'; n.textContent = String(index + 1); n.setAttribute('aria-hidden', 'true');
+      var body = document.createElement('div'); var when = document.createElement('strong'); when.textContent = availabilityDate(slot.starts_at, slot.timezone);
+      var who = document.createElement('small'); who.textContent = [slot.professional_name, slot.branch_name].filter(Boolean).join(' · ');
+      body.append(when, who);
+      var tag = document.createElement('em'); tag.textContent = option.tag;
+      item.append(n, body, tag); list.append(item);
+    });
+    host.append(list);
+    var note = window.SmylScheduleSuggest.describe(result, period);
+    if (note) { var few = document.createElement('p'); few.className = 'smyl-suggest-note'; few.textContent = note; host.append(few); host.dataset.state = 'few'; }
+    if (result.other_branches) { var branches = document.createElement('p'); branches.className = 'smyl-suggest-note'; branches.textContent = 'Hay espacios en otras sucursales. Elige una sucursal arriba si el paciente prefiere otra.'; host.append(branches); }
+    var actions = document.createElement('div'); actions.className = 'smyl-suggest-actions';
+    var use = document.createElement('button'); use.type = 'button'; use.className = 'btn btn-primary'; use.dataset.availabilitySuggestUse = ''; use.textContent = 'Pasar al mensaje';
+    use.disabled = !canOperate(selectedConversation(), 'messages.respond');
+    if (use.disabled) use.title = 'Tu rol no permite escribir mensajes en este chat.';
+    var more = document.createElement('button'); more.type = 'button'; more.className = 'btn btn-secondary'; more.dataset.availabilitySuggestMore = ''; more.textContent = 'Otras opciones';
+    more.disabled = result.reason === 'few';
+    actions.append(use, more); host.append(actions);
+  }
+  async function runSuggestion(more) {
+    if (state.suggestBusy) return;
+    var dialog = document.querySelector('[data-availability-dialog]'); if (!dialog || !window.SmylScheduleSuggest) return;
+    var serviceId = dialog.querySelector('[data-availability-service]').value;
+    if (!serviceId) { suggestMessage('Elige primero el servicio para el que quieres sugerir horarios.', 'info'); return; }
+    var run = dialog.querySelector('[data-availability-suggest-run]');
+    state.suggestBusy = true; if (run) { run.disabled = true; run.textContent = 'Buscando…'; }
+    suggestMessage('Buscando los mejores espacios de los próximos ' + SUGGEST_DAYS + ' días…', 'loading');
+    try {
+      var from = new Date(Date.now() + 60 * 1000); var to = new Date(); to.setDate(to.getDate() + SUGGEST_DAYS - 1); to.setHours(23, 59, 59, 0);
+      var slots = await availabilityCalendarContext().fetchDay(from, to);
+      var branchId = dialog.querySelector('[data-availability-branch]').value, professionalId = dialog.querySelector('[data-availability-professional]').value;
+      var result = window.SmylScheduleSuggest.suggest(slots, { now: new Date(), branchId: branchId || '', professionalId: professionalId || '', exclude: more ? state.suggestShown : [] });
+      if (more && !result.options.length) { state.suggestShown = []; suggestMessage('Ya te mostré todos los espacios de este periodo. Vuelve a empezar o amplía las fechas.', 'info'); return; }
+      state.suggestResult = result;
+      if (!more) state.suggestShown = [];
+      result.options.forEach(function (option) { state.suggestShown.push(option.key); });
+      renderSuggestion(result);
+    } catch (error) {
+      suggestMessage('No pudimos consultar la Agenda para sugerir horarios. Intenta de nuevo.', 'error');
+    } finally {
+      state.suggestBusy = false; if (run) { run.disabled = false; run.textContent = state.suggestResult && state.suggestResult.options.length ? 'Sugerir de nuevo' : 'Sugerir 3 horarios'; }
+    }
+  }
+  function useSuggestion() {
+    var result = state.suggestResult; if (!result || !result.options.length) return;
+    state.availabilitySelected = result.options.map(function (option) { return option.slot; });
+    renderAvailabilityResults();
+    prepareAvailabilityOptions();
+  }
+
   function prepareAvailabilityOptions() {
     if (!state.availabilitySelected.length) return;
     var ordered = state.availabilitySelected.slice().sort(function (left, right) { return new Date(left.starts_at) - new Date(right.starts_at); });
@@ -3798,6 +4399,15 @@
     ordered.forEach(function (slot, index) { lines.push((index + 1) + '. ' + availabilityDate(slot.starts_at) + ' con ' + slot.professional_name + ' en ' + slot.branch_name); });
     lines.push('Responde con el número que prefieres. La clínica confirmará el horario después de tu elección.');
     setComposerText(lines.join('\n')); document.querySelector('[data-availability-dialog]').close();
+  }
+
+  // Datos de la sucursal y del servicio para el mensaje de confirmación: los lee el módulo de Agenda (con su tenant y permisos); si algo falla se usa el mensaje corto.
+  async function visitConfirmationText(firstName, slot) {
+    if (!window.SmylVisitMessage || !window.SmylSchedule || typeof window.SmylSchedule.visitInfo !== 'function') return '';
+    var info = await window.SmylSchedule.visitInfo(slot.branch_id, slot.service_id);
+    var branch = info && info.branch, service = info && info.service;
+    if (!branch && !service) return '';
+    return window.SmylVisitMessage.build({ firstName: firstName, slot: slot, branch: branch || { name: slot.branch_name }, service: service || {} }).text;
   }
 
   async function loadAvailabilityRequests() {
@@ -3865,19 +4475,24 @@
     state.availabilityAction = 'confirm'; renderAvailabilityOffer();
     try {
       var created = await request('POST', {}, { action: 'appointment_request', conversation_id: state.selectedId, service_id: slot.service_id, branch_id: slot.branch_id, professional_id: slot.professional_id, starts_at: slot.starts_at }, uuid());
-      await request('POST', {}, { action: 'appointment_confirm', conversation_id: state.selectedId, request_id: created.request_id }, uuid());
+      var confirmedBooking = await request('POST', {}, { action: 'appointment_confirm', conversation_id: state.selectedId, request_id: created.request_id }, uuid());
+      announceAppointmentsChanged();
       loadAppointmentContext(state.selectedId);
       if (window.SmylReminders) window.SmylReminders.dispatch(true);
       var notify = dialog && dialog.querySelector('[data-availability-notify]');
       var windowNow = liveWhatsappWindow(conversation);
       if (notify && notify.checked && (!windowNow || windowNow.freeform_allowed)) {
         var firstName = String(conversation.contact_name || '').split(' ')[0];
-        setComposerText('Listo' + (firstName ? ', ' + firstName : '') + ': tu cita quedó confirmada el ' + availabilityDate(slot.starts_at) + ' con ' + slot.professional_name + ' en ' + slot.branch_name + '. ¡Te esperamos!');
+        var basic = 'Listo' + (firstName ? ', ' + firstName : '') + ': tu cita quedó confirmada el ' + availabilityDate(slot.starts_at) + ' con ' + slot.professional_name + ' en ' + slot.branch_name + '. ¡Te esperamos!';
+        setComposerText(basic);
+        // Mensaje completo (dónde, cómo llegar, qué hacer antes, calendario): reemplaza al básico solo si el redactor y los datos están listos.
+        visitConfirmationText(firstName, slot).then(function (full) { if (full && selectedConversation() && selectedConversation().id === conversation.id) setComposerText(full); }).catch(function () {});
       }
       state.availabilitySelected = [];
       if (window.SmylInboxCalendar) window.SmylInboxCalendar.invalidate();
       if (dialog) dialog.close();
-      window.alert('Cita confirmada en la Agenda.' + (notify && notify.checked ? ' El mensaje de confirmación quedó escrito en el chat para que lo revises y lo envíes.' : ' El chat no envió ningún mensaje automáticamente.'));
+      announceBookedAppointment(slot.starts_at, slot.branch_id, slot.professional_id, slot.branch_name, notify && notify.checked ? 'El mensaje de confirmación quedó escrito en el chat para que lo revises y lo envíes.' : 'El chat no envió ningún mensaje automáticamente.');
+      offerAppointmentNotice('confirmed', confirmedBooking && confirmedBooking.appointment_id);
     } catch (error) { window.alert(error.message || 'No se pudo confirmar la cita. Consulta nuevamente la disponibilidad.'); }
     finally { state.availabilityAction = ''; renderAvailabilityResults(); }
   }
@@ -3886,15 +4501,48 @@
     document.querySelectorAll('[data-availability-mode]').forEach(function (button) { button.setAttribute('aria-pressed', String(button.dataset.availabilityMode === state.availabilityMode)); });
   }
 
+  // «¿Avisar?»: tras confirmar una cita desde el chat, ofrece la plantilla por defecto al paciente y al dentista. Nunca envía solo.
+  function offerAppointmentNotice(event, appointmentId) {
+    if (!appointmentId || !window.SmylAppointmentNotice || !(hasPermission('messages.respond') || hasPermission('schedule.manage'))) return;
+    try { Promise.resolve(window.SmylAppointmentNotice.offerById({ event: event, appointmentId: appointmentId })).catch(function () {}); } catch (_) {}
+  }
+
+  // Desde la Ficha 360: lleva a la Agenda y abre «Cambiar horario» o «Cancelar» de esa cita; allí se ofrece el aviso al terminar.
+  function manageVisit(visit, action) {
+    var schedule = window.SmylSchedule;
+    if (!schedule || typeof schedule.openAppointmentAction !== 'function') return;
+    Promise.resolve(schedule.openAppointmentAction(visit.id, action)).catch(function (error) { window.alert((error && error.message) || 'No se pudo abrir la cita.'); });
+  }
+
+  // Dice dónde quedó la cita (día, hora, sucursal) y ofrece abrir la Agenda justo ahí: así no parece que la cita no se hizo.
+  function announceBookedAppointment(startsAt, branchId, professionalId, branchName, extraText) {
+    var name = branchName;
+    if (!name && state.availabilityCatalog) { var found = (state.availabilityCatalog.branches || []).find(function (row) { return row.id === branchId; }); name = found && found.name; }
+    var text = 'Cita confirmada: ' + availabilityDate(startsAt) + (name ? ' en ' + name : '') + '.' + (extraText ? ' ' + extraText : '');
+    var schedule = window.SmylSchedule;
+    var canOpen = schedule && typeof schedule.focusAppointment === 'function' && typeof window.ir === 'function' && (hasPermission('schedule.read') || hasPermission('schedule.manage'));
+    if (!canOpen) { window.alert(text); return; }
+    if (window.confirm(text + '\n\n¿Abrir la Agenda en ese día para verla?')) {
+      Promise.resolve(schedule.focusAppointment(startsAt, branchId, professionalId)).catch(function () {}).then(function () { window.ir('agenda'); });
+    }
+  }
+
+  // Avisa a la Agenda (y a quien escuche) que el chat creó una cita: así la Agenda no muestra datos viejos al abrirla.
+  function announceAppointmentsChanged() {
+    try { window.dispatchEvent(new CustomEvent('smyl:appointments-changed', { detail: { source: 'inbox' } })); } catch (_) {}
+  }
+
   async function confirmAvailabilityRequest(requestRow) {
     if (!window.confirm('¿Confirmar esta cita? SMYL volverá a comprobar la disponibilidad antes de guardarla.')) return;
     state.availabilityAction = 'confirm'; renderAvailabilityResults();
     try {
       var data = await request('POST', {}, { action: 'appointment_confirm', conversation_id: state.selectedId, request_id: requestRow.id }, uuid());
       requestRow.status = 'accepted'; requestRow.appointment_id = data.appointment_id;
+      announceAppointmentsChanged();
       loadAppointmentContext(state.selectedId);
       if (window.SmylReminders) window.SmylReminders.dispatch(true);
-      window.alert('Cita confirmada en la Agenda. El chat no envió ningún mensaje automáticamente; si los recordatorios están activos, el paciente recibirá uno 24 horas antes.');
+      announceBookedAppointment(requestRow.requested_start, requestRow.preferred_branch_id, requestRow.preferred_professional_id, '', 'El chat no envió ningún mensaje automáticamente; si los recordatorios están activos, el paciente recibirá uno 24 horas antes.');
+      offerAppointmentNotice('confirmed', data && data.appointment_id);
     } catch (error) { window.alert(error.message || 'No se pudo confirmar la cita. Consulta nuevamente la disponibilidad.'); }
     finally { state.availabilityAction = ''; renderAvailabilityResults(); }
   }
@@ -3962,6 +4610,7 @@
     refreshAvailabilityPatientIdentity();
     refreshAvailabilityHeading();
     syncAvailabilityMode();
+    resetSuggestion();
     if (window.SmylInboxCalendar) window.SmylInboxCalendar.invalidate();
     if (!dialog.open) dialog.showModal();
     var dialogTitle = dialog.querySelector('h2'); if (dialogTitle) dialogTitle.focus({ preventScroll: true });
@@ -4042,6 +4691,7 @@
       var data = await request('GET', { action: 'list', filter: state.filter, channel: state.channel, q: state.search, limit: limit, offset: previousOffset });
       if (revision !== routingRevision || epoch !== accessEpoch || listResetPending) return;
       if (data.actor && data.actor.chat_access) setChatActor(data.actor);
+      if (state.stageCatalogStatus === 'idle') loadStages();
       mergeConversations(data.conversations || [], reset);
       state.total = data.page && Number(data.page.total) || state.conversations.length;
       state.hasMore = Boolean(data.page && data.page.has_more);
@@ -4067,8 +4717,6 @@
     var controller = quiet ? null : new AbortController();
     if (controller) state.threadController = controller;
     state.loadingThread = !quiet; state.threadError = '';
-    var body = document.querySelector('[data-thread-body]');
-    var wasBottom = atThreadBottom();
     if (!quiet) renderMessages(Boolean(older));
     var query = { action: 'messages', conversation_id: conversationId, limit: older ? 40 : (since ? 50 : 50) };
     if (older && state.pages[conversationId] && state.pages[conversationId].before) query.before = state.pages[conversationId].before;
@@ -4076,7 +4724,8 @@
     try {
       var data = initialPage || await request('GET', query, null, null, 20000, controller);
       if (conversationId !== state.selectedId) return;
-      mergeMessages(conversationId, data.messages || [], older);
+      var wasBottom = atThreadBottom();
+      var added = mergeMessages(conversationId, data.messages || [], older);
       if (!quiet) state.pages[conversationId] = { hasMore: Boolean(data.page && data.page.has_more), before: data.page && data.page.before };
       var updated = data.conversation;
       if (updated && state.actor.chat_access === 'agent' && (!updated.assignment || updated.assignment.actor_id !== state.actor.id)) { forgetChat(conversationId); return; }
@@ -4085,14 +4734,18 @@
       // El sondeo siempre conserva los datos recibidos. Solo aplaza el repintado destructivo
       // mientras la persona escribe, usa un menú o consulta la Ficha 360.
       var deferVisualRefresh = quiet && inboxInteractionProtected();
+      if (updated && deferVisualRefresh && document.querySelector('[data-owner-dialog][open]')) {
+        var current = selectedConversation();
+        renderHandoffNote(current);
+        renderChatOwner(current);
+      }
+      if (quiet && added && (!wasBottom || deferVisualRefresh)) threadNewCount += added;
       if (!deferVisualRefresh) {
         renderList(); renderThreadHeader(); renderMessages(Boolean(older));
-        if (!older && (wasBottom || !quiet)) requestAnimationFrame(scrollThreadBottom);
-        else if (quiet && (data.messages || []).length) {
-          var visibleJump = document.querySelector('[data-thread-jump]'); if (visibleJump) visibleJump.hidden = false;
-        }
-      } else if ((data.messages || []).length) {
-        var jump = document.querySelector('[data-thread-jump]'); if (jump) jump.hidden = false;
+        if (!older && (wasBottom || !quiet)) requestAnimationFrame(function () { if (state.selectedId === conversationId) scrollThreadBottom(); });
+        else updateThreadJump(!atThreadBottom());
+      } else if (added) {
+        threadPaintDeferred = true; updateThreadJump(!wasBottom);
       }
     } catch (error) {
       if (controller && controller !== state.threadController) return;
@@ -4109,6 +4762,8 @@
   async function openConversation(id) {
     closeChatMedia();
     if (id !== state.selectedId) {
+      closeThreadOptions(false);
+      renderHandoffNote(null);
       var previousLibrary = document.querySelector('[data-shared-dialog][open]');
       if (previousLibrary) previousLibrary.close();
     }
@@ -4133,7 +4788,10 @@
       if (fromBoard && state.pipelineChatId === id && sequence === openSequence) {
         closePipelineChat(true);
         page.querySelector('[data-pipeline-status]').textContent = message;
-      } else if (sequence === openSequence) announceHandoff(message);
+      } else if (sequence === openSequence) {
+        renderHandoffNote(selectedConversation());
+        announceHandoff(message);
+      }
       return;
     }
     if (sequence !== openSequence || !chatEnabled() || epoch !== accessEpoch || revision !== threadEpoch.get(id)) return;
@@ -4145,6 +4803,7 @@
     if (previousId && previousInput && previousInput.value.trim()) await persistEncryptedDraft(previousId, previousInput.value.trim()).catch(function () {});
     if (sequence !== openSequence || epoch !== accessEpoch || revision !== threadEpoch.get(id)) return;
     state.selectedId = id; state.contextOpen = dockedContextPreferred(); state.contextReturnFocus = null; state.threadError = '';
+    if (previousId !== id) resetThreadJump();
     if (previousId !== id) { state.replyTo = null; state.attachment = null; }
     if (fromBoard) setPipelineChat(id, false);
     page.classList.add('show-thread');
@@ -4420,6 +5079,20 @@
     if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(false); else startVoiceRecording();
   }
 
+  function refreshSentConversation(conversationId, content, sentAt) {
+    var conversation = state.conversations.find(function (item) { return item.id === conversationId; });
+    if (conversation) {
+      conversation.paused = true;
+      if (!conversation.last_message_at || Date.parse(sentAt) >= Date.parse(conversation.last_message_at)) {
+        conversation.last_message = content; conversation.last_message_at = sentAt;
+      }
+    }
+    if (state.selectedId !== conversationId) { renderList(); return; }
+    var follow = !window.matchMedia('(max-width: 760px)').matches || atThreadBottom();
+    render();
+    if (follow) requestAnimationFrame(function () { if (state.selectedId === conversationId) scrollThreadBottom(); });
+  }
+
   async function submitMessage(content, key, pending, extra) {
     var conversationId = state.selectedId;
     var epoch = accessEpoch, revision = threadEpoch.get(conversationId);
@@ -4428,18 +5101,10 @@
       var data = await request('POST', {}, payload, key, 35000);
       if (epoch !== accessEpoch || revision !== threadEpoch.get(conversationId)) return;
       pending.reconciled = true;
+      pending.onMediaConfirmed?.();
       if (typeof pending.onSent === 'function') { try { pending.onSent(); } catch (_) {} }
       mergeMessages(conversationId, data.message ? [data.message] : [], false);
-      var conversation = state.conversations.find(function (item) { return item.id === conversationId; });
-      if (conversation) {
-        conversation.paused = true;
-        var sentAt = data.message?.created_at || pending.created_at;
-        if (!conversation.last_message_at || Date.parse(sentAt) >= Date.parse(conversation.last_message_at)) {
-          conversation.last_message = content; conversation.last_message_at = sentAt;
-        }
-      }
-      if (state.selectedId === conversationId) { render(); requestAnimationFrame(scrollThreadBottom); }
-      else renderList();
+      refreshSentConversation(conversationId, content, data.message?.created_at || pending.created_at);
     } catch (error) {
       pending.status = error.code === 'send_unknown' || error.code === 'send_in_progress' ? 'unknown' : 'failed';
       pending.error = error.message;
@@ -4456,42 +5121,59 @@
     if (!conversation || !canOperate(conversation, 'messages.respond')) return;
     var waWindow = liveWhatsappWindow(conversation);
     if (waWindow && !waWindow.freeform_allowed) { openTemplateDialog(); return; }
-    if (state.attachment) { sendAttachment(state.attachment); return; }
+    var mediaFile = state.attachment;
+    if (mediaFile && (!suggestedAttachments.has(mediaFile) || !content)) { sendAttachment(mediaFile); return; }
     if (!content) return;
     var key = uuid();
     var reply = state.replyTo;
-    var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: content, reply_to: reply ? { id: reply.id, preview: reply.content || 'Adjunto', type: reply.media_type || 'text' } : null, created_at: new Date().toISOString(), status: 'sending' };
+    var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: content, reply_to: reply ? { id: reply.id, preview: replyPreview(reply), type: reply.media_type || 'text' } : null, created_at: new Date().toISOString(), status: 'sending' };
+    if (mediaFile) {
+      var sendEpoch = accessEpoch;
+      state.attachment = null;
+      pending.onMediaConfirmed = function () {
+        pending.onMediaConfirmed = null;
+        if (sendEpoch === accessEpoch) sendAttachment(mediaFile, conversation);
+      };
+    }
     state.pending[conversation.id] = (state.pending[conversation.id] || []).concat(pending);
-    input.value = ''; clearEncryptedDraft(conversation.id); state.replyTo = null; renderComposerContext(); renderMessages(false); requestAnimationFrame(scrollThreadBottom);
+    input.value = ''; fitComposerText(input); clearEncryptedDraft(conversation.id); state.replyTo = null; renderComposerContext(); renderMessages(false); requestAnimationFrame(scrollThreadBottom);
     submitMessage(content, key, pending, reply ? { reply_to_message_id: reply.id } : null);
   }
 
   function attachmentKind(file) {
-    return String(file.type || '').startsWith('image/') ? 'image' : String(file.type || '').startsWith('audio/') ? 'audio' : 'document';
+    return String(file.type || '').startsWith('image/') ? 'image' : String(file.type || '').startsWith('audio/') ? 'audio' : file.type === 'video/mp4' ? 'video' : 'document';
+  }
+
+  function attachmentUploadKind(file) {
+    const kind = attachmentKind(file);
+    return kind === 'audio' && suggestedAttachments.has(file) ? 'audio_clip' : kind;
   }
 
   function chooseAttachment(file) {
     if (!file) return;
-    var kind = attachmentKind(file); var max = kind === 'audio' ? 16 : kind === 'image' ? 10 : 25;
+    var kind = attachmentKind(file); var max = kind === 'audio' || kind === 'video' ? 16 : kind === 'image' ? 10 : 25;
     if (file.size > max * 1024 * 1024) { window.alert('El archivo supera el límite de ' + max + ' MB.'); return; }
     var conversation = selectedConversation();
-    if (kind === 'audio' && conversation && conversation.channel !== 'whatsapp') { window.alert('Las notas de voz solo están disponibles en WhatsApp.'); return; }
+    if (kind === 'audio' && conversation && conversation.channel !== 'whatsapp' && !suggestedAttachments.has(file)) { window.alert('Las notas de voz solo están disponibles en WhatsApp.'); return; }
     if (kind === 'document' && conversation && conversation.channel === 'instagram') { window.alert('Instagram no permite enviar documentos.'); return; }
     state.attachment = file; state.replyTo = null; renderComposerContext(); return true;
   }
 
-  async function sendAttachment(file) {
-    var conversation = selectedConversation(); if (!conversation || !file) return;
+  async function sendAttachment(file, destination) {
+    var conversation = destination || selectedConversation(); if (!conversation || !file) return;
     var waWindow = liveWhatsappWindow(conversation); if (waWindow && !waWindow.freeform_allowed) { window.alert('La ventana de WhatsApp venció. Usa una plantilla aprobada.'); return; }
-    var kind = attachmentKind(file); var key = uuid(); var previewUrl = kind === 'image' || kind === 'audio' ? URL.createObjectURL(file) : null;
-    var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: kind === 'image' ? '📷 Imagen' : kind === 'audio' ? '🎤 Nota de voz' : '📄 ' + file.name, media_type: kind, media_url: previewUrl, created_at: new Date().toISOString(), status: 'sending', file: file };
-    state.pending[conversation.id] = (state.pending[conversation.id] || []).concat(pending); state.attachment = null; renderComposerContext(); renderMessages(false); requestAnimationFrame(scrollThreadBottom);
+    var kind = attachmentKind(file); var key = uuid(); var previewUrl = ['image','audio','video'].includes(kind) ? URL.createObjectURL(file) : null;
+    var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: kind === 'video' ? 'Video' : kind === 'image' ? '📷 Imagen' : kind === 'audio' ? (suggestedAttachments.has(file) ? 'Audio' : '🎤 Nota de voz') : '📄 ' + file.name, media_type: kind, media_url: previewUrl, created_at: new Date().toISOString(), status: 'sending', file: file };
+    state.pending[conversation.id] = (state.pending[conversation.id] || []).concat(pending);
+    if (!destination) state.attachment = null;
+    if (state.selectedId === conversation.id) { renderComposerContext(); renderMessages(false); requestAnimationFrame(scrollThreadBottom); }
     try {
-      var form = new FormData(); form.append('conversation_id', conversation.id); form.append('kind', kind); form.append('file', file, file.name);
+      var form = new FormData(); form.append('conversation_id', conversation.id); form.append('kind', attachmentUploadKind(file)); form.append('file', file, file.name);
       var data = await requestForm(form, key, 60000); pending.reconciled = true;
-      mergeMessages(conversation.id, data.message ? [data.message] : [], false); conversation.paused = true; conversation.last_message = pending.content; conversation.last_message_at = new Date().toISOString(); render(); requestAnimationFrame(scrollThreadBottom);
+      mergeMessages(conversation.id, data.message ? [data.message] : [], false);
+      refreshSentConversation(conversation.id, pending.content, data.message?.created_at || pending.created_at);
       if (previewUrl) URL.revokeObjectURL(previewUrl);
-    } catch (error) { pending.status = error.code === 'send_unknown' || error.code === 'send_in_progress' ? 'unknown' : 'failed'; pending.error = error.message; renderMessages(false); }
+    } catch (error) { pending.status = error.code === 'send_unknown' || error.code === 'send_in_progress' ? 'unknown' : 'failed'; pending.error = error.message; if (state.selectedId === conversation.id) renderMessages(false); }
   }
 
   async function sendLocation() {
@@ -4508,7 +5190,7 @@
       var latitude = position.coords.latitude; var longitude = position.coords.longitude;
       var isWhatsapp = conversation.channel === 'whatsapp';
       var content = isWhatsapp ? '📍 Ubicación actual' : '📍 Ubicación actual\nhttps://www.google.com/maps?q=' + encodeURIComponent(latitude + ',' + longitude);
-      var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: content, media_type: isWhatsapp ? 'location' : 'text', created_at: new Date().toISOString(), status: 'sending' };
+      var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: content, media_type: isWhatsapp ? 'location' : 'text', location: { latitude: latitude, longitude: longitude }, created_at: new Date().toISOString(), status: 'sending' };
       state.pending[conversation.id] = (state.pending[conversation.id] || []).concat(pending); renderMessages(false);
       try {
         if (isWhatsapp) {
@@ -4524,7 +5206,7 @@
   function retryPending(item) {
     item.status = 'sending'; renderMessages(false);
     if (item.file) {
-      var conversationId = state.selectedId; var kind = attachmentKind(item.file); var form = new FormData();
+      var conversationId = state.selectedId; var kind = attachmentUploadKind(item.file); var form = new FormData();
       form.append('conversation_id', conversationId); form.append('kind', kind); form.append('file', item.file, item.file.name);
       requestForm(form, item.key, 60000).then(function (data) {
         item.reconciled = true; mergeMessages(conversationId, data.message ? [data.message] : [], false); render(); requestAnimationFrame(scrollThreadBottom);
@@ -4539,6 +5221,7 @@
 
   function inboxInteractionProtected() {
     var page = document.getElementById('p-inbox'); if (!page) return false;
+    if (messageMenu) return true;
     if (document.querySelector('[data-smyl-media-dialog][open]')) return true;
     if (page.querySelector('dialog[open]')) return true;
     if (state.contextOpen || state.filterPanelOpen) return true;
@@ -4546,13 +5229,14 @@
     if (composeTools && !composeTools.hidden) return true;
     if (state.recorder && state.recorder.state === 'recording') return true;
     var active = document.activeElement;
+    if (active?.matches('[data-list-stage]') && (!CSS.supports('selector(select:open)') || active.matches(':open'))) return true;
     return Boolean(active && page.contains(active) && active.closest('[data-inbox-composer],[data-inbox-context-panel],[data-thread-owner]'));
   }
 
   async function sync() {
     if (!chatEnabled() || state.polling || !state.syncedAt || !document.getElementById('p-inbox').classList.contains('activa') || document.visibilityState !== 'visible') return;
     state.polling = true;
-    var live = document.querySelector('[data-inbox-live]'); if (live) live.dataset.state = 'syncing';
+    var live = document.querySelector('[data-inbox-live]');
     try {
       var selected = selectedConversation();
       var appointmentBefore = selected && JSON.stringify(selected.appointment || null);
@@ -4593,12 +5277,12 @@
       if (ids.length > 100 || pendingPipelineSnapshots.size) await syncAdditionalPipelineCards(ids, since, epoch);
       if (epoch !== accessEpoch) return;
       if (live) {
-        live.dataset.state = 'online';
-        live.querySelector('span').textContent = pendingPipelineSnapshots.size ? 'Algunas tarjetas están pendientes de actualizar' : 'Actualizado ahora';
+        live.hidden = !pendingPipelineSnapshots.size;
+        live.querySelector('span').textContent = pendingPipelineSnapshots.size ? 'Algunas tarjetas están pendientes de actualizar' : '';
       }
     } catch (_) {
       state.syncDelay = Math.min(30000, (state.syncDelay || 5000) * 2);
-      if (live) { live.dataset.state = 'offline'; live.querySelector('span').textContent = 'Reconectando…'; }
+      if (live) { live.hidden = false; live.querySelector('span').textContent = 'Reconectando…'; }
     } finally { state.polling = false; }
   }
 
@@ -4613,32 +5297,33 @@
     } catch (_) {}
   }
 
-  function renderNotifyButton() {
-    var button = document.querySelector('[data-inbox-notify]'); if (!button) return;
-    button.setAttribute('aria-pressed', state.notificationsEnabled ? 'true' : 'false');
-    button.textContent = state.notificationsEnabled ? 'Avisos activos' : 'Activar avisos';
-  }
-
-  function toggleNotifications() {
-    state.notificationsEnabled = !state.notificationsEnabled;
-    renderNotifyButton(); if (state.notificationsEnabled) playInboxNotice();
-  }
-
   function quickNotice(session, message) {
     var status = session.dialog.querySelector('[data-quick-status]');
     status.textContent = message; status.hidden = !message;
   }
 
+  function quickShortcutAtCaret(input) {
+    if (!input || input.selectionStart !== input.selectionEnd) return null;
+    var caret = input.selectionStart; var before = input.value.slice(0, caret);
+    var match = before.match(/(^|\s)\/([a-z0-9_-]{1,40})$/i);
+    if (!match) return null;
+    return { start: caret - match[2].length - 1, end: caret, query: match[2] };
+  }
+
   function insertQuickReply(session, text) {
-    var input = document.querySelector('[name="message"]');
+    var input = document.querySelector('[data-inbox-composer] [name="message"]');
     if (state.quickSession !== session || state.selectedId !== session.conversation || !input || input.disabled) {
       quickNotice(session, 'Vuelve a abrir la conversación para insertar el mensaje.'); return;
     }
-    if (input.value.length - (input.selectionEnd - input.selectionStart) + text.length > input.maxLength) {
+    var start = input.selectionStart; var end = input.selectionEnd;
+    if (input.value === session.inputValue && Number.isInteger(session.insertStart) && Number.isInteger(session.insertEnd)) {
+      start = session.insertStart; end = session.insertEnd;
+    }
+    if (input.value.length - (end - start) + text.length > input.maxLength) {
       quickNotice(session, 'Acorta el texto. El mensaje admite hasta 4000 caracteres.'); return;
     }
     session.dialog.close();
-    input.setRangeText(text, input.selectionStart, input.selectionEnd, 'end');
+    input.setRangeText(text, start, end, 'end');
     input.dispatchEvent(new Event('input', { bubbles: true })); input.focus();
   }
 
@@ -4650,10 +5335,14 @@
       return item && typeof item.text === 'string' && typeof item.shortcut === 'string' &&
         normalizeText('/' + item.shortcut + ' ' + item.text).includes(search);
     });
+    var summary = dialog.querySelector('[data-quick-summary]');
+    if (summary) summary.textContent = session.loading.size ? 'Actualizando biblioteca…' : replies.length + (replies.length === 1 ? ' respuesta disponible' : ' respuestas disponibles');
     replies.forEach(function (item) {
       var row = node('div', 'smyl-quick-item');
       var insert = node('button', 'smyl-inbox-quick-row'); insert.type = 'button';
-      insert.append(node('strong', '', '/' + item.shortcut), node('span', '', item.text));
+      insert.setAttribute('aria-label', 'Usar /' + item.shortcut + ': ' + item.text);
+      var copy = node('span', 'smyl-quick-row-copy'); copy.append(node('strong', '', '/' + item.shortcut), node('span', '', item.text));
+      insert.append(copy, node('span', 'smyl-quick-use-label', 'Usar'));
       insert.onclick = function () { insertQuickReply(session, item.text); };
       row.append(insert);
       if (session.canManage && session.team.includes(item)) {
@@ -4709,6 +5398,7 @@
     session.editing = item; dialog.querySelector('[data-quick-library]').hidden = true;
     form.hidden = false; form.elements.shortcut.value = item ? item.shortcut : '';
     form.elements.replyText.value = item ? item.text : '';
+    form.querySelector('[data-quick-editor-title]').textContent = item ? 'Editar /' + item.shortcut : 'Nueva respuesta';
     form.querySelector('[data-quick-name]').hidden = !session.canManage;
     form.querySelector('[data-quick-save]').hidden = !session.canManage;
     form.querySelector('[data-quick-delete]').hidden = !item;
@@ -4760,16 +5450,25 @@
     }
   }
 
-  function openQuickReplies() {
+  function openQuickReplies(options) {
+    options = options && options.quickReplyTrigger ? options : {};
     var dialog = document.querySelector('[data-quick-dialog]');
     if (!dialog || dialog.open || !canOperate(selectedConversation(), 'messages.respond')) return;
-    var form = dialog.querySelector('[data-quick-form]');
+    var form = dialog.querySelector('[data-quick-form]'); var input = document.querySelector('[data-inbox-composer] [name="message"]');
+    var inline = options.range || quickShortcutAtCaret(input);
     var session = { dialog: dialog, conversation: state.selectedId, canManage: hasPermission('messages.manage'),
-      team: [], legacy: [], teamGeneration: 0, errors: new Set(), loading: new Set(), editing: null, busy: false };
+      team: [], legacy: [], teamGeneration: 0, errors: new Set(), loading: new Set(), editing: null, busy: false,
+      inputValue: input ? input.value : '', insertStart: inline ? inline.start : input && input.selectionStart,
+      insertEnd: inline ? inline.end : input && input.selectionEnd };
     state.quickSession = session;
     Array.from(form.elements).forEach(function (field) { field.disabled = false; });
-    dialog.querySelector('[data-quick-search]').value = '';
+    dialog.querySelector('[data-quick-search]').value = options.query || (inline && inline.query) || '';
     dialog.querySelector('[data-quick-search]').oninput = function () { renderQuickReplies(session); };
+    dialog.querySelector('[data-quick-search]').onkeydown = function (event) {
+      if (event.key !== 'Enter') return;
+      var first = dialog.querySelector('.smyl-inbox-quick-row');
+      if (first) { event.preventDefault(); first.click(); }
+    };
     dialog.querySelector('[data-quick-new]').onclick = function () { showQuickEditor(session, null); };
     form.querySelector('[data-quick-back]').onclick = function () { showQuickLibrary(session); };
     form.querySelector('[data-quick-save]').onclick = function () { writeQuickReply(session, false); };
@@ -4780,8 +5479,19 @@
       if (text) insertQuickReply(session, text);
       else { quickNotice(session, 'Escribe el mensaje que quieres insertar.'); form.elements.replyText.focus(); }
     };
+    dialog.onclose = function () {
+      if (state.quickSession === session) state.quickSession = null;
+      if (input && !input.disabled) input.focus();
+    };
     dialog.showModal(); showQuickLibrary(session);
     loadQuickSource(session, 'team'); loadQuickSource(session, 'legacy');
+  }
+
+  function maybeOpenQuickReplies(event) {
+    if (!event.isTrusted || document.querySelector('[data-quick-dialog][open]')) return;
+    var range = quickShortcutAtCaret(event.currentTarget);
+    if (!range || range.query.length < 2) return;
+    openQuickReplies({ quickReplyTrigger: true, range: range, query: range.query });
   }
 
   function renderThreadSearchResults() {
@@ -4909,6 +5619,64 @@
     relayout();
   }
 
+  function initThreadViewport(page) {
+    var body = page.querySelector('[data-thread-body]');
+    var viewport = window.visualViewport;
+    var mobile = window.matchMedia('(max-width: 760px)');
+    var reading = null, layoutScrollTop = null;
+    function mobileThreadOpen() {
+      return mobile.matches && page.matches('.activa.show-thread, .activa.pipeline-chat-open');
+    }
+    function preserveReadingPosition() {
+      if (!state.selectedId || !mobileThreadOpen() || !body.clientHeight || (viewport && Math.abs(viewport.scale - 1) > 0.02)) {
+        reading = null;
+        layoutScrollTop = null;
+        return;
+      }
+      var height = body.clientHeight, width = body.clientWidth;
+      if (reading && reading.id === state.selectedId && reading.height !== height) {
+        // Un cambio de altura mueve el borde inferior. Quien lee arriba conserva su línea,
+        // incluso si el navegador intentó compensar el cambio con su propio desplazamiento.
+        if (reading.atEnd) body.scrollTop = body.scrollHeight;
+        else if (reading.width === width) body.scrollTop = reading.top;
+        layoutScrollTop = body.scrollTop;
+      }
+      reading = { id:state.selectedId, height:height, width:width, top:body.scrollTop,
+        atEnd:body.scrollHeight - height - body.scrollTop <= 2 };
+    }
+    function fitMobileThread() {
+      if (!mobileThreadOpen()) {
+        page.style.removeProperty('--smyl-thread-available-height');
+        reading = null;
+        layoutScrollTop = null;
+        return;
+      }
+      // En Safari el teclado puede reducir sólo la ventana visual.
+      if (viewport && Math.abs(viewport.scale - 1) > 0.02) return;
+      var top = Math.max(0, page.getBoundingClientRect().top - (viewport ? viewport.offsetTop : 0));
+      var available = (viewport ? viewport.height : window.innerHeight) - top;
+      if (available > 0) page.style.setProperty('--smyl-thread-available-height', Math.floor(available) + 'px');
+      preserveReadingPosition();
+    }
+    body.addEventListener('scroll', function () {
+      preserveReadingPosition();
+      var layoutOnly = layoutScrollTop === body.scrollTop;
+      layoutScrollTop = null;
+      if (atThreadBottom() && !layoutOnly) {
+        if (threadPaintDeferred) scrollThreadBottom(); else resetThreadJump();
+      } else updateThreadJump(!atThreadBottom());
+    }, {passive:true});
+    page.querySelector('[data-inbox-composer]').addEventListener('focusin', preserveReadingPosition);
+    if (window.ResizeObserver) new ResizeObserver(preserveReadingPosition).observe(body);
+    if (viewport) {
+      viewport.addEventListener('resize', fitMobileThread);
+      viewport.addEventListener('scroll', fitMobileThread);
+    }
+    window.addEventListener('resize', fitMobileThread);
+    if (window.MutationObserver) new MutationObserver(fitMobileThread).observe(page, { attributes:true, attributeFilter:['class'] });
+    fitMobileThread();
+  }
+
   function init() {
     if (!window.ir || document.getElementById('p-inbox')) return;
     TITULOS.inbox = 'Mensajes';
@@ -4923,8 +5691,9 @@
 
     page.querySelectorAll('[data-inbox-filter]').forEach(function (button) {
       button.addEventListener('click', function () {
-        state.filter = button.dataset.inboxFilter;
-        if (['all', 'unread', 'attention', 'mine'].indexOf(state.filter) !== -1) state.filterPanelOpen = false;
+        var advanced = !!button.closest('[data-inbox-filter-panel]');
+        state.filter = advanced && state.filter === button.dataset.inboxFilter ? 'all' : button.dataset.inboxFilter;
+        if (!advanced) state.filterPanelOpen = false;
         renderFilterControls();
         loadList(true);
       });
@@ -4934,6 +5703,11 @@
     page.querySelector('[data-inbox-filter-panel]').addEventListener('keydown', function (event) {
       if (event.key !== 'Escape') return;
       event.preventDefault(); state.filterPanelOpen = false; renderFilterControls(); page.querySelector('[data-inbox-filter-more]').focus();
+    });
+    page.querySelector('[data-inbox-filter-panel]').addEventListener('focusout', function (event) {
+      if (state.filterPanelOpen && event.relatedTarget && !event.relatedTarget.closest('[data-inbox-filter-panel],[data-inbox-filter-more]')) {
+        state.filterPanelOpen = false; renderFilterControls();
+      }
     });
     var searchTimer = null;
     function searchConversations(value) {
@@ -4950,15 +5724,71 @@
     page.querySelector('[data-pipeline-more]').addEventListener('click', function () { loadList(!state.hasMore); });
     var savedView = null; try { savedView = window.sessionStorage.getItem('smyl_inbox_view'); } catch (_) {}
     setInboxView(savedView);
-    page.querySelector('[data-inbox-channel]').addEventListener('change', function (event) { state.channel = event.target.value; loadList(true); });
-    page.querySelector('[data-inbox-bulk]').addEventListener('click', function () { state.bulkMode = !state.bulkMode; if (!state.bulkMode) state.bulkSelected.clear(); renderList(); });
-    page.querySelector('[data-inbox-refresh]').addEventListener('click', function () { loadList(true); loadOperations(true); if (state.selectedId) loadThread(state.selectedId, false); });
+    page.querySelector('[data-inbox-channel]').addEventListener('change', function (event) { state.channel = event.target.value; renderFilterControls(); loadList(true); });
     page.querySelector('[data-inbox-more]').addEventListener('click', function () { loadList(false); });
     page.querySelector('[data-thread-older]').addEventListener('click', function () { loadThread(state.selectedId, true); });
-    page.querySelector('[data-thread-jump]').addEventListener('click', scrollThreadBottom);
+    page.querySelector('[data-thread-jump]').addEventListener('click', function () {
+      scrollThreadBottom(); page.querySelector('[data-thread-body]').focus({preventScroll:true});
+    });
     page.querySelector('[data-inbox-composer]').addEventListener('submit', sendMessage);
-    page.querySelector('[name="message"]').addEventListener('input', function (event) { scheduleDraftSave(event.target.value); });
+    var replyInput = page.querySelector('[name="message"]');
+    var mobileReply = window.matchMedia('(max-width: 760px)');
+    var followReplyEnd = false;
+    function revealReplyEnd() {
+      if (followReplyEnd && mobileReply.matches && (document.activeElement === replyInput || document.activeElement === expandReply) &&
+          replyInput.selectionStart === replyInput.value.length && replyInput.selectionEnd === replyInput.value.length) {
+        replyInput.scrollTop = replyInput.scrollHeight;
+      }
+    }
+    var expandReply = node('button'); expandReply.type = 'button'; expandReply.hidden = true;
+    expandReply.dataset.composeExpand = '';
+    expandReply.setAttribute('aria-controls', replyInput.id);
+    setEditorExpanded(replyInput.form, expandReply, false);
+    page.querySelector('[data-compose-more]').before(expandReply);
+    expandReply.addEventListener('click', function () {
+      followReplyEnd = replyInput.scrollHeight - replyInput.clientHeight - replyInput.scrollTop < 2;
+      setEditorExpanded(replyInput.form, expandReply, expandReply.getAttribute('aria-expanded') !== 'true');
+      fitComposerText(replyInput);
+      revealReplyEnd();
+    });
+    // Preserva el teclado en el gesto original. Una confirmación de red posterior no debe recuperar el foco.
+    function keepReplyFocus(event) {
+      if (event.button === 0 && mobileReply.matches && !replyInput.disabled && document.activeElement === replyInput) event.preventDefault();
+    }
+    page.querySelector('[data-compose-send]').addEventListener('pointerdown', keepReplyFocus);
+    expandReply.addEventListener('pointerdown', keepReplyFocus);
+    // Una selección o desplazamiento dentro del texto tiene prioridad sobre seguir el último renglón.
+    function readReplyPosition() { followReplyEnd = false; }
+    replyInput.addEventListener('blur', readReplyPosition);
+    replyInput.addEventListener('pointerdown', readReplyPosition);
+    replyInput.addEventListener('wheel', readReplyPosition, {passive:true});
+    replyInput.addEventListener('click', function () {
+      followReplyEnd = replyInput.scrollHeight - replyInput.clientHeight - replyInput.scrollTop < parseFloat(getComputedStyle(replyInput).lineHeight);
+      revealReplyEnd();
+    });
+    replyInput.addEventListener('input', function (event) {
+      followReplyEnd = replyInput.selectionStart === replyInput.value.length && replyInput.selectionEnd === replyInput.value.length;
+      fitComposerText(replyInput);
+      revealReplyEnd();
+      scheduleDraftSave(replyInput.value);
+      maybeOpenQuickReplies(event);
+    });
+    mobileReply.addEventListener('change', function () { fitComposerText(replyInput); });
+    if (window.ResizeObserver) {
+      var lastReplyWidth = 0;
+      new ResizeObserver(function () {
+        if (replyInput.clientWidth !== lastReplyWidth) {
+          lastReplyWidth = replyInput.clientWidth;
+          fitComposerText(replyInput);
+        }
+        revealReplyEnd();
+      }).observe(replyInput);
+    }
     page.querySelector('[data-compose-more]').addEventListener('click', toggleComposerTools);
+    var settings = node('button'); settings.type = 'button'; settings.dataset.threadSettings = '';
+    settings.setAttribute('role', 'menuitem'); settings.setAttribute('aria-haspopup', 'dialog');
+    settings.innerHTML = composeIcon('settings') + '<span><strong>Ajustes del chat</strong><small>Opciones de esta conversación</small></span>';
+    settings.onclick = openConversationSettings; page.querySelector('[data-compose-tools]').append(settings);
     page.querySelector('[data-compose-tools]').addEventListener('click', function (event) { if (event.target.closest('button')) closeComposerTools(); });
     page.querySelector('[data-compose-tools]').addEventListener('keydown', function (event) { menuKeydown(event, event.currentTarget, closeComposerTools); });
     page.querySelector('[data-compose-emoji]').addEventListener('click', openEmojiDialog);
@@ -5004,6 +5834,17 @@
     page.querySelector('[data-availability-link-patient]').addEventListener('click', openAvailabilityPatientLink);
     page.querySelector('[data-availability-close]').addEventListener('click', function () { page.querySelector('[data-availability-dialog]').close(); });
     page.querySelector('[data-availability-prepare]').addEventListener('click', prepareAvailabilityOptions);
+    page.querySelector('[data-availability-suggest-run]').addEventListener('click', function () { runSuggestion(false); });
+    page.querySelector('[data-availability-waitlist]').addEventListener('click', function () {
+      var dlg = page.querySelector('[data-availability-dialog]');
+      if (!window.SmylWaitlist) return;
+      window.SmylWaitlist.openAdd({ conversationId: state.selectedId, serviceId: dlg.querySelector('[data-availability-service]').value, branchId: dlg.querySelector('[data-availability-branch]').value, professionalId: dlg.querySelector('[data-availability-professional]').value, source: 'chat' });
+    });
+    page.querySelector('[data-availability-suggest-results]').addEventListener('click', function (event) {
+      if (event.target.closest('[data-availability-suggest-use]')) useSuggestion();
+      else if (event.target.closest('[data-availability-suggest-more]')) runSuggestion(true);
+    });
+    ['[data-availability-service]', '[data-availability-branch]', '[data-availability-professional]'].forEach(function (selector) { page.querySelector(selector).addEventListener('change', resetSuggestion); });
     page.querySelector('[data-availability-book]').addEventListener('click', function () { bookAvailabilitySlot(state.availabilitySelected[0]); });
     page.querySelectorAll('[data-availability-mode]').forEach(function (button) {
       button.addEventListener('click', function () {
@@ -5012,8 +5853,6 @@
         page.querySelector('[data-availability-form]').requestSubmit();
       });
     });
-    page.querySelector('[data-inbox-operations]').addEventListener('click', openOperations);
-    page.querySelector('[data-inbox-notify]').addEventListener('click', toggleNotifications);
     page.querySelector('[data-operations-close]').addEventListener('click', function () { page.querySelector('[data-operations-dialog]').close(); });
     page.querySelector('[data-operations-refresh]').addEventListener('click', function () { loadOperations(true); });
     page.querySelector('[data-pilot-report]').addEventListener('click', openPilotReport);
@@ -5022,17 +5861,29 @@
     page.querySelector('[data-pilot-report-print]').addEventListener('click', printPilotReport);
     page.querySelector('[data-pipeline-cancel]').addEventListener('click', function () { closePipelineChat(true); });
     page.querySelector('[data-inbox-back]').addEventListener('click', function () {
-      closeChatMedia();
+      closeChatMedia(); closeThreadOptions(false);
       if (state.pipelineChatId) closePipelineChat(true);
       else { page.classList.remove('show-thread'); closeContext(false); }
     });
     initListResizer(page);
+    initThreadViewport(page);
+    initThreadOptions(page);
     page.querySelector('[data-inbox-context]').addEventListener('click', function (event) {
       if (state.contextOpen && contextDocked()) closeContext(false);
       else openContext(event.currentTarget);
     });
     page.querySelector('[data-thread-mode]').addEventListener('click', function () { var conversation = selectedConversation(); if (!conversation) return; conversation.paused ? prepareResume() : mutateConversation('pause'); });
     page.querySelector('[data-settings-close]').addEventListener('click', function () { page.querySelector('[data-settings-dialog]').close(); });
+    var ownerDialog = page.querySelector('[data-owner-dialog]');
+    page.querySelector('[data-thread-owner]').addEventListener('click', function () {
+      var conversation = selectedConversation();
+      if (!canTransfer(conversation) || ownerDialog.open) return;
+      renderChatOwner(conversation);
+      renderHandoffNote(conversation);
+      ownerDialog.dataset.thread = conversation.id;
+      ownerDialog.showModal();
+    });
+    page.querySelector('[data-owner-close]').addEventListener('click', function () { ownerDialog.close(); });
     page.querySelector('[data-thread-assign]').addEventListener('change', function (event) { changeChatOwner(event.target.dataset.conversationId, event.target.value); });
     page.querySelector('[data-thread-owner-retry]').addEventListener('click', function () {
       teamsByConversation.delete(state.selectedId); renderChatOwner(selectedConversation());
@@ -5042,7 +5893,7 @@
     page.querySelector('[data-shared-close]').addEventListener('click', function () { page.querySelector('[data-shared-dialog]').close(); });
     page.querySelector('[data-quick-close]').addEventListener('click', function () { page.querySelector('[data-quick-dialog]').close(); });
     page.querySelector('[data-emoji-close]').addEventListener('click', function () { page.querySelector('[data-emoji-dialog]').close(); });
-    page.querySelectorAll('[data-quick-dialog], [data-emoji-dialog]').forEach(function (dialog) {
+    page.querySelectorAll('[data-quick-dialog], [data-emoji-dialog], [data-settings-dialog]').forEach(function (dialog) {
       dialog.addEventListener('close', function () {
         // The browser may return focus to the tool menu after it has collapsed.
         if (!dialog.open && (document.activeElement === document.body || document.activeElement.closest('[data-compose-tools][hidden]'))) {
@@ -5057,7 +5908,6 @@
       var onDockChange = function () { syncContextAccessibility(); };
       if (dockQuery.addEventListener) dockQuery.addEventListener('change', onDockChange); else if (dockQuery.addListener) dockQuery.addListener(onDockChange);
     }
-    page.querySelector('[data-thread-body]').addEventListener('scroll', function () { if (atThreadBottom()) page.querySelector('[data-thread-jump]').hidden = true; });
     page.addEventListener('pointerdown', function (event) {
       if (!event.target.closest('[data-compose-tools],[data-compose-more]')) closeComposerTools(false);
       if (state.filterPanelOpen && !event.target.closest('[data-inbox-filter-panel],[data-inbox-filter-more]')) { state.filterPanelOpen = false; renderFilterControls(); }
@@ -5078,17 +5928,18 @@
       if (route === 'inbox') {
         refreshAccess().then(function (allowed) {
           if (!allowed || !page.classList.contains('activa')) return;
-          if (!state.conversations.length) { loadList(true); loadBranches(); loadStages(); loadOperations(true); }
+          if (state.stageCatalogStatus !== 'ready') loadStages();
+          if (!state.conversations.length) { loadList(true); loadBranches(); loadOperations(true); }
           else { sync(); loadOperations(false); autoOpenFirst(); }
         });
       } else {
-        closeChatMedia();
+        closeChatMedia(); closeThreadOptions(false);
+        if (ownerDialog.open) renderHandoffNote(null);
         if (state.pipelineChatId) closePipelineChat(false);
         if (state.recorder && state.recorder.state === 'recording') stopVoiceRecording(true); closeContext(false);
       }
       return result;
     };
-    renderOperationsChip(); renderNotifyButton();
     window.addEventListener('smyl:chat-access-changed', function () {
       teamsByConversation.clear();
       refreshAccess().then(function () { renderChatOwner(selectedConversation()); renderBulkBar(); });
@@ -5128,6 +5979,26 @@
   window.SmylInbox = {
     canAccess: chatEnabled,
     open: function (conversationId) { window.ir('inbox'); return openConversation(conversationId); },
+    // Abre la conversación para que una persona revise y envíe (nunca envía por sí solo).
+    //  · Con la ventana de 24 h de WhatsApp abierta (o en otros canales): deja `text` escrito en el compositor y devuelve true.
+    //  · Con la ventana cerrada y `options.template` = { names, variables, missingText }: abre esa plantilla aprobada con las variables ya llenas
+    //    y devuelve 'template' (`options.onSent` se llama solo si la persona la envía). Sin la plantilla aprobada avisa y devuelve false.
+    compose: async function (conversationId, text, options) {
+      options = options || {}; window.ir('inbox'); await openConversation(conversationId);
+      if (state.selectedId !== conversationId) return false;
+      var conversation = selectedConversation(), windowNow = conversation ? liveWhatsappWindow(conversation) : null;
+      if (options.template && conversation && conversation.channel === 'whatsapp' && windowNow && !windowNow.freeform_allowed) {
+        var names = Array.isArray(options.template.names) ? options.template.names : [];
+        try { await loadTemplates(); } catch (_) { return false; }
+        if (!state.templates.some(function (item) { return names.indexOf(item.name) !== -1; })) {
+          window.alert(options.template.missingText || 'No hay una plantilla aprobada para este mensaje. Solicítala en Mensajería → Plantillas; Meta suele tardar de unos minutos a 48 horas.');
+          return false;
+        }
+        await openTemplateDialog(names, { variables: options.template.variables || [], onSent: options.onSent || null });
+        return 'template';
+      }
+      setComposerText(text); return true;
+    },
     sendTemplate: async function (conversationId, options) { options = options || {}; window.ir('inbox'); await openConversation(conversationId); if (state.selectedId !== conversationId || !chatEnabled()) return; await openTemplateDialog(options.preferred, options); },
     collect: async function (conversationId) { window.ir('inbox'); await openConversation(conversationId); if (state.selectedId !== conversationId || !chatEnabled()) return; await openCobroTemplate(); },
     openOperations: async function () { window.ir('inbox'); if (await refreshAccess() && hasPermission('messages.manage')) openOperations(); },

@@ -60,7 +60,7 @@
   ];
   // Todos los ajustes viven ahora en la pantalla Configuración (smyl-settings-hub.js), ordenada como el panel de LANA.
   // El menú solo tiene ese acceso; se marca mientras estás en cualquiera de las pantallas a las que lleva.
-  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'plan', 'mi-consultorio', 'mi-cuenta', 'almacenamiento'];
+  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'plan', 'mi-consultorio', 'mi-cuenta', 'almacenamiento', 'avisos-cita', 'cumplimiento'];
   var SETTINGS = [['Configuración', 'configuracion', 'settings']];
   // Otros módulos agregan su propio botón al menú cuando no lo encuentran. Estas rutas ya no tienen botón visible,
   // pero se dejan registradas (ocultas) para que no reaparezcan sueltas en el menú.
@@ -74,6 +74,8 @@
     ['Marca y simulación', 'sim-config', 'brand'],
     ['Mi cuenta', 'mi-cuenta', 'account'],
     ['Almacenamiento', 'almacenamiento', 'account'],
+    ['Cumplimiento sanitario', 'cumplimiento', 'shield'],
+    ['Avisos de cita', 'avisos-cita', 'templates'],
     // La ruta permanece registrada para impedir que otros módulos agreguen un acceso duplicado.
     ['Plantillas de WhatsApp', 'plantillas', 'templates']
   ];
@@ -118,6 +120,7 @@
     var summary = document.createElement('summary');
     summary.innerHTML = '<span class="pro-nav-group-icon">' + icon(iconName || 'reports', 18) + '</span><span class="pro-nav-group-label">' + label + '</span><span class="pro-nav-group-count" hidden></span><span class="pro-nav-chevron" aria-hidden="true">' + CHEVRON + '</span>';
     summary.dataset.tooltip = label;
+    summary.title = label;
     summary.setAttribute('aria-label', label);
     details.append(summary);
     var flyout = document.createElement('div');
@@ -168,6 +171,7 @@
     PRIMARY.forEach(function (entry) { nav.append(navItem(entry, false)); });
     nav.append(sectionLabel('Comunicación'));
     nav.append(detailsGroup('Mensajería', MESSAGING, false, 'messages'));
+    nav.append(sectionLabel('Gestión'));
     nav.append(detailsGroup('Negocio', BUSINESS, false, 'reports'));
     SETTINGS.forEach(function (entry) { nav.append(navItem(entry, false)); });
     var registry = document.createElement('div');
@@ -566,7 +570,8 @@
     if (!wrap) {
       wrap = document.createElement('div');
       wrap.className = 'sb-quick';
-      logo.after(wrap);
+      var headerEnd = sidebar.querySelector('.sb-branch') || logo;
+      headerEnd.after(wrap);
     }
     wrap.append(button);
   }

@@ -2,10 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://api.qrserver.com; media-src 'self' blob: https://*.supabase.co; connect-src 'self' https://rpxshsiwoxdbuevjjpfw.supabase.co https://o4512394436083712.ingest.us.sentry.io; worker-src 'self' blob:; frame-src 'self' blob: https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+<script>/* Anti-clickjacking: GitHub Pages no permite X-Frame-Options; si la app queda dentro de un marco ajeno, se oculta y se abre sola. */if(window.top!==window.self){document.documentElement.style.display='none';try{window.top.location=window.self.location;}catch(e){}}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>SMYL · Diseño de Sonrisa Digital</title>
 <link rel="manifest" href="manifest-app.json">
-<meta name="theme-color" content="#0B1B2E">
+<meta name="theme-color" content="#1b2477">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16,6 +18,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="smyl-browser-privacy.js?v=1"></script>
 <script src="smyl-sentry.js?v=3"></script>
+<script src="smyl-photo-url-refresh.js?v=1"></script>
+<script src="smyl-auth-guard.js?v=2"></script>
 <script src="smyl-secure-files.js?v=2"></script>
 <link rel="stylesheet" href="smyl-security-center.css?v=2">
 <script src="smyl-security-center.js?v=3"></script>
@@ -28,10 +32,10 @@
   --color-primary-hover:#12366F;
   --color-primary-subtle:#EDF3FC;
   --color-primary-border:#C9D8EF;
-  --color-accent:#0F766E;
-  --color-accent-hover:#115E59;
-  --color-accent-subtle:#EAF8F6;
-  --gradient-primary:linear-gradient(135deg,#194391 0%,#2476B8 58%,#16A69B 100%);
+  --color-accent:#142bc3;
+  --color-accent-hover:#1a2da6;
+  --color-accent-subtle:#eaf0f8;
+  --gradient-primary:linear-gradient(135deg,#194391 0%,#2476B8 58%,#1934e6 100%);
   --color-surface:#FFFFFF;
   --color-surface-raised:#F4F7FA;
   --color-border:#DCE4EC;
@@ -73,8 +77,8 @@
   --violeta:#194391;
   --violeta-s:#EDF3FC;
   --violeta-b:#C9D8EF;
-  --teal:#0F766E;
-  --teal-s:#EAF8F6;
+  --teal:#142bc3;
+  --teal-s:#eaf0f8;
   --verde:#087A55;
   --verde-s:#ECFDF5;
   --rojo:#B42318;
@@ -104,15 +108,26 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 /* Sidebar oscuro sobre contenido claro — el mismo contraste que usan
    Vercel/Linear/Arc, le da la sensación "premium SaaS" que antes no tenía
    (todo el panel era plano y blanco de lado a lado) */
-.sidebar{width:240px;background:#0B1B2E;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;z-index:20;box-shadow:12px 0 34px rgba(16,34,57,.07)}
+.sidebar{width:240px;background:#2d3a9e;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;z-index:20;box-shadow:12px 0 34px rgba(16,34,57,.07)}
 .main{flex:1;overflow-y:auto;min-width:0}
 
 /* ── SIDEBAR ── */
-.sb-branch{padding:10px 18px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
-.sb-branch label{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:4px}
-.sb-branch select{width:100%;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:7px 8px;font:inherit;font-size:13px;cursor:pointer}
+.sb-branch{padding:2px 14px 10px}
+.sb-branch label{display:block;padding:0 4px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(197, 216, 231,.5);margin-bottom:5px}
+.sb-branch-field{position:relative;display:flex;align-items:center;gap:8px;min-height:36px;padding:0 10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#e4ebf3;transition:background-color .15s,border-color .15s}
+.sb-branch-field:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}
+.sb-branch-field:focus-within{border-color:#64abe2;box-shadow:0 0 0 2px rgba(100, 171, 226,.25)}
+.sb-branch-icon{position:relative;display:grid;place-items:center;flex:0 0 16px;color:rgba(182, 204, 220,.75)}
+.sb-branch-value{flex:1;min-width:0;overflow:hidden;font-size:13px;font-weight:500;line-height:1.2;text-overflow:ellipsis;white-space:nowrap}
+.sb-branch-chev{flex:0 0 auto;font-size:11px;color:rgba(182, 204, 220,.6)}
+.sb-branch select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;margin:0;-webkit-appearance:none;appearance:none}
 .sb-branch select option{color:#1F2937;background:#fff}
-body.branch-scope-all .sb-branch select{border-color:#F59E0B;box-shadow:0 0 0 1px #F59E0B}
+body.branch-scope-all .sb-branch-icon::after{content:"";position:absolute;top:-3px;right:-4px;width:7px;height:7px;border-radius:50%;background:#F59E0B;box-shadow:0 0 0 2px #10283a}
+body.smyl-sidebar-collapsed .sb-branch{padding:2px 8px 10px}
+body.smyl-sidebar-collapsed .sb-branch label,body.smyl-sidebar-collapsed :is(.sb-branch-value,.sb-branch-chev){display:none}
+body.smyl-sidebar-collapsed .sb-branch-field{justify-content:center;padding:0}
+/* Cabecera: solo el logo de smyl; el cuadro con la «S» queda únicamente con el menú colapsado. */
+body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .sb-logo::before{display:none}
 .sb-logo{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:8px}
 .sb-logo-icon{display:flex;align-items:center;flex-shrink:0}
 .sb-logo h1{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.3px}
@@ -120,7 +135,7 @@ body.branch-scope-all .sb-branch select{border-color:#F59E0B;box-shadow:0 0 0 1p
 
 .sb-user{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer;transition:background-color 150ms ease;outline:none}
 .sb-user:hover{background:rgba(255,255,255,.04)}
-.sb-user:focus-visible{box-shadow:inset 0 0 0 2px rgba(74,155,211,.45)}
+.sb-user:focus-visible{box-shadow:inset 0 0 0 2px rgba(40, 112, 245,.45)}
 .sb-avatar{width:32px;height:32px;background:var(--gradient-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0}
 .sb-user-row{display:flex;align-items:center;gap:9px}
 .sb-user-info{flex:1;min-width:0}
@@ -141,11 +156,11 @@ body.branch-scope-all .sb-branch select{border-color:#F59E0B;box-shadow:0 0 0 1p
 .nav-items{flex:1;padding:6px 8px;overflow-y:auto}
 .nav-item{display:flex;align-items:center;gap:10px;padding:0 11px;height:38px;border-radius:10px;cursor:pointer;color:rgba(255,255,255,.66);font-size:13px;font-weight:500;letter-spacing:.1px;transition:background-color 150ms ease,color 150ms ease,box-shadow 150ms ease;margin-bottom:2px;border:1px solid transparent;outline:none}
 .nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
-.nav-item:focus-visible{box-shadow:0 0 0 2px rgba(74,155,211,.45);color:#fff}
-/* Ítem activo — degradado IA (#27D7E7 → #7A4DFF), como pide la guía para
+.nav-item:focus-visible{box-shadow:0 0 0 2px rgba(40, 112, 245,.45);color:#fff}
+/* Ítem activo — degradado IA (#0f63ff → #7A4DFF), como pide la guía para
    el estado activo de navegación */
-.nav-item.activo{background:rgba(36,118,184,.2);border-color:rgba(74,155,211,.18);color:#fff;font-weight:600;box-shadow:inset 3px 0 0 var(--color-accent)}
-.nav-item.activo:focus-visible{box-shadow:inset 3px 0 0 var(--color-accent),0 0 0 2px rgba(74,155,211,.45)}
+.nav-item.activo{background:rgba(36,118,184,.2);border-color:rgba(40, 112, 245,.18);color:#fff;font-weight:600;box-shadow:inset 3px 0 0 var(--color-accent)}
+.nav-item.activo:focus-visible{box-shadow:inset 3px 0 0 var(--color-accent),0 0 0 2px rgba(40, 112, 245,.45)}
 .nav-item .ni-icon{width:16px;height:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:.7}
 .nav-item.activo .ni-icon{opacity:1}
 .nav-badge{margin-left:auto;background:var(--color-error);color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:99px;min-width:17px;text-align:center}
@@ -342,7 +357,7 @@ body.branch-scope-all .sb-branch select{border-color:#F59E0B;box-shadow:0 0 0 1p
 .slot-requirement{position:absolute;top:10px;left:10px;display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:99px;background:#fff;border:1px solid var(--color-border);font-size:9px;font-weight:700;letter-spacing:.55px;text-transform:uppercase;color:var(--color-text-secondary)}
 .slot-requirement.required{background:var(--color-primary-subtle);border-color:var(--color-primary-border);color:var(--color-primary)}
 .upload-slot img.slot-preview{order:-1;width:100%;height:88px;object-fit:cover;border-radius:9px;margin-bottom:10px;border:1px solid var(--color-border)}
-.upload-slot.tiene-img{border-color:#80C9C2;border-style:solid;background:var(--color-accent-subtle);justify-content:flex-start;padding-top:16px}
+.upload-slot.tiene-img{border-color:#78aad1;border-style:solid;background:var(--color-accent-subtle);justify-content:flex-start;padding-top:16px}
 .slot-check{position:absolute;top:10px;right:10px;width:24px;height:24px;background:var(--color-success);border-radius:50%;display:none;align-items:center;justify-content:center;font-size:11px;color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.9)}
 .upload-slot.tiene-img .slot-check{display:flex}
 
@@ -587,7 +602,7 @@ body.branch-scope-all .sb-branch select{border-color:#F59E0B;box-shadow:0 0 0 1p
 .ba-loading-txt,.ba-loading>div{position:relative;z-index:1}
 .ba-loading-txt{font-size:12px;color:var(--violeta);font-weight:500}
 /* Detalle en degradado para todo lo relacionado con IA */
-.fal-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;font-size:10px;font-weight:700;background:linear-gradient(135deg,rgba(39,215,231,.12),rgba(122,77,255,.12));color:#7A4DFF;border:1px solid rgba(122,77,255,.22);margin-bottom:12px}
+.fal-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;font-size:10px;font-weight:700;background:linear-gradient(135deg,rgba(15, 99, 255,.12),rgba(122,77,255,.12));color:#7A4DFF;border:1px solid rgba(122,77,255,.22);margin-bottom:12px}
 .btn-generar-ba{width:100%;padding:14px;background:linear-gradient(135deg,var(--violeta),var(--azul));color:#fff;border:none;border-radius:var(--radius-s);font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(124,58,237,.3);margin-bottom:16px}
 .btn-generar-ba:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,.4)}
 .btn-generar-ba:disabled{opacity:.5;cursor:not-allowed;transform:none}
@@ -854,7 +869,7 @@ html{overflow-x:hidden}
 /* clip (no hidden) en body: hidden lo vuelve contenedor de scroll y rompe el position:sticky del sidebar */
 body{overflow-x:clip}
 input,textarea,select{touch-action:manipulation;font-size:16px!important}
-.rep-header-card{background:linear-gradient(135deg,#12366F 0%,#194391 58%,#147F78 100%)!important;border:none!important;border-radius:12px!important;padding:22px 24px!important;margin-bottom:20px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;box-shadow:0 10px 30px rgba(16,34,57,.2)!important;position:relative;overflow:hidden}
+.rep-header-card{background:linear-gradient(135deg,#0d1e74 0%,#194391 58%,#1b32ca 100%)!important;border:none!important;border-radius:12px!important;padding:22px 24px!important;margin-bottom:20px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;box-shadow:0 10px 30px rgba(16,34,57,.2)!important;position:relative;overflow:hidden}
 .rep-header-card::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;background:rgba(255,255,255,.06);border-radius:50%;pointer-events:none}
 .rep-header-card::after{content:'';position:absolute;bottom:-30px;left:30%;width:100px;height:100px;background:rgba(255,255,255,.04);border-radius:50%;pointer-events:none}
 .rep-header-card>div:first-child{display:flex;flex-direction:column;gap:4px}
@@ -909,103 +924,143 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-panel.css?v=5">
 <script defer src="smyl-skeleton.js?v=1"></script>
 <script defer src="smyl-panel.js?v=7"></script>
-<link rel="stylesheet" href="smyl-clinic-admin.css?v=15">
-<script defer src="smyl-clinic-admin.js?v=19"></script>
+<link rel="stylesheet" href="smyl-clinic-admin.css?v=21">
+<script defer src="smyl-clinic-admin.js?v=27"></script>
 <script defer src="smyl-billing.js?v=1"></script>
 <link rel="stylesheet" href="smyl-professional-directory.css?v=13">
-<script defer src="smyl-professional-directory.js?v=13"></script>
-<link rel="stylesheet" href="smyl-schedule.css?v=34">
+<script defer src="smyl-professional-directory.js?v=14"></script>
+<link rel="stylesheet" href="smyl-schedule.css?v=37">
+<link rel="stylesheet" href="smyl-waitlist.css?v=1">
+<link rel="stylesheet" href="smyl-ai-scheduling.css?v=1">
 <link rel="stylesheet" href="smyl-google-calendar.css?v=2">
 <link rel="stylesheet" href="smyl-schedule-setup.css?v=2">
 <script defer src="smyl-schedule-grid.js?v=2"></script>
 <script defer src="smyl-schedule-slots.js?v=1"></script>
-<script defer src="smyl-schedule-board.js?v=2"></script>
-<script defer src="smyl-branch-scope.js?v=2"></script>
-<script defer src="smyl-schedule.js?v=46"></script>
+<script defer src="smyl-schedule-board.js?v=3"></script>
+<script defer src="smyl-branch-scope.js?v=4"></script>
+<link rel="stylesheet" href="smyl-select-menu.css?v=1">
+<script defer src="smyl-select-menu.js?v=1"></script>
+<script defer src="smyl-waitlist-core.js?v=2"></script>
+<script defer src="smyl-waitlist.js?v=2"></script>
+<script defer src="smyl-ai-scheduling.js?v=1"></script>
+<script defer src="smyl-schedule.js?v=59"></script>
 <script defer src="smyl-google-calendar.js?v=3"></script>
-<script defer src="smyl-schedule-message.js?v=4"></script>
+<script defer src="smyl-schedule-message.js?v=5"></script>
 <script defer src="smyl-schedule-setup.js?v=2"></script>
 <script defer src="smyl-reminders.js?v=4"></script>
-<link rel="stylesheet" href="smyl-templates.css?v=5">
-<script defer src="smyl-template-catalog.js?v=5"></script>
-<script defer src="smyl-templates.js?v=6"></script>
+<link rel="stylesheet" href="smyl-templates.css?v=6">
+<script defer src="smyl-template-catalog.js?v=7"></script>
+<script defer src="smyl-templates.js?v=7"></script>
 <link rel="stylesheet" href="smyl-messaging.css?v=1">
 <script defer src="smyl-messaging.js?v=1"></script>
-<link rel="stylesheet" href="smyl-service-catalog.css?v=2">
+<link rel="stylesheet" href="smyl-service-catalog.css?v=6">
 <link rel="stylesheet" href="smyl-service-catalog-stage1.css?v=4">
-<script defer src="smyl-service-catalog-model.js?v=1"></script>
-<script defer src="smyl-service-catalog.js?v=9"></script>
-<link rel="stylesheet" href="smyl-inventory.css?v=13">
-<script defer src="smyl-inventory.js?v=20"></script>
-<link rel="stylesheet" href="smyl-finance.css?v=42">
+<script defer src="smyl-service-catalog-model.js?v=4"></script>
+<script defer src="smyl-service-catalog.js?v=16"></script>
+<link rel="stylesheet" href="smyl-inventory.css?v=15">
+<script defer src="smyl-inventory-routing.js?v=1"></script>
+<script defer src="smyl-inventory-procurement.js?v=2"></script>
+<script defer src="smyl-inventory.js?v=22"></script>
+<link rel="stylesheet" href="smyl-finance.css?v=54">
 <script defer src="smyl-fiscal-rules.js?v=2"></script>
-<script defer src="smyl-fiscal-capture.js?v=2"></script>
-<script defer src="smyl-finance.js?v=58"></script>
+<script defer src="smyl-fiscal-capture.js?v=4"></script>
+<script defer src="smyl-xlsx.js?v=1"></script>
+<script defer src="smyl-finance.js?v=73"></script>
+<link rel="stylesheet" href="smyl-online-pay-setup.css?v=2">
+<script defer src="smyl-online-pay-setup.js?v=3"></script>
 <link rel="stylesheet" href="smyl-reports.css?v=6">
 <script defer src="smyl-reports.js?v=4"></script>
 <link rel="stylesheet" href="smyl-readiness.css?v=2">
 <script defer src="smyl-readiness.js?v=1"></script>
 <link rel="stylesheet" href="smyl-storage.css?v=1">
 <script defer src="smyl-storage.js?v=1"></script>
-<link rel="stylesheet" href="smyl-cloud.css?v=3">
-<script defer src="smyl-cloud.js?v=4"></script>
+<link rel="stylesheet" href="smyl-compliance.css?v=1">
+<script defer src="smyl-compliance-model.js?v=1"></script>
+<script defer src="smyl-compliance.js?v=1"></script>
+<link rel="stylesheet" href="smyl-privacy-rights.css?v=2">
+<script defer src="smyl-privacy-rights.js?v=3"></script>
+<script defer src="smyl-privacy-dispatch.js?v=1"></script>
+<link rel="stylesheet" href="smyl-notice-settings.css?v=1">
+<script defer src="smyl-notice-settings.js?v=1"></script>
+<link rel="stylesheet" href="smyl-appointment-notice.css?v=2">
+<script defer src="smyl-appointment-notice.js?v=3"></script>
+<link rel="stylesheet" href="smyl-cloud.css?v=4">
+<script defer src="smyl-cloud.js?v=5"></script>
 <link rel="stylesheet" href="smyl-connections.css?v=21">
-<script defer src="smyl-connections.js?v=28"></script>
+<link rel="stylesheet" href="smyl-media-replies.css?v=1">
+<script defer src="smyl-media-replies.js?v=1"></script>
+<script defer src="smyl-connections.js?v=28&media=1"></script>
 <link rel="stylesheet" href="smyl-lana-handoff.css?v=2">
 <script defer src="smyl-lana-handoff.js?v=7"></script>
 <link rel="stylesheet" href="smyl-lana-attention.css?v=1">
 <script defer src="smyl-lana-attention.js?v=5"></script>
-<link rel="stylesheet" href="smyl-daily-home.css?v=16">
-<link rel="stylesheet" href="smyl-consultorio.css?v=6">
-<script defer src="smyl-daily-home.js?v=19"></script>
+<link rel="stylesheet" href="smyl-daily-home.css?v=17">
+<link rel="stylesheet" href="smyl-consultorio.css?v=9">
+<link rel="stylesheet" href="smyl-clinical-tools.css?v=1">
+<script defer src="smyl-daily-home.js?v=21"></script>
 <script defer src="smyl-patient-quick.js?v=1"></script>
-<script defer src="smyl-visit-model.js?v=5"></script>
-<script defer src="smyl-privacy-notice.js?v=1"></script>
+<script defer src="smyl-visit-model.js?v=7"></script>
+<script defer src="smyl-privacy-notice.js?v=3"></script>
 <script defer src="smyl-history-interview.js?v=1"></script>
-<script defer src="smyl-consultorio.js?v=8"></script>
-<link rel="stylesheet" href="smyl-clinic-setup.css?v=4">
-<script defer src="smyl-clinic-setup.js?v=6"></script>
-<link rel="stylesheet" href="smyl-settings-hub.css?v=5">
-<script defer src="smyl-settings-hub.js?v=11"></script>
+<script defer src="smyl-clinical-tools.js?v=2"></script>
+<script defer src="smyl-consultorio.js?v=14"></script>
+<link rel="stylesheet" href="smyl-clinic-setup.css?v=5">
+<script defer src="smyl-clinic-setup.js?v=8"></script>
+<link rel="stylesheet" href="smyl-settings-hub.css?v=6">
+<script defer src="smyl-settings-hub.js?v=18"></script>
 <link rel="stylesheet" href="smyl-task-center.css?v=1">
 <script defer src="smyl-task-center.js?v=9"></script>
 <link rel="stylesheet" href="smyl-resilience.css?v=1">
 <script defer src="smyl-resilience.js?v=1"></script>
 <link rel="stylesheet" href="smyl-design-system-v2.css?v=2">
-<link rel="stylesheet" href="smyl-inbox.css?v=62">
+<link rel="stylesheet" href="smyl-inbox.css?v=79">
+<link rel="stylesheet" href="smyl-privacy-inbox.css?v=1">
 <link rel="stylesheet" href="smyl-chat-media-viewer.css?v=1">
+<script defer src="smyl-schedule-suggest.js?v=1"></script>
+<script defer src="smyl-visit-message.js?v=1"></script>
 <script defer src="smyl-inbox-calendar.js?v=4"></script>
-<script defer src="smyl-inbox-ficha.js?v=11"></script>
+<script defer src="smyl-inbox-ficha.js?v=12"></script>
 <script defer src="smyl-chat-pdf.js?v=1"></script>
 <script defer src="smyl-chat-media-viewer.js?v=1"></script>
-<script defer src="smyl-inbox.js?v=73"></script>
-<link rel="stylesheet" href="smyl-navigation.css?v=11">
-<script defer src="smyl-navigation.js?v=28"></script>
+<script defer src="smyl-privacy-inbox.js?v=2"></script>
+<script defer src="smyl-inbox.js?v=95&media=1"></script>
+<link rel="stylesheet" href="smyl-navigation.css?v=12">
+<script defer src="smyl-navigation.js?v=33"></script>
 <link rel="stylesheet" href="smyl-command-menu.css?v=3">
 <script defer src="smyl-command-menu.js?v=5"></script>
-<link rel="stylesheet" href="smyl-clinic.css?v=12">
+<link rel="stylesheet" href="smyl-clinic.css?v=13">
 <script defer src="smyl-clinical-model.js?v=3"></script>
 <script defer src="smyl-treatment-plan-model.js?v=1"></script>
-<script defer src="smyl-treatment-plan-client.js?v=1"></script>
-<script defer src="smyl-clinic.js?v=25"></script>
-<link rel="stylesheet" href="smyl-patient-360.css?v=20">
+<script defer src="smyl-treatment-plan-client.js?v=2"></script>
+<script defer src="smyl-clinic.js?v=27"></script>
+<link rel="stylesheet" href="smyl-patient-360.css?v=23">
+<link rel="stylesheet" href="smyl-patient-privacy-panel.css?v=4">
 <link rel="stylesheet" href="smyl-mila-interview.css?v=5">
 <script defer src="smyl-history-model.js?v=3"></script>
 <script defer src="smyl-history-read.js?v=4"></script>
-<script defer src="smyl-patient-360.js?v=32"></script>
+<script defer src="smyl-patient-privacy-panel.js?v=5"></script>
+<link rel="stylesheet" href="smyl-informed-consent.css?v=1">
+<script defer src="smyl-informed-consent.js?v=1"></script>
+<script defer src="smyl-clinical-background.js?v=1"></script>
+<script defer src="smyl-procedure-safety.js?v=2"></script>
+<script defer src="smyl-patient-360.js?v=40"></script>
 <script defer src="vendor/qrcode-generator-1.4.4.js"></script>
-<script defer src="smyl-mila-interview.js?v=6"></script>
+<script defer src="smyl-mila-interview.js?v=7"></script>
 <link rel="stylesheet" href="smyl-patient-record-stage2.css?v=2">
 <script defer src="smyl-patient-record-stage2.js?v=2"></script>
-<link rel="stylesheet" href="smyl-proposals.css?v=15">
-<script defer src="smyl-proposal-model.js?v=2"></script>
-<script defer src="smyl-proposal-print.js?v=6"></script>
-<script defer src="smyl-proposals.js?v=20"></script>
+<link rel="stylesheet" href="smyl-proposals.css?v=16">
+<link rel="stylesheet" href="smyl-prescription.css?v=1">
+<script defer src="smyl-proposal-model.js?v=4"></script>
+<script defer src="smyl-proposal-print.js?v=7"></script>
+<script defer src="smyl-prescription-model.js?v=1"></script>
+<script defer src="smyl-prescription-print.js?v=1"></script>
+<script defer src="smyl-prescriptions.js?v=1"></script>
+<script defer src="smyl-proposals.js?v=27"></script>
 <link rel="stylesheet" href="smyl-treatment-quote-stage3.css?v=3">
 <script defer src="smyl-treatment-quote-stage3.js?v=1"></script>
-<link rel="stylesheet" href="smyl-patient-cases.css?v=3">
+<link rel="stylesheet" href="smyl-patient-cases.css?v=4">
 <script defer src="smyl-case-model.js?v=2"></script>
-<script defer src="smyl-case-client.js?v=2"></script>
+<script defer src="smyl-case-client.js?v=3"></script>
 <link rel="stylesheet" href="my-smyl.css?v=1">
 <link rel="stylesheet" href="my-smyl-review.css?v=1">
 <script defer src="my-smyl.js?v=4"></script>
@@ -1016,7 +1071,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="my-smyl-document.js?v=1"></script>
 <script defer src="smyl-gmail.js?v=2"></script>
 <script defer src="my-smyl-portal.js?v=5"></script>
-<script defer src="smyl-patient-cases.js?v=12"></script>
+<script defer src="smyl-patient-cases.js?v=14"></script>
 <link rel="stylesheet" href="smyl-dental-record.css?v=6">
 <link rel="stylesheet" href="smyl-dental-dictation.css?v=2">
 <link rel="stylesheet" href="smyl-dental-finding-editor.css?v=2">
@@ -1026,19 +1081,20 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-radiograph-report.css?v=1">
 <link rel="stylesheet" href="smyl-radiograph-longitudinal.css?v=1">
 <link rel="stylesheet" href="smyl-radiograph-validation.css?v=1">
-<script defer src="smyl-dental-model.js?v=3"></script>
+<script defer src="smyl-dental-model.js?v=4"></script>
+<script defer src="smyl-periodontal-context.js?v=3"></script>
 <script defer src="smyl-dental-dictation.js?v=2"></script>
 <script defer src="smyl-radiograph-review-model.js?v=9"></script>
 <script defer src="smyl-radiograph-review-store.js?v=2"></script>
-<script defer src="smyl-radiograph-analysis-client.js?v=13"></script>
-<script defer src="smyl-radiograph-review.js?v=33"></script>
+<script defer src="smyl-radiograph-analysis-client.js?v=14"></script>
+<script defer src="smyl-radiograph-review.js?v=34"></script>
 <script defer src="smyl-radiograph-contracts.js?v=2"></script>
 <script defer src="smyl-radiograph-review-model-v2.js?v=1"></script>
 <script defer src="smyl-radiograph-report.js?v=3"></script>
 <script defer src="smyl-radiograph-longitudinal.js?v=2"></script>
 <script defer src="smyl-radiograph-validation.js?v=3"></script>
 <script defer src="smyl-radiograph-review-v2.js?v=6"></script>
-<script defer src="smyl-dental-record.js?v=33"></script>
+<script defer src="smyl-dental-record.js?v=35"></script>
 <link rel="stylesheet" href="smyl-photo-review.css?v=3">
 <script defer src="smyl-photo-findings.js?v=1"></script>
 <script defer src="smyl-analysis-workflow.js?v=2"></script>
@@ -1051,7 +1107,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-photo-analysis-client.js?v=3"></script>
 <script defer src="smyl-photo-analysis.js?v=6"></script>
 <link rel="stylesheet" href="smyl-evidence-center.css?v=8">
-<link rel="stylesheet" href="smyl-evidence-center-integration.css?v=6">
+<link rel="stylesheet" href="smyl-evidence-center-integration.css?v=7">
 <link rel="stylesheet" href="smyl-evidence-workspace.css?v=1">
 <script defer src="smyl-evidence-model.js?v=2"></script>
 <script defer src="smyl-evidence-workspace.js?v=1"></script>
@@ -1059,21 +1115,34 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-evidence-center.js?v=12"></script>
 <script defer src="smyl-clinical-photo-service.js?v=2"></script>
 <link rel="stylesheet" href="smyl-clinical-photo-review.css?v=2">
-<link rel="stylesheet" href="smyl-case-workspace.css?v=31">
-<script defer src="smyl-case-workspace.js?v=44"></script>
-<script defer src="smyl-clinical-photo-review.js?v=4"></script>
+<link rel="stylesheet" href="smyl-case-workspace.css?v=36">
+<link rel="stylesheet" href="smyl-periodontal-graph.css?v=2">
+<link rel="stylesheet" href="smyl-periodontal-review.css?v=3">
+<link rel="stylesheet" href="smyl-periodontal-guided.css?v=1">
+<link rel="stylesheet" href="smyl-periodontal-mila.css?v=1">
+<script defer src="smyl-periodontal-mila.js?v=1"></script>
+<script defer src="smyl-periodontal-graph.js?v=3"></script>
+<script defer src="smyl-periodontal-guided-model.js?v=1"></script>
+<script defer src="smyl-periodontal-guided.js?v=1"></script>
+<script defer src="smyl-periodontal-review.js?v=3"></script>
+<script defer src="smyl-guided-photos.js?v=1"></script>
+<script defer src="smyl-treatments.js?v=3"></script>
+<script defer src="smyl-case-workspace.js?v=51"></script>
+<script defer src="smyl-clinical-photo-review.js?v=5"></script>
 <script defer src="smyl-evidence-center-integration.js?v=12"></script>
-<link rel="stylesheet" href="smyl-professional-v3.css?v=11">
-<script defer src="smyl-professional-v3.js?v=12"></script>
-<link rel="stylesheet" href="smyl-dialog-system.css?v=2">
+<link rel="stylesheet" href="smyl-professional-v3.css?v=13">
+<script defer src="smyl-professional-v3.js?v=15"></script>
+<link rel="stylesheet" href="smyl-dialog-system.css?v=3">
 <script defer src="smyl-dialog-system.js?v=4"></script>
+<script defer src="smyl-modal-guard.js?v=1"></script>
 <!-- SMYL UI v3 se carga al final: gobierna el shell y los componentes compartidos
      sin depender del orden histórico de cada módulo. -->
-<link rel="stylesheet" href="smyl-ui-template-v3.css?v=8">
+<link rel="stylesheet" href="smyl-ui-template-v3.css?v=10">
 <!-- La capa del dashboard se carga después de la plantilla global para conservar su jerarquía propia. -->
-<link rel="stylesheet" href="smyl-dashboard-v2.css?v=1">
-<link rel="stylesheet" href="smyl-patients-directory.css?v=2">
+<link rel="stylesheet" href="smyl-dashboard-v2.css?v=2">
+<link rel="stylesheet" href="smyl-patients-directory.css?v=3">
 <link rel="stylesheet" href="smyl-ui-datta-v4.css?v=2">
+<link rel="stylesheet" href="smyl-brand.css?v=1">
 </head>
 <body class="smyl-professional smyl-management-v3 smyl-ui-governed">
 <script>/* Estado del menú lateral y del tema aplicados antes del primer pintado, para que el panel no «salte» al terminar de cargar. */try{if(window.localStorage.getItem("smyl_sidebar_collapsed")==="1")document.body.classList.add("smyl-sidebar-collapsed")}catch(e){}</script>
@@ -1114,13 +1183,13 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <div id="ag-reg-ok" style="display:none;background:var(--color-success-subtle);border:1px solid #86EFAC;color:#15803D;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px"></div>
       <div class="fg" style="margin-bottom:13px"><label>Nombre completo</label><input type="text" id="ag-r-nombre" placeholder="Dr. / Dra. ..."></div>
       <div class="fg" style="margin-bottom:13px"><label for="ag-r-email">Correo electrónico</label><input type="email" id="ag-r-email" placeholder="tu@clinica.com" autocomplete="email"></div>
-      <div class="fg" style="margin-bottom:13px"><label>Contraseña</label><input type="password" id="ag-r-pass" placeholder="Mínimo 6 caracteres"></div>
+      <div class="fg" style="margin-bottom:13px"><label>Contraseña</label><input type="password" id="ag-r-pass" placeholder="Mínimo 10 caracteres, con letras y números"></div>
       <div class="fg" style="margin-bottom:13px"><label>Código de acceso</label><input type="text" id="ag-r-codigo" placeholder="Del curso o promocional" style="text-transform:uppercase"></div>
       <div class="fg" style="margin-bottom:16px"><label>Plan</label>
         <select id="ag-r-plan">
-          <option value="esencial:15:399">Esencial — $399/mes · 15 diagnósticos</option>
-          <option value="profesional:40:799" selected>Profesional — $799/mes · 40 diagnósticos</option>
-          <option value="premium:100:1499">Premium — $1,499/mes · 100 diagnósticos</option>
+          <option value="esencial:15:399">Esencial — $399/mes · 15 análisis con IA</option>
+          <option value="profesional:40:799" selected>Profesional — $799/mes · 40 análisis con IA</option>
+          <option value="premium:100:1499">Premium — $1,499/mes · 100 análisis con IA</option>
         </select>
       </div>
       <button class="btn btn-primary btn-full ag-submit" id="ag-btn-registro" onclick="hacerRegistroAppGate()" style="width:100%;justify-content:center;margin-top:0">Crear mi cuenta</button>
@@ -1157,7 +1226,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
       <div class="plan-chip plan-profesional" id="sb-plan-chip">✦ Profesional</div>
       <div class="uso-wrap">
         <div class="uso-bar"><div class="uso-fill" id="uso-fill" style="width:0%"></div></div>
-        <div class="uso-txt" id="uso-txt">0 / 40 diagnósticos</div>
+        <div class="uso-txt" id="uso-txt">0 / 40 análisis con IA</div>
       </div>
     </div>
     <div class="nav-items">
@@ -1284,7 +1353,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
             </div>
             <div class="stat-num" id="st-disp">-</div>
-            <div class="stat-lbl">Diagnósticos disponibles</div>
+            <div class="stat-lbl">Análisis con IA disponibles</div>
           </div>
           <div class="stat-card stat-azul">
             <div class="stat-icon">
@@ -1321,7 +1390,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
               <div id="dash-ultimos-casos">
                 <div class="dashboard-empty">
                   <div class="dashboard-empty-visual" aria-hidden="true">
-                    <svg width="74" height="74" viewBox="0 0 80 80" fill="none"><rect x="15" y="18" width="50" height="44" rx="12" fill="white" stroke="currentColor" stroke-width="2"/><path d="M26 43c3.8 6.2 8.4 9.2 14 9.2 5.7 0 10.3-3 14-9.2" stroke="#0F766E" stroke-width="3" stroke-linecap="round"/><circle cx="31" cy="34" r="2.5" fill="currentColor"/><circle cx="49" cy="34" r="2.5" fill="currentColor"/><path d="M25 18v-3M55 18v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    <svg width="74" height="74" viewBox="0 0 80 80" fill="none"><rect x="15" y="18" width="50" height="44" rx="12" fill="white" stroke="currentColor" stroke-width="2"/><path d="M26 43c3.8 6.2 8.4 9.2 14 9.2 5.7 0 10.3-3 14-9.2" stroke="#142bc3" stroke-width="3" stroke-linecap="round"/><circle cx="31" cy="34" r="2.5" fill="currentColor"/><circle cx="49" cy="34" r="2.5" fill="currentColor"/><path d="M25 18v-3M55 18v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                   </div>
                   <div>
                     <div class="dashboard-empty-kicker">Tu primer caso</div>
@@ -1358,7 +1427,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
             <div class="card">
               <div class="card-title">Progreso del mes</div>
               <div id="dash-progreso">
-                <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:8px">— de 40 diagnósticos usados</div>
+                <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:8px">— de 40 análisis con IA usados</div>
                 <div style="background:var(--color-border);border-radius:99px;height:6px;overflow:hidden">
                   <div style="background:var(--color-primary);height:100%;border-radius:99px;width:0%;transition:width .4s" id="dash-prog-bar"></div>
                 </div>
@@ -1482,7 +1551,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 
         <!-- PASO 1: Documentación -->
         <div id="paso-1">
-          <div class="alerta alerta-warn" id="alerta-limite">⚠️ Alcanzaste tu límite de diagnósticos este mes.</div>
+          <div class="alerta alerta-warn" id="alerta-limite">⚠️ Alcanzaste tu límite de análisis con IA este mes.</div>
           <div class="card">
             <div class="card-title">📋 Datos del Caso</div>
             <div class="form-grid">
@@ -1508,7 +1577,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           </div>
           <div class="card">
             <div class="card-title">📸 Fotografías Clínicas</div>
-            <p style="font-size:12px;color:var(--texto3);margin-bottom:14px">Sube hasta 4 imágenes. Más fotos = diagnóstico más preciso.</p>
+            <p style="font-size:12px;color:var(--texto3);margin-bottom:14px">Sube hasta 4 imágenes. Más fotos = propuesta más completa.</p>
             <div class="upload-grid">
               <div class="upload-slot" id="slot-0" ondragover="dragSobre(event,0)" ondragleave="dragFuera(0)" ondrop="dropImg(event,0)">
                 <input type="file" accept="image/*" onchange="cargarImg(this,0)">
@@ -1588,7 +1657,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
           <div class="loading-ia" id="loading-ia">
             <div class="sk-region" role="status" aria-live="polite" data-skeleton="kpis" style="max-width:420px"><span class="sk-sr">Analizando caso clínico</span><div aria-hidden="true"><div class="sk-kpis"><div class="sk-kpi"><span class="sk sk-line w-40"></span><span class="sk sk-line is-xl w-60"></span></div><div class="sk-kpi"><span class="sk sk-line w-40"></span><span class="sk sk-line is-xl w-60"></span></div><div class="sk-kpi"><span class="sk sk-line w-40"></span><span class="sk sk-line is-xl w-60"></span></div></div></div></div>
             <div style="font-size:15px;font-weight:600;color:var(--texto)">Analizando caso clínico...</div>
-            <div style="font-size:12px;color:var(--texto3)">La IA está evaluando imágenes y generando el diagnóstico</div>
+            <div style="font-size:12px;color:var(--texto3)">La IA está preparando la propuesta estética orientativa</div>
             <div class="ia-progress">
               <div class="ia-step-loading" id="ia-s1">⏳ Procesando fotografías...</div>
               <div class="ia-step-loading" id="ia-s2">⏳ Análisis facial y dental...</div>
@@ -1607,7 +1676,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
               </div>
             </div>
             <div class="card">
-              <div class="card-title">🔬 Diagnóstico Clínico</div>
+              <div class="card-title">🔬 Propuesta estética orientativa</div>
               <div class="rep-grid">
                 <div class="rep-sec"><h4>🔍 Lo que encontramos</h4><div id="r-hallazgos"></div></div>
                 <div class="rep-sec"><h4>🦷 Dientes afectados</h4><div id="r-dientes"></div></div>
@@ -1979,7 +2048,10 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
         <div class="card">
           <div class="card-title">📲 Link para pacientes potenciales</div>
           <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Compártelo en redes o WhatsApp: cualquiera lo abre, se toma su propia foto desde su casa y ve su simulación con tu marca y tus precios reales -- sin necesitar cuenta ni que tú estés presente. Cuando dejan sus datos al final, te llega como un nuevo caso marcado como prospecto.</p>
-          <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="copiarLinkProspecto()" id="btn-link-prospecto">📋 Copiar link para pacientes</button>
+          <!-- Pausado: simulacion*.html rechaza el modo prospecto (asegurarAutorizacionIA) hasta reforzar su acceso. Mientras, el enlace
+               llevaría al paciente a una pantalla que termina en error, así que no se ofrece. -->
+          <p style="font-size:12px;margin:0 0 10px;padding:8px 10px;border-radius:8px;background:#fff5e6;color:#7a4a0e">⏸ Pausado por ahora mientras reforzamos la seguridad del acceso público. Tus pacientes pueden simularse contigo en consulta.</p>
+          <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="copiarLinkProspecto()" id="btn-link-prospecto" disabled aria-disabled="true">📋 Copiar link para pacientes</button>
         </div>
 
         <!-- Branding -->
@@ -2068,15 +2140,15 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
         <!-- Configuración interna: se conserva en DOM para compatibilidad, no se expone al dentista. -->
         <div class="card advanced-ai-settings" aria-hidden="true" hidden>
           <div class="card-title">🤖 Instrucciones para la IA</div>
-          <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Personaliza cómo la IA genera el diagnóstico y la simulación para tus pacientes.</p>
+          <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:12px">Personaliza el tono con el que la IA presenta la propuesta y la simulación. SMYL siempre añade sus reglas: no diagnostica ni promete resultados.</p>
 
           <div class="fg">
             <label>Instrucción para Gemini (simulación visual)</label>
             <textarea id="sc-gemini-prompt" rows="3" placeholder="Ej. Genera carillas de porcelana e.max ultra-realistas. Mantén exactamente la misma persona, solo cambia los dientes. Resultado natural, no exagerado..."></textarea>
           </div>
           <div class="fg">
-            <label>Instrucción para Claude (diagnóstico y cotización)</label>
-            <textarea id="sc-claude-prompt" rows="3" placeholder="Ej. Eres un experto en estética dental con 15 años de experiencia en carillas. Genera un diagnóstico detallado pero en lenguaje accesible para el paciente..."></textarea>
+            <label>Tono de la propuesta (Claude)</label>
+            <textarea id="sc-claude-prompt" rows="3" placeholder="Ej. Eres un experto en estética dental con 15 años de experiencia en carillas. Explica la propuesta estética con calidez y en lenguaje accesible para el paciente..."></textarea>
           </div>
           <div class="fg">
             <label>Materiales que usas (para la cotización)</label>
@@ -2103,6 +2175,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
             </div>
             <button class="btn btn-primary" id="mc-guardar" style="margin-top:12px" onclick="guardarPerfil()">💾 Guardar mis datos</button>
           </div>
+          <div class="card" id="mc-mfa"></div>
         </div>
       </div>
 
@@ -2386,7 +2459,16 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 </div>
 
 <!-- ═══ COPYRIGHT ═══ -->
-<div id="app-copyright">© 2025 Dr. Hernán Partida Islas · Propiedad Intelectual</div>
+<div id="app-copyright">
+  <span class="app-copyright-legal">© 2026 Dr. Hernán Partida Islas · Propiedad Intelectual</span>
+  <a class="app-meta-provider" href="https://www.get-lana.com" target="_blank" rel="noopener noreferrer" aria-label="Mensajería con LANA, proveedor de tecnología de Meta. Abrir sitio de LANA">
+    <svg class="app-meta-provider-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M6.915 4.03c-1.968 0-3.683 1.28-4.871 3.113C.704 9.208 0 11.883 0 14.449c0 .706.07 1.369.21 1.973.064.28.153.568.265.86.107.28.231.534.371.761.696 1.159 1.818 1.927 3.593 1.927 1.497 0 2.633-.671 3.965-2.444.76-1.012 1.144-1.626 2.663-4.32l.756-1.339.186-.325.183.3 2.152 3.595c.724 1.21 1.665 2.556 2.47 3.314 1.046.987 1.992 1.22 3.06 1.22 1.075 0 1.876-.355 2.455-.843.33-.278.6-.602.81-.973.542-.939.861-2.127.861-3.745 0-2.72-.681-5.357-2.084-7.45-1.282-1.912-2.957-2.93-4.716-2.93-1.047 0-2.088.467-3.053 1.308-.652.57-1.257 1.29-1.82 2.05-.69-.875-1.335-1.547-1.958-2.056-1.182-.966-2.315-1.303-3.454-1.303Zm10.16 2.053c1.147 0 2.188.758 2.992 1.999 1.132 1.748 1.647 4.195 1.647 6.4 0 1.548-.368 2.9-1.839 2.9-.58 0-1.027-.23-1.664-1.004-.496-.601-1.343-1.878-2.832-4.358l-.617-1.028a45 45 0 0 0-1.255-1.98l.211-.327c1.12-1.667 2.118-2.602 3.358-2.602Zm-10.201.553c1.265 0 2.058.791 2.675 1.446.307.327.737.871 1.234 1.579l-1.02 1.566c-.757 1.163-1.882 3.017-2.837 4.338-1.191 1.649-1.81 1.817-2.486 1.817-.524 0-1.038-.237-1.383-.794-.263-.426-.464-1.13-.464-2.046 0-2.221.63-4.535 1.66-6.088.454-.687.964-1.226 1.533-1.533a2.264 2.264 0 0 1 1.088-.285Z"/>
+    </svg>
+    <span>Mensajería con LANA · Proveedor de tecnología de Meta</span>
+    <span class="app-meta-provider-arrow" aria-hidden="true">↗</span>
+  </a>
+</div>
 <script>
 // El pie de derechos vive al final de .contenido (siempre el último hijo, aunque cada módulo agregue su pantalla después).
 (function(){
@@ -2427,7 +2509,7 @@ var SLOT_ICONS = [
   // Perfil lateral
   '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2476B8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3c1.8 1 3 2.8 3 5 0 2-.9 3.8-2.3 5"/><path d="M9 3C7.2 4 6 5.8 6 8c0 2 .9 3.8 2.3 5"/><path d="M9 3h6"/><path d="M8 13h8l-1 5H9l-1-5z"/><line x1="10" y1="18" x2="14" y2="18"/></svg>',
   // Intraoral frontal
-  '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="4.5" rx="1.5"/><rect x="2" y="12.5" width="20" height="4.5" rx="1.5"/><line x1="6" y1="7" x2="6" y2="11.5"/><line x1="10" y1="7" x2="10" y2="11.5"/><line x1="14" y1="7" x2="14" y2="11.5"/><line x1="18" y1="7" x2="18" y2="11.5"/><line x1="6" y1="12.5" x2="6" y2="17"/><line x1="10" y1="12.5" x2="10" y2="17"/><line x1="14" y1="12.5" x2="14" y2="17"/><line x1="18" y1="12.5" x2="18" y2="17"/></svg>',
+  '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#142bc3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="4.5" rx="1.5"/><rect x="2" y="12.5" width="20" height="4.5" rx="1.5"/><line x1="6" y1="7" x2="6" y2="11.5"/><line x1="10" y1="7" x2="10" y2="11.5"/><line x1="14" y1="7" x2="14" y2="11.5"/><line x1="18" y1="7" x2="18" y2="11.5"/><line x1="6" y1="12.5" x2="6" y2="17"/><line x1="10" y1="12.5" x2="10" y2="17"/><line x1="14" y1="12.5" x2="14" y2="17"/><line x1="18" y1="12.5" x2="18" y2="17"/></svg>',
   // Radiografía
   '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6E6E7C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="7" x2="17" y2="7"/><line x1="7" y1="10" x2="17" y2="10"/><path d="M7 14h2a1 1 0 0 1 1 1v1a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h2"/></svg>',
 ];
@@ -2469,8 +2551,8 @@ function aplicarIconosSVG() {
   // disparar el observer — un ciclo infinito que cuelga la pestaña.
   document.querySelectorAll('.card-title').forEach(function(el) {
     if (el.dataset.iconApplied) return;
-    if (el.textContent.includes('Diagnóstico Clínico') || el.textContent.includes('🔬')) {
-      el.innerHTML = SVG_LUPA + ' Diagnóstico Clínico';
+    if (el.textContent.includes('Diagnóstico Clínico') || el.textContent.includes('Propuesta estética orientativa') || el.textContent.includes('🔬')) {
+      el.innerHTML = SVG_LUPA + ' Propuesta estética orientativa';
       el.dataset.iconApplied = '1';
     }
   });
@@ -2543,7 +2625,7 @@ if (_diagTarget) _diagObs.observe(_diagTarget, {childList:true, subtree:true});
 // ══ SERVICE WORKER ══
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js?v=chat-media-1', { updateViaCache: 'none' }).then(function(reg) {
+    navigator.serviceWorker.register('sw.js?v=chat-control-icons-v1', { updateViaCache: 'none' }).then(function(reg) {
       console.log('[SMYL PWA] SW registered:', reg.scope);
       reg.update().catch(function() {});
     }).catch(function(err) {
@@ -2564,7 +2646,7 @@ if ('serviceWorker' in navigator) {
     aviso.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:9000;width:min(420px,calc(100% - 32px));box-sizing:border-box;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid #D7DDE5;border-radius:12px;box-shadow:0 8px 28px rgba(15,23,42,.16);padding:10px 12px;font:13px/1.4 system-ui,sans-serif;color:#1F2937';
     aviso.innerHTML = '<span style="flex:1;min-width:150px">Hay una versión nueva de SMYL.</span>' +
       '<button type="button" data-update-later style="border:0;background:none;color:#64748B;font:inherit;cursor:pointer;padding:6px 8px">Después</button>' +
-      '<button type="button" data-update-now style="border:0;background:#0F766E;color:#fff;font:inherit;font-weight:600;border-radius:8px;cursor:pointer;padding:7px 12px">Actualizar</button>';
+      '<button type="button" data-update-now style="border:0;background:#142bc3;color:#fff;font:inherit;font-weight:600;border-radius:8px;cursor:pointer;padding:7px 12px">Actualizar</button>';
     aviso.querySelector('[data-update-now]').addEventListener('click', smylApplyUpdate);
     aviso.querySelector('[data-update-later]').addEventListener('click', function () { aviso.remove(); });
     document.body.appendChild(aviso);
@@ -2596,7 +2678,7 @@ function smylToastError() {
       box = document.createElement('div');
       box.id = 'smyl-error-toast';
       box.setAttribute('role', 'status');
-      box.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:92vw;background:#102239;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 8px 28px rgba(16,34,57,.35);z-index:99999;font:14px/1.4 system-ui,sans-serif';
+      box.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:92vw;background:#0e153b;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 8px 28px rgba(16,34,57,.35);z-index:99999;font:14px/1.4 system-ui,sans-serif';
       document.body.appendChild(box);
     }
     box.textContent = 'Algo no salió como se esperaba. Ya registramos el detalle; si la pantalla no responde, recarga la página.';
@@ -2854,6 +2936,19 @@ function cerrarSesion() {
 // INICIO
 // ══════════════════════════════════════════
 async function continuarConUsuario(authUser) {
+  // Verificación en dos pasos: si la cuenta la tiene activa, la sesión no continúa sin el código.
+  if (window.SmylAuthGuard) {
+    var segundoPaso = false;
+    try { segundoPaso = await SmylAuthGuard.ensureSecondFactor(sb); } catch (e) { segundoPaso = false; }
+    if (!segundoPaso) {
+      try { await sb.auth.signOut(); } catch (e) {}
+      location.reload();
+      return;
+    }
+    // Expedientes clínicos: la sesión se cierra tras 30 minutos sin actividad.
+    SmylAuthGuard.startIdleLogout(function () { cerrarSesion(); });
+    SmylAuthGuard.renderCard(sb, document.getElementById('mc-mfa'));
+  }
   miUsuario = authUser;
   document.getElementById('auth-gate-overlay').style.display = 'none';
   var layoutEl = document.querySelector('.layout');
@@ -3271,7 +3366,8 @@ async function hacerRegistroAppGate() {
   var errEl = document.getElementById('ag-reg-err');
   errEl.style.display = 'none';
   if (!nombre || !email || !pass) { errEl.textContent = 'Completa todos los campos'; errEl.style.display = 'block'; return; }
-  if (pass.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres'; errEl.style.display = 'block'; return; }
+  var problemaPass = (window.SmylAuthGuard ? SmylAuthGuard.passwordProblem(pass) : (pass.length < 10 ? 'La contraseña debe tener al menos 10 caracteres.' : ''));
+  if (problemaPass) { errEl.textContent = problemaPass; errEl.style.display = 'block'; return; }
   if (codigo && codigo !== CODIGO_ACCESO_APP) { errEl.textContent = 'Código de acceso incorrecto'; errEl.style.display = 'block'; return; }
 
   var partes = planVal.split(':');
@@ -3378,7 +3474,8 @@ function mostrarNuevaPassword(authUser) {
     var p2 = document.getElementById('recovery-pass2').value;
     var errEl = document.getElementById('recovery-pass-err');
     errEl.style.display = 'none';
-    if (p1.length < 8) { errEl.textContent = 'Usa una contraseña de al menos 8 caracteres.'; errEl.style.display = 'block'; return; }
+    var problemaP1 = (window.SmylAuthGuard ? SmylAuthGuard.passwordProblem(p1) : (p1.length < 10 ? 'La contraseña debe tener al menos 10 caracteres.' : ''));
+    if (problemaP1) { errEl.textContent = problemaP1; errEl.style.display = 'block'; return; }
     if (p1 !== p2) { errEl.textContent = 'Las contraseñas no coinciden.'; errEl.style.display = 'block'; return; }
     var btn = document.getElementById('recovery-pass-btn');
     btn.disabled = true; btn.textContent = 'Guardando...';
@@ -3404,7 +3501,7 @@ function mostrarSetPasswordInvitado(authUser) {
     '<div style="background:var(--color-surface,#fff);border-radius:12px;padding:28px;max-width:380px;width:100%">' +
     '<div style="font-size:18px;font-weight:700;margin-bottom:6px">¡Bienvenido/a al equipo!</div>' +
     '<p style="font-size:13px;color:var(--texto3);margin-bottom:16px">Crea una contraseña para tu cuenta (' + smylEsc(authUser.email || '') + ') antes de continuar.</p>' +
-    '<input type="password" id="invite-pass1" placeholder="Contraseña (mínimo 6 caracteres)" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;margin-bottom:8px;box-sizing:border-box">' +
+    '<input type="password" id="invite-pass1" placeholder="Contraseña (mínimo 10 caracteres, con letras y números)" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;margin-bottom:8px;box-sizing:border-box">' +
     '<input type="password" id="invite-pass2" placeholder="Repite la contraseña" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;margin-bottom:8px;box-sizing:border-box">' +
     '<div id="invite-pass-err" style="display:none;color:#B91C1C;font-size:12px;margin-bottom:8px"></div>' +
     '<button id="invite-pass-btn" class="btn btn-primary" style="width:100%;justify-content:center">Guardar y entrar →</button>' +
@@ -3416,7 +3513,8 @@ function mostrarSetPasswordInvitado(authUser) {
     var p2 = document.getElementById('invite-pass2').value;
     var errEl = document.getElementById('invite-pass-err');
     errEl.style.display = 'none';
-    if (p1.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.'; errEl.style.display = 'block'; return; }
+    var problemaInv = (window.SmylAuthGuard ? SmylAuthGuard.passwordProblem(p1) : (p1.length < 10 ? 'La contraseña debe tener al menos 10 caracteres.' : ''));
+    if (problemaInv) { errEl.textContent = problemaInv; errEl.style.display = 'block'; return; }
     if (p1 !== p2) { errEl.textContent = 'Las contraseñas no coinciden.'; errEl.style.display = 'block'; return; }
     var btn = document.getElementById('invite-pass-btn');
     btn.disabled = true; btn.textContent = 'Guardando...';
@@ -3450,7 +3548,7 @@ function renderSidebar() {
 
   var pct = Math.min(100, Math.round(usado / limite * 100));
   document.getElementById('uso-fill').style.width = pct + '%';
-  document.getElementById('uso-txt').textContent = usado + ' / ' + limite + ' diagnósticos';
+  document.getElementById('uso-txt').textContent = usado + ' / ' + limite + ' análisis con IA';
 }
 
 // ══════════════════════════════════════════
@@ -3691,6 +3789,7 @@ async function verPaciente(id) {
   var edad = p.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) + ' años' : '-';
   document.getElementById('det-info-rapida').textContent = edad + (p.email ? ' · ' + p.email : '') + (p.telefono ? ' · ' + p.telefono : '');
   document.getElementById('det-info-grid').innerHTML = [
+    ...(p.record_number ? [{lbl:'Expediente', val:'EXP-' + p.record_number}] : []),
     {lbl:'Email', val: p.email||'-'},
     {lbl:'Teléfono', val: p.telefono||'-'},
     {lbl:'Edad', val: edad},
@@ -3882,7 +3981,7 @@ async function irAPaso2() {
   var usadoActual = tenantData.diagnosticos_usados || 0;
   var limiteActual = tenantData.limite_diagnosticos || 40;
   if (usadoActual >= limiteActual) {
-    alert('Ya usaste tus ' + limiteActual + ' diagnósticos de este mes (plan ' + (PLANES[tenantData.plan] ? PLANES[tenantData.plan].label : tenantData.plan) + ').\n\nSube de plan en "Mi Cuenta" para seguir generando diagnósticos este mes.');
+    alert('Ya usaste tus ' + limiteActual + ' análisis con IA de este mes (plan ' + (PLANES[tenantData.plan] ? PLANES[tenantData.plan].label : tenantData.plan) + ').\n\nSube de plan en "Mi Cuenta" para seguir generando diagnósticos este mes.');
     return;
   }
 
@@ -4301,7 +4400,7 @@ async function ejecutarAnalisisIA() {
 }
 
 function mostrarAnalisis(r, nombre) {
-  document.getElementById('r-nombre').textContent = 'Tu Diagnóstico — ' + nombre;
+  document.getElementById('r-nombre').textContent = 'Tu propuesta orientativa — ' + nombre;
   document.getElementById('r-fecha').textContent = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
   document.getElementById('r-score').textContent = (r.score||0) + '/10';
 
@@ -4943,7 +5042,7 @@ async function generarPDF() {
   // Diagnóstico
   var diagHTML = '';
   if (r.hallazgos || r.dientes || r.plan) {
-    diagHTML = '<div class="seccion"><div class="sec-titulo">🔬 Diagnóstico Clínico</div><div class="diag-grid">';
+    diagHTML = '<div class="seccion"><div class="sec-titulo">🔬 Propuesta estética orientativa</div><div class="diag-grid">';
     if (r.hallazgos && r.hallazgos.length) {
       diagHTML += '<div class="diag-col"><div class="diag-sub">Hallazgos</div>' + r.hallazgos.map(function(h) { return '<div class="diag-item warn">• ' + h + '</div>'; }).join('') + '</div>';
     }
@@ -5466,7 +5565,7 @@ function renderPlan() {
 
   var pct = Math.min(100, Math.round(usado / limite * 100));
   document.getElementById('mc-uso-detalle').innerHTML =
-    '<strong>' + usado + '</strong> de <strong>' + limite + '</strong> diagnósticos usados este mes<br>' +
+    '<strong>' + usado + '</strong> de <strong>' + limite + '</strong> análisis con IA usados este mes<br>' +
     '<div class="uso-bar" style="height:6px;margin:6px 0"><div class="uso-fill" style="width:' + pct + '%"></div></div>' +
     '<span style="font-size:11px;color:var(--texto3)">Renovación: ' + vence.toLocaleDateString('es-MX', {day:'numeric', month:'long', year:'numeric'}) + '</span>';
 }

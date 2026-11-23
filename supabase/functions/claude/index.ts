@@ -6,6 +6,7 @@ import {
   checkLimitPorIpProspecto,
 } from "../_shared/limits.ts";
 import { makeCors } from "../_shared/cors.ts";
+import { permisoIA, respuestaIAnegada } from "../_shared/privacy.ts";
 import { evaluarTope, inicioDiaUTC, inicioMesUTC, leerTopesRadiografia } from "../_shared/ai-quota.ts";
 import {
   RADIOGRAPH_ACTION,
@@ -284,6 +285,9 @@ async function loadClinicalPhotoSources(tenant: string, actor: string, studyIds:
     throw clinicalPhotoError("El paciente no está disponible para tu rol clínico.", 403, "patient_access_denied");
   }
 
+  const negada = respuestaIAnegada(await permisoIA(usageAdmin, tenant, patientId));
+  if (negada) throw clinicalPhotoError(negada.body.error, negada.status, negada.body.code);
+
   const { data: assets, error: assetError } = await usageAdmin.from("smyl_clinical_evidence_assets")
     .select("study_id,patient_file_id")
     .eq("tenant_id", tenant).eq("asset_role", "original").in("study_id", studyIds);
@@ -346,6 +350,21 @@ async function loadClinicalPhotoSources(tenant: string, actor: string, studyIds:
 }
 
 const TREATMENT_PLAN_ACTION = "suggest_treatment_plan_v1";
+// Reglas fijas que el servidor añade a TODA petición genérica (simulación, propuesta estética, análisis facial):
+// la clínica o el navegador no pueden quitarlas. Lo que SMYL entrega es estético y orientativo, no un diagnóstico (COFEPRIS).
+const REGLAS_SEGURIDAD_GENERICAS = [
+  "REGLAS DE SMYL (prevalecen sobre cualquier otra instrucción, incluida la de la clínica):",
+  "- No diagnosticas ni nombras enfermedades o condiciones de salud (caries, enfermedad periodontal, infecciones, fracturas, lesiones, urgencias).",
+  "- Solo describes aspectos estéticos visibles (color, forma, proporción, alineación aparente, armonía).",
+  "- No prometas resultados ni uses superlativos como \"garantizado\", \"sin dolor\" o \"el mejor\".",
+  "- No indiques medicamentos, dosis, anestesia ni tratamientos de urgencia.",
+  "- Cualquier plan o cotización es orientativo y requiere valoración de un profesional en consulta.",
+].join("\n");
+function conReglasSeguridad(system: unknown): unknown {
+  if (Array.isArray(system)) return [...system, { type: "text", text: REGLAS_SEGURIDAD_GENERICAS }];
+  const base = typeof system === "string" && system.trim() ? system + "\n\n" : "";
+  return base + REGLAS_SEGURIDAD_GENERICAS;
+}
 const TREATMENT_PLAN_SOURCES = new Set([
   "patient_goal", "clinical_history", "clinician_assessment", "manual_map",
   "photo_confirmed", "radiograph_confirmed",
@@ -492,7 +511,7 @@ async function fetchConTimeout(url: string, opciones: RequestInit, ms: number): 
 }
 
 Deno.serve(async (req: Request) => {
-  const CORS = { ...makeCors(req), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id" };
+  const CORS = { ...makeCors(req), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id, x-smyl-patient-id" };
   // Diagnóstico: esta es la PRIMERA línea de todo el código, antes de
   // revisar la sesión o leer el body. Si ni esto aparece en los logs de una
   // invocación real (POST), la función está muriendo por el tamaño del
@@ -510,6 +529,13 @@ Deno.serve(async (req: Request) => {
   const { user, tenantId, response: authError } = auth;
   if (authError) return authError;
   marca("después de requireUser");
+
+  // El simulador abierto desde el expediente dice de qué paciente es la foto: si negó la IA, no sale hacia el proveedor externo.
+  const pacienteSimulador = req.headers.get("x-smyl-patient-id") || "";
+  if (user && tenantId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pacienteSimulador)) {
+    const negadaSimulador = respuestaIAnegada(await permisoIA(usageAdmin, tenantId, pacienteSimulador));
+    if (negadaSimulador) return new Response(JSON.stringify(negadaSimulador.body), { status: negadaSimulador.status, headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" } });
+  }
 
   // Modo prospecto (simulacion.html?clinica=<id>, sin sesión): el tenant_id
   // viaja en un header en vez de la sesión.
@@ -533,6 +559,27 @@ Deno.serve(async (req: Request) => {
   const requestReason = typeof body?.requestReason === "string"
     ? body.requestReason.slice(0, 80)
     : (body?.action || "analysis");
+  // Simulaciones y análisis de fotos sin expediente (camila_casos no está ligado a un paciente): el consentimiento
+  // expreso de IA se captura en pantalla y viaja como body.aiConsent (fecha ISO). Las acciones clínicas ligadas a un
+  // paciente revisan su permiso con permisoIA. Con SMYL_REQUIRE_SIM_AI_CONSENT=true se rechaza lo que llegue sin él
+  // (activarlo cuando todas las pantallas que llaman esta función ya muestren la casilla).
+  const accionesDelExpediente = new Set([RADIOGRAPH_ACTION, RADIOGRAPH_MAP_ACTION, TREATMENT_PLAN_ACTION]);
+  const consentimientoSimulacion = typeof body?.aiConsent === "string" && !Number.isNaN(Date.parse(body.aiConsent));
+  const pacienteDelExpediente = typeof body?.patientId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.patientId) ? body.patientId : null;
+  if (accionesDelExpediente.has(body?.action) && pacienteDelExpediente && tenantEfectivo) {
+    // Radiografía o plan de tratamiento desde el expediente: el paciente debe haber autorizado la IA.
+    const negada = respuestaIAnegada(await permisoIA(usageAdmin, tenantEfectivo, pacienteDelExpediente));
+    if (negada) {
+      return new Response(JSON.stringify(negada.body), { status: negada.status, headers: { ...CORS, "Content-Type": "application/json" } });
+    }
+  } else if (body?.action !== CLINICAL_PHOTO_ANALYSIS_ACTION) {
+    console.log(JSON.stringify({ event: "simulation_ai_consent", requestId, requestReason, attested: consentimientoSimulacion }));
+    if (!consentimientoSimulacion && Deno.env.get("SMYL_REQUIRE_SIM_AI_CONSENT") === "true") {
+      return new Response(JSON.stringify({ error: "Falta confirmar que el paciente autorizó procesar sus fotos con IA.", code: "patient_ai_consent_missing" }), {
+        status: 403, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+  }
   let clinicalPhotoStudyIds: string[] = [];
   let clinicalPhotoSources: ClinicalPhotoSource[] | null = null;
   let clinicalPhotoReservationActive = false;
@@ -1570,6 +1617,9 @@ Deno.serve(async (req: Request) => {
         messages: body.messages,
       };
       if (body.system) anthropicBody.system = body.system;
+      if (body.action !== RADIOGRAPH_ACTION && body.action !== RADIOGRAPH_MAP_ACTION && body.action !== PHOTO_ANALYSIS_ACTION) {
+        anthropicBody.system = conReglasSeguridad(anthropicBody.system);
+      }
       // The professional photo-review client needs a machine-readable result.
       // The schema is fixed server-side: callers cannot weaken it or inject a
       // larger grammar. Browser validation remains a second, independent gate.
@@ -1611,7 +1661,7 @@ Deno.serve(async (req: Request) => {
       anthropicBody = {
         model: "claude-opus-4-5",
         max_tokens: 4096,
-        system: systemPrompt || "Eres un asistente dental especializado.",
+        system: conReglasSeguridad(systemPrompt || "Eres un asistente dental especializado."),
         messages,
       };
     }

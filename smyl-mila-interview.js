@@ -10,6 +10,7 @@
   var POLL_MS=3000,SECTIONS=[['allergies','Alergias'],['alerts','Alertas'],['conditions','Condiciones'],['medications','Medicamentos'],['surgeries','Cirugías'],['dental','Dental'],['habits','Hábitos']];
   var SURFACE={whole:'Pieza completa',M:'Mesial',D:'Distal',V:'Vestibular',L:'Lingual/palatina',O:'Oclusal',I:'Incisal'};
   var session=null; // {id,tenant,patient,url,expires,data,applied:Set,timer,dialog,mode}
+  var startSequence=0;
 
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
   function fmt(n){return Number(n||0).toLocaleString('es-MX');}
@@ -30,7 +31,8 @@
     var qr=window.qrcode(0,'M');qr.addData(text);qr.make();
     return qr.createSvgTag({cellSize:5,margin:2,scalable:true});
   }
-  function stillCurrent(s){return s&&session===s&&window.tenantId===s.tenant&&window.pacienteActual&&window.pacienteActual.id===s.patient;}
+  function currentPatient(tenant,patient){var p=window.pacienteActual;return tenant===window.tenantId&&p&&p.id===patient&&!p._local&&(!p.tenant_id||p.tenant_id===tenant);}
+  function stillCurrent(s){return s&&session===s&&currentPatient(s.tenant,s.patient);}
 
   function ensureDialog(){
     var d=document.getElementById('smyl-mila-interview');
@@ -227,10 +229,11 @@
   }
 
   async function poll(s){
-    if(!stillCurrent(s)){end(true);return;}
+    if(!stillCurrent(s)){if(session===s)end(true,true);return;}
     try{s.data=await call({action:'status',id:s.id});s.error='';
+      if(!stillCurrent(s))return;
       var ready=(s.data.finished||(s.data.realtime&&s.data.realtime.finished))&&s.data.history;
-      if(ready&&!s.toasted&&!s.dialog.open){s.toasted=true;toast('El borrador de MILA está listo','Revisar',function(){s.view='clinic';s.dialog.showModal();render();});}
+      if(ready&&!s.toasted&&!s.dialog.open){s.toasted=true;toast('El borrador de MILA está listo','Revisar',function(){if(stillCurrent(s)){s.view='clinic';s.dialog.showModal();render();}});}
       if(ready)dispatchEvent(new CustomEvent('smyl:mila-pending-changed',{detail:{patient:s.patient}}));}
     catch(e){if(e.status===404||e.status===410){s.expired=true;s.data=s.data||{};stop(s);}else s.error=e.message;}
     if(session===s){render();}
@@ -238,9 +241,11 @@
   function stop(s){if(s&&s.timer){clearInterval(s.timer);s.timer=null;}}
 
   async function start(tenant,patient,returnFocus,force,view,info,extra){
+    var sequence=++startSequence;
     var dialog=ensureDialog();
     if(session&&!force&&session.patient===patient&&session.tenant===tenant){session.returnFocus=returnFocus;session.appointmentId=extra&&extra.appointmentId||'';session.previsitOnly=!!(extra&&extra.previsitOnly);if(info&&!session.info)session.info=info;if(view)session.view=view;if(!dialog.open)dialog.showModal();render();if(session.view==='clinic')createClinic(session);return;}
-    if(session)await end(false);
+    if(session)await end(false,session.patient!==patient||session.tenant!==tenant);
+    if(sequence!==startSequence||tenant!==window.tenantId||(!(extra&&extra.previsitOnly)&&!currentPatient(tenant,patient)))return;
     var p=info||(window.pacienteActual&&window.pacienteActual.id===patient?window.pacienteActual:null);
     var s={view:'clinic',info:p,appointmentId:extra&&extra.appointmentId||'',previsitOnly:!!(extra&&extra.previsitOnly),patientName:p?[p.nombre,p.apellido].filter(Boolean).join(' '):'',tenant:tenant,patient:patient,dialog:dialog,applied:new Set(),data:{},returnFocus:returnFocus,error:'',notice:''};
     if(view)s.view=view;session=s;if(!dialog.open)dialog.showModal();render();
@@ -251,7 +256,11 @@
     if(s.id||s.creating)return;s.creating=true;
     try{
       var created=await call({action:'create',patient_id:s.patient});
-      if(session!==s)return;
+      if(!stillCurrent(s)){
+        if(created.id)await call({action:'close',id:created.id}).catch(function(){});
+        if(session===s)await end(true,true);
+        return;
+      }
       s.id=created.id;s.url=phoneUrl(created.id,created.token);s.expires=created.expires_at;
       s.timer=setInterval(function(){poll(s);},POLL_MS);
     }catch(e){if(session===s)s.error=e.message;}
@@ -321,6 +330,7 @@
       opts=opts||{};
       var tenant=opts.tenant||window.tenantId,patient=opts.patient||(window.pacienteActual&&window.pacienteActual.id);
       if(!tenant||!patient||!window.sb||!window.SUPA_URL)return false;
+      if(tenant!==window.tenantId||(opts.patientInfo&&opts.patientInfo.id!==patient)||(!opts.previsitOnly&&!currentPatient(tenant,patient)))return false;
       // Desde la agenda no se interrumpe una entrevista en consultorio de otro paciente.
       if(opts.previsitOnly&&session&&session.id&&session.patient!==patient){toast('Hay una entrevista de MILA en curso en consultorio. Termínala antes de enviar otra.');return false;}
       start(tenant,patient,opts.returnFocus||document.activeElement,false,opts.view||null,opts.patientInfo||null,{appointmentId:opts.appointmentId||'',previsitOnly:!!opts.previsitOnly});return true;

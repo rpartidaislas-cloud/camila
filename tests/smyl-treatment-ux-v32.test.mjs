@@ -12,7 +12,7 @@ const styles = read('../smyl-case-workspace.css');
 const fixture = read('./fixtures/smyl-clinical-flow-preview.html');
 
 test('Tratamiento separa la decisión clínica en cuatro etapas', () => {
-  for (const label of ['Evaluación', 'Propuesta', 'Aceptación', 'Seguimiento e historial']) {
+  for (const label of ['Diagnóstico', 'Plan de tratamiento', 'Presupuesto y aceptación', 'En tratamiento']) {
     assert.match(workspace, new RegExp(label));
   }
   assert.doesNotMatch(workspace, /cw-command|SIGUIENTE ACCIÓN/);
@@ -20,10 +20,8 @@ test('Tratamiento separa la decisión clínica en cuatro etapas', () => {
   assert.match(workspace, /window\.SmylPatient360\?\.context\?\.\(ctx\.tenant,ctx\.patient\)/);
   assert.doesNotMatch(workspace, /ctx\.contextPart\.body\.append\(ctx\.safety\)|querySelector\('\.clinic-patient-card'\)/);
   assert.match(workspace, /m\.details\.hidden=!selected;m\.details\.dataset\.active=String\(selected\)/);
-  assert.match(workspace, /Siguiente acción · Completa la evaluación/);
-  assert.match(workspace, /Siguiente acción · Prepara la propuesta/);
-  assert.match(workspace, /Siguiente acción · Registra la aceptación/);
-  assert.match(workspace, /Siguiente acción · Continúa el seguimiento/);
+  assert.doesNotMatch(workspace, /Siguiente acción · /);
+  assert.match(workspace, /cw-route-dock/);
   assert.doesNotMatch(workspace, /Etapa [1-4] de 3/);
   assert.match(clinic, /Propuesta de tratamiento/);
   assert.match(clinic, /Revisar propuesta/);
@@ -42,7 +40,7 @@ test('la evaluación separa contexto, revisión profesional y conclusión en una
   assert.match(workspace, /function showEvaluationTask\(ctx,id,focus=true\)/);
   assert.equal((workspace.match(/ctx\.evaluationCta=btn/g) || []).length, 1);
   assert.match(workspace, /function updateEvaluationAction\(ctx\)/);
-  for (const label of ['Continuar a revisión', 'Continuar a conclusión', 'Continuar revisión', 'Continuar a propuesta']) {
+  for (const label of ['Continuar a revisión', 'Continuar a conclusión', 'Continuar revisión', 'Confirmar diagnóstico']) {
     assert.match(workspace, new RegExp(label));
   }
   assert.doesNotMatch(workspace, /evaluationTask\(ctx,'evidence'/);
@@ -129,11 +127,11 @@ test('la política visual conserva jerarquía, una CTA visible, tactilidad y res
 });
 
 test('web, móvil y PWA distribuyen la misma implementación', () => {
-  assert.match(app, /smyl-patient-360\.css\?v=20/);
-  assert.match(app, /smyl-clinic\.js\?v=25/);
-  assert.match(app, /smyl-patient-360\.js\?v=32/);
-  assert.match(app, /smyl-case-workspace\.css\?v=31/);
-  assert.match(app, /smyl-case-workspace\.js\?v=44/);
+  assert.match(app, /smyl-patient-360\.css\?v=23/);
+  assert.match(app, /smyl-clinic\.js\?v=27/);
+  assert.match(app, /smyl-patient-360\.js\?v=40/);
+  assert.match(app, /smyl-case-workspace\.css\?v=36/);
+  assert.match(app, /smyl-case-workspace\.js\?v=51/);
   assert.match(worker, /evaluation-separation-v79/);
   for (const file of ['app.html', 'sw.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css', 'smyl-patient-360.js', 'smyl-patient-360.css']) {
     assert.equal(read('../' + file), read('../mobile/www/' + file));

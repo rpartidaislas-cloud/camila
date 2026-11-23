@@ -43,13 +43,16 @@ test('es barato y seguro: sólo en pestaña visible, con espera mínima de 15 s,
 });
 
 test('Cobros mantiene el numerito sincronizado con su lista sin otra consulta', () => {
-  assert.match(js, /if\(state\.canRead\)renderNavBadge\(rows\.length\)/);
+  // El conteo sale de la misma lista (pendingVisits) y se pinta junto con las cifras de las pestañas.
+  assert.match(js, /visits:pendingVisits\(\)\.length/);
+  assert.match(js, /if\(state\.canRead\)renderNavBadge\(f\.visits\)/);
+  assert.match(js, /await ensurePatientNames\(\);renderTabs\(\);renderVisits\(\);/);
 });
 
 test('versiones y copia móvil sincronizadas', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-finance\.js\?v=58/);
-    assert.match(read(file), /smyl-schedule\.js\?v=46/);
+    assert.match(read(file), /smyl-finance\.js\?v=73/);
+    assert.match(read(file), /smyl-schedule\.js\?v=59/);
   }
   for (const file of ['smyl-finance.js', 'smyl-schedule.js', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);

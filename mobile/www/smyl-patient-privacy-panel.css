@@ -1,0 +1,38 @@
+/* SMYL · Sección «Privacidad» de la historia clínica (usa las clases p360-hc-* de las demás secciones). */
+.p360-hc-band[data-tone="privacy"]{--rail:#7a4fb3}
+.p360-hc-band[data-tone="privacy"][data-state="pending"] .p360-hc-band-h{background:#fff8e7}
+.pp-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.pp-dialog{width:min(440px,calc(100vw - 32px));padding:0;border:0;border-radius:14px;box-shadow:0 12px 40px rgba(11,27,46,.3)}
+.pp-dialog::backdrop{background:rgba(11,27,46,.45)}
+.pp-box{padding:20px}
+.pp-box header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
+.pp-box h2{margin:0;font-size:18px}
+.pp-x{width:36px;height:36px;border:0;border-radius:8px;background:#eef2f6;font-size:20px;cursor:pointer}
+
+.pp-qr{width:min(280px,100%);margin:0 auto 10px;padding:12px;border:1px solid #dde5ee;border-radius:16px;background:#fff}
+.pp-qr svg{display:block;width:100%;height:auto}
+.pp-cap{margin:0 0 8px;text-align:center;font-size:15px;font-weight:600;color:#0f2236}
+.pp-status{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 14px;padding:9px 12px;border-radius:10px;background:#f3f6fb;font-size:14px;color:#4a4d60}
+.pp-status.pp-done{background:#e7edf4;color:#2235b3;font-weight:700}
+.pp-hint{margin:12px 0 0;font-size:13px;line-height:1.45;text-align:center;color:#4b5f83}
+.pp-box details{margin:12px 0 0;font-size:14px}
+.pp-box summary{cursor:pointer;padding:6px 0;font-weight:600;color:#2235b3}
+.pp-link{display:block;width:100%;height:44px;margin:8px 0 0;padding:0 10px;border:1px solid #bac7d5;border-radius:8px;font:inherit;font-size:13px}
+.pp-acts{display:grid;gap:8px}
+.pp-acts button{min-height:48px;padding:0 14px;border:1px solid #bac7d5;border-radius:12px;background:#fff;color:#0f2236;font:600 15px/1 inherit;cursor:pointer}
+.pp-acts button.pp-primary{border-color:#2a40d1;background:#2a40d1;color:#fff}
+@media (max-width:640px){.pp-actions{justify-content:flex-start}}
+.pp-what{margin:0 0 12px;font-size:14px;line-height:1.5;color:#2b3a4a}
+
+.pp-arco{padding:14px 22px 18px;border-top:1px solid var(--smyl-ui-border,#d9e2ec);background:#fafbfd}
+.pp-arco-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin:0 0 8px}
+.pp-arco .priv-muted{margin:0;font-size:13px;color:#525465}
+.pp-arco .priv-list{display:grid;gap:8px;margin:8px 0}
+.pp-arco .priv-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid #d9e2ec;border-radius:10px;background:#fff}
+.pp-arco .priv-row-main{flex:1;min-width:0}.pp-arco .priv-row-main small{display:block;font-size:12px;color:#525465}
+.pp-arco .priv-chip{flex:none;padding:3px 8px;border-radius:999px;background:#eef2f6;font-size:12px}
+.pp-arco .priv-chip[data-kind=overdue]{background:#fdecea;color:#a02a1d}
+.pp-arco .priv-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pp-feedback{min-height:0;margin:0 0 6px;font-size:13px;color:#4a4d60}.pp-feedback:empty{display:none}
+.pp-feedback[data-tone=ok]{color:#286653}.pp-feedback[data-tone=error]{color:#a02a1d}
+.pp-change{margin-left:8px;padding:3px 8px;border:1px solid #bac7d5;border-radius:6px;background:#fff;color:#0f2236;font:600 12px/1.2 inherit;cursor:pointer}

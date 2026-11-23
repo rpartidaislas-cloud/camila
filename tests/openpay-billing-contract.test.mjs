@@ -10,7 +10,7 @@ const fnBilling = read('supabase/functions/openpay-billing/index.ts');
 const fnWebhook = read('supabase/functions/openpay-billing-webhook/index.ts');
 const runtime = read('supabase/functions/_shared/openpay-runtime.ts');
 const core = read('supabase/functions/_shared/openpay-billing-core.mjs');
-const migration = read('supabase/migrations/20261123120000_smyl_openpay_billing.sql');
+const migration = read('supabase/migrations/20261123140000_smyl_openpay_billing.sql');
 const app = read('app.html');
 
 test('ningún secreto de Openpay está escrito en el repositorio', () => {

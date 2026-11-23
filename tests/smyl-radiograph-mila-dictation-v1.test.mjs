@@ -40,7 +40,7 @@ test('el servicio transcribe de forma efímera y registra consumo real e idempot
 test('web, PWA y móvil publican la misma versión de la experiencia', () => {
   for (const file of ['app.html', 'sw.js', 'mobile/www/app.html', 'mobile/www/sw.js']) {
     const source = read(file);
-    assert.match(source, /smyl-radiograph-review\.js\?v=33/, file);
+    assert.match(source, /smyl-radiograph-review\.js\?v=34/, file);
     assert.match(source, /smyl-radiograph-workbench\.css\?v=26/, file);
   }
   for (const file of ['smyl-radiograph-review.js', 'smyl-radiograph-workbench.css', 'smyl-consumption.js']) {

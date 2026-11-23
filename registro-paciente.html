@@ -6,22 +6,23 @@
   <meta name="robots" content="noindex,nofollow">
   <meta name="referrer" content="no-referrer">
   <title>Completa tu registro · SMYL</title>
-  <meta name="theme-color" content="#173f3d">
+  <meta name="theme-color" content="#161c40">
   <style>
     *{box-sizing:border-box}
-    body{margin:0;background:#f3f2ed;color:#173a38;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
-    .top{height:60px;display:flex;align-items:center;padding:0 20px;background:#173f3d;color:#fff;font-weight:700;letter-spacing:.12em}
+    body{margin:0;background:#f3f2ed;color:#161b3b;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+    .top{height:60px;display:flex;align-items:center;padding:0 20px;background:#161c40;color:#fff;font-weight:700;letter-spacing:.12em}
     main{max-width:520px;margin:0 auto;padding:24px 16px 48px}
     .card{background:#fff;border-radius:12px;box-shadow:0 1px 20px rgba(11,27,46,.08);padding:24px}
     h1{font-size:22px;margin:0 0 6px}
-    p{line-height:1.5;margin:0 0 16px;color:#3d5a57}
+    p{line-height:1.5;margin:0 0 16px;color:#3c405b}
     label{display:block;font-weight:600;font-size:14px;margin:0 0 14px}
-    label small{font-weight:400;color:#5b7370}
-    input,select{display:block;width:100%;margin-top:6px;height:46px;padding:0 12px;border:1px solid #b9c7c4;border-radius:8px;font:inherit;font-size:16px;background:#fff;color:#173a38}
-    input:focus,select:focus,button:focus-visible{outline:3px solid #2aa6a0;outline-offset:1px}
+    label small{font-weight:400;color:#4b5f83}
+    input,select{display:block;width:100%;margin-top:6px;height:46px;padding:0 12px;border:1px solid #b5c1cb;border-radius:8px;font:inherit;font-size:16px;background:#fff;color:#161b3b}
+    input:focus,select:focus,button:focus-visible{outline:3px solid #0b4cc5;outline-offset:1px}
+    .notice{border:1px solid #dbe3ea;border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;max-height:320px;overflow:auto}.notice summary{cursor:pointer;font-weight:600}.notice p{margin:8px 0 0}
     .check{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:14px}
     .check input{width:20px;height:20px;margin:2px 0 0;flex:none}
-    .btn{width:100%;height:48px;border:0;border-radius:8px;background:#173f3d;color:#fff;font:inherit;font-weight:600;font-size:16px;cursor:pointer}
+    .btn{width:100%;height:48px;border:0;border-radius:8px;background:#161c40;color:#fff;font:inherit;font-weight:600;font-size:16px;cursor:pointer}
     .btn[disabled]{opacity:.6;cursor:wait}
     .error{background:#fde8e6;color:#8a1c12;border-radius:8px;padding:10px 12px;margin:0 0 14px;font-size:14px}
     .state{text-align:center;padding:12px 0}.mark{font-size:36px}
@@ -29,6 +30,7 @@
   </style>
 <link rel="stylesheet" href="smyl-skeleton.css?v=1">
 <script defer src="smyl-skeleton.js?v=1"></script>
+<script src="smyl-privacy-notice.js?v=3"></script>
 </head>
 <body>
   <header class="top">SMYL</header>
@@ -46,6 +48,13 @@
       if(!r.ok)throw new Error(body&&body.message?body.message:'No pudimos completar la operación.');
       return body;
     }
+    /* Aviso de privacidad de la clínica (responsable), con su domicilio y correo; no el de SMYL. */
+    function noticeHtml(info){
+      var PN=window.SmylPrivacyNotice;
+      if(!PN)return '<p class="notice-link">Consulta el aviso de privacidad de la clínica en su recepción.</p>';
+      var n=PN.render(info.clinic_name,{address:info.clinic_address,email:info.clinic_email});
+      return '<details class="notice"><summary>Leer el aviso de privacidad</summary>'+n.text.split('\n\n').map(function(t){return '<p>'+esc(t)+'</p>';}).join('')+'</details>';
+    }
     function render(info){
       card.innerHTML='<h1>Completa tu registro</h1><p>'+esc(info.clinic_name)+' te espera. Con estos datos tendremos tu expediente listo cuando llegues.</p>'
         +'<form id="f" novalidate><div id="err" role="alert"></div>'
@@ -55,7 +64,8 @@
         +'<label>Fecha de nacimiento <small>(opcional)</small><input name="fnac" type="date" autocomplete="bday"></label>'
         +'<label>Género <small>(opcional)</small><select name="genero"><option value="">Prefiero no decirlo</option><option value="femenino">Femenino</option><option value="masculino">Masculino</option><option value="otro">Otro</option></select></label>'
         +'<input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">'
-        +'<label class="check"><input type="checkbox" name="consent" required><span>Acepto que la clínica use estos datos para mi atención, según su <a href="privacidad.html" target="_blank" rel="noopener">aviso de privacidad</a>.</span></label>'
+        +noticeHtml(info)
+        +'<label class="check"><input type="checkbox" name="consent" required><span>Leí el aviso de privacidad de '+esc(info.clinic_name)+' y acepto que use estos datos para mi atención.</span></label>'
         +'<button class="btn" type="submit">Enviar mis datos</button></form>';
       document.getElementById('f').addEventListener('submit',submit);
     }

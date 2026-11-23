@@ -57,11 +57,11 @@ test('web y PWA distribuyen el mismo flujo y fuerzan una caché nueva', () => {
   const app = read('app.html');
   const worker = read('sw.js');
   for (const tag of [
-    'smyl-radiograph-review.js?v=33',
-    'smyl-dental-record.js?v=33',
-    'smyl-case-workspace.js?v=44',
+    'smyl-radiograph-review.js?v=34',
+    'smyl-dental-record.js?v=35',
+    'smyl-case-workspace.js?v=51',
     'smyl-evidence-center-integration.js?v=12',
-    'smyl-evidence-center-integration.css?v=6'
+    'smyl-evidence-center-integration.css?v=7'
   ]) {
     assert.match(app, new RegExp(tag.replaceAll('.', '\\.').replace('?', '\\?')));
     assert.match(worker, new RegExp(tag.replaceAll('.', '\\.').replace('?', '\\?')));

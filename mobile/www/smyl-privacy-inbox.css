@@ -1,0 +1,20 @@
+/* SMYL · Aviso de posible solicitud de derechos sobre el hilo del chat */
+.priv-banner{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 6px;padding:10px 14px;border-left:4px solid #7a4fb3;background:#f5f0fb;color:#2b1d44;font-size:14px;line-height:1.45}
+.priv-banner-text{min-width:0}
+.priv-banner-text strong{display:block;font-weight:700}
+.priv-banner-text q{display:block;margin:2px 0;color:#4b3a66;font-style:italic;quotes:"«" "»"}
+.priv-banner-text small{display:block;font-size:13px;color:#5d4c78}
+.priv-banner-acts{display:flex;flex-wrap:wrap;gap:8px;flex:none}
+.priv-banner button,.priv-form button{min-height:36px;padding:0 14px;border:1px solid #bba8d6;border-radius:8px;background:#fff;color:#2b1d44;font:600 14px/1 inherit;cursor:pointer}
+.priv-banner button.priv-primary,.priv-form button.priv-primary{border-color:#6a3fa5;background:#6a3fa5;color:#fff}
+.priv-dialog{width:min(460px,calc(100vw - 32px));padding:0;border:0;border-radius:14px;box-shadow:0 12px 40px rgba(11,27,46,.3)}
+.priv-dialog::backdrop{background:rgba(11,27,46,.45)}
+.priv-form{padding:20px}
+.priv-form h2{margin:0 0 4px;font-size:18px}
+.priv-form p{margin:0 0 12px;font-size:14px;color:#4a4d60}
+.priv-form label{display:block;margin:0 0 12px;font-size:14px;font-weight:600}
+.priv-form select,.priv-form input,.priv-form textarea{display:block;width:100%;margin-top:4px;padding:9px 10px;border:1px solid #bac7d5;border-radius:8px;font:inherit;font-size:15px}
+.priv-form .priv-note{padding:8px 10px;border-radius:8px;background:#fff6dd;color:#7a5200;font-size:13px}
+.priv-error{padding:8px 10px;border-radius:8px;background:#fdecea;color:#a02a1d;font-size:14px}
+.priv-form-acts{display:flex;justify-content:flex-end;gap:8px}
+@media (max-width:640px){.priv-banner{flex-direction:column}}

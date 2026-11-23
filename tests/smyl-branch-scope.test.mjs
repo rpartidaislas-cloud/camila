@@ -82,11 +82,11 @@ test("install es idempotente: no envuelve dos veces", () => {
 
 test("app.html: carga el módulo, inicia tras resolver la clínica y define el selector; móvil y PWA sincronizados", () => {
   const html = read("app.html");
-  assert.match(html, /<script defer src="smyl-branch-scope\.js\?v=2"><\/script>/);
+  assert.match(html, /<script defer src="smyl-branch-scope\.js\?v=4"><\/script>/);
   assert.match(html, /renderSidebar\(\);\s*\n\s*\/\/ Varios consultorios[^\n]*\n\s*if \(window\.SmylBranchScope\) window\.SmylBranchScope\.init\(\);/);
   assert.match(html, /\.sb-branch select/);
   for (const f of ["app.html", "smyl-branch-scope.js", "sw.js"]) assert.equal(read(f), read("mobile/www/" + f), `${f} móvil igual`);
-  assert.match(read("sw.js"), /'\/camila\/smyl-branch-scope\.js\?v=2'/);
+  assert.match(read("sw.js"), /'\/camila\/smyl-branch-scope\.js\?v=4'/);
   assert.match(read("sw.js"), /-branch-scope-v1(?:-|')/);
 });
 
@@ -115,4 +115,33 @@ test('init() no falla con «root is not defined» (la variable debe existir dent
   const scope = run(fakeWindow, fakeWindow, undefined);
   assert.ok(scope, 'expone SmylBranchScope');
   await assert.doesNotReject(async () => { await scope.init(); });
+});
+
+function corre({ almacenamientoBloqueado }) {
+  const guardado = new Map();
+  const recargas = { n: 0 };
+  const g = globalThis;
+  const previo = { tenantId: g.tenantId, sb: g.sb, localStorage: g.localStorage, location: g.location };
+  g.tenantId = "T1";
+  g.sb = { from: () => ({}), rpc: async () => ({ data: sedes, error: null }) };
+  g.localStorage = { getItem: (k) => (almacenamientoBloqueado ? null : guardado.get(k) ?? null), setItem: (k, v) => { if (almacenamientoBloqueado) throw new Error("bloqueado"); guardado.set(k, v); } };
+  g.location = { reload: () => { recargas.n += 1; } };
+  Scope._state.installed = false; Scope._state.active = null;
+  return { recargas, restaurar: () => Object.assign(g, previo), init: () => Scope.init() };
+}
+
+test("recarga una sola vez con almacenamiento normal y NUNCA en bucle con el almacenamiento bloqueado", async () => {
+  const ok = corre({ almacenamientoBloqueado: false });
+  await ok.init();
+  assert.equal(ok.recargas.n, 1, "primera vez con varias sedes: una recarga");
+  await ok.init();
+  assert.equal(ok.recargas.n, 1, "segunda vez ya hay selección guardada: no recarga");
+  ok.restaurar();
+
+  const bloqueado = corre({ almacenamientoBloqueado: true });
+  await bloqueado.init(); await bloqueado.init(); await bloqueado.init();
+  assert.equal(bloqueado.recargas.n, 0, "sin poder guardar la elección no se recarga (evita el bucle)");
+  assert.equal(Scope.get(), B, "pero la sede activa sí queda en memoria");
+  bloqueado.restaurar();
+  Scope._state.installed = false; Scope._state.active = null;
 });

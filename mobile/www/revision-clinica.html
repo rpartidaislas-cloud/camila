@@ -93,21 +93,21 @@
   /* Procesamiento visual de segmentación */
   .seg-processing{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:inherit;background:rgba(3,7,14,.78);backdrop-filter:blur(8px);opacity:0;visibility:hidden;pointer-events:none;transition:opacity 220ms ease,visibility 220ms ease}
   .seg-processing.active{opacity:1;visibility:visible;pointer-events:auto}
-  .seg-processing::before{content:'';position:absolute;inset:-35%;background:conic-gradient(from 20deg,transparent 0 23%,rgba(20,214,232,.15) 31%,transparent 39% 58%,rgba(122,83,255,.18) 67%,transparent 76%);animation:segAura 5s linear infinite}
-  .seg-processing::after{content:'';position:absolute;left:8%;right:8%;height:2px;top:18%;border-radius:99px;background:linear-gradient(90deg,transparent,#14d6e8 24%,#477cff 52%,#9e4dff 78%,transparent);box-shadow:0 0 18px #36a8ff,0 0 34px rgba(151,68,255,.55);animation:segScan 2.1s cubic-bezier(.45,0,.55,1) infinite alternate}
+  .seg-processing::before{content:'';position:absolute;inset:-35%;background:conic-gradient(from 20deg,transparent 0 23%,rgba(0, 88, 252,.15) 31%,transparent 39% 58%,rgba(122,83,255,.18) 67%,transparent 76%);animation:segAura 5s linear infinite}
+  .seg-processing::after{content:'';position:absolute;left:8%;right:8%;height:2px;top:18%;border-radius:99px;background:linear-gradient(90deg,transparent,#0058fc 24%,#477cff 52%,#9e4dff 78%,transparent);box-shadow:0 0 18px #36a8ff,0 0 34px rgba(151,68,255,.55);animation:segScan 2.1s cubic-bezier(.45,0,.55,1) infinite alternate}
   .seg-processing-card{position:relative;z-index:2;width:min(260px,78%);display:flex;flex-direction:column;align-items:center;text-align:center;padding:25px 24px 22px;border:1px solid rgba(117,132,255,.28);border-radius:24px;background:linear-gradient(155deg,rgba(12,20,34,.88),rgba(19,10,39,.84));box-shadow:0 22px 70px rgba(0,0,0,.5),0 0 50px rgba(62,124,255,.13),inset 0 1px rgba(255,255,255,.08);animation:segCardFloat 3.2s ease-in-out infinite}
   .seg-orbit{position:relative;width:92px;height:92px;display:grid;place-items:center;margin-bottom:14px}
-  .seg-orbit::before,.seg-orbit::after{content:'';position:absolute;inset:2px;border-radius:50%;border:1px solid rgba(40,211,231,.28);border-top-color:#20d7e8;border-right-color:#7770ff;box-shadow:0 0 19px rgba(50,180,255,.2);animation:segSpin 1.55s linear infinite}
+  .seg-orbit::before,.seg-orbit::after{content:'';position:absolute;inset:2px;border-radius:50%;border:1px solid rgba(16, 100, 255,.28);border-top-color:#095fff;border-right-color:#7770ff;box-shadow:0 0 19px rgba(50, 122, 255,.2);animation:segSpin 1.55s linear infinite}
   .seg-orbit::after{inset:12px;border-color:rgba(147,75,255,.2);border-bottom-color:#a052ff;border-left-color:#437cff;animation-direction:reverse;animation-duration:1.05s}
-  .seg-tooth{width:45px;height:55px;filter:drop-shadow(0 0 10px rgba(59,211,255,.48));animation:segPulse 1.5s ease-in-out infinite}
+  .seg-tooth{width:45px;height:55px;filter:drop-shadow(0 0 10px rgba(59, 128, 255,.48));animation:segPulse 1.5s ease-in-out infinite}
   .seg-tooth-path{stroke-dasharray:145;stroke-dashoffset:145;animation:segDraw 2.25s cubic-bezier(.65,0,.35,1) infinite}
   .seg-tooth-highlight{stroke-dasharray:28 90;animation:segTrace 1.45s linear infinite}
-  .seg-edit-node{fill:#0c1728;stroke:#55dcff;stroke-width:1.5;transform-box:fill-box;transform-origin:center;animation:segNode 1.2s ease-in-out infinite}
+  .seg-edit-node{fill:#0c1728;stroke:#55b5ff;stroke-width:1.5;transform-box:fill-box;transform-origin:center;animation:segNode 1.2s ease-in-out infinite}
   .seg-edit-node:nth-of-type(2){animation-delay:.2s;stroke:#7185ff}.seg-edit-node:nth-of-type(3){animation-delay:.4s;stroke:#a45cff}.seg-edit-node:nth-of-type(4){animation-delay:.6s;stroke:#7185ff}
   .seg-processing-title{font-size:15px;font-weight:750;color:#fff;margin-bottom:5px}
   .seg-processing-copy{font-size:11px;line-height:1.5;color:rgba(220,228,255,.62)}
   .seg-processing-dots{display:flex;gap:5px;margin-top:13px}
-  .seg-processing-dots i{width:5px;height:5px;border-radius:50%;background:#24d5e8;box-shadow:0 0 8px currentColor;animation:segDot 1.15s ease-in-out infinite}
+  .seg-processing-dots i{width:5px;height:5px;border-radius:50%;background:#0d62ff;box-shadow:0 0 8px currentColor;animation:segDot 1.15s ease-in-out infinite}
   .seg-processing-dots i:nth-child(2){background:#4e8cff;animation-delay:.16s}.seg-processing-dots i:nth-child(3){background:#9c4eff;animation-delay:.32s}
   @keyframes segAura{to{transform:rotate(360deg)}}
   @keyframes segScan{from{top:17%;opacity:.45}to{top:83%;opacity:1}}
@@ -150,7 +150,7 @@
   .vita-swatch-grid .vita-swatch{opacity:1}
 
   /* --- Matiz: pista con degradado arcoíris, igual que un selector de Hue --- */
-  input.hue-slider{accent-color:transparent;background:linear-gradient(90deg,#ff3b3b,#ffd23b,#3bff5c,#3bd4ff,#5c3bff,#ff3bd4,#ff3b3b);border-radius:99px;height:6px}
+  input.hue-slider{accent-color:transparent;background:linear-gradient(90deg,#ff3b3b,#ffd23b,#3bff5c,#3b80ff,#5c3bff,#ff3bd4,#ff3b3b);border-radius:99px;height:6px}
 
   .num-fino{width:64px;padding:7px 8px;border-radius:8px;border:1px solid var(--card-b);background:var(--field);color:#fff;font-size:12.5px;text-align:center;font-family:Inter,sans-serif}
   .num-fino:focus{outline:none;border-color:var(--p)}
@@ -214,6 +214,7 @@
 <link rel="stylesheet" href="smyl-clinical-review-v33.css?v=1">
 <link rel="stylesheet" href="smyl-skeleton.css?v=1">
 <script defer src="smyl-skeleton.js?v=1"></script>
+<script src="smyl-photo-url-refresh.js?v=1"></script>
 </head>
 <body class="clinical-review-v33">
   <!-- ══ LOGIN OPCIONAL — mismo Supabase Auth que simulacion.html/app.html ══
@@ -347,7 +348,7 @@
               <path class="seg-tooth-highlight" d="M24 5C16 1 7 5 5 14c-2 9 3 16 5 24 2 8 3 15 7 15 5 0 3-14 7-14s2 14 7 14c4 0 5-7 7-15 2-8 7-15 5-24C41 5 32 1 24 5Z" stroke="rgba(255,255,255,.72)" stroke-width="1" stroke-linejoin="round"/>
               <path d="M13 13c5-4 16-4 22 0" stroke="rgba(255,255,255,.6)" stroke-width="1.5" stroke-linecap="round"/>
               <circle class="seg-edit-node" cx="9" cy="11" r="2.2"/><circle class="seg-edit-node" cx="39" cy="11" r="2.2"/><circle class="seg-edit-node" cx="17" cy="51" r="2.2"/><circle class="seg-edit-node" cx="31" cy="51" r="2.2"/>
-              <defs><linearGradient id="segToothGradient" x1="5" y1="5" x2="43" y2="53"><stop stop-color="#20D9E9"/><stop offset=".52" stop-color="#4786FF"/><stop offset="1" stop-color="#A34CFF"/></linearGradient></defs>
+              <defs><linearGradient id="segToothGradient" x1="5" y1="5" x2="43" y2="53"><stop stop-color="#0a60ff"/><stop offset=".52" stop-color="#4786FF"/><stop offset="1" stop-color="#A34CFF"/></linearGradient></defs>
             </svg>
           </div>
           <div id="segProcessingTitle" class="seg-processing-title">Analizando sonrisa</div>
@@ -2620,7 +2621,7 @@ async function firmarUrlStorage(path) {
   const resp = await fetch(`${base}/storage/v1/object/sign/${FOTOS_BUCKET}/${path}`, {
     method: 'POST',
     headers: { 'apikey': DB_KEY, 'Authorization': 'Bearer ' + (userToken || DB_KEY), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ expiresIn: 31536000 }), // ~1 año
+    body: JSON.stringify({ expiresIn: 604800 }), // 7 días; smyl-photo-url-refresh.js lo renueva si vence
   });
   if (!resp.ok) throw new Error(await resp.text().catch(() => String(resp.status)));
   const data = await resp.json();

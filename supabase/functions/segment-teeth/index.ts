@@ -16,7 +16,7 @@
 // no pisar la segmentación de dientes ya guardada.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
 import { isAllowedImageSource, parseAllowedHostSuffixes, readBodyWithLimit } from "../_shared/request-safety.ts";
 import {
@@ -25,6 +25,7 @@ import {
   checkLimitSinConsumir,
 } from "../_shared/limits.ts";
 import { makeCors } from "../_shared/cors.ts";
+import { permisoIA, respuestaIAnegada } from "../_shared/privacy.ts";
 import { decode as decodeImage, Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 import {
   calculateGptCanvas,
@@ -474,7 +475,7 @@ async function uploadAll(
 }
 
 serve(async (req) => {
-  const corsHeaders = { ...makeCors(req), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id" };
+  const corsHeaders = { ...makeCors(req), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id, x-smyl-patient-id" };
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   // Falta de configuración, no del usuario: sin esto el fallo salía como
@@ -496,6 +497,13 @@ serve(async (req) => {
   // POST sin credenciales.
   const { user, tenantId: tenantIdSesion, response: authError } = await requireUser(req, corsHeaders);
   if (authError) return authError;
+
+  // El simulador abierto desde el expediente dice de qué paciente es la foto: si negó la IA, no sale hacia el proveedor externo.
+  const pacienteSimulador = req.headers.get("x-smyl-patient-id") || "";
+  if (user && tenantIdSesion && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pacienteSimulador)) {
+    const negadaSimulador = respuestaIAnegada(await permisoIA(createClient(SB_URL, SB_SERVICE_ROLE_KEY), tenantIdSesion, pacienteSimulador));
+    if (negadaSimulador) return new Response(JSON.stringify(negadaSimulador.body), { status: negadaSimulador.status, headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" } });
+  }
 
   // La segmentación es un paso interno de UNA simulación. La generación
   // principal ya descuenta esa simulación del plan; volver a descontar por
@@ -528,6 +536,14 @@ serve(async (req) => {
   }
 
   const { imageUrl, casoId, tenantId: tenantIdBody, target: targetRaw } = body || {};
+  // Consentimiento expreso de IA capturado en pantalla (ver claude/index.ts). Con SMYL_REQUIRE_SIM_AI_CONSENT=true es obligatorio.
+  const consentimientoIA = typeof body?.aiConsent === "string" && !Number.isNaN(Date.parse(body.aiConsent));
+  console.log(JSON.stringify({ event: "simulation_ai_consent", fn: "segment-teeth", attested: consentimientoIA }));
+  if (!consentimientoIA && Deno.env.get("SMYL_REQUIRE_SIM_AI_CONSENT") === "true") {
+    return new Response(JSON.stringify({ error: "Falta confirmar que el paciente autorizó procesar sus fotos con IA.", code: "patient_ai_consent_missing" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
   const target: Target = targetRaw === "gum" || targetRaw === "treatment" ? targetRaw : "tooth";
   if (!imageUrl) {
     return new Response(JSON.stringify({ error: "imageUrl es requerido" }), {

@@ -91,7 +91,7 @@ test('la agenda oculta los filtros con una sola opción y la franja de pendiente
   const schedule = read('smyl-schedule.js');
   assert.match(schedule, /\[\[branch,state\.branches\.filter\(function\(x\)\{return x\.active;\}\)\.length<2\]/);
   assert.match(schedule, /\[prof,state\.professionals\.length<2\]/);
-  assert.match(schedule, /\[room,state\.rooms\.filter/);
+  assert.doesNotMatch(schedule, /\[room,state\.rooms\.filter/, 'ya no hay filtro de sillón');
   assert.match(schedule, /closest\('\.schedule-filter'\)/);
   assert.match(schedule, /if\(!pending\)\{host\.hidden=true/);
   assert.match(read('smyl-schedule.css'), /\.schedule-focus\[hidden\]\{display:none\}/);
@@ -101,6 +101,6 @@ test('el módulo de mensajes se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-schedule-message.js', 'smyl-schedule.js', 'smyl-schedule.css', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-schedule-message\.js\?v=4/);
-  assert.match(read('sw.js'), /\/camila\/smyl-schedule-message\.js\?v=4/);
+  assert.match(read('app.html'), /smyl-schedule-message\.js\?v=5/);
+  assert.match(read('sw.js'), /\/camila\/smyl-schedule-message\.js\?v=5/);
 });

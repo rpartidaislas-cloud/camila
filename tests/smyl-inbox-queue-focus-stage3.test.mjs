@@ -26,11 +26,14 @@ test('la bandeja deja visibles sólo los cuatro filtros de trabajo diario', () =
   assert.match(controls, /button\.tabIndex = selected \? 0 : -1/);
 });
 
-test('los filtros comunican conteos y conservan canales y selección múltiple', () => {
+test('los filtros comunican conteos y sólo ofrecen estado y canal', () => {
   assert.match(inbox, /function filterCount\(filter\)/);
   assert.match(inbox, /button\.innerHTML = '<span>' \+ labels\[filter\]/);
   assert.match(inbox, /data-inbox-channel aria-label="Filtrar por canal"/);
-  assert.match(inbox, /data-inbox-bulk aria-pressed="false">Seleccionar varias/);
+  const panel = inbox.slice(inbox.indexOf('<section class="smyl-inbox-filter-panel"')).split('</section>')[0];
+  assert.match(panel, /<legend>Estado<\/legend>/);
+  for (const filter of ['unassigned', 'paused', 'pinned']) assert.ok(panel.includes('data-inbox-filter="'+filter+'"'));
+  assert.doesNotMatch(panel, /data-inbox-(?:notify|operations|bulk|refresh)|Activar avisos|Revisar operación|Seleccionar varias|Actualizar ahora/);
   assert.match(css, /\.smyl-inbox-filter-panel\[hidden\]\{display:none\}/);
 });
 
@@ -46,7 +49,7 @@ test('la etapa final publica recursos nuevos con paridad web y móvil', () => {
   assert.equal(mobileInbox, inbox);
   assert.equal(mobileCss, css);
   assert.equal(mobileApp, app);
-  assert.match(app, /smyl-inbox\.css\?v=62/);
-  assert.match(app, /smyl-inbox\.js\?v=73/);
-  assert.match(worker, /smyl-inbox\.js\?v=73/);
+  assert.match(app, /smyl-inbox\.css\?v=79/);
+  assert.match(app, /smyl-inbox\.js\?v=95/);
+  assert.match(worker, /smyl-inbox\.js\?v=95/);
 });

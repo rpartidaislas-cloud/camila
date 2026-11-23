@@ -32,6 +32,10 @@ verify_jwt = true
 [functions.smyl-pay]
 verify_jwt = false
 
+# Propuesta compartida con el paciente: personal con JWT (la función lo exige) y vista pública por token opaco.
+[functions.smyl-proposal-share]
+verify_jwt = false
+
 # Compartir archivos de la Nube con enlace privado. verify_jwt=false porque convive: acciones de personal (la función exige JWT, cloud.share
 # y poder ver el archivo) y vista pública por token opaco (solo se guarda su SHA-256; vence, se revoca y deja bitácora).
 [functions.cloud-share]
@@ -112,4 +116,16 @@ verify_jwt = true
 # del handler); el celular no tiene sesión y se autentica con el token de un solo uso del QR y
 # después con el secreto de dispositivo (hash SHA-256 en tiempo constante). Las sesiones vencen a los 90 min.
 [functions.mila-interview]
+verify_jwt = false
+
+# Sesión clínica y alcance al paciente comprobados dentro del handler con requireUser y requirePermission.
+[functions.periodontal-summary]
+verify_jwt = false
+
+# Aviso de privacidad automático por WhatsApp: sesión y permiso patients.manage comprobados dentro del handler (requireUser + requirePermission).
+[functions.privacy-notice-dispatch]
+verify_jwt = false
+
+# Horarios libres para el asistente de IA de LANA (solo lectura). verify_jwt=false: la autentica la firma HMAC (SMYL_LANA_SCHEDULING_SECRET).
+[functions.lana-scheduling]
 verify_jwt = false

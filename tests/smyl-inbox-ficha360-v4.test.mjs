@@ -12,14 +12,14 @@ const schedule = read('smyl-schedule.js');
 
 const build = js.slice(js.indexOf('function buildFicha360('), js.indexOf('function wrapPanel('));
 
-test('la ficha ordena resumen, cuenta, citas, atenciones realizadas y archivos sin repetir Agendar', () => {
-  const order = ["id: 'summary'", "id: 'cuenta'", "id: 'citas'", "sections.push(careHistorySection(", "id: 'files'"].map((key) => build.indexOf(key));
+test('el perfil ordena resumen, cuenta, citas y atenciones sin repetir la pestaña Archivos ni Agendar', () => {
+  const order = ["id: 'summary'", "id: 'cuenta'", "id: 'citas'", "sections.push(careHistorySection("].map((key) => build.indexOf(key));
   assert.ok(order.every((index) => index > 0), 'faltan bloques');
   assert.deepEqual([...order].sort((a, b) => a - b), order, 'el orden cambió');
-  assert.doesNotMatch(build, /tabs\.push|id: 'clinico'|id: 'timeline'|id: 'atencion'/);
+  assert.doesNotMatch(build, /sections\.push\(\{\s*id: 'files'|id: 'clinico'|id: 'timeline'|id: 'atencion'/);
   // La ficha ya no lleva botones grandes: ni Expediente, ni Cobrar (vive en Cuenta), ni Agendar.
-  const shell = build.slice(build.indexOf('return F.shell('));
-  assert.ok(shell.startsWith('return F.shell('), 'se construye la ficha');
+  const shell = build.match(/F\.shell\(\{[\s\S]*?\n\s*\}\)/)?.[0];
+  assert.ok(shell, 'se construye la ficha');
   assert.doesNotMatch(shell, /\bactions\s*:|'record'|'payment'|'schedule'|Agendar cita|Expediente/);
 });
 
@@ -37,7 +37,9 @@ test('se retiran tarjetas que no son del paciente y la capacitación deja de ser
   assert.match(js, /badge: 'IA'/, 'el resumen con IA se conserva');
 });
 
-test('la Ficha 360 conserva los ajustes sin repetir el selector de la cabecera', () => {
+test('sin pie de enlaces en la ficha: los ajustes siguen en el menú de herramientas del chat', () => {
+  assert.doesNotMatch(js, /smyl-f360-tools|Acciones de la ficha/);
+  assert.match(js, /querySelector\('\[data-compose-tools\]'\)\.append\(settings\)/);
   assert.match(js, /settings\.dataset\.threadSettings/);
   assert.match(js, /settings\.onclick = openConversationSettings/);
   assert.match(js, /data-settings-dialog/);
@@ -69,13 +71,13 @@ test('la lista de citas separa próximas y anteriores, con tratamiento, dentista
 
 test('web, móvil y PWA publican la ficha 360 v4', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-inbox-ficha\.js\?v=11/);
-    assert.match(read(file), /smyl-inbox\.js\?v=73/);
-    assert.match(read(file), /smyl-inbox\.css\?v=62/);
-    assert.match(read(file), /smyl-schedule\.js\?v=46/);
-    assert.match(read(file), /smyl-finance\.js\?v=58/);
+    assert.match(read(file), /smyl-inbox-ficha\.js\?v=12/);
+    assert.match(read(file), /smyl-inbox\.js\?v=95/);
+    assert.match(read(file), /smyl-inbox\.css\?v=79/);
+    assert.match(read(file), /smyl-schedule\.js\?v=59/);
+    assert.match(read(file), /smyl-finance\.js\?v=73/);
   }
-  assert.match(read('sw.js'), /-ficha360-v4-finanzas-workspace-v5-datos-paciente-v1-expediente-orden-v2-constancia-domicilio-v1-equipo-whatsapp-v1-equipo-horarios-v1-equipo-listo-v1-planes-v1-openpay-v1';/);
+  assert.match(read('sw.js'), /-ficha360-v4-finanzas-workspace-v5-datos-paciente-v1-expediente-orden-v2-constancia-domicilio-v1-constancia-chat-v1[-';]/);
   assert.match(read('sw.js'), /-chat-access-v1-citas-pipeline-v2-panel-v2';/);
   for (const file of ['smyl-inbox.js', 'smyl-inbox-ficha.js', 'smyl-inbox.css', 'smyl-schedule.js', 'smyl-finance.js', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);

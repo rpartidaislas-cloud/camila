@@ -2,9 +2,8 @@
 // Es supabase/functions/segment-teeth/index.ts con sus archivos de _shared incluidos,
 // para pegarlo en el editor de Edge Functions del panel de Supabase.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { decode as decodeImage, Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { decode as decodeImage, Image } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 
 // ── _shared/auth-membership.ts ──
 const { decidirMembresia } = (() => {
@@ -238,7 +237,7 @@ return { constantTimeEqual, parseAllowedHostSuffixes, isAllowedRemoteUrl, isAllo
 })();
 
 // ── _shared/limits.ts ──
-const { checkLimitSinConsumir, checkAndConsumeLimit, checkAndConsumeLimitProspecto, checkLimitPorIpProspecto } = (() => {
+const { ipDelRequest, checkLimitSinConsumir, checkAndConsumeLimit, checkAndConsumeLimitProspecto, checkLimitPorIpProspecto } = (() => {
 // Tope de gasto server-side para las Edge Functions que llaman APIs de
 // pago (Anthropic, Gemini, Replicate). Antes el límite de plan
 // (limite_diagnosticos/diagnosticos_usados) solo se checaba en el cliente
@@ -289,10 +288,16 @@ function limitDeny(cors: Record<string, string>, status: number, msg: string): R
   return new Response(JSON.stringify({ error: msg }), { status, headers });
 }
 
+// La IP para los topes sale de la cabecera que pone el borde de Cloudflare (el cliente no puede sobrescribirla). x-forwarded-for puede traer
+// valores escritos por el propio cliente, así que solo se usa si no hay otra; antes iba primero y permitía saltarse el límite cambiando esa cabecera.
 function ipDelRequest(req: Request): string {
+  const cf = (req.headers.get('cf-connecting-ip') || '').trim();
+  if (cf) return cf;
+  const real = (req.headers.get('x-real-ip') || '').trim();
+  if (real) return real;
   const fwd = req.headers.get('x-forwarded-for');
-  if (fwd) return fwd.split(',')[0].trim();
-  return req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || 'sin-ip';
+  if (fwd) return fwd.split(',')[0].trim() || 'sin-ip';
+  return 'sin-ip';
 }
 
 const MENSAJES_TENANT: Record<string, string> = {
@@ -301,6 +306,12 @@ const MENSAJES_TENANT: Record<string, string> = {
   plan_vencido: 'Tu plan venció. Renueva tu suscripción para seguir generando simulaciones.',
   limite_alcanzado: 'Alcanzaste el límite de diagnósticos de tu plan en este periodo.',
 };
+
+// Si no se puede VERIFICAR el límite (RPC no desplegada, base degradada), se rechaza: es preferible un error visible y reintentable
+// a dejar pasar gasto de IA o envíos sin tope. Antes estos casos fallaban abiertos.
+function limiteNoVerificable(cors: Record<string, string>): LimitResult {
+  return { allowed: false, response: limitDeny(cors, 503, 'No pudimos verificar tu límite de uso en este momento. Intenta de nuevo en unos minutos.') };
+}
 
 // Verifica que la clínica pueda seguir generando, SIN descontarle nada.
 // Existe porque una sola simulación hace VARIAS llamadas a la Edge
@@ -322,11 +333,9 @@ async function checkLimitSinConsumir(
     .eq('id', tenantId)
     .maybeSingle();
 
-  // Falla de infraestructura ajena al usuario -- mismo criterio que el
-  // resto de este archivo: no bloquear por eso, dejar rastro en los logs.
   if (error) {
     console.error('[limits] error verificando tenant:', error.message);
-    return { allowed: true, response: null };
+    return limiteNoVerificable(cors);
   }
   if (!data) return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT.tenant_no_encontrado) };
   if (!data.activo) return { allowed: false, response: limitDeny(cors, 402, MENSAJES_TENANT.plan_inactivo) };
@@ -349,11 +358,8 @@ async function checkAndConsumeLimit(
   if (tenantId) {
     const { data, error } = await admin.rpc('camila_consumir_diagnostico', { p_tenant_id: tenantId });
     if (error) {
-      // Falla de infraestructura ajena al usuario (RPC no desplegada,
-      // conexión a la BD caída, etc.) -- no lo bloqueamos por eso, mejor
-      // dejar pasar y que quede en los logs.
       console.error('[limits] error RPC camila_consumir_diagnostico:', error.message);
-      return { allowed: true, response: null };
+      return limiteNoVerificable(cors);
     }
     const fila = Array.isArray(data) ? data[0] : data;
     if (!fila?.permitido) {
@@ -380,7 +386,7 @@ async function checkLimitPorIp(
   });
   if (error) {
     console.error('[limits] error RPC camila_anon_rate_check:', error.message);
-    return { allowed: true, response: null };
+    return limiteNoVerificable(cors);
   }
   if (!data) {
     return {
@@ -422,7 +428,7 @@ async function checkLimitPorIpProspecto(
   return checkLimitPorIp(req, PROSPECTO_LIMITE_POR_HORA, cors);
 }
 
-return { checkLimitSinConsumir, checkAndConsumeLimit, checkAndConsumeLimitProspecto, checkLimitPorIpProspecto };
+return { ipDelRequest, checkLimitSinConsumir, checkAndConsumeLimit, checkAndConsumeLimitProspecto, checkLimitPorIpProspecto };
 })();
 
 // ── _shared/cors.ts ──
@@ -457,6 +463,54 @@ const corsPublic: Record<string, string> = {
 const corsHeaders = corsPublic;
 
 return { makeCors, corsPublic, corsHeaders };
+})();
+
+// ── _shared/privacy-core.mjs ──
+const { MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_SIN_AUTORIZACION, MENSAJE_IA_NO_VERIFICABLE, decidirIA } = (() => {
+// Permiso del paciente para que sus datos pasen por herramientas de IA de proveedores externos (finalidad 'ai_processing').
+// Regla (LFPDPPP: los datos de salud son sensibles y requieren consentimiento EXPRESO): solo se usa la IA cuando el paciente
+// la autorizó ('granted'). Sin decisión registrada ('unknown') o si la retiró ('revoked') no se manda nada a la IA.
+// Si no se puede comprobar (error de base de datos) también se bloquea: ante la duda no se manda nada a un tercero.
+const MENSAJE_IA_NO_PERMITIDA = 'Este paciente no autorizó el uso de inteligencia artificial con sus datos. Captura o revisa esto manualmente.';
+const MENSAJE_IA_SIN_AUTORIZACION = 'Este paciente aún no autoriza el uso de inteligencia artificial. Registra su autorización en Privacidad (o pídele que firme el aviso) antes de usar la IA.';
+const MENSAJE_IA_NO_VERIFICABLE = 'No se pudo comprobar el permiso de IA del paciente. Inténtalo de nuevo en un momento.';
+
+/** Convierte la respuesta de smyl_patient_privacy_state en una decisión: 'allowed' | 'missing' | 'revoked' | 'unavailable'. */
+function decidirIA(result: any) {
+  if (!result || result.error) return 'unavailable';
+  const state = result.data;
+  if (state === 'granted') return 'allowed';
+  if (state === 'revoked') return 'revoked';
+  if (state === 'unknown') return 'missing';
+  return 'unavailable';
+}
+
+return { MENSAJE_IA_NO_PERMITIDA, MENSAJE_IA_SIN_AUTORIZACION, MENSAJE_IA_NO_VERIFICABLE, decidirIA };
+})();
+
+// ── _shared/privacy.ts ──
+const { permisoIA, respuestaIAnegada } = (() => {
+// Candado de privacidad para las funciones que mandan datos de un paciente a una IA externa. La regla vive en privacy-core.mjs.
+
+type PermisoIA = 'allowed' | 'missing' | 'revoked' | 'unavailable';
+
+// deno-lint-ignore no-explicit-any
+async function permisoIA(admin: any, tenantId: string, patientId: string): Promise<PermisoIA> {
+  try {
+    const result = await admin.rpc('smyl_patient_privacy_state', { p_tenant: tenantId, p_patient: patientId, p_purpose: 'ai_processing' });
+    return decidirIA(result);
+  } catch { return 'unavailable'; }
+}
+
+/** Respuesta lista para devolver cuando NO se puede usar IA con este paciente; null si se puede continuar. */
+function respuestaIAnegada(permiso: PermisoIA): { status: number; body: { error: string; code: string } } | null {
+  if (permiso === 'allowed') return null;
+  if (permiso === 'revoked') return { status: 403, body: { error: MENSAJE_IA_NO_PERMITIDA, code: 'patient_ai_not_allowed' } };
+  if (permiso === 'missing') return { status: 403, body: { error: MENSAJE_IA_SIN_AUTORIZACION, code: 'patient_ai_consent_missing' } };
+  return { status: 503, body: { error: MENSAJE_IA_NO_VERIFICABLE, code: 'patient_ai_unverifiable' } };
+}
+
+return { permisoIA, respuestaIAnegada };
 })();
 
 // ── _shared/mask-utils.ts ──
@@ -1181,7 +1235,7 @@ async function uploadAll(
 }
 
 serve(async (req) => {
-  const corsHeaders = { ...makeCors(req), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id" };
+  const corsHeaders = { ...makeCors(req), "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-tenant-id, x-smyl-patient-id" };
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   // Falta de configuración, no del usuario: sin esto el fallo salía como
@@ -1203,6 +1257,13 @@ serve(async (req) => {
   // POST sin credenciales.
   const { user, tenantId: tenantIdSesion, response: authError } = await requireUser(req, corsHeaders);
   if (authError) return authError;
+
+  // El simulador abierto desde el expediente dice de qué paciente es la foto: si negó la IA, no sale hacia el proveedor externo.
+  const pacienteSimulador = req.headers.get("x-smyl-patient-id") || "";
+  if (user && tenantIdSesion && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pacienteSimulador)) {
+    const negadaSimulador = respuestaIAnegada(await permisoIA(createClient(SB_URL, SB_SERVICE_ROLE_KEY), tenantIdSesion, pacienteSimulador));
+    if (negadaSimulador) return new Response(JSON.stringify(negadaSimulador.body), { status: negadaSimulador.status, headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" } });
+  }
 
   // La segmentación es un paso interno de UNA simulación. La generación
   // principal ya descuenta esa simulación del plan; volver a descontar por
@@ -1235,6 +1296,14 @@ serve(async (req) => {
   }
 
   const { imageUrl, casoId, tenantId: tenantIdBody, target: targetRaw } = body || {};
+  // Consentimiento expreso de IA capturado en pantalla (ver claude/index.ts). Con SMYL_REQUIRE_SIM_AI_CONSENT=true es obligatorio.
+  const consentimientoIA = typeof body?.aiConsent === "string" && !Number.isNaN(Date.parse(body.aiConsent));
+  console.log(JSON.stringify({ event: "simulation_ai_consent", fn: "segment-teeth", attested: consentimientoIA }));
+  if (!consentimientoIA && Deno.env.get("SMYL_REQUIRE_SIM_AI_CONSENT") === "true") {
+    return new Response(JSON.stringify({ error: "Falta confirmar que el paciente autorizó procesar sus fotos con IA.", code: "patient_ai_consent_missing" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
   const target: Target = targetRaw === "gum" || targetRaw === "treatment" ? targetRaw : "tooth";
   if (!imageUrl) {
     return new Response(JSON.stringify({ error: "imageUrl es requerido" }), {

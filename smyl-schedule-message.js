@@ -286,5 +286,9 @@
     start();
   }
 
-  return { mount: mount, options: options, render: render, fill: fill, pickLinks: pickLinks, SUGGESTED: SUGGESTED };
+  // Para otros módulos (avisos de cita): plantillas aprobadas y envío de una plantilla con idempotencia.
+  function sendTemplate(conversationId, templateId, values, key) {
+    return call('POST', { action: 'send', conversation_id: conversationId, type: 'template', template_id: templateId, template_variables: values }, key || uuid());
+  }
+  return { mount: mount, options: options, render: render, fill: fill, pickLinks: pickLinks, SUGGESTED: SUGGESTED, approvedTemplates: approvedTemplates, sendTemplate: sendTemplate, friendly: friendly, uuid: uuid };
 });

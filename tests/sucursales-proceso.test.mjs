@@ -5,11 +5,12 @@ import fs from 'node:fs';
 const js = fs.readFileSync(new URL('../smyl-clinic-admin.js', import.meta.url), 'utf8');
 const css = fs.readFileSync(new URL('../smyl-clinic-admin.css', import.meta.url), 'utf8');
 
-test('sucursales: proceso por pasos con datos, espacios, horarios, equipo y resumen', () => {
-  for (const key of ['datos', 'espacios', 'horarios', 'equipo', 'resumen']) assert.match(js, new RegExp("key: '" + key + "'"));
+test('sucursales: proceso compacto con datos, operación, equipo y resumen', () => {
+  for (const key of ['datos', 'operacion', 'equipo', 'resumen']) assert.match(js, new RegExp("key: '" + key + "'"));
   assert.match(js, /function firstPendingStep\(readiness\)/);
   assert.match(js, /Guardar y continuar/);
-  assert.match(js, /state\.branchStep\[branch\.id\] = 'espacios'/);
+  assert.match(js, /state\.branchStep\[branch\.id\] = 'operacion'/);
+  assert.match(js, /clinic-admin-operation-grid/);
 });
 test('sucursales: la dirección y la ciudad cuentan para que la sede esté lista', () => {
   assert.match(js, /ready: address && rooms\.length > 0 && hours\.length > 0/);

@@ -10,7 +10,7 @@
 .tpl-how>summary{margin-bottom:10px;color:#16324F;font-size:13px;font-weight:600;cursor:pointer}
 .tpl-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0;padding:0;list-style:none}
 .tpl-steps li{display:flex;gap:12px;padding:14px;border:1px solid #DCE4EC;border-radius:10px;background:#fff}
-.tpl-steps b{flex:0 0 auto;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#E4F1EE;color:#1F6358;font-size:13px;font-weight:600}
+.tpl-steps b{flex:0 0 auto;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#e4eaf1;color:#303fa4;font-size:13px;font-weight:600}
 .tpl-steps strong{display:block;margin-bottom:2px;color:#16324F;font-size:13px;font-weight:600}
 .tpl-steps span{color:#526477;font-size:12px;line-height:1.5}
 .tpl-rules{margin-bottom:18px;border:1px solid #DCE4EC;border-radius:10px;background:#fff}
@@ -26,7 +26,7 @@
 .tpl-toolbar input{min-height:38px;padding:0 10px;border:1px solid #D4DEE8;border-radius:8px;background:#fff;color:#26394D;font:500 13px Inter,sans-serif;justify-self:end;width:min(340px,100%)}
 .tpl-group-tabs{grid-column:1/-1;display:flex;gap:6px;overflow-x:auto;padding:2px 0 4px;scrollbar-width:thin}
 .tpl-group-tabs button{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 11px;border:1px solid #D4DEE8;border-radius:9px;background:#fff;color:#526477;font:600 12px Inter,sans-serif;white-space:nowrap;cursor:pointer}
-.tpl-group-tabs button[aria-pressed="true"]{border-color:#16324F;background:#16324F;color:#fff}
+.tpl-group-tabs button[aria-pressed="true"]{border-color:#131e52;background:#131e52;color:#fff}
 .tpl-group-tabs b{font-size:12px;opacity:.72}
 .tpl-count{margin:0 0 12px;color:#64748B;font-size:12px}
 .tpl-grid{display:flex;flex-direction:column;gap:24px}
@@ -40,7 +40,7 @@
 .tpl-when{margin:0;color:#64748B;font-size:12px;line-height:1.5}
 .tpl-chips{display:flex;flex-wrap:wrap;gap:6px}
 .tpl-chip{padding:2px 8px;border-radius:999px;background:#EEF2F6;color:#526477;font-size:11px;font-weight:600}
-.tpl-chip[data-category="UTILITY"]{background:#E4F1EE;color:#1F6358}
+.tpl-chip[data-category="UTILITY"]{background:#e4eaf1;color:#303fa4}
 .tpl-chip[data-category="MARKETING"]{background:#FFF1E0;color:#93580B}
 .tpl-chip-status[data-state="approved"]{background:#DDF3E6;color:#17663B}
 .tpl-chip-status[data-state="missing"]{background:#F1F5F9;color:#526477}
@@ -62,9 +62,9 @@
 .tpl-bubble-header{display:block;margin-bottom:4px;font-size:13px;font-weight:600}
 .tpl-bubble-body{margin:0;font-size:13px;line-height:1.55;white-space:pre-wrap}
 .tpl-bubble-footer{display:block;margin-top:6px;color:#64748B;font-size:11px}
-.tpl-var{padding:0 3px;border-radius:4px;background:rgba(40,121,110,.14);color:#1D5F55;font-weight:500}
+.tpl-var{padding:0 3px;border-radius:4px;background:rgba(57, 74, 185,.14);color:#2d3da0;font-weight:500}
 .tpl-buttons{display:grid;gap:6px;margin-top:-4px}
-.tpl-buttons span{padding:7px 10px;border:1px solid #D4DEE8;border-radius:8px;background:#fff;color:#1D658F;font-size:12px;font-weight:600;text-align:center}
+.tpl-buttons span{padding:7px 10px;border:1px solid #D4DEE8;border-radius:8px;background:#fff;color:#273ed7;font-size:12px;font-weight:600;text-align:center}
 .tpl-note{margin:0;padding:8px 10px;border-radius:8px;background:#FFF8EC;color:#7A4B0A;font-size:12px;line-height:1.5}
 .tpl-details summary{color:#526477;font-size:12px;font-weight:600;cursor:pointer}
 .tpl-facts{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:8px 0 0;font-size:12px}
@@ -84,3 +84,8 @@
 }
 
 .tpl-status-skeleton{display:block;min-width:180px;flex:1 1 180px;max-width:320px}
+.tpl-auto{margin:12px 0 4px;padding:12px 14px;border:1px solid #d4dbe1;border-radius:12px;background:#f7f8fa}
+.tpl-auto .priv-switch{display:flex;align-items:center;gap:12px;min-height:44px;font-weight:600;cursor:pointer}
+.tpl-auto .priv-switch input{width:24px;height:24px;accent-color:#2a40d1}
+.tpl-auto .priv-muted{margin:6px 0;font-size:13px;line-height:1.5;color:#525465}
+.tpl-auto .priv-note{margin:6px 0;padding:8px 10px;border-radius:8px;background:#fff6dd;color:#7a5200;font-size:13px}

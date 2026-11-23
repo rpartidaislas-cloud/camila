@@ -16,6 +16,8 @@ after(async () => { await browser?.close(); });
 test('El responsable es explícito: no se autoasigna al abrir y sólo el equipo con permiso puede cambiarlo', () => {
   const header = js.slice(js.indexOf('<header class="smyl-inbox-thread-head"'), js.indexOf('</header>', js.indexOf('<header class="smyl-inbox-thread-head"')));
   assert.match(header, /data-thread-owner/);
+  const order = ['data-inbox-context', 'data-thread-owner', 'data-thread-branch-wrap', 'data-thread-mode', 'data-thread-carebar'].map(key => header.indexOf(key));
+  assert.ok(order.every((position,i) => position >= 0 && (!i || position > order[i - 1])), 'la persona de contacto y el responsable preceden las acciones de atención');
   assert.doesNotMatch(header, /data-thread-more|Más acciones/);
   const assign = js.slice(js.indexOf('function changeChatOwner('), js.indexOf('async function loadTeam('));
   assert.match(assign, /conversation.id !== conversationId/);
@@ -35,25 +37,50 @@ for (const width of [1440, 1024, 390]) {
     await page.goto(fixture.href+(width<500 ? '&mobile=1' : ''));
     await page.waitForSelector('html[data-preview-ready=true]');
     const assign=page.locator('[data-thread-assign]'), menu=page.locator('[data-thread-more]'), schedule=page.locator('[data-thread-primary-action="schedule"]');
+    const ownerButton = page.getByRole('button',{name:/Atiende el chat/});
     async function checkWidth() {
       const header = await page.locator('.smyl-inbox-thread-head').boundingBox();
-      for(const control of [assign,schedule]) {
+      const identity = page.locator('[data-inbox-context]');
+      assert.ok(await identity.evaluate(el => el.nextElementSibling?.matches('[data-thread-owner]')), 'Ficha y asignación son controles vecinos e independientes');
+      for(const control of [identity,ownerButton,schedule]) {
         const box=await control.boundingBox(); assert.ok(box && box.width>0 && box.x>=header.x-1 && box.x+box.width<=header.x+header.width+1,'Header action fits at '+width);
+      }
+      if (header.width > 830) {
+        const name = await identity.boundingBox(), owner = await ownerButton.boundingBox();
+        assert.ok(owner.x >= name.x + name.width - 1 && owner.x <= name.x + name.width + 25 && Math.abs(name.y + name.height / 2 - owner.y - owner.height / 2) < 12, 'en escritorio el responsable se ve al lado del contacto');
       }
     }
     await checkWidth();
+    const privateNote = page.locator('[data-owner-dialog] [data-handoff]');
+    await ownerButton.click();
+    assert.equal(await privateNote.isVisible(), false);
     await assign.selectOption('desk-preview');
     const dialog = page.locator('[data-chat-transfer][open]');
     await dialog.locator('textarea').fill('Llamar después de las cuatro.');
     await dialog.locator('[type=submit]').click();
-    await page.locator('[data-handoff] summary').click();
-    assert.equal(await page.locator('[data-handoff] p').innerText(), 'Llamar después de las cuatro.');
+    await page.waitForFunction(() => document.querySelector('[data-thread-owner-name]').textContent === 'Sofía · Recepción');
+    const timeline = page.locator('[data-thread-body]');
+    const beforeOpen = await timeline.boundingBox();
+    await ownerButton.focus(); await ownerButton.press('Enter');
+    const noteText = privateNote.locator('p');
+    assert.equal(await noteText.innerText(), 'Llamar después de las cuatro.');
+    assert.equal(await noteText.isVisible(),true);
+    const box = await privateNote.boundingBox();
+    assert.ok(box.x >= 0 && box.x + box.width <= width + 1);
+    const afterOpen = await timeline.boundingBox();
+    assert.ok(Math.abs(beforeOpen.y-afterOpen.y) <= 1,'abrir la nota no desplaza los mensajes');
+    await page.keyboard.press('Escape');
+    assert.equal(await noteText.isVisible(),false);
+    assert.ok(await ownerButton.evaluate(el => document.activeElement === el));
     assert.ok(!(await page.locator('[data-thread-messages]').innerText()).includes('Llamar después de las cuatro.'));
     assert.equal(await page.locator('[name=message]').inputValue(), '');
-    await page.waitForFunction(() => document.querySelector('[data-thread-owner-name]').textContent === 'Sofía · Recepción');
+    await ownerButton.click();
     await assign.selectOption('owner-preview');
     await dialog.locator('[type=submit]').click();
     await page.waitForFunction(() => document.querySelector('[data-thread-owner-name]').textContent === 'Dra. Mariana');
+    assert.equal(await privateNote.isVisible(),false);
+    assert.equal(await noteText.textContent(),'');
+    await ownerButton.click();
     await assign.selectOption('');
     await dialog.locator('[type=submit]').click();
     await page.waitForFunction(() => document.querySelector('[data-thread-owner-name]').textContent === 'Sin asignar');
@@ -63,6 +90,48 @@ for (const width of [1440, 1024, 390]) {
     await checkWidth(); assert.deepEqual(errors,[]);
   });
 }
+
+for (const width of [1440, 820, 390]) test('Filtros sólo contiene estado y canal, con teclado y sin perder la operación global a '+width+' px', async t => {
+  if (!browser) return t.skip('Se necesita Chromium.');
+  const page = await browser.newPage({viewport:{width,height:900}, hasTouch:width<900});
+  t.after(() => page.close());
+  await page.goto(fixture.href);
+  await page.waitForSelector('html[data-preview-ready=true]');
+  if (width<800) await page.locator('[data-inbox-back]').click();
+  const top = page.locator('.smyl-inbox-top');
+  assert.equal(await top.getByRole('tab').count(),2);
+  assert.equal(await top.locator('[data-inbox-notify], [data-inbox-operations], [data-inbox-live]').count(),0);
+  const live = page.locator('[data-inbox-live]');
+  assert.equal(await live.count(),1);
+  assert.equal(await live.isVisible(),false, 'un chat sincronizado no muestra estado permanente');
+  const filters = page.locator('[data-inbox-filter-more]');
+  await filters.focus();
+  await filters.press('Enter');
+  const panel = page.locator('[data-inbox-filter-panel]');
+  await panel.waitFor();
+  assert.equal(await page.locator('[data-inbox-notify],[data-inbox-operations],[data-inbox-bulk],[data-inbox-refresh]').count(),0);
+  const paused=panel.locator('[data-inbox-filter="paused"]'), channel=panel.getByRole('combobox');
+  assert.equal(await panel.getByRole('button').count(),3);
+  assert.equal(await channel.inputValue(),'');
+  assert.equal(await panel.evaluate(el=>el.contains(document.activeElement)),true);
+  await paused.click();
+  assert.equal(await paused.getAttribute('aria-pressed'),'true');
+  await channel.selectOption('instagram');
+  await paused.click();
+  assert.equal(await paused.getAttribute('aria-pressed'),'false');
+  assert.equal(await channel.inputValue(),'instagram');
+  assert.equal(await filters.getAttribute('data-active'),'true');
+  await channel.selectOption('');
+  assert.equal(await filters.getAttribute('data-active'),'false');
+  const box=await panel.boundingBox(); assert.ok(box.x>=0 && box.x+box.width<=width+1);
+  if(process.env.SMYL_QA_SHOTS) await panel.screenshot({path:process.env.SMYL_QA_SHOTS+'/inbox-filtros-'+width+'.png'});
+  await channel.press('Escape');
+  assert.equal(await panel.isVisible(),false);
+  assert.equal(await filters.evaluate(el=>el===document.activeElement),true);
+  await page.evaluate(()=>window.SmylInbox.openOperations());
+  await page.locator('[data-operations-dialog][open]').waitFor();
+  await page.locator('[data-operations-close]').click();
+});
 
 test('El selector consulta cada chat y sede, descarta respuestas fuera de orden y permite reintentar', async t => {
   if (!browser) return t.skip('Se necesita Chromium.');
@@ -91,7 +160,7 @@ test('El selector consulta cada chat y sede, descarta respuestas fuera de orden 
         if (!['list','messages'].includes(action)) return previewFetch(input, init);
         const response = await (await previewFetch(input, init)).json();
         function located(base, convoId, site) {
-          return {...base,id:convoId,branch:{id:site,name:site},contact_name:convoId};
+          return {...base,id:convoId,branch:{id:site,name:site},contact_name:convoId,private_handoff_note:convoId === 'c-preview' ? (window.updatedHandoff || 'Relevo exclusivo del primer chat.') : null};
         }
         if (action === 'messages') response.conversation = located(response.conversation, id, branch);
         else {
@@ -109,7 +178,19 @@ test('El selector consulta cada chat y sede, descarta respuestas fuera de orden 
   const assign = page.locator('[data-thread-assign]');
   const members = () => assign.locator('option:not(:disabled)').evaluateAll(options => options.map(option => option.value));
   const openSecond = () => page.evaluate(() => window.SmylInbox.open('c-second'));
+  const ownerButton = page.locator('[data-thread-owner]');
+  await ownerButton.click();
+  assert.equal(await page.locator('[data-handoff] p').innerText(), 'Relevo exclusivo del primer chat.');
+  await page.evaluate(() => {
+    window.updatedHandoff = 'Relevo actualizado por el equipo.';
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.waitForFunction(() => document.querySelector('[data-handoff] p').textContent === window.updatedHandoff);
+  assert.ok(await page.locator('[data-owner-dialog]').isVisible(), 'se actualiza la nota sin cerrar lo que se está leyendo');
   await openSecond();
+  assert.equal(await page.locator('[data-owner-dialog]').isVisible(), false);
+  assert.equal(await page.locator('[data-handoff]').isVisible(), false);
+  assert.equal(await page.locator('[data-handoff] p').textContent(), '');
   await assign.locator('option[value=centro]').waitFor({state:'attached'});
   await page.evaluate(() => window.releaseNorth());
   await openSecond();
@@ -119,6 +200,7 @@ test('El selector consulta cada chat y sede, descarta respuestas fuera de orden 
   await page.evaluate(() => { window.secondBranch = 'sur'; });
   await openSecond();
   const retry = page.locator('[data-thread-owner-retry]');
+  await ownerButton.click();
   await retry.waitFor();
   assert.ok(await assign.isDisabled());
   assert.ok(!(await members()).includes('centro'));
@@ -126,10 +208,6 @@ test('El selector consulta cada chat y sede, descarta respuestas fuera de orden 
   await assign.locator('option[value=sur]').waitFor({state:'attached'});
   assert.deepEqual(await members(), ['', 'shared', 'sur']);
 
-  await page.locator('[data-inbox-bulk]').evaluate(button => button.click());
-  for (const id of ['c-preview','c-second']) await page.locator('[data-conversation-id="'+id+'"].smyl-inbox-row').click();
-  const bulk = page.getByRole('combobox', {name:'Responsable para seleccionadas'});
-  assert.deepEqual(await bulk.locator('option').evaluateAll(options => options.map(option => option.value)), ['', 'shared']);
   assert.deepEqual(await page.evaluate(() => window.rosterRequests), ['c-preview/norte','c-second/centro','c-second/sur','c-second/sur']);
 });
 
@@ -140,6 +218,7 @@ test('Al transferir su conversación el agente pierde el hilo incluso desde el e
   await page.goto(fixture.href+'&chat=agent');
   await page.waitForSelector('html[data-preview-ready=true]');
   const assign=page.locator('[data-thread-assign]');
+  await page.locator('[data-thread-owner]').click();
   await assign.selectOption('desk-preview');
   await page.locator('[data-chat-transfer] textarea').fill('Contactar por la tarde');
   await page.locator('[data-chat-transfer] [type=submit]').click();
@@ -213,6 +292,7 @@ test('Dos sesiones comparten el relevo sin publicar la nota en el canal del paci
   const sender=await login('owner-preview'), recipient=await login('desk-preview');
   assert.equal(await recipient.locator('.smyl-inbox-row').count(),0);
   const select=sender.locator('[data-thread-assign]');
+  await sender.locator('[data-thread-owner]').click();
   await select.selectOption('desk-preview');
   await sender.locator('[data-chat-transfer] textarea').fill('Pidió que le llamemos por la tarde.');
   await sender.getByRole('button',{name:'Cancelar',exact:true}).click();
@@ -222,7 +302,7 @@ test('Dos sesiones comparten el relevo sin publicar la nota en el canal del paci
   await sender.locator('[data-chat-transfer] [type=submit]').click();
   await sender.waitForFunction(()=>document.querySelector('[data-inbox-thread]').hidden);
   await recipient.evaluate(()=>window.SmylInbox.open('c-preview'));
-  await recipient.locator('[data-handoff] summary').click();
+  await recipient.locator('[data-thread-owner]').click();
   assert.equal(await recipient.locator('[data-handoff] p').innerText(),note);
   assert.ok(!(await recipient.locator('[data-thread-messages]').innerText()).includes(note));
   assert.equal(sends,0);

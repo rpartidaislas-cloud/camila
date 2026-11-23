@@ -23,10 +23,9 @@ function functionSource(source, name) {
 }
 
 test('Inicio prioriza la jornada, atención y mensajes sin duplicar el menú', () => {
-  for (const label of ['Todo al día','Mi jornada','en clínica','por llegar','terminada','Mensajes recientes','ATENCIÓN REQUERIDA','CONVERSACIONES','Resumen del mes','Nueva cita']) assert.match(script, new RegExp(label));
+  for (const label of ['Todo al día','Mi jornada','en clínica','por llegar','terminada','Mensajes recientes','Requiere atención','Resumen mensual de la clínica']) assert.match(script, new RegExp(label));
   for (const route of ["route('agenda')","route('inbox')","route('reportes')"]) assert.match(script, new RegExp(route.replace(/[()]/g,'\\$&')));
-  assert.match(script,/SmylCareTasks\.open/);
-  assert.doesNotMatch(script, /data-home-task=|daily-home-shortcuts|window\.abrirModalPaciente/);
+  assert.doesNotMatch(script, /data-home-task=|data-home-new-appointment|daily-home-shortcuts|window\.abrirModalPaciente|SmylCareTasks\.open\('appointment'\)/);
   assert.doesNotMatch(script, /insert\(|update\(|delete\(/);
 });
 
@@ -44,23 +43,56 @@ test('Mensajería publica solo su resumen operativo al Inicio', () => {
   assert.match(script, /smyl:attention-updated/);
 });
 
+test('las conversaciones que necesitan asesor no se cuentan como mensajes sin leer', () => {
+  const inbox = {}, metrics = {};
+  const document = {querySelector: selector => ({'[data-home-metrics]': metrics, '[data-home-inbox-line]': inbox})[selector]};
+  const state = {messages:{loaded:true, unread:0, total:4}};
+  const render = new Function('document','state','activeAppointments','can',
+    `${functionSource(script, 'renderMetrics')}; return renderMetrics;`)(document,state,() => [],() => true);
+  render();
+  assert.equal(inbox.hidden, true);
+  state.messages.unread = 2;
+  render();
+  assert.equal(inbox.hidden, false);
+  assert.equal(inbox.textContent, '2 sin leer');
+});
+
+test('el resumen mensual conserva los ceros reales y distingue los datos ausentes', async () => {
+  const section = {}, host = { dataset:{}, style:{setProperty(){}}, querySelectorAll:() => [] };
+  const document = {querySelector: selector => selector === '[data-home-month]' ? host : section};
+  const state = {month:{finance:true, collected:0, outstanding:null, newPatients:null, attendance:null}};
+  const render = new Function('document','state','flag','esc',
+    ['money','trend','monthTile','renderMonth'].map(name => functionSource(script,name)).join('\n') + '; return renderMonth;'
+  )(document,state,() => {},String);
+  render();
+  assert.match(host.innerHTML, /Cobrado este mes<\/span><strong>\$0<\/strong>/);
+  assert.match(host.innerHTML, /Por cobrar<\/span><strong>Sin dato<\/strong>/);
+  assert.match(host.innerHTML, /Pacientes nuevos<\/span><strong>Sin dato<\/strong>/);
+  const count = new Function('window', 'async ' + functionSource(script,'countRows') + '; return countRows;')({});
+  assert.equal(await count({count:null}), null);
+  assert.equal(await count({count:0}), 0);
+});
+
 test('La mesa de trabajo se distribuye en web, PWA y vista de QA', () => {
-  assert.match(app, /smyl-daily-home\.css\?v=16/);
-  assert.match(app, /smyl-daily-home\.js\?v=19/);
-  assert.match(app, /smyl-dashboard-v2\.css\?v=1/);
-  assert.ok(app.indexOf('smyl-dashboard-v2.css?v=1') > app.indexOf('smyl-ui-template-v3.css?v=8'), 'la capa del dashboard debe gobernar después de la plantilla global');
-  assert.match(app, /smyl-clinic-setup\.js\?v=6/);
+  assert.match(app, /smyl-daily-home\.css\?v=17/);
+  assert.match(app, /smyl-daily-home\.js\?v=21/);
+  assert.match(app, /smyl-dashboard-v2\.css\?v=2/);
+  const template = app.indexOf('smyl-ui-template-v3.css?v=');
+  assert.ok(template >= 0 && app.indexOf('smyl-dashboard-v2.css?v=2') > template, 'la capa del dashboard debe gobernar después de la plantilla global');
+  assert.match(app, /smyl-clinic-setup\.js\?v=8/);
   assert.match(app, /smyl-lana-attention\.js\?v=5/);
   assert.match(worker, /meta-cards-v13/);
   assert.match(worker, /patient-simulations-v70/);
-  assert.match(worker, /smyl-daily-home\.js\?v=19/);
-  assert.match(worker, /smyl-dashboard-v2\.css\?v=1/);
-  assert.match(worker, /dashboard-operativo-v2/);
+  assert.match(worker, /smyl-daily-home\.js\?v=21/);
+  assert.match(worker, /smyl-daily-home\.css\?v=17/);
+  assert.match(worker, /inicio-sin-nueva-cita-v1/);
+  assert.match(worker, /smyl-dashboard-v2\.css\?v=2/);
+  assert.match(worker, /dashboard-operativo-v3/);
   assert.match(styles, /daily-home-metrics/);
   assert.match(styles, /--smyl-primary/);
   assert.match(dashboardStyles, /daily-home-workbench/);
-  assert.match(dashboardStyles, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
-  assert.match(dashboardStyles, /@media\(max-width:560px\)/);
+  assert.ok(dashboardStyles.includes('grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr)'));
+  assert.ok(dashboardStyles.includes('@container clinic-home (min-width: 800px)'));
   assert.match(read('./fixtures/smyl-daily-home-stage4-preview.html'), /smyl-dashboard-v2\.css/);
   assert.equal(script, read('../mobile/www/smyl-daily-home.js'));
   assert.equal(styles, read('../mobile/www/smyl-daily-home.css'));
@@ -78,7 +110,7 @@ test('Inicio conserva a la vista las conversaciones recientes de Meta y prioriza
   assert.doesNotMatch(script, /last_message\|\|/);
   assert.doesNotMatch(script, /loadList|openConversation|insert\(|update\(/);
   assert.match(styles, /#lana-attention-dashboard\{display:none!important\}/);
-  assert.match(dashboardStyles, /\.daily-home-chat-strip\{[\s\S]*grid-template-columns:repeat\(auto-fit,minmax\(220px,1fr\)\)/);
+  assert.match(dashboardStyles, /\.daily-home-chat-strip\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/);
   const inbox = read('../smyl-inbox.js');
   assert.match(inbox, /fetchRecent: async function \(limit\)/);
   assert.match(inbox, /filter: 'all', limit: Math\.max\(1, Math\.min\(12/);
@@ -89,7 +121,7 @@ test('Inicio comparte pendientes con el Centro de alertas y calcula los indicado
   assert.match(center, /getTasks:function\(\)\{return state\.loaded\?tasks\(\):null;\}/);
   assert.match(center, /detail:\{pending:items\.length,unread_news:unread,items:items\}/);
   assert.match(script, /SmylTaskCenter/);
-  assert.match(script, /function renderPriorities\(tasks\)[\s\S]*?data-home-priority-title/);
+  assert.match(script, /function renderPriorities\(tasks\)[\s\S]*?data-home-priority-count/);
   assert.match(script, /smyl:task-center-updated/);
   assert.match(script, /rpc\('smyl_executive_dashboard',\{p_from:ymd\(start\),p_to:ymd\(today\)\}\)/);
   assert.match(script, /data\.finance/);
@@ -104,37 +136,53 @@ test('Inicio comparte pendientes con el Centro de alertas y calcula los indicado
   assert.match(styles, /\.daily-home-timeline button\[data-status="no_show"\] em/);
 });
 
-test('la prioridad compartida se renderiza sin referencias fuera de alcance', () => {
+test('atención cuenta las áreas distintas y conserva las acciones de cada aviso', () => {
   const host = { innerHTML: '', querySelectorAll: () => [], querySelector: () => null };
-  const title = { textContent: '' };
-  const dayState = { textContent: '', dataset: {} };
+  const count = { textContent: '', hidden: true };
+  const state = {error:''};
+  let shared = [];
   const document = {
     querySelector(selector) {
       return ({
         '[data-home-priorities]': host,
-        '[data-home-priority-title]': title,
-        '[data-home-day-state]': dayState,
+        '[data-home-priority-count]': count,
       })[selector] || null;
     },
   };
   const renderPriorities = new Function(
-    'document', 'taskItems', 'resolvePriorityTasks', 'esc', 'route', 'window', 'setTimeout',
-    `${functionSource(script, 'renderPriorities')}; return renderPriorities;`,
+    'document', 'taskItems', 'resolvePriorityTasks', 'esc', 'route', 'window', 'setTimeout', 'state',
+    `let renderedPriorities=null; ${functionSource(script, 'renderPriorities')}; return renderPriorities;`,
   )(
     document,
-    () => [{ source: 'Agenda' }],
+    () => shared,
     () => [],
     value => String(value),
     () => {},
     {},
     setTimeout,
+    state,
   );
-  assert.doesNotThrow(() => renderPriorities([{
-    label: 'AGENDA', name: 'Cita por confirmar', detail: 'El paciente espera respuesta.',
+  const task = {
+    source: 'Agenda', label: 'Agenda', name: 'Cita por confirmar', detail: 'El paciente espera respuesta.',
     action: 'Revisar', route: 'agenda', urgent: true,
-  }]));
-  assert.equal(title.textContent, '1 pendiente');
-  assert.equal(dayState.textContent, '1 requiere atención');
+  };
+  renderPriorities([task, {...task, name:'6 avisos sin enviar'}]);
+  assert.equal(count.textContent, '1 área');
+  assert.match(host.innerHTML, /6 avisos sin enviar/);
+  renderPriorities([task, {...task, source:'Seguridad', name:'25 señales'}]);
+  assert.equal(count.textContent, '2 áreas');
+  renderPriorities([]);
+  assert.equal(count.hidden, true);
+  assert.match(host.innerHTML, /Todo al día/);
+  state.error = 'No disponible';
+  shared = null;
+  renderPriorities();
+  assert.match(host.innerHTML, /Pendientes sin actualizar/);
+  assert.doesNotMatch(host.innerHTML, /Todo al día/);
+  shared = [task];
+  renderPriorities([task]);
+  assert.match(host.innerHTML, /Cita por confirmar/);
+  assert.equal(count.textContent, '1 área');
 });
 
 test('el Inicio y el panel reservan su espacio para no «saltar» mientras cargan', () => {
@@ -143,9 +191,7 @@ test('el Inicio y el panel reservan su espacio para no «saltar» mientras carga
   assert.match(script, /if\(!state\.loaded\)renderLoading\(\);/);
   assert.match(script, /flag\('month'\)==='1'/);
   assert.match(styles, /\.daily-home-chat-skeleton\{height:104px/);
-  assert.match(read('../smyl-clinic-setup.js'), /function reserveSpace\(\)/);
-  assert.match(read('../smyl-clinic-setup.js'), /bar\.after\(section\)/, 'en una clínica nueva la configuración va después de la barra del Inicio');
-  assert.doesNotMatch(read('../smyl-clinic-setup.js'), /hero\.after/);
+  assert.match(read('../smyl-clinic-setup.js'), /host\.append\(section\)/, 'la configuración pendiente va al final de Inicio');
 });
 
 test('la bandeja de Mensajes se precarga y no abre una conversación en segundo plano', () => {
@@ -178,7 +224,6 @@ test('Inicio por rol: oculta lo que el rol no puede usar y limita la jornada a l
   assert.match(script, /professional_id/);
   assert.match(script, /function mineOnly\(\)[\s\S]*?can\('schedule\.manage'\)\?flag\('mine'\)==='1':true/);
   assert.match(script, /now\.hidden=!read/);
-  assert.match(script, /create\.hidden=!can\('schedule\.manage'\)/);
   assert.match(script, /chats\.hidden=!messages/);
   assert.match(script, /if\(!can\('schedule\.read'\)\)return tasks;/);
   assert.match(script, /Solo mis citas/);

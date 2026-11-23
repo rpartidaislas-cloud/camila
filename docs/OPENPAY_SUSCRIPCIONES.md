@@ -12,7 +12,7 @@ Estado: **construido y probado en SANDBOX** (lógica contra la API real de sandb
 | Conexión a Openpay y a la base | `supabase/functions/_shared/openpay-runtime.ts` |
 | Acciones del dueño (JWT) | `supabase/functions/openpay-billing/` → `docs/bundles/openpay-billing.single-file.ts` |
 | Avisos de pago (sin JWT) | `supabase/functions/openpay-billing-webhook/` → `docs/bundles/openpay-billing-webhook.single-file.ts` |
-| Tablas | `supabase/migrations/20261123120000_smyl_openpay_billing.sql` |
+| Tablas | `supabase/migrations/20261123140000_smyl_openpay_billing.sql` |
 | Pantalla (planes, pago, gestionar) | `smyl-billing.js` + modal «Elige tu plan» en `app.html` |
 | Crear los planes en Openpay | `scripts/openpay-create-plans.mjs` |
 
@@ -34,7 +34,7 @@ Estado: **construido y probado en SANDBOX** (lógica contra la API real de sandb
 
 ## Despliegue (en este orden)
 
-1. **Migración**: pegar `supabase/migrations/20261123120000_smyl_openpay_billing.sql` en el SQL Editor (trae los 6 planes de SANDBOX ya registrados).
+1. **Migración**: pegar `supabase/migrations/20261123140000_smyl_openpay_billing.sql` en el SQL Editor (trae los 6 planes de SANDBOX ya registrados).
 2. **Secrets** en Supabase → Edge Functions → Secrets (nunca en el código ni en el chat):
    `OPENPAY_MERCHANT_ID`, `OPENPAY_PRIVATE_KEY` (sk_…), `OPENPAY_PUBLIC_KEY` (pk_…), `OPENPAY_ENV` = `sandbox`,
    `OPENPAY_WEBHOOK_USER` y `OPENPAY_WEBHOOK_PASSWORD` (los inventas tú: contraseña larga y aleatoria).

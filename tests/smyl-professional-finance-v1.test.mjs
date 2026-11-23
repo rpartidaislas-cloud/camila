@@ -34,7 +34,8 @@ test('la migración conserva acceso y protege operaciones sensibles en el servid
 });
 
 test('Caja muestra responsabilidad individual y supervisión explícita', () => {
-  for (const copy of ['Mi caja abierta', 'Responsable:', 'Cajas abiertas del equipo', 'Revisar corte', 'Abrir mi caja']) {
+  // Mi caja dice de quién es y desde cuándo; las del equipo, quién las abrió. Hacerle el corte a otra persona exige supervisar la caja.
+  for (const copy of ['Mi caja · ', 'La abriste ', 'Cajas abiertas del equipo', 'data-supervise-cash="\'\\+s\\.id\\+\'">Hacer corte', 'Abrir mi caja', 'Cortes anteriores']) {
     assert.match(finance, new RegExp(copy));
   }
   assert.match(finance, /opened_by===state\.actor/);
@@ -42,13 +43,15 @@ test('Caja muestra responsabilidad individual y supervisión explícita', () => 
   assert.match(finance, /function actorName\(id\)/);
 });
 
-test('Resumen queda primero y el libro de pagos pasa a movimientos secundarios', () => {
-  assert.match(finance, /nav\.prepend\(summaryTab\)/);
-  assert.match(finance, /accountTab\.after\(receiptTab\)/);
-  assert.match(finance, /if\(paymentTab\)paymentTab\.remove\(\)/);
-  assert.match(finance, /Movimientos y correcciones/);
-  assert.match(finance, /data-receipt-ledger/);
-  assert.match(finance, /state\.tab='summary'/);
+test('Por cobrar queda primero y los reembolsos viven en la misma lista de Pagos', () => {
+  assert.match(finance, /var TABS=\[\['accounts','Por cobrar'\],\['receipts','Pagos'\]/);
+  assert.doesNotMatch(finance, /data-finance-tab="summary"|'Resumen'/);
+  // El libro aparte («Movimientos y correcciones») desapareció: pagos y reembolsos se leen juntos, por periodo.
+  assert.doesNotMatch(finance, /Movimientos y correcciones|finance-receipt-movements/);
+  assert.match(finance, /state\.refunds\.forEach\(function\(r\)\{var t=Date\.parse\(r\.refunded_at\)\|\|0;if\(t>=range\.from&&t<range\.to\)add\('refund',/);
+  assert.match(finance, /<span class="finance-tag" data-tone="danger">Reembolso<\/span>/);
+  assert.match(finance, /<div id="finance-payments"><\/div>/);
+  assert.match(finance, /actor:null,tab:'accounts'/);
 });
 
 test('web y PWA conservan paridad de código y caché', () => {

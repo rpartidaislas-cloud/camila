@@ -167,7 +167,7 @@ test('la función protege la sesión: QR de un solo uso, dispositivo, consentimi
 test('la app carga MILA y la copia móvil está sincronizada', () => {
   const app = read('../app.html');
   assert.match(app, /vendor\/qrcode-generator-1\.4\.4\.js/);
-  assert.match(app, /smyl-mila-interview\.js\?v=6/);
+  assert.match(app, /smyl-mila-interview\.js\?v=7/);
   for (const file of ['app.html', 'mila-movil.html', 'smyl-mila-interview.js', 'smyl-mila-interview.css', 'smyl-history-model.js', 'smyl-history-read.js', 'smyl-patient-360.js', 'smyl-case-workspace.js', 'sw.js', 'vendor/qrcode-generator-1.4.4.js']) {
     assert.equal(read(`../mobile/www/${file}`), read(`../${file}`), `${file} sincronizado`);
   }

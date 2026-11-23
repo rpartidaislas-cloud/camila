@@ -13,8 +13,9 @@ test('Clinical Workspace v3.3 fija legibilidad y objetivos de interacción del I
 });
 
 test('los filtros estrechos conservan etiquetas y contadores sin empalmes', () => {
-  assert.match(css, /\.smyl-inbox-filters\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
-  assert.match(css, /\.smyl-inbox-filters button span\s*\{[\s\S]*text-overflow:\s*ellipsis/);
+  assert.match(css, /#p-inbox \.smyl-inbox-filters\s*\{[^}]*flex-wrap:\s*wrap/);
+  assert.match(css, /\.smyl-inbox-filter-pair\s*\{[^}]*flex:\s*1 0 max-content/);
+  assert.match(css, /\.smyl-inbox-filters button span\s*\{[^}]*flex:\s*none/);
   assert.match(css, /\.smyl-inbox-filters button b\s*\{[\s\S]*font-size:\s*12px/);
 });
 

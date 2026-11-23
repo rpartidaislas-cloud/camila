@@ -38,7 +38,8 @@ test('las tarjetas se mueven arrastrando o con «Mover a» y solo con permiso', 
   assert.match(card, /canTransfer\(item\)/);
   assert.match(card, /card\.draggable = movable/);
   assert.match(card, /dragstart/);
-  assert.match(card, /Cambiar etapa de/);
+  assert.match(card, /stageSelectFor\(item/);
+  assert.match(js.slice(js.indexOf('function stageSelectFor'),js.indexOf('function pipelineCard')), /Cambiar etapa de/);
   assert.match(card, /openConversation\(item\.id\)/);
   assert.doesNotMatch(card, /setInboxView\('list'\)/);
 });
@@ -96,7 +97,9 @@ for (const mobile of [false,true]) {
     await page.goto(fixture.href + (mobile ? '&mobile=1' : ''));
     await page.waitForSelector('html[data-preview-ready=true]');
     const row = page.locator('[data-inbox-list] [data-conversation-id="c-preview"]');
-    assert.match(await row.locator('.smyl-inbox-card-appointment').textContent(), /Cita confirmada.*0?9:00/);
+    const listStage = page.locator('[data-list-conversation-id="c-preview"] [data-list-stage]');
+    assert.match(await row.getAttribute('aria-description'), /Cita confirmada.*0?9:00/);
+    assert.match(await page.locator('[data-list-conversation-id="c-preview"] .smyl-inbox-list-card-footer time').textContent(), /0?9:00/);
     if (mobile) await page.locator('[data-inbox-back]').click();
     await page.locator('[data-inbox-view=pipeline]').click();
     const columns = page.locator('[data-pipeline-stage]');
@@ -108,7 +111,7 @@ for (const mobile of [false,true]) {
     else await card('smyl:confirmed').dragTo(page.locator('[data-pipeline-stage="smyl:arrived"] header'));
     await card('smyl:arrived').waitFor();
     assert.match(await card('smyl:arrived').textContent(), /Cita confirmada/);
-    assert.match(await row.locator('.smyl-inbox-row-stage-line').textContent(), /Etapa · Llegó/);
+    assert.equal(await listStage.inputValue(), 'smyl:arrived');
     assert.deepEqual(await page.evaluate(() => window.pipelineFixture.moves), [['smyl:arrived',2]]);
     await page.evaluate(() => { window.pipelineFixture.conflict = true; });
     await card('smyl:arrived').locator('select').selectOption('smyl:attended');
@@ -123,7 +126,7 @@ for (const mobile of [false,true]) {
     assert.equal(await card('smyl:attended').locator('.smyl-inbox-card-appointment').count(), 0);
     assert.equal(await card('smyl:attended').getByRole('button').getAttribute('aria-description'), 'Atendido');
     assert.equal(await row.locator('.smyl-inbox-card-appointment').count(), 0);
-    assert.equal(await row.locator('.smyl-inbox-row-stage-line').textContent(), 'Etapa · Atendido');
+    assert.equal(await listStage.inputValue(), 'smyl:attended');
     for (const [past, label] of [['cancelled','Cita cancelada'], ['no_show','No asistió']]) {
       await page.evaluate(past => {
         Object.assign(window.pipelineFixture,{status:past,stage:null,source:'none',notify:true});
@@ -131,6 +134,7 @@ for (const mobile of [false,true]) {
       }, past);
       await page.waitForFunction(label => document.querySelector('[data-pipeline-stage=""] .smyl-inbox-pipeline-open')?.title === label, label);
       assert.equal(await row.locator('.smyl-inbox-card-appointment, .smyl-inbox-row-stage-line').count(), 0);
+      assert.equal(await listStage.inputValue(), '');
       assert.equal(await row.getAttribute('title'), label);
     }
     assert.ok(await status.isVisible());
@@ -192,6 +196,7 @@ test('sincroniza 205 tarjetas una vez por canal y recupera solo el lote de etapa
   const poll = phase => page.evaluate(n => { window.paging.phase = n; document.dispatchEvent(new Event('visibilitychange')); },phase);
   await poll(1);
   await page.waitForFunction(()=>document.querySelector('[data-inbox-live] span').textContent.includes('pendientes de actualizar'));
+  assert.equal(await page.locator('[data-inbox-live]').isVisible(),true, 'un problema de sincronización se anuncia en el tablero');
   assert.equal(await page.locator('[data-pipeline-stage="smyl:arrived"] [data-conversation-id=card-130]').count(),1);
   assert.equal(await page.locator('[data-inbox-list] [data-conversation-id=card-131]').count(),0);
   const first = await page.evaluate(()=>window.paging.calls.filter(x=>x.phase===1));
@@ -201,6 +206,7 @@ test('sincroniza 205 tarjetas una vez por canal y recupera solo el lote de etapa
   assert.deepEqual([...new Set(first.map(x=>x.since))],['2026-11-18T10:00:00.000Z']);
   await poll(2);
   await page.waitForSelector('[data-pipeline-stage="smyl:arrived"] [data-conversation-id=card-204]');
+  await page.locator('[data-inbox-live]').waitFor({state:'hidden'});
   const second = await page.evaluate(()=>window.paging.calls.filter(x=>x.phase===2));
   assert.equal(second.filter(x=>x.action==='sync').length,1);
   assert.equal(second.find(x=>x.action==='sync').since,'2026-11-18T10:01:00.000Z');
@@ -214,12 +220,12 @@ test('web, móvil y PWA publican el pipeline', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
   for (const shell of [app, read('../mobile/www/app.html')]) {
-    assert.match(shell, /serviceWorker\.register\('sw\.js\?v=chat-media-1',\s*\{\s*updateViaCache:\s*'none'\s*}/);
+    assert.match(shell, /serviceWorker\.register\('sw\.js\?v=chat-control-icons-v1',\s*\{\s*updateViaCache:\s*'none'\s*}/);
   }
-  assert.match(app, /smyl-inbox\.js\?v=73/);
-  assert.match(app, /smyl-inbox\.css\?v=62/);
-  assert.match(worker, /smyl-inbox\.js\?v=73/);
-  assert.match(worker, /smyl-inbox\.css\?v=62/);
+  assert.match(app, /smyl-inbox\.js\?v=95/);
+  assert.match(app, /smyl-inbox\.css\?v=79/);
+  assert.match(worker, /smyl-inbox\.js\?v=95/);
+  assert.match(worker, /smyl-inbox\.css\?v=79/);
 });
 
 test('sin canales conectados el Inbox muestra una sola explicación en lugar de lista, hilo y compositor vacíos', () => {

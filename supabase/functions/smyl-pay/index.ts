@@ -36,7 +36,7 @@ async function conciliar(link: Json): Promise<Json> {
     if (!response.ok || !req || req.status !== "paid") return link;
     // Misma solicitud y mismo monto que SMYL fijó; cualquier diferencia no se registra.
     if (req.reference !== link.id || Math.round(Number(req.amount) * 100) !== Math.round(Number(link.amount) * 100)) return link;
-    const metodo = req.method === "spei" ? "transfer" : "card";
+    const metodo = req.method === "spei" ? "transfer" : req.method === "paynet" ? "store" : "card";
     const { data, error } = await admin.rpc("smyl_post_online_payment", {
       p_link_id: link.id, p_lana_charge_id: String(req.openpay_charge_id || ""), p_method: metodo, p_paid_at: req.paid_at || new Date().toISOString(),
     });
@@ -46,6 +46,15 @@ async function conciliar(link: Json): Promise<Json> {
     console.error("[smyl-pay] conciliación fallida:", (e as Error)?.message);
     return link;
   }
+}
+
+// Cancela la solicitud en LANA. Solo cuenta como cancelada si LANA lo confirma (o ya no la conoce): si no, el paciente aún podría pagarla.
+async function cancelarEnLana(tenantId: string, link: Json): Promise<boolean> {
+  if (!link.lana_request_id) return true;
+  try {
+    const { response } = await lanaRequest(tenantId, `/payments/requests/${link.lana_request_id}/cancel`, { method: "POST", body: "{}" }, 8000);
+    return response.ok || response.status === 404;
+  } catch (_) { return false; }
 }
 
 async function enlacePorToken(token: unknown): Promise<Json | null> {
@@ -72,13 +81,70 @@ async function manejarCallback(req: Request): Promise<Response> {
   try { body = JSON.parse(raw); } catch { return json({}, 400, { error: "invalid_json" }); }
   if (typeof body.request_id !== "string" || !UUID_RE.test(body.request_id)) return json({}, 400, { error: "invalid_request" });
   const { data: link } = await admin.from("smyl_payment_links").select("*").eq("lana_request_id", body.request_id).maybeSingle();
-  if (!link) return json({}, 404, { error: "not_found" });
+  if (!link) return json({}, 401, { error: "bad_signature" }); // misma respuesta que una firma inválida: no revela qué solicitudes existen
   const ok = await firmaValida(link.callback_secret, req.headers.get("X-LANA-Timestamp"), raw, req.headers.get("X-LANA-Signature"));
   if (!ok) return json({}, 401, { error: "bad_signature" });
   // El cuerpo del aviso es solo una pista: lo que cuenta es lo que LANA confirma por GET.
   const actualizado = await conciliar(link);
   if (actualizado.status !== "paid") return json({}, 409, { error: "not_confirmed" });
   return json({}, 200, { ok: true });
+}
+
+const OPENPAY_ERROR_HUMANO: Record<string, string> = {
+  invalid_credentials: "Openpay rechazó las llaves. En modo pruebas usa las del panel sandbox de Openpay.",
+  openpay_unavailable: "No se pudo verificar con Openpay. Inténtalo de nuevo en un momento.",
+};
+
+// Marca en SMYL si la clínica cobra en línea (muestra u oculta «Enlace de pago»). No toca otras llaves de config.
+async function marcarPagoEnLinea(tenantId: string, activo: boolean) {
+  const { data } = await admin.from("camila_tenants").select("config").eq("id", tenantId).maybeSingle();
+  const config = data?.config && typeof data.config === "object" && !Array.isArray(data.config) ? data.config as Json : {};
+  if (config.pago_en_linea === activo) return;
+  await admin.from("camila_tenants").update({ config: { ...config, pago_en_linea: activo } }).eq("id", tenantId);
+}
+
+async function accionesOpenpay(body: Json, tenantId: string, userId: string, CORS: Record<string, string>): Promise<Response> {
+  const esDueno = userId === tenantId;
+  let path = "/payments/openpay";
+  let init: RequestInit = { method: "GET" };
+  if (body.action === "openpay_status") {
+    // lectura: quien puede cobrar
+  } else if (!esDueno) {
+    return json(CORS, 403, { error: "Solo el dueño de la clínica puede conectar o cambiar Openpay." });
+  } else if (body.action === "openpay_connect") {
+    const campos = ["merchant_id", "public_key", "private_key"];
+    if (campos.some((c) => typeof body[c] !== "string" || !(body[c] as string).trim() || (body[c] as string).length > 200)) {
+      return json(CORS, 400, { error: "Escribe el ID de comercio, la llave pública y la llave privada." });
+    }
+    path = "/payments/openpay/credentials";
+    init = { method: "PUT", body: JSON.stringify({ merchant_id: body.merchant_id, public_key: body.public_key, private_key: body.private_key }) };
+  } else if (body.action === "openpay_methods") {
+    const cambios: Json = {};
+    for (const k of ["active", "card", "spei", "paynet"]) if (typeof body[k] === "boolean") cambios[k] = body[k];
+    if (!Object.keys(cambios).length) return json(CORS, 400, { error: "No hay cambios." });
+    path = "/payments/openpay/methods";
+    init = { method: "PUT", body: JSON.stringify(cambios) };
+  } else if (body.action === "openpay_disconnect") {
+    path = "/payments/openpay/disconnect";
+    init = { method: "POST", body: "{}" };
+  } else {
+    return json(CORS, 400, { error: "Acción no válida." });
+  }
+  try {
+    const { response, body: lana } = await lanaRequest(tenantId, path, init, 15000);
+    const datos = lana as Json;
+    if (!response.ok) {
+      const code = String(datos.error_code || "");
+      const msg = OPENPAY_ERROR_HUMANO[code] || (typeof datos.error === "string" ? datos.error : "El servidor de pagos no pudo completar la operación.");
+      return json(CORS, response.status >= 400 && response.status < 500 ? response.status : 502, { error: msg, error_code: code || "lana_error" });
+    }
+    const openpay = (datos.openpay || {}) as Json;
+    if (body.action !== "openpay_status") await marcarPagoEnLinea(tenantId, !!openpay.connected && !!openpay.active);
+    return json(CORS, 200, { openpay, owner: esDueno });
+  } catch (e) {
+    const msg = String((e as Error)?.message || e);
+    return json(CORS, 409, { error: /LANA todav/.test(msg) ? "Conecta primero los canales de mensajería de la clínica; el cobro en línea usa esa misma conexión." : "No se pudo contactar al servidor de pagos.", error_code: "lana_unavailable" });
+  }
 }
 
 async function accionesPersonal(req: Request, body: Json, CORS: Record<string, string>): Promise<Response> {
@@ -89,6 +155,11 @@ async function accionesPersonal(req: Request, body: Json, CORS: Record<string, s
   const asUser = createClient(SB_URL, SB_ANON_KEY, { global: { headers: { Authorization: `Bearer ${jwt}` } } });
   const { data: permitido } = await asUser.rpc("smyl_has_permission", { p_tenant_id: tenantId, p_permission: "finance.manage" });
   if (permitido !== true) return json(CORS, 403, { error: "Tu rol no permite cobrar." });
+
+  // Openpay de la clínica (task-id smyl-openpay-config): SMYL no tiene acceso al panel de LANA, así que la clínica conecta su
+  // cuenta Openpay a su tenant de LANA desde aquí. Consultar: quien puede cobrar. Conectar, métodos y desconectar: solo el dueño.
+  // Las llaves solo pasan hacia LANA (que las verifica con Openpay); nunca se guardan en SMYL ni vuelven al navegador.
+  if (typeof body.action === "string" && body.action.startsWith("openpay_")) return await accionesOpenpay(body, tenantId, user.id, CORS);
 
   const patientId = body.patient_id;
   if (typeof patientId !== "string" || !UUID_RE.test(patientId)) return json(CORS, 400, { error: "Paciente inválido." });
@@ -110,7 +181,7 @@ async function accionesPersonal(req: Request, body: Json, CORS: Record<string, s
     if (!link) return json(CORS, 404, { error: "Enlace no encontrado." });
     const actual = await conciliar(link); // si ya se pagó, no se cancela
     if (actual.status === "paid") return json(CORS, 409, { error: "El enlace ya fue pagado.", status: "paid" });
-    if (link.lana_request_id) await lanaRequest(tenantId, `/payments/requests/${link.lana_request_id}/cancel`, { method: "POST", body: "{}" }, 8000).catch(() => null);
+    if (!(await cancelarEnLana(tenantId, link))) return json(CORS, 502, { error: "No se pudo cancelar el enlace en LANA. Inténtalo de nuevo; mientras tanto el paciente aún podría pagarlo." });
     await admin.from("smyl_payment_links").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", id).eq("status", "pending");
     return json(CORS, 200, { ok: true });
   }
@@ -143,7 +214,7 @@ async function accionesPersonal(req: Request, body: Json, CORS: Record<string, s
   for (const previo of previos || []) {
     const actual = await conciliar(previo);
     if (actual.status === "paid") continue;
-    if (previo.lana_request_id) await lanaRequest(tenantId, `/payments/requests/${previo.lana_request_id}/cancel`, { method: "POST", body: "{}" }, 8000).catch(() => null);
+    if (!(await cancelarEnLana(tenantId, previo))) return json(CORS, 409, { error: "No se pudo cancelar el enlace anterior en LANA. Inténtalo de nuevo.", error_code: "previous_link_not_cancelled" });
     await admin.from("smyl_payment_links").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", previo.id).eq("status", "pending");
   }
 
@@ -154,6 +225,7 @@ async function accionesPersonal(req: Request, body: Json, CORS: Record<string, s
     tenant_id: tenantId, patient_id: patientId, branch_id: branchId, token_hash: await sha256Hex(token), callback_secret: callbackSecret,
     amount: plan.total, allocations: plan.allocations, expires_at: expiresAt, created_by: user.id,
   }).select("id").single();
+  if (errLink?.code === "23505") return json(CORS, 409, { error: "Ya se está generando un enlace para este paciente. Inténtalo de nuevo en un momento.", error_code: "link_in_progress" });
   if (errLink || !link) return json(CORS, 500, { error: "No se pudo crear el enlace." });
 
   const marcarFallido = () => admin.from("smyl_payment_links").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", link.id);

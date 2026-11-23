@@ -30,13 +30,38 @@
       reader.readAsDataURL(file);
     });
   }
-  async function extract(file) {
-    var res = await window.sb.functions.invoke('fiscal-extract', { body: { file_base64: await readBase64(file), media_type: file.type } });
+  async function extract(file, patientId) {
+    var res = await window.sb.functions.invoke('fiscal-extract', { body: { file_base64: await readBase64(file), media_type: file.type, patient_id: patientId || undefined } });
     var data = res && res.data, err = res && res.error;
     if (err && err.context && typeof err.context.json === 'function') { try { data = await err.context.json(); } catch (e) {} }
     if (!data || data.error) throw new Error((data && data.error) || 'No se pudo leer la constancia. Captura los datos a mano.');
     return data;
   }
+
+  // Archivos que el paciente mandó por el chat (LANA): fotos y documentos de sus conversaciones vinculadas.
+  async function readInvoke(res, fallback) {
+    var data = res && res.data, err = res && res.error;
+    if (err && err.context && typeof err.context.json === 'function') { try { data = await err.context.json(); } catch (e) {} }
+    if (!data || data.error) throw new Error((data && data.error) || fallback);
+    return data;
+  }
+  async function chatFiles(tenant, patientId) {
+    var links = await window.sb.from('camila_lana_handoffs').select('lana_conversation_id,lana_channel,updated_at').eq('tenant_id', tenant).eq('patient_id', patientId).order('updated_at', { ascending: false }).limit(5);
+    if (links.error || !(links.data || []).length) return { linked: false, items: [] };
+    var lists = await Promise.all(links.data.map(function (link) {
+      return window.sb.functions.invoke('lana-inbox?action=shared&limit=60&conversation_id=' + encodeURIComponent(link.lana_conversation_id), { method: 'GET' })
+        .then(function (res) { return readInvoke(res, 'No se pudieron consultar los archivos del chat.'); })
+        .then(function (data) { return (data.items || []).filter(function (item) { return (item.media_type === 'image' || item.media_type === 'document') && item.media_url && !item.deleted; }).map(function (item) { return Object.assign({ conversation_id: link.lana_conversation_id, channel: link.lana_channel }, item); }); })
+        .catch(function () { return []; });
+    }));
+    var items = [].concat.apply([], lists).sort(function (a, b) { return new Date(b.created_at || 0) - new Date(a.created_at || 0); });
+    return { linked: true, items: items.slice(0, 40) };
+  }
+  async function extractFromChat(patientId, item) {
+    var res = await window.sb.functions.invoke('lana-inbox', { body: { action: 'fiscal_document', conversation_id: item.conversation_id, patient_id: patientId, message_id: item.id } });
+    return readInvoke(res, 'No se pudo leer el archivo del chat. Captura los datos a mano.');
+  }
+  function shortDate(value) { var d = value ? new Date(value) : null; return d && !isNaN(d.getTime()) ? d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }).replace('.', '') : ''; }
 
   function regimenOptions(tipo, selected) {
     return '<option value="">Elige el régimen</option>' + rules().regimenesParaTipo(tipo).map(function (r) {
@@ -56,7 +81,8 @@
     var old = document.getElementById('fiscal-capture-dialog'); if (old) old.remove();
     var d = document.createElement('dialog'); d.id = 'fiscal-capture-dialog'; d.className = 'fiscal-capture';
     d.innerHTML = '<form novalidate><header><span>FACTURACIÓN</span><h2>Datos fiscales de ' + esc(options.patientName || 'el paciente') + '</h2><p>Se guardan como cliente de facturación y se usan para preparar su CFDI 4.0.</p></header>' +
-      '<section class="fiscal-capture-upload"><div><strong>¿Tiene su constancia de situación fiscal?</strong><small>Súbela (PDF, JPG o PNG, máx. 4 MB) y la IA llena los datos. Tú los revisas antes de guardar. El archivo no se guarda.</small></div><label class="btn btn-secondary">Subir constancia<input type="file" name="constancia" accept="application/pdf,image/jpeg,image/png" hidden></label></section>' +
+      '<section class="fiscal-capture-upload"><div><strong>¿Tiene su constancia de situación fiscal?</strong><small>Súbela (PDF, JPG o PNG, máx. 4 MB) y la IA llena los datos. Tú los revisas antes de guardar. El archivo no se guarda.</small></div><div class="fiscal-capture-sources"><label class="btn btn-secondary">Subir constancia<input type="file" name="constancia" accept="application/pdf,image/jpeg,image/png" hidden></label><button type="button" class="btn btn-secondary" data-fiscal-chat hidden>Elegir del chat</button></div></section>' +
+      '<section class="fiscal-capture-chat" data-fiscal-chat-panel hidden><header><strong>Archivos que el paciente mandó por el chat</strong><button type="button" class="fiscal-capture-chat-close" data-fiscal-chat-close>Cerrar</button></header><div class="fiscal-capture-chat-list" data-fiscal-chat-list></div></section>' +
       '<p class="fiscal-capture-status" data-fiscal-status role="status" aria-live="polite"></p>' +
       '<div class="fiscal-capture-grid">' +
       '<label>RFC<input name="rfc" maxlength="13" autocomplete="off" value="' + esc(current.rfc || '') + '"><small data-err="rfc"></small></label>' +
@@ -104,14 +130,7 @@
       if (name === 'rfc' || name === 'fiscal_regime') refreshMenus();
       validate(false);
     });
-    form.elements.constancia.addEventListener('change', async function () {
-      var file = form.elements.constancia.files[0]; form.elements.constancia.value = '';
-      if (!file) return;
-      if (!TYPES[file.type]) return say('Sube la constancia como PDF, JPG o PNG.', 'error');
-      if (file.size > MAX_BYTES) return say('El archivo pesa más de 4 MB. Descarga de nuevo la constancia en PDF o reduce la imagen.', 'error');
-      if (busy) return; busy = true; form.querySelector('[data-fiscal-save]').disabled = true; say('Leyendo la constancia…', '');
-      try {
-        var data = await extract(file);
+    function applyExtract(data) {
         if (!data.is_constancia) { say((data.warnings && data.warnings[0]) || 'El archivo no parece una constancia de situación fiscal.', 'error'); return; }
         if (data.rfc) form.elements.rfc.value = data.rfc;
         if (data.legal_name) form.elements.legal_name.value = data.legal_name;
@@ -125,7 +144,44 @@
         ['rfc', 'legal_name', 'tax_postal_code', 'fiscal_regime', 'cfdi_use'].forEach(function (k) { touched[k] = true; });
         say('Datos leídos de la constancia. Revisa cada campo contra el documento antes de guardar.' + ((data.warnings || []).length ? ' ' + data.warnings.join(' ') : ''), 'ok');
         validate(true);
-      } catch (e) { say(String(e && e.message || 'No se pudo leer la constancia. Captura los datos a mano.'), 'error'); }
+    }
+    // «Elegir del chat»: solo si el paciente tiene un chat vinculado; la lectura la hace el servidor con el archivo del mensaje.
+    var chatButton = d.querySelector('[data-fiscal-chat]'), chatPanel = d.querySelector('[data-fiscal-chat-panel]'), chatList = d.querySelector('[data-fiscal-chat-list]'), chatCache = null;
+    if (options.patientId && options.tenant) {
+      window.sb.from('camila_lana_handoffs').select('lana_conversation_id', { count: 'exact', head: true }).eq('tenant_id', options.tenant).eq('patient_id', options.patientId)
+        .then(function (r) { if (!r.error && r.count) chatButton.hidden = false; }, function () {});
+    }
+    function renderChat(result) {
+      if (!result.items.length) { chatList.innerHTML = '<p class="fiscal-capture-chat-empty">El paciente no ha enviado fotos ni documentos por el chat.</p>'; return; }
+      chatList.innerHTML = result.items.map(function (item, i) {
+        var thumb = item.media_type === 'image' ? '<img src="' + esc(item.media_url) + '" alt="" loading="lazy">' : '<b>' + esc(/\.pdf$/i.test(item.media_filename || '') || !item.media_filename ? 'PDF' : 'DOC') + '</b>';
+        var name = item.media_type === 'image' ? 'Foto' : (item.media_filename || 'Documento');
+        return '<button type="button" class="fiscal-capture-chat-item" data-chat-index="' + i + '"><span class="fiscal-capture-chat-thumb">' + thumb + '</span><span><strong>' + esc(name) + '</strong><small>' + esc(shortDate(item.created_at)) + '</small></span></button>';
+      }).join('');
+      chatList.querySelectorAll('[data-chat-index]').forEach(function (button) {
+        button.onclick = async function () {
+          if (busy) return; var item = result.items[Number(button.dataset.chatIndex)];
+          busy = true; form.querySelector('[data-fiscal-save]').disabled = true; chatPanel.hidden = true; say('Leyendo el archivo del chat…', '');
+          try { applyExtract(await extractFromChat(options.patientId, item)); }
+          catch (e) { say(String(e && e.message || 'No se pudo leer el archivo del chat. Captura los datos a mano.'), 'error'); }
+          finally { busy = false; form.querySelector('[data-fiscal-save]').disabled = false; }
+        };
+      });
+    }
+    chatButton.onclick = async function () {
+      chatPanel.hidden = false; chatList.innerHTML = '<p class="fiscal-capture-chat-empty">Buscando archivos del chat…</p>';
+      try { chatCache = chatCache || await chatFiles(options.tenant, options.patientId); renderChat(chatCache); }
+      catch (e) { chatList.innerHTML = '<p class="fiscal-capture-chat-empty">No se pudieron consultar los archivos del chat.</p>'; }
+    };
+    d.querySelector('[data-fiscal-chat-close]').onclick = function () { chatPanel.hidden = true; };
+    form.elements.constancia.addEventListener('change', async function () {
+      var file = form.elements.constancia.files[0]; form.elements.constancia.value = '';
+      if (!file) return;
+      if (!TYPES[file.type]) return say('Sube la constancia como PDF, JPG o PNG.', 'error');
+      if (file.size > MAX_BYTES) return say('El archivo pesa más de 4 MB. Descarga de nuevo la constancia en PDF o reduce la imagen.', 'error');
+      if (busy) return; busy = true; form.querySelector('[data-fiscal-save]').disabled = true; say('Leyendo la constancia…', '');
+      try { applyExtract(await extract(file, options.patientId)); }
+      catch (e) { say(String(e && e.message || 'No se pudo leer la constancia. Captura los datos a mano.'), 'error'); }
       finally { busy = false; form.querySelector('[data-fiscal-save]').disabled = false; }
     });
     form.onsubmit = async function (event) {

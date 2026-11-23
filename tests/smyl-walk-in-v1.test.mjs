@@ -25,17 +25,17 @@ test('«Llegó sin cita» vive sólo en Agenda y no se mezcla con las acciones d
   assert.match(finance, /function renderFinanceActions\(\)/);
 });
 
-test('en «Pendientes de registrar» la persona sin cita lleva su etiqueta', () => {
+test('en «Citas atendidas sin cobrar» la persona sin cita lo dice en su fila', () => {
   assert.match(finance, /select\('id,patient_id,service_id,branch_id,starts_at,status,notes'\)/);
-  assert.match(finance, /indexOf\('Llegó sin cita'\)===0\?' <span class="finance-badge" data-tone="paid">Sin cita previa<\/span>'/);
+  assert.match(finance, /if\(String\(a\.notes\|\|''\)\.indexOf\('Llegó sin cita'\)===0\)sub\.push\('llegó sin cita'\);/);
   assert.match(read('smyl-schedule.css'), /#schedule-appointment-form\[data-walk-in\] :is\(\[data-slots\],\[data-custom-time\]\)\{display:none!important\}/);
 });
 
 test('web y móvil publican la misma versión', () => {
   for (const file of ['smyl-schedule.js', 'smyl-schedule.css', 'smyl-finance.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + file), read(file), file);
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-schedule\.js\?v=46/);
-    assert.match(read(file), /smyl-schedule\.css\?v=34/);
-    assert.match(read(file), /smyl-finance\.js\?v=58/);
+    assert.match(read(file), /smyl-schedule\.js\?v=59/);
+    assert.match(read(file), /smyl-schedule\.css\?v=37/);
+    assert.match(read(file), /smyl-finance\.js\?v=73/);
   }
 });

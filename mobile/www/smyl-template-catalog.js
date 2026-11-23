@@ -211,6 +211,11 @@
       'Hola {{1}}, para preparar tu cita del {{2}} en {{3}}, te pedimos responder unas preguntas para tu expediente. Toma unos 5 minutos y puedes hacerlo aquí: {{4}} El enlace es personal y vence después de tu cita.',
       [V.nombre, { label: 'Fecha y hora de la cita', source: 'text', example: 'martes 21 de octubre a las 10:30 am' }, V.clinica, text('Enlace de la entrevista', 'https://app.smyldesign.ai/mila-movil.html#s=ejemplo')],
       { note: 'El enlace lo genera SMYL para cada paciente; no lo escribas a mano.' }),
+    utility('aviso_privacidad_v1', 'datos', 'Aviso de privacidad para firmar',
+      'Se envía automáticamente a pacientes nuevos que escribieron por WhatsApp (Privacidad y derechos → Aviso automático). El paciente lee el aviso, elige y firma desde su celular. Solicítala para poder activar ese envío.',
+      'Hola {{1}}, en {{2}} cuidamos tus datos personales. Antes de tu atención, lee nuestro aviso de privacidad, elige cómo podemos usarlos y firma desde tu celular: {{3}} El enlace es personal y vence en 48 horas.',
+      [V.nombre, V.clinica, text('Enlace para firmar el aviso', 'https://app.smyldesign.ai/aviso-firma.html?token=ejemplo')],
+      { note: 'El enlace lo genera SMYL para cada paciente; no lo escribas a mano.' }),
     utility('documentos_recibidos_v1', 'datos', 'Documentos recibidos',
       'Para confirmar que la clínica recibió los archivos enviados por el paciente.',
       'Hola {{1}}, recibimos correctamente los documentos que enviaste a {{2}}. Nuestro equipo los revisará antes de tu próxima cita.',
@@ -221,6 +226,11 @@
       pick('nombre', 'clinica')),
 
     // ── Utilidad · Equipo y operación ───────────────────────────────────
+    utility('agenda_cita_nueva_profesional_v1', 'equipo', 'Nueva cita en tu agenda',
+      'Cuando se agenda o confirma una cita asignada al profesional.',
+      'Se agendó una cita en tu agenda de {{1}} para el {{2}} a las {{3}}. Revisa SMYL para ver el detalle y prepararte.',
+      pick('sucursal', 'fecha', 'hora'),
+      { note: 'No incluye nombre, diagnóstico ni tratamiento del paciente.' }),
     utility('agenda_cambio_profesional_v1', 'equipo', 'Cambio en tu agenda',
       'Cuando una cita asignada al profesional cambia de fecha u hora.',
       'Tu agenda en {{1}} cambió: la cita del {{2}} ahora está programada para el {{3}} a las {{4}}. Revisa SMYL para ver el contexto completo.',

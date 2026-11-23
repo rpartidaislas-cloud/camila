@@ -14,14 +14,17 @@
     { id: 'clinica', title: 'Clínica', blurb: 'Identidad, sedes y experiencia del paciente.', icon: 'clinic', items: [
       { title: 'Datos del consultorio', desc: 'Nombre, doctor titular y ciudad con los que se identifica tu consultorio.', group: 'Identidad', icon: 'clinic', action: 'Editar', route: 'mi-consultorio', ownerOnly: true },
       { title: 'Sucursales y espacios', desc: 'Direcciones, consultorios y horarios por sede.', group: 'Operación', icon: 'location', action: 'Administrar', route: 'clinica', embed: true, target: '[data-ca-tab="operacion"]', check: 'hours' },
+      { title: 'Modalidad de compras', desc: 'Elige si las sucursales compran a proveedores o solicitan insumos al centro.', group: 'Operación', icon: 'inventory', action: 'Configurar', route: 'inventario', target: '#inventory-purchasing-settings' },
       { title: 'Marca y experiencia', desc: 'Nombre, colores y mensajes que ven tus pacientes.', group: 'Presencia', icon: 'sparkles', action: 'Personalizar', route: 'sim-config' },
       { title: 'Directorio profesional', desc: 'Perfil público para recibir solicitudes de cita.', group: 'Presencia', icon: 'profile', action: 'Editar perfil', route: 'directorio' }
     ] },
     { id: 'equipo', title: 'Equipo', blurb: 'Personas, invitaciones y permisos.', icon: 'team', items: [
-      { title: 'Profesionales y roles', desc: 'Invita personas y define qué puede hacer cada rol.', group: 'Equipo de la clínica', icon: 'team', action: 'Administrar', route: 'clinica', embed: true, target: '[data-ca-tab="equipo"]' },
+      { title: 'Integrantes', desc: 'Invita personas y administra su acceso a la clínica.', group: 'Personas', icon: 'team', action: 'Administrar', route: 'clinica', embed: true, target: '[data-ca-team-view="people"]' },
+      { title: 'Roles y permisos', desc: 'Define qué puede consultar y hacer cada rol.', group: 'Acceso', icon: 'security', action: 'Configurar', route: 'clinica', embed: true, target: '[data-ca-team-view="roles"]' },
       { title: 'Mi cuenta', desc: 'Datos personales y preferencias de acceso.', group: 'Cuenta personal', icon: 'profile', action: 'Abrir', route: 'mi-cuenta' }
     ] },
     { id: 'agenda', title: 'Agenda', blurb: 'Disponibilidad, calendarios y avisos de cita.', icon: 'calendar', items: [
+      { title: 'Profesionales', desc: 'Define quién atiende, sus sedes y preparación para recibir citas.', group: 'Disponibilidad', icon: 'team', action: 'Administrar', route: 'clinica', embed: true, target: '[data-ca-team-view="professionals"]' },
       { title: 'Horarios y servicios', desc: 'Define quién atiende, dónde y en qué horarios.', group: 'Disponibilidad', icon: 'clock', action: 'Configurar', route: 'agenda', target: '[data-schedule-tab="settings"]' },
       { title: 'Google Calendar', desc: 'Sincroniza el calendario profesional y revisa cambios.', group: 'Calendarios y confirmación', icon: 'sync', action: 'Administrar', route: 'agenda', target: '#schedule-google-calendar' },
       { title: 'Confirmaciones', desc: 'Solicitudes que todavía necesitan horario o aprobación.', group: 'Calendarios y confirmación', icon: 'check', action: 'Revisar', route: 'agenda', target: '[data-schedule-tab="requests"]' },
@@ -31,25 +34,28 @@
       { title: 'Servicios y tarifas', desc: 'Tratamientos, duración, precios y datos fiscales.', group: 'Atención', icon: 'service', action: 'Administrar', route: 'precios', check: 'services' },
       { title: 'Materiales e inventario', desc: 'Existencias, compras y material por tratamiento.', group: 'Operación', icon: 'inventory', action: 'Abrir', route: 'inventario' }
     ] },
-    { id: 'canales', title: 'Canales', blurb: 'Conexiones, asistente y automatizaciones.', icon: 'channels', items: [
-      { title: 'WhatsApp Business', desc: 'Número, conexión y herramientas de atención.', group: 'Cuentas conectadas', icon: 'channels', action: 'Administrar', route: 'conexiones', target: '[data-connection-tab="whatsapp"]', check: 'whatsapp' },
-      { title: 'Messenger', desc: 'Cuenta de Facebook y estado del canal.', group: 'Cuentas conectadas', icon: 'channels', action: 'Configurar', route: 'conexiones', target: '[data-connection-tab="messenger"]' },
-      { title: 'Instagram', desc: 'Mensajes directos y estado de la cuenta.', group: 'Cuentas conectadas', icon: 'channels', action: 'Configurar', route: 'conexiones', target: '[data-connection-tab="instagram"]' },
-      { title: 'SMYL Asistente', desc: 'Información, tono y reglas de respuesta.', group: 'Atención automática', icon: 'bot', action: 'Configurar', route: 'conexiones', target: '[data-connection-tab="assistant"]' },
-      { title: 'Plantillas de WhatsApp', desc: 'Mensajes aprobados para citas, cobros y seguimiento.', group: 'Atención automática', icon: 'template', action: 'Administrar', route: 'plantillas', check: 'template' },
-      { title: 'Automatizaciones', desc: 'Recordatorios, entregas al equipo y reglas.', group: 'Atención automática', icon: 'automation', action: 'Configurar', route: 'conexiones', target: '[data-connection-tab="automations"]' },
-      { title: 'Probar al asistente', desc: 'Revisa respuestas antes de activar cambios.', group: 'Atención automática', icon: 'lab', action: 'Probar', route: 'conexiones', target: '[data-connection-tab="lab"]' }
+    { id: 'canales', title: 'Canales', blurb: 'Administra las cuentas y los mensajes de tu clínica.', icon: 'channels', items: [
+      { title: 'WhatsApp Business', desc: 'Número de la clínica', group: 'Cuentas de mensajería', icon: 'whatsapp', channel: 'whatsapp', route: 'conexiones', target: '[data-connection-tab="whatsapp"]', check: 'whatsapp' },
+      { title: 'Messenger', desc: 'Página de Facebook', group: 'Cuentas de mensajería', icon: 'messenger', channel: 'messenger', route: 'conexiones', target: '[data-connection-tab="messenger"]' },
+      { title: 'Instagram', desc: 'Cuenta profesional', group: 'Cuentas de mensajería', icon: 'instagram', channel: 'instagram', route: 'conexiones', target: '[data-connection-tab="instagram"]' },
+      { title: 'SMYL Asistente', desc: 'Información de la clínica, tono y respuestas.', group: 'Asistente', icon: 'bot', action: 'Configurar', route: 'conexiones', target: '[data-connection-tab="assistant"]' },
+      { title: 'Probar al asistente', desc: 'Ensaya una conversación antes de publicar.', group: 'Asistente', icon: 'lab', action: 'Probar', route: 'conexiones', target: '[data-connection-tab="lab"]' },
+      { title: 'Plantillas de WhatsApp', desc: 'Textos aprobados para enviar a pacientes.', group: 'Mensajes automáticos', icon: 'template', action: 'Administrar', route: 'plantillas', check: 'template' },
+      { title: 'Avisos de cita', desc: 'Confirmaciones, cambios y cancelaciones.', group: 'Mensajes automáticos', icon: 'calendar', action: 'Configurar', route: 'avisos-cita' },
+      { title: 'Automatizaciones', desc: 'Recordatorios y reglas de atención.', group: 'Mensajes automáticos', icon: 'automation', action: 'Configurar', route: 'conexiones', target: '[data-connection-tab="automations"]' }
     ] },
     { id: 'cobros', title: 'Finanzas', blurb: 'Cuentas, pagos, caja y facturación.', icon: 'payments', items: [
       { title: 'Recibos', desc: 'Comprobantes, servicios cobrados y seguimiento fiscal.', group: 'Operación diaria', icon: 'payments', action: 'Abrir', route: 'caja', embed: true, target: '[data-finance-tab="receipts"]' },
       { title: 'Corte de caja', desc: 'Cierra el día y cuadra lo cobrado.', group: 'Operación diaria', icon: 'cash', action: 'Revisar', route: 'caja', embed: true, target: '[data-finance-tab="cash"]' },
       { title: 'Facturación', desc: 'Datos fiscales de la clínica y conexión con Facturapi.', group: 'Facturación y reglas', icon: 'template', action: 'Configurar', route: 'caja', embed: true, element: '#billing-setup', ensure: 'billing' },
+      { title: 'Pagos en línea (Openpay)', desc: 'Conecta tu cuenta Openpay para cobrar con enlace: tarjeta y SPEI.', group: 'Facturación y reglas', icon: 'payments', action: 'Configurar', route: 'caja', embed: true, element: '#online-pay-setup', ensure: 'online-pay' },
       { title: 'Formas de pago y anticipo', desc: 'Métodos aceptados y anticipos de la clínica.', group: 'Facturación y reglas', icon: 'payments', soon: true }
     ] },
     { id: 'cuenta', title: 'Cuenta y seguridad', blurb: 'Plan, protección y preparación operativa.', icon: 'security', items: [
       { title: 'Plan y suscripción', desc: 'Tu plan, cambios de plan y pago de la suscripción.', group: 'Suscripción', icon: 'plan', action: 'Consultar', route: 'plan', ownerOnly: true },
       { title: 'Almacenamiento', desc: 'Espacio usado por fotos, radiografías y documentos.', group: 'Suscripción', icon: 'plan', action: 'Consultar', route: 'almacenamiento' },
       { title: 'Seguridad', desc: 'Accesos, señales y revisiones de la cuenta.', group: 'Protección', icon: 'security', action: 'Revisar', route: 'seguridad' },
+      { title: 'Cumplimiento sanitario', desc: 'Bitácoras y carpeta para una visita de COFEPRIS.', group: 'Protección', icon: 'security', action: 'Abrir', route: 'cumplimiento' },
       { title: 'Preparación operativa', desc: 'Controles pendientes antes de atender pacientes.', group: 'Protección', icon: 'launch', action: 'Revisar', route: 'lanzamiento' }
     ] }
   ];
@@ -169,6 +175,7 @@
       node.parentNode.insertBefore(mark, node);
       state.detail = { item: item, node: node, mark: mark, page: !item.element };
       win.ir('configuracion');
+      if (item.ensure === 'online-pay' && win.SmylOnlinePay && typeof win.SmylOnlinePay.ensure === 'function') Promise.resolve(win.SmylOnlinePay.ensure()).catch(function () {});
       if (item.ensure === 'billing' && win.SmylFinance && typeof win.SmylFinance.ensureBilling === 'function') Promise.resolve(win.SmylFinance.ensureBilling()).catch(function () {});
       if (item.element && win.SmylReminders && typeof win.SmylReminders.reload === 'function') Promise.resolve(win.SmylReminders.reload()).catch(function () {});
       if (item.target) {
@@ -219,6 +226,53 @@
       return item.action || 'Abrir';
     }
 
+    // Las cuentas abren la misma pestaña de conexión que el resto de la aplicación.
+    var channelView = null;
+    function accountButton(item) {
+      var button = el('button', 'settings-account');
+      button.type = 'button'; button.dataset.account = item.channel;
+      var logo = el('img', 'settings-account-logo');
+      logo.alt = ''; logo.width = 42; logo.height = 42; logo.src = 'icons/brands/' + item.channel + '.svg';
+      var identity = el('span', 'settings-account-id');
+      var name = el('small', 'settings-account-name', item.desc); name.dataset.fallback = item.desc;
+      identity.append(el('strong', '', item.title), name);
+      var stateText = el('span', 'settings-account-status', 'Sin verificar');
+      var action = el('span', 'settings-account-action', 'Ver canal');
+      button.append(logo, identity, stateText, action);
+      button.addEventListener('click', function () { go(item); });
+      return button;
+    }
+
+    function paintAccounts(view) {
+      if (channelView !== view || view.tenant !== win.tenantId || view.actor !== win.miUsuario?.id) return;
+      var accounts = view.overview?.accounts || {};
+      panel.querySelectorAll('[data-account]').forEach(function (button) {
+        var id = button.dataset.account, account = accounts[id];
+        var name = button.querySelector('.settings-account-name');
+        name.textContent = account?.name || name.dataset.fallback;
+        button.dataset.state = account ? (account.connected ? 'connected' : 'disconnected') : 'unknown';
+        button.querySelector('.settings-account-status').textContent = account ? (account.connected ? 'Conectada' : 'Sin conectar') : view.loading ? 'Consultando…' : 'Sin verificar';
+        button.querySelector('.settings-account-action').textContent = account && view.overview.canManage ? (account.connected ? 'Administrar' : 'Conectar') : 'Ver canal';
+      });
+      var count = panel.querySelector('.settings-account-count');
+      if (!count) return;
+      var known = Object.values(accounts);
+      count.textContent = known.length === 3 ? (known.filter(function (a) { return a.connected; }).length + ' de 3 conectadas') : '';
+      var retry = panel.querySelector('.settings-accounts-retry');
+      retry.hidden = !view.error;
+    }
+
+    function loadAccounts() {
+      var tenant = win.tenantId, actor = win.miUsuario?.id;
+      if (channelView && channelView.tenant === tenant && channelView.actor === actor) { paintAccounts(channelView); return; }
+      var view = { tenant:tenant, actor:actor, loading:true };
+      channelView = view;
+      paintAccounts(view);
+      Promise.resolve().then(function () { return win.SmylClinicSetup.readChannels(); }).then(function (overview) {
+        view.overview = overview;
+      }).catch(function () { view.error = true; }).finally(function () { view.loading = false; paintAccounts(view); });
+    }
+
     function row(item, current) {
       var itemStatus = item.check ? status(item.check, results(), state.services) : null;
       var node = el(item.soon ? 'div' : 'button', 'settings-hub-row');
@@ -241,6 +295,8 @@
     function render() {
       var res = results();
       var current = SECTIONS.filter(function (section) { return section.id === state.section; })[0];
+      panel.dataset.section = current.id;
+      if (current.id !== 'canales' || state.detail) channelView = null;
       nav.replaceChildren();
       SECTIONS.forEach(function (section) {
         var button = el('button', 'settings-hub-nav-item'); button.type = 'button'; button.dataset.section = section.id;
@@ -262,7 +318,7 @@
       titleCopy.append(el('h1', '', current.title), el('p', '', current.blurb));
       title.append(titleCopy);
       var currentPending = pendingCount(current, res, state.services);
-      if (currentPending) { var summary = el('span', 'settings-hub-summary', currentPending + (currentPending === 1 ? ' pendiente' : ' pendientes')); summary.dataset.tone = 'todo'; title.append(summary); }
+      if (currentPending && current.id !== 'canales') { var summary = el('span', 'settings-hub-summary', currentPending + (currentPending === 1 ? ' pendiente' : ' pendientes')); summary.dataset.tone = 'todo'; title.append(summary); }
       panel.append(title);
 
       var groups = el('div', 'settings-hub-groups');
@@ -271,10 +327,20 @@
         var groupHead = el('header', 'settings-hub-group-head');
         groupHead.append(el('h2', '', entry.name));
         var list = el('div', 'settings-hub-list');
-        entry.items.forEach(function (item) { list.append(row(item, current)); });
+        if (entry.items[0].channel) {
+          group.classList.add('settings-accounts');
+          var count = el('span', 'settings-account-count');
+          var retry = el('button', 'settings-accounts-retry', 'Reintentar consulta'); retry.type = 'button'; retry.hidden = true;
+          retry.onclick = function () { channelView = null; loadAccounts(); };
+          groupHead.append(count, retry);
+          entry.items.forEach(function (item) { list.append(accountButton(item)); });
+        } else {
+          entry.items.forEach(function (item) { list.append(row(item, current)); });
+        }
         group.append(groupHead, list); groups.append(group);
       });
       panel.append(groups);
+      if (current.id === 'canales' && page.classList.contains('activa')) loadAccounts();
     }
 
     async function refresh() {
@@ -287,7 +353,15 @@
       }
       await Promise.all(jobs);
       state.loadedAt = Date.now();
-      if (page.classList.contains('activa') && !state.detail) render();
+      if (page.classList.contains('activa') && !state.detail) {
+        var focused = page.contains(document.activeElement) ? document.activeElement : null;
+        var focusIndex = focused ? Array.from(page.querySelectorAll('button, select')).indexOf(focused) : -1;
+        var account = focused?.dataset.account;
+        render();
+        // La consulta puede terminar mientras el usuario recorre las cuentas con el teclado.
+        if (account) panel.querySelector('[data-account="' + account + '"]')?.focus({preventScroll:true});
+        else if (focusIndex >= 0 && !focused.isConnected) page.querySelectorAll('button, select')[focusIndex]?.focus({preventScroll:true});
+      }
     }
 
     var back = el('button', 'settings-back'); back.type = 'button'; back.hidden = true;
@@ -306,14 +380,14 @@
       openItem: function (section, title) {
         var sec = SECTIONS.filter(function (x) { return x.id === section; })[0]; if (!sec) return;
         var item = sec.items.filter(function (x) { return x.title === title && !x.soon; })[0]; if (!item) return;
-        state.section = section; save(section); openDetail(item);
+        state.section = section; save(section); if (item.channel) go(item); else openDetail(item);
       },
       sections: function () { return SECTIONS.map(function (section) { return section.id; }); },
       refresh: refresh
     });
     var previous = win.ir;
     win.ir = function (route) {
-      if (route !== 'configuracion') restoreDetail();
+      if (route !== 'configuracion') { channelView = null; restoreDetail(); }
       var out = previous.apply(this, arguments);
       if (route === 'configuracion') { render(); if (Date.now() - state.loadedAt > 30000) refresh(); }
       placeBack(route);

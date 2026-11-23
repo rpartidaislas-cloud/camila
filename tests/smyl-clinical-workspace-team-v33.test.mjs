@@ -10,7 +10,7 @@ test('Clinical Workspace v3.3 resume equipo, pendientes y roles sin tocar permis
   assert.match(script, /function updateSectionCount/);
   assert.match(script, /clinic-admin-member-count/);
   // Los pendientes ahora son un filtro de la lista única, con su propio conteo.
-  assert.match(script, /\['pending', 'Pendientes'\]/);
+  assert.match(script, /\['pending', 'Invitaciones'\]/);
   assert.match(script, /item\[1\] \+ ' · ' \+ count/);
   assert.match(script, /clinic-admin-role-count-summary/);
   assert.match(script, /host\.setAttribute\('role', 'list'\)/);

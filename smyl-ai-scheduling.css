@@ -1,0 +1,13 @@
+/* SMYL · Agenda con IA */
+.schedule-ai-card [data-ai-body] { display: grid; gap: 12px; }
+.ai-switch { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1px solid #dce0e6; border-radius: 14px; }
+.ai-switch input { margin-top: 4px; width: 20px; height: 20px; }
+.ai-switch strong, .ai-switch small { display: block; }
+.ai-switch small, .ai-note { color: #5f716b; font-size: 13px; line-height: 1.5; margin: 3px 0 0; }
+.ai-services { border: 1px solid #dce0e6; border-radius: 14px; padding: 10px 14px; display: grid; gap: 8px; }
+.ai-services legend { padding: 0 6px; font-weight: 700; font-size: 13px; }
+.ai-services label { display: flex; gap: 8px; align-items: center; min-height: 32px; }
+.ai-row { display: flex; gap: 14px; flex-wrap: wrap; }
+.ai-row label { display: grid; gap: 4px; font-size: 13px; }
+.ai-error { color: #8a1f1f; } .ai-ok { color: #1d30a5; }
+@media (max-width: 720px) { .ai-row label, .ai-row select { width: 100%; } }

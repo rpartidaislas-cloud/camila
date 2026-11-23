@@ -28,11 +28,12 @@ test('el compositor deja visibles únicamente herramientas primarias', () => {
   assert.match(css, /\.smyl-inbox-compose-tools\[hidden\]\{display:none!important\}/);
 });
 
-test('las acciones secundarias de mensajes se revelan mediante Más', () => {
-  assert.match(inbox, /smyl-inbox-message-secondary/);
+test('las acciones del mensaje se abren en el menú lateral de tres puntos', () => {
+  assert.match(inbox, /smyl-inbox-message-menu/);
   assert.match(inbox, /smyl-inbox-message-more/);
-  assert.match(inbox, /moreActions\.setAttribute\('aria-expanded'/);
-  assert.match(css, /\.smyl-inbox-bubble:hover \.smyl-inbox-message-actions/);
+  assert.match(inbox, /button\.setAttribute\('aria-haspopup', 'menu'\)/);
+  assert.match(inbox, /row\.append\(actions\)/);
+  assert.match(inbox, /if \(messageMenu\) return true/);
 });
 
 test('la optimización conserva paridad web y móvil', () => {

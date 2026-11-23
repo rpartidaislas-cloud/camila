@@ -13,11 +13,12 @@ const app = read('app.html');
 const worker = read('sw.js');
 
 test('el expediente ofrece un área única para todas las simulaciones SMYL', () => {
-  // Las simulaciones forman parte de presentar el plan: viven dentro de la pestaña Tratamiento.
+  // Las simulaciones tienen su propia pestaña «Diseño de sonrisa» (antes vivían dentro de Tratamiento).
   assert.doesNotMatch(record, /data-p360-tab="simulations"/);
+  assert.match(record, /data-p360-tab="smile"/);
   assert.match(record, /data-p360-panel="simulations"/);
-  assert.match(record, /treatment:\['simulations'\]/);
-  assert.match(record, /if\(key==='simulations'\)key='treatment';/);
+  assert.match(record, /smile:\['simulations'\]/);
+  assert.match(record, /if\(key==='simulations'\)key='smile';/);
   assert.match(record, /smyl:patient-simulations-updated/);
 });
 
@@ -42,10 +43,10 @@ test('la sección responde en escritorio y móvil con los mismos recursos', () =
   assert.match(styles, /\.pc-case-summary\{/);
   assert.match(styles, /@media\(max-width:700px\)/);
   assert.match(styles, /@media\(max-width:420px\)/);
-  assert.match(app, /smyl-patient-cases\.css\?v=3/);
-  assert.match(app, /smyl-patient-cases\.js\?v=12/);
-  assert.match(worker, /smyl-patient-cases\.css\?v=3/);
-  assert.match(worker, /smyl-patient-cases\.js\?v=12/);
+  assert.match(app, /smyl-patient-cases\.css\?v=4/);
+  assert.match(app, /smyl-patient-cases\.js\?v=14/);
+  assert.match(worker, /smyl-patient-cases\.css\?v=4/);
+  assert.match(worker, /smyl-patient-cases\.js\?v=14/);
   assert.match(worker, /patient-simulations-v70/);
   assert.equal(cases, read('mobile/www/smyl-patient-cases.js'));
   assert.equal(styles, read('mobile/www/smyl-patient-cases.css'));

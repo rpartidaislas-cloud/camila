@@ -1,0 +1,65 @@
+/* SMYL · Pagos en línea (Openpay vía LANA) v1. Textos de 12 px o más; controles táctiles de 44 px. */
+.online-pay{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;max-width:760px;min-width:0;color:#172b3a;overflow-wrap:anywhere}
+.online-pay-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.online-pay-head h2{margin:4px 0 6px;font-size:22px;line-height:1.25}
+.online-pay-head p{margin:0;color:#49618d;font-size:14px;line-height:1.55;max-width:560px}
+.online-pay-chip{flex-shrink:0;padding:6px 12px;border-radius:999px;background:#eef1f4;color:#4e5371;font-size:12px;font-weight:700;white-space:nowrap}
+.online-pay-chip[data-state="on"]{background:#dff3e7;color:#17643f}
+.online-pay-chip[data-state="paused"]{background:#fff1cf;color:#7b5b13}
+.online-pay-notice{margin:0;padding:12px 14px;border:1px solid #dbe2ea;border-radius:12px;background:#f6f8fa;color:#3f4464;font-size:13px;line-height:1.5}
+.online-pay-notice[data-tone="info"]{border-color:#d6e3f5;background:#f2f6fc;color:#2f4b6b}
+.online-pay-notice[data-tone="success"]{border-color:#bfe3cd;background:#eefaf2;color:#17643f}
+.online-pay-notice[data-tone="error"]{border-color:#f0c9c2;background:#fdf1ef;color:#93463d}
+.online-pay-merchant{margin:0;font-size:14px;color:#3f4464}
+.online-pay-merchant strong{color:#172b3a}
+.online-pay-card{display:grid;gap:8px;padding:16px;border:1px solid #dde4ec;border-radius:14px;background:#fff}
+.online-pay-card h3{margin:0;font-size:16px}
+.online-pay-help{margin:0;color:#586f9b;font-size:12px;line-height:1.45}
+.online-pay-methods{display:grid;border:1px solid #e3e8ee;border-radius:12px;overflow:hidden}
+.online-pay-methods .online-pay-method+.online-pay-method{border-top:1px solid #e3e8ee}
+.online-pay-method{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:12px;min-height:60px;padding:10px 12px;cursor:pointer}
+.online-pay-card>.online-pay-method{padding:0}
+.online-pay-method.is-disabled{cursor:default;opacity:.62}
+.online-pay-method-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:#eef1f6;color:#353c6b}
+.online-pay-method-icon svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.online-pay-method-copy strong{display:block;font-size:14px}
+.online-pay-method-copy small{display:block;margin-top:2px;color:#586f9b;font-size:12px;line-height:1.4}
+.online-pay-method-side{display:grid;justify-items:center;gap:3px}
+.online-pay-method-state{color:#4e5371;font-size:12px;font-weight:600}
+.online-pay-switch{appearance:none;-webkit-appearance:none;position:relative;width:46px;height:26px;margin:0;border-radius:999px;background:#ccd8e1;cursor:pointer;transition:background .15s}
+.online-pay-switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(16,40,59,.25);transition:transform .15s}
+.online-pay-switch:checked{background:#4253bb}
+.online-pay-switch:checked::after{transform:translateX(20px)}
+.online-pay-switch:focus-visible{outline:2px solid #5074b8;outline-offset:2px}
+.online-pay-switch:disabled{cursor:not-allowed;opacity:.7}
+.online-pay-steps{margin:0;padding:14px 16px 14px 34px;border:1px solid #dde4ec;border-radius:14px;background:#fff;color:#3f4464;font-size:14px;line-height:1.6}
+.online-pay-secure summary{min-height:32px;font-size:14px;font-weight:700;cursor:pointer}
+.online-pay-credentials{display:grid;gap:10px;margin-top:6px}
+.online-pay-field{display:grid;gap:6px;font-size:13px;font-weight:600;color:#262b4e}
+.online-pay-input{display:flex;align-items:center;border:1px solid #ccd9e3;border-radius:10px;background:#fff}
+.online-pay-input:focus-within{border-color:#5074b8;box-shadow:0 0 0 3px rgba(24, 47, 196,.11)}
+.online-pay-input input{flex:1;min-width:0;min-height:44px;padding:0 12px;border:0;border-radius:10px;background:transparent;font:500 16px Inter,sans-serif;color:#172b3a;outline:0}
+.online-pay-reveal{margin-right:6px;padding:6px 10px;border:0;border-radius:8px;background:#eef2f6;color:#353c6b;font:600 12px Inter,sans-serif;cursor:pointer}
+.online-pay-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.online-pay-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.online-pay-actions .btn{min-height:44px}
+.online-pay-danger{border:1px solid #f0c9c2;background:#fdf1ef;color:#93463d}
+@media(max-width:600px){
+  .online-pay-head{flex-direction:column}
+  .online-pay-pair{grid-template-columns:1fr}
+  .online-pay-actions .btn{flex:1}
+}
+/* v2: resumen, «Cómo funciona» y aviso de que Openpay opera a través de LANA (aplicación externa validada por Openpay). */
+.online-pay-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0}
+.online-pay-summary>div{padding:12px 14px;border:1px solid #dde4ec;border-radius:12px;background:#fff}
+.online-pay-summary dt{color:#586f9b;font-size:12px;font-weight:600}
+.online-pay-summary dd{margin:4px 0 0;font-size:15px;font-weight:700;color:#172b3a}
+.online-pay-flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:4px 0 0;padding:0;list-style:none}
+.online-pay-flow-step{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:12px;background:#f6f9fb}
+.online-pay-flow-step strong{display:block;font-size:14px}
+.online-pay-flow-step small{display:block;margin-top:3px;color:#49618d;font-size:12px;line-height:1.45}
+.online-pay-flow-icon,.online-pay-provider-icon{flex-shrink:0;display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#e6ecf3;color:#2e3fb2}
+.online-pay-flow-icon svg,.online-pay-provider-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.online-pay-provider{display:flex;gap:10px;align-items:flex-start;margin:6px 0 0;padding:12px 14px;border:1px solid #cfd6e3;border-radius:12px;background:#f1f8f5;color:#232953;font-size:13px;line-height:1.5}
+.online-pay-provider-icon{background:#dff0e8;color:#1f6b55}
+@media(max-width:760px){.online-pay-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.online-pay-flow{grid-template-columns:1fr}}

@@ -27,7 +27,8 @@ test('cabecera única con el nombre de la clínica y usuario abajo con Mi cuenta
 });
 
 test('«Nueva cita» va arriba y el atajo N no interfiere al escribir ni con modificadores', () => {
-  assert.match(nav, /logo\.after\(wrap\)/);
+  assert.match(nav, /headerEnd = sidebar\.querySelector\('\.sb-branch'\) \|\| logo;/);
+  assert.match(nav, /headerEnd\.after\(wrap\)/);
   assert.match(nav, /aria-keyshortcuts', 'N'/);
   assert.match(nav, /event\.ctrlKey \|\| event\.metaKey \|\| event\.altKey/);
   assert.match(nav, /function isTypingTarget/);

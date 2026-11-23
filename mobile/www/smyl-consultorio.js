@@ -26,11 +26,11 @@
   function $(sel) { var r = root(); return r ? r.querySelector(sel) : null; }
   function can(key) { var a = state.access; return !a || a.owner || a.perms.indexOf(key) !== -1; }
   function isOwner() { return window.miRolEquipo === 'dueño'; }
-  function simulatorUrl(patientId) {
-    var url = 'simulacion-rapida.html?workspace=professional';
-    // Igual que la ficha del paciente: solo la cuenta dueña lanza la simulación ya ligada al paciente.
-    if (patientId && state.tenant && isOwner()) url += '&patient=' + encodeURIComponent(patientId) + '&clinic=' + encodeURIComponent(state.tenant);
-    return url;
+  var toolsUnavailable = 'No se pudieron cargar las herramientas clínicas. Actualiza la página para reintentar.';
+  function openClinicalTools(options) {
+    if (window.SmylClinicalTools?.open) return window.SmylClinicalTools.open(options);
+    var note = state.visit ? $('[data-co-visit-note]') : $('[data-co-flash]');
+    if (note) { note.setAttribute('role','status'); note.textContent = toolsUnavailable; note.hidden = false; }
   }
   function openPatient(id) { if (typeof window.verPaciente === 'function') window.verPaciente(id); else if (typeof window.ir === 'function') window.ir('pacientes'); }
   /* Abre el expediente y salta a una de sus secciones (history, files, ...). Usa los mismos accesos que el expediente
@@ -60,16 +60,20 @@
   }
 
   /* ── Datos ── */
+  async function accessFor(tenant) {
+    var user = await window.sb.auth.getUser(), uid = user && user.data && user.data.user && user.data.user.id;
+    if (!uid || !tenant || tenant !== window.tenantId) return null;
+    if (isOwner()) return { owner:true, perms:[] };
+    var roles = await query(window.sb.from('smyl_member_roles').select('role_id').eq('tenant_id', tenant).eq('user_id', uid));
+    var ids = (roles || []).map(function (r) { return r.role_id; }), perms = [];
+    if (ids.length) perms = (await query(window.sb.from('smyl_role_permissions').select('permission_key').eq('tenant_id', tenant).in('role_id', ids))).map(function (r) { return r.permission_key; });
+    return { owner: false, perms: perms };
+  }
   async function loadAccess() {
-    state.accessTenant = state.tenant;
-    try {
-      var user = await window.sb.auth.getUser(), uid = user && user.data && user.data.user && user.data.user.id;
-      if (!uid) { state.access = null; return; }
-      var roles = await query(window.sb.from('smyl_member_roles').select('role_id').eq('tenant_id', state.tenant).eq('user_id', uid));
-      var ids = (roles || []).map(function (r) { return r.role_id; }), perms = [];
-      if (ids.length) perms = (await query(window.sb.from('smyl_role_permissions').select('permission_key').eq('tenant_id', state.tenant).in('role_id', ids))).map(function (r) { return r.permission_key; });
-      state.access = { owner: isOwner(), perms: perms };
-    } catch (e) { state.access = null; }
+    var tenant = state.tenant;
+    state.accessTenant = tenant;
+    var access = await accessFor(tenant).catch(function () { return null; });
+    if (state.tenant === tenant) state.access = access;
   }
   async function namesFor(ids) {
     var unique = Array.from(new Set(ids.filter(Boolean))), out = [];
@@ -84,7 +88,7 @@
     var start = startDay(new Date()), end = new Date(start); end.setDate(end.getDate() + 1);
     try {
       var res = await Promise.all([
-        query(window.sb.from('smyl_appointments').select('id,patient_id,service_id,starts_at,status').eq('tenant_id', state.tenant).gte('starts_at', start.toISOString()).lt('starts_at', end.toISOString()).order('starts_at')),
+        query(window.sb.from('smyl_appointments').select('id,patient_id,branch_id,service_id,starts_at,status').eq('tenant_id', state.tenant).gte('starts_at', start.toISOString()).lt('starts_at', end.toISOString()).order('starts_at')),
         query(window.sb.from('smyl_services').select('id,name').eq('tenant_id', state.tenant)).catch(function () { return []; })
       ]);
       state.rows = (res[0] || []).filter(function (r) { return r.status !== 'cancelled'; });
@@ -119,11 +123,15 @@
     if (!live.length) { host.append(el('p', 'co-note', state.done ? 'Ya terminaste las ' + state.rows.length + ' citas de hoy.' : 'Nadie por atender ahora. Da de alta a quien llegue con el botón de arriba.')); return; }
     var list = el('ul', 'co-people');
     live.forEach(function (r) {
-      var p = state.names[r.patient_id], name = p ? Q.listName(p) : 'Paciente', li = el('li');
-      var btn = el('button', 'co-person'); btn.type = 'button'; btn.dataset.status = r.status; btn.setAttribute('aria-label', 'Empezar la visita de ' + name + ', ' + STATUS[r.status]);
+      var p = state.names[r.patient_id], name = p ? Q.listName(p) : r.patient_id ? 'Paciente' : 'Cita sin paciente vinculado', li = el('li');
+      var btn = el('button', 'co-person'); btn.type = 'button'; btn.dataset.status = r.status;
+      btn.setAttribute('aria-label', r.patient_id ? 'Empezar la visita de ' + name + ', ' + STATUS[r.status] : 'Ver cita sin paciente vinculado');
       var info = el('span', 'co-q'); info.append(el('b', '', name), el('small', '', fmtTime(r.starts_at) + (p && Q.isPending(p) && p.telefono ? ', ' + p.telefono : state.services[r.service_id] ? ', ' + state.services[r.service_id] : '')));
       btn.append(el('span', 'co-av', Q.initials(p && Q.isPending(p) ? '' : name)), info, el('span', 'co-chip', STATUS[r.status]));
-      btn.onclick = function () { openVisit(r.patient_id); };
+      btn.onclick = function () {
+        if (r.patient_id) openVisit(r.patient_id, r.id);
+        else openClinicalTools({appointmentId:r.id,branchId:r.branch_id});
+      };
       li.append(btn); list.append(li);
     });
     host.append(list);
@@ -241,9 +249,12 @@
     return V.build({ patient: v.patient, history: v.history, files: v.files, historyModel: window.SmylHistoryModel, canManage: can('patients.manage'), canWriteClinical: !!I && can('clinical.write'),
       consent: v.consent, consentSummary: PN ? PN.statusText(v.consent, fmtDay) : '', canSignConsent: canSignConsent(), canViewConsent: can('clinical.read') });
   }
-  function appointmentOf(patientId) { return state.rows.filter(function (r) { return r.patient_id === patientId && ORDER.indexOf(r.status) >= 0; })[0] || null; }
-  async function loadVisit(id) {
-    var v = state.visit = { id: id, loading: true, error: '', patient: null, history: undefined, files: undefined, revision: 0, rawDoc: null, next: undefined, consent: undefined };
+  function appointmentOf(patientId, appointmentId) {
+    return state.rows.find(function (r) { return r.patient_id === patientId && (appointmentId ? r.id === appointmentId : ORDER.indexOf(r.status) >= 0); }) || null;
+  }
+  async function loadVisit(id, appointmentId) {
+    if (appointmentId === undefined && state.visit?.id === id) appointmentId = state.visit.appointmentId;
+    var v = state.visit = { id: id, appointmentId:appointmentId || null, loading: true, error: '', patient: null, history: undefined, files: undefined, revision: 0, rawDoc: null, next: undefined, consent: undefined };
     renderVisit();
     try {
       var res = await Promise.all([
@@ -261,7 +272,7 @@
     } catch (e) { if (state.visit !== v) return; v.loading = false; v.error = errorText(e); }
     renderVisit();
   }
-  function openVisit(id) { showView('visit'); loadVisit(id); }
+  function openVisit(id, appointmentId) { showView('visit'); loadVisit(id,appointmentId || null); }
   function closeVisit() { state.visit = null; state.interview = null; stopConsent(); showView('home'); renderResume(); }
   function endVisit() { forget(); state.visit = null; state.interview = null; stopConsent(); state.flash = 'Visita terminada.'; showView('home'); renderResume(); renderFlash(); renderPill('consultorio'); }
   function renderFlash() { var f = $('[data-co-flash]'); if (!f) return; f.textContent = state.flash || ''; f.hidden = !state.flash; state.flash = ''; }
@@ -272,11 +283,11 @@
     else if (id === 'link') { if (typeof window.enviarEnlaceRegistro === 'function') window.enviarEnlaceRegistro({ id: patient.id, telefono: patient.telefono }, button); }
     else if (id === 'confirm') confirmData(patient, button);
     else if (id === 'interview') startInterview(step.state === 'done');
-    else if (id === 'consent') startConsent();
+    else if (id === 'consent') openConsentChoice(patient);
     else if (id === 'consent-view') viewConsent();
     else if (id === 'history') openSection(patient.id, 'history');
     else if (id === 'files') openSection(patient.id, 'files');
-    else if (id === 'simulator') location.href = simulatorUrl(patient.id);
+    else if (id === 'simulator') openClinicalTools({tool:'simulator',patientId:patient.id,patientName:Q.listName(patient),appointmentId:state.visit.appointmentId});
   }
   async function confirmData(patient, button) {
     button.disabled = true;
@@ -303,7 +314,7 @@
     var back = el('button', 'co-link-btn co-back', '‹ Consultorio'); back.type = 'button'; back.onclick = closeVisit; host.append(back);
     if (v.loading) { host.append(skNode('detail', { label: 'Cargando al paciente' })); return; }
     if (v.error) { var retry = el('button', 'co-retry', 'Intentar de nuevo'); retry.type = 'button'; retry.onclick = function () { loadVisit(v.id); }; host.append(el('p', 'co-note', v.error), retry); return; }
-    var p = v.patient, appt = appointmentOf(p.id), label = Q.listName(p), model = modelFor(v);
+    var p = v.patient, appt = appointmentOf(p.id,v.appointmentId), label = Q.listName(p), model = modelFor(v);
     var head = el('div', 'co-vhead'), who = el('div', 'co-q');
     who.append(el('h1', 'co-vname', label), el('small', '', [p.telefono, appt ? STATUS[appt.status] + ', ' + fmtTime(appt.starts_at) : ''].filter(Boolean).join('. ')));
     head.append(el('span', 'co-av co-av-lg', Q.initials(Q.isPending(p) ? '' : Q.displayName(p))), who); host.append(head);
@@ -318,6 +329,19 @@
       var body = el('div', 'co-sbody'), t = el('b', '', step.title); body.append(t, el('small', '', step.text));
       var acts = el('div', 'co-sacts');
       step.actions.forEach(function (a) { var b = el('button', a.primary ? 'co-sgo' : 'co-sec', a.label); b.type = 'button'; b.onclick = function () { visitAction(a.id, step, b); }; acts.append(b); });
+      if (step.key === 'estudios' && v.appointmentId && appt && state.access && can('cloud.read') && can('cloud.upload') && can('clinical.read') && window.SmylCloud?.openFromAppointment) {
+        var upload = el('button', 'co-sec', 'Guardar en la Nube'); upload.type = 'button';
+        upload.onclick = async function () {
+          upload.disabled = true;
+          function feedback(text) { var note = $('[data-co-visit-note]'); if (note && state.visit === v) { note.setAttribute('role','status'); note.textContent = text; } }
+          try {
+            await window.SmylCloud.openFromAppointment({tenant:state.tenant,patientId:p.id,appointmentId:appt.id,patientName:label,
+              when:new Date(appt.starts_at).toLocaleDateString('es-MX')+' · '+fmtTime(appt.starts_at),
+              isOpen:function(){return state.visit === v && upload.isConnected && upload.getClientRects().length > 0;},onSaved:feedback});
+          } catch (error) { feedback(error.message); } finally { upload.disabled = false; }
+        };
+        acts.append(upload);
+      }
       body.append(acts); li.append(mark, body); list.append(li);
     });
     host.append(list);
@@ -325,6 +349,18 @@
     host.lastChild.dataset.coVisitNote = '';
     var full = el('button', 'co-tile co-full', 'Abrir expediente completo'); full.type = 'button'; full.onclick = function () { openPatient(p.id); };
     var close = el('button', 'co-sgo co-close', 'Cerrar la visita'); close.type = 'button'; close.onclick = openClose;
+    var tools = el('button','co-tile co-full','Herramientas clínicas');
+    tools.type = 'button';
+    tools.onclick = function () {
+      openClinicalTools({ patientId:p.id,patientName:label,appointmentId:v.appointmentId,branchId:v.appointmentId && appt ? appt.branch_id : null });
+    };
+    host.insertBefore(tools,bar);
+    // Receta médica: captura, emisión e impresión (la validación legal vive en la función SQL; ver docs/RECETA_REQUISITOS.md).
+    if (window.SmylPrescriptions && typeof window.SmylPrescriptions.open === 'function') {
+      var rx = el('button', 'co-tile co-full', 'Receta médica'); rx.type = 'button';
+      rx.onclick = function () { window.SmylPrescriptions.open({ patientId: p.id, patientName: label, appointmentId: v.appointmentId || null, branchId: appt ? appt.branch_id : null }); };
+      host.insertBefore(rx, bar);
+    }
     host.append(full, close);
   }
 
@@ -577,6 +613,79 @@
   }
 
 
+  /* «Pedir firma»: una sola puerta. Se explica qué firma el paciente y se elige DÓNDE firma. */
+  function openConsentChoice(patient) {
+    var d = dialog(); if (!d) return;
+    d.innerHTML = '<div class="co-form co-qr"><header><h2>Consentimiento de privacidad</h2><button type="button" class="co-x" data-co-cancel aria-label="Cerrar">×</button></header><div data-co-choice-body></div></div>';
+    d.querySelector('[data-co-cancel]').onclick = closeDialog;
+    var body = d.querySelector('[data-co-choice-body]');
+    body.append(el('p', 'co-choice-what', 'El paciente va a firmar que leyó cómo la clínica cuida sus datos personales y de salud, y va a decidir si permite el uso de inteligencia artificial, WhatsApp y promociones. Decir que no no cambia su atención.'));
+    body.append(el('p', 'co-choice-ask', '¿Dónde va a firmar?'));
+    function opt(title, text, fn, attr) { var b = el('button', 'co-choice-opt'); b.type = 'button'; b.dataset[attr] = ''; b.append(el('strong', '', title), el('span', '', text)); b.onclick = fn; body.append(b); }
+    opt('En esta pantalla', 'Le pasas este celular o tablet y firma con el dedo.', function () { closeDialog(); startConsent(); }, 'coChoiceHere');
+    opt('En su celular', 'Escanea un código QR o le mandas un enlace por WhatsApp.', function () { openConsentLink(patient); }, 'coChoicePhone');
+    if (!d.open) d.showModal();
+  }
+
+  /* ── Firma desde el celular del paciente ──
+   * Se crea un enlace de un solo uso (vence a las 48 h) a aviso-firma.html. El paciente lee, decide (IA, WhatsApp, promociones),
+   * firma con el dedo y la firma queda en su ficha. Mientras el código está abierto se revisa cada pocos segundos si ya firmó. */
+  function consentLinkUrl(token) { return location.origin + location.pathname.replace(/[^/]*$/, '') + 'aviso-firma.html?token=' + encodeURIComponent(token); }
+  function consentLinkError(err) {
+    var code = err && err.code, msg = String(err && err.message || '');
+    if (code === '42501') return 'Tu rol no permite enviar avisos a firmar.';
+    if (/PGRST202|42883|schema cache/i.test(code + ' ' + msg)) return 'Falta aplicar la migración de firma por enlace en la base de datos.';
+    return 'No se pudo crear el enlace. Revisa tu conexión e inténtalo de nuevo.';
+  }
+  async function openConsentLink(patient) {
+    var d = dialog(); if (!d) return;
+    stopQr();
+    var q = state.qr = { id: patient.id, timer: null, polls: 0 };
+    d.innerHTML = '<div class="co-form co-qr"><header><h2>Que firme desde su celular</h2><button type="button" class="co-x" data-co-cancel aria-label="Cerrar">×</button></header><div data-co-qr-body>' + skHtml('text', { lines: 3, label: 'Preparando el enlace' }) + '</div></div>';
+    d.querySelector('[data-co-cancel]').onclick = closeDialog;
+    d.addEventListener('close', function () { if (state.qr === q) stopQr(); }, { once: true });
+    if (!d.open) d.showModal();
+    var body = d.querySelector('[data-co-qr-body]');
+    try {
+      var token = await rpc('smyl_create_consent_link', { p_patient_id: patient.id });
+      if (state.qr !== q) return;
+      if (!/^[0-9a-f]{64}$/.test(String(token || ''))) throw new Error('Respuesta inesperada.');
+      var url = consentLinkUrl(token), svg = qrSvg(url);
+      body.replaceChildren();
+      var box = el('div', 'co-qrbox'); box.setAttribute('role', 'img'); box.setAttribute('aria-label', 'Código QR para que el paciente firme el aviso de privacidad');
+      if (svg) box.innerHTML = svg; else box.append(el('p', 'co-note-dark', 'No se pudo dibujar el código. Usa el enlace de abajo.'));
+      var cap = el('p', 'co-qrcap', 'Escanéalo con la cámara del celular'); 
+      var hint = el('p', 'co-qrhint', 'El enlace sirve una sola vez y vence en 48 horas. Si generas otro, el anterior deja de servir.');
+      var status = el('p', 'co-qrstatus'); status.setAttribute('role', 'status'); status.dataset.coQrStatus = '';
+      var dot = el('i', 'co-pulse'); dot.setAttribute('aria-hidden', 'true'); status.append(dot, el('span', '', 'Esperando su firma…'));
+      var field = document.createElement('input'); field.className = 'co-qrlink'; field.readOnly = true; field.value = url; field.setAttribute('aria-label', 'Enlace para firmar el aviso'); field.onfocus = function () { field.select(); };
+      var more = document.createElement('details'); more.className = 'co-qrmore'; var sum = document.createElement('summary'); sum.textContent = 'Ver el enlace'; more.append(sum, field);
+      var acts = el('div', 'co-actions'), wa = Q.whatsappUrl(patient.telefono, 'Hola, antes de tu atención te pedimos leer y firmar nuestro aviso de privacidad desde tu celular (el enlace vence en 48 horas): ' + url);
+      function act(text, cls, fn) { var b = el('button', cls, text); b.type = 'button'; b.onclick = fn; acts.append(b); return b; }
+      if (wa) act('Enviarlo por WhatsApp', 'co-submit', function () { window.open(wa, '_blank', 'noopener'); }).dataset.coQrWa = '';
+      var copy = act('Copiar enlace', 'co-secondary', async function () { try { await navigator.clipboard.writeText(url); copy.textContent = 'Enlace copiado'; } catch (e) { field.focus(); field.select(); copy.textContent = 'Selecciona y copia el enlace'; } });
+      act('Cerrar', 'co-ghost', closeDialog);
+      var what = el('p', 'co-qrwhat', 'El paciente va a firmar que leyó cómo la clínica cuida sus datos personales y de salud, y a decidir si permite IA, WhatsApp y promociones. Decir que no no cambia su atención.');
+      body.append(what, box, cap, status, acts, more, hint);
+      q.timer = setInterval(async function () {
+        if (state.qr !== q) return;
+        q.polls++;
+        if (q.polls > QR_MAX_POLLS) { clearInterval(q.timer); status.replaceChildren(el('span', '', 'Dejé de esperar. Cierra y vuelve a abrir el enlace si hace falta.')); return; }
+        try {
+          var st = await rpc('smyl_patient_consent_status', { p_patient_id: patient.id });
+          if (state.qr !== q || !st || !st.signed) return;
+          clearInterval(q.timer);
+          status.replaceChildren(el('span', 'co-qrdone', '✓ Ya firmó el aviso.'));
+          acts.replaceChildren(); act('Ver la visita', 'co-submit', function () { closeDialog(); loadVisit(patient.id); });
+        } catch (e) { /* sin conexión un momento: se sigue intentando */ }
+      }, QR_POLL_MS);
+    } catch (err) {
+      if (state.qr !== q) return;
+      body.replaceChildren(el('p', 'co-error', consentLinkError(err)), (function () { var b = el('button', 'co-ghost', 'Cerrar'); b.type = 'button'; b.onclick = closeDialog; return b; })());
+    }
+  }
+
+
   /* ── Firma del aviso de privacidad ──
    * El paciente lee el aviso, firma con el dedo y se guarda con smyl_record_patient_consent: la base conserva el TEXTO EXACTO que
    * se mostró (y calcula su huella), su versión, si era el modelo provisional, quién firmó y la imagen. La firma solo vive en memoria
@@ -592,12 +701,20 @@
   async function startConsent() {
     var v = state.visit; if (!v || !v.patient || !PN) return;
     var name = await clinicName();
+    var context = null;
+    try { var ctxRes = await window.sb.rpc('smyl_privacy_notice_context'); context = ctxRes && !ctxRes.error && ctxRes.data ? { address: ctxRes.data.clinic_address, email: ctxRes.data.clinic_email } : null; } catch (e) { context = null; }
     if (state.visit !== v) return;
-    state.consent = { patientId: v.patient.id, notice: PN.render(name), clinic: name, strokes: [], relation: 'patient', checked: false, read: false, name: Q.isPending(v.patient) ? '' : Q.displayName(v.patient), saving: false, error: '', onResize: null };
+    state.consent = { patientId: v.patient.id, notice: PN.render(name, context), clinic: name, context: context, strokes: [], relation: 'patient', checked: false, read: false, choice: {}, name: Q.isPending(v.patient) ? '' : Q.displayName(v.patient), saving: false, error: '', onResize: null };
     showView('consent'); renderConsent();
   }
   function consentInk(c) { var cv = c.canvas; return PN.inkOf(c.strokes.map(function (st) { return st.map(function (pt) { return { x: pt.x * cv.clientWidth, y: pt.y * cv.clientHeight }; }); })); }
-  function consentCheck(c) { return PN.validate({ name: c.name, relation: c.relation, read: c.read, checked: c.checked, ink: c.canvas ? consentInk(c) : { ok: false } }); }
+  var CONSENT_CHOICES = [['ai_processing', 'Inteligencia artificial', 'Que la clínica use herramientas de IA de proveedores externos para apoyar su atención (por ejemplo, analizar o simular fotografías). Puede negarse sin que se le niegue la atención.'], ['whatsapp', 'WhatsApp', 'Que la clínica le escriba por WhatsApp para recordatorios de cita y seguimiento.'], ['marketing', 'Promociones', 'Que la clínica le envíe promociones e información de sus servicios.']];
+  function consentCheck(c) {
+    var res = PN.validate({ name: c.name, relation: c.relation, read: c.read, checked: c.checked, ink: c.canvas ? consentInk(c) : { ok: false } });
+    if (!res.ok) return res;
+    for (var i = 0; i < CONSENT_CHOICES.length; i++) if (typeof c.choice[CONSENT_CHOICES[i][0]] !== 'boolean') return { ok: false, field: 'choice', message: 'Falta elegir Sí o No en: ' + CONSENT_CHOICES[i][1] + '.' };
+    return res;
+  }
   function syncConsent() {
     var c = state.consent; if (!c) return;
     var res = consentCheck(c), save = $('[data-co-consent-save]'), hint = $('[data-co-consent-hint]'), clear = $('[data-co-consent-clear]');
@@ -641,9 +758,9 @@
     if (c.onResize) window.removeEventListener('resize', c.onResize);
     host.replaceChildren();
     var top = el('div', 'co-ivtop'); top.append(ivButton('‹ Volver a la visita', 'co-link-btn', leaveConsent), el('span', 'co-ivname', v && v.patient ? (Q.isPending(v.patient) ? 'Por registrar' : Q.displayName(v.patient)) : '')); host.append(top);
-    if (c.notice.provisional) { var warn = el('p', 'co-warn', 'Texto modelo provisional. Revísalo con tu asesor legal antes de usarlo con pacientes.'); warn.dataset.coProvisional = ''; host.append(warn); }
+    if (c.notice.provisional) { var warn = el('p', 'co-warn', 'Aviso incompleto: registra el domicilio de la sucursal y el correo de la clínica en Configuración. Conviene que tu asesor legal revise el aviso.'); warn.dataset.coProvisional = ''; host.append(warn); }
     var title = el('h1', 'co-qtitle', c.notice.title); title.tabIndex = -1; host.append(title);
-    host.append(el('p', 'co-hint', 'Pásale el celular al paciente para que lea y firme.'));
+    host.append(el('p', 'co-hint', 'Pásale el celular al paciente. Con su firma confirma que leyó cómo la clínica cuida sus datos personales y de salud, y registra qué permite sobre IA, WhatsApp y promociones. Decir que no no cambia su atención.'));
     var box = el('div', 'co-notice'); box.tabIndex = 0; box.setAttribute('role', 'region'); box.setAttribute('aria-label', 'Texto del aviso de privacidad');
     c.notice.text.split('\n\n').forEach(function (par) { box.append(el('p', '', par)); }); host.append(box);
     var more = el('p', 'co-note', 'Desliza el texto hasta el final para poder aceptarlo.'); more.dataset.coConsentMore = ''; host.append(more);
@@ -660,6 +777,17 @@
     var ok = el('label', 'co-check'), cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = c.checked; cb.dataset.coConsentCheck = '';
     cb.addEventListener('change', function () { c.checked = cb.checked; syncConsent(); });
     ok.append(cb, el('span', '', 'Leí el aviso de privacidad y doy mi consentimiento.')); host.append(ok);
+    host.append(el('span', 'co-fieldlabel', 'Sus decisiones'));
+    CONSENT_CHOICES.forEach(function (ch) {
+      var grp = el('div', 'co-choicebox'); grp.dataset.coChoice = ch[0];
+      grp.append(el('b', '', ch[1]), el('small', '', ch[2]));
+      var yn = el('div', 'co-choice'); yn.setAttribute('role', 'group'); yn.setAttribute('aria-label', ch[1]);
+      [['si', 'Sí acepto', true], ['no', 'No acepto', false]].forEach(function (o) {
+        var b = ivButton(o[1], 'co-ch co-ch-sm', function () { c.choice[ch[0]] = o[2]; yn.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); }); syncConsent(); });
+        b.dataset.value = o[0]; b.setAttribute('aria-pressed', String(c.choice[ch[0]] === o[2])); yn.append(b);
+      });
+      grp.append(yn); host.append(grp);
+    });
     host.append(el('span', 'co-fieldlabel', 'Firma con el dedo'));
     var pad = el('div', 'co-pad'), cv = document.createElement('canvas'); cv.className = 'co-canvas'; cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', 'Espacio para firmar'); c.canvas = cv; pad.append(cv);
     var clear = ivButton('Borrar', 'co-link-btn co-padclear', function () { c.strokes = []; paintSignature(c); syncConsent(); }); clear.dataset.coConsentClear = ''; pad.append(clear); host.append(pad);
@@ -683,8 +811,13 @@
     c.saving = true; c.error = ''; syncConsent();
     try {
       var png = signatureImage(c);
-      await rpc('smyl_record_patient_consent', PN.payload({ patientId: c.patientId, clinicName: c.clinic, name: c.name, relation: c.relation, signaturePng: png }));
-      var id = c.patientId; stopConsent(); state.notice = 'Firma guardada.'; showView('visit'); loadVisit(id);
+      await rpc('smyl_record_patient_consent', PN.payload({ patientId: c.patientId, clinicName: c.clinic, context: c.context, name: c.name, relation: c.relation, signaturePng: png }));
+      /* Las tres decisiones del paciente se guardan aparte (cada una con su fecha); la firma ya quedó guardada. */
+      var failed = 0;
+      for (var k = 0; k < CONSENT_CHOICES.length; k++) {
+        try { await rpc('smyl_set_patient_privacy_choice', { p_patient_id: c.patientId, p_purpose: CONSENT_CHOICES[k][0], p_action: c.choice[CONSENT_CHOICES[k][0]] ? 'granted' : 'revoked', p_note: 'Elegido por el paciente al firmar el aviso en la clínica.' }); } catch (e2) { failed++; }
+      }
+      var id = c.patientId; stopConsent(); state.notice = failed ? 'Firma guardada, pero no se pudieron guardar sus decisiones. Regístralas en Privacidad y derechos.' : 'Firma guardada.'; showView('visit'); loadVisit(id);
     } catch (e) {
       c.saving = false;
       c.error = e && e.code === '42501' ? 'Tu rol no permite registrar firmas.' : /PGRST202|42883|schema cache/i.test((e && e.code || '') + ' ' + (e && e.message || '')) ? 'Falta aplicar la migración de firmas en la base de datos.' : e && e.code === '22023' ? String(e.message || 'Los datos de la firma no son válidos.') : errorText(e);
@@ -739,16 +872,19 @@
     var page = el('section', 'pantalla consultorio'); page.id = 'p-consultorio'; page.setAttribute('aria-labelledby', 'co-title');
     page.innerHTML = '<div class="co-wrap"><header class="co-head"><span class="co-logo">SMYL</span><button type="button" class="co-link-btn" data-co-panel>Panel completo</button></header>'
       + '<div data-co-home><h1 id="co-title" data-co-greeting>Consultorio</h1><p class="co-sub" data-co-sub></p><p class="co-flash" data-co-flash role="status" hidden></p><div data-co-resume hidden></div>'
-      + '<button type="button" class="co-primary" data-co-new><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M3 20c0-3.5 3-6 7-6M18 8v6M15 11h6"/></svg>Paciente nuevo</button>'
-      + '<div class="co-pair"><a class="co-tile" data-co-sim href="' + esc(simulatorUrl()) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/></svg>Simulador</a>'
+      + '<div class="co-pair"><button type="button" class="co-primary" data-co-new><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M3 20c0-3.5 3-6 7-6M18 8v6M15 11h6"/></svg>Paciente nuevo</button>'
       + '<button type="button" class="co-tile" data-co-agenda><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>Agenda</button></div>'
       + '<div class="co-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" data-co-q placeholder="Buscar paciente" aria-label="Buscar paciente" autocomplete="off" spellcheck="false"></div>'
       + '<ul class="co-results" data-co-results hidden></ul>'
+      + '<section aria-labelledby="co-tools-heading"><h2 class="co-heading" id="co-tools-heading">Herramientas clínicas</h2><div data-co-clinical-tools></div></section>'
       + '<h2 class="co-heading">En el consultorio</h2><div data-co-list></div>'
       + '<footer class="co-foot"><button type="button" class="co-link-btn" data-co-logout>Cerrar sesión</button></footer></div>'
       + '<div data-co-visit hidden></div><div data-co-interview hidden></div><div data-co-close hidden></div><div data-co-consent hidden></div></div>'
       + '<dialog id="co-dialog" class="co-dialog"></dialog>';
     host.append(page);
+    var toolsHost = page.querySelector('[data-co-clinical-tools]');
+    if (window.SmylClinicalTools?.mountTools) window.SmylClinicalTools.mountTools(toolsHost);
+    else toolsHost.append(el('p','co-note',toolsUnavailable));
     page.querySelector('[data-co-new]').onclick = function () { openNew(); };
     page.querySelector('[data-co-panel]').onclick = function () { if (typeof window.ir === 'function') window.ir('dashboard'); };
     page.querySelector('[data-co-agenda]').onclick = function () { if (typeof window.ir === 'function') window.ir('agenda'); };
@@ -763,6 +899,6 @@
     if (typeof previous === 'function') window.ir = function (name) { var result = previous(name); if (name === 'consultorio') { var q = $('[data-co-q]'); if (q) { q.value = ''; renderResults(null); } state.visit = null; state.interview = null; stopQr(); stopConsent(); showView('home'); renderResume(); load(true); } renderPill(name); return result; };
     window.addEventListener('smyl:appointments-changed', function () { if (state.loaded) load(true); });
   }
-  window.SmylConsultorio = { reload: function () { return load(true); }, openVisit: openVisit };
+  window.SmylConsultorio = { reload: function () { return load(true); }, openVisit: openVisit, accessFor:accessFor };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

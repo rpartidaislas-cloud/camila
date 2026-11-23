@@ -6,7 +6,7 @@
   <title>SMYL Inbox etapa 7 · QA visual</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="../../smyl-design-system-v2.css?focus=3">
-  <link rel="stylesheet" href="../../smyl-inbox.css?v=62">
+  <link rel="stylesheet" href="../../smyl-inbox.css?v=77">
   <link rel="stylesheet" href="../../smyl-chat-media-viewer.css?v=1">
   <style>
     :root { --azul:#1769e0; --azul-oscuro:#0c4fb8; --gris:#64748b; --borde:#dce3ec; --fondo:#f6f8fb; --blanco:#fff; }
@@ -58,6 +58,18 @@
       { id:'m3', author_type:'patient', role:'user', content:'Perfecto, quiero confirmar el horario de mi valoración.', status:'sent', starred:true, created_at:new Date(Date.now()-25.5*3600000).toISOString() }
     ];
     var previewParams = new URLSearchParams(location.search);
+    if (previewParams.has('mobile-layout')) {
+      conversation.channel = 'instagram';
+      conversation.contact_name = 'Sofía de la Cruz';
+      conversation.private_handoff_note = 'Recepción: confirmar la sucursal antes de agendar.';
+      messages[0].content = 'Hola, ¿tienen horarios para una valoración esta semana?';
+      messages[1].content = '¡Hola, Sofía! Tenemos espacio el jueves por la tarde. ¿Te queda bien la sucursal Centro?';
+      messages[2].content = 'Sí, la sucursal Centro me queda bien. ¿Podría ser después de las cuatro?';
+      messages.push(
+        {id:'m4', role:'assistant', author_type:'team', content:'Tenemos un espacio a las 16:30. ¿Te lo reservamos?', status:'sent', created_at:new Date(Date.now()-42*60000).toISOString()},
+        {id:'m5', role:'user', author_type:'patient', content:'Sí, por favor. ¿Me comparten también la ubicación?', status:'sent', created_at:new Date(Date.now()-39*60000).toISOString()}
+      );
+    }
     // A board of fictitious contacts for exercising the real side-by-side workspace.
     var pipelineDemo, demoThreads;
     if (previewParams.has('pipeline-preview')) {
@@ -89,7 +101,25 @@
         {id:'answer-preview',role:'assistant',author_type:'team',content:'Hola, Ana. Tu valoración es hoy a las 10:30 en la sucursal Centro.',status:'sent',created_at:new Date(Date.now()-42*60000).toISOString()}
       );
     }
+    if (previewParams.has('grouped-replies')) {
+      var groupDay = Date.UTC(2026, 10, 10, 16);
+      messages = ['assistant', 'assistant', 'patient', 'assistant', 'assistant'].map(function (author, index) {
+        return {id:'group-'+index, author_type:author, role:author === 'patient' ? 'user' : 'assistant',
+          content:'Mensaje de prueba '+index, status:'sent', starred:index === 1,
+          created_at:new Date(groupDay + index * 60000 + (index === 4 ? 86400000 : 0)).toISOString()};
+      });
+    }
     var demoFiles = [];
+    if (previewParams.has('chat-ux')) {
+      // Synthetic thread for checking location cards, staff-only handoff and scrolling.
+      var uxContact = pipelineDemo ? pipelineDemo[0] : conversation;
+      var uxMessages = demoThreads ? demoThreads.get(uxContact.id) : messages;
+      uxContact.private_handoff_note = 'Recepción: confirmar la sucursal antes de agendar.';
+      for (var uxIndex = 0; uxIndex < 20; uxIndex++) {
+        uxMessages.push({id:'history-'+uxIndex, role:'user', author_type:'patient', status:'sent', content:'Mensaje de ejemplo '+(uxIndex+1), created_at:new Date(Date.now()-(21-uxIndex)*60000).toISOString()});
+      }
+      uxMessages.push({id:'map-example', role:'assistant', author_type:'team', status:'sent', content:'📍 Ubicación actual\nhttps://www.google.com/maps?q=20.674%2C-103.344', created_at:new Date().toISOString()});
+    }
     if (previewParams.has('media-preview')) {
       var created = {created_at:new Date().toISOString(), status:'sent'};
       demoFiles = [
@@ -147,6 +177,9 @@
       var permitted = mode === 'coordinator' || mode === 'agent' && conversation.assignment && conversation.assignment.actor_id === actor.id;
       if (action === 'access') return json({actor:actor});
       if (mode === 'none') return json({code:'chat_access_denied'},403);
+      if (action === 'branches' && previewParams.has('mobile-layout')) {
+        return json({branches:[{id:'centro',name:'Centro'},{id:'norte',name:'Norte'}],actor:actor});
+      }
       if (pipelineDemo && mode === 'coordinator') {
         var id = url.searchParams.get('conversation_id') || body.conversation_id;
         var demo = pipelineDemo.find(function (card) { return card.id === id; });
@@ -180,6 +213,7 @@
       }
       if (action === 'stages') return json({ stages:[{id:'stage-nuevo',name:'Nuevo contacto',order:1},{id:'stage-valoracion',name:'Valoración agendada',order:2},{id:'stage-tratamiento',name:'Tratamiento activo',order:3}] });
       if (action === 'quick_replies') return json({ quick_replies:[{id:'q1',shortcut:'valoracion',text:'Hola, con gusto te ayudamos a agendar tu valoración dental.'},{id:'q2',shortcut:'documentos',text:'Para continuar, por favor comparte los estudios indicados por tu especialista.'}] });
+      if (action === 'rewrite_message') return json({ rewritten_text:'Hola, me gustaría conocer tus opciones. ¿Podrías ayudarme?', token_usage:{total_tokens:42}, usage_recorded:true });
       if (action === 'search') return json({ query:'valoración',results:[messages[2],messages[1]],page:{has_more:false,before:null} });
       if (action === 'shared') return json({ items:demoFiles.length ? demoFiles : [{id:'share1',author_type:'patient',content:'Estudios previos https://ejemplo.invalid/estudios.pdf',created_at:new Date(Date.now()-2*86400000).toISOString(),media_type:null,media_url:null}],page:{has_more:false,before:null} });
       if (action === 'auto_patient_link') {
@@ -208,7 +242,9 @@
   <script src="../../smyl-inbox-ficha.js?v=11"></script>
   <script src="../../smyl-chat-pdf.js?v=1"></script>
   <script src="../../smyl-chat-media-viewer.js?v=1"></script>
-  <script src="../../smyl-inbox.js?v=73"></script>
+  <script src="../../smyl-schedule-suggest.js?v=1"></script>
+  <script src="../../smyl-visit-message.js?v=1"></script>
+  <script src="../../smyl-inbox.js?v=88"></script>
   <script>
     window.addEventListener('load', function () {
       window.ir('inbox');
@@ -223,18 +259,18 @@
             var emoji = document.querySelector('[data-compose-emoji]');
             if (emoji) emoji.click();
           } else if (preview.has('productivity-search')) {
-            var profile = document.querySelector('[data-inbox-context]');
-            if (profile.getAttribute('aria-expanded') !== 'true') profile.click();
+            document.querySelector('[data-compose-more]').click();
             document.querySelector('[data-thread-settings]').click();
             var search = document.querySelector('[data-thread-search]');
             if (search) search.click();
           } else if (preview.has('productivity-quick')) {
             var quick = document.querySelector('[data-compose-quick]');
             if (quick) quick.click();
-          } else if (preview.has('productivity-bulk')) {
-            var bulk = document.querySelector('[data-inbox-bulk]');
-            if (bulk) bulk.click();
-          } else if (preview.has('focus') || preview.has('media-preview') || pipelineDemo) {
+          } else if (preview.has('filters-preview')) {
+            var back = document.querySelector('[data-inbox-back]');
+            if (back && back.offsetWidth) back.click();
+            document.querySelector('[data-inbox-filter-more]').click();
+          } else if (preview.has('focus') || preview.has('media-preview') || preview.has('chat-ux') || pipelineDemo) {
             // Conversation-first state: no dialog or context drawer obscures the thread.
           } else if (preview.has('inbox')) {
             var control = document.querySelector('[data-inbox-context]');
@@ -247,8 +283,7 @@
               if (form) form.dispatchEvent(new Event('submit', { bubbles:true, cancelable:true }));
             }, 120);
           } else {
-            var health = document.querySelector('[data-inbox-operations]');
-            if (health) health.click();
+            window.SmylInbox.openOperations();
           }
           document.documentElement.dataset.previewReady = 'true';
         }, 180);

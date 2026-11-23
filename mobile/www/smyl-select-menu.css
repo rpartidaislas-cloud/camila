@@ -1,0 +1,33 @@
+/* SMYL · Menú propio para selectores (solo computadora). Ver smyl-select-menu.js. */
+.smyl-select-menu{position:fixed;width:max-content;z-index:2147483000;display:flex;flex-direction:column;overflow:hidden;padding:6px;border:1px solid #dbe3ea;border-radius:12px;background:#fff;color:#0b1b2e;box-shadow:0 18px 40px -12px rgba(11,27,46,.28),0 2px 6px rgba(11,27,46,.06);font:500 13px/1.3 var(--smyl-ui-font,Inter,system-ui,sans-serif);outline:none;animation:smyl-select-menu-in .12s ease-out}
+@keyframes smyl-select-menu-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.smyl-select-menu-search{flex:0 0 auto;width:100%;height:34px;margin:0 0 6px;padding:0 10px;border:1px solid #dbe3ea;border-radius:8px;background:#f7f9fb;color:inherit;font:inherit;font-size:13px!important;outline:none}
+.smyl-select-menu-search:focus{border-color:#124dbb;box-shadow:0 0 0 3px rgba(18, 77, 187,.18)}
+.smyl-select-menu-list{overflow-y:auto;overscroll-behavior:contain}
+.smyl-select-menu-option{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:8px;cursor:pointer;user-select:none}
+.smyl-select-menu-option.is-active{background:#eef1f6}
+.smyl-select-menu-option[aria-selected=true]{font-weight:600}
+.smyl-select-menu-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.smyl-select-menu-check{flex:0 0 14px;color:#124dbb;font-weight:700;text-align:center}
+.smyl-select-menu-badge{display:grid;place-items:center;flex:0 0 24px;width:24px;height:24px;border-radius:50%;color:#fff;font-size:11px;font-weight:700;line-height:1}
+.smyl-select-menu-badge.is-global{background:#fff7e8;box-shadow:inset 0 0 0 1px #f5c77a}
+.smyl-select-menu-badge.is-global::after{content:"";width:8px;height:8px;border-radius:50%;background:#F59E0B}
+.smyl-select-menu-sep{height:1px;margin:5px 4px;background:#e6ecf1}
+.smyl-select-menu-empty{padding:10px;color:#6b7c8f;font-size:12px}
+
+/* Variante oscura: selector de consultorio del menú lateral. */
+.smyl-select-menu.is-dark{border-color:rgba(130, 179, 216,.22);background:#0f173d;color:#e4ebf3;box-shadow:0 20px 44px -14px rgba(0,0,0,.6)}
+.smyl-select-menu.is-dark .smyl-select-menu-option.is-active{background:rgba(255,255,255,.08)}
+.smyl-select-menu.is-dark .smyl-select-menu-check{color:#64abe2}
+.smyl-select-menu.is-dark .smyl-select-menu-sep{background:rgba(255,255,255,.1)}
+.smyl-select-menu.is-dark .smyl-select-menu-badge.is-global{background:rgba(245,158,11,.14);box-shadow:inset 0 0 0 1px rgba(245,158,11,.45)}
+.smyl-select-menu.is-dark .smyl-select-menu-search{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.06)}
+.smyl-select-menu.is-dark .smyl-select-menu-empty{color:#93a8b9}
+.sb-branch-field:has(select.smyl-select-open){border-color:#64abe2;background:rgba(255,255,255,.08)}
+
+/* Filtros de Agenda compactos en computadora (en celular conservan 16 px para que iPhone no haga zoom). */
+@media (hover:hover) and (pointer:fine){
+  body.smyl-ui-governed #p-agenda .schedule-filter select{min-height:36px;padding:0 30px 0 10px;border-radius:9px;font-size:13px!important;cursor:pointer}
+  body.smyl-ui-governed #p-agenda .schedule-filter select.smyl-select-open{border-color:#124dbb;box-shadow:0 0 0 3px rgba(18, 77, 187,.16)}
+}
+@media (prefers-reduced-motion:reduce){.smyl-select-menu{animation:none}}

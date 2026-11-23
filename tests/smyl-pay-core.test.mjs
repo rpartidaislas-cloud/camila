@@ -103,3 +103,40 @@ test("smyl-pay: verify_jwt=false declarado y la función exige sesión + finance
   assert.match(src, /firmaValida\(link\.callback_secret/);
   assert.match(src, /conciliar\(link\)/);
 });
+
+test("revisión 2026-11-19: cancelar solo cuenta si LANA lo confirma; una carrera de «crear» devuelve 409; el callback no revela qué existe", () => {
+  const src = readFileSync(new URL("../supabase/functions/smyl-pay/index.ts", import.meta.url), "utf8");
+  assert.match(src, /async function cancelarEnLana/);
+  assert.match(src, /response\.ok \|\| response\.status === 404/);
+  assert.ok(!/\.catch\(\(\) => null\)/.test(src), "ya no se ignora el fallo del cancelado en LANA");
+  assert.match(src, /previous_link_not_cancelled/);
+  assert.match(src, /errLink\?\.code === "23505"[\s\S]*link_in_progress/);
+  assert.match(src, /if \(!link\) return json\(\{\}, 401/);
+  assert.match(readFileSync(new URL("../pagar.html", import.meta.url), "utf8"), /window\.top !== window\.self/);
+  assert.match(readFileSync(new URL("../pagar.html", import.meta.url), "utf8"), /\/\^https:\\\/\\\//);
+});
+
+// El botón «Enlace de pago» se activa por clínica (config.pago_en_linea) y no para todas.
+import {readFileSync as _rf} from 'node:fs';
+test('Enlace de pago visible solo en clínicas con cobro en línea activado',()=>{
+  const fin=_rf(new URL('../smyl-finance.js',import.meta.url),'utf8');
+  assert.match(fin,/function onlinePayEnabled\(\)\{if\(window\.SMYL_ONLINE_PAY===true\)return true;var t=window\.tenantData,c=t&&t\.config;return !!\(c&&typeof c==='object'&&c\.pago_en_linea===true\);\}/);
+  assert.match(fin,/onlinePayEnabled\(\)\?'<button type="button" id="account-link">Enlace de pago<\/button>'/);
+  assert.doesNotMatch(fin,/window\.SMYL_ONLINE_PAY===true\?'<button/);
+});
+
+// Cobrar con enlace: opción en la ventana de Cobrar y en «Iniciar tratamiento».
+test('Cobrar ofrece «Enlace de pago» con los cargos marcados y sin registrar pago hasta que el paciente pague',()=>{
+  const fin=_rf(new URL('../smyl-finance.js',import.meta.url),'utf8');
+  assert.match(fin,/onlinePayEnabled\(\)&&options\.mode!=='advance'\?'<button type="button" data-method="online">Enlace de pago<\/button>'/);
+  assert.match(fin,/function onlineSelection\(form\)\{var ids=\[\],total=0;form\.querySelectorAll\('input\[name=charge\]:checked'\)/);
+  assert.match(fin,/if\(form\.elements\.method\.value==='online'\)return renderOnlineCheck\(form\);/);
+  assert.match(fin,/if\(f\.elements\.method\.value==='online'\)\{var sel=onlineSelection\(f\);renderOnlineCheck\(f\);if\(!sel\.ids\.length\|\|sel\.total<10\)return;openOnlineLink\(f\.elements\.patient\.value,f\.querySelector\('\[data-payment-submit\]'\),sel\.ids\);return;\}/);
+  assert.match(fin,/body:Object\.assign\(\{action:'create',patient_id:patientId\},chargeIds&&chargeIds\.length\?\{charge_ids:chargeIds\}:\{\}\)/);
+  assert.match(fin,/submit\.textContent=method==='online'\?'Generar enlace de pago'/);
+});
+test('Iniciar tratamiento puede mandar el enlace de los cargos de la cotización',()=>{
+  const fin=_rf(new URL('../smyl-finance.js',import.meta.url),'utf8');
+  assert.match(fin,/data-step-link>Mandar enlace de pago/);
+  assert.match(fin,/c\.proposal_batch_id===batch\.id&&c\.status!=='voided'&&balance\(c\)>0/);
+});

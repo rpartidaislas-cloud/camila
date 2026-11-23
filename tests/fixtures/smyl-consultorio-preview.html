@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="../../smyl-lana-attention.css">
   <link rel="stylesheet" href="../../smyl-daily-home.css">
   <link rel="stylesheet" href="../../smyl-consultorio.css">
+  <link rel="stylesheet" href="../../smyl-clinical-tools.css">
   <link rel="stylesheet" href="../../smyl-clinic-setup.css">
   <link rel="stylesheet" href="../../smyl-settings-hub.css">
   <link rel="stylesheet" href="../../smyl-task-center.css">
@@ -74,8 +75,7 @@
   window.verPaciente=function(id){window.__log.push(['verPaciente',id]);
     // Expediente simulado: sus pestañas aparecen un instante después, como en el panel real.
     var old=document.getElementById('p-paciente-detalle');if(old)old.remove();
-    setTimeout(function(){var d=document.createElement('div');d.id='p-paciente-detalle';d.className='pantalla';d.innerHTML='<details class="p360-more"><summary>Más del expediente</summary><div><button data-p360-domain="history">Historia clínica</button><button data-p360-domain="files">Estudios y archivos</button></div></details>';d.querySelectorAll('button').forEach(function(b){b.onclick=function(){window.__log.push(['tab',b.dataset.p360Domain,id]);};});document.querySelector('.contenido').append(d);window.ir('paciente-detalle');},60);
-    return Promise.resolve(true);};
+    return new Promise(function(resolve){setTimeout(function(){var d=document.createElement('div');d.id='p-paciente-detalle';d.className='pantalla';d.innerHTML='<details class="p360-more"><summary>Más del expediente</summary><div><button data-p360-domain="history">Historia clínica</button><button data-p360-domain="files">Estudios y archivos</button></div></details>';d.querySelectorAll('button').forEach(function(b){b.onclick=function(){window.__log.push(['tab',b.dataset.p360Domain,id]);};});document.querySelector('.contenido').append(d);window.pacienteActual=window.__pac[id];window.ir('paciente-detalle');resolve(true);},60);});};
   window.abrirModalPaciente=function(id){window.__log.push(['abrirModal',id]);var m=document.getElementById('modal-paciente');if(!m){m=document.createElement('div');m.id='modal-paciente';document.body.append(m);}m.className='modal-bg visible';m.textContent='modal';window.__cerrarModal=function(){m.classList.remove('visible');};};
   window.enviarEnlaceRegistro=function(p){window.__log.push(['enlace',p.id,p.telefono]);};
   window.cerrarSesion=function(){window.__log.push(['cerrarSesion']);};
@@ -86,10 +86,21 @@
   var now=new Date();function at(h,m){var d=new Date(now);d.setHours(h,m,0,0);return d.toISOString();}
   var h=q.get('h')||'parcial',f=q.get('f')||'algunos';
   var pac=window.__pac={p5:{id:'p5',nombre:'Luis',apellido:'Gómez',telefono:'+52 3311112222',registro_estado:'por_verificar'},p1:{id:'p1',nombre:'Cristian',apellido:'Partida',telefono:'+52 3312345678'},p2:{id:'p2',nombre:'María',apellido:'Rodríguez de la Garza',telefono:''},p3:{id:'p3',nombre:'Juan',apellido:'Pérez',telefono:''},p4:{id:'p4',nombre:'Por registrar · +52 3398765432',apellido:'',telefono:'+52 3398765432'}};
+  Object.values(pac).forEach(function(p){p.tenant_id=window.tenantId;});
   var citas={
     normal:[{id:'a1',patient_id:'p1',service_id:'s1',starts_at:at(10,0),status:'in_progress'},{id:'a2',patient_id:'p2',service_id:'s2',starts_at:at(11,30),status:'arrived'},{id:'a3',patient_id:'p3',service_id:'s1',starts_at:at(13,0),status:'confirmed'},{id:'a4',patient_id:'p4',service_id:'s3',starts_at:at(16,0),status:'confirmed'},{id:'a5',patient_id:'p1',service_id:'s1',starts_at:at(8,0),status:'completed'},{id:'a6',patient_id:'p3',service_id:'s1',starts_at:at(9,0),status:'cancelled'}],
     vacio:[],terminadas:[{id:'a1',patient_id:'p1',service_id:'s1',starts_at:at(8,0),status:'completed'},{id:'a2',patient_id:'p3',service_id:'s1',starts_at:at(9,0),status:'completed'}],error:[]}[caso]||[];
   var servicios=[{id:'s1',name:'Consulta y valoración inicial'},{id:'s2',name:'Blanqueamiento con férula personalizada'},{id:'s3',name:'Limpieza'}];
+  if(caso==='herramientas'){
+    var principal='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',homonimo='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2';
+    pac[principal]={id:principal,tenant_id:window.tenantId,nombre:'Alex',apellido:'De prueba',telefono:'5550001100'};
+    pac[homonimo]={id:homonimo,tenant_id:window.tenantId,nombre:'Alex',apellido:'De prueba',telefono:'5550002200'};
+    citas=[
+      {id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1',branch_id:'cccccccc-cccc-4ccc-8ccc-ccccccccccc1',patient_id:principal,service_id:'s1',starts_at:at(9,0),status:'confirmed'},
+      {id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2',branch_id:'cccccccc-cccc-4ccc-8ccc-ccccccccccc2',patient_id:principal,service_id:'s2',starts_at:at(12,0),status:'confirmed'}
+    ];
+    window.__citas=citas;
+  }
   function builder(table){
     var b={_t:table,_ins:null};
     ['select','gte','lt','in','order','limit','single'].forEach(function(m){b[m]=function(){return b;};});
@@ -108,6 +119,7 @@
       else if(table==='camila_tenants'&&b._one)r={data:{nombre:'Diseño de Sonrisas'},error:null};
       else if(table==='camila_pacientes'&&b._one){window.__log.push(['leePaciente',b._id]);r={data:pac[b._id]||null,error:null};}
       else if(b._ins){if(window.__fallaColumna&&b._ins.registro_estado)r={data:null,error:{code:'PGRST204',message:"Could not find the 'registro_estado' column in the schema cache"}};else{var nuevo=Object.assign({id:'nuevo-1',apellido:'',email:''},b._ins);pac['nuevo-1']=nuevo;r={data:nuevo,error:null};}}
+      else if(table==='smyl_appointments'&&b._one)r={data:citas.find(function(c){return c.id===b._id;})||null,error:null};
       else if(table==='smyl_appointments')r={data:citas,error:null};
       else if(table==='smyl_services')r={data:servicios,error:null};
       else if(table==='camila_pacientes')r={data:Object.keys(pac).map(function(k){return pac[k];}),error:null};
@@ -125,6 +137,7 @@
       if(name==='smyl_patient_consent_status'){var fm=q.get('firma')||'si';
         if(fm==='error')return Promise.resolve({data:null,error:{message:'sin permiso',code:'42501'}});
         return Promise.resolve({data:fm==='si'?{signed:true,id:'c1',signed_at:'2026-11-16T18:00:00Z',signer_name:'Ana López',signer_relation:'patient',notice_version:'modelo-provisional-1',provisional:true}:{signed:false},error:null});}
+      if(name==='smyl_set_patient_privacy_choice'){window.__decisiones=(window.__decisiones||[]);window.__decisiones.push(JSON.parse(JSON.stringify(args)));return Promise.resolve({data:'e-nuevo',error:null});}
       if(name==='smyl_record_patient_consent'){window.__firmas=(window.__firmas||[]);window.__firmas.push(JSON.parse(JSON.stringify(args)));var fe=q.get('firmaerr');
         if(fe==='42501')return Promise.resolve({data:null,error:{code:'42501',message:'No tienes permiso para registrar firmas.'}});
         if(fe==='22023')return Promise.resolve({data:null,error:{code:'22023',message:'La firma no es válida. Vuelve a firmar.'}});
@@ -148,6 +161,7 @@
 <script src="../../smyl-visit-model.js"></script>
 <script src="../../smyl-privacy-notice.js"></script>
 <script src="../../smyl-history-interview.js"></script>
+<script src="../../smyl-clinical-tools.js"></script>
 <script src="../../smyl-consultorio.js"></script>
 <script>document.addEventListener('DOMContentLoaded',function(){window.ir('consultorio');});</script>
 </body></html>

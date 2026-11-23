@@ -10,25 +10,27 @@ const styles = read('../smyl-finance.css');
 const dialogSystem = read('../smyl-dialog-system.js');
 
 test('la cartera prioriza vencimientos, créditos y cortes verificables', () => {
-  assert.match(finance, /Ver vencidas/);
+  assert.match(finance, / vencido<\/b>/);
   assert.match(finance, /Saldo a favor/);
-  assert.match(finance, /Aplicar a una cuenta/);
+  assert.match(finance, /Saldos a favor/);
   assert.match(finance, /Hacer corte/);
   assert.match(finance, /accountSnapshot/);
   assert.match(finance, /dueLabel/);
-  assert.match(finance, /ningún cargo se ejecuta automáticamente/i);
+  assert.match(finance, /Nada se cobra solo\./);
 });
 
 test('cada cuenta comunica avance sin inventar estados financieros', () => {
-  assert.match(finance, /Requieren acción/);
-  assert.match(finance, /Pendientes/);
-  assert.match(finance, /A favor/);
-  assert.match(finance, /Liquidadas/);
+  assert.match(finance, />Con saldo <em>/);
+  assert.match(finance, />Vencidas <em>/);
+  assert.match(finance, />A favor <em>/);
+  assert.match(finance, /<small>liquidada<\/small>/);
   assert.match(finance, /Total cargado/);
   assert.doesNotMatch(finance, /Total de tratamiento/);
   assert.match(finance, /Pagado/);
   assert.match(finance, /Pendiente/);
-  assert.match(styles, /\.finance-account-progress/);
+  // El avance se dibuja con lo pagado de los cargos abiertos, no con un porcentaje inventado.
+  assert.match(finance, /if\(debt\)paid=s\.openTotalCents>s\.dueCents\?meter\(s\.openTotalCents-s\.dueCents,s\.openTotalCents\):'<small>Sin abonos todavía<\/small>'/);
+  assert.match(styles, /#p-caja \.finance-meter\{/);
 });
 
 test('el pago se revisa antes de enviarse a la operación atómica', () => {
@@ -41,7 +43,7 @@ test('el pago se revisa antes de enviarse a la operación atómica', () => {
 });
 
 test('el registro profesional guía paciente, importe, método, aplicación y recibo', () => {
-  for (const copy of ['CUENTA DEL PACIENTE', 'Liquidar ', 'Registrar anticipo', 'Forma de pago', 'Aplicar a cargos', 'PAGO REGISTRADO', 'Imprimir recibo', 'Compartir']) {
+  for (const copy of ['CUENTA DEL PACIENTE', 'Liquidar ', 'Recibir anticipo', 'Forma de pago', 'Aplicar a cargos', 'PAGO REGISTRADO', 'Imprimir recibo', 'Compartir']) {
     assert.match(finance, new RegExp(copy));
   }
   assert.match(finance, /data-allocation/);
@@ -51,13 +53,13 @@ test('el registro profesional guía paciente, importe, método, aplicación y re
   assert.match(styles, /\.finance-payment-success/);
   assert.match(dialogSystem, /finance-payment-form/);
   assert.doesNotMatch(finance, /data-cfdi|data-success-cfdi/, 'el registro del pago no debe emitir ni preparar la factura automáticamente');
-  assert.match(finance, /Ver recibo/);
+  assert.match(finance, /data-open-receipt="'\+receipt\.id\+'"/);
   assert.match(finance, /finance-row-menu/);
   assert.match(finance, /Reembolsar pago/);
 });
 
 test('el cobro cotidiano parte del paciente y decide la operación sin mezclar movimientos', () => {
-  for (const copy of ['Cobrar a paciente', 'Cobrar saldo', 'Servicio de hoy', 'Cotización aceptada', 'Registrar anticipo', 'Agregar cargo']) {
+  for (const copy of ['<h2>Cobrar</h2>', 'Cobrar saldo', 'Servicio de hoy', 'Cotización aceptada', 'Recibir anticipo', 'Registrar cargo']) {
     assert.match(finance, new RegExp(copy));
   }
   assert.match(finance, /function openGuidedCollection\(patientId\)/);
@@ -79,8 +81,8 @@ test('el cobro cotidiano parte del paciente y decide la operación sin mezclar m
 });
 
 test('web, móvil y PWA publican la etapa cinco sincronizada', () => {
-  assert.match(app, /smyl-finance\.css\?v=42/);
-  assert.match(app, /smyl-finance\.js\?v=58/);
+  assert.match(app, /smyl-finance\.css\?v=54/);
+  assert.match(app, /smyl-finance\.js\?v=73/);
   assert.match(worker, /collection-visual-v1/);
   assert.match(worker, /smyl-v267-guided-collection-sentry-v1/);
   for (const file of ['app.html', 'sw.js', 'smyl-finance.js', 'smyl-finance.css', 'smyl-dialog-system.js']) {

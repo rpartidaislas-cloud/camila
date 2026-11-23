@@ -8,7 +8,7 @@ const styles = read('../smyl-patient-360.css');
 const sync = read('../mobile/scripts/sync-web.js');
 
 test('el resumen prioriza riesgo, siguiente acción y datos clave sin duplicar la navegación', () => {
-  for (const area of ['Historia clínica', 'Evoluciones y citas', 'Tratamiento', 'Imágenes y estudios']) {
+  for (const area of ['Historia clínica', 'Consulta', 'Tratamiento', 'Imágenes y estudios']) {
     assert.match(script, new RegExp(area));
   }
   for (const label of ['Alerta clínica', 'Hoy', 'SIGUIENTE PASO', 'Datos clave', 'Actividad reciente']) {
@@ -24,8 +24,9 @@ test('la cabecera prioriza identidad y elimina controles duplicados', () => {
   assert.match(buildProjection, /p360-title p360-title-clean/);
   assert.match(buildProjection, /p360-eyebrow/);
   assert.doesNotMatch(buildProjection, /p360-title-tools|data-p360-assistant-head|p360-secure/);
-  // Contacto faltante se corrige desde el encabezado; ya no hay pestaña de facturación oculta.
-  assert.match(script, /\+ Agregar teléfono o correo/);
+  // El contacto se captura y corrige en «Datos del paciente»; el encabezado no lo repite y ya no hay pestaña de facturación oculta.
+  assert.doesNotMatch(buildProjection, /p360-contact-line/);
+  assert.match(script, /function contactRow\(label,value\)/);
   assert.doesNotMatch(script, /var billingTab=/);
 });
 

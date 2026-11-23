@@ -4,6 +4,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
 import { makeCors } from "../_shared/cors.ts";
+import { permisoIA, respuestaIAnegada } from "../_shared/privacy.ts";
 import { inicioDiaUTC, inicioMesUTC } from "../_shared/ai-quota.ts";
 import {
   CLOUD_CLASSIFY_MODEL, CLOUD_CLASSIFY_MAX_TOKENS, CLOUD_CLASSIFY_TIMEOUT_MS, CLASSIFY_SCHEMA, CLASSIFY_SYSTEM, UUID_RE,
@@ -51,9 +52,14 @@ Deno.serve(async (req: Request) => {
   const asUser = createClient(SB_URL, SB_ANON_KEY, { global: { headers: { Authorization: `Bearer ${jwt}` } } });
   const { data: puede } = await asUser.rpc("smyl_has_permission", { p_tenant_id: tenantId, p_permission: "cloud.manage" });
   if (puede !== true) return json(CORS, 403, { error: "Tu rol no permite organizar los archivos de la Nube." });
-  const { data: file } = await asUser.from("smyl_cloud_files").select("id, mime_type, status").eq("id", body.file_id).eq("tenant_id", tenantId).maybeSingle();
+  const { data: file } = await asUser.from("smyl_cloud_files").select("id, mime_type, status, patient_id").eq("id", body.file_id).eq("tenant_id", tenantId).maybeSingle();
   if (!file || file.status !== "active") return json(CORS, 404, { error: "El archivo no existe o no tienes acceso." });
   if (!String(file.mime_type).startsWith("image/")) return json(CORS, 422, { error: "Solo se sugiere el tipo de imágenes." });
+  // Si el archivo es de un paciente que no autorizó la IA, la imagen no sale hacia el proveedor externo.
+  if (file.patient_id) {
+    const negada = respuestaIAnegada(await permisoIA(admin, tenantId, String(file.patient_id)));
+    if (negada) return json(CORS, negada.status, negada.body);
+  }
 
   const ahora = new Date();
   const [dia, mes] = await Promise.all(

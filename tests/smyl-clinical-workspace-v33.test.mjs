@@ -37,7 +37,8 @@ test('Inicio usa una sola fuente de prioridades y nunca anuncia Todo al día si 
   const home = read('smyl-daily-home.js');
   assert.match(home, /function resolvePriorityTasks\(\)/);
   assert.match(home, /renderMetrics\(tasks\); renderPriorities\(tasks\)/);
-  assert.match(home, /if\(title\)title\.textContent=label/);
+  assert.match(home, /if\(!tasks\.length\)\{[^}]*Todo al día/);
+  assert.match(home, /<h2[^>]*data-home-priority-title>Requiere atención<\/h2>/);
   for (const kind of ['appointments','clinic','completed']) assert.match(home, new RegExp(`'${kind}'`));
   assert.doesNotMatch(home, /if\(!tiles\.length&&priorityTasks&&priorityTasks\.length\)tiles\.push/, 'los pendientes viven en Atención requerida, no en una métrica duplicada');
   assert.doesNotMatch(home, /data-go="agenda">Abrir agenda/);
@@ -46,7 +47,8 @@ test('Inicio usa una sola fuente de prioridades y nunca anuncia Todo al día si 
 test('Agenda identifica filtros, reserva el periodo y mantiene texto clínico de 12px o más', () => {
   const agenda = read('smyl-schedule.js');
   const css = read('smyl-schedule.css');
-  for (const label of ['Sucursal', 'Profesional', 'Sillón']) assert.match(agenda, new RegExp(`<span>${label}<\\/span>`));
+  for (const label of ['Sucursal', 'Profesional']) assert.match(agenda, new RegExp(`<span>${label}<\\/span>`));
+  assert.doesNotMatch(agenda, /<span>Sillón<\/span>/, 'el filtro de sillón se quitó de la agenda');
   assert.match(agenda, /id="schedule-period" aria-live="polite">(?:<span class="sk[^>]*><\/span><span class="sk-sr">)?Cargando fechas…/);
   assert.match(css, /Agenda Clinical Workspace v4/);
   assert.match(css, /--schedule-type-meta:var\(--smyl-ui-text-meta,12px\)/);
@@ -57,12 +59,12 @@ test('Pacientes prioriza identidad y separa una acción accesible del menú cont
   const clinic = read('smyl-clinic.js');
   const css = read('smyl-patients-directory.css');
   assert.doesNotMatch(clinic, /row\.tabIndex = 0/);
-  assert.match(clinic, /button\('Abrir expediente'/);
-  assert.match(clinic, /button\('Agendar cita'/);
-  assert.match(clinic, /clinic-patient-menu-panel/);
+  assert.match(clinic, /clinic-patient-name-open/);
+  assert.doesNotMatch(clinic, /button\('Agendar cita'/);
+  assert.doesNotMatch(clinic, /clinic-patient-menu-panel/);
+  assert.doesNotMatch(clinic, /button\('Abrir expediente'/);
   assert.match(clinic, /bindPatientMenuDismiss/);
   assert.match(css, /td:first-child\{width:39%;padding-left:22px\}/);
-  assert.match(css, /clinic-patient-menu-action\{[\s\S]*?min-height:44px/);
 });
 
 test('la navegación móvil contiene las cinco tareas correctas y el sheet es modal', () => {

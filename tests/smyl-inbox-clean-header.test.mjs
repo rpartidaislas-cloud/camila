@@ -6,12 +6,13 @@ const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
 const js = read('../smyl-inbox.js');
 const css = read('../smyl-inbox.css');
 
-test('cada canal muestra su logo en la esquina del avatar, en lista, encabezado y pipeline', () => {
+test('cada canal conserva su marca y la cabecera la muestra junto al nombre', () => {
   assert.match(js, /var CHANNEL_MARKS = \{\s*whatsapp:/);
   assert.match(js, /instagram: '<svg/);
   assert.match(js, /messenger: '<svg/);
   assert.match(js, /badge\.setAttribute\('role', 'img'\); badge\.setAttribute\('aria-label', channelLabel\(channel\)\)/);
-  assert.equal((js.match(/channelBadge\(/g) || []).length, 5); // definición, lista, encabezado, pipeline y la API del Inicio (buildAvatar)
+  assert.equal((js.match(/channelBadge\(/g) || []).length, 4); // definición, lista, pipeline y la API del Inicio (buildAvatar)
+  assert.match(js, /meta\.replaceChildren\(channelLogo, node\('span', 'smyl-inbox-thread-channel-text'/);
   // Ya no hay un chip de texto con el nombre del canal en cada fila.
   assert.doesNotMatch(js, /node\('span', 'smyl-inbox-channel', channelLabel/);
   assert.match(css, /\.smyl-inbox-channel-badge\{position:absolute/);
@@ -40,24 +41,28 @@ test('la cabecera conserva Agendar cita y las demás acciones respetan los permi
   assert.match(actions, /primaryButton\.dataset\.threadPrimaryAction/);
   assert.match(actions, /action\.id === 'schedule'/, 'Agendar cita es la acción principal cuando hay permiso');
   assert.doesNotMatch(actions, /'Nueva acción'|id: 'template'/, 'sin botón «Nueva acción» ni plantilla en el encabezado');
-  const head = js.match(/<header class="smyl-inbox-thread-head">.*?<\/header>/)?.[0] || '';
-  assert.match(head, /data-thread-assign/);
+  const head = js.match(/<header class="smyl-inbox-thread-head">.*?<\/header>/s)?.[0] || '';
+  assert.match(head, /data-thread-owner aria-haspopup="dialog"/);
   assert.doesNotMatch(head, /data-thread-more|data-thread-menu/);
   assert.doesNotMatch(js, /data-thread-more|data-thread-menu-care|SMYL te pone al día/);
   assert.match(js, /settings\.onclick = openConversationSettings/);
 });
 
-test('el historial comienza debajo de la cabecera y reserva la nota privada para un relevo real', () => {
-  assert.match(js, /<details class="smyl-chat-note" data-handoff hidden>.*?<\/details><div class="smyl-inbox-thread-body"/);
-  assert.match(js, /note\.hidden = !conversation\.private_handoff_note/);
+test('el responsable y el relevo privado comparten un solo acceso en el encabezado', () => {
+  const header = js.slice(js.indexOf('<header class="smyl-inbox-thread-head"'), js.indexOf('<div class="smyl-inbox-thread-body"'));
+  assert.match(header, /data-thread-owner[^>]+aria-controls="smyl-chat-owner"/);
+  assert.doesNotMatch(header, /data-handoff|data-thread-assign/);
+  const ownerDialog = js.slice(js.indexOf('id="smyl-chat-owner"')).split('</dialog>')[0];
+  assert.match(ownerDialog, /data-thread-assign/);
+  assert.match(ownerDialog, /data-handoff[^>]+hidden/);
   assert.match(js, /id: 'citas', title: 'Citas', peek: visitsPeek/);
 });
 
 test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
-  assert.match(read('../app.html'), /smyl-inbox\.js\?v=73/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=62/);
+  assert.match(read('../app.html'), /smyl-inbox\.js\?v=95/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=79/);
 });
 
 test('la cabecera grande se reemplaza por una barra delgada y los contadores viven en las pestañas', () => {
@@ -73,12 +78,13 @@ test('la cabecera grande se reemplaza por una barra delgada y los contadores viv
   assert.match(css, /\.smyl-inbox-page\.show-thread \.smyl-inbox-top\{display:none\}/);
 });
 
-test('las burbujas no repiten Paciente / Equipo de la clínica y Responder / Más aparece al tocar en celular', () => {
+test('las burbujas no repiten el autor y las opciones viven fuera del mensaje', () => {
   assert.match(js, /bubble\.append\(node\('span', 'smyl-inbox-sr', author \+ ': '\)\)/);
   assert.match(js, /function dayLabel\(date\)/);
   assert.match(js, /return 'Hoy'/);
   assert.match(js, /state\.actionsOpenId/);
-  assert.match(css, /\.smyl-inbox-message\.show-actions \.smyl-inbox-message-actions\{display:flex\}/);
+  assert.match(js, /row\.append\(actions\)/);
+  assert.match(css, /@media \(hover: hover\) and \(pointer: fine\)/);
   assert.match(css, /\.smyl-inbox-day\{width:max-content[^}]*border-radius:999px/);
 });
 
@@ -102,6 +108,6 @@ test('Chat limpio: un solo aviso de plantilla, conversación abierta que no desa
   assert.match(js, /Ventana 24 h: quedan /);
   assert.doesNotMatch(js, /smyl-inbox-briefing-files/, '«Archivos» ya no vive en la franja de resumen');
   const css = fs.readFileSync(new URL('../smyl-inbox.css', import.meta.url), 'utf8');
-  assert.match(css, /smyl-inbox-message:focus-within \.smyl-inbox-message-actions/, 'las acciones también aparecen con el foco del teclado');
-  assert.match(css, /#p-inbox \.smyl-inbox-filters button\.active b\{background:#0b1b2e;color:#fff\}/, 'el contador del filtro activo se ve');
+  assert.match(css, /smyl-inbox-message:focus-within \.smyl-inbox-message-more/, 'las opciones también aparecen con el foco del teclado');
+  assert.match(css, /#p-inbox \.smyl-inbox-filters button\.active b\{background:#2d3a9e;color:#fff\}/, 'el contador del filtro activo se ve');
 });

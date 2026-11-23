@@ -9,9 +9,9 @@ test('la Ficha 360 v2 llega igual a web, PWA y móvil, cargada antes del chat', 
     assert.equal(read(file), read(`mobile/www/${file}`), file);
   }
   const html = read('app.html');
-  assert.match(html, /smyl-inbox-ficha\.js\?v=11/);
+  assert.match(html, /smyl-inbox-ficha\.js\?v=12/);
   assert.ok(html.indexOf('smyl-inbox-ficha.js') < html.indexOf('smyl-inbox.js?v='));
-  assert.match(read('sw.js'), /smyl-inbox-ficha\.js\?v=11/);
+  assert.match(read('sw.js'), /smyl-inbox-ficha\.js\?v=12/);
 });
 
 test('el módulo visual no consulta datos ni conoce el tenant y expone bloques plegables accesibles', () => {
@@ -31,8 +31,8 @@ test('los bloques respetan los permisos del rol', () => {
   assert.match(src, /if \(hasPermission\('schedule\.read'\)\) \{\s*var citas = wrapPanel/);
   assert.match(src, /if \(hasPermission\('messages\.read'\) && F\.conversationSummary\)/);
   assert.match(src, /hasPermission\('clinical\.write'\) && canOperate\(conversation, 'clinical\.write'\)/);
-  // Revisión clínica reutiliza la acción existente; no se inventó una nueva.
-  assert.match(src, /onReview: function \(item\) \{ linkClinicalImage\(item\); \}/);
+  // Un adjunto recién seleccionado solo se deriva a revisión si sigue abierto el mismo hilo.
+  assert.match(src, /onReview: function \(item\) \{ if \(state\.selectedId === id\) linkClinicalImage\(item\); \}/);
 });
 
 test('el consentimiento de WhatsApp se lee en servidor y llega como booleano opcional', () => {

@@ -53,7 +53,7 @@ const assert = require('node:assert/strict');
 
   await page.locator('.seci-center .sec-primary').click();
   await page.getByRole('button', { name: 'Subir radiografía' }).click();
-  await page.getByRole('button', { name: 'Panorámica', exact: true }).click();
+  await page.getByRole('button', { name: /^Panorámica\b/ }).click();
   const dialog = page.locator('.sec-dialog[open]');
   await dialog.locator('input[name="evidenceFile"]').setInputFiles({
     name: 'panoramica-control.png',
@@ -95,7 +95,7 @@ const assert = require('node:assert/strict');
   assert.equal(result.date, '2026-11-11');
   assert.equal(result.fileCount, 1, 'the selected image should reach the canonical editor');
   assert.equal(result.fileName, 'panoramica-control.png');
-  assert.match(result.feedback, /Radiografía preparada en el editor/);
+  assert.match(result.feedback, /^Radiografía preparada\..*Guardar radiografía/);
   assert.equal(result.dialogOpen, false, 'the Evidence dialog should close after a successful handoff');
   assert.deepEqual(errors, [], `browser errors: ${errors.join(' | ')}`);
 

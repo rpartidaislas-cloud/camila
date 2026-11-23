@@ -21,7 +21,7 @@ test('la navegación principal refleja el trabajo completo de una clínica denta
 
 test('el sistema visual reduce ruido y conserva jerarquía responsive',()=>{
   assert.match(styles,/--color-primary:#194391/);
-  assert.match(styles,/\.sidebar\{width:248px;background:#102239/);
+  assert.match(styles,/\.sidebar\{width:248px;background:#0e153b/);
   assert.match(styles,/\.pro-mobile-nav\{grid-template-columns:repeat\(5/);
   assert.match(styles,/position:fixed;z-index:850/);
   assert.match(styles,/backdrop-filter:none/);
@@ -30,7 +30,9 @@ test('el sistema visual reduce ruido y conserva jerarquía responsive',()=>{
 });
 
 test('el expediente y los tratamientos ofrecen continuidad operativa',()=>{
-  for(const action of ['Agendar cita','Nueva evolución','Más acciones','Cotizar','Cobrar','Enviar mensaje']) assert.match(shell,new RegExp(action));
+  // La barra del paciente solo lleva lo del día a día: cobrar se hace desde el saldo del Resumen y cotizar desde Tratamiento.
+  for(const action of ['Agendar cita','Nueva evolución']) assert.match(shell,new RegExp(action));
+  for(const action of ['Cotizar','Cobrar','Enviar mensaje']) assert.doesNotMatch(shell,new RegExp(`\\['${action}','`));
   for(const step of ['Valoración','Plan','Cotización','Aceptación','Atención','Cierre']) assert.match(shell,new RegExp(step));
   assert.match(shell,/SmylSchedule\.forPatient/);
   assert.match(shell,/SmylProposals\.forPatient/);
@@ -50,9 +52,9 @@ test('las tareas frecuentes se resuelven por proceso y paciente',()=>{
 });
 
 test('web, móvil y PWA entregan el mismo panel profesional',()=>{
-  assert.match(app,/smyl-professional-v3\.css\?v=11/);
-  assert.match(app,/smyl-professional-v3\.js\?v=12/);
-  assert.match(app,/smyl-navigation\.js\?v=(?:9|1[0-9]|2[0-9])/);
+  assert.match(app,/smyl-professional-v3\.css\?v=13/);
+  assert.match(app,/smyl-professional-v3\.js\?v=15/);
+  assert.match(app,/smyl-navigation\.js\?v=(?:9|[1-3][0-9])/);
   assert.match(worker,/smyl-v263-lana-connection-recovery/);
   assert.equal(shell,read('../mobile/www/smyl-professional-v3.js'));
   assert.equal(styles,read('../mobile/www/smyl-professional-v3.css'));

@@ -833,7 +833,7 @@
       var initials = [(p.nombre || '').slice(0, 1), (p.apellido || '').slice(0, 1)].join('').toUpperCase() || '?';
       var avatar = el('div', 'clinic-avatar', initials);
       avatar.setAttribute('aria-hidden', 'true');
-      var name = el('div', 'clinic-patient-name'); name.append(el('strong', '', fullName(p) || 'Paciente sin nombre'));
+      var name = el('div', 'clinic-patient-name'); var nameOpen = button(fullName(p) || 'Paciente sin nombre', function () { verPaciente(p.id); }, 'clinic-patient-name-open'); nameOpen.setAttribute('aria-label', 'Abrir expediente de ' + patientName); name.append(nameOpen);
       var contactParts = [];
       if (p.telefono) contactParts.push(displayPhone(p.telefono));
       if (p.email) contactParts.push(p.email);
@@ -854,20 +854,8 @@
       state.append(status, el('small', 'clinic-patient-status-detail', stateInfo.detail));
 
       var actions = el('td', 'clinic-patient-actions'); actions.dataset.label = 'Acciones';
-      var open = button('Abrir expediente', function () { verPaciente(p.id); }, 'btn btn-secondary btn-sm clinic-patient-open');
-      open.setAttribute('aria-label', 'Abrir expediente de ' + patientName); actions.append(open);
-      if (!p._local) {
-        var menu = el('details', 'clinic-patient-menu'), menuTrigger = el('summary');
-        menuTrigger.setAttribute('aria-label', 'Más acciones para ' + patientName);
-        menuTrigger.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>';
-        var menuPanel = el('div', 'clinic-patient-menu-panel');
-        if (window.SmylSchedule && typeof window.SmylSchedule.bookFor === 'function') {
-          var schedule = button('Agendar cita', function () { menu.open = false; window.SmylSchedule.bookFor(p); }, 'clinic-patient-menu-action');
-          schedule.setAttribute('aria-label', 'Agendar cita para ' + patientName); menuPanel.append(schedule);
-        }
-        menuPanel.append(button('Editar datos', function () { menu.open = false; abrirModalPaciente(p.id); }, 'clinic-patient-menu-action'));
-        menu.append(menuTrigger, menuPanel); actions.append(menu);
-      }
+      // Toda la fila abre el expediente (el nombre es el control accesible por teclado); sin botones aparte.
+      var chevron = el('span', 'clinic-patient-chevron', '›'); chevron.setAttribute('aria-hidden', 'true'); actions.append(chevron);
       row.append(patientCell, attention, state, actions); body.append(row);
     });
       table.append(body); host.append(table);
@@ -993,7 +981,9 @@
           available: ctx.ready && mounted, saving: ctx.saving, saved: !!ctx.row,
           assessment: !!doc?.assessment.trim(), treatments: !!doc?.treatments.some(function (t) { return t.name.trim(); }) };
       },
-      focus: function (tenant, patient, resume) {
+      // options (opcional): {title, text, action} para reutilizar la guía desde otros recorridos (p. ej. Cotizar).
+      focus: function (tenant, patient, resume, options) {
+        options = options || {};
         var ctx = current;
         if (!ctx || ctx.tenant !== tenant || ctx.patient !== patient || !ctx.canWrite) return false;
         var host = document.getElementById('clinic-content');
@@ -1001,8 +991,9 @@
         window.SmylCaseWorkspace?.open('plan');
         document.getElementById('clinic-portal-return')?.remove();
         var guide = el('section', 'clinic-notice'); guide.id = 'clinic-portal-return';
-        guide.append(el('strong', '', '1 · Preparar la propuesta'), el('p'), button('Continuar con mySmyl', function () {
-          if (current === ctx && capturePatientReview(tenant, patient)) resume();
+        guide.append(el('strong', '', options.title || '1 · Preparar la propuesta'), el('p', '', options.text || ''), button(options.action || 'Continuar con mySmyl', function () {
+          if (current === ctx && capturePatientReview(tenant, patient)) { guide.remove(); resume(); return; }
+          var hint = guide.querySelector('p'); if (hint) hint.textContent = 'Primero guarda la valoración y los tratamientos y pulsa «Revisar propuesta».';
         }, 'btn btn-primary'));
         host.prepend(guide); status();
         guide.scrollIntoView({ block: 'center' });
