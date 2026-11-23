@@ -60,7 +60,7 @@
   ];
   // Todos los ajustes viven ahora en la pantalla Configuración (smyl-settings-hub.js), ordenada como el panel de LANA.
   // El menú solo tiene ese acceso; se marca mientras estás en cualquiera de las pantallas a las que lleva.
-  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'plan', 'mi-consultorio', 'mi-cuenta', 'almacenamiento', 'avisos-cita'];
+  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'plan', 'mi-consultorio', 'mi-cuenta', 'almacenamiento', 'avisos-cita', 'cumplimiento'];
   var SETTINGS = [['Configuración', 'configuracion', 'settings']];
   // Otros módulos agregan su propio botón al menú cuando no lo encuentran. Estas rutas ya no tienen botón visible,
   // pero se dejan registradas (ocultas) para que no reaparezcan sueltas en el menú.
@@ -74,6 +74,7 @@
     ['Marca y simulación', 'sim-config', 'brand'],
     ['Mi cuenta', 'mi-cuenta', 'account'],
     ['Almacenamiento', 'almacenamiento', 'account'],
+    ['Cumplimiento sanitario', 'cumplimiento', 'shield'],
     ['Avisos de cita', 'avisos-cita', 'templates'],
     // La ruta permanece registrada para impedir que otros módulos agreguen un acceso duplicado.
     ['Plantillas de WhatsApp', 'plantillas', 'templates']

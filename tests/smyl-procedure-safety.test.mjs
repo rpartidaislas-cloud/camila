@@ -131,7 +131,7 @@ test('web, móvil y PWA distribuyen la pantalla de procedimiento', () => {
     assert.match(read(file), /smyl-clinical-tools\.js\?v=2/);
   }
   assert.ok(read('app.html').indexOf('smyl-procedure-safety.js') < read('app.html').indexOf('smyl-patient-360.js'));
-  assert.match(read('sw.js'), /-procedimiento-herramienta-v1';/);
+  assert.match(read('sw.js'), /-procedimiento-herramienta-v1/);
   for (const file of ['smyl-procedure-safety.js', 'smyl-patient-360.js', 'smyl-patient-360.css', 'smyl-clinical-tools.js', 'smyl-case-workspace.js', 'smyl-case-workspace.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);
   }

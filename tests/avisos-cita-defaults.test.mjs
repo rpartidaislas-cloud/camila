@@ -83,7 +83,7 @@ test('la pantalla cuelga de Configuración y llega a web, PWA y móvil', () => {
     assert.equal(read(file), read(`mobile/www/${file}`), file);
   }
   assert.match(read('smyl-settings-hub.js'), /title: 'Avisos de cita'[^}]*route: 'avisos-cita'/);
-  assert.match(read('smyl-navigation.js'), /'almacenamiento', 'avisos-cita'\]/);
+  assert.match(read('smyl-navigation.js'), /'almacenamiento', 'avisos-cita'(, 'cumplimiento')?\]/);
   assert.match(read('app.html'), /smyl-notice-settings\.js\?v=1/);
   assert.match(read('sw.js'), /smyl-notice-settings\.js\?v=1/);
   assert.match(read('sw.js'), /smyl-notice-settings\.css\?v=1/);
