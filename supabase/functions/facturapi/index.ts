@@ -11,10 +11,13 @@ import { smylAdmin } from "../_shared/lana-linked.ts";
 import {
   FACTURAPI_BASE, LIVE_KEY_RE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion,
   datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd,
-  leerProductosSat, textoBusquedaSat,
+  leerProductosSat, textoBusquedaSat, descripcionServicioSat, leerConsultasSat, unirCandidatosSat, leerSeleccionSat,
+  SAT_CONSULTAS_SCHEMA, SAT_SELECCION_SCHEMA, SAT_SYSTEM_CONSULTAS, SAT_SYSTEM_SELECCION,
   FORMAS_PAGO, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura,
   parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, descarga,
 } from "../_shared/facturapi-core.mjs";
+import { FISCAL_EXTRACT_MODEL, FISCAL_EXTRACT_TIMEOUT_MS, topesDeEntorno, evaluarTopeFiscal, costoEstimadoUsd } from "../_shared/fiscal-core.mjs";
+import { inicioDiaUTC, inicioMesUTC } from "../_shared/ai-quota.ts";
 
 const admin = smylAdmin;
 const MASTER = Deno.env.get("FACTURAPI_ENCRYPTION_KEY") || "";
@@ -135,6 +138,37 @@ async function llamarFacturapi(key: string, path: string, init: RequestInit = {}
     const body = ct.includes("json") ? await res.clone().json().catch(() => null) : null;
     return { status: res.status, body, res };
   } catch { return { status: 0, body: null, res: null }; }
+}
+
+// ───────────── Sugerencia de clave SAT con IA ─────────────
+// Una llamada corta a Claude (modelo económico) con salida estructurada. Solo viaja el nombre, la categoría y la descripción del servicio.
+async function llamarIA(aiKey: string, system: string, texto: string, schema: Json): Promise<{ ok: boolean; text: string; usage: Json | null; id: string | null; ms: number }> {
+  const inicio = Date.now();
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST", signal: AbortSignal.timeout(FISCAL_EXTRACT_TIMEOUT_MS),
+      headers: { "content-type": "application/json", "x-api-key": aiKey, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({
+        model: FISCAL_EXTRACT_MODEL, max_tokens: 1500, system,
+        messages: [{ role: "user", content: [{ type: "text", text: texto }] }],
+        output_config: { effort: "low", format: { type: "json_schema", schema } },
+      }),
+    });
+    const msg = await resp.json().catch(() => ({}));
+    if (!resp.ok) { console.error("[facturapi] la IA rechazó la solicitud:", resp.status, String(msg?.error?.type || "")); return { ok: false, text: "", usage: null, id: null, ms: Date.now() - inicio }; }
+    const text = Array.isArray(msg.content) ? msg.content.filter((b: Json) => b?.type === "text").map((b: Json) => b.text).join("") : "";
+    return { ok: true, text, usage: msg.usage || null, id: msg.id || null, ms: Date.now() - inicio };
+  } catch { return { ok: false, text: "", usage: null, id: null, ms: Date.now() - inicio }; }
+}
+// Se mide en el mismo registro y con el mismo tope que la lectura de constancias (feature «fiscal_extract»): no requiere migración.
+async function medirIA(tenantId: string, r: { ok: boolean; usage: Json | null; id: string | null; ms: number }) {
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : null);
+  const { error } = await admin.from("smyl_ai_usage_log").insert({
+    tenant_id: tenantId, feature: "fiscal_extract", model: FISCAL_EXTRACT_MODEL, request_id: r.id ? `sat:${r.id}`.slice(0, 120) : null, outcome: r.ok ? "ok" : "error",
+    input_tokens: n(r.usage?.input_tokens), output_tokens: n(r.usage?.output_tokens), cache_read_tokens: n(r.usage?.cache_read_input_tokens),
+    cache_write_tokens: n(r.usage?.cache_creation_input_tokens), duration_ms: n(r.ms), stop_reason: null, estimated_cost_usd: costoEstimadoUsd(FISCAL_EXTRACT_MODEL, r.usage),
+  });
+  if (error) console.error("[facturapi] no se pudo medir la IA:", error.message);
 }
 
 async function timbrado(req: Request, CORS: Record<string, string>, tenantId: string, actor: string, body: Json): Promise<Response> {
@@ -360,6 +394,41 @@ Deno.serve(async (req) => {
       const r = await fp(`/catalogs/products?q=${encodeURIComponent(q)}&limit=12`, {}, key);
       if (!r.ok || !r.body || typeof r.body !== "object") return json(CORS, 502, { error: "Facturapi no pudo buscar claves en este momento. Intenta de nuevo." });
       return json(CORS, 200, { results: leerProductosSat(r.body) });
+    }
+
+    // ── La IA sugiere la ClaveProdServ: propone palabras de búsqueda, el catálogo oficial devuelve claves reales y solo se elige entre ellas ──
+    if (action === "suggest_sat_product") {
+      if (!row || row.status !== "connected" || !row.secret_ciphertext) return json(CORS, 409, { error: "Conecta Facturapi en Configuración → Facturación para buscar claves del SAT." });
+      const servicio = descripcionServicioSat(body);
+      if (!servicio) return json(CORS, 400, { error: "Escribe primero el nombre del servicio." });
+      const aiKey = Deno.env.get("ANTHROPIC_API_KEY");
+      if (!aiKey) return json(CORS, 503, { error: "La IA no está configurada todavía. Usa el buscador de claves." });
+      const ahora = new Date();
+      const [dia, mes] = await Promise.all(
+        [inicioDiaUTC(ahora), inicioMesUTC(ahora)].map((desde) =>
+          admin.from("smyl_ai_usage_log").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("feature", "fiscal_extract").gte("created_at", desde)),
+      );
+      const tope = evaluarTopeFiscal(dia.count || 0, mes.count || 0, topesDeEntorno(Deno.env));
+      if (!tope.permitido) return json(CORS, 429, { error: tope.mensaje });
+      let key: string;
+      try { key = await descifrar(MASTER, tenantId, row.secret_ciphertext, row.secret_iv); }
+      catch { return json(CORS, 500, { error: "No se pudo leer la llave guardada. Vuelve a conectar Facturapi." }); }
+      const buscar = async (q: string) => {
+        const r = await fp(`/catalogs/products?q=${encodeURIComponent(q)}&limit=10`, {}, key);
+        return r.ok && r.body && typeof r.body === "object" ? leerProductosSat(r.body, 10) : [];
+      };
+      const texto = `Servicio: ${servicio.name}${servicio.category ? `\nCategoría: ${servicio.category}` : ""}${servicio.description ? `\nDescripción: ${servicio.description}` : ""}`;
+      // 1) palabras de búsqueda; si la IA falla se busca con el nombre del servicio
+      const ia1 = await llamarIA(aiKey, SAT_SYSTEM_CONSULTAS, texto, SAT_CONSULTAS_SCHEMA);
+      await medirIA(tenantId, ia1);
+      let consultas = ia1.ok ? leerConsultasSat(ia1.text) : [];
+      if (!consultas.length) consultas = [textoBusquedaSat(servicio.name)].filter(Boolean);
+      const candidatos = unirCandidatosSat(await Promise.all(consultas.map(buscar)));
+      if (!candidatos.length) return json(CORS, 200, { suggestions: [], candidates: [], queries: consultas });
+      // 2) la IA elige solo entre claves reales; lo que no esté en la lista se descarta
+      const ia2 = await llamarIA(aiKey, SAT_SYSTEM_SELECCION, `${texto}\n\nClaves reales del catálogo:\n${candidatos.map((c) => `${c.key} — ${c.description}`).join("\n")}`, SAT_SELECCION_SCHEMA);
+      await medirIA(tenantId, ia2);
+      return json(CORS, 200, { suggestions: ia2.ok ? leerSeleccionSat(ia2.text, candidatos) : [], candidates: candidatos, queries: consultas });
     }
 
     // ── cuenta propia (avanzado), solo pruebas ──
