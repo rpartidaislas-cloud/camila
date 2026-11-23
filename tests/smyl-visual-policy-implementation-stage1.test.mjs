@@ -12,7 +12,7 @@ const worker = read('../sw.js');
 
 test('la política visual v2 tiene una fuente canónica de tokens operativos', () => {
   assert.match(tokens, /--smyl-primary:\s*#194391/);
-  assert.match(tokens, /--smyl-accent:\s*#0F766E/);
+  assert.match(tokens, /--smyl-accent:\s*#4F5AE8/);
   assert.match(tokens, /--smyl-type-dialog:\s*600 18px\/24px/);
   assert.match(tokens, /--smyl-radius-dialog:\s*12px/);
   assert.match(tokens, /--shadow-dialog:/);

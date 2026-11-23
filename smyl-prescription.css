@@ -22,7 +22,7 @@
 .rx-indications p{margin:2px 0 0;font-size:11.5px;white-space:pre-wrap}
 .rx-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:8mm;margin-top:6mm}
 .rx-sign{flex:1;text-align:center}
-.rx-sign-line{display:block;border-bottom:1px solid #111827;height:14mm;margin-bottom:1mm}
+.rx-sign-line{display:block;border-bottom:1px solid #101428;height:14mm;margin-bottom:1mm}
 .rx-sign small,.rx-stamp small{font-size:9.5px;color:#6b7280}
 .rx-stamp{width:34mm;height:22mm;border:1px dashed #9ca3af;border-radius:3mm;display:flex;align-items:flex-end;justify-content:center;padding-bottom:1.5mm}
 .rx-legend{margin:3mm 0 0;font-size:9px;line-height:1.35;color:#4b5563}

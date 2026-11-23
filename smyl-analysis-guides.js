@@ -28,7 +28,7 @@
     const canvas=$('ag-loupe'),ctx=canvas.getContext('2d'),size=canvas.width;canvas.hidden=false;
     const scale=$('ag-surface').getBoundingClientRect().width/state.width,span=canvas.clientWidth/(scale*2.5);
     ctx.fillStyle='#071020';ctx.fillRect(0,0,size,size);ctx.drawImage(state.image,p.x*state.width-span/2,p.y*state.height-span/2,span,span,0,0,size,size);
-    ctx.strokeStyle='#8ae0d1';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(size/2-10,size/2);ctx.lineTo(size/2+10,size/2);ctx.moveTo(size/2,size/2-10);ctx.lineTo(size/2,size/2+10);ctx.stroke();
+    ctx.strokeStyle='#82bce8';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(size/2-10,size/2);ctx.lineTo(size/2+10,size/2);ctx.moveTo(size/2,size/2-10);ctx.lineTo(size/2,size/2+10);ctx.stroke();
   }
   function draw(){
     if(!state)return;const surface=$('ag-surface'),svg=$('ag-svg');svg.replaceChildren();surface.querySelectorAll('.ag-point').forEach(n=>n.remove());

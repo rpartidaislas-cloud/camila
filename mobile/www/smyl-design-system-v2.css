@@ -11,9 +11,9 @@
   --smyl-primary: #194391;
   --smyl-primary-hover: #12366F;
   --smyl-primary-subtle: #EDF3FC;
-  --smyl-accent: #0F766E;
-  --smyl-accent-hover: #115E59;
-  --smyl-accent-subtle: #EAF7F5;
+  --smyl-accent: #4F5AE8;
+  --smyl-accent-hover: #3F49CC;
+  --smyl-accent-subtle: #EEF1FF;
   --smyl-success: #087A55;
   --smyl-warning: #966300;
   --smyl-danger: #B42318;
@@ -58,9 +58,9 @@
   --smyl-primary: #194391;
   --smyl-primary-hover: #12366F;
   --smyl-primary-subtle: #EDF3FC;
-  --smyl-accent: #0F766E;
-  --smyl-accent-hover: #115E59;
-  --smyl-accent-subtle: #EAF7F5;
+  --smyl-accent: #4F5AE8;
+  --smyl-accent-hover: #3F49CC;
+  --smyl-accent-subtle: #EEF1FF;
   --smyl-focus: #2563EB;
   border: 1px solid var(--smyl-border);
   border-radius: var(--smyl-radius-dialog);

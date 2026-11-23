@@ -4,12 +4,12 @@
 .perio-mila-panel { display: grid; gap: .6rem; }
 .perio-mila-panel:empty, .perio-mila-status:empty { display: none; }
 .perio-mila p { margin: .4rem 0; line-height: 1.45; font-size: .875rem; }
-.perio-mila button { justify-self: start; min-height: 2.25rem; cursor: pointer; border: 1px solid #c2d3da; color: #174848; background: white; padding: .35rem .7rem; border-radius: .5rem; font: inherit; font-size: .875rem; }
-.perio-mila label { display: grid; gap: .25rem; color: #3f5564; font-size: .8125rem; }
-.perio-mila select, .perio-mila input, .perio-mila textarea { box-sizing: border-box; max-width: 100%; padding: .4rem .55rem; border: 1px solid #aabec7; border-radius: .4rem; font: inherit; color: inherit; background: white; }
+.perio-mila button { justify-self: start; min-height: 2.25rem; cursor: pointer; border: 1px solid #bed0de; color: #283588; background: white; padding: .35rem .7rem; border-radius: .5rem; font: inherit; font-size: .875rem; }
+.perio-mila label { display: grid; gap: .25rem; color: #3e4365; font-size: .8125rem; }
+.perio-mila select, .perio-mila input, .perio-mila textarea { box-sizing: border-box; max-width: 100%; padding: .4rem .55rem; border: 1px solid #a5bbcc; border-radius: .4rem; font: inherit; color: inherit; background: white; }
 .perio-mila-values label { flex: 1 1 4.5rem; min-width: 0; }
 .perio-mila textarea { width: 100%; resize: vertical; }
-.perio-mila :focus-visible { outline: 2px solid #087e76; outline-offset: 2px; }
+.perio-mila :focus-visible { outline: 2px solid #0823cf; outline-offset: 2px; }
 @media (pointer: coarse) {
   .perio-mila button, .perio-mila select, .perio-mila input { min-height: 44px; }
   .perio-mila input, .perio-mila select, .perio-mila textarea { font-size: 1rem; }

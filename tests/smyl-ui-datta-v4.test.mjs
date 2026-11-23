@@ -34,12 +34,15 @@ test('la barra lateral se adapta al marcado real y respeta el colapsado', () => 
   assert.doesNotMatch(css, /\.layout \.nav-item|\.layout \.sidebar \{/, 'el marcado estático de app.html lo reemplaza smyl-navigation.js');
 });
 
-test('se carga la última, con Open Sans y precache; web, PWA y copia móvil sincronizadas', () => {
+test('se carga justo antes de la capa de marca, con Open Sans y precache; web, PWA y copia móvil sincronizadas', () => {
   const links = [...app.matchAll(/<link rel="stylesheet" href="([^"]+)">/g)].map((m) => m[1]);
-  assert.equal(links.at(-1), 'smyl-ui-datta-v4.css?v=2');
+  // smyl-brand.css es la capa final (tokens y degradados del logo); datta-v4 va inmediatamente antes.
+  assert.equal(links.at(-1), 'smyl-brand.css?v=1');
+  assert.equal(links.at(-2), 'smyl-ui-datta-v4.css?v=2');
   assert.match(app, /family=Open\+Sans:wght@400;500;600;700/);
   assert.match(sw, /'\/camila\/smyl-ui-datta-v4\.css\?v=2'/);
-  for (const f of ['smyl-ui-datta-v4.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
+  assert.match(sw, /'\/camila\/smyl-brand\.css\?v=1'/);
+  for (const f of ['smyl-ui-datta-v4.css', 'smyl-brand.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
 
 test('la guía v4 existe y declara que los colores de SMYL no cambian', () => {

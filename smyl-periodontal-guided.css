@@ -1,9 +1,9 @@
 .perio-guide {
-  --pgd-line: var(--perio-line, #d6e1e8);
+  --pgd-line: var(--perio-line, #d6dee8);
   --pgd-text: var(--perio-ink, #102a42);
   --pgd-muted: var(--perio-muted, #486174);
-  --pgd-soft: var(--perio-soft, #eef7f5);
-  --pgd-accent: var(--perio-accent, #0f766e);
+  --pgd-soft: var(--perio-soft, #eef2f7);
+  --pgd-accent: var(--perio-accent, #142bc3);
   min-width: 0;
   color: var(--pgd-text);
 }
@@ -20,7 +20,7 @@
 .pgd-field { display: grid; gap: 4px; min-width: 0; font-size: .83rem; font-weight: 600; color: var(--pgd-text); }
 .perio-guide :is(select, input:not([type="checkbox"])) {
   width: 100%; min-width: 0; min-height: 38px; box-sizing: border-box; color: var(--pgd-text);
-  border: 1px solid #b8cbd3; border-radius: 7px; background: #fff; padding: 7px 9px;
+  border: 1px solid #b4c8d7; border-radius: 7px; background: #fff; padding: 7px 9px;
   font: inherit; font-weight: 500;
 }
 .pgd-settings, .pgd-actions, .pgd-inline, .pgd-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -29,12 +29,12 @@
 .pgd-check input { accent-color: var(--pgd-accent); margin: 0; width: 17px; height: 17px; }
 .perio-guide .pgd-btn {
   width: auto; min-height: 38px; display: inline-flex; justify-content: center; align-items: center; line-height: 1.25;
-  padding: 7px 12px; border: 1px solid #bdcfd9; border-radius: 7px; box-shadow: none;
+  padding: 7px 12px; border: 1px solid #b9cddd; border-radius: 7px; box-shadow: none;
   color: var(--pgd-text); background: #fff; font: inherit; font-weight: 600; font-size: .84rem; cursor: pointer;
 }
 .perio-guide .pgd-primary { background: var(--pgd-text); border-color: var(--pgd-text); color: #fff; }
 .perio-guide .pgd-link { border-color: transparent; color: var(--pgd-accent); padding-inline: 4px; }
-.perio-guide :is(button,input,select,summary):focus-visible { outline: 2px solid #007c73; outline-offset: 2px; }
+.perio-guide :is(button,input,select,summary):focus-visible { outline: 2px solid #001bce; outline-offset: 2px; }
 .perio-guide button:disabled { opacity: .6; cursor: default; }
 .pgd-head { justify-content: space-between; }
 .pgd-head > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
@@ -44,7 +44,7 @@
 .pgd-progress > span + span { border-inline-start: 1px solid var(--pgd-line); padding-inline-start: 8px; }
 .pgd-audio { display: inline-flex; align-items: center; gap: 6px; color: var(--pgd-muted); font-size: .8rem; }
 .pgd-audio[data-phase="listening"]::before, .pgd-audio[data-phase="speaking"]::before { content:""; width: 8px; height: 8px; border-radius: 50%; background: var(--pgd-accent); }
-.pgd-audio[data-phase="speaking"]::before { background: #3b6481; }
+.pgd-audio[data-phase="speaking"]::before { background: #394383; }
 .pgd-readings {
   display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin: 0;
   border: 1px solid var(--pgd-line); border-radius: 9px; overflow: hidden; background: #f8fafb;

@@ -109,5 +109,5 @@ test('Chat limpio: un solo aviso de plantilla, conversación abierta que no desa
   assert.doesNotMatch(js, /smyl-inbox-briefing-files/, '«Archivos» ya no vive en la franja de resumen');
   const css = fs.readFileSync(new URL('../smyl-inbox.css', import.meta.url), 'utf8');
   assert.match(css, /smyl-inbox-message:focus-within \.smyl-inbox-message-more/, 'las opciones también aparecen con el foco del teclado');
-  assert.match(css, /#p-inbox \.smyl-inbox-filters button\.active b\{background:#0b1b2e;color:#fff\}/, 'el contador del filtro activo se ve');
+  assert.match(css, /#p-inbox \.smyl-inbox-filters button\.active b\{background:#2d3a9e;color:#fff\}/, 'el contador del filtro activo se ve');
 });

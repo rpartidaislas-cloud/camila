@@ -1,12 +1,12 @@
-.cw-clinical-odontogram .cw-map-periodontal .dr-enamel { fill: #d9eee8; stroke: #19776e; stroke-width: 2.6; }
+.cw-clinical-odontogram .cw-map-periodontal .dr-enamel { fill: #d9eee8; stroke: #2338be; stroke-width: 2.6; }
 .cw-clinical-odontogram .cw-map-periodontal.cw-source-pending .dr-enamel { stroke: #a66b06; stroke-dasharray: 4 2; }
-.cw-map-legend .cw-map-key-periodontal::before { background: #d9eee8; border: 2px solid #19776e; }
+.cw-map-legend .cw-map-key-periodontal::before { background: #d9eee8; border: 2px solid #2338be; }
 .perio-entry, .perio-dialog {
   --perio-ink: var(--smyl-ui-text, #102a42);
   --perio-muted: #486174;
-  --perio-line: #d6e1e8;
-  --perio-accent: #0f766e;
-  --perio-soft: #eef7f5;
+  --perio-line: #d6dee8;
+  --perio-accent: #142bc3;
+  --perio-soft: #eef2f7;
   box-sizing: border-box;
   color: var(--perio-ink);
   font: inherit;
@@ -57,28 +57,28 @@
 .perio-body { overflow: auto; min-height: 0; padding: 16px 20px; display: grid; grid-template-columns: minmax(0,1fr); gap: 14px; overscroll-behavior: contain; }
 .perio-piece-nav, .perio-chart-nav, .perio-start, .perio-compare-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 7px 12px; }
 .perio-graph-host { min-width: 0; }
-.perio-dialog .perio-guided-entry { border-color: #99beb9; color: var(--perio-accent); }
+.perio-dialog .perio-guided-entry { border-color: #93afc4; color: var(--perio-accent); }
 .perio-guide-host, .perio-guide-graph { min-width: 0; }
 .perio-guiding .perio-body { align-content: start; }
 .perio-guide-graph:empty { display: none; }
 .perio-guide-graph .pg-guide-depth { font: 600 12px system-ui,sans-serif; fill: var(--pg-muted); }
 .perio-guide-graph .pg-guide-depth.pg-current { fill: var(--pg-teal); }
-.perio-views { display: inline-flex; align-items: center; gap: 2px; padding: 3px; background: #eef3f6; border: 1px solid var(--perio-line); border-radius: 9px; }
+.perio-views { display: inline-flex; align-items: center; gap: 2px; padding: 3px; background: #eef1f6; border: 1px solid var(--perio-line); border-radius: 9px; }
 .perio-dialog .perio-view { min-height: 34px; padding: 4px 14px; color: var(--perio-muted); border: 0; border-radius: 6px; font-size: 13px; font-weight: 600; background: transparent; cursor: pointer; }
-.perio-dialog .perio-view[aria-pressed="true"] { color: var(--perio-ink); background: #fff; box-shadow: 0 1px 3px #223b4c26; }
-.perio-face .perio-table .perio-selected-site { color: #075d56; background: var(--perio-soft); }
+.perio-dialog .perio-view[aria-pressed="true"] { color: var(--perio-ink); background: #fff; box-shadow: 0 1px 3px #21274d26; }
+.perio-face .perio-table .perio-selected-site { color: #091fad; background: var(--perio-soft); }
 @media (min-width: 701px) {
   .perio-dialog.perio-wide { width: min(1140px, calc(100vw - 32px)); }
 }
 .perio-btn, .perio-link { display: inline-flex; justify-content: center; align-items: center; min-height: 38px; padding: 7px 12px; cursor: pointer; text-align: center; }
 .perio-btn { color: var(--perio-ink); background: white; border: 1px solid var(--perio-line); border-radius: 8px; font-weight: 600; }
-.perio-dialog .perio-primary { color: #fff; background: #102a42; border-color: #102a42; }
+.perio-dialog .perio-primary { color: #fff; background: #0d1745; border-color: #0d1745; }
 .perio-link { padding-inline: 2px; border: 0; color: var(--perio-accent); background: transparent; font-weight: 600; }
 .perio-link:hover { text-decoration: underline; }
-.perio-entry :focus-visible, .perio-dialog :focus-visible { outline: 2px solid #087c72; outline-offset: 2px; }
+.perio-entry :focus-visible, .perio-dialog :focus-visible { outline: 2px solid #0823cd; outline-offset: 2px; }
 .perio-entry button:disabled, .perio-dialog button:disabled { opacity: .55; cursor: default; }
 .perio-dialog .perio-select, .perio-dialog .perio-number, .perio-dialog .perio-date input, .perio-dialog .perio-note {
-  color: var(--perio-ink); background-color: #fff; border: 1px solid #b7cbd5; border-radius: 7px; min-height: 38px;
+  color: var(--perio-ink); background-color: #fff; border: 1px solid #b3c9d9; border-radius: 7px; min-height: 38px;
 }
 .perio-select { min-width: 0; max-width: 100%; padding: 5px 8px; }
 .perio-faces { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 276px), 1fr)); gap: 10px; }
@@ -107,14 +107,14 @@
 .perio-arch .perio-table { font-variant-numeric: tabular-nums; }
 .perio-arch .perio-table thead tr:first-child th { color: var(--perio-accent); }
 .perio-arch .perio-table thead tr:nth-child(2) th { font-size: 12px; padding-block: 5px; }
-.perio-arch .perio-table tbody tr:nth-child(odd) { background: #f3f7f9; }
+.perio-arch .perio-table tbody tr:nth-child(odd) { background: #f3f6f9; }
 .perio-arch .perio-table :is(td,th):nth-child(5) { border-left: 1px solid var(--perio-line); }
 .perio-arch .perio-tooth { display: block; width: 100%; min-height: 32px; background: transparent; padding: 0; color: var(--perio-accent); font-weight: 650; border: 0; border-radius: 4px; cursor: pointer; }
 .perio-tooth:hover { background: var(--perio-soft); text-decoration: underline; }
 .perio-date, .perio-metric-label { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 13px; font-weight: 550; }
 .perio-date input { padding: 4px 8px; }
 .perio-dialog .perio-feedback:empty { display: none; }
-.perio-dialog .perio-feedback { flex: none; font-size: 12px; color: #075f58; padding: 5px 18px; background: var(--perio-soft); }
+.perio-dialog .perio-feedback { flex: none; font-size: 12px; color: #091faf; padding: 5px 18px; background: var(--perio-soft); }
 .perio-footer {
   flex: none; display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 5px 12px;
   padding: 10px 20px; background: #f6f9fa; border-top: 1px solid var(--perio-line);
