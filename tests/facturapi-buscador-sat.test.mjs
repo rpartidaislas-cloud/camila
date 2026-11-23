@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { leerProductosSat, textoBusquedaSat, descripcionServicioSat, leerConsultasSat, unirCandidatosSat, leerSeleccionSat } from '../supabase/functions/_shared/facturapi-core.mjs';
+import { leerProductosSat, textoBusquedaSat, descripcionServicioSat, leerConsultasSat, unirCandidatosSat, leerSeleccionSat, leerServicioSugerido, sumarUso, SAT_CONSULTAS_SCHEMA, SAT_SELECCION_SCHEMA, SERVICIO_SCHEMA } from '../supabase/functions/_shared/facturapi-core.mjs';
 
 const read = (p) => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 
@@ -52,7 +52,7 @@ test('el editor de servicios trae el buscador, no marca el servicio como revisad
   assert.doesNotMatch(ui.slice(ui.indexOf('satBox.onclick'), ui.indexOf("d.querySelector('form').onsubmit")), /fiscal_reviewed/);
   assert.equal(ui, read('mobile/www/smyl-service-catalog.js'));
   assert.equal(read('smyl-service-catalog.css'), read('mobile/www/smyl-service-catalog.css'));
-  assert.match(read('app.html'), /smyl-service-catalog\.js\?v=12/); assert.match(read('app.html'), /smyl-service-catalog\.css\?v=4/);
+  assert.match(read('app.html'), /smyl-service-catalog\.js\?v=13/); assert.match(read('app.html'), /smyl-service-catalog\.css\?v=5/);
 });
 
 test('la IA nunca puede inventar una clave: solo se aceptan las que estaban entre los candidatos', () => {
@@ -82,23 +82,69 @@ test('unirCandidatosSat junta resultados sin repetir claves y respeta el máximo
   assert.deepEqual(descripcionServicioSat({ name: '  Limpieza   dental ', category: 'Preventiva', description: 'y'.repeat(500) }), { name: 'Limpieza dental', category: 'Preventiva', description: 'y'.repeat(300) });
 });
 
-test('suggest_sat_product aplica el tope diario, mide el uso, elige solo entre candidatos y no manda datos de pacientes', () => {
+test('suggest_sat_product aplica el tope, mide y cuenta los tokens, elige solo entre candidatos y no manda datos de pacientes', () => {
   const fn = read('supabase/functions/facturapi/index.ts');
   const at = fn.indexOf('if (action === "suggest_sat_product")');
   assert.ok(at > 0);
-  const block = fn.slice(at, fn.indexOf('// ── cuenta propia', at));
-  assert.match(block, /evaluarTopeFiscal\(/); assert.match(block, /medirIA\(tenantId, ia1\)/); assert.match(block, /medirIA\(tenantId, ia2\)/);
-  assert.match(block, /leerSeleccionSat\(ia2\.text, candidatos\)/);
-  assert.match(block, /if \(!candidatos\.length\) return json\(CORS, 200/);
+  const block = fn.slice(at, fn.indexOf('if (action === "suggest_service")', at));
+  assert.match(block, /puedeUsarIA\(tenantId, CORS\)/); assert.match(block, /medirIA\(tenantId, ia1\)/);
+  assert.match(block, /registrarConsumo\(tenantId, \[[^\]]*\.\.\.sat\.llamadas\], "sat_suggest"/);
   assert.doesNotMatch(block, /patient|paciente_id|rfc/i);
-  assert.doesNotMatch(fn.match(/const esTimbrado = [^;]+;/)[0], /suggest_sat_product/);
+  const helper = fn.slice(fn.indexOf('async function sugerirClaveSat'), fn.indexOf('async function timbrado'));
+  assert.match(helper, /leerSeleccionSat\(ia\.text, candidatos\)/); assert.match(helper, /if \(!candidatos\.length\) return \{ suggestions: \[\]/);
+  assert.match(fn.slice(fn.indexOf('async function puedeUsarIA'), fn.indexOf('async function sugerirClaveSat')), /evaluarTopeFiscal\(/);
+  assert.doesNotMatch(fn.match(/const esTimbrado = [^;]+;/)[0], /suggest_/);
   const bundle = read('docs/bundles/facturapi.single-file.ts');
   assert.match(bundle, /suggest_sat_product/); assert.match(bundle, /async function llamarIA\(/);
+});
+
+test('los esquemas de la IA no llevan restricciones de arreglos ni de números (la API los rechaza con 400)', () => {
+  for (const schema of [SAT_CONSULTAS_SCHEMA, SAT_SELECCION_SCHEMA, SERVICIO_SCHEMA]) assert.doesNotMatch(JSON.stringify(schema), /maxItems|minItems|minimum|maximum|minLength|maxLength/);
+});
+
+test('leerServicioSugerido solo deja valores válidos y nunca trae precio', () => {
+  const r = leerServicioSugerido(JSON.stringify({ category: 'preventive', scope_type: 'session', pricing_mode: 'per_session', duration_minutes: 47, description: '  Limpia   los dientes. ', prep_instructions: '', sat_queries: ['higienista dental', 'odontólogos', '85122002'], reference_price: 999 }));
+  assert.deepEqual(r, { category: 'preventive', scope_type: 'session', pricing_mode: 'per_session', duration_minutes: 45, description: 'Limpia los dientes.', prep_instructions: '', queries: ['higienista dental', 'odontólogos'] });
+  assert.equal('reference_price' in r, false);
+  const mala = leerServicioSugerido(JSON.stringify({ category: 'inventada', scope_type: 'x', pricing_mode: 5, duration_minutes: 9999, description: 7, prep_instructions: null, sat_queries: 'x' }));
+  assert.deepEqual(mala, { category: null, scope_type: null, pricing_mode: null, duration_minutes: null, description: '7', prep_instructions: '', queries: [] });
+  assert.equal(leerServicioSugerido('no es json'), null); assert.equal(leerServicioSugerido('null'), null);
+  assert.equal(leerServicioSugerido(JSON.stringify({ duration_minutes: 5 })).duration_minutes, null); assert.equal(leerServicioSugerido(JSON.stringify({ duration_minutes: 480 })).duration_minutes, 480);
+});
+
+test('sumarUso suma los tokens de varias llamadas para el registro de consumo', () => {
+  assert.deepEqual(sumarUso([{ input_tokens: 100, output_tokens: 20 }, null, { input_tokens: 50.4, output_tokens: 5, cache_read_input_tokens: 10 }, { input_tokens: -3, output_tokens: 'x' }]),
+    { input_tokens: 150, output_tokens: 25, cache_read_input_tokens: 10, cache_creation_input_tokens: 0, calls: 3 });
+  assert.equal(sumarUso(null).calls, 0);
+});
+
+test('suggest_service sugiere todo menos el precio, la clave SAT es opcional y cada uso se cuenta en Créditos de IA', () => {
+  const fn = read('supabase/functions/facturapi/index.ts');
+  const at = fn.indexOf('if (action === "suggest_service")');
+  assert.ok(at > 0);
+  const block = fn.slice(at, fn.indexOf('// ── cuenta propia', at));
+  assert.match(block, /puedeUsarIA\(tenantId, CORS\)/); assert.match(block, /leerServicioSugerido\(ia1\.text\)/);
+  assert.match(block, /registrarConsumo\(tenantId, llamadas, "service_suggest", true\)/);
+  assert.match(block, /sat_note/); assert.doesNotMatch(block, /reference_price|price/);
+  assert.match(block, /if \(row && row\.status === "connected" && row\.secret_ciphertext\)/);
+  const consumo = fn.slice(fn.indexOf('async function registrarConsumo'), fn.indexOf('async function puedeUsarIA'));
+  assert.match(consumo, /rpc\("smyl_consume"/); assert.match(consumo, /p_resource: "ai_credits"/); assert.match(consumo, /token_usage: uso/); assert.match(consumo, /p_enforce: CONSUMABLES_ENFORCED/);
 });
 
 test('el editor de servicios ofrece «Sugerir con IA» y avisa que se confirme con el contador', () => {
   const ui = read('smyl-service-catalog.js');
   assert.match(ui, /data-sat-ai/); assert.match(ui, /action:'suggest_sat_product'/); assert.match(ui, /Sugerir con IA/);
   assert.match(ui, /La IA solo elige entre claves reales del catálogo del SAT\. Confírmala con tu contador\./);
+  assert.equal(ui, read('mobile/www/smyl-service-catalog.js'));
+});
+
+test('«Sugerir todo con IA» llena el formulario sin tocar el precio, no pisa textos escritos y se puede deshacer', () => {
+  const ui = read('smyl-service-catalog.js');
+  assert.match(ui, /data-ai-all/); assert.match(ui, /action:'suggest_service'/); assert.match(ui, /data-ai-undo/);
+  assert.match(ui, /nada se guarda hasta que pulses Guardar/);
+  const fill = ui.slice(ui.indexOf('async function aiAll'), ui.indexOf('aiBtn.onclick=aiAll'));
+  assert.doesNotMatch(fill, /reference_price/);
+  assert.match(fill, /if\(row\[2\]&&el\.value\.trim\(\)\)return;/);
+  assert.match(fill, /!reviewed/);
   assert.equal(ui, read('mobile/www/smyl-service-catalog.js'));
 });
