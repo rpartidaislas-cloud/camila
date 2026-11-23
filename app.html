@@ -460,6 +460,30 @@ body.branch-scope-all .sb-branch select{border-color:#F59E0B;box-shadow:0 0 0 1p
 .plan-feature{font-size:12px;opacity:.9;display:flex;align-items:center;gap:6px}
 .upgrade-btn{margin-top:20px;padding:10px;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:var(--radius-s);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;width:100%;transition:all .2s}
 .upgrade-btn:hover{background:rgba(255,255,255,.3)}
+/* Planes y suscripción */
+.planes-periodo{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:var(--fondo2,#eef2f6);margin:0 0 16px}
+.planes-periodo button{border:0;background:transparent;padding:8px 16px;border-radius:999px;font:inherit;font-size:13px;font-weight:600;color:var(--texto2);cursor:pointer;min-height:36px}
+.planes-periodo button.is-on{background:#fff;color:var(--texto);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.planes-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.plan-opt{position:relative;display:flex;flex-direction:column;gap:8px;padding:20px;border:1px solid var(--borde,#dbe3e9);border-radius:16px;background:#fff}
+.plan-opt.is-reco{border-color:var(--azul,#1b4d77);box-shadow:0 6px 22px rgba(27,77,119,.14)}
+.plan-opt.is-actual{background:#f6f9fb}
+.plan-opt h4{margin:0;font-size:18px;font-weight:800}
+.plan-opt-actual{font-size:12px;font-weight:600;color:var(--exito,#16794c)}
+.plan-opt-tag{position:absolute;top:-11px;left:16px;background:var(--azul,#1b4d77);color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px}
+.plan-opt-sub{margin:0;font-size:13px;color:var(--texto2);line-height:1.4;min-height:36px}
+.plan-opt-precio{font-size:28px;font-weight:800}
+.plan-opt-precio span{font-size:13px;font-weight:500;color:var(--texto2)}
+.plan-opt ul{list-style:none;margin:6px 0 10px;padding:0;display:grid;gap:7px;flex:1}
+.plan-opt li{font-size:13px;color:var(--texto2);line-height:1.4;padding-left:20px;position:relative}
+.plan-opt li::before{content:"✓";position:absolute;left:0;color:var(--exito,#16794c);font-weight:700}
+.planes-nota{margin:14px 0 0;font-size:12.5px;color:var(--texto3);line-height:1.5}
+#modal-planes .modal{width:min(1040px,calc(100vw - 32px))!important}
+@media(max-width:640px){#modal-planes .modal{width:100vw!important}}
+.plan-opt-precio span{display:inline!important}
+.plan-opt ul{align-content:start}
+@media(max-width:820px){.planes-cols{grid-template-columns:1fr}}
+
 
 /* ── COLABORACIONES ── */
 .collab-empty{text-align:center;padding:48px 20px}
@@ -2202,12 +2226,12 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 
 <!-- ═══ MODAL CAMBIAR DE PLAN ═══ -->
 <div class="modal-bg" id="modal-planes">
-  <div class="modal" style="max-width:640px">
+  <div class="modal" style="max-width:1040px;width:calc(100vw - 32px)">
     <div class="modal-header">
-      <h3>Cambiar de plan</h3>
+      <h3>Elige tu plan</h3>
       <button class="modal-close" onclick="cerrarModalPlanes()">✕</button>
     </div>
-    <div id="mp-planes-grid" style="display:flex;gap:14px;flex-wrap:wrap"></div>
+    <div id="mp-planes-grid"></div>
   </div>
 </div>
 
@@ -2596,14 +2620,10 @@ var EDGE_URL = SUPA_URL + '/functions/v1/claude';
 var USE_EDGE = true;
 
 // ══════════════════════════════════════════
-// STRIPE — suscripciones
+// SUSCRIPCIONES — el cobro se hará con Openpay (ya no se usa Stripe).
+// Mientras se conecta la cuenta de Openpay, los botones de plan lo avisan con claridad en vez de fallar.
 // ══════════════════════════════════════════
-// TODO: pegar aquí los 3 Price ID de Stripe (Dashboard → Product catalog →
-// cada plan → Price ID, empiezan con "price_"). Sin esto, los botones de
-// suscripción avisan que falta configuración en vez de fallar en silencio.
-var STRIPE_PRICE_IDS = { esencial: '', profesional: '', premium: '' };
-var STRIPE_CHECKOUT_URL = SUPA_URL + '/functions/v1/stripe-checkout';
-var STRIPE_PORTAL_URL = SUPA_URL + '/functions/v1/stripe-portal';
+var planPeriodoElegido = 'mensual';
 // Edge Function para IA (proxy — resuelve CORS)
 // Si no existe aún, fallback a localStorage temporal
 var USE_EDGE = true;
@@ -2732,70 +2752,67 @@ var PRECIOS_DEFAULT = [
 ];
 
 var PLANES = {
-  esencial:    {label:'Esencial',    precio:'$399',  limite:15,  features:['15 diagnósticos/mes','Análisis IA básico','Cotización automática','1 usuario']},
-  profesional: {label:'Profesional', precio:'$799',  limite:40,  features:['40 diagnósticos/mes','Análisis IA completo','Chatbot de pacientes','Historial ilimitado','3 usuarios']},
-  premium:     {label:'Premium',     precio:'$1,499',limite:100, features:['100 diagnósticos/mes','Análisis IA avanzado','Colaboraciones TeamUp','Marca personalizada','Usuarios ilimitados']},
+  esencial: {
+    label: 'Esencial', mensual: 299, anual: 2990, resumen: 'Toda la plataforma. La IA la pagas según uso.',
+    features: ['Toda la plataforma incluida', 'IA bajo demanda: pagas solo los tokens que uses', '3 GB de almacenamiento', '1 sucursal · 3 usuarios', 'Timbres fiscales por paquete']
+  },
+  profesional: {
+    label: 'Profesional', mensual: 899, anual: 8990, resumen: 'Para clínicas que ya usan la IA y los mensajes todos los días.', recomendado: true,
+    features: ['Toda la plataforma incluida', '1M de tokens de IA al mes', '25 GB de almacenamiento', '50 timbres fiscales al mes', '3 sucursales · 10 usuarios', '10% de descuento en paquetes extra', 'Capacitación inicial de la IA']
+  },
+  premium: {
+    label: 'Premium', mensual: 1499, anual: 14990, resumen: 'Sin límites de equipo y con atención directa.',
+    features: ['Todo lo del plan Profesional', '3M de tokens de IA al mes, sin caducidad', '100 GB de almacenamiento', '150 timbres fiscales al mes', 'Sucursales y usuarios ilimitados', 'Marca propia en el simulador de pacientes', '20% de descuento en paquetes extra', 'Soporte prioritario', 'Migración de pacientes y puesta en marcha de WhatsApp']
+  }
 };
+function planPrecio(plan, periodo) {
+  var p = PLANES[plan]; if (!p) return '';
+  var n = periodo === 'anual' ? p.anual : p.mensual;
+  return '$' + n.toLocaleString('es-MX');
+}
 
 // ══════════════════════════════════════════
-// STRIPE — checkout y portal de facturación
+// SUSCRIPCIÓN — cambio de plan (el cobro con Openpay se conecta después)
 // ══════════════════════════════════════════
 function abrirModalPlanes() {
+  renderModalPlanes();
+  document.getElementById('modal-planes').classList.add('visible');
+}
+function renderModalPlanes() {
   var planActual = (tenantData && tenantData.plan) || 'profesional';
-  var html = Object.keys(PLANES).map(function(key) {
+  var anual = planPeriodoElegido === 'anual';
+  var toggle = '<div class="planes-periodo" role="group" aria-label="Periodo de pago">' +
+    '<button type="button" class="' + (anual ? '' : 'is-on') + '" onclick="cambiarPeriodoPlanes(\'mensual\')">Mensual</button>' +
+    '<button type="button" class="' + (anual ? 'is-on' : '') + '" onclick="cambiarPeriodoPlanes(\'anual\')">Anual · 2 meses gratis</button></div>';
+  var cards = Object.keys(PLANES).map(function(key) {
     var p = PLANES[key];
     var esActual = key === planActual;
-    return '<div class="card" style="flex:1;min-width:180px">' +
-      '<div class="card-title">' + p.label + (esActual ? ' <span style="font-size:11px;color:var(--exito)">· plan actual</span>' : '') + '</div>' +
-      '<div style="font-size:20px;font-weight:800;margin:4px 0">' + p.precio + '<span style="font-size:12px;font-weight:400;color:var(--texto2)">/mes</span></div>' +
-      '<div class="plan-features" style="margin-top:10px">' + p.features.map(function(f){return '<div style="font-size:12px;color:var(--texto2)">✓ ' + f + '</div>';}).join('') + '</div>' +
-      (esActual ? '' : '<button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="suscribirsePlan(\'' + key + '\', this)">Suscribirme</button>') +
+    return '<div class="plan-opt' + (p.recomendado ? ' is-reco' : '') + (esActual ? ' is-actual' : '') + '">' +
+      (p.recomendado ? '<span class="plan-opt-tag">Recomendado</span>' : '') +
+      '<h4>' + p.label + (esActual ? ' <span class="plan-opt-actual">· tu plan</span>' : '') + '</h4>' +
+      '<p class="plan-opt-sub">' + p.resumen + '</p>' +
+      '<div class="plan-opt-precio">' + planPrecio(key, planPeriodoElegido) + '<span>' + (anual ? ' MXN/año' : ' MXN/mes') + '</span></div>' +
+      '<ul>' + p.features.map(function(f){ return '<li>' + f + '</li>'; }).join('') + '</ul>' +
+      (esActual ? '' : '<button class="btn btn-primary" style="width:100%" onclick="suscribirsePlan(\'' + key + '\', this)">Elegir ' + p.label + '</button>') +
       '</div>';
   }).join('');
-  document.getElementById('mp-planes-grid').innerHTML = html;
-  document.getElementById('modal-planes').classList.add('visible');
+  document.getElementById('mp-planes-grid').innerHTML = toggle + '<div class="planes-cols">' + cards + '</div>' +
+    '<p class="planes-nota">Precios en pesos mexicanos. Los paquetes extra de tokens, almacenamiento y timbres se compran aparte desde Consumo.</p>';
+}
+function cambiarPeriodoPlanes(periodo) {
+  planPeriodoElegido = periodo === 'anual' ? 'anual' : 'mensual';
+  renderModalPlanes();
 }
 function cerrarModalPlanes() {
   document.getElementById('modal-planes').classList.remove('visible');
 }
-
-async function suscribirsePlan(planKey, btn) {
-  var priceId = STRIPE_PRICE_IDS[planKey];
-  if (!priceId) { alert('Falta terminar de configurar el cobro para este plan. Contacta a soporte.'); return; }
-  if (btn) { btn.disabled = true; btn.textContent = 'Redirigiendo a pago...'; }
-  try {
-    var sess = await sb.auth.getSession();
-    var token = sess.data.session ? sess.data.session.access_token : null;
-    if (!token) { alert('Tu sesión expiró, vuelve a iniciar sesión.'); return; }
-    var resp = await fetch(STRIPE_CHECKOUT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ priceId: priceId, planKey: planKey })
-    });
-    var data = await resp.json();
-    if (data.url) { window.location.href = data.url; return; }
-    alert('No se pudo iniciar el pago: ' + (data.error || 'error desconocido'));
-  } catch (e) {
-    alert('No se pudo conectar con el servidor de pagos. Intenta de nuevo en unos minutos.');
-  }
-  if (btn) { btn.disabled = false; btn.textContent = 'Suscribirme'; }
+// El pago con tarjeta (Openpay) aún no está conectado: se avisa en lugar de dejar un botón que falla.
+function suscribirsePlan(planKey, btn) {
+  var p = PLANES[planKey];
+  alert('Estamos activando el pago con tarjeta (Openpay). Para cambiar a ' + (p ? p.label : 'este plan') + ' escríbenos y lo activamos contigo por ahora.');
 }
-
-async function abrirPortalStripe() {
-  try {
-    var sess = await sb.auth.getSession();
-    var token = sess.data.session ? sess.data.session.access_token : null;
-    if (!token) { alert('Tu sesión expiró, vuelve a iniciar sesión.'); return; }
-    var resp = await fetch(STRIPE_PORTAL_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
-    });
-    var data = await resp.json();
-    if (data.url) { window.location.href = data.url; return; }
-    alert(data.error || 'No se pudo abrir el portal de facturación.');
-  } catch (e) {
-    alert('No se pudo conectar con el servidor de pagos.');
-  }
+function abrirPortalStripe() {
+  alert('La gestión de tu suscripción con tarjeta estará disponible en cuanto se active Openpay. Mientras tanto, escríbenos para cualquier cambio.');
 }
 
 // ══════════════════════════════════════════
@@ -4700,7 +4717,7 @@ async function guardarConfig() {
 // ══════════════════════════════════════════
 // EQUIPO (etapa 4 -- dueño + staff, ver camila_team.sql)
 // ══════════════════════════════════════════
-var LIMITE_USUARIOS_POR_PLAN = { esencial: 1, profesional: 3 }; // premium: sin tope
+var LIMITE_USUARIOS_POR_PLAN = { esencial: 3, profesional: 10 }; // premium: sin tope
 
 // El staff nunca podría guardar estos cambios de todos modos (la política
 // RLS de camila_tenants solo acepta UPDATE si id = auth.uid(), y el staff
@@ -5417,7 +5434,7 @@ function renderPlan() {
   var vence = new Date(tenantData.vence_en || Date.now() + 30*86400000);
 
   document.getElementById('mc-plan').textContent = planInfo.label;
-  document.getElementById('mc-precio').textContent = planInfo.precio + ' MXN/mes';
+  document.getElementById('mc-precio').textContent = planPrecio(plan in PLANES ? plan : 'profesional', 'mensual') + ' MXN/mes';
   document.getElementById('mc-features').innerHTML = planInfo.features.map(function(f) {
     return '<div class="plan-feature">✓ ' + f + '</div>';
   }).join('');

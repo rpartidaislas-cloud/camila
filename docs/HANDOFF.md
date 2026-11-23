@@ -11699,3 +11699,8 @@ Origen: `docs/AUDITORIA_ROBUSTEZ_SEGURIDAD_ESCALABILIDAD_SMYL_2026-10-26.md` (S5
 
 ## 2026-11-20 — Claude — Diagnóstico SQL de la confirmación de citas
 - `docs/pruebas/confirmacion-de-cita-diagnostico.sql` (solo lectura) + nota en `docs/pruebas/README.md`: sirve para la prueba de punta a punta en producción sin tocar datos. Sin cambios de app ni de base.
+
+## 2026-11-23 — Claude — Planes nuevos (fase 1) y plan de Openpay
+- `app.html`: `PLANES` = Esencial $299 / Profesional $899 / Premium $1,499 (anual con 2 meses gratis), modal «Elige tu plan» con selector mensual/anual (sobrescribe el ancho forzado de `smyl-dialog-system.css` con `#modal-planes .modal`). Se quitó el código de Stripe del navegador; «Elegir plan» y «Gestionar suscripción» avisan que el pago con Openpay se está activando. `LIMITE_USUARIOS_POR_PLAN` = 3 / 10 / sin tope (solo texto de ayuda en Equipo).
+- `docs/OPENPAY_SUSCRIPCIONES.md`: diseño de la fase 2 (cobro con Openpay: tokenización, `openpay-subscribe`, `openpay-webhook`, gestión propia, paquetes extra) y fase 3 (entitlements en el servidor). Requiere la cuenta de Openpay de SMYL (merchant id + llaves como secrets). Las funciones `stripe-*` y `smyl-consumables-*` siguen en el repo sin cambios.
+- NO hecho: cobro real, acreditación de tokens/GB/timbres incluidos, límites de sucursales/usuarios en servidor, `limite_diagnosticos` sigue vigente en el servidor.
