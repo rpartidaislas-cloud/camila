@@ -478,6 +478,30 @@ body.branch-scope-all .sb-branch select{border-color:#F59E0B;box-shadow:0 0 0 1p
 .plan-opt li{font-size:13px;color:var(--texto2);line-height:1.4;padding-left:20px;position:relative}
 .plan-opt li::before{content:"✓";position:absolute;left:0;color:var(--exito,#16794c);font-weight:700}
 .planes-nota{margin:14px 0 0;font-size:12.5px;color:var(--texto3);line-height:1.5}
+
+/* Pago con tarjeta (Openpay) */
+#mp-planes-grid .bill-back{border:0;background:none;color:var(--azul,#1b4d77);font:inherit;font-size:14px;font-weight:600;cursor:pointer;padding:4px 0;margin-bottom:12px;min-height:36px}
+.bill-summary{display:grid;gap:4px;padding:14px 16px;border:1px solid var(--borde,#dbe3e9);border-radius:12px;background:#f6f9fb;margin-bottom:14px}
+.bill-summary strong{font-size:16px}.bill-summary span{font-size:13px;color:var(--texto2);line-height:1.4}
+.bill-sandbox{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#fff7e0;color:#7a5200;font-size:13px;line-height:1.45}
+#bill-form{display:grid;gap:12px;max-width:460px;min-width:0}
+#bill-form label{display:grid;gap:5px;font-size:13px;font-weight:600;color:var(--texto2);min-width:0}
+#bill-form input{width:100%;min-width:0;box-sizing:border-box;min-height:44px;border:1px solid var(--borde,#cfd9e1);border-radius:10px;padding:0 12px;font:inherit;font-size:15px;background:#fff;color:var(--texto)}
+.bill-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;min-width:0}
+.bill-pay{min-height:46px}
+.bill-safe{margin:6px 0 0;font-size:12.5px;color:var(--texto3);line-height:1.5}
+.bill-msg{margin:0 0 12px;padding:10px 12px;border-radius:10px;font-size:13.5px;line-height:1.45}
+.bill-msg.is-error{background:#fdecea;color:#9b2c1f}.bill-msg.is-ok{background:#e6f5ee;color:#16794c}
+.bill-wait{margin:8px 0 14px;color:var(--texto2);font-size:14px}
+.bill-facts{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:8px}
+.bill-facts li{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:8px 0;border-bottom:1px solid var(--borde,#e3e9ee)}
+.bill-facts li span{color:var(--texto2)}
+.bill-actions{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+.bill-danger{color:#9b2c1f!important}
+.bill-done{text-align:center;padding:24px 8px;display:grid;gap:10px;justify-items:center}
+.bill-check{width:52px;height:52px;border-radius:50%;background:#dff3ea;color:#16794c;display:grid;place-items:center;font-size:26px;font-weight:700}
+.bill-done h4{margin:0;font-size:20px}.bill-done p{margin:0;color:var(--texto2);font-size:14px}
+@media(max-width:480px){.bill-row{grid-template-columns:repeat(2,minmax(0,1fr))}.bill-row label:last-child{grid-column:1/-1}}
 #modal-planes .modal{width:min(1040px,calc(100vw - 32px))!important}
 @media(max-width:640px){#modal-planes .modal{width:100vw!important}}
 .plan-opt-precio span{display:inline!important}
@@ -887,6 +911,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-panel.js?v=7"></script>
 <link rel="stylesheet" href="smyl-clinic-admin.css?v=15">
 <script defer src="smyl-clinic-admin.js?v=19"></script>
+<script defer src="smyl-billing.js?v=1"></script>
 <link rel="stylesheet" href="smyl-professional-directory.css?v=13">
 <script defer src="smyl-professional-directory.js?v=13"></script>
 <link rel="stylesheet" href="smyl-schedule.css?v=34">
@@ -2620,8 +2645,7 @@ var EDGE_URL = SUPA_URL + '/functions/v1/claude';
 var USE_EDGE = true;
 
 // ══════════════════════════════════════════
-// SUSCRIPCIONES — el cobro se hará con Openpay (ya no se usa Stripe).
-// Mientras se conecta la cuenta de Openpay, los botones de plan lo avisan con claridad en vez de fallar.
+// SUSCRIPCIONES — el cobro es con Openpay (smyl-billing.js + Edge Function openpay-billing); ya no se usa Stripe.
 // ══════════════════════════════════════════
 var planPeriodoElegido = 'mensual';
 // Edge Function para IA (proxy — resuelve CORS)
@@ -2806,13 +2830,14 @@ function cambiarPeriodoPlanes(periodo) {
 function cerrarModalPlanes() {
   document.getElementById('modal-planes').classList.remove('visible');
 }
-// El pago con tarjeta (Openpay) aún no está conectado: se avisa en lugar de dejar un botón que falla.
+// El pago con tarjeta (Openpay) vive en smyl-billing.js.
 function suscribirsePlan(planKey, btn) {
-  var p = PLANES[planKey];
-  alert('Estamos activando el pago con tarjeta (Openpay). Para cambiar a ' + (p ? p.label : 'este plan') + ' escríbenos y lo activamos contigo por ahora.');
+  if (window.SmylBilling) { window.SmylBilling.choose(planKey); return; }
+  alert('El módulo de pago todavía se está cargando. Intenta de nuevo en unos segundos.');
 }
 function abrirPortalStripe() {
-  alert('La gestión de tu suscripción con tarjeta estará disponible en cuanto se active Openpay. Mientras tanto, escríbenos para cualquier cambio.');
+  if (window.SmylBilling) { window.SmylBilling.manage(); return; }
+  alert('El módulo de pago todavía se está cargando. Intenta de nuevo en unos segundos.');
 }
 
 // ══════════════════════════════════════════
