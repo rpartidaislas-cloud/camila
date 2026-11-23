@@ -475,6 +475,46 @@ body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .
 .plan-feature{font-size:12px;opacity:.9;display:flex;align-items:center;gap:6px}
 .upgrade-btn{margin-top:20px;padding:10px;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:var(--radius-s);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;width:100%;transition:all .2s}
 .upgrade-btn:hover{background:rgba(255,255,255,.3)}
+
+/* Plan y suscripción: consumo del mes */
+.cuenta-grid:has(#plan-usage-root){grid-template-columns:minmax(260px,340px) minmax(0,1fr);align-items:start}
+.plan-usage-col{min-width:0}
+.pu-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.pu-title h2{margin:0;font-size:20px;font-weight:800;color:var(--texto)}
+.pu-title p{margin:4px 0 0;font-size:13.5px;color:var(--texto2);line-height:1.45}
+.pu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.pu-card{display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--borde,#dbe3e9);border-radius:16px;background:#fff;min-width:0}
+.pu-head{display:flex;align-items:center;gap:10px}
+.pu-head strong{font-size:14px;font-weight:700;color:var(--texto);flex:1;min-width:0}
+.pu-ico{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#eef3f8;color:#1b4d77;flex:none}
+.pu-pct{font-size:13px;font-weight:800;color:var(--texto2)}
+.pu-val{font-size:24px;font-weight:800;color:var(--texto);line-height:1.15}
+.pu-val small{font-size:13px;font-weight:500;color:var(--texto2)}
+.pu-bar{height:10px;border-radius:999px;background:#e8eef3;overflow:hidden}
+.pu-bar span{display:block;height:100%;border-radius:999px;background:#2f8f6b;transition:width .5s ease}
+.pu-mid .pu-bar span{background:#d69e2e}.pu-high .pu-bar span{background:#dd6b20}.pu-full .pu-bar span{background:#c53030}
+.pu-mid .pu-pct{color:#a16207}.pu-high .pu-pct{color:#c2410c}.pu-full .pu-pct{color:#b42318}
+.pu-none .pu-bar span{background:#cbd5e0}
+.pu-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;color:var(--texto2);flex-wrap:wrap}
+.pu-muted{color:var(--texto3,#6b7b8a);font-size:13px;line-height:1.4}
+.pu-lv{font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;background:#e6f5ee;color:#16794c}
+.pu-lv-mid{background:#fff4d6;color:#8a5a00}.pu-lv-high{background:#ffe7d6;color:#b13a0b}.pu-lv-full{background:#fdecea;color:#9b2c1f}
+.pu-proj{margin:0;font-size:12.5px;color:#a16207;line-height:1.4}
+.pu-buy{align-self:flex-start;font-size:13px;font-weight:700;color:#1b4d77;text-decoration:none;padding:6px 0;min-height:32px;display:inline-flex;align-items:center}
+.pu-buy:hover{text-decoration:underline}
+.pu-upsell{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:14px 16px;margin-bottom:14px;border-radius:14px;background:#fff7e0;border:1px solid #f1dfa8}
+.pu-upsell div{display:grid;gap:2px;min-width:0}.pu-upsell strong{font-size:14px;color:#6b4800}.pu-upsell span{font-size:13px;color:#7a5a12;line-height:1.4}
+.pu-warn{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#f3f6f9;color:var(--texto2);font-size:13px}
+.pu-bill{padding:18px;border:1px solid var(--borde,#dbe3e9);border-radius:16px;background:#fff}
+.pu-bill h3{margin:0 0 10px;font-size:16px;font-weight:800}
+.pu-bill dl{margin:0;display:grid;gap:2px}
+.pu-bill dl>div{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--borde,#e6ecf1);font-size:14px}
+.pu-bill dl>div:last-child{border-bottom:0}
+.pu-bill dt{color:var(--texto2)}.pu-bill dd{margin:0;font-weight:700;color:var(--texto);text-align:right}
+.pu-chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:700;background:#e6f5ee;color:#16794c}
+.pu-chip-past_due{background:#fff4d6;color:#8a5a00}.pu-chip-cancelled{background:#fdecea;color:#9b2c1f}.pu-chip-unknown{background:#eef2f6;color:#52626f}
+@media(max-width:1000px){.cuenta-grid:has(#plan-usage-root){grid-template-columns:1fr}}
+@media(max-width:640px){.pu-grid{grid-template-columns:1fr}.pu-val{font-size:22px}}
 /* Planes y suscripción */
 .planes-periodo{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:var(--fondo2,#eef2f6);margin:0 0 16px}
 .planes-periodo button{border:0;background:transparent;padding:8px 16px;border-radius:999px;font:inherit;font-size:13px;font-weight:600;color:var(--texto2);cursor:pointer;min-height:36px}
@@ -927,6 +967,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-clinic-admin.css?v=21">
 <script defer src="smyl-clinic-admin.js?v=27"></script>
 <script defer src="smyl-billing.js?v=1"></script>
+<script defer src="smyl-plan-usage.js?v=1"></script>
 <link rel="stylesheet" href="smyl-professional-directory.css?v=13">
 <script defer src="smyl-professional-directory.js?v=14"></script>
 <link rel="stylesheet" href="smyl-schedule.css?v=37">
@@ -2192,12 +2233,9 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
               <button class="upgrade-btn" style="margin-top:8px" onclick="abrirPortalStripe()">💳 Gestionar suscripción</button>
             </div>
           </div>
-          <div>
-            <div class="card">
-              <div class="card-title">Uso del plan</div>
-              <div id="mc-uso-detalle" style="font-size:13px;color:var(--texto2);line-height:2.2"></div>
-              <a class="btn btn-secondary" href="consumos.html" style="margin-top:12px;display:inline-flex;text-decoration:none">Ver consumo de MILA, IA, canales y almacenamiento</a>
-            </div>
+          <div class="plan-usage-col">
+            <div id="plan-usage-root" aria-live="polite"></div>
+            <div id="mc-uso-detalle" hidden></div>
           </div>
         </div>
       </div>
