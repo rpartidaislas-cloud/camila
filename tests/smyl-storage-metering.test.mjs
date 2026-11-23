@@ -47,7 +47,7 @@ test('la pantalla de Almacenamiento llega a web, PWA y móvil y cuelga de Config
   assert.match(read('app.html'), /smyl-storage\.js\?v=1/);
   assert.match(read('sw.js'), /smyl-storage\.js\?v=1/);
   assert.match(read('smyl-settings-hub.js'), /title: 'Almacenamiento'[^}]*route: 'almacenamiento'/);
-  assert.match(read('smyl-navigation.js'), /'mi-cuenta', 'almacenamiento'(, 'avisos-cita')?\]/);
+  assert.match(read('smyl-navigation.js'), /'mi-cuenta', 'almacenamiento'(, 'avisos-cita')?(, 'cumplimiento')?\]/);
   const src = read('smyl-storage.js');
   assert.match(src, /rpc\('smyl_storage_usage'\)/);
   assert.doesNotMatch(src, /tenant_id/);

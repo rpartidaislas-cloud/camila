@@ -12514,6 +12514,13 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **Pantalla (`smyl-service-catalog.js` v13, `.css` v5):** botón «Sugerir todo con IA» arriba del formulario. Llena especialidad, «se aplica a», «cómo se cobra» y duración (traen valor por omisión), **no pisa** descripción ni instrucciones que la persona ya escribió, y llena la clave SAT (y E48/02 si están vacías) solo si el servicio no está marcado como revisado. Los campos llenados quedan marcados; un aviso lista lo que se llenó y trae «Deshacer». El precio no se toca y nada se guarda hasta «Guardar».
 - **Pruebas:** `tests/facturapi-buscador-sat.test.mjs` (esquemas sin restricciones, lectura válida, suma de tokens, consumo, pantalla). Probado en navegador con respuestas simuladas; no contra Anthropic ni Facturapi reales. **Hay que volver a publicar `facturapi`** (bundle de ~1,650 líneas) y confirmar `ANTHROPIC_API_KEY`.
 
+
+## 2026-11-23 · Claude · Carpeta de cumplimiento sanitario (COFEPRIS)
+
+- Migración NUEVA (aplicar a mano en SQL Editor, no `db push`): `supabase/migrations/20261126200000_smyl_compliance.sql` — tablas `smyl_sterilization_logs`, `smyl_rpbi_logs`, `smyl_compliance_items` (RLS, bitácoras inmutables salvo purga de retención), RPCs `smyl_log_sterilization`, `smyl_log_rpbi`, `smyl_set_compliance_item`, `smyl_compliance_overview`.
+- Front: `smyl-compliance.js` (pantalla `#p-cumplimiento`, Configuración › Cuenta y seguridad › Cumplimiento sanitario), `smyl-compliance-model.js` (reglas puras, UMD), `smyl-compliance.css` (incluye impresión del reporte). Rutas en `smyl-navigation.js` v33 y `smyl-settings-hub.js` v18; caché `-cumplimiento-carpeta-v1`. Copias en `mobile/www/`.
+- Fundamento: NOM-013-SSA2-2015 (testigo biológico cada 2 meses, 8.24), guía de autoverificación COFEPRIS. NOM-229 y protocolos escritos marcados «por confirmar»; radiografías por placa no incluidas en v1.
+- Tests: `tests/compliance-cofepris.test.mjs`, `tests/qa/cumplimiento-smoke.cjs`; se aflojaron aserciones frágiles de `SETTINGS_ROUTES` y pins de versión en otros tests.
 ## 2026-11-23 — Claude — Corrección: «La IA no dio una respuesta clara» en «Sugerir todo con IA»
 
 - **Síntoma (primera prueba de Ricardo con la función ya publicada):** la función arrancó y respondió, pero la sugerencia decía «La IA no dio una respuesta clara».
