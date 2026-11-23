@@ -364,7 +364,7 @@ return { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin: admin };
 })();
 
 // ── _shared/facturapi-core.mjs ──
-const { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, DESCARGAS, descarga, leerProductosSat, textoBusquedaSat, SAT_CONSULTAS_SCHEMA, SAT_SELECCION_SCHEMA, SAT_SYSTEM_CONSULTAS, SAT_SYSTEM_SELECCION, descripcionServicioSat, leerConsultasSat, unirCandidatosSat, leerSeleccionSat, SERVICIO_CATEGORIAS, SERVICIO_ALCANCES, SERVICIO_COBROS, SERVICIO_SCHEMA, SERVICIO_SYSTEM, leerServicioSugerido, sumarUso } = (() => {
+const { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, DESCARGAS, descarga, leerProductosSat, textoBusquedaSat, SAT_CONSULTAS_SCHEMA, SAT_SELECCION_SCHEMA, SAT_CONSULTAS_RESPALDO, SAT_SYSTEM_CONSULTAS, SAT_SYSTEM_SELECCION, descripcionServicioSat, leerConsultasSat, unirCandidatosSat, leerSeleccionSat, SERVICIO_CATEGORIAS, SERVICIO_ALCANCES, SERVICIO_COBROS, SERVICIO_SCHEMA, SERVICIO_SYSTEM, leerServicioSugerido, sumarUso } = (() => {
 // Lógica pura de la conexión Facturapi (sin Deno ni red): validación de llave, cifrado y lectura de la organización.
 // Solo sandbox: la llave debe ser de pruebas (sk_test_…). Las llaves live se rechazan.
 const FACTURAPI_BASE = "https://www.facturapi.io/v2";
@@ -705,6 +705,8 @@ const SAT_SELECCION_SCHEMA = {
   type: "object", additionalProperties: false, required: ["picks"],
   properties: { picks: { type: "array", items: { type: "object", additionalProperties: false, required: ["key", "reason"], properties: { key: { type: "string" }, reason: { type: "string" } } } } },
 };
+// Palabras generales con las que el catálogo del SAT nombra los servicios dentales; se usan si las que propuso la IA no encuentran nada.
+const SAT_CONSULTAS_RESPALDO = ["odontólogos", "dentistas", "higienista dental"];
 const SAT_SYSTEM_CONSULTAS = [
   "Ayudas a un consultorio dental en México a encontrar la ClaveProdServ del SAT (catálogo c_ClaveProdServ) de uno de sus servicios.",
   "Devuelve de 2 a 4 consultas CORTAS (1 a 3 palabras, en español) para buscar en el catálogo oficial. Usa el lenguaje del catálogo",
@@ -769,7 +771,7 @@ const SERVICIO_ALCANCES = ["session", "tooth", "teeth", "surface", "quadrant", "
 const SERVICIO_COBROS = ["fixed", "per_tooth", "per_surface", "per_quadrant", "per_arch", "per_session", "per_phase", "package", "from"];
 const SERVICIO_SCHEMA = {
   type: "object", additionalProperties: false,
-  required: ["category", "scope_type", "pricing_mode", "duration_minutes", "description", "prep_instructions", "sat_queries"],
+  required: ["category", "scope_type", "pricing_mode", "duration_minutes", "description", "prep_instructions", "tax_treatment", "sat_queries"],
   properties: {
     category: { type: "string", enum: SERVICIO_CATEGORIAS, description: "Especialidad: diagnostic=valoración y diagnóstico, preventive=prevención y limpieza, restorative=restauradora, endodontic=endodoncia, periodontic=periodoncia, surgery=cirugía oral, prosthodontic=prótesis, aesthetic=estética y carillas, orthodontic=ortodoncia, implantology=implantología, pediatric=odontopediatría, emergency=urgencias, imaging=imagen y laboratorio, other=otros." },
     scope_type: { type: "string", enum: SERVICIO_ALCANCES, description: "A qué se aplica el servicio: session=sesión completa, tooth=una pieza, teeth=varias piezas, surface=superficie dental, quadrant=cuadrante o sextante, arch=arcada, phase=fase de un tratamiento, package=paquete, general=general." },
@@ -777,6 +779,7 @@ const SERVICIO_SCHEMA = {
     duration_minutes: { type: "integer", description: "Duración típica de la cita en minutos, entre 10 y 480." },
     description: { type: "string", description: "Una o dos frases en español sencillo para el paciente: qué es y para qué sirve. Sin prometer resultados ni dar precios." },
     prep_instructions: { type: "string", description: "Instrucciones cortas antes de la cita (qué evitar, qué traer). Cadena vacía si no hace falta ninguna." },
+    tax_treatment: { type: "string", enum: ["pending", "exempt", "rate", "non_object"], description: "Tratamiento de IVA como SUGERENCIA para el contador: exempt si es un servicio profesional de salud dental prestado por dentistas con título; rate si es venta de productos o un servicio que no es de salud; non_object si no es objeto de impuesto; pending si dudas." },
     sat_queries: { type: "array", items: { type: "string" }, description: "De 2 a 4 consultas cortas (1 a 3 palabras) para buscar la ClaveProdServ en el catálogo del SAT, en el lenguaje del catálogo. Nunca claves numéricas." },
   },
 };
@@ -797,6 +800,7 @@ function leerServicioSugerido(text: any) {
     category: pick(o.category, SERVICIO_CATEGORIAS), scope_type: pick(o.scope_type, SERVICIO_ALCANCES), pricing_mode: pick(o.pricing_mode, SERVICIO_COBROS),
     duration_minutes: Number.isFinite(mins) && mins >= 10 && mins <= 480 ? Math.round(mins / 5) * 5 : null,
     description: clean(o.description, 400), prep_instructions: clean(o.prep_instructions, 400),
+    tax_treatment: pick(o.tax_treatment, ["pending", "exempt", "rate", "non_object"]),
     queries: leerConsultasSat(JSON.stringify({ queries: o.sat_queries })),
   };
 }
@@ -809,7 +813,7 @@ function sumarUso(usages: any) {
 }
 
 
-return { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, DESCARGAS, descarga, leerProductosSat, textoBusquedaSat, SAT_CONSULTAS_SCHEMA, SAT_SELECCION_SCHEMA, SAT_SYSTEM_CONSULTAS, SAT_SYSTEM_SELECCION, descripcionServicioSat, leerConsultasSat, unirCandidatosSat, leerSeleccionSat, SERVICIO_CATEGORIAS, SERVICIO_ALCANCES, SERVICIO_COBROS, SERVICIO_SCHEMA, SERVICIO_SYSTEM, leerServicioSugerido, sumarUso };
+return { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, DESCARGAS, descarga, leerProductosSat, textoBusquedaSat, SAT_CONSULTAS_SCHEMA, SAT_SELECCION_SCHEMA, SAT_CONSULTAS_RESPALDO, SAT_SYSTEM_CONSULTAS, SAT_SYSTEM_SELECCION, descripcionServicioSat, leerConsultasSat, unirCandidatosSat, leerSeleccionSat, SERVICIO_CATEGORIAS, SERVICIO_ALCANCES, SERVICIO_COBROS, SERVICIO_SCHEMA, SERVICIO_SYSTEM, leerServicioSugerido, sumarUso };
 })();
 
 // ── _shared/fiscal-core.mjs ──
@@ -1148,31 +1152,38 @@ async function llamarFacturapi(key: string, path: string, init: RequestInit = {}
 
 // ───────────── Sugerencia de clave SAT con IA ─────────────
 // Una llamada corta a Claude (modelo económico) con salida estructurada. Solo viaja el nombre, la categoría y la descripción del servicio.
-async function llamarIA(aiKey: string, system: string, texto: string, schema: Json): Promise<{ ok: boolean; text: string; usage: Json | null; id: string | null; ms: number }> {
+async function llamarIA(aiKey: string, system: string, texto: string, schema: Json): Promise<{ ok: boolean; text: string; usage: Json | null; id: string | null; ms: number; stop: string | null; detail: string }> {
   const inicio = Date.now();
   try {
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST", signal: AbortSignal.timeout(FISCAL_EXTRACT_TIMEOUT_MS),
       headers: { "content-type": "application/json", "x-api-key": aiKey, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({
-        model: FISCAL_EXTRACT_MODEL, max_tokens: 1500, system,
+        model: FISCAL_EXTRACT_MODEL, max_tokens: FISCAL_EXTRACT_MAX_TOKENS, system,
         messages: [{ role: "user", content: [{ type: "text", text: texto }] }],
         output_config: { effort: "low", format: { type: "json_schema", schema } },
       }),
     });
     const msg = await resp.json().catch(() => ({}));
-    if (!resp.ok) { console.error("[facturapi] la IA rechazó la solicitud:", resp.status, String(msg?.error?.type || "")); return { ok: false, text: "", usage: null, id: null, ms: Date.now() - inicio }; }
+    if (!resp.ok) {
+      // Tipo y mensaje del error de la API (describe el esquema o el límite; nunca lleva la llave ni el texto del servicio).
+      const detail = `${resp.status} ${String(msg?.error?.type || "")}: ${String(msg?.error?.message || "").replace(/\s+/g, " ").slice(0, 240)}`.trim();
+      console.error("[facturapi] la IA rechazó la solicitud:", detail);
+      return { ok: false, text: "", usage: null, id: null, ms: Date.now() - inicio, stop: `api_${resp.status}`, detail };
+    }
     const text = Array.isArray(msg.content) ? msg.content.filter((b: Json) => b?.type === "text").map((b: Json) => b.text).join("") : "";
-    return { ok: true, text, usage: msg.usage || null, id: msg.id || null, ms: Date.now() - inicio };
-  } catch { return { ok: false, text: "", usage: null, id: null, ms: Date.now() - inicio }; }
+    // «max_tokens» aquí significa que el razonamiento + la respuesta no cupieron: la respuesta llega cortada y no se puede leer.
+    if (msg.stop_reason && msg.stop_reason !== "end_turn") console.error("[facturapi] la IA terminó con:", msg.stop_reason);
+    return { ok: true, text, usage: msg.usage || null, id: msg.id || null, ms: Date.now() - inicio, stop: typeof msg.stop_reason === "string" ? msg.stop_reason : null, detail: "" };
+  } catch { return { ok: false, text: "", usage: null, id: null, ms: Date.now() - inicio, stop: "error_de_red", detail: "No se pudo contactar a la IA (red o tiempo de espera)." }; }
 }
 // Se mide en el mismo registro y con el mismo tope que la lectura de constancias (feature «fiscal_extract»): no requiere migración.
-async function medirIA(tenantId: string, r: { ok: boolean; usage: Json | null; id: string | null; ms: number }) {
+async function medirIA(tenantId: string, r: { ok: boolean; usage: Json | null; id: string | null; ms: number; stop: string | null; detail?: string }) {
   const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : null);
   const { error } = await admin.from("smyl_ai_usage_log").insert({
     tenant_id: tenantId, feature: "fiscal_extract", model: FISCAL_EXTRACT_MODEL, request_id: r.id ? `sat:${r.id}`.slice(0, 120) : null, outcome: r.ok ? "ok" : "error",
     input_tokens: n(r.usage?.input_tokens), output_tokens: n(r.usage?.output_tokens), cache_read_tokens: n(r.usage?.cache_read_input_tokens),
-    cache_write_tokens: n(r.usage?.cache_creation_input_tokens), duration_ms: n(r.ms), stop_reason: null, estimated_cost_usd: costoEstimadoUsd(FISCAL_EXTRACT_MODEL, r.usage),
+    cache_write_tokens: n(r.usage?.cache_creation_input_tokens), duration_ms: n(r.ms), stop_reason: r.stop ? r.stop.slice(0, 40) : null, estimated_cost_usd: costoEstimadoUsd(FISCAL_EXTRACT_MODEL, r.usage),
   });
   if (error) console.error("[facturapi] no se pudo medir la IA:", error.message);
 }
@@ -1208,15 +1219,21 @@ async function puedeUsarIA(tenantId: string, CORS: Record<string, string>): Prom
 }
 // Claves del SAT: busca cada consulta en el catálogo oficial y la IA elige solo entre las claves reales encontradas.
 async function sugerirClaveSat(tenantId: string, aiKey: string, key: string, texto: string, consultas: string[]) {
+  // Cada búsqueda deja su resultado (código HTTP y cuántas claves) para poder explicar un resultado vacío.
+  const diagnostico: Array<{ q: string; status: number; n: number }> = [];
   const buscar = async (q: string) => {
     const r = await fp(`/catalogs/products?q=${encodeURIComponent(q)}&limit=10`, {}, key);
-    return r.ok && r.body && typeof r.body === "object" ? leerProductosSat(r.body, 10) : [];
+    const lista = r.ok && r.body && typeof r.body === "object" ? leerProductosSat(r.body, 10) : [];
+    diagnostico.push({ q, status: r.status, n: lista.length });
+    return lista;
   };
-  const candidatos = unirCandidatosSat(await Promise.all(consultas.map(buscar)));
-  if (!candidatos.length) return { suggestions: [], candidates: [], queries: consultas, llamadas: [] as Array<{ usage: Json | null; id: string | null }> };
+  let candidatos = unirCandidatosSat(await Promise.all(consultas.map(buscar)));
+  // Si las palabras de la IA no encontraron nada, se prueba con palabras generales del catálogo dental (así se llaman los servicios del SAT).
+  if (!candidatos.length) candidatos = unirCandidatosSat(await Promise.all(SAT_CONSULTAS_RESPALDO.filter((q) => !consultas.includes(q)).map(buscar)));
+  if (!candidatos.length) return { suggestions: [], candidates: [], queries: consultas, diagnostico, llamadas: [] as Array<{ usage: Json | null; id: string | null }> };
   const ia = await llamarIA(aiKey, SAT_SYSTEM_SELECCION, `${texto}\n\nClaves reales del catálogo:\n${candidatos.map((c) => `${c.key} — ${c.description}`).join("\n")}`, SAT_SELECCION_SCHEMA);
   await medirIA(tenantId, ia);
-  return { suggestions: ia.ok ? leerSeleccionSat(ia.text, candidatos) : [], candidates: candidatos, queries: consultas, llamadas: [{ usage: ia.usage, id: ia.id }] };
+  return { suggestions: ia.ok ? leerSeleccionSat(ia.text, candidatos) : [], candidates: candidatos, queries: consultas, diagnostico, llamadas: [{ usage: ia.usage, id: ia.id }] };
 }
 
 async function timbrado(req: Request, CORS: Record<string, string>, tenantId: string, actor: string, body: Json): Promise<Response> {
@@ -1441,7 +1458,8 @@ Deno.serve(async (req) => {
       catch { return json(CORS, 500, { error: "No se pudo leer la llave guardada. Vuelve a conectar Facturapi." }); }
       const r = await fp(`/catalogs/products?q=${encodeURIComponent(q)}&limit=12`, {}, key);
       if (!r.ok || !r.body || typeof r.body !== "object") return json(CORS, 502, { error: "Facturapi no pudo buscar claves en este momento. Intenta de nuevo." });
-      return json(CORS, 200, { results: leerProductosSat(r.body) });
+      const results = leerProductosSat(r.body);
+      return json(CORS, 200, { results, ...(results.length ? {} : { diagnostico: [{ q, status: r.status, n: 0 }] }) });
     }
 
     // ── La IA sugiere la ClaveProdServ: propone palabras de búsqueda, el catálogo oficial devuelve claves reales y solo se elige entre ellas ──
@@ -1462,7 +1480,7 @@ Deno.serve(async (req) => {
       if (!consultas.length) consultas = [textoBusquedaSat(servicio.name)].filter(Boolean);
       const sat = await sugerirClaveSat(tenantId, listo.aiKey, key, texto, consultas);
       await registrarConsumo(tenantId, [{ usage: ia1.usage, id: ia1.id }, ...sat.llamadas], "sat_suggest", ia1.ok);
-      return json(CORS, 200, { suggestions: sat.suggestions, candidates: sat.candidates, queries: sat.queries });
+      return json(CORS, 200, { suggestions: sat.suggestions, candidates: sat.candidates, queries: sat.queries, diagnostico: sat.diagnostico });
     }
 
     // ── La IA sugiere el servicio completo (todo menos el precio): especialidad, alcance, cobro, duración, textos y clave SAT. Es una sugerencia que la persona revisa. ──
@@ -1475,7 +1493,7 @@ Deno.serve(async (req) => {
       const ia1 = await llamarIA(listo.aiKey, SERVICIO_SYSTEM, texto, SERVICIO_SCHEMA);
       await medirIA(tenantId, ia1);
       const campos = ia1.ok ? leerServicioSugerido(ia1.text) : null;
-      if (!campos) { await registrarConsumo(tenantId, [{ usage: ia1.usage, id: ia1.id }], "service_suggest", false); return json(CORS, 502, { error: "La IA no dio una respuesta clara. Llena el servicio a mano." }); }
+      if (!campos) { console.error("[facturapi] sugerencia de servicio ilegible; ia_ok:", ia1.ok, "stop:", ia1.stop, "respuesta_vacía:", !ia1.text); await registrarConsumo(tenantId, [{ usage: ia1.usage, id: ia1.id }], "service_suggest", false); return json(CORS, 502, { error: "La IA no dio una respuesta clara. Llena el servicio a mano.", detail: ia1.detail || (ia1.ok ? `La respuesta no tenía el formato esperado (terminó con: ${ia1.stop || "desconocido"}${ia1.text ? "" : ", vacía"}).` : "") }); }
       const { queries, ...fields } = campos;
       // Clave SAT: solo si Facturapi está conectado (el catálogo del SAT lo sirve Facturapi); si no, el resto de la sugerencia sigue valiendo.
       let sat: Json | null = null, llamadas: Array<{ usage: Json | null; id: string | null }> = [{ usage: ia1.usage, id: ia1.id }];
@@ -1483,7 +1501,7 @@ Deno.serve(async (req) => {
         try {
           const key = await descifrar(MASTER, tenantId, row.secret_ciphertext, row.secret_iv);
           const r = await sugerirClaveSat(tenantId, listo.aiKey, key, `Servicio: ${servicio.name}${fields.description ? `\nDescripción: ${fields.description}` : ""}`, queries.length ? queries : [textoBusquedaSat(servicio.name)].filter(Boolean));
-          sat = { suggestions: r.suggestions, candidates: r.candidates, queries: r.queries }; llamadas = [...llamadas, ...r.llamadas];
+          sat = { suggestions: r.suggestions, candidates: r.candidates, queries: r.queries, diagnostico: r.diagnostico }; llamadas = [...llamadas, ...r.llamadas];
         } catch { sat = null; }
       }
       await registrarConsumo(tenantId, llamadas, "service_suggest", true);

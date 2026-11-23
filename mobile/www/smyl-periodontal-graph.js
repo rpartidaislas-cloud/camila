@@ -57,7 +57,7 @@
   function anatomyPaint(diagram) {
     const id = 'pg-anatomy-' + (++graphCount), defs = svg('defs');
     for (const [material, stops] of [
-      ['enamel', [[0,'#d9dfdc'], [.17,'#f3f3ed'], [.4,'#fffcf3'], [.7,'#f9f6e9'], [1,'#cad1c9']]],
+      ['enamel', [[0,'#d9dbdf'], [.17,'#f3f3ed'], [.4,'#fffcf3'], [.7,'#f9f6e9'], [1,'#cad1c9']]],
       ['root', [[0,'#c9b79a'], [.25,'#e4d6bc'], [.52,'#f1e6d2'], [1,'#d1c1a8']]]
     ]) {
       const paintId = id + '-' + material, gradient = svg('linearGradient',{id:paintId});

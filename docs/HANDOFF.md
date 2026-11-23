@@ -1,3 +1,19 @@
+## 2026-11-23 — Claude — Paleta de marca: del verde azulado al degradado del logo
+
+- Solicitud de Ricardo: el menú y casi todo el sistema tiraban a verde oscuro; quiere los colores del logo de smyl (cian → azul → índigo → violeta, los mismos del botón «Entrar a SMYL») con degradados suaves, en todo el sistema.
+- **Capa de marca nueva** `smyl-brand.css` v1 (última hoja de `app.html`, precache en `sw.js`, copia en `mobile/www/`): tokens `--smyl-brand-*` (cian `#2cc7ec`, azul `#3a9dfa`, índigo `#5b5cf0`, violeta `#7750ff`, tinta `#2d3a9e`, degradados), `--color-primary/accent`, `--smyl-ui-primary/accent`, `--teal*`, `--azul*`, `--violeta*` apuntando a la marca; botones `.btn-primary` con el degradado del botón de acceso; lavados suaves cian/violeta en el fondo del panel; **menú lateral** con degradado índigo → violeta, «Nueva cita» con degradado, opción activa con barra cian → violeta, avatar y contadores con degradado.
+- **Recoloreo del resto del sistema** (script, no a mano): en 117 hojas/JS/HTML, 3,228 colores de la familia verde azulado (tono 165–205°) pasaron a la familia azul/índigo conservando luminosidad (oscuros → índigo, medios → azul de marca, claros → tintes azulados). Se respetaron los verdes de «éxito» (`#087a55`, `#34d399`…), el verde de WhatsApp, y no se tocaron `index.html`, `inicio.html` ni páginas de prueba. Además 414 rellenos/bordes azul marino oscuro: `#0b1b2e` como botón o estado activo pasó a `#2d3a9e` (tinta de marca) y como fondo de degradado a `#1b2477`; los demás azules oscuros cambiaron de tono a 230° (incluye espacios de trabajo oscuros como simulador y radiografías, conservando su luminosidad).
+- Tokens canónicos de la política visual (`smyl-design-system-v2.css`): `--smyl-accent #4F5AE8`, hover `#3F49CC`, subtle `#EEF1FF`. `theme-color` de la app y `manifest-app.json`: `#1b2477`.
+- Pruebas: `smyl-ui-datta-v4` ahora espera `smyl-brand.css` como última hoja (datta-v4 inmediatamente antes); `smyl-visual-policy-implementation-stage1`, `smyl-clinical-dictation`, `smyl-finance-tabs-v2` y `smyl-clinical-workspace-finance-reports-v33` actualizadas a los nuevos valores.
+- Pendiente (no tocado): páginas de marketing (`index.html`, `inicio.html`), íconos PNG de la PWA y logos que sean imagen. Si algo queda en verde, es un color en un formato que el script no cubre (nombres CSS, `hsl()`): avisar la pantalla y se corrige.
+
+## 2026-11-22 — Nube del consultorio
+
+- Agenda y la visita de Consultorio abren el mismo cargador con el paciente y la cita seleccionados. La carga directa admite elegir paciente, posponer el destino o marcar uso del consultorio. La vinculación es metadato del mismo archivo.
+- Nube busca por archivo, paciente y folio EXP; Archivos, Por organizar y Compartidos usan los permisos actuales. La ficha de archivo solo aparece al seleccionar. Los pendientes incluyen tipo faltante o destino sin decidir, incluidos archivos anteriores.
+- Aplicar `20261127100000_smyl_cloud_organization.sql` antes de publicar el cliente. Asigna un número de expediente estable, incorpora el destino del consultorio, mantiene la firma de carga compatible mediante un argumento opcional y añade búsqueda con las políticas de acceso actuales. Folio visible en el expediente y en Nube.
+- Web y copias móviles sincronizadas. La prueba `tests/smyl-cloud-organization-browser.cjs` recorre agenda, carga múltiple, respuesta interrumpida, destino y búsqueda en escritorio, tablet y celular. Verificada la migración con PostgreSQL 17 temporal y datos ficticios. En la revisión ampliada ya fallaba en la versión anterior una aserción global de la Ficha 360 del chat. Publicación de la aplicación posterior a la actualización de datos.
+
 ## 2026-11-23 — Claude Code — Procedimiento como pantalla propia (herramienta + pestaña Consulta)
 
 - `smyl-procedure-safety.js` **v2**: ya NO es un bloque dentro del formulario de la nota. Es una pantalla (`SmylProcedureSafety.open({tenant,patient,patientName,appointmentId})`) con tres tipos: **Sin anestesia** (sitio + alergias; presión opcional), **Con anestesia** (+ anestésico y cartuchos; presión obligatoria si el tratamiento activo es ASA II o más) y **Cirugía** (presión siempre; anestésico opcional). El ASA se lee con `smyl_list_treatments`; peso y presión de hoy, de `smyl_patient_vital_signs`.
@@ -12505,3 +12521,39 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - Front: `smyl-compliance.js` (pantalla `#p-cumplimiento`, Configuración › Cuenta y seguridad › Cumplimiento sanitario), `smyl-compliance-model.js` (reglas puras, UMD), `smyl-compliance.css` (incluye impresión del reporte). Rutas en `smyl-navigation.js` v33 y `smyl-settings-hub.js` v18; caché `-cumplimiento-carpeta-v1`. Copias en `mobile/www/`.
 - Fundamento: NOM-013-SSA2-2015 (testigo biológico cada 2 meses, 8.24), guía de autoverificación COFEPRIS. NOM-229 y protocolos escritos marcados «por confirmar»; radiografías por placa no incluidas en v1.
 - Tests: `tests/compliance-cofepris.test.mjs`, `tests/qa/cumplimiento-smoke.cjs`; se aflojaron aserciones frágiles de `SETTINGS_ROUTES` y pins de versión en otros tests.
+## 2026-11-23 — Claude — Corrección: «La IA no dio una respuesta clara» en «Sugerir todo con IA»
+
+- **Síntoma (primera prueba de Ricardo con la función ya publicada):** la función arrancó y respondió, pero la sugerencia decía «La IA no dio una respuesta clara».
+- **Causa:** `llamarIA` usaba `max_tokens: 1500`. Con Haiku 5.5 el tope debe cubrir razonamiento + JSON (lo documenta `fiscal-core.mjs`; la lectura de constancias usa `FISCAL_EXTRACT_MAX_TOKENS` = 4000), así que la respuesta salía cortada y no se podía leer.
+- **Corrección:** `max_tokens: FISCAL_EXTRACT_MAX_TOKENS`. Ahora también se registra en los logs el `stop_reason` cuando la IA no termina normal y, si la sugerencia es ilegible, `ia_ok` / `stop` / `respuesta_vacía`; el `stop_reason` queda en `smyl_ai_usage_log`. Prueba en `tests/facturapi-buscador-sat.test.mjs`. **Hay que volver a publicar `facturapi`.**
+
+## 2026-11-23 — Claude — Diagnóstico visible en «Sugerir todo con IA»
+
+- Tras subir `max_tokens`, la prueba de Ricardo siguió diciendo «La IA no dio una respuesta clara». Sin acceso a los Logs de Supabase, ahora la función devuelve `detail` con el motivo (código y mensaje de la API —describen el esquema o el límite, nunca la llave ni el texto del servicio— o «respuesta sin el formato esperado (terminó con: …)») y la pantalla lo muestra como «Detalle técnico: …» (`smyl-service-catalog.js` v14). También queda en el Log de la función. **Pendiente:** con ese detalle, corregir la causa real; hay que volver a publicar `facturapi`.
+
+## 2026-11-23 — Claude — «Tratamiento de IVA» en Editar servicio (ningún servicio podía quedar «revisado»)
+
+- **Síntoma (Ricardo):** al guardar con «Confirmo que el emisor/contador revisó…» salía `new row for relation "smyl_services" violates check constraint "smyl_services_no_review_while_tax_pending"`.
+- **Causa:** la base exige `tax_treatment` distinto de `pending` para `fiscal_status='reviewed'` (y `smyl_services_tax_consistency` liga el tratamiento con `tax_object_code`: exento y con tasa → `02`, no objeto → `01`), pero **el editor no tenía ningún campo para `tax_treatment`**: nada en la app lo escribía, así que ningún servicio podía quedar revisado (ni facturable: `chargeInvoiceable` lo exige).
+- **Qué cambia:** el editor trae «Tratamiento de IVA» (Pendiente · Exento de IVA (servicios dentales profesionales) · Con IVA 16 % · No objeto de IVA). Al elegirlo, ObjetoImp se ajusta solo; el modelo (`normalize`) lo deriva siempre para que nunca contradiga a la base, y `validate` avisa «Elige el tratamiento de IVA… para marcar el servicio como revisado» (abre el bloque fiscal). «Sugerir todo con IA» también sugiere el tratamiento (`SERVICIO_SCHEMA.tax_treatment`; exento para servicios profesionales de salud dental, **sugerencia que confirma el contador**; si duda, pendiente).
+- **Archivos:** `smyl-service-catalog-model.js` v4, `smyl-service-catalog.js` v15, `.css` v6, `facturapi` (bundle con el campo nuevo en el esquema), `app.html`, `sw.js`, copias en `mobile/www/`. Pruebas en `tests/service-catalog-model.test.mjs` (reglas de la base) y `tests/facturapi-buscador-sat.test.mjs`. Sin SQL nuevo.
+- **Ya funciona:** la IA responde en producción (la llave `ANTHROPIC_API_KEY` se corrigió).
+
+## 2026-11-23 — Claude — «Sugerir todo con IA»: la parte fiscal salía vacía («No encontré claves para este servicio»)
+
+- **Síntoma (Ricardo):** la IA llenó lo clínico, pero la clave SAT no; la pantalla decía «No encontré claves…» sin explicar nada.
+- **Causa probable:** la búsqueda en el catálogo (`GET /v2/catalogs/products?q=`) volvió vacía y la función no distinguía «Facturapi no respondió», «respondió con error» y «sin coincidencias». No se pudo confirmar sin ver Facturapi real.
+- **Qué cambia:** cada búsqueda deja su `diagnostico` (`q`, código HTTP, cantidad) y la pantalla lo muestra como «Detalle técnico: «…» → Facturapi 200, 0 claves». Si las palabras de la IA no encuentran nada, se prueban palabras generales del catálogo dental (`SAT_CONSULTAS_RESPALDO`: odontólogos, dentistas, higienista dental). También aplica a «Buscar». `smyl-service-catalog.js` v16; hay que volver a publicar `facturapi`.
+- **Pendiente:** con el detalle técnico real, corregir la causa (¿parámetro `q`, forma de la respuesta, clave de prueba sin acceso al catálogo?).
+
+## 2026-11-23 — Claude — Cobro: sucursal automática, precio por sucursal y «Concepto» sin repetir al servicio
+
+- **Pedido de Ricardo:** (1) quitar el selector de sucursal del cobro (ya está en su consultorio); (2) que el precio siga a la sucursal, también en cotizaciones; (3) «Servicio» y «Concepto» repetían el mismo texto.
+- **Hallazgo:** ya existe el «consultorio activo» (`SmylBranchScope.get()`, el selector bajo el logo), pero el cobro partía de la sucursal **predeterminada** de la clínica, por eso el precio salía siempre el de la principal. Cotizaciones ya repreciaban por sucursal, pero también partían de la predeterminada.
+- **Qué cambia (`smyl-finance.js` v72, `.css` v53, `smyl-proposals.js` v27):**
+  - Ayudantes `myBranchId()` (consultorio activo si no es «Todos» y existe) y `pickBranch()`. **Registrar cargo** y **Cobrar** parten de esa sucursal y **ocultan el selector**; muestran «Se registra en {sucursal}». Con «Todos los consultorios» o sin selector, el selector se mantiene. **Abrir mi caja** propone la sucursal activa.
+  - Si se liga una **cita de otra sucursal**, el cargo sigue a la cita y la nota lo dice («la sucursal de la cita»); al quitar la cita vuelve a la del consultorio y se reprecia. El precio sigue a la sucursal salvo que se haya escrito a mano; una nota muestra «Precio de lista de {sucursal}».
+  - **Servicio / Concepto:** el primero ofrece «Otro concepto (sin servicio del catálogo)». Con servicio elegido, «Concepto» pasa a «Detalle (opcional)» y el cargo se guarda como «{Servicio} · {detalle}»; sin servicio, «Concepto» es obligatorio como antes.
+  - **Cotizaciones:** `initialBranch` = la de la cotización, si no el consultorio activo, si no la predeterminada.
+- **Pruebas:** `tests/cobros-cargo-fiscal.test.mjs` fija los cambios; probado en navegador con dos sucursales y precios distintos (500 / 700). Nada de SQL.
+

@@ -24,7 +24,7 @@
   ];
   var GLOBAL_VALUES = ['', 'all'];
   var SEARCH_FROM = 7;
-  var PALETTE = ['#2f9e94', '#3b82f6', '#8b5cf6', '#e0791f', '#d9467a', '#0e7490', '#65a30d', '#b45309'];
+  var PALETTE = ['#124dbb', '#3b82f6', '#8b5cf6', '#e0791f', '#d9467a', '#102cdf', '#65a30d', '#b45309'];
   var PREFIX_RE = /^(sucursal|consultorio|cl[ií]nica|sede|dr\.?|dra\.?)\s+/i;
 
   // Opciones que se pintan (pura): texto, valor, si es la vista global, inicial y color.

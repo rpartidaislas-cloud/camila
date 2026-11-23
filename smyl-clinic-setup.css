@@ -18,7 +18,7 @@
 .clinic-setup-progress { font: 400 13px/18px var(--smyl-font, system-ui, sans-serif); color: #506474; }
 .clinic-setup-chevron {
   width: 8px; height: 8px; flex: none; margin-inline-start: auto; margin-inline-end: 2px;
-  border: solid #526674; border-width: 0 1.6px 1.6px 0; transform: translateY(-2px) rotate(45deg);
+  border: solid #415985; border-width: 0 1.6px 1.6px 0; transform: translateY(-2px) rotate(45deg);
 }
 .clinic-setup-toggle[aria-expanded="true"] .clinic-setup-chevron { transform: translateY(2px) rotate(225deg); }
 #smyl-clinic-setup [hidden] { display: none; }
@@ -32,7 +32,7 @@
 .clinic-setup-step + .clinic-setup-step { border-top: 1px solid #e8edf1; }
 .clinic-setup-mark {
   width: 17px; height: 17px; display: grid; place-items: center; box-sizing: border-box;
-  border: 1.5px solid #a5b3bc; border-radius: 50%; font: 700 12px/1 system-ui, sans-serif;
+  border: 1.5px solid #a0b3c1; border-radius: 50%; font: 700 12px/1 system-ui, sans-serif;
 }
 .clinic-setup-step[data-done="true"] .clinic-setup-mark { background: #e6f4ef; border-color: #aed4c7; color: #176c55; }
 .clinic-setup-text { display: grid; gap: 2px; min-width: 0; }
@@ -43,11 +43,11 @@
   min-height: 36px; padding: 5px 10px; border-radius: 7px; cursor: pointer;
   font: 600 13px/18px var(--smyl-font, system-ui, sans-serif);
 }
-.clinic-setup-action { background: #fff; border: 1px solid #c8d6dc; color: #254450; }
-.clinic-setup-step[data-next="true"] .clinic-setup-action { color: #075c56; border-color: #aad2ca; background: #eef7f4; }
-.clinic-setup-action:hover { border-color: #4a8983; }
+.clinic-setup-action { background: #fff; border: 1px solid #c5d4df; color: #242a51; }
+.clinic-setup-step[data-next="true"] .clinic-setup-action { color: #091fac; border-color: #a5c1d7; background: #eef7f4; }
+.clinic-setup-action:hover { border-color: #34599f; }
 .clinic-setup-foot { display: flex; justify-content: flex-end; padding: 2px 12px; border-top: 1px solid #e8edf1; }
-.clinic-setup-dismiss { color: #465e6d; background: transparent; border: 0; }
+.clinic-setup-dismiss { color: #454a6e; background: transparent; border: 0; }
 .clinic-setup-dismiss:hover { text-decoration: underline; }
 @media (pointer: coarse), (max-width: 700px) {
   #smyl-clinic-setup .clinic-setup-action, #smyl-clinic-setup .clinic-setup-dismiss { min-height: 44px; }

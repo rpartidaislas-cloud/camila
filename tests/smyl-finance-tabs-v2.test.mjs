@@ -313,7 +313,7 @@ test('Finanzas abre en Por cobrar y conserva la cuenta detallada con sus filtros
   assert.match(js, /Todo cobrado por ahora/);
   assert.match(js, /<header class="finance-page-head finance-actionsbar"><div class="finance-head-actions"><\/div><\/header>/);
   // El nombre del paciente (con su línea de estado) es el botón que abre la cuenta.
-  assert.match(css, /#p-caja button\.finance-line-who:hover \.finance-line-name\{color:var\(--smyl-accent,#0f766e\);text-decoration:underline/);
+  assert.match(css, /#p-caja button\.finance-line-who:hover \.finance-line-name\{color:var\(--smyl-accent,#142bc3\);text-decoration:underline/);
   const app = read('app.html'), shell = read('smyl-professional-v3.css');
   assert.match(app, /new MutationObserver\(function\(\)\{place\(\);\}\)/, 'el pie de derechos siempre queda al final del contenido');
   assert.match(shell, /\.contenido>#app-copyright\{position:static[^}]*height:0/);

@@ -78,7 +78,7 @@ test('agenda adopts the SMYL visual policy without duplicating the shell title',
   assert.match(script, /<h1>Organiza tu día<\/h1>/);
   assert.match(script, /Citas, llegadas y disponibilidad\./);
   assert.match(styles, /Agenda v3 · adopción de la política visual SMYL/);
-  assert.match(styles, /linear-gradient\(135deg,#0b1b2e,#132c47\)/);
+  assert.match(styles, /linear-gradient\(135deg,#1b2477,#101a4a\)/);
   assert.match(styles, /#p-agenda \.schedule-metrics\{[\s\S]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(styles, /#p-agenda \.schedule-tabs>button\[aria-selected=true\]/);
   assert.match(styles, /#p-agenda :is\(button,select,input,textarea\):focus-visible/);

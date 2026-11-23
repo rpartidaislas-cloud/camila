@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>SMYL · Diseño de Sonrisa Digital</title>
 <link rel="manifest" href="manifest-app.json">
-<meta name="theme-color" content="#0B1B2E">
+<meta name="theme-color" content="#1b2477">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -32,10 +32,10 @@
   --color-primary-hover:#12366F;
   --color-primary-subtle:#EDF3FC;
   --color-primary-border:#C9D8EF;
-  --color-accent:#0F766E;
-  --color-accent-hover:#115E59;
-  --color-accent-subtle:#EAF8F6;
-  --gradient-primary:linear-gradient(135deg,#194391 0%,#2476B8 58%,#16A69B 100%);
+  --color-accent:#142bc3;
+  --color-accent-hover:#1a2da6;
+  --color-accent-subtle:#eaf0f8;
+  --gradient-primary:linear-gradient(135deg,#194391 0%,#2476B8 58%,#1934e6 100%);
   --color-surface:#FFFFFF;
   --color-surface-raised:#F4F7FA;
   --color-border:#DCE4EC;
@@ -77,8 +77,8 @@
   --violeta:#194391;
   --violeta-s:#EDF3FC;
   --violeta-b:#C9D8EF;
-  --teal:#0F766E;
-  --teal-s:#EAF8F6;
+  --teal:#142bc3;
+  --teal-s:#eaf0f8;
   --verde:#087A55;
   --verde-s:#ECFDF5;
   --rojo:#B42318;
@@ -108,18 +108,18 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 /* Sidebar oscuro sobre contenido claro — el mismo contraste que usan
    Vercel/Linear/Arc, le da la sensación "premium SaaS" que antes no tenía
    (todo el panel era plano y blanco de lado a lado) */
-.sidebar{width:240px;background:#0B1B2E;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;z-index:20;box-shadow:12px 0 34px rgba(16,34,57,.07)}
+.sidebar{width:240px;background:#2d3a9e;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;z-index:20;box-shadow:12px 0 34px rgba(16,34,57,.07)}
 .main{flex:1;overflow-y:auto;min-width:0}
 
 /* ── SIDEBAR ── */
 .sb-branch{padding:2px 14px 10px}
-.sb-branch label{display:block;padding:0 4px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(200,222,228,.5);margin-bottom:5px}
-.sb-branch-field{position:relative;display:flex;align-items:center;gap:8px;min-height:36px;padding:0 10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#e4f0f3;transition:background-color .15s,border-color .15s}
+.sb-branch label{display:block;padding:0 4px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(197, 216, 231,.5);margin-bottom:5px}
+.sb-branch-field{position:relative;display:flex;align-items:center;gap:8px;min-height:36px;padding:0 10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#e4ebf3;transition:background-color .15s,border-color .15s}
 .sb-branch-field:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}
-.sb-branch-field:focus-within{border-color:#6ed8ce;box-shadow:0 0 0 2px rgba(110,216,206,.25)}
-.sb-branch-icon{position:relative;display:grid;place-items:center;flex:0 0 16px;color:rgba(186,208,216,.75)}
+.sb-branch-field:focus-within{border-color:#64abe2;box-shadow:0 0 0 2px rgba(100, 171, 226,.25)}
+.sb-branch-icon{position:relative;display:grid;place-items:center;flex:0 0 16px;color:rgba(182, 204, 220,.75)}
 .sb-branch-value{flex:1;min-width:0;overflow:hidden;font-size:13px;font-weight:500;line-height:1.2;text-overflow:ellipsis;white-space:nowrap}
-.sb-branch-chev{flex:0 0 auto;font-size:11px;color:rgba(186,208,216,.6)}
+.sb-branch-chev{flex:0 0 auto;font-size:11px;color:rgba(182, 204, 220,.6)}
 .sb-branch select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;margin:0;-webkit-appearance:none;appearance:none}
 .sb-branch select option{color:#1F2937;background:#fff}
 body.branch-scope-all .sb-branch-icon::after{content:"";position:absolute;top:-3px;right:-4px;width:7px;height:7px;border-radius:50%;background:#F59E0B;box-shadow:0 0 0 2px #10283a}
@@ -135,7 +135,7 @@ body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .
 
 .sb-user{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer;transition:background-color 150ms ease;outline:none}
 .sb-user:hover{background:rgba(255,255,255,.04)}
-.sb-user:focus-visible{box-shadow:inset 0 0 0 2px rgba(74,155,211,.45)}
+.sb-user:focus-visible{box-shadow:inset 0 0 0 2px rgba(40, 112, 245,.45)}
 .sb-avatar{width:32px;height:32px;background:var(--gradient-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0}
 .sb-user-row{display:flex;align-items:center;gap:9px}
 .sb-user-info{flex:1;min-width:0}
@@ -156,11 +156,11 @@ body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .
 .nav-items{flex:1;padding:6px 8px;overflow-y:auto}
 .nav-item{display:flex;align-items:center;gap:10px;padding:0 11px;height:38px;border-radius:10px;cursor:pointer;color:rgba(255,255,255,.66);font-size:13px;font-weight:500;letter-spacing:.1px;transition:background-color 150ms ease,color 150ms ease,box-shadow 150ms ease;margin-bottom:2px;border:1px solid transparent;outline:none}
 .nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
-.nav-item:focus-visible{box-shadow:0 0 0 2px rgba(74,155,211,.45);color:#fff}
-/* Ítem activo — degradado IA (#27D7E7 → #7A4DFF), como pide la guía para
+.nav-item:focus-visible{box-shadow:0 0 0 2px rgba(40, 112, 245,.45);color:#fff}
+/* Ítem activo — degradado IA (#0f63ff → #7A4DFF), como pide la guía para
    el estado activo de navegación */
-.nav-item.activo{background:rgba(36,118,184,.2);border-color:rgba(74,155,211,.18);color:#fff;font-weight:600;box-shadow:inset 3px 0 0 var(--color-accent)}
-.nav-item.activo:focus-visible{box-shadow:inset 3px 0 0 var(--color-accent),0 0 0 2px rgba(74,155,211,.45)}
+.nav-item.activo{background:rgba(36,118,184,.2);border-color:rgba(40, 112, 245,.18);color:#fff;font-weight:600;box-shadow:inset 3px 0 0 var(--color-accent)}
+.nav-item.activo:focus-visible{box-shadow:inset 3px 0 0 var(--color-accent),0 0 0 2px rgba(40, 112, 245,.45)}
 .nav-item .ni-icon{width:16px;height:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:.7}
 .nav-item.activo .ni-icon{opacity:1}
 .nav-badge{margin-left:auto;background:var(--color-error);color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:99px;min-width:17px;text-align:center}
@@ -357,7 +357,7 @@ body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .
 .slot-requirement{position:absolute;top:10px;left:10px;display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:99px;background:#fff;border:1px solid var(--color-border);font-size:9px;font-weight:700;letter-spacing:.55px;text-transform:uppercase;color:var(--color-text-secondary)}
 .slot-requirement.required{background:var(--color-primary-subtle);border-color:var(--color-primary-border);color:var(--color-primary)}
 .upload-slot img.slot-preview{order:-1;width:100%;height:88px;object-fit:cover;border-radius:9px;margin-bottom:10px;border:1px solid var(--color-border)}
-.upload-slot.tiene-img{border-color:#80C9C2;border-style:solid;background:var(--color-accent-subtle);justify-content:flex-start;padding-top:16px}
+.upload-slot.tiene-img{border-color:#78aad1;border-style:solid;background:var(--color-accent-subtle);justify-content:flex-start;padding-top:16px}
 .slot-check{position:absolute;top:10px;right:10px;width:24px;height:24px;background:var(--color-success);border-radius:50%;display:none;align-items:center;justify-content:center;font-size:11px;color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.9)}
 .upload-slot.tiene-img .slot-check{display:flex}
 
@@ -554,7 +554,7 @@ body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .
 .ba-loading-txt,.ba-loading>div{position:relative;z-index:1}
 .ba-loading-txt{font-size:12px;color:var(--violeta);font-weight:500}
 /* Detalle en degradado para todo lo relacionado con IA */
-.fal-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;font-size:10px;font-weight:700;background:linear-gradient(135deg,rgba(39,215,231,.12),rgba(122,77,255,.12));color:#7A4DFF;border:1px solid rgba(122,77,255,.22);margin-bottom:12px}
+.fal-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;font-size:10px;font-weight:700;background:linear-gradient(135deg,rgba(15, 99, 255,.12),rgba(122,77,255,.12));color:#7A4DFF;border:1px solid rgba(122,77,255,.22);margin-bottom:12px}
 .btn-generar-ba{width:100%;padding:14px;background:linear-gradient(135deg,var(--violeta),var(--azul));color:#fff;border:none;border-radius:var(--radius-s);font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(124,58,237,.3);margin-bottom:16px}
 .btn-generar-ba:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,.4)}
 .btn-generar-ba:disabled{opacity:.5;cursor:not-allowed;transform:none}
@@ -821,7 +821,7 @@ html{overflow-x:hidden}
 /* clip (no hidden) en body: hidden lo vuelve contenedor de scroll y rompe el position:sticky del sidebar */
 body{overflow-x:clip}
 input,textarea,select{touch-action:manipulation;font-size:16px!important}
-.rep-header-card{background:linear-gradient(135deg,#12366F 0%,#194391 58%,#147F78 100%)!important;border:none!important;border-radius:12px!important;padding:22px 24px!important;margin-bottom:20px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;box-shadow:0 10px 30px rgba(16,34,57,.2)!important;position:relative;overflow:hidden}
+.rep-header-card{background:linear-gradient(135deg,#0d1e74 0%,#194391 58%,#1b32ca 100%)!important;border:none!important;border-radius:12px!important;padding:22px 24px!important;margin-bottom:20px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;box-shadow:0 10px 30px rgba(16,34,57,.2)!important;position:relative;overflow:hidden}
 .rep-header-card::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;background:rgba(255,255,255,.06);border-radius:50%;pointer-events:none}
 .rep-header-card::after{content:'';position:absolute;bottom:-30px;left:30%;width:100px;height:100px;background:rgba(255,255,255,.04);border-radius:50%;pointer-events:none}
 .rep-header-card>div:first-child{display:flex;flex-direction:column;gap:4px}
@@ -894,7 +894,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-waitlist-core.js?v=2"></script>
 <script defer src="smyl-waitlist.js?v=2"></script>
 <script defer src="smyl-ai-scheduling.js?v=1"></script>
-<script defer src="smyl-schedule.js?v=58"></script>
+<script defer src="smyl-schedule.js?v=59"></script>
 <script defer src="smyl-google-calendar.js?v=3"></script>
 <script defer src="smyl-schedule-message.js?v=5"></script>
 <script defer src="smyl-schedule-setup.js?v=2"></script>
@@ -904,19 +904,19 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-templates.js?v=7"></script>
 <link rel="stylesheet" href="smyl-messaging.css?v=1">
 <script defer src="smyl-messaging.js?v=1"></script>
-<link rel="stylesheet" href="smyl-service-catalog.css?v=5">
+<link rel="stylesheet" href="smyl-service-catalog.css?v=6">
 <link rel="stylesheet" href="smyl-service-catalog-stage1.css?v=4">
-<script defer src="smyl-service-catalog-model.js?v=3"></script>
-<script defer src="smyl-service-catalog.js?v=13"></script>
+<script defer src="smyl-service-catalog-model.js?v=4"></script>
+<script defer src="smyl-service-catalog.js?v=16"></script>
 <link rel="stylesheet" href="smyl-inventory.css?v=15">
 <script defer src="smyl-inventory-routing.js?v=1"></script>
 <script defer src="smyl-inventory-procurement.js?v=2"></script>
 <script defer src="smyl-inventory.js?v=22"></script>
-<link rel="stylesheet" href="smyl-finance.css?v=52">
+<link rel="stylesheet" href="smyl-finance.css?v=53">
 <script defer src="smyl-fiscal-rules.js?v=2"></script>
 <script defer src="smyl-fiscal-capture.js?v=4"></script>
 <script defer src="smyl-xlsx.js?v=1"></script>
-<script defer src="smyl-finance.js?v=71"></script>
+<script defer src="smyl-finance.js?v=72"></script>
 <link rel="stylesheet" href="smyl-online-pay-setup.css?v=2">
 <script defer src="smyl-online-pay-setup.js?v=3"></script>
 <link rel="stylesheet" href="smyl-reports.css?v=6">
@@ -935,8 +935,8 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-notice-settings.js?v=1"></script>
 <link rel="stylesheet" href="smyl-appointment-notice.css?v=2">
 <script defer src="smyl-appointment-notice.js?v=3"></script>
-<link rel="stylesheet" href="smyl-cloud.css?v=3">
-<script defer src="smyl-cloud.js?v=4"></script>
+<link rel="stylesheet" href="smyl-cloud.css?v=4">
+<script defer src="smyl-cloud.js?v=5"></script>
 <link rel="stylesheet" href="smyl-connections.css?v=21">
 <link rel="stylesheet" href="smyl-media-replies.css?v=1">
 <script defer src="smyl-media-replies.js?v=1"></script>
@@ -954,7 +954,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-privacy-notice.js?v=3"></script>
 <script defer src="smyl-history-interview.js?v=1"></script>
 <script defer src="smyl-clinical-tools.js?v=2"></script>
-<script defer src="smyl-consultorio.js?v=13"></script>
+<script defer src="smyl-consultorio.js?v=14"></script>
 <link rel="stylesheet" href="smyl-clinic-setup.css?v=5">
 <script defer src="smyl-clinic-setup.js?v=8"></script>
 <link rel="stylesheet" href="smyl-settings-hub.css?v=6">
@@ -994,7 +994,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-informed-consent.js?v=1"></script>
 <script defer src="smyl-clinical-background.js?v=1"></script>
 <script defer src="smyl-procedure-safety.js?v=2"></script>
-<script defer src="smyl-patient-360.js?v=39"></script>
+<script defer src="smyl-patient-360.js?v=40"></script>
 <script defer src="vendor/qrcode-generator-1.4.4.js"></script>
 <script defer src="smyl-mila-interview.js?v=7"></script>
 <link rel="stylesheet" href="smyl-patient-record-stage2.css?v=2">
@@ -1006,7 +1006,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-prescription-model.js?v=1"></script>
 <script defer src="smyl-prescription-print.js?v=1"></script>
 <script defer src="smyl-prescriptions.js?v=1"></script>
-<script defer src="smyl-proposals.js?v=26"></script>
+<script defer src="smyl-proposals.js?v=27"></script>
 <link rel="stylesheet" href="smyl-treatment-quote-stage3.css?v=3">
 <script defer src="smyl-treatment-quote-stage3.js?v=1"></script>
 <link rel="stylesheet" href="smyl-patient-cases.css?v=4">
@@ -1093,6 +1093,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-dashboard-v2.css?v=2">
 <link rel="stylesheet" href="smyl-patients-directory.css?v=3">
 <link rel="stylesheet" href="smyl-ui-datta-v4.css?v=2">
+<link rel="stylesheet" href="smyl-brand.css?v=1">
 </head>
 <body class="smyl-professional smyl-management-v3 smyl-ui-governed">
 <script>/* Estado del menú lateral y del tema aplicados antes del primer pintado, para que el panel no «salte» al terminar de cargar. */try{if(window.localStorage.getItem("smyl_sidebar_collapsed")==="1")document.body.classList.add("smyl-sidebar-collapsed")}catch(e){}</script>
@@ -1340,7 +1341,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
               <div id="dash-ultimos-casos">
                 <div class="dashboard-empty">
                   <div class="dashboard-empty-visual" aria-hidden="true">
-                    <svg width="74" height="74" viewBox="0 0 80 80" fill="none"><rect x="15" y="18" width="50" height="44" rx="12" fill="white" stroke="currentColor" stroke-width="2"/><path d="M26 43c3.8 6.2 8.4 9.2 14 9.2 5.7 0 10.3-3 14-9.2" stroke="#0F766E" stroke-width="3" stroke-linecap="round"/><circle cx="31" cy="34" r="2.5" fill="currentColor"/><circle cx="49" cy="34" r="2.5" fill="currentColor"/><path d="M25 18v-3M55 18v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    <svg width="74" height="74" viewBox="0 0 80 80" fill="none"><rect x="15" y="18" width="50" height="44" rx="12" fill="white" stroke="currentColor" stroke-width="2"/><path d="M26 43c3.8 6.2 8.4 9.2 14 9.2 5.7 0 10.3-3 14-9.2" stroke="#142bc3" stroke-width="3" stroke-linecap="round"/><circle cx="31" cy="34" r="2.5" fill="currentColor"/><circle cx="49" cy="34" r="2.5" fill="currentColor"/><path d="M25 18v-3M55 18v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                   </div>
                   <div>
                     <div class="dashboard-empty-kicker">Tu primer caso</div>
@@ -2459,7 +2460,7 @@ var SLOT_ICONS = [
   // Perfil lateral
   '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2476B8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3c1.8 1 3 2.8 3 5 0 2-.9 3.8-2.3 5"/><path d="M9 3C7.2 4 6 5.8 6 8c0 2 .9 3.8 2.3 5"/><path d="M9 3h6"/><path d="M8 13h8l-1 5H9l-1-5z"/><line x1="10" y1="18" x2="14" y2="18"/></svg>',
   // Intraoral frontal
-  '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="4.5" rx="1.5"/><rect x="2" y="12.5" width="20" height="4.5" rx="1.5"/><line x1="6" y1="7" x2="6" y2="11.5"/><line x1="10" y1="7" x2="10" y2="11.5"/><line x1="14" y1="7" x2="14" y2="11.5"/><line x1="18" y1="7" x2="18" y2="11.5"/><line x1="6" y1="12.5" x2="6" y2="17"/><line x1="10" y1="12.5" x2="10" y2="17"/><line x1="14" y1="12.5" x2="14" y2="17"/><line x1="18" y1="12.5" x2="18" y2="17"/></svg>',
+  '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#142bc3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="4.5" rx="1.5"/><rect x="2" y="12.5" width="20" height="4.5" rx="1.5"/><line x1="6" y1="7" x2="6" y2="11.5"/><line x1="10" y1="7" x2="10" y2="11.5"/><line x1="14" y1="7" x2="14" y2="11.5"/><line x1="18" y1="7" x2="18" y2="11.5"/><line x1="6" y1="12.5" x2="6" y2="17"/><line x1="10" y1="12.5" x2="10" y2="17"/><line x1="14" y1="12.5" x2="14" y2="17"/><line x1="18" y1="12.5" x2="18" y2="17"/></svg>',
   // Radiografía
   '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6E6E7C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="7" x2="17" y2="7"/><line x1="7" y1="10" x2="17" y2="10"/><path d="M7 14h2a1 1 0 0 1 1 1v1a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h2"/></svg>',
 ];
@@ -2596,7 +2597,7 @@ if ('serviceWorker' in navigator) {
     aviso.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:9000;width:min(420px,calc(100% - 32px));box-sizing:border-box;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid #D7DDE5;border-radius:12px;box-shadow:0 8px 28px rgba(15,23,42,.16);padding:10px 12px;font:13px/1.4 system-ui,sans-serif;color:#1F2937';
     aviso.innerHTML = '<span style="flex:1;min-width:150px">Hay una versión nueva de SMYL.</span>' +
       '<button type="button" data-update-later style="border:0;background:none;color:#64748B;font:inherit;cursor:pointer;padding:6px 8px">Después</button>' +
-      '<button type="button" data-update-now style="border:0;background:#0F766E;color:#fff;font:inherit;font-weight:600;border-radius:8px;cursor:pointer;padding:7px 12px">Actualizar</button>';
+      '<button type="button" data-update-now style="border:0;background:#142bc3;color:#fff;font:inherit;font-weight:600;border-radius:8px;cursor:pointer;padding:7px 12px">Actualizar</button>';
     aviso.querySelector('[data-update-now]').addEventListener('click', smylApplyUpdate);
     aviso.querySelector('[data-update-later]').addEventListener('click', function () { aviso.remove(); });
     document.body.appendChild(aviso);
@@ -2628,7 +2629,7 @@ function smylToastError() {
       box = document.createElement('div');
       box.id = 'smyl-error-toast';
       box.setAttribute('role', 'status');
-      box.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:92vw;background:#102239;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 8px 28px rgba(16,34,57,.35);z-index:99999;font:14px/1.4 system-ui,sans-serif';
+      box.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:92vw;background:#0e153b;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 8px 28px rgba(16,34,57,.35);z-index:99999;font:14px/1.4 system-ui,sans-serif';
       document.body.appendChild(box);
     }
     box.textContent = 'Algo no salió como se esperaba. Ya registramos el detalle; si la pantalla no responde, recarga la página.';
@@ -3746,6 +3747,7 @@ async function verPaciente(id) {
   var edad = p.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) + ' años' : '-';
   document.getElementById('det-info-rapida').textContent = edad + (p.email ? ' · ' + p.email : '') + (p.telefono ? ' · ' + p.telefono : '');
   document.getElementById('det-info-grid').innerHTML = [
+    ...(p.record_number ? [{lbl:'Expediente', val:'EXP-' + p.record_number}] : []),
     {lbl:'Email', val: p.email||'-'},
     {lbl:'Teléfono', val: p.telefono||'-'},
     {lbl:'Edad', val: edad},

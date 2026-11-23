@@ -329,6 +329,19 @@
       var body = el('div', 'co-sbody'), t = el('b', '', step.title); body.append(t, el('small', '', step.text));
       var acts = el('div', 'co-sacts');
       step.actions.forEach(function (a) { var b = el('button', a.primary ? 'co-sgo' : 'co-sec', a.label); b.type = 'button'; b.onclick = function () { visitAction(a.id, step, b); }; acts.append(b); });
+      if (step.key === 'estudios' && v.appointmentId && appt && state.access && can('cloud.read') && can('cloud.upload') && can('clinical.read') && window.SmylCloud?.openFromAppointment) {
+        var upload = el('button', 'co-sec', 'Guardar en la Nube'); upload.type = 'button';
+        upload.onclick = async function () {
+          upload.disabled = true;
+          function feedback(text) { var note = $('[data-co-visit-note]'); if (note && state.visit === v) { note.setAttribute('role','status'); note.textContent = text; } }
+          try {
+            await window.SmylCloud.openFromAppointment({tenant:state.tenant,patientId:p.id,appointmentId:appt.id,patientName:label,
+              when:new Date(appt.starts_at).toLocaleDateString('es-MX')+' · '+fmtTime(appt.starts_at),
+              isOpen:function(){return state.visit === v && upload.isConnected && upload.getClientRects().length > 0;},onSaved:feedback});
+          } catch (error) { feedback(error.message); } finally { upload.disabled = false; }
+        };
+        acts.append(upload);
+      }
       body.append(acts); li.append(mark, body); list.append(li);
     });
     host.append(list);

@@ -28,7 +28,9 @@ test('cobros: el precio de la sede manda y, sin excepción, se usa el precio bas
 });
 test('cobros: al cambiar de sucursal se actualiza el precio solo si la persona no lo editó a mano', () => {
   assert.match(fin, /if\(e\.isTrusted\)priceTouched=true;/);
-  assert.match(fin, /f\.elements\.branch\.addEventListener\('change',function\(\)\{var s=service\(\);if\(!s\|\|priceTouched\)return;/);
+  // El precio sigue a la sucursal solo si la persona no lo editó a mano (también al ligar una cita de otra sucursal).
+  assert.match(fin, /function repriceForBranch\(\)\{var s=service\(\);if\(!s\|\|priceTouched\)return;/);
+  assert.match(fin, /f\.elements\.branch\.addEventListener\('change',repriceForBranch\);/);
   assert.match(fin, /Number\(priceFor\(sv,a\.branch_id\)\)/);
 });
 test('catálogo: bloque «Precio por sucursal» solo con permiso, con varias sedes y servicio ya guardado; guarda con el RPC', () => {

@@ -9,7 +9,7 @@
 .storage-figure{display:flex;align-items:baseline;gap:8px}
 .storage-figure strong{font-size:38px;letter-spacing:-.04em;line-height:1}
 .storage-figure span{color:#65758b;font-size:15px}
-.storage-plan{padding:6px 10px;border-radius:999px;background:#e3f4ee;color:#17695a;font-size:12px;font-weight:700}
+.storage-plan{padding:6px 10px;border-radius:999px;background:#e3f4ee;color:#2235af;font-size:12px;font-weight:700}
 .storage-plan.is-warning{background:#fff0c9;color:#8a5a0a}.storage-plan.is-critical,.storage-plan.is-full{background:#ffe1dd;color:#8f2f25}.storage-plan.is-undefined{background:#eef2f6;color:#4a5d72}
 .storage-bar{display:flex;height:12px;overflow:hidden;border-radius:999px;background:#e8edf2}
 .storage-bar i{display:block;height:100%}
@@ -23,9 +23,9 @@
 .storage-patients{display:grid;gap:11px;margin:0;padding:0;list-style:none}
 .storage-patients li{display:grid;grid-template-columns:minmax(110px,170px) 1fr auto;align-items:center;gap:14px;font-size:13px;color:#33475c}
 .storage-track{height:8px;overflow:hidden;border-radius:999px;background:#e8edf2}
-.storage-track i{display:block;height:100%;border-radius:999px;background:#0f766e}
+.storage-track i{display:block;height:100%;border-radius:999px;background:#142bc3}
 .storage-switch{display:flex;align-items:center;gap:11px;font-size:14px;cursor:pointer}
-.storage-switch input{width:18px;height:18px;accent-color:#0f766e}
+.storage-switch input{width:18px;height:18px;accent-color:#142bc3}
 .storage-info{padding:14px 16px;border:1px solid #cfdcf5;border-radius:14px;background:#eaf1fd;color:#25467d}
 .storage-info strong{display:block;margin-bottom:4px;font-size:13px}
 .storage-info p{margin:0;font-size:13px;line-height:1.5}

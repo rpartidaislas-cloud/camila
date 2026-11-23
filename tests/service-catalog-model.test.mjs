@@ -40,11 +40,29 @@ test('ships additive versioning, RLS, offline assets and mobile parity',()=>{
   const mobile=readFileSync(resolve(root,'mobile/www/app.html'),'utf8');
   const worker=readFileSync(resolve(root,'sw.js'),'utf8');
   assert.equal(app,mobile);
-  assert.match(app,/smyl-service-catalog-model\.js\?v=3/);
+  assert.match(app,/smyl-service-catalog-model\.js\?v=4/);
   assert.match(worker,/smyl-v263-lana-connection-recovery/);
   for(const name of ['smyl-service-catalog-model.js','smyl-service-catalog.js','smyl-service-catalog.css']){
     assert.equal(readFileSync(resolve(root,name),'utf8'),readFileSync(resolve(root,'mobile/www',name),'utf8'));
-    const version=name==='smyl-service-catalog.js'?'13':name==='smyl-service-catalog.css'?'5':'3';
+    const version=name==='smyl-service-catalog.js'?'16':name==='smyl-service-catalog.css'?'6':'4';
     assert.match(worker,new RegExp(name.replaceAll('.','\\.')+'\\?v='+version));
   }
+});
+
+test('el tratamiento de IVA define el objeto de impuesto y es obligatorio para marcar un servicio como revisado',()=>{
+  // Reglas de la base (smyl_services_tax_consistency y smyl_services_no_review_while_tax_pending).
+  const exempt=model.normalize({name:'Limpieza',tax_treatment:'exempt',tax_object_code:'01',tax_rate:0.5,sat_product_service_code:'85122001',sat_unit_code:'E48'});
+  assert.equal(exempt.tax_treatment,'exempt'); assert.equal(exempt.tax_object_code,'02'); assert.equal(exempt.tax_rate,null);
+  const rate=model.normalize({name:'Blanqueamiento',tax_treatment:'rate'});
+  assert.equal(rate.tax_object_code,'02'); assert.equal(rate.tax_rate,0.16);
+  assert.equal(model.normalize({name:'x',tax_treatment:'rate',tax_rate:0.08}).tax_rate,0.08);
+  const nonObject=model.normalize({name:'Donativo',tax_treatment:'non_object',tax_object_code:'02',tax_rate:0.16});
+  assert.equal(nonObject.tax_object_code,'01'); assert.equal(nonObject.tax_rate,null);
+  const pending=model.normalize({name:'Pendiente',tax_object_code:'02',tax_rate:0.16});
+  assert.equal(pending.tax_treatment,'pending'); assert.equal(pending.tax_object_code,'02'); assert.equal(pending.tax_rate,null);
+  assert.equal(model.normalize({name:'x',tax_treatment:'invalido'}).tax_treatment,'pending');
+  const reviewedPending=Object.assign(model.normalize({name:'Consulta',sat_product_service_code:'85122001',sat_unit_code:'E48'}),{fiscal_status:'reviewed'});
+  assert.ok(model.validate(reviewedPending).some(e=>/tratamiento de IVA/i.test(e)));
+  assert.deepEqual(model.validate(Object.assign({},reviewedPending,model.normalize({name:'Consulta',tax_treatment:'exempt',sat_product_service_code:'85122001',sat_unit_code:'E48'}),{fiscal_status:'reviewed'})),[]);
+  assert.deepEqual(model.taxTreatments.map(x=>x[0]),['pending','exempt','rate','non_object']);
 });

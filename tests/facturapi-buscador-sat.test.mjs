@@ -33,7 +33,7 @@ test('la función facturapi expone search_sat_products con permiso de gestión, 
   const block = fn.slice(at, fn.indexOf('// ── La IA sugiere', at));
   assert.match(block, /status !== "connected"/);
   assert.match(block, /\/catalogs\/products\?q=\$\{encodeURIComponent\(q\)\}&limit=12/);
-  assert.match(block, /json\(CORS, 200, \{ results: leerProductosSat\(r\.body\) \}\)/);
+  assert.match(block, /const results = leerProductosSat\(r\.body\);/); assert.match(block, /json\(CORS, 200, \{ results, \.\.\.\(results\.length \? \{\} : \{ diagnostico:/);
   // La llave se descifra solo dentro de la función; lo único que sale hacia el navegador son los resultados.
   assert.equal((block.match(/json\(CORS, 200,/g) || []).length, 1);
   assert.doesNotMatch(block, /json\(CORS, 200, \{[^}]*(key|secret|connection)/);
@@ -52,7 +52,7 @@ test('el editor de servicios trae el buscador, no marca el servicio como revisad
   assert.doesNotMatch(ui.slice(ui.indexOf('satBox.onclick'), ui.indexOf("d.querySelector('form').onsubmit")), /fiscal_reviewed/);
   assert.equal(ui, read('mobile/www/smyl-service-catalog.js'));
   assert.equal(read('smyl-service-catalog.css'), read('mobile/www/smyl-service-catalog.css'));
-  assert.match(read('app.html'), /smyl-service-catalog\.js\?v=13/); assert.match(read('app.html'), /smyl-service-catalog\.css\?v=5/);
+  assert.match(read('app.html'), /smyl-service-catalog\.js\?v=16/); assert.match(read('app.html'), /smyl-service-catalog\.css\?v=6/);
 });
 
 test('la IA nunca puede inventar una clave: solo se aceptan las que estaban entre los candidatos', () => {
@@ -104,10 +104,10 @@ test('los esquemas de la IA no llevan restricciones de arreglos ni de números (
 
 test('leerServicioSugerido solo deja valores válidos y nunca trae precio', () => {
   const r = leerServicioSugerido(JSON.stringify({ category: 'preventive', scope_type: 'session', pricing_mode: 'per_session', duration_minutes: 47, description: '  Limpia   los dientes. ', prep_instructions: '', sat_queries: ['higienista dental', 'odontólogos', '85122002'], reference_price: 999 }));
-  assert.deepEqual(r, { category: 'preventive', scope_type: 'session', pricing_mode: 'per_session', duration_minutes: 45, description: 'Limpia los dientes.', prep_instructions: '', queries: ['higienista dental', 'odontólogos'] });
+  assert.deepEqual(r, { category: 'preventive', scope_type: 'session', pricing_mode: 'per_session', duration_minutes: 45, description: 'Limpia los dientes.', prep_instructions: '', tax_treatment: null, queries: ['higienista dental', 'odontólogos'] });
   assert.equal('reference_price' in r, false);
   const mala = leerServicioSugerido(JSON.stringify({ category: 'inventada', scope_type: 'x', pricing_mode: 5, duration_minutes: 9999, description: 7, prep_instructions: null, sat_queries: 'x' }));
-  assert.deepEqual(mala, { category: null, scope_type: null, pricing_mode: null, duration_minutes: null, description: '7', prep_instructions: '', queries: [] });
+  assert.deepEqual(mala, { category: null, scope_type: null, pricing_mode: null, duration_minutes: null, description: '7', prep_instructions: '', tax_treatment: null, queries: [] });
   assert.equal(leerServicioSugerido('no es json'), null); assert.equal(leerServicioSugerido('null'), null);
   assert.equal(leerServicioSugerido(JSON.stringify({ duration_minutes: 5 })).duration_minutes, null); assert.equal(leerServicioSugerido(JSON.stringify({ duration_minutes: 480 })).duration_minutes, 480);
 });
@@ -148,3 +148,21 @@ test('«Sugerir todo con IA» llena el formulario sin tocar el precio, no pisa t
   assert.match(fill, /!reviewed/);
   assert.equal(ui, read('mobile/www/smyl-service-catalog.js'));
 });
+
+test('la llamada a la IA reserva tokens para el razonamiento y la respuesta (1,500 dejaba la respuesta cortada)', () => {
+  const fn = read('supabase/functions/facturapi/index.ts');
+  assert.match(fn, /max_tokens: FISCAL_EXTRACT_MAX_TOKENS/); assert.doesNotMatch(fn, /max_tokens: 1500/);
+  const core = read('supabase/functions/_shared/fiscal-core.mjs');
+  assert.ok(Number(core.match(/FISCAL_EXTRACT_MAX_TOKENS = (\d+)/)[1]) >= 4000);
+  assert.match(fn, /sugerencia de servicio ilegible; ia_ok:/);
+});
+
+test('si la búsqueda sale vacía se explica por qué y se prueban palabras generales del catálogo dental', () => {
+  const fn = read('supabase/functions/facturapi/index.ts');
+  const helper = fn.slice(fn.indexOf('async function sugerirClaveSat'), fn.indexOf('async function timbrado'));
+  assert.match(helper, /diagnostico\.push\(\{ q, status: r\.status, n: lista\.length \}\)/);
+  assert.match(helper, /SAT_CONSULTAS_RESPALDO\.filter\(\(q\) => !consultas\.includes\(q\)\)\.map\(buscar\)/);
+  const ui = read('smyl-service-catalog.js');
+  assert.match(ui, /function satDiag\(list\)/); assert.match(ui, /Detalle técnico: /); assert.match(ui, /satDiag\(data\.diagnostico\)/);
+});
+

@@ -9,7 +9,7 @@
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "any",
   "background_color": "#F4F7FA",
-  "theme_color": "#0B1B2E",
+  "theme_color": "#1b2477",
   "lang": "es",
   "dir": "ltr",
   "categories": ["health", "medical", "business"],

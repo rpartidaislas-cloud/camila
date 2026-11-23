@@ -11,13 +11,13 @@
   --sim-v33-line: #30415d;
   --sim-v33-text: #f4f7ff;
   --sim-v33-muted: #b4c3d8;
-  --sim-v33-accent: #8ae0d1;
-  --sim-v33-accent-ink: #082c35;
+  --sim-v33-accent: #82bce8;
+  --sim-v33-accent-ink: #070d36;
   --sim-v33-danger: #ffb5ab;
   --sim-v33-warning: #ffd38a;
   --sim-v33-control: 42px;
   --sim-v33-radius: 14px;
-  --sim-v33-focus: #9ae7da;
+  --sim-v33-focus: #93c7ee;
   color-scheme: dark;
 }
 
@@ -85,8 +85,8 @@
 /* Task · start with one clear action and progressively disclose detail. */
 .sim-workspace-v33 #s-intro {
   background:
-    radial-gradient(circle at 50% -16%, rgba(54, 127, 153, .25), transparent 40%),
-    linear-gradient(160deg, #081328, #080d1c 72%);
+    radial-gradient(circle at 50% -16%, rgba(27, 80, 180, .25), transparent 40%),
+    linear-gradient(160deg, #060c2a, #070b1d 72%);
   padding: max(52px, calc(env(safe-area-inset-top) + 30px)) 24px max(30px, env(safe-area-inset-bottom));
 }
 
@@ -125,7 +125,7 @@
 .sim-workspace-v33 .ps-icon {
   width: clamp(72px, 9vw, 94px);
   height: clamp(72px, 9vw, 94px);
-  border: 1px solid rgba(138, 224, 209, .2);
+  border: 1px solid rgba(130, 188, 232, .2);
   border-radius: 16px;
   background: rgba(17, 28, 52, .72);
 }
@@ -149,7 +149,7 @@
 }
 
 /* Capture · camera remains visually dominant, guidance stays legible. */
-.sim-workspace-v33 #s-cam { background: #020713; }
+.sim-workspace-v33 #s-cam { background: #010414; }
 .sim-workspace-v33 .cam-top {
   min-height: 62px;
   padding-top: max(10px, env(safe-area-inset-top));
@@ -170,7 +170,7 @@
   max-width: 460px;
   border-radius: 14px;
   background: rgba(9, 16, 33, .88);
-  border-color: rgba(138, 224, 209, .22);
+  border-color: rgba(130, 188, 232, .22);
 }
 .sim-workspace-v33 .native-tip {
   grid-template-columns: 36px minmax(0, 1fr);
@@ -313,7 +313,7 @@
 }
 .sim-workspace-v33 .vita-confirm {
   border-radius: 11px;
-  background: linear-gradient(110deg, #247e7a, #2c6bed);
+  background: linear-gradient(110deg, #3346c1, #2c6bed);
 }
 .sim-workspace-v33 .vita-preview-warning,
 .sim-workspace-v33 .vita-note,
@@ -324,14 +324,14 @@
   --ed-bg: #080d15;
   --ed-surface: #111821;
   --ed-surface-2: #171f29;
-  --ed-border: #2d3948;
+  --ed-border: #2c3149;
   --ed-text: #f2f6fb;
   --ed-muted: #aab8c8;
   background: var(--ed-bg);
 }
 .sim-workspace-v33 .ed-topbar {
   min-height: 62px;
-  background: #0d141d;
+  background: #0c0f1e;
   border-bottom-color: var(--ed-border);
 }
 .sim-workspace-v33 .ed-topbar-inner {
@@ -350,7 +350,7 @@
 .sim-workspace-v33 .ed-workspace-head {
   min-height: 62px;
   padding: 10px 14px;
-  background: #0d141d;
+  background: #0c0f1e;
   border-bottom-color: var(--ed-border);
 }
 .sim-workspace-v33 .ed-workspace-title { font-size: 13px; }
@@ -359,7 +359,7 @@
   min-height: 52px;
   gap: 7px;
   padding-block: 5px;
-  background: #0d1219;
+  background: #0c0f1a;
   border-bottom-color: var(--ed-border);
   scrollbar-width: thin;
 }

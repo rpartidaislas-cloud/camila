@@ -105,7 +105,7 @@ test('la interfaz conserva accesibilidad, móvil y movimiento reducido', () => {
   assert.match(styles, /@media\(max-width:600px\)/);
   assert.match(styles, /@media\(prefers-reduced-motion:reduce\)/);
   assert.match(styles, /#0b1b2e/);
-  assert.match(styles, /#0f766e/);
+  assert.match(styles, /#142bc3/);
 });
 
 test('web, PWA y móvil incluyen la misma integración', () => {

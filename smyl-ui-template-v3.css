@@ -28,7 +28,7 @@
   --smyl-ui-canvas: #f4f7fb;
   --smyl-ui-surface: #ffffff;
   --smyl-ui-surface-soft: #f8fafc;
-  --smyl-ui-surface-accent: #edf4f7;
+  --smyl-ui-surface-accent: #edf1f7;
   --smyl-ui-ink: #0b1b2e;
   --smyl-ui-ink-secondary: #526174;
   --smyl-ui-ink-muted: #738094;
@@ -37,8 +37,8 @@
   --smyl-ui-primary: #0b1b2e;
   --smyl-ui-primary-hover: #132c47;
   --smyl-ui-primary-soft: #e9eef5;
-  --smyl-ui-accent: #38a99d;
-  --smyl-ui-accent-soft: #e8f7f4;
+  --smyl-ui-accent: #1a56c7;
+  --smyl-ui-accent-soft: #e8eef7;
   --smyl-ui-danger: #a73b30;
   --smyl-ui-danger-soft: #fff2ef;
   --smyl-ui-warning: #8a5a05;
@@ -151,7 +151,7 @@
   border-color: var(--smyl-ui-border);
   background: var(--smyl-ui-surface);
   color: var(--smyl-ui-ink);
-  box-shadow: 0 2px 8px rgba(16, 35, 31, .05);
+  box-shadow: 0 2px 8px rgba(16, 18, 35, .05);
 }
 
 .smyl-ui-card {
@@ -746,7 +746,7 @@ body.smyl-ui-governed {
   --color-primary-subtle: var(--smyl-ui-primary-soft);
   --color-primary-border: #cbd6e2;
   --color-accent: var(--smyl-ui-accent);
-  --color-accent-hover: #278c82;
+  --color-accent-hover: #3448cb;
   --color-accent-subtle: var(--smyl-ui-accent-soft);
   --color-surface: var(--smyl-ui-surface);
   --color-surface-raised: var(--smyl-ui-canvas);
@@ -845,8 +845,8 @@ body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-hero {
   border-color: transparent;
   border-radius: var(--smyl-ui-radius-panel);
   background:
-    radial-gradient(circle at 88% 5%, rgba(56, 169, 157, .3), transparent 15rem),
-    linear-gradient(135deg, #0b1b2e, #132c47);
+    radial-gradient(circle at 88% 5%, rgba(26, 86, 199, .3), transparent 15rem),
+    linear-gradient(135deg, #1b2477, #101a4a);
   box-shadow: 0 1.4rem 3rem -2rem rgba(11, 27, 46, .68);
 }
 
@@ -865,7 +865,7 @@ body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-hero .btn-s
   background: rgba(255,255,255,.08) !important;
   color: #fff !important;
 }
-body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-patient-link { color: #9ce7df; }
+body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-patient-link { color: #95c7ee; }
 
 body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-metrics,
 body.smyl-ui-governed :is(#smyl-daily-home, .daily-home) .daily-home-metrics-month {
@@ -1214,7 +1214,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     gap: 1.25rem;
     padding: .75rem 0 .75rem .75rem;
     background:
-      radial-gradient(circle at 4rem 8rem, rgba(74, 184, 173, .08), transparent 18rem),
+      radial-gradient(circle at 4rem 8rem, rgba(42, 103, 216, .08), transparent 18rem),
       var(--smyl-ui-canvas);
   }
 
@@ -1224,15 +1224,15 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     top: .75rem;
     overflow: visible;
     isolation: isolate;
-    border: 1px solid rgba(138, 208, 201, .18);
+    border: 1px solid rgba(130, 179, 216, .18);
     border-radius: var(--smyl-sidebar-radius);
     background:
       linear-gradient(180deg, rgba(19, 44, 71, .98), rgba(7, 20, 36, .99)),
-      #0b1b2e;
+      #1b2477;
     -webkit-backdrop-filter: blur(24px) saturate(140%);
     backdrop-filter: blur(24px) saturate(140%);
     box-shadow:
-      0 2rem 4rem -2rem rgba(5, 22, 34, .72),
+      0 2rem 4rem -2rem rgba(4, 8, 35, .72),
       inset 0 1px rgba(255, 255, 255, .035);
     transition:
       width 260ms var(--smyl-sidebar-ease),
@@ -1248,7 +1248,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     overflow: hidden;
     border-radius: inherit;
     background:
-      radial-gradient(circle at 42% -5%, rgba(97, 211, 201, .16), transparent 12rem),
+      radial-gradient(circle at 42% -5%, rgba(68, 128, 240, .16), transparent 12rem),
       linear-gradient(120deg, rgba(255, 255, 255, .018), transparent 48%);
     pointer-events: none;
   }
@@ -1274,7 +1274,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
   body.smyl-ui-governed.smyl-management-v3 .sb-logo span {
     display: block;
     margin-top: .25rem;
-    color: rgba(219, 237, 240, .5);
+    color: rgba(219, 228, 240, .5);
     white-space: nowrap;
   }
 
@@ -1284,10 +1284,10 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     place-items: center;
     width: 2.5rem;
     height: 2.5rem;
-    border: 1px solid rgba(138, 208, 201, .32);
+    border: 1px solid rgba(130, 179, 216, .32);
     border-radius: .9rem;
-    background: linear-gradient(145deg, rgba(74, 184, 173, .25), rgba(31, 93, 116, .4));
-    color: #effffe;
+    background: linear-gradient(145deg, rgba(42, 103, 216, .25), rgba(45, 63, 184, .4));
+    color: #eff6ff;
     font-size: 1rem;
     font-weight: var(--smyl-ui-weight-bold);
     box-shadow: inset 0 1px rgba(255, 255, 255, .1);
@@ -1306,21 +1306,21 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
 
   body.smyl-ui-governed.smyl-management-v3 .sb-user:hover {
     background: rgba(255, 255, 255, .055);
-    border-color: rgba(138, 208, 201, .16);
+    border-color: rgba(130, 179, 216, .16);
   }
 
   body.smyl-ui-governed.smyl-management-v3 .sb-avatar {
     width: 2.25rem;
     height: 2.25rem;
-    border: 1px solid rgba(138, 208, 201, .24);
-    background: linear-gradient(145deg, #1e5369, #15374e);
-    box-shadow: 0 .5rem 1.2rem -.8rem rgba(74, 184, 173, .7);
+    border: 1px solid rgba(130, 179, 216, .24);
+    background: linear-gradient(145deg, #2d3eab, #243291);
+    box-shadow: 0 .5rem 1.2rem -.8rem rgba(42, 103, 216, .7);
   }
 
   body.smyl-ui-governed.smyl-management-v3 .nav-items {
     padding: .35rem .75rem .9rem;
     scrollbar-width: thin;
-    scrollbar-color: rgba(138, 208, 201, .22) transparent;
+    scrollbar-color: rgba(130, 179, 216, .22) transparent;
   }
 
   body.smyl-ui-governed.smyl-management-v3 .pro-app-nav {
@@ -1329,7 +1329,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
 
   body.smyl-ui-governed.smyl-management-v3 .pro-nav-section {
     padding: 1rem .75rem .45rem;
-    color: rgba(215, 235, 238, .42);
+    color: rgba(215, 225, 238, .42);
     font-size: var(--smyl-ui-text-meta);
     font-weight: 700;
     letter-spacing: .08em;
@@ -1346,7 +1346,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     border: 1px solid transparent;
     border-radius: .8rem;
     background: transparent;
-    color: rgba(224, 238, 241, .66);
+    color: rgba(224, 231, 241, .66);
     text-align: left;
     transition:
       color 160ms ease,
@@ -1364,14 +1364,14 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
   }
 
   body.smyl-ui-governed.smyl-management-v3 .sidebar .nav-item:is(.activo, [aria-current='page']) {
-    border-color: rgba(138, 208, 201, .22);
+    border-color: rgba(130, 179, 216, .22);
     background:
-      radial-gradient(circle at 12% 50%, rgba(115, 224, 214, .14), transparent 60%),
+      radial-gradient(circle at 12% 50%, rgba(105, 178, 234, .14), transparent 60%),
       rgba(255, 255, 255, .065);
     color: #fff;
     box-shadow:
       inset 0 0 0 1px rgba(255, 255, 255, .025),
-      0 .8rem 1.8rem -1.35rem rgba(91, 210, 200, .9);
+      0 .8rem 1.8rem -1.35rem rgba(61, 124, 240, .9);
   }
 
   body.smyl-ui-governed.smyl-management-v3 .sidebar .nav-item:is(.activo, [aria-current='page'])::before {
@@ -1382,21 +1382,21 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     bottom: 22%;
     width: .18rem;
     border-radius: 99px;
-    background: linear-gradient(180deg, #9ce7df, #4ab8ad);
-    box-shadow: 0 0 1rem rgba(112, 221, 211, .75);
+    background: linear-gradient(180deg, #95c7ee, #2a67d8);
+    box-shadow: 0 0 1rem rgba(102, 175, 231, .75);
   }
 
   body.smyl-ui-governed.smyl-management-v3 .pro-nav-icon {
     width: 1.5rem;
     height: 1.5rem;
     flex-basis: 1.5rem;
-    color: rgba(190, 215, 221, .66);
+    color: rgba(186, 208, 225, .66);
     transition: color 160ms ease, transform 220ms var(--smyl-sidebar-ease);
   }
 
   body.smyl-ui-governed.smyl-management-v3 .nav-item:is(.activo, [aria-current='page']) .pro-nav-icon {
-    color: #91e0d8;
-    filter: drop-shadow(0 0 .45rem rgba(93, 205, 195, .38));
+    color: #8abfe7;
+    filter: drop-shadow(0 0 .45rem rgba(63, 123, 235, .38));
   }
 
   body.smyl-ui-governed.smyl-management-v3 .pro-nav-label {
@@ -1422,7 +1422,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     min-height: 2.65rem;
     padding: 0 .8rem;
     border-radius: .75rem;
-    color: rgba(215, 235, 238, .5);
+    color: rgba(215, 225, 238, .5);
   }
 
   body.smyl-ui-governed.smyl-management-v3 .pro-nav-group-icon { display: none; place-items: center; }
@@ -1451,17 +1451,17 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     gap: .55rem;
     margin-bottom: .35rem;
     padding: .65rem .75rem;
-    border: 1px solid rgba(133, 225, 216, .3);
+    border: 1px solid rgba(125, 186, 233, .3);
     border-radius: .72rem;
-    background: #e8f7f4;
-    color: #0b3b40;
+    background: #e8eef7;
+    color: #0a1141;
     font: 700 var(--smyl-ui-text-label)/1.2 var(--smyl-ui-font);
     cursor: pointer;
   }
 
-  body.smyl-ui-governed.smyl-management-v3 .smyl-sidebar-quick:hover { background: #d6f1ed; }
+  body.smyl-ui-governed.smyl-management-v3 .smyl-sidebar-quick:hover { background: #d6e2f1; }
   body.smyl-ui-governed.smyl-management-v3 .smyl-sidebar-quick:focus-visible {
-    outline: 2px solid #8fe1d8;
+    outline: 2px solid #87bee9;
     outline-offset: 2px;
   }
 
@@ -1469,7 +1469,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     min-height: 2.5rem;
     padding: 0 .55rem;
     border-radius: .65rem;
-    color: rgba(216, 233, 236, .55);
+    color: rgba(216, 225, 236, .55);
   }
 
   body.smyl-ui-governed.smyl-management-v3 .btn-cerrar:hover {
@@ -1482,10 +1482,10 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     right: -.9rem;
     width: 1.9rem;
     height: 1.9rem;
-    border-color: rgba(138, 208, 201, .28);
+    border-color: rgba(130, 179, 216, .28);
     border-radius: 50%;
-    background: #15384d;
-    color: #dff9f6;
+    background: #243290;
+    color: #dfeaf9;
     box-shadow: 0 .65rem 1.35rem -.65rem rgba(3, 17, 27, .95);
     transition:
       background-color 160ms ease,
@@ -1494,7 +1494,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
   }
 
   body.smyl-ui-governed.smyl-management-v3 .pro-sidebar-toggle:hover {
-    background: #1d5062;
+    background: #2d3da4;
     transform: scale(1.06);
   }
 
@@ -1542,7 +1542,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     height: 1px;
     margin: .7rem .45rem;
     padding: 0;
-    background: linear-gradient(90deg, transparent, rgba(138, 208, 201, .24), transparent);
+    background: linear-gradient(90deg, transparent, rgba(130, 179, 216, .24), transparent);
   }
 
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .pro-primary-nav .pro-nav-item {
@@ -1590,7 +1590,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     padding: .55rem;
     border: 1px solid rgba(186, 199, 213, .45);
     border-radius: 1rem;
-    background: #0b1b2e;
+    background: #2d3a9e;
     box-shadow: var(--smyl-ui-shadow-float);
   }
 
@@ -1618,7 +1618,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     padding: .45rem .65rem;
     border: 1px solid rgba(186, 199, 213, .32);
     border-radius: .6rem;
-    background: #0b1b2e;
+    background: #2d3a9e;
     color: #fff;
     font: var(--smyl-ui-weight-semibold) var(--smyl-ui-text-meta)/1.25 var(--smyl-ui-font);
     opacity: 0;
@@ -1743,20 +1743,20 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     justify-content: flex-start;
     gap: .6rem;
     padding: 0 .75rem;
-    border: 1px solid rgba(138, 208, 201, .32);
+    border: 1px solid rgba(130, 179, 216, .32);
     border-radius: .7rem;
-    background: rgba(110, 216, 206, .08);
-    color: #d9f6f2;
+    background: rgba(100, 171, 226, .08);
+    color: #d9e6f6;
     font: 600 var(--smyl-ui-text-label)/1.2 var(--smyl-ui-font);
   }
-  body.smyl-ui-governed.smyl-management-v3 .sb-quick .smyl-sidebar-quick:hover { background: rgba(110, 216, 206, .15); color: #fff; }
+  body.smyl-ui-governed.smyl-management-v3 .sb-quick .smyl-sidebar-quick:hover { background: rgba(100, 171, 226, .15); color: #fff; }
   body.smyl-ui-governed.smyl-management-v3 .sb-quick .smyl-sidebar-quick > span:first-child { display: grid; place-items: center; }
   body.smyl-ui-governed.smyl-management-v3 .smyl-sidebar-quick-key {
     margin-left: auto;
     padding: .05rem .4rem;
     border: 1px solid rgba(255, 255, 255, .16);
     border-radius: .35rem;
-    color: #8fb3bf;
+    color: #88abc6;
     font: 600 var(--smyl-ui-text-meta)/1.3 var(--smyl-ui-font);
   }
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sb-quick { padding-inline: .55rem; }
@@ -1766,7 +1766,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
   /* Secciones. */
   body.smyl-ui-governed.smyl-management-v3 .pro-nav-section {
     padding: .85rem .625rem .3rem;
-    color: rgba(200, 222, 228, .5);
+    color: rgba(197, 216, 231, .5);
     font-size: var(--smyl-ui-text-meta);
     font-weight: 600;
     letter-spacing: .07em;
@@ -1789,7 +1789,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     border-radius: .65rem;
     background: transparent;
     box-shadow: none;
-    color: rgba(222, 234, 239, .78);
+    color: rgba(222, 229, 239, .78);
     font-size: var(--smyl-ui-text-label);
     font-weight: 400;
     letter-spacing: 0;
@@ -1811,13 +1811,13 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     border: 0;
     border-radius: 0;
     background: none;
-    color: rgba(186, 208, 216, .62);
+    color: rgba(182, 204, 220, .62);
     filter: none;
   }
   body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group-icon { display: grid; place-items: center; margin: 0; }
   body.smyl-ui-governed.smyl-management-v3 :is(.sidebar .pro-nav-item .pro-nav-icon, .pro-nav-group-icon) svg { width: 1.2rem; height: 1.2rem; stroke-width: 1.7; }
   body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:hover .pro-nav-icon,
-  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group > summary:hover .pro-nav-group-icon { background: none; color: #e4f3f6; }
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group > summary:hover .pro-nav-group-icon { background: none; color: #e4ecf6; }
 
   body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:is(.activo, [aria-current='page']) {
     border-color: transparent;
@@ -1832,11 +1832,11 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     bottom: .6rem;
     width: 3px;
     border-radius: 0 3px 3px 0;
-    background: #6ed8ce;
-    box-shadow: 0 0 .75rem rgba(110, 216, 206, .7);
+    background: #64abe2;
+    box-shadow: 0 0 .75rem rgba(100, 171, 226, .7);
   }
   body.smyl-ui-governed.smyl-management-v3.smyl-sidebar-collapsed .sidebar .pro-nav-item:is(.activo, [aria-current='page'])::before { left: -.55rem; }
-  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:is(.activo, [aria-current='page']) .pro-nav-icon { background: none; color: #9ceae1; filter: none; }
+  body.smyl-ui-governed.smyl-management-v3 .sidebar .pro-nav-item:is(.activo, [aria-current='page']) .pro-nav-icon { background: none; color: #95c9f1; filter: none; }
 
   body.smyl-ui-governed.smyl-management-v3 .pro-nav-label { max-width: 12rem; }
 
@@ -1845,7 +1845,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
   body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group > summary { justify-content: flex-start; cursor: pointer; list-style: none; }
   body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group.has-active > summary,
   body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group[open] > summary { background: transparent; color: #fff; }
-  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group[open] > summary .pro-nav-group-icon { color: #e4f3f6; }
+  body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .pro-nav-group[open] > summary .pro-nav-group-icon { color: #e4ecf6; }
   body.smyl-ui-governed.smyl-management-v3 .pro-nav-group-label { flex: 1; min-width: 0; }
   body.smyl-ui-governed.smyl-management-v3 .pro-nav-chevron { display: grid; place-items: center; color: #7f97a9; }
   body.smyl-ui-governed.smyl-management-v3 .pro-nav-group-count,
@@ -1857,7 +1857,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     margin-left: auto;
     padding: 0 .45rem;
     border-radius: 99px;
-    background: #2f9e94;
+    background: #124dbb;
     color: #fff;
     font: 700 var(--smyl-ui-text-meta)/1 var(--smyl-ui-font);
   }
@@ -1914,7 +1914,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
   }
   body.smyl-ui-governed.smyl-management-v3 .sb-user-more:hover,
   body.smyl-ui-governed.smyl-management-v3 .sb-user-more[aria-expanded='true'] { background: rgba(255, 255, 255, .07); color: #fff; }
-  body.smyl-ui-governed.smyl-management-v3 .sb-user-more:focus-visible { outline: 2px solid #8fe1d8; outline-offset: 2px; }
+  body.smyl-ui-governed.smyl-management-v3 .sb-user-more:focus-visible { outline: 2px solid #87bee9; outline-offset: 2px; }
   body.smyl-ui-governed.smyl-management-v3 .sb-user-menu {
     position: absolute;
     z-index: 40;
@@ -1926,7 +1926,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     padding: .35rem;
     border: 1px solid rgba(186, 199, 213, .32);
     border-radius: .8rem;
-    background: #0b1b2e;
+    background: #2d3a9e;
     box-shadow: 0 .75rem 2rem rgba(5, 14, 27, .35);
   }
   body.smyl-ui-governed.smyl-management-v3 .sb-user-menu[hidden] { display: none; }
@@ -1941,7 +1941,7 @@ body.smyl-ui-governed .smyl-inbox-composer textarea {
     border: 0;
     border-radius: .55rem;
     background: transparent;
-    color: #dbe7ec;
+    color: #dbe2ec;
     font: 500 var(--smyl-ui-text-body-sm)/1.2 var(--smyl-ui-font);
     text-align: left;
     cursor: pointer;

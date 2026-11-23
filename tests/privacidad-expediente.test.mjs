@@ -55,7 +55,7 @@ test('los botones de firma solo se ofrecen si falta la firma y el rol puede actu
 test('el expediente carga el módulo y lo monta en la historia clínica; la copia móvil es igual', () => {
   const t = read('smyl-patient-360.js');
   assert.match(t, /SmylPatientPrivacyPanel\.mount\(\{host:s\.historyHost,tenant:s\.tenant,patient:s\.patient/);
-  for (const f of ['app.html', 'mobile/www/app.html']) { const a = read(f); assert.match(a, /smyl-patient-privacy-panel\.js\?v=5/); assert.match(a, /smyl-patient-privacy-panel\.css\?v=4/); assert.match(a, /smyl-patient-360\.js\?v=39/); }
+  for (const f of ['app.html', 'mobile/www/app.html']) { const a = read(f); assert.match(a, /smyl-patient-privacy-panel\.js\?v=5/); assert.match(a, /smyl-patient-privacy-panel\.css\?v=4/); assert.match(a, /smyl-patient-360\.js\?v=40/); }
   for (const f of ['sw.js', 'mobile/www/sw.js']) { const a = read(f); assert.match(a, /\/camila\/smyl-patient-privacy-panel\.js\?v=5/); assert.match(a, /privacidad-expediente-v2/); }
   for (const f of ['smyl-patient-privacy-panel.js', 'smyl-patient-privacy-panel.css', 'smyl-patient-360.js', 'smyl-consultorio.js', 'smyl-consultorio.css']) assert.equal(read(f), read('mobile/www/' + f), f);
   const js = read('smyl-patient-privacy-panel.js');

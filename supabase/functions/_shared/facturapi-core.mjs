@@ -338,6 +338,8 @@ export const SAT_SELECCION_SCHEMA = {
   type: "object", additionalProperties: false, required: ["picks"],
   properties: { picks: { type: "array", items: { type: "object", additionalProperties: false, required: ["key", "reason"], properties: { key: { type: "string" }, reason: { type: "string" } } } } },
 };
+// Palabras generales con las que el catálogo del SAT nombra los servicios dentales; se usan si las que propuso la IA no encuentran nada.
+export const SAT_CONSULTAS_RESPALDO = ["odontólogos", "dentistas", "higienista dental"];
 export const SAT_SYSTEM_CONSULTAS = [
   "Ayudas a un consultorio dental en México a encontrar la ClaveProdServ del SAT (catálogo c_ClaveProdServ) de uno de sus servicios.",
   "Devuelve de 2 a 4 consultas CORTAS (1 a 3 palabras, en español) para buscar en el catálogo oficial. Usa el lenguaje del catálogo",
@@ -402,7 +404,7 @@ export const SERVICIO_ALCANCES = ["session", "tooth", "teeth", "surface", "quadr
 export const SERVICIO_COBROS = ["fixed", "per_tooth", "per_surface", "per_quadrant", "per_arch", "per_session", "per_phase", "package", "from"];
 export const SERVICIO_SCHEMA = {
   type: "object", additionalProperties: false,
-  required: ["category", "scope_type", "pricing_mode", "duration_minutes", "description", "prep_instructions", "sat_queries"],
+  required: ["category", "scope_type", "pricing_mode", "duration_minutes", "description", "prep_instructions", "tax_treatment", "sat_queries"],
   properties: {
     category: { type: "string", enum: SERVICIO_CATEGORIAS, description: "Especialidad: diagnostic=valoración y diagnóstico, preventive=prevención y limpieza, restorative=restauradora, endodontic=endodoncia, periodontic=periodoncia, surgery=cirugía oral, prosthodontic=prótesis, aesthetic=estética y carillas, orthodontic=ortodoncia, implantology=implantología, pediatric=odontopediatría, emergency=urgencias, imaging=imagen y laboratorio, other=otros." },
     scope_type: { type: "string", enum: SERVICIO_ALCANCES, description: "A qué se aplica el servicio: session=sesión completa, tooth=una pieza, teeth=varias piezas, surface=superficie dental, quadrant=cuadrante o sextante, arch=arcada, phase=fase de un tratamiento, package=paquete, general=general." },
@@ -410,6 +412,7 @@ export const SERVICIO_SCHEMA = {
     duration_minutes: { type: "integer", description: "Duración típica de la cita en minutos, entre 10 y 480." },
     description: { type: "string", description: "Una o dos frases en español sencillo para el paciente: qué es y para qué sirve. Sin prometer resultados ni dar precios." },
     prep_instructions: { type: "string", description: "Instrucciones cortas antes de la cita (qué evitar, qué traer). Cadena vacía si no hace falta ninguna." },
+    tax_treatment: { type: "string", enum: ["pending", "exempt", "rate", "non_object"], description: "Tratamiento de IVA como SUGERENCIA para el contador: exempt si es un servicio profesional de salud dental prestado por dentistas con título; rate si es venta de productos o un servicio que no es de salud; non_object si no es objeto de impuesto; pending si dudas." },
     sat_queries: { type: "array", items: { type: "string" }, description: "De 2 a 4 consultas cortas (1 a 3 palabras) para buscar la ClaveProdServ en el catálogo del SAT, en el lenguaje del catálogo. Nunca claves numéricas." },
   },
 };
@@ -430,6 +433,7 @@ export function leerServicioSugerido(text) {
     category: pick(o.category, SERVICIO_CATEGORIAS), scope_type: pick(o.scope_type, SERVICIO_ALCANCES), pricing_mode: pick(o.pricing_mode, SERVICIO_COBROS),
     duration_minutes: Number.isFinite(mins) && mins >= 10 && mins <= 480 ? Math.round(mins / 5) * 5 : null,
     description: clean(o.description, 400), prep_instructions: clean(o.prep_instructions, 400),
+    tax_treatment: pick(o.tax_treatment, ["pending", "exempt", "rate", "non_object"]),
     queries: leerConsultasSat(JSON.stringify({ queries: o.sat_queries })),
   };
 }

@@ -152,7 +152,7 @@ input[type=range]::-webkit-slider-thumb:active{cursor:grabbing}
 
 /* Intensidad */
 .int-track{position:relative;height:6px;background:var(--bd);border-radius:99px;margin:8px 0 4px;cursor:pointer}
-.int-fill{height:100%;background:linear-gradient(90deg,#0D9488,var(--p),var(--p2));border-radius:99px;transition:width .1s}
+.int-fill{height:100%;background:linear-gradient(90deg,#0f2be4,var(--p),var(--p2));border-radius:99px;transition:width .1s}
 .int-thumb{position:absolute;top:50%;width:18px;height:18px;background:var(--p);border-radius:50%;transform:translate(-50%,-50%);cursor:grab;box-shadow:0 2px 6px rgba(91,71,224,.3);border:2px solid #fff}
 .int-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--t3)}
 
@@ -1252,7 +1252,7 @@ function renderAnalysisDashboard(a) {
     '<div style="display:flex;gap:4px;height:28px;border-radius:8px;overflow:hidden">' +
     '<div style="flex:' + (thirds.upper||33) + ';background:#5B47E0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600">' + Math.round(thirds.upper||33) + '%</div>' +
     '<div style="flex:' + (thirds.middle||33) + ';background:#2C6BED;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600">' + Math.round(thirds.middle||33) + '%</div>' +
-    '<div style="flex:' + (thirds.lower||34) + ';background:#0D9488;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600">' + Math.round(thirds.lower||34) + '%</div>' +
+    '<div style="flex:' + (thirds.lower||34) + ';background:#0f2be4;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:600">' + Math.round(thirds.lower||34) + '%</div>' +
     '</div><div style="display:flex;gap:4px;margin-top:4px">' +
     '<div style="flex:1;font-size:10px;color:var(--t3);text-align:center">Superior</div>' +
     '<div style="flex:1;font-size:10px;color:var(--t3);text-align:center">Medio</div>' +
