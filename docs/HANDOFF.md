@@ -12515,3 +12515,11 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 
 - Tras subir `max_tokens`, la prueba de Ricardo siguió diciendo «La IA no dio una respuesta clara». Sin acceso a los Logs de Supabase, ahora la función devuelve `detail` con el motivo (código y mensaje de la API —describen el esquema o el límite, nunca la llave ni el texto del servicio— o «respuesta sin el formato esperado (terminó con: …)») y la pantalla lo muestra como «Detalle técnico: …» (`smyl-service-catalog.js` v14). También queda en el Log de la función. **Pendiente:** con ese detalle, corregir la causa real; hay que volver a publicar `facturapi`.
 
+## 2026-11-23 — Claude — «Tratamiento de IVA» en Editar servicio (ningún servicio podía quedar «revisado»)
+
+- **Síntoma (Ricardo):** al guardar con «Confirmo que el emisor/contador revisó…» salía `new row for relation "smyl_services" violates check constraint "smyl_services_no_review_while_tax_pending"`.
+- **Causa:** la base exige `tax_treatment` distinto de `pending` para `fiscal_status='reviewed'` (y `smyl_services_tax_consistency` liga el tratamiento con `tax_object_code`: exento y con tasa → `02`, no objeto → `01`), pero **el editor no tenía ningún campo para `tax_treatment`**: nada en la app lo escribía, así que ningún servicio podía quedar revisado (ni facturable: `chargeInvoiceable` lo exige).
+- **Qué cambia:** el editor trae «Tratamiento de IVA» (Pendiente · Exento de IVA (servicios dentales profesionales) · Con IVA 16 % · No objeto de IVA). Al elegirlo, ObjetoImp se ajusta solo; el modelo (`normalize`) lo deriva siempre para que nunca contradiga a la base, y `validate` avisa «Elige el tratamiento de IVA… para marcar el servicio como revisado» (abre el bloque fiscal). «Sugerir todo con IA» también sugiere el tratamiento (`SERVICIO_SCHEMA.tax_treatment`; exento para servicios profesionales de salud dental, **sugerencia que confirma el contador**; si duda, pendiente).
+- **Archivos:** `smyl-service-catalog-model.js` v4, `smyl-service-catalog.js` v15, `.css` v6, `facturapi` (bundle con el campo nuevo en el esquema), `app.html`, `sw.js`, copias en `mobile/www/`. Pruebas en `tests/service-catalog-model.test.mjs` (reglas de la base) y `tests/facturapi-buscador-sat.test.mjs`. Sin SQL nuevo.
+- **Ya funciona:** la IA responde en producción (la llave `ANTHROPIC_API_KEY` se corrigió).
+
