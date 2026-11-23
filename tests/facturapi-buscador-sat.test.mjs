@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { leerProductosSat, textoBusquedaSat } from '../supabase/functions/_shared/facturapi-core.mjs';
+import { leerProductosSat, textoBusquedaSat, descripcionServicioSat, leerConsultasSat, unirCandidatosSat, leerSeleccionSat } from '../supabase/functions/_shared/facturapi-core.mjs';
 
 const read = (p) => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 
@@ -30,7 +30,7 @@ test('la función facturapi expone search_sat_products con permiso de gestión, 
   const fn = read('supabase/functions/facturapi/index.ts');
   const at = fn.indexOf('if (action === "search_sat_products")');
   assert.ok(at > 0);
-  const block = fn.slice(at, fn.indexOf('// ── cuenta propia', at));
+  const block = fn.slice(at, fn.indexOf('// ── La IA sugiere', at));
   assert.match(block, /status !== "connected"/);
   assert.match(block, /\/catalogs\/products\?q=\$\{encodeURIComponent\(q\)\}&limit=12/);
   assert.match(block, /json\(CORS, 200, \{ results: leerProductosSat\(r\.body\) \}\)/);
@@ -46,11 +46,59 @@ test('la función facturapi expone search_sat_products con permiso de gestión, 
 test('el editor de servicios trae el buscador, no marca el servicio como revisado y solo sugiere unidad y objeto si están vacíos', () => {
   const ui = read('smyl-service-catalog.js');
   assert.match(ui, /data-sat-q/); assert.match(ui, /data-sat-go/); assert.match(ui, /data-sat-results/);
-  assert.match(ui, /body:\{action:'search_sat_products',q:q\}/);
+  assert.match(ui, /satCall\(\{action:'search_sat_products',q:q\}\)/);
   assert.match(ui, /if\(!unit\.value\)\{unit\.value='E48'/); assert.match(ui, /if\(!object\.value\)\{object\.value='02'/);
   assert.match(ui, /ev\.key==='Enter'\)\{ev\.preventDefault\(\)/);
   assert.doesNotMatch(ui.slice(ui.indexOf('satBox.onclick'), ui.indexOf("d.querySelector('form').onsubmit")), /fiscal_reviewed/);
   assert.equal(ui, read('mobile/www/smyl-service-catalog.js'));
   assert.equal(read('smyl-service-catalog.css'), read('mobile/www/smyl-service-catalog.css'));
-  assert.match(read('app.html'), /smyl-service-catalog\.js\?v=11/); assert.match(read('app.html'), /smyl-service-catalog\.css\?v=3/);
+  assert.match(read('app.html'), /smyl-service-catalog\.js\?v=12/); assert.match(read('app.html'), /smyl-service-catalog\.css\?v=4/);
+});
+
+test('la IA nunca puede inventar una clave: solo se aceptan las que estaban entre los candidatos', () => {
+  const candidatos = [{ key: '85122001', description: 'Servicios de odontólogos' }, { key: '85122002', description: 'Servicios de higienistas dentales' }];
+  const texto = JSON.stringify({ picks: [
+    { key: '99999999', reason: 'inventada' }, { key: '85122002', reason: '  Limpieza la hace el   higienista ' }, { key: '85122002', reason: 'repetida' },
+    { key: '85122001', reason: 'x'.repeat(500) }, { key: '85122003', reason: 'no estaba' },
+  ] });
+  const r = leerSeleccionSat(texto, candidatos);
+  assert.deepEqual(r.map((x) => x.key), ['85122002', '85122001']);
+  assert.equal(r[0].reason, 'Limpieza la hace el higienista'); assert.equal(r[0].description, 'Servicios de higienistas dentales'); assert.equal(r[1].reason.length, 200);
+  assert.deepEqual(leerSeleccionSat('no es json', candidatos), []); assert.deepEqual(leerSeleccionSat(JSON.stringify({ picks: 'x' }), candidatos), []);
+  assert.deepEqual(leerSeleccionSat(texto, []), []);
+});
+
+test('las consultas de la IA se limpian: de 3 a 60 caracteres, sin repetir, sin claves numéricas y máximo 4', () => {
+  const r = leerConsultasSat(JSON.stringify({ queries: ['  odontólogos ', 'Odontólogos', 'ab', '85122001', 'higienista dental', 'ortodoncia', 'cirugía oral', 'radiografía', 5, null] }));
+  assert.deepEqual(r, ['odontólogos', 'higienista dental', 'ortodoncia', 'cirugía oral']);
+  assert.deepEqual(leerConsultasSat('{'), []); assert.deepEqual(leerConsultasSat(JSON.stringify({ queries: 'x' })), []);
+});
+
+test('unirCandidatosSat junta resultados sin repetir claves y respeta el máximo; el servicio pide al menos un nombre', () => {
+  const a = [{ key: '85122001', description: 'a' }, { key: '85122002', description: 'b' }], b = [{ key: '85122002', description: 'b2' }, { key: '85122004', description: 'c' }];
+  assert.deepEqual(unirCandidatosSat([a, b, null]).map((x) => x.key), ['85122001', '85122002', '85122004']);
+  assert.equal(unirCandidatosSat([Array.from({ length: 40 }, (_, i) => ({ key: String(85000000 + i), description: 'd' }))]).length, 24);
+  assert.equal(descripcionServicioSat({ name: ' ' }), null); assert.equal(descripcionServicioSat(null), null);
+  assert.deepEqual(descripcionServicioSat({ name: '  Limpieza   dental ', category: 'Preventiva', description: 'y'.repeat(500) }), { name: 'Limpieza dental', category: 'Preventiva', description: 'y'.repeat(300) });
+});
+
+test('suggest_sat_product aplica el tope diario, mide el uso, elige solo entre candidatos y no manda datos de pacientes', () => {
+  const fn = read('supabase/functions/facturapi/index.ts');
+  const at = fn.indexOf('if (action === "suggest_sat_product")');
+  assert.ok(at > 0);
+  const block = fn.slice(at, fn.indexOf('// ── cuenta propia', at));
+  assert.match(block, /evaluarTopeFiscal\(/); assert.match(block, /medirIA\(tenantId, ia1\)/); assert.match(block, /medirIA\(tenantId, ia2\)/);
+  assert.match(block, /leerSeleccionSat\(ia2\.text, candidatos\)/);
+  assert.match(block, /if \(!candidatos\.length\) return json\(CORS, 200/);
+  assert.doesNotMatch(block, /patient|paciente_id|rfc/i);
+  assert.doesNotMatch(fn.match(/const esTimbrado = [^;]+;/)[0], /suggest_sat_product/);
+  const bundle = read('docs/bundles/facturapi.single-file.ts');
+  assert.match(bundle, /suggest_sat_product/); assert.match(bundle, /async function llamarIA\(/);
+});
+
+test('el editor de servicios ofrece «Sugerir con IA» y avisa que se confirme con el contador', () => {
+  const ui = read('smyl-service-catalog.js');
+  assert.match(ui, /data-sat-ai/); assert.match(ui, /action:'suggest_sat_product'/); assert.match(ui, /Sugerir con IA/);
+  assert.match(ui, /La IA solo elige entre claves reales del catálogo del SAT\. Confírmala con tu contador\./);
+  assert.equal(ui, read('mobile/www/smyl-service-catalog.js'));
 });

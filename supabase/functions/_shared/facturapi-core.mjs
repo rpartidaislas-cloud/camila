@@ -325,3 +325,73 @@ export function textoBusquedaSat(value) {
   const q = String(value || "").replace(/\s+/g, " ").trim().slice(0, 60);
   return q.length >= 3 ? q : "";
 }
+
+// ───────────── Sugerencia de clave SAT con IA ─────────────
+// La IA NUNCA inventa una clave: primero propone consultas de búsqueda, el catálogo oficial devuelve claves reales y la IA solo elige
+// entre ellas. Lo que no esté en la lista de candidatos se descarta.
+export const SAT_CONSULTAS_SCHEMA = {
+  type: "object", additionalProperties: false, required: ["queries"],
+  properties: { queries: { type: "array", maxItems: 4, items: { type: "string" } } },
+};
+export const SAT_SELECCION_SCHEMA = {
+  type: "object", additionalProperties: false, required: ["picks"],
+  properties: { picks: { type: "array", maxItems: 3, items: { type: "object", additionalProperties: false, required: ["key", "reason"], properties: { key: { type: "string" }, reason: { type: "string" } } } } },
+};
+export const SAT_SYSTEM_CONSULTAS = [
+  "Ayudas a un consultorio dental en México a encontrar la ClaveProdServ del SAT (catálogo c_ClaveProdServ) de uno de sus servicios.",
+  "Devuelve de 2 a 4 consultas CORTAS (1 a 3 palabras, en español) para buscar en el catálogo oficial. Usa el lenguaje del catálogo",
+  "(por ejemplo «odontólogos», «higienista dental», «ortodoncia», «cirugía oral», «radiografía dental»), no el nombre comercial del servicio.",
+  "No inventes ni escribas claves numéricas: solo palabras de búsqueda.",
+].join(" ");
+export const SAT_SYSTEM_SELECCION = [
+  "Eliges la ClaveProdServ más adecuada para un servicio de un consultorio dental en México.",
+  "Recibes el servicio y una lista de claves REALES del catálogo del SAT. Elige de 1 a 3 solo de esa lista, de la mejor a la menos buena,",
+  "con una razón de una frase corta. Si ninguna describe razonablemente el servicio, devuelve la lista vacía. Nunca escribas una clave que no esté en la lista.",
+].join(" ");
+
+// Texto del servicio que se manda a la IA: solo nombre, categoría y descripción del servicio (no hay datos de pacientes).
+export function descripcionServicioSat(input) {
+  const o = input && typeof input === "object" ? input : {};
+  const clean = (v, n) => String(v || "").replace(/\s+/g, " ").trim().slice(0, n);
+  const name = clean(o.name, 120);
+  if (name.length < 2) return null;
+  return { name, category: clean(o.category, 60), description: clean(o.description, 300) };
+}
+function leerJson(text) {
+  try { return JSON.parse(String(text || "")); } catch { return null; }
+}
+// Consultas de búsqueda: de 1 a 4 textos de 3 a 60 caracteres, sin repetir y sin parecer una clave numérica.
+export function leerConsultasSat(text) {
+  const o = leerJson(text);
+  const list = o && Array.isArray(o.queries) ? o.queries : [];
+  const seen = new Set(), out = [];
+  for (const q of list) {
+    const t = String(q || "").replace(/\s+/g, " ").trim().slice(0, 60);
+    if (t.length < 3 || /^\d{6,}$/.test(t) || seen.has(t.toLowerCase())) continue;
+    seen.add(t.toLowerCase()); out.push(t);
+    if (out.length === 4) break;
+  }
+  return out;
+}
+// Une listas de resultados del catálogo sin repetir claves (conserva el orden de aparición).
+export function unirCandidatosSat(lists, max = 24) {
+  const seen = new Set(), out = [];
+  for (const list of lists) for (const x of list || []) { if (x && !seen.has(x.key)) { seen.add(x.key); out.push(x); if (out.length >= max) return out; } }
+  return out;
+}
+// Elección de la IA: solo claves que estaban entre los candidatos, sin repetir, con la razón recortada. Cualquier otra se descarta.
+export function leerSeleccionSat(text, candidates) {
+  const o = leerJson(text);
+  const picks = o && Array.isArray(o.picks) ? o.picks : [];
+  const known = new Map((candidates || []).map((c) => [c.key, c]));
+  const seen = new Set(), out = [];
+  for (const p of picks) {
+    const key = String((p && p.key) || "").trim();
+    if (!known.has(key) || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ key, description: known.get(key).description, reason: String((p && p.reason) || "").replace(/\s+/g, " ").trim().slice(0, 200) });
+    if (out.length === 3) break;
+  }
+  return out;
+}
+
