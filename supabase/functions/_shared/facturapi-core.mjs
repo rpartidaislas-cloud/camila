@@ -329,13 +329,14 @@ export function textoBusquedaSat(value) {
 // ───────────── Sugerencia de clave SAT con IA ─────────────
 // La IA NUNCA inventa una clave: primero propone consultas de búsqueda, el catálogo oficial devuelve claves reales y la IA solo elige
 // entre ellas. Lo que no esté en la lista de candidatos se descarta.
+// Sin maxItems/minimum/maximum: los structured outputs no aceptan restricciones y la API rechaza el esquema (400). Los topes se aplican al leer la respuesta.
 export const SAT_CONSULTAS_SCHEMA = {
   type: "object", additionalProperties: false, required: ["queries"],
-  properties: { queries: { type: "array", maxItems: 4, items: { type: "string" } } },
+  properties: { queries: { type: "array", items: { type: "string" } } },
 };
 export const SAT_SELECCION_SCHEMA = {
   type: "object", additionalProperties: false, required: ["picks"],
-  properties: { picks: { type: "array", maxItems: 3, items: { type: "object", additionalProperties: false, required: ["key", "reason"], properties: { key: { type: "string" }, reason: { type: "string" } } } } },
+  properties: { picks: { type: "array", items: { type: "object", additionalProperties: false, required: ["key", "reason"], properties: { key: { type: "string" }, reason: { type: "string" } } } } },
 };
 export const SAT_SYSTEM_CONSULTAS = [
   "Ayudas a un consultorio dental en México a encontrar la ClaveProdServ del SAT (catálogo c_ClaveProdServ) de uno de sus servicios.",
@@ -392,6 +393,51 @@ export function leerSeleccionSat(text, candidates) {
     out.push({ key, description: known.get(key).description, reason: String((p && p.reason) || "").replace(/\s+/g, " ").trim().slice(0, 200) });
     if (out.length === 3) break;
   }
+  return out;
+}
+
+// ───────────── Sugerencia del servicio completo con IA (todo menos el precio) ─────────────
+export const SERVICIO_CATEGORIAS = ["diagnostic", "preventive", "restorative", "endodontic", "periodontic", "surgery", "prosthodontic", "aesthetic", "orthodontic", "implantology", "pediatric", "emergency", "imaging", "other"];
+export const SERVICIO_ALCANCES = ["session", "tooth", "teeth", "surface", "quadrant", "arch", "phase", "package", "general"];
+export const SERVICIO_COBROS = ["fixed", "per_tooth", "per_surface", "per_quadrant", "per_arch", "per_session", "per_phase", "package", "from"];
+export const SERVICIO_SCHEMA = {
+  type: "object", additionalProperties: false,
+  required: ["category", "scope_type", "pricing_mode", "duration_minutes", "description", "prep_instructions", "sat_queries"],
+  properties: {
+    category: { type: "string", enum: SERVICIO_CATEGORIAS, description: "Especialidad: diagnostic=valoración y diagnóstico, preventive=prevención y limpieza, restorative=restauradora, endodontic=endodoncia, periodontic=periodoncia, surgery=cirugía oral, prosthodontic=prótesis, aesthetic=estética y carillas, orthodontic=ortodoncia, implantology=implantología, pediatric=odontopediatría, emergency=urgencias, imaging=imagen y laboratorio, other=otros." },
+    scope_type: { type: "string", enum: SERVICIO_ALCANCES, description: "A qué se aplica el servicio: session=sesión completa, tooth=una pieza, teeth=varias piezas, surface=superficie dental, quadrant=cuadrante o sextante, arch=arcada, phase=fase de un tratamiento, package=paquete, general=general." },
+    pricing_mode: { type: "string", enum: SERVICIO_COBROS, description: "Cómo se suele cobrar: fixed=precio fijo, per_tooth=por pieza, per_surface=por superficie, per_quadrant=por cuadrante, per_arch=por arcada, per_session=por sesión, per_phase=por fase, package=paquete, from=desde." },
+    duration_minutes: { type: "integer", description: "Duración típica de la cita en minutos, entre 10 y 480." },
+    description: { type: "string", description: "Una o dos frases en español sencillo para el paciente: qué es y para qué sirve. Sin prometer resultados ni dar precios." },
+    prep_instructions: { type: "string", description: "Instrucciones cortas antes de la cita (qué evitar, qué traer). Cadena vacía si no hace falta ninguna." },
+    sat_queries: { type: "array", items: { type: "string" }, description: "De 2 a 4 consultas cortas (1 a 3 palabras) para buscar la ClaveProdServ en el catálogo del SAT, en el lenguaje del catálogo. Nunca claves numéricas." },
+  },
+};
+export const SERVICIO_SYSTEM = [
+  "Ayudas a un consultorio dental en México a dar de alta un servicio en su catálogo. Recibes el nombre que verá el paciente y propones los demás campos como SUGERENCIA que una persona revisará.",
+  "No propongas precio. Usa español claro y sencillo. No prometas resultados clínicos, no des diagnósticos ni cifras de éxito.",
+  "Elige valores típicos de un consultorio dental. Si dudas entre dos opciones, elige la más común y prudente.",
+].join(" ");
+
+// Respuesta de la IA para el servicio completo: solo valores válidos; lo que no cumpla se omite (null) para no llenar un campo con algo inventado.
+export function leerServicioSugerido(text) {
+  const o = leerJson(text);
+  if (!o || typeof o !== "object") return null;
+  const clean = (v, n) => String(v || "").replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, "\n").trim().slice(0, n);
+  const pick = (v, list) => (list.includes(v) ? v : null);
+  const mins = Number(o.duration_minutes);
+  return {
+    category: pick(o.category, SERVICIO_CATEGORIAS), scope_type: pick(o.scope_type, SERVICIO_ALCANCES), pricing_mode: pick(o.pricing_mode, SERVICIO_COBROS),
+    duration_minutes: Number.isFinite(mins) && mins >= 10 && mins <= 480 ? Math.round(mins / 5) * 5 : null,
+    description: clean(o.description, 400), prep_instructions: clean(o.prep_instructions, 400),
+    queries: leerConsultasSat(JSON.stringify({ queries: o.sat_queries })),
+  };
+}
+// Tokens de varias llamadas a la IA sumados (entrada, salida y caché), para el registro de consumo.
+export function sumarUso(usages) {
+  const n = (v) => (typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.round(v) : 0);
+  const out = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0, calls: 0 };
+  for (const u of usages || []) { if (!u) continue; out.calls += 1; out.input_tokens += n(u.input_tokens); out.output_tokens += n(u.output_tokens); out.cache_read_input_tokens += n(u.cache_read_input_tokens); out.cache_creation_input_tokens += n(u.cache_creation_input_tokens); }
   return out;
 }
 
