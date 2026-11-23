@@ -1264,4 +1264,6 @@ dialog[data-smyl-dialog-system="true"][open] .finance-allocation-input>input[typ
 #finance-dialog .finance-branch-note{margin:0;padding:8px 12px;border-radius:10px;background:#f2f6fb;color:#33465c;font-size:13px}
 #finance-dialog [data-price-hint]{display:block;margin-top:4px;font-size:12px;color:#5b6d82}
 #finance-dialog [data-price-hint]:empty{display:none}
+/* Cobro: descuento y fecha de vencimiento aparecen solo cuando se piden. */
+#finance-dialog .finance-discount-link{justify-self:start;align-self:end;padding:8px 0;min-height:42px}
 
