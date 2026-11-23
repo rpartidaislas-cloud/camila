@@ -498,7 +498,9 @@
       if(!row){var config=tenantData?.config||{};row={id:crypto.randomUUID(),tenant_id:tenant,patient_id:patient.id,patient_name:[patient.nombre,patient.apellido].filter(Boolean).join(' '),clinic_name:config.consultorio||tenantData?.nombre||'Clínica dental',professional_name:config.doctor||'',plan_revision:plan.revision,revision:0,status:'draft',document:M.fromPlan(plan)};}else row.document=M.normalize(row.document);
       var branches=[],branchPrices=[];
       try{branches=await checked(sb.from('smyl_branches').select('id,name,is_default,address_line,city,state,phone').eq('tenant_id',tenant).eq('active',true).order('is_default',{ascending:false}).order('name'))||[];branchPrices=await checked(sb.from('smyl_service_branch_prices').select('service_id,branch_id,price').eq('tenant_id',tenant))||[];}catch(_){branchPrices=[];}
-      var initialBranch=row.branch_id||(branches.length>1?((branches.find(function(b){return b.is_default;})||{}).id||''):((branches[0]&&branches[0].id)||null));
+      var scopeBranch=window.SmylBranchScope&&typeof SmylBranchScope.get==='function'?SmylBranchScope.get():null,mineBranch=scopeBranch&&scopeBranch!==SmylBranchScope.ALL&&branches.some(function(b){return b.id===scopeBranch;})?scopeBranch:'';
+      // La cotización nace en el consultorio activo de la persona (los precios siguen a la sucursal); si no hay, la predeterminada.
+      var initialBranch=row.branch_id||mineBranch||(branches.length>1?((branches.find(function(b){return b.is_default;})||{}).id||''):((branches[0]&&branches[0].id)||null));
       ctx={branches:branches,branchPrices:branchPrices,branchId:initialBranch,row:row,tenant:tenant,plan:plan,access:access,files:{},photoPaths:row.document.photos,saved:JSON.stringify(row.document),dirty:!id,busy:false,events:[],eventsLoading:false,decisionFinal:false,stale:plan.status!=='reviewed'||row.plan_revision!==plan.revision};if(!id&&ctx.branchId)repriceDocument(ctx.row.document,ctx.branchId);editor();
     }catch(error){if(token===sequence)root.replaceChildren(notice(errorText(error),true),b('Volver a Presentaciones',loadList));}
   }
