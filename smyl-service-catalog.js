@@ -62,7 +62,7 @@
     async function satCall(body){
       var res=await window.sb.functions.invoke('facturapi',{body:body}),data=res&&res.data,err=res&&res.error;
       if(err&&err.context&&typeof err.context.json==='function'){try{data=await err.context.json();}catch(x){}}
-      if(!data||data.error)throw new Error((data&&data.error)||'No se pudo consultar. Revisa que Facturapi esté conectado en Configuración → Facturación.');
+      if(!data||data.error)throw new Error(((data&&data.error)||'No se pudo consultar. Revisa que Facturapi esté conectado en Configuración → Facturación.')+(data&&data.detail?' Detalle técnico: '+data.detail:''));
       return data;
     }
     function satItem(r,ai){return '<button type="button" role="option" data-sat-pick="'+esc(r.key)+'"'+(ai?' data-ai="true"':'')+'><b>'+esc(r.key)+'</b><span>'+esc(r.description)+(r.reason?'<em>'+esc(r.reason)+'</em>':'')+'</span></button>';}

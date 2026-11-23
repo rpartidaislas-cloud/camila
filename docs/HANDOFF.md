@@ -12504,3 +12504,7 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **Causa:** `llamarIA` usaba `max_tokens: 1500`. Con Haiku 5.5 el tope debe cubrir razonamiento + JSON (lo documenta `fiscal-core.mjs`; la lectura de constancias usa `FISCAL_EXTRACT_MAX_TOKENS` = 4000), así que la respuesta salía cortada y no se podía leer.
 - **Corrección:** `max_tokens: FISCAL_EXTRACT_MAX_TOKENS`. Ahora también se registra en los logs el `stop_reason` cuando la IA no termina normal y, si la sugerencia es ilegible, `ia_ok` / `stop` / `respuesta_vacía`; el `stop_reason` queda en `smyl_ai_usage_log`. Prueba en `tests/facturapi-buscador-sat.test.mjs`. **Hay que volver a publicar `facturapi`.**
 
+## 2026-11-23 — Claude — Diagnóstico visible en «Sugerir todo con IA»
+
+- Tras subir `max_tokens`, la prueba de Ricardo siguió diciendo «La IA no dio una respuesta clara». Sin acceso a los Logs de Supabase, ahora la función devuelve `detail` con el motivo (código y mensaje de la API —describen el esquema o el límite, nunca la llave ni el texto del servicio— o «respuesta sin el formato esperado (terminó con: …)») y la pantalla lo muestra como «Detalle técnico: …» (`smyl-service-catalog.js` v14). También queda en el Log de la función. **Pendiente:** con ese detalle, corregir la causa real; hay que volver a publicar `facturapi`.
+
