@@ -1,3 +1,13 @@
+## 2026-11-23 — Claude Code — Procedimiento como pantalla propia (herramienta + pestaña Consulta)
+
+- `smyl-procedure-safety.js` **v2**: ya NO es un bloque dentro del formulario de la nota. Es una pantalla (`SmylProcedureSafety.open({tenant,patient,patientName,appointmentId})`) con tres tipos: **Sin anestesia** (sitio + alergias; presión opcional), **Con anestesia** (+ anestésico y cartuchos; presión obligatoria si el tratamiento activo es ASA II o más) y **Cirugía** (presión siempre; anestésico opcional). El ASA se lee con `smyl_list_treatments`; peso y presión de hoy, de `smyl_patient_vital_signs`.
+- Sitio validado: piezas FDI 11–48 o temporales 51–85 (varias separadas por coma) o una zona (cuadrante, arcada, boca completa). Aviso, no bloqueo, por presión ≥180/110 o <90/60 (`bp.alert` queda en la nota). Se guarda la hora de cada paso (`site.at`, `anesthesia.at`, `saved_at`).
+- Al guardar crea una **nota clínica en borrador** (`smyl_create_clinical_note`, tipo `progress`, profesional = el usuario si es profesional activo) con `objective` ya redactado, `plan` = lo que escribió el dentista y `document.procedure` v2; emite `smyl:clinical-note-created` (el expediente refresca sus notas). Se firma después con el flujo de siempre; **sin migración**.
+- **Tres entradas a la misma pantalla:** (1) herramienta «Procedimiento» en `smyl-clinical-tools.js` v2 (Consultorio, PWA y Agenda; pide paciente o toma el de la cita); (2) pestaña **«Consulta»** (antes «Evoluciones y citas») con la tarjeta «Consulta de hoy → Registrar procedimiento»; (3) etapa «En tratamiento» del plan: el botón principal pasó de «Registrar evolución» a «Registrar procedimiento» (`smyl-case-workspace.js` v51).
+- Se quitó el bloque del formulario de «Nueva nota»; un borrador que ya traía `procedure` lo conserva al editarse, y `noteSummary` sigue mostrando «Procedimiento: …».
+- `smyl-patient-360.js` v39 / `.css` v23, SW `-procedimiento-herramienta-v1`, copias en `mobile/www/`. Pruebas: `tests/smyl-procedure-safety.test.mjs` (12) y navegador (tipos, validaciones, aviso de presión, dosis, guardado, herramientas).
+- Pendiente: **MILA por voz** para el procedimiento (requiere modo nuevo en su Edge Function y que se despliegue con la CLI), pieza prellenada desde el procedimiento del plan, marcar el procedimiento del plan como hecho al firmar, y verificar el consentimiento contra `smyl_informed_consents`.
+
 ## 2026-11-22 — Menú lateral compacto
 
 - En escritorio la barra mide 216 px abierta y 64 px al contraerse. La flecha conserva la preferencia del navegador. Las opciones usan texto de 13 px y filas de 38 px con ratón. Negocio y Configuración quedan bajo Gestión. Cuando aparece el selector de consultorio, el encabezado muestra el nombre una sola vez.
