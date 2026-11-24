@@ -50,7 +50,8 @@
 .catalog-toggle button{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .catalog-toggle em{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:#fde8c8;color:#8a4b00;font-size:12px;font-style:normal;font-weight:700;line-height:1}
 .catalog-toggle em[hidden]{display:none}
-.catalog-service{grid-template-columns:minmax(0,1fr) minmax(150px,220px) auto}
+.catalog-service{grid-template-columns:minmax(0,1fr) auto}
+.catalog-off{margin-right:14px;color:#44544f;font-weight:700;font-size:13px}
 .catalog-service-main p{margin:2px 0 0}
 .catalog-flags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .catalog-flags:empty{display:none}
