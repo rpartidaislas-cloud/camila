@@ -412,3 +412,24 @@ button.connections-tool-card:hover{border-color:#7692c5;background:#f3f5f8}
   .assistant-chip.is-link{margin-left:0}
   .connections-workspace .connections-training-actions .connections-context-status{flex:1 1 100%;order:3;margin:0}
 }
+
+/* ── Nivel de autonomía del asistente: tarjetas (task-id smyl-asistente-niveles) ── */
+.connections-training .assistant-levels{grid-column:1/-1;display:grid;gap:10px;margin:0 0 6px;padding:16px;border:1px solid #dce2dd;border-radius:14px;background:#f8faf9}
+.connections-training .assistant-levels-title{font-size:13px;font-weight:700;color:#22263e}
+.connections-training .assistant-levels-help{margin:0;font-size:12.5px;line-height:1.5;color:#657777}
+.connections-training .assistant-levels-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.connections-training .assistant-level{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:14px;border:1.5px solid #d3dbd6;border-radius:13px;background:#fff;color:#22263e;text-align:left;font:inherit;cursor:pointer}
+.connections-training .assistant-level b{font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:#657777}
+.connections-training .assistant-level strong{font-size:16px;font-weight:650}
+.connections-training .assistant-level span{font-size:12.5px;line-height:1.5;color:#525465}
+.connections-training .assistant-level[aria-checked=true]{border-color:#313c83;background:#eef1ff;box-shadow:0 0 0 3px rgba(49,60,131,.12)}
+.connections-training .assistant-level[aria-checked=true] b{color:#313c83}
+.connections-training .assistant-level:hover:not([aria-checked=true]){border-color:#9aa6d6}
+.connections-training .assistant-level:focus-visible{outline:3px solid rgba(49,60,131,.35);outline-offset:2px}
+.connections-training .assistant-level:disabled{opacity:.55;cursor:not-allowed}
+.connections-training .assistant-levels-note{margin:0;font-size:12.5px;line-height:1.5;color:#745f39}
+.connections-training .assistant-levels-note:empty{display:none}
+.connections-training .assistant-levels-select{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.assistant-chip[data-state=level]{background:#eef1ff;border-color:#c6cdf0;color:#313c83}
+.assistant-chip[data-state=level]::before{background:#313c83}
+@media(max-width:760px){.connections-training .assistant-levels-grid{grid-template-columns:minmax(0,1fr)}}
