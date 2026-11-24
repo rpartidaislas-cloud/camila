@@ -73,13 +73,13 @@ test("el aviso y la tarjeta se cargan en la app y en la versión móvil, sin toc
   for (const base of ["", "mobile/www/"]) {
     const app = read(`${base}app.html`);
     assert.match(app, /smyl-ia-interruptor\.css\?v=1/);
-    assert.match(app, /smyl-ia-interruptor\.js\?v=1/);
+    assert.match(app, /smyl-ia-interruptor\.js\?v=2/);
     assert.equal(read(`${base}smyl-ia-interruptor.js`), read("smyl-ia-interruptor.js"), `${base} sincronizado`);
     assert.equal(read(`${base}smyl-connections.js`), read("smyl-connections.js"));
   }
   assert.match(read("smyl-connections.js"), /<div data-ia-interruptor-slot><\/div>/);
   assert.match(read("smyl-connections.js"), /SmylIaInterruptor\.mount\(/);
-  assert.match(read("sw.js"), /smyl-ia-interruptor\.js\?v=1/);
+  assert.match(read("sw.js"), /smyl-ia-interruptor\.js\?v=2/);
   assert.match(read("sw.js"), /smyl-ia-interruptor\.css\?v=1/);
   assert.match(read("mobile/scripts/sync-web.js"), /smyl-ia-interruptor\.js/);
   const ui = read("smyl-ia-interruptor.js");
