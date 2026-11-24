@@ -96,6 +96,7 @@
     state.loaded = true;
     render();
     renderBanner();
+    window.dispatchEvent(new CustomEvent('smyl:ia-interruptor-changed'));
   }
 
   function view() {
@@ -299,6 +300,13 @@
     window.addEventListener('smyl:inbox-access', function () { load(); });
   }
 
-  window.SmylIaInterruptor = { mount: mount, load: load, _localToIso: localToIso };
+  // Resumen para otras pantallas (barra del asistente): sin datos internos, solo lo que se muestra.
+  function summary() {
+    if (!state.loaded || !state.data) return { loaded: state.loaded, available: false };
+    var v = view();
+    return { loaded: true, available: true, apagada: v.apagada, programada: v.programada, canManage: v.canManage, hasta: v.n.hasta || null, hastaTexto: v.apagada && v.n.hasta ? pretty(v.n.hasta) : '' };
+  }
+
+  window.SmylIaInterruptor = { mount: mount, load: load, summary: summary, _localToIso: localToIso };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

@@ -50,7 +50,7 @@
       '<dialog class="connections-disconnect-dialog" data-disconnect-dialog><form method="dialog"><span class="connections-status-label">DESCONECTAR CANAL</span><h2 data-disconnect-title>¿Desconectar este canal?</h2><p data-disconnect-copy>El asistente dejará de recibir y enviar mensajes. El historial se conservará y podrás conectar otra cuenta después.</p><div class="connections-disconnect-summary"><span class="connections-channel-icon" data-disconnect-icon>I</span><div><strong data-disconnect-name>Instagram</strong><small data-disconnect-account></small></div></div><footer><button type="button" class="btn btn-secondary" data-disconnect-cancel>Cancelar</button><button type="button" class="btn connections-danger-button" data-disconnect-confirm>Desconectar</button></footer></form></dialog>' +
       '<dialog class="connections-disconnect-dialog" data-unlink-dialog aria-labelledby="connections-unlink-title"><form method="dialog"><span class="connections-status-label">DESVINCULAR MENSAJERÍA</span><h2 id="connections-unlink-title">¿Desvincular la mensajería de esta clínica?</h2><p>SMYL dejará de leer y enviar mensajes por WhatsApp, Messenger e Instagram para esta clínica, y pausará los recordatorios por WhatsApp.</p><div class="connections-disconnect-summary"><span class="connections-channel-icon" aria-hidden="true">L</span><div><strong>Enlace de mensajería</strong><small data-unlink-code></small></div></div><p class="connections-help"><strong>No se borra ninguna cuenta ni conversación, ni en tu plataforma de mensajería ni en Meta.</strong> Tus canales siguen funcionando allá. Podrás volver a vincular cuando quieras.</p><footer><button type="button" class="btn btn-secondary" data-unlink-cancel>Cancelar</button><button type="button" class="btn connections-danger-button" data-unlink-confirm>Desvincular</button></footer></form></dialog>' +
       '<section class="connections-context connections-training" aria-labelledby="lana-training-title"><div class="connections-section-heading"><span>CAPACITAR IA</span><h2 id="lana-training-title">Prepara a SMYL Asistente para atender pacientes</h2><p>Trabaja en borrador, valida la información y publica cuando esté lista. Solo la versión publicada responde en WhatsApp, Messenger e Instagram.</p></div>' +
-      '<div class="connections-training-bar" role="status" aria-live="polite" aria-atomic="true"><div><span class="connections-training-state" data-training-state>Borrador sin guardar</span><small data-training-version>Sin versión publicada</small></div><div class="connections-training-score"><span data-training-score>0%</span><small>capacitación completa</small></div></div>' +
+      '<div class="connections-training-bar" role="status" aria-live="polite" aria-atomic="true"><div class="assistant-bar-main"><span class="connections-training-state" data-training-state>Borrador sin guardar</span><small data-training-version>Sin versión publicada</small></div><div class="assistant-bar-chips"><button type="button" class="assistant-chip" data-assistant-ia aria-expanded="false" hidden></button><span class="assistant-chip is-static" data-assistant-channels></span><button type="button" class="assistant-chip is-link" data-select-workspace="lab">Probar el asistente →</button></div><div class="connections-training-score"><span data-training-score>0%</span><small>capacitación completa</small></div></div>' +
       '<form data-lana-training-form><fieldset><legend>Identidad y voz</legend><div class="connections-context-grid"><label>Nombre del asistente<input name="assistant_name" maxlength="50" value="SMYL Asistente"></label><label>Tono<select name="tone"><option value="profesional">Profesional y claro</option><option value="cercano">Cercano y empático</option><option value="breve">Breve y directo</option></select></label><label class="full">Mensaje de bienvenida<textarea name="welcome_message" maxlength="350" rows="2" placeholder="Hola, soy el asistente de la clínica. Puedo orientarte y ayudarte con el siguiente paso."></textarea></label></div></fieldset>' +
       '<fieldset><legend>La clínica</legend><div class="connections-context-grid"><label class="full">Descripción y enfoque<textarea name="clinic_description" maxlength="1600" rows="3" placeholder="Especialidad, enfoque, tipo de pacientes y qué distingue a la clínica."></textarea></label><label class="full">Especialidades confirmadas<textarea name="specialties" maxlength="1200" rows="2" placeholder="Odontología general, ortodoncia, implantología…"></textarea></label><label>Ubicación principal<input name="location" maxlength="500" placeholder="Dirección o zona de atención"></label><label>Horarios<input name="hours" maxlength="500" placeholder="Lun–Vie 9:00–18:00"></label><label>Idiomas<input name="languages" maxlength="300" placeholder="Español, inglés"></label><label>Canales de contacto<input name="contact_channels" maxlength="700" placeholder="Teléfono y medios autorizados"></label><label class="full">Acceso, estacionamiento y accesibilidad<textarea name="access_info" maxlength="900" rows="2"></textarea></label><label class="full">Política para menores y acompañantes<textarea name="minor_policy" maxlength="900" rows="2"></textarea></label></div></fieldset>' +
       '<fieldset><legend>Sucursales y operación</legend><div class="connections-context-grid"><label class="full" hidden>Sucursales, direcciones y cobertura<textarea name="branches" maxlength="2400" rows="4" tabindex="-1"></textarea></label><div class="full connections-auto" data-auto-branches></div>' +
@@ -139,6 +139,7 @@
       cancelChannelLoad();
       renderChannels([]);
     }
+    renderAssistantBar();
   }
 
   async function sessionToken() {
@@ -335,6 +336,7 @@
       }
       renderChannelWorkspaceState(name, item, connected, connectedToLana);
     });
+    renderAssistantBar();
   }
 
   async function loadChannels() {
@@ -1087,6 +1089,27 @@
     updateTrainingSteps();
   }
 
+  // Barra fija del asistente (task-id smyl-asistente-layout): estado de la IA (interruptor), canales conectados y acceso a la prueba.
+  function renderAssistantBar() {
+    var chip = document.querySelector('[data-assistant-ia]');
+    var channels = document.querySelector('[data-assistant-channels]');
+    var slot = document.querySelector('[data-ia-interruptor-slot]');
+    if (channels) {
+      var connectedCount = (state.channels || []).filter(function (c) { return c && c.connected; }).length;
+      var linked = Boolean(state.status && state.status.connected);
+      channels.dataset.state = linked && connectedCount ? 'ok' : 'off';
+      channels.textContent = !linked ? 'Mensajería sin conectar' : (connectedCount ? connectedCount + (connectedCount === 1 ? ' canal conectado' : ' canales conectados') : 'Sin canales conectados');
+    }
+    if (!chip) return;
+    var summary = window.SmylIaInterruptor && window.SmylIaInterruptor.summary ? window.SmylIaInterruptor.summary() : null;
+    if (!summary || !summary.available) { chip.hidden = true; return; }
+    if ((summary.apagada || summary.programada) && !state.iaSlotTouched && slot && slot.hidden) slot.hidden = false;
+    chip.hidden = false;
+    chip.dataset.state = summary.apagada ? 'off' : (summary.programada ? 'scheduled' : 'on');
+    chip.textContent = (summary.apagada ? 'IA apagada' + (summary.hastaTexto ? ' hasta ' + summary.hastaTexto : '') : (summary.programada ? 'IA programada' : 'IA encendida')) + (summary.canManage ? ' · Administrar' : '');
+    chip.setAttribute('aria-expanded', slot && !slot.hidden ? 'true' : 'false');
+  }
+
   function renderTrainingMeta() {
     var badge = document.querySelector('[data-training-state]');
     var version = document.querySelector('[data-training-version]');
@@ -1096,6 +1119,7 @@
     if (badge) { badge.textContent = trainingStatusLabel(); badge.dataset.state = state.dirty ? 'dirty' : (state.publishedVersion && state.published && JSON.stringify(state.training) === JSON.stringify(state.published) ? 'published' : 'draft'); }
     if (version) version.textContent = state.publishedVersion ? 'Versión ' + state.publishedVersion + ' activa con pacientes' : (state.published ? 'Contexto anterior activo · publícalo para versionarlo' : 'Sin versión publicada');
     if (score) score.textContent = (state.validation && state.validation.score ? state.validation.score.percent : 0) + '%';
+    renderAssistantBar();
     if (source) {
       var publishedOption = source.querySelector('option[value="published"]');
       if (publishedOption) publishedOption.disabled = !state.published;
@@ -1570,6 +1594,17 @@
       this.setAttribute('aria-label', visible ? 'Mostrar código' : 'Ocultar código');
     });
     addMobileRow();
+
+    document.addEventListener('click', function (event) {
+      if (!event.target.closest('[data-assistant-ia]')) return;
+      var slot = document.querySelector('[data-ia-interruptor-slot]');
+      if (!slot) return;
+      slot.hidden = !slot.hidden;
+      state.iaSlotTouched = true;
+      renderAssistantBar();
+    });
+    window.addEventListener('smyl:ia-interruptor-changed', renderAssistantBar);
+    renderAssistantBar();
 
     var previous = window.ir;
     window.ir = function (route) {

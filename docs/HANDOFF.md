@@ -1,3 +1,11 @@
+## 2026-11-24 — Claude Code — SMYL Asistente: pantalla reorganizada (parte A)
+
+- Solicitud de Ricardo: la pestaña «SMYL Asistente» (Canales → CAPACITAR IA) estaba desordenada y con mucho espacio vacío; propuesta aprobada en dos entregas (A = visual; B = niveles de autonomía 1-3, pendiente de su decisión sobre precios de referencia).
+- **Barra de estado** (la `.connections-training-bar` de siempre, con sus `data-*`): borrador/versión/% de capacitación + chips: **IA** (lee `SmylIaInterruptor.summary()`; abre/cierra la tarjeta del interruptor, que ahora vive en esta pestaña y se abre sola si la IA está apagada o programada), **canales conectados** y **«Probar el asistente →»** (salta a la pestaña de prueba).
+- **Pasos en una sola fila** a todo el ancho (en ≤980px se desplazan) y formulario en tarjeta con acciones fijas abajo; historial de versiones como tarjeta; la caja vacía «Probar tu asistente con lo que llevas» se oculta (la prueba vive en su pestaña). El hero «Canales» se oculta en esta pestaña (`data-connections-active` en el shell; NO usar `data-connection-tab`: lo cuentan los botones de pestaña).
+- Sin tocar la lógica: mismos ids, `name` y selectores (guardado, autosave, validar, publicar, ejemplos, medios). CSS nuevo al final de `smyl-navigation.css` (v13); `smyl-navigation.js` v34, `smyl-connections.js` v29, `smyl-ia-interruptor.js` v2, copia en `mobile/www/`, `sw.js`.
+- Pruebas: `tests/smyl-asistente-layout.test.mjs`; verificado en navegador real (pasos, chip, 404/409 del interruptor, anchos 390–1440, teclado) y `smyl-settings-channels-v2-browser`. Fallos preexistentes de la suite completa iguales a `main`.
+
 ## 2026-11-24 — Claude Code — Interruptor de la IA de la clínica (Canales)
 
 - Solicitud de Ricardo: «quiero aplicarlo en SMYL» (el interruptor de emergencia de la IA de LANA). Lo pueden cambiar el **dueño y el perfil administrador** (`administrador`/`propietario` de sistema); el resto del equipo solo lo ve.

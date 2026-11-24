@@ -425,6 +425,11 @@
     training.dataset.connectionPane = 'assistant';
     training.hidden = true;
     paneHost.append(training);
+    // Interruptor de la IA (task-id smyl-ia-interruptor): vive en la pestaña del asistente, debajo de la barra de estado, plegado
+    // hasta que se pulsa el chip «IA encendida · Administrar» (se abre solo si la IA está apagada o programada).
+    var iaSlot = shell.querySelector('[data-ia-interruptor-slot]');
+    var trainingBar = training.querySelector('.connections-training-bar');
+    if (iaSlot && trainingBar) { iaSlot.hidden = true; iaSlot.classList.add('assistant-ia-slot'); trainingBar.after(iaSlot); }
 
     var templatesPane = document.createElement('section');
     templatesPane.className = 'connections-pane connections-tools-pane';
@@ -472,6 +477,7 @@
 
     function select(name) {
       if (!paneHost.querySelector('[data-connection-pane="' + name + '"]')) name = 'channels';
+      shell.dataset.connectionsActive = name;
       tabs.querySelectorAll('[data-connection-tab]').forEach(function (button) {
         var selected = button.dataset.connectionTab === name;
         button.setAttribute('aria-selected', String(selected));
