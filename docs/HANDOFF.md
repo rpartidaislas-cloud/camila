@@ -12603,3 +12603,7 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - `_shared/provider-cost.mjs` (+ `tests/provider-cost.test.mjs`, 7 pruebas): mismo cálculo en JS para registrar el costo real de cada llamada más adelante.
 - `docs/COSTOS_Y_PRECIOS_IA.md`: cómo capturar precios. NO se cargó ningún precio (los reales vienen de los paneles de OpenAI/Anthropic).
 - No cambia el cobro: las funciones siguen cobrando 1 crédito por operación y `meta-send` sigue contando todos los mensajes. Siguiente: registrar tokens/costo real por llamada y ponderar los créditos.
+
+## 2026-11-24 — Claude Code — Servicios y tarifas: la tarjeta ya no muestra el precio
+- La fila de cada servicio quita el precio (y su campo editable); el precio se cambia en «Editar». Se conserva la etiqueta «Falta precio» y «precio varía por sede» en la línea de detalle; el servicio sin activar muestra «Sin activar» junto al botón.
+- `smyl-service-catalog.js` v17, `smyl-service-catalog-stage1.css` v5 (+ pines en pruebas, copias en `mobile/www/`).

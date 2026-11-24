@@ -44,7 +44,7 @@ test('ships additive versioning, RLS, offline assets and mobile parity',()=>{
   assert.match(worker,/smyl-v263-lana-connection-recovery/);
   for(const name of ['smyl-service-catalog-model.js','smyl-service-catalog.js','smyl-service-catalog.css']){
     assert.equal(readFileSync(resolve(root,name),'utf8'),readFileSync(resolve(root,'mobile/www',name),'utf8'));
-    const version=name==='smyl-service-catalog.js'?'16':name==='smyl-service-catalog.css'?'6':'4';
+    const version=name==='smyl-service-catalog.js'?'17':name==='smyl-service-catalog.css'?'6':'4';
     assert.match(worker,new RegExp(name.replaceAll('.','\\.')+'\\?v='+version));
   }
 });

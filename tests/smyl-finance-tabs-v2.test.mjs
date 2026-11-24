@@ -163,14 +163,12 @@ test('Cobros: «Reembolsar y cancelar cargos» es una función de rol aplicada e
   for (const f of ['smyl-finance.js', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
 
-test('Servicios y tarifas: todo servicio activo muestra su precio editable en la fila para quien puede cambiarlo', () => {
+test('Servicios y tarifas: la tarjeta no muestra ni edita el precio; se cambia en «Editar»', () => {
   const js = fs.readFileSync(new URL('../smyl-service-catalog.js', import.meta.url), 'utf8');
-  const css = fs.readFileSync(new URL('../smyl-service-catalog-stage1.css', import.meta.url), 'utf8');
-  assert.match(js, /var priceCell=row&&active&&state\.canManage&&state\.canPrices\?/);
-  assert.doesNotMatch(js, /var priceCell=row&&active&&missingPrice&&/);
-  assert.match(js, /data-current=/);
-  assert.match(js, /if\(input\.value===''&&current\)\{input\.value=current;return;\}/);
-  assert.match(css, /\.catalog-price-input\.has-price/);
+  assert.doesNotMatch(js, /var priceCell=|catalog-service-price|catalog-price-input/);
+  assert.match(js, /name="reference_price"/);
+  assert.match(js, /precio varía por sede/);
+  assert.match(js, /Falta precio/);
 });
 
 test('Agregar servicio o cargo: el selector no marca «sin datos fiscales»; el aviso al elegir lo explica', () => {
