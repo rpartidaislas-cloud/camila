@@ -1,3 +1,12 @@
+## 2026-11-24 — Claude Code — Agenda con IA paso 2: el asistente deja solicitudes en «Por aprobar» (B2a)
+
+- Solicitud de Ricardo (B2a): que el asistente ofrezca horarios reales y deje la solicitud en «Agenda → Por aprobar»; decisión: se guardan nombre y teléfono con autorización explícita del paciente. **Nunca confirma una cita.**
+- **Migración `20261128100000_smyl_ai_scheduling_request.sql`** (aditiva/idempotente; APLICAR ANTES de desplegar): nivel `request` en `smyl_ai_scheduling_settings`, `request` en la bitácora, `smyl_set_ai_scheduling` acepta `request` (y se corrige el parámetro `p_tenant_id` que mandaba la pantalla y la función no tiene: la tarjeta no podía guardarse), columnas `requester_name/contact/chat_consent_at/chat_privacy_notice_version/requester_expires_at` en `smyl_appointment_requests`, RPC `smyl_ai_scheduling_create_request` (solo service_role: oferta propia y vigente, idempotente, topes 2 pendientes por conversación y 30 por clínica/hora, horario revalidado y apartado 10 min) y `smyl_ai_scheduling_purge_requester_data` (90 días; **falta programarla**).
+- `lana-scheduling` (bundle `docs/bundles/lana-scheduling.single-file.ts` regenerado): `suggest` con nivel `request` guarda la oferta y devuelve `offer_key`; nueva acción `request`; exige `lana_tenant_id` = cuenta de LANA vinculada. Contrato en `docs/LANA_AGENDA_CONTRATO.md`.
+- UI: Agenda → Agenda con IA: casilla «También puede dejar la solicitud en Por aprobar» (`smyl-ai-scheduling.js` v2). «Por aprobar» (`smyl-schedule.js` v60): origen «Chat con IA», nombre y contacto, botón «Abrir conversación» (antes «Vincular paciente» llevaba a un callejón sin salida).
+- **Despliegue**: 1) migración en SMYL, 2) `lana-scheduling` en SMYL, 3) secretos `SMYL_LANA_SCHEDULING_SECRET` (mismo valor en ambos proyectos) y `SMYL_FUNCTIONS_URL` en LANA, 4) `whatsapp-webhook` y `meta-webhook` en LANA, 5) la clínica enciende el modo en Agenda con IA. Ver `promodesk/docs/SMYL_AGENDA_IA.md`.
+- Pruebas: `tests/lana-scheduling-request.test.mjs`.
+
 ## 2026-11-24 — Claude Code — SMYL Asistente: niveles de autonomía 1-3 (parte B1)
 
 - Solicitud de Ricardo: «Nivel 1 solo datos tipo FAQ; Nivel 2 FAQ + citas y precios; Nivel 3 interacción más profunda». Decisión: el nivel 2 comparte **precios de referencia** («desde $X, sujeto a valoración»).

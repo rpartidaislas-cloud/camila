@@ -1,5 +1,6 @@
-/* SMYL · Agenda con IA (ajustes). Apagado por defecto. Nivel «solo sugiere»: el asistente de LANA consulta horarios libres reales
-   (Edge Function lana-scheduling) y propone hasta 3 opciones; no agenda ni aparta nada. Aquí la clínica lo enciende y elige los servicios. */
+/* SMYL · Agenda con IA (ajustes). Apagado por defecto. Nivel «sugerir»: el asistente de LANA consulta horarios libres reales
+   (Edge Function lana-scheduling) y propone hasta 3 opciones; no agenda ni aparta nada. Nivel «request» (opcional): además, con la
+   autorización del paciente, deja una SOLICITUD en «Agenda → Por aprobar»; nunca confirma una cita. Aquí la clínica lo enciende y elige los servicios. */
 (function () {
   'use strict';
   var state = { settings: null, services: [], selected: [], loading: false, saving: false, error: '', ok: '', canManage: false };
@@ -32,6 +33,7 @@
   async function save(card) {
     if (state.saving) return;
     var on = card.querySelector('[data-ai-on]').checked;
+    var wantsRequest = !!(card.querySelector('[data-ai-request]') || {}).checked;
     var ids = Array.prototype.map.call(card.querySelectorAll('[data-ai-service]:checked'), function (i) { return i.value; });
     var lead = parseInt(card.querySelector('[data-ai-lead]').value, 10);
     var horizon = parseInt(card.querySelector('[data-ai-horizon]').value, 10);
@@ -39,10 +41,11 @@
     if (on && !ids.length) { state.error = 'Elige al menos un servicio que la IA pueda ofrecer.'; return render(); }
     state.saving = true; render();
     try {
-      var r = await db().rpc('smyl_set_ai_scheduling', { p_tenant_id: tenant(), p_level: on ? 'suggest' : 'off', p_min_lead_hours: lead, p_horizon_days: horizon, p_service_ids: ids });
+      var level = on ? (wantsRequest ? 'request' : 'suggest') : 'off';
+      var r = await db().rpc('smyl_set_ai_scheduling', { p_level: level, p_min_lead_hours: lead, p_horizon_days: horizon, p_service_ids: ids });
       if (r.error) throw r.error;
-      state.settings = { level: on ? 'suggest' : 'off', min_lead_hours: lead, horizon_days: horizon };
-      state.selected = ids; state.ok = on ? 'Listo. La IA ya puede sugerir horarios de estos servicios.' : 'Apagado. La IA ya no consulta tu agenda.';
+      state.settings = { level: level, min_lead_hours: lead, horizon_days: horizon };
+      state.selected = ids; state.ok = level === 'request' ? 'Listo. La IA puede sugerir horarios y dejar solicitudes en «Por aprobar» para estos servicios.' : (on ? 'Listo. La IA ya puede sugerir horarios de estos servicios.' : 'Apagado. La IA ya no consulta tu agenda.');
     } catch (e) { state.error = 'No se pudo guardar. Revisa tus permisos e intenta de nuevo.'; }
     state.saving = false; render();
   }
@@ -55,6 +58,7 @@
     var s = state.settings, on = s.level !== 'off', dis = state.canManage ? '' : ' disabled';
     body.innerHTML =
       '<label class="ai-switch"><input type="checkbox" data-ai-on' + (on ? ' checked' : '') + dis + '> <span><strong>Que la IA sugiera horarios</strong><small>Propone hasta 3 opciones con tu disponibilidad real. No agenda por sí sola: tú confirmas.</small></span></label>' +
+      '<label class="ai-switch ai-switch-sub"><input type="checkbox" data-ai-request' + (s.level === 'request' ? ' checked' : '') + (on ? '' : ' disabled') + dis + '> <span><strong>También puede dejar la solicitud en «Por aprobar»</strong><small>El paciente elige uno de los horarios y, con su autorización, el asistente deja una solicitud con su nombre y medio de contacto. Tú la aceptas o la rechazas: nunca se confirma sola.</small></span></label>' +
       '<fieldset class="ai-services"' + dis + '><legend>Servicios que puede ofrecer</legend>' +
       (state.services.length ? state.services.map(function (sv) { return '<label><input type="checkbox" data-ai-service value="' + esc(sv.id) + '"' + (state.selected.indexOf(sv.id) >= 0 ? ' checked' : '') + '> ' + esc(sv.name) + (sv.duration_minutes ? ' <small>' + esc(sv.duration_minutes) + ' min</small>' : '') + '</label>'; }).join('') : '<p class="ai-note">Aún no tienes servicios activos.</p>') +
       '</fieldset><p class="ai-note">Recomendado al empezar: solo la valoración inicial.</p>' +
@@ -62,6 +66,8 @@
       '<label>Hasta cuántos días <select data-ai-horizon' + dis + '>' + [7, 14, 21, 30].map(function (d) { return '<option value="' + d + '"' + (s.horizon_days === d ? ' selected' : '') + '>' + d + ' días</option>'; }).join('') + '</select></label></div>' +
       (state.error ? '<p class="ai-note ai-error" role="alert">' + esc(state.error) + '</p>' : '') + (state.ok ? '<p class="ai-note ai-ok" role="status">' + esc(state.ok) + '</p>' : '') +
       (state.canManage ? '<button class="btn primary" type="button" data-ai-save' + (state.saving ? ' disabled' : '') + '>' + (state.saving ? 'Guardando…' : 'Guardar') + '</button>' : '<p class="ai-note">Solo quien administra la clínica puede cambiar esto.</p>');
+    var onBox = body.querySelector('[data-ai-on]'), reqBox = body.querySelector('[data-ai-request]');
+    if (onBox && reqBox) onBox.addEventListener('change', function () { reqBox.disabled = !onBox.checked || !state.canManage; if (!onBox.checked) reqBox.checked = false; });
     var b = body.querySelector('[data-ai-save]'); if (b) b.addEventListener('click', function () { save(card); });
   }
 
