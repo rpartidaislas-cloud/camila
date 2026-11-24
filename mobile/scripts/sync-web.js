@@ -92,6 +92,8 @@ copyFile(path.join(ROOT, 'smyl-proposals.css'), path.join(WWW, 'smyl-proposals.c
 copyFile(path.join(ROOT, 'smyl-treatment-quote-stage3.js'), path.join(WWW, 'smyl-treatment-quote-stage3.js'));
 copyFile(path.join(ROOT, 'smyl-treatment-quote-stage3.css'), path.join(WWW, 'smyl-treatment-quote-stage3.css'));
 copyFile(path.join(ROOT, 'smyl-schedule.js'), path.join(WWW, 'smyl-schedule.js'));
+copyFile(path.join(ROOT, 'smyl-ai-scheduling.js'), path.join(WWW, 'smyl-ai-scheduling.js'));
+copyFile(path.join(ROOT, 'smyl-ai-scheduling.css'), path.join(WWW, 'smyl-ai-scheduling.css'));
 copyFile(path.join(ROOT, 'smyl-schedule.css'), path.join(WWW, 'smyl-schedule.css'));
 copyFile(path.join(ROOT, 'smyl-service-catalog-model.js'), path.join(WWW, 'smyl-service-catalog-model.js'));
 copyFile(path.join(ROOT, 'smyl-service-catalog.js'), path.join(WWW, 'smyl-service-catalog.js'));
