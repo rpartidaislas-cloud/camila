@@ -1,4 +1,5 @@
 // SMYL · Plan y suscripción: consumo del mes con barras, estado de cobro y avisos.
+// Solo lo que SMYL cobra o limita (IA, MILA, almacenamiento, timbres). Los mensajes de WhatsApp/Meta los paga la clínica a Meta.
 // Lee lo mismo que la pantalla de Consumo (smyl_usage_overview) y el resumen de cobro (smyl_billing_summary). No inventa cifras:
 // si un medidor aún no existe, se muestra lo que incluye el plan y la etiqueta «Sin medidor».
 (function () {
@@ -57,12 +58,7 @@
       var mLimit = mila.limit_units != null ? Number(mila.limit_units) / 60 : null, mUsed = Number(mila.used_units || 0) / 60;
       rows.push({ key: 'mila', label: 'Minutos de MILA', icon: 'mic', value: num(mUsed), of: mLimit ? 'de ' + num(mLimit) + ' min' : 'min usados este mes', percent: mLimit ? pct(mUsed, mLimit) : null, remaining: mLimit ? Math.max(0, mLimit - mUsed) : (mila.balance_units != null ? Number(mila.balance_units) / 60 : null), unit: 'min', buy: true });
     }
-    // 4. Mensajes de WhatsApp / Meta
-    var meta = resource('meta_messages') || resource('whatsapp_messages');
-    if (meta && (meta.limit_units != null || meta.balance_units != null || meta.used_units != null)) {
-      var mtLimit = meta.limit_units != null ? Number(meta.limit_units) : null, mtUsed = Number(meta.used_units || 0);
-      rows.push({ key: 'meta', label: 'Mensajes de WhatsApp y Meta', icon: 'chat', value: num(mtUsed), of: mtLimit ? 'de ' + num(mtLimit) + ' del periodo' : 'enviados este mes', percent: mtLimit ? pct(mtUsed, mtLimit) : null, remaining: mtLimit ? Math.max(0, mtLimit - mtUsed) : null, unit: 'mensajes', buy: false });
-    }
+    // Los mensajes de WhatsApp/Meta NO se muestran: se pagan directamente a Meta. Aquí solo cuenta lo que consume la IA de SMYL.
     // 5. Almacenamiento
     var st = state.overview && state.overview.storage;
     if (st && st.status === 'available' && Number(st.quota_bytes) > 0) {
