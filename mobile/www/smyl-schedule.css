@@ -800,3 +800,9 @@ body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=m]>.schedule-
 .schedule-focus-more{margin:0;padding:10px 22px;border-top:1px solid #e1e4e8;font-size:13px;color:#61756e}
 .schedule-focus-more button{border:0;background:none;padding:0;color:#313c81;font:inherit;text-decoration:underline;cursor:pointer}
 @media(max-width:700px){.schedule-focus-head{flex-wrap:wrap}.schedule-focus-actions{width:100%;justify-content:flex-end}}
+
+/* En escritorio (>=769px, donde la barra lateral es visible), «Nueva cita» ya está en la barra lateral y en el estado vacío de la agenda: se oculta del encabezado
+   (sigue en el DOM porque la barra lateral y otras pantallas lo accionan con .click()). En móvil se conserva. */
+@media(min-width:769px){
+  body #p-agenda .schedule-head-actions #schedule-new{display:none !important}
+}
