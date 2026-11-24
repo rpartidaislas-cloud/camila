@@ -12588,3 +12588,9 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 ## 2026-11-24 — Claude — Plan: sin medidor de Meta; hallazgos sobre costos de IA
 - `smyl-plan-usage.js?v=2`: se quitó la tarjeta de mensajes de WhatsApp/Meta (los paga la clínica directo a Meta).
 - Hallazgos (sin cambios de backend todavía): `meta-send` registra `whatsapp_messages` por CADA mensaje saliente; debería medir solo lo que genera la IA. Un «crédito de IA» = 1 operación (`p_quantity_units: 1`) sin importar modelo ni tokens (simulación con gpt-image-2 + gpt-4o, extracción fiscal con Anthropic, resumen periodontal y reescritura de mensajes con gpt-5-mini), así que no hay relación con el costo real; el plan promete «tokens» y el sistema no los mide. MILA se mide en segundos de audio. Falta una tabla de precios de proveedor y registrar tokens/costo por operación.
+
+## 2026-11-24 — Claude — Tabla de precios de proveedores y costo por operación (interno)
+- Migración `20261124120000_smyl_provider_pricing.sql`: `smyl_provider_prices` (precio por métrica y vigencia; `price` NULL = pendiente), `smyl_cost_settings` (tipo de cambio, margen, valor de 1 crédito), `smyl_ai_operations` (qué consume cada operación; supuestos) y la vista `smyl_operation_costs` + funciones `smyl_price_per_unit_mxn` / `smyl_operation_cost_mxn`. Solo rol de servicio; ninguna clínica lee nada. Probada en Postgres local (idempotente, cálculo verificado a mano).
+- `_shared/provider-cost.mjs` (+ `tests/provider-cost.test.mjs`, 7 pruebas): mismo cálculo en JS para registrar el costo real de cada llamada más adelante.
+- `docs/COSTOS_Y_PRECIOS_IA.md`: cómo capturar precios. NO se cargó ningún precio (los reales vienen de los paneles de OpenAI/Anthropic).
+- No cambia el cobro: las funciones siguen cobrando 1 crédito por operación y `meta-send` sigue contando todos los mensajes. Siguiente: registrar tokens/costo real por llamada y ponderar los créditos.
