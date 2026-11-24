@@ -50,7 +50,7 @@
       '<dialog class="connections-disconnect-dialog" data-disconnect-dialog><form method="dialog"><span class="connections-status-label">DESCONECTAR CANAL</span><h2 data-disconnect-title>¿Desconectar este canal?</h2><p data-disconnect-copy>El asistente dejará de recibir y enviar mensajes. El historial se conservará y podrás conectar otra cuenta después.</p><div class="connections-disconnect-summary"><span class="connections-channel-icon" data-disconnect-icon>I</span><div><strong data-disconnect-name>Instagram</strong><small data-disconnect-account></small></div></div><footer><button type="button" class="btn btn-secondary" data-disconnect-cancel>Cancelar</button><button type="button" class="btn connections-danger-button" data-disconnect-confirm>Desconectar</button></footer></form></dialog>' +
       '<dialog class="connections-disconnect-dialog" data-unlink-dialog aria-labelledby="connections-unlink-title"><form method="dialog"><span class="connections-status-label">DESVINCULAR MENSAJERÍA</span><h2 id="connections-unlink-title">¿Desvincular la mensajería de esta clínica?</h2><p>SMYL dejará de leer y enviar mensajes por WhatsApp, Messenger e Instagram para esta clínica, y pausará los recordatorios por WhatsApp.</p><div class="connections-disconnect-summary"><span class="connections-channel-icon" aria-hidden="true">L</span><div><strong>Enlace de mensajería</strong><small data-unlink-code></small></div></div><p class="connections-help"><strong>No se borra ninguna cuenta ni conversación, ni en tu plataforma de mensajería ni en Meta.</strong> Tus canales siguen funcionando allá. Podrás volver a vincular cuando quieras.</p><footer><button type="button" class="btn btn-secondary" data-unlink-cancel>Cancelar</button><button type="button" class="btn connections-danger-button" data-unlink-confirm>Desvincular</button></footer></form></dialog>' +
       '<section class="connections-context connections-training" aria-labelledby="lana-training-title"><div class="connections-section-heading"><span>CAPACITAR IA</span><h2 id="lana-training-title">Prepara a SMYL Asistente para atender pacientes</h2><p>Trabaja en borrador, valida la información y publica cuando esté lista. Solo la versión publicada responde en WhatsApp, Messenger e Instagram.</p></div>' +
-      '<div class="connections-training-bar" role="status" aria-live="polite" aria-atomic="true"><div class="assistant-bar-main"><span class="connections-training-state" data-training-state>Borrador sin guardar</span><small data-training-version>Sin versión publicada</small></div><div class="assistant-bar-chips"><button type="button" class="assistant-chip" data-assistant-ia aria-expanded="false" hidden></button><button type="button" class="assistant-chip" data-assistant-level hidden></button><span class="assistant-chip is-static" data-assistant-channels></span><button type="button" class="assistant-chip is-link" data-select-workspace="lab">Probar el asistente →</button></div><div class="connections-training-score"><span data-training-score>0%</span><small>capacitación completa</small></div></div>' +
+      '<div class="connections-training-bar" role="status" aria-live="polite" aria-atomic="true"><div class="assistant-bar-main"><span class="connections-training-state" data-training-state>Borrador sin guardar</span><small data-training-version>Sin versión publicada</small></div><div class="assistant-bar-chips"><button type="button" class="assistant-chip" data-assistant-ia aria-expanded="false" hidden></button><button type="button" class="assistant-chip" data-assistant-level hidden></button><span class="assistant-chip is-static" data-assistant-channels></span><button type="button" class="assistant-chip is-action" data-autofill disabled title="Llena con los datos de tu clínica lo que todavía esté vacío">Autollenar con mis datos</button><button type="button" class="assistant-chip is-action" data-autofill-redo disabled title="Vuelve a llenar los campos autollenables con los datos actuales de tu clínica">Rehacer desde mi clínica</button><button type="button" class="assistant-chip is-link" data-select-workspace="lab">Probar el asistente →</button></div><div class="connections-training-score"><span data-training-score>0%</span><small>capacitación completa</small></div></div>' +
       '<form data-lana-training-form><fieldset><legend>Identidad y voz</legend><div class="connections-context-grid"><label>Nombre del asistente<input name="assistant_name" maxlength="50" value="SMYL Asistente"></label><label>Tono<select name="tone"><option value="profesional">Profesional y claro</option><option value="cercano">Cercano y empático</option><option value="breve">Breve y directo</option></select></label><label class="full">Mensaje de bienvenida<textarea name="welcome_message" maxlength="350" rows="2" placeholder="Hola, soy el asistente de la clínica. Puedo orientarte y ayudarte con el siguiente paso."></textarea></label></div></fieldset>' +
       '<fieldset><legend>La clínica</legend><div class="connections-context-grid"><label class="full">Descripción y enfoque<textarea name="clinic_description" maxlength="1600" rows="3" placeholder="Especialidad, enfoque, tipo de pacientes y qué distingue a la clínica."></textarea></label><label class="full">Especialidades confirmadas<textarea name="specialties" maxlength="1200" rows="2" placeholder="Odontología general, ortodoncia, implantología…"></textarea></label><label>Ubicación principal<input name="location" maxlength="500" placeholder="Dirección o zona de atención"></label><label>Horarios<input name="hours" maxlength="500" placeholder="Lun–Vie 9:00–18:00"></label><label>Idiomas<input name="languages" maxlength="300" placeholder="Español, inglés"></label><label>Canales de contacto<input name="contact_channels" maxlength="700" placeholder="Teléfono y medios autorizados"></label><label class="full">Acceso, estacionamiento y accesibilidad<textarea name="access_info" maxlength="900" rows="2"></textarea></label><label class="full">Política para menores y acompañantes<textarea name="minor_policy" maxlength="900" rows="2"></textarea></label></div></fieldset>' +
       '<fieldset><legend>Sucursales y operación</legend><div class="connections-context-grid"><label class="full" hidden>Sucursales, direcciones y cobertura<textarea name="branches" maxlength="2400" rows="4" tabindex="-1"></textarea></label><div class="full connections-auto" data-auto-branches></div>' +
@@ -1128,9 +1128,101 @@
     select.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
+  // ── Autollenado desde los datos de la clínica (task-id smyl-asistente-autollenado) ──
+  // Prellena TODOS los pasos con lo que la clínica ya tiene en SMYL (nombre, ciudad, sucursales, teléfonos, notas de llegada, servicios con precio,
+  // especialidades, idiomas, canales conectados, agenda con IA, cargo por inasistencia, pago en línea, perfil fiscal, recordatorios), SIN pisar lo
+  // que la persona ya escribió y siempre editable. Lo que no tiene fuente (promociones, seguros, tiempos de respuesta) se deja vacío.
+  var AUTOFILL_DEFAULTS = { assistant_name: 'SMYL Asistente', languages: 'Español' };
+  var AUTOFILL_TTL_MS = 60000;
+  async function loadAutofillContext(force) {
+    if (!force && state.autofillCtx && Date.now() - state.autofillCtx.at < AUTOFILL_TTL_MS) return state.autofillCtx;
+    var sb = window.sb, t = window.tenantId;
+    var fallidas = 0;
+    async function safe(promise) { try { var r = await promise; if (r && r.error) fallidas += 1; return r && !r.error ? (r.data || null) : null; } catch (_) { fallidas += 1; return null; } }
+    var res = await Promise.all([
+      safe(sb.from('camila_tenants').select('nombre,email,config').eq('id', t).maybeSingle()),
+      safe(sb.from('smyl_branches').select('*').eq('tenant_id', t).eq('active', true)),
+      safe(sb.from('smyl_services').select('*').eq('tenant_id', t).eq('active', true).order('name')),
+      safe(sb.from('smyl_professionals').select('display_name,specialty').eq('tenant_id', t)),
+      safe(sb.from('smyl_professional_profiles').select('languages,treatment_focus').eq('tenant_id', t)),
+      safe(sb.from('smyl_ai_scheduling_settings').select('level,min_lead_hours,horizon_days').eq('tenant_id', t).maybeSingle()),
+      safe(sb.from('smyl_finance_settings').select('no_show_fee').eq('tenant_id', t).maybeSingle()),
+      safe(sb.from('smyl_reminder_settings').select('enabled,whatsapp_phone').eq('tenant_id', t).maybeSingle()),
+      safe(sb.from('smyl_issuer_fiscal_profiles').select('id').eq('tenant_id', t).limit(1))
+    ]);
+    var ctx = {
+      at: Date.now(), failedSources: fallidas, tenant: res[0] || {}, branches: Array.isArray(res[1]) ? res[1] : [], services: Array.isArray(res[2]) ? res[2] : [],
+      professionals: Array.isArray(res[3]) ? res[3] : [], profiles: Array.isArray(res[4]) ? res[4] : [], scheduling: res[5] || null,
+      noShowFee: res[6] ? res[6].no_show_fee : null, reminders: res[7] || null, fiscalProfile: Array.isArray(res[8]) && res[8].length > 0
+    };
+    state.autofillCtx = ctx;
+    return ctx;
+  }
+  function trainingIsBlank(form) {
+    var empty = function (name) { return !(form.elements[name] && String(form.elements[name].value || '').trim()); };
+    return empty('clinic_description') && empty('appointment_policy') && empty('specialties') && collectRepeatRows('[data-faq-list]', 'faq').length === 0;
+  }
+  function renderAutofillBadges() {
+    var form = document.querySelector('[data-lana-training-form]');
+    if (!form) return;
+    var seeds = state.autoSeed || {};
+    form.querySelectorAll('[data-autofill-for]').forEach(function (badge) { badge.remove(); });
+    Object.keys(seeds).forEach(function (name) {
+      var field = form.elements[name], label = field && field.closest && field.closest('label');
+      if (!field || !label || String(field.value || '').trim() !== seeds[name].text) return;
+      var badge = node('small', 'assistant-autofill-badge' + (seeds[name].kind === 'sugerido' ? ' is-suggested' : ''), seeds[name].kind === 'sugerido' ? 'Texto sugerido · revísalo y edítalo' : 'Autollenado con tus datos · editable');
+      badge.dataset.autofillFor = name;
+      label.append(badge);
+    });
+  }
+  async function runAutofill(options) {
+    options = options || {};
+    var form = document.querySelector('[data-lana-training-form]');
+    if (!form || !window.SmylTrainingAutofill || state.autofillBusy || !canAutosaveTraining()) return;
+    state.autofillBusy = true; renderAssistantBar();
+    try {
+      await refreshAutoFacts(true);
+      var ctx = Object.assign({}, await loadAutofillContext(true), { channels: state.channels || [], locationText: (state.autoFacts && state.autoFacts.location) || '', hoursText: (state.autoFacts && state.autoFacts.hours) || '' });
+      var proposal = window.SmylTrainingAutofill.compose(ctx);
+      state.autoSeed = state.autoSeed || {};
+      var filled = 0, kept = 0;
+      Object.keys(proposal.fields).forEach(function (name) {
+        var field = form.elements[name], item = proposal.fields[name];
+        if (!field || field.disabled) return;
+        var current = String(field.value || '').trim(), seed = state.autoSeed[name];
+        var libre = !current || current === AUTOFILL_DEFAULTS[name] || (seed && current === seed.text);
+        if (!libre && !options.overwrite) { kept += 1; return; }
+        if (current === item.text) { state.autoSeed[name] = item; return; }
+        field.value = item.text; state.autoSeed[name] = item; filled += 1;
+      });
+      var rows = collectRepeatRows('[data-faq-list]', 'faq');
+      // Sin «Rehacer», nunca se reemplaza una fila existente (aunque venga de un autollenado previo y el usuario la haya editado): solo se agregan las que faltan.
+      var base = options.overwrite ? rows.filter(function (r) { return !/^auto-faq-/.test(r.id || ''); }) : rows;
+      var preguntas = base.map(function (r) { return window.SmylTrainingAutofill.clip(r.question, 280).toLocaleLowerCase('es-MX'); });
+      var sobrantes = 20 - base.length;
+      var nuevas = proposal.faq.filter(function (f) { return preguntas.indexOf(f.q.toLocaleLowerCase('es-MX')) < 0; }).slice(0, Math.max(0, sobrantes)).map(function (f, i) { return { id: 'auto-faq-' + Date.now().toString(36) + '-' + (i + 1), question: f.q, answer: f.a }; });
+      var faqNuevas = base.concat(nuevas);
+      if (nuevas.length || (options.overwrite && faqNuevas.length !== rows.length)) {
+        renderRepeatRows('[data-faq-list]', 'faq', faqNuevas); filled += 1;
+      }
+      renderAutofillBadges();
+      if (filled) { markTrainingDirty(); updateTrainingSteps(); }
+      var total = Object.keys(proposal.fields).length;
+      contextStatus(filled
+        ? 'Llenamos tu capacitación con los datos de tu clínica (' + total + ' campos y ' + proposal.faq.length + ' preguntas frecuentes disponibles). Revisa cada paso y edítalo: lo que ya escribiste no se tocó' + (kept ? ' (' + kept + ' campos conservados)' : '') + '. El borrador se guarda solo; publica para que el asistente lo use.' + (ctx.failedSources ? ' Ojo: no pudimos leer ' + ctx.failedSources + ' fuente(s) de datos (por permisos o conexión); revisa que la información esté completa.' : '')
+        : 'No había nada nuevo que llenar' + (kept ? ': tus ' + kept + ' campos ya tienen texto.' : '.') , filled ? 'success' : '');
+    } catch (_) {
+      contextStatus('No pudimos leer los datos de tu clínica. Intenta de nuevo en un momento.', 'error');
+    } finally { state.autofillBusy = false; renderAssistantBar(); }
+  }
+
   // Barra fija del asistente (task-id smyl-asistente-layout): estado de la IA (interruptor), canales conectados y acceso a la prueba.
   function renderAssistantBar() {
     renderAssistantLevels();
+    var listo = Boolean(state.status && state.status.connected && state.status.can_manage && state.trainingLoaded && !state.autofillBusy);
+    document.querySelectorAll('[data-autofill],[data-autofill-redo]').forEach(function (chip) { chip.disabled = !listo; });
+    var autoChip = document.querySelector('[data-autofill]');
+    if (autoChip) autoChip.textContent = state.autofillBusy ? 'Leyendo tu clínica…' : 'Autollenar con mis datos';
     var chip = document.querySelector('[data-assistant-ia]');
     var channels = document.querySelector('[data-assistant-channels]');
     var slot = document.querySelector('[data-ia-interruptor-slot]');
@@ -1274,6 +1366,12 @@
     var trainingForm = document.querySelector('[data-lana-training-form]'), trainingSkeleton = null;
     if (trainingForm && window.SmylSkeleton) { trainingSkeleton = window.SmylSkeleton.node('form', { fields: 4, label: 'Cargando capacitación' }); trainingSkeleton.setAttribute('data-training-skeleton', ''); trainingForm.classList.add('is-sk-loading'); trainingForm.parentNode.insertBefore(trainingSkeleton, trainingForm); }
     try { fillTraining(await trainingRequest('GET', 'training')); state.trainingLoaded = true; await loadTrainingVersions(); refreshAutoFacts(true); }
+    catch (error) { contextStatus(error.message, 'error'); }
+    try {
+      // Capacitación vacía: se prellena sola con los datos de la clínica (una vez por sesión); todo queda editable.
+      var blankForm = document.querySelector('[data-lana-training-form]');
+      if (state.trainingLoaded && blankForm && !state.autofillTried && trainingIsBlank(blankForm)) { state.autofillTried = true; await runAutofill({ initial: true }); }
+      renderAssistantBar(); }
     catch (error) { contextStatus(error.message, 'error'); }
     finally { if (trainingSkeleton) { trainingSkeleton.remove(); trainingForm.classList.remove('is-sk-loading'); } }
   }
@@ -1657,6 +1755,14 @@
       var target = document.querySelector('[data-level-card="' + next + '"]');
       if (target) { chooseLevel(target); target.focus(); }
     });
+    document.addEventListener('click', function (event) {
+      if (event.target.closest('[data-autofill]')) { runAutofill({}); return; }
+      if (event.target.closest('[data-autofill-redo]')) {
+        if (window.confirm('Esto vuelve a llenar los campos autollenables con los datos actuales de tu clínica y reemplaza lo que hayas escrito en ellos (tus preguntas frecuentes propias se conservan). ¿Continuar?')) runAutofill({ overwrite: true });
+      }
+    });
+    var trainingForm = document.querySelector('[data-lana-training-form]');
+    if (trainingForm) trainingForm.addEventListener('input', function (event) { if (event.target && event.target.name && state.autoSeed && state.autoSeed[event.target.name]) renderAutofillBadges(); });
     window.addEventListener('smyl:ia-interruptor-changed', renderAssistantBar);
     renderAssistantBar();
 

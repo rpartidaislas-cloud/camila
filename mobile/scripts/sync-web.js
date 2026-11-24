@@ -113,6 +113,7 @@ copyFile(path.join(ROOT, 'smyl-task-center.js'), path.join(WWW, 'smyl-task-cente
 copyFile(path.join(ROOT, 'smyl-schedule-message.js'), path.join(WWW, 'smyl-schedule-message.js'));
 copyFile(path.join(ROOT, 'smyl-lana-attention.js'), path.join(WWW, 'smyl-lana-attention.js'));
 copyFile(path.join(ROOT, 'smyl-ia-interruptor.js'), path.join(WWW, 'smyl-ia-interruptor.js'));
+copyFile(path.join(ROOT, 'smyl-training-autofill.js'), path.join(WWW, 'smyl-training-autofill.js'));
 copyFile(path.join(ROOT, 'smyl-ia-interruptor.css'), path.join(WWW, 'smyl-ia-interruptor.css'));
 copyFile(path.join(ROOT, 'smyl-daily-home.js'), path.join(WWW, 'smyl-daily-home.js'));
 copyFile(path.join(ROOT, 'smyl-daily-home.css'), path.join(WWW, 'smyl-daily-home.css'));

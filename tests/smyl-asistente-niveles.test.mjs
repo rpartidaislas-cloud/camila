@@ -44,8 +44,8 @@ test("estilos de las tarjetas: a todo el ancho, estado marcado, foco visible y u
   assert.match(css, /@media\(max-width:760px\)\{\.connections-training \.assistant-levels-grid\{grid-template-columns:minmax\(0,1fr\)\}\}/);
   for (const f of ["smyl-connections.js", "smyl-navigation.css"]) assert.equal(read(`mobile/www/${f}`), read(f), f);
   for (const base of ["", "mobile/www/"]) {
-    assert.match(read(`${base}app.html`), /smyl-connections\.js\?v=30&media=1/);
-    assert.match(read(`${base}app.html`), /smyl-navigation\.css\?v=14/);
-    assert.match(read(`${base}sw.js`), /smyl-connections\.js\?v=30&media=1/);
+    assert.match(read(`${base}app.html`), /smyl-connections\.js\?v=31&media=1/);
+    assert.match(read(`${base}app.html`), /smyl-navigation\.css\?v=15/);
+    assert.match(read(`${base}sw.js`), /smyl-connections\.js\?v=31&media=1/);
   }
 });
