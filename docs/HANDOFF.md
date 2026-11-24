@@ -12579,3 +12579,8 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 
 - «Cita» solo aparece si el paciente tiene citas; «Descuento» queda detrás del enlace «Agregar descuento»; el calendario de vencimiento aparece con «Otra fecha» (los botones Hoy / 15 días / 30 días / Sin fecha lo vuelven a ocultar). Sin cambio en lo que se guarda. Pendiente de proponer a Ricardo: mostrar en cada línea de cotización de qué sucursal es el precio y revisar que la agenda use el precio de la sucursal al crear una cita.
 
+
+## 2026-11-24 — Claude — Plan y suscripción: consumo con barras
+- `smyl-plan-usage.js?v=1` (nuevo, solo lectura) + estilos `.pu-*` y contenedor `#plan-usage-root` en `app.html` (p-plan): tarjetas con barra por recurso (análisis con IA, créditos de IA, minutos de MILA, mensajes de WhatsApp/Meta, almacenamiento) con nivel por color y texto (Todo en orden / Va avanzado / Casi al límite / Límite alcanzado), pronóstico simple «a este ritmo…» entre 30 y 85 %, aviso de subir de plan cuando algo pasa de 85 %, tarjeta de timbres (incluidos del plan, sin medidor) y panel «Tu suscripción» con `smyl_billing_summary`.
+- Datos: `smyl_usage_overview` (el mismo de Consumo) y `tenantData.diagnosticos_usados/limite_diagnosticos`. NO se inventan cifras: sin medidor se muestra lo incluido y «Sin medidor».
+- Pendiente: medidor de tokens de IA (el plan promete tokens; hoy solo hay créditos y análisis), medidor de timbres, historial por día (sparklines), alertas por correo al 80 %.
