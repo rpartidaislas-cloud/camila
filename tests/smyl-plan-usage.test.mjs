@@ -30,10 +30,10 @@ test('todo texto del usuario pasa por esc() y no se usa almacenamiento del naveg
 });
 
 test('app.html carga el módulo, tiene el contenedor y conserva el elemento que renderPlan() necesita', () => {
-  assert.match(app, /<script defer src="smyl-plan-usage\.js\?v=1"><\/script>/);
+  assert.match(app, /<script defer src="smyl-plan-usage\.js\?v=2"><\/script>/);
   assert.match(app, /id="plan-usage-root"/);
   assert.match(app, /id="mc-uso-detalle" hidden/, 'renderPlan() escribe aquí: no debe faltar');
-  assert.match(read('sw.js'), /\/camila\/smyl-plan-usage\.js\?v=1/);
+  assert.match(read('sw.js'), /\/camila\/smyl-plan-usage\.js\?v=2/);
 });
 
 test('textos mínimos de 12 px en el panel de consumo', () => {
@@ -44,4 +44,9 @@ test('textos mínimos de 12 px en el panel de consumo', () => {
 
 test('web y móvil publican los mismos archivos', () => {
   for (const file of ['smyl-plan-usage.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + file), read(file), `mobile/www/${file} difiere`);
+});
+
+test('los mensajes de WhatsApp/Meta no se muestran: los paga la clínica directo a Meta', () => {
+  assert.doesNotMatch(js, /resource\('meta_messages'\)|resource\('whatsapp_messages'\)/);
+  assert.doesNotMatch(js, /label: 'Mensajes de WhatsApp/);
 });
