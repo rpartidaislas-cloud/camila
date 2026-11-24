@@ -5,6 +5,7 @@
 
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { asistentePublicoApagado } from "../_shared/ia-interruptor-clinica.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -177,6 +178,11 @@ Deno.serve(async (req: Request) => {
     .select("professional_id").eq("tenant_id", p.tenant_id).eq("slug", slug).eq("status", "published").maybeSingle();
   if (!profileRow) return json(404, { error: "Este perfil no está disponible." });
   const professionalId = profileRow.professional_id as string;
+  // Interruptor de la IA de la clínica (task-id smyl-ia-interruptor): apagado desde SMYL o desde LANA, el asistente no responde y el
+  // visitante puede escribir a la clínica directamente. Falla cerrado ante un error de lectura (ver _shared/ia-interruptor-clinica.mjs).
+  if (await asistentePublicoApagado(p.tenant_id)) {
+    return json(503, { error: "El asistente no está disponible por ahora. Puedes escribir a la clínica directamente.", assistant_off: true });
+  }
 
   const locations = (Array.isArray(p.locations) ? p.locations : []) as any[];
   const serviceIds = (Array.isArray(p.services) ? p.services : []).map((s: any) => s.id);

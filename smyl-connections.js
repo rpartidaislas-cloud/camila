@@ -31,6 +31,7 @@
       '<div class="connections-status-card" role="status" aria-live="polite" aria-atomic="true"><span class="connections-status-label">ESTADO</span>' +
       '<div class="connections-status-row"><span class="connections-status-dot"></span><strong data-lana-status><span class="sk-sr">Cargando…</span><span class="sk sk-line w-60 is-lg" aria-hidden="true"></span></strong></div>' +
       '<p data-lana-summary><span class="sk-sr">Comprobando la configuración de esta clínica.</span><span class="sk sk-line w-100" aria-hidden="true"></span></p><small data-lana-verified></small></div></header>' +
+      '<div data-ia-interruptor-slot></div>' +
       '<section class="connections-flow" aria-labelledby="connections-flow-title"><div class="connections-section-heading"><span>FLUJO SEGURO</span><h2 id="connections-flow-title">Un canal, dos responsabilidades claras</h2></div>' +
       '<ol><li><span>01</span><div><strong>El paciente escribe</strong><p>SMYL recibe y organiza la conversación de tus canales.</p></div></li>' +
       '<li><span>02</span><div><strong>El dentista revisa</strong><p>SMYL prepara la evidencia y el caso para revisión profesional.</p></div></li>' +
@@ -1527,6 +1528,7 @@
     var page = node('section', 'pantalla');
     page.id = 'p-conexiones';
     page.innerHTML = pageMarkup();
+    if (window.SmylIaInterruptor) window.SmylIaInterruptor.mount(page.querySelector('[data-ia-interruptor-slot]'));
     document.querySelector('.contenido').append(page);
     page.querySelector('[data-media-training]').addEventListener('click', function () { window.SmylMediaReplies.openEditor(); });
     bindBranchTools(page);
