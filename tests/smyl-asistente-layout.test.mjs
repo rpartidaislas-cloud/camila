@@ -59,8 +59,8 @@ test("copia móvil y versiones de caché", () => {
   for (const f of ["smyl-connections.js", "smyl-navigation.js", "smyl-navigation.css", "smyl-ia-interruptor.js"]) assert.equal(read(`mobile/www/${f}`), read(f), f);
   for (const base of ["", "mobile/www/"]) {
     assert.match(read(`${base}app.html`), /smyl-navigation\.js\?v=34/);
-    assert.match(read(`${base}app.html`), /smyl-navigation\.css\?v=13/);
+    assert.match(read(`${base}app.html`), /smyl-navigation\.css\?v=14/);
     assert.match(read(`${base}sw.js`), /smyl-navigation\.js\?v=34/);
-    assert.match(read(`${base}sw.js`), /smyl-connections\.js\?v=29&media=1/);
+    assert.match(read(`${base}sw.js`), /smyl-connections\.js\?v=30&media=1/);
   }
 });

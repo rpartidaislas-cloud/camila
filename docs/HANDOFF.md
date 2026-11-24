@@ -1,3 +1,11 @@
+## 2026-11-24 — Claude Code — SMYL Asistente: niveles de autonomía 1-3 (parte B1)
+
+- Solicitud de Ricardo: «Nivel 1 solo datos tipo FAQ; Nivel 2 FAQ + citas y precios; Nivel 3 interacción más profunda». Decisión: el nivel 2 comparte **precios de referencia** («desde $X, sujeto a valoración»).
+- **Tarjetas de nivel** al inicio del paso 5 «Reglas de atención» (`data-level-card`, `role=radiogroup`, flechas del teclado) sobre el `<select name="autonomy_level">` (que sigue siendo lo que se guarda: ahora 1 Informativo · 2 Citas y precios · 3 Acompañamiento; un 4 anterior se carga como 3, vacío = 1). **Chip «Nivel N · …»** en la barra de estado (lleva al paso 5).
+- El comportamiento lo aplica LANA en código (ver `promodesk/docs/SMYL_ASISTENTE_NIVELES.md`): el nivel 1 no recibe precios; los niveles 2-3 toman los datos de la cita y los pasan al equipo con un resumen (la solicitud automática en «Por aprobar», las propuestas/pagos y reagendar quedan para B2: requieren una conexión LANA → SMYL). Los precios salen de «Servicios confirmados» y quedan congelados al publicar.
+- **Orden de despliegue**: LANA primero (`camila-api`, `whatsapp-webhook`, `meta-webhook`; no requiere migración) y después publicar la app (si la app sale antes, las tarjetas guardan el nivel pero LANA aún usa la semántica anterior).
+- `smyl-connections.js` v30, `smyl-navigation.css` v14, copia móvil, `sw.js`. Pruebas: `tests/smyl-asistente-niveles.test.mjs`.
+
 ## 2026-11-24 — Claude Code — SMYL Asistente: pantalla reorganizada (parte A)
 
 - Solicitud de Ricardo: la pestaña «SMYL Asistente» (Canales → CAPACITAR IA) estaba desordenada y con mucho espacio vacío; propuesta aprobada en dos entregas (A = visual; B = niveles de autonomía 1-3, pendiente de su decisión sobre precios de referencia).
