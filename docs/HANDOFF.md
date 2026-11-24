@@ -1,3 +1,12 @@
+## 2026-11-24 — Claude Code — Interruptor de la IA de la clínica (Canales)
+
+- Solicitud de Ricardo: «quiero aplicarlo en SMYL» (el interruptor de emergencia de la IA de LANA). Lo pueden cambiar el **dueño y el perfil administrador** (`administrador`/`propietario` de sistema); el resto del equipo solo lo ve.
+- **Mismo interruptor que en LANA** (una sola fuente de verdad): apaga las respuestas automáticas de WhatsApp, Messenger e Instagram de la clínica (corren en LANA) y el asistente del perfil público. NO apaga la IA interna del personal (dictado, radiografías, mejorar borrador) ni los avisos de cita/cobro.
+- Función `lana-ia-interruptor` (GET estado para todo el equipo; PUT solo dueño/administrador; manda la persona y el rol a `PUT /ia/interruptor` de LANA), `_shared/ia-interruptor-clinica.{mjs,ts}`, `ia` en `ALLOWED_ROOTS` de `lana-contract.mjs`, compuerta en `public-profile-assistant` (calla y falla cerrado), `smyl-ia-interruptor.{js,css}` (tarjeta en Canales con apagar ahora / programar / fecha de regreso / «no contestar chats viejos», franja roja en el inicio), ranura en `smyl-connections.js`, `app.html` v1, `sw.js` y copia móvil. Bundle `docs/bundles/lana-ia-interruptor.single-file.ts` y los demás regenerados (cambió `lana-contract.mjs`).
+- Fechas en la zona `America/Mexico_City` (la de la clínica por defecto), enviadas en UTC.
+- **Orden de despliegue**: migración `20261124100000` de LANA → `camila-api` (LANA) → `lana-ia-interruptor` y `public-profile-assistant` → publicar la app.
+- Pruebas: `tests/smyl-ia-interruptor.test.mjs`. Fallos preexistentes en `main`, no tocados: `smyl-inbox-typography-browser` (editor largo) y otros 16 de la suite completa.
+
 ## 2026-11-23 — Claude — Paleta de marca: del verde azulado al degradado del logo
 
 - Solicitud de Ricardo: el menú y casi todo el sistema tiraban a verde oscuro; quiere los colores del logo de smyl (cian → azul → índigo → violeta, los mismos del botón «Entrar a SMYL») con degradados suaves, en todo el sistema.

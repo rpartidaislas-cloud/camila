@@ -13,6 +13,7 @@ const ALLOWED_ROOTS = new Set([
   "context",
   "contract",
   "conversations",
+  "ia",
   "inbox",
   "payments",
   "training",
