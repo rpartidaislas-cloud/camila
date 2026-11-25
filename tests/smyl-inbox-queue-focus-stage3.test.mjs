@@ -50,6 +50,6 @@ test('la etapa final publica recursos nuevos con paridad web y móvil', () => {
   assert.equal(mobileCss, css);
   assert.equal(mobileApp, app);
   assert.match(app, /smyl-inbox\.css\?v=79/);
-  assert.match(app, /smyl-inbox\.js\?v=95/);
-  assert.match(worker, /smyl-inbox\.js\?v=95/);
+  assert.match(app, /smyl-inbox\.js\?v=96/);
+  assert.match(worker, /smyl-inbox\.js\?v=96/);
 });
