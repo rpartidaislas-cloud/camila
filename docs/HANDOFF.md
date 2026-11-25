@@ -12636,3 +12636,7 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 ## 2026-11-25 — Claude Code — Chat: filtro por canal con logos
 - En Filtros del Inbox, «Canal» ya no es una lista: son tres botones redondos con el logo de WhatsApp, Messenger e Instagram (reutilizan `CHANNEL_MARKS`). Tocar uno filtra; tocarlo otra vez quita el filtro. Botones de 44 px, `aria-pressed` y nombre accesible por plataforma.
 - `smyl-inbox.js` v97, `smyl-inbox.css` v80 (+ pines en pruebas y copias en `mobile/www/`). Prueba `smyl-inbox-thread-assignment` y `smyl-inbox-queue-focus-stage3` actualizadas.
+
+## 2026-11-25 — Claude Code — Servicios y tarifas: edición en bloque
+- Botón «Editar varios» (encabezado, solo con permiso de gestionar) → casillas en cada servicio y barra fija con: Elegir los visibles, Limpiar, **Precio** (solo con `catalog.prices`), **Duración** (10–480 min), **Marcar fiscal revisada** (solo servicios con ClaveProdServ, unidad, objeto de impuesto e IVA completos; confirma y avisa cuántos omitió) y **Activar / Desactivar** (confirma). Una sola escritura por acción (`update … in('id', ids)` acotada a la clínica); no toca los precios propios por sucursal; el servidor sigue siendo quien aplica los permisos.
+- `smyl-service-catalog.js` v18, `smyl-service-catalog-stage1.css` v6 (+ pines y copias en `mobile/www/`). Pruebas: `tests/catalogo-edicion-bloque.test.mjs` y humo `tests/qa/catalogo-edicion-bloque-smoke.cjs` (16 comprobaciones con base simulada).
