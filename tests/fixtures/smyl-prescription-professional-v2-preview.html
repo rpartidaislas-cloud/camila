@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>SMYL · Receta profesional · Vista de prueba</title>
+  <link rel="stylesheet" href="../../smyl-prescription.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:#edf2f5;color:#10223a;font:14px Inter,system-ui,sans-serif}
+    .preview-shell{max-width:1120px;margin:auto;padding:40px 24px}.preview-shell h1{margin:0 0 6px;font-size:28px}.preview-shell p{margin:0 0 24px;color:#627589}
+    .preview-shell>button{border:0;border-radius:10px;padding:12px 18px;background:#0d2c45;color:#fff;font-weight:750}
+  </style>
+</head>
+<body>
+  <main class="preview-shell">
+    <h1>Expediente de Mariana López</h1>
+    <p>Entorno de prueba con datos clínicos ficticios.</p>
+    <button id="open-prescription" type="button">Crear receta</button>
+  </main>
+  <script>
+    window.tenantId='tenant-preview';
+    const prior={id:'rx-prior',folio:'RX-000018',status:'issued',issued_at:'2026-11-20T17:30:00Z',snapshot:{folio:'RX-000018',diagnosis:'Infección odontogénica localizada',items:[{generic:'Amoxicilina',brand:'',strength:'500 mg',form:'cápsulas',dose:'1 cápsula',route:'oral',frequency:'cada 8 horas',duration_days:7,quantity:'21 cápsulas'}],indications:'Tomar con alimentos.',patient:{name:'Mariana López'}}};
+    function query(table){
+      const payload=table==='smyl_patient_histories'?{document:{allergies_status:'yes',allergy_records:[{substance:'Ibuprofeno'}]}}:[prior];
+      const chain={select(){return chain},eq(){return chain},order(){return chain},limit(){return Promise.resolve({data:payload,error:null})},maybeSingle(){return Promise.resolve({data:payload,error:null})}};
+      return chain;
+    }
+    window.sb={from:query,rpc:async function(name,args){
+      if(name==='smyl_issue_prescription')return {data:{id:'rx-new',status:'issued',issued_at:new Date().toISOString(),snapshot:{folio:'RX-000019',issued_at:new Date().toISOString(),diagnosis:args.p_diagnosis,indications:args.p_indications,items:args.p_items,patient:{name:'Mariana López'},professional:{name:'Dra. Fernanda Lozano Vera',license:'12345678'},clinic:{name:'Clínica Centro'}}},error:null};
+      return {data:true,error:null};
+    }};
+  </script>
+  <script src="../../smyl-prescription-model.js"></script>
+  <script src="../../smyl-prescription-print.js"></script>
+  <script src="../../smyl-prescriptions.js"></script>
+  <script>
+    document.getElementById('open-prescription').addEventListener('click',()=>window.SmylPrescriptions.open({patientId:'patient-preview',patientName:'Mariana López',branchId:'branch-preview'}));
+    document.getElementById('open-prescription').click();
+  </script>
+</body>
+</html>

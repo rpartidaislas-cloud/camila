@@ -1,3 +1,15 @@
+## 2026-11-25 — Codex — Recetas profesionales: preparar → revisar → emitir (web y PWA)
+
+- Alcance solicitado después de la auditoría Dentalink: se avanzó en **Prescripciones** y se dejó **Agenda fuera** porque Ricardo la está trabajando en Claude, tanto en pantalla como desde el chat.
+- `smyl-prescriptions.js` / `smyl-prescription.css` v2: el formulario técnico se convirtió en un proceso de tres pasos (**Preparar, Revisar, Emitir**) con jerarquía visual, resumen vivo, seguridad clínica visible, confirmación profesional y estado final de emisión.
+- La captura separa identidad del medicamento e instrucciones para el paciente; señala antibióticos, posibles controlados y coincidencias con alergias antes de emitir. El servidor continúa siendo la validación autoritativa.
+- Historial mejorado: una receta anterior se puede **usar como base** de un borrador nuevo, pero la receta emitida permanece congelada e inmutable. Siguen disponibles reimpresión y anulación auditada.
+- `smyl-prescription-print.js`: hoja media carta con identidad clínica y monograma; no se agregaron leyendas regulatorias inventadas.
+- Web y `mobile/www` quedaron sincronizados; `app.html` y `sw.js` usan activos v2 y caché renovada.
+- QA: 16/16 pruebas de modelo, seguridad, impresión e integración; prueba real en Chrome del flujo preparar/reutilizar/revisar/emitir/imprimir a 1440 y 390 px, sin desbordes ni etapas superpuestas. Fixture: `tests/fixtures/smyl-prescription-professional-v2-preview.html`; prueba: `tests/smyl-prescription-browser.cjs`.
+- **Pendiente para Claude/backend:** si se quieren plantillas personales permanentes y sincronizadas entre dispositivos, necesitan contrato y persistencia multi-tenant en servidor. Esta entrega reutiliza recetas ya emitidas sin alterar su copia. No se modificaron migraciones ni funciones.
+- **Límite explícito:** `docs/RECETA_REQUISITOS.md` sigue indicando que los requisitos no están verificados contra el texto oficial. Validar con asesoría sanitaria antes de uso real; la UI no afirma cumplimiento legal.
+
 ## 2026-11-25 — Claude Code — Plantillas de WhatsApp: panel «Tus solicitudes a Meta» y mejoras visuales
 
 - Petición de Ricardo: mejorar la parte técnica y visual de Mensajería → Plantillas de WhatsApp, y tener un lugar para ver el estatus de las plantillas enviadas a Meta. El estado solo aparecía como una etiqueta dentro de cada una de las 58 tarjetas.

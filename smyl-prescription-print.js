@@ -69,21 +69,31 @@
     return Number.isFinite(d.getTime()) ? d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : value;
   }
 
+  function initials(value) {
+    var words = text(value, 120).split(/\s+/).filter(Boolean);
+    if (!words.length) return 'S';
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+    return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase().slice(0, 2);
+  }
+
   function render(input, doc) {
     doc = doc || (typeof document !== 'undefined' ? document : null);
     var rx = normalize(input), paper = el(doc, 'article', 'rx-paper');
     paper.setAttribute('aria-label', 'Receta médica');
 
-    var head = el(doc, 'header', 'rx-head'), who = el(doc, 'div', 'rx-doctor');
+    var head = el(doc, 'header', 'rx-head'), identity = el(doc, 'div', 'rx-identity'), mark = el(doc, 'span', 'rx-clinic-mark', initials(rx.clinic.name));
+    var who = el(doc, 'div', 'rx-doctor');
     who.append(el(doc, 'strong', 'rx-doctor-name', rx.professional.name || 'Nombre del profesional'));
     if (rx.professional.specialty) who.append(el(doc, 'span', 'rx-doctor-line', rx.professional.specialty));
     who.append(el(doc, 'span', 'rx-doctor-line', 'Cédula profesional: ' + (rx.professional.license_number || '—')));
     who.append(el(doc, 'span', 'rx-doctor-line', 'Institución: ' + (rx.professional.license_institution || '—')));
+    identity.append(mark, who);
     var place = el(doc, 'div', 'rx-clinic');
+    place.append(el(doc, 'small', 'rx-document-type', 'RECETA MÉDICA'));
     if (rx.clinic.name) place.append(el(doc, 'strong', '', rx.clinic.name));
     if (rx.clinic.address) place.append(el(doc, 'span', '', rx.clinic.address));
     if (rx.clinic.phone) place.append(el(doc, 'span', '', 'Tel. ' + rx.clinic.phone));
-    head.append(who, place); paper.append(head);
+    head.append(identity, place); paper.append(head);
 
     var meta = el(doc, 'div', 'rx-meta');
     [['Paciente', rx.patient.name || '—'], ['Edad', rx.patient.age_label || '—'], ['Fecha', dateLabel(rx.issued_at) || '—'], ['Folio', rx.folio || '—']].forEach(function (pair) {

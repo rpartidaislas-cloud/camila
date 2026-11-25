@@ -73,6 +73,36 @@
     });
   }
 
+  // Copia segura para preparar una receta nueva desde una receta anterior. La fila
+  // emitida permanece inmutable: sólo se trasladan los campos editables al borrador.
+  function draftItems(items) {
+    var source = Array.isArray(items) ? items : [];
+    return source.slice(0, MAX_ITEMS).map(function (i) {
+      i = i && typeof i === 'object' ? i : {};
+      var days = Number(i.duration_days);
+      if (!Number.isInteger(days)) {
+        var match = String(i.duration || '').match(/\d+/);
+        days = match ? Number(match[0]) : '';
+      }
+      return {
+        generic: String(i.generic || '').slice(0, 120), brand: String(i.brand || '').slice(0, 120),
+        strength: String(i.strength || '').slice(0, 60), form: String(i.form || '').slice(0, 60),
+        dose: String(i.dose || '').slice(0, 120), route: String(i.route || 'oral').slice(0, 60),
+        frequency: String(i.frequency || '').slice(0, 80), duration_days: days,
+        quantity: String(i.quantity || '').slice(0, 60)
+      };
+    });
+  }
+
+  function draftFromPrescription(row) {
+    var snapshot = row && row.snapshot && typeof row.snapshot === 'object' ? row.snapshot : {};
+    return {
+      items: draftItems(snapshot.items),
+      diagnosis: String(snapshot.diagnosis || '').slice(0, 240),
+      indications: String(snapshot.indications || '').slice(0, 900)
+    };
+  }
+
   // Alergias del documento de la historia clínica: lista de sustancias + estado.
   function allergiesOf(doc) {
     doc = doc && typeof doc === 'object' ? doc : {};
@@ -117,5 +147,6 @@
 
   return { MAX_ITEMS: MAX_ITEMS, ANTIBIOTIC_MAX_DAYS: ANTIBIOTIC_MAX_DAYS, CONTROLLED: CONTROLLED, ANTIBIOTICS: ANTIBIOTICS, FAMILIES: FAMILIES,
     SUGGESTIONS: SUGGESTIONS, FORMS: FORMS, ROUTES: ROUTES, norm: norm, classify: classify, itemIssues: itemIssues, issues: issues, payload: payload,
-    allergiesOf: allergiesOf, allergyWarnings: allergyWarnings, allergyNote: allergyNote, toSheet: toSheet };
+    draftItems: draftItems, draftFromPrescription: draftFromPrescription, allergiesOf: allergiesOf, allergyWarnings: allergyWarnings,
+    allergyNote: allergyNote, toSheet: toSheet };
 });
