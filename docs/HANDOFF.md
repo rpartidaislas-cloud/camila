@@ -1,3 +1,26 @@
+## 2026-11-25 — Claude Code — Plantillas de WhatsApp: panel «Tus solicitudes a Meta» y mejoras visuales
+
+- Petición de Ricardo: mejorar la parte técnica y visual de Mensajería → Plantillas de WhatsApp, y tener un lugar para ver el estatus de las plantillas enviadas a Meta. El estado solo aparecía como una etiqueta dentro de cada una de las 58 tarjetas.
+- **Panel «Tus solicitudes a Meta»** (`smyl-templates.js` v8 / `.css` v7):
+  - Lista todo lo que ya se mandó a Meta, en este orden: primero en revisión, luego con problemas y al final aprobadas.
+  - Cada fila muestra estado, categoría, grupo, «Solicitada hace…» y «Respuesta de Meta…», el motivo de rechazo y si Meta la reclasificó.
+  - Incluye las plantillas creadas fuera del catálogo y un botón «Ver plantilla», que lleva a la tarjeta y la resalta.
+  - Tiene contadores (En revisión / Aprobadas / Con problemas) que sirven de filtro, más «Actualizar estado» y «Consultado hace…».
+  - Mientras haya plantillas en revisión y la pantalla esté a la vista, vuelve a consultar cada minuto. También consulta al regresar a la pestaña.
+  - La guía «Cómo solicitarlas» se pliega sola la primera vez que hay solicitudes.
+- **Filtros y tarjetas:**
+  - Nuevo filtro por estado: Todas, Por solicitar, En revisión, Aprobadas, Con problemas.
+  - Las tarjetas muestran una franja de color según su estado y el estado aparece primero.
+  - «Copiar datos de solicitud» solo es el botón principal cuando no se pudo consultar Meta.
+- **Técnico:**
+  - `whatsapp-templates` ahora entrega `requested_at` y `updated_at`, que LANA ya devolvía. Bundle regenerado.
+  - Sin `innerHTML` (se usa `replaceChildren`).
+  - La búsqueda espera 150 ms antes de filtrar.
+  - El estado se anuncia por `aria-live`.
+  - Los textos de 11 px pasaron a 12 px.
+- **Despliegue:** hay que desplegar `whatsapp-templates` en SMYL para que aparezcan las fechas. Sin ese despliegue el panel funciona igual, solo sin «Solicitada hace…».
+- QA visual a 1440, 820 y 390 px con datos simulados, sin desbordes. Las fallas de la suite completa son las mismas 14 de antes del cambio.
+
 ## 2026-11-24 — Claude Code — Agenda con IA paso 2: el asistente deja solicitudes en «Por aprobar» (B2a)
 
 - Solicitud de Ricardo (B2a): que el asistente ofrezca horarios reales y deje la solicitud en «Agenda → Por aprobar»; decisión: se guardan nombre y teléfono con autorización explícita del paciente. **Nunca confirma una cita.**

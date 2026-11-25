@@ -130,9 +130,9 @@ test('Mensajes muestra cuántas conversaciones sin leer hay, sin abrir ninguna',
 });
 
 test('web, móvil y PWA publican las plantillas', () => {
-  assert.match(app, /<link rel="stylesheet" href="smyl-templates\.css\?v=6">/);
-  assert.match(app, /<script defer src="smyl-template-catalog\.js\?v=7"><\/script>\s*<script defer src="smyl-templates\.js\?v=7"><\/script>/);
-  for (const file of ['smyl-templates.css?v=6', 'smyl-template-catalog.js?v=7', 'smyl-templates.js?v=7']) assert.ok(worker.includes("'/camila/" + file + "'"), file);
+  assert.match(app, /<link rel="stylesheet" href="smyl-templates\.css\?v=7">/);
+  assert.match(app, /<script defer src="smyl-template-catalog\.js\?v=7"><\/script>\s*<script defer src="smyl-templates\.js\?v=8"><\/script>/);
+  for (const file of ['smyl-templates.css?v=7', 'smyl-template-catalog.js?v=7', 'smyl-templates.js?v=8']) assert.ok(worker.includes("'/camila/" + file + "'"), file);
   for (const file of ['smyl-messaging.css?v=1', 'smyl-messaging.js?v=1']) assert.ok(worker.includes("'/camila/" + file + "'"), file);
   assert.match(app, /smyl-messaging\.css\?v=1/);
   assert.match(app, /smyl-messaging\.js\?v=1/);
@@ -195,4 +195,25 @@ test('la copia del catálogo para las Edge Functions está al día y la función
   assert.deepEqual(shared.TEMPLATES.map((item) => item.id), catalog.TEMPLATES.map((item) => item.id));
   for (const item of shared.TEMPLATES) assert.deepEqual(shared.validate(item), []);
   assert.match(fs.readFileSync(new URL('../supabase/config.toml', import.meta.url), 'utf8'), /\[functions\.whatsapp-templates\]\r?\nverify_jwt = true/);
+});
+
+// Panel «Tus solicitudes a Meta» (2026-11-25): Ricardo no encontraba el estado de las plantillas que mandó a revisión.
+test('la pantalla muestra un panel con las solicitudes a Meta, filtro por estado y se actualiza sola mientras hay revisión', () => {
+  assert.match(page, /'Tus solicitudes a Meta'/);
+  assert.match(page, /data-tpl-tracker|dataset\.tplTracker = ''/);
+  assert.match(page, /\['PENDING', 'En revisión'\], \['APPROVED', 'Aprobadas'\], \['PROBLEM', 'Con problemas'\]/);
+  assert.match(page, /var AUTO_REFRESH_MS = 60 \* 1000;/);
+  assert.match(page, /if \(!pendingCount\(\)\) return;/);
+  assert.match(page, /document\.visibilityState === 'visible'/);
+  assert.match(page, /'Solicitada ' \+ requested/);
+  assert.match(page, /'Ver plantilla'/);
+  assert.match(page, /Creada fuera del catálogo/);
+  assert.doesNotMatch(page, /innerHTML/);
+  const fn = read('../supabase/functions/whatsapp-templates/index.ts');
+  assert.match(fn, /requested_at: text\(item\.created_at, 40\) \|\| null, updated_at: text\(item\.updated_at, 40\) \|\| null/);
+  const css = read('../smyl-templates.css');
+  assert.doesNotMatch(css, /font-size:1[01]px|font:\d+ 1[01]px/, 'texto mínimo de 12 px');
+  assert.match(app, /smyl-templates\.css\?v=7/);
+  assert.match(app, /smyl-templates\.js\?v=8/);
+  assert.match(worker, /plantillas-estatus-v1/);
 });
