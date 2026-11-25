@@ -149,3 +149,23 @@ body.smyl-ui-governed .contenido .catalog-dialog .catalog-form-grid>label>textar
 .catalog-price-input.has-price span{color:#5b6675}
 .catalog-price-input.has-price input{font-weight:700;text-align:right}
 .catalog-price-input.has-price:focus-within{border-color:#142bc3}
+
+/* Edición en bloque */
+.catalog-head-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.catalog-bulk-toggle{min-height:40px;padding:0 14px;border:1px solid #c9d8ef;border-radius:10px;background:#fff;color:#194391;font:inherit;font-weight:600;cursor:pointer}
+.catalog-bulk-toggle[aria-pressed="true"]{background:#194391;border-color:#194391;color:#fff}
+.catalog-bulk-check{display:inline-flex;align-items:center;margin-right:10px;vertical-align:middle}
+.catalog-bulk-check input{width:20px;height:20px}
+.catalog-bulkbar{position:sticky;bottom:12px;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:12px 0;padding:12px 16px;border:1px solid #c9d8ef;border-radius:14px;background:#fff;box-shadow:0 10px 30px rgba(15,32,46,.16)}
+.catalog-bulkbar[hidden]{display:none}
+.catalog-bulk-actions{display:flex;gap:8px;flex-wrap:wrap}
+.catalog-bulk-actions button{min-height:40px;padding:0 12px;border:1px solid #d9dfe7;border-radius:10px;background:#fff;font:inherit;font-weight:600;cursor:pointer}
+.catalog-bulk-actions button:disabled{opacity:.45;cursor:not-allowed}
+.catalog-bulk-actions [data-bulk-do]:not(:disabled){color:#194391;border-color:#c9d8ef}
+.catalog-bulk-dialog{width:min(420px,calc(100% - 24px))}
+.catalog-bulk-dialog form{padding:20px;display:grid;gap:14px}
+.catalog-bulk-dialog header{display:flex;justify-content:space-between;gap:12px}
+.catalog-bulk-dialog header h2{margin:0 0 4px;font-size:18px}
+.catalog-bulk-dialog header p{margin:0;color:#5f716b;font-size:13px;line-height:1.5}
+.catalog-bulk-field{display:grid;gap:6px;font-weight:600}
+@media (max-width:720px){.catalog-bulkbar{bottom:8px}.catalog-bulk-actions button{flex:1 1 auto}}
