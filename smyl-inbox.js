@@ -465,7 +465,8 @@
             '<div class="smyl-inbox-filter-pair" role="presentation"><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="attention">Por atender</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="mine">Mías</button></div>' +
           '</div>' +
           '<div class="smyl-inbox-branch-strip" data-inbox-branch-strip hidden></div>' +
-          '<section class="smyl-inbox-filter-panel" id="smyl-inbox-filter-panel" data-inbox-filter-panel aria-label="Filtros de conversaciones" hidden><fieldset><legend>Estado</legend><div class="smyl-inbox-secondary-filters"><button type="button" data-inbox-filter="unassigned">Sin asignar</button><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="pinned">Fijadas</button></div></fieldset><label>Canal<select data-inbox-channel aria-label="Filtrar por canal"><option value="">Todos los canales</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option></select></label></section>' +
+          '<section class="smyl-inbox-filter-panel" id="smyl-inbox-filter-panel" data-inbox-filter-panel aria-label="Filtros de conversaciones" hidden><fieldset><legend>Estado</legend><div class="smyl-inbox-secondary-filters"><button type="button" data-inbox-filter="unassigned">Sin asignar</button><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="pinned">Fijadas</button></div></fieldset><div class="smyl-inbox-channel-filter"><span class="smyl-inbox-channel-label" id="smyl-inbox-channel-label">Canal</span><div class="smyl-inbox-channel-chips" data-inbox-channel role="group" aria-labelledby="smyl-inbox-channel-label">' +
+          ['whatsapp', 'messenger', 'instagram'].map(function (c) { return '<button type="button" class="smyl-inbox-channel-chip" data-channel-value="' + c + '" aria-pressed="false" aria-label="' + channelLabel(c) + '" title="' + channelLabel(c) + '">' + CHANNEL_MARKS[c] + '</button>'; }).join('') + '</div></div></section>' +
           '<div class="smyl-inbox-queue-summary" data-inbox-queue-summary role="status" aria-live="polite"></div><div class="smyl-inbox-queue-summary" data-inbox-handoff-status role="status" aria-live="polite" hidden></div>' +
           '<div class="smyl-inbox-list" data-inbox-list></div>' +
           '<div class="smyl-inbox-bulkbar" data-inbox-bulkbar hidden></div>' +
@@ -906,6 +907,7 @@
   }
 
   function renderFilterControls() {
+    document.querySelectorAll('[data-channel-value]').forEach(function (chip) { chip.setAttribute('aria-pressed', String(chip.dataset.channelValue === state.channel)); });
     var advanced = ['paused', 'pinned', 'unassigned'].indexOf(state.filter) !== -1 || Boolean(state.channel);
     document.querySelectorAll('[data-inbox-filter]').forEach(function (button) {
       var filter = button.dataset.inboxFilter;
@@ -5724,7 +5726,7 @@
     page.querySelector('[data-pipeline-more]').addEventListener('click', function () { loadList(!state.hasMore); });
     var savedView = null; try { savedView = window.sessionStorage.getItem('smyl_inbox_view'); } catch (_) {}
     setInboxView(savedView);
-    page.querySelector('[data-inbox-channel]').addEventListener('change', function (event) { state.channel = event.target.value; renderFilterControls(); loadList(true); });
+    page.querySelector('[data-inbox-channel]').addEventListener('click', function (event) { var chip = event.target.closest('[data-channel-value]'); if (!chip) return; state.channel = state.channel === chip.dataset.channelValue ? '' : chip.dataset.channelValue; renderFilterControls(); loadList(true); });
     page.querySelector('[data-inbox-more]').addEventListener('click', function () { loadList(false); });
     page.querySelector('[data-thread-older]').addEventListener('click', function () { loadThread(state.selectedId, true); });
     page.querySelector('[data-thread-jump]').addEventListener('click', function () {
