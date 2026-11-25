@@ -4172,8 +4172,24 @@
   function openAvailabilityPatientLink() {
     var dialog = document.querySelector('[data-availability-dialog]');
     if (dialog && dialog.open) dialog.close();
+    // Al terminar de vincular se vuelve a abrir «Agendar cita» (ver el evento smyl:chat-patient-linked).
+    state.availabilityResume = { id: state.selectedId, at: Date.now() };
     openPatientContext(state.selectedId);
   }
+
+  // Vincular un paciente desde el chat (ventana «Vincular paciente»): actualiza el chat sin sacarte de él.
+  window.addEventListener('smyl:chat-patient-linked', function (event) {
+    var detail = (event && event.detail) || {}; var id = detail.conversationId;
+    if (!id || !detail.patientId) return;
+    var prior = state.clinical[id] || {};
+    state.clinical[id] = Object.assign({}, prior, { linked: true, patient: { id: detail.patientId, name: detail.patientName || (prior.patient && prior.patient.name) || '' }, provisional_contact: Boolean(detail.created), unavailable: false });
+    delete state.clinical[id].auto_link_reason;
+    state.patientLinkChecked[id] = true;
+    if (state.selectedId === id) { renderCareBar(); renderThreadHeader(); renderContext(); refreshAvailabilityPatientIdentity(); }
+    loadClinicalContext(id);
+    var resume = state.availabilityResume; state.availabilityResume = null;
+    if (resume && resume.id === id && Date.now() - resume.at < 15 * 60 * 1000 && state.selectedId === id) openAvailabilityDialog();
+  });
 
   function resetAvailabilityScope() {
     var dialog = document.querySelector('[data-availability-dialog]'); if (!dialog) return;
