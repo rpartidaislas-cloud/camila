@@ -1,3 +1,16 @@
+## 2026-11-25 — Codex — Consentimientos informados: proceso profesional y documento protegido (web y PWA)
+
+- Alcance posterior a la auditoría Dentalink: se profesionalizó **Consentimientos informados** y se mantuvo **Agenda fuera** porque Ricardo la está trabajando en Claude.
+- `smyl-informed-consent.js` / `.css` v2: el formulario genérico se convirtió en un proceso de cinco etapas separadas: **Procedimiento → Personalizar → Lectura → Firma → Confirmar**. Incluye plantillas clínicas editables, resumen vivo, lectura guiada al paciente, identidad del firmante, firma táctil y confirmación profesional.
+- Integridad del consentimiento: si cambia cualquier parte del documento después de la lectura, se invalidan las confirmaciones y la firma; si cambia el paciente/tutor firmante, se invalida la firma. Un toque accidental ya no cuenta como firma y el trazo se conserva al redimensionar la pantalla.
+- El límite de 20,000 caracteres de la RPC se valida antes de llegar a lectura/firma. Los documentos firmados se consultan e imprimen con DOM seguro, sin `document.write`, `prompt` ni `alert`; siguen siendo inmutables y una revocación conserva el original.
+- La revocación ahora usa diálogo propio, exige motivo y solicita confirmación de identidad en el cliente. **Pendiente para Claude/backend:** exigir también autenticación reciente dentro de `smyl_revoke_informed_consent`; la protección del cliente no sustituye la validación del servidor.
+- PWA: flujo móvil a una sola columna, acciones fijas sin superposición, soporte de `safe-area-inset-bottom`, historial compacto y activos web/móvil idénticos. `app.html` y `sw.js` usan v2 y caché `consentimiento-profesional-v2`.
+- Se reutilizaron sin cambios las RPC existentes `smyl_list_informed_consents`, `smyl_get_informed_consent`, `smyl_record_informed_consent` y `smyl_revoke_informed_consent`; no se modificaron migraciones ni Agenda.
+- QA: 25/25 pruebas de consentimiento, Ficha 360 y procedimiento; recorrido real en Chrome de creación, regreso entre etapas, invalidación de lectura/firma, firma de tutor, reautenticación, guardado, documento, impresión y revocación. Validado a 1440, 834 y 390 px, sin desbordes. Fixture: `tests/fixtures/smyl-informed-consent-v2-preview.html`; prueba: `tests/smyl-informed-consent-browser.cjs`.
+- **Siguiente etapa propuesta:** ortodoncia longitudinal (plan, citas de control, movimientos, fotografías y evolución), primero con contrato de datos multi-tenant coordinado con Claude y después su interfaz profesional.
+- **Límite clínico/legal:** las plantillas son puntos de partida editables; requieren revisión clínica y legal antes de uso real. La interfaz no afirma por sí sola cumplimiento regulatorio.
+
 ## 2026-11-25 — Codex — Recetas profesionales: preparar → revisar → emitir (web y PWA)
 
 - Alcance solicitado después de la auditoría Dentalink: se avanzó en **Prescripciones** y se dejó **Agenda fuera** porque Ricardo la está trabajando en Claude, tanto en pantalla como desde el chat.

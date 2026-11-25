@@ -23,6 +23,40 @@ test('el documento firmado contiene todos los elementos y la validación exige e
   assert.ok(IC.render([{ id: '1', procedure_title: '<b>x</b>', signer_name: 'A', professional_name: 'B', professional_license: '1', signed_at: new Date().toISOString() }], 7, true).includes('&lt;b&gt;x&lt;/b&gt;'), 'escapa');
 });
 
+test('la validación evita llegar a la firma con un documento mayor que el límite del servidor', () => {
+  const f = { title: 'Procedimiento', description: 'Descripción suficiente', benefits: 'Beneficios suficientes', risks: 'R'.repeat(20000), alternatives: 'Alternativas suficientes', care: '', notes: '', relation: 'patient', signer: 'Ana', patient: 'Ana', clinic: 'Clínica', date: 'hoy', explained: true, inked: true };
+  assert.match(IC.validate(f), /demasiado extenso/);
+});
+
+test('el flujo valida cada etapa sin mezclar lectura, firma y confirmación', () => {
+  const f = { title: 'Extracción dental', description: 'Retiro del diente indicado', benefits: 'Eliminar dolor e infección', risks: 'Sangrado, inflamación e infección', alternatives: 'Tratamiento conservador cuando sea posible', signer: 'Ana', explained: true, inked: true, readFull: true, questions: true, answered: true };
+  assert.equal(IC.stepIssue('procedure', f), '');
+  assert.equal(IC.stepIssue('customize', f), '');
+  assert.equal(IC.stepIssue('read', f), '');
+  assert.equal(IC.stepIssue('sign', f), '');
+  assert.match(IC.stepIssue('read', { ...f, questions: false }), /pudo preguntar/);
+  assert.match(IC.stepIssue('sign', { ...f, inked: false }), /firma/);
+});
+
+test('la experiencia usa documento seguro, firma adaptable y diálogo propio de revocación', () => {
+  const source = read('smyl-informed-consent.js');
+  assert.match(source, /new ResizeObserver\(resize\)/);
+  assert.match(source, /distance >= 24 && points >= 2/);
+  assert.match(source, /invalidateDocumentReview/);
+  assert.match(source, /invalidateSigner/);
+  assert.doesNotMatch(source, /window\.prompt|window\.alert|document\.write/);
+  assert.match(source, /ic-revoke-dialog/);
+});
+
+test('la versión web y la PWA comparten exactamente el mismo flujo profesional', () => {
+  for (const file of ['app.html', 'sw.js', 'smyl-informed-consent.js', 'smyl-informed-consent.css']) {
+    assert.equal(read(file), read(`mobile/www/${file}`), file);
+  }
+  assert.match(read('app.html'), /smyl-informed-consent\.css\?v=2/);
+  assert.match(read('app.html'), /smyl-informed-consent\.js\?v=2/);
+  assert.match(read('sw.js'), /consentimiento-profesional-v2/);
+});
+
 test('la base guarda texto exacto, huella, firma y profesional con cédula; no se edita ni se borra', () => {
   const sql = read('supabase/migrations/20261126120000_smyl_informed_consents.sql');
   assert.match(sql, /encode\(sha256\(convert_to\(p_document_text, 'UTF8'\)\), 'hex'\)/);
@@ -31,5 +65,5 @@ test('la base guarda texto exacto, huella, firma y profesional con cédula; no s
   assert.match(sql, /Un consentimiento informado no se puede eliminar/);
   assert.match(sql, /union all select max\(signed_at\) from public\.smyl_informed_consents/);
   assert.match(read('smyl-patient-360.js'), /window\.SmylInformedConsent\.mount\(\{host:s\.historyHost/);
-  assert.match(read('app.html'), /smyl-informed-consent\.js\?v=1/);
+  assert.match(read('app.html'), /smyl-informed-consent\.js\?v=2/);
 });
