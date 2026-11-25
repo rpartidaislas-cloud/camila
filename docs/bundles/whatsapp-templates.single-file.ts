@@ -844,6 +844,8 @@ Deno.serve(async (req) => {
         templates: list.map((item) => ({
           name: text(item.name, 200), language: text(item.language, 20), category: text(item.category, 20),
           status: text(item.status, 30), rejection_reason: text(item.rejection_reason, 500) || null,
+          // Para el panel «Tus solicitudes a Meta»: cuándo se pidió y cuándo cambió de estado por última vez.
+          requested_at: text(item.created_at, 40) || null, updated_at: text(item.updated_at, 40) || null,
         })).filter((item) => item.name),
       });
     } catch (error) {
