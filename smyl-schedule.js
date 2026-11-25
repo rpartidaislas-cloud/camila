@@ -489,7 +489,9 @@
   }
   function negotiationById(id){return state.negotiations.find(function(x){return x.id===id;});}
   function negotiationRequest(id){var n=negotiationById(id);return n&&byId(state.requests,n.request_id);}
-  async function dispatchNegotiation(id,recipient){var result=await window.sb.functions.invoke('appointment-negotiations',{body:{action:'dispatch',negotiation_id:id,recipient:recipient}});if(result.error)throw result.error;if(result.data&&result.data.error)throw new Error(result.data.error);return result.data||{};}
+  // Con una respuesta 4xx/5xx supabase-js solo dice «Edge Function returned a non-2xx status code»: el motivo real viene en el cuerpo ({error}) y es lo que el equipo necesita ver.
+  async function functionErrorMessage(error){try{var ctx=error&&error.context;if(ctx&&typeof ctx.json==='function'){var body=await ctx.json();if(body&&typeof body.error==='string'&&body.error.trim())return body.error.trim();}}catch(e){}return '';}
+  async function dispatchNegotiation(id,recipient){var result=await window.sb.functions.invoke('appointment-negotiations',{body:{action:'dispatch',negotiation_id:id,recipient:recipient}});if(result.error){var detail=await functionErrorMessage(result.error);if(detail)throw new Error(detail);throw result.error;}if(result.data&&result.data.error)throw new Error(result.data.error);return result.data||{};}
   async function refreshNegotiations(text,tone){close();state.loaded=false;await load(true);if(text)notify(text,tone||'success');}
   function openNegotiation(request){
     if(!state.canManage)return notify('Tu rol no permite preparar confirmaciones.','error');
