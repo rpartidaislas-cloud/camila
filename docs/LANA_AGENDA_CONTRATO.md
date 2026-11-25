@@ -15,10 +15,14 @@ Función: `lana-scheduling` (Edge Function de SMYL). `context` y `suggest` son d
 ### `context`
 Responde `{ ok, enabled, level, status: single_branch|assigned|unassigned|not_applicable, branch, branches, services, policy{min_lead_hours,horizon_days,max_options:3}, generated_at }`, o `{ ok:true, enabled:false }` si está apagado.
 
+**Agregado (2026-11-25):** el contexto también devuelve `professionals: [{ id, name, branch_ids[] }]` (profesionales activos y las sedes donde atienden; solo nombre público, nunca contacto ni datos clínicos) para que el asistente pueda pedir horarios con uno en concreto (`professional_id` en `suggest`).
+
 ### `suggest`
 Agrega: `service_id` (obligatorio, de los permitidos); opcionales `branch_id`, `professional_id` (fija profesional), `preferred_professional_id` (preferencia, p. ej. quien atendió antes), `from`/`to` (ISO, ventana ≤ 31 días dentro de la política) y `exclude` (claves ya ofrecidas, para «otras opciones»).
 Responde `{ ok, status: ok|few|none, branch, options[{index,key,tag,starts_at,ends_at,local_label,timezone,service_id,service_name,professional_id,professional_name,branch_id,branch_name}], message_hint, explanation, next_step, other_branches_available }`.
 Máximo 3 opciones, de una sola sucursal, en hora local de la sucursal. LANA debe ofrecerlas tal cual y pedir confirmación a una persona del equipo; nunca prometer el horario.
+
+**Agregado (2026-11-25) — `more: true` en `suggest`:** «más opciones». El servidor excluye los horarios que ya ofreció en esta conversación en las últimas 2 horas (los lee de `smyl_assistant_slot_offers`; el cliente no tiene que recordarlos). Equivale a pasar `exclude` con esas claves. Si no queda nada nuevo, responde `status: none` con `options: []`.
 
 ### `request` (solo con el nivel `request`)
 Cuerpo: `{ ..., "action": "request", "lana_tenant_id": "<uuid>", "offer_key": "<uuid de suggest>", "option_index": 1|2|3, "name": "<2-80 caracteres>", "contact": "<teléfono de 10 dígitos o correo>", "privacy_consent": true, "privacy_notice_version": "chat-appointment-v1" }`.

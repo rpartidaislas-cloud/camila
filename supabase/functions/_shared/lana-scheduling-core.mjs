@@ -144,6 +144,8 @@ export async function manejar({ raw, signature, now = new Date(), secret, deps }
     // ── request: deja una solicitud PENDIENTE a partir de una opción que el propio servidor ofreció (nunca confirma una cita) ──
     if (action === "request") return await solicitar({ body, settings, tenantId, conversationId, now, deps, log });
     const [branches, services, assignment] = await Promise.all([deps.branches(tenantId), deps.services(tenantId), deps.conversationBranch(tenantId, conversationId)]);
+    // Profesionales activos y sus sedes: el asistente puede pedir horarios con uno en concreto (`professional_id`). Solo nombre público; sin datos de contacto ni clínicos.
+    const professionals = typeof deps.professionals === "function" ? ((await deps.professionals(tenantId)) || []).slice(0, 40).map((p) => ({ id: p.id, name: String(p.name || "").slice(0, 120), branch_ids: Array.isArray(p.branch_ids) ? p.branch_ids.slice(0, 20) : [] })) : [];
     const policy = { min_lead_hours: settings.min_lead_hours, horizon_days: settings.horizon_days, max_options: 3 };
     const branchViews = branches.map(vistaSucursal);
 
@@ -161,6 +163,7 @@ export async function manejar({ raw, signature, now = new Date(), secret, deps }
         ok: true, enabled: true, level: settings.level, status, branch,
         branches: branchViews.map((b) => ({ id: b.id, name: b.name })),
         services: services.map((s) => ({ id: s.id, name: s.name, duration_minutes: s.duration_minutes })),
+        professionals,
         policy, generated_at: now.toISOString(),
       });
     }
@@ -181,7 +184,12 @@ export async function manejar({ raw, signature, now = new Date(), secret, deps }
     const professionalId = body.professional_id == null ? null : uuid(body.professional_id);
     const preferredId = body.preferred_professional_id == null ? null : uuid(body.preferred_professional_id);
     if ((body.professional_id != null && !professionalId) || (body.preferred_professional_id != null && !preferredId)) { await log("invalid", { reason: "professional_id" }); return fail(400, "invalid_request", "professional_id no es válido."); }
-    const exclude = Array.isArray(body.exclude) ? body.exclude.filter((x) => typeof x === "string" && x.length <= 300).slice(0, 30) : [];
+    let exclude = Array.isArray(body.exclude) ? body.exclude.filter((x) => typeof x === "string" && x.length <= 300).slice(0, 30) : [];
+    // «Más opciones»: el servidor excluye los horarios que ya ofreció en esta conversación (ofertas recientes), sin que el cliente tenga que recordarlos.
+    if (body.more === true && typeof deps.recentOfferKeys === "function") {
+      const vistos = (await deps.recentOfferKeys({ tenantId, conversationId, since: new Date(now.getTime() - 2 * 3600000).toISOString() })) || [];
+      exclude = Array.from(new Set(exclude.concat(vistos.filter((x) => typeof x === "string" && x.length <= 300)))).slice(0, 60);
+    }
 
     let chosen = null;
     if (body.branch_id != null) {
