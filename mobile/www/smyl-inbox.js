@@ -1537,7 +1537,7 @@
     }
     if (item.media_type === 'image' && hasPermission('clinical.write')) action('Enviar a revisión clínica', function () { linkClinicalImage(item); }, 'is-clinical');
     if (item.author_type === 'assistant' && hasPermission('messages.respond')) action('Evaluar IA', function () { openFeedback(item); }, 'is-copilot');
-    if (hasPermission('messages.manage')) action('Eliminar', function () { mutateMessage(item, 'delete'); }, 'is-danger');
+    if (hasPermission('messages.manage')) action('Ocultar en el panel', function () { mutateMessage(item, 'delete'); }, 'is-danger');
     if (!menu.childNodes.length) return null;
     var rail = node('div', 'smyl-inbox-message-actions');
     var button = node('button', 'smyl-inbox-message-more'); button.type = 'button';
@@ -1914,7 +1914,7 @@
 
   async function mutateMessage(item, action) {
     var conversation = selectedConversation(); if (!conversation) return;
-    if (action === 'delete' && !window.confirm('Esto solo lo ocultará en el panel; no lo retira del teléfono del paciente. ¿Continuar?')) return;
+    if (action === 'delete' && !window.confirm('Esto solo oculta el mensaje en el panel. NO se borra del teléfono del paciente ni de WhatsApp, Messenger o Instagram (Meta no permite a un negocio borrar mensajes ya enviados). ¿Ocultarlo en el panel?')) return;
     try {
       await request('POST', {}, { action: action, conversation_id: conversation.id, message_id: item.id }, uuid());
       if (action === 'star') item.starred = true;
