@@ -12632,3 +12632,7 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 ## 2026-11-24 — Claude Code — Servicios y tarifas: la tarjeta ya no muestra el precio
 - La fila de cada servicio quita el precio (y su campo editable); el precio se cambia en «Editar». Se conserva la etiqueta «Falta precio» y «precio varía por sede» en la línea de detalle; el servicio sin activar muestra «Sin activar» junto al botón.
 - `smyl-service-catalog.js` v17, `smyl-service-catalog-stage1.css` v5 (+ pines en pruebas, copias en `mobile/www/`).
+
+## 2026-11-25 — Claude Code — Chat: filtro por canal con logos
+- En Filtros del Inbox, «Canal» ya no es una lista: son tres botones redondos con el logo de WhatsApp, Messenger e Instagram (reutilizan `CHANNEL_MARKS`). Tocar uno filtra; tocarlo otra vez quita el filtro. Botones de 44 px, `aria-pressed` y nombre accesible por plataforma.
+- `smyl-inbox.js` v97, `smyl-inbox.css` v80 (+ pines en pruebas y copias en `mobile/www/`). Prueba `smyl-inbox-thread-assignment` y `smyl-inbox-queue-focus-stage3` actualizadas.
