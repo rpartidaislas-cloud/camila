@@ -442,6 +442,8 @@ async function manejar({ raw, signature, now = new Date(), secret, deps }) {
     // ── request: deja una solicitud PENDIENTE a partir de una opción que el propio servidor ofreció (nunca confirma una cita) ──
     if (action === "request") return await solicitar({ body, settings, tenantId, conversationId, now, deps, log });
     const [branches, services, assignment] = await Promise.all([deps.branches(tenantId), deps.services(tenantId), deps.conversationBranch(tenantId, conversationId)]);
+    // Profesionales activos y sus sedes: el asistente puede pedir horarios con uno en concreto (`professional_id`). Solo nombre público; sin datos de contacto ni clínicos.
+    const professionals = typeof deps.professionals === "function" ? ((await deps.professionals(tenantId)) || []).slice(0, 40).map((p) => ({ id: p.id, name: String(p.name || "").slice(0, 120), branch_ids: Array.isArray(p.branch_ids) ? p.branch_ids.slice(0, 20) : [] })) : [];
     const policy = { min_lead_hours: settings.min_lead_hours, horizon_days: settings.horizon_days, max_options: 3 };
     const branchViews = branches.map(vistaSucursal);
 
@@ -459,6 +461,7 @@ async function manejar({ raw, signature, now = new Date(), secret, deps }) {
         ok: true, enabled: true, level: settings.level, status, branch,
         branches: branchViews.map((b) => ({ id: b.id, name: b.name })),
         services: services.map((s) => ({ id: s.id, name: s.name, duration_minutes: s.duration_minutes })),
+        professionals,
         policy, generated_at: now.toISOString(),
       });
     }
@@ -479,7 +482,12 @@ async function manejar({ raw, signature, now = new Date(), secret, deps }) {
     const professionalId = body.professional_id == null ? null : uuid(body.professional_id);
     const preferredId = body.preferred_professional_id == null ? null : uuid(body.preferred_professional_id);
     if ((body.professional_id != null && !professionalId) || (body.preferred_professional_id != null && !preferredId)) { await log("invalid", { reason: "professional_id" }); return fail(400, "invalid_request", "professional_id no es válido."); }
-    const exclude = Array.isArray(body.exclude) ? body.exclude.filter((x) => typeof x === "string" && x.length <= 300).slice(0, 30) : [];
+    let exclude = Array.isArray(body.exclude) ? body.exclude.filter((x) => typeof x === "string" && x.length <= 300).slice(0, 30) : [];
+    // «Más opciones»: el servidor excluye los horarios que ya ofreció en esta conversación (ofertas recientes), sin que el cliente tenga que recordarlos.
+    if (body.more === true && typeof deps.recentOfferKeys === "function") {
+      const vistos = (await deps.recentOfferKeys({ tenantId, conversationId, since: new Date(now.getTime() - 2 * 3600000).toISOString() })) || [];
+      exclude = Array.from(new Set(exclude.concat(vistos.filter((x) => typeof x === "string" && x.length <= 300)))).slice(0, 60);
+    }
 
     let chosen = null;
     if (body.branch_id != null) {
@@ -606,6 +614,23 @@ const deps = {
     if (error) throw error;
     const lana = data?.config?.integraciones?.lana;
     return !!lana && lana.estado === "conectada" && typeof lana.lana_tenant_id === "string" && lana.lana_tenant_id.toLowerCase() === lanaTenantId.toLowerCase();
+  },
+  // Profesionales activos y las sedes donde atienden (solo id y nombre público).
+  professionals: async (tenantId: string): Promise<Row[]> => {
+    const [{ data: pros, error }, { data: links, error: e2 }] = await Promise.all([
+      admin.from("smyl_professionals").select("id,display_name,active").eq("tenant_id", tenantId).eq("active", true).order("display_name"),
+      admin.from("smyl_professional_branches").select("professional_id,branch_id").eq("tenant_id", tenantId),
+    ]);
+    if (error) throw error; if (e2) throw e2;
+    return (pros || []).map((p: Row) => ({ id: p.id, name: p.display_name, branch_ids: (links || []).filter((l: Row) => l.professional_id === p.id).map((l: Row) => l.branch_id) }));
+  },
+  // Claves de los horarios ya ofrecidos en esta conversación (para «más opciones»).
+  recentOfferKeys: async (q: Row): Promise<string[]> => {
+    const { data, error } = await admin.from("smyl_assistant_slot_offers").select("slots").eq("tenant_id", q.tenantId).eq("lana_conversation_id", q.conversationId).gte("created_at", q.since).order("created_at", { ascending: false }).limit(10);
+    if (error) throw error;
+    const keys: string[] = [];
+    for (const row of data || []) for (const slot of (row.slots as Row[]) || []) if (slot && typeof slot.key === "string") keys.push(slot.key);
+    return keys;
   },
   // Guarda la oferta (hasta 3 opciones) para que `request` solo pueda elegir entre lo que el servidor ofreció. Sin datos personales.
   saveOffer: async (o: Row): Promise<void> => {
