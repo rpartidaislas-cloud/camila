@@ -6,17 +6,17 @@ test('administrador y sucursal: modalidad, solicitud, autorización, compra, ent
   await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>server.close(r)));
   const browser=await chromium.launch({headless:true,channel:'chrome'});t.after(()=>browser.close());
   const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(8000);
-  await page.goto('http://127.0.0.1:'+server.address().port+'/tests/fixtures/smyl-inventory-procurement-preview.html');await page.locator('#inventory-purchasing-settings').waitFor();
+  await page.goto('http://127.0.0.1:'+server.address().port+'/tests/fixtures/smyl-inventory-procurement-preview.html');await page.getByRole('tab',{name:'Compras',exact:true}).click();await page.getByRole('button',{name:'Configurar compras'}).waitFor();
   const d=page.locator('#inventory-dialog'),ids=await page.evaluate(()=>window.__inventoryIDs);
   const settle=async()=>{await d.waitFor({state:'hidden'});await page.waitForFunction(()=>document.querySelector('#p-inventario').getAttribute('aria-busy')==='false');};
   t.after(async()=>{if(t.passed===false){try{fs.writeFileSync(path.join(out,'failure.txt'),await page.locator('body').innerText());await page.screenshot({path:path.join(out,'failure.png'),fullPage:true});}catch{}}});
   await page.getByRole('button',{name:'Configurar compras',exact:true}).click();await d.locator('[name=mode][value=branch]').check();await d.getByRole('button',{name:'Guardar modalidad'}).click();await settle();
-  await page.getByRole('button',{name:'Nueva orden de compra',exact:true}).click();assert.equal(await d.locator('[name=mode]').count(),0);assert.match(await d.innerText(),/Orden directa al proveedor/);await d.getByRole('button',{name:'Cancelar',exact:true}).click();
+  await page.getByRole('button',{name:'Preparar pedido',exact:true}).click();assert.equal(await d.locator('[name=mode]').count(),0);assert.match(await d.innerText(),/Orden directa al proveedor/);await d.getByRole('button',{name:'Cancelar',exact:true}).click();
   await page.locator('#inventory-purchasing-settings').click();await d.locator('[name=mode][value=centralized]').check();await d.locator('[name=central]').selectOption(ids.L);
   for(const [name,width,height] of [['desktop',1440,1000],['tablet',834,1112],['mobile',390,844]]){await page.setViewportSize({width,height});assert.ok(await d.evaluate(el=>el.scrollWidth<=el.clientWidth+1));await page.screenshot({path:path.join(out,'modalidad-'+name+'.png')});}
   await d.getByRole('button',{name:'Guardar modalidad'}).click();await settle();
   await page.evaluate(()=>{Object.assign(window.__inventoryPolicy,{can_admin:false,can_central:false,can_buy:false});window.__onlyBranch=window.__inventoryIDs.B2;return window.SmylInventory.reload();});
-  assert.equal(await page.locator('#inventory-purchasing-settings').isVisible(),false);assert.equal(await page.getByRole('button',{name:'Nueva orden de compra',exact:true}).count(),0);
+  assert.equal(await page.locator('#inventory-purchasing-settings').isVisible(),false);assert.equal(await page.getByRole('button',{name:'Preparar pedido',exact:true}).count(),0);
   await page.locator('#inventory-new-order').click();assert.match(await d.innerText(),/Solicitar insumos al centro/);assert.equal(await d.locator('[name=unit_cost]').count(),0);assert.equal(await d.locator('[name=supplier_id]').count(),0);
   await d.locator('[name=destination]').selectOption(ids.L2);await d.locator('[data-row] select').selectOption(ids.I);await d.locator('[data-row] input').fill('25');await d.locator('[name=priority]').selectOption('urgent');await d.locator('[name=notes]').fill('Reposición de guantes de la sucursal.');
   for(const [name,width,height] of [['desktop',1440,1000],['tablet',834,1112],['mobile',390,844]]){await page.setViewportSize({width,height});await d.locator('.smyl-dialog-body').evaluate(el=>el.scrollTop=0);assert.ok(await d.evaluate(el=>el.scrollWidth<=el.clientWidth+1),'formulario '+name);await page.screenshot({path:path.join(out,'solicitud-'+name+'.png')});}

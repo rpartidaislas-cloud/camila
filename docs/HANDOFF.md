@@ -1,3 +1,9 @@
+## 2026-11-26 — Codex — Inventario por producto y directorio de proveedores
+
+- Productos abre en Todos y agrupa el saldo por almacén. Proveedores comparte los vínculos existentes con el editor de cada producto. Compras conserva las modalidades por sucursal y central. Movimientos reúne el consumo, conteo, traslado, ajuste y merma.
+- Los avisos y filtros de caducidad utilizan los lotes con saldo de la ubicación elegida. Una pieza de material puede tener varios lotes en plazos distintos. La reposición sugiere presentaciones completas y mantiene el precio equivalente por unidad.
+- Archivos principales: smyl-inventory.js y .css, smyl-inventory-procurement.js, smyl-inventory-routing.js, referencias en app.html y sw.js y copias en mobile/www. Se conserva el esquema y los permisos existentes. Pruebas locales con datos ficticios, incluidas recepciones parciales y guardado de un proveedor alternativo. Pendiente de publicación.
+
 ## 2026-11-26 — Codex — Tratamiento v2: continuidad clínica y aceptación por concepto
 
 - La revisión de vigencia posterior a Dentalink confirmó que este bloque **sí seguía siendo relevante**: el plan, la propuesta, la decisión del paciente, los cargos y el historial podían existir sin una identidad clínica común. No se volvió a construir Agenda; Ricardo la está trabajando en Claude.

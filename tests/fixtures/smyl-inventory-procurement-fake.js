@@ -24,6 +24,12 @@
       if(verb==='select'){rows=[...rows];sort.reverse().forEach(([k,asc])=>rows.sort((a,b)=>String(a[k]).localeCompare(String(b[k]))*(asc?1:-1)));if(range)rows=rows.slice(range[0],range[1]+1);}
       window.__inventoryCalls.push({table,verb,data:structuredClone(data)});return {data:structuredClone(single?rows[0]||null:rows),error:null};}).then(resolve,reject);}
   };return api;}
+  function sampleLots() {
+    const now=new Date(),today=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
+    const lot=(days,code,location=L,qty=2)=>({location_id:location,item_id:I2,lot_id:code,lot_code:code,
+      expires_on:new Date(today+days*86400000).toISOString().slice(0,10),on_hand:qty});
+    return [...[-1,0,30,31,90,91].map(n=>lot(n,'L'+n)),lot(31,'OTRA',L2),lot(30,'AGOTADO',L,0)];
+  }
   function snapshot(){return [{item_id:I,location_id:L,item_name:'Guantes de nitrilo medianos',sku:'GUA-M',category:'material',unit:'pieza',location_name:'Clínica Centro · Almacén principal',on_hand:80,minimum_quantity:100,below_minimum:true},{item_id:I,location_id:L2,item_name:'Guantes de nitrilo medianos',sku:'GUA-M',category:'material',unit:'pieza',location_name:'Clínica Lomas · Almacén principal',on_hand:30,minimum_quantity:100,below_minimum:true}];}
   async function rpc(name,p){window.__inventoryCalls.push({rpc:name,args:structuredClone(p)});if(window.__inventoryFail===name)return {error:{message:'Error de prueba: no se guardaron cambios.'},data:null};let data=[];
     if(name==='smyl_my_branches')data=db.smyl_branches.filter(b=>!window.__onlyBranch||b.id===window.__onlyBranch).map(b=>({branch_id:b.id,name:b.name,can_all:true}));
@@ -49,7 +55,13 @@
     }
     if(name==='smyl_confirm_supply_delivery'){let delivery=db.smyl_supply_deliveries.find(d=>d.id===p.p_id);delivery.confirmed_at=now;db.smyl_supply_requests.find(r=>r.id===delivery.request_id).status='fulfilled';}
     if(name==='smyl_cancel_supply_request')db.smyl_supply_requests.find(r=>r.id===p.p_id).status='cancelled';
-    if(name==='smyl_inventory_snapshot')data=snapshot();
+    if(name==='smyl_inventory_snapshot'){
+      data=snapshot().concat([L,L2].map(location=>{
+        const lots=sampleLots().filter(l=>l.location_id===location && l.on_hand>0);
+        return {item_id:I2,location_id:location,item_name:'Resina compuesta A2',unit:'jeringa',location_name:'Almacén principal',on_hand:lots.reduce((n,l)=>n+l.on_hand,0),minimum_quantity:0,below_minimum:false,nearest_expiry:lots[0].expires_on,days_to_expiry:location===L?-1:31};
+      }));
+    }
+    if(name==='smyl_inventory_lot_stock')data=sampleLots();
     if(name==='smyl_save_supplier_catalog'){db.smyl_supplier_items=db.smyl_supplier_items.filter(x=>x.supplier_id!==p.p_supplier_id).concat(p.p_items.map(x=>({...x,supplier_id:p.p_supplier_id,tenant_id:T})));}
     if(name==='smyl_save_treatment_kit'){db.smyl_service_materials=db.smyl_service_materials.filter(x=>x.service_id!==p.p_service_id).concat(p.p_lines.map(x=>({...x,service_id:p.p_service_id,tenant_id:T})));}
     if(name==='smyl_create_inventory_item'){db.smyl_inventory_items.push(stamp({id:p.p_id,...p.p_item}));data=p.p_id;}

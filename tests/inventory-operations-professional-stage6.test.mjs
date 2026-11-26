@@ -14,22 +14,22 @@ const worker = read('../sw.js');
 test('la bandeja operativa prioriza faltantes, caducidades y recepciones', () => {
   assert.match(script, /id="inventory-alerts"/);
   assert.match(script, /inventory-chip/);
-  assert.match(script, /REPONER AHORA/);
-  assert.match(script, /NO UTILIZAR/);
-  assert.match(script, /CADUCIDAD PRÓXIMA/);
-  assert.match(script, /POR RECIBIR/);
+  assert.match(script, /Por reponer/);
+  assert.match(script, /Vencidos/);
+  assert.match(script, /De hoy a 30 días/);
+  assert.match(script, /compra por recibir/);
   assert.match(styles, /\.inventory-focus-list/);
 });
 
 test('existencias muestran filtros y una reposición sugerida verificable', () => {
-  for (const filter of ['attention', 'low', 'expiry', 'all']) {
+  for (const filter of ['stale', 'low', 'expiry', 'all']) {
     assert.match(script, new RegExp(`data-stock-filter=\\"${filter}\\"`));
   }
   assert.match(script, /function suggestedPurchase/);
   assert.match(script, /target_quantity/);
   assert.match(script, /Sugerido pedir/);
   assert.match(script, /Trazabilidad por paciente/);
-  assert.match(script, /No utilizar/);
+  assert.match(script, /Venció el/);
 });
 
 test('consumo clínico revisa lote vigente y paciente antes del RPC', () => {
@@ -46,7 +46,7 @@ test('compras comunican avance de recepción sin alterar el libro', () => {
   assert.match(script, /inventory-order-progress/);
   assert.match(script, /unidades recibidas/);
   assert.match(script, /received_quantity/);
-  assert.match(script, /Los confirmados no se editan/);
+  assert.match(script, /Movimiento compensado sin alterar el registro original/);
   assert.doesNotMatch(script, /\.update\([^)]*smyl_inventory_movements/);
 });
 
@@ -55,8 +55,8 @@ test('web, móvil y PWA distribuyen la etapa seis sincronizada', () => {
   assert.equal(script, mobileScript);
   assert.equal(styles, mobileStyles);
   assert.match(app, /smyl-inventory\.js\?v=(?:[6-9]|[12][0-9])/);
-  assert.match(app, /smyl-inventory\.css\?v=15/);
+  assert.match(app, /smyl-inventory\.css\?v=16/);
   assert.match(worker, /smyl-v263-lana-connection-recovery/);
   assert.match(worker, /smyl-inventory\.js\?v=(?:[6-9]|[12][0-9])/);
-  assert.match(worker, /smyl-inventory\.css\?v=15/);
+  assert.match(worker, /smyl-inventory\.css\?v=16/);
 });

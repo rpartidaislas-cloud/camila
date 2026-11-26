@@ -5,7 +5,8 @@
   else root.SmylInventoryProcurement=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  var ctx,s,view='items',query='',archived=false;
+  var ctx,s;
+  const catalogState = {catalog:{view:'items',query:'',archived:false}, suppliers:{view:'suppliers',query:'',archived:false}};
   var kinds={central:'Almacén',cabinet:'Gabinete',operatory:'Área clínica',sterilization:'Esterilización',mobile:'Carro móvil'};
   var defaults={
     whatsapp:'Hola {contacto}, ¿nos confirmas disponibilidad y entrega del pedido {folio}?\n\n{insumos}\n\nTotal: {total}\n{entrega}\nFecha solicitada: {fecha}\n{notas}\n\nGracias.',
@@ -63,14 +64,16 @@
   function ready(){if(s.procurementReady)return true;ctx.notify(s.procurementError||'Actualiza el inventario antes de continuar.','error');return false;}
   function checkManage(){return s.canManage&&ready();}
   function empty(title,text){return '<div class="inventory-empty"><strong>'+esc(title)+'</strong><p>'+esc(text)+'</p></div>';}
-  function searchMatch(values){return normalized(values.join(' ')).includes(normalized(query));}
+  function searchMatch(values,query){return normalized(values.join(' ')).includes(normalized(query));}
   function renderCatalog(){
-    var panel=document.querySelector('[data-inventory-panel="catalog"]');if(!panel)return;
-    if(!panel.querySelector('[data-catalog-nav]')){
-      panel.innerHTML='<div class="inventory-catalog-shell"><nav class="inventory-catalog-nav" data-catalog-nav aria-label="Catálogos">'+[['items','Insumos'],['suppliers','Proveedores'],['locations','Almacenes'],['kits','Kits por tratamiento']].map(x=>'<button type="button" data-catalog="'+x[0]+'">'+x[1]+'</button>').join('')+'</nav><section class="inventory-card"><div data-catalog-head></div><div class="inventory-catalog-tools"><input type="search" data-catalog-search placeholder="Buscar en el catálogo" aria-label="Buscar en el catálogo"><label class="check" data-archived-label><input type="checkbox" data-archived> Mostrar inactivos</label></div><div data-catalog-content></div></section></div>';
-      panel.querySelectorAll('[data-catalog]').forEach(b=>b.onclick=()=>{view=b.dataset.catalog;query='';panel.querySelector('[data-catalog-search]').value='';renderCatalog();});
-      panel.querySelector('[data-catalog-search]').oninput=e=>{query=e.target.value;paintCatalog();};
-      panel.querySelector('[data-archived]').onchange=e=>{archived=e.target.checked;paintCatalog();};
+    if(s.tab!=='catalog' && s.tab!=='suppliers')return;
+    const isDirectory=s.tab==='suppliers', context=catalogState[s.tab], view=context.view;
+    const panel=isDirectory ? document.querySelector('[data-inventory-panel="suppliers"]') : document.getElementById('inventory-catalog-body');
+    if(!panel.querySelector('[data-catalog-content]')){
+      panel.innerHTML='<div class="inventory-catalog-shell">'+(isDirectory?'':'<nav class="inventory-catalog-nav" data-catalog-nav aria-label="Catálogos">'+[['items','Insumos'],['locations','Almacenes'],['kits','Kits por tratamiento']].map(x=>'<button type="button" data-catalog="'+x[0]+'">'+x[1]+'</button>').join('')+'</nav>')+'<section class="inventory-card"><div data-catalog-head></div><div class="inventory-catalog-tools"><input type="search" data-catalog-search placeholder="Buscar en el catálogo" aria-label="Buscar en el catálogo"><label class="check" data-archived-label><input type="checkbox" data-archived> Mostrar inactivos</label></div><div data-catalog-content></div></section></div>';
+      panel.querySelectorAll('[data-catalog]').forEach(b=>b.onclick=()=>{context.view=b.dataset.catalog;context.query='';panel.querySelector('[data-catalog-search]').value='';renderCatalog();});
+      panel.querySelector('[data-catalog-search]').oninput=e=>{context.query=e.target.value;paintCatalog(panel,context);};
+      panel.querySelector('[data-archived]').onchange=e=>{context.archived=e.target.checked;paintCatalog(panel,context);};
     }
     panel.querySelectorAll('[data-catalog]').forEach(b=>b.setAttribute('aria-current',b.dataset.catalog===view?'page':'false'));
     var heads={items:['Insumos','Define qué compras, en qué presentación y cómo lo utilizas.','Agregar insumo'],suppliers:['Proveedores','Contactos, insumos que venden y plantillas para preparar sus pedidos.','Agregar proveedor'],locations:['Almacenes por sucursal','Administra dónde recibes y guardas los materiales de cada clínica.','Agregar almacén'],kits:['Kits por tratamiento','Una lista de materiales y cantidades habituales para una atención.','Crear kit']},h=heads[view];
@@ -79,19 +82,22 @@
     var add=panel.querySelector('[data-add]');if(add)add.onclick=()=>({items:()=>ctx.openItem(),suppliers:()=>openSupplier(),locations:()=>openLocation(),kits:()=>openKit()})[view]();
     var imp=panel.querySelector('[data-import]');if(imp){imp.hidden=!s.canManage;imp.onclick=ctx.openImport;}
     var labels=panel.querySelector('[data-labels]');if(labels)labels.onclick=ctx.openLabels;
-    paintCatalog();
+    const search=panel.querySelector('[data-catalog-search]');
+    search.placeholder=isDirectory?'Buscar proveedor':'Buscar en el catálogo';
+    search.setAttribute('aria-label',search.placeholder);
+    paintCatalog(panel,context);
   }
-  function paintCatalog(){
-    var host=document.querySelector('[data-catalog-content]');if(!host)return;
+  function paintCatalog(panel,{view,query,archived}){
+    var host=panel.querySelector('[data-catalog-content]');if(!host)return;
     if(view==='kits'){
-      var services=s.services.filter(x=>x.active!==false&&searchMatch([x.name]));
+      var services=s.services.filter(x=>x.active!==false&&searchMatch([x.name],query));
       host.innerHTML='<div class="inventory-kit-grid">'+services.filter(x=>s.serviceMaterials.some(l=>l.service_id===x.id)).map(service=>{
         var lines=s.serviceMaterials.filter(l=>l.service_id===service.id),cost=total(lines.map(l=>({quantity:l.expected_quantity,unit_cost:find(s.items,l.item_id)?.reference_cost})));
         return '<article class="inventory-kit-card"><header><div><span class="pro-eyebrow">UNA ATENCIÓN</span><h3>'+esc(service.name)+'</h3></div>'+(s.canManage?'<button type="button" data-edit="'+service.id+'">Editar kit</button>':'')+'</header><ul>'+lines.map(l=>{var i=find(s.items,l.item_id);return '<li><span>'+esc(i?.name||'Insumo')+'</span><strong>'+num(l.expected_quantity)+' '+esc(i?.unit||'')+'</strong></li>';}).join('')+'</ul>'+(s.canManage?'<footer>'+lines.length+' materiales · '+money(cost.amount)+(cost.missing?' + '+cost.missing+' sin precio':' estimados')+'</footer>':'')+'</article>';
       }).join('')+'</div>';
       if(!host.querySelector('article'))host.innerHTML=empty('Configura los materiales de una atención','Por ejemplo: guantes, anestesia y resina para una restauración. El kit propone cantidades; el inventario se descuenta al registrar lo utilizado.');
     }else{
-      var rows=s[view].filter(x=>(archived||x.active!==false)&&searchMatch([x.name,x.sku,x.contact_name,x.email,view==='locations'?locName(x):'']));
+      var rows=s[view].filter(x=>(archived||x.active!==false)&&searchMatch([x.name,x.sku,x.contact_name,x.email,view==='locations'?locName(x):''],query));
       host.innerHTML=rows.length?'<div class="inventory-catalog-list">'+rows.map(x=>{
         var sub='',detail='',extra='';
         if(view==='items'){
@@ -101,7 +107,7 @@
           if(s.canManage)extra='<button type="button" data-item-suppliers="'+x.id+'">Proveedores y precios</button>';
         }else if(view==='suppliers'){
           sub=[x.contact_name,x.phone,x.email].filter(Boolean).join(' · ')||'Completa los datos de contacto';
-          var count=s.supplierItems.filter(l=>l.supplier_id===x.id).length;detail=count+' insumos en catálogo';
+          var count=new Set(s.supplierItems.filter(l=>l.supplier_id===x.id).map(l=>l.item_id).concat(s.items.filter(i=>i.preferred_supplier_id===x.id).map(i=>i.id))).size;detail=s.canManage?count+(count===1?' producto vinculado':' productos vinculados'):'';
           if(s.canManage&&x.active!==false)extra='<button type="button" data-supplier-items="'+x.id+'">Insumos y precios</button><button type="button" data-templates="'+x.id+'">Plantillas</button>';
           if(s.purchasingPolicy?.can_buy&&x.active!==false)extra+='<button type="button" data-buy="'+x.id+'">Preparar pedido</button>';
         }else{sub=find(s.branches,x.branch_id)?.name||'Sucursal';detail=kinds[x.location_type]||x.location_type;var room=find(s.rooms,x.room_id);if(room)detail+=' · '+room.name;}
@@ -137,28 +143,34 @@
     // Si la validación detecta un problema, permite revisar todos los pasos sin perder lo capturado.
     form.addEventListener('submit',()=>{panels.forEach((p,i)=>p.hidden=i>=labels.length);next.hidden=true;if(submit)submit.hidden=false;},true);
   }
-  function openSupplier(id){
+  function openSupplier(id,forItem){
     if(!checkManage())return;var old=find(s.suppliers,typeof id==='string'?id:'');
     var d=ctx.dialog('<form><h2>'+(old?'Editar proveedor':'Agregar proveedor')+'</h2><p>Después podrás asociar sus insumos, precios y mensajes de pedido.</p><div class="inventory-form-grid">'+field('Empresa','name',old?.name,'required minlength="2" maxlength="140"')+field('Persona de contacto','contact',old?.contact_name,'maxlength="140"')+field('Correo para pedidos','email',old?.email,'type="email" maxlength="254"')+field('WhatsApp con código de país','phone',old?.phone,'type="tel" maxlength="40" placeholder="+52 33 1234 5678"')+field('RFC (opcional)','tax',old?.tax_id,'maxlength="30"')+'<label class="wide">Notas de compra y entrega<textarea name="notes" maxlength="2000">'+esc(old?.notes)+'</textarea></label></div>'+(old?'<div class="inventory-lifecycle"><p>Desactivarlo conserva las compras anteriores y lo retira de los pedidos nuevos.</p><button type="button" data-toggle>'+(old.active===false?'Reactivar proveedor':'Desactivar proveedor')+'</button></div>':'')+footer('Guardar proveedor')+'</form>'),f=d.querySelector('form');
     f.onsubmit=e=>{e.preventDefault();saving(d,async()=>{var data={name:f.elements.name.value.trim(),contact_name:f.elements.contact.value.trim(),email:f.elements.email.value.trim(),phone:f.elements.phone.value.trim(),tax_id:f.elements.tax.value.trim(),notes:f.elements.notes.value.trim()};
-      var q=old?window.sb.from('smyl_inventory_suppliers').update(data).eq('tenant_id',s.tenant).eq('id',old.id):window.sb.from('smyl_inventory_suppliers').insert(Object.assign({tenant_id:s.tenant,created_by:s.actor},data));await ctx.q(q.select('id').single());ctx.close();await ctx.reload('Proveedor guardado.');});};
+      var q=old?window.sb.from('smyl_inventory_suppliers').update(data).eq('tenant_id',s.tenant).eq('id',old.id):window.sb.from('smyl_inventory_suppliers').insert(Object.assign({tenant_id:s.tenant,created_by:s.actor},data));const saved=await ctx.q(q.select('id').single());ctx.close();await ctx.reload('Proveedor guardado.');if(forItem&&saved?.id)openSupplierItems(saved.id,forItem);});};
     var tog=d.querySelector('[data-toggle]');if(tog)tog.onclick=()=>saving(d,async()=>{await ctx.q(window.sb.from('smyl_inventory_suppliers').update({active:old.active===false}).eq('tenant_id',s.tenant).eq('id',old.id).select('id').single());ctx.close();await ctx.reload('Proveedor actualizado.');});
   }
   function catalogExpected(id){return s.supplierItems.filter(x=>x.supplier_id===id).map(x=>({item_id:x.item_id,supplier_sku:x.supplier_sku||'',unit_cost:x.unit_cost==null?null:Number(x.unit_cost),lead_days:x.lead_days==null?null:Number(x.lead_days)})).sort((a,b)=>a.item_id.localeCompare(b.item_id));}
   function openItemSuppliers(id){
     if(!checkManage())return;var item=find(s.items,id);if(!item)return;
-    var d=ctx.dialog('<form class="inventory-procurement-form"><h2>Proveedores de '+esc(item.name)+'</h2><p>Un mismo insumo puede comprarse a varios proveedores. El precio se captura por '+esc(item.unit)+'.</p><div class="inventory-catalog-list">'+s.suppliers.filter(x=>x.active!==false).map(p=>{var l=s.supplierItems.find(x=>x.supplier_id===p.id&&x.item_id===id);return '<article><div><strong>'+esc(p.name)+'</strong><small>'+(l?money(l.unit_cost)+' por '+esc(item.unit):'Sin asociar')+'</small></div><button type="button" data-supplier="'+p.id+'">'+(l?'Editar relación':'Asociar insumo')+'</button></article>';}).join('')+'</div><div class="inventory-actions"><button type="button" data-close>Cerrar</button></div></form>');
+    const active=s.suppliers.filter(p=>p.active!==false);
+    var d=ctx.dialog('<form class="inventory-procurement-form"><h2>Proveedores de '+esc(item.name)+'</h2><p>Un mismo insumo puede comprarse a varios proveedores. El precio se captura por '+esc(item.unit)+'.</p><div class="inventory-catalog-list">'+(!active.length?'<p>Aún no hay proveedores registrados.</p>':'')+active.map(p=>{var l=s.supplierItems.find(x=>x.supplier_id===p.id&&x.item_id===id);return '<article><div><strong>'+esc(p.name)+'</strong><small>'+(item.preferred_supplier_id===p.id?'Proveedor habitual · ':'')+(l?(l.unit_cost==null?'Sin precio':money(l.unit_cost)+' por '+esc(item.unit)) :(item.preferred_supplier_id===p.id?'Sin precio en catálogo':'Sin vincular'))+'</small></div><button type="button" data-supplier="'+p.id+'">'+(l?'Editar vínculo':'Vincular producto')+'</button></article>';}).join('')+'</div><div class="inventory-actions"><button type="button" data-new-seller>Agregar proveedor</button><button type="button" data-close>Cerrar</button></div></form>');
+    d.querySelector('[data-new-seller]').onclick=()=>openSupplier(null,id);
     d.querySelector('form').onsubmit=e=>e.preventDefault();
     d.querySelectorAll('[data-supplier]').forEach(b=>b.onclick=()=>openSupplierItems(b.dataset.supplier,id));
   }
   function openSupplierItems(id,addItem){
-    if(!checkManage())return;var p=find(s.suppliers,id);if(!p)return;var expected=catalogExpected(id),lines=expected.map(x=>({...x}));if(addItem&&!lines.some(l=>l.item_id===addItem))lines.push({item_id:addItem,supplier_sku:'',unit_cost:null,lead_days:null});
-    var d=ctx.dialog('<form class="inventory-procurement-form"><h2>Insumos de '+esc(p.name)+'</h2><p>Asocia el catálogo que le compras. Los precios son por unidad de uso e incluyen IVA.</p><div data-lines></div><button type="button" data-add-line>+ Asociar insumo</button>'+footer('Guardar catálogo')+'</form>');
+    if(!checkManage())return;var p=find(s.suppliers,id);if(!p)return;const expected=catalogExpected(id), item=addItem && find(s.items,addItem);
+    if(addItem && !item)return;
+    const matching=item ? expected.filter(link=>link.item_id===item.id) : expected;
+    let lines=matching.map(link=>({...link}));
+    if(item && !lines.length)lines.push({item_id:item.id,supplier_sku:'',unit_cost:null,lead_days:null});
+    var d=ctx.dialog('<form class="inventory-procurement-form"><h2>'+esc(item?item.name:'Insumos de '+p.name)+'</h2><p>'+esc(item?p.name+' · Precio por '+item.unit+' con IVA incluido.':'Asocia el catálogo que le compras. Los precios son por unidad de uso e incluyen IVA.')+'</p><div data-lines></div>'+(item?'':'<button type="button" data-add-line>+ Asociar insumo</button>')+footer(item?'Guardar vínculo':'Guardar catálogo')+'</form>');
     function capture(){d.querySelectorAll('[data-row]').forEach((row,i)=>{lines[i]={item_id:row.querySelector('[name=item_id]').value,supplier_sku:row.querySelector('[name=supplier_sku]').value,unit_cost:row.querySelector('[name=unit_cost]').value,lead_days:row.querySelector('[name=lead_days]').value};});}
-    function paint(){d.querySelector('[data-lines]').innerHTML=lines.map((l,i)=>'<div class="inventory-supplier-line" data-row="'+i+'"><label>Insumo<select name="item_id" required>'+opts(s.items.filter(x=>x.active!==false&&!lines.some((z,j)=>j!==i&&z.item_id===x.id)),'name',l.item_id)+'</select></label>'+field('Clave del proveedor','supplier_sku',l.supplier_sku,'maxlength="80"')+field('Precio por '+esc(find(s.items,l.item_id)?.unit||'unidad'),'unit_cost',l.unit_cost??'','type="number" min="0" step="0.0001" inputmode="decimal"')+field('Entrega en días','lead_days',l.lead_days??'','type="number" min="0" max="365" step="1"')+'<button type="button" data-remove="'+i+'" aria-label="Quitar insumo">×</button></div>').join('');
+    function paint(){d.querySelector('[data-lines]').innerHTML=lines.map((l,i)=>'<div class="inventory-supplier-line" data-row="'+i+'">'+(item?'<input type="hidden" name="item_id" value="'+esc(item.id)+'">':'<label>Insumo<select name="item_id" required>'+opts(s.items.filter(x=>x.id===l.item_id || (x.active!==false&&!lines.some((z,j)=>j!==i&&z.item_id===x.id))),'name',l.item_id)+'</select></label>')+field('Clave del proveedor','supplier_sku',l.supplier_sku,'maxlength="80"')+field('Precio por '+esc(find(s.items,l.item_id)?.unit||'unidad'),'unit_cost',l.unit_cost??'','type="number" min="0" step="0.0001" inputmode="decimal"')+field('Entrega en días','lead_days',l.lead_days??'','type="number" min="0" max="365" step="1"')+(item?'':'<button type="button" data-remove="'+i+'" aria-label="Quitar insumo">×</button>')+'</div>').join('');
       d.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{capture();lines.splice(Number(b.dataset.remove),1);paint();});d.querySelectorAll('select[name=item_id]').forEach(b=>b.onchange=()=>{capture();paint();});}
-    d.querySelector('[data-add-line]').onclick=()=>{capture();lines.push({item_id:'',supplier_sku:'',unit_cost:null,lead_days:null});paint();};paint();
-    d.querySelector('form').onsubmit=e=>{e.preventDefault();capture();saving(d,async()=>{await ctx.rpc('smyl_save_supplier_catalog',{p_supplier_id:id,p_expected:expected,p_items:lines.map(l=>({...l,unit_cost:l.unit_cost===''||l.unit_cost==null?null:Number(l.unit_cost),lead_days:l.lead_days===''||l.lead_days==null?null:Number(l.lead_days)}))});ctx.close();await ctx.reload('Catálogo del proveedor guardado.');});};
+    const add=d.querySelector('[data-add-line]');if(add)add.onclick=()=>{capture();lines.push({item_id:'',supplier_sku:'',unit_cost:null,lead_days:null});paint();};paint();
+    d.querySelector('form').onsubmit=e=>{e.preventDefault();capture();saving(d,async()=>{await ctx.rpc('smyl_save_supplier_catalog',{p_supplier_id:id,p_expected:expected,p_items:[...(item?expected.filter(link=>link.item_id!==item.id):[]),...lines.map(l=>({...l,unit_cost:l.unit_cost===''||l.unit_cost==null?null:Number(l.unit_cost),lead_days:l.lead_days===''||l.lead_days==null?null:Number(l.lead_days)}))]});ctx.close();await ctx.reload(item?'Vínculo con el proveedor guardado.':'Catálogo del proveedor guardado.');});};
   }
   function openTemplates(id){
     if(!checkManage())return;var p=find(s.suppliers,id),d=ctx.dialog('<form class="inventory-procurement-form"><h2>Plantillas de '+esc(p.name)+'</h2><p>SMYL reemplaza estos campos con los datos del pedido: {contacto}, {proveedor}, {folio}, {insumos}, {total}, {entrega}, {fecha}, {notas}.</p><label>Mensaje de WhatsApp<textarea name="whatsapp" rows="7" maxlength="6000">'+esc(p.whatsapp_template||defaults.whatsapp)+'</textarea></label>'+field('Asunto del correo','subject',p.email_subject||defaults.subject,'maxlength="200" required')+'<label>Correo para pedidos<textarea name="email" rows="9" maxlength="6000">'+esc(p.email_template||defaults.email)+'</textarea></label><p class="inventory-help">Podrás revisar el texto de cada pedido antes de abrir WhatsApp o tu correo.</p>'+footer('Guardar plantillas')+'</form>');
@@ -182,6 +194,13 @@
     for(var o of recent){var line=s.orderLines.find(l=>l.purchase_order_id===o.id&&l.item_id===itemId&&l.unit_cost!=null);if(line)return Number(line.unit_cost);}
     return find(s.items,itemId)?.reference_cost??'';
   }
+  function purchasePresentation(line) {
+    const item = find(s.items,line.item_id);
+    const pack = Number(item?.package_quantity);
+    if (!item?.package_label || !(pack > 0)) return line;
+    return {...line, purchase_unit:'pack', quantity:Math.ceil(Number(line.quantity)/pack),
+      unit_cost:line.unit_cost === '' || line.unit_cost == null ? '' : Number(line.unit_cost)*pack};
+  }
   function openPurchase(settings){
     if(!ready())return;settings=settings||{};if(window.SmylInventoryRouting&&window.SmylInventoryRouting.intercept(settings))return;if(!s.canPurchase)return;
     if(!locations().length){ctx.notify('Agrega un almacén en una sucursal a la que tengas acceso.','error');return;}
@@ -191,7 +210,7 @@
     var mode=s.purchasingPolicy?.mode==='centralized'?'consolidated':'branch',supplierFilter=settings.supplier||'';
     if(existing&&existing.mode!==mode){ctx.notify('Este borrador pertenece a la modalidad anterior. Cancélalo y crea uno nuevo con la modalidad actual.','error');return;}
     if(mode==='consolidated')destination=s.purchasingPolicy.central_location_id;
-    var lines=existing?existing.lines.map(l=>{var item=find(s.items,l.item_id),packed=l.purchase_unit==='pack'&&Number(item?.package_quantity)===Number(l.package_quantity),pack=packed?Number(l.package_quantity):1;return {...l,supplier_id:l.supplier_id||'',quantity:Number(l.quantity)/pack,unit_cost:l.unit_cost==null?'':Number(l.unit_cost)*pack,purchase_unit:packed?'pack':'unit'};}):(settings.lines||[]).map(l=>({item_id:l.item_id,supplier_id:supplierFilter||suggestedSupplier(l.item_id),destination_location_id:destination,quantity:l.quantity||1,unit_cost:l.unit_cost??supplierPrice(l.item_id,supplierFilter||suggestedSupplier(l.item_id)),purchase_unit:'unit'}));
+    var lines=existing?existing.lines.map(l=>{var item=find(s.items,l.item_id),packed=l.purchase_unit==='pack'&&Number(item?.package_quantity)===Number(l.package_quantity),pack=packed?Number(l.package_quantity):1;return {...l,supplier_id:l.supplier_id||'',quantity:Number(l.quantity)/pack,unit_cost:l.unit_cost==null?'':Number(l.unit_cost)*pack,purchase_unit:packed?'pack':'unit'};}):(settings.lines||[]).map(l=>({item_id:l.item_id,supplier_id:supplierFilter||suggestedSupplier(l.item_id),destination_location_id:destination,quantity:l.quantity||1,unit_cost:l.unit_cost??supplierPrice(l.item_id,supplierFilter||suggestedSupplier(l.item_id)),purchase_unit:'unit'})).map(purchasePresentation);
     if(!lines.length)lines=[blankLine()];
     function blankLine(){return {item_id:'',supplier_id:supplierFilter,destination_location_id:destination,quantity:1,unit_cost:'',purchase_unit:'unit'};}
     var ref=existing?.reference||'OC-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+id.slice(0,6).toUpperCase();
@@ -212,7 +231,7 @@
       host.querySelectorAll('[data-row]').forEach((row,i)=>{
         row.querySelector('[name=item_id]').onchange=()=>{capture();var l=lines[i];l.supplier_id=supplierFilter||suggestedSupplier(l.item_id);l.purchase_unit='unit';l.unit_cost=supplierPrice(l.item_id,l.supplier_id);paint();};
         row.querySelector('[name=supplier_id]').onchange=()=>{capture();var l=lines[i],item=find(s.items,l.item_id),price=supplierPrice(l.item_id,l.supplier_id);l.unit_cost=price===''?'':Number(price)*(l.purchase_unit==='pack'?Number(item?.package_quantity||1):1);paint();};
-        row.querySelector('[name=purchase_unit]').onchange=()=>{var previous=lines[i].purchase_unit;capture();var l=lines[i],pack=Number(find(s.items,l.item_id)?.package_quantity||1);if(l.unit_cost!=='')l.unit_cost=Number(l.unit_cost)*(previous==='pack'?1/pack:pack);l.quantity=Math.round(Number(l.quantity)*(previous==='pack'?pack:1/pack)*1000)/1000;paint();};
+        row.querySelector('[name=purchase_unit]').onchange=()=>{var previous=lines[i].purchase_unit;capture();if(previous===lines[i].purchase_unit)return;var l=lines[i],pack=Number(find(s.items,l.item_id)?.package_quantity||1);if(l.unit_cost!=='')l.unit_cost=Number(l.unit_cost)*(previous==='pack'?1/pack:pack);l.quantity=Math.round(Number(l.quantity)*(previous==='pack'?pack:1/pack)*1000)/1000;paint();};
         row.querySelectorAll('input,[name=destination_location_id]').forEach(x=>x.oninput=()=>{capture();lineTotals();summary();});
       });
       host.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{capture();lines.splice(Number(b.dataset.remove),1);paint();});lineTotals();summary();
@@ -223,7 +242,8 @@
     f.elements.supplier_filter.onchange=()=>{capture();supplierFilter=f.elements.supplier_filter.value;paint();};
     d.querySelector('[data-add-line]').onclick=()=>{capture();if(lines.length>=100){fail(d,'La compra admite hasta 100 renglones.');return;}lines.push(blankLine());paint();};
     function addUnique(next){lines=lines.filter(l=>l.item_id);next.forEach(l=>{if(lines.length<100&&!lines.some(x=>x.item_id===l.item_id&&x.destination_location_id===l.destination_location_id))lines.push(l);});paint();}
-    d.querySelector('[data-shortages]').onclick=()=>{capture();var allowed=new Set((mode==='consolidated'?locations().filter(l=>l.id===destination):locations(branch)).map(l=>l.id)),seen=new Set(),next=[];s.snapshot.forEach(x=>{var key=x.item_id+'|'+x.location_id;if(!allowed.has(x.location_id)||seen.has(key))return;seen.add(key);var qty=ctx.suggestedPurchase(x);if(qty<=0)return;var p=supplierFilter||suggestedSupplier(x.item_id);if(supplierFilter&&!supplierChoices(x.item_id,s.items,s.suppliers,s.supplierItems,s.orders,s.orderLines).some(z=>z.id===supplierFilter))return;next.push({item_id:x.item_id,destination_location_id:x.location_id,supplier_id:p,quantity:qty,unit_cost:supplierPrice(x.item_id,p),purchase_unit:'unit'});});addUnique(next);fail(d,next.length?'':'No hay faltantes pendientes para esta selección.');};
+    d.querySelector('[data-shortages]').onclick=()=>{capture();var allowed=new Set((mode==='consolidated'?locations().filter(l=>l.id===destination):locations(branch)).map(l=>l.id)),seen=new Set(),next=[];s.snapshot.forEach(x=>{var key=x.item_id+'|'+x.location_id;if(!allowed.has(x.location_id)||seen.has(key))return;seen.add(key);var qty=ctx.suggestedPurchase(x);if(qty<=0)return;var p=supplierFilter||suggestedSupplier(x.item_id);if(supplierFilter&&!supplierChoices(x.item_id,s.items,s.suppliers,s.supplierItems,s.orders,s.orderLines).some(z=>z.id===supplierFilter))return;next.push(purchasePresentation({item_id:x.item_id,destination_location_id:x.location_id,supplier_id:p,quantity:qty,unit_cost:supplierPrice(x.item_id,p),purchase_unit:'unit'}));});addUnique(next);fail(d,next.length?'':'No hay faltantes pendientes para esta selección.');};
+    if(settings.shortages && !existing) d.querySelector('[data-shortages]').click();
     d.querySelector('[data-usual]').onclick=()=>{capture();if(!supplierFilter)return fail(d,'Elige primero un proveedor para agregar su catálogo o compras habituales.');var items=s.items.filter(i=>i.active!==false&&supplierChoices(i.id,s.items,s.suppliers,s.supplierItems,s.orders,s.orderLines).some(p=>p.id===supplierFilter));addUnique(items.map(i=>({item_id:i.id,supplier_id:supplierFilter,destination_location_id:destination,quantity:1,unit_cost:supplierPrice(i.id,supplierFilter),purchase_unit:'unit'})));fail(d,items.length?'Revisa las cantidades: se agregó una unidad de cada insumo habitual.':'Este proveedor aún no tiene insumos asociados ni compras anteriores.');};
     async function save(issue){capture();if(!f.reportValidity())return;var data=values();if(!data.length)return fail(d,'Agrega al menos un insumo.');if(data.some(l=>!Number.isFinite(l.quantity)||l.quantity<=0||!l.item_id||!l.destination_location_id))return fail(d,'Completa insumo, almacén y cantidad de cada renglón.');if(issue&&data.some(l=>!l.supplier_id||l.unit_cost==null))return fail(d,'Asigna proveedor y precio a todos los insumos, o guarda un borrador para cotizar.');
       await saving(d,async()=>{await ctx.rpc('smyl_save_purchase_batch',{p_id:id,p_revision:revision,p_document:{reference:f.elements.reference.value.trim(),mode,branch_id:mode==='branch'?branch:null,expected_on:f.elements.expected.value||null,notes:f.elements.notes.value.trim(),lines:data},p_issue:issue});ctx.close();s.tab='orders';await ctx.reload(issue?'Órdenes emitidas. Revisa el resumen y prepara el mensaje de cada proveedor.':'Borrador de compra guardado.');openPurchaseDetail(id);});}
@@ -236,11 +256,10 @@
     var batches=[...s.purchaseBatches].sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
     var legacy=s.orders.filter(o=>!o.batch_id||!batches.some(b=>b.id===o.batch_id));
     host.innerHTML=(s.procurementError?'<p class="inventory-notice" data-tone="error">'+esc(s.procurementError)+'</p>':'')+
-      '<div class="inventory-buy-intro"><div><h3>De la necesidad a la recepción</h3><p>Prepara una compra por clínica o reúne varias sucursales. Cada proveedor recibe su propia lista.</p></div>'+(s.canPurchase?'<button type="button" class="btn btn-primary" data-new>Preparar compra</button>':'')+'</div>'+
       batches.map(b=>{var t=total(availableLines(b)),status=batchState(b);return '<article class="inventory-order"><div class="inventory-order-main"><span class="inventory-badge">'+status+'</span><h3>'+esc(b.reference)+'</h3><p>'+(b.mode==='consolidated'?'Compra consolidada':esc(find(s.branches,b.branch_id)?.name||'Por clínica'))+' · '+new Set(b.lines.map(l=>l.supplier_id).filter(Boolean)).size+' proveedores</p><small>'+b.lines.length+' renglones · '+money(t.amount)+(t.missing?' parcial':'')+'</small></div><button type="button" data-batch="'+b.id+'">'+(b.status==='draft'?'Revisar borrador':'Ver compra')+'</button></article>';}).join('')+
       (legacy.length?'<h3 class="inventory-legacy-title">Órdenes por almacén</h3>':'')+legacy.map(o=>{var lines=s.orderLines.filter(l=>l.purchase_order_id===o.id).map(l=>({quantity:l.ordered_quantity,unit_cost:l.unit_cost})),t=total(lines);return '<article class="inventory-order"><div><span class="inventory-badge">'+ctx.orderStatus(o.status)+'</span><h3>'+esc(o.reference||o.id.slice(0,8))+'</h3><p>'+esc(find(s.suppliers,o.supplier_id)?.name||'Proveedor')+' · '+esc(locName(find(s.locations,o.destination_location_id)))+'</p><small>'+money(t.amount)+(t.missing?' parcial':'')+'</small></div><div class="inventory-row-actions">'+(s.canReceive&&s.canManage&&['ordered','partially_received'].includes(o.status)?'<button type="button" data-receive="'+o.id+'">Recibir</button><button type="button" data-send="'+o.id+'">Preparar mensaje</button>':'')+(s.canPurchase&&o.status==='ordered'?'<button type="button" data-cancel="'+o.id+'">Cancelar</button>':'')+'</div></article>';}).join('');
     if(!batches.length&&!legacy.length)host.innerHTML+=empty('Aún no hay compras','Guarda un borrador con las necesidades de tus clínicas y complétalo antes de emitir las órdenes.');
-    var add=host.querySelector('[data-new]');if(add)add.onclick=()=>openPurchase();host.querySelectorAll('[data-batch]').forEach(b=>b.onclick=()=>openPurchaseDetail(b.dataset.batch));
+    host.querySelectorAll('[data-batch]').forEach(b=>b.onclick=()=>openPurchaseDetail(b.dataset.batch));
     host.querySelectorAll('[data-receive]').forEach(b=>b.onclick=()=>ctx.openReceive(find(s.orders,b.dataset.receive)));host.querySelectorAll('[data-send]').forEach(b=>b.onclick=()=>openLegacyMessage(find(s.orders,b.dataset.send)));host.querySelectorAll('[data-cancel]').forEach(b=>b.onclick=()=>ctx.cancelOrder(find(s.orders,b.dataset.cancel)));
     if(window.SmylInventoryRouting)window.SmylInventoryRouting.decorateOrders(host);
   }
@@ -277,6 +296,6 @@
     var html='<!doctype html><html lang="es"><meta charset="utf-8"><title>'+esc(b.reference)+'</title><style>@page{size:A4 landscape;margin:15mm}body{font:12px system-ui;color:#132638}header{display:flex;justify-content:space-between;border-bottom:2px solid #2c3884;padding-bottom:18px}h1{font-size:24px}h2{font-size:18px}table{border-collapse:collapse;width:100%;margin:24px 0}th,td{text-align:left;border-bottom:1px solid #d9e2e9;padding:10px 7px}th{background:#edf0f5}small{display:block;color:#64748b}strong.total{display:block;text-align:right;font-size:20px}footer{margin-top:30px;color:#64748b}.inventory-document-table{overflow:visible}</style><header><div><b>SMYL · COMPRAS</b><h1>'+title+'</h1><span>'+esc(b.reference)+'</span></div><div><h2>'+esc(supplier?.name||'Todos los proveedores')+'</h2><p>'+esc(supplier?.contact_name||'')+'</p><p>'+esc(supplier?.email||'')+'</p><p>Entrega solicitada: '+esc(b.expected_on||'Por confirmar')+'</p></div></header>'+table(lines,!supplier)+'<strong class="total">Total: '+money(t.amount)+(t.missing?' parcial · '+t.missing+' precios por cotizar':'')+'</strong><p>'+esc(b.notes)+'</p><footer>Precios en MXN, IVA incluido. '+(b.status==='draft'?'Borrador pendiente de confirmación.':'La recepción de materiales se registra por almacén.')+'</footer></html>';
     var win=window.open('','_blank');if(!win){ctx.notify('Permite la ventana de impresión para guardar la orden como PDF.','error');return;}win.opener=null;win.document.open();win.document.write(html);win.document.close();win.focus();win.print();
   }
-  return {init,load,renderCatalog,renderOrders,openLocation,openSupplier,openKit,openPurchase,openLegacyMessage,enhanceItem,
+  return {init,load,renderCatalog,renderOrders,openItemSuppliers,openLocation,openSupplier,openKit,openPurchase,openLegacyMessage,enhanceItem,
     model:{total,groupLines,template,payloadLine,documentLine,supplierChoices,defaults}};
 });
