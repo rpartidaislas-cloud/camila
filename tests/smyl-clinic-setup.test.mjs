@@ -59,6 +59,14 @@ test('arquitectura visual: tarjeta (avance + un siguiente paso) y ventana accesi
   assert.match(styles, /min-height: 44px/);
 });
 
+test('el recordatorio sanitario reutiliza el módulo de Cumplimiento y no crea un flujo paralelo', () => {
+  assert.match(script, /rpc\('smyl_compliance_overview'/);
+  assert.match(script, /SmylComplianceModel\.evaluate/);
+  assert.match(script, /route\('cumplimiento'\)/);
+  assert.match(script, /requisitos al día/);
+  assert.doesNotMatch(script, /smyl_regulatory_readiness_report|SmylReadiness\.open\('regulatory'\)/);
+});
+
 test('Configuración conserva su lectura (ids hours, patient, whatsapp, template, reminders) y ofrece el acceso permanente', () => {
   assert.match(script, /results: function \(\) \{ return isOwner\(\) && state\.tenant === window\.tenantId \? state\.results : null; \}/);
   assert.match(script, /summary: function \(\)/);

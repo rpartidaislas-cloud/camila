@@ -1,3 +1,11 @@
+## 2026-11-26 — Codex — Cumplimiento visible sin duplicar consentimientos
+
+- Inicio muestra al propietario un recordatorio sanitario discreto, con avance, siguiente prioridad, acceso directo a **Configuración → Cumplimiento sanitario** y opción **Ocultar por hoy**. Lee el mismo `smyl_compliance_overview` y las mismas reglas de `SmylComplianceModel`; no mantiene una segunda lista regulatoria.
+- La historia clínica distingue **Privacidad y permisos de datos** de **Consentimientos informados por procedimiento**. Se conservan el aviso firmado, decisiones de datos y solicitudes ARCO dentro del espacio de privacidad; el consentimiento clínico canónico permanece en `smyl-informed-consent.js`.
+- Se retiró el prototipo duplicado `smyl-informed-consents.js` y su migración incompatible. La migración `20261126210000_smyl_informed_consent_compat_repair.sql` elimina exclusivamente el bloqueo experimental extra y reinstala de forma idempotente las funciones canónicas de consentimiento.
+- Se conservan las migraciones de evidencia regulatoria y guardas de conservación ya aplicadas. La UI de cumplimiento es una herramienta de preparación y seguimiento; no certifica cumplimiento ante COFEPRIS.
+- Versiones: `smyl-clinic-setup` JS v9 / CSS v6, `smyl-patient-privacy-panel.js` v6 y caché `compliance-nudge-v1-privacy-labels-v1`; web y PWA sincronizados.
+
 ## 2026-11-25 — Codex — Ortodoncia longitudinal: plan, controles y evidencia (web y PWA)
 
 - Alcance posterior a la auditoría Dentalink: se construyó **Ortodoncia longitudinal** dentro de `Tratamiento → En tratamiento`; **Agenda permanece fuera** porque Ricardo la está trabajando en Claude, tanto de forma directa como desde el chat.

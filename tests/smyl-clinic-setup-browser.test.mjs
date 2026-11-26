@@ -8,6 +8,7 @@ const html = readFileSync(new URL('app.html', project), 'utf8');
 const head = html.slice(0, html.indexOf('</head>'));
 const styles = Array.from(head.matchAll(/<style\b[^>]*>[\s\S]*?<\/style>|<link\b[^>]*rel="stylesheet"[^>]*>/gi), m => m[0]).join('\n');
 const script = readFileSync(new URL('smyl-clinic-setup.js', project), 'utf8');
+const complianceModel = readFileSync(new URL('smyl-compliance-model.js', project), 'utf8');
 let browser;
 before(async () => {
   try {
@@ -42,6 +43,18 @@ async function openPreview(t, width, counts = COUNTS) {
     window.sb={
       auth:{getSession:async () => ({ data:{session:{access_token:'demo'}} })},
       functions:{invoke:async () => ({data:{templates:[]}})},
+      rpc:async name => name === 'smyl_compliance_overview' ? {data:{
+        sterilization:{cycles:1,last_bio_at:new Date().toISOString(),last_bio_result:'negative'},
+        rpbi:{collections:1,kg:2},
+        activity:{signed_notes:1,draft_notes:0,consents_signed:1,consents_revoked:0,verified_procedures:1,visits:1},
+        items:[
+          {key:'titulo_visible',status:'have'},{key:'rotulo_horario',status:'have'},{key:'contrato_rpbi',status:'have'},
+          {key:'contenedores_rpbi',status:'have'},{key:'fauna_nociva',status:'have'},{key:'bitacora_limpieza',status:'have'},
+          {key:'cisterna',status:'have'},{key:'cloro_residual',status:'have'},{key:'autoclave',status:'have'},
+          {key:'botiquin',status:'have'},{key:'telefonos_emergencia',status:'have'},{key:'vacunas_personal',status:'have'},
+          {key:'medicamentos',status:'have'},{key:'protocolos',status:'not_applicable'},{key:'equipo_rayos_x',status:'not_applicable'}
+        ]
+      }} : {data:null},
       from(table) {
         const filters = [];
         const query = {select(){return this;}, eq(){return this;}, neq(){return this;}, gt(){return this;}, maybeSingle(){return this;},
@@ -50,6 +63,7 @@ async function openPreview(t, width, counts = COUNTS) {
       }
     };
   }, counts);
+  await page.addScriptTag({content:complianceModel});
   await page.addScriptTag({content:script});
   return page;
 }
@@ -60,6 +74,11 @@ for (const width of [320, 820, 1440]) {
     const page=await openPreview(t,width);
     const section=page.locator('#smyl-clinic-setup');
     await section.locator('.setup-next').waitFor();
+    const compliance=page.locator('#smyl-compliance-nudge');
+    await compliance.waitFor();
+    assert.match(await compliance.innerText(),/18 de 20 requisitos al día/);
+    assert.match(await compliance.innerText(),/Siguiente prioridad: Aviso de funcionamiento/);
+    assert.equal(await compliance.evaluate(el=>el.scrollWidth<=el.clientWidth+1),true);
     // 11 pasos obligatorios; con estos datos están listos: sucursal, horario, consultorio, equipo, servicios, paciente = 6.
     assert.equal(await section.locator('.setup-percent').innerText(), '55 %');
     assert.match(await section.innerText(), /6 de 11 pasos listos/);
