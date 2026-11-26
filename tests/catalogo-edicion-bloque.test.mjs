@@ -45,3 +45,11 @@ test("IA por servicio: una marca por servicio en el catálogo (diálogo y bloque
   assert.match(card, /smyl_set_ai_scheduling_options/);
   for (const f of ["smyl-ai-scheduling.js", "smyl-ai-scheduling.css"]) assert.equal(fs.readFileSync(new URL("../mobile/www/" + f, import.meta.url), "utf8"), fs.readFileSync(new URL("../" + f, import.meta.url), "utf8"), f);
 });
+
+test("nombre repetido: se reutiliza el servicio existente al activar una plantilla y se avisa en español en vez del error de la base", () => {
+  assert.match(js, /var adopt=null;if\(!existing&&preset\)\{var same=state\.services\.find\(function\(x\)\{return !x\.template_key&&sameName\(x\.name,preset\.name\);\}\)/);
+  assert.match(js, /template_key:existing\?\(adopt\?adopt\.key:existing\.template_key\)/);
+  assert.match(js, /smyl_services_name_idx\|duplicate key/);
+  assert.match(js, /Ya hay un servicio activo llamado «/);
+  assert.doesNotMatch(js, /No se pudo guardar: '\+\(err\.message/);
+});
