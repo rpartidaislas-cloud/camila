@@ -112,6 +112,7 @@
     ];
     var activeCount = [confirmOn, reminderOn, Boolean(settings.no_show_enabled), Boolean(settings.feedback_enabled)].filter(Boolean).length;
     var whatsappInfo = settings.whatsapp_mode === 'per_branch' ? 'Cada sucursal usa su propio WhatsApp' : 'WhatsApp de la clínica' + (settings.whatsapp_phone ? ' (' + esc(settings.whatsapp_phone) + ')' : '');
+    card.dataset.summary = activeCount + ' de 4 activos'; card.dataset.summaryTone = activeCount === 0 ? 'warn' : activeCount === 4 ? 'ok' : '';
     body.innerHTML = '<ul class="schedule-flow">' + rows.join('') + '</ul>' +
       '<p class="schedule-reminders-muted">' + activeCount + ' de 4 activos · ' + whatsappInfo + ' · Salen entre las ' +
       esc(String(settings.send_window_start || '09:00').slice(0, 5)) + ' y las ' + esc(String(settings.send_window_end || '20:00').slice(0, 5)) +

@@ -61,6 +61,7 @@
     if (state.loading && !state.settings) { body.innerHTML = '<p class="ai-note">Cargando…</p>'; return; }
     if (!state.settings) { body.innerHTML = state.error ? '<p class="ai-note" role="alert">' + esc(state.error) + '</p>' : ''; return; }
     var s = state.settings, on = s.level !== 'off', dis = state.canManage ? '' : ' disabled';
+    card.dataset.summary = { off: 'Apagada', suggest: 'Solo sugiere', request: 'Deja solicitudes', book: 'Agenda sola' }[s.level] || 'Apagada'; card.dataset.summaryTone = on ? 'ok' : '';
     body.innerHTML =
       '<label class="ai-switch"><input type="checkbox" data-ai-on' + (on ? ' checked' : '') + dis + '> <span><strong>Que la IA sugiera horarios</strong><small>Propone hasta 3 opciones con tu disponibilidad real. No agenda por sí sola: tú confirmas.</small></span></label>' +
       '<label class="ai-switch ai-switch-sub"><input type="checkbox" data-ai-request' + (s.level === 'request' || s.level === 'book' ? ' checked' : '') + (on ? '' : ' disabled') + dis + '> <span><strong>También puede dejar la solicitud en «Por aprobar»</strong><small>El paciente elige uno de los horarios y, con su autorización, el asistente deja una solicitud con su nombre y medio de contacto. Tú la aceptas o la rechazas: nunca se confirma sola.</small></span></label>' +

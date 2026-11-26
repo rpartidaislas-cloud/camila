@@ -183,8 +183,8 @@ test("«Por aprobar» muestra el origen, el nombre y el contacto de una solicitu
   assert.match(cfg, /nunca se confirma sola/);
   for (const f of ["smyl-schedule.js"]) assert.equal(readFileSync(new URL(`../mobile/www/${f}`, import.meta.url), "utf8"), readFileSync(new URL(`../${f}`, import.meta.url), "utf8"));
   for (const base of ["", "mobile/www/"]) {
-    assert.match(readFileSync(new URL(`../${base}app.html`, import.meta.url), "utf8"), /smyl-ai-scheduling\.js\?v=4/);
-    assert.match(readFileSync(new URL(`../${base}app.html`, import.meta.url), "utf8"), /smyl-schedule\.js\?v=66/);
+    assert.match(readFileSync(new URL(`../${base}app.html`, import.meta.url), "utf8"), /smyl-ai-scheduling\.js\?v=5/);
+    assert.match(readFileSync(new URL(`../${base}app.html`, import.meta.url), "utf8"), /smyl-schedule\.js\?v=67/);
   }
 });
 
@@ -309,5 +309,5 @@ test("Agenda con IA (pantalla): tercer nivel «agendar» con tope diario, confir
   assert.match(agenda, /label:'Agendada por la IA'/);
   assert.match(agenda, /a\.notes\.indexOf\('Agendada por la IA'\)===0/);
   for (const f of ["smyl-ai-scheduling.js", "smyl-ai-scheduling.css", "smyl-schedule.js", "app.html", "sw.js"]) assert.equal(readFileSync(new URL(`../mobile/www/${f}`, import.meta.url), "utf8"), readFileSync(new URL(`../${f}`, import.meta.url), "utf8"), f);
-  assert.match(readFileSync(new URL("../app.html", import.meta.url), "utf8"), /smyl-ai-scheduling\.js\?v=4/);
+  assert.match(readFileSync(new URL("../app.html", import.meta.url), "utf8"), /smyl-ai-scheduling\.js\?v=5/);
 });
