@@ -42,14 +42,14 @@ test('el reclamo sigue reservado al servicio (no a usuarios) y devuelve los dato
 test('la Edge Function respeta consentimiento, ventana y tipo apagado, y asigna la sucursal sin pisar una manual', () => {
   assert.match(fn, /settings\.require_consent === true && row\.whatsapp_consent !== true/);
   assert.match(fn, /sendAtWithinWindow\(/);
-  assert.match(fn, /mode: isConfirmation \? "later" : "nearest"/);
-  assert.match(fn, /isConfirmation \? !confirmOn : !remindersOn/);
+  assert.match(fn, /mode: isConfirmation \|\| isNoShow \? "later" : "nearest"/);
+  assert.match(fn, /isNoShow \? !noShowOn : isConfirmation \? !confirmOn : \(!remindersOn/);
   assert.match(fn, /ignoreDuplicates: true/);
   assert.match(fn, /source: "appointment"/);
   assert.match(fn, /\|\| "—"/);
   // la confirmación solo aplica desde que se enciende y apagar un tipo no toca el otro
   assert.match(fn, /row\.confirmation_since = previous\?\.confirmation_enabled && previous\.confirmation_since/);
-  assert.match(fn, /const types = kind === "confirmation" \? \["confirmation"\] : REMINDER_TYPES/);
+  assert.match(fn, /const types = kind === "confirmation" \? \["confirmation"\] : kind === "no_show" \? \["no_show"\] : REMINDER_TYPES/);
   // permisos: configurar exige gestionar la agenda y responder mensajes
   assert.match(fn, /if \(!canConfigure\) return json\(403/);
 });
