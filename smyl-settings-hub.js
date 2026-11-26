@@ -307,6 +307,15 @@
         button.addEventListener('click', function () { restoreDetail(); state.section = section.id; save(section.id); render(); });
         nav.append(button);
       });
+      // Acceso permanente a la lista de puesta en marcha mientras falten pasos obligatorios.
+      var setup = win.SmylClinicSetup, progress = setup && typeof setup.summary === 'function' ? setup.summary() : null;
+      if (progress && progress.done < progress.total) {
+        var guide = el('button', 'settings-hub-nav-item settings-hub-setup'); guide.type = 'button';
+        guide.append(el('span', 'settings-hub-nav-copy', 'Puesta en marcha'), el('i', 'settings-hub-badge', progress.percent + ' %'));
+        guide.setAttribute('aria-label', 'Puesta en marcha, ' + progress.percent + ' por ciento. Ver los pasos');
+        guide.addEventListener('click', function () { setup.open(guide); });
+        nav.append(guide);
+      }
       pickerSelect.value = state.section;
       panel.replaceChildren();
       panel.classList.remove('settings-hub-panel--detail');
