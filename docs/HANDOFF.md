@@ -491,6 +491,10 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-26 — Claude Code — Menú: se quita «Simulaciones» de Negocio
+
+- A pedido del usuario. Las simulaciones viven en la ficha de cada paciente (pestaña «Diseño de sonrisa»). `['Simulaciones','historial','history']` pasó de `BUSINESS` a `REGISTRY` en `smyl-navigation.js`: la ruta `historial` sigue registrada (oculta) para que no reaparezca suelta en el menú, pero ya no hay botón. `smyl-navigation.js?v=35`, caché `menu-sin-simulaciones-v1`, `mobile/www` sincronizado. Pruebas de navegación: mismas 4 fallas que `main`.
+
 ## 2026-11-22 — Claude Code — Receta médica: módulo completo (PENDIENTE de revisión legal; no usar con pacientes reales)
 
 - **Qué hay**: botón **Receta médica** en la visita del Consultorio. Captura por medicamento (genérico, marca, concentración, presentación, dosis, vía, frecuencia, duración en días, cantidad), diagnóstico e indicaciones; aviso de **alergias** tomado de la historia clínica (coincidencia directa o misma familia: penicilinas, sulfonamidas, AINEs, macrólidos); etiqueta de **antibiótico** (máx. 30 días); bloqueo de **controlados**; emisión + impresión en media carta con firma autógrafa y sello; lista de recetas anteriores con **Reimprimir** y **Anular** (con motivo).
