@@ -67,7 +67,11 @@ server.listen(0, '127.0.0.1', async () => {
       const sent = await page.evaluate(() => window.__req.length);
       check(sent === 5, `${name}: se solicitaron las 5, una tras otra (${sent})`);
     }
-    for (const [route, section, label] of [['caja', 'finanzas', 'Finanzas'], ['propuestas', 'cotizaciones', 'Cotizaciones'], ['pacientes', 'pacientes', 'Pacientes']]) {
+    await page.evaluate(() => ir('caja')); await page.waitForTimeout(2000);
+    const fin = await page.evaluate(() => ({ franja: !!document.querySelector('[data-tpl-suggest="finanzas"]'), opcion: (document.querySelector('#p-caja [data-tpl-menu="finanzas"]') || {}).textContent || null }));
+    check(!fin.franja, `${name}: Finanzas no muestra franja`);
+    check(owner ? /Plantillas de WhatsApp.*Faltan \d+/.test(fin.opcion || '') : !fin.opcion, `${name}: Finanzas ${owner ? 'ofrece las plantillas dentro de «Más»: ' + fin.opcion : 'no ofrece nada a quien no es propietario'}`);
+    for (const [route, section, label] of [['propuestas', 'cotizaciones', 'Cotizaciones'], ['pacientes', 'pacientes', 'Pacientes']]) {
       await page.evaluate((r) => ir(r), route); await page.waitForTimeout(2000);
       const info = await page.evaluate((s) => { const c = document.querySelector(`[data-tpl-suggest="${s}"]`); return c ? { visible: c.getClientRects().length > 0, texto: c.querySelector('.tpl-suggest-text').textContent, progreso: c.querySelector('[role=progressbar]').getAttribute('aria-valuenow') + '/' + c.querySelector('[role=progressbar]').getAttribute('aria-valuemax') } : null; }, section);
       check(info && info.visible, `${name}: ${label} muestra su tarjeta ${JSON.stringify(info)}`);

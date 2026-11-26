@@ -79,7 +79,8 @@ test('la tarjeta: solo propietario puede solicitar, no pinta en bucle y se monta
   assert.match(js, /'Solicitar \(' \+ missing\.length/);
   assert.match(js, /DISMISS_DAYS = 14/, 'la franja se puede cerrar por 14 días');
   assert.match(js, /if \(!missing\.length && !problems\) return null/, 'solo aparece si falta algo');
-  assert.match(js, /finance-tabcards/, 'en Finanzas va debajo de las pestañas');
+  assert.match(js, /data-tpl-menu|tplMenu/, 'en Finanzas es una opción del menú «Más»');
+  assert.match(js, /section: 'finanzas', menu: true/);
   assert.doesNotMatch(js, /\.insert\(|\.update\(|\.delete\(|\.rpc\(|fetch\(/, 'solo usa el módulo de plantillas, sin tocar datos');
   assert.doesNotMatch(js, /\bLANA\b|\bLana\b/, 'no muestra el nombre del motor de mensajería');
   assert.match(read('smyl-template-suggest.css'), /\(max-width: 640px\)/);
@@ -109,8 +110,8 @@ test('Puesta en marcha: el paso de plantillas es «las esenciales de la Agenda»
 
 test('web, móvil y PWA publican el módulo nuevo después del de Plantillas', () => {
   const app = read('app.html'), worker = read('sw.js');
-  assert.match(app, /<link rel="stylesheet" href="smyl-template-suggest\.css\?v=2">\s*<script defer src="smyl-template-catalog\.js\?v=9"><\/script>\s*<script defer src="smyl-templates\.js\?v=9"><\/script>\s*<script defer src="smyl-template-suggest\.js\?v=3"><\/script>/);
+  assert.match(app, /<link rel="stylesheet" href="smyl-template-suggest\.css\?v=2">\s*<script defer src="smyl-template-catalog\.js\?v=9"><\/script>\s*<script defer src="smyl-templates\.js\?v=9"><\/script>\s*<script defer src="smyl-template-suggest\.js\?v=4"><\/script>/);
   assert.ok(app.indexOf('smyl-template-catalog.js') < app.indexOf('smyl-template-suggest.js'), 'el catálogo carga antes');
-  assert.ok(worker.includes("'/camila/smyl-template-suggest.js?v=3'") && worker.includes("'/camila/smyl-template-suggest.css?v=2'"));
+  assert.ok(worker.includes("'/camila/smyl-template-suggest.js?v=4'") && worker.includes("'/camila/smyl-template-suggest.css?v=2'"));
   for (const f of ['smyl-template-suggest.js', 'smyl-template-suggest.css', 'smyl-templates.js', 'smyl-inbox.js', 'smyl-clinic-setup.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
