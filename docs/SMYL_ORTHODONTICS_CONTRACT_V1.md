@@ -1,5 +1,11 @@
 # SMYL · Contrato de ortodoncia longitudinal v1
 
+## Estado de implementación · 26 de noviembre de 2026
+
+El contrato canónico ya está implementado por `20261126220000_smyl_orthodontics_backend.sql` y conectado al módulo web/PWA. Los casos, versiones, controles y vínculos de evidencia son relaciones verificables por servidor; crear un control genera su nota clínica y su índice en una sola transacción idempotente.
+
+El caso inicia en `records`. Antes de activarlo sólo admite el registro inicial o una urgencia. La activación exige seleccionar explícitamente un consentimiento informado vigente y permiso `clinical.approve`; el servidor nunca lo infiere por el título. La limitación que sí permanece es el modelo general de un solo capítulo de tratamiento activo por paciente, que se resolverá en Tratamientos v2.
+
 ## Objetivo
 
 Crear un seguimiento ortodóntico profesional dentro de **Ficha del paciente → Tratamiento → En tratamiento**. El módulo debe reunir el plan aprobado, los controles clínicos, la evidencia existente y la retención, sin duplicar archivos ni convertir una simulación estética en evidencia clínica.
@@ -57,11 +63,11 @@ El documento estructurado de una nota utiliza:
 
 El avance se expresa con hechos clínicos objetivos —por ejemplo, `alineador 12 de 24`— y nunca con un porcentaje genérico inventado.
 
-## Límite explícito de la primera entrega
+## Límite histórico de la primera entrega frontend
 
-Sin una migración adicional, una nota, una fotografía o una radiografía no tienen una llave foránea autoritativa hacia un caso ortodóntico. El campo `treatmentId` dentro del JSON ayuda a presentar la información, pero no sustituye una relación validada por el servidor.
+Antes de la migración canónica, una nota, una fotografía o una radiografía no tenían una llave foránea autoritativa hacia un caso ortodóntico. El campo `treatmentId` dentro del JSON ayudaba a presentar la información, pero no sustituía una relación validada por el servidor. Esta limitación quedó cerrada con la migración indicada en el estado de implementación.
 
-Por ello la interfaz inicial:
+Por ello la interfaz inicial se diseñó para:
 
 - no afirma que existe un “caso ortodóntico canónico”;
 - no mezcla actividad clínica general con progreso ortodóntico;
@@ -172,6 +178,7 @@ Una simulación de sonrisa sólo puede mostrarse en un bloque separado como **re
 - `smyl_create_orthodontic_case(p_treatment_chapter_id, p_document)`;
 - `smyl_update_orthodontic_case(p_id, p_expected_revision, p_document)`;
 - `smyl_transition_orthodontic_phase(p_id, p_expected_revision, p_phase)`;
+- `smyl_activate_orthodontic_case(p_id, p_expected_revision, p_consent_id)` para vincular y activar atómicamente;
 - `smyl_create_orthodontic_control(...)`;
 - `smyl_list_orthodontic_controls(p_orthodontic_case_id)`;
 - `smyl_link_orthodontic_evidence(p_orthodontic_case_id, p_study_id, p_clinical_note_id, p_role)`.
@@ -186,7 +193,7 @@ Todas deben validar `tenant_id`, acceso al paciente y el capítulo. La escritura
 - `smyl_can_access_patient` en toda lectura y mutación;
 - auditoría de creación, actualización, transición, firma y enlace de evidencia;
 - sin borrado de controles firmados ni versiones;
-- el consentimiento debe enlazarse al caso antes de transitar a `active`.
+- el consentimiento se enlaza y el caso transita a `active` en una sola operación transaccional.
 
 ## Riesgos a resolver antes de la persistencia canónica
 

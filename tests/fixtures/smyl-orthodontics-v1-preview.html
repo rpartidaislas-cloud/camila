@@ -18,7 +18,8 @@
     window.__orthoCalls=[];window.__orthoActions=[];
     window.SmylPatient360={open:key=>{window.__orthoActions.push('open:'+key);return true;}};
     window.SmylCaseWorkspace={open:key=>{window.__orthoActions.push('stage:'+key);return true;},openChairside:(key)=>{window.__orthoActions.push('chairside:'+key);return true;}};
-    window.sb={rpc:async(name,args)=>{window.__orthoCalls.push({name,args});return{data:args.p_id,error:null};}};
+    window.__orthoCase=null;
+    window.sb={rpc:async(name,args)=>{window.__orthoCalls.push({name,args});if(name==='smyl_get_orthodontic_case')return{data:window.__orthoCase,error:null};if(name==='smyl_create_orthodontic_case'){window.__orthoCase={id:'ortho-case-preview',patient_id:'patient-preview',treatment_chapter_id:args.p_treatment_chapter_id,revision:1,phase:'records',document:args.p_document};return{data:window.__orthoCase,error:null};}if(name==='smyl_create_orthodontic_control')return{data:{control:{id:'ortho-control-'+args.p_clinical_note_id,clinical_note_id:args.p_clinical_note_id,orthodontic_case_id:args.p_orthodontic_case_id},note:{id:args.p_clinical_note_id}},error:null};if(name==='smyl_list_informed_consents')return{data:[{id:'consent-ortho-preview',procedure_title:'Tratamiento de ortodoncia',signed_at:'2026-11-01T17:00:00Z',revoked_at:null}],error:null};if(name==='smyl_activate_orthodontic_case'){window.__orthoCase={...window.__orthoCase,revision:2,phase:'active',consent_id:args.p_consent_id,document:{...window.__orthoCase.document,consentId:args.p_consent_id}};return{data:window.__orthoCase,error:null};}return{data:null,error:null};}};
   </script>
   <script src="../../smyl-orthodontics.js"></script>
   <script>
@@ -31,7 +32,7 @@
       controlContext:{ready:true,canWrite:true,canApprove:true,professionals:[{id:'pro-1',name:'Dra. Fernanda Lozano'}],appointments:[{id:'appt-1',startsAt:'2026-11-12T17:00:00Z',status:'completed',professionalId:'pro-1',serviceId:'svc-ortho'}]}
     };
     const root=SmylOrthodontics.attach(window.__orthoCtx);document.getElementById('ortho-host').append(root);SmylOrthodontics.sync(window.__orthoCtx,window.__orthoInfo);
-    addEventListener('smyl:clinical-note-created',event=>{const call=window.__orthoCalls.findLast(x=>x.name==='smyl_create_clinical_note');if(!call)return;const d=call.args.p_document.orthodontics;window.__orthoInfo.controls.unshift({id:event.detail.noteId,status:'draft',revision:1,createdAt:new Date().toISOString(),professionalName:'Dra. Fernanda Lozano',treatmentId:d.treatmentId,controlType:d.controlType,phase:d.phase,appliance:d.appliance,changes:d.changes,cooperation:d.cooperation,hygiene:d.hygiene,discomfort:d.discomfort,incidents:d.incidents,nextControl:d.nextControl,patientInstructions:d.patientInstructions});SmylOrthodontics.sync(window.__orthoCtx,window.__orthoInfo);});
+    addEventListener('smyl:clinical-note-created',event=>{const call=window.__orthoCalls.findLast(x=>x.name==='smyl_create_orthodontic_control');if(!call)return;const d=call.args.p_document.orthodontics;window.__orthoInfo.controls.unshift({id:event.detail.noteId,status:'draft',revision:1,createdAt:new Date().toISOString(),professionalName:'Dra. Fernanda Lozano',treatmentId:d.treatmentId,orthodonticCaseId:d.orthodonticCaseId,controlType:d.controlType,phase:d.phase,appliance:d.appliance,changes:d.changes,cooperation:d.cooperation,hygiene:d.hygiene,discomfort:d.discomfort,incidents:d.incidents,nextControl:d.nextControl,patientInstructions:d.patientInstructions});SmylOrthodontics.sync(window.__orthoCtx,window.__orthoInfo);});
   </script>
 </body>
 </html>

@@ -16,7 +16,7 @@
     bonding: 'Colocación de aparatología', refinement: 'Refinamiento', emergency: 'Atención no programada',
     deband: 'Retiro de aparatología', retention: 'Retención', baseline: 'Registro inicial'
   };
-  var PHASES = { records: 'Registros', planning: 'Planeación', active: 'Tratamiento activo', finishing: 'Acabado', retention: 'Retención' };
+  var PHASES = { records: 'Registros', planning: 'Planeación', active: 'Tratamiento activo', finishing: 'Acabado', retention: 'Retención', closed: 'Cerrado' };
   var APPLIANCES = { aligner: 'Alineadores', fixed: 'Brackets', mixed: 'Mixto', removable: 'Aparato removible', retention: 'Retenedor', other: 'Otro' };
 
   function el(tag, cls, text) {
@@ -107,7 +107,7 @@
   function activeTreatment(st) {
     return st.info && st.info.treatment && st.info.treatment.status === 'active' ? st.info.treatment : null;
   }
-  function canCreate(st) { return context(st).canWrite === true && eligible(st.info && st.info.clinical) && !!activeTreatment(st); }
+  function canCreate(st) { var row = caseForTreatment(st); return context(st).canWrite === true && eligible(st.info && st.info.clinical) && !!activeTreatment(st) && !st.canonicalError && (!row || row.phase !== 'closed'); }
   function controls(st) { return Array.isArray(st.info && st.info.controls) ? st.info.controls : []; }
   function context(st) { return st.info && st.info.controlContext || {}; }
   function evidence(st) { return st.info && st.info.evidence || { counts: {}, items: [] }; }
@@ -122,10 +122,88 @@
     return APPLIANCES[appliance.type] || '';
   }
 
+  function rpcValue(result) {
+    if (result && result.error) throw result.error;
+    var value = result && result.data;
+    if (Array.isArray(value)) return value[0] || null;
+    return value || null;
+  }
+  async function rpc(name, args) {
+    if (!window.sb || typeof window.sb.rpc !== 'function') throw new Error('No hay conexión con el expediente.');
+    return rpcValue(await window.sb.rpc(name, args));
+  }
+  async function rpcRows(name, args) {
+    if (!window.sb || typeof window.sb.rpc !== 'function') throw new Error('No hay conexión con el expediente.');
+    var result = await window.sb.rpc(name, args);
+    if (result && result.error) throw result.error;
+    return Array.isArray(result && result.data) ? result.data : [];
+  }
+  function caseTreatmentId(row) { return clean(row && (row.treatment_chapter_id || row.treatmentChapterId)); }
+  function caseForTreatment(st) {
+    var treatment = activeTreatment(st), row = st.canonicalCase;
+    return treatment && row && caseTreatmentId(row) === clean(treatment.id) ? row : null;
+  }
+  function canonicalPhase(st) {
+    var row = caseForTreatment(st), phase = clean(row && row.phase);
+    return PHASES[phase] ? phase : 'records';
+  }
+  function caseDocument(st, appliance) {
+    var items = planItems(st.info && st.info.clinical);
+    return {
+      schema: 1,
+      problemList: items.map(function (item) { return clean(item && item.name, 160); }).filter(Boolean),
+      objectives: [],
+      baseline: {
+        dentition: '', overjetMm: null, overbitePercent: null, crowdingUpperMm: null, crowdingLowerMm: null,
+        midlineUpperMm: null, midlineLowerMm: null, molarRight: '', molarLeft: '', canineRight: '', canineLeft: '', notes: ''
+      },
+      mechanics: {
+        applianceType: clean(appliance && appliance.type), arches: clean(appliance && appliance.arches),
+        extractions: [], ipr: [], anchorage: [], auxiliaries: [], estimatedMonths: null
+      },
+      retention: { upper: '', lower: '', duration: '', instructions: [] },
+      limitations: []
+    };
+  }
+  async function loadCanonicalCase(st, force) {
+    var treatment = activeTreatment(st);
+    if (!treatment || !st.ctx || !st.ctx.patient) return null;
+    var key = clean(st.ctx.patient) + ':' + clean(treatment.id);
+    if (!force && st.canonicalKey === key && st.canonicalLoaded) return caseForTreatment(st);
+    if (st.canonicalLoading) return st.canonicalLoading;
+    st.canonicalKey = key;
+    st.canonicalError = '';
+    st.canonicalLoading = rpc('smyl_get_orthodontic_case', { p_patient_id: st.ctx.patient }).then(function (row) {
+      st.canonicalCase = row && caseTreatmentId(row) === clean(treatment.id) ? row : null;
+      st.canonicalLoaded = true;
+      st.canonicalError = '';
+      if (st.root && st.root.isConnected) render(st);
+      return st.canonicalCase;
+    }).catch(function (error) {
+      st.canonicalLoaded = false;
+      st.canonicalError = clean(error && error.message, 240) || 'No se pudo consultar el caso ortodóntico.';
+      if (st.root && st.root.isConnected) render(st);
+      return null;
+    }).finally(function () { st.canonicalLoading = null; });
+    return st.canonicalLoading;
+  }
+  async function ensureCanonicalCase(st, appliance) {
+    var treatment = activeTreatment(st), row = caseForTreatment(st) || await loadCanonicalCase(st, false);
+    if (row) return row;
+    if (!treatment) throw new Error('No hay un tratamiento activo para este control.');
+    row = await rpc('smyl_create_orthodontic_case', {
+      p_treatment_chapter_id: treatment.id,
+      p_document: caseDocument(st, appliance)
+    });
+    if (!row || !clean(row.id) || caseTreatmentId(row) !== clean(treatment.id)) throw new Error('No se pudo confirmar el caso ortodóntico.');
+    st.canonicalCase = row; st.canonicalLoaded = true; st.canonicalKey = clean(st.ctx.patient) + ':' + clean(treatment.id); st.canonicalError = '';
+    return row;
+  }
+
   function attach(ctx) {
     var root = el('section', 'ortho-root');
     root.hidden = true; root.setAttribute('aria-label', 'Seguimiento de ortodoncia');
-    var st = { ctx: ctx, root: root, view: 'today', info: {}, feedback: '', feedbackTone: '', saving: false };
+    var st = { ctx: ctx, root: root, view: 'today', info: {}, feedback: '', feedbackTone: '', saving: false, canonicalCase: null, canonicalKey: '', canonicalLoaded: false, canonicalLoading: null, canonicalError: '' };
     STATES.set(ctx, st); render(st); return root;
   }
   function sync(ctx, info) {
@@ -134,7 +212,7 @@
     var show = eligible(st.info.clinical) || controls(st).length > 0;
     st.root.hidden = !show;
     if (!show) ctx.orthodonticsPrimary = null;
-    if (show) render(st);
+    if (show) { render(st); loadCanonicalCase(st, false); }
     return show;
   }
 
@@ -156,6 +234,12 @@
     });
     root.append(tabs);
     var feedback = el('p', 'ortho-feedback', st.feedback); feedback.hidden = !st.feedback; feedback.dataset.tone = st.feedbackTone || 'info'; feedback.setAttribute('role', 'status'); root.append(feedback);
+    if (st.canonicalError) {
+      var loadError = el('aside', 'ortho-canonical-error'), errorCopy = el('div');
+      errorCopy.append(el('strong', '', 'No pudimos cargar el seguimiento clínico'), el('p', '', st.canonicalError + ' Reintenta antes de registrar un control.'));
+      loadError.append(errorCopy, button('Reintentar', function () { st.canonicalError = ''; render(st); loadCanonicalCase(st, true); }, 'ortho-btn'));
+      loadError.setAttribute('role', 'alert'); root.append(loadError);
+    }
     var panel = el('div', 'ortho-panel'); panel.dataset.view = st.view;
     if (st.view === 'controls') renderControls(st, panel);
     else if (st.view === 'evidence') renderEvidence(st, panel);
@@ -246,7 +330,52 @@
     });
     if (!items.length) listHost.append(el('p', 'ortho-empty', 'El tratamiento fue identificado como ortodóntico, pero el resumen del plan todavía no está disponible.'));
     panel.append(listHost);
+    var canonical = caseForTreatment(st), phase = canonicalPhase(st);
+    if (canonical && (phase === 'records' || phase === 'planning')) {
+      var activation = el('aside', 'ortho-safety'); activation.append(icon('shield'));
+      var activationCopy = el('div'); activationCopy.append(el('strong', '', 'Activa el seguimiento antes de los ajustes'), el('p', '', 'Vincula un consentimiento informado vigente. Mientras tanto sólo se permiten el registro inicial y las urgencias.'));
+      var activate = button('Vincular consentimiento y activar', function () { openActivation(st); }, 'ortho-btn ortho-primary');
+      activate.disabled = context(st).canApprove !== true;
+      if (activate.disabled) activate.title = 'Se requiere autorización clínica para activar el caso.';
+      activation.append(activationCopy, activate); panel.append(activation);
+    }
     var limitations = el('aside', 'ortho-safety'); limitations.append(icon('shield'), el('p', '', 'Los objetivos, la mecánica, la retención y las limitaciones deben confirmarse en el plan clínico. Los controles sólo documentan su ejecución.')); panel.append(limitations);
+  }
+
+  async function openActivation(st) {
+    var row = caseForTreatment(st);
+    if (!row || context(st).canApprove !== true) return;
+    var dlg = el('dialog', 'ortho-dialog'), form = el('form', 'ortho-wizard'); form.method = 'dialog';
+    var header = el('header', 'ortho-dialog-head'), title = el('div'); title.append(el('span', 'ortho-kicker', 'ACTIVAR CASO'), el('h2', '', 'Vincular consentimiento informado'), el('p', '', 'Selecciona el documento que corresponde a este tratamiento. SMYL no lo elegirá por coincidencias de texto.'));
+    var close = button('Cerrar', function () { dlg.close(); }, 'ortho-close'); close.setAttribute('aria-label', 'Cerrar activación'); header.append(title, close); form.append(header);
+    var body = el('div', 'ortho-wizard-body'), status = el('p', 'ortho-empty', 'Consultando consentimientos vigentes…'); body.append(status); form.append(body);
+    var feedback = el('p', 'ortho-dialog-feedback'); feedback.setAttribute('role', 'alert'); form.append(feedback);
+    var actions = el('footer', 'ortho-dialog-actions'), cancel = button('Cancelar', function () { dlg.close(); }, 'ortho-btn'), confirm = button('Vincular y activar', null, 'ortho-btn ortho-primary'); confirm.type = 'submit'; confirm.disabled = true; actions.append(cancel, confirm); form.append(actions);
+    dlg.append(form); document.body.append(dlg); dlg.addEventListener('close', function () { dlg.remove(); }); dlg.showModal();
+    try {
+      var rows = (await rpcRows('smyl_list_informed_consents', { p_patient_id: st.ctx.patient })).filter(function (item) { return item && !item.revoked_at; });
+      status.remove();
+      if (!rows.length) {
+        body.append(el('p', 'ortho-empty', 'No hay un consentimiento vigente. Regístralo en Consulta y vuelve a esta sección.'));
+        var openConsents = button('Abrir historia clínica', function () { dlg.close(); window.SmylPatient360 && window.SmylPatient360.open && window.SmylPatient360.open('history'); }, 'ortho-btn'); body.append(openConsents); return;
+      }
+      var options = [['', 'Selecciona un consentimiento']].concat(rows.map(function (item) { return [item.id, clean(item.procedure_title, 160) + ' · ' + date(item.signed_at)]; }));
+      body.append(field('Consentimiento firmado', select('consentId', options, ''), true, 'El documento permanecerá inmutable en el expediente.'));
+      confirm.disabled = false;
+    } catch (error) {
+      status.textContent = clean(error && error.message, 240) || 'No se pudieron consultar los consentimientos.';
+    }
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault(); var consentId = clean(form.elements.consentId && form.elements.consentId.value);
+      if (!consentId) { feedback.textContent = 'Selecciona el consentimiento correspondiente.'; return; }
+      confirm.disabled = true; confirm.textContent = 'Activando…'; feedback.textContent = '';
+      try {
+        var active = await rpc('smyl_activate_orthodontic_case', { p_id: row.id, p_expected_revision: row.revision, p_consent_id: consentId });
+        st.canonicalCase = active; st.canonicalLoaded = true; st.feedback = 'Caso ortodóntico activado. Ya puedes registrar ajustes y controles de seguimiento.'; st.feedbackTone = 'success'; dlg.close(); render(st);
+      } catch (error) {
+        feedback.textContent = clean(error && error.message, 240) || 'No se pudo activar el caso.'; confirm.disabled = false; confirm.textContent = 'Vincular y activar';
+      }
+    });
   }
 
   function openWizard(st) {
@@ -286,10 +415,13 @@
   }
   function wizardContext(st) {
     var section = wizardSection('PASO 1', 'Contexto del control', 'Identifica el tipo de control y la fase. Una recomendación de semanas no crea una cita.');
-    var grid = el('div', 'ortho-form-grid'), ctx = context(st), professionals = [['', 'Sin asignar']].concat((ctx.professionals || []).map(function (row) { return [row.id, clean(row.name || row.displayName || row.display_name, 100) || 'Profesional']; }));
+    var grid = el('div', 'ortho-form-grid'), ctx = context(st), phase = canonicalPhase(st), initialOnly = phase === 'records' || phase === 'planning', professionals = [['', 'Sin asignar']].concat((ctx.professionals || []).map(function (row) { return [row.id, clean(row.name || row.displayName || row.display_name, 100) || 'Profesional']; }));
     var appointments = [['', 'Sin vincular a una cita']].concat((ctx.appointments || []).slice(0, 24).map(function (row) { return [row.id, date(row.startsAt || row.starts_at, true)]; }));
-    grid.append(field('Tipo de control', select('controlType', Object.keys(CONTROL_TYPES).map(function (key) { return [key, CONTROL_TYPES[key]]; }), 'adjustment')));
-    grid.append(field('Fase', select('phase', Object.keys(PHASES).map(function (key) { return [key, PHASES[key]]; }), 'active')));
+    var types = Object.keys(CONTROL_TYPES).filter(function (key) { return !initialOnly || key === 'baseline' || key === 'emergency'; }).map(function (key) { return [key, CONTROL_TYPES[key]]; });
+    grid.append(field('Tipo de control', select('controlType', types, initialOnly ? 'baseline' : 'adjustment')));
+    var phaseDisplay = select('phaseDisplay', Object.keys(PHASES).map(function (key) { return [key, PHASES[key]]; }), phase); phaseDisplay.disabled = true;
+    grid.append(field('Fase del caso', phaseDisplay, false, initialOnly ? 'Vincula el consentimiento desde Plan base para activar el seguimiento.' : 'La fase se controla desde el caso clínico.'));
+    var phaseValue = input('phase', phase, '', 'hidden'); section.append(phaseValue);
     grid.append(field('Profesional', select('professionalId', professionals, '')));
     grid.append(field('Cita relacionada (opcional)', select('appointmentId', appointments, '')));
     section.append(grid); return section;
@@ -399,13 +531,18 @@
     };
     var id = form.dataset.noteId || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'ortho-' + Date.now() + '-' + Math.random().toString(16).slice(2)); form.dataset.noteId = id;
     try {
-      if (!window.sb || typeof window.sb.rpc !== 'function') throw new Error('No hay conexión con el expediente.');
-      var result = await window.sb.rpc('smyl_create_clinical_note', {
-        p_id: id, p_patient_id: st.ctx.patient, p_appointment_id: clean(data.get('appointmentId')) || null,
-        p_professional_id: clean(data.get('professionalId')) || null, p_note_type: 'progress', p_document: doc
+      var caseRow = await ensureCanonicalCase(st, appliance);
+      ortho.orthodonticCaseId = caseRow.id;
+      var result = await rpc('smyl_create_orthodontic_control', {
+        p_orthodontic_case_id: caseRow.id,
+        p_clinical_note_id: id,
+        p_appointment_id: clean(data.get('appointmentId')) || null,
+        p_professional_id: clean(data.get('professionalId')) || null,
+        p_control_type: ortho.controlType,
+        p_occurred_at: new Date().toISOString(),
+        p_document: doc
       });
-      if (result && result.error) throw result.error;
-      var savedId = clean(result && result.data && (result.data.id || result.data));
+      var savedId = clean(result && (result.clinical_note_id || result.clinicalNoteId || result.note_id || result.noteId || result.control && result.control.clinical_note_id || result.note && result.note.id));
       if (!savedId || savedId !== id) throw new Error('No se pudo confirmar el guardado. Reintenta: se conservará el mismo identificador para evitar duplicados.');
       st.saving = false; dlg.close(); st.feedback = 'Control guardado como borrador. Revísalo y fírmalo en Consulta para dejarlo inmutable.'; st.feedbackTone = 'success'; render(st);
       window.dispatchEvent(new CustomEvent('smyl:clinical-note-created', { detail: { tenant: st.ctx.tenant, patient: st.ctx.patient, noteId: id, source: 'orthodontics' } }));

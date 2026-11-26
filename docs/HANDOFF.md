@@ -1,3 +1,17 @@
+## 2026-11-26 — Codex — Backend canónico de ortodoncia longitudinal v1
+
+- Nueva migración `20261126220000_smyl_orthodontics_backend.sql`: casos vinculados por FK al capítulo de tratamiento, versiones append-only con bloqueo optimista, controles vinculados a notas clínicas y aislamiento multi-tenant/RLS.
+- `smyl_create_orthodontic_control` crea la nota clínica y el índice del control en una sola transacción y reutiliza `clinical_note_id` para reintentos idempotentes. El servidor agrega `caseId`, `treatmentId`, `controlType` y la fase canónica a la nota.
+- Seguridad clínica: el caso inicia en `records`; en `records/planning` sólo admite `baseline` o `emergency`. `smyl_activate_orthodontic_case` vincula el consentimiento vigente y activa el caso en una sola transacción con bloqueo optimista y `clinical.approve`. En `retention` sólo admite control de retención o urgencia. Los casos cerrados no se reabren.
+- El Centro de evidencia admite contexto `orthodontic_case` y rol `baseline/progress/issue/final/retention`; un estudio puede ligarse al caso y, opcionalmente, al control sin copiar su binario.
+- RPC: `smyl_get_orthodontic_case`, `smyl_create_orthodontic_case`, `smyl_update_orthodontic_case`, `smyl_transition_orthodontic_phase`, `smyl_activate_orthodontic_case`, `smyl_create_orthodontic_control`, `smyl_list_orthodontic_controls` y `smyl_link_orthodontic_evidence`.
+- QA: `tests/smyl-orthodontics-backend-v1.test.mjs` y fixtures `orthodontics-backend-stubs.sql` / `orthodontics-backend-scenarios.sql`. 10/10 pruebas del backend, incluido el escenario completo en PostgreSQL real (caso → activación atómica → control → evidencia, sin duplicados). La batería relevante suma 57/57 y los tres recorridos visuales de ortodoncia, consentimiento y receta pasan en escritorio/PWA.
+- Integración frontend completada en web y PWA: crea/obtiene el caso por RPC, guarda nota+control con el RPC transaccional, preselecciona `baseline` antes de la activación y permite vincular explícitamente un consentimiento vigente. No infiere el consentimiento por el título de una plantilla.
+- Hardening complementario `20261126210000_smyl_clinical_security_hardening.sql`: la revocación de consentimientos exige reautenticación reciente en servidor y las recetas validan el alcance clínico por paciente en lectura, emisión y anulación.
+- Revisión de vigencia posterior a la comparación con Dentalink: **ya no son pendientes** el diagnóstico «nuevo/de antes», la creación del plan desde hallazgos confirmados, el presupuesto automático ni el aviso de cotización desactualizada; esas capacidades ya existen y no deben reconstruirse.
+- Siguiente bloque vigente: **Tratamiento v2**. Asociar propuestas y actividad con `treatment_id`, cerrar/abrir capítulos de forma atómica, permitir aceptación parcial y trasladar procedimientos pendientes al capítulo siguiente. Después se puede decidir si SMYL necesita tratamientos simultáneos; hoy se conserva deliberadamente un solo tratamiento activo por paciente.
+- Sigue vigente, pero no debe adelantarse sin revisión sanitaria: plantillas de receta personales sincronizadas y validación regulatoria oficial. **Agenda queda fuera** de este bloque porque Ricardo la está trabajando en Claude.
+
 ## 2026-11-25 — Codex — Ortodoncia longitudinal: plan, controles y evidencia (web y PWA)
 
 - Alcance posterior a la auditoría Dentalink: se construyó **Ortodoncia longitudinal** dentro de `Tratamiento → En tratamiento`; **Agenda permanece fuera** porque Ricardo la está trabajando en Claude, tanto de forma directa como desde el chat.
