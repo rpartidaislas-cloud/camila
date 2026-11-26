@@ -977,9 +977,25 @@
         var review = capturePatientReview(tenant, patient);
         var mounted = !!document.getElementById('clinic-form');
         var doc = ctx.ready && mounted ? formDocument() : null;
+        var orthodonticItems = (doc && doc.treatments || []).filter(function (item) {
+          var snapshot = item && item.service_snapshot || {};
+          return snapshot.category === 'orthodontic' || snapshot.specialty === 'orthodontic';
+        }).map(function (item) {
+          return Object.freeze({
+            id: item.id || '', name: String(item.name || '').trim(), phase: item.phase || '',
+            area: String(item.area || '').trim(), teeth: Array.isArray(item.teeth) ? item.teeth.slice(0, 32) : [],
+            serviceId: item.service_id || null
+          });
+        });
         return { ready: !!review, revision: review ? review.revision : null, dirty: ctx.dirty || ctx.saving,
           available: ctx.ready && mounted, saving: ctx.saving, saved: !!ctx.row,
-          assessment: !!doc?.assessment.trim(), treatments: !!doc?.treatments.some(function (t) { return t.name.trim(); }) };
+          assessment: !!doc?.assessment.trim(), treatments: !!doc?.treatments.some(function (t) { return t.name.trim(); }),
+          orthodontics: Object.freeze({
+            eligible: !!review && orthodonticItems.length > 0,
+            items: Object.freeze(orthodonticItems),
+            revision: review ? review.revision : (ctx.row && ctx.row.revision || null),
+            reviewedAt: review ? review.reviewedAt : null
+          }) };
       },
       // options (opcional): {title, text, action} para reutilizar la guía desde otros recorridos (p. ej. Cotizar).
       focus: function (tenant, patient, resume, options) {

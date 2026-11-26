@@ -1,3 +1,16 @@
+## 2026-11-25 — Codex — Ortodoncia longitudinal: plan, controles y evidencia (web y PWA)
+
+- Alcance posterior a la auditoría Dentalink: se construyó **Ortodoncia longitudinal** dentro de `Tratamiento → En tratamiento`; **Agenda permanece fuera** porque Ricardo la está trabajando en Claude, tanto de forma directa como desde el chat.
+- Nuevo módulo `smyl-orthodontics.js` / `.css` v1 con cuatro vistas: **Hoy, Controles, Evidencia y Plan base**. Resume modalidad, fase, aparatología, último control y próximo intervalo recomendado con hechos clínicos, sin porcentajes genéricos ni una ficha paralela.
+- Nuevo asistente profesional de cuatro pasos: **Contexto → Revisión clínica → Trabajo e indicaciones → Comprobar**. Cambia los campos según alineadores, brackets, mixto o retención; separa lo referido, lo observado, cambios, conclusión, incidentes, indicaciones y objetivos siguientes.
+- Guardar crea una nota clínica **en borrador** mediante la RPC existente `smyl_create_clinical_note`; nunca firma por el profesional. La firma e inmutabilidad continúan en Consulta. Los reintentos reutilizan el mismo identificador para no duplicar notas si se pierde la respuesta de red.
+- Seguridad de estado: el historial sigue visible en consulta, pero registrar otro control exige permiso de escritura, plan ortodóntico revisado y tratamiento activo. Si el plan deja de estar vigente, la captura falla cerrada.
+- Evidencia: reutiliza fotografías, radiografías y documentos del expediente y abre las capturas/archivos canónicos; no vuelve a subir originales. La interfaz aclara que la evidencia disponible todavía no queda vinculada a un control específico en esta primera versión.
+- PWA: diálogo a una sola etapa, acciones inferiores sin superposición, campos táctiles, límites de captura, 320/390/834 px sin desbordes y activos web/`mobile/www` idénticos. Versiones: `smyl-clinic.js` v28, `smyl-patient-360.js` v41, `smyl-case-workspace.js` v52; caché `ortodoncia-longitudinal-v1`.
+- Contrato para la siguiente etapa backend en `docs/SMYL_ORTHODONTICS_CONTRACT_V1.md`: propone caso canónico, controles versionados, vínculos de evidencia y políticas multi-tenant. **No se modificaron migraciones ni funciones de servidor** en esta entrega.
+- QA: baterías 29/29 y 76/76, más recorrido visual real 1/1 en Chrome de plan, evidencia, historial, captura, comprobación, guardado, modo sólo lectura y PWA. Fixture: `tests/fixtures/smyl-orthodontics-v1-preview.html`; prueba: `tests/smyl-orthodontics-browser.cjs`.
+- **Límite actual explícito:** el registro estructurado vive dentro de la nota clínica existente. Para casos ortodónticos canónicos, hitos y evidencia ligada por control se requiere implementar el contrato backend antes de afirmar trazabilidad ortodóntica completa.
+
 ## 2026-11-25 — Codex — Consentimientos informados: proceso profesional y documento protegido (web y PWA)
 
 - Alcance posterior a la auditoría Dentalink: se profesionalizó **Consentimientos informados** y se mantuvo **Agenda fuera** porque Ricardo la está trabajando en Claude.

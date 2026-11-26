@@ -40,7 +40,7 @@ test('el contacto vive solo en Datos del paciente (con Agregar si falta) y la fi
 
 test('web, móvil y PWA publican Datos del paciente', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-patient-360\.js\?v=40/);
+    assert.match(read(file), /smyl-patient-360\.js\?v=41/);
     assert.match(read(file), /smyl-patient-360\.css\?v=23/);
     assert.match(read(file), /smyl-professional-v3\.js\?v=15/);
     assert.match(read(file), /smyl-professional-v3\.css\?v=13/);

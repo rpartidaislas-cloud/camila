@@ -101,7 +101,8 @@
   const f=ctx.routeFlags;if(!f||!ctx.nav)return;
   const current=ROUTE.map(r=>r[0]).find(id=>!f.done[id])||'followup';ctx.routeCurrent=current;let done=0;
   ROUTE.forEach(([id],index)=>{const b=ctx.nav[id];if(!b)return;const isDone=!!f.done[id];if(isDone)done++;
-   const tone=isDone?'done':id===current?'current':'locked',text=isDone?'Listo':id===current?'En curso'+(f.status[id]?' · '+f.status[id]:''):ROUTE_HINT[id]||'';
+   const available=id==='followup'&&ctx.orthodonticsAvailable&&!isDone&&id!==current;
+   const tone=isDone?'done':id===current?'current':available?'available':'locked',text=isDone?'Listo':id===current?'En curso'+(f.status[id]?' · '+f.status[id]:''):available?'Disponible para controles':ROUTE_HINT[id]||'';
    b.dataset.route=tone;copy(b.querySelector('.cw-step-num'),isDone?'✓':String(index+1));copy(b.querySelector('.cw-step-status'),text);b.setAttribute('aria-label',b.dataset.label+' · '+text);});
   if(ctx.routeFill)ctx.routeFill.style.width=Math.round(done/ROUTE.length*100)+'%';
   syncDock(ctx);
@@ -114,18 +115,18 @@
    const place=()=>{if(!ctx.root.isConnected)return;const r=ctx.root.getBoundingClientRect();if(!r.width)return;ctx.dock.style.left=Math.round(r.left)+'px';ctx.dock.style.width=Math.round(r.width)+'px';const nav=document.querySelector('.pro-mobile-nav'),navUp=nav&&getComputedStyle(nav).display!=='none'?nav.offsetHeight:0;ctx.dock.style.bottom=navUp+'px';ctx.dock.dataset.floating=String(navUp>0);};ctx.placeDock=place;if(window.ResizeObserver){ctx.dockObserver=new ResizeObserver(place);ctx.dockObserver.observe(ctx.root);}addEventListener('resize',place,{passive:true});}
   ctx.placeDock?.();
   const order=ROUTE.map(r=>r[0]),current=ctx.routeCurrent||'evaluation',viewing=routeViewing(ctx),label=Object.fromEntries(ROUTE);
-  let title='',sub='',action='',disabled=false,hidden=false,run=null;
-  if(viewing&&viewing!==current&&order.includes(viewing)){
+  let title='',sub='',action='',disabled=false,hidden=false,run=null;const accessibleFollowup=viewing==='followup'&&ctx.orthodonticsAvailable,operating=accessibleFollowup?'followup':current;
+  if(viewing&&viewing!==current&&order.includes(viewing)&&!accessibleFollowup){
    const past=order.indexOf(viewing)<order.indexOf(current);
    title=past?'Estás viendo una etapa terminada':'Esta etapa todavía no está disponible';sub=past?'Puedes consultarla o corregirla.':(ROUTE_HINT[viewing]||'')+'.';action='Ir a '+label[current];run=()=>open(current);
-  }else if(current==='evaluation'){
+  }else if(operating==='evaluation'){
    const cta=ctx.evaluationCta;title='Diagnóstico · '+(ctx.evaluationFooterStatus?.textContent||'en curso');action=cta?.textContent||'Continuar';disabled=!!cta?.disabled;hidden=!cta||cta.hidden;run=()=>ctx.evaluationAction?.();
-  }else if(current==='plan'){
+  }else if(operating==='plan'){
    const checks=ctx.planChecks||{};title='Plan de tratamiento · '+(ctx.routeFlags.status.plan||'');sub=['assessment','treatments'].map(id=>checks[id]?.textContent||'').filter(Boolean).join(' · ');action=ctx.planNext?.textContent||'Aprobar plan';disabled=!!ctx.planNext?.disabled;run=()=>ctx.planNext?.click();
-  }else if(current==='approval'){
+  }else if(operating==='approval'){
    title='Presupuesto · '+(ctx.shareHint?.textContent||'prepáralo desde el plan aprobado');action=ctx.quoteButton?.textContent||'Preparar presupuesto';disabled=!!ctx.quoteButton?.disabled;run=()=>ctx.quoteButton?.click();
   }else{
-   title='En tratamiento · registra cada avance con su evolución';sub='El cierre se documenta con una evolución firmada; SMYL no cierra casos automáticamente.';action=ctx.evolveButton?.textContent||'Registrar evolución';disabled=!ctx.evolveButton||ctx.evolveButton.disabled;run=()=>ctx.evolveButton?.click();
+   const ortho=accessibleFollowup&&ctx.orthodonticsPrimary;title=ortho?'Ortodoncia · seguimiento longitudinal':'En tratamiento · registra cada avance con su evolución';sub=ortho?'Registra el control como borrador clínico y fírmalo desde Consulta.':'El cierre se documenta con una evolución firmada; SMYL no cierra casos automáticamente.';action=ortho?ortho.textContent:(ctx.evolveButton?.textContent||'Registrar evolución');disabled=ortho?ortho.disabled:!ctx.evolveButton||ctx.evolveButton.disabled;run=()=>ortho?ortho.click():ctx.evolveButton?.click();
   }
   copy(ctx.dockTitle,title);copy(ctx.dockSub,sub);ctx.dockSub.hidden=!sub;copy(ctx.dockButton,action);ctx.dockButton.disabled=disabled;ctx.dockButton.hidden=hidden||!action;ctx.dockRun=run;
  }
@@ -623,6 +624,7 @@
   const actions=n('div','cw-action-row');actions.append(ctx.quoteButton,ctx.shareButton,ctx.fixPlan);approval.body.append(actions,n('p','cw-help','Preparar un presupuesto o crear un enlace no envía nada automáticamente. El profesional conserva la revisión final.'));
   ctx.history=btn('Consultar enlaces y solicitudes',()=>{if(valid(ctx)&&ctx.selected?.current())ctx.selected.present();});
   const past=n('details','cw-contact');past.append(n('summary','','Presentaciones anteriores'),n('p','cw-help','Consulta su vigencia o revoca un acceso desde «Enlaces anteriores y mensajes del paciente». Abrirlo no crea ni envía una propuesta.'),ctx.history);approval.body.append(past);
+  ctx.orthodontics=window.SmylOrthodontics?.attach?.(ctx)||null;if(ctx.orthodontics)followup.body.append(ctx.orthodontics);
   ctx.evolution=n('section','cw-evolution');followup.body.append(ctx.evolution);
   ctx.followupButton=btn('Continuar seguimiento en Mensajes',()=>window.ir('inbox'),true);ctx.followupButton.hidden=true;ctx.followupActions=n('div','cw-action-row');ctx.followupActions.hidden=true;ctx.followupActions.append(ctx.followupButton);followup.body.append(ctx.followupActions);
   layout.append(root);adopt(ctx);refresh();open(resume.stage,false);
@@ -657,6 +659,8 @@
   const load=gallery?.dataset.loadState;
   const photoStatus=ctx.clinicalPhotoStatus||null,canonicalPhotoCount=photoStatus?Number(photoStatus.studies||0):0,canonicalPhotoResolved=photoStatus?Number(photoStatus.resolvedStudies||0):0,canonicalPhotoPending=photoStatus?Number((photoStatus.unresolvedStudies??photoStatus.pending)||0):0;
   const files=window.SmylPatient360?.files?.(ctx.tenant,ctx.patient),progress=window.SmylPatientProgress?.status?.(ctx.tenant,ctx.patient),clinical=window.SmylClinicalWorkflow?.status(ctx.tenant,ctx.patient),dental=window.SmylDentalProgress?.status(ctx.tenant,ctx.patient,entry?.row.id),photoStudies=window.SmylClinicalPhotoReview?.studies?.(ctx.tenant,ctx.patient)||[];let canonicalEvidence=[];try{canonicalEvidence=window.SmylEvidenceCenterIntegration?.collectEvidence?.(ctx.tenant,ctx.patient,photoStudies)||[];}catch{}const evidenceTotal=canonicalEvidence.length||Math.max(files?.total||0,count+(dental?.studies||0));
+  const orthodonticEvidence=window.SmylPatientEvidenceFiles?.all?.(ctx.tenant,ctx.patient),orthodonticControls=window.SmylPatientProgress?.orthodonticControls?.(ctx.tenant,ctx.patient),orthodonticContext=window.SmylPatientProgress?.orthodonticContext?.(ctx.tenant,ctx.patient),activeTreatment=window.SmylTreatments?.current?.(ctx.patient);
+  ctx.orthodonticsAvailable=!!(clinical?.orthodontics?.eligible||(orthodonticControls&&orthodonticControls.length));
   const photoCount=photoStatus?canonicalPhotoCount:count,photoPending=(dental?.pending||0)+(dental?.workflowPending||0)+canonicalPhotoPending,rxPending=dental?.rxPending||0;
   const evidenceLabel=evidenceTotal?evidenceTotal+(evidenceTotal===1?' archivo':' archivos'):load==='ready'?'Sin archivos':'Cargando documentación';
   const contextState=renderContext(ctx),contextReviewed=!!contextState?.reviewed&&!contextState.stale;
@@ -705,6 +709,7 @@
   else {copy(ctx.planNext,'Continuar al presupuesto');ctx.planNext.disabled=!planComplete;ctx.planNext.onclick=()=>open('approval');}
   const quoteReady=!!clinical?.ready,eligible=pairs>0&&planComplete;
   renderEvolution(ctx,progress,dental,clinical);
+  window.SmylOrthodontics?.sync?.(ctx,{progress,clinical,treatment:activeTreatment,evidence:orthodonticEvidence,controls:orthodonticControls,controlContext:orthodonticContext});
   const receipt=ctx.receipts.get(entry?.row.id),created=eligible&&receipt&&Date.parse(receipt.expiresAt)>Date.now()&&receipt.revision===clinical?.revision;
   state(ctx,'approval',created?'Preparada':quoteReady?'Lista para preparar':'Pendiente',created?'done':quoteReady?'neutral':'pending');
   state(ctx,'followup',created?'En curso':'Pendiente',created?'done':'pending');
