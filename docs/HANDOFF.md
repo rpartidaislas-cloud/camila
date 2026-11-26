@@ -12675,3 +12675,12 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 
 ## 2026-11-25 — Claude Code — Chat: la lista marca `can_operate` desde SMYL
 - `lana-inbox` (lista de conversaciones): si LANA no manda `can_operate`, SMYL lo marca `true` solo para conversaciones que ya pasaron el filtro de acceso y alcance. Antes el chat ocultaba «Agendar» y otras acciones sin avisar si el campo faltaba. Hay que **volver a desplegar `lana-inbox`** (`docs/bundles/lana-inbox.single-file.ts`). Prueba: `tests/lana-inbox-can-operate.test.mjs`.
+
+## 2026-11-26 — Claude Code — Avisos de cita: primer aviso 48 h antes (paso 1 de «Confirmaciones»)
+- **Contexto:** el dueño quiere automatizar cuatro flujos de WhatsApp (confirmaciones 48 h y 24 h, ausentismos, cancelaciones, retroalimentación). Este es el paso 1; los demás siguen.
+- **Qué hace:** nuevo tipo de mensaje `48h` en `smyl_appointment_reminders` e interruptor `smyl_reminder_settings.reminder_48h_enabled` (apagado por omisión). Usa la MISMA plantilla/variables que el recordatorio de 24 h (conviene `recordatorio_cita_confirmar_v1`, con botones «Confirmo mi asistencia» / «Necesito reprogramar»; las respuestas ya se guardan y se ven en la Agenda). Solo citas a más de 48 h; mover/cancelar la cita lo cancela (trigger existente). Requiere recordatorios 24 h encendidos.
+- **Migración:** `20261128110000_smyl_reminder_48h.sql` (copia para pegar: `docs/sql-aviso-48h-pegar-en-supabase.sql`). Redefine `smyl_claim_appointment_reminders`. Publicar la migración antes que la función; al revés no rompe nada.
+- **Función:** `appointment-reminders` (bundle regenerado en `docs/bundles/`); hay que volver a pegarla en Supabase.
+- **UI:** casilla «Enviar también un primer aviso 48 h antes» en Mensajes automáticos de citas (`smyl-reminders.js` v5, `sw.js`, `app.html`, copias en `mobile/www/`).
+- **Pruebas:** `tests/aviso-48h.test.mjs` (estática; no se probó contra Postgres real ni con LANA).
+- **Pendiente de los otros pasos:** ausentismos automático, ofrecer horarios al cancelar, retroalimentación, plantillas nuevas a pedir a Meta.
