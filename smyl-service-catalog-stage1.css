@@ -169,3 +169,28 @@ body.smyl-ui-governed .contenido .catalog-dialog .catalog-form-grid>label>textar
 .catalog-bulk-dialog header p{margin:0;color:#5f716b;font-size:13px;line-height:1.5}
 .catalog-bulk-field{display:grid;gap:6px;font-weight:600}
 @media (max-width:720px){.catalog-bulkbar{bottom:8px}.catalog-bulk-actions button{flex:1 1 auto}}
+
+/* Diálogo más corto: disponibilidad (quién lo realiza + IA), «Más opciones» y la IA como enlace junto al nombre */
+.catalog-ai-link{font-weight:700;margin-left:6px}
+.catalog-ai-status{margin:0;padding:10px 12px;border-radius:10px;background:#f1f7ff;color:#25405f;font-size:13px;line-height:1.5}
+.catalog-ai-status[hidden]{display:none}
+.catalog-avail{display:grid;gap:12px}
+.catalog-who{margin:0;padding:12px 14px;border:1px solid #dce6e3;border-radius:14px;display:grid;gap:10px}
+.catalog-who legend{padding:0 6px;font-weight:700;font-size:13px}
+.catalog-who small{color:#5f716b;font-size:12.5px;line-height:1.5}
+.catalog-chips{display:flex;flex-wrap:wrap;gap:8px}
+.catalog-chip{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 12px;border:1.5px solid #d9dfe7;border-radius:999px;background:#fff;cursor:pointer;font-weight:600;font-size:13.5px}
+.catalog-chip input{width:18px;height:18px}
+.catalog-chip:has(input:checked){border-color:#142bc3;background:#eef1ff;color:#142bc3}
+.catalog-ai-switch{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid #dce6e3;border-radius:14px;cursor:pointer}
+.catalog-ai-switch input{width:20px;height:20px;margin-top:3px}
+.catalog-ai-switch strong,.catalog-ai-switch small{display:block}
+.catalog-ai-switch small{color:#5f716b;font-size:12.5px;line-height:1.5;margin-top:2px}
+.catalog-more{border:1px solid #dce6e3;border-radius:14px;background:#fff}
+.catalog-more>summary{display:flex;justify-content:space-between;gap:10px;padding:12px 14px;cursor:pointer;list-style:none;font-weight:700}
+.catalog-more>summary::-webkit-details-marker{display:none}
+.catalog-more>summary em{font-style:normal;color:#6b7c76;font-weight:500;font-size:13px}
+.catalog-more-body{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 14px 14px}
+.catalog-flag[data-tone="ai"]{background:#efe9ff;color:#4b2fb5}
+.catalog-bulk-mode{display:flex;gap:16px;font-weight:600}
+@media (max-width:720px){.catalog-more-body{grid-template-columns:1fr}}

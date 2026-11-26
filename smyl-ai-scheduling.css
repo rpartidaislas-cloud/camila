@@ -12,3 +12,7 @@
 .ai-row label { display: grid; gap: 4px; font-size: 13px; }
 .ai-error { color: #8a1f1f; } .ai-ok { color: #1d30a5; }
 @media (max-width: 720px) { .ai-row label, .ai-row select { width: 100%; } }
+
+.ai-services-note{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px solid #dce6e3;border-radius:14px}
+.ai-services-note strong,.ai-services-note small{display:block}
+.ai-services-note small{color:#5f716b;font-size:13px;line-height:1.5;margin-top:2px;max-width:56ch}
