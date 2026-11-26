@@ -547,9 +547,9 @@
  function shortDate(value){
   const when=Date.parse(value);return Number.isFinite(when)?new Date(when).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}):'Sin registro';
  }
- function renderEvolution(ctx,progress,dental,clinical){
+ function renderEvolution(ctx,progress,dental,clinical,activeTreatment){
   if(!ctx.evolution)return;
-  const data={progress,dental:dental?.teeth||null,confirmed:(dental?.confirmed||0)+(dental?.rxConfirmed||0),plan:!!clinical?.ready};
+  const data={progress,dental:dental?.teeth||null,confirmed:(dental?.confirmed||0)+(dental?.rxConfirmed||0),plan:!!clinical?.ready,treatmentId:activeTreatment?.id||null};
   const fingerprint=JSON.stringify(data);if(ctx.evolutionFingerprint===fingerprint)return;ctx.evolutionFingerprint=fingerprint;ctx.evolution.replaceChildren();
   const notes=progress?.notes||{},appointments=progress?.appointments||{},teeth=dental?.teeth||{},confirmed=data.confirmed;
   const head=n('header','cw-evolution-head'),copyBox=n('div');copyBox.append(n('span','cw-kicker','HISTORIAL DEL TRATAMIENTO'),n('strong','','Qué se ha trabajado'),n('p','','Cada control conserva fecha, autor y versión. Lo anterior no se reemplaza.'));
@@ -557,9 +557,11 @@
   const readiness=n('span','cw-evolution-readiness',ready?'Listo para documentar cierre':notes.drafts?'Evolución en borrador':notes.signed?'Seguimiento activo':'Primer control pendiente');readiness.dataset.state=ready?'done':notes.drafts?'pending':'neutral';head.append(copyBox,readiness);ctx.evolution.append(head);
   const metrics=n('dl','cw-evolution-metrics');[['Evoluciones',notes.total||0,(notes.signed||0)+' firmadas'],['Citas completadas',appointments.completed||0,appointments.upcoming?(appointments.upcoming+' próximas'):'Sin próxima cita'],['Piezas en seguimiento',teeth.following||0,(teeth.done||0)+' realizadas'],['Hallazgos confirmados',confirmed,'Revisión profesional']].forEach(([label,value,detail])=>{const item=n('div');item.append(n('dt','',label),n('dd','',String(value)),n('small','',detail));metrics.append(item);});ctx.evolution.append(metrics);
   const body=n('div','cw-evolution-body'),latest=n('section','cw-evolution-latest');latest.append(n('span','cw-kicker','ÚLTIMO CONTROL'),n('strong','',notes.latest?notes.latest.label:'Sin evolución registrada'),n('p','',notes.latest?shortDate(notes.latest.createdAt)+' · '+(notes.latest.status==='signed'?'Firmada e inmutable':'Borrador pendiente de firma'):'Registra la primera evolución para iniciar el historial clínico del caso.'));
-  body.append(latest);ctx.evolution.append(body);
+  const accepted=n('section','cw-procedures');body.append(latest,accepted);ctx.evolution.append(body);ctx.procedureHost=accepted;
+  const procedureOpts={tenant:ctx.tenant,patient:ctx.patient,treatmentId:activeTreatment?.id||null,patientName:[window.pacienteActual?.nombre,window.pacienteActual?.apellido].filter(Boolean).join(' '),canWrite:progress?.canWrite!==false};
+  window.SmylProcedureSafety?.renderAccepted?.(accepted,procedureOpts);
   const actions=n('div','cw-evolution-actions');
-  const evolve=window.SmylProcedureSafety?.open?btn('Registrar procedimiento',()=>{const pa=window.pacienteActual||{};window.SmylProcedureSafety.open({tenant:ctx.tenant,patient:ctx.patient,patientName:[pa.nombre,pa.apellido].filter(Boolean).join(' ')});},true):btn(notes.drafts?'Continuar evolución':'Registrar evolución',()=>window.SmylPatientProgress?.newEvolution(),true);evolve.disabled=!progress?.ready||progress.canWrite===false;ctx.evolveButton=evolve;evolve.classList.add('cw-dock-mirrored');
+  const evolve=window.SmylProcedureSafety?.openNext?btn('Registrar siguiente procedimiento',()=>window.SmylProcedureSafety.openNext(procedureOpts),true):btn(notes.drafts?'Continuar evolución':'Registrar evolución',()=>window.SmylPatientProgress?.newEvolution(),true);evolve.disabled=!progress?.ready||progress.canWrite===false;ctx.evolveButton=evolve;evolve.classList.add('cw-dock-mirrored');
   const map=btn('Actualizar odontograma',()=>{open('evaluation');ctx.mapHost?.scrollIntoView({block:'center',behavior:'smooth'});});
   const history=btn('Ver historial clínico',()=>window.SmylPatient360?.open('notes'));
   actions.append(evolve,map,history);ctx.evolution.append(actions,n('p','cw-evolution-note',ready?'El cierre se documenta con una evolución firmada y el odontograma actualizado; SMYL no cierra casos automáticamente.':'Completa los pendientes clínicos antes de documentar el cierre.'));
@@ -712,7 +714,7 @@
   else if(!clinical?.ready){const reviewButton=document.getElementById('clinic-review');copy(ctx.planNext,'Aprobar plan');ctx.planNext.disabled=!reviewButton||reviewButton.disabled;ctx.planNext.onclick=()=>reviewButton?.click();}
   else {copy(ctx.planNext,'Continuar al presupuesto');ctx.planNext.disabled=!planComplete;ctx.planNext.onclick=()=>open('approval');}
   const quoteReady=!!clinical?.ready,eligible=pairs>0&&planComplete;
-  renderEvolution(ctx,progress,dental,clinical);
+  renderEvolution(ctx,progress,dental,clinical,activeTreatment);
   window.SmylOrthodontics?.sync?.(ctx,{progress,clinical,treatment:activeTreatment,evidence:orthodonticEvidence,controls:orthodonticControls,controlContext:orthodonticContext});
    const receipt=ctx.receipts.get(entry?.row.id),presentationReady=eligible&&receipt&&Date.parse(receipt.expiresAt)>Date.now()&&receipt.revision===clinical?.revision;
    const treatmentId=activeTreatment?.id||null,proposalApi=window.SmylProposals,proposal=proposalApi?.summary?.(ctx.patient,treatmentId)||null,primeKey=treatmentId?ctx.tenant+':'+ctx.patient+':'+treatmentId:'',acceptedCount=Number(proposal?.acceptedCount||0),pendingCount=Number(proposal?.pendingCount||0),rejectedCount=Number(proposal?.rejectedCount||0),canActivate=!!proposal?.canActivate||acceptedCount>0;
@@ -741,6 +743,7 @@
   addEventListener('smyl:portal-revoked',e=>{const ctx=active,d=e.detail;if(valid(ctx)&&d?.tenant===ctx.tenant&&d.patient===ctx.patient){ctx.receipts.delete(d.caseId);refresh();}});
   addEventListener('smyl:proposal-updated',e=>{const ctx=active,d=e.detail,patient=d?.patient||d?.patientId;if(valid(ctx)&&(!patient||patient===ctx.patient)){ctx.proposalPrimeKey='';refresh();}});
   addEventListener('smyl:proposal-decision-updated',e=>{const ctx=active,d=e.detail,patient=d?.patient||d?.patientId;if(valid(ctx)&&(!patient||patient===ctx.patient))refresh();});
+  addEventListener('smyl:procedure-execution-updated',e=>{const ctx=active,d=e.detail;if(valid(ctx)&&d?.tenant===ctx.tenant&&d.patient===ctx.patient){ctx.evolutionFingerprint='';refresh();}});
   addEventListener('smyl:treatment-changed',e=>{const ctx=active,d=e.detail,patient=d?.patient||d?.patientId;if(valid(ctx)&&(!patient||patient===ctx.patient)){ctx.proposalPrimeKey='';refresh();}});
   addEventListener('smyl:patient-summary',e=>{const ctx=active,d=e.detail;if(!valid(ctx)||d?.tenant!==ctx.tenant||d.patient!==ctx.patient)return;ctx.summary=d;const parts=[];if(d.alerts)parts.push(d.alerts+' '+(d.alerts===1?'alerta clínica':'alertas clínicas'));if(d.nextAppointment){const when=new Date(d.nextAppointment);parts.push('Próxima cita · '+when.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' '+when.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}));}copy(ctx.patientStatus,parts.join(' · ')||'Expediente al día');ctx.patientStatus.dataset.alerts=String(!!d.alerts);refresh();});
   addEventListener('smyl:patient-context-updated',e=>{const ctx=active,d=e.detail;if(!valid(ctx)||d?.tenant!==ctx.tenant||d.patient!==ctx.patient)return;ctx.contextFingerprint='';refresh();});

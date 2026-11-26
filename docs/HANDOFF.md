@@ -12800,3 +12800,14 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **Sin SQL ni funciones.** Consultas de solo conteo con RLS (14 en paralelo, caché de 60 s).
 - **Archivos:** `smyl-clinic-setup.js` v9, `smyl-clinic-setup.css` v6, `smyl-settings-hub.js` v20, `app.html`, `sw.js`, copias en `mobile/www/`; pruebas `tests/smyl-clinic-setup.test.mjs` y `tests/smyl-clinic-setup-browser.test.mjs` (reescritas: 320/820/1440 px, lista completa, 100 %, paso sin verificar, clínica tardía), `tests/daily-home-continuity.test.mjs` actualizado.
 - **Pendiente / ideas:** aviso de privacidad como paso (hoy `smyl_privacy_settings` no es legible desde el navegador: haría falta una función), pagos en línea (Openpay), mostrar el avance también a administradores (hoy solo propietario).
+
+## 2026-11-26 — Codex — Ejecución clínica de procedimientos aceptados (Tratamiento v2)
+- **Problema resuelto:** aceptar un concepto de la propuesta ya no puede confundirse con haberlo realizado. Cada concepto aceptado se materializa como una ejecución clínica trazable con estados `Aceptado`, `En atención`, `Pospuesto`, `Cancelado` o `Completado`.
+- **Regla clínica:** el procedimiento sólo pasa a `Completado` cuando su nota clínica vinculada se firma. La aceptación económica, crear un borrador o pulsar el botón de registro no lo completan.
+- **Flujo en el expediente:** el capítulo activo muestra «Procedimientos aceptados», avance por concepto y una única acción contextual: registrar, reactivar, revisar y firmar o consultar la nota. El registro conserva decisión, propuesta, revisión, concepto, cantidad, sucursal, pieza/zona y consentimiento.
+- **Consentimiento:** se eliminó la casilla manual. Cirugía exige seleccionar un consentimiento informado real, vigente y del mismo paciente; el servidor vuelve a comprobarlo.
+- **Evidencia:** fotografías y radiografías se vinculan a la ejecución por referencia; no se duplican archivos clínicos.
+- **Backend:** migración `20261128150000_smyl_procedure_execution_v1.sql`; tabla `smyl_procedure_executions`; RPC `smyl_sync_procedure_executions_v1`, `smyl_list_procedure_executions_v1`, `smyl_create_procedure_note_v1`, `smyl_set_procedure_execution_status_v1` y `smyl_link_procedure_evidence_v1`; bloqueo optimista, RLS, auditoría y origen aceptado inmutable.
+- **UI/PWA:** `smyl-procedure-safety.js` v3, `smyl-patient-360.js` v42/CSS v24, `smyl-case-workspace.js` v54/CSS v38, caché PWA `procedure-execution-v1`; copias idénticas en `mobile/www/`.
+- **Pruebas:** 43/43 del alcance pasaron, incluidas tres rutas PostgreSQL reales en PGlite: Tratamiento v2, ortodoncia longitudinal y procedimiento aceptado → nota firmada. Sin cambios en Agenda.
+- **Siguiente útil:** asociar automáticamente una cita concreta cuando el procedimiento se inicia desde la visita y añadir el reporte longitudinal de ejecución/tiempos. No conviene crear más pantallas clínicas antes de validar este flujo con un caso real de la clínica.
