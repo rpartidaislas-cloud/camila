@@ -1,7 +1,7 @@
 // SMYL PWA Service Worker
 // Versión del cache — incrementar cuando se actualicen archivos
 const CACHE_VERSION = 'smyl-v263-lana-connection-recovery-google-calendar-bidirectional-review-professional-invitations-appointment-negotiations-whatsapp-callbacks-patients-visual-v32-history-ux-v32-whatsapp-template-categories-treatment-ux-v32-smart-odontogram-v33-evidence-history-v34-simplified-navigation-patient-intake-v33-no-new-design-primary-evidence-ai-v35-evolution-closure-v36-daily-workbench-v12-meta-cards-v13-source-workspace-v37-clinical-task-panel-v38-single-odontogram-v39-radiograph-ui-v40-reading-workbench-v42-radiograph-navigation-v43-patient-summary-v44-patient-timeline-v45-team-roles-v46-team-layout-v47-radiograph-review-v2-v47-radiograph-report-v48-radiograph-longitudinal-v49-radiograph-validation-v50-radiograph-hardening-v51-radiograph-v1-json-v52-radiograph-v1-retry-v53-radiograph-v1-retry-fix-v54-radiograph-v1-diagnostic-v55-quiet-update-v56-radiograph-null-v57-radiograph-opus-v58-radiograph-boxes-v59-radiograph-units-v60-radiograph-order-v61-radiograph-lightbox-v62-radiograph-fit-v63-radiograph-map-v64-simulator-simple-v1-progressive-v2-premium-v3-radiograph-drag-v65-clinical-workspace-v33-v66-daily-home-scope-fix-v67-vita-carousel-v4-sidebar-v68-navy-studio-v5-history-dates-v68-history-structured-v69-patient-simulations-v70-navy-cleanup-v6-face-guide-v7-simulator-ux-v6-bleach-guide-v8-shade-compare-v9-bleach-bl-v10-result-views-v11-lana-unlink-v1-dialog-v2-voice-notes-v12-patient-open-fix-v1-history-focused-v71-topbar-cleanup-v72-evaluation-flow-v73-patient-summary-simple-v74-history-read-integration-v75-treatment-simple-v77-panel-audit-fase0-caja-citas-v1-aviso-panel-v2-lista-pacientes-v3-selector-diferido-v4-agenda-estatica-v5-tope-ia-v6-sondeo-adaptativo-v7-supabase-local-v8-anti-empalme-v9-errores-cliente-v10-proposal-pwa-compact-v1-evaluation-context-v78-patient-directory-v4-result-explicit-v12-patient-record-header-v79-pwa-manifest-v80-topbar-limpia-v81-treatment-tenant-workbench-v82-cobros-v82-plantillas-cobro-v83-cobro-whatsapp-v84-cobranza-v85-login-split-v86-odontogram-clinical-workbench-v87-cargo-fiscal-v86-buscador-pacientes-v87-google-login-v89-google-precheck-v90-cotizaciones-v88-messaging-center-cotizaciones-v1-professional-payment-flow-sentry-v1-smyl-v267-guided-collection-sentry-v1-legal-v96-sentry-on-v2-freeze-watchdog-v1-sidebar-v2-finance-tabs-v3-page-width-v1-pending-charges-v1-agenda-billing-v1-nav-pending-badge-v1-no-show-fee-v1-guided-collection-v2-account-v2-clinical-evidence-center-v1-catalog-v2-catalog-roles-v1-refund-roles-v1-radiograph-gallery-v1-settings-channels-v2-radiograph-queue-v2-catalog-inline-price-v1-settings-workspace-v3-whatsapp-workspace-v4-radiograph-reading-desk-v12-dashboard-operativo-v3-whatsapp-coexistence-v5-cash-reconciliation-v1-finance-history-corrections-v1-radiograph-decision-flow-v13-radiograph-context-crop-v14-radiograph-guided-process-v15-radiograph-multiscale-abstention-v16-clinical-photo-evidence-v1-radiograph-intake-v1-radiograph-tooth-picker-v17-radiograph-mobile-reading-v18-single-radiograph-intake-v1-radiograph-intake-runtime-fix-v1-radiograph-mobile-flow-v17-patient-mobile-submit-v1-radiograph-docked-odontogram-v20-radiograph-device-parity-zoom-v21-charge-select-clean-v1-evaluation-separation-v79-radiograph-single-action-v1-clinical-dictation-v1-charge-dialog-v2-dental-findings-v2-dental-history-evidence-v3-inventory-v2-movement-v1-professional-finance-v1-order-v1-material-v1-reponer-v1-inventory-roles-v1-seguimiento-v89-inventario-costos-v90-inventory-phase3-v1-sin-movimiento-v1-radiograph-mila-dictation-v1-importar-etiquetas-v1-radiograph-professional-writing-v2-cobros-material-v1-paciente-por-registrar-v1-registro-por-enlace-v1-inicio-compacto-v1-inicio-cobros-v1-agenda-alineacion-v1-inicio-por-rol-v1-agenda-nueva-cita-v1-cobros-hoy-v1-agenda-mes-v1-agenda-ronda2-v1-cobros-caja-v1-llego-sin-cita-v1-cobros-directo-v1-agenda-tarjetas-v1-consultorio-v1-visita-v1-canales-logos-v1-chat-limpio-v1-chat-calendario-v2-ficha360-v1-sucursales-proceso-v1-almacenamiento-v1-chat-sucursal-v1-precio-sucursal-v1-historia-preguntas-v1-microtexto-12px-v1-cierre-visita-v1-nube-v1-nube-compartir-v1-ficha360-v3-cotizacion-sucursal-v1-qr-registro-v1-alertas-medicas-v1-ia-sucursal-v1-nube-ia-v1-firma-aviso-v1-ficha-guias-v1-resumen-guardado-v1-capacitar-etapas-v1-agenda-chat-servicio-v1-agenda-dia-auto-v1-agenda-tablero-v1-bandeja-limpia-v1-horarios-claros-v1-ia-sucursales-vivas-v1-inbox-professional-v4-facturapi-sandbox-v1-capacitar-ejemplos-v1-facturacion-configuracion-v1-avisos-sucursal-v1-pdf-sucursal-v1-capacitar-ia-mejoras-v1-prueba-mismo-paso-v1-facturar-recibo-v1-timbrado-sandbox-v1-cancelacion-sandbox-v1-factura-correo-v1-acuse-cancelacion-v1-facturapi-plataforma-v1-inbox-professional-v5-vincular-paciente-v1-asistente-datos-vivos-v1-mensajes-citas-v1-skeletons-v1-ficha-ordenada-v1-agenda-sincroniza-chat-v1-avisos-cita-v5-clic-fuera-v1-vincular-chat-v1-ficha360-v4-finanzas-workspace-v5-datos-paciente-v1-expediente-orden-v2-constancia-domicilio-v1-constancia-chat-v1-equipo-profesional-v1-photo-review-mount-fix-v1-equipo-whatsapp-v1-equipo-horarios-v1-equipo-listo-v1-alta-whatsapp-v2-selector-consultorio-v1-cabecera-sin-s-v1-menu-selectores-v1-ficha-contexto-v1-caja-paginada-v1-csp-v1-agenda-pendientes-colapsables-v1-privacidad-derechos-v1-firma-aviso-remota-v1-privacidad-expediente-v2-privacidad-chat-v1-aviso-automatico-v1-candado-ia-v2-consentimiento-claro-v1-privacidad-por-paciente-v1-agenda-avisos-activos-v1-agenda-clic-horario-v1-chat-cita-agenda-v1-agenda-filtro-aviso-v1-cotizacion-estados-v1-iniciar-tratamiento-v1-cotizar-listos-v1-cotizar-ventana-v2-pago-en-linea-clinica-v1-cobro-enlace-v1-pagos-en-linea-openpay-v1-pagos-en-linea-diagnostico-v1-pagos-en-linea-paynet-v1-finanzas-pestanas-v6-finanzas-cobrar-pagos-v7-pagos-filtro-v8-cumplimiento-ia-v1agenda-avisos-activos-v1-agenda-clic-horario-v1-chat-cita-agenda-v1-agenda-filtro-aviso-v1-cotizacion-estados-v1-iniciar-tratamiento-v1-cotizar-listos-v1-cotizar-ventana-v2-pago-en-linea-clinica-v1-cobro-enlace-v1-pagos-en-linea-openpay-v1-pagos-en-linea-diagnostico-v1-pagos-en-linea-paynet-v1-finanzas-pestanas-v6-finanzas-cobrar-pagos-v7-pagos-filtro-v8-cumplimiento-ia-v1-cumplimiento-fase2-v1-receta-integrada-v1-ruta-tratamiento-v1-media-sugerencias-v1-finanzas-caja-facturacion-v9-finanzas-motor-v10-tratamientos-capitulos-v1-hallazgos-nuevos-v1-verificacion-anestesia-v1-sidebar-compacto-v1-buscador-sat-v1-sat-ia-v1-servicio-ia-v1-procedimiento-herramienta-v1-servicio-ia-v2-nube-organizar-v1-servicio-iva-v1-sat-diagnostico-v1-marca-smyl-v1-cobro-sucursal-v1-cobro-simple-v1-cumplimiento-carpeta-v1-equipo-whatsapp-v1-equipo-horarios-v1-equipo-listo-v1-planes-v1-openpay-v1-plan-consumo-v2-plantillas-estatus-v1-aviso-48h-v1-seguimiento-no-vino-v1';
-const COMPOSER_TOOLBOX_CACHE = CACHE_VERSION + '-inbox-toolbox-v6-periodontograma-v4';
+const COMPOSER_TOOLBOX_CACHE = CACHE_VERSION + '-inbox-toolbox-v6-periodontograma-v4-treatment-v2';
 const CHAT_WRITING_TOOLS_CACHE = COMPOSER_TOOLBOX_CACHE + '-inbox-writing-tools-v7-picker-v8-atencion-v9-chat-access-v1-citas-pipeline-v2-panel-v2';
 const ANATOMICAL_ODONTOGRAM_CACHE = CHAT_WRITING_TOOLS_CACHE + '-chat-media-v1-inbox-header-v1-thread-ux-v5-chat-compact-v2-evidence-single-entry-fix-v1-radiograph-anatomic-odontogram-v20-radiograph-mobile-workspace-v22-radiograph-visual-architecture-v23-radiograph-fit-action-v24-evidence-library-v25-radiograph-crop-view-v26-radiograph-unified-review-v27-patient-reload-continuity-v1-clinical-file-layout-v28-radiograph-crop-editor-v29';
 const STATIC_CACHE = ANATOMICAL_ODONTOGRAM_CACHE + '-canales-cuentas-v1' + '-chat-control-icons-v1-inventory-policy-v1-collection-visual-v1-static-evidence-center-ux-v6-clinical-categories-v1-evidence-single-intake-v1-payments-ledger-ux-v1-evidence-workspace-v1-finance-workspace-v4-fiscal-receipts-v1-mila-interview-qr-v1-mila-voice-interview-v1-mila-dialog-v3-mila-live-orb-v1-mila-live-v2-summary-fix-v1-mila-orb-v3-mila-previsit-v1-orb-round-v1-online-pay-v1-oculto-v1-previsit-agenda-v1-mila-turnos-v1-mi-cuenta-personal-v1-mi-consultorio-v1-equipo-ficha-v1-branch-scope-v1-receipt-professional-v1-propuesta-compartida-v1-propuesta-aviso-v1-correcciones-revision-v1-quick-replies-v1-inbox-composer-rewrite-v1-lana-meta-attribution-v1-inicio-sin-nueva-cita-v1-branches-team-v2-branch-actions-v1-clinical-files-inset-v1-clinical-tools-v1-simulador-arreglos-v1-receta-base-v1-diseno-sonrisa-v1-receta-v1-ia-interruptor-v1-asistente-layout-v1-asistente-niveles-v1-agenda-ia-solicitud-v1-asistente-autollenado-v1-agenda-sin-nueva-cita-duplicada-v1-inbox-ocultar-mensaje-v1-agenda-error-envio-visible-v1-receta-profesional-v2-consentimiento-profesional-v2-ortodoncia-longitudinal-v2';
@@ -78,10 +78,10 @@ const STATIC_FILES = [
   '/camila/icons/ui/my-smyl-example-before.svg',
   '/camila/icons/ui/my-smyl-example-after.svg',
   '/camila/smyl-patient-cases.css?v=4',
-  '/camila/smyl-proposals.css?v=16',
+  '/camila/smyl-proposals.css?v=17',
   '/camila/smyl-prescription.css?v=2',
-  '/camila/smyl-proposals.js?v=27',
-  '/camila/smyl-proposal-model.js?v=4',
+  '/camila/smyl-proposals.js?v=28',
+  '/camila/smyl-proposal-model.js?v=5',
   '/camila/smyl-proposal-print.js?v=7',
   '/camila/smyl-prescription-model.js?v=2',
   '/camila/smyl-prescription-print.js?v=2',
@@ -90,7 +90,7 @@ const STATIC_FILES = [
   '/camila/smyl-treatment-quote-stage3.css?v=3',
   '/camila/smyl-treatment-plan-model.js?v=1',
   '/camila/smyl-treatment-plan-client.js?v=2',
-  '/camila/smyl-clinic.js?v=28',
+  '/camila/smyl-clinic.js?v=29',
   '/camila/smyl-history-model.js?v=3',
   '/camila/smyl-history-read.js?v=4',
   '/camila/smyl-patient-privacy-panel.js?v=5',
@@ -127,11 +127,11 @@ const STATIC_FILES = [
   '/camila/smyl-periodontal-review.css?v=3',
   '/camila/smyl-periodontal-guided.css?v=1',
   '/camila/smyl-guided-photos.js?v=1',
-  '/camila/smyl-treatments.js?v=3',
+  '/camila/smyl-treatments.js?v=4',
   '/camila/smyl-orthodontics.js?v=2',
   '/camila/smyl-orthodontics.css?v=2',
-  '/camila/smyl-case-workspace.js?v=52',
-  '/camila/smyl-case-workspace.css?v=36',
+  '/camila/smyl-case-workspace.js?v=53',
+  '/camila/smyl-case-workspace.css?v=37',
   '/camila/smyl-clinic.css?v=13',
   '/camila/smyl-patients-directory.css?v=3',
   '/camila/smyl-clinical-model.js?v=3',
@@ -190,7 +190,7 @@ const STATIC_FILES = [
   '/camila/smyl-fiscal-rules.js?v=2',
   '/camila/smyl-fiscal-capture.js?v=4',
   '/camila/smyl-xlsx.js?v=1',
-  '/camila/smyl-finance.js?v=73',
+  '/camila/smyl-finance.js?v=74',
   '/camila/smyl-online-pay-setup.js?v=3',
   '/camila/smyl-online-pay-setup.css?v=2',
   '/camila/smyl-finance.css?v=54',

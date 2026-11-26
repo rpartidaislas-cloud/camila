@@ -710,14 +710,31 @@
 .cw-ch-warn{margin:0;padding:9px 12px;border:1px solid #ebd6a5;border-radius:9px;background:#fffbf0;color:#7a5410;font-size:13px}
 .cw-ch-panel{display:grid;gap:12px;padding:14px;border:1px solid #cdd3de;border-radius:12px;background:#f7f8fa}
 .cw-ch-panel h3,.cw-ch-card h3{margin:0;font-size:16px}
+.cw-ch-step-title{padding-top:2px;font-size:13px;letter-spacing:.03em;color:#0b1b2e}
 .cw-ch-field{display:grid;gap:6px;font-size:13px;font-weight:650;color:#26384c}
-.cw-ch-field textarea{width:100%;min-height:64px;padding:10px 12px;border:1px solid #cfd9e2;border-radius:10px;background:#fff;color:#0b1b2e;font:inherit;font-size:14px;font-weight:400;resize:vertical}
+.cw-ch-field input,.cw-ch-field textarea{width:100%;min-height:44px;padding:10px 12px;border:1px solid #cfd9e2;border-radius:10px;background:#fff;color:#0b1b2e;font:inherit;font-size:14px;font-weight:400}
+.cw-ch-field textarea{min-height:64px;resize:vertical}
+.cw-ch-field input:focus-visible,.cw-ch-field textarea:focus-visible,.cw-ch-carry-item:has(input:focus-visible){outline:3px solid #2b3dae;outline-offset:2px}
 .cw-ch-outcomes{display:grid;gap:8px}
 .cw-ch-outcome{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid #dbe3ea;border-radius:10px;background:#fff;cursor:pointer}
 .cw-ch-outcome input{margin-top:3px;width:18px;height:18px;accent-color:#2b3dae}
 .cw-ch-outcome span{display:grid;gap:1px}
 .cw-ch-outcome small{color:#5c6b7c;font-size:12.5px}
 .cw-ch-submit{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.cw-ch-carry{display:grid;gap:10px;padding:12px;border:1px solid #d7e1e8;border-radius:12px;background:#fff}
+.cw-ch-carry-head>div{display:grid;gap:2px}
+.cw-ch-carry-head strong{font-size:13.5px;color:#0b1b2e}
+.cw-ch-carry-head small{font-size:12.5px;line-height:1.4;color:#5c6b7c}
+.cw-ch-carry-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
+.cw-ch-carry-item{display:flex;align-items:flex-start;gap:10px;min-height:58px;padding:10px 12px;border:1px solid #dbe3ea;border-radius:10px;background:#fff;cursor:pointer}
+.cw-ch-carry-item:has(input:checked){border-color:#2d3a9e;background:#f0f3ff}
+.cw-ch-carry-item input{flex:none;width:20px;height:20px;margin:1px 0 0;accent-color:#2b3dae}
+.cw-ch-carry-item span{display:grid;gap:2px;min-width:0}
+.cw-ch-carry-item strong{font-size:13.5px;line-height:1.3;color:#0b1b2e}
+.cw-ch-carry-item small{font-size:12px;line-height:1.35;color:#5c6b7c}
+.cw-ch-carry-summary{margin:0;padding-top:8px;border-top:1px solid #e7ecf0;color:#34475c;font-size:12.5px;font-weight:650}
+.cw-ch-inline-error{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border:1px solid #e1b8b0;border-radius:9px;background:#fdf0ed;color:#8a3324;font-size:13px}
+.cw-ch-inline-error .cw-ch-btn{min-height:36px;background:#fff}
 .cw-ch-data{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:flex-end;padding-top:12px;border-top:1px solid #e6ecf1}
 .cw-ch-group{display:grid;gap:6px}
 .cw-ch-group-label{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5c6b7c}
@@ -737,7 +754,7 @@
 .cw-ch-plan small{color:#5c6b7c;font-size:12.5px}
 /* Al consultar un tratamiento cerrado se oculta la ruta y sus etapas: es solo lectura */
 .cw-viewing-closed .cw-nav,.cw-viewing-closed .cw-route-bar,.cw-viewing-closed>.cw-module,.cw-viewing-closed .cw-route-dock,.cw-viewing-closed .cw-stage-status{display:none!important}
-@media(max-width:600px){.cw-ch-chip{min-width:160px}.cw-ch-actions{width:100%}.cw-ch-actions .cw-ch-btn{flex:1}.cw-ch-submit .cw-ch-btn{flex:1}}
+@media(max-width:600px){.cw-ch-chip{min-width:160px}.cw-ch-actions{width:100%}.cw-ch-actions .cw-ch-btn{flex:1}.cw-ch-submit .cw-ch-btn{flex:1;min-height:44px}.cw-ch-carry-list{grid-template-columns:minmax(0,1fr)}.cw-ch-carry{padding:10px}.cw-ch-carry-item{min-height:60px}.cw-ch-inline-error{align-items:stretch;flex-direction:column}.cw-ch-inline-error .cw-ch-btn{min-height:44px}}
 
 /* Hallazgos de este tratamiento · nuevos frente a los de antes */
 .cw-ch-findings{display:grid;gap:10px;margin:0 0 14px;padding:14px 16px;border:1px solid #cdd3de;border-radius:12px;background:#f7f8fa}
@@ -758,3 +775,17 @@
 .cw-ch-find-old summary{min-height:40px;display:flex;align-items:center;cursor:pointer;font-size:13.5px;font-weight:650;color:#5c6b7c}
 .cw-ch-find-old .cw-ch-find-list{margin-top:6px}
 .cw-viewing-closed .cw-ch-findings{display:none!important}
+
+/* Decisión económica real: el enlace mySmyl es presentación, no aceptación. */
+.cw-approval-summary{display:grid;gap:14px;margin:16px 0;padding:16px;border:1px solid #d8e2ea;border-radius:12px;background:#f8fafb}
+.cw-approval-summary[hidden]{display:none}
+.cw-approval-summary-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.cw-approval-summary-head>div{display:grid;gap:3px}
+.cw-approval-summary-head strong{color:#0b1b2e;font-size:17px;line-height:1.3}
+.cw-approval-summary-head p{max-width:680px;margin:0;color:#5c6b7c;font-size:13px;line-height:1.55}
+.cw-approval-total{white-space:nowrap;font-variant-numeric:tabular-nums}
+.cw-approval-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0}
+.cw-approval-facts>div{display:grid;gap:3px;padding:10px 12px;border:1px solid #e0e7ed;border-radius:10px;background:#fff}
+.cw-approval-facts dt{color:#647487;font-size:12px;font-weight:650}
+.cw-approval-facts dd{margin:0;color:#0b1b2e;font-size:14px;font-weight:750;font-variant-numeric:tabular-nums}
+@media(max-width:600px){.cw-approval-summary-head{display:grid}.cw-approval-total{font-size:16px}.cw-approval-facts{grid-template-columns:1fr}.cw-approval-facts>div{grid-template-columns:1fr auto;align-items:center;min-height:48px}}

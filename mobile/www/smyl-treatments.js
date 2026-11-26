@@ -105,13 +105,22 @@
   }
   function alive(ctx) { return !!(ctx && ctx.root && ctx.root.isConnected && ctx.treatments); }
   function activeOf(st) { return (st.list || []).filter(function (t) { return t.status === 'active'; })[0] || null; }
+  function emptyForm() { return { title: '', text: '', outcome: 'closed', note: '', carry: {}, request: null }; }
+  function carryItemIds(items, selected) {
+    var allowed = new Set((items || []).map(function (item) { return String(item && item.id || ''); }).filter(Boolean));
+    return Object.keys(selected || {}).filter(function (id) { return selected[id] && allowed.has(id); }).sort();
+  }
+  function uuid() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
+  }
 
   // Último tratamiento activo conocido por paciente (lo consulta el bloque de verificación de las notas).
   var CURRENT = {};
   function current(patientId) { return CURRENT[patientId] || null; }
 
   function attach(ctx) {
-    var st = { list: null, loading: false, unavailable: false, error: '', viewing: null, panel: null, busy: false, details: {}, form: { text: '', outcome: 'closed', note: '' } };
+    var st = { list: null, loading: false, unavailable: false, error: '', viewing: null, panel: null, busy: false, details: {}, transition: null, form: emptyForm() };
     ctx.treatments = st;
     st.host = el('section', 'cw-chapters');
     st.host.setAttribute('aria-label', 'Tratamientos del paciente');
@@ -173,7 +182,11 @@
     head.append(title);
     var actions = el('div', 'cw-ch-actions');
     if (active && !st.viewing) actions.append(button('Cerrar tratamiento', function () { st.panel = st.panel === 'close' ? null : 'close'; render(ctx); }));
-    actions.append(button('+ Nuevo tratamiento', function () { st.panel = st.panel === 'new' ? null : 'new'; render(ctx); }, 'cw-ch-btn cw-ch-primary'));
+    actions.append(button('+ Nuevo tratamiento', function () {
+      st.panel = st.panel === 'new' ? null : 'new'; st.error = '';
+      render(ctx);
+      if (st.panel === 'new' && active) loadTransitionPlan(ctx, active);
+    }, 'cw-ch-btn cw-ch-primary'));
     head.append(actions);
     host.append(head);
 
@@ -239,42 +252,135 @@
     st.error = text; st.busy = false; render(ctx);
   }
 
+  async function loadTransitionPlan(ctx, active) {
+    var st = ctx.treatments, key = active && active.id;
+    if (!key || st.transition && st.transition.key === key && (st.transition.loading || st.transition.ready)) return;
+    st.transition = { key: key, loading: true, ready: false, error: '', revision: null, items: [] };
+    render(ctx);
+    if (!window.sb || typeof window.sb.from !== 'function') {
+      st.transition = { key: key, loading: false, ready: false, error: 'No hay conexión para consultar el plan actual.', revision: null, items: [] };
+      return render(ctx);
+    }
+    var result;
+    try {
+      result = await window.sb.from('smyl_clinical_plans').select('revision,status,document')
+        .eq('tenant_id', ctx.tenant).eq('patient_id', ctx.patient).maybeSingle();
+    } catch (error) { result = { data: null, error: error }; }
+    if (!alive(ctx) || st.panel !== 'new' || activeOf(st) && activeOf(st).id !== key) return;
+    if (result.error || !result.data) {
+      st.transition = { key: key, loading: false, ready: false, error: result.error && result.error.message || 'No se pudo consultar el plan actual.', revision: null, items: [] };
+      return render(ctx);
+    }
+    var doc = result.data.document && typeof result.data.document === 'object' ? result.data.document : {};
+    var items = (Array.isArray(doc.treatments) ? doc.treatments : []).map(function (item) {
+      return {
+        id: String(item && item.id || ''), name: String(item && item.name || 'Procedimiento sin nombre'),
+        area: String(item && item.area || ''), phase: PHASES[item && item.phase] || '',
+        teeth: Array.isArray(item && item.teeth) ? item.teeth.map(String) : []
+      };
+    }).filter(function (item) { return !!item.id; });
+    st.transition = { key: key, loading: false, ready: true, error: '', revision: Number(result.data.revision), status: result.data.status, items: items };
+    render(ctx);
+  }
+
+  function transitionPlan(ctx, active) {
+    var st = ctx.treatments, box = el('section', 'cw-ch-carry');
+    box.setAttribute('aria-labelledby', 'cw-carry-title');
+    var head = el('div', 'cw-ch-carry-head');
+    var copy = el('div', ''); copy.append(el('strong', '', '2 · Decide qué procedimientos continúan'), el('small', '', 'Nada se traslada automáticamente. Marca únicamente lo que seguirá en el nuevo tratamiento.'));
+    copy.querySelector('strong').id = 'cw-carry-title';
+    head.append(copy); box.append(head);
+    var transition = st.transition;
+    if (!transition || transition.key !== active.id || transition.loading) {
+      var loading = el('p', 'cw-help', 'Consultando el plan actual…'); loading.setAttribute('role', 'status'); box.append(loading); return box;
+    }
+    if (transition.error || !transition.ready) {
+      var error = el('div', 'cw-ch-inline-error');
+      error.append(el('span', '', transition.error || 'No se pudo preparar la continuidad.'), button('Reintentar', function () { st.transition = null; loadTransitionPlan(ctx, active); }));
+      box.append(error); return box;
+    }
+    if (!transition.items.length) {
+      box.append(el('p', 'cw-help', 'El plan actual no tiene procedimientos. El nuevo tratamiento comenzará vacío.'));
+      return box;
+    }
+    var list = el('div', 'cw-ch-carry-list');
+    transition.items.forEach(function (item) {
+      var label = el('label', 'cw-ch-carry-item'), input = document.createElement('input');
+      input.type = 'checkbox'; input.checked = !!st.form.carry[item.id]; input.value = item.id;
+      input.onchange = function () { st.form.carry[item.id] = input.checked; st.form.request = null; render(ctx); };
+      var itemCopy = el('span', '');
+      itemCopy.append(el('strong', '', item.name));
+      var detail = [item.phase, item.area, item.teeth.length ? 'Piezas ' + item.teeth.join(', ') : ''].filter(Boolean).join(' · ');
+      if (detail) itemCopy.append(el('small', '', detail));
+      label.append(input, itemCopy); list.append(label);
+    });
+    box.append(list);
+    var chosen = carryItemIds(transition.items, st.form.carry).length;
+    var summary = el('p', 'cw-ch-carry-summary', chosen ? chosen + (chosen === 1 ? ' procedimiento continuará en el nuevo capítulo.' : ' procedimientos continuarán en el nuevo capítulo.') : 'Ningún procedimiento seleccionado.');
+    summary.setAttribute('aria-live', 'polite'); box.append(summary);
+    return box;
+  }
+
   function newPanel(ctx, active) {
     var st = ctx.treatments, panel = el('div', 'cw-ch-panel');
-    panel.append(el('h3', '', 'Nuevo tratamiento'));
-    panel.append(el('p', 'cw-help', 'La historia clínica, el odontograma y los archivos del paciente se conservan. El plan empieza en blanco; el anterior queda guardado.'));
-    var why = el('label', 'cw-ch-field');
-    why.append(el('span', '', '¿Por qué viene hoy?'));
-    var area = document.createElement('textarea');
-    area.maxLength = 300; area.rows = 2; area.value = st.form.text; area.placeholder = 'Ej. Le sangran las encías';
-    area.oninput = function () { st.form.text = area.value; };
-    why.append(area);
-    panel.append(why);
+    panel.append(el('h3', '', active ? 'Cerrar y abrir un nuevo tratamiento' : 'Abrir el primer tratamiento'));
+    panel.append(el('p', 'cw-help', 'La historia clínica, el odontograma y los archivos del paciente se conservan. El capítulo anterior queda congelado y consultable.'));
     if (active) {
-      panel.append(el('p', 'cw-ch-warn', 'Hay un tratamiento en curso: «' + active.title + '». Se cerrará al abrir el nuevo.'));
+      panel.append(el('strong', 'cw-ch-step-title', '1 · Cierra «' + active.title + '»'));
       panel.append(outcomeChoices(ctx, 'cw-new-outcome'));
       panel.append(noteField(ctx));
+      panel.append(transitionPlan(ctx, active));
     }
-    panel.append(submitBar(ctx, 'Abrir tratamiento', function () { submitNew(ctx, active); }));
+    panel.append(el('strong', 'cw-ch-step-title', active ? '3 · Identifica el nuevo tratamiento' : 'Motivo del tratamiento'));
+    var name = el('label', 'cw-ch-field');
+    name.append(el('span', '', 'Nombre breve'));
+    var input = document.createElement('input'); input.type = 'text'; input.maxLength = 120; input.value = st.form.title;
+    input.placeholder = 'Ej. Rehabilitación posterior'; input.oninput = function () { st.form.title = input.value; st.form.request = null; };
+    name.append(input); panel.append(name);
+    var why = el('label', 'cw-ch-field');
+    why.append(el('span', '', 'Motivo y objetivo'));
+    var area = document.createElement('textarea');
+    area.maxLength = 2000; area.rows = 2; area.value = st.form.text; area.placeholder = 'Ej. Recuperar función y controlar molestias en el sector posterior.';
+    area.oninput = function () { st.form.text = area.value; st.form.request = null; };
+    why.append(area);
+    panel.append(why);
+    panel.append(submitBar(ctx, active ? 'Cerrar y abrir tratamiento' : 'Abrir tratamiento', function () { submitNew(ctx, active); }));
     return panel;
   }
   async function submitNew(ctx, active) {
-    var st = ctx.treatments, title = titleFrom(st.form.text);
-    if (!title) return message(ctx, 'Escribe por qué viene hoy (mínimo 3 caracteres).');
+    var st = ctx.treatments, title = titleFrom(st.form.title || st.form.text), reason = st.form.text.trim();
+    if (!title) return message(ctx, 'Escribe un nombre o motivo para el nuevo tratamiento (mínimo 3 caracteres).');
     if (active) { var bad = closeError(st.form.outcome, st.form.note); if (bad) return message(ctx, bad); }
+    var workflow = window.SmylClinicalWorkflow && window.SmylClinicalWorkflow.status && window.SmylClinicalWorkflow.status(ctx.tenant, ctx.patient);
+    if (active && workflow && workflow.dirty) return message(ctx, 'Guarda o descarta los cambios del plan antes de cambiar de tratamiento.');
     st.busy = true; st.error = ''; render(ctx);
     if (active) {
-      var closed = await rpc('smyl_close_treatment', { p_id: active.id, p_outcome: st.form.outcome, p_note: st.form.note.trim() || null });
+      var plan = st.transition;
+      if (!plan || plan.key !== active.id || !plan.ready || !Number.isInteger(plan.revision)) return message(ctx, 'Espera a que cargue el plan actual antes de continuar.');
+      var core = {
+        current: active.id, treatmentRevision: Number(active.revision || 1), planRevision: plan.revision,
+        outcome: st.form.outcome, note: st.form.note.trim() || null, title: title, reason: reason,
+        carry: carryItemIds(plan.items, st.form.carry)
+      };
+      var signature = JSON.stringify(core);
+      if (!st.form.request || st.form.request.signature !== signature) st.form.request = { signature: signature, newId: uuid(), idempotencyKey: uuid() };
+      var changed = await rpc('smyl_transition_treatment_v1', {
+        p_current_id: core.current, p_expected_treatment_revision: core.treatmentRevision,
+        p_expected_plan_revision: core.planRevision, p_outcome: core.outcome, p_note: core.note,
+        p_new_id: st.form.request.newId, p_new_title: core.title, p_new_reason: core.reason,
+        p_carry_item_ids: core.carry, p_idempotency_key: st.form.request.idempotencyKey
+      });
       if (!alive(ctx)) return;
-      if (closed.error) return message(ctx, closed.error.message || 'No se pudo cerrar el tratamiento en curso.');
+      if (changed.error) return message(ctx, changed.error.message || 'No se pudo cambiar de tratamiento. El capítulo actual sigue abierto.');
+      st.form = emptyForm(); st.transition = null;
+      window.dispatchEvent(new CustomEvent('smyl:treatment-changed', { detail: { patientId: ctx.patient, treatmentId: changed.data && changed.data.new_treatment_id || null, carried: core.carry.length } }));
+      return reload(ctx);
     }
-    var opened = await rpc('smyl_open_treatment', { p_patient_id: ctx.patient, p_title: title, p_reason: st.form.text.trim() });
+    var opened = await rpc('smyl_open_treatment', { p_patient_id: ctx.patient, p_title: title, p_reason: reason });
     if (!alive(ctx)) return;
-    if (opened.error) {
-      if (active) { st.panel = null; await load(ctx); }
-      return message(ctx, (active ? 'El tratamiento anterior se cerró, pero no se pudo abrir el nuevo: ' : '') + (opened.error.message || 'No se pudo abrir el tratamiento.'));
-    }
-    st.form = { text: '', outcome: 'closed', note: '' };
+    if (opened.error) return message(ctx, opened.error.message || 'No se pudo abrir el tratamiento.');
+    st.form = emptyForm();
+    window.dispatchEvent(new CustomEvent('smyl:treatment-changed', { detail: { patientId: ctx.patient, treatmentId: opened.data || null, carried: 0 } }));
     reload(ctx);
   }
 
@@ -291,7 +397,7 @@
       var result = await rpc('smyl_close_treatment', { p_id: active.id, p_outcome: st.form.outcome, p_note: st.form.note.trim() || null });
       if (!alive(ctx)) return;
       if (result.error) return message(ctx, result.error.message || 'No se pudo cerrar el tratamiento.');
-      st.form = { text: '', outcome: 'closed', note: '' };
+      st.form = emptyForm();
       reload(ctx);
     }));
     return panel;
@@ -471,7 +577,7 @@
     splitFindings: splitFindings, baselineIdsFrom: baselineIdsFrom, findingText: findingText,
     attachFindings: attachFindings, syncFindings: syncFindings, current: current,
     statusLabel: statusLabel, suggestedRecall: suggestedRecall, titleFrom: titleFrom, closeError: closeError,
-    chapterMeta: chapterMeta, snapshotSummary: snapshotSummary, listError: listError, OUTCOMES: OUTCOMES,
+    chapterMeta: chapterMeta, snapshotSummary: snapshotSummary, listError: listError, carryItemIds: carryItemIds, OUTCOMES: OUTCOMES,
     attach: attach, sync: sync
   };
 });

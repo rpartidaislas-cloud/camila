@@ -5,6 +5,7 @@
  const n=(tag,cls,text)=>{const e=document.createElement(tag);e.className=cls||'';if(text!=null)e.textContent=text;return e;};
  const btn=(text,fn,primary=false)=>{const e=n('button',primary?'pc-primary':'pc-secondary',text);e.type='button';e.onclick=fn;return e;};
  const copy=(e,value)=>{if(e.textContent!==value)e.textContent=value;};
+ const money=cents=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:2}).format(Number(cents||0)/100);
  let active=null;
  const views=new Map();
  const valid=ctx=>ctx&&!ctx.revoked&&ctx.root.isConnected&&window.tenantId===ctx.tenant&&window.pacienteActual?.id===ctx.patient&&document.getElementById('p-paciente-detalle')?.classList.contains('activa');
@@ -568,7 +569,7 @@
   if(!layout||window.pacienteActual?._local)return;
   if(active?.root.isConnected&&active.patient===window.pacienteActual?.id&&active.tenant===window.tenantId){if(!active.revoked)adopt(active);return;}
   disposePeriodontal(active);
-  const patient=window.pacienteActual,root=n('section','cw-workspace'),ctx={root,layout,patient:patient.id,tenant:window.tenantId,actor:window.miUsuario?.id||window.tenantId,modules:{},selected:null,entries:null,receipts:new Map(),summary:null};active=ctx;const resume=restoreView(ctx);
+  const patient=window.pacienteActual,root=n('section','cw-workspace'),ctx={root,layout,patient:patient.id,tenant:window.tenantId,actor:window.miUsuario?.id||window.tenantId,modules:{},selected:null,entries:null,receipts:new Map(),summary:null,proposalPrimeKey:''};active=ctx;const resume=restoreView(ctx);
   root.setAttribute('aria-label','Atención integral del paciente');layout.classList.add('cw-layout');screen.classList.add('cw-enhanced');
   const patientHead=n('header','cw-patient-head'),patientIdentity=n('div','cw-patient-identity'),patientActions=n('div','cw-patient-actions');
   patientIdentity.append(n('p','cw-kicker','PACIENTE ACTUAL'),n('h1','',[patient.nombre,patient.apellido].filter(Boolean).join(' ')||'Paciente'),n('p','cw-patient-meta',[patient.telefono||'Sin teléfono',patient.email||'Sin correo'].join(' · ')));
@@ -616,6 +617,9 @@
   for(const [id,label] of [['assessment','Completar valoración'],['treatments','Elegir tratamientos'],['approved','Aprobar plan']]){const item=n('li','',label);item.dataset.label=label;planProgress.append(item);ctx.planChecks[id]=item;}
   plan.body.prepend(planProgress);
   ctx.shareHint=n('p','cw-help');approval.body.append(ctx.shareHint);
+  ctx.approvalSummary=n('section','cw-approval-summary');ctx.approvalSummary.hidden=true;ctx.approvalSummary.setAttribute('aria-label','Decisión del paciente sobre el presupuesto');
+  const approvalSummaryHead=n('header','cw-approval-summary-head'),approvalSummaryText=n('div','');ctx.approvalState=n('strong','','Sin presupuesto');ctx.approvalStateCopy=n('p','','Prepara el presupuesto desde el plan aprobado.');approvalSummaryText.append(n('span','cw-kicker','DECISIÓN DEL PACIENTE'),ctx.approvalState,ctx.approvalStateCopy);ctx.approvalTotal=n('strong','cw-approval-total','');approvalSummaryHead.append(approvalSummaryText,ctx.approvalTotal);
+  ctx.approvalFacts={};const approvalFacts=n('dl','cw-approval-facts');[['accepted','Aceptado'],['pending','Por decidir'],['rejected','No aceptado']].forEach(([key,label])=>{const item=n('div','');item.append(n('dt','',label),ctx.approvalFacts[key]=n('dd','','0'));approvalFacts.append(item);});ctx.approvalSummary.append(approvalSummaryHead,approvalFacts);approval.body.append(ctx.approvalSummary);
   approval.body.append(n('p','cw-share-copy','El presupuesto usa el plan aprobado. La presentación visual es opcional y nunca incluye antecedentes ni notas internas.'));
   ctx.planNext=btn('Aprobar plan',()=>document.getElementById('clinic-review')?.click(),true);const planFoot=n('div','cw-module-footer cw-dock-mirrored');planFoot.append(ctx.planNext);plan.body.append(planFoot);
   ctx.quoteButton=btn('Preparar presupuesto',()=>window.SmylProposals?.forPatient(ctx.patient),true);
@@ -710,15 +714,22 @@
   const quoteReady=!!clinical?.ready,eligible=pairs>0&&planComplete;
   renderEvolution(ctx,progress,dental,clinical);
   window.SmylOrthodontics?.sync?.(ctx,{progress,clinical,treatment:activeTreatment,evidence:orthodonticEvidence,controls:orthodonticControls,controlContext:orthodonticContext});
-  const receipt=ctx.receipts.get(entry?.row.id),created=eligible&&receipt&&Date.parse(receipt.expiresAt)>Date.now()&&receipt.revision===clinical?.revision;
-  state(ctx,'approval',created?'Preparada':quoteReady?'Lista para preparar':'Pendiente',created?'done':quoteReady?'neutral':'pending');
-  state(ctx,'followup',created?'En curso':'Pendiente',created?'done':'pending');
-  copy(ctx.shareHint,!clinical?.ready?'Aprueba el plan para preparar el presupuesto.':!pairs?'El plan ya puede presupuestarse. La presentación visual estará disponible cuando exista una foto con simulación guardada.':'Plan listo para presupuestar, con comparación visual para la presentación.');
-  ctx.quoteButton.classList.add('cw-dock-mirrored');const canQuote=!!window.SmylProposals;ctx.quoteButton.disabled=!quoteReady||!canQuote;ctx.quoteButton.title=canQuote?'':'Cotizaciones todavía no está disponible.';ctx.shareButton.disabled=!eligible;ctx.fixPlan.hidden=!!clinical?.ready;ctx.followupButton.hidden=!created;ctx.followupActions.hidden=!created;
+   const receipt=ctx.receipts.get(entry?.row.id),presentationReady=eligible&&receipt&&Date.parse(receipt.expiresAt)>Date.now()&&receipt.revision===clinical?.revision;
+   const treatmentId=activeTreatment?.id||null,proposalApi=window.SmylProposals,proposal=proposalApi?.summary?.(ctx.patient,treatmentId)||null,primeKey=treatmentId?ctx.tenant+':'+ctx.patient+':'+treatmentId:'',acceptedCount=Number(proposal?.acceptedCount||0),pendingCount=Number(proposal?.pendingCount||0),rejectedCount=Number(proposal?.rejectedCount||0),canActivate=!!proposal?.canActivate||acceptedCount>0;
+   if(!proposal&&primeKey&&ctx.proposalPrimeKey!==primeKey&&typeof proposalApi?.primeSummary==='function'){
+    ctx.proposalPrimeKey=primeKey;Promise.resolve(proposalApi.primeSummary(ctx.patient,treatmentId)).then(()=>{if(valid(ctx)&&ctx.proposalPrimeKey===primeKey)refresh();});
+   }
+   const proposalLabel=proposal?.label||(proposal?.state==='draft'?'Borrador':quoteReady?'Lista para preparar':'Pendiente');
+   state(ctx,'approval',proposalLabel,canActivate?'done':proposal?'neutral':quoteReady?'neutral':'pending');
+   state(ctx,'followup',canActivate?'Disponible':'Pendiente',canActivate?'neutral':'pending');
+   ctx.approvalSummary.hidden=!proposal;
+   if(proposal){copy(ctx.approvalState,proposalLabel);copy(ctx.approvalStateCopy,canActivate?(pendingCount?'Ya puedes iniciar lo aceptado y dar seguimiento a lo pendiente.':'La decisión quedó registrada y el tratamiento puede continuar.'):'Registra la decisión por procedimiento; crear un enlace no cuenta como aceptación.');copy(ctx.approvalTotal,proposal.totalCents==null?'':money(proposal.totalCents));copy(ctx.approvalFacts.accepted,acceptedCount+' · '+money(proposal.acceptedCents||0));copy(ctx.approvalFacts.pending,pendingCount+' · '+money(proposal.pendingCents||0));copy(ctx.approvalFacts.rejected,rejectedCount+' · '+money(proposal.rejectedCents||0));}
+   copy(ctx.shareHint,!clinical?.ready?'Aprueba el plan para preparar el presupuesto.':proposal?'La aceptación se registra por procedimiento. La presentación mySmyl es opcional.':!pairs?'El plan ya puede presupuestarse. La presentación visual es opcional.':'Plan listo para presupuestar. Puedes añadir una comparación visual como presentación opcional.');
+   ctx.quoteButton.classList.add('cw-dock-mirrored');const canQuote=!!window.SmylProposals;copy(ctx.quoteButton,proposal?'Revisar presupuesto':'Preparar presupuesto');ctx.quoteButton.disabled=!quoteReady||!canQuote;ctx.quoteButton.title=canQuote?'':'Cotizaciones todavía no está disponible.';ctx.shareButton.disabled=!eligible;ctx.fixPlan.hidden=!!clinical?.ready;ctx.followupButton.hidden=!canActivate;ctx.followupActions.hidden=!canActivate;
   ctx.history.disabled=!entry;
-  if(created)copy(ctx.shareHint,'Se creó un enlace en esta sesión. Compártelo junto con el código por separado. SMYL no confirma si ya lo enviaste.');
+   if(presentationReady&&!proposal)copy(ctx.shareHint,'La presentación mySmyl está lista, pero todavía falta preparar el presupuesto y registrar la decisión del paciente.');
   // Ruta sugerida: no afirma que todo lo clínico quedó evaluado; el profesional decide.
-  ctx.routeFlags={done:{evaluation:evaluationComplete,plan:!!planComplete,approval:!!created,followup:false},status:{evaluation:ctx.modules.evaluation.badge.textContent,plan:ctx.modules.plan.badge.textContent,approval:ctx.modules.approval.badge.textContent,followup:ctx.modules.followup.badge.textContent}};
+   ctx.routeFlags={done:{evaluation:evaluationComplete,plan:!!planComplete,approval:canActivate,followup:false},status:{evaluation:ctx.modules.evaluation.badge.textContent,plan:ctx.modules.plan.badge.textContent,approval:ctx.modules.approval.badge.textContent,followup:ctx.modules.followup.badge.textContent}};
   syncNav(ctx);syncRoute(ctx);window.SmylTreatments?.sync?.(ctx,{planSaved:!!clinical?.saved});
  }
  function init(){
@@ -728,6 +739,9 @@
   setInterval(refresh,400);mount();
   addEventListener('smyl:portal-created',e=>{const ctx=active,d=e.detail;if(valid(ctx)&&d?.tenant===ctx.tenant&&d.patient===ctx.patient){ctx.receipts.set(d.caseId,{expiresAt:d.expiresAt,revision:d.revision});refresh();}});
   addEventListener('smyl:portal-revoked',e=>{const ctx=active,d=e.detail;if(valid(ctx)&&d?.tenant===ctx.tenant&&d.patient===ctx.patient){ctx.receipts.delete(d.caseId);refresh();}});
+  addEventListener('smyl:proposal-updated',e=>{const ctx=active,d=e.detail,patient=d?.patient||d?.patientId;if(valid(ctx)&&(!patient||patient===ctx.patient)){ctx.proposalPrimeKey='';refresh();}});
+  addEventListener('smyl:proposal-decision-updated',e=>{const ctx=active,d=e.detail,patient=d?.patient||d?.patientId;if(valid(ctx)&&(!patient||patient===ctx.patient))refresh();});
+  addEventListener('smyl:treatment-changed',e=>{const ctx=active,d=e.detail,patient=d?.patient||d?.patientId;if(valid(ctx)&&(!patient||patient===ctx.patient)){ctx.proposalPrimeKey='';refresh();}});
   addEventListener('smyl:patient-summary',e=>{const ctx=active,d=e.detail;if(!valid(ctx)||d?.tenant!==ctx.tenant||d.patient!==ctx.patient)return;ctx.summary=d;const parts=[];if(d.alerts)parts.push(d.alerts+' '+(d.alerts===1?'alerta clínica':'alertas clínicas'));if(d.nextAppointment){const when=new Date(d.nextAppointment);parts.push('Próxima cita · '+when.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' '+when.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}));}copy(ctx.patientStatus,parts.join(' · ')||'Expediente al día');ctx.patientStatus.dataset.alerts=String(!!d.alerts);refresh();});
   addEventListener('smyl:patient-context-updated',e=>{const ctx=active,d=e.detail;if(!valid(ctx)||d?.tenant!==ctx.tenant||d.patient!==ctx.patient)return;ctx.contextFingerprint='';refresh();});
   addEventListener('smyl:dental-context-updated',e=>{const ctx=active,d=e.detail;if(!valid(ctx)||d?.tenant!==ctx.tenant||d.patient!==ctx.patient)return;ctx.mapFingerprint='';refresh();});

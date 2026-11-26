@@ -1,3 +1,14 @@
+## 2026-11-26 — Codex — Tratamiento v2: continuidad clínica y aceptación por concepto
+
+- La revisión de vigencia posterior a Dentalink confirmó que este bloque **sí seguía siendo relevante**: el plan, la propuesta, la decisión del paciente, los cargos y el historial podían existir sin una identidad clínica común. No se volvió a construir Agenda; Ricardo la está trabajando en Claude.
+- Nueva migración `20261128130000_smyl_treatment_v2.sql`: `treatment_id` canónico en planes, versiones y propuestas; backfill conservador que deja sin asignar lo ambiguo; disparadores compatibles con clientes anteriores; RLS clínica/financiera y contratos idempotentes.
+- La propuesta permite decidir cada concepto como **aceptado, no aceptado o para decidir después**. El total y los cargos se calculan únicamente con conceptos aceptados; una presentación o envío ya no se interpreta como aceptación.
+- Las propuestas históricas conservan su versión, se abren en modo de solo lectura y siguen siendo exportables. Las propuestas vencidas no pueden aceptarse ni generar cargos nuevos; los cargos y créditos de simulación no pueden cruzar sucursales.
+- Cerrar un capítulo y abrir el siguiente es una sola operación: valida revisiones, deja un único tratamiento activo y permite trasladar explícitamente procedimientos pendientes con identificadores nuevos y trazabilidad de origen.
+- Web y PWA usan los mismos activos y contratos. Validación: contrato completo ejecutado en PostgreSQL real; batería relevante 197/197 aprobada, sin omisiones. La suite general del repositorio conserva fallos ajenos ya existentes; no se modificaron esos módulos.
+- **No desplegado ni aplicado todavía.** La migración debe ejecutarse antes de publicar la interfaz.
+- Siguiente bloque que conserva valor: **ejecución y evolución de procedimientos aceptados** (estado por procedimiento, evidencia/notas y cierre verificable). Tratamientos simultáneos sólo deben añadirse si aparece una necesidad clínica real; por ahora se mantiene deliberadamente un tratamiento activo por paciente.
+
 ## 2026-11-26 — Codex — Backend canónico de ortodoncia longitudinal v1
 
 - Nueva migración `20261126220000_smyl_orthodontics_backend.sql`: casos vinculados por FK al capítulo de tratamiento, versiones append-only con bloqueo optimista, controles vinculados a notas clínicas y aislamiento multi-tenant/RLS.

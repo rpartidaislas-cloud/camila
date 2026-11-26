@@ -43,8 +43,8 @@ test('caja sólo muestra cotizaciones aceptadas o lotes ya existentes',()=>{
 });
 
 test('web, móvil y PWA distribuyen la activación de tratamiento',()=>{
-  assert.match(app,/smyl-proposals\.css\?v=16/);
-  assert.match(app,/smyl-proposals\.js\?v=27/);
+  assert.match(app,/smyl-proposals\.css\?v=17/);
+  assert.match(app,/smyl-proposals\.js\?v=28/);
   assert.match(app,/smyl-schedule\.js\?v=(?:1[1-9]|[2-9][0-9])/);
   assert.match(app,/smyl-finance\.js\?v=(?:1[6-9]|[2-9][0-9])/);
   assert.match(sw,/smyl-v263-lana-connection-recovery/);
