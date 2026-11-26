@@ -196,7 +196,7 @@ async function processCancellations(tenantId: string): Promise<number> {
 }
 
 // Al desactivar, nada que esté en cola debe salir: se cancela aquí y en LANA. `kind` limita a confirmaciones o a recordatorios.
-const REMINDER_TYPES = ["24h", "2h", "custom"];
+const REMINDER_TYPES = ["24h", "2h", "48h", "custom"];
 async function cancelQueued(tenantId: string, kind: "reminder" | "confirmation" = "reminder"): Promise<number> {
   const types = kind === "confirmation" ? ["confirmation"] : REMINDER_TYPES;
   const { data: queued } = await admin.from("smyl_appointment_reminders")
@@ -256,9 +256,10 @@ async function dispatchTenant(tenantId: string): Promise<Summary> {
     }
     const isConfirmation = row.reminder_type === "confirmation";
     // Un tipo apagado (o sin plantilla) no sale aunque la fila ya exista.
-    if (isConfirmation ? !confirmOn : !remindersOn) {
+    const is48h = row.reminder_type === "48h";
+    if (isConfirmation ? !confirmOn : (!remindersOn || (is48h && settings.reminder_48h_enabled !== true))) {
       await admin.from("smyl_appointment_reminders").update({
-        status: "cancelled", last_error: isConfirmation ? "Se omitió: las confirmaciones están desactivadas." : "Se omitió: los recordatorios están desactivados.",
+        status: "cancelled", last_error: isConfirmation ? "Se omitió: las confirmaciones están desactivadas." : is48h ? "Se omitió: el aviso de 48 horas está desactivado." : "Se omitió: los recordatorios están desactivados.",
       }).eq("id", row.reminder_id).eq("status", "processing");
       summary.skipped += 1;
       continue;
@@ -442,12 +443,12 @@ Deno.serve(async (req) => {
 
   if (action === "settings") {
     const { data: settings } = await admin.from("smyl_reminder_settings")
-      .select("enabled,template_id,template_name,template_language,variables,last_dispatch_at,updated_at,confirmation_enabled,confirmation_template_id,confirmation_template_name,confirmation_template_language,confirmation_variables,confirmation_since,send_window_start,send_window_end,require_consent,whatsapp_mode,whatsapp_phone")
+      .select("enabled,reminder_48h_enabled,template_id,template_name,template_language,variables,last_dispatch_at,updated_at,confirmation_enabled,confirmation_template_id,confirmation_template_name,confirmation_template_language,confirmation_variables,confirmation_since,send_window_start,send_window_end,require_consent,whatsapp_mode,whatsapp_phone")
       .eq("tenant_id", tenantId).maybeSingle();
     const catalog = canConfigure ? await templates(tenantId, userHeaders(auth.user!, tenantId)) : { templates: [] };
     return json(200, {
       settings: settings || {
-        enabled: false, template_id: null, template_name: "", template_language: "", variables: [], last_dispatch_at: null,
+        enabled: false, reminder_48h_enabled: false, template_id: null, template_name: "", template_language: "", variables: [], last_dispatch_at: null,
         confirmation_enabled: false, confirmation_template_id: null, confirmation_template_name: "", confirmation_template_language: "", confirmation_variables: [], confirmation_since: null,
         send_window_start: "09:00:00", send_window_end: "20:00:00", require_consent: false, whatsapp_mode: "single", whatsapp_phone: "",
       },
@@ -500,7 +501,7 @@ Deno.serve(async (req) => {
       templateName = String(template.name || ""); templateLanguage = String(template.language || "");
     }
     const row: Record<string, unknown> = {
-      tenant_id: tenantId, [col.enabled]: enabled, [col.id]: templateId, [col.name]: templateName,
+      tenant_id: tenantId, ...(confirmation ? {} : { reminder_48h_enabled: body.reminder_48h === true }), [col.enabled]: enabled, [col.id]: templateId, [col.name]: templateName,
       [col.language]: templateLanguage, [col.variables]: variables, updated_by: auth.user!.id,
     };
     if (confirmation) {

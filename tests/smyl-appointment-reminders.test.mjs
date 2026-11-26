@@ -91,8 +91,8 @@ test('sin plantillas aprobadas, el diálogo lleva a las propuestas de Mensajerí
 });
 
 test('web, móvil y PWA publican el módulo de recordatorios', () => {
-  assert.match(app, /<script defer src="smyl-reminders\.js\?v=4"><\/script>/);
-  assert.match(worker, /'\/camila\/smyl-reminders\.js\?v=4'/);
+  assert.match(app, /<script defer src="smyl-reminders\.js\?v=5"><\/script>/);
+  assert.match(worker, /'\/camila\/smyl-reminders\.js\?v=5'/);
   assert.equal(read('../mobile/www/smyl-reminders.js'), ui);
   assert.equal(read('../mobile/www/smyl-schedule.js'), schedule);
   assert.equal(read('../mobile/www/app.html'), app);
