@@ -186,6 +186,51 @@
     function dismissed(sectionId) {
       try { var at = Number(win.localStorage.getItem(dismissKey(sectionId)) || 0); return at > 0 && Date.now() - at < DISMISS_DAYS * 86400000; } catch (_) { return false; }
     }
+    // Avance + lista de esenciales y recomendadas (se usa en la franja desplegada y en la ventana completa).
+    function detailInto(list, p, canRequest) {
+      var meter = el('div', 'tpl-suggest-meter');
+      var bar = el('div', 'tpl-suggest-bar'); bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', String(p.essential.total));
+      bar.setAttribute('aria-valuenow', String(p.essential.ready)); bar.setAttribute('aria-label', 'Plantillas esenciales aprobadas');
+      var fill = el('span'); fill.style.width = Math.round(p.essential.ready / Math.max(1, p.essential.total) * 100) + '%'; bar.append(fill);
+      meter.append(el('small', '', p.essential.ready + ' de ' + p.essential.total + ' esenciales aprobadas' + (p.essential.pending ? ' · ' + p.essential.pending + ' en revisión de Meta' : '')), bar);
+      list.append(meter);
+      [['essential', 'Esenciales'], ['recommended', 'Recomendadas']].forEach(function (tier) {
+        var items = p.items.filter(function (item) { return item.tier === tier[0]; });
+        if (!items.length) return;
+        var group = el('section', 'tpl-suggest-group'); group.append(el('h3', '', tier[1]));
+        var ul = el('ul', 'tpl-suggest-rows'); items.forEach(function (item) { ul.append(row(item, canRequest)); });
+        group.append(ul); list.append(group);
+      });
+    }
+    // Ventana completa: ve qué plantillas hay, en qué estado está cada una y las pide todas de una vez (esta ventana es la confirmación).
+    function openFull(sectionId) {
+      return load().then(function () {
+        var p = plan(sectionId, statusMap()); if (!p) return;
+        var canRequest = Boolean(data.summary && data.summary.canRequest);
+        var missing = p.essential.missing;
+        var dialog = el('dialog', 'tpl-dialog tpl-suggest-full'); dialog.setAttribute('aria-label', p.title);
+        var body = el('div', 'tpl-dialog-body');
+        body.append(el('h3', '', p.title), el('p', '', p.intro));
+        var list = el('div', 'tpl-suggest-detail'); detailInto(list, p, canRequest); body.append(list);
+        if (missing.length && canRequest) body.append(el('p', 'tpl-dialog-warn', 'Se envían una tras otra a tu cuenta de WhatsApp Business. Meta decide si las aprueba y suele tardar de unos minutos a 48 horas. Si Meta rechaza una, el envío se detiene para no afectar la reputación de tu cuenta.'));
+        if (!canRequest) body.append(el('p', 'tpl-dialog-warn', 'Solo el propietario puede solicitarlas: pídeselo.'));
+        var actions = el('div', 'tpl-dialog-actions');
+        var all = el('button', 'tpl-suggest-link', 'Ir a Plantillas'); all.type = 'button';
+        all.onclick = function () { dialog.close(); if (win.SmylTemplates && win.SmylTemplates.show) win.SmylTemplates.show(); else if (win.ir) win.ir('plantillas'); };
+        var close = el('button', 'btn btn-secondary btn-sm', 'Cerrar'); close.type = 'button'; close.onclick = function () { dialog.close(); };
+        actions.append(all, close);
+        if (missing.length && canRequest && win.SmylTemplates && win.SmylTemplates.requestMany) {
+          var ask = el('button', 'btn btn-primary btn-sm', 'Solicitar las que faltan (' + missing.length + ')'); ask.type = 'button';
+          ask.onclick = function () { ask.disabled = true; dialog.close(); Promise.resolve(win.SmylTemplates.requestMany(missing, { confirmed: true })).then(load, load); };
+          actions.append(ask);
+        }
+        body.append(actions); dialog.append(body);
+        dialog.addEventListener('close', function () { dialog.remove(); });
+        doc.body.append(dialog); if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open', '');
+      });
+    }
+    api.openFull = openFull;
+
     function build(sectionId) {
       var p = plan(sectionId, statusMap()); if (!p) return null;
       var canRequest = Boolean(data.summary && data.summary.canRequest);
@@ -208,7 +253,7 @@
         if (canRequest && win.SmylTemplates && win.SmylTemplates.requestMany) {
           var ask = el('button', 'btn btn-primary btn-sm tpl-suggest-ask', 'Solicitar (' + missing.length + ')'); ask.type = 'button';
           ask.setAttribute('aria-label', 'Solicitar las ' + missing.length + ' plantillas que faltan');
-          ask.onclick = function () { ask.disabled = true; Promise.resolve(win.SmylTemplates.requestMany(missing)).then(load, load); };
+          ask.onclick = function () { openFull(sectionId); };
           line.append(ask);
         } else line.append(el('span', 'tpl-suggest-note', 'Solo el propietario puede solicitarlas: pídeselo.'));
       }
@@ -218,19 +263,7 @@
       line.append(close); card.append(line);
 
       var list = el('div', 'tpl-suggest-detail'); list.hidden = true;
-      var meter = el('div', 'tpl-suggest-meter');
-      var bar = el('div', 'tpl-suggest-bar'); bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', String(p.essential.total));
-      bar.setAttribute('aria-valuenow', String(p.essential.ready)); bar.setAttribute('aria-label', 'Plantillas esenciales aprobadas');
-      var fill = el('span'); fill.style.width = Math.round(p.essential.ready / Math.max(1, p.essential.total) * 100) + '%'; bar.append(fill);
-      meter.append(el('small', '', p.essential.ready + ' de ' + p.essential.total + ' esenciales aprobadas' + (p.essential.pending ? ' · ' + p.essential.pending + ' en revisión de Meta' : '')), bar);
-      list.append(meter);
-      [['essential', 'Esenciales'], ['recommended', 'Recomendadas']].forEach(function (tier) {
-        var items = p.items.filter(function (item) { return item.tier === tier[0]; });
-        if (!items.length) return;
-        var group = el('section', 'tpl-suggest-group'); group.append(el('h3', '', tier[1]));
-        var ul = el('ul', 'tpl-suggest-rows'); items.forEach(function (item) { ul.append(row(item, canRequest)); });
-        group.append(ul); list.append(group);
-      });
+      detailInto(list, p, canRequest);
       var all = el('button', 'tpl-suggest-link', 'Ir a Plantillas'); all.type = 'button';
       all.onclick = function () { if (win.SmylTemplates && win.SmylTemplates.show) win.SmylTemplates.show(); else if (win.ir) win.ir('plantillas'); };
       list.append(all); card.append(list);
@@ -249,8 +282,8 @@
       var sig = missing.join(',');
       if (current && current.dataset.sig === sig) return;
       var item = el('button'); item.type = 'button'; item.dataset.tplMenu = mount.section; item.dataset.sig = sig;
-      item.append(el('strong', '', 'Plantillas de WhatsApp'), el('small', '', 'Faltan ' + missing.length + ' para avisar de pagos y facturas. Toca para solicitarlas.'));
-      item.onclick = function () { var menu = item.closest('details'); if (menu) menu.open = false; Promise.resolve(win.SmylTemplates.requestMany(missing)).then(load, load); };
+      item.append(el('strong', '', 'Plantillas de WhatsApp'), el('small', '', 'Faltan ' + missing.length + ' para avisar de pagos y facturas. Toca para verlas y solicitarlas.'));
+      item.onclick = function () { var menu = item.closest('details'); if (menu) menu.open = false; openFull(mount.section); };
       if (current) current.replaceWith(item); else box.append(item);
     }
 
