@@ -1262,6 +1262,11 @@
     var dialog = sheet(); var person = currentPerson();
     if (!dialog || !person) return;
     var professional = person.professional;
+    // Al redibujar la ficha (marcar un día, quitar un bloque, cambiar un servicio…) se conserva el desplazamiento y el foco: antes todo saltaba arriba.
+    var previous = dialog.querySelector('.clinic-admin-sheet-body');
+    var keepTop = previous && dialog.dataset.personKey === String(person.key || person.name) ? previous.scrollTop : 0;
+    var active = document.activeElement && dialog.contains(document.activeElement) ? document.activeElement.getAttribute('aria-label') : null;
+    dialog.dataset.personKey = String(person.key || person.name);
     dialog.replaceChildren();
     dialog.setAttribute('aria-label', 'Ficha de ' + person.name);
 
@@ -1409,6 +1414,11 @@
     }
 
     dialog.append(body);
+    body.scrollTop = keepTop;
+    if (active) {
+      var again = Array.prototype.find.call(dialog.querySelectorAll('[aria-label]'), function (node) { return node.getAttribute('aria-label') === active && node.focus; });
+      if (again) try { again.focus({ preventScroll: true }); } catch (e) {}
+    }
   }
 
   // Servicios que realiza: solo los activos del catálogo de la clínica. La agenda (y el asistente de chat) solo ofrece citas con este profesional para estos servicios.
