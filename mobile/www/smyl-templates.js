@@ -495,6 +495,52 @@
     var template = catalog.TEMPLATES.filter(function (item) { return item.id === id; })[0];
     if (template && state.canRequest && !state.requesting) confirmRequest(template);
   }
+  // Solicitud en bloque: UNA confirmación, y luego una plantilla tras otra con una pausa (Meta cuida la reputación de la cuenta).
+  // Se detiene en el primer error. Solo se envían las que aún no se han solicitado.
+  function confirmMany(list) {
+    return new Promise(function (resolve) {
+      var dialog = el('dialog', 'tpl-dialog');
+      var form = el('div', 'tpl-dialog-body');
+      form.append(el('h3', '', 'Solicitar ' + list.length + (list.length === 1 ? ' plantilla' : ' plantillas') + ' a Meta'));
+      form.append(el('p', '', 'Se enviarán una tras otra, tal cual están, a tu cuenta de WhatsApp Business. Meta decide si las aprueba y suele tardar de unos minutos a 48 horas.'));
+      var items = el('ul', 'tpl-many-list');
+      list.forEach(function (template) { items.append(el('li', '', template.title)); });
+      form.append(items);
+      if (list.some(function (template) { return template.category === 'MARKETING'; })) form.append(el('p', 'tpl-dialog-warn', 'Incluye plantillas de Marketing: solo envíalas a pacientes que aceptaron recibir promociones.'));
+      form.append(el('p', 'tpl-dialog-warn', 'Si Meta rechaza una, el envío se detiene para no afectar la reputación de tu cuenta.'));
+      var actions = el('div', 'tpl-dialog-actions');
+      var cancel = el('button', 'btn btn-secondary btn-sm', 'Cancelar'); cancel.type = 'button';
+      var ok = el('button', 'btn btn-primary btn-sm', 'Solicitar ' + (list.length === 1 ? 'la plantilla' : 'las ' + list.length)); ok.type = 'button';
+      var answer = false;
+      cancel.onclick = function () { dialog.close(); };
+      ok.onclick = function () { answer = true; dialog.close(); };
+      actions.append(cancel, ok); form.append(actions); dialog.append(form);
+      dialog.addEventListener('close', function () { dialog.remove(); resolve(answer); });
+      document.body.append(dialog);
+      if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');
+    });
+  }
+  async function requestMany(ids) {
+    await loadApproved(false);
+    var list = (ids || []).map(function (id) { return catalog.TEMPLATES.filter(function (item) { return item.id === id; })[0]; })
+      .filter(function (template) { return template && statusKey(template) === 'NONE'; });
+    if (!list.length || !state.canRequest || state.requesting) return { requested: [], failed: null, cancelled: false };
+    if (!(await confirmMany(list))) return { requested: [], failed: null, cancelled: true };
+    state.requesting = 'many'; state.notice = null; renderGrid(); notifyChange();
+    var requested = [], failed = null;
+    for (var i = 0; i < list.length; i += 1) {
+      try { await invoke({ action: 'request', template_id: list[i].id }); requested.push(list[i].id); }
+      catch (error) { failed = { id: list[i].id, title: list[i].title, message: error.message || 'No se pudo solicitar la plantilla.' }; break; }
+      if (i < list.length - 1) await new Promise(function (resolve) { setTimeout(resolve, 1500); });
+    }
+    state.requesting = '';
+    state.notice = failed
+      ? { kind: 'error', text: (requested.length ? 'Se enviaron ' + requested.length + ' a Meta, pero «' + failed.title + '» falló: ' : 'No se pudo solicitar «' + failed.title + '»: ') + failed.message }
+      : { kind: 'ok', text: requested.length + (requested.length === 1 ? ' plantilla se envió' : ' plantillas se enviaron') + ' a Meta. Te mostraremos aquí cómo van.' };
+    state.loadedAt = 0;
+    try { await loadApproved(true); } finally { renderStatus(); }
+    return { requested: requested, failed: failed, cancelled: false };
+  }
   function showTemplates(groupId, query) {
     state.category = 'all'; state.group = groupId || 'all'; state.status = 'all'; state.query = query || '';
     var input = document.querySelector('#p-plantillas .tpl-toolbar input[type="search"]'); if (input) input.value = state.query;
@@ -566,7 +612,7 @@
     }
     window.SmylTemplates = Object.freeze({
       reload: function () { return loadApproved(true); },
-      summary: summary, request: requestTemplate, show: showTemplates,
+      summary: summary, request: requestTemplate, requestMany: requestMany, show: showTemplates,
       onChange: function (fn) { if (typeof fn === 'function') listeners.push(fn); }
     });
   }
