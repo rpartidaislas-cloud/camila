@@ -443,7 +443,7 @@ async function manejar({ raw, signature, now = new Date(), secret, deps }) {
     if (action === "request") return await solicitar({ body, settings, tenantId, conversationId, now, deps, log });
     const [branches, services, assignment] = await Promise.all([deps.branches(tenantId), deps.services(tenantId), deps.conversationBranch(tenantId, conversationId)]);
     // Profesionales activos y sus sedes: el asistente puede pedir horarios con uno en concreto (`professional_id`). Solo nombre público; sin datos de contacto ni clínicos.
-    const professionals = typeof deps.professionals === "function" ? ((await deps.professionals(tenantId)) || []).slice(0, 40).map((p) => ({ id: p.id, name: String(p.name || "").slice(0, 120), branch_ids: Array.isArray(p.branch_ids) ? p.branch_ids.slice(0, 20) : [] })) : [];
+    const professionals = typeof deps.professionals === "function" ? ((await deps.professionals(tenantId)) || []).slice(0, 40).map((p) => ({ id: p.id, name: String(p.name || "").slice(0, 120), branch_ids: Array.isArray(p.branch_ids) ? p.branch_ids.slice(0, 20) : [], ...(Array.isArray(p.service_ids) ? { service_ids: p.service_ids.slice(0, 60) } : {}) })) : [];
     const policy = { min_lead_hours: settings.min_lead_hours, horizon_days: settings.horizon_days, max_options: 3 };
     const branchViews = branches.map(vistaSucursal);
 
@@ -615,14 +615,19 @@ const deps = {
     const lana = data?.config?.integraciones?.lana;
     return !!lana && lana.estado === "conectada" && typeof lana.lana_tenant_id === "string" && lana.lana_tenant_id.toLowerCase() === lanaTenantId.toLowerCase();
   },
-  // Profesionales activos y las sedes donde atienden (solo id y nombre público).
+  // Profesionales activos, sus sedes y los servicios que realizan (solo ids y nombre público).
   professionals: async (tenantId: string): Promise<Row[]> => {
-    const [{ data: pros, error }, { data: links, error: e2 }] = await Promise.all([
+    const [{ data: pros, error }, { data: links, error: e2 }, { data: svc, error: e3 }] = await Promise.all([
       admin.from("smyl_professionals").select("id,display_name,active").eq("tenant_id", tenantId).eq("active", true).order("display_name"),
       admin.from("smyl_professional_branches").select("professional_id,branch_id").eq("tenant_id", tenantId),
+      admin.from("smyl_professional_services").select("professional_id,service_id").eq("tenant_id", tenantId),
     ]);
-    if (error) throw error; if (e2) throw e2;
-    return (pros || []).map((p: Row) => ({ id: p.id, name: p.display_name, branch_ids: (links || []).filter((l: Row) => l.professional_id === p.id).map((l: Row) => l.branch_id) }));
+    if (error) throw error; if (e2) throw e2; if (e3) throw e3;
+    return (pros || []).map((p: Row) => ({
+      id: p.id, name: p.display_name,
+      branch_ids: (links || []).filter((l: Row) => l.professional_id === p.id).map((l: Row) => l.branch_id),
+      service_ids: (svc || []).filter((l: Row) => l.professional_id === p.id).map((l: Row) => l.service_id),
+    }));
   },
   // Claves de los horarios ya ofrecidos en esta conversación (para «más opciones»).
   recentOfferKeys: async (q: Row): Promise<string[]> => {

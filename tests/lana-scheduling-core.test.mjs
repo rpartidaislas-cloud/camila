@@ -260,3 +260,12 @@ test("la implementación real de las dependencias nuevas solo toca tablas de la 
   assert.match(idx, /\.eq\("lana_conversation_id", q\.conversationId\)\.gte\("created_at", q\.since\)/);
   assert.doesNotMatch(idx.slice(idx.indexOf("professionals: async"), idx.indexOf("recentOfferKeys: async")), /license|email|phone|user_id/);
 });
+
+
+test("el contexto incluye los servicios que realiza cada profesional (solo ids) y sin ellos sigue igual", async () => {
+  const { deps } = makeDeps({ professionals: async () => [{ id: P1, name: "Dra. Fernanda Lozano Vera", branch_ids: [B1], service_ids: ["s-1", "s-2"], secreto: "x" }, { id: P2, name: "Dr. Iván", branch_ids: [] }] });
+  const r = await call({ action: "context" }, { deps });
+  assert.deepEqual(r.body.professionals, [{ id: P1, name: "Dra. Fernanda Lozano Vera", branch_ids: [B1], service_ids: ["s-1", "s-2"] }, { id: P2, name: "Dr. Iván", branch_ids: [] }]);
+  const idx = readFileSync(new URL("../supabase/functions/lana-scheduling/index.ts", import.meta.url), "utf8");
+  assert.match(idx, /from\("smyl_professional_services"\)\.select\("professional_id,service_id"\)\.eq\("tenant_id", tenantId\)/);
+});

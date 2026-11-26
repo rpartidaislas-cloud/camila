@@ -145,7 +145,7 @@ export async function manejar({ raw, signature, now = new Date(), secret, deps }
     if (action === "request") return await solicitar({ body, settings, tenantId, conversationId, now, deps, log });
     const [branches, services, assignment] = await Promise.all([deps.branches(tenantId), deps.services(tenantId), deps.conversationBranch(tenantId, conversationId)]);
     // Profesionales activos y sus sedes: el asistente puede pedir horarios con uno en concreto (`professional_id`). Solo nombre público; sin datos de contacto ni clínicos.
-    const professionals = typeof deps.professionals === "function" ? ((await deps.professionals(tenantId)) || []).slice(0, 40).map((p) => ({ id: p.id, name: String(p.name || "").slice(0, 120), branch_ids: Array.isArray(p.branch_ids) ? p.branch_ids.slice(0, 20) : [] })) : [];
+    const professionals = typeof deps.professionals === "function" ? ((await deps.professionals(tenantId)) || []).slice(0, 40).map((p) => ({ id: p.id, name: String(p.name || "").slice(0, 120), branch_ids: Array.isArray(p.branch_ids) ? p.branch_ids.slice(0, 20) : [], ...(Array.isArray(p.service_ids) ? { service_ids: p.service_ids.slice(0, 60) } : {}) })) : [];
     const policy = { min_lead_hours: settings.min_lead_hours, horizon_days: settings.horizon_days, max_options: 3 };
     const branchViews = branches.map(vistaSucursal);
 

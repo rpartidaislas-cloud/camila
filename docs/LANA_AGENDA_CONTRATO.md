@@ -37,3 +37,5 @@ Cuerpo: `{ ..., "action": "request", "lana_tenant_id": "<uuid>", "offer_key": "<
 
 ## Pendiente
 Agendar sin una persona (`book`) no está permitido. Reagendar/cancelar y propuestas/pagos desde el chat quedan fuera de este paso.
+
+**Agregado (2026-11-26):** cada elemento de `professionals` incluye `service_ids` (ids de los servicios que realiza, desde `smyl_professional_services`). Si el campo falta, no se sabe qué realiza; un arreglo vacío significa que no realiza ninguno.

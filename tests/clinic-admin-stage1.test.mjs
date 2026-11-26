@@ -12,8 +12,8 @@ const mobileScript = read('../mobile/www/smyl-clinic-admin.js');
 const mobileStyles = read('../mobile/www/smyl-clinic-admin.css');
 
 test('Mi clínica is loaded as a first-class panel module', () => {
-  assert.match(app, /smyl-clinic-admin\.css\?v=21/);
-  assert.match(app, /smyl-clinic-admin\.js\?v=27/);
+  assert.match(app, /smyl-clinic-admin\.css\?v=22/);
+  assert.match(app, /smyl-clinic-admin\.js\?v=28/);
   assert.match(script, /window\.TITULOS\.clinica = 'Mi clínica'/);
   assert.match(script, /navButton\('Mi clínica', 'clinica'\)/);
   assert.match(script, /Sucursales y horarios/);
@@ -56,6 +56,17 @@ test('web, mobile and offline cache include the same clinic module', () => {
   assert.equal(script, mobileScript);
   assert.equal(styles, mobileStyles);
 assert.match(worker, /professional-invitations/);
-  assert.match(worker, /smyl-clinic-admin\.js\?v=27/);
-  assert.match(worker, /smyl-clinic-admin\.css\?v=21/);
+  assert.match(worker, /smyl-clinic-admin\.js\?v=28/);
+  assert.match(worker, /smyl-clinic-admin\.css\?v=22/);
+});
+
+test('el perfil del profesional permite asignar los servicios activos de la clínica que realiza (escritura directa bajo RLS, solo con schedule.manage)', () => {
+  for (const src of [script, mobileScript]) {
+    assert.match(src, /sheetSection\('Servicios que realiza'/);
+    assert.match(src, /from\('smyl_services'\)\.select\('id,name,active'\)\.eq\('tenant_id', tenant\)\.eq\('active', true\)/, 'solo servicios activos del catálogo');
+    assert.match(src, /from\('smyl_professional_services'\)\.upsert\(/); assert.match(src, /from\('smyl_professional_services'\)\.delete\(\)\.eq\('tenant_id', state\.tenant\)\.eq\('professional_id'/);
+    assert.match(src, /box\.disabled = !state\.canScheduleManage/);
+    assert.match(src, /Primero activa los servicios de la clínica en Servicios y tarifas/);
+  }
+  assert.match(styles, /\.clinic-admin-sheet-service\b/);
 });

@@ -53,7 +53,7 @@
     professionals: [], professionalBranches: [], invitations: [], canClinic: false, canTeam: false,
     canAssignRoles: false, canScheduleRead: false, canScheduleManage: false, hoursDraft: null,
     people: [], personFilter: 'all', personQuery: '', professionalQuery: '', person: null, editing: false,
-    proHours: [], profiles: [], conflicts: [], phoneSupported: true, contactSupported: false, institutionSupported: false, travelSupported: false, travelMargin: 45
+    proHours: [], profiles: [], conflicts: [], services: [], professionalServices: [], phoneSupported: true, contactSupported: false, institutionSupported: false, travelSupported: false, travelMargin: 45
   };
 
   function esc(value) {
@@ -1344,6 +1344,7 @@
       var agenda = el('button', 'clinic-admin-link', 'Editar horarios en la Agenda →'); agenda.type = 'button';
       agenda.addEventListener('click', goToAgendaSettings); where.append(agenda);
       body.append(where);
+      body.append(servicesSection(professional));
     }
 
     // Acceso a SMYL
@@ -1408,6 +1409,32 @@
     }
 
     dialog.append(body);
+  }
+
+  // Servicios que realiza: solo los activos del catálogo de la clínica. La agenda (y el asistente de chat) solo ofrece citas con este profesional para estos servicios.
+  function servicesSection(professional) {
+    var section = sheetSection('Servicios que realiza', 'Marca los servicios de la clínica que atiende. Al buscar horarios (agenda y asistente de chat) solo se le ofrecen estos; sin ninguno marcado no recibe citas nuevas por esa vía.');
+    if (!state.services.length) { section.append(el('p', 'clinic-admin-muted', 'Primero activa los servicios de la clínica en Servicios y tarifas.')); return section; }
+    var mine = new Set(state.professionalServices.filter(function (row) { return row.professional_id === professional.id; }).map(function (row) { return row.service_id; }));
+    var list = el('div', 'clinic-admin-sheet-services');
+    state.services.forEach(function (service) {
+      var label = el('label', 'clinic-admin-sheet-service');
+      var box = el('input'); box.type = 'checkbox'; box.checked = mine.has(service.id); box.disabled = !state.canScheduleManage || state.mutating;
+      box.setAttribute('aria-label', professional.display_name + ' realiza ' + service.name);
+      box.addEventListener('change', function () { setProfessionalService(professional.id, service.id, box.checked); });
+      label.append(box, el('span', '', service.name)); list.append(label);
+    });
+    section.append(list);
+    if (!state.canScheduleManage) section.append(el('p', 'clinic-admin-hint', 'Tu rol no puede cambiar los servicios de un profesional.'));
+    return section;
+  }
+
+  async function setProfessionalService(professionalId, serviceId, enabled) {
+    var done = await mutate(function () {
+      if (enabled) return query(window.sb.from('smyl_professional_services').upsert({ tenant_id: state.tenant, professional_id: professionalId, service_id: serviceId }, { onConflict: 'tenant_id,professional_id,service_id', ignoreDuplicates: true }).select('professional_id'));
+      return query(window.sb.from('smyl_professional_services').delete().eq('tenant_id', state.tenant).eq('professional_id', professionalId).eq('service_id', serviceId).select('professional_id'));
+    }, enabled ? 'Servicio asignado.' : 'Servicio quitado.');
+    if (!done) renderPerson(); // si la llamada se ignoró o falló, la casilla vuelve a reflejar lo guardado
   }
 
   async function addProfessionalBranch(professionalId, branchId) {
@@ -1551,10 +1578,12 @@
         soft(query(window.sb.from('smyl_professional_hours').select('id,professional_id,branch_id,weekday,starts_at,ends_at').eq('tenant_id', tenant).eq('active', true)), []),
         soft(query(window.sb.from('smyl_professional_profiles').select('professional_id,status').eq('tenant_id', tenant)), []),
         query(window.sb.from('smyl_schedule_rules').select('professional_travel_margin_minutes').eq('tenant_id', tenant).maybeSingle()).then(function (row) { return { ok: true, row: row }; }, function () { return { ok: false }; }),
-        soft(query(window.sb.rpc('smyl_professional_travel_conflicts')), [])
+        soft(query(window.sb.rpc('smyl_professional_travel_conflicts')), []),
+        soft(query(window.sb.from('smyl_services').select('id,name,active').eq('tenant_id', tenant).eq('active', true).order('name')), []),
+        soft(query(window.sb.from('smyl_professional_services').select('professional_id,service_id').eq('tenant_id', tenant)), [])
       ]);
       if (tenant !== window.tenantId) return;
-      state.proHours = extra[0] || []; state.profiles = extra[1] || []; state.conflicts = extra[3] || [];
+      state.proHours = extra[0] || []; state.profiles = extra[1] || []; state.conflicts = extra[3] || []; state.services = extra[4] || []; state.professionalServices = extra[5] || [];
       state.travelSupported = extra[2].ok; state.travelMargin = extra[2].row ? Number(extra[2].row.professional_travel_margin_minutes) : 45;
       var visibleBranches = state.branches.filter(function (row) { return state.branchFilter === 'archived' ? !row.active : row.active; });
       if (!visibleBranches.some(function (row) { return row.id === state.selectedBranch; })) {
