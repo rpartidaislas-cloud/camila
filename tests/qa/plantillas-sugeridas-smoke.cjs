@@ -47,12 +47,12 @@ server.listen(0, '127.0.0.1', async () => {
     await page.evaluate(() => document.querySelector('[data-schedule-tab="settings"]').click()); await page.waitForTimeout(1800);
     const ag = await page.evaluate(() => { const c = document.querySelector('[data-tpl-suggest="agenda"]'); return c ? { texto: c.innerText.replace(/\s+/g, ' ').trim().slice(0, 260), progreso: c.querySelector('[role=progressbar]').getAttribute('aria-valuenow'), boton: (c.querySelector('.tpl-suggest-ask') || {}).textContent, deshabilitado: (c.querySelector('.tpl-suggest-ask') || {}).disabled, filas: c.querySelectorAll('.tpl-suggest-row').length } : null; });
     console.log(name, 'agenda:', JSON.stringify(ag), 'errores:', errs.filter(e => !/ERR_FAILED/.test(e)));
-    check(ag && ag.progreso === '2' && /Solicitar las que faltan \(3\)/.test(ag.boton || ''), `${name}: Agenda muestra 2 de 6 esenciales y el botón «Solicitar las que faltan (3)»`);
+    check(ag && ag.progreso === '2' && /Solicitar las que faltan \(5\)/.test(ag.boton || ''), `${name}: Agenda muestra 2 de 8 esenciales y el botón «Solicitar las que faltan (5)»`);
     check(ag && ag.deshabilitado === !owner, `${name}: el botón ${owner ? 'está activo' : 'está bloqueado para quien no es propietario'}`);
     if (!owner) check(/pídeselo/.test(ag.texto + (await page.locator('[data-tpl-suggest="agenda"]').innerText())), `${name}: dice a quién pedirlo`);
     await page.locator('[data-tpl-suggest="agenda"]').scrollIntoViewIfNeeded();
     await page.locator('[data-tpl-suggest="agenda"] .tpl-suggest-toggle').click(); await page.waitForTimeout(200);
-    check((await page.locator('[data-tpl-suggest="agenda"] .tpl-suggest-row').count()) === 18, `${name}: el detalle lista las 6 esenciales y las 12 recomendadas`);
+    check((await page.locator('[data-tpl-suggest="agenda"] .tpl-suggest-row').count()) === 19, `${name}: el detalle lista las 8 esenciales y las 11 recomendadas`);
     await page.locator('[data-tpl-suggest="agenda"]').screenshot({ path: `${S}/plantillas-agenda-${name}.png` });
     // estable: no se vuelve a pintar en bucle
     const sameNode = await page.evaluate(async () => { const a = document.querySelector('[data-tpl-suggest="agenda"]'); await new Promise(r => setTimeout(r, 900)); return a === document.querySelector('[data-tpl-suggest="agenda"]'); });
@@ -60,11 +60,11 @@ server.listen(0, '127.0.0.1', async () => {
     if (owner && name === 'escritorio') {
       await page.locator('[data-tpl-suggest="agenda"] .tpl-suggest-ask').click(); await page.waitForTimeout(400);
       const dlg = await page.evaluate(() => ({ abierto: !!document.querySelector('dialog.tpl-dialog[open]'), items: [...document.querySelectorAll('dialog.tpl-dialog[open] .tpl-many-list li')].map(l => l.textContent) }));
-      check(dlg.abierto && dlg.items.length === 3, `${name}: pide UNA confirmación con las 3 que faltan: ${JSON.stringify(dlg.items)}`);
+      check(dlg.abierto && dlg.items.length === 5, `${name}: pide UNA confirmación con las 5 que faltan: ${JSON.stringify(dlg.items)}`);
       await page.evaluate(() => document.querySelector('dialog.tpl-dialog[open] .btn-primary').click());
-      await page.waitForFunction(() => window.__req.length === 3, null, { timeout: 12000 }).catch(() => {});
+      await page.waitForFunction(() => window.__req.length === 5, null, { timeout: 20000 }).catch(() => {});
       const sent = await page.evaluate(() => window.__req.length);
-      check(sent === 3, `${name}: se solicitaron las 3, una tras otra (${sent})`);
+      check(sent === 5, `${name}: se solicitaron las 5, una tras otra (${sent})`);
     }
     for (const [route, section, label] of [['caja', 'finanzas', 'Finanzas'], ['propuestas', 'cotizaciones', 'Cotizaciones'], ['pacientes', 'pacientes', 'Pacientes']]) {
       await page.evaluate((r) => ir(r), route); await page.waitForTimeout(2000);

@@ -12858,3 +12858,7 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **No tocado a propósito:** la tarjeta «Plantillas de WhatsApp» (tiene su propio resumen y botón) queda visible entre Mensajes y Agenda con IA.
 - **Archivos:** `smyl-schedule.js` v67, `smyl-reminders.js` v9, `smyl-ai-scheduling.js` v5, `smyl-agenda-accordion.js/.css` v1 (nuevos), `app.html`, `sw.js`, copias en `mobile/www/`. Pruebas: `tests/agenda-secciones-plegables.test.mjs` (4) y humo `tests/qa/agenda-secciones-smoke.cjs` (escritorio y celular: abre plegado con resumen, una fila por sección, plegar/desplegar por botón y por título, expandir/contraer todo, recuerda al recargar, horario agrupado, sin errores ni scroll horizontal).
 - **Sin SQL ni funciones.**
+
+## 2026-11-26 · Claude · Plantillas sugeridas de Agenda: se agregan las que usa la negociación de horarios
+- `smyl-template-suggest.js` (v2): `cita_propuesta_paciente_v1` entra a Agenda como esencial y `cita_confirmacion_profesional_v1` pasa de recomendada a esencial (las usa `appointment-negotiations` de forma automática). Agenda: 8 esenciales (antes 6); recomendadas: 11.
+- Pruebas/humo actualizados (`tests/plantillas-sugeridas.test.mjs`, `tests/qa/plantillas-sugeridas-smoke.cjs`), `app.html`/`sw.js` y copias en `mobile/www/`. Sin SQL ni funciones.
