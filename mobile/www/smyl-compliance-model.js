@@ -22,23 +22,23 @@
 
   // Requisitos que la clínica marca a mano. source = de dónde sale; validity = lleva vigencia; level: official | recommended | confirm
   var ITEMS = [
-    { key: 'aviso_funcionamiento', group: 'Documentos y avisos', title: 'Aviso de funcionamiento', hint: 'Folio del trámite en COFEPRIS (DIGIPRiS).', source: 'Guía de autoverificación COFEPRIS, punto 1', level: 'official' },
-    { key: 'aviso_responsable', group: 'Documentos y avisos', title: 'Aviso de responsable sanitario', hint: 'Nombre y folio del aviso.', source: 'Guía de autoverificación COFEPRIS, punto 1', level: 'official' },
-    { key: 'titulo_visible', group: 'Documentos y avisos', title: 'Título y cédula del profesional a la vista del público', hint: 'Colocados donde el paciente los vea.', source: 'Guía de autoverificación COFEPRIS, puntos 4 y 5', level: 'official' },
-    { key: 'rotulo_horario', group: 'Documentos y avisos', title: 'Rótulo con el horario del consultorio y del responsable sanitario', hint: '', source: 'Guía de autoverificación COFEPRIS, punto 3', level: 'official' },
-    { key: 'contrato_rpbi', group: 'Residuos y limpieza', title: 'Contrato vigente con la empresa recolectora de RPBI', hint: 'Empresa y vigencia del contrato.', validity: true, source: 'Guía de autoverificación COFEPRIS, punto 18', level: 'official' },
-    { key: 'contenedores_rpbi', group: 'Residuos y limpieza', title: 'Contenedor rígido rojo para punzocortantes y bolsa roja para RPBI', hint: '', source: 'Guía COFEPRIS, punto 20; NOM-013-SSA2-2015, 8.33', level: 'official' },
-    { key: 'fauna_nociva', group: 'Residuos y limpieza', title: 'Comprobante de control de fauna nociva (menor a 365 días)', hint: 'Empresa y fecha de vencimiento del comprobante.', validity: true, source: 'Guía de autoverificación COFEPRIS, punto 11', level: 'official' },
-    { key: 'bitacora_limpieza', group: 'Residuos y limpieza', title: 'Bitácora de limpieza y desinfección de instalaciones y equipo', hint: 'Dónde se lleva (papel o digital).', source: 'Guía de autoverificación COFEPRIS, punto 12', level: 'official' },
-    { key: 'cisterna', group: 'Residuos y limpieza', title: 'Limpieza de cisterna o tinaco (al menos una vez al año)', hint: 'Fecha de la última limpieza.', validity: true, source: 'Guía de autoverificación COFEPRIS, punto 16', level: 'official' },
-    { key: 'cloro_residual', group: 'Residuos y limpieza', title: 'Determinación de cloro residual del agua', hint: '', source: 'Guía de autoverificación COFEPRIS, punto 17', level: 'official' },
-    { key: 'autoclave', group: 'Seguridad del paciente', title: 'Autoclave (vapor a presión) para esterilizar el instrumental', hint: 'Marca y número de serie.', source: 'NOM-013-SSA2-2015, 8.22', level: 'official' },
-    { key: 'botiquin', group: 'Seguridad del paciente', title: 'Botiquín de urgencias completo', hint: 'Fecha de la última revisión de caducidades.', source: 'Guía COFEPRIS, punto 15; NOM-013-SSA2-2015, 5.21', level: 'official' },
-    { key: 'telefonos_emergencia', group: 'Seguridad del paciente', title: 'Lista actualizada de teléfonos de emergencia a la vista', hint: '', source: 'NOM-013-SSA2-2015, 5.22', level: 'official' },
-    { key: 'vacunas_personal', group: 'Seguridad del paciente', title: 'Vacunas de hepatitis B y tétanos del personal', hint: 'Quién las tiene vigentes.', source: 'NOM-013-SSA2-2015, 8.1.2', level: 'official' },
-    { key: 'medicamentos', group: 'Seguridad del paciente', title: 'Medicamentos e insumos con caducidad vigente y registro sanitario', hint: '', source: 'Guía de autoverificación COFEPRIS, punto 10', level: 'official' },
-    { key: 'protocolos', group: 'Recomendado', title: 'Protocolos escritos: esterilización, residuos, urgencias médicas', hint: 'Revisados y firmados por el responsable sanitario.', source: 'Buena práctica; no es un punto textual de la guía', level: 'recommended' },
-    { key: 'equipo_rayos_x', group: 'Por confirmar con tu asesor', title: 'Equipo de rayos X: aviso o permiso y dosimetría del personal', hint: 'Los requisitos exactos dependen del equipo y del estado.', validity: true, source: 'NOM-229-SSA1-2002 (no verificada contra su texto)', level: 'confirm' }
+    { key: 'aviso_funcionamiento', group: 'Documentos y avisos', cadence: 'setup', title: 'Aviso de funcionamiento', hint: 'Folio del trámite en COFEPRIS (DIGIPRiS).', source: 'Guía de autoverificación COFEPRIS, punto 1', level: 'official' },
+    { key: 'aviso_responsable', group: 'Documentos y avisos', cadence: 'setup', title: 'Aviso de responsable sanitario', hint: 'Nombre y folio del aviso.', source: 'Guía de autoverificación COFEPRIS, punto 1', level: 'official' },
+    { key: 'titulo_visible', group: 'Documentos y avisos', cadence: 'setup', title: 'Título y cédula del profesional a la vista del público', hint: 'Colocados donde el paciente los vea.', source: 'Guía de autoverificación COFEPRIS, puntos 4 y 5', level: 'official' },
+    { key: 'rotulo_horario', group: 'Documentos y avisos', cadence: 'setup', title: 'Rótulo con el horario del consultorio y del responsable sanitario', hint: '', source: 'Guía de autoverificación COFEPRIS, punto 3', level: 'official' },
+    { key: 'contrato_rpbi', group: 'Residuos y limpieza', cadence: 'periodic', title: 'Contrato vigente con la empresa recolectora de RPBI', hint: 'Empresa y vigencia del contrato.', validity: true, source: 'Guía de autoverificación COFEPRIS, punto 18', level: 'official' },
+    { key: 'contenedores_rpbi', group: 'Residuos y limpieza', cadence: 'setup', title: 'Contenedor rígido rojo para punzocortantes y bolsa roja para RPBI', hint: '', source: 'Guía COFEPRIS, punto 20; NOM-013-SSA2-2015, 8.33', level: 'official' },
+    { key: 'fauna_nociva', group: 'Residuos y limpieza', cadence: 'periodic', title: 'Comprobante de control de fauna nociva (menor a 365 días)', hint: 'Empresa y fecha de vencimiento del comprobante.', validity: true, source: 'Guía de autoverificación COFEPRIS, punto 11', level: 'official' },
+    { key: 'bitacora_limpieza', group: 'Residuos y limpieza', cadence: 'routine', title: 'Bitácora de limpieza y desinfección de instalaciones y equipo', hint: 'Dónde se lleva (papel o digital).', source: 'Guía de autoverificación COFEPRIS, punto 12', level: 'official' },
+    { key: 'cisterna', group: 'Residuos y limpieza', cadence: 'periodic', title: 'Limpieza de cisterna o tinaco (al menos una vez al año)', hint: 'Fecha de la última limpieza.', validity: true, source: 'Guía de autoverificación COFEPRIS, punto 16', level: 'official' },
+    { key: 'cloro_residual', group: 'Residuos y limpieza', cadence: 'periodic', title: 'Determinación de cloro residual del agua', hint: '', source: 'Guía de autoverificación COFEPRIS, punto 17', level: 'official' },
+    { key: 'autoclave', group: 'Seguridad del paciente', cadence: 'setup', title: 'Autoclave (vapor a presión) para esterilizar el instrumental', hint: 'Marca y número de serie.', source: 'NOM-013-SSA2-2015, 8.22', level: 'official' },
+    { key: 'botiquin', group: 'Seguridad del paciente', cadence: 'periodic', title: 'Botiquín de urgencias completo', hint: 'Fecha de la última revisión de caducidades.', source: 'Guía COFEPRIS, punto 15; NOM-013-SSA2-2015, 5.21', level: 'official' },
+    { key: 'telefonos_emergencia', group: 'Seguridad del paciente', cadence: 'setup', title: 'Lista actualizada de teléfonos de emergencia a la vista', hint: '', source: 'NOM-013-SSA2-2015, 5.22', level: 'official' },
+    { key: 'vacunas_personal', group: 'Seguridad del paciente', cadence: 'periodic', title: 'Vacunas de hepatitis B y tétanos del personal', hint: 'Quién las tiene vigentes.', source: 'NOM-013-SSA2-2015, 8.1.2', level: 'official' },
+    { key: 'medicamentos', group: 'Seguridad del paciente', cadence: 'routine', title: 'Medicamentos e insumos con caducidad vigente y registro sanitario', hint: '', source: 'Guía de autoverificación COFEPRIS, punto 10', level: 'official' },
+    { key: 'protocolos', group: 'Recomendado', cadence: 'setup', title: 'Protocolos escritos: esterilización, residuos, urgencias médicas', hint: 'Revisados y firmados por el responsable sanitario.', source: 'Buena práctica; no es un punto textual de la guía', level: 'recommended' },
+    { key: 'equipo_rayos_x', group: 'Por confirmar con tu asesor', cadence: 'setup', title: 'Equipo de rayos X: aviso o permiso y dosimetría del personal', hint: 'Los requisitos exactos dependen del equipo y del estado.', validity: true, source: 'NOM-229-SSA1-2002 (no verificada contra su texto)', level: 'confirm' }
   ];
   var ITEM_GROUPS = ['Documentos y avisos', 'Residuos y limpieza', 'Seguridad del paciente', 'Recomendado', 'Por confirmar con tu asesor'];
 
@@ -83,23 +83,23 @@
     var manual = {}; (o.items || []).forEach(function (r) { manual[r.key] = r; });
 
     var derived = [];
-    derived.push(Object.assign({ key: 'bio', title: 'Testigo biológico de esterilización (cada 2 meses)', source: 'NOM-013-SSA2-2015, 8.24', level: 'official', auto: true, action: 'bio' }, bioStatus(steril, n)));
-    derived.push(Object.assign({ key: 'ciclos', title: 'Ciclos de autoclave registrados', source: 'NOM-013-SSA2-2015, 8.20 y 8.22', level: 'official', auto: true, action: 'cycle' },
+    derived.push(Object.assign({ key: 'bio', cadence: 'periodic', title: 'Testigo biológico de esterilización (cada 2 meses)', source: 'NOM-013-SSA2-2015, 8.24', level: 'official', auto: true, action: 'bio' }, bioStatus(steril, n)));
+    derived.push(Object.assign({ key: 'ciclos', cadence: 'routine', title: 'Ciclos de autoclave registrados', source: 'NOM-013-SSA2-2015, 8.20 y 8.22', level: 'official', auto: true, action: 'cycle' },
       steril.cycles > 0 ? { status: 'ok', label: 'Al día', detail: steril.cycles + (steril.cycles === 1 ? ' ciclo' : ' ciclos') + ' en el periodo.' } : { status: 'missing', label: 'Falta', detail: 'No hay ciclos registrados en el periodo.' }));
-    derived.push(Object.assign({ key: 'rpbi_manifiestos', title: 'Recolecciones de RPBI con su manifiesto', source: 'Guía de autoverificación COFEPRIS, punto 18', level: 'official', auto: true, action: 'rpbi' },
+    derived.push(Object.assign({ key: 'rpbi_manifiestos', cadence: 'periodic', title: 'Recolecciones de RPBI con su manifiesto', source: 'Guía de autoverificación COFEPRIS, punto 18', level: 'official', auto: true, action: 'rpbi' },
       rpbi.collections > 0 ? { status: 'ok', label: 'Al día', detail: rpbi.collections + (rpbi.collections === 1 ? ' recolección' : ' recolecciones') + ' · ' + rpbi.kg + ' kg en el periodo.' } : { status: 'missing', label: 'Falta', detail: 'No hay recolecciones registradas en el periodo.' }));
-    derived.push(Object.assign({ key: 'notas', title: 'Notas de evolución firmadas', source: 'NOM-004-SSA3-2012, 5.10', level: 'official', auto: true },
+    derived.push(Object.assign({ key: 'notas', cadence: 'automatic', title: 'Notas de evolución firmadas', source: 'NOM-004-SSA3-2012, 5.10', level: 'official', auto: true },
       act.draft_notes > 0 ? { status: 'attention', label: 'Por firmar', detail: act.draft_notes + (act.draft_notes === 1 ? ' nota' : ' notas') + ' en borrador. ' + (act.signed_notes || 0) + ' firmadas en el periodo.' }
         : { status: act.signed_notes > 0 ? 'ok' : 'info', label: act.signed_notes > 0 ? 'Al día' : 'Sin datos', detail: (act.signed_notes || 0) + ' firmadas en el periodo.' }));
-    derived.push(Object.assign({ key: 'consentimientos', title: 'Consentimientos informados', source: 'NOM-004-SSA3-2012; NOM-013-SSA2-2015, 9.6', level: 'official', auto: true },
+    derived.push(Object.assign({ key: 'consentimientos', cadence: 'automatic', title: 'Consentimientos informados', source: 'NOM-004-SSA3-2012; NOM-013-SSA2-2015, 9.6', level: 'official', auto: true },
       { status: 'info', label: 'Registro', detail: (act.consents_signed || 0) + ' firmados' + (act.consents_revoked ? ', ' + act.consents_revoked + ' revocados' : '') + ' en el periodo.' }));
-    derived.push(Object.assign({ key: 'verificacion', title: 'Procedimientos con verificación de seguridad y anestesia', source: 'NOM-013-SSA2-2015, 8.13 y 9.3', level: 'official', auto: true },
+    derived.push(Object.assign({ key: 'verificacion', cadence: 'automatic', title: 'Procedimientos con verificación de seguridad y anestesia', source: 'NOM-013-SSA2-2015, 8.13 y 9.3', level: 'official', auto: true },
       { status: 'info', label: 'Registro', detail: (act.verified_procedures || 0) + ' procedimientos firmados con verificación en el periodo.' }));
-    derived.push(Object.assign({ key: 'pacientes_dia', title: 'Registro diario de pacientes (citas atendidas en la Agenda)', source: 'Guía de autoverificación COFEPRIS, punto 2', level: 'official', auto: true },
+    derived.push(Object.assign({ key: 'pacientes_dia', cadence: 'automatic', title: 'Registro diario de pacientes (citas atendidas en la Agenda)', source: 'Guía de autoverificación COFEPRIS, punto 2', level: 'official', auto: true },
       act.visits > 0 ? { status: 'ok', label: 'Al día', detail: act.visits + ' citas atendidas en el periodo.' } : { status: 'missing', label: 'Falta', detail: 'No hay citas atendidas en el periodo.' }));
 
     var items = ITEMS.map(function (def) {
-      return Object.assign({ key: def.key, title: def.title, group: def.group, hint: def.hint, source: def.source, level: def.level, validity: !!def.validity, manual: true, row: manual[def.key] || null }, itemStatus(manual[def.key], def, n));
+      return Object.assign({ key: def.key, title: def.title, group: def.group, cadence: def.cadence || 'setup', hint: def.hint, source: def.source, level: def.level, validity: !!def.validity, manual: true, row: manual[def.key] || null }, itemStatus(manual[def.key], def, n));
     });
     var groups = [{ name: 'Lo que SMYL registra por ti', rows: derived }].concat(ITEM_GROUPS.map(function (g) { return { name: g, rows: items.filter(function (i) { return i.group === g; }) }; }));
 
