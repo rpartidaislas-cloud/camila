@@ -41,9 +41,17 @@ test('no muestra el nombre del motor de mensajería y el CSS cubre celular', () 
   assert.match(styles, /min-height: 44px/);
 });
 
+test('el recordatorio sanitario reutiliza el módulo de Cumplimiento y no crea un flujo paralelo', () => {
+  assert.match(script, /rpc\('smyl_compliance_overview'/);
+  assert.match(script, /SmylComplianceModel\.evaluate/);
+  assert.match(script, /route\('cumplimiento'\)/);
+  assert.match(script, /requisitos al día/);
+  assert.doesNotMatch(script, /smyl_regulatory_readiness_report|SmylReadiness\.open\('regulatory'\)/);
+});
+
 test('web, móvil y PWA publican el módulo', () => {
-  assert.match(app, /<link rel="stylesheet" href="smyl-clinic-setup\.css\?v=5">\s*<script defer src="smyl-clinic-setup\.js\?v=8"><\/script>/);
+  assert.match(app, /<link rel="stylesheet" href="smyl-clinic-setup\.css\?v=6">\s*<script defer src="smyl-clinic-setup\.js\?v=9"><\/script>/);
   assert.ok(app.indexOf('smyl-clinic-setup.js') > app.indexOf('smyl-daily-home.js'), 'carga después del Inicio');
-  assert.ok(worker.includes("'/camila/smyl-clinic-setup.js?v=8'") && worker.includes("'/camila/smyl-clinic-setup.css?v=5'"));
+  assert.ok(worker.includes("'/camila/smyl-clinic-setup.js?v=9'") && worker.includes("'/camila/smyl-clinic-setup.css?v=6'"));
   for (const file of ['smyl-clinic-setup.js', 'smyl-clinic-setup.css', 'app.html', 'sw.js']) assert.equal(read('../mobile/www/' + file), read('../' + file), file);
 });

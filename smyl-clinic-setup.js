@@ -10,7 +10,7 @@
     { id: 'template', title: 'Solicita tu primera plantilla', hint: 'Meta debe aprobarla para poder recordar citas.', action: 'Ver plantillas', route: 'plantillas' },
     { id: 'reminders', title: 'Activa los recordatorios de cita', hint: 'Configura los avisos para tus pacientes desde la agenda.', action: 'Configurar', route: 'agenda' }
   ];
-  var state = { loading: false, tenant: null, results: null, loadedAt: 0, collapsed: true, operating: false, request: 0, dismissedDay: '' };
+  var state = { loading: false, tenant: null, results: null, compliance: null, loadedAt: 0, collapsed: true, operating: false, request: 0, dismissedDay: '', complianceDismissedDay: '' };
 
   function el(tag, cls, text) { var node = document.createElement(tag); if (cls) node.className = cls; if (text != null) node.textContent = text; return node; }
   function route(name) { if (typeof window.ir === 'function') window.ir(name); }
@@ -27,6 +27,9 @@
   function hiddenKey() { return 'smyl_clinic_setup_hidden_' + (window.tenantId || ''); }
   function hiddenToday() { if (state.dismissedDay === today()) return true; try { return window.localStorage.getItem(hiddenKey()) === today(); } catch (_) { return false; } }
   function hideToday() { state.dismissedDay = today(); try { window.localStorage.setItem(hiddenKey(), state.dismissedDay); } catch (_) {} }
+  function complianceHiddenKey() { return 'smyl_compliance_nudge_hidden_' + (window.tenantId || ''); }
+  function complianceHiddenToday() { if (state.complianceDismissedDay === today()) return true; try { return window.localStorage.getItem(complianceHiddenKey()) === today(); } catch (_) { return false; } }
+  function hideComplianceToday() { state.complianceDismissedDay = today(); try { window.localStorage.setItem(complianceHiddenKey(), state.complianceDismissedDay); } catch (_) {} }
 
   async function count(builder) {
     var result = await Promise.resolve(typeof window.sbTimeout === 'function' ? window.sbTimeout(builder) : builder);
@@ -94,11 +97,23 @@
     return promise.then(function (value) { return { ok: true, value: value }; }, function () { return { ok: false }; });
   }
 
+  async function complianceSummary() {
+    if (!window.sb || typeof window.sb.rpc !== 'function' || !window.SmylComplianceModel) throw new Error('Cumplimiento no disponible');
+    var end = new Date(), start = new Date(end.getTime());
+    start.setFullYear(start.getFullYear() - 1);
+    var result = await window.sb.rpc('smyl_compliance_overview', {
+      p_from: start.toISOString().slice(0, 10),
+      p_to: end.toISOString().slice(0, 10)
+    });
+    if (result && result.error) throw result.error;
+    return window.SmylComplianceModel.evaluate(result && result.data, end).summary;
+  }
+
   async function load(force) {
     var tenant = isOwner() ? window.tenantId : null;
     if (tenant !== state.tenant) {
       state.request++; state.tenant = tenant; state.loading = false;
-      state.results = null; state.loadedAt = 0; state.operating = false; state.dismissedDay = ''; state.collapsed = readCollapsed();
+      state.results = null; state.compliance = null; state.loadedAt = 0; state.operating = false; state.dismissedDay = ''; state.complianceDismissedDay = ''; state.collapsed = readCollapsed();
       render();
     }
     if (!tenant || !window.sb || state.loading) return render();
@@ -113,7 +128,8 @@
         settle(templateState()),
         settle(reminderState()),
         settle(count(window.sb.from('smyl_services').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant).eq('active', true))),
-        settle(count(window.sb.from('smyl_appointments').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant).eq('status', 'completed')))
+        settle(count(window.sb.from('smyl_appointments').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant).eq('status', 'completed'))),
+        settle(complianceSummary())
       ]);
       if (request !== state.request || tenant !== window.tenantId || !isOwner()) return;
       state.results = {
@@ -125,6 +141,7 @@
       };
       // Clínica «en marcha»: horario, al menos un servicio activo y una cita ya terminada. Entonces la lista deja de estorbar.
       state.operating = rows[0].ok && rows[0].value > 0 && rows[5].ok && rows[5].value > 0 && rows[6].ok && rows[6].value > 0;
+      state.compliance = rows[7].ok ? rows[7].value : null;
       state.loadedAt = Date.now();
     } finally { if (request === state.request) { state.loading = false; render(); } }
   }
@@ -179,9 +196,35 @@
     return section;
   }
 
+  function createComplianceNudge(host) {
+    var section = el('section', 'clinic-compliance-nudge'); section.id = 'smyl-compliance-nudge';
+    var copy = el('div', 'clinic-compliance-copy');
+    copy.append(el('span', 'clinic-compliance-kicker', 'CUMPLIMIENTO DE LA CLÍNICA'), el('strong', 'clinic-compliance-title'), el('small', 'clinic-compliance-next'));
+    var meter = el('span', 'clinic-compliance-meter'); meter.append(el('i'));
+    var action = el('button', 'clinic-compliance-action', 'Continuar'); action.type = 'button';
+    action.onclick = function () { route('cumplimiento'); };
+    var dismiss = el('button', 'clinic-compliance-dismiss', 'Ocultar por hoy'); dismiss.type = 'button';
+    dismiss.onclick = function () { hideComplianceToday(); render(); };
+    section.append(copy, meter, action, dismiss); host.append(section); return section;
+  }
+
+  function renderCompliance(host) {
+    var existing = document.getElementById('smyl-compliance-nudge');
+    var report = state.tenant === window.tenantId ? state.compliance : null;
+    if (!host || !isOwner() || !report || !report.pending || complianceHiddenToday()) { if (existing) existing.remove(); return; }
+    var section = existing || createComplianceNudge(host);
+    var next = report.pendingRows && report.pendingRows[0];
+    var pct = report.total ? Math.round(report.ok * 100 / report.total) : 0;
+    section.querySelector('.clinic-compliance-title').textContent = report.ok + ' de ' + report.total + ' requisitos al día';
+    section.querySelector('.clinic-compliance-next').textContent = next ? 'Siguiente prioridad: ' + next.title : 'Revisa la documentación pendiente.';
+    section.querySelector('.clinic-compliance-meter i').style.width = pct + '%';
+    section.querySelector('.clinic-compliance-meter').setAttribute('aria-label', pct + '% de avance documental');
+  }
+
   function render() {
     var host = document.getElementById('smyl-daily-home');
     var existing = document.getElementById('smyl-clinic-setup');
+    renderCompliance(host);
     var results = state.tenant === window.tenantId && state.results;
     var pending = results ? STEPS.filter(function (step) { return !results[step.id].done; }) : [];
     if (!host || !isOwner() || !results || !pending.length || state.operating || hiddenToday()) {
