@@ -24,6 +24,8 @@
         ['cita_cancelada_clinica_v1', 'essential', 'Aviso cuando la clínica cancela una cita'],
         ['cita_no_asistio_reagendar_v1', 'essential', 'Seguimiento si no vino, con botón para reagendar'],
         ['cita_motivo_no_reagenda_v1', 'essential', 'Pregunta por qué no reagendó'],
+        ['cita_propuesta_paciente_v1', 'essential', 'Proponer un horario al paciente: Aceptar / Ver otras opciones / Hablar con la clínica'],
+        ['cita_confirmacion_profesional_v1', 'essential', 'Pedir al dentista que confirme una cita propuesta'],
         ['cita_lista_espera_v1', 'recommended', 'Ofrecer un horario que se liberó a quien está en lista de espera'],
         ['cita_opciones_horario_v1', 'recommended', 'Proponer horarios disponibles desde Mensajes'],
         ['recordatorio_cita_mismo_dia_v1', 'recommended', 'Recordatorio el mismo día de la cita'],
@@ -32,7 +34,6 @@
         ['cita_retraso_v1', 'recommended', 'Avisar que hay un retraso'],
         ['cita_confirmar_llegada_v1', 'recommended', 'Preguntar si el paciente viene en camino'],
         ['cita_solicitud_recibida_v1', 'recommended', 'Avisar que recibimos su solicitud de cita'],
-        ['cita_confirmacion_profesional_v1', 'recommended', 'Pedir al dentista que confirme una cita propuesta'],
         ['agenda_cita_nueva_profesional_v1', 'recommended', 'Avisar al dentista de una cita nueva'],
         ['agenda_cambio_profesional_v1', 'recommended', 'Avisar al dentista de un cambio de horario'],
         ['agenda_cancelacion_profesional_v1', 'recommended', 'Avisar al dentista de una cancelación']
