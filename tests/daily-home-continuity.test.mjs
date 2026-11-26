@@ -210,8 +210,7 @@ test('Inicio paso 1: barra compacta, chips en la jornada, una columna y «Config
   assert.match(script, /class="daily-home-fold"/, 'las citas terminadas se pliegan en una línea');
   assert.match(script, /daily-home-stat/);
   assert.match(styles, /\.daily-home-next-list\.daily-home-timeline\{display:block\}/, 'la jornada es una sola columna en todos los anchos');
-  assert.match(setup, /state\.operating = rows\[0\]\.ok/);
-  assert.match(setup, /!pending\.length \|\| state\.operating \|\| hiddenToday\(\)/, 'la tarjeta se oculta cuando la clínica ya opera o se ocultó hoy');
+  assert.match(setup, /info\.done >= info\.total \|\| hiddenToday\(\)/, 'la tarjeta se oculta al completar los pasos obligatorios o cuando se ocultó hoy');
   assert.match(setup, /Ocultar por hoy/);
   assert.match(setup, /smyl_clinic_setup_hidden_/);
 });
