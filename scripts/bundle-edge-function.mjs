@@ -37,6 +37,8 @@ const normalizeImport = (line) => line.trim().replace(/'/g, '"').replace(/;$/, '
 function stripExports(source) {
   return source
     .replace(/^export\s+\{[^}]*\};?\s*$/gm, '')
+    // «export default x;» (p. ej. los módulos generados desde archivos UMD) no tiene sentido dentro del archivo único: se quita.
+    .replace(/^export\s+default\s+[^;\n]+;?\s*$/gm, '')
     .replace(/^export\s+(?=(?:async\s+)?function|const|let|interface|type|class)/gm, '');
 }
 

@@ -100,6 +100,15 @@ const deps = {
     if (error) throw Object.assign(new Error(error.message), { code: error.code });
     return data as Row;
   },
+  // Agendar (nivel «book»): confirma la cita solo si pasan los candados de la función de base de datos; si no, queda como solicitud pendiente.
+  book: async (q: Row): Promise<Row> => {
+    const { data, error } = await admin.rpc("smyl_ai_scheduling_book", {
+      p_tenant_id: q.tenantId, p_lana_tenant_id: q.lanaTenantId, p_conversation_id: q.conversationId, p_offer_key: q.offerKey,
+      p_option_index: q.optionIndex, p_name: q.name, p_contact: q.contact, p_consent: true, p_notice_version: q.privacyNoticeVersion,
+    });
+    if (error) throw Object.assign(new Error(error.message), { code: error.code });
+    return data as Row;
+  },
   log: async (event: Row): Promise<void> => {
     const { error } = await admin.from("smyl_ai_scheduling_events").insert(event);
     if (error) console.error("[lana-scheduling] bitácora:", error.message);

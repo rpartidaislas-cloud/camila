@@ -54,7 +54,7 @@ test("firma: sin firma, firma falsa, cuerpo alterado, secreto corto o ausente �
 test("solicitud: contrato, acción, UUID y reloj se validan antes de consultar nada", async () => {
   const { deps, calls } = makeDeps();
   assert.equal((await call({ contract_version: 2, action: "context" }, { deps })).status, 400);
-  assert.equal((await call({ action: "book" }, { deps })).status, 400);
+  assert.equal((await call({ action: "agendar_solo" }, { deps })).status, 400);
   assert.equal((await call({ action: "context", tenant_id: "no-uuid" }, { deps })).status, 400);
   const viejo = await call({ action: "context", occurred_at: new Date(NOW.getTime() - 10 * 60000).toISOString() }, { deps });
   assert.equal(viejo.status, 400); assert.equal(viejo.body.error, "expired_request");
@@ -214,7 +214,7 @@ test("etiquetaLocal: zona de la sucursal, a. m./p. m. con espacio y zona inváli
 
 test("el motor del servidor es copia exacta del que usa el navegador", () => {
   const src = readFileSync(new URL("../smyl-schedule-suggest.js", import.meta.url), "utf8").replace(/\r\n/g, "\n");
-  const gen = readFileSync(new URL("../supabase/functions/_shared/schedule-suggest-core.mjs", import.meta.url), "utf8");
+  const gen = readFileSync(new URL("../supabase/functions/_shared/schedule-suggest-core.mjs", import.meta.url), "utf8").replace(/\r\n/g, "\n");
   assert.ok(gen.includes(src), "schedule-suggest-core.mjs está desfasado: ejecuta node scripts/sync-schedule-suggest.mjs");
   assert.match(gen, /^\/\/ ARCHIVO GENERADO por scripts\/sync-schedule-suggest\.mjs/);
 });

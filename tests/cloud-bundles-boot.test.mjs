@@ -34,3 +34,15 @@ test('los bundles de la Nube no repiten nombres entre bloques _shared', () => {
     assert.deepEqual(repeated, [], `${name}: nombres repetidos entre bloques: ${repeated.join(', ')}`);
   }
 });
+
+
+test('ningún archivo único para pegar en Supabase conserva instrucciones export/import dentro del código (el panel falla con «import and export cannot be used outside of module code»)', async () => {
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const dir = new URL('../docs/bundles/', import.meta.url);
+  const malos = [];
+  for (const file of readdirSync(dir).filter((name) => name.endsWith('.single-file.ts'))) {
+    const lines = readFileSync(new URL(file, dir), 'utf8').split('\n');
+    lines.forEach((line, index) => { if (/^export\s/.test(line)) malos.push(`${file}:${index + 1}: ${line.slice(0, 60)}`); });
+  }
+  assert.deepEqual(malos, []);
+});
