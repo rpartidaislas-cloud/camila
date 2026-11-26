@@ -76,7 +76,7 @@ server.listen(0, '127.0.0.1', async () => {
     if (owner) {
       await page.evaluate(() => { document.querySelector('#p-caja .finance-operations-menu').open = true; document.querySelector('#p-caja [data-tpl-menu="finanzas"]').click(); }); await page.waitForTimeout(500);
       const fd = await page.evaluate(() => ({ abierto: !!document.querySelector('dialog.tpl-suggest-full[open]'), filas: document.querySelectorAll('dialog.tpl-suggest-full[open] .tpl-suggest-row').length, boton: ((document.querySelector('dialog.tpl-suggest-full[open] .btn-primary') || {}).textContent || '') }));
-      check(fd.abierto && fd.filas === 10 && /Solicitar las que faltan \(4\)/.test(fd.boton), `${name}: «Más» → plantillas abre la ventana completa de Finanzas ${JSON.stringify(fd)}`);
+      check(fd.abierto && fd.filas === 11 && /Solicitar las que faltan \(5\)/.test(fd.boton), `${name}: «Más» → plantillas abre la ventana completa de Finanzas ${JSON.stringify(fd)}`);
       await page.screenshot({ path: `${S}/plantillas-finanzas-ventana-${name}.png` });
       await page.evaluate(() => document.querySelector('dialog.tpl-suggest-full[open] .btn-secondary').click());
     }
