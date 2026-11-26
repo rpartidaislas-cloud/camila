@@ -58,3 +58,16 @@ test('pantalla: sección de seguimiento, respuesta «Quiere reagendar» en la Ag
   assert.match(agenda, /Pidió reagendar su cita/);
   for (const f of ['smyl-reminders.js', 'smyl-schedule.js', 'smyl-template-catalog.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
+
+test('«Ofrecer horarios»: la Agenda abre el chat del paciente en «Agendar cita» sin enviar ni agendar solo', () => {
+  const agenda = read('smyl-schedule.js'), inbox = read('smyl-inbox.js');
+  assert.match(agenda, /label:'Pidió reprogramar'[\s\S]*?action:'Ofrecer horarios'[\s\S]*?offer:a\.patient_id/);
+  assert.match(agenda, /label:'Quiere reagendar'[\s\S]*?action:'Ofrecer horarios'[\s\S]*?offer:a\.patient_id/);
+  assert.match(agenda, /async function offerSlots\(patientId,appointmentId\)/);
+  assert.match(agenda, /camila_lana_handoffs'\)\.select\('lana_conversation_id'\)/);
+  assert.match(agenda, /no tiene un chat de WhatsApp vinculado/);
+  const body = agenda.slice(agenda.indexOf('async function offerSlots'), agenda.indexOf('// Vale solo la última respuesta'));
+  assert.doesNotMatch(body, /\.insert\(|\.update\(|\.rpc\(|sendMessage|compose\(/);
+  assert.match(inbox, /offerSlots: async function \(conversationId\)[\s\S]*?openAvailabilityDialog\(\)/);
+  for (const f of ['smyl-schedule.js', 'smyl-inbox.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
+});
