@@ -45,7 +45,7 @@ test('Cobros ya no tiene pestaña Plantillas (viven en Mensajería) y el catálo
     assert.doesNotMatch(f, /data-finance-panel="templates"/);
     assert.doesNotMatch(f, /T\.summary\('pagos'\)/);
     const t = read(base + 'smyl-templates.js');
-    assert.match(t, /summary: summary, request: requestTemplate, show: showTemplates/);
+    assert.match(t, /summary: summary, request: requestTemplate, requestMany: requestMany, show: showTemplates/);
     assert.match(t, /onChange: function \(fn\)/);
   }
   const catalog = (await import('../smyl-template-catalog.js')).default;
