@@ -12862,3 +12862,8 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 ## 2026-11-26 · Claude · Plantillas sugeridas de Agenda: se agregan las que usa la negociación de horarios
 - `smyl-template-suggest.js` (v2): `cita_propuesta_paciente_v1` entra a Agenda como esencial y `cita_confirmacion_profesional_v1` pasa de recomendada a esencial (las usa `appointment-negotiations` de forma automática). Agenda: 8 esenciales (antes 6); recomendadas: 11.
 - Pruebas/humo actualizados (`tests/plantillas-sugeridas.test.mjs`, `tests/qa/plantillas-sugeridas-smoke.cjs`), `app.html`/`sw.js` y copias en `mobile/www/`. Sin SQL ni funciones.
+
+## 2026-11-26 · Claude · Plantillas sugeridas: de tarjeta a franja discreta
+- `smyl-template-suggest.js` (v3) y `.css` (v2): la sugerencia ahora es una franja de una línea («Faltan N plantillas de WhatsApp …» + «Solicitar (N)» + ✕). Solo aparece si faltan esenciales o hay problemas; la ✕ la oculta 14 días por clínica (localStorage; con problemas siempre se ve, en tono ámbar). El avance, la lista y «Ir a Plantillas» quedan en un detalle plegado.
+- En Finanzas se coloca debajo de las pestañas (antes iba encima de las cifras). Quien no es propietario ve «pídeselo» en vez del botón.
+- Pruebas y humo actualizados; `app.html`/`sw.js`/`mobile/www/` sincronizados. Sin SQL ni funciones.

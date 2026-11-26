@@ -1,6 +1,6 @@
 /* SMYL · Plantillas sugeridas por sección.
    Cada pantalla que manda WhatsApp (Agenda, Finanzas, Cotizaciones, Pacientes) muestra qué plantillas necesita, cuáles ya están aprobadas por Meta,
-   cuáles están en revisión y cuáles faltan, con UN botón para solicitar las que faltan. Así el tenant no tiene que adivinar entre las 60 del catálogo.
+   cuáles están en revisión y cuáles faltan, con UN botón para solicitar las que faltan (franja de una línea que se puede cerrar). Así el tenant no tiene que adivinar entre las 60 del catálogo.
    · Parte pura (mapa sección → plantillas, plan de avance): se prueba en Node.
    · Parte de pantalla: tarjeta compacta en cada sección + aviso «Solicitar ahora» cuando falta una plantilla al mandar un mensaje.
    Marketing queda fuera de las sugerencias (requiere consentimiento del paciente). Solo el propietario puede solicitar; los demás ven qué falta. */
@@ -140,7 +140,7 @@
         var grid = page.querySelector('[data-schedule-panel="settings"] .schedule-settings-grid');
         return grid ? { parent: grid, after: page.querySelector('#schedule-reminders-card') } : null;
       } },
-      { route: 'caja', page: 'p-caja', section: 'finanzas', find: function (page) { return { parent: page, after: page.querySelector('#finance-feedback') }; } },
+      { route: 'caja', page: 'p-caja', section: 'finanzas', find: function (page) { return { parent: page, after: page.querySelector('.finance-tabcards') || page.querySelector('#finance-feedback') }; } },
       { route: 'propuestas', page: 'p-propuestas', section: 'cotizaciones', find: function (page) { return { parent: page, after: null }; } },
       { route: 'pacientes', page: 'p-pacientes', section: 'pacientes', find: function (page) { return { parent: page, after: null }; } }
     ];
@@ -178,45 +178,51 @@
       return li;
     }
 
+    // La sugerencia es una franja de una línea (no una tarjeta): solo aparece si faltan esenciales o alguna tiene problemas, se puede cerrar
+    // por 14 días y el detalle (avance, lista y «Ir a Plantillas») queda plegado dentro.
+    var DISMISS_DAYS = 14;
+    function dismissKey(sectionId) { return 'smyl_tpl_suggest_' + (win.tenantId || '') + '_' + sectionId; }
+    function dismissed(sectionId) {
+      try { var at = Number(win.localStorage.getItem(dismissKey(sectionId)) || 0); return at > 0 && Date.now() - at < DISMISS_DAYS * 86400000; } catch (_) { return false; }
+    }
     function build(sectionId) {
       var p = plan(sectionId, statusMap()); if (!p) return null;
       var canRequest = Boolean(data.summary && data.summary.canRequest);
-      var allReady = p.essential.ready === p.essential.total && p.recommended.ready === p.recommended.total;
-      if (allReady) return null;
-      var card = el('section', 'tpl-suggest'); card.dataset.tplSuggest = sectionId; card.setAttribute('aria-labelledby', 'tpl-suggest-title-' + sectionId);
-      var essentialsDone = p.essential.ready === p.essential.total;
-      card.dataset.done = String(essentialsDone);
+      var missing = p.essential.missing, problems = p.essential.problems;
+      if (!missing.length && !problems) return null; // todo aprobado o en revisión: nada que ofrecer aquí
+      if (!problems && dismissed(sectionId)) return null;
+      var card = el('section', 'tpl-suggest'); card.dataset.tplSuggest = sectionId; card.setAttribute('aria-label', 'Plantillas de WhatsApp');
+      card.dataset.tone = problems ? 'warn' : '';
       card.dataset.sig = JSON.stringify([canRequest, p.items.map(function (item) { return item.status; })]);
 
-      var head = el('div', 'tpl-suggest-head');
-      var text = el('div', 'tpl-suggest-headtext');
-      text.append(el('span', 'tpl-suggest-eyebrow', 'Plantillas de WhatsApp'));
-      var title = el('h2', '', essentialsDone ? 'Plantillas esenciales listas' : p.title); title.id = 'tpl-suggest-title-' + sectionId;
-      text.append(title, el('p', '', essentialsDone ? 'Tienes aprobadas las plantillas que esta sección necesita. Hay otras recomendadas por si las quieres.' : p.intro));
-      var meter = el('div', 'tpl-suggest-meter');
-      meter.append(el('strong', '', p.essential.ready + ' de ' + p.essential.total), el('small', '', 'esenciales aprobadas'));
-      var bar = el('div', 'tpl-suggest-bar'); bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', String(p.essential.total));
-      bar.setAttribute('aria-valuenow', String(p.essential.ready)); bar.setAttribute('aria-label', 'Plantillas esenciales aprobadas');
-      var fill = el('span'); fill.style.width = Math.round(p.essential.ready / Math.max(1, p.essential.total) * 100) + '%'; bar.append(fill); meter.append(bar);
-      head.append(text, meter); card.append(head);
-
-      var actions = el('div', 'tpl-suggest-actions');
-      var wanted = p.essential.missing.length ? p.essential.missing : p.recommended.missing;
-      if (p.essential.pending) actions.append(el('span', 'tpl-suggest-note', p.essential.pending + (p.essential.pending === 1 ? ' está en revisión de Meta.' : ' están en revisión de Meta.')));
-      if (p.essential.problems) actions.append(el('span', 'tpl-suggest-note tpl-suggest-warn', p.essential.problems + (p.essential.problems === 1 ? ' tiene problemas: revísala en Plantillas.' : ' tienen problemas: revísalas en Plantillas.')));
-      if (wanted.length) {
-        var ask = el('button', 'btn btn-primary tpl-suggest-ask', p.essential.missing.length ? 'Solicitar las que faltan (' + wanted.length + ')' : 'Solicitar las recomendadas (' + wanted.length + ')'); ask.type = 'button';
-        ask.disabled = !canRequest || !win.SmylTemplates || !win.SmylTemplates.requestMany;
-        ask.onclick = function () { ask.disabled = true; Promise.resolve(win.SmylTemplates.requestMany(wanted)).then(load, load); };
-        actions.append(ask);
-        if (!canRequest) actions.append(el('span', 'tpl-suggest-note', 'Solo el propietario puede solicitarlas: pídeselo.'));
+      var line = el('div', 'tpl-suggest-line');
+      var summary = missing.length
+        ? 'Faltan ' + missing.length + (missing.length === 1 ? ' plantilla' : ' plantillas') + ' de WhatsApp ' + p.title.replace(/^Plantillas /, '')
+        : problems + (problems === 1 ? ' plantilla tiene problemas' : ' plantillas tienen problemas') + ': revísala en Plantillas';
+      var detail = el('button', 'tpl-suggest-toggle'); detail.type = 'button'; detail.setAttribute('aria-expanded', 'false');
+      detail.append(el('span', 'tpl-suggest-icon', problems && !missing.length ? '!' : '💬'), el('span', 'tpl-suggest-text', summary), el('span', 'tpl-suggest-chevron'));
+      detail.lastChild.setAttribute('aria-hidden', 'true');
+      line.append(detail);
+      if (missing.length) {
+        if (canRequest && win.SmylTemplates && win.SmylTemplates.requestMany) {
+          var ask = el('button', 'btn btn-primary btn-sm tpl-suggest-ask', 'Solicitar (' + missing.length + ')'); ask.type = 'button';
+          ask.setAttribute('aria-label', 'Solicitar las ' + missing.length + ' plantillas que faltan');
+          ask.onclick = function () { ask.disabled = true; Promise.resolve(win.SmylTemplates.requestMany(missing)).then(load, load); };
+          line.append(ask);
+        } else line.append(el('span', 'tpl-suggest-note', 'Solo el propietario puede solicitarlas: pídeselo.'));
       }
-      var detail = el('button', 'tpl-suggest-toggle', 'Ver detalle'); detail.type = 'button'; detail.setAttribute('aria-expanded', 'false');
-      var all = el('button', 'tpl-suggest-link', 'Ir a Plantillas'); all.type = 'button';
-      all.onclick = function () { if (win.SmylTemplates && win.SmylTemplates.show) win.SmylTemplates.show(); else if (win.ir) win.ir('plantillas'); };
-      actions.append(detail, all); card.append(actions);
+      var close = el('button', 'tpl-suggest-close', '✕'); close.type = 'button';
+      close.setAttribute('aria-label', 'Ocultar este aviso por ' + DISMISS_DAYS + ' días'); close.title = 'Ocultar por ' + DISMISS_DAYS + ' días';
+      close.onclick = function () { try { win.localStorage.setItem(dismissKey(sectionId), String(Date.now())); } catch (_) {} card.remove(); };
+      line.append(close); card.append(line);
 
       var list = el('div', 'tpl-suggest-detail'); list.hidden = true;
+      var meter = el('div', 'tpl-suggest-meter');
+      var bar = el('div', 'tpl-suggest-bar'); bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', String(p.essential.total));
+      bar.setAttribute('aria-valuenow', String(p.essential.ready)); bar.setAttribute('aria-label', 'Plantillas esenciales aprobadas');
+      var fill = el('span'); fill.style.width = Math.round(p.essential.ready / Math.max(1, p.essential.total) * 100) + '%'; bar.append(fill);
+      meter.append(el('small', '', p.essential.ready + ' de ' + p.essential.total + ' esenciales aprobadas' + (p.essential.pending ? ' · ' + p.essential.pending + ' en revisión de Meta' : '')), bar);
+      list.append(meter);
       [['essential', 'Esenciales'], ['recommended', 'Recomendadas']].forEach(function (tier) {
         var items = p.items.filter(function (item) { return item.tier === tier[0]; });
         if (!items.length) return;
@@ -224,8 +230,10 @@
         var ul = el('ul', 'tpl-suggest-rows'); items.forEach(function (item) { ul.append(row(item, canRequest)); });
         group.append(ul); list.append(group);
       });
-      card.append(list);
-      detail.onclick = function () { var open = list.hidden; list.hidden = !open; detail.setAttribute('aria-expanded', String(open)); detail.textContent = open ? 'Ocultar detalle' : 'Ver detalle'; };
+      var all = el('button', 'tpl-suggest-link', 'Ir a Plantillas'); all.type = 'button';
+      all.onclick = function () { if (win.SmylTemplates && win.SmylTemplates.show) win.SmylTemplates.show(); else if (win.ir) win.ir('plantillas'); };
+      list.append(all); card.append(list);
+      detail.onclick = function () { var open = list.hidden; list.hidden = !open; detail.setAttribute('aria-expanded', String(open)); };
       return card;
     }
 
@@ -238,7 +246,7 @@
       if (!card) { if (current) current.remove(); return; }
       if (current && current.dataset.sig === card.dataset.sig) return; // nada cambió: no se vuelve a pintar
       var target = mount.find(page); if (!target) { if (current) current.remove(); return; }
-      if (open) { var list = card.querySelector('.tpl-suggest-detail'), toggle = card.querySelector('.tpl-suggest-toggle'); list.hidden = false; toggle.setAttribute('aria-expanded', 'true'); toggle.textContent = 'Ocultar detalle'; }
+      if (open) { card.querySelector('.tpl-suggest-detail').hidden = false; card.querySelector('.tpl-suggest-toggle').setAttribute('aria-expanded', 'true'); }
       if (current) current.replaceWith(card);
       else if (target.after && target.after.parentNode === target.parent) target.after.after(card);
       else target.parent.insertBefore(card, target.parent.firstChild);

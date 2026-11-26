@@ -71,12 +71,15 @@ test('solicitud en bloque: una sola confirmación, una tras otra con pausa, se d
 test('la tarjeta: solo propietario puede solicitar, no pinta en bucle y se monta en Agenda, Finanzas, Cotizaciones y Pacientes', () => {
   const js = read('smyl-template-suggest.js');
   for (const page of ['p-agenda', 'p-caja', 'p-propuestas', 'p-pacientes']) assert.ok(js.includes("'" + page + "'"), page);
-  assert.match(js, /ask\.disabled = !canRequest/);
+  assert.match(js, /if \(canRequest && win\.SmylTemplates && win\.SmylTemplates\.requestMany\)/, 'solo el propietario ve el botón');
   assert.match(js, /Solo el propietario puede solicitarlas: pídeselo\./);
   assert.match(js, /current\.dataset\.sig === card\.dataset\.sig/, 'no se vuelve a pintar si nada cambió');
   assert.match(js, /records\.every\(own\)/, 'ignora los cambios que provoca la propia tarjeta');
   assert.match(js, /setAttribute\('role', 'progressbar'\)/);
-  assert.match(js, /Solicitar las que faltan \(/);
+  assert.match(js, /'Solicitar \(' \+ missing\.length/);
+  assert.match(js, /DISMISS_DAYS = 14/, 'la franja se puede cerrar por 14 días');
+  assert.match(js, /if \(!missing\.length && !problems\) return null/, 'solo aparece si falta algo');
+  assert.match(js, /finance-tabcards/, 'en Finanzas va debajo de las pestañas');
   assert.doesNotMatch(js, /\.insert\(|\.update\(|\.delete\(|\.rpc\(|fetch\(/, 'solo usa el módulo de plantillas, sin tocar datos');
   assert.doesNotMatch(js, /\bLANA\b|\bLana\b/, 'no muestra el nombre del motor de mensajería');
   assert.match(read('smyl-template-suggest.css'), /\(max-width: 640px\)/);
@@ -106,8 +109,8 @@ test('Puesta en marcha: el paso de plantillas es «las esenciales de la Agenda»
 
 test('web, móvil y PWA publican el módulo nuevo después del de Plantillas', () => {
   const app = read('app.html'), worker = read('sw.js');
-  assert.match(app, /<link rel="stylesheet" href="smyl-template-suggest\.css\?v=1">\s*<script defer src="smyl-template-catalog\.js\?v=9"><\/script>\s*<script defer src="smyl-templates\.js\?v=9"><\/script>\s*<script defer src="smyl-template-suggest\.js\?v=2"><\/script>/);
+  assert.match(app, /<link rel="stylesheet" href="smyl-template-suggest\.css\?v=2">\s*<script defer src="smyl-template-catalog\.js\?v=9"><\/script>\s*<script defer src="smyl-templates\.js\?v=9"><\/script>\s*<script defer src="smyl-template-suggest\.js\?v=3"><\/script>/);
   assert.ok(app.indexOf('smyl-template-catalog.js') < app.indexOf('smyl-template-suggest.js'), 'el catálogo carga antes');
-  assert.ok(worker.includes("'/camila/smyl-template-suggest.js?v=2'") && worker.includes("'/camila/smyl-template-suggest.css?v=1'"));
+  assert.ok(worker.includes("'/camila/smyl-template-suggest.js?v=3'") && worker.includes("'/camila/smyl-template-suggest.css?v=2'"));
   for (const f of ['smyl-template-suggest.js', 'smyl-template-suggest.css', 'smyl-templates.js', 'smyl-inbox.js', 'smyl-clinic-setup.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
