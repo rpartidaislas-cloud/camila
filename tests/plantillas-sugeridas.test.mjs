@@ -58,9 +58,9 @@ test('avance de «Puesta en marcha»: esenciales de la Agenda aprobadas / en rev
 
 test('solicitud en bloque: una sola confirmación, una tras otra con pausa, se detiene en el primer error y solo pide las que faltan', () => {
   const js = read('smyl-templates.js');
-  assert.match(js, /async function requestMany\(ids\)/);
+  assert.match(js, /async function requestMany\(ids, options\)/);
   assert.match(js, /statusKey\(template\) === 'NONE'/, 'solo las que aún no se han solicitado');
-  assert.match(js, /if \(!\(await confirmMany\(list\)\)\) return/);
+  assert.match(js, /if \(!\(options && options\.confirmed\) && !\(await confirmMany\(list\)\)\) return/);
   assert.match(js, /setTimeout\(resolve, 1500\)/, 'pausa entre solicitudes');
   assert.match(js, /catch \(error\) \{ failed = \{[^}]*\}; break; \}/, 'se detiene en el primer error');
   assert.match(js, /!state\.canRequest/, 'solo el propietario');
@@ -110,8 +110,8 @@ test('Puesta en marcha: el paso de plantillas es «las esenciales de la Agenda»
 
 test('web, móvil y PWA publican el módulo nuevo después del de Plantillas', () => {
   const app = read('app.html'), worker = read('sw.js');
-  assert.match(app, /<link rel="stylesheet" href="smyl-template-suggest\.css\?v=2">\s*<script defer src="smyl-template-catalog\.js\?v=9"><\/script>\s*<script defer src="smyl-templates\.js\?v=9"><\/script>\s*<script defer src="smyl-template-suggest\.js\?v=4"><\/script>/);
+  assert.match(app, /<link rel="stylesheet" href="smyl-template-suggest\.css\?v=3">\s*<script defer src="smyl-template-catalog\.js\?v=9"><\/script>\s*<script defer src="smyl-templates\.js\?v=10"><\/script>\s*<script defer src="smyl-template-suggest\.js\?v=5"><\/script>/);
   assert.ok(app.indexOf('smyl-template-catalog.js') < app.indexOf('smyl-template-suggest.js'), 'el catálogo carga antes');
-  assert.ok(worker.includes("'/camila/smyl-template-suggest.js?v=4'") && worker.includes("'/camila/smyl-template-suggest.css?v=2'"));
+  assert.ok(worker.includes("'/camila/smyl-template-suggest.js?v=5'") && worker.includes("'/camila/smyl-template-suggest.css?v=3'"));
   for (const f of ['smyl-template-suggest.js', 'smyl-template-suggest.css', 'smyl-templates.js', 'smyl-inbox.js', 'smyl-clinic-setup.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });

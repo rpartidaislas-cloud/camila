@@ -59,18 +59,27 @@ server.listen(0, '127.0.0.1', async () => {
     const sameNode = await page.evaluate(async () => { const a = document.querySelector('[data-tpl-suggest="agenda"]'); await new Promise(r => setTimeout(r, 900)); return a === document.querySelector('[data-tpl-suggest="agenda"]'); });
     check(sameNode, `${name}: la tarjeta no se repinta sola (sin bucle)`);
     if (owner && name === 'escritorio') {
-      await page.locator('[data-tpl-suggest="agenda"] .tpl-suggest-ask').click(); await page.waitForTimeout(400);
-      const dlg = await page.evaluate(() => ({ abierto: !!document.querySelector('dialog.tpl-dialog[open]'), items: [...document.querySelectorAll('dialog.tpl-dialog[open] .tpl-many-list li')].map(l => l.textContent) }));
-      check(dlg.abierto && dlg.items.length === 5, `${name}: pide UNA confirmación con las 5 que faltan: ${JSON.stringify(dlg.items)}`);
-      await page.evaluate(() => document.querySelector('dialog.tpl-dialog[open] .btn-primary').click());
+      await page.locator('[data-tpl-suggest="agenda"] .tpl-suggest-ask').click(); await page.waitForTimeout(500);
+      const dlg = await page.evaluate(() => ({ abierto: !!document.querySelector('dialog.tpl-suggest-full[open]'), filas: document.querySelectorAll('dialog.tpl-suggest-full[open] .tpl-suggest-row').length, boton: ((document.querySelector('dialog.tpl-suggest-full[open] .btn-primary') || {}).textContent || ''), otra: !!document.querySelector('dialog.tpl-dialog[open]:not(.tpl-suggest-full)') }));
+      check(dlg.abierto && dlg.filas === 19 && /Solicitar las que faltan \(5\)/.test(dlg.boton), `${name}: «Solicitar» abre la ventana completa con las 19 plantillas y el botón de las 5 que faltan ${JSON.stringify(dlg)}`);
+      await page.screenshot({ path: `${S}/plantillas-ventana-${name}.png` });
+      await page.evaluate(() => document.querySelector('dialog.tpl-suggest-full[open] .btn-primary').click());
       await page.waitForFunction(() => window.__req.length === 5, null, { timeout: 20000 }).catch(() => {});
       const sent = await page.evaluate(() => window.__req.length);
+      check(!(await page.evaluate(() => !!document.querySelector('dialog.tpl-dialog[open]'))) , `${name}: no aparece una segunda confirmación`);
       check(sent === 5, `${name}: se solicitaron las 5, una tras otra (${sent})`);
     }
     await page.evaluate(() => ir('caja')); await page.waitForTimeout(2000);
     const fin = await page.evaluate(() => ({ franja: !!document.querySelector('[data-tpl-suggest="finanzas"]'), opcion: (document.querySelector('#p-caja [data-tpl-menu="finanzas"]') || {}).textContent || null }));
     check(!fin.franja, `${name}: Finanzas no muestra franja`);
     check(owner ? /Plantillas de WhatsApp.*Faltan \d+/.test(fin.opcion || '') : !fin.opcion, `${name}: Finanzas ${owner ? 'ofrece las plantillas dentro de «Más»: ' + fin.opcion : 'no ofrece nada a quien no es propietario'}`);
+    if (owner) {
+      await page.evaluate(() => { document.querySelector('#p-caja .finance-operations-menu').open = true; document.querySelector('#p-caja [data-tpl-menu="finanzas"]').click(); }); await page.waitForTimeout(500);
+      const fd = await page.evaluate(() => ({ abierto: !!document.querySelector('dialog.tpl-suggest-full[open]'), filas: document.querySelectorAll('dialog.tpl-suggest-full[open] .tpl-suggest-row').length, boton: ((document.querySelector('dialog.tpl-suggest-full[open] .btn-primary') || {}).textContent || '') }));
+      check(fd.abierto && fd.filas === 10 && /Solicitar las que faltan \(4\)/.test(fd.boton), `${name}: «Más» → plantillas abre la ventana completa de Finanzas ${JSON.stringify(fd)}`);
+      await page.screenshot({ path: `${S}/plantillas-finanzas-ventana-${name}.png` });
+      await page.evaluate(() => document.querySelector('dialog.tpl-suggest-full[open] .btn-secondary').click());
+    }
     for (const [route, section, label] of [['propuestas', 'cotizaciones', 'Cotizaciones'], ['pacientes', 'pacientes', 'Pacientes']]) {
       await page.evaluate((r) => ir(r), route); await page.waitForTimeout(2000);
       const info = await page.evaluate((s) => { const c = document.querySelector(`[data-tpl-suggest="${s}"]`); return c ? { visible: c.getClientRects().length > 0, texto: c.querySelector('.tpl-suggest-text').textContent, progreso: c.querySelector('[role=progressbar]').getAttribute('aria-valuenow') + '/' + c.querySelector('[role=progressbar]').getAttribute('aria-valuemax') } : null; }, section);

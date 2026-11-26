@@ -520,12 +520,12 @@
       if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');
     });
   }
-  async function requestMany(ids) {
+  async function requestMany(ids, options) {
     await loadApproved(false);
     var list = (ids || []).map(function (id) { return catalog.TEMPLATES.filter(function (item) { return item.id === id; })[0]; })
       .filter(function (template) { return template && statusKey(template) === 'NONE'; });
     if (!list.length || !state.canRequest || state.requesting) return { requested: [], failed: null, cancelled: false };
-    if (!(await confirmMany(list))) return { requested: [], failed: null, cancelled: true };
+    if (!(options && options.confirmed) && !(await confirmMany(list))) return { requested: [], failed: null, cancelled: true };
     state.requesting = 'many'; state.notice = null; renderGrid(); notifyChange();
     var requested = [], failed = null;
     for (var i = 0; i < list.length; i += 1) {

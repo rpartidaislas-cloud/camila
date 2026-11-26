@@ -12883,3 +12883,6 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - La Edge Function `smyl-proposal-share` no cambia: la copia congelada conserva `phase` y usa el mismo renderizador.
 - Pendiente (propuestas acordadas con Ricardo): opciones A/B/C, descuento/IVA/plan de pagos, un solo catálogo de precios entre simulador y cotización, foto/simulación automática del caso.
 - Pruebas: `tests/qa/cotizacion-completa-smoke.cjs`; se actualizaron pins de versión en pruebas de cotizaciones. Falla previa en `main` (no mía): `delegated-proposals-stage3` espera `smyl-case-workspace.js?v=53`.
+## 2026-11-26 · Claude · Plantillas: ventana completa en vez de la confirmación pelada
+- `smyl-template-suggest.js` (v5) / `.css` (v3): «Solicitar (N)» de la franja y la opción de «Más» en Finanzas abren una ventana completa (avance, esenciales y recomendadas con su estado, «Solicitar» por plantilla, «Ir a Plantillas» y «Solicitar las que faltan (N)»). Esa ventana es la confirmación: `SmylTemplates.requestMany(ids, { confirmed: true })` (`smyl-templates.js` v10) ya no muestra la segunda ventana con solo nombres. `api.openFull(sectionId)`.
+- «Puesta en marcha» sigue usando `requestMany(ids)` con su confirmación normal. Sin SQL ni funciones; `mobile/www/` sincronizado.
