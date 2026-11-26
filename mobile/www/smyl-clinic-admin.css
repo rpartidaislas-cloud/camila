@@ -607,6 +607,13 @@
   .clinic-admin-branch-form-actions{bottom:calc(74px + env(safe-area-inset-bottom));margin-inline:0}
   .clinic-admin-archive-summary{display:grid;width:100%}
 }
-.clinic-admin-sheet-services{display:grid;gap:6px;margin-top:8px}
-.clinic-admin-sheet-service{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--ca-border);border-radius:12px;background:#f8fafc;font-size:14px;cursor:pointer}
-.clinic-admin-sheet-service input{width:18px;height:18px;flex:none}
+.clinic-admin-services-head{display:flex;align-items:center;gap:14px;margin-top:10px;flex-wrap:wrap}
+.clinic-admin-services-count{font-size:13px;color:var(--ca-muted);margin-right:auto}
+.clinic-admin-services-search{width:100%;box-sizing:border-box;margin-top:10px;padding:9px 12px;border:1px solid var(--ca-border);border-radius:12px;font:inherit;font-size:14px}
+.clinic-admin-sheet-services{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin-top:10px}
+.clinic-admin-sheet-service{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--ca-border);border-radius:12px;background:#f8fafc;font-size:14px;cursor:pointer;transition:background .15s,border-color .15s}
+.clinic-admin-sheet-service[hidden]{display:none}
+.clinic-admin-sheet-service.is-on{background:#eef2ff;border-color:#818cf8;font-weight:600}
+.clinic-admin-sheet-service:focus-within{outline:2px solid #6366f1;outline-offset:1px}
+.clinic-admin-sheet-service input{width:18px;height:18px;flex:none;accent-color:#4f46e5}
+@media (max-width:520px){.clinic-admin-sheet-services{grid-template-columns:1fr}}
