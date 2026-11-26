@@ -363,7 +363,7 @@ function vistaSucursal(branch: any) {
 function validar(body: any, now: any) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return { error: fail(400, "invalid_request", "Solicitud inválida.") };
   if (body.contract_version !== CONTRACT_VERSION) return { error: fail(400, "invalid_request", `contract_version debe ser ${CONTRACT_VERSION}.`) };
-  if (body.action !== "context" && body.action !== "suggest" && body.action !== "request") return { error: fail(400, "invalid_request", "Acción no válida.") };
+  if (body.action !== "context" && body.action !== "suggest" && body.action !== "request" && body.action !== "book") return { error: fail(400, "invalid_request", "Acción no válida.") };
   const tenantId = uuid(body.tenant_id), conversationId = uuid(body.conversation_id);
   if (!tenantId || !conversationId) return { error: fail(400, "invalid_request", "tenant_id y conversation_id deben ser UUID.") };
   const occurred = isoDate(body.occurred_at);
@@ -380,13 +380,15 @@ const ERRORES_SOLICITUD = [
   ["SMYL_OFFER_NOT_FOUND", 404, "offer_not_found", "No existe esa opción ofrecida. Consulta los horarios de nuevo."],
   ["SMYL_OFFER_ALREADY_USED", 409, "offer_already_used", "Ya se eligió otra opción de esa oferta. Consulta los horarios de nuevo."],
   ["SMYL_OFFER_EXPIRED", 410, "offer_expired", "La oferta venció. Consulta los horarios de nuevo."],
+  ["SMYL_BOOK_DISABLED", 403, "disabled", "La clínica no permite que el asistente agende por sí solo."],
   ["SMYL_CAPPED", 429, "capped", "Esta conversación o la clínica ya tienen demasiadas solicitudes pendientes. Un asesor dará seguimiento."],
 ];
 
-async function solicitar({ body, settings, tenantId, conversationId, now, deps, log }) {
-  if (settings.level !== "request") {
-    await log("denied", { reason: "requests_disabled" });
-    return fail(403, "disabled", "La clínica no permite que el asistente deje solicitudes de cita.");
+async function solicitar({ body, settings, tenantId, conversationId, now, deps, log, modo }) {
+  const agenda = modo === "book";
+  if (agenda ? settings.level !== "book" : (settings.level !== "request" && settings.level !== "book")) {
+    await log("denied", { reason: agenda ? "book_disabled" : "requests_disabled" });
+    return fail(403, "disabled", agenda ? "La clínica no permite que el asistente agende por sí solo." : "La clínica no permite que el asistente deje solicitudes de cita.");
   }
   // `offer_key` es opcional: sin ella se usa la oferta más reciente de la conversación (el modelo solo elige el número de la opción).
   const lanaTenantId = uuid(body.lana_tenant_id), offerKey = body.offer_key == null ? null : uuid(body.offer_key);
@@ -399,7 +401,8 @@ async function solicitar({ body, settings, tenantId, conversationId, now, deps, 
   if (!(await deps.lanaTenantMatches(tenantId, lanaTenantId))) { await log("denied", { reason: "lana_mismatch" }); return fail(403, "lana_mismatch", "La conversación no pertenece a la cuenta de LANA vinculada a esta clínica."); }
   let result;
   try {
-    result = await deps.createRequest({ tenantId, lanaTenantId, conversationId, offerKey, optionIndex: index, name, contact, privacyNoticeVersion: body.privacy_notice_version });
+    const datos = { tenantId, lanaTenantId, conversationId, offerKey, optionIndex: index, name, contact, privacyNoticeVersion: body.privacy_notice_version };
+    result = agenda ? await deps.book(datos) : await deps.createRequest(datos);
   } catch (error) {
     const text = String((error && error.message) || error), code = String((error && error.code) || "");
     const hit = ERRORES_SOLICITUD.find(([token]) => text.includes(token));
@@ -409,6 +412,25 @@ async function solicitar({ body, settings, tenantId, conversationId, now, deps, 
   }
   const slot = result && typeof result.slot === "object" && result.slot ? result.slot : {};
   const label = String(slot.local_label || etiquetaLocal(result.starts_at, slot.timezone));
+  if (agenda && result.status === "booked") {
+    await log("booked", { option: index, duplicate: Boolean(result.duplicate), service_id: slot.service_id || null, branch_id: slot.branch_id || null });
+    return reply(200, {
+      ok: true, status: "booked", duplicate: Boolean(result.duplicate),
+      appointment: { id: result.appointment_id, starts_at: result.starts_at, ends_at: result.ends_at, local_label: label, service_name: slot.service_name || "", branch_name: slot.branch_name || "", professional_name: slot.professional_name || "" },
+      message_hint: `Listo: tu cita quedó confirmada para ${label}${slot.professional_name ? " con " + slot.professional_name : ""}${slot.branch_name ? " en " + slot.branch_name : ""}. Si necesitas cambiarla, avísanos por este chat.`,
+      next_step: "confirmed", generated_at: now.toISOString(),
+    });
+  }
+  if (agenda) {
+    // Quedó como solicitud pendiente (conversación sin paciente vinculado, tope diario o solicitud ya cerrada): igual que el nivel «solicitud».
+    await log("pending_review", { option: index, reason: String(result.reason || "") });
+    return reply(200, {
+      ok: true, status: "pending_review", reason: String(result.reason || ""),
+      request: { id: result.request_id, starts_at: result.starts_at, ends_at: result.ends_at, local_label: label, hold_expires_at: result.hold_expires_at || null, service_name: slot.service_name || "", branch_name: slot.branch_name || "" },
+      message_hint: `Listo: dejé tu solicitud para ${label}. Todavía NO está confirmada: la clínica la revisará y te confirmará por este mismo chat.`,
+      next_step: "wait_for_clinic", generated_at: now.toISOString(),
+    });
+  }
   await log(result.duplicate ? "duplicate" : "created", { option: index, service_id: slot.service_id || null, branch_id: slot.branch_id || null });
   return reply(200, {
     ok: true, status: result.duplicate ? "duplicate" : "created",
@@ -440,7 +462,9 @@ async function manejar({ raw, signature, now = new Date(), secret, deps }) {
       return fail(403, "disabled", "La clínica no tiene activada la consulta de horarios para el asistente.");
     }
     // ── request: deja una solicitud PENDIENTE a partir de una opción que el propio servidor ofreció (nunca confirma una cita) ──
-    if (action === "request") return await solicitar({ body, settings, tenantId, conversationId, now, deps, log });
+    if (action === "request") return await solicitar({ body, settings, tenantId, conversationId, now, deps, log, modo: "request" });
+    // ── book: además CONFIRMA la cita, solo con el nivel «book», con paciente vinculado y bajo el tope diario (si no, queda como solicitud) ──
+    if (action === "book") return await solicitar({ body, settings, tenantId, conversationId, now, deps, log, modo: "book" });
     const [branches, services, assignment] = await Promise.all([deps.branches(tenantId), deps.services(tenantId), deps.conversationBranch(tenantId, conversationId)]);
     // Profesionales activos y sus sedes: el asistente puede pedir horarios con uno en concreto (`professional_id`). Solo nombre público; sin datos de contacto ni clínicos.
     const professionals = typeof deps.professionals === "function" ? ((await deps.professionals(tenantId)) || []).slice(0, 40).map((p) => ({ id: p.id, name: String(p.name || "").slice(0, 120), branch_ids: Array.isArray(p.branch_ids) ? p.branch_ids.slice(0, 20) : [], ...(Array.isArray(p.service_ids) ? { service_ids: p.service_ids.slice(0, 60) } : {}) })) : [];
@@ -468,7 +492,7 @@ async function manejar({ raw, signature, now = new Date(), secret, deps }) {
 
     // ── suggest ──
     // Con el nivel «request» la oferta se guarda en el servidor, y se exige que la conversación sea de la cuenta de LANA vinculada a la clínica.
-    const guardaOferta = settings.level === "request";
+    const guardaOferta = settings.level === "request" || settings.level === "book";
     let lanaTenantId = null;
     if (guardaOferta) {
       lanaTenantId = uuid(body.lana_tenant_id);
@@ -647,6 +671,15 @@ const deps = {
   },
   createRequest: async (q: Row): Promise<Row> => {
     const { data, error } = await admin.rpc("smyl_ai_scheduling_create_request", {
+      p_tenant_id: q.tenantId, p_lana_tenant_id: q.lanaTenantId, p_conversation_id: q.conversationId, p_offer_key: q.offerKey,
+      p_option_index: q.optionIndex, p_name: q.name, p_contact: q.contact, p_consent: true, p_notice_version: q.privacyNoticeVersion,
+    });
+    if (error) throw Object.assign(new Error(error.message), { code: error.code });
+    return data as Row;
+  },
+  // Agendar (nivel «book»): confirma la cita solo si pasan los candados de la función de base de datos; si no, queda como solicitud pendiente.
+  book: async (q: Row): Promise<Row> => {
+    const { data, error } = await admin.rpc("smyl_ai_scheduling_book", {
       p_tenant_id: q.tenantId, p_lana_tenant_id: q.lanaTenantId, p_conversation_id: q.conversationId, p_offer_key: q.offerKey,
       p_option_index: q.optionIndex, p_name: q.name, p_contact: q.contact, p_consent: true, p_notice_version: q.privacyNoticeVersion,
     });
