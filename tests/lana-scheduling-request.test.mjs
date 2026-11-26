@@ -86,8 +86,8 @@ test("request sin offer_key usa la oferta vigente de la conversación (el modelo
   assert.equal(calls.requests[0].optionIndex, 1);
 });
 
-test("request: apagado por defecto, y solo el nivel «request» lo permite (suggest/off lo rechazan sin tocar la base)", async () => {
-  for (const level of ["off", "suggest", "book"]) {
+test("request: apagado por defecto, y solo los niveles «request» y «book» lo permiten (suggest/off lo rechazan sin tocar la base)", async () => {
+  for (const level of ["off", "suggest"]) {
     const { deps, calls } = makeDeps({ settings: async () => ({ level, min_lead_hours: 2, horizon_days: 14 }) });
     const r = await call(PEDIDO, { deps });
     assert.deepEqual([r.status, r.body.error], [403, "disabled"], level);
@@ -183,8 +183,8 @@ test("«Por aprobar» muestra el origen, el nombre y el contacto de una solicitu
   assert.match(cfg, /nunca se confirma sola/);
   for (const f of ["smyl-schedule.js"]) assert.equal(readFileSync(new URL(`../mobile/www/${f}`, import.meta.url), "utf8"), readFileSync(new URL(`../${f}`, import.meta.url), "utf8"));
   for (const base of ["", "mobile/www/"]) {
-    assert.match(readFileSync(new URL(`../${base}app.html`, import.meta.url), "utf8"), /smyl-ai-scheduling\.js\?v=2/);
-    assert.match(readFileSync(new URL(`../${base}app.html`, import.meta.url), "utf8"), /smyl-schedule\.js\?v=65/);
+    assert.match(readFileSync(new URL(`../${base}app.html`, import.meta.url), "utf8"), /smyl-ai-scheduling\.js\?v=3/);
+    assert.match(readFileSync(new URL(`../${base}app.html`, import.meta.url), "utf8"), /smyl-schedule\.js\?v=66/);
   }
 });
 
@@ -194,4 +194,120 @@ test("guardar lee la casilla de solicitud ANTES de render() (si no, siempre mand
   assert.ok(save.indexOf("wantsRequest =") < save.indexOf("state.saving = true; render()"));
   const tras = save.slice(save.indexOf("state.saving = true; render()"), save.indexOf("state.settings ="));
   assert.doesNotMatch(tras, /data-ai-request/);
+});
+
+
+// ───────── Nivel «book»: la IA confirma la cita, solo con candados ─────────
+const PEDIDO_BOOK = { ...PEDIDO, action: "book" };
+const bookDeps = (over = {}) => makeDeps({
+  settings: async () => ({ level: "book", min_lead_hours: 2, horizon_days: 14 }),
+  book: async (q) => { bookDeps.calls.push(q); return { status: "booked", duplicate: false, request_id: "ffffffff-ffff-4fff-8fff-ffffffffffff", appointment_id: "99999999-9999-4999-8999-999999999991", starts_at: slot(24, 10).starts_at, ends_at: slot(24, 10).ends_at, slot: { ...slot(24, 10), local_label: "martes 24 a las 10:00" } }; },
+  ...over,
+});
+bookDeps.calls = [];
+
+test("book: con el nivel «book» confirma la cita y lo dice sin rodeos (status booked, next_step confirmed)", async () => {
+  bookDeps.calls = [];
+  const { deps, calls } = bookDeps();
+  const r = await call(PEDIDO_BOOK, { deps });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.status, "booked");
+  assert.equal(r.body.next_step, "confirmed");
+  assert.equal(r.body.appointment.id, "99999999-9999-4999-8999-999999999991");
+  assert.match(r.body.message_hint, /quedó confirmada/);
+  assert.doesNotMatch(r.body.message_hint, /NO está confirmada/);
+  assert.equal(bookDeps.calls.length, 1);
+  assert.deepEqual([bookDeps.calls[0].tenantId, bookDeps.calls[0].lanaTenantId, bookDeps.calls[0].optionIndex], [T, LANA, 1]);
+  assert.equal(calls.requests.length, 0, "no pasa por el camino de la solicitud");
+  assert.ok(calls.logs.some((e) => e.action === "book" && e.status === "booked"));
+});
+
+test("book: solo el nivel «book» lo permite; off, suggest y request lo rechazan sin tocar la base", async () => {
+  for (const level of ["off", "suggest", "request"]) {
+    bookDeps.calls = [];
+    const { deps } = bookDeps({ settings: async () => ({ level, min_lead_hours: 2, horizon_days: 14 }) });
+    const r = await call(PEDIDO_BOOK, { deps });
+    assert.deepEqual([r.status, r.body.error], [403, "disabled"], level);
+    assert.equal(bookDeps.calls.length, 0, level);
+  }
+});
+
+test("book: exige los mismos candados que la solicitud (consentimiento, aviso, contacto y cuenta de LANA) antes de agendar", async () => {
+  bookDeps.calls = [];
+  const { deps } = bookDeps();
+  assert.deepEqual([(await call({ ...PEDIDO_BOOK, privacy_consent: false }, { deps })).status], [400]);
+  assert.equal((await call({ ...PEDIDO_BOOK, privacy_notice_version: "x" }, { deps })).status, 400);
+  assert.equal((await call({ ...PEDIDO_BOOK, name: "A" }, { deps })).status, 400);
+  assert.equal((await call({ ...PEDIDO_BOOK, option_index: 4 }, { deps })).status, 400);
+  const otra = await call({ ...PEDIDO_BOOK, lana_tenant_id: "99999999-9999-4999-8999-999999999999" }, { deps });
+  assert.deepEqual([otra.status, otra.body.error], [403, "lana_mismatch"]);
+  assert.equal((await call(PEDIDO_BOOK, { deps, sign: false })).status, 403, "sin firma no hay nada");
+  assert.equal(bookDeps.calls.length, 0, "ninguna de esas peticiones llegó a la base");
+});
+
+test("book: sin paciente vinculado o con el tope diario cumplido queda como SOLICITUD pendiente, nunca como cita", async () => {
+  for (const reason of ["needs_patient", "daily_cap", "request_closed"]) {
+    const { deps, calls } = bookDeps({ book: async () => ({ status: "pending_review", reason, request_id: "ffffffff-ffff-4fff-8fff-ffffffffffff", starts_at: slot(24, 10).starts_at, ends_at: slot(24, 10).ends_at, slot: slot(24, 10) }) });
+    const r = await call(PEDIDO_BOOK, { deps });
+    assert.equal(r.status, 200, reason);
+    assert.equal(r.body.status, "pending_review"); assert.equal(r.body.reason, reason);
+    assert.equal(r.body.next_step, "wait_for_clinic");
+    assert.match(r.body.message_hint, /Todavía NO está confirmada/);
+    assert.equal(r.body.appointment, undefined);
+    assert.ok(calls.logs.some((e) => e.status === "pending_review"));
+  }
+});
+
+test("book: horario ya ocupado → 409 slot_taken; oferta vencida → 410; función apagada en la base → 403", async () => {
+  const taken = bookDeps({ book: async () => { throw Object.assign(new Error("Ese horario ya no está disponible."), { code: "23P01" }); } });
+  const a = await call(PEDIDO_BOOK, { deps: taken.deps });
+  assert.deepEqual([a.status, a.body.error], [409, "slot_taken"]);
+  const venc = bookDeps({ book: async () => { throw new Error("SMYL_OFFER_EXPIRED"); } });
+  assert.equal((await call(PEDIDO_BOOK, { deps: venc.deps })).status, 410);
+  const off = bookDeps({ book: async () => { throw new Error("SMYL_BOOK_DISABLED"); } });
+  assert.deepEqual([(await call(PEDIDO_BOOK, { deps: off.deps })).status], [403]);
+});
+
+test("book: con ese nivel `suggest` también guarda la oferta del servidor y `request` sigue funcionando", async () => {
+  const { deps, calls } = bookDeps();
+  const r = await call({ action: "suggest", service_id: SVC, lana_tenant_id: LANA }, { deps });
+  assert.match(r.body.offer_key, /^[0-9a-f-]{36}$/);
+  assert.equal(calls.offers.length, 1);
+  const s = await call(PEDIDO, { deps });
+  assert.equal(s.body.status, "created", "el nivel book también admite dejar una solicitud");
+  assert.equal(s.body.next_step, "wait_for_clinic");
+});
+
+test("book: la migración y la función dejan los candados escritos (nivel, paciente vinculado, tope diario, bitácora, solo service_role)", () => {
+  const sql = readFileSync(new URL("../supabase/migrations/20261128140000_smyl_ai_scheduling_book.sql", import.meta.url), "utf8");
+  assert.match(sql, /if v_level is distinct from 'book' then/);
+  assert.match(sql, /smyl_ai_scheduling_create_request\(/);
+  assert.match(sql, /if v_req\.patient_id is null then/);
+  assert.match(sql, /v_today >= coalesce\(v_cap, 10\)/);
+  assert.match(sql, /book_daily_cap integer not null default 10 check \(book_daily_cap between 1 and 50\)/);
+  assert.match(sql, /smyl_validate_service_appointment_slot\(/);
+  assert.match(sql, /'Agendada por la IA en el chat/);
+  assert.match(sql, /grant execute on function public\.smyl_ai_scheduling_book\([^)]*\) to service_role/);
+  assert.doesNotMatch(sql, /grant execute on function public\.smyl_ai_scheduling_book\([^)]*\) to (authenticated|anon)/);
+  assert.doesNotMatch(sql, /insert into public\.camila_pacientes/, "la IA nunca crea pacientes");
+  const fn = readFileSync(new URL("../supabase/functions/lana-scheduling/index.ts", import.meta.url), "utf8");
+  assert.match(fn, /rpc\("smyl_ai_scheduling_book"/);
+});
+
+test("Agenda con IA (pantalla): tercer nivel «agendar» con tope diario, confirmación previa y avisos en la Agenda", () => {
+  const cfg = readFileSync(new URL("../smyl-ai-scheduling.js", import.meta.url), "utf8");
+  assert.match(cfg, /data-ai-book/);
+  assert.match(cfg, /data-ai-cap/);
+  assert.match(cfg, /wantsBook \? 'book' : \(wantsRequest \? 'request' : 'suggest'\)/);
+  assert.match(cfg, /p_book_cap: level === 'book' \? cap : null/);
+  assert.match(cfg, /window\.confirm\('La IA podrá CONFIRMAR citas sin que nadie las apruebe/);
+  assert.match(cfg, /select\('\*'\)\.eq\('tenant_id', t\)\.limit\(1\)/, "no depende de la columna nueva para cargar");
+  assert.match(cfg, /Cada nivel exige el anterior/);
+  const save = cfg.slice(cfg.indexOf("async function save"));
+  assert.ok(save.indexOf("wantsBook =") < save.indexOf("state.saving = true; render()"), "lee las casillas antes de render()");
+  const agenda = readFileSync(new URL("../smyl-schedule.js", import.meta.url), "utf8");
+  assert.match(agenda, /label:'Agendada por la IA'/);
+  assert.match(agenda, /a\.notes\.indexOf\('Agendada por la IA'\)===0/);
+  for (const f of ["smyl-ai-scheduling.js", "smyl-ai-scheduling.css", "smyl-schedule.js", "app.html", "sw.js"]) assert.equal(readFileSync(new URL(`../mobile/www/${f}`, import.meta.url), "utf8"), readFileSync(new URL(`../${f}`, import.meta.url), "utf8"), f);
+  assert.match(readFileSync(new URL("../app.html", import.meta.url), "utf8"), /smyl-ai-scheduling\.js\?v=3/);
 });

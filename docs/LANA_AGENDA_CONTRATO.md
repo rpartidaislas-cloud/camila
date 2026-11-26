@@ -1,4 +1,4 @@
-# Contrato LANA ↔ SMYL · Agenda con IA (sugiere y, si la clínica lo permite, deja una solicitud)
+# Contrato LANA ↔ SMYL · Agenda con IA (sugiere, deja una solicitud y, si la clínica lo permite con candados, confirma la cita)
 
 Función: `lana-scheduling` (Edge Function de SMYL). `context` y `suggest` son de solo lectura; `request` (task-id smyl-agenda-ia-solicitud) deja una **solicitud pendiente** en «Agenda → Por aprobar». **Nunca confirma una cita.** No devuelve datos de pacientes.
 
@@ -32,10 +32,19 @@ Cuerpo: `{ ..., "action": "request", "lana_tenant_id": "<uuid>", "offer_key": "<
 - Topes: máximo 2 solicitudes pendientes por conversación y 30 del asistente por clínica por hora.
 - Responde `{ ok, status: created|duplicate, request{id,starts_at,ends_at,local_label,hold_expires_at,service_name,branch_name}, message_hint, next_step: "wait_for_clinic" }`. LANA debe decir siempre que **todavía no está confirmada**.
 
+### `book` (solo con el nivel `book`; task-id smyl-agenda-ia-agendar, 2026-11-26)
+Mismo cuerpo que `request` con `"action": "book"` (`lana_tenant_id`, `offer_key` opcional, `option_index`, `name`, `contact`, `privacy_consent: true`, `privacy_notice_version`). `suggest` guarda la oferta también con este nivel.
+- Los **candados** los aplica SMYL, no LANA: (1) nivel `book` encendido por la clínica y solo servicios habilitados; (2) la misma validación de `request` (oferta del servidor vigente, consentimiento, horario libre revalidado con la lógica de la Agenda); (3) la conversación debe estar **vinculada a un paciente** (`camila_lana_handoffs.patient_id`): la IA nunca crea pacientes ni expedientes; (4) tope diario (`book_daily_cap`, 10 por omisión, 1–50, 24 h corridas).
+- Si pasan todos, responde `{ ok, status: "booked", duplicate, appointment{id,starts_at,ends_at,local_label,service_name,branch_name,professional_name}, message_hint, next_step: "confirmed" }` y la cita queda **confirmada** (`source: assistant_request`, notas «Agendada por la IA en el chat…», evento `created` con `source: assistant_ai`). LANA puede decir que la cita está confirmada.
+- Si falta el paciente vinculado, se alcanzó el tope o la solicitud ya estaba cerrada, **no falla**: responde `{ ok, status: "pending_review", reason: "needs_patient" | "daily_cap" | "request_closed", request{...}, next_step: "wait_for_clinic" }` y la solicitud queda en «Por aprobar» (como `request`). LANA debe decir que **todavía no está confirmada**.
+- Idempotente: reintentar la misma oferta y opción devuelve `booked` con `duplicate: true` y la misma cita.
+- Con un nivel distinto de `book`: `403 disabled`. Un horario ocupado: `409 slot_taken` (no queda nada a medias). `request` sigue funcionando con el nivel `book`.
+- Reversible: el equipo cancela o mueve la cita como cualquier otra; la Agenda avisa 48 h «Agendada por la IA» para que recepción la revise.
+
 ## Errores
 `403 bad_signature | disabled | service_not_allowed | lana_mismatch`, `503 not_configured`, `400 invalid_request | expired_request | invalid_period | consent_required | invalid_contact`, `404 offer_not_found`, `409 offer_already_used | slot_taken`, `410 offer_expired`, `429 capped`, `404 branch_not_found`, `409 branch_required | no_branches`, `429 rate_limited`, `502 upstream_error`.
 
 ## Pendiente
-Agendar sin una persona (`book`) no está permitido. Reagendar/cancelar y propuestas/pagos desde el chat quedan fuera de este paso.
+Reagendar/cancelar y propuestas/pagos desde el chat quedan fuera de este paso. LANA debe usar `book` solo cuando `context` devuelva `level: "book"` (si no, `request`).
 
 **Agregado (2026-11-26):** cada elemento de `professionals` incluye `service_ids` (ids de los servicios que realiza, desde `smyl_professional_services`). Si el campo falta, no se sabe qué realiza; un arreglo vacío significa que no realiza ninguno.
