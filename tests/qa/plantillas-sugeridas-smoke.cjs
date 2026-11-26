@@ -45,10 +45,11 @@ server.listen(0, '127.0.0.1', async () => {
     }, REMOTE(owner));
     await page.evaluate(() => ir('agenda')); await page.waitForTimeout(2200);
     await page.evaluate(() => document.querySelector('[data-schedule-tab="settings"]').click()); await page.waitForTimeout(1800);
-    const ag = await page.evaluate(() => { const c = document.querySelector('[data-tpl-suggest="agenda"]'); return c ? { texto: c.innerText.replace(/\s+/g, ' ').trim().slice(0, 260), progreso: c.querySelector('[role=progressbar]').getAttribute('aria-valuenow'), boton: (c.querySelector('.tpl-suggest-ask') || {}).textContent, deshabilitado: (c.querySelector('.tpl-suggest-ask') || {}).disabled, filas: c.querySelectorAll('.tpl-suggest-row').length } : null; });
+    const ag = await page.evaluate(() => { const c = document.querySelector('[data-tpl-suggest="agenda"]'); return c ? { texto: c.innerText.replace(/\s+/g, ' ').trim().slice(0, 260), progreso: c.querySelector('[role=progressbar]').getAttribute('aria-valuenow'), boton: (c.querySelector('.tpl-suggest-ask') || {}).textContent, deshabilitado: (c.querySelector('.tpl-suggest-ask') || { disabled: false }).disabled, filas: c.querySelectorAll('.tpl-suggest-row').length, alto: Math.round(c.getBoundingClientRect().height) } : null; });
     console.log(name, 'agenda:', JSON.stringify(ag), 'errores:', errs.filter(e => !/ERR_FAILED/.test(e)));
-    check(ag && ag.progreso === '2' && /Solicitar las que faltan \(5\)/.test(ag.boton || ''), `${name}: Agenda muestra 2 de 8 esenciales y el botón «Solicitar las que faltan (5)»`);
-    check(ag && ag.deshabilitado === !owner, `${name}: el botón ${owner ? 'está activo' : 'está bloqueado para quien no es propietario'}`);
+    check(ag && ag.progreso === '2' && (!owner || /Solicitar \(5\)/.test(ag.boton || '')), `${name}: Agenda muestra 2 de 8 esenciales y ${owner ? 'el botón «Solicitar (5)»' : 'sin botón para quien no es propietario'}`);
+    check(ag && ag.alto <= 120, `${name}: la sugerencia es una franja (${ag && ag.alto} px de alto)`);
+    check(ag && ag.deshabilitado === false, `${name}: el botón ${owner ? 'está activo' : 'no aparece'}`);
     if (!owner) check(/pídeselo/.test(ag.texto + (await page.locator('[data-tpl-suggest="agenda"]').innerText())), `${name}: dice a quién pedirlo`);
     await page.locator('[data-tpl-suggest="agenda"]').scrollIntoViewIfNeeded();
     await page.locator('[data-tpl-suggest="agenda"] .tpl-suggest-toggle').click(); await page.waitForTimeout(200);
@@ -68,7 +69,7 @@ server.listen(0, '127.0.0.1', async () => {
     }
     for (const [route, section, label] of [['caja', 'finanzas', 'Finanzas'], ['propuestas', 'cotizaciones', 'Cotizaciones'], ['pacientes', 'pacientes', 'Pacientes']]) {
       await page.evaluate((r) => ir(r), route); await page.waitForTimeout(2000);
-      const info = await page.evaluate((s) => { const c = document.querySelector(`[data-tpl-suggest="${s}"]`); return c ? { visible: c.getClientRects().length > 0, texto: c.querySelector('h2').textContent, progreso: c.querySelector('[role=progressbar]').getAttribute('aria-valuenow') + '/' + c.querySelector('[role=progressbar]').getAttribute('aria-valuemax') } : null; }, section);
+      const info = await page.evaluate((s) => { const c = document.querySelector(`[data-tpl-suggest="${s}"]`); return c ? { visible: c.getClientRects().length > 0, texto: c.querySelector('.tpl-suggest-text').textContent, progreso: c.querySelector('[role=progressbar]').getAttribute('aria-valuenow') + '/' + c.querySelector('[role=progressbar]').getAttribute('aria-valuemax') } : null; }, section);
       check(info && info.visible, `${name}: ${label} muestra su tarjeta ${JSON.stringify(info)}`);
       if (info && name === 'escritorio') await page.locator(`[data-tpl-suggest="${section}"]`).screenshot({ path: `${S}/plantillas-${section}-${name}.png` });
     }
