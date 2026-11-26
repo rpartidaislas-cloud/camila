@@ -54,7 +54,7 @@ test("firma: sin firma, firma falsa, cuerpo alterado, secreto corto o ausente â†
 test("solicitud: contrato, acciÃ³n, UUID y reloj se validan antes de consultar nada", async () => {
   const { deps, calls } = makeDeps();
   assert.equal((await call({ contract_version: 2, action: "context" }, { deps })).status, 400);
-  assert.equal((await call({ action: "book" }, { deps })).status, 400);
+  assert.equal((await call({ action: "agendar_solo" }, { deps })).status, 400);
   assert.equal((await call({ action: "context", tenant_id: "no-uuid" }, { deps })).status, 400);
   const viejo = await call({ action: "context", occurred_at: new Date(NOW.getTime() - 10 * 60000).toISOString() }, { deps });
   assert.equal(viejo.status, 400); assert.equal(viejo.body.error, "expired_request");
