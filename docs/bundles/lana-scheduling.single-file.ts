@@ -290,7 +290,6 @@ const describe = module.exports.describe;
 const keyOf = module.exports.keyOf;
 const localParts = module.exports.localParts;
 const AFTERNOON_FROM = module.exports.AFTERNOON_FROM;
-export default module.exports;
 
 return { suggest, describe, keyOf, localParts, AFTERNOON_FROM };
 })();

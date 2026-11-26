@@ -12809,3 +12809,8 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **Función:** `lana-scheduling` (acción nueva `book`; `suggest` guarda ofertas también con este nivel; `request` sigue válido con `book`). Bundle: `docs/bundles/lana-scheduling.single-file.ts`. Contrato: `docs/LANA_AGENDA_CONTRATO.md` (sección `book`).
 - **Pendiente en LANA (fuera de este repo):** usar `action: "book"` solo cuando `context` devuelva `level: "book"` y decir «confirmada» solo con `status: "booked"`; con `pending_review` decir que todavía no está confirmada.
 - **Archivos:** `smyl-ai-scheduling.js/.css` v3, `smyl-schedule.js` v66, `app.html`, `sw.js`, copias en `mobile/www/`, pruebas en `tests/lana-scheduling-request.test.mjs` (+8) y `tests/lana-scheduling-core.test.mjs`.
+
+## 2026-11-26 — Claude Code — Arreglo del archivo único de `lana-scheduling` (no se podía desplegar)
+- **Error visto en Supabase al desplegar:** «The module's source code could not be parsed: 'import', and 'export' cannot be used outside of module code … export default module.exports».
+- **Causa:** `_shared/schedule-suggest-core.mjs` (generado desde un archivo UMD) termina en `export default module.exports;` y el generador de archivos únicos (`scripts/bundle-edge-function.mjs`) solo quitaba `export const/function/{…}`, no `export default`; quedaba dentro de una función. Venía de antes de los cambios del nivel «agendar» (el archivo anterior ya lo tenía).
+- **Arreglo:** el generador quita `export default …;`; se regeneraron todos los archivos únicos (solo cambió `lana-scheduling`); nueva prueba en `tests/cloud-bundles-boot.test.mjs` que falla si algún `docs/bundles/*.single-file.ts` conserva una línea que empiece con `export`.
