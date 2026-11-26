@@ -12730,3 +12730,10 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **UI:** sección «Seguimiento de inasistencias» en Mensajes automáticos de citas (`smyl-reminders.js` v6), Agenda `smyl-schedule.js` v62 (tarea y etiqueta «Pidió reagendar su cita»), catálogo `smyl-template-catalog.js` v8 (fuente; la copia de la función se genera con `scripts/sync-template-catalog.mjs`).
 - **Límite conocido:** la tarea «Quiere reagendar» solo aparece si la cita no vino está en la lista cargada de la Agenda; el detalle de la cita siempre muestra la respuesta.
 - **Siguiente:** cancelaciones (ofrecer horarios) y retroalimentación (motivo de no reagendar).
+
+## 2026-11-26 — Claude Code — «Ofrecer horarios» desde la Agenda (paso 3: cancelaciones / reprogramaciones)
+- **Qué hace:** las tareas de la Agenda «Pidió reprogramar» y «Quiere reagendar» ahora tienen el botón **Ofrecer horarios**: busca el chat de WhatsApp vinculado del paciente (`camila_lana_handoffs`) y abre Mensajes directo en «Agendar cita» (con «Sugerir horarios», que ya existía). La persona revisa y envía; **no envía ni agenda sola**. Sin chat vinculado avisa y abre la cita.
+- **Archivos:** `smyl-schedule.js` v63 (`offerSlots`), `smyl-inbox.js` v99 (`SmylInbox.offerSlots`), `app.html`, `sw.js`, copias en `mobile/www/`, `tests/seguimiento-no-vino.test.mjs`. Sin SQL ni funciones nuevas.
+- **Decisión:** el diálogo automático «¿Te gustaría reagendar? Sí/No» y la oferta de horarios dentro del chat son del asistente de IA de LANA (contrato `lana-scheduling`: sugiere y deja solicitudes en «Por aprobar»); SMYL no manda esos mensajes por su cuenta. Falta confirmar con LANA ese comportamiento.
+- **No probado en navegador** (solo pruebas estáticas).
+- **Siguiente:** retroalimentación (motivo de no reagendar).

@@ -15,8 +15,8 @@ test("el menú del mensaje dice «Ocultar en el panel» y el aviso nombra los tr
 test("la acción interna sigue siendo 'delete' (no cambia el contrato con camila-api) y la versión del script está sincronizada en web y móvil", () => {
   assert.match(read("smyl-inbox.js"), /action: action, conversation_id: conversation\.id, message_id: item\.id/);
   for (const base of ["", "mobile/www/"]) {
-    assert.match(read(`${base}app.html`), /smyl-inbox\.js\?v=98&media=1/);
-    assert.match(read(`${base}sw.js`), /smyl-inbox\.js\?v=98&media=1/);
+    assert.match(read(`${base}app.html`), /smyl-inbox\.js\?v=99&media=1/);
+    assert.match(read(`${base}sw.js`), /smyl-inbox\.js\?v=99&media=1/);
     assert.match(read(`${base}sw.js`), /inbox-ocultar-mensaje-v1/);
   }
   assert.equal(read("mobile/www/smyl-inbox.js"), read("smyl-inbox.js"));
