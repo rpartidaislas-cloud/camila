@@ -445,3 +445,27 @@
   .proposal-line-option{justify-content:flex-start;padding-inline:12px}
   .proposal-presentation-controls,.proposal-line-decisions{margin-inline:10px}
 }
+
+/* Cotización por etapas (PDF, vista previa y enlace del paciente) */
+.proposal-quote .proposal-phase-row th{padding:14px 9px 8px;text-align:left;font-size:13px;letter-spacing:.02em;color:#2f4d45;background:#eef3ef;border-top:2px solid #cfdbd3}
+.proposal-quote .proposal-phase-subtotal td{padding:8px 9px;font-size:13px;color:#4c675f;text-align:right;border-top:1px dashed #d7dfd9}
+.proposal-quote .proposal-phase-subtotal td:last-child{font-weight:700;color:#22263e}
+@media(max-width:600px){.proposal-quote .proposal-phase-row,.proposal-quote .proposal-phase-subtotal{display:block}.proposal-quote .proposal-phase-subtotal td{display:inline-block;width:auto}.proposal-quote .proposal-phase-subtotal td:first-child{padding-right:0}}
+@media print{#proposal-print .proposal-phase-row th{background:#eef3ef!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}#proposal-print .proposal-phase-row{break-after:avoid}}
+
+/* Editor: etapa por concepto y selector de servicios del catálogo */
+.proposal-item .proposal-phase-field select{width:100%}
+.proposal-add-row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
+.proposal-service-dialog{border:0;border-radius:18px;padding:0;width:min(560px,calc(100vw - 24px));max-height:88dvh;box-shadow:0 24px 70px rgba(18,35,63,.3)}
+.proposal-service-dialog::backdrop{background:rgba(18,35,63,.45)}
+.proposal-service-dialog form{display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;max-height:88dvh}
+.proposal-service-dialog header{padding:18px 20px 8px}.proposal-service-dialog h2{margin:0;font-size:18px}.proposal-service-dialog header p{margin:4px 0 0;color:#65758b;font-size:13px}
+.proposal-service-search{margin:0 20px 8px;padding:11px 12px;border:1px solid #cfd8e3;border-radius:10px;font:inherit;min-height:44px}
+.proposal-service-list{overflow:auto;padding:0 12px 8px;display:grid;gap:2px;align-content:start}
+.proposal-service-group{margin:10px 8px 4px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#65758b}
+.proposal-service-option{display:grid;grid-template-columns:1fr auto;gap:2px 10px;text-align:left;width:100%;padding:11px 12px;border:1px solid transparent;border-radius:10px;background:none;cursor:pointer;min-height:48px;font:inherit}
+.proposal-service-option:hover,.proposal-service-option:focus-visible{background:#f2f6f3;border-color:#d7e1da;outline:none}
+.proposal-service-option strong{font-size:14px;color:#12233f}.proposal-service-option small{grid-column:1;color:#65758b;font-size:12px}.proposal-service-option .proposal-service-price{grid-row:1/3;grid-column:2;align-self:center;font-weight:700;color:#17695a;font-size:13px;white-space:nowrap}
+.proposal-service-empty{padding:18px;color:#65758b;font-size:13px}
+.proposal-service-dialog footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px 16px;border-top:1px solid #edf1f6}
+.proposal-item-fiscal-warn{color:#8a5a0a!important}
