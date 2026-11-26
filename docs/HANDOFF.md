@@ -1,7 +1,7 @@
 ## 2026-11-26 — Codex — Tratamiento v2: continuidad clínica y aceptación por concepto
 
 - La revisión de vigencia posterior a Dentalink confirmó que este bloque **sí seguía siendo relevante**: el plan, la propuesta, la decisión del paciente, los cargos y el historial podían existir sin una identidad clínica común. No se volvió a construir Agenda; Ricardo la está trabajando en Claude.
-- Nueva migración `20261128130000_smyl_treatment_v2.sql`: `treatment_id` canónico en planes, versiones y propuestas; backfill conservador que deja sin asignar lo ambiguo; disparadores compatibles con clientes anteriores; RLS clínica/financiera y contratos idempotentes.
+- Nueva migración `20261128140000_smyl_treatment_v2.sql`: `treatment_id` canónico en planes, versiones y propuestas; backfill conservador que deja sin asignar lo ambiguo; disparadores compatibles con clientes anteriores; RLS clínica/financiera y contratos idempotentes.
 - La propuesta permite decidir cada concepto como **aceptado, no aceptado o para decidir después**. El total y los cargos se calculan únicamente con conceptos aceptados; una presentación o envío ya no se interpreta como aceptación.
 - Las propuestas históricas conservan su versión, se abren en modo de solo lectura y siguen siendo exportables. Las propuestas vencidas no pueden aceptarse ni generar cargos nuevos; los cargos y créditos de simulación no pueden cruzar sucursales.
 - Cerrar un capítulo y abrir el siguiente es una sola operación: valida revisiones, deja un único tratamiento activo y permite trasladar explícitamente procedimientos pendientes con identificadores nuevos y trazabilidad de origen.

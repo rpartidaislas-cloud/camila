@@ -6,7 +6,7 @@ import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 
 const read=file=>readFileSync(new URL('../'+file,import.meta.url),'utf8');
-const sql=read('supabase/migrations/20261128130000_smyl_treatment_v2.sql');
+const sql=read('supabase/migrations/20261128140000_smyl_treatment_v2.sql');
 
 test('plan, versiones y propuesta comparten un capítulo canónico sin forzar backfill ambiguo',()=>{
   for(const table of ['smyl_clinical_plans','smyl_clinical_versions','smyl_proposals','smyl_proposal_versions'])
@@ -78,7 +78,7 @@ test('la transición de capítulo es una sola transacción con carry y revisión
 
 test('el sentinel exige todos los contratos v2',()=>{
   const s=read('scripts/migration-sentinels.mjs');
-  assert.match(s,/'20261128130000'/);
+  assert.match(s,/'20261128140000'/);
   for(const name of ['smyl_save_clinical_plan_v3','smyl_save_proposal_v4','smyl_record_proposal_decision_v1','smyl_post_proposal_decision_charges_v1','smyl_transition_treatment_v1'])
     assert.match(s,new RegExp(name));
 });
@@ -93,7 +93,7 @@ test('PostgreSQL ejecuta decisión parcial, cargos selectivos y transición ató
   await db.exec(read('tests/fixtures/treatment-v2-stubs.sql'));
   await db.exec(sql);
   const {SENTINELAS}=await import('../scripts/migration-sentinels.mjs');
-  assert.equal((await db.query(SENTINELAS['20261128130000'].sentinel)).rows[0].ok,true);
+  assert.equal((await db.query(SENTINELAS['20261128140000'].sentinel)).rows[0].ok,true);
   await db.exec(read('tests/fixtures/treatment-v2-scenarios.sql'));
   const row=(await db.query(`select
     (select count(*)::integer from public.smyl_proposal_decisions) decisions,
