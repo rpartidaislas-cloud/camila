@@ -25,7 +25,7 @@
     ] },
     { id: 'agenda', title: 'Agenda', blurb: 'Disponibilidad, calendarios y avisos de cita.', icon: 'calendar', items: [
       { title: 'Profesionales', desc: 'Define quién atiende, sus sedes y preparación para recibir citas.', group: 'Disponibilidad', icon: 'team', action: 'Administrar', route: 'clinica', embed: true, target: '[data-ca-team-view="professionals"]' },
-      { title: 'Horarios y servicios', desc: 'Define quién atiende, dónde y en qué horarios.', group: 'Disponibilidad', icon: 'clock', action: 'Configurar', route: 'agenda', target: '[data-schedule-tab="settings"]' },
+      { title: 'Horarios y servicios', desc: 'Servicios, tarifas y el horario semanal de cada profesional.', group: 'Disponibilidad', icon: 'clock', action: 'Configurar', route: 'agenda', target: '[data-schedule-tab="settings"]' },
       { title: 'Google Calendar', desc: 'Sincroniza el calendario profesional y revisa cambios.', group: 'Calendarios y confirmación', icon: 'sync', action: 'Administrar', route: 'agenda', target: '#schedule-google-calendar' },
       { title: 'Confirmaciones', desc: 'Solicitudes que todavía necesitan horario o aprobación.', group: 'Calendarios y confirmación', icon: 'check', action: 'Revisar', route: 'agenda', target: '[data-schedule-tab="requests"]' },
       { title: 'Recordatorios de cita', desc: 'Avisos automáticos antes de cada cita.', group: 'Comunicación', icon: 'bell', action: 'Configurar', route: 'agenda', embed: true, element: '#schedule-reminders-card', check: 'reminders' }

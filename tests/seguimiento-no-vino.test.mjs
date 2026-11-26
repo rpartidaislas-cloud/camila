@@ -71,3 +71,27 @@ test('«Ofrecer horarios»: la Agenda abre el chat del paciente en «Agendar cit
   assert.match(inbox, /offerSlots: async function \(conversationId\)[\s\S]*?openAvailabilityDialog\(\)/);
   for (const f of ['smyl-schedule.js', 'smyl-inbox.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
+
+test('retroalimentación: pregunta el motivo una vez, solo si no reagendó, y guarda solo la opción elegida', () => {
+  const sql = read('supabase/migrations/20261128130000_smyl_feedback_followup.sql');
+  assert.match(sql, /'no_show', 'feedback'\)/);
+  assert.match(sql, /response in \('confirmed', 'reschedule', 'rebook', 'reason_schedule', 'reason_price', 'reason_other'\)/);
+  assert.match(sql, /add column if not exists feedback_enabled boolean not null default false/);
+  assert.match(sql, /f\.sent_at <= now\(\) - interval '3 days'/);
+  assert.match(sql, /f\.sent_at >= s\.feedback_since/);
+  assert.match(sql, /not exists \(select 1 from public\.smyl_appointments n[^)]*\)?/);
+  assert.match(sql, /x\.response = 'rebook'/);
+  const fn = read('supabase/functions/appointment-reminders/index.ts');
+  assert.match(fn, /isFeedback \? !feedbackOn/);
+  assert.match(fn, /feedback_since = previous\?\.feedback_enabled/);
+  const hook = read('supabase/functions/appointment-negotiations/index.ts');
+  for (const label of ['el horario no me va', 'por el costo', 'otro motivo']) assert.ok(hook.includes(label), label);
+  const catalog = require('../smyl-template-catalog.js');
+  const item = catalog.TEMPLATES.find(t => t.id === 'cita_motivo_no_reagenda_v1');
+  assert.deepEqual(item.buttons.map(b => b.text), ['El horario no me va', 'Por el costo', 'Otro motivo']);
+  assert.equal(item.category, 'UTILITY');
+  assert.deepEqual(catalog.validate(item), []);
+  assert.match(read('smyl-reminders.js'), /kind: 'feedback', enabled: form\.elements\.feedback_enabled\.checked/);
+  assert.match(read('smyl-schedule.js'), /No reagendó: por el costo/);
+  for (const f of ['smyl-reminders.js', 'smyl-schedule.js', 'smyl-template-catalog.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
+});
