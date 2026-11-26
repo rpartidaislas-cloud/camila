@@ -44,7 +44,7 @@ revoke all on function public.smyl_set_ai_services(uuid[], boolean) from public,
 grant execute on function public.smyl_set_ai_services(uuid[], boolean) to authenticated;
 
 -- Opciones de la IA sin tocar los servicios: nivel, anticipación mínima y horizonte. Para encender necesita al menos un servicio marcado.
-create or replace function public.smyl_set_ai_scheduling_options(p_level text, p_min_lead_hours integer, p_horizon_days integer)
+create or replace function public.smyl_set_ai_scheduling_options(p_level text, p_min_lead_hours integer, p_horizon_days integer, p_book_cap integer default null)
 returns jsonb language plpgsql security definer set search_path = pg_catalog, public as $$
 declare
   v_tenant uuid := public.smyl_current_tenant();
@@ -53,7 +53,8 @@ begin
   if v_tenant is null or not public.smyl_has_permission(v_tenant, 'settings.manage') then
     raise exception using errcode = '42501', message = 'No tienes permiso para configurar la agenda con IA.';
   end if;
-  if p_level not in ('off', 'suggest', 'request') or p_min_lead_hours not between 1 and 72 or p_horizon_days not between 1 and 60 then
+  if p_level not in ('off', 'suggest', 'request', 'book') or p_min_lead_hours not between 1 and 72 or p_horizon_days not between 1 and 60
+     or (p_book_cap is not null and p_book_cap not between 1 and 50) then
     raise exception using errcode = '22023', message = 'Configuración no válida.';
   end if;
   select count(*) into v_count from public.smyl_ai_scheduling_services a
@@ -62,13 +63,14 @@ begin
   if p_level <> 'off' and v_count = 0 then
     raise exception using errcode = '22023', message = 'Marca primero al menos un servicio con «La IA puede ofrecerlo» en Servicios y tarifas.';
   end if;
-  insert into public.smyl_ai_scheduling_settings(tenant_id, level, min_lead_hours, horizon_days, updated_by)
-  values (v_tenant, p_level, p_min_lead_hours, p_horizon_days, auth.uid())
-  on conflict (tenant_id) do update set level = excluded.level, min_lead_hours = excluded.min_lead_hours, horizon_days = excluded.horizon_days, updated_by = auth.uid();
+  insert into public.smyl_ai_scheduling_settings(tenant_id, level, min_lead_hours, horizon_days, book_daily_cap, updated_by)
+  values (v_tenant, p_level, p_min_lead_hours, p_horizon_days, coalesce(p_book_cap, 10), auth.uid())
+  on conflict (tenant_id) do update set level = excluded.level, min_lead_hours = excluded.min_lead_hours, horizon_days = excluded.horizon_days,
+    book_daily_cap = coalesce(p_book_cap, public.smyl_ai_scheduling_settings.book_daily_cap), updated_by = auth.uid();
   return jsonb_build_object('level', p_level, 'min_lead_hours', p_min_lead_hours, 'horizon_days', p_horizon_days, 'service_count', v_count);
 end;
 $$;
-revoke all on function public.smyl_set_ai_scheduling_options(text, integer, integer) from public, anon;
-grant execute on function public.smyl_set_ai_scheduling_options(text, integer, integer) to authenticated;
+revoke all on function public.smyl_set_ai_scheduling_options(text, integer, integer, integer) from public, anon;
+grant execute on function public.smyl_set_ai_scheduling_options(text, integer, integer, integer) to authenticated;
 
 commit;

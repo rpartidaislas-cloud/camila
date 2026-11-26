@@ -33,7 +33,7 @@ test("edición en bloque: estilos y copias móviles", () => {
 test("IA por servicio: una marca por servicio en el catálogo (diálogo y bloque) y la tarjeta de Agenda ya no lista servicios", () => {
   const sql = fs.readFileSync(new URL("../supabase/migrations/20261129100000_smyl_ai_service_flag.sql", import.meta.url), "utf8");
   assert.match(sql, /create or replace function public\.smyl_set_ai_services\(p_service_ids uuid\[\], p_allowed boolean\)/);
-  assert.match(sql, /create or replace function public\.smyl_set_ai_scheduling_options\(p_level text, p_min_lead_hours integer, p_horizon_days integer\)/);
+  assert.match(sql, /create or replace function public\.smyl_set_ai_scheduling_options\(p_level text, p_min_lead_hours integer, p_horizon_days integer, p_book_cap integer default null\)/);
   assert.match(sql, /smyl_has_permission\(v_tenant, 'settings\.manage'\)/);
   assert.doesNotMatch(sql, /drop (table|column|function)/i);
   assert.equal(sql, fs.readFileSync(new URL("../docs/sql-ia-por-servicio-pegar-en-supabase.sql", import.meta.url), "utf8").split("\n").slice(3).join("\n"));
