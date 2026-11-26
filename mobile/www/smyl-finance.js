@@ -213,8 +213,24 @@
       var rows=await q(window.sb.from('camila_lana_handoffs').select('patient_id,lana_conversation_id,lana_channel,updated_at').eq('tenant_id',tenant).order('updated_at',{ascending:false}).limit(1000));
       if(version!==chatLinkVersion||window.tenantId!==tenant||!window.SmylInbox.canAccess())return;
       var map={};(rows||[]).forEach(function(r){if(!map[r.patient_id])map[r.patient_id]={conversation:r.lana_conversation_id,channel:r.lana_channel};});
-      chatLinks=map;renderAccounts();
+      chatLinks=map;renderAccounts();renderFiscal();
     }catch(e){if(version===chatLinkVersion){chatLinks={};state.chatLinksTenant=null;}}
+  }
+  // Avisar al paciente por WhatsApp (plantillas «factura_disponible_v1» y «datos_facturacion_pendientes_v1»). Nunca envía solo:
+  // abre el chat con la plantilla ya llenada y una persona la revisa y la manda. Solo si el paciente tiene un chat de WhatsApp vinculado.
+  function waLink(patientId){var l=chatLinks[patientId];return l&&l.channel==='whatsapp'&&window.SmylInbox&&typeof window.SmylInbox.sendTemplate==='function'?l:null;}
+  function patientFirstName(patientId){return String(name(patientId)).trim().split(/\s+/)[0]||'';}
+  function clinicLabel(){var t=window.tenantData||{},c=t.config||{};return String(c.consultorio||t.nombre||'tu clínica').trim();}
+  function invoiceFolio(d){var f=[d.invoice_series,d.invoice_folio].filter(function(x){return x!=null&&x!=='';}).join('-');return f||String(d.external_uuid||d.id||'').slice(0,8)||'—';}
+  function whatsappInvoice(d){
+    var link=d&&waLink(d.patient_id);if(!link)return;
+    window.SmylInbox.sendTemplate(link.conversation,{preferred:['factura_disponible_v1'],variables:[patientFirstName(d.patient_id),invoiceFolio(d),clinicLabel()],
+      missingText:'Para avisarle por WhatsApp que su factura está lista necesitas la plantilla «Factura disponible» aprobada por Meta.'});
+  }
+  function whatsappFiscalData(patientId){
+    var link=waLink(patientId);if(!link)return;
+    window.SmylInbox.sendTemplate(link.conversation,{preferred:['datos_facturacion_pendientes_v1'],variables:[patientFirstName(patientId),clinicLabel()],
+      missingText:'Para pedirle sus datos fiscales por WhatsApp necesitas la plantilla «Faltan datos para tu factura» aprobada por Meta.'});
   }
   function resetChatLinks(){
     chatLinkVersion++;chatLinks={};state.chatLinksTenant=null;
@@ -448,6 +464,7 @@
         if(plan&&plan.status==='submitted'){main=button('data-cancelcheck-cfdi','Verificar');menu.push(item('data-email-cfdi',d.last_emailed_at?'Reenviar por correo':'Enviar por correo'));}
         else main=button('data-email-cfdi',d.last_emailed_at?'Reenviar':'Enviar');
         menu.push(file('pdf','Descargar PDF'),file('xml','Descargar XML'));
+        if(waLink(d.patient_id))menu.push(item('data-wa-cfdi','Avisar por WhatsApp'));
         if(!plan)menu.push(item('data-plan-cancel','Planear cancelación'));
         else if(plan.status==='planned'&&connected)menu.push(item('data-cancel-cfdi','Enviar cancelación',true));
       }else{main=file('acuse_pdf','Acuse PDF',true);menu.push(file('acuse_xml','Acuse XML'),file('pdf','Factura PDF'),file('xml','Factura XML'));}
@@ -468,6 +485,7 @@
     if(facts.concept)sub.push(esc(facts.concept));
     return '<article class="finance-line" data-cols="invoices" data-invoice-state="pending" data-invoice-code="'+x.code+'" role="listitem"><button type="button" class="finance-line-who" data-account="'+p.patient_id+'" title="Abrir la cuenta"><strong class="finance-line-name">'+patient+'</strong><small>'+sub.join(' · ')+'</small></button>'
       +'<div class="finance-line-state">'+state_+'</div><div class="finance-line-amount"><strong>'+money(p.amount)+'</strong></div><div class="finance-line-actions"><button type="button" class="finance-link-action" data-open-receipt="'+receipt.id+'" aria-label="Recibo '+folio+' de '+patient+'">Recibo</button>'
+      +(state.canInvoice&&x.code==='profile'&&waLink(p.patient_id)?'<button type="button" class="finance-link-action" data-wa-fiscal="'+p.patient_id+'">Pedir datos por WhatsApp</button>':'')
       +(state.canInvoice?'<button type="button" class="btn btn-secondary" data-invoice-payment="'+p.id+'">Facturar</button>':'')+'</div></article>';
   }
   function setInvoiceFilter(filter){state.fiscalFilter=INVOICE_FILTERS.some(function(f){return f[0]===filter;})?filter:'drafts';state.shown.invoices=PAGE_ROWS;renderFiscal();}
@@ -497,6 +515,8 @@
     host.querySelectorAll('[data-cancel-cfdi]').forEach(function(b){b.onclick=function(){openCancelSend(by(state.drafts,b.dataset.cancelCfdi));};});
     host.querySelectorAll('[data-cancelcheck-cfdi]').forEach(function(b){b.onclick=function(){checkCancellation(by(state.drafts,b.dataset.cancelcheckCfdi));};});
     host.querySelectorAll('[data-plan-cancel]').forEach(function(b){b.onclick=function(){planCfdiCancellation(by(state.drafts,b.dataset.planCancel));};});
+    host.querySelectorAll('[data-wa-cfdi]').forEach(function(b){b.onclick=function(){whatsappInvoice(by(state.drafts,b.dataset.waCfdi));};});
+    host.querySelectorAll('[data-wa-fiscal]').forEach(function(b){b.onclick=function(){whatsappFiscalData(b.dataset.waFiscal);};});
     var cfg=host.querySelector('#finance-open-billing-setup');if(cfg)cfg.onclick=openBillingSetup;
     bindMoreRows(host,'invoices',renderFiscal);
   }

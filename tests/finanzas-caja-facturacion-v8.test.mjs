@@ -18,7 +18,7 @@ const code = [
   line('atClock'), line('clock'), line('moveWhen'), line('openedLabel'), line('dayLabel'), line('shiftSpan'),
   line('ledgerRow'), block('cashLedger'), line('ledgerTotal'), block('moveLine'), block('cutNotes'), line('cutTag'), line('foldRow'), block('cutRow'), block('teamRow'), block('turnBlock'),
   line('receiptConcept'), block('paymentFacts'), block('fiscalReceiptItem'), line('pacConnected'), line('st_armed'),
-  pick(/var INVOICE_FILTERS=[^\n]*\n/), line('invoiceBucket'), line('invoiceIsReal'), line('rowMenu'), block('invoiceLine'), block('pendingLine'), block('fiscalStatusStrip'),
+  pick(/var INVOICE_FILTERS=[^\n]*\n/), line('invoiceBucket'), line('invoiceIsReal'), 'var chatLinks={};', line('waLink'), line('rowMenu'), block('invoiceLine'), block('pendingLine'), block('fiscalStatusStrip'),
 ].join('\n');
 const build = (state, steps) => new Function('state', 'billingSteps', code + ';return {cashFlow,cashExpected,cashMoves,atClock,openedLabel,dayLabel,cashLedger,moveLine,cutNotes,cutTag,cutRow,teamRow,turnBlock,fiscalReceiptItem,invoiceBucket,invoiceIsReal,invoiceLine,pendingLine,fiscalStatusStrip,INVOICE_FILTERS};')(state, () => steps || [{ done: true }, { done: false }, { done: false }, { done: false }]);
 
