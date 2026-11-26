@@ -6,7 +6,7 @@
 - Las propuestas históricas conservan su versión, se abren en modo de solo lectura y siguen siendo exportables. Las propuestas vencidas no pueden aceptarse ni generar cargos nuevos; los cargos y créditos de simulación no pueden cruzar sucursales.
 - Cerrar un capítulo y abrir el siguiente es una sola operación: valida revisiones, deja un único tratamiento activo y permite trasladar explícitamente procedimientos pendientes con identificadores nuevos y trazabilidad de origen.
 - Web y PWA usan los mismos activos y contratos. Validación: contrato completo ejecutado en PostgreSQL real; batería relevante 197/197 aprobada, sin omisiones. La suite general del repositorio conserva fallos ajenos ya existentes; no se modificaron esos módulos.
-- **No desplegado ni aplicado todavía.** La migración debe ejecutarse antes de publicar la interfaz.
+- **Producción:** la migración `20261128140000` se aplicó como transacción aislada y quedó registrada en el historial remoto el 26 de noviembre de 2026; el centinela confirmó tablas, columna canónica y cinco RPC. Web/PWA se publican desde esta misma entrega después de integrar los cambios recientes de `main`.
 - Siguiente bloque que conserva valor: **ejecución y evolución de procedimientos aceptados** (estado por procedimiento, evidencia/notas y cierre verificable). Tratamientos simultáneos sólo deben añadirse si aparece una necesidad clínica real; por ahora se mantiene deliberadamente un tratamiento activo por paciente.
 
 ## 2026-11-26 — Codex — Backend canónico de ortodoncia longitudinal v1
