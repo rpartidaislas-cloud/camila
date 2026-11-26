@@ -607,3 +607,6 @@
   .clinic-admin-branch-form-actions{bottom:calc(74px + env(safe-area-inset-bottom));margin-inline:0}
   .clinic-admin-archive-summary{display:grid;width:100%}
 }
+.clinic-admin-sheet-services{display:grid;gap:6px;margin-top:8px}
+.clinic-admin-sheet-service{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--ca-border);border-radius:12px;background:#f8fafc;font-size:14px;cursor:pointer}
+.clinic-admin-sheet-service input{width:18px;height:18px;flex:none}

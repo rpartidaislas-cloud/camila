@@ -62,14 +62,19 @@ const deps = {
     const lana = data?.config?.integraciones?.lana;
     return !!lana && lana.estado === "conectada" && typeof lana.lana_tenant_id === "string" && lana.lana_tenant_id.toLowerCase() === lanaTenantId.toLowerCase();
   },
-  // Profesionales activos y las sedes donde atienden (solo id y nombre público).
+  // Profesionales activos, sus sedes y los servicios que realizan (solo ids y nombre público).
   professionals: async (tenantId: string): Promise<Row[]> => {
-    const [{ data: pros, error }, { data: links, error: e2 }] = await Promise.all([
+    const [{ data: pros, error }, { data: links, error: e2 }, { data: svc, error: e3 }] = await Promise.all([
       admin.from("smyl_professionals").select("id,display_name,active").eq("tenant_id", tenantId).eq("active", true).order("display_name"),
       admin.from("smyl_professional_branches").select("professional_id,branch_id").eq("tenant_id", tenantId),
+      admin.from("smyl_professional_services").select("professional_id,service_id").eq("tenant_id", tenantId),
     ]);
-    if (error) throw error; if (e2) throw e2;
-    return (pros || []).map((p: Row) => ({ id: p.id, name: p.display_name, branch_ids: (links || []).filter((l: Row) => l.professional_id === p.id).map((l: Row) => l.branch_id) }));
+    if (error) throw error; if (e2) throw e2; if (e3) throw e3;
+    return (pros || []).map((p: Row) => ({
+      id: p.id, name: p.display_name,
+      branch_ids: (links || []).filter((l: Row) => l.professional_id === p.id).map((l: Row) => l.branch_id),
+      service_ids: (svc || []).filter((l: Row) => l.professional_id === p.id).map((l: Row) => l.service_id),
+    }));
   },
   // Claves de los horarios ya ofrecidos en esta conversación (para «más opciones»).
   recentOfferKeys: async (q: Row): Promise<string[]> => {
