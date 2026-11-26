@@ -84,3 +84,11 @@
   .tpl-suggest { position: relative; }
 }
 @media (prefers-reduced-motion: reduce) { .tpl-suggest-chevron { transition: none; } }
+
+/* Ventana completa para ver y solicitar las plantillas de una sección. */
+.tpl-suggest-full { width: min(680px, calc(100vw - 24px)); max-height: min(88vh, 860px); }
+.tpl-suggest-full .tpl-dialog-body { max-height: min(88vh, 860px); overflow-y: auto; gap: 12px; }
+.tpl-suggest-full .tpl-dialog-actions { position: sticky; bottom: -20px; margin: 4px -20px -20px; padding: 12px 20px; background: #fff; border-top: 1px solid #e3e9ef; align-items: center; flex-wrap: wrap; }
+.tpl-suggest-full .tpl-dialog-actions .tpl-suggest-link { margin-right: auto; }
+.tpl-suggest-full .tpl-suggest-detail { padding: 0; border-top: 0; }
+@media (max-width: 640px) { .tpl-suggest-full .tpl-dialog-actions .btn { min-height: 44px; } }

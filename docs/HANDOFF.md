@@ -12875,3 +12875,7 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 ## 2026-11-26 · Claude · Finanzas: plantillas dentro del menú «Más»
 - `smyl-template-suggest.js` (v4): en Finanzas ya no hay franja; aparece la opción «Plantillas de WhatsApp · Faltan N…» dentro del menú «Más» de la cabecera (solo si faltan esenciales y el usuario es propietario). Al tocarla pide la confirmación única de `requestMany`. Agenda, Cotizaciones y Pacientes conservan la franja.
 - Pruebas y humo actualizados; `app.html`/`sw.js`/`mobile/www/` sincronizados. Sin SQL ni funciones.
+
+## 2026-11-26 · Claude · Plantillas: ventana completa en vez de la confirmación pelada
+- `smyl-template-suggest.js` (v5) / `.css` (v3): «Solicitar (N)» de la franja y la opción de «Más» en Finanzas abren una ventana completa (avance, esenciales y recomendadas con su estado, «Solicitar» por plantilla, «Ir a Plantillas» y «Solicitar las que faltan (N)»). Esa ventana es la confirmación: `SmylTemplates.requestMany(ids, { confirmed: true })` (`smyl-templates.js` v10) ya no muestra la segunda ventana con solo nombres. `api.openFull(sectionId)`.
+- «Puesta en marcha» sigue usando `requestMany(ids)` con su confirmación normal. Sin SQL ni funciones; `mobile/www/` sincronizado.
