@@ -48,6 +48,14 @@ const server = http.createServer((req, res) => {
   await page.evaluate(() => window.SmylServiceCatalog.reload()); await page.waitForSelector('.catalog-service', { state: 'attached' });
   check(await page.isVisible('#catalog-bulk-toggle'), 'quien administra ve «Editar varios»');
   check(await page.locator('[data-bulk-id]').count() === 0, 'sin modo bloque no hay casillas');
+  // Nombre repetido: aviso claro y sin escribir en la base
+  await page.click('#catalog-custom'); await page.waitForSelector('#catalog-dialog[open]');
+  await page.fill('#catalog-dialog [name="patient_name"]', 'servicio a'); await page.fill('#catalog-dialog [name="duration_minutes"]', '30');
+  await page.evaluate(() => { window.__before = window.__updates.length + window.__calls.length; });
+  await page.click('#catalog-dialog [type=submit]');
+  check(/Ya hay un servicio activo llamado «Servicio A»/.test(await page.textContent('#catalog-dialog .catalog-form-error')), 'un nombre repetido (aunque cambien las mayúsculas) avisa en español');
+  check(await page.evaluate(() => window.__updates.length + window.__calls.length === window.__before), '…y no intenta guardar');
+  await page.click('#catalog-dialog [data-close]');
   // Tarjetas: avisos de profesional y de IA, y diálogo con disponibilidad
   await page.evaluate(() => document.querySelectorAll('#catalog-list details').forEach(d => d.open = true));
   const flags = await page.evaluate(() => [...document.querySelectorAll('.catalog-service')].filter(a => a.querySelector('[data-bulk-id],[data-edit]') && /Servicio [ABC]/.test(a.textContent)).map(a => ({ n: a.querySelector('h3').textContent.trim(), t: a.querySelector('.catalog-flags').textContent })));
