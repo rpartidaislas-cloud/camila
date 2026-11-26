@@ -1182,8 +1182,9 @@
 .ps-sec h3{display:flex;align-items:center;gap:10px;margin:0;font-size:15px}
 .ps-sec h3>span{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#2d3a9e;color:#fff;font-size:13px;font-weight:750}
 .ps-field{display:grid;gap:6px;font-size:13px;font-weight:650;color:#26384c}
-.ps-field input,.ps-field textarea{width:100%;min-height:44px;padding:10px 12px;border:1px solid #cfd9e2;border-radius:10px;background:#fff;font:inherit;font-size:14.5px;font-weight:400}
+.ps-field input,.ps-field textarea,.ps-field select{width:100%;min-height:44px;padding:10px 12px;border:1px solid #cfd9e2;border-radius:10px;background:#fff;font:inherit;font-size:14.5px;font-weight:400}
 .ps-field textarea{resize:vertical}
+.ps-field small{color:#667588;font-size:12px;font-weight:500;line-height:1.45}.ps-accepted{display:grid;gap:3px;padding:12px 14px;border:1px solid #b8dcd7;border-radius:11px;background:#eff8f6}.ps-accepted span{color:#14746c;font-size:11px;font-weight:850;letter-spacing:.08em}.ps-accepted strong{font-size:15px}.ps-accepted small{color:#5e6e7d;font-size:12px}
 .ps-areas{display:flex;flex-wrap:wrap;gap:6px}
 .ps-areas[hidden]{display:none}
 .ps-areas button{min-height:40px;padding:0 12px;border:1px solid #cfd9e2;border-radius:999px;background:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}

@@ -214,7 +214,7 @@ test("etiquetaLocal: zona de la sucursal, a. m./p. m. con espacio y zona inváli
 
 test("el motor del servidor es copia exacta del que usa el navegador", () => {
   const src = readFileSync(new URL("../smyl-schedule-suggest.js", import.meta.url), "utf8").replace(/\r\n/g, "\n");
-  const gen = readFileSync(new URL("../supabase/functions/_shared/schedule-suggest-core.mjs", import.meta.url), "utf8");
+  const gen = readFileSync(new URL("../supabase/functions/_shared/schedule-suggest-core.mjs", import.meta.url), "utf8").replace(/\r\n/g, "\n");
   assert.ok(gen.includes(src), "schedule-suggest-core.mjs está desfasado: ejecuta node scripts/sync-schedule-suggest.mjs");
   assert.match(gen, /^\/\/ ARCHIVO GENERADO por scripts\/sync-schedule-suggest\.mjs/);
 });
