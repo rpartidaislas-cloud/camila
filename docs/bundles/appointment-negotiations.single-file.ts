@@ -541,10 +541,11 @@ function normalizeAction(recipient: Recipient, value: unknown): string | null {
 }
 
 // Botones de los avisos de cita al paciente. Cualquier otro texto se ignora (no es una respuesta de asistencia).
-function normalizeAttendance(value: unknown): "confirmed" | "reschedule" | null {
+function normalizeAttendance(value: unknown): "confirmed" | "reschedule" | "rebook" | null {
   const label = text(value, 80).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
   if (["confirmo mi asistencia", "confirmo", "confirmar asistencia", "confirmed"].includes(label)) return "confirmed";
   if (["necesito reprogramar", "reprogramar", "reschedule"].includes(label)) return "reschedule";
+  if (["quiero reagendar", "reagendar", "rebook"].includes(label)) return "rebook";
   return null;
 }
 
