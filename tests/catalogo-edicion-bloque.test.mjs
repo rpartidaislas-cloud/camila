@@ -29,3 +29,19 @@ test("edición en bloque: estilos y copias móviles", () => {
   for (const sel of [".catalog-bulkbar", ".catalog-bulk-toggle", ".catalog-bulk-check", ".catalog-bulk-dialog"]) assert.ok(css.includes(sel), sel);
   for (const f of ["smyl-service-catalog.js", "smyl-service-catalog-stage1.css", "app.html", "sw.js"]) assert.equal(read("mobile/www/" + f), read(f), f);
 });
+
+test("IA por servicio: una marca por servicio en el catálogo (diálogo y bloque) y la tarjeta de Agenda ya no lista servicios", () => {
+  const sql = fs.readFileSync(new URL("../supabase/migrations/20261129100000_smyl_ai_service_flag.sql", import.meta.url), "utf8");
+  assert.match(sql, /create or replace function public\.smyl_set_ai_services\(p_service_ids uuid\[\], p_allowed boolean\)/);
+  assert.match(sql, /create or replace function public\.smyl_set_ai_scheduling_options\(p_level text, p_min_lead_hours integer, p_horizon_days integer, p_book_cap integer default null\)/);
+  assert.match(sql, /smyl_has_permission\(v_tenant, 'settings\.manage'\)/);
+  assert.doesNotMatch(sql, /drop (table|column|function)/i);
+  assert.equal(sql, fs.readFileSync(new URL("../docs/sql-ia-por-servicio-pegar-en-supabase.sql", import.meta.url), "utf8").split("\n").slice(3).join("\n"));
+  assert.match(js, /rpc\('smyl_set_ai_services'/);
+  assert.match(js, /data-bulk-do="aion"/); assert.match(js, /data-bulk-do="who"/);
+  assert.match(js, /Sin profesional/); assert.match(js, /La IA puede ofrecerlo/);
+  const card = fs.readFileSync(new URL("../smyl-ai-scheduling.js", import.meta.url), "utf8");
+  assert.doesNotMatch(card, /data-ai-service|p_service_ids/);
+  assert.match(card, /smyl_set_ai_scheduling_options/);
+  for (const f of ["smyl-ai-scheduling.js", "smyl-ai-scheduling.css"]) assert.equal(fs.readFileSync(new URL("../mobile/www/" + f, import.meta.url), "utf8"), fs.readFileSync(new URL("../" + f, import.meta.url), "utf8"), f);
+});
