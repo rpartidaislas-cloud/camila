@@ -70,7 +70,7 @@ test('desactivar los recordatorios cancela lo que estaba en cola', () => {
   assert.match(fn, /if \(!enabled\) \{/);
   // Se apaga por tipo (confirmación o recordatorio): cada uno cancela solo lo suyo.
   assert.match(fn, /\[col\.enabled\]: false, updated_by: auth\.user!\.id/);
-  assert.match(fn, /cancelled_in_lana: await cancelQueued\(tenantId, confirmation \? "confirmation" : noShow \? "no_show" : "reminder"\)/);
+  assert.match(fn, /cancelled_in_lana: await cancelQueued\(tenantId, confirmation \? "confirmation" : noShow \? "no_show" : feedback \? "feedback" : "reminder"\)/);
   // Apagar no debe depender de LANA: la validación de plantilla va después.
   assert.ok(fn.indexOf('[col.enabled]: false, updated_by') < fn.indexOf('La plantilla ya no está disponible en LANA'));
 });

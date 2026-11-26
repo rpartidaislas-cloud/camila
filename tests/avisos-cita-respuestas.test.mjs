@@ -9,7 +9,7 @@ const schedule = read('smyl-schedule.js');
 
 function loadNormalizer() {
   const source = fn.match(/function normalizeAttendance\(value: unknown\)[^{]*\{[\s\S]*?\n\}\n/)[0]
-    .replace('(value: unknown): "confirmed" | "reschedule" | "rebook" | null', '(value)');
+    .replace('(value: unknown): "confirmed" | "reschedule" | "rebook" | "reason_schedule" | "reason_price" | "reason_other" | null', '(value)');
   return new Function('text', `${source}; return normalizeAttendance;`)((value, max) => (typeof value === 'string' ? value.trim().slice(0, max) : ''));
 }
 

@@ -12737,3 +12737,11 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **Decisión:** el diálogo automático «¿Te gustaría reagendar? Sí/No» y la oferta de horarios dentro del chat son del asistente de IA de LANA (contrato `lana-scheduling`: sugiere y deja solicitudes en «Por aprobar»); SMYL no manda esos mensajes por su cuenta. Falta confirmar con LANA ese comportamiento.
 - **No probado en navegador** (solo pruebas estáticas).
 - **Siguiente:** retroalimentación (motivo de no reagendar).
+
+## 2026-11-26 — Claude Code — Avisos de cita: pregunta del motivo cuando el paciente no reagenda (paso 4)
+- **Qué hace:** 3 días después de que salió el seguimiento de «No vino», si el paciente no reagendó (ni tiene otra cita próxima ni tocó «Quiero reagendar»), se le manda UNA plantilla con tres botones: «El horario no me va» · «Por el costo» · «Otro motivo». Se guarda solo la opción (`reason_schedule|price|other`) en la cita y se ve en su detalle. Apagado por omisión; solo para seguimientos enviados desde que se enciende.
+- **Migración:** `20261128130000_smyl_feedback_followup.sql` (copia `docs/sql-motivo-no-reagenda-pegar-en-supabase.sql`; requiere la anterior de «No vino»). Probada en Postgres 16 real (3 migraciones en cadena, dos veces; solo reciben la pregunta quienes no reagendaron ni tienen otra cita; no duplica; motivo inválido se rechaza; la cita no cambia).
+- **Funciones a volver a pegar:** `appointment-reminders`, `appointment-negotiations`, `whatsapp-templates`. Plantilla nueva a pedir a Meta: `cita_motivo_no_reagenda_v1`.
+- **UI:** sección «¿Por qué no reagendó?» en Mensajes automáticos (`smyl-reminders.js` v7), etiqueta del motivo en la Agenda (`smyl-schedule.js` v64), catálogo v9.
+- **Pendiente:** un reporte con el conteo de motivos (hoy solo se ve por cita). Decisión abierta con el dueño: nivel «agendar» de la IA (hoy máximo «Solicitud»).
+- **Nota:** en `main` hay pruebas ya rotas por otras sesiones (p. ej. `smyl-clinic-admin.js?v=27` vs v30 en `clinic-readiness-professional-stage8` y `equipo-ficha`).
