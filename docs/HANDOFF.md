@@ -12871,3 +12871,7 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - `smyl-template-suggest.js` (v3) y `.css` (v2): la sugerencia ahora es una franja de una línea («Faltan N plantillas de WhatsApp …» + «Solicitar (N)» + ✕). Solo aparece si faltan esenciales o hay problemas; la ✕ la oculta 14 días por clínica (localStorage; con problemas siempre se ve, en tono ámbar). El avance, la lista y «Ir a Plantillas» quedan en un detalle plegado.
 - En Finanzas se coloca debajo de las pestañas (antes iba encima de las cifras). Quien no es propietario ve «pídeselo» en vez del botón.
 - Pruebas y humo actualizados; `app.html`/`sw.js`/`mobile/www/` sincronizados. Sin SQL ni funciones.
+
+## 2026-11-26 · Claude · Finanzas: plantillas dentro del menú «Más»
+- `smyl-template-suggest.js` (v4): en Finanzas ya no hay franja; aparece la opción «Plantillas de WhatsApp · Faltan N…» dentro del menú «Más» de la cabecera (solo si faltan esenciales y el usuario es propietario). Al tocarla pide la confirmación única de `requestMany`. Agenda, Cotizaciones y Pacientes conservan la franja.
+- Pruebas y humo actualizados; `app.html`/`sw.js`/`mobile/www/` sincronizados. Sin SQL ni funciones.

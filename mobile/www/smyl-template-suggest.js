@@ -1,6 +1,6 @@
 /* SMYL · Plantillas sugeridas por sección.
    Cada pantalla que manda WhatsApp (Agenda, Finanzas, Cotizaciones, Pacientes) muestra qué plantillas necesita, cuáles ya están aprobadas por Meta,
-   cuáles están en revisión y cuáles faltan, con UN botón para solicitar las que faltan (franja de una línea que se puede cerrar). Así el tenant no tiene que adivinar entre las 60 del catálogo.
+   cuáles están en revisión y cuáles faltan, con UN botón para solicitar las que faltan (franja de una línea que se puede cerrar; en Finanzas, una opción del menú «Más»). Así el tenant no tiene que adivinar entre las 60 del catálogo.
    · Parte pura (mapa sección → plantillas, plan de avance): se prueba en Node.
    · Parte de pantalla: tarjeta compacta en cada sección + aviso «Solicitar ahora» cuando falta una plantilla al mandar un mensaje.
    Marketing queda fuera de las sugerencias (requiere consentimiento del paciente). Solo el propietario puede solicitar; los demás ven qué falta. */
@@ -140,7 +140,8 @@
         var grid = page.querySelector('[data-schedule-panel="settings"] .schedule-settings-grid');
         return grid ? { parent: grid, after: page.querySelector('#schedule-reminders-card') } : null;
       } },
-      { route: 'caja', page: 'p-caja', section: 'finanzas', find: function (page) { return { parent: page, after: page.querySelector('.finance-tabcards') || page.querySelector('#finance-feedback') }; } },
+      // Finanzas no lleva franja: la sugerencia vive como una opción dentro del menú «Más» de la cabecera.
+      { route: 'caja', page: 'p-caja', section: 'finanzas', menu: true },
       { route: 'propuestas', page: 'p-propuestas', section: 'cotizaciones', find: function (page) { return { parent: page, after: null }; } },
       { route: 'pacientes', page: 'p-pacientes', section: 'pacientes', find: function (page) { return { parent: page, after: null }; } }
     ];
@@ -237,7 +238,24 @@
       return card;
     }
 
+    // Opción dentro del menú «Más» de Finanzas: «Plantillas de WhatsApp · Faltan N». Solo la ve quien puede solicitarlas y solo si falta algo.
+    function placeMenu(mount) {
+      var page = doc.getElementById(mount.page); if (!page) return;
+      var box = page.querySelector('.finance-operations-menu > div');
+      var current = box && box.querySelector('[data-tpl-menu="' + mount.section + '"]');
+      var p = data.summary && data.summary.loaded ? plan(mount.section, statusMap()) : null;
+      var missing = p ? p.essential.missing : [];
+      if (!box || !missing.length || !(data.summary && data.summary.canRequest) || !win.SmylTemplates || !win.SmylTemplates.requestMany) { if (current) current.remove(); return; }
+      var sig = missing.join(',');
+      if (current && current.dataset.sig === sig) return;
+      var item = el('button'); item.type = 'button'; item.dataset.tplMenu = mount.section; item.dataset.sig = sig;
+      item.append(el('strong', '', 'Plantillas de WhatsApp'), el('small', '', 'Faltan ' + missing.length + ' para avisar de pagos y facturas. Toca para solicitarlas.'));
+      item.onclick = function () { var menu = item.closest('details'); if (menu) menu.open = false; Promise.resolve(win.SmylTemplates.requestMany(missing)).then(load, load); };
+      if (current) current.replaceWith(item); else box.append(item);
+    }
+
     function place(mount) {
+      if (mount.menu) return placeMenu(mount);
       var page = doc.getElementById(mount.page); if (!page) return;
       var current = page.querySelector('[data-tpl-suggest="' + mount.section + '"]');
       if (!data.summary || !data.summary.loaded) { if (current) current.remove(); return; }
