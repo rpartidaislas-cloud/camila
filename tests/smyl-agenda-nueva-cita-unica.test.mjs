@@ -15,8 +15,8 @@ test("«Nueva cita» del encabezado se oculta solo en escritorio y no se elimina
 
 test("versiones del CSS sincronizadas en web y móvil", () => {
   for (const base of ["", "mobile/www/"]) {
-    assert.match(read(`${base}app.html`), /smyl-schedule\.css\?v=38/);
-    assert.match(read(`${base}sw.js`), /smyl-schedule\.css\?v=38/);
+    assert.match(read(`${base}app.html`), /smyl-schedule\.css\?v=39/);
+    assert.match(read(`${base}sw.js`), /smyl-schedule\.css\?v=39/);
     assert.match(read(`${base}sw.js`), /agenda-sin-nueva-cita-duplicada-v1/);
   }
   assert.equal(read("mobile/www/smyl-schedule.css"), read("smyl-schedule.css"));

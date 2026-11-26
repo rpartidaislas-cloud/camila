@@ -1017,23 +1017,27 @@
     return row;
   }
 
-  function goToAgendaSettings() {
-    closePerson();
-    if (typeof window.ir !== 'function') return;
-    window.ir('agenda');
-    var tries = 0;
-    (function ready() {
-      var tab = document.querySelector('.pantalla.activa [data-schedule-tab="settings"]');
-      if (tab) return tab.click();
-      if (tries++ < 60) setTimeout(ready, 50);
-    })();
+  // «Lun–Vie 9:00–18:00 · Sáb 9:00–14:00»: junta los días seguidos que tienen exactamente el mismo horario.
+  function compactWeek(rows) {
+    var perDay = {};
+    rows.slice().sort(function (a, b) { return minutesOf(a.starts_at) - minutesOf(b.starts_at); }).forEach(function (row) {
+      (perDay[row.weekday] = perDay[row.weekday] || []).push(timeLabel(row.starts_at) + '–' + timeLabel(row.ends_at));
+    });
+    var out = [], i = 0;
+    while (i < WEEK_ORDER.length) {
+      var key = (perDay[WEEK_ORDER[i]] || []).join(', ');
+      if (!key) { i += 1; continue; }
+      var j = i;
+      while (j + 1 < WEEK_ORDER.length && (perDay[WEEK_ORDER[j + 1]] || []).join(', ') === key) j += 1;
+      out.push((j > i ? WEEK_SHORT[WEEK_ORDER[i]] + '–' + WEEK_SHORT[WEEK_ORDER[j]] : WEEK_SHORT[WEEK_ORDER[i]]) + ' ' + key);
+      i = j + 1;
+    }
+    return out.join(' · ');
   }
 
   function hoursSummary(professional, branch) {
-    var blocks = state.proHours.filter(function (row) { return row.professional_id === professional.id && row.branch_id === branch.id; })
-      .sort(function (a, b) { return (a.weekday - b.weekday) || minutesOf(a.starts_at) - minutesOf(b.starts_at); });
-    if (!blocks.length) return 'Sin horario configurado';
-    return blocks.map(function (row) { return WEEK_SHORT[row.weekday] + ' ' + timeLabel(row.starts_at) + '–' + timeLabel(row.ends_at); }).join(' · ');
+    var blocks = state.proHours.filter(function (row) { return row.professional_id === professional.id && row.branch_id === branch.id; });
+    return blocks.length ? compactWeek(blocks) : 'Sin horario configurado';
   }
 
   function conflictText(item) {
@@ -1053,14 +1057,13 @@
     state.proHours.filter(function (row) { return row.professional_id === professional.id && row.branch_id === branch.id; })
       .sort(function (a, b) { return minutesOf(a.starts_at) - minutesOf(b.starts_at); })
       .forEach(function (row) { days[row.weekday].push({ id: row.id, start: timeLabel(row.starts_at), end: timeLabel(row.ends_at) }); });
-    state.hoursDraft = { professionalId: professional.id, branchId: branch.id, days: days };
+    state.hoursDraft = { professionalId: professional.id, branchId: branch.id, days: days, detail: false };
   }
 
   function branchHoursText(branch) {
-    var rows = state.hours.filter(function (row) { return row.active && row.branch_id === branch.id; })
-      .sort(function (a, b) { return ((a.weekday + 6) % 7) - ((b.weekday + 6) % 7) || minutesOf(a.starts_at) - minutesOf(b.starts_at); });
+    var rows = state.hours.filter(function (row) { return row.active && row.branch_id === branch.id; });
     if (!rows.length) return 'La sucursal aún no tiene horario: configúralo en Sucursales antes de asignar horas.';
-    return 'Horario de la sucursal: ' + rows.map(function (row) { return WEEK_SHORT[row.weekday] + ' ' + timeLabel(row.starts_at) + '–' + timeLabel(row.ends_at); }).join(' · ');
+    return 'Horario de la sucursal: ' + compactWeek(rows);
   }
 
   function draftProblem(draft) {
@@ -1075,7 +1078,130 @@
     return '';
   }
 
+  function hm(total) { return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0'); }
+
+  // Horario de la sucursal en un día (bloques) y el rango típico que se propone al activar un día.
+  function branchDayBlocks(branch, day) {
+    return state.hours.filter(function (row) { return row.active && row.branch_id === branch.id && row.weekday === day; })
+      .sort(function (a, b) { return minutesOf(a.starts_at) - minutesOf(b.starts_at); })
+      .map(function (row) { return { start: timeLabel(row.starts_at), end: timeLabel(row.ends_at) }; });
+  }
+  function branchDefaultRange(branch) {
+    for (var i = 0; i < WEEK_ORDER.length; i += 1) {
+      var blocks = branchDayBlocks(branch, WEEK_ORDER[i]);
+      if (blocks.length) return { start: blocks[0].start, end: blocks[blocks.length - 1].end };
+    }
+    return { start: '09:00', end: '18:00' };
+  }
+
+  // Horario «uniforme»: los días que atiende tienen un solo bloque y es el mismo. Es lo que cubre el modo simple.
+  function uniformHours(draft) {
+    var active = WEEK_ORDER.filter(function (day) { return draft.days[day].length; });
+    if (!active.length) return { days: [], start: '', end: '' };
+    var first = draft.days[active[0]][0];
+    var same = active.every(function (day) { var b = draft.days[day]; return b.length === 1 && b[0].start === first.start && b[0].end === first.end; });
+    return same ? { days: active, start: first.start, end: first.end } : null;
+  }
+
+  function weeklyMinutes(draft) {
+    var total = 0;
+    WEEK_ORDER.forEach(function (day) { draft.days[day].forEach(function (block) { total += Math.max(0, minutesOf(block.end) - minutesOf(block.start)); }); });
+    return total;
+  }
+  function hoursText(minutes) {
+    var value = Math.round(minutes / 6) / 10;
+    return String(value).replace('.', ',') + ' h';
+  }
+
+  // Lo que la sucursal no permite (el servidor lo rechazaría): se dice antes y con palabras claras.
+  function branchProblem(draft, branch) {
+    var any = state.hours.some(function (row) { return row.active && row.branch_id === branch.id; });
+    if (!any) return 'La sucursal aún no tiene horario de atención. Configúralo en Sucursales y vuelve aquí.';
+    for (var i = 0; i < WEEK_ORDER.length; i += 1) {
+      var day = WEEK_ORDER[i], open = branchDayBlocks(branch, day);
+      for (var j = 0; j < draft.days[day].length; j += 1) {
+        var block = draft.days[day][j];
+        if (!open.length) return DAYS[day] + ': la sucursal no abre ese día.';
+        var fits = open.some(function (range) { return minutesOf(block.start) >= minutesOf(range.start) && minutesOf(block.end) <= minutesOf(range.end); });
+        if (!fits) return DAYS[day] + ': la sucursal atiende de ' + open.map(function (range) { return range.start + ' a ' + range.end; }).join(' y de ') + '.';
+      }
+    }
+    return '';
+  }
+
   function hoursEditor(professional, branch) {
+    var draft = state.hoursDraft;
+    var uniform = uniformHours(draft);
+    if (draft.detail !== true && uniform) return simpleHoursEditor(professional, branch, uniform);
+    return detailHoursEditor(professional, branch, Boolean(uniform));
+  }
+
+  // Modo simple: días en un toque + un solo horario para todos. Atajos para lo más común.
+  function simpleHoursEditor(professional, branch, uniform) {
+    var draft = state.hoursDraft;
+    var range = uniform.days.length ? { start: uniform.start, end: uniform.end } : branchDefaultRange(branch);
+    var box = el('div', 'clinic-admin-hours-editor clinic-admin-hours-simple');
+    box.append(el('p', 'clinic-admin-hint', branchHoursText(branch)));
+
+    function setDays(days) {
+      WEEK_ORDER.forEach(function (day) { draft.days[day] = days.indexOf(day) >= 0 ? [{ start: range.start, end: range.end }] : []; });
+      renderPerson();
+    }
+    var shortcuts = el('div', 'clinic-admin-hours-shortcuts');
+    shortcuts.append(el('span', 'clinic-admin-hours-label', 'Atajos'));
+    [['Igual que la sucursal', function () {
+      WEEK_ORDER.forEach(function (day) { draft.days[day] = branchDayBlocks(branch, day); });
+      renderPerson();
+    }], ['Lunes a viernes', function () { setDays([1, 2, 3, 4, 5]); }], ['Lunes a sábado', function () { setDays([1, 2, 3, 4, 5, 6]); }]].forEach(function (item) {
+      var button = el('button', 'clinic-admin-chip-action', item[0]); button.type = 'button';
+      button.addEventListener('click', item[1]); shortcuts.append(button);
+    });
+    box.append(shortcuts);
+
+    var daysBox = el('div', 'clinic-admin-hours-daybox');
+    daysBox.append(el('span', 'clinic-admin-hours-label', '¿Qué días atiende?'));
+    var chips = el('div', 'clinic-admin-day-chips'); chips.setAttribute('role', 'group'); chips.setAttribute('aria-label', 'Días que atiende');
+    WEEK_ORDER.forEach(function (day) {
+      var on = draft.days[day].length > 0;
+      var chip = el('button', 'clinic-admin-day-chip' + (on ? ' is-on' : ''), WEEK_SHORT[day]); chip.type = 'button';
+      chip.setAttribute('aria-pressed', on ? 'true' : 'false'); chip.setAttribute('aria-label', DAYS[day]);
+      chip.addEventListener('click', function () { draft.days[day] = on ? [] : [{ start: range.start, end: range.end }]; renderPerson(); });
+      chips.append(chip);
+    });
+    daysBox.append(chips); box.append(daysBox);
+
+    var timeBox = el('div', 'clinic-admin-hours-timebox');
+    timeBox.append(el('span', 'clinic-admin-hours-label', '¿En qué horario?'));
+    var line = el('div', 'clinic-admin-hours-block');
+    var from = el('input'); from.type = 'time'; from.value = range.start; from.setAttribute('aria-label', 'Desde');
+    var to = el('input'); to.type = 'time'; to.value = range.end; to.setAttribute('aria-label', 'Hasta');
+    function applyRange() {
+      if (!from.value || !to.value) return;
+      WEEK_ORDER.forEach(function (day) { if (draft.days[day].length) draft.days[day] = [{ start: from.value, end: to.value }]; });
+      range = { start: from.value, end: to.value };
+      renderPerson();
+    }
+    from.addEventListener('change', applyRange); to.addEventListener('change', applyRange);
+    line.append(el('span', '', 'De'), from, el('span', '', 'a'), to);
+    timeBox.append(line); box.append(timeBox);
+
+    var count = uniform.days.length;
+    box.append(el('p', 'clinic-admin-hours-total', count ? 'Atiende ' + count + (count === 1 ? ' día' : ' días') + ' · ' + hoursText(weeklyMinutes(draft)) + ' por semana' : 'Aún no atiende ningún día. Toca los días de arriba.'));
+    var issue = count ? (draftProblem(draft) || branchProblem(draft, branch)) : '';
+    if (issue) { var warn = el('p', 'clinic-admin-hours-warn', issue); warn.setAttribute('role', 'alert'); box.append(warn); }
+
+    var actions = el('div', 'clinic-admin-sheet-actions');
+    var save = el('button', 'btn btn-primary', 'Guardar horario'); save.type = 'button';
+    var cancel = el('button', 'btn btn-secondary', 'Cancelar'); cancel.type = 'button';
+    cancel.addEventListener('click', function () { state.hoursDraft = null; renderPerson(); });
+    save.addEventListener('click', function () { saveHours(professional, branch); });
+    var more = el('button', 'clinic-admin-link', 'Ajustar día por día'); more.type = 'button';
+    more.addEventListener('click', function () { draft.detail = true; renderPerson(); });
+    actions.append(save, cancel, more); box.append(actions);
+    return box;
+  }
+
+  function detailHoursEditor(professional, branch, canSimplify) {
     var draft = state.hoursDraft;
     var box = el('div', 'clinic-admin-hours-editor');
     box.append(el('p', 'clinic-admin-hint', branchHoursText(branch)));
@@ -1086,7 +1212,8 @@
       var label = el('label', 'clinic-admin-hours-toggle');
       var check = el('input'); check.type = 'checkbox'; check.checked = blocks.length > 0; check.setAttribute('aria-label', 'Atiende el ' + DAYS[day].toLowerCase());
       check.addEventListener('change', function () {
-        draft.days[day] = check.checked ? [{ start: '09:00', end: '14:00' }] : [];
+        var open = branchDayBlocks(branch, day);
+        draft.days[day] = check.checked ? (open.length ? open : [{ start: '09:00', end: '14:00' }]) : [];
         renderPerson();
       });
       label.append(check, el('strong', '', WEEK_SHORT[day]));
@@ -1127,7 +1254,14 @@
       [2, 3, 4, 5].forEach(function (day) { draft.days[day] = monday.map(function (block) { return { start: block.start, end: block.end }; }); });
       renderPerson();
     });
-    tools.append(copy); box.append(tools);
+    tools.append(copy);
+    if (canSimplify) {
+      var back = el('button', 'clinic-admin-link', 'Volver a lo simple'); back.type = 'button';
+      back.addEventListener('click', function () { draft.detail = false; renderPerson(); });
+      tools.append(back);
+    }
+    box.append(tools);
+    box.append(el('p', 'clinic-admin-hours-total', 'Total: ' + hoursText(weeklyMinutes(draft)) + ' por semana'));
     var actions = el('div', 'clinic-admin-sheet-actions');
     var save = el('button', 'btn btn-primary', 'Guardar horario'); save.type = 'button';
     var cancel = el('button', 'btn btn-secondary', 'Cancelar'); cancel.type = 'button';
@@ -1139,7 +1273,7 @@
 
   async function saveHours(professional, branch) {
     var draft = state.hoursDraft; if (!draft) return;
-    var problem = draftProblem(draft);
+    var problem = draftProblem(draft) || branchProblem(draft, branch);
     if (problem) { feedback(problem, 'error'); return; }
     var current = state.proHours.filter(function (row) { return row.professional_id === professional.id && row.branch_id === branch.id; });
     var wanted = [];
@@ -1346,8 +1480,6 @@
         add.append(select, addButton); where.append(add);
       }
       conflictsFor(professional.id).forEach(function (item) { var warn = el('p', 'clinic-admin-callout', conflictText(item)); warn.setAttribute('role', 'status'); where.append(warn); });
-      var agenda = el('button', 'clinic-admin-link', 'Editar horarios en la Agenda →'); agenda.type = 'button';
-      agenda.addEventListener('click', goToAgendaSettings); where.append(agenda);
       body.append(where);
       body.append(servicesSection(professional));
     }
@@ -1976,7 +2108,20 @@
       if (route === 'clinica') load(false);
       return result;
     };
-    window.SmylClinicAdmin = Object.freeze({ reload: function () { return load(true); } });
+    // Desde la Agenda: abre la ficha del profesional directamente en la edición de su horario en esa sede.
+    async function editHours(professionalId, branchId) {
+      // La ficha vive dentro de «Mi clínica»: hay que estar en esa pantalla para que se vea.
+      if (typeof window.ir === 'function') window.ir('clinica');
+      for (var tries = 0; tries < 60 && !(sheet() && sheet().closest('.pantalla.activa')); tries += 1) await new Promise(function (resolve) { setTimeout(resolve, 50); });
+      if (!(state.people || []).length) await load(true);
+      var person = (state.people || []).find(function (item) { return item.professional && item.professional.id === professionalId; });
+      var branch = branchById(branchId);
+      if (!person || !branch) return false;
+      openPerson(person.key);
+      startHoursDraft(person.professional, branch); renderPerson();
+      return true;
+    }
+    window.SmylClinicAdmin = Object.freeze({ reload: function () { return load(true); }, editHours: editHours });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

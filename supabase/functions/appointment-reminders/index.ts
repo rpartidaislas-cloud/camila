@@ -198,15 +198,15 @@ async function processCancellations(tenantId: string): Promise<number> {
 // Al desactivar, nada que esté en cola debe salir: se cancela aquí y en LANA. `kind` limita a confirmaciones o a recordatorios.
 const REMINDER_TYPES = ["24h", "2h", "48h", "custom"];
 const NO_SHOW_WINDOW_MS = 24 * 60 * 60 * 1000; // el seguimiento de inasistencia se descarta si no sale en un día
-async function cancelQueued(tenantId: string, kind: "reminder" | "confirmation" | "no_show" = "reminder"): Promise<number> {
-  const types = kind === "confirmation" ? ["confirmation"] : kind === "no_show" ? ["no_show"] : REMINDER_TYPES;
+async function cancelQueued(tenantId: string, kind: "reminder" | "confirmation" | "no_show" | "feedback" = "reminder"): Promise<number> {
+  const types = kind === "confirmation" ? ["confirmation"] : kind === "no_show" ? ["no_show"] : kind === "feedback" ? ["feedback"] : REMINDER_TYPES;
   const { data: queued } = await admin.from("smyl_appointment_reminders")
     .select("id,provider_reference")
     .eq("tenant_id", tenantId).in("reminder_type", types).in("status", ["pending", "processing"]).limit(500);
   for (const row of queued || []) {
     await admin.from("smyl_appointment_reminders").update({
       status: "cancelled", provider_cancel_required: Boolean(row.provider_reference),
-      last_error: kind === "confirmation" ? "Confirmaciones desactivadas por la clínica." : kind === "no_show" ? "Seguimiento de inasistencias desactivado por la clínica." : "Recordatorios desactivados por la clínica.", next_attempt_at: null,
+      last_error: kind === "confirmation" ? "Confirmaciones desactivadas por la clínica." : kind === "no_show" ? "Seguimiento de inasistencias desactivado por la clínica." : kind === "feedback" ? "Pregunta del motivo desactivada por la clínica." : "Recordatorios desactivados por la clínica.", next_attempt_at: null,
     }).eq("id", row.id).in("status", ["pending", "processing"]);
   }
   return processCancellations(tenantId);
@@ -232,11 +232,13 @@ async function dispatchTenant(tenantId: string): Promise<Summary> {
   const remindersOn = Boolean(settings?.enabled && settings.template_id);
   const confirmOn = Boolean(settings?.confirmation_enabled && settings.confirmation_template_id);
   const noShowOn = Boolean(settings?.no_show_enabled && settings.no_show_template_id);
-  if (!settings || (!remindersOn && !confirmOn && !noShowOn)) return { ...summary, error: "disabled" };
+  const feedbackOn = Boolean(settings?.feedback_enabled && settings.feedback_template_id);
+  if (!settings || (!remindersOn && !confirmOn && !noShowOn && !feedbackOn)) return { ...summary, error: "disabled" };
   await admin.from("smyl_reminder_settings").update({ last_dispatch_at: new Date().toISOString() }).eq("tenant_id", tenantId);
   const reminderVariables = normalizeVariables(settings.variables) || [];
   const confirmVariables = normalizeVariables(settings.confirmation_variables) || [];
   const noShowVariables = normalizeVariables(settings.no_show_variables) || [];
+  const feedbackVariables = normalizeVariables(settings.feedback_variables) || [];
   const sendWindow = normalizeWindow(settings.send_window_start, settings.send_window_end);
   const clinic = await clinicName(tenantId);
 
@@ -250,7 +252,8 @@ async function dispatchTenant(tenantId: string): Promise<Summary> {
   for (const row of (claimed || []) as Claimed[]) {
     const startsAt = new Date(row.starts_at).getTime();
     const dueAt = new Date(row.scheduled_for).getTime();
-    const isNoShow = row.reminder_type === "no_show";
+    const isFeedback = row.reminder_type === "feedback";
+    const isNoShow = row.reminder_type === "no_show" || isFeedback; // los dos son seguimientos de una cita pasada: no hay «cita próxima»
     if (!isNoShow && startsAt - now < MIN_NOTICE_MS) {
       await admin.from("smyl_appointment_reminders").update({
         status: "cancelled", last_error: "Se omitió: la cita está a menos de 2 horas.",
@@ -261,9 +264,9 @@ async function dispatchTenant(tenantId: string): Promise<Summary> {
     const isConfirmation = row.reminder_type === "confirmation";
     // Un tipo apagado (o sin plantilla) no sale aunque la fila ya exista.
     const is48h = row.reminder_type === "48h";
-    if (isNoShow ? !noShowOn : isConfirmation ? !confirmOn : (!remindersOn || (is48h && settings.reminder_48h_enabled !== true))) {
+    if (isFeedback ? !feedbackOn : isNoShow ? !noShowOn : isConfirmation ? !confirmOn : (!remindersOn || (is48h && settings.reminder_48h_enabled !== true))) {
       await admin.from("smyl_appointment_reminders").update({
-        status: "cancelled", last_error: isNoShow ? "Se omitió: el seguimiento de inasistencias está desactivado." : isConfirmation ? "Se omitió: las confirmaciones están desactivadas." : is48h ? "Se omitió: el aviso de 48 horas está desactivado." : "Se omitió: los recordatorios están desactivados.",
+        status: "cancelled", last_error: isFeedback ? "Se omitió: la pregunta del motivo está desactivada." : isNoShow ? "Se omitió: el seguimiento de inasistencias está desactivado." : isConfirmation ? "Se omitió: las confirmaciones están desactivadas." : is48h ? "Se omitió: el aviso de 48 horas está desactivado." : "Se omitió: los recordatorios están desactivados.",
       }).eq("id", row.reminder_id).eq("status", "processing");
       summary.skipped += 1;
       continue;
@@ -293,8 +296,8 @@ async function dispatchTenant(tenantId: string): Promise<Summary> {
       dueMs: isConfirmation ? now : dueAt, nowMs: now, startsMs: isNoShow ? now + NO_SHOW_WINDOW_MS + MIN_NOTICE_MS : startsAt, zone: validTimeZone(row.branch_timezone),
       window: sendWindow, mode: isConfirmation || isNoShow ? "later" : "nearest", leadMs: SEND_LEAD_MS, minNoticeMs: MIN_NOTICE_MS,
     });
-    const templateId = isNoShow ? settings.no_show_template_id : isConfirmation ? settings.confirmation_template_id : settings.template_id;
-    const variables = isNoShow ? noShowVariables : isConfirmation ? confirmVariables : reminderVariables;
+    const templateId = isFeedback ? settings.feedback_template_id : isNoShow ? settings.no_show_template_id : isConfirmation ? settings.confirmation_template_id : settings.template_id;
+    const variables = isFeedback ? feedbackVariables : isNoShow ? noShowVariables : isConfirmation ? confirmVariables : reminderVariables;
     const payload = {
       type: "template",
       send_at: new Date(timing.sendAtMs).toISOString(),
@@ -404,9 +407,9 @@ async function overview(tenantId: string): Promise<Record<string, number>> {
     .select("status,provider_reference,last_error,reminder_type")
     .eq("tenant_id", tenantId).gte("scheduled_for", since).limit(1000);
   // Los cuatro primeros cuentan recordatorios (igual que antes); confirmation_* cuenta las confirmaciones.
-  const counts: Record<string, number> = { scheduled: 0, waiting: 0, sent: 0, failed: 0, confirmation_scheduled: 0, confirmation_waiting: 0, confirmation_sent: 0, confirmation_failed: 0, no_show_scheduled: 0, no_show_waiting: 0, no_show_sent: 0, no_show_failed: 0 };
+  const counts: Record<string, number> = { scheduled: 0, waiting: 0, sent: 0, failed: 0, confirmation_scheduled: 0, confirmation_waiting: 0, confirmation_sent: 0, confirmation_failed: 0, no_show_scheduled: 0, no_show_waiting: 0, no_show_sent: 0, no_show_failed: 0, feedback_scheduled: 0, feedback_waiting: 0, feedback_sent: 0, feedback_failed: 0 };
   for (const row of data || []) {
-    const prefix = row.reminder_type === "confirmation" ? "confirmation_" : row.reminder_type === "no_show" ? "no_show_" : "";
+    const prefix = row.reminder_type === "confirmation" ? "confirmation_" : row.reminder_type === "no_show" ? "no_show_" : row.reminder_type === "feedback" ? "feedback_" : "";
     if (row.status === "processing" && row.provider_reference) counts[prefix + "scheduled"] += 1;
     else if (row.status === "pending" || row.status === "processing") counts[prefix + "waiting"] += 1;
     else if (row.status === "sent") counts[prefix + "sent"] += 1;
@@ -425,12 +428,13 @@ Deno.serve(async (req) => {
   const cronSecret = req.headers.get("x-smyl-cron-secret") || "";
   if (cronSecret) {
     if (!sameSecret(cronSecret, CRON_SECRET)) return json(401, { error: "Secreto de cron no válido." });
-    const [byReminders, byConfirmation, byNoShow] = await Promise.all([
+    const [byReminders, byConfirmation, byNoShow, byFeedback] = await Promise.all([
       admin.from("smyl_reminder_settings").select("tenant_id").eq("enabled", true).limit(200),
       admin.from("smyl_reminder_settings").select("tenant_id").eq("confirmation_enabled", true).limit(200),
       admin.from("smyl_reminder_settings").select("tenant_id").eq("no_show_enabled", true).limit(200),
+      admin.from("smyl_reminder_settings").select("tenant_id").eq("feedback_enabled", true).limit(200),
     ]);
-    const enabled = [...new Map([...(byReminders.data || []), ...(byConfirmation.data || []), ...(byNoShow.data || [])].map((row) => [row.tenant_id, row])).values()];
+    const enabled = [...new Map([...(byReminders.data || []), ...(byConfirmation.data || []), ...(byNoShow.data || []), ...(byFeedback.data || [])].map((row) => [row.tenant_id, row])).values()];
     const results: Record<string, Summary> = {};
     for (const row of enabled) results[row.tenant_id] = await dispatchTenant(row.tenant_id).catch(() => ({ scheduled: 0, waiting: 0, failed: 0, skipped: 0, cancelled_in_lana: 0, synced: 0, error: "Error inesperado." }));
     return json(200, { tenants: Object.keys(results).length, results });
@@ -448,7 +452,7 @@ Deno.serve(async (req) => {
 
   if (action === "settings") {
     const { data: settings } = await admin.from("smyl_reminder_settings")
-      .select("enabled,reminder_48h_enabled,template_id,template_name,template_language,variables,last_dispatch_at,updated_at,confirmation_enabled,confirmation_template_id,confirmation_template_name,confirmation_template_language,confirmation_variables,confirmation_since,no_show_enabled,no_show_template_id,no_show_template_name,no_show_template_language,no_show_variables,no_show_since,send_window_start,send_window_end,require_consent,whatsapp_mode,whatsapp_phone")
+      .select("enabled,reminder_48h_enabled,template_id,template_name,template_language,variables,last_dispatch_at,updated_at,confirmation_enabled,confirmation_template_id,confirmation_template_name,confirmation_template_language,confirmation_variables,confirmation_since,no_show_enabled,no_show_template_id,no_show_template_name,no_show_template_language,no_show_variables,no_show_since,feedback_enabled,feedback_template_id,feedback_template_name,feedback_template_language,feedback_variables,feedback_since,send_window_start,send_window_end,require_consent,whatsapp_mode,whatsapp_phone")
       .eq("tenant_id", tenantId).maybeSingle();
     const catalog = canConfigure ? await templates(tenantId, userHeaders(auth.user!, tenantId)) : { templates: [] };
     return json(200, {
@@ -456,6 +460,7 @@ Deno.serve(async (req) => {
         enabled: false, reminder_48h_enabled: false, template_id: null, template_name: "", template_language: "", variables: [], last_dispatch_at: null,
         confirmation_enabled: false, confirmation_template_id: null, confirmation_template_name: "", confirmation_template_language: "", confirmation_variables: [], confirmation_since: null,
         no_show_enabled: false, no_show_template_id: null, no_show_template_name: "", no_show_template_language: "", no_show_variables: [], no_show_since: null,
+        feedback_enabled: false, feedback_template_id: null, feedback_template_name: "", feedback_template_language: "", feedback_variables: [], feedback_since: null,
         send_window_start: "09:00:00", send_window_end: "20:00:00", require_consent: false, whatsapp_mode: "single", whatsapp_phone: "",
       },
       can_configure: canConfigure, sources: SOURCES, overview: await overview(tenantId), ...catalog,
@@ -480,12 +485,15 @@ Deno.serve(async (req) => {
       return json(200, { ok: true });
     }
 
-    if (kind !== "reminder" && kind !== "confirmation" && kind !== "no_show") return json(400, { error: "Tipo de mensaje no reconocido." });
+    if (kind !== "reminder" && kind !== "confirmation" && kind !== "no_show" && kind !== "feedback") return json(400, { error: "Tipo de mensaje no reconocido." });
     const confirmation = kind === "confirmation";
     const noShow = kind === "no_show";
+    const feedback = kind === "feedback";
     const col = confirmation
       ? { enabled: "confirmation_enabled", id: "confirmation_template_id", name: "confirmation_template_name", language: "confirmation_template_language", variables: "confirmation_variables" }
-      : noShow
+      : feedback
+        ? { enabled: "feedback_enabled", id: "feedback_template_id", name: "feedback_template_name", language: "feedback_template_language", variables: "feedback_variables" }
+        : noShow
         ? { enabled: "no_show_enabled", id: "no_show_template_id", name: "no_show_template_name", language: "no_show_template_language", variables: "no_show_variables" }
         : { enabled: "enabled", id: "template_id", name: "template_name", language: "template_language", variables: "variables" };
     const enabled = body.enabled === true;
@@ -493,12 +501,12 @@ Deno.serve(async (req) => {
     if (!enabled) {
       const { error } = await admin.from("smyl_reminder_settings").upsert({ tenant_id: tenantId, [col.enabled]: false, updated_by: auth.user!.id }, { onConflict: "tenant_id" });
       if (error) return json(500, { error: "No se pudo guardar la configuración." });
-      return json(200, { ok: true, cancelled_in_lana: await cancelQueued(tenantId, confirmation ? "confirmation" : noShow ? "no_show" : "reminder") });
+      return json(200, { ok: true, cancelled_in_lana: await cancelQueued(tenantId, confirmation ? "confirmation" : noShow ? "no_show" : feedback ? "feedback" : "reminder") });
     }
     const templateId = body.template_id == null || body.template_id === "" ? null : uuid(body.template_id);
     const variables = normalizeVariables(body.variables);
     if (variables === null) return json(400, { error: "Las variables de la plantilla no son válidas." });
-    if (enabled && !templateId) return json(400, { error: confirmation ? "Elige una plantilla aprobada para activar las confirmaciones." : noShow ? "Elige una plantilla aprobada para activar el seguimiento de inasistencias." : "Elige una plantilla aprobada para activar los recordatorios." });
+    if (enabled && !templateId) return json(400, { error: confirmation ? "Elige una plantilla aprobada para activar las confirmaciones." : noShow ? "Elige una plantilla aprobada para activar el seguimiento de inasistencias." : feedback ? "Elige una plantilla aprobada para activar la pregunta del motivo." : "Elige una plantilla aprobada para activar los recordatorios." });
     let templateName = ""; let templateLanguage = "";
     if (templateId) {
       const catalog = await templates(tenantId, userHeaders(auth.user!, tenantId));
@@ -510,7 +518,7 @@ Deno.serve(async (req) => {
       templateName = String(template.name || ""); templateLanguage = String(template.language || "");
     }
     const row: Record<string, unknown> = {
-      tenant_id: tenantId, ...(confirmation || noShow ? {} : { reminder_48h_enabled: body.reminder_48h === true }), [col.enabled]: enabled, [col.id]: templateId, [col.name]: templateName,
+      tenant_id: tenantId, ...(confirmation || noShow || feedback ? {} : { reminder_48h_enabled: body.reminder_48h === true }), [col.enabled]: enabled, [col.id]: templateId, [col.name]: templateName,
       [col.language]: templateLanguage, [col.variables]: variables, updated_by: auth.user!.id,
     };
     if (confirmation) {
@@ -523,14 +531,19 @@ Deno.serve(async (req) => {
       const { data: previous } = await admin.from("smyl_reminder_settings").select("no_show_enabled,no_show_since").eq("tenant_id", tenantId).maybeSingle();
       row.no_show_since = previous?.no_show_enabled && previous.no_show_since ? previous.no_show_since : new Date().toISOString();
     }
+    if (feedback) {
+      // Solo cubre seguimientos de «No vino» enviados desde que se enciende: nunca en retroactivo.
+      const { data: previous } = await admin.from("smyl_reminder_settings").select("feedback_enabled,feedback_since").eq("tenant_id", tenantId).maybeSingle();
+      row.feedback_since = previous?.feedback_enabled && previous.feedback_since ? previous.feedback_since : new Date().toISOString();
+    }
     const { error } = await admin.from("smyl_reminder_settings").upsert(row, { onConflict: "tenant_id" });
     if (error) return json(500, { error: "No se pudo guardar la configuración." });
     return json(200, { ok: true, summary: await dispatchTenant(tenantId) });
   }
 
   if (action === "dispatch") {
-    const { data: settings } = await admin.from("smyl_reminder_settings").select("enabled,confirmation_enabled,no_show_enabled,last_dispatch_at").eq("tenant_id", tenantId).maybeSingle();
-    if (!settings?.enabled && !settings?.confirmation_enabled && !settings?.no_show_enabled) return json(200, { skipped: "disabled" });
+    const { data: settings } = await admin.from("smyl_reminder_settings").select("enabled,confirmation_enabled,no_show_enabled,feedback_enabled,last_dispatch_at").eq("tenant_id", tenantId).maybeSingle();
+    if (!settings?.enabled && !settings?.confirmation_enabled && !settings?.no_show_enabled && !settings?.feedback_enabled) return json(200, { skipped: "disabled" });
     const recent = settings.last_dispatch_at && Date.now() - new Date(settings.last_dispatch_at).getTime() < 60 * 1000;
     if (recent && !(body.force === true && can["schedule.manage"])) return json(200, { skipped: "recent" });
     return json(200, { summary: await dispatchTenant(tenantId) });
