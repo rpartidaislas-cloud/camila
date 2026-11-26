@@ -80,8 +80,8 @@ test('no muestra el nombre del motor de mensajería', () => {
 });
 
 test('web, móvil y PWA publican el módulo', () => {
-  assert.match(app, /<link rel="stylesheet" href="smyl-clinic-setup\.css\?v=6">\s*<script defer src="smyl-clinic-setup\.js\?v=9"><\/script>/);
+  assert.match(app, /<link rel="stylesheet" href="smyl-clinic-setup\.css\?v=6">\s*<script defer src="smyl-clinic-setup\.js\?v=10"><\/script>/);
   assert.ok(app.indexOf('smyl-clinic-setup.js') > app.indexOf('smyl-daily-home.js'), 'carga después del Inicio');
-  assert.ok(worker.includes("'/camila/smyl-clinic-setup.js?v=9'") && worker.includes("'/camila/smyl-clinic-setup.css?v=6'"));
+  assert.ok(worker.includes("'/camila/smyl-clinic-setup.js?v=10'") && worker.includes("'/camila/smyl-clinic-setup.css?v=6'"));
   for (const file of ['smyl-clinic-setup.js', 'smyl-clinic-setup.css', 'smyl-settings-hub.js', 'app.html', 'sw.js']) assert.equal(read('../mobile/www/' + file), read('../' + file), file);
 });
