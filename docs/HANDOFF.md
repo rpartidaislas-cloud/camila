@@ -12745,3 +12745,9 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **UI:** sección «¿Por qué no reagendó?» en Mensajes automáticos (`smyl-reminders.js` v7), etiqueta del motivo en la Agenda (`smyl-schedule.js` v64), catálogo v9.
 - **Pendiente:** un reporte con el conteo de motivos (hoy solo se ve por cita). Decisión abierta con el dueño: nivel «agendar» de la IA (hoy máximo «Solicitud»).
 - **Nota:** en `main` hay pruebas ya rotas por otras sesiones (p. ej. `smyl-clinic-admin.js?v=27` vs v30 en `clinic-readiness-professional-stage8` y `equipo-ficha`).
+
+## 2026-11-26 — Claude Code — «Mensajes automáticos de citas»: tarjeta compacta y al final de «Horarios y servicios»
+- **Por qué:** la tarjeta ocupaba media pantalla con 12 cuadros casi todos en cero y obligaba a hacer mucho scroll antes de ver Servicios y Disponibilidad.
+- **Qué cambió:** una fila por mensaje (Confirmación, Recordatorios 24/48 h, Seguimiento «No vino», Pregunta del motivo) con punto de estado, cuándo sale, plantilla, etiqueta Activo/Apagado y números solo cuando hay actividad (programados, en espera, enviados, con error; con ayuda al pasar el cursor). La tarjeta pasó al final de la pestaña (la entrada «Recordatorios de cita» de Configuración sigue embebiéndola). Sin cambios de datos ni funciones.
+- **Archivos:** `smyl-reminders.js` v8, `smyl-schedule.css` v39 (se quitaron `.schedule-reminders-status/stats`), `app.html`, `sw.js`, copias en `mobile/www/`. Revisada en 3 tamaños con un Supabase simulado (escritorio 368 px de alto vs ~430 antes; sin scroll horizontal).
+- **Ojo al publicar:** esta rama incluye también el paso 4 (pregunta del motivo). No fusionar hasta aplicar `docs/sql-motivo-no-reagenda-pegar-en-supabase.sql` y desplegar `appointment-reminders`, `appointment-negotiations` y `whatsapp-templates`; si no, guardar esa sección en la pantalla falla.

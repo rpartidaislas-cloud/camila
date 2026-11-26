@@ -43,7 +43,7 @@ test('web, móvil y PWA publican el arreglo', () => {
   for (const file of ['app.html', 'sw.js']) {
     assert.match(read(file), /smyl-schedule\.js\?v=64/);
     assert.match(read(file), /smyl-schedule-board\.js\?v=3/);
-    assert.match(read(file), /smyl-schedule\.css\?v=38/);
+    assert.match(read(file), /smyl-schedule\.css\?v=39/);
     assert.match(read(file), /smyl-inbox\.js\?v=99/);
   }
   assert.match(read('sw.js'), /-agenda-clic-horario-v1-chat-cita-agenda-v1-agenda-filtro-aviso-v1(-|')/);

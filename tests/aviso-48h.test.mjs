@@ -26,5 +26,5 @@ test('pantalla: interruptor «48 h antes» que viaja al guardar', () => {
   assert.match(ui, /name="reminder_48h"/);
   assert.match(ui, /reminder_48h: form\.elements\.reminder_48h\.checked/);
   assert.equal(read('mobile/www/smyl-reminders.js'), ui);
-  assert.match(read('app.html'), /smyl-reminders\.js\?v=7/);
+  assert.match(read('app.html'), /smyl-reminders\.js\?v=8/);
 });

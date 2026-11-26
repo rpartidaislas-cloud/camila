@@ -92,23 +92,30 @@
     }
     var data = state.data || {}; var settings = data.settings || {}; var overview = data.overview || {};
     var enabled = Boolean(settings.enabled), confirmOn = Boolean(settings.confirmation_enabled);
-    function line(label, on, name) {
-      return '<div class="schedule-reminders-status" data-enabled="' + on + '"><i aria-hidden="true"></i><strong>' + label + ': ' + (on ? 'activa' : 'desactivada') + '</strong>' +
-        (name ? '<span>Plantilla «' + esc(name) + '»</span>' : '<span>Sin plantilla elegida</span>') + '</div>';
+    // Una fila por mensaje, en el orden en que ocurren. Los números solo aparecen cuando hay actividad (los ceros no informan).
+    function flowRow(title, when, on, name, prefix) {
+      var chips = [['scheduled', 'programados', 'info', 'Ya están programados en WhatsApp para salir a su hora.'],
+        ['waiting', 'en espera', 'wait', 'Aún no salen: esperan su hora o a que el paciente tenga un chat de WhatsApp vinculado.'],
+        ['sent', 'enviados', 'ok', 'Enviados en los últimos 7 días.'], ['failed', 'con error', 'bad', 'No se pudieron enviar. Revisa el chat del paciente.']]
+        .map(function (c) { var n = Number(overview[prefix + c[0]] || 0); return n ? '<span class="schedule-flow-chip" data-tone="' + c[2] + '" title="' + esc(c[3]) + '"><b>' + n + '</b> ' + c[1] + '</span>' : ''; }).join('');
+      return '<li class="schedule-flow-row" data-on="' + on + '"><i aria-hidden="true"></i>' +
+        '<div class="schedule-flow-main"><strong>' + title + '</strong><small>' + when + (on && name ? ' · Plantilla «' + esc(name) + '»' : '') + '</small></div>' +
+        '<div class="schedule-flow-counts">' + chips + '</div>' +
+        '<span class="schedule-flow-state">' + (on ? 'Activo' : 'Apagado') + '</span></li>';
     }
-    function stats(prefix) {
-      return '<div class="schedule-reminders-stats">' + [['Programados', 'scheduled'], ['En espera', 'waiting'], ['Enviados', 'sent'], ['Con error', 'failed']].map(function (item) {
-        return '<span><b>' + Number(overview[prefix + item[1]] || 0) + '</b>' + item[0] + '</span>';
-      }).join('') + '</div>';
-    }
-    var whatsappInfo = settings.whatsapp_mode === 'per_branch' ? 'Cada sucursal usa su propio número de WhatsApp.' : 'Todas las sucursales usan el WhatsApp de la clínica' + (settings.whatsapp_phone ? ' (' + esc(settings.whatsapp_phone) + ')' : '') + '.';
-    body.innerHTML =
-      line('Confirmación al agendar', confirmOn, settings.confirmation_template_name) + stats('confirmation_') +
-      line('Seguimiento de inasistencias', Boolean(settings.no_show_enabled), settings.no_show_template_name) + stats('no_show_') +
-      line('Pregunta del motivo', Boolean(settings.feedback_enabled), settings.feedback_template_name) + stats('feedback_') +
-      line(settings.reminder_48h_enabled ? 'Recordatorios 48 h y 24 h antes' : 'Recordatorio 24 h antes', enabled, settings.template_name) + stats('') +
-      '<p class="schedule-reminders-muted">' + whatsappInfo + ' Últimos 7 días y próximas citas. Solo se envían a pacientes con una conversación de WhatsApp vinculada en Mensajes, entre las ' +
-      esc(String(settings.send_window_start || '09:00').slice(0, 5)) + ' y las ' + esc(String(settings.send_window_end || '20:00').slice(0, 5)) + ' (hora de la sucursal)' + (settings.require_consent ? ' y solo con consentimiento registrado' : '') + '.</p>';
+    var reminderOn = Boolean(enabled);
+    var rows = [
+      flowRow('Confirmación al agendar', 'Poco después de agendar o mover una cita', confirmOn, settings.confirmation_template_name, 'confirmation_'),
+      flowRow('Recordatorios', settings.reminder_48h_enabled ? '48 h y 24 h antes de la cita' : '24 h antes de la cita', reminderOn, settings.template_name, ''),
+      flowRow('Seguimiento si no vino', '2 h después de marcar «No vino»', Boolean(settings.no_show_enabled), settings.no_show_template_name, 'no_show_'),
+      flowRow('Pregunta del motivo', '3 días después, si no reagendó', Boolean(settings.feedback_enabled), settings.feedback_template_name, 'feedback_')
+    ];
+    var activeCount = [confirmOn, reminderOn, Boolean(settings.no_show_enabled), Boolean(settings.feedback_enabled)].filter(Boolean).length;
+    var whatsappInfo = settings.whatsapp_mode === 'per_branch' ? 'Cada sucursal usa su propio WhatsApp' : 'WhatsApp de la clínica' + (settings.whatsapp_phone ? ' (' + esc(settings.whatsapp_phone) + ')' : '');
+    body.innerHTML = '<ul class="schedule-flow">' + rows.join('') + '</ul>' +
+      '<p class="schedule-reminders-muted">' + activeCount + ' de 4 activos · ' + whatsappInfo + ' · Salen entre las ' +
+      esc(String(settings.send_window_start || '09:00').slice(0, 5)) + ' y las ' + esc(String(settings.send_window_end || '20:00').slice(0, 5)) +
+      ' (hora de la sucursal)' + (settings.require_consent ? ' · Solo con consentimiento registrado' : '') + ' · Números de los últimos 7 días.</p>';
     if (data.can_configure) {
       var configure = document.createElement('button'); configure.type = 'button'; configure.className = 'btn btn-secondary'; configure.textContent = 'Configurar';
       configure.onclick = openSettings; actions.append(configure);
@@ -282,7 +289,7 @@
     card.className = 'schedule-card schedule-reminders-card';
     card.id = 'schedule-reminders-card';
     card.innerHTML = '<div class="schedule-section-title"><div><h2>Mensajes automáticos de citas</h2><p>Confirmación al agendar, recordatorios 48 y 24 horas antes, y seguimiento si no vino, por WhatsApp.</p></div><div class="schedule-reminders-actions" data-reminders-actions></div></div><div data-reminders-body></div>';
-    grid.prepend(card);
+    grid.append(card);
     renderCard();
     return true;
   }
