@@ -24,6 +24,7 @@
     service: 'Valoración', professional: 'Dra. Torres', branch: 'Sucursal Centro', branch_phone: '55 1234 5678', branch_whatsapp: '33 1111 1111', contact_phone: '33 1111 1111', clinic: 'tu clínica'
   };
   var DEFAULT_ORDER = ['patient_first_name', 'date', 'time', 'clinic', 'branch_phone', 'professional', 'service', 'branch'];
+  var FEEDBACK_ORDER = ['patient_first_name', 'clinic', 'branch', 'service', 'professional', 'date', 'time', 'branch_phone'];
   var NO_SHOW_ORDER = ['patient_first_name', 'date', 'clinic', 'time', 'service', 'branch', 'professional', 'branch_phone'];
   var CONFIRMATION_ORDER = ['patient_first_name', 'clinic', 'date', 'time', 'contact_phone', 'service', 'branch', 'professional'];
   var state = { data: null, loading: false, error: '', loadedAt: 0, lastDispatch: 0, dispatching: false };
@@ -104,13 +105,14 @@
     body.innerHTML =
       line('Confirmación al agendar', confirmOn, settings.confirmation_template_name) + stats('confirmation_') +
       line('Seguimiento de inasistencias', Boolean(settings.no_show_enabled), settings.no_show_template_name) + stats('no_show_') +
+      line('Pregunta del motivo', Boolean(settings.feedback_enabled), settings.feedback_template_name) + stats('feedback_') +
       line(settings.reminder_48h_enabled ? 'Recordatorios 48 h y 24 h antes' : 'Recordatorio 24 h antes', enabled, settings.template_name) + stats('') +
       '<p class="schedule-reminders-muted">' + whatsappInfo + ' Últimos 7 días y próximas citas. Solo se envían a pacientes con una conversación de WhatsApp vinculada en Mensajes, entre las ' +
       esc(String(settings.send_window_start || '09:00').slice(0, 5)) + ' y las ' + esc(String(settings.send_window_end || '20:00').slice(0, 5)) + ' (hora de la sucursal)' + (settings.require_consent ? ' y solo con consentimiento registrado' : '') + '.</p>';
     if (data.can_configure) {
       var configure = document.createElement('button'); configure.type = 'button'; configure.className = 'btn btn-secondary'; configure.textContent = 'Configurar';
       configure.onclick = openSettings; actions.append(configure);
-      if (enabled || confirmOn || settings.no_show_enabled) {
+      if (enabled || confirmOn || settings.no_show_enabled || settings.feedback_enabled) {
         var now = document.createElement('button'); now.type = 'button'; now.className = 'btn btn-secondary'; now.textContent = 'Revisar pendientes';
         now.onclick = async function () {
           now.disabled = true; now.textContent = 'Revisando…';
@@ -202,6 +204,7 @@
       templateSection('reminder', 'Recordatorios por WhatsApp (24 h antes)', 'Se envía un día antes de la cita. Si la confirmación acaba de salir (menos de 6 horas antes), no se repite. Usa una plantilla con los botones «Confirmo mi asistencia» y «Necesito reprogramar» para que el paciente responda con un toque.', settings.enabled, settings.template_id, settings.variables, DEFAULT_ORDER, list, '',
         '<label class="schedule-reminders-toggle"><input type="checkbox" name="reminder_48h"' + (settings.reminder_48h_enabled ? ' checked' : '') + '><span>Enviar también un primer aviso 48 h antes (misma plantilla)</span></label>') +
       templateSection('no_show', 'Seguimiento de inasistencias («No vino»)', 'Unas 2 horas después de marcar una cita como «No vino», el paciente recibe un mensaje para reagendar. Solo aplica a inasistencias marcadas desde que lo enciendes. Usa la plantilla con el botón «Quiero reagendar»: si lo toca, la Agenda te lo avisa para que le ofrezcas horarios. Nunca agenda solo.', settings.no_show_enabled, settings.no_show_template_id, settings.no_show_variables, NO_SHOW_ORDER, list) +
+      templateSection('feedback', '¿Por qué no reagendó? (retroalimentación)', 'Si pasan 3 días desde el seguimiento de «No vino» y el paciente no reagendó, recibe una pregunta con tres botones (el horario no me va · por el costo · otro motivo). Se guarda solo el motivo elegido, en su cita. Aplica a seguimientos enviados desde que lo enciendes.', settings.feedback_enabled, settings.feedback_template_id, settings.feedback_variables, FEEDBACK_ORDER, list) +
       (list.length ? '' : '<p class="schedule-reminders-muted">No hay plantillas aprobadas todavía. Solicita en tu panel de mensajería una de categoría Utilidad; en Mensajería → Plantillas de WhatsApp tienes propuestas listas para copiar, empezando por «cita_confirmada_v1» y «recordatorio_cita_24h_v1». <button type="button" class="schedule-reminders-link" data-open-templates>Ver plantillas propuestas</button></p>') +
       '<fieldset class="schedule-reminders-section" data-section="preferences"><legend>Cuándo y desde qué número</legend>' +
         '<div class="schedule-reminders-row"><label>Enviar desde<input type="time" name="window_start" value="' + hm(settings.send_window_start, '09:00') + '" required></label><label>Hasta<input type="time" name="window_end" value="' + hm(settings.send_window_end, '20:00') + '" required></label></div>' +
@@ -215,6 +218,7 @@
     var form = d.querySelector('form');
     var confirmation = wireSection(form, 'confirmation', Array.isArray(settings.confirmation_variables) ? settings.confirmation_variables : [], CONFIRMATION_ORDER);
     var reminder = wireSection(form, 'reminder', Array.isArray(settings.variables) ? settings.variables : [], DEFAULT_ORDER);
+    var feedback = wireSection(form, 'feedback', Array.isArray(settings.feedback_variables) ? settings.feedback_variables : [], FEEDBACK_ORDER);
     var noShow = wireSection(form, 'no_show', Array.isArray(settings.no_show_variables) ? settings.no_show_variables : [], NO_SHOW_ORDER);
 
     // Números por sucursal: se editan aquí mismo cuando la clínica elige «un número por sucursal».
@@ -257,8 +261,9 @@
         results.push(await invoke({ action: 'save_settings', kind: 'confirmation', enabled: form.elements.confirmation_enabled.checked, template_id: confirmation.select.value || null, variables: readVariables(confirmation.scope) }));
         results.push(await invoke({ action: 'save_settings', kind: 'reminder', reminder_48h: form.elements.reminder_48h.checked, enabled: form.elements.reminder_enabled.checked, template_id: reminder.select.value || null, variables: readVariables(reminder.scope) }));
         results.push(await invoke({ action: 'save_settings', kind: 'no_show', enabled: form.elements.no_show_enabled.checked, template_id: noShow.select.value || null, variables: readVariables(noShow.scope) }));
+        results.push(await invoke({ action: 'save_settings', kind: 'feedback', enabled: form.elements.feedback_enabled.checked, template_id: feedback.select.value || null, variables: readVariables(feedback.scope) }));
         d.close();
-        var on = [form.elements.confirmation_enabled.checked ? 'confirmaciones' : '', form.elements.reminder_enabled.checked ? 'recordatorios' : '', form.elements.no_show_enabled.checked ? 'seguimiento de inasistencias' : ''].filter(Boolean);
+        var on = [form.elements.confirmation_enabled.checked ? 'confirmaciones' : '', form.elements.reminder_enabled.checked ? 'recordatorios' : '', form.elements.no_show_enabled.checked ? 'seguimiento de inasistencias' : '', form.elements.feedback_enabled.checked ? 'pregunta del motivo' : ''].filter(Boolean);
         window.alert(on.length ? 'Guardado. Activos: ' + on.join(' y ') + '.' : 'Guardado. Los mensajes automáticos están desactivados; los que estaban en cola se cancelaron, también en WhatsApp.');
         loadSettings(true);
         if (window.SmylSchedule) window.SmylSchedule.reload();

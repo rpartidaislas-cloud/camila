@@ -41,7 +41,7 @@ test('la Agenda avisa cuando el filtro esconde citas y deja verlas todas', () =>
 
 test('web, móvil y PWA publican el arreglo', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-schedule\.js\?v=63/);
+    assert.match(read(file), /smyl-schedule\.js\?v=64/);
     assert.match(read(file), /smyl-schedule-board\.js\?v=3/);
     assert.match(read(file), /smyl-schedule\.css\?v=38/);
     assert.match(read(file), /smyl-inbox\.js\?v=99/);
