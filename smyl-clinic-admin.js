@@ -1262,6 +1262,11 @@
     var dialog = sheet(); var person = currentPerson();
     if (!dialog || !person) return;
     var professional = person.professional;
+    // Al redibujar la ficha (marcar un día, quitar un bloque, cambiar un servicio…) se conserva el desplazamiento y el foco: antes todo saltaba arriba.
+    var previous = dialog.querySelector('.clinic-admin-sheet-body');
+    var keepTop = previous && dialog.dataset.personKey === String(person.key || person.name) ? previous.scrollTop : 0;
+    var active = document.activeElement && dialog.contains(document.activeElement) ? document.activeElement.getAttribute('aria-label') : null;
+    dialog.dataset.personKey = String(person.key || person.name);
     dialog.replaceChildren();
     dialog.setAttribute('aria-label', 'Ficha de ' + person.name);
 
@@ -1409,32 +1414,77 @@
     }
 
     dialog.append(body);
+    body.scrollTop = keepTop;
+    if (active) {
+      var again = Array.prototype.find.call(dialog.querySelectorAll('[aria-label]'), function (node) { return node.getAttribute('aria-label') === active && node.focus; });
+      if (again) try { again.focus({ preventScroll: true }); } catch (e) {}
+    }
   }
 
   // Servicios que realiza: solo los activos del catálogo de la clínica. La agenda (y el asistente de chat) solo ofrece citas con este profesional para estos servicios.
+  // La escritura es optimista (no se recarga todo el panel, así no se pierde el desplazamiento) y se serializa; si falla se revierte y se avisa.
+  var servicesQueue = Promise.resolve();
   function servicesSection(professional) {
     var section = sheetSection('Servicios que realiza', 'Marca los servicios de la clínica que atiende. Al buscar horarios (agenda y asistente de chat) solo se le ofrecen estos; sin ninguno marcado no recibe citas nuevas por esa vía.');
     if (!state.services.length) { section.append(el('p', 'clinic-admin-muted', 'Primero activa los servicios de la clínica en Servicios y tarifas.')); return section; }
-    var mine = new Set(state.professionalServices.filter(function (row) { return row.professional_id === professional.id; }).map(function (row) { return row.service_id; }));
-    var list = el('div', 'clinic-admin-sheet-services');
+    var canEdit = state.canScheduleManage;
+    var head = el('div', 'clinic-admin-services-head');
+    var counter = el('strong', 'clinic-admin-services-count'); counter.setAttribute('aria-live', 'polite');
+    head.append(counter);
+    var list = el('div', 'clinic-admin-sheet-services'); list.setAttribute('role', 'group'); list.setAttribute('aria-label', 'Servicios de ' + professional.display_name);
+    var rows = [];
+    function mine() { return new Set(state.professionalServices.filter(function (row) { return row.professional_id === professional.id; }).map(function (row) { return row.service_id; })); }
+    function refresh() {
+      var on = mine();
+      rows.forEach(function (row) { row.box.checked = on.has(row.service.id); row.label.classList.toggle('is-on', row.box.checked); });
+      counter.textContent = on.size + ' de ' + state.services.length + ' servicios';
+    }
+    function apply(ids, enabled) {
+      var wanted = new Set(ids);
+      if (enabled) {
+        var have = mine();
+        ids.forEach(function (id) { if (!have.has(id)) state.professionalServices.push({ professional_id: professional.id, service_id: id }); });
+      } else state.professionalServices = state.professionalServices.filter(function (row) { return !(row.professional_id === professional.id && wanted.has(row.service_id)); });
+      refresh();
+      servicesQueue = servicesQueue.then(function () { return writeProfessionalServices(professional.id, ids, enabled); }).then(function () {
+        feedback(enabled ? (ids.length > 1 ? 'Servicios asignados.' : 'Servicio asignado.') : (ids.length > 1 ? 'Servicios quitados.' : 'Servicio quitado.'));
+      }, function (error) {
+        // Revierte lo que no se pudo guardar y lo dice.
+        if (enabled) state.professionalServices = state.professionalServices.filter(function (row) { return !(row.professional_id === professional.id && wanted.has(row.service_id)); });
+        else ids.forEach(function (id) { state.professionalServices.push({ professional_id: professional.id, service_id: id }); });
+        refresh(); feedback('No se pudo guardar el cambio. ' + errorMessage(error), 'error');
+      });
+    }
+    if (canEdit) {
+      var all = el('button', 'clinic-admin-link', 'Marcar todos'); all.type = 'button';
+      all.addEventListener('click', function () { var on = mine(); var ids = state.services.map(function (x) { return x.id; }).filter(function (id) { return !on.has(id); }); if (ids.length) apply(ids, true); });
+      var none = el('button', 'clinic-admin-link-danger', 'Quitar todos'); none.type = 'button';
+      none.addEventListener('click', function () {
+        var ids = state.services.map(function (x) { return x.id; }).filter(function (id) { return mine().has(id); });
+        if (ids.length && window.confirm('¿Quitar los ' + ids.length + ' servicios de ' + professional.display_name + '? No recibirá citas nuevas por agenda ni por el asistente.')) apply(ids, false);
+      });
+      head.append(all, none);
+    }
+    section.append(head);
+    if (state.services.length > 8) {
+      var search = el('input', 'clinic-admin-services-search'); search.type = 'search'; search.placeholder = 'Buscar servicio…'; search.setAttribute('aria-label', 'Buscar servicio');
+      search.addEventListener('input', function () { var q = search.value.trim().toLowerCase(); rows.forEach(function (row) { row.label.hidden = !!q && row.service.name.toLowerCase().indexOf(q) < 0; }); });
+      section.append(search);
+    }
     state.services.forEach(function (service) {
       var label = el('label', 'clinic-admin-sheet-service');
-      var box = el('input'); box.type = 'checkbox'; box.checked = mine.has(service.id); box.disabled = !state.canScheduleManage || state.mutating;
-      box.setAttribute('aria-label', professional.display_name + ' realiza ' + service.name);
-      box.addEventListener('change', function () { setProfessionalService(professional.id, service.id, box.checked); });
-      label.append(box, el('span', '', service.name)); list.append(label);
+      var box = el('input'); box.type = 'checkbox'; box.disabled = !canEdit;
+      box.addEventListener('change', function () { apply([service.id], box.checked); });
+      label.append(box, el('span', '', service.name)); list.append(label); rows.push({ service: service, label: label, box: box });
     });
-    section.append(list);
-    if (!state.canScheduleManage) section.append(el('p', 'clinic-admin-hint', 'Tu rol no puede cambiar los servicios de un profesional.'));
+    section.append(list); refresh();
+    if (!canEdit) section.append(el('p', 'clinic-admin-hint', 'Tu rol no puede cambiar los servicios de un profesional.'));
     return section;
   }
 
-  async function setProfessionalService(professionalId, serviceId, enabled) {
-    var done = await mutate(function () {
-      if (enabled) return query(window.sb.from('smyl_professional_services').upsert({ tenant_id: state.tenant, professional_id: professionalId, service_id: serviceId }, { onConflict: 'tenant_id,professional_id,service_id', ignoreDuplicates: true }).select('professional_id'));
-      return query(window.sb.from('smyl_professional_services').delete().eq('tenant_id', state.tenant).eq('professional_id', professionalId).eq('service_id', serviceId).select('professional_id'));
-    }, enabled ? 'Servicio asignado.' : 'Servicio quitado.');
-    if (!done) renderPerson(); // si la llamada se ignoró o falló, la casilla vuelve a reflejar lo guardado
+  function writeProfessionalServices(professionalId, ids, enabled) {
+    if (enabled) return query(window.sb.from('smyl_professional_services').upsert(ids.map(function (id) { return { tenant_id: state.tenant, professional_id: professionalId, service_id: id }; }), { onConflict: 'tenant_id,professional_id,service_id', ignoreDuplicates: true }).select('professional_id'));
+    return query(window.sb.from('smyl_professional_services').delete().eq('tenant_id', state.tenant).eq('professional_id', professionalId).in('service_id', ids).select('professional_id'));
   }
 
   async function addProfessionalBranch(professionalId, branchId) {
