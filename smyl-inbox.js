@@ -5997,6 +5997,8 @@
   window.SmylInbox = {
     canAccess: chatEnabled,
     open: function (conversationId) { window.ir('inbox'); return openConversation(conversationId); },
+    // Abre la conversación y, ya dentro, «Agendar cita» (con «Sugerir horarios»). Solo prepara: la persona revisa y envía.
+    offerSlots: async function (conversationId) { window.ir('inbox'); await openConversation(conversationId); if (state.selectedId !== conversationId) return false; await openAvailabilityDialog(); return true; },
     // Abre la conversación para que una persona revise y envíe (nunca envía por sí solo).
     //  · Con la ventana de 24 h de WhatsApp abierta (o en otros canales): deja `text` escrito en el compositor y devuelve true.
     //  · Con la ventana cerrada y `options.template` = { names, variables, missingText }: abre esa plantilla aprobada con las variables ya llenas
