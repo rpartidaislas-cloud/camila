@@ -33,7 +33,7 @@
   };
 
   // PRIMARY contiene únicamente módulos persistentes. La simulación se abre
-  // como acción contextual y desde Simulaciones; no ocupa un módulo propio.
+  // como acción contextual y desde la ficha del paciente; no ocupa un módulo propio.
   var PRIMARY = [
     ['Inicio', 'dashboard', 'home'],
     ['Agenda', 'agenda', 'calendar'],
@@ -55,8 +55,7 @@
     ['Servicios y tarifas', 'precios', 'pricing'],
     ['Inventario', 'inventario', 'inventory'],
     ['Reportes', 'reportes', 'reports'],
-    ['Nube', 'nube', 'cloud'],
-    ['Simulaciones', 'historial', 'history']
+    ['Nube', 'nube', 'cloud']
   ];
   // Todos los ajustes viven ahora en la pantalla Configuración (smyl-settings-hub.js), ordenada como el panel de LANA.
   // El menú solo tiene ese acceso; se marca mientras estás en cualquiera de las pantallas a las que lleva.
@@ -65,6 +64,8 @@
   // Otros módulos agregan su propio botón al menú cuando no lo encuentran. Estas rutas ya no tienen botón visible,
   // pero se dejan registradas (ocultas) para que no reaparezcan sueltas en el menú.
   var REGISTRY = [
+    // Las simulaciones viven en la ficha de cada paciente (pestaña «Diseño de sonrisa»); la lista general ya no está en el menú.
+    ['Simulaciones', 'historial', 'history'],
     ['Mi clínica', 'clinica', 'clinic'],
     ['Directorio profesional', 'directorio', 'directory'],
     ['Colaboraciones', 'colaboraciones', 'patients'],
