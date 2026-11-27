@@ -478,3 +478,10 @@
 .proposal-toquote li div{display:grid;gap:2px;min-width:0}.proposal-toquote li small{color:#65758b;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .proposal-toquote>button{margin-top:10px}
 @media(max-width:600px){.proposal-toquote li{flex-direction:column;align-items:stretch}.proposal-toquote li .btn{width:100%}}
+
+/* Presupuesto incrustado en la pestaña Tratamiento: mismas variables que la pantalla de Cotizaciones. */
+.cw-quote-host{--proposal-ink:var(--smyl-ui-ink,#0b1b2e);--proposal-muted:var(--smyl-ui-ink-secondary,#526174);--proposal-border:var(--smyl-ui-border,#d9e2ec);--proposal-soft:var(--smyl-ui-surface-soft,#f8fafc);--proposal-accent:var(--smyl-ui-accent,#1a56c7);color:var(--proposal-ink);width:100%;min-width:0;max-width:100%;overflow-x:clip;box-sizing:border-box;margin-top:14px;padding-top:14px;border-top:1px solid var(--proposal-border)}
+.cw-quote-host[hidden]{display:none}
+.cw-quote-host .proposal-heading h1{font-size:22px}
+.cw-quote-host :is(button,input,select,textarea,summary):focus-visible{outline:3px solid rgba(45,58,158,.3);outline-offset:2px}
+@media(max-width:860px){.cw-quote-host .proposal-layout{grid-template-columns:minmax(0,1fr)}}

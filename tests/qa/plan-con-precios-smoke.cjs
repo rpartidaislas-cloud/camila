@@ -1,0 +1,43 @@
+// Humo de navegador: el plan muestra precios, total vivo y deja agregar servicios del catálogo.
+//   NODE_PATH=$(npm root -g) node tests/qa/plan-con-precios-smoke.cjs
+const { chromium } = require('playwright');
+const http = require('http'), fs = require('fs'), path = require('path');
+const root = path.resolve(__dirname, '..', '..');
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
+const server = http.createServer((req, res) => { let p = decodeURIComponent(req.url.split('?')[0]); if (p === '/') p = '/app.html'; const f = path.join(root, p); if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end(); } res.writeHead(200, { 'Content-Type': types[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(res); });
+(async () => {
+  await new Promise(r => server.listen(0, '127.0.0.1', r));
+  const browser = await chromium.launch(); let fails = 0; const errs = [];
+  const check = (c, m) => { if (!c) { console.log('FALLA ·', m); fails++; } else console.log('ok ·', m); };
+  const ctx = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 1400, height: 1100 } }); const page = await ctx.newPage();
+  page.on('pageerror', e => errs.push(e.message.slice(0, 200))); page.on('dialog', d => d.accept());
+  const source = fs.readFileSync(path.join(__dirname, 'fake-supabase-agenda.js'), 'utf8');
+  await page.route('**/*', r => { const u = r.request().url(); if (u.includes('@supabase/supabase-js') || u.includes('/vendor/supabase-js-')) return r.fulfill({ status: 200, contentType: 'text/javascript', body: source }); return u.startsWith('http://127.0.0.1') ? r.continue() : r.abort(); });
+  await page.goto(`http://127.0.0.1:${server.address().port}/app.html`, { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(3500);
+  const P = 'p2000000-0000-4000-8000-000000000002';
+  await page.evaluate((P) => { window.miRolEquipo = 'dueño'; const T = window.__db.camila_pacientes[0].tenant_id;
+    const svc = (id, name, cat, price, mode, rev) => ({ id, tenant_id: T, name, patient_name: name, category: cat, specialty: cat, scope_type: mode === 'per_tooth' ? 'tooth' : 'session', pricing_mode: mode, duration_minutes: 60, reference_price: price, currency: 'MXN', sat_product_service_code: '85121800', sat_unit_code: 'E48', tax_object_code: '02', fiscal_status: 'reviewed', tax_treatment: 'exempt', active: true, catalog_revision: rev });
+    window.__db.smyl_services = [svc('50000000-0000-4000-8000-000000000001', 'Limpieza dental', 'preventive', 800, 'fixed', 1), svc('50000000-0000-4000-8000-000000000002', 'Implante dental', 'implantology', 18000, 'per_tooth', 2)];
+    window.__db.smyl_service_branch_prices = []; window.__db.smyl_clinical_plans = []; }, P);
+  await page.evaluate((P) => window.verPaciente(P), P); await page.waitForTimeout(2500);
+  await page.evaluate(() => { const b = [...document.querySelectorAll('button,[role=tab]')].find(x => /^Tratamiento$/.test(x.textContent.trim())); if (b) b.click(); }); await page.waitForTimeout(1500);
+  await page.evaluate(() => document.querySelector('.cw-step[data-label="Plan de tratamiento"]').click()); await page.waitForTimeout(600);
+  check(await page.locator('#clinic-add-service').count() === 1, 'el plan ofrece «+ Agregar servicio»');
+  check((await page.textContent('#clinic-add')).includes('sin cobro'), 'el alta manual se llama «Indicación sin cobro»');
+  await page.click('#clinic-add-service'); await page.waitForTimeout(500);
+  check(await page.locator('.proposal-service-option').count() === 2, 'el buscador lista los servicios del catálogo con precio');
+  await page.locator('.proposal-service-option', { hasText: 'Limpieza' }).click(); await page.waitForTimeout(200);
+  await page.locator('.proposal-service-option', { hasText: 'Implante' }).click(); await page.waitForTimeout(300);
+  await page.click('.proposal-service-dialog footer button'); await page.waitForTimeout(300);
+  check(await page.locator('.clinic-treatment').count() === 2, 'agrega los dos servicios al plan');
+  const total = await page.textContent('#clinic-plan-total');
+  check(/\$18,800/.test(total.replace(/\s/g, '')), 'el total vivo suma $18,800 (' + total.replace(/\s+/g, ' ').trim().slice(0, 90) + ')');
+  const lines = await page.$$eval('.clinic-treatment-price', els => els.map(e => e.textContent));
+  check(lines.some(t => /\$800/.test(t)) && lines.some(t => /\$18,000/.test(t)), 'cada tratamiento muestra su precio');
+  await page.click('#clinic-add'); await page.waitForTimeout(300);
+  const free = await page.textContent('#clinic-plan-total');
+  check(/1 indicación sin cobro/.test(free), 'una indicación sin servicio se cuenta como «sin cobro»');
+  check(errs.length === 0, 'sin errores de página ' + errs.join(' | '));
+  await page.screenshot({ path: '/tmp/plan-precios.png', fullPage: false });
+  await browser.close(); server.close(); process.exit(fails ? 1 : 0);
+})();

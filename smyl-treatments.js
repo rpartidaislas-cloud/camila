@@ -103,6 +103,10 @@
     if (!window.sb || typeof window.sb.rpc !== 'function') return Promise.resolve({ data: null, error: { code: 'NO_CLIENT', message: 'Sin conexión.' } });
     return Promise.resolve(window.sb.rpc(name, args));
   }
+  // Constancia de «seguí sin completar el diagnóstico» (una por revisión del plan). Si la función aún no existe, no pasa nada.
+  function waiveDiagnosis(patientId, revision, note) {
+    return rpc('smyl_waive_diagnosis', { p_patient_id: patientId, p_plan_revision: Number(revision) || 0, p_pending_note: String(note || '') }).then(function () {}, function () {});
+  }
   function alive(ctx) { return !!(ctx && ctx.root && ctx.root.isConnected && ctx.treatments); }
   function activeOf(st) { return (st.list || []).filter(function (t) { return t.status === 'active'; })[0] || null; }
   function emptyForm() { return { title: '', text: '', outcome: 'closed', note: '', carry: {}, request: null }; }
@@ -578,6 +582,6 @@
     attachFindings: attachFindings, syncFindings: syncFindings, current: current,
     statusLabel: statusLabel, suggestedRecall: suggestedRecall, titleFrom: titleFrom, closeError: closeError,
     chapterMeta: chapterMeta, snapshotSummary: snapshotSummary, listError: listError, carryItemIds: carryItemIds, OUTCOMES: OUTCOMES,
-    attach: attach, sync: sync
+    attach: attach, sync: sync, waiveDiagnosis: waiveDiagnosis
   };
 });

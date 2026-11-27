@@ -3,8 +3,9 @@
  * Una sola ruta con dos experiencias que comparten registros, sin duplicar captura:
  *   - Revisión diaria: lista breve, opcional y sin puntuación regulatoria;
  *   - Guía COFEPRIS: documentos, controles periódicos y carpeta imprimible para una posible visita.
- * Las reglas viven en smyl-compliance-model.js (lógica pura). El servidor es smyl_compliance_overview / smyl_log_* /
- * smyl_set_compliance_item (migración 20261126200000). Si la migración no está aplicada, la pantalla lo dice y no rompe nada.
+ * Las reglas viven en smyl-compliance-model.js (lógica pura). El servidor usa smyl_compliance_overview / smyl_log_* /
+ * smyl_set_compliance_item y la bitácora por área de 20261127180000. Si la actualización nueva aún no está aplicada,
+ * se conserva temporalmente la revisión diaria anterior sin romper la Guía COFEPRIS.
  * Este reporte resume registros de la clínica; no sustituye los documentos originales ni una asesoría sanitaria. */
 (function (root, factory) {
   var api = factory(root);
@@ -15,7 +16,7 @@
   var M = win && win.SmylComplianceModel;
   if (!win || !win.document || !M) return {};
 
-  var state = { loading: false, loaded: false, error: '', missing: false, data: null, dailyData: null, from: null, view: 'guide' };
+  var state = { loading: false, loaded: false, error: '', missing: false, sanitationMissing: false, sanitationError: '', data: null, dailyData: null, sanitationData: null, dailyBranchId: null, dailyDate: null, from: null, view: 'guide' };
 
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -30,6 +31,10 @@
   function localDate(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function today() { return localDate(new Date()); }
   function periodFrom() { var d = new Date(); d.setFullYear(d.getFullYear() - 1); return localDate(d); }
+  function activeBranchId() {
+    var scope = win.SmylBranchScope, value = state.dailyBranchId || (scope && typeof scope.get === 'function' ? scope.get() : null);
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value || '')) ? value : null;
+  }
 
   async function rpc(name, args) {
     var res = await win.sb.rpc(name, args);
@@ -46,11 +51,20 @@
     if (state.loading || (state.loaded && !force) || !win.sb) return;
     state.loading = true; state.error = ''; render();
     try {
+      var sanitation = null;
       var reads = await Promise.all([
         rpc('smyl_compliance_overview', { p_from: state.from || periodFrom(), p_to: today() }),
         rpc('smyl_compliance_overview', { p_from: today(), p_to: today() })
       ]);
       state.data = reads[0]; state.dailyData = reads[1];
+      try {
+        sanitation = await rpc('smyl_daily_sanitation_overview', { p_branch_id: activeBranchId(), p_date: state.dailyDate });
+        state.sanitationData = sanitation; state.sanitationMissing = false; state.sanitationError = '';
+        if (sanitation && sanitation.context) state.dailyBranchId = sanitation.context.branch_id;
+      } catch (sanitationError) {
+        if (friendly(sanitationError) === 'missing') state.sanitationMissing = true;
+        else state.sanitationError = friendly(sanitationError);
+      }
       state.loaded = true; state.missing = false;
     } catch (error) {
       var f = friendly(error);
@@ -148,6 +162,31 @@
         var values = { manifest: String(v.manifest).trim(), company: String(v.company || '').trim(), collected_at: v.collected_at || today() };
         if (v.kg !== '') values.kg = Number(v.kg);
         await rpc('smyl_log_rpbi', { p_values: values }); await load(true);
+      }
+    });
+  }
+  function selectInput(name, options, current) {
+    var s = el('select'); s.name = name;
+    options.forEach(function (option) { var o = el('option', '', option[1]); o.value = option[0]; o.selected = option[0] === current; s.append(o); });
+    return s;
+  }
+  function askSanitationAsset() {
+    var context = state.sanitationData && state.sanitationData.context;
+    if (!context) return;
+    ask({
+      title: 'Agregar equipo o área', help: 'Aparecerá en la revisión diaria de ' + context.branch_name + '. No se marcará automáticamente.', submit: 'Agregar a la lista',
+      build: function (b) {
+        b.append(field('Nombre', input('text', { name: 'name', maxlength: 100, placeholder: 'Ej. Unidad dental 2' })));
+        b.append(field('Tipo', selectInput('category', [['equipment', 'Equipo'], ['clinical_space', 'Espacio clínico'], ['waterline', 'Línea de agua'], ['sterilization', 'Esterilización'], ['common_area', 'Área común'], ['other', 'Otro']], 'equipment')));
+        b.append(field('Actividad predeterminada', input('text', { name: 'default_task', maxlength: 160, value: 'Limpieza y desinfección' })));
+        b.append(field('Producto o método habitual (opcional)', input('text', { name: 'default_product', maxlength: 120, placeholder: 'Ej. Detergente enzimático' }), 'Se propone en cada registro, pero se puede cambiar antes de guardar.'));
+      },
+      read: function (b) { var q = function (n) { return b.querySelector('[name=' + n + ']'); }; return { name: q('name').value, category: q('category').value, default_task: q('default_task').value, default_product: q('default_product').value }; },
+      validate: function (v) { return String(v.name || '').trim().length < 2 ? 'Escribe el nombre del equipo o área.' : String(v.default_task || '').trim().length < 3 ? 'Escribe la actividad que se revisará.' : ''; },
+      onSubmit: async function (v) {
+        v.branch_id = context.branch_id;
+        await rpc('smyl_configure_sanitation_asset', { p_action: 'create', p_values: v });
+        state.sanitationData = null; await load(true);
       }
     });
   }
@@ -356,7 +395,7 @@
     if (action) { action.type = 'button'; li.append(action); }
     return li;
   }
-  function renderDaily(host) {
+  function renderLegacyDaily(host) {
     host.replaceChildren();
     if (state.loading && !state.dailyData) { host.append(el('p', 'cp-help', 'Preparando la revisión de hoy…')); return; }
     if (state.missing) { var m = el('div', 'cp-note'); m.append(el('strong', '', 'Falta una actualización de la base de datos.'), el('p', '', 'La revisión estará disponible cuando se aplique la actualización sanitaria de SMYL.')); host.append(m); return; }
@@ -389,11 +428,128 @@
     var link = el('section', 'cp-guide-link'); var linkCopy = el('div'); linkCopy.append(el('strong', '', '¿Buscas documentos, vigencias o preparación para una visita?'), el('span', '', 'Esos controles están separados en la Guía COFEPRIS.'));
     var open = el('button', 'btn btn-secondary', 'Abrir Guía COFEPRIS'); open.type = 'button'; open.onclick = function () { setView('guide'); }; link.append(linkCopy, open); host.append(link);
   }
+  function statusLabel(status) {
+    return status === 'incident' ? 'Incidencia' : status === 'not_applicable' ? 'No aplicó' : 'Realizado';
+  }
+  function sanitationRow(item, context) {
+    var logged = item.last_log, li = el('li', 'cp-sanitation-row'); li.dataset.assetId = item.id;
+    var check = input('checkbox', { name: 'sanitation_check', value: item.id }); check.className = 'cp-daily-check'; check.disabled = !!logged; check.checked = !!logged;
+    check.setAttribute('aria-label', (logged ? 'Ya registrado: ' : 'Registrar ') + item.name);
+    var main = el('div', 'cp-sanitation-main'), copy = el('div', 'cp-row-copy');
+    copy.append(el('strong', '', item.name), el('small', '', item.default_task));
+    if (item.default_product) copy.append(el('small', 'cp-product-preview', 'Método habitual: ' + item.default_product));
+    main.append(copy);
+    var tag = logged ? chip(logged.status === 'incident' ? 'attention' : 'ok', statusLabel(logged.status) + ' · ' + fmtDate(logged.occurred_at, true)) : chip('optional', 'Pendiente de registrar');
+    var details = el('button', 'cp-detail-toggle', logged ? 'Ver registro' : 'Detalles'); details.type = 'button'; details.setAttribute('aria-expanded', 'false');
+    li.append(check, main, tag, details);
+    var panel = el('div', 'cp-sanitation-detail'); panel.hidden = true;
+    if (logged) {
+      var facts = el('dl', 'cp-sanitation-facts');
+      [['Responsable', logged.responsible_name || '—'], ['Turno', logged.shift || '—'], ['Producto o método', logged.product_method || 'Sin especificar'], ['Notas', logged.notes || 'Sin notas']].forEach(function (fact) { facts.append(el('dt', '', fact[0]), el('dd', '', fact[1])); });
+      panel.append(facts);
+    } else {
+      var status = selectInput('sanitation_status', [['done', 'Realizado'], ['incident', 'Con incidencia'], ['not_applicable', 'No aplicó hoy']], 'done');
+      var product = input('text', { name: 'sanitation_product', maxlength: 120, value: item.default_product || '', placeholder: 'Producto o método usado' });
+      var notes = el('textarea'); notes.name = 'sanitation_notes'; notes.maxLength = 500; notes.rows = 2; notes.placeholder = 'Sólo si necesitas dejar una observación';
+      var noteField = field('Observación', notes, 'Obligatoria cuando registras una incidencia.'); noteField.classList.add('cp-incident-note');
+      panel.append(field('Resultado', status), field('Producto o método', product), noteField);
+      status.onchange = function () { noteField.classList.toggle('required', status.value === 'incident'); };
+      if (item.editable && context.can_manage) {
+        var archive = el('button', 'cp-remove-asset', 'Quitar de la lista'); archive.type = 'button';
+        archive.onclick = async function () {
+          if (!win.confirm('¿Quitar “' + item.name + '” de las revisiones futuras? Los registros anteriores se conservan.')) return;
+          archive.disabled = true;
+          try { await rpc('smyl_configure_sanitation_asset', { p_action: 'archive', p_values: { id: item.id } }); state.sanitationData = null; await load(true); }
+          catch (error) { archive.disabled = false; archive.textContent = friendly(error); }
+        };
+        panel.append(archive);
+      }
+    }
+    details.onclick = function () { panel.hidden = !panel.hidden; details.setAttribute('aria-expanded', panel.hidden ? 'false' : 'true'); details.textContent = panel.hidden ? (logged ? 'Ver registro' : 'Detalles') : 'Cerrar'; };
+    li.append(panel); return li;
+  }
+  function renderSanitationHistory(host, rows) {
+    if (!rows || !rows.length) return;
+    var history = el('details', 'cp-sanitation-history'), summary = el('summary', '', 'Ver registros de los últimos 7 días'); history.append(summary);
+    var grouped = {};
+    rows.forEach(function (row) { var key = String(row.activity_date || '').slice(0, 10); (grouped[key] = grouped[key] || []).push(row); });
+    Object.keys(grouped).sort().reverse().forEach(function (day) {
+      var section = el('section'), head = el('strong', '', fmtDate(day) + ' · ' + grouped[day].length + (grouped[day].length === 1 ? ' registro' : ' registros')); section.append(head);
+      var ul = el('ul'); grouped[day].forEach(function (row) { var li = el('li'); li.append(el('span', '', row.asset_name), el('small', '', statusLabel(row.status) + ' · ' + (row.responsible_name || 'Responsable registrado'))); ul.append(li); }); section.append(ul); history.append(section);
+    });
+    host.append(history);
+  }
+  function renderDaily(host) {
+    if (state.sanitationMissing) { renderLegacyDaily(host); return; }
+    host.replaceChildren();
+    if (state.loading && !state.sanitationData) { host.append(el('p', 'cp-help', 'Preparando la bitácora de hoy…')); return; }
+    if ((state.sanitationError || state.error) && !state.sanitationData) { var problem = el('p', 'cp-error', state.sanitationError || state.error); problem.setAttribute('role', 'alert'); host.append(problem); return; }
+    var data = state.sanitationData, context = data && data.context;
+    if (!data || !context) return;
+
+    var intro = el('section', 'cp-daily-intro');
+    var introCopy = el('div'); introCopy.append(el('span', 'cp-cadence-eyebrow', 'BITÁCORA OPCIONAL EN SMYL'), el('h2', '', 'Registra sólo lo que se realizó'), el('p', '', 'La fecha, hora, sede y responsable ya están listos. Nada se marca por ti.'));
+    intro.append(introCopy, el('span', 'cp-date', fmtDate(context.date))); host.append(intro);
+
+    var contextCard = el('section', 'cp-context-card');
+    var contextHead = el('div', 'cp-card-head'), contextCopy = el('div'); contextCopy.append(el('h2', '', 'Datos del registro'), el('p', 'cp-help', 'Prellenados con tu sesión. Puedes ajustar fecha, hora y turno antes de guardar.'));
+    contextHead.append(contextCopy); contextCard.append(contextHead);
+    var contextGrid = el('div', 'cp-context-grid');
+    var date = input('date', { name: 'sanitation_date', value: context.date, max: today() });
+    var time = input('time', { name: 'sanitation_time', value: context.time });
+    var shift = selectInput('sanitation_shift', [['Matutino', 'Matutino'], ['Vespertino', 'Vespertino'], ['Cierre', 'Cierre'], ['Otro', 'Otro']], context.shift || 'Matutino');
+    contextGrid.append(field('Fecha', date), field('Hora', time), field('Turno', shift));
+    date.onchange = function () { if (!date.value || date.value === context.date) return; state.dailyDate = date.value; state.sanitationData = null; load(true); };
+    var fixed = el('div', 'cp-context-fixed'); fixed.append(el('span', '', 'Sucursal'), el('strong', '', context.branch_name), el('span', '', 'Responsable'), el('strong', '', context.responsible_name)); contextGrid.append(fixed); contextCard.append(contextGrid); host.append(contextCard);
+
+    var sanitation = card('Limpieza y desinfección', (data.items || []).length + ((data.items || []).length === 1 ? ' equipo o área en esta sede.' : ' equipos y áreas en esta sede.'));
+    var toolbar = el('div', 'cp-daily-toolbar'), selectLabel = el('label', 'cp-select-all'), selectAll = input('checkbox', { name: 'sanitation_select_all' });
+    selectLabel.append(selectAll, el('span', '', 'Seleccionar pendientes'));
+    var toolbarActions = el('div', 'cp-toolbar-actions');
+    if (context.can_manage) { var add = el('button', 'btn btn-secondary btn-sm', '+ Agregar equipo o área'); add.type = 'button'; add.onclick = askSanitationAsset; toolbarActions.append(add); }
+    var saved = el('span', 'cp-daily-saved', (data.items || []).filter(function (item) { return item.last_log; }).length + ' registrados hoy'); toolbarActions.append(saved); toolbar.append(selectLabel, toolbarActions); sanitation.append(toolbar);
+    var listRows = el('ul', 'cp-daily-list cp-sanitation-list'); (data.items || []).forEach(function (item) { listRows.append(sanitationRow(item, context)); }); sanitation.append(listRows);
+    var checks = function () { return Array.from(listRows.querySelectorAll('[name=sanitation_check]:not(:disabled)')); };
+    function updateSelectAll() { var list = checks(), selected = list.filter(function (box) { return box.checked; }).length; selectAll.checked = !!list.length && selected === list.length; selectAll.indeterminate = selected > 0 && selected < list.length; }
+    updateSelectAll(); selectAll.onchange = function () { checks().forEach(function (box) { box.checked = selectAll.checked; }); updateSelectAll(); };
+    listRows.onchange = function (event) { if (event.target && event.target.name === 'sanitation_check') updateSelectAll(); };
+
+    var foot = el('footer', 'cp-daily-foot'), save = el('button', 'btn btn-primary', 'Guardar registros'); save.type = 'button'; save.disabled = !context.can_write;
+    save.onclick = async function () {
+      var selected = checks().filter(function (box) { return box.checked; });
+      if (!selected.length) { saved.textContent = 'Selecciona al menos un equipo o área.'; saved.dataset.error = 'true'; return; }
+      var values = [], invalid = '';
+      selected.forEach(function (box) {
+        var row = box.closest('.cp-sanitation-row'), status = row.querySelector('[name=sanitation_status]').value, notes = row.querySelector('[name=sanitation_notes]').value.trim();
+        if (status === 'incident' && notes.length < 3) invalid = 'Describe la incidencia de “' + row.querySelector('.cp-row-copy strong').textContent + '”.';
+        values.push({ asset_id: box.value, status: status, product_method: row.querySelector('[name=sanitation_product]').value.trim(), notes: notes });
+      });
+      if (invalid) { saved.textContent = invalid; saved.dataset.error = 'true'; return; }
+      if (!date.value || !time.value) { saved.textContent = 'Revisa la fecha y la hora.'; saved.dataset.error = 'true'; return; }
+      save.disabled = true; save.textContent = 'Guardando…'; saved.dataset.error = 'false';
+      try {
+        await rpc('smyl_save_daily_sanitation', { p_branch_id: context.branch_id, p_local_date: date.value, p_local_time: time.value, p_shift: shift.value, p_checks: values });
+        state.sanitationData = null; await load(true);
+      } catch (error) { saved.textContent = friendly(error); saved.dataset.error = 'true'; save.disabled = false; save.textContent = 'Guardar registros'; }
+    };
+    var cycle = el('button', 'btn btn-secondary', 'Registrar ciclo de esterilización'); cycle.type = 'button'; cycle.onclick = askCycle;
+    var actions = el('div', 'cp-daily-actions'); actions.append(cycle, save);
+    foot.append(el('p', '', 'SMYL guarda la hora indicada y también la hora real de captura. Los registros anteriores no se sobrescriben.'), actions); sanitation.append(foot); host.append(sanitation);
+
+    var activity = state.dailyData && state.dailyData.activity || {}, automatic = el('section', 'cp-auto-card');
+    automatic.append(el('div', 'cp-card-head', null)); var automaticHead = automatic.firstChild; var autoCopy = el('div'); autoCopy.append(el('h2', '', 'Comprobaciones automáticas'), el('p', 'cp-help', 'Sólo informativas; no se mezclan con la bitácora manual.')); automaticHead.append(autoCopy, chip('ok', 'Sin captura doble'));
+    var autoList = el('div', 'cp-auto-grid');
+    [['Notas clínicas', activity.draft_notes > 0 ? activity.draft_notes + ' en borrador' : (activity.signed_notes || 0) + ' firmadas'], ['Pacientes atendidos', (activity.visits || 0) + ' registrados por Agenda']].forEach(function (row) { var item = el('div'); item.append(el('span', '', row[0]), el('strong', '', row[1])); autoList.append(item); }); automatic.append(autoList); host.append(automatic);
+
+    renderSanitationHistory(host, data.history);
+    var link = el('section', 'cp-guide-link'), linkCopy = el('div'); linkCopy.append(el('strong', '', '¿Buscas documentos, vigencias o preparación para una visita?'), el('span', '', 'Esos controles están separados en la Guía COFEPRIS.'));
+    var open = el('button', 'btn btn-secondary', 'Abrir Guía COFEPRIS'); open.type = 'button'; open.onclick = function () { setView('guide'); }; link.append(linkCopy, open); host.append(link);
+  }
   function updateHead() {
     var daily = state.view === 'daily', title = document.getElementById('cp-title'), desc = document.getElementById('cp-description'), eye = document.getElementById('cp-eyebrow');
     if (eye) eye.textContent = daily ? 'OPERACIÓN DE LA CLÍNICA' : 'CONFIGURACIÓN · CUENTA Y SEGURIDAD';
     if (title) title.textContent = daily ? 'Revisión diaria' : 'Guía COFEPRIS';
-    if (desc) desc.textContent = daily ? 'Una comprobación breve y opcional para revisar sólo lo que haya aplicado hoy.' : 'Organiza documentos y evidencias para una posible visita sanitaria; no certifica el cumplimiento.';
+    if (desc) desc.textContent = daily ? 'Bitácora opcional por equipo y área, con fecha, hora, sucursal y responsable.' : 'Organiza documentos y evidencias para una posible visita sanitaria; no certifica el cumplimiento.';
     document.querySelectorAll('[data-cp-view]').forEach(function (button) { var active = button.dataset.cpView === state.view; button.classList.toggle('active', active); button.setAttribute('aria-selected', active ? 'true' : 'false'); });
     document.querySelectorAll('[data-guide-action]').forEach(function (button) { button.hidden = daily; });
     if (win.TITULOS) win.TITULOS.cumplimiento = daily ? 'Revisión diaria' : 'Guía COFEPRIS';
