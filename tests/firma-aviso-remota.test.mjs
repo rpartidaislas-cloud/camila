@@ -55,7 +55,7 @@ test('Consultorio: «Pedir firma» pregunta dónde firma y, por celular, espera 
 test('versiones y caché del panel y su copia móvil', () => {
   for (const f of ['app.html', 'mobile/www/app.html']) {
     const t = read(f);
-    assert.match(t, /smyl-consultorio\.js\?v=14/);
+    assert.match(t, /smyl-consultorio\.js\?v=15/);
     assert.match(t, /smyl-visit-model\.js\?v=7/);
   }
   assert.match(sw, /firma-aviso-remota-v1/);

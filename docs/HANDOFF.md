@@ -1,3 +1,39 @@
+## 2026-11-27 — Claude Code — Facturación: firmar la Carta Manifiesto de Facturapi dentro de SMYL
+
+- Petición de Ricardo: Facturapi exige la Carta Manifiesto para validar la facturación, y ya se resolvió en LANA (`promodesk`, `config.jsx`, task-ids `cfdi-org-pasos-pendientes-live` y su ampliación). Que SMYL la tenga igual.
+- **Qué faltaba:** SMYL ya leía el paso pendiente `manifiesto` de Facturapi, pero solo mostraba un texto («firma la carta y pulsa Revisar de nuevo») sin dar cómo firmarla.
+- **Qué hace ahora** (`smyl-finance.js` v91 / `.css` v65):
+  - En Configuración → Cobros y caja → Facturación, el paso «Tu certificado (CSD) y activación» muestra el botón **«Firmar Carta Manifiesto»** cuando el CSD ya está cargado y Facturapi sigue pidiendo la carta.
+  - El botón abre un diálogo que explica que firma el dueño del RFC con su e.firma (no es el CSD). «Mostrar formulario de firma» incrusta el módulo oficial `https://www.facturapi.io/embedded/manifiesto`, solo bajo demanda.
+  - «Abrir en otra ventana» abre `https://www.facturapi.io/manifiesto`. Respaldo siempre visible: Facturapi **no permite** incrustar ese portal (`X-Frame-Options: SAMEORIGIN`); el módulo `/embedded/` sí (`frame-ancestors *`).
+  - El diálogo revisa en Facturapi cada 25 s mientras esté visible, con tope de 48 revisiones, y también con «Ya firmé, revisar». Al detectar que el paso se completó, se cierra y actualiza el estado.
+  - Si todavía falta el CSD, el texto avisa que después viene la carta.
+  - Requiere el permiso de facturación, igual que subir el CSD.
+- **CSP (seguridad):** `app.html` y `mobile/www/app.html` añaden `https://www.facturapi.io` **solo a `frame-src`**. Facturapi no es origen de scripts ni de conexiones del panel. El iframe lleva `sandbox` sin permiso para navegar la página de SMYL y `referrerpolicy="no-referrer"`. SMYL no ve ni guarda la e.firma: el formulario es de otro origen.
+- **Verificado:** con el navegador de pruebas, el módulo real de Facturapi carga dentro de una página con la CSP real de SMYL y ese `sandbox`, sin violaciones; muestra el texto legal (reglas 2.7.2.5 y 2.7.2.7) y pide subir la e.firma. **No se probó firmar con una e.firma real.**
+- **Ojo:** la carta aplica a la cuenta de facturación **de SMYL** (modo plataforma). Con «cuenta propia de Facturapi en pruebas» no hace falta y no aparece. La producción solo se activa con la cuenta de SMYL.
+- **Pruebas:** nuevo `tests/smyl-billing-manifest.test.mjs` y ampliación de `tests/app-csp.test.mjs`. Las pruebas que fijaban `smyl-finance.js?v=90` y `smyl-finance.css?v=64` ahora aceptan cualquier `v=9x` y `v=6x`. En la suite completa no hay fallas nuevas: los dos casos que aparecieron son pruebas de navegador del chat que fallan de forma intermitente con o sin este cambio.
+- **Despliegue:** solo frontend, no hay nada que desplegar en Supabase.
+
+## 2026-11-27 — Claude — Prospecto → paciente (PR 2: interfaz)
+
+- Requiere la migración `20261203100000_smyl_prospect_lifecycle.sql` (ya aplicada por Ricardo; el alta reintenta sin `ciclo_vida` si aún no existiera).
+- Agenda (`smyl-schedule.js` v70): «Registrar como paciente nuevo» da de alta con `ciclo_vida='prospecto'`; el texto lo dice («pasa a Pacientes cuando llega a su primera cita»). El buscador de la agenda sigue encontrando a los prospectos para volver a agendarlos.
+- Pacientes (`smyl-clinic.js` v32, `smyl-clinic.css` v15, `smyl-patients-directory.css` v4): los prospectos salen de la lista normal y de los contadores; aparece el filtro **Prospectos** (oculto mientras no haya ninguno) con su cuenta; la fila muestra «Prospecto» y el botón **Convertir en paciente** (RPC `smyl_promote_prospect`). Al marcar «Llegó» en la agenda la conversión ocurre sola en base de datos.
+- Web/PWA/móvil sincronizados, `sw.js` con `-prospectos-v1`. Se actualizaron los pines de versión en las pruebas que los fijan.
+- Pendiente para Ricardo: ejecutar `docs/sql-prospectos-migrar-pegar-en-supabase.sql` (primero la vista previa) para reclasificar los contactos «por registrar» que ya existen.
+- No se tocó la ficha del paciente (no muestra aviso de prospecto) ni `camila_confirmar_lana_handoff`. Sin captura visual de la lista con la sesión real: revisar escritorio/tablet/móvil al publicar.
+
+## 2026-11-27 — Claude — Prospecto → paciente (PR 1: base de datos)
+
+- Migración nueva `20261203100000_smyl_prospect_lifecycle.sql` (aditiva; **la aplica Ricardo en el SQL Editor**): `camila_pacientes.ciclo_vida` (`prospecto`|`paciente`, por omisión `paciente`) y `convertido_at`. La cita sigue apuntando a la misma fila; no cambia ninguna FK.
+- Disparador en `smyl_appointments` (`smyl_promote_prospect_on_attendance`): al pasar a `arrived`/`in_progress`/`completed` (o nacer así, como walk-in) el prospecto se vuelve paciente. Es disparador y no cambio en `smyl_transition_appointment` para cubrir todas las rutas. Guarda de invariante en `camila_pacientes`: quien ya tiene una cita atendida nunca queda como prospecto.
+- RPC `smyl_promote_prospect(p_patient_id)` para «Convertir en paciente» a mano (exige `patients.manage` y alcance del paciente).
+- **No reclasifica datos.** `docs/sql-prospectos-migrar-pegar-en-supabase.sql` trae vista previa (cuántos pasarían) y el UPDATE comentado: solo personas «por registrar» sin cita atendida, sin antecedente clínico y sin caso.
+- Pendiente (PR 2, interfaz): que la agenda dé de alta a la persona nueva con `ciclo_vida='prospecto'` (con reintento sin la columna si la migración aún no está), ocultar prospectos de Pacientes, filtro «Prospectos» y botón «Convertir en paciente». `camila_confirmar_lana_handoff` (alta explícita desde el chat con caso) NO se tocó: sigue creando pacientes.
+- También: se renombraron dos migraciones que habían quedado con versión repetida tras fusionar otras sesiones: `daily_sanitation_log` → `20261127181000` (chocaba con `finance_deploy_check`) y `cash_close_online_report` → `20261128121000` (chocaba con `no_show_followup`). Si ya las habías aplicado a mano con la versión anterior, son idempotentes.
+- Pruebas: `tests/smyl-prospect-lifecycle.test.mjs` (PostgreSQL real con PGlite: agendar no convierte, no-show no convierte, «Llegó» y walk-in sí, el invariante, conversión manual con permisos y aislamiento por clínica).
+
 ## 2026-11-27 — Claude — Rotación de la llave de cifrado de LANA (`key_version`)
 
 - Nuevo `supabase/functions/_shared/lana-crypto-core.mjs` (puro, probado en Node): llavero con la llave vigente (`SMYL_LANA_ENCRYPTION_KEY` + `_VERSION`, por omisión `1`) y, solo durante la rotación, la anterior (`SMYL_LANA_ENCRYPTION_KEY_PREVIOUS` + `_PREVIOUS_VERSION`). Cada credencial guarda `key_version`; sin él cuenta como `1`, así que **nada cambia hasta que se configure una llave nueva** y no hace falta migración.
@@ -13032,3 +13068,25 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - `smyl-case-workspace.js` v56: «Preparar/Revisar presupuesto» monta el editor en `#cw-quote-host` dentro de la etapa Presupuesto (ya no navega a Cotizaciones); `SmylCaseWorkspace.openQuote(patient)` lo abre desde el plan; `smyl-clinic.js` v31: «Preparar presupuesto · opcional» del plan usa `openQuote`. El espacio de trabajo clínico sigue sin consultar la base. Si el espacio no está disponible, se cae al flujo anterior (`forPatient`).
 - Sin migraciones. Sufijo SW `-presupuesto-incrustado-v1`, copias en `mobile/www/`. Pruebas: `tests/embedded-quote.test.mjs`, `tests/qa/presupuesto-incrustado-smoke.cjs`.
 - Pendiente: «Cotizar ahora» desde el selector de pacientes (Inicio/Cotizaciones) aún abre la pantalla de Cotizaciones; entrega 4 (avance del tratamiento: conceptos realizados vs pendientes y saldo, aviso al cerrar).
+
+## 2026-11-27 · Codex · Mi clínica y Cobros y caja
+
+- El menú de escritorio y «Más» en celular reúnen Cobros y caja, Inventario, Servicios y tarifas, Reportes y Nube en Mi clínica. La ruta de cobro sigue siendo `caja`. El buscador de módulos también reconoce el nombre anterior.
+- Cobros y caja abre en Por cobrar. Le siguen Caja, Pagos y recibos y Facturación. En Pagos y recibos se puede abrir un comprobante por nombre, apellido o folio sin elegir fecha. Limpiar la búsqueda devuelve los filtros previos. Si se alcanza el límite de carga del historial se indica el alcance de la búsqueda.
+- Cambios principales en `smyl-navigation.js`, `smyl-command-menu.js`, `smyl-finance.js` y `smyl-finance.css`, con nombres actualizados en los accesos desde Agenda, Consultorio, Configuración, alertas y cotizaciones. Se sincronizaron la PWA, las copias móviles y el texto del catálogo de plantillas.
+
+## 2026-11-27 · Codex · Verificación de cobros y movimientos del turno
+
+- En Cobros y caja, un pago cuya respuesta se perdió queda pendiente de verificación para la clínica y el usuario de esa pestaña. La consulta distingue un pago registrado, una respuesta vacía válida y una consulta fallida. Un reintento explícito conserva el identificador, la llave, la fecha, el importe y las aplicaciones originales.
+- Caja incluye los turnos abiertos antiguos y pagina sus ajustes por identificador de turno. Si el historial general alcanza su límite, completa los pagos, reembolsos y recibos de los turnos abiertos. Antes de cerrar, consulta el efectivo esperado mediante la función existente `smyl_cash_session_expected`. Si el importe cambió, vuelve a mostrar el corte con las cantidades capturadas.
+- Archivos principales: `smyl-finance.js`, `app.html`, `sw.js` y sus copias en `mobile/www`. Pruebas en `tests/finance-attempts.test.mjs`, `tests/caja-paginada.test.mjs` y `tests/qa/finanzas-pestanas-smoke.cjs`. Sin migraciones.
+
+## 2026-11-27 — Codex — Consentimiento del paciente con firma presencial simple A/B
+
+- El consentimiento informado ofrece exactamente dos rutas: **A. Firmar con mi celular** mediante QR presencial de cinco minutos y un solo uso, o **B. Firmar en este dispositivo** con dedo, lápiz táctil o mouse. WhatsApp no aparece como método de firma y ambas rutas terminan en la misma finalización clínica.
+- La ruta móvil abre `firma-consentimiento.html`: muestra el documento exacto, la aceptación textual versionada por el servidor, firma manuscrita PNG 600 × 200, vista previa obligatoria y confirmación final. El token viaja sólo en el fragmento, se retira del historial visible y nunca se guarda en claro.
+- El profesional revisa la firma, confirma presencialmente la identidad y cierra el documento con reautenticación. Cambiar documento o firmante invalida la captura anterior. El expediente conserva texto, firma, método, folio, fechas del servidor, cédula y huellas de integridad; el original queda inmutable y una revocación no lo borra.
+- Backend: `supabase/migrations/20261129130000_smyl_informed_consent_signing.sql`. Incluye enlaces efímeros, RLS/RPC-only, finalización idempotente común QR/local, auditoría, retención y purga. Si producción no tiene `pg_cron`, hay que programar externamente `smyl_purge_expired_informed_consent_signature_links(integer)`.
+- Frontend/PWA: `smyl-informed-consent.js/.css` v3, `firma-consentimiento.html`, `smyl-consent-signature.js/.css`, caché y copia exacta en `mobile/www/`.
+- Validación: 16 pruebas de contrato/migración y 2 recorridos reales de navegador pasan; escritorio y 390 px sin desborde.
+- No afirmar cumplimiento integral de NOM-004 para cartas formales: este flujo todavía no incorpora las dos firmas de testigos que pueden corresponder a esos documentos.

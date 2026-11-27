@@ -32,6 +32,6 @@ test('el plan muestra precio por tratamiento, total vivo y agrega servicios del 
 test('web, PWA y móvil publican la misma versión', () => {
   for (const f of ['smyl-clinic.js', 'smyl-clinic.css', 'smyl-proposal-model.js', 'smyl-proposals.js', 'app.html', 'sw.js'])
     assert.equal(read(f), read('mobile/www/' + f), f);
-  assert.match(read('app.html'), /smyl-clinic\.js\?v=31/);
+  assert.match(read('app.html'), /smyl-clinic\.js\?v=32/);
   assert.match(read('sw.js'), /plan-con-precios-v1/);
 });

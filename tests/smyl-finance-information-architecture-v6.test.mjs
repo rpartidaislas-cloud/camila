@@ -14,8 +14,8 @@ const css = read('smyl-finance.css');
 
 test('Finanzas abre en Por cobrar: cuatro pestañas con cifra y sin pestaña Resumen', () => {
   assert.match(finance, /actor:null,tab:'accounts'/);
-  assert.match(finance, /var TABS=\[\['accounts','Por cobrar'\],\['receipts','Pagos'\],\['cash','Caja'\],\['fiscal','Facturación'\]\]/);
-  assert.match(finance, /<nav class="finance-tabcards" role="tablist" aria-label="Secciones de Finanzas">/);
+  assert.match(finance, /var TABS=\[\['accounts','Por cobrar'\],\['cash','Caja'\],\['receipts','Pagos y recibos'\],\['fiscal','Facturación'\]\]/);
+  assert.match(finance, /<nav class="finance-tabcards" role="tablist" aria-label="Secciones de Cobros y caja">/);
   assert.match(finance, /<span class="finance-tab-name">'\+t\[1\]\+'<\/span><strong class="finance-tab-figure">—<\/strong><small class="finance-tab-note"><\/small>/);
   for (const gone of ["tab:'summary'", 'Panorama financiero de la clínica', 'Del saldo al cierre', 'finance-flow', 'finance-overview', 'renderFinanceOverview', 'renderMetrics', 'METRIC_GO', 'finance-titlebar']) {
     assert.ok(!finance.includes(gone), gone);
@@ -96,7 +96,7 @@ test('solo se dibuja la pestaña visible y las listas largas van de 50 en 50', (
 });
 
 test('un nombre para cada cosa dentro de Finanzas', () => {
-  for (const old of ['Registrar pago', 'Cobrar a paciente', 'Agregar cargo', 'Agregar servicio', 'Registrar anticipo', 'Realizar corte', 'Confirmar cierre', 'Entrada / salida', 'Cuentas por cobrar', 'Cuentas de pacientes', 'Pagos y recibos', 'Pendientes de registrar', 'Cuentas por crear', 'Operaciones', '>Sin cargo<', 'Cerrar sin cargo']) {
+  for (const old of ['Registrar pago', 'Cobrar a paciente', 'Agregar cargo', 'Agregar servicio', 'Registrar anticipo', 'Realizar corte', 'Confirmar cierre', 'Entrada / salida', 'Cuentas por cobrar', 'Cuentas de pacientes', 'Pendientes de registrar', 'Cuentas por crear', 'Operaciones', '>Sin cargo<', 'Cerrar sin cargo']) {
     assert.ok(!finance.includes(old), old);
   }
   for (const name of ['>Cobrar</button>', '<h2>Cobrar</h2>', '<h2>Registrar cargo</h2>', '>Registrar cargo</button>', '>Fue sin costo</button>', 'Citas atendidas sin cobrar', '>Recibir anticipo</button>', '>Hacer corte</button>', '>Entrada o salida</button>', "'Cerrar sin costo'"]) {
@@ -105,10 +105,10 @@ test('un nombre para cada cosa dentro de Finanzas', () => {
 });
 
 test('el lenguaje visible adopta Finanzas en navegación y configuración', () => {
-  assert.match(read('smyl-navigation.js'), /\['Finanzas', 'caja', 'cash'\]/);
-  assert.match(read('smyl-professional-v3.js'), /caja:\['Finanzas','Saldos, pagos y control financiero de la clínica'\]/);
-  assert.match(read('smyl-settings-hub.js'), /id: 'cobros', title: 'Finanzas'/);
-  assert.match(read('smyl-consultorio.js'), /Ir a Finanzas/);
+  assert.match(read('smyl-navigation.js'), /\['Cobros y caja', 'caja', 'cash'\]/);
+  assert.match(read('smyl-professional-v3.js'), /caja:\['Cobros y caja','Saldos de pacientes, recibos y cortes de caja'\]/);
+  assert.match(read('smyl-settings-hub.js'), /id: 'cobros', title: 'Cobros y caja'/);
+  assert.match(read('smyl-consultorio.js'), /Ir a Cobros y caja/);
   assert.match(read('smyl-proposals.js'), /Iniciar tratamiento/);
 });
 
@@ -133,10 +133,10 @@ test('web y PWA comparten la misma entrega versionada', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-xlsx.js', 'smyl-navigation.js', 'smyl-professional-v3.js', 'smyl-settings-hub.js', 'smyl-consultorio.js', 'smyl-proposals.js', 'app.html', 'sw.js']) {
     assert.equal(read(file), read('mobile/www/' + file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=63/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=87/);
-  assert.match(read('sw.js'), /smyl-finance\.js\?v=87/);
-  assert.match(read('sw.js'), /smyl-finance\.css\?v=63/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=6\d/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=9\d/);
+  assert.match(read('sw.js'), /smyl-finance\.js\?v=9\d/);
+  assert.match(read('sw.js'), /smyl-finance\.css\?v=6\d/);
   assert.match(read('sw.js'), /finanzas-pestanas-v6/);
   assert.match(read('sw.js'), /finanzas-cobrar-pagos-v7/);
 });

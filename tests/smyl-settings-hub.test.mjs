@@ -11,7 +11,7 @@ const hub = createRequire(import.meta.url)('../smyl-settings-hub.js');
 
 test('las secciones siguen las tareas administrativas de la clínica', () => {
   assert.deepEqual(hub.SECTIONS.map(s => s.id), ['clinica', 'equipo', 'agenda', 'catalogo', 'canales', 'cobros', 'cuenta']);
-  assert.deepEqual(hub.SECTIONS.map(s => s.title), ['Clínica', 'Equipo', 'Agenda', 'Catálogo', 'Canales', 'Finanzas', 'Cuenta y seguridad']);
+  assert.deepEqual(hub.SECTIONS.map(s => s.title), ['Clínica', 'Equipo', 'Agenda', 'Catálogo', 'Canales', 'Cobros y caja', 'Cuenta y seguridad']);
   assert.ok(hub.SECTIONS.every(section => section.icon), 'cada área necesita un icono funcional');
   assert.ok(hub.SECTIONS.every(section => section.items.every(item => item.group && item.icon)), 'cada tarea debe pertenecer a un grupo y tener icono');
   assert.deepEqual(hub.groupedItems(hub.SECTIONS[4]).map(group => [group.name, group.items.length]), [
@@ -82,9 +82,9 @@ test('la configuración se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-settings-hub.js', 'smyl-settings-hub.css', 'smyl-navigation.js', 'smyl-clinic-setup.js', 'smyl-professional-v3.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=21/);
+  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=22/);
   assert.match(read('app.html'), /smyl-settings-hub\.css\?v=6/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=21/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=22/);
   assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=6/);
 });
 

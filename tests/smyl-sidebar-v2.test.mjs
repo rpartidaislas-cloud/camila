@@ -12,7 +12,7 @@ const v2 = css.slice(css.indexOf('/* Menú lateral v2'));
 test('los grupos arrancan cerrados, se abren al entrar y se cierran al salir', () => {
   assert.match(nav, /nav\.append\(sectionLabel\('Comunicación'\)\)/);
   assert.match(nav, /detailsGroup\('Mensajería', MESSAGING, false, 'messages'\)/);
-  assert.match(nav, /detailsGroup\('Negocio', BUSINESS, false, 'reports'\)/);
+  assert.match(nav, /detailsGroup\('Mi clínica', BUSINESS, false, 'reports'\)/);
   assert.match(nav, /group\.open = contains;/);
   assert.match(nav, /pro-nav-group-count/);
 });

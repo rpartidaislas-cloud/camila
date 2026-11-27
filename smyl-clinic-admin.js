@@ -44,7 +44,7 @@
   var SCOPE_GROUPS = [
     { key: 'patients', label: 'Pacientes' }, { key: 'schedule', label: 'Agenda' },
     { key: 'clinical', label: 'Expediente clínico' }, { key: 'messages', label: 'Chat de quien coordina' },
-    { key: 'finance', label: 'Finanzas' }
+    { key: 'finance', label: 'Cobros y caja' }
   ];
   var state = { branchStep: {},
     tenant: null, actor: null, loading: false, loaded: false, mutating: false,

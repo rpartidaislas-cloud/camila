@@ -26,16 +26,22 @@
   window.__db=db;
   window.__calls=[];
   function chain(table){
-    const q={table,filters:[],single:false};
+    const q={table,filters:[],single:false,offset:0,limit:Infinity,orders:[]};
     const api=new Proxy(function(){},{
       get(_,prop){
         if(prop==='then'){return (res,rej)=>{
           let rows=(db[table]||[]).slice();
           q.filters.forEach(f=>{rows=rows.filter(r=>f[2]==='in'?f[1].includes(r[f[0]]):r[f[0]]===f[1]);});
-          let out={data:q.single?(rows[0]||null):rows,error:null,count:rows.length};
+          const count=rows.length;
+          if(q.orders.length)rows.sort((a,b)=>{for(const [col,dir] of q.orders){if(a[col]<b[col])return -dir;if(a[col]>b[col])return dir;}return 0;});
+          rows=rows.slice(q.offset,q.offset+q.limit);
+          let out={data:q.single?(rows[0]||null):rows,error:null,count};
           window.__calls.push(['from',table]);
           return Promise.resolve(out).then(res,rej);
         };}
+        if(prop==='range')return (a,z)=>{q.offset=a;q.limit=z-a+1;return api;};
+        if(prop==='limit')return n=>{q.limit=n;return api;};
+        if(prop==='order')return (col,o)=>{q.orders.push([col,o?.ascending===false?-1:1]);return api;};
         if(prop==='in'){return (c,v)=>{q.filters.push([c,v,'in']);return api;};}
         if(prop==='eq'){return (c,v)=>{q.filters.push([c,v]);return api;};}
         if(prop==='maybeSingle'||prop==='single'){return ()=>{q.single=true;return api;};}
@@ -58,7 +64,14 @@
         signOut:async()=>({error:null}),
       },
       from:chain,
-      rpc:async(name,args)=>{window.__calls.push(['rpc',name,args]);if(name==='smyl_mark_appointment_no_charge'){db.smyl_appointment_no_charge.push({tenant_id:T,appointment_id:args.p_appointment_id,reason:args.p_reason,decided_at:new Date().toISOString()});return {data:null,error:null};}if(name==='smyl_reopen_appointment_charge'){db.smyl_appointment_no_charge=db.smyl_appointment_no_charge.filter(n=>n.appointment_id!==args.p_appointment_id);return {data:null,error:null};}if(name==='smyl_post_charge'){const row={id:args.p_id,tenant_id:T,patient_id:args.p_patient_id,appointment_id:args.p_appointment_id,status:'open',total_amount:args.p_unit_price,concept:args.p_concept,created_at:new Date().toISOString()};db.smyl_finance_charges.push(row);return {data:[row],error:null};}return {data:name in rpcData?rpcData[name]:[],error:null};},
+      rpc:async(name,args)=>{window.__calls.push(['rpc',name,args]);if(name==='smyl_cash_session_expected'){
+          const id=args.p_session_id,s=db.smyl_cash_sessions?.find(s=>s.id===id);
+          if(!s)return {data:null,error:null};
+          const payments=(db.smyl_finance_payments||[]).filter(p=>p.cash_session_id===id&&p.method==='cash');
+          const refunds=(db.smyl_finance_refunds||[]).filter(r=>r.refund_method?r.refund_method==='cash'&&r.refund_cash_session_id===id:payments.some(p=>p.id===r.payment_id));
+          const adjustments=(db.smyl_cash_adjustments||[]).filter(a=>a.cash_session_id===id);
+          return {data:Number(s.opening_cash)+payments.reduce((n,p)=>n+Number(p.amount),0)-refunds.reduce((n,r)=>n+Number(r.amount),0)+adjustments.reduce((n,a)=>n+Number(a.amount)*(a.direction==='in'?1:-1),0),error:null};
+        }if(name==='smyl_mark_appointment_no_charge'){db.smyl_appointment_no_charge.push({tenant_id:T,appointment_id:args.p_appointment_id,reason:args.p_reason,decided_at:new Date().toISOString()});return {data:null,error:null};}if(name==='smyl_reopen_appointment_charge'){db.smyl_appointment_no_charge=db.smyl_appointment_no_charge.filter(n=>n.appointment_id!==args.p_appointment_id);return {data:null,error:null};}if(name==='smyl_post_charge'){const row={id:args.p_id,tenant_id:T,patient_id:args.p_patient_id,appointment_id:args.p_appointment_id,status:'open',total_amount:args.p_unit_price,concept:args.p_concept,created_at:new Date().toISOString()};db.smyl_finance_charges.push(row);return {data:[row],error:null};}return {data:name in rpcData?rpcData[name]:[],error:null};},
       functions:{invoke:async(name)=>{window.__calls.push(['fn',name]);return {data:{},error:null};}},
       storage:{from:()=>({createSignedUrl:async()=>({data:null,error:null}),getPublicUrl:()=>({data:{publicUrl:''}}),list:async()=>({data:[],error:null}),upload:async()=>({data:{},error:null})})},
       channel:()=>{const c={on:()=>c,subscribe:()=>c,unsubscribe(){}};return c;},

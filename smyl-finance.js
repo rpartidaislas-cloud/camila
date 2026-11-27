@@ -2,8 +2,8 @@
 (function(){
   'use strict';
   var state={creditApps:[],noShowFee:0,settingsReady:false,visitAppointments:[],visitCharges:[],noCharge:[],noChargeReady:false,loaded:false,loading:false,tenant:null,actor:null,tab:'accounts',accountFilter:'open',payPeriod:'today',payMethod:'',payFrom:'',payTo:'',fiscalFilter:'drafts',canRead:false,canManage:false,canCash:false,canSuperviseCash:false,canInvoice:false,patients:[],team:[],branches:[],services:[],appointments:[],proposals:[],proposalBatches:[],proposalDecisions:[],proposalDecisionItems:[],charges:[],payments:[],allocations:[],refunds:[],refundAllocations:[],receipts:[],sessions:[],adjustments:[],fiscal:[],drafts:[],issuer:null,pac:null,cancellations:[],fiscalReadiness:null,rolePermissions:[],memberRoles:[],truncated:[],shown:{accounts:50,payments:50,moves:12,cuts:5,invoices:50}};
-  // Las cuatro pestañas de Finanzas. Los ids no cambian: Configuración abre «receipts» y «cash» por su id.
-  var TABS=[['accounts','Por cobrar'],['receipts','Pagos'],['cash','Caja'],['fiscal','Facturación']],PAGE_ROWS=50;
+  // Las cuatro pestañas de Cobros y caja. Los ids no cambian: Configuración abre «receipts» y «cash» por su id.
+  var TABS=[['accounts','Por cobrar'],['cash','Caja'],['receipts','Pagos y recibos'],['fiscal','Facturación']],PAGE_ROWS=50;
   function moreRows(total,shown,key){return total>shown?'<div class="finance-more-rows"><span>Mostrando '+shown+' de '+total+'</span><button type="button" class="btn btn-secondary" data-more-rows="'+key+'">Mostrar '+Math.min(PAGE_ROWS,total-shown)+' más</button></div>':'';}
   function bindMoreRows(host,key,again){var b=host.querySelector('[data-more-rows="'+key+'"]');if(b)b.onclick=function(){state.shown[key]+=PAGE_ROWS;again();};}
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
@@ -33,17 +33,65 @@
   var PAGE_SIZE=1000,PAGE_CAP=10000;
   function pageCap(){return Math.max(50,Number(window.__smylFinancePageCap)||PAGE_CAP);}
   function pageSize(){return Math.min(PAGE_SIZE,pageCap());} // (__smylFinancePageCap solo lo usan las pruebas de navegador)
-  async function pageAll(table,cols,orders,tag){
+  async function pageAll(table,cols,orders,tag,scope){
     var rows=[],from=0,tenant=state.tenant,size=pageSize();
     for(;;){
       var b=window.sb.from(table).select(cols).eq('tenant_id',tenant);
+      if(scope)b=scope(b);
       orders.forEach(function(o){b=b.order(o[0],{ascending:o[1]});});
-      var page=await q(b.range(from,from+size-1))||[];
-      rows=rows.concat(page);
+      var page=await q(b.range(from,from+size-1));
+      if(!Array.isArray(page))throw new Error('No se pudo consultar la lista completa de movimientos.');
+      rows.push.apply(rows,page);
       if(page.length<size)return rows;
       from+=size;
-      if(rows.length>=pageCap()){if(state.truncated.indexOf(tag||table)<0)state.truncated.push(tag||table);return rows;}
+      if(!scope&&rows.length>=pageCap()){if(state.truncated.indexOf(tag||table)<0)state.truncated.push(tag||table);return rows;}
     }
+  }
+  function shiftRows(table,scope){
+    return pageAll(table,'*',[['id',true]],null,scope);
+  }
+  function distinctRows(groups){
+    var byId=new Map();
+    groups.forEach(function(rows){rows.forEach(function(row){byId.set(row.id,row);});});
+    return Array.from(byId.values());
+  }
+  async function shiftRowsForIds(table,column,ids){
+    var groups=[];
+    for(var i=0;i<ids.length;i+=60){
+      var batch=ids.slice(i,i+60);
+      groups.push(await shiftRows(table,function(query){return query.in(column,batch);}));
+    }
+    return distinctRows(groups);
+  }
+  async function loadCashSessions(){
+    var groups=await Promise.all([
+      shiftRows('smyl_cash_sessions',function(query){return query.eq('status','open');}),
+      q(window.sb.from('smyl_cash_sessions').select('*').eq('tenant_id',state.tenant).eq('status','closed').order('closed_at',{ascending:false}).order('id',{ascending:false}).limit(100))
+    ]);
+    return distinctRows(groups).sort(function(a,b){return String(b.opened_at).localeCompare(String(a.opened_at));});
+  }
+  async function completeShiftHistory(history){
+    // Los listados generales tienen un límite. El turno necesita también los movimientos anteriores a ese límite.
+    var sessions=history.sessions,active=sessions.filter(function(s){return s.status==='open';});
+    history.adjustments=await shiftRowsForIds('smyl_cash_adjustments','cash_session_id',sessions.map(function(s){return s.id;}));
+    if(!active.length||!state.truncated.some(function(tag){return ['pagos','reembolsos','recibos'].includes(tag);}))return;
+    var groups=await Promise.all(active.map(async function(s){
+      var previousClose=sessions.filter(function(o){return o.status==='closed'&&o.branch_id===s.branch_id&&o.closed_at<=s.opened_at;}).map(function(o){return o.closed_at;}).sort().pop();
+      var start=previousClose||s.opened_at;
+      return distinctRows(await Promise.all([
+        shiftRows('smyl_finance_payments',function(query){return query.eq('cash_session_id',s.id);}),
+        shiftRows('smyl_finance_payments',function(query){return query.eq('branch_id',s.branch_id).gte('paid_at',start);})
+      ]));
+    }));
+    var payments=distinctRows(groups),ids=payments.map(function(p){return p.id;});
+    var extra=await Promise.all([
+      shiftRowsForIds('smyl_finance_refunds','payment_id',ids),
+      shiftRowsForIds('smyl_finance_refunds','refund_cash_session_id',active.map(function(s){return s.id;})),
+      shiftRowsForIds('smyl_finance_receipts','payment_id',ids)
+    ]);
+    history.payments=distinctRows([history.payments,payments]);
+    history.refunds=distinctRows([history.refunds,extra[0],extra[1]]);
+    history.receipts=distinctRows([history.receipts,extra[2]]);
   }
   var inFlight=0;
   function busyButtons(on){var d=document.getElementById('finance-dialog');if(!d)return;d.querySelectorAll('form button:not([data-close])').forEach(function(b){b.disabled=on;});}
@@ -52,9 +100,86 @@
   // guarda en la sesión del navegador y se reutiliza mientras los datos sean los mismos; la base devuelve el movimiento ya registrado.
   var ATTEMPT_TTL=30*60*1000;
   function attemptFingerprint(parts){return JSON.stringify((parts||[]).map(function(x){return Array.isArray(x)?x.map(function(y){return Array.isArray(y)?y.join(':'):String(y);}).sort():String(x==null?'':x);}));}
-  function attemptRead(kind,fp){try{var r=JSON.parse(window.sessionStorage.getItem('smyl-finance-attempt-'+kind)||'null');if(r&&r.fp===fp&&Date.now()-r.at<ATTEMPT_TTL&&r.id&&r.key)return r;}catch(_){}return null;}
-  function attemptOpen(kind,fp){var prior=attemptRead(kind,fp);if(prior)return {id:prior.id,key:prior.key,reused:true};var fresh={fp:fp,id:crypto.randomUUID(),key:crypto.randomUUID(),at:Date.now()};try{window.sessionStorage.setItem('smyl-finance-attempt-'+kind,JSON.stringify(fresh));}catch(_){}return {id:fresh.id,key:fresh.key,reused:false};}
-  function attemptClose(kind){try{window.sessionStorage.removeItem('smyl-finance-attempt-'+kind);}catch(_){}}
+  var attemptsInMemory=new Map();
+  function attemptSlot(kind){
+    var slot='smyl-finance-attempt-'+kind;
+    return kind==='payment'&&state.tenant&&state.actor?slot+':'+state.tenant+':'+state.actor:slot;
+  }
+  function savedAttempt(kind){
+    var slot=attemptSlot(kind),stored=attemptsInMemory.get(slot);
+    if(stored)return stored;
+    try{
+      stored=JSON.parse(window.sessionStorage.getItem(slot)||'null');
+      // Las versiones anteriores guardaban un único intento por pestaña, sin clínica.
+      if(!stored&&kind==='payment'&&slot!=='smyl-finance-attempt-payment'){
+        var old=JSON.parse(window.sessionStorage.getItem('smyl-finance-attempt-payment')||'null');
+        if(old&&old.id&&old.key&&state.patients.some(function(p){return p.id===JSON.parse(old.fp)[0];})){
+          old.status='unverified';saveAttempt(kind,old);
+          window.sessionStorage.removeItem('smyl-finance-attempt-payment');stored=old;
+        }
+      }
+    }catch(_){}
+    return stored&&stored.fp&&stored.id&&stored.key?stored:null;
+  }
+  function saveAttempt(kind,record){
+    var slot=attemptSlot(kind);
+    attemptsInMemory.set(slot,record);
+    try{window.sessionStorage.setItem(slot,JSON.stringify(record));}catch(_){}
+  }
+  function attemptRead(kind,fp){
+    var r=savedAttempt(kind);
+    if(r&&r.fp===fp&&(kind==='payment'||Date.now()-r.at<ATTEMPT_TTL))return r;
+    return null;
+  }
+  function attemptOpen(kind,fp){
+    var prior=attemptRead(kind,fp);
+    if(prior)return {id:prior.id,key:prior.key,reused:true};
+    var fresh={fp:fp,id:crypto.randomUUID(),key:crypto.randomUUID(),at:Date.now()};
+    saveAttempt(kind,fresh);
+    return {id:fresh.id,key:fresh.key,reused:false};
+  }
+  function attemptClose(kind,id){
+    var slot=attemptSlot(kind),current=savedAttempt(kind);
+    if(id&&(!current||current.id!==id))return;
+    attemptsInMemory.delete(slot);
+    try{window.sessionStorage.removeItem(slot);}catch(_){}
+  }
+  function paymentStatus(id,status){
+    var current=savedAttempt('payment');
+    if(current&&current.id===id)saveAttempt('payment',Object.assign({},current,{status:status}));
+  }
+  function paymentRequest(attempt){
+    var parts=JSON.parse(attempt.fp);
+    var allocations=parts[6].map(function(pair){
+      var fields=pair.split(':');
+      return {charge_id:fields[0],amount:Number(fields[1])};
+    });
+    return {p_id:attempt.id,p_idempotency_key:attempt.key,p_patient_id:parts[0],p_branch_id:parts[1],p_cash_session_id:parts[2]||null,p_amount:Number(parts[3]),p_method:parts[4],p_reference:parts[5],p_paid_at:new Date(attempt.at).toISOString(),p_allocations:allocations};
+  }
+  async function submitPayment(attempt){
+    var result=await rpc('smyl_post_payment',paymentRequest(attempt));
+    var payment=Array.isArray(result)?result[0]:result;
+    if(!payment||payment.id!==attempt.id)throw new Error('Respuesta de cobro incompleta.');
+    return payment;
+  }
+  async function checkPayment(attempt){
+    // Una lista vacía en una respuesta válida es distinta de una consulta interrumpida.
+    var tenant=state.tenant,actor=state.actor;
+    try{
+      var query=window.sb.from('smyl_finance_payments').select('id').eq('tenant_id',tenant).eq('id',attempt.id).limit(1);
+      var rows=await q(query);
+      if(!Array.isArray(rows)||tenant!==window.tenantId||state.actor!==actor)return 'unknown';
+      var current=savedAttempt('payment');
+      if(!current||current.id!==attempt.id)return 'stale';
+      if(rows.some(function(row){return row.id===attempt.id;})){
+        attemptClose('payment',attempt.id);
+        return 'registered';
+      }
+      if(rows.length)return 'unknown';
+      paymentStatus(attempt.id,'missing');
+      return 'missing';
+    }catch(_){return 'unknown';}
+  }
   // Un error del servidor trae un código SQLSTATE o PGRST: el movimiento NO se registró. Cualquier otro (red, tiempo agotado) es incierto.
   function isDefiniteError(e){var c=String(e&&e.code||'');return /^[0-9A-Z]{5}$/.test(c)||/^PGRST\d+$/.test(c);}
   // Pago idéntico (mismo paciente, importe y forma) en los últimos minutos: puede ser un cobro repetido por error.
@@ -107,7 +232,7 @@
   function relDay(iso,near,far){var d=new Date(iso);if(!iso||isNaN(d.getTime()))return '';var now=new Date(),t=dayOf(d).getTime();return t===dayOf(now).getTime()?near+'hoy':t===dayOf(now,-1).getTime()?near+'ayer':far+(d.getFullYear()===now.getFullYear()?new Intl.DateTimeFormat('es-MX',{day:'numeric',month:'short'}).format(d):date(d));}
   function dayKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
   function parseDay(v){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v||''));return m?new Date(Number(m[1]),Number(m[2])-1,Number(m[3])):null;}
-  // «Pagos» se consulta por periodo. Abre en Hoy, igual que la cifra de su pestaña; «Fechas» empieza en el mes anterior, que es lo que suele pedir el contador.
+  // «Pagos y recibos» se consulta por periodo. Abre en Hoy, igual que la cifra de su pestaña; «Fechas» empieza en el mes anterior, que es lo que suele pedir el contador.
   var PAY_PERIODS=[['today','Hoy'],['week','7 días'],['month','Este mes'],['custom','Fechas']],METHOD_ORDER=['cash','card','transfer','check','other'],METHOD_PHRASE={cash:'en efectivo',card:'con tarjeta',transfer:'por transferencia',check:'con cheque',other:'con otra forma de pago'};
   function payRange(){
     var now=new Date(),first=dayOf(now),last=dayOf(now),text='hoy';
@@ -131,7 +256,7 @@
     events.sort(function(a,b){return b.t-a.t;});
     return {range:range,events:events,totalCents:total,payments:paid,refunds:refunded,byMethod:byMethod};
   }
-  // La tarjeta de «Pagos» muestra el MISMO periodo que el panel (neto de reembolsos, todas las formas de pago) para que no se contradigan.
+  // La tarjeta de «Pagos y recibos» muestra el MISMO periodo que el panel (neto de reembolsos, todas las formas de pago) para que no se contradigan.
   function periodFacts(){
     var r=payRange(),total=0,count=0,label={today:'Hoy',week:'Últimos 7 días',month:'Este mes'}[state.payPeriod]||r.text.charAt(0).toUpperCase()+r.text.slice(1);
     state.payments.forEach(function(p){var t=Date.parse(p.paid_at)||0;if(t>=r.from&&t<r.to){total+=cents(p.amount);count+=1;}});
@@ -148,8 +273,44 @@
   }
   // Estado de la factura de un pago, solo si ya tiene borrador o factura: 'en preparación', 'emitida' o 'cancelada'.
   function invoiceState(p){var d=byKey(state.drafts,'payment_id',p.id);return !d?'':d.status==='issued'?'emitida':d.status==='cancelled'?'cancelada':'en preparación';}
+  function renderReceiptMatches(host, query){
+    var folioQuery = /^#?\s*(\d+)$/.exec(query);
+    var words = fold(query).split(/\s+/);
+    var matches = state.receipts.filter(function(receipt){
+      var payment = by(state.payments, receipt.payment_id);
+      if(!payment) return false;
+      if(folioQuery) return String(receipt.folio) === folioQuery[1].replace(/^0+(?=\d)/, '');
+      var patient = fold(name(payment.patient_id));
+      return words.every(function(word){ return patient.includes(word); });
+    });
+    var shown = matches.slice(0, state.shown.payments);
+    var rows = shown.map(function(receipt){
+      var payment = by(state.payments, receipt.payment_id);
+      var folio = String(receipt.folio).padStart(6, '0');
+      var patient = esc(name(payment.patient_id));
+      return '<article class="finance-line" data-cols="payments" role="listitem">'
+        + '<div class="finance-line-when">'+whenLabel(receipt.issued_at)+'</div>'
+        + '<div class="finance-line-who"><strong class="finance-line-name">'+patient+'</strong><small>Recibo '+esc(folio)+'</small></div>'
+        + '<div class="finance-line-how">'+esc(PAYMENT_METHODS[payment.method] || payment.method)+'</div>'
+        + '<div class="finance-line-amount"><strong>'+money(payment.amount)+'</strong></div>'
+        + '<div class="finance-line-actions"><button type="button" class="finance-link-action" data-open-receipt="'+esc(receipt.id)+'" aria-label="Abrir recibo '+esc(folio)+' de '+patient+'">Abrir recibo</button></div></article>';
+    });
+    var incomplete = state.truncated.some(function(table){ return ['recibos','pagos','pacientes'].includes(table); });
+    host.innerHTML = '<header class="finance-group"><h2>'+plural(matches.length,'recibo encontrado','recibos encontrados')+'</h2>'
+      + (incomplete ? '<p>La búsqueda abarca los registros recientes cargados de la clínica.</p>' : '')+'</header>'
+      + (rows.length ? '<div class="finance-lines" role="list">'+rows.join('')+'</div>'+moreRows(matches.length,shown.length,'payments')
+        : '<div class="finance-empty"><strong>Sin coincidencias</strong><p>Prueba con el apellido del paciente o el folio completo del recibo.</p></div>');
+    host.querySelectorAll('[data-open-receipt]').forEach(function(button){
+      button.onclick = function(){ openReceiptDetails(by(state.receipts, button.dataset.openReceipt)); };
+    });
+    bindMoreRows(host,'payments',renderPayments);
+  }
   function renderPayments(){
     var host=document.getElementById('finance-payments');if(!host||state.tab!=='receipts')return;
+    var query=document.getElementById('finance-receipt-search').value.trim();
+    document.getElementById('finance-pay-filters').hidden=Boolean(query);
+    document.getElementById('finance-clear-search').hidden=!query;
+    if(query){renderReceiptMatches(host,query);return;}
     var view=paymentsView(),events=view.events,shown=events.slice(0,state.shown.payments),page=document.getElementById('p-caja'),custom=state.payPeriod==='custom',from=document.getElementById('finance-pay-from'),to=document.getElementById('finance-pay-to'),counts=[];
     page.querySelectorAll('[data-pay-period]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.payPeriod===state.payPeriod));});
     document.getElementById('finance-pay-range').hidden=!custom;
@@ -502,7 +663,7 @@
     return list.map(function(a){var charge=by(state.charges,a.charge_id);return charge?{charge:charge,amount:Number(a.amount||0)}:null;}).filter(Boolean);
   }
   // ── Facturación: una sola lista ──────────────────────────────────────────────────────────────────────
-  // Borradores, emitidas y canceladas se filtran arriba. «Por facturar» trae los pagos completos que todavía no tienen factura (esa lista vivía en «Pagos»).
+  // Borradores, emitidas y canceladas se filtran arriba. «Por facturar» trae los pagos completos que todavía no tienen factura (esa lista vivía en «Pagos y recibos»).
   // El proceso fiscal no cambia: cada fila muestra su estado en palabras llanas, un solo botón (el siguiente paso) y lo demás en «•••».
   var INVOICE_FILTERS=[['drafts','Borradores'],['issued','Emitidas'],['cancelled','Canceladas'],['pending','Por facturar']];
   function invoiceBucket(d){return d.status==='issued'?'issued':d.status==='cancelled'?'cancelled':'drafts';}
@@ -558,7 +719,7 @@
       +'<div class="finance-line-state"><span class="finance-tag"'+(tone?' data-tone="'+tone+'"':'')+'>'+tag+'</span>'+notes.map(function(n){return '<small>'+n+'</small>';}).join('')+'</div><div class="finance-line-amount"><strong>'+money(snap.amount)+'</strong></div><div class="finance-line-actions">'+rowMenu('Más acciones de la factura de '+patient,menu)+main+'</div></article>';
   }
   // Un pago por facturar: liquida sus cargos completos y todavía no tiene factura. Los abonos, anticipos y pagos con reembolso no se
-  // facturan por separado, así que no entran a esta lista (siguen en «Pagos», cada uno con su recibo).
+  // facturan por separado, así que no entran a esta lista (siguen en «Pagos y recibos», cada uno con su recibo).
   function pendingLine(x){
     var receipt=x.receipt,p=x.payment,patient=esc(name(p.patient_id)),folio=String(receipt.folio||0).padStart(6,'0'),facts=paymentFacts(p),sub=['Recibo '+folio,esc(whenLabel(receipt.issued_at||p.paid_at))],
       state_=x.code==='profile'?'<span class="finance-tag">Faltan datos fiscales</span><small>Se piden al facturar.</small>':x.code==='issuer'?'<span class="finance-tag" data-tone="warn">Falta configurar</span><small>Revisa primero los datos fiscales de la clínica.</small>':'<small>Datos fiscales completos</small>';
@@ -577,7 +738,7 @@
     var unbilled=state.receipts.filter(function(r){return !byKey(state.drafts,'payment_id',r.payment_id);}).map(fiscalReceiptItem).filter(function(x){return x.payment&&x.code!=='review';});counts.pending=unbilled.length;
     if(filter==='pending'){total=unbilled.length;rows=unbilled.sort(function(a,b){return String(b.receipt.issued_at||'').localeCompare(String(a.receipt.issued_at||''))||Number(b.receipt.folio||0)-Number(a.receipt.folio||0);}).slice(0,state.shown.invoices).map(pendingLine);}
     else{var list=state.drafts.filter(function(d){return invoiceBucket(d)===filter;});total=list.length;rows=list.slice(0,state.shown.invoices).map(invoiceLine);}
-    var empty={drafts:['Sin borradores','Para facturar un pago, búscalo en «Por facturar» o abre su recibo en Pagos.'],issued:['Todavía no hay facturas emitidas','Aparecen aquí cuando un borrador se timbra.'],cancelled:['Sin facturas canceladas','Aquí quedan las facturas que se cancelen, con su acuse.'],pending:['Sin pagos por facturar','Aquí aparecen los pagos completos que todavía no tienen factura.']}[filter];
+    var empty={drafts:['Sin borradores','Para facturar un pago, búscalo en «Por facturar» o abre su recibo en Pagos y recibos.'],issued:['Todavía no hay facturas emitidas','Aparecen aquí cuando un borrador se timbra.'],cancelled:['Sin facturas canceladas','Aquí quedan las facturas que se cancelen, con su acuse.'],pending:['Sin pagos por facturar','Aquí aparecen los pagos completos que todavía no tienen factura.']}[filter];
     host.innerHTML=fiscalStatusStrip()+'<div class="finance-list-tools"><div class="finance-chips" role="group" aria-label="Estado de las facturas">'+INVOICE_FILTERS.map(function(f){return '<button type="button" data-invoice-filter="'+f[0]+'" aria-pressed="'+String(f[0]===filter)+'">'+f[1]+' <em>'+counts[f[0]].toLocaleString('es-MX')+'</em></button>';}).join('')+'</div></div>'
       +(rows.length?'<div class="finance-cols" data-cols="invoices" aria-hidden="true"><span>Paciente</span><span>Estado</span><span>Importe</span><span></span></div><div class="finance-lines" role="list">'+rows.join('')+'</div>'+moreRows(total,rows.length,'invoices')
         :'<div class="finance-empty"><strong>'+empty[0]+'</strong><p>'+empty[1]+'</p>'+(filter==='drafts'&&counts.pending&&state.canInvoice?'<button type="button" class="finance-link-action" data-invoice-filter="pending">Ver pagos por facturar</button>':'')+'</div>')
@@ -710,8 +871,8 @@
     var csdText,csdAction,csdRun,csdDone,csdExtra=[];
     if(own){csdDone=true;csdText='Cuenta propia de Facturapi conectada (pruebas)'+(fp.organization_name?' · '+esc(fp.organization_name):'')+' · llave ····'+esc(String(fp.key_fingerprint||'').slice(-4))+(fp.last_verified_at?' · verificada '+date(fp.last_verified_at,true):'');csdAction='Cambiar llave';csdRun=openFacturapiConnect;csdExtra=[{label:'Verificar',run:function(){facturapiRun('verify');}},{label:'Desconectar',run:function(){if(window.confirm('¿Desconectar Facturapi? Se borrará la llave guardada.'))facturapiRun('disconnect');}}];}
     else if(platform&&fp.production_ready){csdDone=true;csdText='Facturación activa'+(fp.csd_valid_until?' · CSD vigente hasta '+date(fp.csd_valid_until):'');csdAction='Cambiar CSD';csdRun=openCsdDialog;csdExtra=[{label:'Revisar de nuevo',run:function(){syncOrganization();}}];}
-    else if(platform&&!needsCsd&&needsManifest){csdDone=false;csdText='Tu CSD ya está cargado'+(fp.csd_valid_until?' (vigente hasta '+date(fp.csd_valid_until)+')':'')+'. Falta firmar la Carta Manifiesto: es la autorización del SAT para que Facturapi timbre a nombre de la clínica. Cuando la firmes, pulsa «Revisar de nuevo».';csdAction='Revisar de nuevo';csdRun=syncOrganization;csdExtra=[{label:'Cambiar CSD',run:openCsdDialog}];}
-    else if(platform){csdDone=false;csdText='Falta subir el certificado de sello digital (CSD) de la clínica.';csdAction='Subir CSD';csdRun=openCsdDialog;}
+    else if(platform&&!needsCsd&&needsManifest){csdDone=false;csdText='Tu CSD ya está cargado'+(fp.csd_valid_until?' (vigente hasta '+date(fp.csd_valid_until)+')':'')+'. Falta firmar la Carta Manifiesto: es la autorización que le das a Facturapi, proveedor autorizado por el SAT, para timbrar facturas a nombre de la clínica. La firma el dueño del RFC con su e.firma, directo con Facturapi.';csdAction='Firmar Carta Manifiesto';csdRun=openManifestDialog;csdExtra=[{label:'Ya la firmé, revisar',run:syncOrganization},{label:'Cambiar CSD',run:openCsdDialog}];}
+    else if(platform){csdDone=false;csdText='Falta subir el certificado de sello digital (CSD) de la clínica.'+(needsManifest?' Después tendrás que firmar la Carta Manifiesto.':'');csdAction='Subir CSD';csdRun=openCsdDialog;}
     else if(fp.status==='unavailable'){csdDone=false;csdText='No se pudo consultar Facturapi: '+esc(fp.error||'')+'.';csdAction='Reintentar';csdRun=function(){loadFacturapi().then(function(){renderBillingSetup();});};}
     else{csdDone=false;csdText=issuerDone?'SMYL crea tu cuenta de facturación y la liga a tu CSD, que es el certificado que te da el SAT para facturar. No necesitas registrarte en Facturapi.':'Primero completa los datos fiscales de la clínica.';csdAction='Activar y subir CSD';csdRun=issuerDone?openCsdDialog:function(){notify('Primero completa los datos fiscales de la clínica.','info');};csdExtra=issuerDone?[{label:'Tengo mi propia cuenta',run:openFacturapiConnect}]:[];}
     var basics=issuerDone&&csdDone&&servicesDone&&!!pac.fiscal_policy_reviewed_at;
@@ -732,6 +893,37 @@
         action:pac.fiscal_policy_reviewed_at?'Quitar confirmación':'Ya lo revisó',run:async function(){try{await setPac({policy:!pac.fiscal_policy_reviewed_at});await reload(pac.fiscal_policy_reviewed_at?'Confirmación retirada.':'Revisión del contador confirmada.');}catch(e){notify(message(e),'error');}}},
       {id:'production',title:'Facturar en producción',done:prodDone,text:prodText,action:prodAction,run:prodRun,extra:prodExtra,muted:!prodDone&&!prodAction}
     ];
+  }
+  // Carta Manifiesto de Facturapi (misma solución que LANA). Firma el dueño del RFC con su e.firma en el módulo oficial de Facturapi,
+  // incrustado solo bajo demanda: SMYL no recibe ni guarda la e.firma. Solo /embedded/ permite iframe; el portal público debe abrirse aparte.
+  var MANIFEST_EMBED='https://www.facturapi.io/embedded/manifiesto',MANIFEST_PORTAL='https://www.facturapi.io/manifiesto',MANIFEST_POLL_MS=25000,MANIFEST_POLL_MAX=48;
+  function manifestPending(){return ((state.facturapi&&state.facturapi.pending_steps)||[]).some(function(x){return x&&x.type==='manifiesto';});}
+  function openManifestDialog(){
+    if(!state.canInvoice)return notify('Tu rol no permite configurar la facturación.','error');
+    var d=dialog('<div class="billing-manifest"><h2>Firma la Carta Manifiesto</h2><p>Con esta carta autorizas a Facturapi, proveedor autorizado por el SAT, a timbrar facturas a nombre de la clínica. <strong>Es un trámite de una sola vez.</strong></p><ul class="billing-manifest-list"><li>La firma <strong>el dueño del RFC</strong> con su <strong>e.firma</strong> (archivos .cer y .key y su contraseña). <strong>No es el CSD</strong> que ya subiste.</li><li>El formulario es de Facturapi: SMYL <strong>no ve ni guarda</strong> tu e.firma.</li><li>Al terminar, esta pantalla lo detecta sola; también puedes pulsar «Ya firmé, revisar».</li></ul><div class="billing-manifest-frame" data-manifest-frame hidden></div><div class="billing-manifest-status" data-manifest-status role="status" aria-live="polite"></div><div class="finance-actions"><button type="button" data-close>Cerrar</button><a class="btn btn-secondary" href="'+MANIFEST_PORTAL+'" target="_blank" rel="noopener noreferrer">Abrir en otra ventana</a><button type="button" class="btn btn-secondary" data-manifest-check>Ya firmé, revisar</button><button type="button" class="btn btn-primary" data-manifest-show>Mostrar formulario de firma</button></div></div>','finance-manifest-dialog');
+    var frame=d.querySelector('[data-manifest-frame]'),status=d.querySelector('[data-manifest-status]'),show=d.querySelector('[data-manifest-show]'),check=d.querySelector('[data-manifest-check]'),timer=0,runs=0,busy=false;
+    function stop(){clearInterval(timer);timer=0;d.classList.remove('finance-manifest-dialog');}
+    d.addEventListener('close',stop,{once:true});
+    async function verify(silent){
+      if(busy)return false;busy=true;if(!silent){check.disabled=true;status.textContent='Consultando a Facturapi…';}
+      try{
+        await facturapiCall({action:'sync'});await loadFacturapi();
+        if(!manifestPending()){stop();close();await reload('Listo: Facturapi ya tiene tu Carta Manifiesto.');renderBillingSetup();return true;}
+        if(!silent)status.textContent='Facturapi todavía no ve la firma. Termina el formulario y vuelve a revisar.';
+      }catch(err){if(!silent)status.textContent=String(err&&err.message||err);}
+      finally{busy=false;if(!silent)check.disabled=false;}
+      return false;
+    }
+    check.onclick=function(){verify(false);};
+    show.onclick=function(){
+      if(!frame.firstChild){
+        var f=document.createElement('iframe');f.title='Firma de la Carta Manifiesto de Facturapi';f.src=MANIFEST_EMBED;f.referrerPolicy='no-referrer';
+        f.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals');
+        frame.append(f);
+      }
+      frame.hidden=false;show.hidden=true;d.querySelector('.billing-manifest-list').hidden=true;status.textContent='Si el formulario no carga, usa «Abrir en otra ventana».';
+      if(!timer)timer=setInterval(function(){if(document.visibilityState==='visible'&&++runs<=MANIFEST_POLL_MAX)verify(true);},MANIFEST_POLL_MS);
+    };
   }
   async function syncOrganization(){try{await facturapiCall({action:'sync'});await loadFacturapi();await reload('Estado de Facturapi actualizado.');}catch(e){notify(String(e&&e.message||e),'error');}}
   function openCsdDialog(){
@@ -779,7 +971,7 @@
   }
   async function ensureBilling(){await load(false);await loadFacturapi();renderBillingSetup();}
   function buildBillingHolder(){if(document.getElementById('billing-setup'))return;var h=el('div','');h.id='billing-setup-holder';h.hidden=true;var sec=el('section','billing-setup');sec.id='billing-setup';sec.setAttribute('aria-label','Configuración de facturación');var fb=el('div','');fb.id='billing-feedback';fb.setAttribute('aria-live','polite');var body=el('div','billing-setup-body');body.id='billing-setup-body';sec.append(fb,body);h.append(sec);document.body.append(h);}
-  function openBillingSetup(){if(window.SmylSettingsHub&&window.SmylSettingsHub.openItem)window.SmylSettingsHub.openItem('cobros','Facturación');else notify('Abre Configuración → Finanzas → Facturación.','info');}
+  function openBillingSetup(){if(window.SmylSettingsHub&&window.SmylSettingsHub.openItem)window.SmylSettingsHub.openItem('cobros','Facturación');else notify('Abre Configuración → Cobros y caja → Facturación.','info');}
   function st_armed(live){return !!(live&&state.facturapi&&state.facturapi.live_stamping===true);}
   // El estado de la configuración fiscal en una línea, con las mismas palabras que la pestaña y un solo botón para terminarla.
   function fiscalStatusStrip(){
@@ -807,7 +999,7 @@
   async function loadCollectMeta(){if(collectMeta.tenant===state.tenant||!state.tenant)return;collectMeta.tenant=state.tenant;try{var since=new Date(Date.now()-30*86400000).toISOString();var out=await Promise.all([q(window.sb.from('smyl_collection_reminders').select('patient_id,sent_at').eq('tenant_id',state.tenant).gte('sent_at',since).order('sent_at',{ascending:false}).limit(3000)),q(window.sb.from('smyl_collection_prefs').select('patient_id,whatsapp_blocked').eq('tenant_id',state.tenant).eq('whatsapp_blocked',true).limit(2000))]);var rem={},blk={};(out[0]||[]).forEach(function(r){if(!rem[r.patient_id])rem[r.patient_id]=r.sent_at;});(out[1]||[]).forEach(function(r){blk[r.patient_id]=true;});collectMeta.reminders=rem;collectMeta.blocked=blk;renderAccounts();}catch(e){}}
   function daysAgo(iso){var t=new Date(iso||0).getTime();return t>0?Math.floor((Date.now()-t)/86400000):null;}
   function agoLabel(d){return d===0?'hoy':d===1?'ayer':'hace '+d+' días';}
-  async function setCollectPref(patientId,blocked){if(!window.confirm(blocked?'¿Dejar de enviar recordatorios de cobro por WhatsApp a este paciente?':'¿Volver a permitir recordatorios de cobro por WhatsApp a este paciente?'))return;try{await rpc('smyl_set_collection_pref',{p_patient_id:patientId,p_blocked:blocked,p_reason:blocked?'Marcado desde Finanzas':null});if(blocked)collectMeta.blocked[patientId]=true;else delete collectMeta.blocked[patientId];renderAccounts();}catch(err){notify(message(err),'error');}}
+  async function setCollectPref(patientId,blocked){if(!window.confirm(blocked?'¿Dejar de enviar recordatorios de cobro por WhatsApp a este paciente?':'¿Volver a permitir recordatorios de cobro por WhatsApp a este paciente?'))return;try{await rpc('smyl_set_collection_pref',{p_patient_id:patientId,p_blocked:blocked,p_reason:blocked?'Marcado desde Cobros y caja':null});if(blocked)collectMeta.blocked[patientId]=true;else delete collectMeta.blocked[patientId];renderAccounts();}catch(err){notify(message(err),'error');}}
   var teamTenant=null;
   async function loadFinanceTeam(){if(!state.tenant||teamTenant===state.tenant)return;teamTenant=state.tenant;try{state.team=await q(window.sb.from('camila_usuarios').select('id,nombre,email,activo').eq('tenant_id',state.tenant).eq('activo',true).limit(500))||[];renderCash();}catch(e){state.team=[];}}
   // Aviso fijo (no se borra solo) cuando alguna tabla llegó al tope de carga: los saldos podrían estar incompletos.
@@ -816,7 +1008,7 @@
     if(!page)return;
     if(!state.truncated.length){if(old)old.remove();return;}
     var banner=old||el('div','finance-truncation');banner.id='finance-truncation';banner.setAttribute('role','alert');
-    banner.textContent='Tu clínica tiene más de '+pageCap().toLocaleString('es-MX')+' registros de '+state.truncated.join(', ')+'. «Por cobrar», sus totales y la búsqueda de cuentas se calculan en el servidor y están completos; «Pagos» y «Caja» muestran los movimientos más recientes.';
+    banner.textContent='Tu clínica tiene más de '+pageCap().toLocaleString('es-MX')+' registros de '+state.truncated.join(', ')+'. «Por cobrar», sus totales y la búsqueda de cuentas se calculan en el servidor y están completos; «Pagos y recibos» y «Caja» muestran los movimientos más recientes.';
     if(!old){var h1=page.querySelector('h1');if(h1)h1.after(banner);else page.prepend(banner);}
   }
   // Solo se dibuja la pestaña que se ve. Antes, cada cambio de pestaña volvía a dibujar las cinco: con miles de pagos tardaba segundos.
@@ -837,18 +1029,69 @@
     if(old.length){var days=function(x){return Math.max(1,Math.floor((now-new Date(x.opened_at).getTime())/86400000));},first=old.slice().sort(function(a,b){return new Date(a.opened_at)-new Date(b.opened_at);})[0];
       out.push({kind:'cash',tone:'danger',text:old.length===1?'Hay una caja abierta desde hace '+days(first)+(days(first)===1?' día':' días')+' ('+(input.who?input.who(first):'')+'). Haz el corte para cerrar el turno.':'Hay '+old.length+' cajas abiertas de días anteriores; la más antigua lleva '+days(first)+(days(first)===1?' día':' días')+'. Haz el corte de cada una.',tab:'cash',action:'Ir a Caja'});}
     var attempt=input.attempt;
-    if(attempt&&attempt.amount>0&&now-attempt.at>30*1000)out.push({kind:'attempt',tone:'warn',text:'Un cobro de '+input.money(attempt.amount)+' quedó sin confirmar. Verifica si se registró antes de volver a cobrar.',tab:'receipts',action:'Ver pagos',verify:true});
+    if(attempt&&attempt.amount>0&&(attempt.unverified||now-attempt.at>30*1000))out.push({kind:'attempt',tone:'warn',text:'Un cobro de '+input.money(attempt.amount)+' quedó sin confirmar. Verifica si se registró antes de volver a cobrar.',tab:'receipts',action:'Verificar pago',verify:true});
     var stuck=(input.drafts||[]).filter(function(d){var at=new Date(d.updated_at||d.submitted_at||d.created_at).getTime();return d.status==='submitted'&&at&&now-at>60*60*1000;});
     if(stuck.length)out.push({kind:'cfdi',tone:'warn',text:stuck.length===1?'Una factura lleva más de 1 hora en proceso. Verifica su estado.':stuck.length+' facturas llevan más de 1 hora en proceso. Verifica su estado.',tab:'fiscal',action:'Ir a Facturación'});
     return out;
   }
-  function pendingAttempt(){try{var r=JSON.parse(window.sessionStorage.getItem('smyl-finance-attempt-payment')||'null');if(!r||!r.fp||!r.id||Date.now()-r.at>=ATTEMPT_TTL)return null;var parts=JSON.parse(r.fp);return {id:r.id,at:r.at,amount:Number(parts[3])||0};}catch(_){return null;}}
+  function pendingAttempt(){
+    var r=savedAttempt('payment');
+    if(!r||r.status==='missing')return null;
+    try{var parts=JSON.parse(r.fp);return {id:r.id,at:r.at,patientId:parts[0],amount:Number(parts[3])||0,method:parts[4],unverified:r.status==='unverified'};}catch(_){return null;}
+  }
+  function verifyPaymentDialog(att,automatic){
+    if(!att||inFlight)return;
+    var details=[name(att.patientId),money(att.amount),PAYMENT_METHODS[att.method]].filter(Boolean).join(' · ');
+    var d=dialog('<form><header class="smyl-dialog-header"><div><h2>Verificar pago</h2><p>'+esc(details)+'</p></div><button type="button" data-close aria-label="Cerrar">×</button></header><p role="status" data-verification></p><div class="finance-actions"><button type="button" class="btn btn-primary" data-verify>Verificar pago</button></div></form>');
+    if(window.SmylDialogSystem){window.SmylDialogSystem.enhance(d);d.dataset.smylDialogSize='small';}
+    var status=d.querySelector('[data-verification]'),button=d.querySelector('[data-verify]');
+    status.textContent='Consulta si el cobro quedó registrado.';
+    function visible(){return d.open&&d.contains(button);}
+    async function verified(){
+      if(visible())close();
+      await reload('El pago está registrado. Puedes consultar su recibo en Pagos y recibos.');
+    }
+    async function retry(){
+      var current=savedAttempt('payment');
+      if(!current||current.id!==att.id||current.status!=='missing'||inFlight)return;
+      button.disabled=true;paymentStatus(att.id,'sending');
+      try{
+        await submitPayment(current);
+      }catch(err){
+        paymentStatus(att.id,'unverified');renderAlerts();
+        if(visible()){
+          status.textContent=(isDefiniteError(err)?message(err)+' ':'')+'Verifica el pago antes de volver a intentarlo.';
+          button.disabled=false;button.textContent='Verificar pago';button.onclick=verify;
+        }
+        return;
+      }
+      attemptClose('payment',att.id);await verified();
+    }
+    async function verify(){
+      button.disabled=true;status.textContent='Consultando el pago…';
+      var result=await checkPayment(att);
+      renderAlerts();
+      if(result==='registered'){await verified();return;}
+      if(!visible())return;
+      if(result==='stale'){close();return;}
+      button.disabled=false;
+      if(result==='missing'){
+        status.textContent='El pago aún no aparece registrado. Si lo reintentas, se usarán el mismo importe, paciente y referencia de cobro.';
+        button.textContent='Reintentar cobro de '+money(att.amount);button.onclick=retry;
+        button.hidden=!state.canManage;return;
+      }
+      status.textContent='No se pudo verificar el pago. Cuando recuperes la conexión, vuelve a consultarlo aquí.';
+      button.focus();
+    }
+    button.onclick=verify;
+    if(automatic)button.click();
+  }
   function renderAlerts(){
     var host=document.getElementById('finance-alerts');if(!host)return;
     var list=buildFinanceAlerts({sessions:state.sessions,actor:state.actor,supervise:state.canSuperviseCash,who:function(x){return actorName(x.opened_by)+' · '+((by(state.branches,x.branch_id)||{}).name||'Sucursal');},attempt:pendingAttempt(),drafts:state.drafts,money:money});
     host.hidden=!list.length;
     host.innerHTML=list.map(function(a,i){return '<div class="finance-alert" data-tone="'+a.tone+'" role="status"><p>'+esc(a.text)+'</p><button type="button" class="btn btn-secondary" data-alert="'+i+'">'+esc(a.action)+'</button></div>';}).join('');
-    Array.prototype.forEach.call(host.querySelectorAll('[data-alert]'),function(b){b.onclick=async function(){var a=list[Number(b.dataset.alert)];if(a.verify){var att=pendingAttempt();if(att){var row=null;try{row=await q(window.sb.from('smyl_finance_payments').select('id').eq('tenant_id',window.tenantId).eq('id',att.id).maybeSingle());}catch(_){}if(row&&row.id){attemptClose('payment');await reload('El cobro sí se había registrado. Ya está en Pagos.');return;}notify('No encontramos ese cobro: no se registró. Puedes volver a cobrar con seguridad.','info');attemptClose('payment');renderAlerts();return;}}showTab(a.tab);};});
+    Array.prototype.forEach.call(host.querySelectorAll('[data-alert]'),function(b){b.onclick=async function(){var a=list[Number(b.dataset.alert)];if(a.verify){var att=pendingAttempt();if(att)verifyPaymentDialog(att,true);return;}showTab(a.tab);};});
   }
   // Qué sucursales abarcan las cifras y dónde se registrará lo nuevo: sin esto «Pagos hoy $0» o «Por cobrar» no dicen de qué clínica hablan.
   function financeContext(){
@@ -861,7 +1104,7 @@
   function render(){if(TABS.every(function(t){return t[0]!==state.tab;}))state.tab='accounts';renderTruncationBanner();renderContext();renderAlerts();loadChatLinks();loadCollectMeta();loadFinanceTeam();renderTabs();renderFinanceActions();renderPanel();renderBillingSetup();var page=document.getElementById('p-caja');if(page)page.setAttribute('aria-busy','false');if(state.facturapi===undefined&&state.canManage){state.facturapi=null;loadFacturapi().then(function(){renderBillingSetup();renderTabs();renderFiscal();});}}
   function sk(k,o){return window.SmylSkeleton?window.SmylSkeleton.html(k,o):'<p>'+((o&&o.label)||'Cargando…')+'</p>';}
   function loadingSkeleton(on){if(on&&state.loaded)return;var map={'finance-accounts':['list',{rows:5,action:true,label:'Cargando cuentas por cobrar'}],'finance-receipts':['table',{rows:5,cols:5,label:'Cargando pagos'}],'finance-cash':['panel',{lines:4,label:'Cargando caja'}],'finance-fiscal':['table',{rows:4,cols:5,label:'Cargando facturación'}]};Object.keys(map).forEach(function(id){var h=document.getElementById(id);if(h)h.innerHTML=on?sk(map[id][0],map[id][1]):'';});var page=document.getElementById('p-caja');if(page)page.setAttribute('aria-busy',on?'true':'false');}
-    async function load(force){if(!window.tenantId||state.loading||(state.loaded&&state.tenant===window.tenantId&&!force))return;state.loading=true;state.tenant=window.tenantId;state.truncated=[];loadingSkeleton(true);try{var u=await window.sb.auth.getUser();state.actor=u.data&&u.data.user&&u.data.user.id;var access=await Promise.all([q(window.sb.from('smyl_role_permissions').select('role_id,permission_key').eq('tenant_id',state.tenant)),q(window.sb.from('smyl_member_roles').select('user_id,role_id').eq('tenant_id',state.tenant))]);state.rolePermissions=access[0]||[];state.memberRoles=access[1]||[];capabilities();if(!state.canRead){document.getElementById('p-caja').innerHTML='<div class="finance-restricted"><strong>Finanzas restringidas</strong><p>Solicita el permiso financiero para consultar saldos y movimientos.</p></div>';return;}var rows=await Promise.all([pageAll('camila_pacientes','id,nombre,apellido',[['nombre',true],['id',true]],'pacientes'),q(window.sb.from('smyl_branches').select('id,name,is_default').eq('tenant_id',state.tenant).eq('active',true)),q(window.sb.from('smyl_services').select('id,name,reference_price,fiscal_status,sat_product_service_code,tax_treatment,tax_rate').eq('tenant_id',state.tenant).eq('active',true)),q(window.sb.from('smyl_appointments').select('id,patient_id,service_id,branch_id,starts_at,status').eq('tenant_id',state.tenant).order('starts_at',{ascending:false}).limit(300)),q(window.sb.from('smyl_proposals').select('id,patient_id,patient_name,revision,status,total_cents,approved_at,document,branch_id').eq('tenant_id',state.tenant).eq('status','approved').order('approved_at',{ascending:false}).limit(200)),q(window.sb.from('smyl_proposal_charge_batches').select('*').eq('tenant_id',state.tenant).order('created_at',{ascending:false}).limit(200)),pageAll('smyl_finance_charges','*',[['created_at',false],['id',false]],'cargos'),pageAll('smyl_finance_payments','*',[['paid_at',false],['id',false]],'pagos'),pageAll('smyl_finance_payment_allocations','*',[['payment_id',true],['charge_id',true]],'aplicaciones'),pageAll('smyl_finance_refunds','*',[['refunded_at',false],['id',false]],'reembolsos'),pageAll('smyl_finance_refund_allocations','*',[['refund_id',true],['charge_id',true]],'aplicaciones de reembolso'),pageAll('smyl_finance_receipts','*',[['folio',false],['id',false]],'recibos'),q(window.sb.from('smyl_cash_sessions').select('*').eq('tenant_id',state.tenant).order('opened_at',{ascending:false}).limit(100)),q(window.sb.from('smyl_cash_adjustments').select('*').eq('tenant_id',state.tenant).order('created_at',{ascending:false}).limit(300)),q(window.sb.from('smyl_patient_fiscal_profiles').select('*').eq('tenant_id',state.tenant)),q(window.sb.from('smyl_cfdi_drafts').select('*').eq('tenant_id',state.tenant).order('created_at',{ascending:false}).limit(300)),q(window.sb.from('smyl_issuer_fiscal_profiles').select('*').eq('tenant_id',state.tenant).maybeSingle()),q(window.sb.from('smyl_cfdi_pac_readiness').select('*').eq('tenant_id',state.tenant).maybeSingle()),q(window.sb.from('smyl_cfdi_cancellation_plans').select('*').eq('tenant_id',state.tenant).order('created_at',{ascending:false}).limit(300)),q(window.sb.rpc('smyl_cfdi_readiness_report'))]);['patients','branches','services','appointments','proposals','proposalBatches','charges','payments','allocations','refunds','refundAllocations','receipts','sessions','adjustments','fiscal','drafts'].forEach(function(k,i){state[k]=rows[i]||[];});state.issuer=rows[16]||null;state.pac=rows[17]||null;state.cancellations=rows[18]||[];state.fiscalReadiness=rows[19]||null;try{state.proposalDecisions=(await q(window.sb.from('smyl_proposal_decisions').select('*').eq('tenant_id',state.tenant).order('created_at',{ascending:false}).limit(300)))||[];var decisionIds=state.proposalDecisions.map(function(row){return row.id;});state.proposalDecisionItems=decisionIds.length?(await q(window.sb.from('smyl_proposal_decision_items').select('decision_id,proposal_item_id,item_status,item_snapshot').eq('tenant_id',state.tenant).in('decision_id',decisionIds)))||[]:[];}catch(e){state.proposalDecisions=[];state.proposalDecisionItems=[];}try{state.creditApps=(await q(window.sb.from('smyl_finance_credit_applications').select('id,patient_id,charge_id,amount,created_at,created_by').eq('tenant_id',state.tenant).order('created_at',{ascending:false}).limit(1000)))||[];}catch(e){state.creditApps=[];}await loadVisits();await ensurePatientNames();state.loaded=true;render();notify('');}catch(e){loadingSkeleton(false);notify('No se pudo cargar Finanzas: '+message(e),'error');}finally{state.loading=false;}}
+    async function load(force){if(!window.tenantId||state.loading||(state.loaded&&state.tenant===window.tenantId&&!force))return;state.loading=true;state.tenant=window.tenantId;state.truncated=[];loadingSkeleton(true);try{var u=await window.sb.auth.getUser();state.actor=u.data&&u.data.user&&u.data.user.id;var access=await Promise.all([q(window.sb.from('smyl_role_permissions').select('role_id,permission_key').eq('tenant_id',state.tenant)),q(window.sb.from('smyl_member_roles').select('user_id,role_id').eq('tenant_id',state.tenant))]);state.rolePermissions=access[0]||[];state.memberRoles=access[1]||[];capabilities();if(!state.canRead){document.getElementById('p-caja').innerHTML='<div class="finance-restricted"><strong>Acceso restringido a Cobros y caja</strong><p>Solicita el permiso financiero para consultar saldos y movimientos.</p></div>';return;}var rows=await Promise.all([pageAll('camila_pacientes','id,nombre,apellido',[['nombre',true],['id',true]],'pacientes'),q(window.sb.from('smyl_branches').select('id,name,is_default').eq('tenant_id',state.tenant).eq('active',true)),q(window.sb.from('smyl_services').select('id,name,reference_price,fiscal_status,sat_product_service_code,tax_treatment,tax_rate').eq('tenant_id',state.tenant).eq('active',true)),q(window.sb.from('smyl_appointments').select('id,patient_id,service_id,branch_id,starts_at,status').eq('tenant_id',state.tenant).order('starts_at',{ascending:false}).limit(300)),q(window.sb.from('smyl_proposals').select('id,patient_id,patient_name,revision,status,total_cents,approved_at,document,branch_id').eq('tenant_id',state.tenant).eq('status','approved').order('approved_at',{ascending:false}).limit(200)),q(window.sb.from('smyl_proposal_charge_batches').select('*').eq('tenant_id',state.tenant).order('created_at',{ascending:false}).limit(200)),pageAll('smyl_finance_charges','*',[['created_at',false],['id',false]],'cargos'),pageAll('smyl_finance_payments','*',[['paid_at',false],['id',false]],'pagos'),pageAll('smyl_finance_payment_allocations','*',[['payment_id',true],['charge_id',true]],'aplicaciones'),pageAll('smyl_finance_refunds','*',[['refunded_at',false],['id',false]],'reembolsos'),pageAll('smyl_finance_refund_allocations','*',[['refund_id',true],['charge_id',true]],'aplicaciones de reembolso'),pageAll('smyl_finance_receipts','*',[['folio',false],['id',false]],'recibos'),loadCashSessions(),null,q(window.sb.from('smyl_patient_fiscal_profiles').select('*').eq('tenant_id',state.tenant)),q(window.sb.from('smyl_cfdi_drafts').select('*').eq('tenant_id',state.tenant).order('created_at',{ascending:false}).limit(300)),q(window.sb.from('smyl_issuer_fiscal_profiles').select('*').eq('tenant_id',state.tenant).maybeSingle()),q(window.sb.from('smyl_cfdi_pac_readiness').select('*').eq('tenant_id',state.tenant).maybeSingle()),q(window.sb.from('smyl_cfdi_cancellation_plans').select('*').eq('tenant_id',state.tenant).order('created_at',{ascending:false}).limit(300)),q(window.sb.rpc('smyl_cfdi_readiness_report'))]);var history={};['patients','branches','services','appointments','proposals','proposalBatches','charges','payments','allocations','refunds','refundAllocations','receipts','sessions','adjustments','fiscal','drafts'].forEach(function(k,i){history[k]=rows[i]||[];});await completeShiftHistory(history);Object.assign(state,history);state.issuer=rows[16]||null;state.pac=rows[17]||null;state.cancellations=rows[18]||[];state.fiscalReadiness=rows[19]||null;try{state.proposalDecisions=(await q(window.sb.from('smyl_proposal_decisions').select('*').eq('tenant_id',state.tenant).order('created_at',{ascending:false}).limit(300)))||[];var decisionIds=state.proposalDecisions.map(function(row){return row.id;});state.proposalDecisionItems=decisionIds.length?(await q(window.sb.from('smyl_proposal_decision_items').select('decision_id,proposal_item_id,item_status,item_snapshot').eq('tenant_id',state.tenant).in('decision_id',decisionIds)))||[]:[];}catch(e){state.proposalDecisions=[];state.proposalDecisionItems=[];}try{state.creditApps=(await q(window.sb.from('smyl_finance_credit_applications').select('id,patient_id,charge_id,amount,created_at,created_by').eq('tenant_id',state.tenant).order('created_at',{ascending:false}).limit(1000)))||[];}catch(e){state.creditApps=[];}await loadVisits();await ensurePatientNames();state.loaded=true;render();notify('');}catch(e){loadingSkeleton(false);notify('No se pudo cargar Cobros y caja: '+message(e),'error');}finally{state.loading=false;}}
   // ── Pacientes pendientes de cargo ──────────────────────────────────────────────────────────────────────
   // Una cita en la que el paciente ya llegó (o está en consulta / terminó) y todavía no tiene cargo ni decisión «sin cargo».
   // No es una deuda: nada se cobra hasta que alguien elige los servicios en «Registrar cargo». Los servicios con precio $0
@@ -917,7 +1160,7 @@
     var d=dialog('<form class="finance-nocharge" novalidate><h2>'+(waive?'Perdonar inasistencia':'Cerrar sin costo')+'</h2><p>'+esc(name(a.patient_id))+' · '+esc(visitLabel(a))+'. '+(waive?'No se le cobra la inasistencia y la cita deja de estar pendiente. ':'La visita deja de estar pendiente y no se genera ningún cobro. ')+'Queda registrado quién lo decidió.</p><div class="finance-form-grid">'+(waive?'<input type="hidden" name="reason" value="waived">':'<label class="wide">Motivo<select name="reason">'+Object.keys(NO_CHARGE_REASONS).map(function(k){return '<option value="'+k+'">'+NO_CHARGE_REASONS[k]+'</option>';}).join('')+'</select></label>')+'<label class="wide">Nota (opcional)<input name="note" maxlength="300" placeholder="'+(waive?'Ej. Avisó con tiempo':'Ej. Control a la semana de la limpieza')+'"></label></div><p class="finance-form-error" role="alert" data-form-error hidden></p><div class="finance-actions"><button type="button" data-close>Cancelar</button><button class="btn btn-primary" type="submit">'+(waive?'Perdonar':'Cerrar sin costo')+'</button></div></form>'),f=d.querySelector('form');
     f.onsubmit=async function(e){e.preventDefault();var err=f.querySelector('[data-form-error]');err.hidden=true;try{await rpc('smyl_mark_appointment_no_charge',{p_appointment_id:appointmentId,p_reason:f.elements.reason.value,p_note:f.elements.note.value.trim()});close();await reload();notifyNextVisit(waive?'Inasistencia perdonada.':'Visita cerrada sin costo.');}catch(ex){err.textContent=message(ex);err.hidden=false;}};}
 
-  function openNoShowFee(){var d=dialog('<form class="finance-nocharge" novalidate><h2>Cobro por inasistencia</h2><p>Monto que se ofrece cobrar cuando un paciente no vino a su cita. <strong>Nunca se cobra solo</strong>: al marcar «No vino», la cita aparece en Finanzas y recepción elige «Cobrar inasistencia» o «Perdonar».</p><div class="finance-form-grid"><label class="wide">Monto (MXN)<input name="amount" type="number" min="0" max="1000000" step="0.01" inputmode="decimal" value="'+(state.noShowFee>0?Number(state.noShowFee).toFixed(2):'')+'" placeholder="Ej. 200"></label><p class="wide finance-help">Déjalo vacío o en 0 para apagarlo. Avisa a tus pacientes de esta política, por ejemplo en el recordatorio de la cita.</p></div><p class="finance-form-error" role="alert" data-form-error hidden></p><div class="finance-actions"><button type="button" data-close>Cancelar</button><button class="btn btn-primary" type="submit">Guardar</button></div></form>'),f=d.querySelector('form');
+  function openNoShowFee(){var d=dialog('<form class="finance-nocharge" novalidate><h2>Cobro por inasistencia</h2><p>Monto que se ofrece cobrar cuando un paciente no vino a su cita. <strong>Nunca se cobra solo</strong>: al marcar «No vino», la cita aparece en Cobros y caja y recepción elige «Cobrar inasistencia» o «Perdonar».</p><div class="finance-form-grid"><label class="wide">Monto (MXN)<input name="amount" type="number" min="0" max="1000000" step="0.01" inputmode="decimal" value="'+(state.noShowFee>0?Number(state.noShowFee).toFixed(2):'')+'" placeholder="Ej. 200"></label><p class="wide finance-help">Déjalo vacío o en 0 para apagarlo. Avisa a tus pacientes de esta política, por ejemplo en el recordatorio de la cita.</p></div><p class="finance-form-error" role="alert" data-form-error hidden></p><div class="finance-actions"><button type="button" data-close>Cancelar</button><button class="btn btn-primary" type="submit">Guardar</button></div></form>'),f=d.querySelector('form');
     f.onsubmit=async function(e){e.preventDefault();var err=f.querySelector('[data-form-error]');err.hidden=true;var amount=Number(f.elements.amount.value||0);if(!(amount>=0)||amount>1000000){err.textContent='Escribe un monto válido.';err.hidden=false;return;}try{await rpc('smyl_set_no_show_fee',{p_amount:amount});close();await reload(amount>0?'Cobro por inasistencia: '+money(amount)+'.':'Cobro por inasistencia apagado.');}catch(ex){err.textContent=message(ex);err.hidden=false;}};}
   async function reload(text){state.loaded=false;serverAccounts.key='';serverAccounts.counts=null;serverAccounts.rows=[];state.chatLinksTenant=null;collectMeta.tenant=null;await load(true);if(text)notify(text,'success');window.dispatchEvent(new CustomEvent('smyl:finance-updated'));}
   // Inicio de tratamiento guiado desde una cotización aceptada: cargos ✓ → anticipo → primera cita.
@@ -1147,7 +1390,9 @@
       +(receipt?'<div class="finance-success-actions"><button type="button" data-success-print>'+successIcon('print')+'Imprimir recibo</button><button type="button" data-success-share>'+successIcon('share')+'Compartir</button>'+(state.canInvoice?'<button type="button" data-success-invoice>'+successIcon('invoice')+'Facturar</button>':'')+'</div>':'')
       +'<small>Este recibo es un comprobante interno y no sustituye una factura fiscal.</small>'
       +(after==='schedule'?'<button type="button" class="btn btn-primary" data-success-schedule>Siguiente: agendar primera cita</button><button type="button" class="btn btn-secondary" data-close>Terminar</button>':'<button type="button" class="btn btn-primary" data-close>Terminar</button>')+'</section>');var next=d.querySelector('[data-success-schedule]');if(next)next.onclick=function(){d.close();if(window.SmylSchedule&&typeof window.SmylSchedule.forPatient==='function')window.SmylSchedule.forPatient(payment.patient_id);};var print=d.querySelector('[data-success-print]');if(print)print.onclick=function(){printReceipt(receipt);};var share=d.querySelector('[data-success-share]');if(share)share.onclick=function(){shareReceipt(payment,receipt,share);};var inv=d.querySelector('[data-success-invoice]');if(inv)inv.onclick=function(){d.close();startInvoice(payment);};}
-  function openPayment(patientId,options){options=options||{};var defaultBranch=pickBranch(),mineBranch=myBranchId(),d=dialog('<form class="finance-payment-form" novalidate><header class="finance-payment-head"><div><h2>'+(options.mode==='advance'?'Recibir anticipo':'Cobrar')+'</h2><p>'+(options.mode==='advance'?'El importe quedará a favor del paciente hasta que decidas aplicarlo.':'Confirma paciente, forma de pago y aplicación.')+'</p></div><button type="button" data-close aria-label="Cerrar">×</button></header><div class="finance-payment-layout"><section class="finance-payment-main"><div class="finance-payment-section"><div class="finance-payment-section-head"><span>1</span><div><strong>¿A quién le cobras?</strong><small>Busca por nombre, teléfono o correo.</small></div></div><label class="finance-payment-search"><span class="sr-only">Paciente</span><select name="patient" required><option value="">Selecciona</option>'+opts(state.patients,function(p){return name(p.id);},patientId)+'</select></label><div data-payment-patient></div></div><div class="finance-payment-section"><div class="finance-payment-section-head"><span>2</span><div><strong>¿Cuánto recibió la clínica?</strong><small>Elige una opción o escribe otro importe.</small></div></div><div class="finance-payment-quick" data-payment-quick></div><label class="finance-payment-amount">Importe<span><b>$</b><input name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" required placeholder="0.00"></span></label></div><div class="finance-payment-section"><div class="finance-payment-section-head"><span>3</span><div><strong>Forma de pago</strong><small>Solo pedimos los datos necesarios para rastrearlo.</small></div></div><input type="hidden" name="method" value="card"><input type="hidden" name="reference"><div class="finance-payment-methods" role="group" aria-label="Forma de pago"><button type="button" data-method="card" aria-pressed="true">Tarjeta</button><button type="button" data-method="transfer">Transferencia</button><button type="button" data-method="cash">Efectivo</button><button type="button" data-method="check">Cheque</button>'+(onlinePayEnabled()&&options.mode!=='advance'?'<button type="button" data-method="online">Enlace de pago</button>':'')+'</div><div class="finance-method-fields" data-method-fields="card"><label>Terminal<input name="terminal" maxlength="40" placeholder="Ej. Terminal 1"></label><label>Últimos 4 dígitos<input name="cardLast4" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="1234"></label><label>Autorización<input name="authorization" maxlength="60" placeholder="Folio de autorización"></label></div><div class="finance-method-fields" data-method-fields="transfer" hidden><label>Banco<input name="bank" maxlength="60" placeholder="Banco emisor"></label><label>Folio o clave<input name="transferFolio" maxlength="80" placeholder="Referencia bancaria"></label></div><div class="finance-method-fields" data-method-fields="cash" hidden><label>Efectivo recibido<input name="cashReceived" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></label></div><div class="finance-method-fields" data-method-fields="check" hidden><label>Banco<input name="bank" maxlength="60" placeholder="Banco"></label><label>Número de cheque<input name="checkNumber" maxlength="60"></label></div><div class="finance-method-fields finance-method-online" data-method-fields="online" hidden><p><strong>El paciente paga desde su celular</strong> con tarjeta o transferencia SPEI (Openpay). Se cobra el saldo completo de los cargos que marques. Al confirmarse el pago, el recibo se emite solo y el saldo se actualiza.</p></div></div></section><aside class="finance-payment-aside"><label'+(mineBranch?' hidden':'')+'>Sucursal<select name="branch" required><option value="">Selecciona</option>'+opts(state.branches,'name',defaultBranch)+'</select></label>'+(mineBranch?'<p class="finance-branch-note" data-branch-note>Se cobra en <strong>'+esc((by(state.branches,mineBranch)||{}).name||'tu sucursal')+'</strong>.</p>':'')+'<section id="finance-payment-open"></section><section class="finance-payment-check" data-payment-check aria-live="polite"></section></aside></div><footer class="finance-payment-footer"><p>El registro no realiza ningún cargo bancario.</p><div><button type="button" data-close>Cancelar</button><button class="btn btn-primary" type="submit" data-payment-submit data-label="'+(options.mode==='advance'?'Recibir anticipo':'Cobrar')+'">'+(options.mode==='advance'?'Recibir anticipo':'Cobrar')+'</button></div></footer></form>'),f=d.querySelector('form'),allocationMode=options.mode==='advance'?'advance':'debt';mountPatientPicker(f);
+  function openPayment(patientId,options){options=options||{};var pending=pendingAttempt();
+    if(pending){verifyPaymentDialog(pending,false);return;}
+    var defaultBranch=pickBranch(),mineBranch=myBranchId(),d=dialog('<form class="finance-payment-form" novalidate><header class="finance-payment-head"><div><h2>'+(options.mode==='advance'?'Recibir anticipo':'Cobrar')+'</h2><p>'+(options.mode==='advance'?'El importe quedará a favor del paciente hasta que decidas aplicarlo.':'Confirma paciente, forma de pago y aplicación.')+'</p></div><button type="button" data-close aria-label="Cerrar">×</button></header><div class="finance-payment-layout"><section class="finance-payment-main"><div class="finance-payment-section"><div class="finance-payment-section-head"><span>1</span><div><strong>¿A quién le cobras?</strong><small>Busca por nombre, teléfono o correo.</small></div></div><label class="finance-payment-search"><span class="sr-only">Paciente</span><select name="patient" required><option value="">Selecciona</option>'+opts(state.patients,function(p){return name(p.id);},patientId)+'</select></label><div data-payment-patient></div></div><div class="finance-payment-section"><div class="finance-payment-section-head"><span>2</span><div><strong>¿Cuánto recibió la clínica?</strong><small>Elige una opción o escribe otro importe.</small></div></div><div class="finance-payment-quick" data-payment-quick></div><label class="finance-payment-amount">Importe<span><b>$</b><input name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" required placeholder="0.00"></span></label></div><div class="finance-payment-section"><div class="finance-payment-section-head"><span>3</span><div><strong>Forma de pago</strong><small>Solo pedimos los datos necesarios para rastrearlo.</small></div></div><input type="hidden" name="method" value="card"><input type="hidden" name="reference"><div class="finance-payment-methods" role="group" aria-label="Forma de pago"><button type="button" data-method="card" aria-pressed="true">Tarjeta</button><button type="button" data-method="transfer">Transferencia</button><button type="button" data-method="cash">Efectivo</button><button type="button" data-method="check">Cheque</button>'+(onlinePayEnabled()&&options.mode!=='advance'?'<button type="button" data-method="online">Enlace de pago</button>':'')+'</div><div class="finance-method-fields" data-method-fields="card"><label>Terminal<input name="terminal" maxlength="40" placeholder="Ej. Terminal 1"></label><label>Últimos 4 dígitos<input name="cardLast4" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="1234"></label><label>Autorización<input name="authorization" maxlength="60" placeholder="Folio de autorización"></label></div><div class="finance-method-fields" data-method-fields="transfer" hidden><label>Banco<input name="bank" maxlength="60" placeholder="Banco emisor"></label><label>Folio o clave<input name="transferFolio" maxlength="80" placeholder="Referencia bancaria"></label></div><div class="finance-method-fields" data-method-fields="cash" hidden><label>Efectivo recibido<input name="cashReceived" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></label></div><div class="finance-method-fields" data-method-fields="check" hidden><label>Banco<input name="bank" maxlength="60" placeholder="Banco"></label><label>Número de cheque<input name="checkNumber" maxlength="60"></label></div><div class="finance-method-fields finance-method-online" data-method-fields="online" hidden><p><strong>El paciente paga desde su celular</strong> con tarjeta o transferencia SPEI (Openpay). Se cobra el saldo completo de los cargos que marques. Al confirmarse el pago, el recibo se emite solo y el saldo se actualiza.</p></div></div></section><aside class="finance-payment-aside"><label'+(mineBranch?' hidden':'')+'>Sucursal<select name="branch" required><option value="">Selecciona</option>'+opts(state.branches,'name',defaultBranch)+'</select></label>'+(mineBranch?'<p class="finance-branch-note" data-branch-note>Se cobra en <strong>'+esc((by(state.branches,mineBranch)||{}).name||'tu sucursal')+'</strong>.</p>':'')+'<section id="finance-payment-open"></section><section class="finance-payment-check" data-payment-check aria-live="polite"></section></aside></div><footer class="finance-payment-footer"><p>El registro no realiza ningún cargo bancario.</p><div><button type="button" data-close>Cancelar</button><button class="btn btn-primary" type="submit" data-payment-submit data-label="'+(options.mode==='advance'?'Recibir anticipo':'Cobrar')+'">'+(options.mode==='advance'?'Recibir anticipo':'Cobrar')+'</button></div></footer></form>'),f=d.querySelector('form'),allocationMode=options.mode==='advance'?'advance':'debt';mountPatientPicker(f);
     function openCharges(){
       var id=f.elements.patient.value,
         open=state.charges.filter(function(c){return c.patient_id===id&&balance(c)>0;}).sort(function(a,b){return String(a.due_on||'9999').localeCompare(String(b.due_on||'9999'));}),
@@ -1171,7 +1416,40 @@
     function autoAllocate(){if(f.elements.method.value==='online')f.elements.amount.value=String(onlineSelection(f).total||'');var left=Number(f.elements.amount.value||0);f.querySelectorAll('[data-payment-charge]').forEach(function(row){var box=row.querySelector('input[name=charge]'),field=row.querySelector('[data-allocation]'),c=by(state.charges,box.value),v=box.checked?Math.min(left,balance(c)):0;field.value=v?v.toFixed(2):'0';left=Math.round((left-v)*100)/100;});renderPaymentCheck(f);}
     function bindDynamic(){f.querySelectorAll('[data-quick]').forEach(function(b){b.onclick=function(){var s=accountSnapshot(f.elements.patient.value),advance=b.dataset.quick==='advance',value=b.dataset.quick==='total'?s.due:b.dataset.quick==='overdue'?s.overdueCents/100:0;allocationMode=advance?'advance':'debt';f.querySelectorAll('input[name=charge]').forEach(function(box){box.checked=!advance;});f.elements.amount.value=value?value.toFixed(2):'';if(advance)f.elements.amount.focus();openCharges();};});f.querySelectorAll('input[name=charge]').forEach(function(box){box.onchange=function(){if(allocationMode==='advance'){allocationMode='debt';var note=f.querySelector('.finance-payment-credit-active');if(note)note.remove();}autoAllocate();};});f.querySelectorAll('[data-allocation]').forEach(function(field){field.oninput=function(){renderPaymentCheck(f);};});}
     f.elements.patient.onchange=function(){openCharges();};f.elements.amount.addEventListener('input',autoAllocate);f.elements.branch.addEventListener('change',function(){renderPaymentCheck(f);});f.querySelectorAll('[data-method]').forEach(function(b){b.onclick=function(){f.elements.method.value=b.dataset.method;paymentMethodFields(f);};});f.querySelectorAll('[data-method-fields] input').forEach(function(i){i.addEventListener('input',function(){renderPaymentCheck(f);});});openCharges();paymentMethodFields(f);
-    f.onsubmit=async function(e){e.preventDefault();if(f.elements.method.value==='online'){var sel=onlineSelection(f);renderOnlineCheck(f);if(!sel.ids.length||sel.total<10)return;openOnlineLink(f.elements.patient.value,f.querySelector('[data-payment-submit]'),sel.ids);return;}var snapshot=paymentSnapshot(f);if(snapshot.issues.length){renderPaymentCheck(f);f.querySelector('[data-payment-check]').scrollIntoView({behavior:'smooth',block:'center'});return;}var x=new FormData(f),fp=attemptFingerprint([x.get('patient'),x.get('branch'),snapshot.session?snapshot.session.id:'',snapshot.amount,snapshot.method,snapshot.reference,snapshot.allocations.map(function(a){return [a.charge_id,a.amount];})]),attempt=attemptOpen('payment',fp),paymentId=attempt.id;if(!attempt.reused){var twin=similarRecentPayment(x.get('patient'),snapshot.amount,snapshot.method);if(twin&&!window.confirm('Ya hay un pago igual de '+money(snapshot.amount)+' ('+(PAYMENT_METHODS[snapshot.method]||snapshot.method)+') de '+name(x.get('patient'))+' registrado hace '+Math.max(1,Math.round(twin.age/60000))+' min. ¿Registrar otro igual?')){attemptClose('payment');return;}}try{var payment=await rpc('smyl_post_payment',{p_id:paymentId,p_idempotency_key:attempt.key,p_patient_id:x.get('patient'),p_branch_id:x.get('branch'),p_cash_session_id:snapshot.session?snapshot.session.id:null,p_amount:snapshot.amount,p_method:snapshot.method,p_reference:snapshot.reference,p_paid_at:new Date().toISOString(),p_allocations:snapshot.allocations});if(Array.isArray(payment))payment=payment[0];attemptClose('payment');close();await reload();var receipt=byKey(state.receipts,'payment_id',paymentId);paymentSuccess(payment||by(state.payments,paymentId)||{id:paymentId,patient_id:x.get('patient'),amount:snapshot.amount,method:snapshot.method,paid_at:new Date().toISOString()},receipt,snapshot,options.after);}catch(err){var host=f.querySelector('[data-payment-check]');host.dataset.ready='false';if(isDefiniteError(err)){attemptClose('payment');host.innerHTML='<div class="finance-payment-ready"><span>No se registró el pago</span><strong>'+esc(message(err))+'</strong><i>!</i></div>';return;}host.innerHTML='<div class="finance-payment-ready"><span>Verificando si el pago se registró…</span><strong>No recibimos respuesta. No vuelvas a cobrar todavía.</strong><i>…</i></div>';var found=null;try{found=await q(window.sb.from('smyl_finance_payments').select('id').eq('tenant_id',window.tenantId).eq('id',paymentId).maybeSingle());}catch(_){found=null;}if(found&&found.id){attemptClose('payment');close();await reload();paymentSuccess(by(state.payments,paymentId)||{id:paymentId,patient_id:x.get('patient'),amount:snapshot.amount,method:snapshot.method,paid_at:new Date().toISOString()},byKey(state.receipts,'payment_id',paymentId),snapshot,options.after);return;}host.innerHTML='<div class="finance-payment-ready"><span>No pudimos confirmar si el pago se registró</span><strong>Revisa tu conexión y vuelve a intentarlo con el mismo botón: es seguro, no se duplicará.</strong><i>!</i></div>';}};}
+    f.onsubmit=async function(e){
+      e.preventDefault();
+      var pending=pendingAttempt();
+      if(pending){verifyPaymentDialog(pending,false);return;}
+      if(f.elements.method.value==='online'){
+        var sel=onlineSelection(f);renderOnlineCheck(f);
+        if(sel.ids.length&&sel.total>=10)openOnlineLink(f.elements.patient.value,f.querySelector('[data-payment-submit]'),sel.ids);
+        return;
+      }
+      var snapshot=paymentSnapshot(f);
+      if(snapshot.issues.length){renderPaymentCheck(f);f.querySelector('[data-payment-check]').scrollIntoView({behavior:'smooth',block:'center'});return;}
+      var x=new FormData(f),fp=attemptFingerprint([x.get('patient'),x.get('branch'),snapshot.session?snapshot.session.id:'',snapshot.amount,snapshot.method,snapshot.reference,snapshot.allocations.map(function(a){return [a.charge_id,a.amount];})]);
+      var attempt=attemptOpen('payment',fp),paymentId=attempt.id;
+      if(!attempt.reused){
+        var twin=similarRecentPayment(x.get('patient'),snapshot.amount,snapshot.method);
+        if(twin&&!window.confirm('Ya hay un pago igual de '+money(snapshot.amount)+' ('+(PAYMENT_METHODS[snapshot.method]||snapshot.method)+') de '+name(x.get('patient'))+' registrado hace '+Math.max(1,Math.round(twin.age/60000))+' min. ¿Registrar otro igual?')){attemptClose('payment',paymentId);return;}
+      }
+      paymentStatus(paymentId,'sending');
+      var payment;
+      try{
+        payment=await submitPayment(savedAttempt('payment'));
+      }catch(err){
+        if(!attempt.reused&&/^(22[0-9A-Z]{3}|23503|23514|42501)$/.test(String(err&&err.code))){
+          attemptClose('payment',paymentId);
+          var host=f.querySelector('[data-payment-check]');host.dataset.ready='false';
+          host.innerHTML='<div class="finance-payment-ready"><span>No se registró el pago</span><strong>'+esc(message(err))+'</strong><i>!</i></div>';return;
+        }
+        paymentStatus(paymentId,'unverified');renderAlerts();
+        if(d.open&&d.contains(f))verifyPaymentDialog(pendingAttempt(),true);
+        return;
+      }
+      attemptClose('payment',paymentId);close();await reload();
+      paymentSuccess(payment,byKey(state.receipts,'payment_id',paymentId),snapshot,options.after);
+    };}
   // Cuenta del paciente: estado y último pago arriba, cargos pendientes primero (liquidados plegados) y sus pagos con recibo.
   function openAccount(id){
     var snapshot=accountSnapshot(id),
@@ -1292,7 +1570,7 @@
   function closeDuration(openedAt){var minutes=Math.max(0,Math.round((Date.now()-new Date(openedAt).getTime())/60000)),hours=Math.floor(minutes/60),rest=minutes%60;return (hours?hours+' h ':'')+rest+' min';}
   // Corte de caja: por cada forma de pago, lo que debe haber, lo que se contó y la diferencia, con el total al final.
   // Lo que se guarda no cambia: el efectivo contado y, en las notas, la conciliación completa (el formato que lee «Cortes anteriores»).
-  function openCloseCash(s){
+  function openCloseCash(s,previousCounts){
     if(!s||!(s.opened_by===state.actor?state.canCash:state.canSuperviseCash))return notify(s&&s.opened_by!==state.actor?'Esta caja es de '+actorName(s.opened_by)+': solo su responsable o un supervisor puede cerrarla.':'Tu rol no permite cerrar esta caja.','error');
     var methods=['cash','card','transfer','check','other'],labels={cash:'Efectivo',card:'Tarjetas',transfer:'Transferencias',check:'Cheques',other:'Otros'},hints={cash:'Billetes y monedas',card:'Cierre de terminales',transfer:'Movimientos verificados',check:'Documentos recibidos',other:'Otros comprobantes'},expected={},branch=(by(state.branches,s.branch_id)||{}).name||'Sucursal';
     methods.forEach(function(method){expected[method]=closeMethodExpected(s,method);});
@@ -1309,14 +1587,42 @@
       +'<details class="finance-cut-coins"><summary>Contar billetes y monedas <span>Opcional</span></summary><div>'+[1000,500,200,100,50,20,10,5,2,1,.5].map(function(value){return '<label><span>'+(value<1?'50¢':'$'+value.toLocaleString('es-MX'))+'</span><input type="number" min="0" step="1" inputmode="numeric" value="0" data-denomination="'+value+'" aria-label="Cuántos de '+(value<1?'50 centavos':value+' pesos')+'"></label>';}).join('')+'</div><p>La suma se escribe sola en el efectivo contado.</p></details>'
       +'<section class="finance-cut-issue" data-close-resolution hidden><div><strong data-close-resolution-total></strong><p>Elige el motivo para que quede registrado en el corte.</p></div><label>Motivo de la diferencia<select name="varianceReason"><option value="">Selecciona</option><option value="capture_error">Error de captura</option><option value="bank_pending">Movimiento bancario pendiente</option><option value="unregistered_income">Ingreso no registrado</option><option value="unregistered_withdrawal">Retiro no registrado</option><option value="terminal_difference">Diferencia de terminal</option><option value="other">Otro</option></select></label></section>'
       +'<div class="finance-form-grid"><label>Tipo de cierre<select name="closeType"><option value="shift">Cierre de turno</option><option value="day">Cierre del día</option></select></label><label class="wide">Notas del turno<textarea name="notes" maxlength="1000" placeholder="Opcional: incidencias, comprobantes pendientes o aclaraciones"></textarea></label></div>'
-      +'<div class="finance-actions"><button type="button" data-close>Cancelar</button><button class="btn btn-primary" type="submit">Hacer corte</button></div></form>'),f=d.querySelector('form'),resolution=f.querySelector('[data-close-resolution]'),reason=f.elements.varianceReason;
+      +'<p role="status" data-cut-feedback hidden></p><div class="finance-actions"><button type="button" data-close>Cancelar</button><button class="btn btn-primary" type="submit">Hacer corte</button></div></form>'),f=d.querySelector('form'),resolution=f.querySelector('[data-close-resolution]'),reason=f.elements.varianceReason;
     // Una casilla vacía todavía no es una diferencia: el aviso y el motivo solo cuentan lo que ya se escribió.
     // Al guardar, el navegador señala la primera casilla que falte (antes el botón no hacía nada y no decía por qué).
     function snapshot(){var declared={},variances={},total=0,varianceTotal=0,complete=true,hasVariance=false;methods.forEach(function(method){var field=f.elements['count_'+method],raw=field.value,value=raw===''?NaN:Number(raw),blank=!Number.isFinite(value);if(blank){complete=false;value=0;}declared[method]=Math.round(value*100)/100;variances[method]=Math.round((declared[method]-expected[method])*100)/100;total+=declared[method];if(!blank){varianceTotal+=variances[method];if(Math.abs(variances[method])>=.01)hasVariance=true;}var output=f.querySelector('[data-close-variance="'+method+'"]');output.textContent=blank?'—':diff(variances[method]);output.dataset.tone=blank?'':Math.abs(variances[method])<.01?'ok':variances[method]>0?'over':'short';});total=Math.round(total*100)/100;varianceTotal=Math.round(varianceTotal*100)/100;f.querySelector('[data-close-declared]').textContent=complete?money(total):'—';var totalOut=f.querySelector('[data-close-total]');totalOut.textContent=complete?diff(varianceTotal):'—';totalOut.dataset.tone=!complete?'':Math.abs(varianceTotal)<.01?'ok':varianceTotal>0?'over':'short';resolution.hidden=!hasVariance;reason.required=hasVariance;f.querySelector('[data-close-resolution-total]').textContent=Math.abs(varianceTotal)<.01?'Las diferencias se compensan entre sí':(varianceTotal>0?'Sobran ':'Faltan ')+money(Math.abs(varianceTotal));return {declared:declared,variances:variances,total:total,varianceTotal:varianceTotal,complete:complete,hasVariance:hasVariance};}
     f.querySelectorAll('[data-close-count]').forEach(function(input){input.addEventListener('input',snapshot);});
     f.querySelectorAll('[data-denomination]').forEach(function(input){input.addEventListener('input',function(){var total=0;f.querySelectorAll('[data-denomination]').forEach(function(field){total+=Number(field.dataset.denomination)*Number(field.value||0);});f.elements.count_cash.value=(Math.round(total*100)/100).toFixed(2);snapshot();});});
+    function restoreCounts(values){
+      methods.forEach(function(method){f.elements['count_'+method].value=values.declared[method];});
+      f.elements.varianceReason.value=values.reason;f.elements.notes.value=values.notes;f.elements.closeType.value=values.type;
+    }
+    var feedback=f.querySelector('[data-cut-feedback]');
+    function cutFeedback(text){feedback.hidden=false;feedback.textContent=text;}
+    if(previousCounts){restoreCounts(previousCounts);cutFeedback('Hubo movimientos nuevos. Revisa el total actualizado antes de confirmar.');}
     snapshot();
-    f.onsubmit=async function(e){e.preventDefault();var snap=snapshot();if(!f.reportValidity()||!snap.complete)return;var notes=f.elements.notes.value.trim();try{var audit='Cierre '+(f.elements.closeType.value==='day'?'del día':'de turno')+'. Conciliación: '+methods.map(function(method){return labels[method]+' esperado '+money(expected[method])+', reportado '+money(snap.declared[method])+', diferencia '+money(snap.variances[method]);}).join('; ')+(snap.hasVariance&&reason.value?'. Motivo: '+reason.options[reason.selectedIndex].text:'')+(notes?'. Notas: '+notes:'');var recon={type:f.elements.closeType.value==='day'?'day':'shift',methods:methods.map(function(method){return {method:method,expected:expected[method],reported:snap.declared[method]};}),reason:snap.hasVariance&&reason.value?reason.options[reason.selectedIndex].text:'',notes:notes};var row=await rpc('smyl_close_cash_session',{p_session_id:s.id,p_expected_revision:s.revision,p_counted_cash:snap.declared.cash,p_notes:audit.slice(0,1000),p_reconciliation:recon});if(Array.isArray(row))row=row[0];close();await reload('Corte guardado. '+(!snap.hasVariance?'Sin diferencia.':Math.abs(snap.varianceTotal)<.01?'Las diferencias se compensan entre sí.':(snap.varianceTotal>0?'Sobraron ':'Faltaron ')+money(Math.abs(snap.varianceTotal))+'.'));}catch(err){notify(message(err),'error');}};
+    var closing=false;
+    f.onsubmit=async function(e){e.preventDefault();if(closing)return;var snap=snapshot();if(!f.reportValidity()||!snap.complete)return;var notes=f.elements.notes.value.trim();try{
+      closing=true;
+      var verified=await q(window.sb.rpc('smyl_cash_session_expected',{p_session_id:s.id}));
+      if(verified==null||!Number.isFinite(Number(verified)))throw new Error('No se pudo verificar el efectivo del turno. Revisa la conexión y vuelve a intentar el corte.');
+      if(!d.open||!d.contains(f))return;
+      if(cents(verified)!==cents(expected.cash)){
+        var counts={declared:snap.declared,reason:reason.value,notes:notes,type:f.elements.closeType.value};
+        await reload();
+        if(!state.loaded)throw new Error('No pudimos actualizar los movimientos. Tus importes siguen en el formulario.');
+        if(!d.open||!d.contains(f))return;
+        close();
+        var updated=state.sessions.find(function(session){return session.id===s.id&&session.status==='open';});
+        if(updated)openCloseCash(updated,counts);
+        if(!updated)notify('Esta caja ya está cerrada.','info');
+        return;
+      }
+      var audit='Cierre '+(f.elements.closeType.value==='day'?'del día':'de turno')+'. Conciliación: '+methods.map(function(method){return labels[method]+' esperado '+money(expected[method])+', reportado '+money(snap.declared[method])+', diferencia '+money(snap.variances[method]);}).join('; ')+(snap.hasVariance&&reason.value?'. Motivo: '+reason.options[reason.selectedIndex].text:'')+(notes?'. Notas: '+notes:'');var recon={type:f.elements.closeType.value==='day'?'day':'shift',methods:methods.map(function(method){return {method:method,expected:expected[method],reported:snap.declared[method]};}),reason:snap.hasVariance&&reason.value?reason.options[reason.selectedIndex].text:'',notes:notes};var row=await rpc('smyl_close_cash_session',{p_session_id:s.id,p_expected_revision:s.revision,p_counted_cash:snap.declared.cash,p_notes:audit.slice(0,1000),p_reconciliation:recon});if(Array.isArray(row))row=row[0];close();
+      if(row&&row.expected_cash!=null&&cents(row.expected_cash)!==cents(expected.cash)){
+        await reload('Corte guardado con el total final del turno. Consulta el desglose en Cortes anteriores.');return;
+      }
+      await reload('Corte guardado. '+(!snap.hasVariance?'Sin diferencia.':Math.abs(snap.varianceTotal)<.01?'Las diferencias se compensan entre sí.':(snap.varianceTotal>0?'Sobraron ':'Faltaron ')+money(Math.abs(snap.varianceTotal))+'.'));}catch(err){cutFeedback(message(err));}finally{closing=false;}};
   }
   // Alta/edición de datos fiscales del paciente (cliente de facturación): captura a mano o desde la constancia con IA.
   function openFiscal(patientId,afterSave){
@@ -1378,10 +1684,10 @@
   }
   // La página se arma una sola vez, ya en su forma final (antes se armaba y otra rutina la reacomodaba).
   function build(){var page=el('section','pantalla finance-page');page.id='p-caja';
-    page.innerHTML='<h1>Finanzas</h1><p class="finance-context" id="finance-context" aria-live="polite"></p><div class="finance-alerts" id="finance-alerts" role="region" aria-label="Avisos de Finanzas"></div><header class="finance-page-head finance-actionsbar"><div class="finance-head-actions"></div></header><div id="finance-feedback" aria-live="polite"></div>'
-      +'<nav class="finance-tabcards" role="tablist" aria-label="Secciones de Finanzas">'+TABS.map(function(t){return '<button type="button" role="tab" id="finance-tab-'+t[0]+'" data-finance-tab="'+t[0]+'" aria-selected="'+String(t[0]===state.tab)+'" aria-controls="finance-panel-'+t[0]+'"'+(t[0]===state.tab?'':' tabindex="-1"')+'><span class="finance-tab-name">'+t[1]+'</span><strong class="finance-tab-figure">—</strong><small class="finance-tab-note"></small></button>';}).join('')+'</nav>'
+    page.innerHTML='<h1>Cobros y caja</h1><p class="finance-context" id="finance-context" aria-live="polite"></p><div class="finance-alerts" id="finance-alerts" role="region" aria-label="Avisos de Cobros y caja"></div><header class="finance-page-head finance-actionsbar"><div class="finance-head-actions"></div></header><div id="finance-feedback" aria-live="polite"></div>'
+      +'<nav class="finance-tabcards" role="tablist" aria-label="Secciones de Cobros y caja">'+TABS.map(function(t){return '<button type="button" role="tab" id="finance-tab-'+t[0]+'" data-finance-tab="'+t[0]+'" aria-selected="'+String(t[0]===state.tab)+'" aria-controls="finance-panel-'+t[0]+'"'+(t[0]===state.tab?'':' tabindex="-1"')+'><span class="finance-tab-name">'+t[1]+'</span><strong class="finance-tab-figure">—</strong><small class="finance-tab-note"></small></button>';}).join('')+'</nav>'
       +'<section data-finance-panel="accounts" id="finance-panel-accounts" role="tabpanel" aria-labelledby="finance-tab-accounts"><article class="finance-card finance-list-card"><div class="finance-list-tools"><input id="finance-search" type="search" placeholder="Buscar paciente" aria-label="Buscar paciente por nombre" autocomplete="off"><div class="finance-chips" role="group" aria-label="Vistas de cuentas"><button type="button" data-account-filter="open" aria-pressed="true">Con saldo <em></em></button><button type="button" data-account-filter="overdue" aria-pressed="false">Vencidas <em></em></button><button type="button" data-account-filter="credit" aria-pressed="false">A favor <em></em></button><button type="button" data-account-filter="all" aria-pressed="false">Todas</button></div></div><section id="finance-visits" class="finance-visits" aria-live="polite" hidden></section><div id="finance-accounts"></div></article></section>'
-      +'<section data-finance-panel="receipts" id="finance-panel-receipts" role="tabpanel" aria-labelledby="finance-tab-receipts" hidden><article class="finance-card finance-list-card"><div class="finance-list-tools"><div class="finance-segment" role="group" aria-label="Periodo">'+PAY_PERIODS.map(function(p){return '<button type="button" data-pay-period="'+p[0]+'" aria-pressed="'+String(p[0]===state.payPeriod)+'">'+p[1]+'</button>';}).join('')+'</div><div class="finance-tools-end"><select id="finance-pay-method" aria-label="Forma de pago"><option value="">Todas las formas</option>'+METHOD_ORDER.map(function(m){return '<option value="'+m+'">'+PAYMENT_METHODS[m]+'</option>';}).join('')+'</select><button type="button" class="btn btn-secondary" id="finance-pay-export" title="Descarga en Excel los pagos del periodo">Exportar</button></div><div class="finance-date-range" id="finance-pay-range" hidden><label>Del <input type="date" id="finance-pay-from"></label><label>al <input type="date" id="finance-pay-to"></label></div></div><div id="finance-payments"></div></article></section>'
+      +'<section data-finance-panel="receipts" id="finance-panel-receipts" role="tabpanel" aria-labelledby="finance-tab-receipts" hidden><article class="finance-card finance-list-card"><div class="finance-receipts-toolbar"><div class="finance-list-tools finance-receipt-tools"><input type="search" id="finance-receipt-search" placeholder="Buscar recibo por paciente o folio" aria-label="Buscar recibo por paciente o folio en cualquier fecha" autocomplete="off"><button type="button" class="finance-link-action" id="finance-clear-search" hidden>Limpiar</button></div><div class="finance-list-tools" id="finance-pay-filters"><div class="finance-segment" role="group" aria-label="Periodo">'+PAY_PERIODS.map(function(p){return '<button type="button" data-pay-period="'+p[0]+'" aria-pressed="'+String(p[0]===state.payPeriod)+'">'+p[1]+'</button>';}).join('')+'</div><div class="finance-tools-end"><select id="finance-pay-method" aria-label="Forma de pago"><option value="">Todas las formas</option>'+METHOD_ORDER.map(function(m){return '<option value="'+m+'">'+PAYMENT_METHODS[m]+'</option>';}).join('')+'</select><button type="button" class="btn btn-secondary" id="finance-pay-export" title="Descarga en Excel los pagos del periodo">Exportar</button></div><div class="finance-date-range" id="finance-pay-range" hidden><label>Del <input type="date" id="finance-pay-from"></label><label>al <input type="date" id="finance-pay-to"></label></div></div></div><div id="finance-payments"></div></article></section>'
       +'<section data-finance-panel="cash" id="finance-panel-cash" role="tabpanel" aria-labelledby="finance-tab-cash" hidden><article class="finance-card finance-list-card finance-cash-card"><div id="finance-cash"></div></article></section>'
       +'<section data-finance-panel="fiscal" id="finance-panel-fiscal" role="tabpanel" aria-labelledby="finance-tab-fiscal" hidden><article class="finance-card finance-list-card finance-fiscal-card"><div id="finance-fiscal"></div></article></section>'
       +'<dialog id="finance-dialog" class="finance-dialog"></dialog>';
@@ -1390,6 +1696,9 @@
     tabs.forEach(function(b,i){b.onclick=function(){showTab(b.dataset.financeTab);};b.onkeydown=function(e){if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;e.preventDefault();var next=tabs[(i+(e.key==='ArrowRight'?1:tabs.length-1))%tabs.length];showTab(next.dataset.financeTab);next.focus();};});
     page.querySelectorAll('[data-account-filter]').forEach(function(b){b.onclick=function(){setAccountFilter(b.dataset.accountFilter);};});
     page.querySelector('#finance-search').oninput=function(){state.shown.accounts=PAGE_ROWS;renderVisits();renderAccounts();};
+    var receiptSearch=page.querySelector('#finance-receipt-search');
+    receiptSearch.oninput=function(){state.shown.payments=PAGE_ROWS;renderPayments();};
+    page.querySelector('#finance-clear-search').onclick=function(){receiptSearch.value='';receiptSearch.oninput();receiptSearch.focus();};
     page.querySelectorAll('[data-pay-period]').forEach(function(b){b.onclick=function(){setPayPeriod(b.dataset.payPeriod);};});
     page.querySelector('#finance-pay-method').onchange=function(e){state.payMethod=e.currentTarget.value;state.shown.payments=PAGE_ROWS;renderPayments();};
     [['from','payFrom'],['to','payTo']].forEach(function(k){page.querySelector('#finance-pay-'+k[0]).onchange=function(e){if(!e.currentTarget.value)return;state[k[1]]=e.currentTarget.value;if(state.payFrom>state.payTo)state[k[0]==='from'?'payTo':'payFrom']=e.currentTarget.value;state.shown.payments=PAGE_ROWS;renderPayments();};});
@@ -1399,7 +1708,7 @@
     page.addEventListener('toggle',function(e){var menu=e.target;if(!menu.classList||!menu.classList.contains('finance-row-menu')||!menu.open)return;page.querySelectorAll('.finance-row-menu[open]').forEach(function(other){if(other!==menu)other.open=false;});var box=menu.querySelector('div');menu.classList.remove('is-up');if(box&&box.getBoundingClientRect().bottom>page.getBoundingClientRect().bottom-4&&menu.getBoundingClientRect().top-page.getBoundingClientRect().top>box.offsetHeight+12)menu.classList.add('is-up');if(box)box.scrollIntoView({block:'nearest'});},true);
     page.querySelector('#finance-dialog').onclick=function(e){if(e.target===e.currentTarget)e.currentTarget.close();};
   }
-  function navigation(){window.TITULOS.caja='Finanzas';var primary=document.querySelector('.pro-primary-nav');if(primary&&!primary.querySelector('[onclick="ir(\'caja\')"]')){var b=el('button','nav-item','Finanzas');b.type='button';b.setAttribute('onclick',"ir('caja')");var inventory=primary.querySelector('[onclick="ir(\'inventario\')"]');if(inventory)inventory.after(b);else primary.append(b);}var mobile=document.querySelector('.pro-mobile-nav');if(mobile&&!mobile.querySelector('[onclick="ir(\'caja\')"]')){var m=el('button','nav-item','Finanzas');m.type='button';m.setAttribute('onclick',"ir('caja')");var i=mobile.querySelector('[onclick="ir(\'inventario\')"]');if(i)i.after(m);else mobile.append(m);}}
+  function navigation(){window.TITULOS.caja='Cobros y caja';var primary=document.querySelector('.pro-primary-nav');if(primary&&!primary.querySelector('[onclick="ir(\'caja\')"]')){var b=el('button','nav-item','Cobros y caja');b.type='button';b.setAttribute('onclick',"ir('caja')");var inventory=primary.querySelector('[onclick="ir(\'inventario\')"]');if(inventory)inventory.after(b);else primary.append(b);}var mobile=document.querySelector('.pro-mobile-nav');if(mobile&&!mobile.querySelector('[onclick="ir(\'caja\')"]')){var m=el('button','nav-item','Cobros y caja');m.type='button';m.setAttribute('onclick',"ir('caja')");var i=mobile.querySelector('[onclick="ir(\'inventario\')"]');if(i)i.after(m);else mobile.append(m);}}
   // ── Numerito en el menú: pacientes pendientes de cargo ─────────────────────────────────────────────────
   // Mismo criterio que la lista de Cobros (cita que llegó, sin cargo vigente, sin «sin cargo» y con servicio de precio ≠ $0), calculado con
   // la función de sólo lectura smyl_appointment_billing sin abrir Cobros. Sin permiso finance.read la función no devuelve nada y no se muestra.
@@ -1427,7 +1736,7 @@
       contactContext:contactContext,
       account:function(patientId){if(window.ir('caja')===false)return;function ready(){if(state.loading)return setTimeout(ready,60);if(!state.loaded)return load(true).then(ready);openAccount(patientId);}ready();},
       collect:function(patientId,patient){return new Promise(function(resolve){var waited=0,retried=false;function ready(){if(state.loading&&waited++<200)return setTimeout(ready,60);if(!state.loaded&&!retried){retried=true;return Promise.resolve(load(true)).then(ready,ready);}if(!state.loaded)return resolve({ok:false,reason:'load'});if(!state.canManage)return resolve({ok:false,reason:'role'});if(patientId&&patient&&!by(state.patients,patientId)){var parts=String(patient.name||'').trim().split(/\s+/);state.patients.push({id:patientId,nombre:patient.nombre||parts.shift()||'Paciente',apellido:patient.apellido||parts.join(' ')});}openGuidedCollection(patientId||'');resolve({ok:true});}ready();});},
-      forPatient:function(patientId){if(window.ir('caja')===false)return;function ready(){if(state.loading)return setTimeout(ready,60);if(!state.loaded)return load(true).then(ready);if(!state.canManage)return notify('Tu rol puede consultar Finanzas, pero no registrar pagos.','error');openGuidedCollection(patientId);}ready();},
+      forPatient:function(patientId){if(window.ir('caja')===false)return;function ready(){if(state.loading)return setTimeout(ready,60);if(!state.loaded)return load(true).then(ready);if(!state.canManage)return notify('Tu rol puede consultar Cobros y caja, pero no registrar pagos.','error');openGuidedCollection(patientId);}ready();},
       fromProposal:function(id,options){if(window.ir('caja')===false)return;var refreshed=false;function ready(){if(state.loading)return setTimeout(ready,60);if((options&&options.decisionId&&!refreshed)||!state.loaded){refreshed=true;return load(true).then(ready);}openProposalCharge(id,null,options);}ready();},
       recentMovements:recentMovements,appointmentConcepts:appointmentConcepts});
   }

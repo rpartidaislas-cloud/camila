@@ -794,7 +794,13 @@
   function agendaReady() { return agendaInfo.tenant === tenantId && agendaInfo.status === 'ready' && agendaInfo.complete; }
   function patientHasUpcoming(p) { return agendaReady() && !!agendaInfo.next[p.id]; }
   function patientContactIncomplete(p) { return !(p.telefono || p.email); }
+  // Prospecto: se agendó pero aún no llega a su primera cita. Se muestra solo en el filtro «Prospectos» y no cuenta como paciente.
+  function isProspect(p) { return !!p && p.ciclo_vida === 'prospecto'; }
+  function realPatients() { return todosLosPacientes.filter(function (p) { return !isProspect(p); }); }
+  function prospects() { return todosLosPacientes.filter(isProspect); }
   function patientMatchesDirectoryFilter(p) {
+    if (patientDirectoryFilter === 'prospects') return isProspect(p);
+    if (isProspect(p)) return false;
     if ((patientDirectoryFilter === 'upcoming' || patientDirectoryFilter === 'without-appointment') && !agendaReady()) return true;
     if (patientDirectoryFilter === 'upcoming') return patientHasUpcoming(p);
     if (patientDirectoryFilter === 'without-appointment') return !patientHasUpcoming(p);
@@ -806,6 +812,7 @@
       var active = control.dataset.patientFilterValue === patientDirectoryFilter;
       var needsAgenda = control.dataset.patientFilterValue === 'upcoming' || control.dataset.patientFilterValue === 'without-appointment';
       var unavailable = needsAgenda && !agendaReady();
+      if (control.dataset.patientFilterValue === 'prospects') control.hidden = !active && !prospects().length;
       control.classList.toggle('is-active', active);
       control.setAttribute('aria-pressed', String(active));
       control.disabled = unavailable;
@@ -815,15 +822,16 @@
   }
   function setPatientDirectoryFilter(value) {
     if ((value === 'upcoming' || value === 'without-appointment') && !agendaReady()) return;
-    patientDirectoryFilter = ['all','upcoming','without-appointment','incomplete'].indexOf(value) >= 0 ? value : 'all';
+    patientDirectoryFilter = ['all','upcoming','without-appointment','incomplete','prospects'].indexOf(value) >= 0 ? value : 'all';
     syncPatientFilterControls();
     filterPatients();
   }
   function updatePatientMetrics() {
     var values = {
-      'patient-metric-total': todosLosPacientes.length,
-      'patient-metric-upcoming': agendaReady() ? todosLosPacientes.filter(patientHasUpcoming).length : '—',
-      'patient-metric-incomplete': todosLosPacientes.filter(patientContactIncomplete).length
+      'patient-metric-total': realPatients().length,
+      'patient-metric-upcoming': agendaReady() ? realPatients().filter(patientHasUpcoming).length : '—',
+      'patient-metric-incomplete': realPatients().filter(patientContactIncomplete).length,
+      'patient-metric-prospects': prospects().length
     };
     Object.keys(values).forEach(function (id) {
       var node = document.getElementById(id); if (node) node.textContent = values[id];
@@ -838,6 +846,7 @@
     return raw;
   }
   function patientStatus(p, line) {
+    if (isProspect(p)) return { label: 'Prospecto', detail: line && line.tone === 'next' ? 'Aún no llega a su primera cita' : 'Se vuelve paciente al llegar', tone: 'prospect' };
     if (patientContactIncomplete(p)) return { label: 'Datos por completar', detail: 'Sin teléfono ni correo', tone: 'incomplete' };
     if (line && line.tone === 'next') return { label: 'Cita programada', detail: 'Seguimiento definido', tone: 'scheduled' };
     if (!line || line.tone === 'loading' || line.tone === 'unavailable') return { label: 'Estado por confirmar', detail: 'Agenda por consultar', tone: 'neutral' };
@@ -859,8 +868,9 @@
   function updatePatientSummary(list) {
     var summary = document.getElementById('patient-directory-summary');
     if (!summary) return;
-    var total = todosLosPacientes.length, visible = list.length;
+    var total = (patientDirectoryFilter === 'prospects' ? prospects() : realPatients()).length, visible = list.length;
     if (patientFailure && !total) { summary.textContent = 'Directorio no disponible'; return; }
+    if (patientDirectoryFilter === 'prospects') { summary.textContent = visible + (visible === 1 ? ' prospecto' : ' prospectos') + ' · personas agendadas que aún no llegan a su primera cita'; return; }
     var filterNames = { upcoming: 'con próxima cita', 'without-appointment': 'sin próxima cita', incomplete: 'con datos por completar' };
     if (visible !== total || patientDirectoryFilter !== 'all') {
       summary.textContent = visible + ' ' + (visible === 1 ? 'paciente' : 'pacientes') + (filterNames[patientDirectoryFilter] ? ' ' + filterNames[patientDirectoryFilter] : '') + ' · ' + total + ' en total';
@@ -903,14 +913,15 @@
       host.append(message);
     }
     if (!fullList.length && !patientFailure) {
-      if (todosLosPacientes.length) {
-        var filteredCopy = patientDirectoryFilter === 'all' ? 'Prueba con otro nombre, teléfono o correo.' : 'No hay pacientes que coincidan con este filtro y la búsqueda actual.';
+      if ((patientDirectoryFilter === 'prospects' ? prospects() : realPatients()).length) {
+        var filteredCopy = patientDirectoryFilter === 'prospects' ? 'No hay prospectos. Quien se agenda por primera vez aparece aquí hasta que llega a su cita.' : patientDirectoryFilter === 'all' ? 'Prueba con otro nombre, teléfono o correo.' : 'No hay pacientes que coincidan con este filtro y la búsqueda actual.';
         host.append(patientEmptyState('Sin resultados', filteredCopy, 'Mostrar todos', function () {
           var input = document.getElementById('buscar-pac'); if (input) { input.value = ''; input.focus(); }
           setPatientDirectoryFilter('all');
         }));
       } else {
-        host.append(patientEmptyState('Aún no hay pacientes', 'Registra el nombre para abrir su expediente. Los demás datos pueden completarse después.'));
+        if (patientDirectoryFilter === 'prospects') host.append(patientEmptyState('No hay prospectos', 'Quien se agenda por primera vez aparece aquí hasta que llega a su cita.', 'Ver pacientes', function () { setPatientDirectoryFilter('all'); }));
+        else host.append(patientEmptyState('Aún no hay pacientes', 'Registra el nombre para abrir su expediente. Los demás datos pueden completarse después.'));
       }
     }
     if (list.length) {
@@ -951,6 +962,7 @@
 
       var actions = el('td', 'clinic-patient-actions'); actions.dataset.label = 'Acciones';
       // Toda la fila abre el expediente (el nombre es el control accesible por teclado); sin botones aparte.
+      if (isProspect(p) && !p._local) actions.append(button('Convertir en paciente', function (event) { promoteProspect(p, event && event.currentTarget); }, 'btn btn-secondary btn-sm clinic-patient-promote'));
       var chevron = el('span', 'clinic-patient-chevron', '›'); chevron.setAttribute('aria-hidden', 'true'); actions.append(chevron);
       row.append(patientCell, attention, state, actions); body.append(row);
     });
@@ -967,6 +979,20 @@
       var old = el('details', 'clinic-secondary');
       old.append(el('summary', '', legacy.length + ' registros antiguos en este dispositivo'), notice('No están vinculados automáticamente a las fichas de la clínica. Conservamos el archivo local; su traslado requiere revisión.'));
       legacy.forEach(function (p) { old.append(el('p', '', fullName(p) + ' · ' + (p.telefono || p.email || 'Sin contacto'))); }); host.append(old);
+    }
+  }
+  async function promoteProspect(p, control) {
+    if (control) control.disabled = true;
+    try {
+      await checked(sb.rpc('smyl_promote_prospect', { p_patient_id: p.id }));
+      p.ciclo_vida = 'paciente'; p.convertido_at = new Date().toISOString();
+      patientMessage = (fullName(p) || 'La persona') + ' ya es paciente.'; patientFailure = false;
+      filterPatients();
+    } catch (error) {
+      if (control) control.disabled = false;
+      patientMessage = /42501|permiso/i.test(String(error && (error.code || error.message))) ? 'Tu rol no permite convertir prospectos en pacientes.' : 'No se pudo convertir. Inténtalo de nuevo.';
+      patientFailure = false;
+      filterPatients();
     }
   }
   async function savePatient() {

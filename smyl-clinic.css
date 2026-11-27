@@ -278,6 +278,8 @@
   line-height:1.25;
 }
 .clinic-patient-status[data-complete=false]{background:var(--smyl-ui-warning-soft,#fff8e7);color:var(--smyl-ui-warning,#8a5a05)}
+.clinic-patient-status[data-tone=prospect]{background:#eef2f7;color:#41526b;box-shadow:inset 0 0 0 1px #d3dce8}
+.clinic-patient-table .clinic-patient-actions .clinic-patient-promote{min-height:38px}
 .clinic-patient-table .clinic-patient-actions{display:flex;justify-content:flex-end;gap:8px;width:auto;flex-wrap:nowrap}
 .clinic-patient-table .clinic-patient-actions .btn{min-height:42px;margin:0;padding-inline:12px;white-space:nowrap}
 .clinic-patient-empty{

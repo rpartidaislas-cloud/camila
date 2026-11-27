@@ -1,7 +1,7 @@
 // Humo de navegador de la etiqueta de cobro en la Agenda, con un Supabase simulado (tests/qa/fake-supabase-agenda.js).
 //   NODE_PATH=$(npm root -g) node tests/qa/agenda-billing-smoke.cjs      (requiere Playwright y Chromium)
 // Comprueba, en las vistas Semana, Día y Lista: Por cobrar / Saldo $700 / Cobrada, que la Revisión de $0 no lleva etiqueta
-// y que el detalle de la cita muestra la línea «Cobro» con «Ir a Finanzas». Sale con código 1 si algo falla.
+// y que el detalle de la cita muestra la línea «Cobro» con «Ir a Cobros y caja». Sale con código 1 si algo falla.
 const { chromium } = require('playwright');
 const http = require('http'), fs = require('fs'), path = require('path');
 const root = path.resolve(__dirname, '..', '..');
@@ -24,9 +24,9 @@ const server = http.createServer((req, res) => { let p = decodeURIComponent(req.
     check(visible === c.length, 'en la vista ' + v + ' todas las etiquetas deben verse (hay ' + visible + ' de ' + c.length + ')');
   }
   await page.locator('[data-appointment="a2"]').first().click(); await page.waitForTimeout(500);
-  const fila = await page.$eval('.sched-billing-row', e => e.innerText.replace(/\n/g, ' ')).catch(() => ''); console.log('Detalle:', fila); check(/Saldo \$700/.test(fila) && /Ir a Finanzas/.test(fila), 'el detalle debe mostrar el saldo y «Ir a Finanzas»');
+  const fila = await page.$eval('.sched-billing-row', e => e.innerText.replace(/\n/g, ' ')).catch(() => ''); console.log('Detalle:', fila); check(/Saldo \$700/.test(fila) && /Ir a Cobros y caja/.test(fila), 'el detalle debe mostrar el saldo y «Ir a Cobros y caja»');
   await page.click('[data-go-finance]'); await page.waitForTimeout(800);
-  check(await page.evaluate(() => document.getElementById('p-caja').classList.contains('activa')), '«Ir a Finanzas» debe abrir Finanzas');
+  check(await page.evaluate(() => document.getElementById('p-caja').classList.contains('activa')), '«Ir a Cobros y caja» debe abrir Finanzas');
   console.log('errores de página:', JSON.stringify(errs)); if (errs.length) failCount++;
   await b.close(); server.close(); process.exit(failCount ? 1 : 0);
 });

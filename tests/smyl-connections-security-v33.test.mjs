@@ -31,26 +31,27 @@ test('Conexiones fija escala legible, objetivos táctiles y composición sin emp
   assert.match(connectionsCss, /:focus-visible\{outline:3px solid/);
 });
 
-test('Seguridad traduce prioridad y resolución a estados inequívocos', () => {
-  assert.match(securityJs, /function severityLabel/);
-  assert.match(securityJs, /Prioridad crítica/);
-  assert.match(securityJs, /function statusLabel/);
-  assert.match(securityJs, /En investigación/);
-  assert.match(securityJs, /class="security-severity"/);
-  assert.match(securityJs, /class="security-state"/);
-  assert.match(securityJs, /aria-label="'\+esc\(action\+' señal: '\+e\.title\)/);
+test('Seguridad habla en lenguaje simple: cada tipo de aviso es una pregunta con botones, sin términos técnicos', () => {
+  assert.match(securityJs, /function plain\(e\)/);
+  for (const type of ['access_fingerprint_velocity', 'export_volume', 'rejected_file_volume', 'privilege_change_volume', 'file_maintenance_error', 'legacy_file_review']) assert.ok(securityJs.includes("case '" + type + "'"), type);
+  assert.match(securityJs, /¿Fuiste tú o tu equipo trabajando normalmente\?/);
+  assert.match(securityJs, /Todo en orden/);
+  assert.match(securityJs, /Todos fueron normales/);
+  assert.match(securityJs, /status:yes\?'resolved':'investigating'/);
   assert.match(securityJs, /call\('update_event'/);
   assert.match(securityJs, /call\('record_export'/);
+  const visible = securityJs.slice(securityJs.indexOf('function build()'), securityJs.indexOf('async function load'));
+  assert.doesNotMatch(visible, /fingerprint|runbook|Preserva|evidencia/i, 'nada técnico a la vista (el detalle técnico queda escondido)');
 });
 
-test('Seguridad presenta listas planas, foco visible y controles accesibles', () => {
-  assert.match(securityCss, /Clinical Workspace v3\.3 · Seguridad/);
-  assert.match(securityCss, /\.security-eyebrow\{font-size:12px/);
-  assert.match(securityCss, /\.security-events article\{[^}]*border-radius:0;background:transparent/);
-  assert.match(securityCss, /\.security-state\{[^}]*font-size:12px/);
-  assert.match(securityCss, /\.security-page button,\.security-dialog button\{min-height:42px;min-width:42px/);
-  assert.match(securityCss, /@media\(max-width:620px\)\{[\s\S]*?min-height:44px;min-width:44px/);
-  assert.match(securityCss, /:focus-visible/);
+test('Seguridad presenta tarjetas claras, botones grandes, foco visible y se adapta al celular', () => {
+  assert.match(securityCss, /SMYL · Seguridad en lenguaje simple/);
+  assert.match(securityCss, /\.security-actions \.btn\{min-height:50px/);
+  assert.match(securityCss, /\.security-eyebrow\{display:block;font-size:12px/);
+  assert.match(securityCss, /:focus-visible\{outline:3px solid/);
+  assert.match(securityCss, /@media\(max-width:620px\)\{[\s\S]*?\.security-actions \.btn\{flex:1 1 100%\}/);
+  const sizes = [...securityCss.matchAll(/font-size:(\d+)px/g)].map((m) => Number(m[1]));
+  assert.ok(sizes.every((n) => n >= 12), 'tipografía mínima legible');
 });
 
 test('fixture y QA cubren 1440, 1024 y 390 sin servicios externos', () => {
