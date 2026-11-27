@@ -14,7 +14,7 @@ test('Finanzas tiene cuatro destinos claros y abre en Por cobrar', () => {
   assert.doesNotMatch(js, /data-finance-tab="(summary|payments|today)"/);
   for (const old of ['Resumen', 'Cuentas por cobrar', 'Pagos y recibos', 'Por cobrar hoy', 'Corte de caja', 'Preparación CFDI', 'Plantillas']) assert.ok(!nav.includes(old), old);
   const hub = read('smyl-settings-hub.js');
-  for (const id of ['receipts', 'cash']) assert.match(hub, new RegExp('data-finance-tab="' + id + '"'));
+  for (const id of ['receipts', 'cash']) assert.doesNotMatch(hub, new RegExp('data-finance-tab="' + id + '"'), 'Pagos y Caja viven en Finanzas, no en Configuración');
   // La configuración fiscal ya no es una pestaña de Cobros: Configuración incrusta #billing-setup.
   assert.match(hub, /element: '#billing-setup'/);
 });

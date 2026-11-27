@@ -12,7 +12,7 @@
   // Los grupos crean separación visual sin inventar nuevas pantallas ni fuentes de datos.
   var SECTIONS = [
     { id: 'clinica', title: 'Clínica', blurb: 'Identidad, sedes y experiencia del paciente.', icon: 'clinic', items: [
-      { title: 'Datos del consultorio', desc: 'Nombre, doctor titular y ciudad con los que se identifica tu consultorio.', group: 'Identidad', icon: 'clinic', action: 'Editar', route: 'mi-consultorio', ownerOnly: true },
+      { title: 'Datos de la clínica', desc: 'Nombre, doctor o doctora titular y ciudad.', group: 'Identidad', icon: 'clinic', action: 'Editar', route: 'mi-consultorio', ownerOnly: true },
       { title: 'Sucursales y espacios', desc: 'Direcciones, consultorios y horarios por sede.', group: 'Operación', icon: 'location', action: 'Administrar', route: 'clinica', embed: true, target: '[data-ca-tab="operacion"]', check: 'hours' },
       { title: 'Modalidad de compras', desc: 'Elige si las sucursales compran a proveedores o solicitan insumos al centro.', group: 'Operación', icon: 'inventory', action: 'Configurar', route: 'inventario', target: '#inventory-purchasing-settings' },
       { title: 'Marca y experiencia', desc: 'Nombre, colores y mensajes que ven tus pacientes.', group: 'Presencia', icon: 'sparkles', action: 'Personalizar', route: 'sim-config' },
@@ -20,15 +20,13 @@
     ] },
     { id: 'equipo', title: 'Equipo', blurb: 'Personas, invitaciones y permisos.', icon: 'team', items: [
       { title: 'Integrantes', desc: 'Invita personas y administra su acceso a la clínica.', group: 'Personas', icon: 'team', action: 'Administrar', route: 'clinica', embed: true, target: '[data-ca-team-view="people"]' },
-      { title: 'Roles y permisos', desc: 'Define qué puede consultar y hacer cada rol.', group: 'Acceso', icon: 'security', action: 'Configurar', route: 'clinica', embed: true, target: '[data-ca-team-view="roles"]' },
-      { title: 'Mi cuenta', desc: 'Datos personales y preferencias de acceso.', group: 'Cuenta personal', icon: 'profile', action: 'Abrir', route: 'mi-cuenta' }
+      { title: 'Roles y permisos', desc: 'Define qué puede consultar y hacer cada rol.', group: 'Acceso', icon: 'security', action: 'Configurar', route: 'clinica', embed: true, target: '[data-ca-team-view="roles"]' }
     ] },
-    { id: 'agenda', title: 'Agenda', blurb: 'Disponibilidad, calendarios y avisos de cita.', icon: 'calendar', items: [
+    { id: 'agenda', title: 'Agenda', blurb: 'Quién atiende, calendarios y avisos al paciente.', icon: 'calendar', items: [
       { title: 'Profesionales', desc: 'Define quién atiende, sus sedes y preparación para recibir citas.', group: 'Disponibilidad', icon: 'team', action: 'Administrar', route: 'clinica', embed: true, target: '[data-ca-team-view="professionals"]' },
-      { title: 'Horarios y servicios', desc: 'Servicios, tarifas y el horario semanal de cada profesional.', group: 'Disponibilidad', icon: 'clock', action: 'Configurar', route: 'agenda', target: '[data-schedule-tab="settings"]' },
-      { title: 'Google Calendar', desc: 'Sincroniza el calendario profesional y revisa cambios.', group: 'Calendarios y confirmación', icon: 'sync', action: 'Administrar', route: 'agenda', target: '#schedule-google-calendar' },
-      { title: 'Confirmaciones', desc: 'Solicitudes que todavía necesitan horario o aprobación.', group: 'Calendarios y confirmación', icon: 'check', action: 'Revisar', route: 'agenda', target: '[data-schedule-tab="requests"]' },
-      { title: 'Recordatorios de cita', desc: 'Avisos automáticos antes de cada cita.', group: 'Comunicación', icon: 'bell', action: 'Configurar', route: 'agenda', embed: true, element: '#schedule-reminders-card', check: 'reminders' }
+      { title: 'Google Calendar', desc: 'Sincroniza el calendario profesional y revisa cambios.', group: 'Calendarios', icon: 'sync', action: 'Administrar', route: 'agenda', target: '#schedule-google-calendar' },
+      { title: 'Avisos de cita', desc: 'Plantilla que se ofrece al confirmar, reprogramar o cancelar.', group: 'Avisos al paciente', icon: 'calendar', action: 'Configurar', route: 'avisos-cita' },
+      { title: 'Recordatorios de cita', desc: 'Aviso automático antes de cada cita.', group: 'Avisos al paciente', icon: 'bell', action: 'Configurar', route: 'agenda', embed: true, element: '#schedule-reminders-card', check: 'reminders' }
     ] },
     { id: 'catalogo', title: 'Catálogo', blurb: 'Servicios, precios y materiales.', icon: 'catalog', items: [
       { title: 'Servicios y tarifas', desc: 'Tratamientos, duración, precios y datos fiscales.', group: 'Atención', icon: 'service', action: 'Administrar', route: 'precios', check: 'services' },
@@ -39,17 +37,12 @@
       { title: 'Messenger', desc: 'Página de Facebook', group: 'Cuentas de mensajería', icon: 'messenger', channel: 'messenger', route: 'conexiones', target: '[data-connection-tab="messenger"]' },
       { title: 'Instagram', desc: 'Cuenta profesional', group: 'Cuentas de mensajería', icon: 'instagram', channel: 'instagram', route: 'conexiones', target: '[data-connection-tab="instagram"]' },
       { title: 'SMYL Asistente', desc: 'Información de la clínica, tono y respuestas.', group: 'Asistente', icon: 'bot', action: 'Configurar', route: 'conexiones', target: '[data-connection-tab="assistant"]' },
-      { title: 'Probar al asistente', desc: 'Ensaya una conversación antes de publicar.', group: 'Asistente', icon: 'lab', action: 'Probar', route: 'conexiones', target: '[data-connection-tab="lab"]' },
-      { title: 'Plantillas de WhatsApp', desc: 'Textos aprobados para enviar a pacientes.', group: 'Mensajes automáticos', icon: 'template', action: 'Administrar', route: 'plantillas', check: 'template' },
-      { title: 'Avisos de cita', desc: 'Confirmaciones, cambios y cancelaciones.', group: 'Mensajes automáticos', icon: 'calendar', action: 'Configurar', route: 'avisos-cita' },
-      { title: 'Automatizaciones', desc: 'Recordatorios y reglas de atención.', group: 'Mensajes automáticos', icon: 'automation', action: 'Configurar', route: 'conexiones', target: '[data-connection-tab="automations"]' }
+      { title: 'Plantillas de WhatsApp', desc: 'Textos aprobados para enviar a pacientes.', group: 'Plantillas y reglas', icon: 'template', action: 'Administrar', route: 'plantillas', check: 'template' },
+      { title: 'Reglas del asistente', desc: 'Cuándo responde SMYL y cuándo pasa el chat a una persona.', group: 'Plantillas y reglas', icon: 'automation', action: 'Configurar', route: 'conexiones', target: '[data-connection-tab="automations"]' }
     ] },
     { id: 'cobros', title: 'Finanzas', blurb: 'Cuentas, pagos, caja y facturación.', icon: 'payments', items: [
-      { title: 'Recibos', desc: 'Comprobantes, servicios cobrados y seguimiento fiscal.', group: 'Operación diaria', icon: 'payments', action: 'Abrir', route: 'caja', embed: true, target: '[data-finance-tab="receipts"]' },
-      { title: 'Corte de caja', desc: 'Cierra el día y cuadra lo cobrado.', group: 'Operación diaria', icon: 'cash', action: 'Revisar', route: 'caja', embed: true, target: '[data-finance-tab="cash"]' },
       { title: 'Facturación', desc: 'Datos fiscales de la clínica y conexión con Facturapi.', group: 'Facturación y reglas', icon: 'template', action: 'Configurar', route: 'caja', embed: true, element: '#billing-setup', ensure: 'billing' },
-      { title: 'Pagos en línea (Openpay)', desc: 'Conecta tu cuenta Openpay para cobrar con enlace: tarjeta y SPEI.', group: 'Facturación y reglas', icon: 'payments', action: 'Configurar', route: 'caja', embed: true, element: '#online-pay-setup', ensure: 'online-pay' },
-      { title: 'Formas de pago y anticipo', desc: 'Métodos aceptados y anticipos de la clínica.', group: 'Facturación y reglas', icon: 'payments', soon: true }
+      { title: 'Pagos en línea (Openpay)', desc: 'Conecta tu cuenta Openpay para cobrar con enlace: tarjeta y SPEI.', group: 'Facturación y reglas', icon: 'payments', action: 'Configurar', route: 'caja', embed: true, element: '#online-pay-setup', ensure: 'online-pay' }
     ] },
     { id: 'cuenta', title: 'Cuenta y seguridad', blurb: 'Plan, protección y preparación operativa.', icon: 'security', items: [
       { title: 'Plan y suscripción', desc: 'Tu plan, cambios de plan y pago de la suscripción.', group: 'Suscripción', icon: 'plan', action: 'Consultar', route: 'plan', ownerOnly: true },
