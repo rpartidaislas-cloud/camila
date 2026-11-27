@@ -13016,3 +13016,10 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - `smyl-proposal-model.js` v7: `fromPlan` solo pasa al presupuesto lo que tiene servicio del catálogo (decisión 2 de Ricardo); `smyl-proposals.js` v31: si el plan no tiene servicios con cobro, el editor avisa y se pueden agregar con «+ Agregar servicio». Los planes ya guardados no se modifican; solo cambia qué conceptos se precargan al crear una cotización nueva.
 - Sin migraciones. Sufijo SW `-plan-con-precios-v1`, copias en `mobile/www/`. Pruebas: `tests/plan-with-prices.test.mjs`, `tests/qa/plan-con-precios-smoke.cjs`.
 - Siguiente: entrega 3 (presupuesto dentro de la pestaña) y entrega 4 (aceptación, inicio y avance del tratamiento).
+
+## 2026-11-27 · Claude · Tratamiento — entrega 3: el presupuesto se arma dentro de la pestaña
+
+- `smyl-proposals.js` v32 / `.css` v20: `SmylProposals.mount(host,{patientId,id,onClose})` y `unmount()` montan el MISMO editor de presupuesto dentro de otra pantalla (modo incrustado: botón «← Volver al paciente», errores y compuerta vuelven al paciente). La pantalla de Cotizaciones no cambia (`ir('propuestas')` limpia el modo incrustado).
+- `smyl-case-workspace.js` v56: «Preparar/Revisar presupuesto» monta el editor en `#cw-quote-host` dentro de la etapa Presupuesto (ya no navega a Cotizaciones); `SmylCaseWorkspace.openQuote(patient)` lo abre desde el plan; `smyl-clinic.js` v31: «Preparar presupuesto · opcional» del plan usa `openQuote`. El espacio de trabajo clínico sigue sin consultar la base. Si el espacio no está disponible, se cae al flujo anterior (`forPatient`).
+- Sin migraciones. Sufijo SW `-presupuesto-incrustado-v1`, copias en `mobile/www/`. Pruebas: `tests/embedded-quote.test.mjs`, `tests/qa/presupuesto-incrustado-smoke.cjs`.
+- Pendiente: «Cotizar ahora» desde el selector de pacientes (Inicio/Cotizaciones) aún abre la pantalla de Cotizaciones; entrega 4 (avance del tratamiento: conceptos realizados vs pendientes y saldo, aviso al cerrar).

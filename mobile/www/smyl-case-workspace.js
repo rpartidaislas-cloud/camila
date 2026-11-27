@@ -630,10 +630,12 @@
   ctx.approvalFacts={};const approvalFacts=n('dl','cw-approval-facts');[['accepted','Aceptado'],['pending','Por decidir'],['rejected','No aceptado']].forEach(([key,label])=>{const item=n('div','');item.append(n('dt','',label),ctx.approvalFacts[key]=n('dd','','0'));approvalFacts.append(item);});ctx.approvalSummary.append(approvalSummaryHead,approvalFacts);approval.body.append(ctx.approvalSummary);
   approval.body.append(n('p','cw-share-copy','El presupuesto usa el plan aprobado. La presentación visual es opcional y nunca incluye antecedentes ni notas internas.'));
   ctx.planNext=btn('Aprobar plan',()=>document.getElementById('clinic-review')?.click(),true);const planFoot=n('div','cw-module-footer cw-dock-mirrored');planFoot.append(ctx.planNext);plan.body.append(planFoot);
-  ctx.quoteButton=btn('Preparar presupuesto',()=>window.SmylProposals?.forPatient(ctx.patient),true);
+  // El presupuesto se arma aquí mismo, dentro de la pestaña Tratamiento; Cotizaciones queda como bandeja de seguimiento.
+  ctx.quoteHost=n('div','cw-quote-host');ctx.quoteHost.hidden=true;ctx.quoteHost.id='cw-quote-host';
+  ctx.quoteButton=btn('Preparar presupuesto',()=>{const api=window.SmylProposals;if(!api)return;const opened=typeof api.mount==='function'&&api.mount(ctx.quoteHost,{patientId:ctx.patient,onClose:()=>{ctx.proposalPrimeKey='';refresh();ctx.quoteButton?.focus?.();}});if(opened)ctx.quoteHost.scrollIntoView?.({block:'start',behavior:'smooth'});else api.forPatient?.(ctx.patient);},true);
   ctx.shareButton=btn('Preparar presentación mySmyl',()=>{if(ctx.selected?.current())ctx.selected.present();});
   ctx.fixPlan=btn('Ir al plan',()=>{open('plan');document.getElementById('clinic-assessment')?.focus({preventScroll:true});});
-  const actions=n('div','cw-action-row');actions.append(ctx.quoteButton,ctx.shareButton,ctx.fixPlan);approval.body.append(actions,n('p','cw-help','Preparar un presupuesto o crear un enlace no envía nada automáticamente. El profesional conserva la revisión final.'));
+  const actions=n('div','cw-action-row');actions.append(ctx.quoteButton,ctx.shareButton,ctx.fixPlan);approval.body.append(actions,ctx.quoteHost,n('p','cw-help','Preparar un presupuesto o crear un enlace no envía nada automáticamente. El profesional conserva la revisión final.'));
   ctx.history=btn('Consultar enlaces y solicitudes',()=>{if(valid(ctx)&&ctx.selected?.current())ctx.selected.present();});
   const past=n('details','cw-contact');past.append(n('summary','','Presentaciones anteriores'),n('p','cw-help','Consulta su vigencia o revoca un acceso desde «Enlaces anteriores y mensajes del paciente». Abrirlo no crea ni envía una propuesta.'),ctx.history);approval.body.append(past);
   ctx.orthodontics=window.SmylOrthodontics?.attach?.(ctx)||null;if(ctx.orthodontics)followup.body.append(ctx.orthodontics);
@@ -764,6 +766,7 @@
   addEventListener('smyl:clinical-photo-status',e=>{const ctx=active,d=e.detail;if(!valid(ctx)||d?.tenant!==ctx.tenant||d.patient!==ctx.patient)return;ctx.clinicalPhotoStatus=d;refresh();});
   window.sb?.auth?.onAuthStateChange?.((event,session)=>{const ctx=active;if(ctx?.root.isConnected&&(session?.user?.id!==ctx.actor||session.user.is_anonymous)){views.clear();disposePeriodontal(ctx);ctx.revoked=true;ctx.entries=null;ctx.selected=null;ctx.receipts.clear();ctx.root.replaceChildren(n('p','cw-overview','La sesión cambió. Abre nuevamente el expediente con la cuenta autorizada.'));}});
  }
- window.SmylCaseWorkspace={open,openChairside,openRadiographIntake,context(tenant,patient){const ctx=active;if(!valid(ctx)||ctx.tenant!==tenant||ctx.patient!==patient)return null;const entry=ctx.selected;return entry&&entry.current()?{caseId:entry.row.id,isCurrent:()=>valid(ctx)&&ctx.selected===entry&&entry.current()}:null;}};
+ function openQuote(patient){const ctx=active;if(!valid(ctx)||ctx.patient!==patient||!ctx.quoteButton||ctx.quoteButton.disabled)return false;open('approval');ctx.quoteButton.click();return true;}
+ window.SmylCaseWorkspace={open,openQuote,openChairside,openRadiographIntake,context(tenant,patient){const ctx=active;if(!valid(ctx)||ctx.tenant!==tenant||ctx.patient!==patient)return null;const entry=ctx.selected;return entry&&entry.current()?{caseId:entry.row.id,isCurrent:()=>valid(ctx)&&ctx.selected===entry&&entry.current()}:null;}};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

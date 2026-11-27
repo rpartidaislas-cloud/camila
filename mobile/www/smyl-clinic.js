@@ -553,7 +553,7 @@
       document.getElementById('clinic-review-dialog').showModal();
     }, 'btn btn-primary'); review.id = 'clinic-review';
     actions.append(save, review); foot.append(saveState, actions); form.append(foot);
-    var proposal = button('Preparar presupuesto · opcional', function () { if (window.SmylProposals) SmylProposals.forPatient(current.patient); });
+    var proposal = button('Preparar presupuesto · opcional', function () { if (window.SmylCaseWorkspace && typeof SmylCaseWorkspace.openQuote === 'function' && SmylCaseWorkspace.openQuote(current.patient)) return; if (window.SmylProposals) SmylProposals.forPatient(current.patient); });
     proposal.id = 'clinic-proposal'; foot.append(proposal);
     host.append(form);
     doc.treatments.forEach(addTreatment);
