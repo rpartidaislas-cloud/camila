@@ -46,23 +46,25 @@ test('protected exports are recorded before the browser creates the file',()=>{
   assert.match(sql,/smyl_actor_has_permission_explicit/);
 });
 
-test('the security center includes alerts, investigation and a response runbook',()=>{
-  assert.match(ui,/CENTRO DE SEGURIDAD/);
+test('the security center asks plain yes/no questions, records investigation and explains what to do',()=>{
+  assert.match(ui,/Tu clínica y tus datos/);
+  assert.match(ui,/Sí, fuimos nosotros/);
+  assert.match(ui,/Si no reconoces la actividad/);
   assert.match(ui,/update_event/);
   assert.match(ui,/smyl:security-updated/);
-  assert.match(ui,/no confirma por sí sola un incidente/i);
+  assert.match(ui,/no confirma por sí solo un incidente/i);
   assert.match(css,/@media\(max-width:620px\)/);
   assert.match(read('tests/fixtures/smyl-security-stage5-preview.html'),/Volumen inusual de exportaciones/);
   assert.match(read('docs/SMYL_SECURITY_INCIDENT_RUNBOOK.md'),/Contener[\s\S]*Verificar[\s\S]*Preservar[\s\S]*Corregir[\s\S]*Documentar/);
 });
 
 test('web, mobile and PWA ship the same stage 5 security center',()=>{
-  assert.match(app,/smyl-security-center\.js\?v=3/);
+  assert.match(app,/smyl-security-center\.js\?v=4/);
   assert.match(app,/window\.SmylSecurity\.start\(sb\)/);
   assert.equal(app,mobile);
   assert.equal(ui,read('mobile/www/smyl-security-center.js'));
   assert.equal(css,read('mobile/www/smyl-security-center.css'));
   assert.equal(read('smyl-navigation.js'),read('mobile/www/smyl-navigation.js'));
   assert.match(read('sw.js'),/smyl-v263-lana-connection-recovery/);
-  assert.match(read('sw.js'),/smyl-security-center\.js\?v=3/);
+  assert.match(read('sw.js'),/smyl-security-center\.js\?v=4/);
 });
