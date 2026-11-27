@@ -84,7 +84,7 @@ function unzip(buf) {
 }
 
 server.listen(0, '127.0.0.1', async () => {
-  const browser = await chromium.launch(); let failures = 0;
+  const browser = await chromium.launch(process.env.SMYL_BROWSER_CHANNEL?{channel:process.env.SMYL_BROWSER_CHANNEL}:{}); let failures = 0;
   const check = (ok, msg) => { if (!ok) { failures += 1; console.log('FALLA · ' + msg); } else console.log('ok · ' + msg); };
   const fake = fs.readFileSync(path.join(__dirname, 'fake-supabase-cobros.js'), 'utf8');
   async function open(size, extra, prepare) {
@@ -118,14 +118,17 @@ server.listen(0, '127.0.0.1', async () => {
   await go(page,'receipts');
   const receiptSearch=page.locator('#finance-receipt-search');
   await receiptSearch.fill('sofia mendoza');
+  await page.locator('#finance-payments [data-open-receipt]').first().waitFor();
   check(await page.locator('#finance-payments [data-open-receipt]').count() === 1, 'el buscador encuentra el recibo anterior por nombre sin acentos');
   await receiptSearch.fill('#000101');
   const receiptResult=page.locator('#finance-payments [data-open-receipt]');
+  await receiptResult.first().waitFor();
   check(await receiptResult.count() === 1 && await page.locator('#finance-pay-filters').isHidden(), 'el folio encuentra el recibo fuera de Hoy');
   await receiptResult.click();
   check(await page.locator('#finance-dialog').isVisible() && (await page.locator('#finance-dialog').innerText()).includes('000101'), 'el resultado abre el recibo original');
   await page.keyboard.press('Escape');
   await receiptSearch.fill('inexistente');
+  await page.getByText('Sin coincidencias',{exact:true}).waitFor();
   check(await page.getByText('Sin coincidencias',{exact:true}).isVisible(), 'la búsqueda vacía permite corregir el término');
   await page.locator('#finance-clear-search').click();
   check(await page.locator('#finance-pay-filters').isVisible() && await page.locator('[data-pay-period="today"]').getAttribute('aria-pressed') === 'true', 'limpiar restaura el periodo seleccionado');
@@ -299,6 +302,9 @@ server.listen(0, '127.0.0.1', async () => {
   await page.click('#finance-accounts .finance-line[data-account-state=overdue] .finance-row-menu>summary');
   await page.click('#finance-accounts .finance-line[data-account-state=overdue] button.finance-line-who'); await page.waitForTimeout(400);
   check(await page.$eval('#finance-dialog', e => e.open && e.textContent.includes('Luis Hernández Ortiz')), 'tocar el nombre abre la cuenta completa del paciente');
+  await page.click('#finance-dialog [data-account-tab="payments"]');
+  await page.click('#finance-dialog [data-account-receipt]');
+  check(await page.locator('#finance-dialog .finance-receipt-detail').count()===1,'el recibo de la cuenta abre la misma vista que el de Pagos y recibos');
   await page.keyboard.press('Escape'); await page.waitForTimeout(250);
   await page.fill('#finance-search', 'lopez'); await page.waitForTimeout(200); rows = await lines();
   const found = { title: await page.$eval('#finance-accounts-title', e => e.textContent), chips: await chips(), visits: await page.$$eval('#finance-visits .finance-line strong', els => els.map(e => e.textContent)) };
@@ -621,6 +627,26 @@ server.listen(0, '127.0.0.1', async () => {
   check(srvFound.length === 1 && /Paciente Extra 042/.test(srvFound[0]), 'la búsqueda de cuentas la resuelve el servidor y muestra el nombre del paciente: ' + JSON.stringify(srvFound));
   const srvCalls = await page.evaluate(() => window.__serverCalls);
   check(srvCalls.some(c => c === 'smyl_finance_account_summaries:all:Extra 042:0'), 'la búsqueda viaja al servidor: ' + JSON.stringify(srvCalls.slice(-3)));
+  await go(page,'receipts');
+  await page.fill('#finance-receipt-search','Sofía Mendoza');
+  await page.locator('#finance-payments [data-open-receipt="r0"]').waitFor();
+  check(await page.locator('#finance-payments [data-open-receipt="r0"]').count()===1,'la búsqueda encuentra un recibo antiguo fuera del límite de carga');
+  await page.click('#finance-payments [data-open-receipt="r0"]');
+  await page.locator('#finance-dialog .finance-receipt-detail').waitFor();
+  check(/Sofía Mendoza Ruiz/.test(await page.locator('#finance-dialog').innerText()),'el recibo antiguo abre con paciente y pago completos');
+  await closeDialog(page);
+  await page.evaluate(()=>window.SmylFinance.forPatient('p5'));
+  await page.locator('#finance-dialog [data-guide-path="service"]').click();
+  await page.locator('#finance-dialog .finance-charge-form').waitFor();
+  await page.selectOption('#finance-dialog [name="service"]','s1');
+  await page.click('#finance-dialog [data-mode="pay"]');
+  await page.locator('#finance-dialog .finance-payment-form').waitFor();
+  const servicePay=await page.$eval('#finance-dialog',d=>({amount:d.querySelector('[name="amount"]').value,checked:[...d.querySelectorAll('input[name="charge"]:checked')].map(x=>x.value),all:[...d.querySelectorAll('input[name="charge"]')].map(x=>x.value)}));
+  check(servicePay.amount==='800.00'&&servicePay.checked.length===1&&servicePay.all.length===2,'Servicio de hoy selecciona solo su cargo y $800; el saldo anterior queda disponible sin marcar: '+JSON.stringify(servicePay));
+  await page.evaluate(()=>{const d=document.querySelector('#finance-dialog');d.querySelector('[name="authorization"]').value='REF-ANTERIOR';const p=d.querySelector('input[name="patient"]');p.value='p4';p.dispatchEvent(new Event('change',{bubbles:true}));});
+  const switched=await page.$eval('#finance-dialog',d=>({amount:d.querySelector('[name="amount"]').value,checked:[...d.querySelectorAll('input[name="charge"]:checked')].map(x=>x.value),reference:d.querySelector('[name="authorization"]').value}));
+  check(switched.amount==='2300.00'&&switched.checked.length===2&&switched.reference==='','cambiar paciente recalcula su saldo y limpia la referencia anterior: '+JSON.stringify(switched));
+  await closeDialog(page);
   check(s.errs.length === 0, 'sin errores de página con el servidor como fuente: ' + JSON.stringify(s.errs));
   await s.ctx.close();
 

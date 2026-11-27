@@ -13107,3 +13107,9 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - WhatsApp del participante vinculado de forma privada tras autorización explícita para retirar un vínculo de prueba. Datos e identificadores personales quedan fuera de Git; traslado auditado en producción.
 - Pruebas: permisos y handlers, navegador 1440/768/390, catálogo y transporte de plantillas, contrato LANA y cola. Se regeneró el bundle de whatsapp-templates y se actualizó la prueba del catálogo a v12.
 - Pendiente: conexión personal en Muse, aprobación de plantilla y prueba real. No hay credencial personal ni envíos reales. No habilitar respuestas hasta comprobar la aprobación humana del cliente Muse.
+
+## 2026-11-27 — Codex — Cobro del servicio y recibos históricos
+
+- «Servicio de hoy» abre el pago con el cargo recién creado como única selección y su saldo como importe. Los cargos anteriores siguen visibles y se incluyen solo si se elige liquidar la cuenta. Cambiar de paciente borra el importe y las referencias anteriores y calcula los cargos de la persona elegida.
+- Pagos y recibos busca por folio o paciente directamente en el historial de la clínica, aunque los registros antiguos no estén en la carga inicial. Si el nombre coincide con más de 20 pacientes, se pide afinar la búsqueda. Al abrir un resultado histórico se recuperan sus conceptos, reembolsos y datos fiscales para mostrar la misma ventana de recibo. La cuenta del paciente, la confirmación del pago y la verificación tras pérdida de conexión abren esa misma vista.
+- Archivos: `smyl-finance.js`, `app.html`, `sw.js`, copias `mobile/www/`, pruebas `tests/qa/fake-supabase-cobros.js` y `tests/qa/finanzas-pestanas-smoke.cjs`. Sin migraciones. La prueba de navegador incluye recibos fuera del límite de carga, servicio de hoy y cambio de paciente.
