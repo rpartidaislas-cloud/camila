@@ -28,6 +28,6 @@ test('Agenda y Cobros usan el enlace y el estado «Cubierta por cotización»', 
 test('web, PWA y móvil publican la misma versión', () => {
   for (const f of ['smyl-schedule.js', 'smyl-schedule.css', 'smyl-finance.js', 'app.html', 'sw.js'])
     assert.equal(read(f), read('mobile/www/' + f), f);
-  assert.match(read('app.html'), /smyl-schedule\.js\?v=69/);
+  assert.match(read('app.html'), /smyl-schedule\.js\?v=70/);
   assert.match(read('sw.js'), /cita-cotizacion-v1/);
 });
