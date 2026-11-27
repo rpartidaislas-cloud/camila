@@ -12980,6 +12980,13 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - No incluido todavía: ligar desde el procedimiento de Consulta y marcar el concepto «realizado» (paso 3: avance del tratamiento).
 - Pruebas: `tests/appointment-quote-links.test.mjs`, `tests/qa/cita-cotizacion-smoke.cjs`.
 
+## 2026-11-27 · Claude · Paso 2: «Requiere presupuesto» por servicio y «Por cotizar» en Cotizaciones
+
+- **Migración NUEVA (aplicar a mano en SQL Editor)**: `supabase/migrations/20261201300000_smyl_service_requires_quote.sql`. `smyl_services.requires_quote boolean` NULLABLE: null = según la categoría (cirugía, prótesis, estética/carillas, ortodoncia, implantología, endodoncia lo requieren); true/false = decisión de la clínica. Sin backfill ni cambio de `catalog_revision`, y no entra en `service_snapshot`. RPC `smyl_patients_needing_quote(p_limit)` (proposal.read + acceso al paciente, solo lectura): pacientes con plan REVISADO que lleva algún servicio que requiere presupuesto y ninguna cotización de ese tratamiento (compara `treatment_id` por jsonb, funciona aunque la columna no exista). Validada en PostgreSQL 16 local (con y sin `treatment_id`, idempotente).
+- Front: `smyl-service-catalog.js` v21 (interruptor «Requiere presupuesto» en el editor y etiqueta en la tarjeta; solo aparece/guarda si la base ya tiene la columna, así que publicar antes de la migración no rompe la edición de servicios), `smyl-proposals.js` v30 + `smyl-proposals.css` v19 (sección «Por cotizar» arriba de Cotizaciones con «Preparar presupuesto», que abre la cotización ya prellenada desde el plan; el contador del menú la suma). Nada se crea ni se envía solo. Sufijo SW `-requiere-presupuesto-v1`, copias en `mobile/www/`.
+- Sin la migración la sección no aparece y el catálogo funciona como antes.
+- Pruebas: `tests/service-requires-quote.test.mjs`, `tests/qa/requiere-presupuesto-smoke.cjs`.
+- Siguiente (acordado): paso 3 (avance del tratamiento: conceptos realizados, ligar desde el procedimiento y aviso al cerrar) y paso 4 (anticipo al aceptar y cargos programados; se muestra antes de implementarlo).
 ## 2026-11-27 · Claude · Corte con reporte de Openpay + «Registrar cargo» sin IVA repetido
 - **Migración NUEVA (SQL Editor, antes de publicar la pantalla):** `20261128120000_smyl_cash_close_online_report.sql`. `smyl_cash_online_report` (solo service_role) arma en el servidor el reporte de cobros Openpay de la sucursal del corte (desde la apertura, netos de reembolsos, sin repetirse entre cortes) y `smyl_close_cash_session` (misma firma de 5 parámetros) lo guarda en `close_reconciliation->'online'`. Probada en Postgres 16 local (7 casos).
 - `smyl-finance.js?v=84` / `.css?v=61`: el corte separa los cobros en línea (se reconocen por `receipt.snapshot.provider='openpay'`): ya no entran a «Debe haber» de Tarjetas/Transferencias; el diálogo los muestra como «Cobros en línea · Openpay» (lista, sin conteo) y «Cortes anteriores» los resume.
@@ -12989,3 +12996,7 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 ## 2026-11-27 · Claude · Cobrar: el importe por cargo ya no se edita
 - `smyl-finance.js?v=85` / `.css?v=62`: en «Cobrar → Aplicar a cargos» el importe de cada cargo es de solo lectura; se reparte solo con el «Importe» del paso 2, del cargo más antiguo al más reciente, y la persona solo marca qué cargos paga. Si sobra dinero y quedan cargos sin marcar, aparece «Sobran $X… quedarán como saldo a favor» (antes se creaba el saldo a favor sin avisar). Sin SQL ni funciones.
 - El humo `finanzas-pestanas-smoke.cjs` ya no busca «Corte de caja» en Configuración (lo quitó #339 de main): valida «Facturación».
+
+## 2026-11-27 · Claude · Ventana «Preparar cotización» con la paleta de la plataforma
+
+- Ricardo notó que la ventana de tareas/selector de pacientes (Cotizaciones › Nueva cotización y atajos de Inicio) no combinaba con el resto: usaba un verde azulado propio (`--task-primary:#0f6b67`). `smyl-professional-v3.css` v15 agrega un bloque «v15» que reasigna esas variables al índigo de la plataforma (`--smyl-ui-primary` #2d3a9e / soft #eceffe) en pestañas, foco, hover, iconos, «Registrar paciente nuevo» y la acción de cada fila. Los chips de estado verdes se conservan (semántica de «listo»). Sin cambios de lógica. Sufijo SW `-ventana-cotizar-paleta-v1`, copia en `mobile/www/`.

@@ -513,6 +513,7 @@
     });
   }
   // Contador del menú: consulta ligera (sólo la vigencia del documento) cada 10 minutos con la pestaña visible.
+  var quoteNeedCount=0;
   var quoteBadgeBusy=false;
   async function refreshQuoteBadge(){
     if(quoteBadgeBusy||document.visibilityState!=='visible'||typeof tenantId==='undefined'||!tenantId||!window.sb)return;quoteBadgeBusy=true;
@@ -527,13 +528,14 @@
       (follows||[]).forEach(function(f){var k=f.proposal_id+':'+f.proposal_revision;if(!byKey.has(k))byKey.set(k,[]);byKey.get(k).push(f);});
       try{await loadProposalPlans(tenant,rows);}catch(_){quotePlans=new Map();}
       var count=0;rows.forEach(function(r){var k=r.id+':'+r.revision,ev=latest.get(k),stage=proposalStage({id:r.id,patient_id:r.patient_id,plan_revision:r.plan_revision,revision:r.revision,status:r.status,document:{valid_until:r.valid}},ev);if(quoteNeedsAttention(stage.key,quoteFollowupState(stage.key,ev,byKey.get(k))))count++;});
-      renderQuoteBadge(count);
+      try{if(access.write){var need=await checked(sb.rpc('smyl_patients_needing_quote',{p_limit:50}));quoteNeedCount=(need||[]).length;}}catch(_){quoteNeedCount=0;}
+      renderQuoteBadge(count+quoteNeedCount);
     }catch(_){}finally{quoteBadgeBusy=false;}
   }
   function proposalDashboard(rows,latestEvents,list,access){
     var items=rows.map(function(row){return {row:row,event:null,stage:null,fu:null};});
     function restage(){items.forEach(function(item){item.event=latestEvents.get(item.row.id+':'+item.row.revision);item.stage=proposalStage(item.row,item.event);item.fu=quoteFollowupState(item.stage.key,item.event,quoteFollowups.get(followupKey(item.row)));});updateBadge();}
-    function updateBadge(){renderQuoteBadge(items.filter(function(item){return quoteNeedsAttention(item.stage.key,item.fu);}).length);}
+    function updateBadge(){renderQuoteBadge(items.filter(function(item){return quoteNeedsAttention(item.stage.key,item.fu);}).length+quoteNeedCount);}
     restage();
     var metrics=n('section','proposal-metrics');
     function sum(list2){return list2.reduce(function(s,item){var t=quoteTotal(item.row);return s+(t||0);},0);}
@@ -705,6 +707,15 @@
       ctx={branches:branches,branchPrices:branchPrices,branchId:initialBranch,row:row,tenant:tenant,plan:plan,access:access,historical:historical,files:{},photoPaths:row.document.photos,saved:JSON.stringify(row.document),dirty:!id,busy:false,events:[],eventsLoading:false,decision:null,decisionItems:[],decisionDraftOperation:null,decisionUnsupported:false,decisionFinal:false,stale:!historical&&(plan.status!=='reviewed'||row.plan_revision!==plan.revision)};if(!id&&ctx.branchId)repriceDocument(ctx.row.document,ctx.branchId);editor();
     }catch(error){if(token===sequence)root.replaceChildren(notice(errorText(error),true),b('Volver a Presentaciones',loadList));}
   }
+  function toQuoteSection(rows){
+    var sec=n('section','proposal-toquote'),head=n('header'),copy=n('div');
+    copy.append(n('strong','','Por cotizar · '+rows.length),n('p','','Planes revisados con tratamientos que requieren presupuesto y todavía no tienen cotización.'));head.append(copy);sec.append(head);
+    var list=n('ul'),shown=rows.slice(0,5);
+    function row(r){var li=n('li'),text=n('div');text.append(n('strong','',r.patient_name||'Paciente'),n('small','',(r.concepts||[]).slice(0,4).join(' · ')+((r.concepts||[]).length>4?' · …':'')));li.append(text,b('Preparar presupuesto',function(){window.SmylProposals.forPatient(r.patient_id);},'btn btn-primary btn-sm'));return li;}
+    shown.forEach(function(r){list.append(row(r));});sec.append(list);
+    if(rows.length>shown.length){var more=b('Ver los '+(rows.length-shown.length)+' restantes',function(){rows.slice(5).forEach(function(r){list.append(row(r));});more.remove();},'btn btn-secondary btn-sm');sec.append(more);}
+    return sec;
+  }
   async function loadList(){
     var root=document.getElementById('p-propuestas');root.replaceChildren();
     var head=n('header','proposal-heading'),copy=n('div');copy.append(n('p','pro-eyebrow','SEGUIMIENTO COMERCIAL'),n('h1','','Cotizaciones'),n('p','','Seguimiento de lo que preparaste para tus pacientes. Cada cotización nace del plan clínico revisado del paciente.'));head.append(copy);root.append(head);
@@ -749,7 +760,10 @@
       }
       if(token!==sequence||tenant!==tenantId)return;list.replaceChildren();
       quoteChats=window.SmylInbox?.canAccess?.()?currentChats:{};
-      var dashboard=proposalDashboard(rows,latestEvents,list,access);root.insertBefore(dashboard.metrics,launch);root.insertBefore(dashboard.banner,launch);root.insertBefore(dashboard.toolbar,list);dashboard.render();
+      // «Por cotizar»: planes revisados que llevan servicios con «Requiere presupuesto» y todavía no tienen cotización. Solo informa; nada se crea ni se envía.
+      var toQuote=[];if(access.write){try{toQuote=(await checked(sb.rpc('smyl_patients_needing_quote',{p_limit:50})))||[];}catch(_){toQuote=[];}}
+      if(token!==sequence||tenant!==tenantId)return;quoteNeedCount=toQuote.length;
+      var dashboard=proposalDashboard(rows,latestEvents,list,access);if(toQuote.length)root.insertBefore(toQuoteSection(toQuote),launch);root.insertBefore(dashboard.metrics,launch);root.insertBefore(dashboard.banner,launch);root.insertBefore(dashboard.toolbar,list);dashboard.render();
       if(!rows.length)list.replaceChildren(notice('Todavía no hay presentaciones guardadas. Abre un paciente y completa su recorrido para preparar la primera.'));
       root.append(n('p','proposal-privacy','Indicadores calculados sobre las últimas 100 propuestas visibles. La tasa usa únicamente decisiones registradas; no interpreta silencios como rechazo ni este seguimiento como firma o consentimiento.'));
     }catch(error){if(token===sequence){list.replaceChildren(notice(errorText(error),true),b('Volver a intentar',loadList));}}

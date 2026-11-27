@@ -469,3 +469,12 @@
 .proposal-service-empty{padding:18px;color:#65758b;font-size:13px}
 .proposal-service-dialog footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px 16px;border-top:1px solid #edf1f6}
 .proposal-item-fiscal-warn{color:#8a5a0a!important}
+
+/* Por cotizar: planes revisados con servicios que requieren presupuesto */
+.proposal-toquote{margin:0 0 16px;padding:16px 18px;border:1px solid #f0d9a8;border-radius:16px;background:#fff9ec}
+.proposal-toquote header strong{font-size:15px;color:#6b4a07}.proposal-toquote header p{margin:3px 0 0;color:#7a6a45;font-size:13px}
+.proposal-toquote ul{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
+.proposal-toquote li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:#fff;border:1px solid #f3e6c6}
+.proposal-toquote li div{display:grid;gap:2px;min-width:0}.proposal-toquote li small{color:#65758b;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.proposal-toquote>button{margin-top:10px}
+@media(max-width:600px){.proposal-toquote li{flex-direction:column;align-items:stretch}.proposal-toquote li .btn{width:100%}}
