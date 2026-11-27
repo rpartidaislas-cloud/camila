@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
 const js = read('../smyl-inbox.js');
 const css = read('../smyl-inbox.css');
+const app = read('../app.html');
 
 test('cada canal conserva su marca y la cabecera la muestra junto al nombre', () => {
   assert.match(js, /var CHANNEL_MARKS = \{\s*whatsapp:/);
@@ -62,7 +63,13 @@ test('web y móvil entregan el mismo chat', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), js);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
   assert.match(read('../app.html'), /smyl-inbox\.js\?v=101/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=81/);
+  assert.match(app, /smyl-inbox\.css\?v=82/);
+});
+
+test('Mensajería no repite el título global ni muestra la campana superior', () => {
+  assert.doesNotMatch(app, /class="btn-noti"/, 'la campana global se retiró del shell');
+  assert.match(css, /body:has\(\.smyl-inbox-page\.activa\) \.topbar\{display:none\}/);
+  assert.match(css, /\.smyl-management-v3 \.contenido>\.smyl-inbox-page\.activa\{margin:0;min-height:100dvh;height:100dvh\}/);
 });
 
 test('la cabecera grande se reemplaza por una barra delgada y los contadores viven en las pestañas', () => {

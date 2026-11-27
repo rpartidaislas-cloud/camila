@@ -29,6 +29,12 @@ test('la CSP cubre lo que el panel usa de verdad: fuentes, QR, archivos firmados
   assert.ok(d['script-src'].includes("'wasm-unsafe-eval'"), 'pdf.js usa WebAssembly');
 });
 
+test('Facturapi solo puede mostrarse en marcos (firma de la Carta Manifiesto); no es origen de scripts ni de conexiones', () => {
+  const d = directivas(policy(read('app.html')));
+  assert.ok(d['frame-src'].includes('https://www.facturapi.io'));
+  assert.ok(!d['connect-src'].some((v) => /facturapi/.test(v)) && !d['script-src'].some((v) => /facturapi/.test(v)));
+});
+
 test('si se agrega un dominio nuevo al panel hay que declararlo: los hosts https del código están cubiertos o son solo enlaces', () => {
   const p = policy(read('app.html'));
   // Hosts que el código REALMENTE carga o consulta (no enlaces de navegación como wa.me o Google Maps).

@@ -223,9 +223,9 @@ test('web, móvil y PWA publican el pipeline', () => {
     assert.match(shell, /serviceWorker\.register\('sw\.js\?v=chat-control-icons-v1',\s*\{\s*updateViaCache:\s*'none'\s*}/);
   }
   assert.match(app, /smyl-inbox\.js\?v=101/);
-  assert.match(app, /smyl-inbox\.css\?v=81/);
+  assert.match(app, /smyl-inbox\.css\?v=82/);
   assert.match(worker, /smyl-inbox\.js\?v=101/);
-  assert.match(worker, /smyl-inbox\.css\?v=81/);
+  assert.match(worker, /smyl-inbox\.css\?v=82/);
 });
 
 test('sin canales conectados el Inbox muestra una sola explicación en lugar de lista, hilo y compositor vacíos', () => {

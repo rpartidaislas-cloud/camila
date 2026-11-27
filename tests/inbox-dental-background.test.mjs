@@ -19,7 +19,7 @@ test('el fondo está optimizado y se publica en web y PWA', () => {
   assert.equal(readFileSync(asset).compare(readFileSync(mobileAsset)), 0);
 
   for (const file of ['app.html', 'mobile/www/app.html']) {
-    assert.match(read(file), /smyl-inbox\.css\?v=81/);
+    assert.match(read(file), /smyl-inbox\.css\?v=82/);
   }
 
   for (const file of ['sw.js', 'mobile/www/sw.js']) {

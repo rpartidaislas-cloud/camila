@@ -1,5 +1,8 @@
 .smyl-inbox-page{margin:-28px -32px -40px;min-height:calc(100vh - 65px);height:calc(100vh - 65px);background:#F4F7FA;color:var(--texto);overflow:hidden}
 body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
+/* El chat ya incluye su propia navegación y cabecera de conversación. La barra
+   global repetía “Mensajes” y la campana, y consumía espacio sin aportar contexto. */
+body:has(.smyl-inbox-page.activa) .topbar{display:none}
 .smyl-inbox-page.activa{display:flex;flex-direction:column}
 .smyl-inbox-top{min-height:82px;padding:17px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;background:#fff;border-bottom:1px solid #DCE4EC}
 .smyl-inbox-eyebrow{display:block;font-size:12px;line-height:1.2;font-weight:700;letter-spacing:1.05px;color:#2476B8;margin-bottom:4px}
@@ -608,7 +611,7 @@ body:has(.smyl-inbox-page.activa) #app-copyright{display:none}
 @media(max-width:1600px){.smyl-inbox-page .smyl-inbox-live{display:none}}
 @media(max-width:760px){.smyl-inbox-top{flex-wrap:wrap;row-gap:10px}.smyl-inbox-top>div:first-child{margin-right:auto}.smyl-inbox-top-actions{display:contents}.smyl-inbox-view-toggle{order:3;flex:1 1 100%}.smyl-inbox-view-toggle button{flex:1}.smyl-inbox-page.show-thread .smyl-inbox-view-toggle{display:none}}
 /* Mensajes usa todo el ancho disponible junto al sidebar */
-@media(min-width:761px){.smyl-management-v3 .contenido:has(>.smyl-inbox-page.activa){max-width:none;margin:0;padding:0}.smyl-management-v3 .contenido>.smyl-inbox-page.activa{margin:0}}
+@media(min-width:761px){.smyl-management-v3 .contenido:has(>.smyl-inbox-page.activa){max-width:none;margin:0;padding:0}.smyl-management-v3 .contenido>.smyl-inbox-page.activa{margin:0;min-height:100dvh;height:100dvh}}
 /* Chat más limpio (estilo LANA): logos de canal, interruptor de IA y barra «SMYL te pone al día» */
 .smyl-inbox-avatar{position:relative;overflow:visible}
 .smyl-inbox-channel-badge{position:absolute;right:-6px;bottom:-4px;display:block;width:14px;height:14px;border:2px solid #fff;border-radius:50%;background:#fff;line-height:0;box-sizing:content-box}
