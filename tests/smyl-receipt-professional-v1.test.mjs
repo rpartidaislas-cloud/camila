@@ -55,7 +55,7 @@ test('web y PWA entregan la misma versión del recibo', () => {
     assert.equal(read('mobile/www/' + file), read(file), file);
   }
   assert.match(read('app.html'), /smyl-finance\.js\?v=73/);
-  assert.match(read('app.html'), /smyl-finance\.css\?v=55/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=56/);
   assert.match(read('sw.js'), /\/camila\/smyl-finance\.js\?v=73/);
-  assert.match(read('sw.js'), /\/camila\/smyl-finance\.css\?v=55/);
+  assert.match(read('sw.js'), /\/camila\/smyl-finance\.css\?v=56/);
 });

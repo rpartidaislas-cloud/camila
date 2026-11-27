@@ -1282,3 +1282,10 @@ dialog[data-smyl-dialog-system="true"][open] .finance-allocation-input>input[typ
 .finance-link-actions .btn{display:flex;align-items:center;justify-content:center;min-height:46px;width:100%;box-sizing:border-box;text-decoration:none}
 .finance-link-actions .btn-secondary{background:transparent;border-color:transparent;color:#526477;min-height:40px}
 .finance-link-field button:focus-visible,.finance-link-field input:focus-visible,.finance-link-actions .btn:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+
+/* Vista previa de la plantilla tal como la verá el paciente. */
+.finance-link-preview{display:grid;gap:6px;width:100%;text-align:left}
+.finance-link-preview small{color:#66788d;font-size:12px;font-weight:600}
+.finance-link-bubble{max-width:100%;padding:10px 12px;border:1px solid #cde8d8;border-radius:12px 12px 12px 4px;background:#eaf7ef;color:#16324f}
+.finance-link-bubble p{margin:0;font-size:13.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.finance-link-bubble span{display:block;margin-top:6px;color:#64748b;font-size:11.5px}
