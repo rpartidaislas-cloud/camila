@@ -11,9 +11,9 @@ const css = read('smyl-finance.css');
 const draftMigration = read('supabase/migrations/20261013020000_smyl_proposal_finance_v1.sql');
 const financeSchema = read('supabase/migrations/20261012330000_smyl_finance.sql');
 
-test('Por cobrar es el inicio, Pagos sigue a las cuentas y Facturación conserva un espacio independiente', () => {
+test('Por cobrar es el inicio, Caja sigue a las cuentas y Facturación conserva un espacio independiente', () => {
   assert.match(js, /tab:'accounts'/);
-  assert.match(js, /\['accounts','Por cobrar'\],\['receipts','Pagos'\]/);
+  assert.match(js, /\['accounts','Por cobrar'\],\['cash','Caja'\],\['receipts','Pagos y recibos'\]/);
   assert.match(js, /<section data-finance-panel="receipts" id="finance-panel-receipts"/);
   // Facturación es una lista con sus filtros arriba; la pestaña ya la nombra, así que no repite un encabezado.
   assert.match(js, /<section data-finance-panel="fiscal" id="finance-panel-fiscal" role="tabpanel" aria-labelledby="finance-tab-fiscal" hidden><article class="finance-card finance-list-card finance-fiscal-card"><div id="finance-fiscal"><\/div><\/article><\/section>/);
@@ -79,9 +79,9 @@ test('web y PWA publican la misma bandeja versionada', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) {
     assert.equal(read('mobile/www/' + file), read(file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=63/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=87/);
-  assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=31/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=64/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=88/);
+  assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=32/);
   assert.match(read('sw.js'), /professional-finance-v1/);
   assert.match(read('sw.js'), /finanzas-workspace-v5/);
 });

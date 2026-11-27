@@ -1375,3 +1375,11 @@ dialog[data-smyl-dialog-system="true"] .finance-allocation-input:has(input[value
 .finance-cash-banner-open .btn{min-height:40px;padding:0 18px}
 .finance-cash-banner-status{flex-basis:100%;font-size:13px;color:#a02a1d}
 .finance-cash-banner-status:empty{display:none}
+
+#p-caja .finance-receipts-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; padding:12px 16px; border-bottom:1px solid var(--smyl-border,#d7e0e8); }
+#p-caja .finance-receipts-toolbar .finance-list-tools { padding:0; border:0; }
+#p-caja .finance-receipt-tools { flex:1 1 17rem; min-width:0; }
+#p-caja #finance-pay-filters { flex:1 1 30rem; min-width:0; }
+#p-caja #finance-receipt-search { box-sizing:border-box; flex:1; min-width:0; height:44px; margin:0; padding:0 12px; border:1px solid var(--smyl-border,#d7e0e8); border-radius:8px; background:#fff; color:inherit; font:inherit; font-size:1rem; }
+#p-caja #finance-receipt-search:focus-visible { outline:2px solid var(--smyl-primary,#345fc9); outline-offset:1px; }
+#p-caja #finance-pay-filters[hidden], #p-caja #finance-clear-search[hidden] { display: none; }

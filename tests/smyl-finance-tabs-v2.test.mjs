@@ -9,10 +9,10 @@ const css = read('smyl-finance.css');
 const nav = (js.match(/var TABS=\[[^\n]*?\]\]/) || [''])[0];
 
 test('Finanzas tiene cuatro destinos claros y abre en Por cobrar', () => {
-  assert.equal(nav, "var TABS=[['accounts','Por cobrar'],['receipts','Pagos'],['cash','Caja'],['fiscal','Facturación']]");
-  assert.match(js, /<nav class="finance-tabcards" role="tablist" aria-label="Secciones de Finanzas">'\+TABS\.map\(/);
+  assert.equal(nav, "var TABS=[['accounts','Por cobrar'],['cash','Caja'],['receipts','Pagos y recibos'],['fiscal','Facturación']]");
+  assert.match(js, /<nav class="finance-tabcards" role="tablist" aria-label="Secciones de Cobros y caja">'\+TABS\.map\(/);
   assert.doesNotMatch(js, /data-finance-tab="(summary|payments|today)"/);
-  for (const old of ['Resumen', 'Cuentas por cobrar', 'Pagos y recibos', 'Por cobrar hoy', 'Corte de caja', 'Preparación CFDI', 'Plantillas']) assert.ok(!nav.includes(old), old);
+  for (const old of ['Resumen', 'Cuentas por cobrar', 'Por cobrar hoy', 'Corte de caja', 'Preparación CFDI', 'Plantillas']) assert.ok(!nav.includes(old), old);
   const hub = read('smyl-settings-hub.js');
   for (const id of ['receipts', 'cash']) assert.doesNotMatch(hub, new RegExp('data-finance-tab="' + id + '"'), 'Pagos y Caja viven en Finanzas, no en Configuración');
   // La configuración fiscal ya no es una pestaña de Cobros: Configuración incrusta #billing-setup.

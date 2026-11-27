@@ -34,8 +34,8 @@ test('en «Citas atendidas sin cobrar» la persona sin cita lo dice en su fila',
 test('web y móvil publican la misma versión', () => {
   for (const file of ['smyl-schedule.js', 'smyl-schedule.css', 'smyl-finance.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + file), read(file), file);
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-schedule\.js\?v=68/);
+    assert.match(read(file), /smyl-schedule\.js\?v=69/);
     assert.match(read(file), /smyl-schedule\.css\?v=40/);
-    assert.match(read(file), /smyl-finance\.js\?v=87/);
+    assert.match(read(file), /smyl-finance\.js\?v=88/);
   }
 });

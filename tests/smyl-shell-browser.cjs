@@ -80,7 +80,7 @@ const assert = require('node:assert/strict');
         assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
         assert.equal((await sidebar.boundingBox()).width, 64);
         assert.equal((await page.locator('.main').boundingBox()).width - originalWidth, 152);
-        await sidebar.locator('summary[aria-label="Negocio"]').click();
+        await sidebar.locator('summary[aria-label="Mi clínica"]').click();
         await sidebar.locator('.pro-nav-flyout [data-route="historial"]').click({ trial: true, timeout: 3000 });
         await page.screenshot({ path: path.join(output, `smyl-compacto-${width}.png`) });
         await page.reload();

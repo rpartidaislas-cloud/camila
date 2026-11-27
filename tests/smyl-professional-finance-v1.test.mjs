@@ -44,7 +44,7 @@ test('Caja muestra responsabilidad individual y supervisión explícita', () => 
 });
 
 test('Por cobrar queda primero y los reembolsos viven en la misma lista de Pagos', () => {
-  assert.match(finance, /var TABS=\[\['accounts','Por cobrar'\],\['receipts','Pagos'\]/);
+  assert.match(finance, /var TABS=\[\['accounts','Por cobrar'\],\['cash','Caja'\],\['receipts','Pagos y recibos'\]/);
   assert.doesNotMatch(finance, /data-finance-tab="summary"|'Resumen'/);
   // El libro aparte («Movimientos y correcciones») desapareció: pagos y reembolsos se leen juntos, por periodo.
   assert.doesNotMatch(finance, /Movimientos y correcciones|finance-receipt-movements/);

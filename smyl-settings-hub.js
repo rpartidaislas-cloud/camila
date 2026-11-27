@@ -40,7 +40,7 @@
       { title: 'Plantillas de WhatsApp', desc: 'Textos aprobados para enviar a pacientes.', group: 'Plantillas y reglas', icon: 'template', action: 'Administrar', route: 'plantillas', check: 'template' },
       { title: 'Reglas del asistente', desc: 'Cuándo responde SMYL y cuándo pasa el chat a una persona.', group: 'Plantillas y reglas', icon: 'automation', action: 'Configurar', route: 'conexiones', target: '[data-connection-tab="automations"]' }
     ] },
-    { id: 'cobros', title: 'Finanzas', blurb: 'Cuentas, pagos, caja y facturación.', icon: 'payments', items: [
+    { id: 'cobros', title: 'Cobros y caja', blurb: 'Cuentas, pagos, caja y facturación.', icon: 'payments', items: [
       { title: 'Facturación', desc: 'Datos fiscales de la clínica y conexión con Facturapi.', group: 'Facturación y reglas', icon: 'template', action: 'Configurar', route: 'caja', embed: true, element: '#billing-setup', ensure: 'billing' },
       { title: 'Pagos en línea (Openpay)', desc: 'Conecta tu cuenta Openpay para cobrar con enlace: tarjeta y SPEI.', group: 'Facturación y reglas', icon: 'payments', action: 'Configurar', route: 'caja', embed: true, element: '#online-pay-setup', ensure: 'online-pay' }
     ] },

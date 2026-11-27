@@ -13,7 +13,7 @@ test('la navegación principal prioriza el trabajo diario del dentista', () => {
   assert.match(nav, /\['Agenda', 'agenda'/);
   assert.match(nav, /\['Chat', 'inbox'/);
   assert.match(nav, /detailsGroup\('Mensajería', MESSAGING/);
-  assert.match(nav, /detailsGroup\('Negocio', BUSINESS/);
+  assert.match(nav, /detailsGroup\('Mi clínica', BUSINESS/);
   // Todos los ajustes viven en la pantalla Configuración: el menú solo tiene ese acceso.
   assert.match(nav, /var SETTINGS = \[\['Configuración', 'configuracion', 'settings'\]\]/);
   assert.match(nav, /SETTINGS\.forEach\(function \(entry\) \{ nav\.append\(navItem\(entry, false\)\); \}\);/);

@@ -6,9 +6,9 @@ const read = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
 
 test('la sección se llama Finanzas en la navegación, el título y la pantalla (web y móvil)', () => {
   for (const base of ['', 'mobile/www/']) {
-    assert.match(read(base + 'smyl-navigation.js'), /\['Finanzas', 'caja', 'cash'\]/);
-    assert.match(read(base + 'smyl-professional-v3.js'), /caja:\['Finanzas'/);
-    assert.match(read(base + 'smyl-finance.js'), /<h1>Finanzas<\/h1>/);
+    assert.match(read(base + 'smyl-navigation.js'), /\['Cobros y caja', 'caja', 'cash'\]/);
+    assert.match(read(base + 'smyl-professional-v3.js'), /caja:\['Cobros y caja'/);
+    assert.match(read(base + 'smyl-finance.js'), /<h1>Cobros y caja<\/h1>/);
     assert.doesNotMatch(read(base + 'smyl-navigation.js'), /\['Cobros'/);
   }
 });
@@ -175,7 +175,7 @@ test('el chat no toca tablas ni el tenant: usa SmylFinance.contactContext', () =
 test('Finanzas: filtro «Vencidas» de Por cobrar sin envíos automáticos (cada recordatorio pasa por el chat)', () => {
   for (const base of ['', 'mobile/www/']) {
     const f = read(base + 'smyl-finance.js');
-    assert.match(f, /var TABS=\[\['accounts','Por cobrar'\],\['receipts','Pagos'\],\['cash','Caja'\],\['fiscal','Facturación'\]\]/);
+    assert.match(f, /var TABS=\[\['accounts','Por cobrar'\],\['cash','Caja'\],\['receipts','Pagos y recibos'\],\['fiscal','Facturación'\]\]/);
     assert.doesNotMatch(f, /data-finance-tab="today"/);
     assert.match(f, /data-account-filter="overdue" aria-pressed="false">Vencidas/);
     // Las vencidas son filas de la misma lista; su menú ofrece el recordatorio, que siempre se revisa en el chat antes de enviarse.

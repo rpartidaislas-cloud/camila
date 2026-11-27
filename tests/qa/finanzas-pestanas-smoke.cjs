@@ -104,13 +104,31 @@ server.listen(0, '127.0.0.1', async () => {
   // ── 1. Computadora: estructura, cifras, cabecera y nombres ───────────────────────────────────
   let s = await open({ width: 1440, height: 900 }), page = s.page;
   const t = await tabs(page); console.log('pestañas:', JSON.stringify(t));
-  check(t.map(x => x.name).join('|') === 'Por cobrar|Pagos|Caja|Facturación', 'hay cuatro pestañas: Por cobrar, Pagos, Caja y Facturación (sin Resumen)');
+  const clinicDesktop = page.locator('.pro-app-nav details').filter({has:page.locator('summary[aria-label="Mi clínica"]')});
+  check(await clinicDesktop.locator('[data-route="caja"]').count() === 1 && await page.locator('.pro-app-nav [data-route="caja"]').count() === 1, 'Cobros y caja está una sola vez dentro de Mi clínica');
+  const mobileClinic = page.locator('.pam-scroll .pam-group').filter({has:page.getByText('Mi clínica',{exact:true})});
+  check(await mobileClinic.locator('[data-route="caja"]').count() === 1, 'Más del celular ofrece el mismo acceso dentro de Mi clínica');
+  check(t.map(x => x.name).join('|') === 'Por cobrar|Caja|Pagos y recibos|Facturación', 'hay cuatro pestañas: Por cobrar, Caja, Pagos y recibos y Facturación (sin Resumen)');
   check(t[0].selected === 'true' && (await visiblePanels(page)).join() === 'accounts', 'Finanzas abre en Por cobrar');
   check((await page.getAttribute('#p-caja', 'aria-busy')) === 'false', 'al terminar de cargar, la página ya no se anuncia como ocupada');
   check(t[0].figure === '$5,700.00' && /\$800\.00 vencido/.test(t[0].note) && /2 citas sin cobrar/.test(t[0].note) && t[0].tone === 'danger', 'Por cobrar: $5,700.00, con $800.00 vencido y 2 citas sin cobrar');
-  check(t[1].figure === '$1,300.00' && /Hoy · 2 pagos/.test(t[1].note), 'Pagos: $1,300.00 cobrados hoy en 2 pagos');
-  check(t[2].figure === '$1,680.00' && /^Abierta desde las /.test(t[2].note) && t[2].tone === 'ok', 'Caja: $1,680.00 y abierta desde hoy');
+  check(t.find(x => x.id === 'receipts').figure === '$1,300.00' && /Hoy · 2 pagos/.test(t.find(x => x.id === 'receipts').note), 'Pagos: $1,300.00 cobrados hoy en 2 pagos');
+  check(t.find(x => x.id === 'cash').figure === '$1,680.00' && /^Abierta desde las /.test(t.find(x => x.id === 'cash').note) && t.find(x => x.id === 'cash').tone === 'ok', 'Caja: $1,680.00 y abierta desde hoy');
   check(/^1\s*borrador$/.test(t[3].figure) && t[3].note === 'Falta configurar' && t[3].tone === 'warning', 'Facturación: 1 borrador y falta configurar');
+  await go(page,'receipts');
+  const receiptSearch=page.locator('#finance-receipt-search');
+  await receiptSearch.fill('sofia mendoza');
+  check(await page.locator('#finance-payments [data-open-receipt]').count() === 1, 'el buscador encuentra el recibo anterior por nombre sin acentos');
+  await receiptSearch.fill('#000101');
+  const receiptResult=page.locator('#finance-payments [data-open-receipt]');
+  check(await receiptResult.count() === 1 && await page.locator('#finance-pay-filters').isHidden(), 'el folio encuentra el recibo fuera de Hoy');
+  await receiptResult.click();
+  check(await page.locator('#finance-dialog').isVisible() && (await page.locator('#finance-dialog').innerText()).includes('000101'), 'el resultado abre el recibo original');
+  await page.keyboard.press('Escape');
+  await receiptSearch.fill('inexistente');
+  check(await page.getByText('Sin coincidencias',{exact:true}).isVisible(), 'la búsqueda vacía permite corregir el término');
+  await page.locator('#finance-clear-search').click();
+  check(await page.locator('#finance-pay-filters').isVisible() && await page.locator('[data-pay-period="today"]').getAttribute('aria-pressed') === 'true', 'limpiar restaura el periodo seleccionado');
   const header = {}; const seen = {};
   for (const tab of ['accounts', 'receipts', 'cash', 'fiscal']) {
     await go(page, tab);
@@ -184,7 +202,7 @@ server.listen(0, '127.0.0.1', async () => {
   // Teclado: las flechas recorren las pestañas.
   await page.focus('#finance-tab-accounts'); await page.keyboard.press('ArrowRight'); await page.waitForTimeout(200);
   const afterRight = (await visiblePanels(page)).join(); await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(200);
-  check(afterRight === 'receipts' && (await visiblePanels(page)).join() === 'accounts', 'las flechas del teclado cambian de pestaña');
+  check(afterRight === 'cash' && (await visiblePanels(page)).join() === 'accounts', 'las flechas del teclado cambian de pestaña');
 
   // Desde Configuración se llega a la pestaña pedida.
   await page.evaluate(() => window.SmylSettingsHub.openItem('cobros', 'Facturación')); await page.waitForTimeout(1200);
@@ -297,7 +315,7 @@ server.listen(0, '127.0.0.1', async () => {
   const pays = () => page.$$eval('#finance-payments .finance-line', els => els.map(e => ({ kind: e.dataset.kind, name: e.querySelector('.finance-line-name').textContent, sub: e.querySelector('.finance-line-who small').textContent.trim(), how: e.querySelector('.finance-line-how span').textContent, amount: e.querySelector('.finance-line-amount strong').textContent, actions: [...e.querySelectorAll('.finance-line-actions>button')].map(b => b.textContent) })));
   let st = await strip(), list = await pays(); console.log('pagos de hoy:', JSON.stringify(st), JSON.stringify(list.map(x => [x.kind, x.name, x.sub, x.amount])));
   check(st[0] === '$1,100.00' && st[1] === '2 pagos y 1 reembolso hoy' && st[2] === 'Efectivo $1,300.00 · Tarjeta $0.00 · Transferencia −$200.00', 'Pagos abre en Hoy con el total neto y su desglose: ' + st.join(' | '));
-  check((await tabs(page))[1].figure === st[0], 'la cifra de la pestaña Pagos es la misma que el total de la lista');
+  check((await tabs(page)).find(x => x.id === 'receipts').figure === st[0], 'la cifra de la pestaña Pagos es la misma que el total de la lista');
   check(list.map(x => x.kind).join() === 'refund,full,advance' && list[0].amount === '−$200.00' && /^Reembolso Se cobró de más en la resina · pago del /.test(list[0].sub) && list[1].sub === 'Limpieza dental' && list[2].sub === 'Anticipo Queda como saldo a favor', 'cada movimiento dice lo que es: reembolso con su motivo, pago completo sin etiqueta y anticipo');
   check(list.every(x => x.actions.join() === 'Recibo'), 'cada fila tiene una sola acción a la vista: Recibo');
   await page.click('#p-caja [data-pay-period="week"]'); await page.waitForTimeout(200); list = await pays(); st = await strip();
@@ -420,7 +438,7 @@ server.listen(0, '127.0.0.1', async () => {
     buttons: [...e.querySelectorAll('button')].filter(b => b.checkVisibility()).map(b => b.textContent.trim()), dark: e.querySelectorAll('.btn-primary').length, foot: flat(e.querySelector('.finance-list-foot').textContent) }; });
   console.log('turno:', JSON.stringify(turn));
   check(/^Abierta Mi caja · PrincipalLa abriste hoy a las? \d{1,2}:\d{2} [ap]\.m\.Entrada o salidaHacer corte$/.test(turn.head), 'mi turno dice de quién es la caja y desde cuándo: ' + turn.head);
-  check(turn.ledger.join(' | ') === 'Fondo inicial = $500.00 | Cobros en efectivo · 3 = + $1,650.00 | Reembolsos en efectivo · 1 = − $50.00 | Entradas · 1 = + $200.00 | Salidas · 1 = − $120.00 | Efectivo que debe haber = $2,180.00' && (await tabs(page))[2].figure === '$2,180.00', 'el desglose va renglón por renglón hasta los $2,180.00 que debe haber (la cifra de la pestaña)');
+  check(turn.ledger.join(' | ') === 'Fondo inicial = $500.00 | Cobros en efectivo · 3 = + $1,650.00 | Reembolsos en efectivo · 1 = − $50.00 | Entradas · 1 = + $200.00 | Salidas · 1 = − $120.00 | Efectivo que debe haber = $2,180.00' && (await tabs(page)).find(x => x.id === 'cash').figure === '$2,180.00', 'el desglose va renglón por renglón hasta los $2,180.00 que debe haber (la cifra de la pestaña)');
   const toCents = t => Math.round(Number(t.replace(/[^0-9.]/g, '')) * 100) * (t.includes('−') ? -1 : 1);
   check(turn.group === 'Movimientos del turno7 movimientos' && turn.moves.length === 7 && turn.moves.reduce((sum, m) => sum + toCents(m.amount), 0) === 218000 && turn.moves[6].kind === 'open' && turn.moves.map(m => m.kind).sort().join() === 'in,open,out,payment,payment,payment,refund', 'los 7 movimientos del turno suman $2,180.00 y terminan en la apertura');
   check(turn.buttons.filter(b => b === 'Entrada o salida').length === 1 && turn.buttons.filter(b => b === 'Hacer corte').length === 1 && turn.dark === 0, 'los botones del turno aparecen una sola vez y ninguno es oscuro');

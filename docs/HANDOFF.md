@@ -13000,3 +13000,8 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 ## 2026-11-27 · Claude · Ventana «Preparar cotización» con la paleta de la plataforma
 
 - Ricardo notó que la ventana de tareas/selector de pacientes (Cotizaciones › Nueva cotización y atajos de Inicio) no combinaba con el resto: usaba un verde azulado propio (`--task-primary:#0f6b67`). `smyl-professional-v3.css` v15 agrega un bloque «v15» que reasigna esas variables al índigo de la plataforma (`--smyl-ui-primary` #2d3a9e / soft #eceffe) en pestañas, foco, hover, iconos, «Registrar paciente nuevo» y la acción de cada fila. Los chips de estado verdes se conservan (semántica de «listo»). Sin cambios de lógica. Sufijo SW `-ventana-cotizar-paleta-v1`, copia en `mobile/www/`.
+## 2026-11-27 · Codex · Mi clínica y Cobros y caja
+
+- El menú de escritorio y «Más» en celular reúnen Cobros y caja, Inventario, Servicios y tarifas, Reportes y Nube en Mi clínica. La ruta de cobro sigue siendo `caja`. El buscador de módulos también reconoce el nombre anterior.
+- Cobros y caja abre en Por cobrar. Le siguen Caja, Pagos y recibos y Facturación. En Pagos y recibos se puede abrir un comprobante por nombre, apellido o folio sin elegir fecha. Limpiar la búsqueda devuelve los filtros previos. Si se alcanza el límite de carga del historial se indica el alcance de la búsqueda.
+- Cambios principales en `smyl-navigation.js`, `smyl-command-menu.js`, `smyl-finance.js` y `smyl-finance.css`, con nombres actualizados en los accesos desde Agenda, Consultorio, Configuración, alertas y cotizaciones. Se sincronizaron la PWA, las copias móviles y el texto del catálogo de plantillas.

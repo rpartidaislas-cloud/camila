@@ -64,6 +64,6 @@ test('la copia móvil y la caché publican las mismas versiones', () => {
   for (const file of ['app.html', 'sw.js']) {
     assert.match(read(file), /smyl-patient-360\.js\?v=42/);
     assert.match(read(file), /smyl-patient-360\.css\?v=24/);
-    assert.match(read(file), /smyl-professional-v3\.js\?v=16/);
+    assert.match(read(file), /smyl-professional-v3\.js\?v=17/);
   }
 });

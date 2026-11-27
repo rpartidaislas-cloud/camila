@@ -9,7 +9,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8').replace(/\
 const js = read('smyl-schedule.js');
 const css = read('smyl-schedule.css');
 
-// Etiqueta de cobro en la Agenda. El comportamiento (vistas Semana/Día/Lista, detalle, «Ir a Finanzas») se prueba en un navegador real con
+// Etiqueta de cobro en la Agenda. El comportamiento (vistas Semana/Día/Lista, detalle, «Ir a Cobros y caja») se prueba en un navegador real con
 // tests/qa/agenda-billing-smoke.cjs; la función de base de datos se prueba en Postgres real en appointment-billing-status-pglite.test.mjs.
 
 test('la etiqueta sólo se pide y se muestra con permiso finance.read, y sólo a citas en las que el paciente ya llegó', () => {
@@ -34,7 +34,7 @@ test('los textos son Por cobrar, Saldo $X, Cobrada y Sin cargo; el servicio de $
 test('la etiqueta aparece en las tarjetas de semana y día, en la lista y en el detalle', () => {
   assert.equal((js.match(/billingChip\(a\)/g) || []).length >= 4, true, 'tarjeta, evento de semana, fila de lista y detalle');
   assert.match(js, /<li class="sched-billing-row"><span>Cobro<\/span>/);
-  assert.match(js, /data-go-finance>Ir a Finanzas<\/button>/);
+  assert.match(js, /data-go-finance>Ir a Cobros y caja<\/button>/);
   assert.match(js, /goFinance\.onclick=function\(\)\{close\(\);window\.ir\('caja'\);\}/);
 });
 
@@ -55,7 +55,7 @@ test('la migración y las versiones quedan publicadas y sincronizadas con la app
   assert.ok(fs.existsSync(path.join(root, 'supabase/migrations/20261108150000_smyl_appointment_billing_status.sql')));
   assert.match(read('.github/workflows/smyl-pendientes-cargo-migracion.yml'), /20261108150000_smyl_appointment_billing_status\.sql/);
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-schedule\.js\?v=68/);
+    assert.match(read(file), /smyl-schedule\.js\?v=69/);
     assert.match(read(file), /smyl-schedule\.css\?v=40/);
   }
   for (const file of ['smyl-schedule.js', 'smyl-schedule.css', 'smyl-finance.js', 'app.html', 'sw.js']) {

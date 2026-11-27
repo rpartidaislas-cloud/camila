@@ -36,7 +36,7 @@ function loadPlaywright() {
           flowCount: document.querySelectorAll('.finance-flow button').length
         };
       });
-      assert.equal(result.title, 'Finanzas');
+      assert.equal(result.title, 'Cobros y caja');
       assert.equal(result.flowCount, 4);
       assert.ok(result.bodyOverflow <= 1, `${label}: desborde horizontal de ${result.bodyOverflow}px`);
       assert.ok(result.priorityWidths.every((value) => value > 0), `${label}: prioridades sin ancho`);

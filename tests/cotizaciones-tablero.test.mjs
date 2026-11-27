@@ -9,7 +9,7 @@ const read = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')
 test('Cotizaciones tiene entrada propia en la barra lateral (web y móvil) y el nombre es único en títulos y pantalla', () => {
   for (const base of ['', 'mobile/www/']) {
     const nav = read(base + 'smyl-navigation.js');
-    assert.match(nav, /\['Finanzas', 'caja', 'cash'\],\s*\['Cotizaciones', 'propuestas', 'quote'\]/);
+    assert.match(nav, /\['Pacientes', 'pacientes', 'patients'\],\s*\['Cotizaciones', 'propuestas', 'quote'\]/);
     assert.match(nav, /quote: '<path d="M14 2H6a2 2 0 0 0-2 2v16/);
     const panel = read(base + 'smyl-panel.js');
     assert.match(panel, /TITULOS\.propuestas = 'Cotizaciones'/);
