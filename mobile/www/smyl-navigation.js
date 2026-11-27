@@ -75,7 +75,7 @@
     ['Marca y simulación', 'sim-config', 'brand'],
     ['Mi cuenta', 'mi-cuenta', 'account'],
     ['Almacenamiento', 'almacenamiento', 'account'],
-    ['Cumplimiento sanitario', 'cumplimiento', 'shield'],
+    ['Guía COFEPRIS', 'cumplimiento', 'shield'],
     ['Avisos de cita', 'avisos-cita', 'templates'],
     // La ruta permanece registrada para impedir que otros módulos agreguen un acceso duplicado.
     ['Plantillas de WhatsApp', 'plantillas', 'templates']

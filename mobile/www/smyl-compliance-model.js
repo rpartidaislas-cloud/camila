@@ -49,6 +49,10 @@
   }
   function daysBetween(from, to) { return Math.floor((to.getTime() - from.getTime()) / DAY); }
   function dayOnly(value) { var d = toDate(String(value).length === 10 ? value + 'T12:00:00' : value); return d; }
+  function dailyReviewKey(now) {
+    var d = toDate(now) || new Date();
+    return 'daily_review_' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+  }
 
   // Estado de un requisito marcado a mano. status: ok | soon | expired | na | missing
   function itemStatus(row, def, now) {
@@ -109,6 +113,51 @@
     return { groups: groups, summary: { total: counted.length, ok: ok, pending: pending.length, pendingRows: pending, na: all.filter(function (r) { return r.status === 'na'; }).length } };
   }
 
+  // Revisión cotidiana: una ayuda operativa, no una puntuación regulatoria.
+  // Usa únicamente datos del día y referencias ya configuradas por la clínica.
+  // La ausencia de actividad no se presenta como incumplimiento porque puede no haber aplicado ese día.
+  function dailyReview(overview, now) {
+    var ev = evaluate(overview, now), all = [];
+    ev.groups.forEach(function (group) { all = all.concat(group.rows); });
+    var byKey = {}; all.forEach(function (row) { byKey[row.key] = row; });
+    var steril = (overview && overview.sterilization) || {}, act = (overview && overview.activity) || {};
+    var cleaning = byKey.bitacora_limpieza, supplies = byKey.medicamentos;
+    var rows = [
+      {
+        key: 'daily_cleaning', title: 'Limpieza y desinfección', action: cleaning && cleaning.manual ? 'item' : '', sourceRow: cleaning,
+        status: cleaning && cleaning.status === 'ok' ? 'ok' : 'suggestion',
+        label: cleaning && cleaning.status === 'ok' ? 'Referencia lista' : 'Configurar',
+        detail: cleaning && cleaning.status === 'ok' ? (cleaning.detail || 'Ya indicaste dónde se lleva esta bitácora.') : 'Indica dónde lleva la clínica su bitácora; la revisión en SMYL es opcional.'
+      },
+      {
+        key: 'daily_sterilization', title: 'Esterilización del instrumental', action: 'cycle',
+        status: steril.cycles > 0 ? 'ok' : 'optional', label: steril.cycles > 0 ? 'Registrado' : 'Sólo si aplica',
+        detail: steril.cycles > 0 ? steril.cycles + (steril.cycles === 1 ? ' ciclo registrado hoy.' : ' ciclos registrados hoy.') : 'Si esterilizaste instrumental hoy, puedes registrar el ciclo.'
+      },
+      {
+        key: 'daily_supplies', title: 'Caducidades e insumos', action: supplies && supplies.manual ? 'item' : '', sourceRow: supplies,
+        status: supplies && supplies.status === 'ok' ? 'ok' : 'suggestion',
+        label: supplies && supplies.status === 'ok' ? 'Control identificado' : 'Recomendado',
+        detail: supplies && supplies.status === 'ok' ? (supplies.detail || 'La clínica ya identificó este control.') : 'Conviene definir cómo revisan medicamentos e insumos próximos a vencer.'
+      },
+      {
+        key: 'daily_notes', title: 'Notas clínicas del día',
+        status: act.draft_notes > 0 ? 'attention' : 'ok', label: act.draft_notes > 0 ? 'Conviene revisar' : 'Sin pendientes',
+        detail: act.draft_notes > 0 ? act.draft_notes + (act.draft_notes === 1 ? ' nota sigue en borrador.' : ' notas siguen en borrador.') : (act.signed_notes || 0) + ' notas firmadas; SMYL no detecta borradores pendientes de hoy.'
+      },
+      {
+        key: 'daily_patients', title: 'Registro de pacientes atendidos',
+        status: act.visits > 0 ? 'ok' : 'optional', label: act.visits > 0 ? 'Registrado por SMYL' : 'Sin actividad',
+        detail: act.visits > 0 ? act.visits + (act.visits === 1 ? ' atención registrada hoy desde la agenda.' : ' atenciones registradas hoy desde la agenda.') : 'No hay atenciones registradas hoy; no necesitas hacer nada si la clínica no atendió.'
+      }
+    ];
+    var key = dailyReviewKey(now), saved = ((overview && overview.items) || []).find(function (item) { return item.key === key && item.status === 'have'; });
+    var reviewedKeys = saved ? String(saved.notes || '').split(',').filter(Boolean) : [];
+    rows.forEach(function (row) { row.reviewed = reviewedKeys.includes(row.key); });
+    var actionable = rows.filter(function (row) { return row.status === 'attention' || row.status === 'suggestion'; });
+    return { key: key, rows: rows, reviewedKeys: reviewedKeys, saved: !!saved, actionable: actionable, summary: { actionable: actionable.length, reviewed: rows.filter(function (row) { return row.reviewed; }).length, next: actionable[0] || null } };
+  }
+
   function sanitizeCycle(v) {
     var out = { indicator_ok: !!(v && v.indicator_ok) };
     if (v && v.device) out.device = String(v.device).trim().slice(0, 60);
@@ -130,5 +179,5 @@
     return '';
   }
 
-  return { ITEMS: ITEMS, ITEM_GROUPS: ITEM_GROUPS, BIO_DAYS: BIO_DAYS, SOON_DAYS: SOON_DAYS, itemStatus: itemStatus, bioStatus: bioStatus, evaluate: evaluate, cycleError: cycleError, rpbiError: rpbiError, sanitizeCycle: sanitizeCycle };
+  return { ITEMS: ITEMS, ITEM_GROUPS: ITEM_GROUPS, BIO_DAYS: BIO_DAYS, SOON_DAYS: SOON_DAYS, itemStatus: itemStatus, bioStatus: bioStatus, evaluate: evaluate, dailyReviewKey: dailyReviewKey, dailyReview: dailyReview, cycleError: cycleError, rpbiError: rpbiError, sanitizeCycle: sanitizeCycle };
 });

@@ -55,7 +55,7 @@
       { title: 'Plan y suscripción', desc: 'Tu plan, cambios de plan y pago de la suscripción.', group: 'Suscripción', icon: 'plan', action: 'Consultar', route: 'plan', ownerOnly: true },
       { title: 'Almacenamiento', desc: 'Espacio usado por fotos, radiografías y documentos.', group: 'Suscripción', icon: 'plan', action: 'Consultar', route: 'almacenamiento' },
       { title: 'Seguridad', desc: 'Accesos, señales y revisiones de la cuenta.', group: 'Protección', icon: 'security', action: 'Revisar', route: 'seguridad' },
-      { title: 'Cumplimiento sanitario', desc: 'Bitácoras y carpeta para una visita de COFEPRIS.', group: 'Protección', icon: 'security', action: 'Abrir', route: 'cumplimiento' },
+      { title: 'Guía COFEPRIS', desc: 'Documentos, vigencias y carpeta de preparación para una visita sanitaria.', group: 'Protección', icon: 'security', action: 'Abrir guía', route: 'cumplimiento' },
       { title: 'Preparación operativa', desc: 'Controles pendientes antes de atender pacientes.', group: 'Protección', icon: 'launch', action: 'Revisar', route: 'lanzamiento' }
     ] }
   ];

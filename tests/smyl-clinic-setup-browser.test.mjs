@@ -76,8 +76,9 @@ for (const width of [320, 820, 1440]) {
     await section.locator('.setup-next').waitFor();
     const compliance=page.locator('#smyl-compliance-nudge');
     await compliance.waitFor();
-    assert.match(await compliance.innerText(),/18 de 20 requisitos al día/);
-    assert.match(await compliance.innerText(),/Siguiente prioridad: Aviso de funcionamiento/);
+    assert.match(await compliance.innerText(),/REVISIÓN DIARIA · OPCIONAL/);
+    assert.match(await compliance.innerText(),/Revisión rápida disponible/);
+    assert.match(await compliance.innerText(),/Sólo si la necesitas/);
     assert.equal(await compliance.evaluate(el=>el.scrollWidth<=el.clientWidth+1),true);
     // 11 pasos obligatorios; con estos datos están listos: sucursal, horario, consultorio, equipo, servicios, paciente = 6.
     assert.equal(await section.locator('.setup-percent').innerText(), '55 %');
