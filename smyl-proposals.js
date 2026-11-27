@@ -670,6 +670,7 @@
     form.addEventListener('input',changed);form.addEventListener('change',changed);controls();
     if(ctx.historical)feedback('Esta cotización pertenece a un tratamiento cerrado. Se conserva en modo consulta y puede exportarse sin mezclarla con el capítulo activo.');
     else if(ctx.stale)feedback('Esta propuesta pertenece a otra versión del plan. Usa el plan revisado actual antes de aprobar o exportar.',true);
+    else if(!doc.items.length)feedback('Este plan no tiene servicios con cobro. Agrega servicios del catálogo con «+ Agregar servicio» para armar el presupuesto.');
     if(ctx.row.revision)loadEvents();
     if(doc.photos){var current=ctx;assetsFor(ctx.row,ctx,false).then(function(assets){if(ctx!==current)return;Object.keys(assets).forEach(function(key){var img=document.getElementById('proposal-photo-'+key);img.src=assets[key];img.hidden=false;});}).catch(function(){if(ctx===current)feedback('No se pudieron cargar las fotos guardadas. La propuesta conserva sus referencias; vuelve a intentar antes de exportar.',true);});}
   }

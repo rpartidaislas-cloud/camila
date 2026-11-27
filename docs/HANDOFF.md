@@ -13009,3 +13009,10 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - `smyl-treatments.js` v5: `SmylTreatments.waiveDiagnosis(patientId, revision, note)`; el espacio de trabajo clínico sigue sin consultar la base (lo exigen las pruebas), así que la RPC sale por Tratamientos.
 - Sufijo SW `-diagnostico-guia-v1`, copias en `mobile/www/`. Pruebas: `tests/treatment-diagnosis-guide.test.mjs`, `tests/qa/tratamiento-guia-smoke.cjs`.
 - Siguiente: prototipo (plan con precios + presupuesto dentro de la pestaña) y entregas 2–4.
+
+## 2026-11-27 · Claude · Tratamiento — entrega 2: plan con precios
+
+- `smyl-clinic.js` v30 / `smyl-clinic.css` v14 (editor del plan): «+ Agregar servicio» abre el buscador de servicios del catálogo (mismo estilo del de Cotizaciones) y cada tratamiento muestra su precio (`$18,000 × 2 = $36,000`; precio de la sucursal activa si tiene uno propio, si no el de lista); un total vivo («Total estimado del plan») por etapa debajo de la lista; el alta manual pasa a «+ Indicación sin cobro» y el selector deja de decir «opcional» (la opción vacía es «Indicación sin cobro (no pasa al presupuesto)»). Avisos: indicaciones sin cobro y servicios sin precio.
+- `smyl-proposal-model.js` v7: `fromPlan` solo pasa al presupuesto lo que tiene servicio del catálogo (decisión 2 de Ricardo); `smyl-proposals.js` v31: si el plan no tiene servicios con cobro, el editor avisa y se pueden agregar con «+ Agregar servicio». Los planes ya guardados no se modifican; solo cambia qué conceptos se precargan al crear una cotización nueva.
+- Sin migraciones. Sufijo SW `-plan-con-precios-v1`, copias en `mobile/www/`. Pruebas: `tests/plan-with-prices.test.mjs`, `tests/qa/plan-con-precios-smoke.cjs`.
+- Siguiente: entrega 3 (presupuesto dentro de la pestaña) y entrega 4 (aceptación, inicio y avance del tratamiento).
