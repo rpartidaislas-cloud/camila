@@ -1,3 +1,12 @@
+## 2026-11-27 — Claude — Rotación de la llave de cifrado de LANA (`key_version`)
+
+- Nuevo `supabase/functions/_shared/lana-crypto-core.mjs` (puro, probado en Node): llavero con la llave vigente (`SMYL_LANA_ENCRYPTION_KEY` + `_VERSION`, por omisión `1`) y, solo durante la rotación, la anterior (`SMYL_LANA_ENCRYPTION_KEY_PREVIOUS` + `_PREVIOUS_VERSION`). Cada credencial guarda `key_version`; sin él cuenta como `1`, así que **nada cambia hasta que se configure una llave nueva** y no hace falta migración.
+- Descifrado: prueba primero la llave que indica `key_version` y luego las demás (una versión mal anotada no deja la credencial inaccesible). `lana-linked.ts` (todas las funciones de chat) y `lana-connection` lo usan.
+- Reescritura con la llave nueva: `lana-connection` acción `verify` (al pulsar Verificar) y acción nueva `rotate_key` (solo dueño, no llama a LANA). `publicStatus` suma `encryption: current | pending_rotation`; nunca expone ciphertext/iv. `connect` y `provision` guardan `key_version`.
+- Las clínicas que nadie verifique siguen en la llave anterior hasta entonces, por eso la llave anterior no se borra hasta que la consulta de `docs/LANA_ENCRYPTION_KEY_ROTATION.md` no devuelva filas.
+- Hay que **volver a desplegar** `lana-connection` y las funciones que importan `lana-linked.ts` (lana-inbox/channels/context/attention/training/ia-interruptor, appointment-negotiations/reminders); los bundles `docs/bundles/*` están regenerados. Mientras no se defina una llave nueva, el comportamiento es idéntico al actual.
+- Pruebas: `tests/lana-key-rotation.test.mjs` (7), `lana-connection-stage2` actualizada (AES-GCM ahora vive en el módulo compartido).
+
 ## 2026-11-27 — Claude — Versiones de migración repetidas corregidas
 
 - Había dos pares con la misma versión. Se renombró **un archivo de cada par** (solo cambia el nombre/orden; el SQL no cambió y lo ya aplicado en producción no se toca):
@@ -13000,3 +13009,26 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 ## 2026-11-27 · Claude · Ventana «Preparar cotización» con la paleta de la plataforma
 
 - Ricardo notó que la ventana de tareas/selector de pacientes (Cotizaciones › Nueva cotización y atajos de Inicio) no combinaba con el resto: usaba un verde azulado propio (`--task-primary:#0f6b67`). `smyl-professional-v3.css` v15 agrega un bloque «v15» que reasigna esas variables al índigo de la plataforma (`--smyl-ui-primary` #2d3a9e / soft #eceffe) en pestañas, foco, hover, iconos, «Registrar paciente nuevo» y la acción de cada fila. Los chips de estado verdes se conservan (semántica de «listo»). Sin cambios de lógica. Sufijo SW `-ventana-cotizar-paleta-v1`, copia en `mobile/www/`.
+
+## 2026-11-27 · Claude · Tratamiento — entrega 1: el diagnóstico guía y no bloquea
+
+- Decisiones aprobadas por Ricardo (revisión de la pestaña Tratamiento): (1) el diagnóstico pasa a ser una guía, con constancia registrada si se sigue sin completarlo; (2) un tratamiento sin servicio del catálogo quedará fuera de la cotización (entrega siguiente); (3) prototipo antes de rediseñar plan con precios + presupuesto dentro de la pestaña.
+- **Migración NUEVA (aplicar a mano en SQL Editor)**: `supabase/migrations/20261201400000_smyl_diagnosis_waivers.sql` — `smyl_diagnosis_waivers` (una constancia por paciente y revisión del plan, inmutable, RLS, auditada) y RPC `smyl_waive_diagnosis` (clinical.write + acceso al paciente). Validada en PostgreSQL 16 local (idempotente; update/delete bloqueados; cascada de tenant ok). Sin ella todo funciona igual; solo no queda la constancia.
+- `smyl-case-workspace.js` v55 / `.css` v39: (a) con el plan aprobado y el diagnóstico sin cerrar, «Diagnóstico» queda «Pendiente · seguiste sin completarlo» (ámbar) y la etapa en curso pasa a Presupuesto; (b) «Plan de tratamiento» siempre es operable («Puedes empezarlo; se recomienda confirmar el diagnóstico»); (c) el pie opera sobre la etapa que se está viendo y solo bloquea lo que de verdad depende de lo anterior: Presupuesto sin plan aprobado y En tratamiento sin presupuesto aceptado (texto corregido: «Se habilita al aceptar el presupuesto»); (d) se quitó el botón «Terminar diagnóstico» que devolvía al paciente al diagnóstico; (e) aviso «Diagnóstico pendiente» con «Completar diagnóstico» en plan y presupuesto; (f) «Aprobar plan» con diagnóstico incompleto pide confirmar y deja constancia. La presentación mySmyl (fotos) sigue exigiendo diagnóstico completo.
+- `smyl-treatments.js` v5: `SmylTreatments.waiveDiagnosis(patientId, revision, note)`; el espacio de trabajo clínico sigue sin consultar la base (lo exigen las pruebas), así que la RPC sale por Tratamientos.
+- Sufijo SW `-diagnostico-guia-v1`, copias en `mobile/www/`. Pruebas: `tests/treatment-diagnosis-guide.test.mjs`, `tests/qa/tratamiento-guia-smoke.cjs`.
+- Siguiente: prototipo (plan con precios + presupuesto dentro de la pestaña) y entregas 2–4.
+
+## 2026-11-27 · Claude · Tratamiento — entrega 2: plan con precios
+
+- `smyl-clinic.js` v30 / `smyl-clinic.css` v14 (editor del plan): «+ Agregar servicio» abre el buscador de servicios del catálogo (mismo estilo del de Cotizaciones) y cada tratamiento muestra su precio (`$18,000 × 2 = $36,000`; precio de la sucursal activa si tiene uno propio, si no el de lista); un total vivo («Total estimado del plan») por etapa debajo de la lista; el alta manual pasa a «+ Indicación sin cobro» y el selector deja de decir «opcional» (la opción vacía es «Indicación sin cobro (no pasa al presupuesto)»). Avisos: indicaciones sin cobro y servicios sin precio.
+- `smyl-proposal-model.js` v7: `fromPlan` solo pasa al presupuesto lo que tiene servicio del catálogo (decisión 2 de Ricardo); `smyl-proposals.js` v31: si el plan no tiene servicios con cobro, el editor avisa y se pueden agregar con «+ Agregar servicio». Los planes ya guardados no se modifican; solo cambia qué conceptos se precargan al crear una cotización nueva.
+- Sin migraciones. Sufijo SW `-plan-con-precios-v1`, copias en `mobile/www/`. Pruebas: `tests/plan-with-prices.test.mjs`, `tests/qa/plan-con-precios-smoke.cjs`.
+- Siguiente: entrega 3 (presupuesto dentro de la pestaña) y entrega 4 (aceptación, inicio y avance del tratamiento).
+
+## 2026-11-27 · Claude · Tratamiento — entrega 3: el presupuesto se arma dentro de la pestaña
+
+- `smyl-proposals.js` v32 / `.css` v20: `SmylProposals.mount(host,{patientId,id,onClose})` y `unmount()` montan el MISMO editor de presupuesto dentro de otra pantalla (modo incrustado: botón «← Volver al paciente», errores y compuerta vuelven al paciente). La pantalla de Cotizaciones no cambia (`ir('propuestas')` limpia el modo incrustado).
+- `smyl-case-workspace.js` v56: «Preparar/Revisar presupuesto» monta el editor en `#cw-quote-host` dentro de la etapa Presupuesto (ya no navega a Cotizaciones); `SmylCaseWorkspace.openQuote(patient)` lo abre desde el plan; `smyl-clinic.js` v31: «Preparar presupuesto · opcional» del plan usa `openQuote`. El espacio de trabajo clínico sigue sin consultar la base. Si el espacio no está disponible, se cae al flujo anterior (`forPatient`).
+- Sin migraciones. Sufijo SW `-presupuesto-incrustado-v1`, copias en `mobile/www/`. Pruebas: `tests/embedded-quote.test.mjs`, `tests/qa/presupuesto-incrustado-smoke.cjs`.
+- Pendiente: «Cotizar ahora» desde el selector de pacientes (Inicio/Cotizaciones) aún abre la pantalla de Cotizaciones; entrega 4 (avance del tratamiento: conceptos realizados vs pendientes y saldo, aviso al cerrar).

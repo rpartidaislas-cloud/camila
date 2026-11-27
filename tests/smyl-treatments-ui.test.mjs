@@ -78,7 +78,7 @@ test('la sección de hallazgos se monta en Revisión profesional y se refresca c
 
 test('web, móvil y PWA distribuyen la franja de tratamientos', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-treatments\.js\?v=4/);
+    assert.match(read(file), /smyl-treatments\.js\?v=5/);
     assert.match(read(file), /smyl-case-workspace\.js\?v=53/);
   }
   assert.ok(read('app.html').indexOf('smyl-treatments.js') < read('app.html').indexOf('smyl-case-workspace.js'), 'la franja carga antes del expediente');
