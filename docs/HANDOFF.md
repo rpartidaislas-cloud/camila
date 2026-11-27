@@ -1,3 +1,13 @@
+## 2026-11-27 — Claude — Prospecto → paciente (PR 1: base de datos)
+
+- Migración nueva `20261203100000_smyl_prospect_lifecycle.sql` (aditiva; **la aplica Ricardo en el SQL Editor**): `camila_pacientes.ciclo_vida` (`prospecto`|`paciente`, por omisión `paciente`) y `convertido_at`. La cita sigue apuntando a la misma fila; no cambia ninguna FK.
+- Disparador en `smyl_appointments` (`smyl_promote_prospect_on_attendance`): al pasar a `arrived`/`in_progress`/`completed` (o nacer así, como walk-in) el prospecto se vuelve paciente. Es disparador y no cambio en `smyl_transition_appointment` para cubrir todas las rutas. Guarda de invariante en `camila_pacientes`: quien ya tiene una cita atendida nunca queda como prospecto.
+- RPC `smyl_promote_prospect(p_patient_id)` para «Convertir en paciente» a mano (exige `patients.manage` y alcance del paciente).
+- **No reclasifica datos.** `docs/sql-prospectos-migrar-pegar-en-supabase.sql` trae vista previa (cuántos pasarían) y el UPDATE comentado: solo personas «por registrar» sin cita atendida, sin antecedente clínico y sin caso.
+- Pendiente (PR 2, interfaz): que la agenda dé de alta a la persona nueva con `ciclo_vida='prospecto'` (con reintento sin la columna si la migración aún no está), ocultar prospectos de Pacientes, filtro «Prospectos» y botón «Convertir en paciente». `camila_confirmar_lana_handoff` (alta explícita desde el chat con caso) NO se tocó: sigue creando pacientes.
+- También: se renombraron dos migraciones que habían quedado con versión repetida tras fusionar otras sesiones: `daily_sanitation_log` → `20261127181000` (chocaba con `finance_deploy_check`) y `cash_close_online_report` → `20261128121000` (chocaba con `no_show_followup`). Si ya las habías aplicado a mano con la versión anterior, son idempotentes.
+- Pruebas: `tests/smyl-prospect-lifecycle.test.mjs` (PostgreSQL real con PGlite: agendar no convierte, no-show no convierte, «Llegó» y walk-in sí, el invariante, conversión manual con permisos y aislamiento por clínica).
+
 ## 2026-11-27 — Claude — Rotación de la llave de cifrado de LANA (`key_version`)
 
 - Nuevo `supabase/functions/_shared/lana-crypto-core.mjs` (puro, probado en Node): llavero con la llave vigente (`SMYL_LANA_ENCRYPTION_KEY` + `_VERSION`, por omisión `1`) y, solo durante la rotación, la anterior (`SMYL_LANA_ENCRYPTION_KEY_PREVIOUS` + `_PREVIOUS_VERSION`). Cada credencial guarda `key_version`; sin él cuenta como `1`, así que **nada cambia hasta que se configure una llave nueva** y no hace falta migración.
