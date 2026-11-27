@@ -624,6 +624,83 @@ server.listen(0, '127.0.0.1', async () => {
   check(s.errs.length === 0, 'sin errores de página con el servidor como fuente: ' + JSON.stringify(s.errs));
   await s.ctx.close();
 
+  // Turno antiguo con más de una página de ajustes propios y cientos de movimientos de otras cajas.
+  const recon = await open({width:390,height:844},0,()=>{
+    const db=window.__db,t=window.tenantId,opened=db.smyl_cash_sessions[0].opened_at;
+    for(let i=0;i<120;i++)db.smyl_cash_sessions.push({id:'closed-'+i,tenant_id:t,status:'closed',opened_at:new Date(Date.parse(opened)+1000+i).toISOString(),closed_at:new Date(Date.parse(opened)+2000+i).toISOString(),opening_cash:0});
+    for(let i=0;i<350;i++)db.smyl_cash_adjustments.push({id:'other-'+i,tenant_id:t,cash_session_id:'closed-119',direction:'in',amount:99});
+    for(let i=0;i<1051;i++)db.smyl_cash_adjustments.push({id:'own-'+i,tenant_id:t,cash_session_id:'cs1',direction:i%2?'out':'in',amount:1});
+    db.smyl_finance_refunds.push({id:'cash-refund',tenant_id:t,payment_id:'pay2',amount:10.25,refund_method:'cash',refund_cash_session_id:'cs1'});
+    window.__posts=[];
+    const from=window.sb.from.bind(window.sb),rpc=window.sb.rpc.bind(window.sb);
+    window.sb.from=(table)=>{
+      const query=from(table);
+      if(table!=='smyl_finance_payments')return query;
+      return new Proxy(query,{get(target,key){
+        if(key==='select')return cols=>{
+          if(cols==='id'&&window.__offline){
+            const unavailable=new Proxy({},{get(_,k){return k==='then'?(ok,fail)=>Promise.reject(Error('Sin conexión')).then(ok,fail):()=>unavailable;}});
+            return unavailable;
+          }
+          return target.select(cols);
+        };
+        return target[key];
+      }});
+    };
+    window.sb.rpc=async(name,args)=>{
+      if(name!=='smyl_post_payment')return rpc(name,args);
+      window.__posts.push(args);
+      const saved={id:args.p_id,tenant_id:t,patient_id:args.p_patient_id,branch_id:args.p_branch_id,cash_session_id:args.p_cash_session_id,method:args.p_method,amount:args.p_amount,paid_at:args.p_paid_at};
+      if(window.__committed&&!db.smyl_finance_payments.some(p=>p.id===saved.id))db.smyl_finance_payments.push(saved);
+      if(window.__drop){window.__offline=true;throw Error('Respuesta perdida');}
+      return {data:saved,error:null};
+    };
+  });
+  page=recon.page;
+  await go(page,'cash');
+  check(/1,670.75/.test(await page.locator('[data-turn="cs1"] .finance-breakdown').innerText()),'el turno abierto más antiguo incluye todas sus entradas, salidas y el reembolso');
+  await page.click('[data-close-cash="cs1"]');
+  check(/1,670.75/.test(await page.locator('[data-close-method="cash"]').innerText()),'el corte coincide con el turno, incluidos los ajustes más allá de la primera página');
+  await page.fill('[name="count_cash"]','1670.75');
+  await page.evaluate(()=>window.__db.smyl_cash_adjustments.push({id:'late-in',tenant_id:window.tenantId,cash_session_id:'cs1',direction:'in',amount:10}));
+  await page.click('#finance-dialog button[type="submit"]');
+  await page.locator('[data-cut-feedback]').filter({hasText:'movimientos nuevos'}).waitFor();
+  check(/1,680.75/.test(await page.locator('[data-close-method="cash"]').innerText())&&await page.inputValue('[name="count_cash"]')==='1670.75','una entrada durante el conteo actualiza el total y conserva el importe contado');
+  check((await calls(page,'smyl_close_cash_session')).length===0,'un total que cambió requiere revisar el corte antes de cerrarlo');
+  await page.evaluate(()=>{document.querySelector('#finance-dialog').dataset.smylDirty='false';});
+  await page.keyboard.press('Escape');
+  await go(page,'accounts');
+  for(const committed of [true,false]){
+    const before=await page.evaluate(()=>window.__posts.length);
+    await page.evaluate(committed=>{window.__committed=committed;window.__drop=true;window.__offline=false;},committed);
+    await page.locator('[data-account-pay]').nth(committed?0:1).click();
+    await page.click('#finance-dialog [data-method="cash"]');
+    await page.fill('#finance-dialog [name="amount"]','17.42');
+    await page.click('#finance-dialog [data-payment-submit]');
+    await page.locator('[data-verification]').filter({hasText:'No se pudo verificar'}).waitFor();
+    await page.locator('[data-verify]').click();
+    await page.locator('[data-verification]').filter({hasText:'No se pudo verificar'}).waitFor();
+    check(await page.evaluate(()=>window.__posts.length)===before+1,'dos consultas sin conexión mantienen pendiente el pago y no vuelven a cobrar');
+    await page.locator('#finance-dialog [data-close]').click();
+    await page.locator('#finance-alerts').getByRole('button',{name:'Verificar pago'}).click();
+    await page.locator('[data-verification]').filter({hasText:'No se pudo verificar'}).waitFor();
+    await page.evaluate(()=>{window.__offline=false;window.__drop=false;});
+    await page.locator('[data-verify]').click();
+    if(!committed){
+      const retry=page.getByRole('button',{name:'Reintentar cobro de $17.42'});
+      await retry.waitFor();
+      check(await page.evaluate(()=>window.__posts.length)===before+1,'una consulta sin coincidencias requiere un reintento explícito');
+      await page.evaluate(()=>{window.__committed=true;});
+      await retry.click();
+    }
+    await page.waitForFunction(()=>!document.querySelector('#finance-dialog').open);
+    await page.waitForFunction(()=>document.querySelector('#finance-feedback').textContent.includes('El pago está registrado'));
+    const writes=await page.evaluate(n=>window.__posts.slice(n),before);
+    check(committed?writes.length===1:writes.length===2&&JSON.stringify(writes[0])===JSON.stringify(writes[1]),committed?'recupera el pago registrado tras perder la respuesta sin duplicarlo':'el reintento conserva identificador, llave, importe, hora y aplicaciones');
+  }
+  check(recon.errs.length===0,'sin errores de navegador durante la verificación y el corte');
+  await recon.ctx.close();
+
   await browser.close(); server.close();
   console.log(failures ? `\n${failures} comprobación(es) fallaron.` : '\nTodo bien: Finanzas v6 pasa el recorrido completo.');
   process.exit(failures ? 1 : 0);
