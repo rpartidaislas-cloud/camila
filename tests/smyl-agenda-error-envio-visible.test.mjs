@@ -34,7 +34,7 @@ test("sin cuerpo legible se conserva el mensaje original, y el éxito y los erro
 
 test("la versión del script está sincronizada en web y móvil", () => {
   for (const base of ["", "mobile/www/"]) {
-    assert.match(read(`${base}app.html`), /smyl-schedule\.js\?v=67/); assert.match(read(`${base}sw.js`), /smyl-schedule\.js\?v=67/);
+    assert.match(read(`${base}app.html`), /smyl-schedule\.js\?v=68/); assert.match(read(`${base}sw.js`), /smyl-schedule\.js\?v=68/);
     assert.match(read(`${base}sw.js`), /agenda-error-envio-visible-v1/);
   }
   assert.equal(read("mobile/www/smyl-schedule.js"), read("smyl-schedule.js"));
