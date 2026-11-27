@@ -73,3 +73,35 @@ test('Caja: las 7 tablas grandes usan la carga completa y el aviso aparece si se
   assert.match(js, /setAttribute\('role','alert'\)/);
   assert.equal(js, fs.readFileSync(new URL('../mobile/www/smyl-finance.js', import.meta.url), 'utf8'));
 });
+
+test('el límite del historial no omite pagos, recibos ni devoluciones de un turno todavía abierto',async()=>{
+  const src=js.slice(js.indexOf('  var PAGE_SIZE='),js.indexOf('  var inFlight='));
+  const sessions=[
+    {id:'open',status:'open',branch_id:'B',opened_at:'2026-11-03'},
+    {id:'previous',status:'closed',branch_id:'B',closed_at:'2026-11-02'}
+  ];
+  const own=Array.from({length:127},(_,i)=>({id:'PAY-'+String(i).padStart(3,'0'),tenant_id:'T',branch_id:'B',cash_session_id:'open',paid_at:'2026-11-03',method:'cash',amount:1}));
+  const online={id:'online',tenant_id:'T',branch_id:'B',paid_at:'2026-11-02',method:'card'};
+  const db={
+    smyl_finance_payments:[...own,online,{...own[0],id:'elsewhere',branch_id:'other',cash_session_id:'other'}],
+    smyl_finance_refunds:[{id:'old',tenant_id:'T',payment_id:own[0].id},{id:'new',tenant_id:'T',payment_id:'outside',refund_cash_session_id:'open'}],
+    smyl_finance_receipts:[{id:'r',tenant_id:'T',payment_id:'online',snapshot:{provider:'openpay'}}],
+    smyl_cash_adjustments:[{id:'in',tenant_id:'T',direction:'in',cash_session_id:'open'}, {id:'foreign',tenant_id:'other',cash_session_id:'open'}]
+  };
+  const window={__smylFinancePageCap:50,sb:{from(table){
+    let rows=db[table].slice();const chain={
+      select(){return this;},eq(k,v){rows=rows.filter(r=>r[k]===v);return this;},
+      gte(k,v){rows=rows.filter(r=>r[k]>=v);return this;},in(k,vs){rows=rows.filter(r=>vs.includes(r[k]));return this;},
+      order(){rows.sort((a,b)=>a.id.localeCompare(b.id));return this;},range(a,z){return rows.slice(a,z+1);}
+    };return chain;
+  }}};
+  const run=new Function('state','window','q',src+';return completeShiftHistory;')({tenant:'T',truncated:['pagos']},window,async b=>b);
+  const history={payments:own.slice(80),receipts:[],refunds:[],sessions};
+  await run(history);
+  assert.equal(history.payments.length,128);
+  assert.equal(new Set(history.payments.map(p=>p.id)).size,128);
+  assert.ok(history.payments.some(p=>p.id==='online'));
+  assert.deepEqual(history.refunds.map(r=>r.id).sort(),['new','old']);
+  assert.equal(history.receipts[0].snapshot.provider,'openpay');
+  assert.deepEqual(history.adjustments.map(a=>a.id),['in']);
+});

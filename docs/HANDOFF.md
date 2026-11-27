@@ -13038,3 +13038,9 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - El menú de escritorio y «Más» en celular reúnen Cobros y caja, Inventario, Servicios y tarifas, Reportes y Nube en Mi clínica. La ruta de cobro sigue siendo `caja`. El buscador de módulos también reconoce el nombre anterior.
 - Cobros y caja abre en Por cobrar. Le siguen Caja, Pagos y recibos y Facturación. En Pagos y recibos se puede abrir un comprobante por nombre, apellido o folio sin elegir fecha. Limpiar la búsqueda devuelve los filtros previos. Si se alcanza el límite de carga del historial se indica el alcance de la búsqueda.
 - Cambios principales en `smyl-navigation.js`, `smyl-command-menu.js`, `smyl-finance.js` y `smyl-finance.css`, con nombres actualizados en los accesos desde Agenda, Consultorio, Configuración, alertas y cotizaciones. Se sincronizaron la PWA, las copias móviles y el texto del catálogo de plantillas.
+
+## 2026-11-27 · Codex · Verificación de cobros y movimientos del turno
+
+- En Cobros y caja, un pago cuya respuesta se perdió queda pendiente de verificación para la clínica y el usuario de esa pestaña. La consulta distingue un pago registrado, una respuesta vacía válida y una consulta fallida. Un reintento explícito conserva el identificador, la llave, la fecha, el importe y las aplicaciones originales.
+- Caja incluye los turnos abiertos antiguos y pagina sus ajustes por identificador de turno. Si el historial general alcanza su límite, completa los pagos, reembolsos y recibos de los turnos abiertos. Antes de cerrar, consulta el efectivo esperado mediante la función existente `smyl_cash_session_expected`. Si el importe cambió, vuelve a mostrar el corte con las cantidades capturadas.
+- Archivos principales: `smyl-finance.js`, `app.html`, `sw.js` y sus copias en `mobile/www`. Pruebas en `tests/finance-attempts.test.mjs`, `tests/caja-paginada.test.mjs` y `tests/qa/finanzas-pestanas-smoke.cjs`. Sin migraciones.
