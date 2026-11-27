@@ -3818,6 +3818,26 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
 #p-inbox .smyl-suggest-body[data-state="error"] .smyl-suggest-note { color: #8a1f1f; }
 #p-inbox .smyl-suggest-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 #p-inbox .smyl-suggest-actions .btn { min-height: 40px; }
+
+/* Fondo clínico del chat de Meta. Se limita al historial para mantener
+   cabecera, bandeja, ficha y compositor sobre superficies sólidas. */
+#p-inbox .smyl-inbox-thread-body {
+  background-color: #eef8fe;
+  background-image:
+    linear-gradient(rgba(248, 252, 255, .16), rgba(248, 252, 255, .30)),
+    url("assets/chat/dental-conversation-background.jpg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+@media (prefers-contrast: more) {
+  #p-inbox .smyl-inbox-thread-body {
+    background-image:
+      linear-gradient(rgba(248, 252, 255, .60), rgba(248, 252, 255, .70)),
+      url("assets/chat/dental-conversation-background.jpg");
+  }
+}
 @media (max-width: 620px) {
   #p-inbox .smyl-suggest-list li { grid-template-columns: 28px 1fr; }
   #p-inbox .smyl-suggest-list em { grid-column: 2; justify-self: start; }
