@@ -93,13 +93,16 @@ test('Messenger e Instagram conservan su desconexión canal por canal y WhatsApp
 });
 
 test('el diálogo explica qué se detiene, qué se borra y qué NO se detiene, sin mostrar el nombre del motor', () => {
-  const dialog = ui.slice(ui.indexOf('data-unlink-dialog'), ui.indexOf('data-unlink-confirm'));
+  const dialog = ui.slice(ui.indexOf('data-unlink-dialog'), ui.indexOf('</dialog>', ui.indexOf('data-unlink-dialog')));
   // Dice la verdad completa: qué se detiene, qué se borra y qué NO se detiene.
   assert.match(dialog, /Se detiene en SMYL/);
   assert.match(dialog, /Se borra/);
   assert.match(dialog, /necesitarás un código de enlace nuevo/);
   assert.match(dialog, /NO se detiene/);
-  assert.match(dialog, /las respuestas automáticas siguen activas/);
+  assert.match(dialog, /respuestas automáticas siguen activas/i);
+  assert.match(dialog, /recordatorios que ya estaban programados se enviarán igual/);
+  assert.match(dialog, /data-unlink-ack/, 'pide confirmar antes de borrar');
+  assert.match(dialog, /data-unlink-confirm disabled/, 'el botón nace deshabilitado');
   assert.doesNotMatch(dialog, /\bLANA\b/);
   const done = ui.match(/var done = '([^']*)'/);
   assert.ok(done && !/LANA/.test(done[1]));

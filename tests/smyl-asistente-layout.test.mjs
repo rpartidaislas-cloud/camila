@@ -58,9 +58,9 @@ test("pasos en una fila a todo el ancho y formulario en tarjeta; en celular los 
 test("copia móvil y versiones de caché", () => {
   for (const f of ["smyl-connections.js", "smyl-navigation.js", "smyl-navigation.css", "smyl-ia-interruptor.js"]) assert.equal(read(`mobile/www/${f}`), read(f), f);
   for (const base of ["", "mobile/www/"]) {
-    assert.match(read(`${base}app.html`), /smyl-navigation\.js\?v=35/);
+    assert.match(read(`${base}app.html`), /smyl-navigation\.js\?v=36/);
     assert.match(read(`${base}app.html`), /smyl-navigation\.css\?v=15/);
-    assert.match(read(`${base}sw.js`), /smyl-navigation\.js\?v=35/);
-    assert.match(read(`${base}sw.js`), /smyl-connections\.js\?v=32&media=1/);
+    assert.match(read(`${base}sw.js`), /smyl-navigation\.js\?v=36/);
+    assert.match(read(`${base}sw.js`), /smyl-connections\.js\?v=33&media=1/);
   }
 });

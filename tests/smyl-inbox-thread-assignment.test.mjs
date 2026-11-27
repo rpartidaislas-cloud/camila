@@ -316,6 +316,8 @@ test('Dos sesiones comparten el relevo sin publicar la nota en el canal del paci
   await select.selectOption('desk-preview');
   await sender.locator('[data-chat-transfer] textarea').fill('Pidió que le llamemos por la tarde.');
   await sender.getByRole('button',{name:'Cancelar',exact:true}).click();
+  // El diálogo se retira en su evento «close» (asíncrono): esperar a que desaparezca evita ver dos a la vez.
+  await sender.waitForFunction(()=>!document.querySelector('[data-chat-transfer]'));
   assert.equal(owner,'owner-preview'); assert.equal(version,1);
   await select.selectOption('desk-preview');
   await sender.locator('[data-chat-transfer] textarea').fill('Pidió que le llamemos por la tarde.');
