@@ -816,3 +816,11 @@ body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=m]>.schedule-
 @media(min-width:769px){
   body #p-agenda .schedule-head-actions #schedule-new{display:none !important}
 }
+
+/* Cita ↔ concepto de la cotización */
+.sched-quote-row strong{display:grid;gap:6px;font-weight:600}
+.sched-quote-item{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sched-quote-row i{font-style:normal;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:#eef2f6;color:#4a5d72}
+.sched-quote-row i.sched-quote-linked{background:#e3f4ee;color:#17695a}
+.sched-quote-row i.sched-quote-hint{background:#fff0c9;color:#8a5a0a}
+.sched-quote-row small{font-weight:400;color:#65758b;font-size:12px;line-height:1.45}
