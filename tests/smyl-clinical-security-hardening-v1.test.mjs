@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
-const sql = read('supabase/migrations/20261126210000_smyl_clinical_security_hardening.sql');
+const sql = read('supabase/migrations/20261126211000_smyl_clinical_security_hardening.sql');
 
 test('revocar un consentimiento exige autenticación reciente desde el servidor', () => {
   const body = sql.match(/create or replace function public\.smyl_revoke_informed_consent[\s\S]*?\n\$\$;/i)?.[0] || '';
@@ -47,7 +47,7 @@ test('web y PWA conservan los mismos nombres públicos de RPC', () => {
 
 test('la reconciliación puede reconocer la migración sin intentar reaplicarla', () => {
   const sentinels = read('scripts/migration-sentinels.mjs');
-  assert.match(sentinels, /'20261126210000': \{ sentinel:/);
+  assert.match(sentinels, /'20261126211000': \{ sentinel:/);
   assert.match(sentinels, /revoked_auth_method/);
   assert.match(sentinels, /smyl_issue_prescription_core/);
 });
@@ -81,7 +81,7 @@ test('PostgreSQL aplica el cierre y hace cumplir autenticación y alcance por pa
   await db.exec(read('tests/fixtures/clinical-security-hardening-stubs.sql'));
   await db.exec(sql);
   const { SENTINELAS } = await import('../scripts/migration-sentinels.mjs');
-  assert.equal((await db.query(SENTINELAS['20261126210000'].sentinel)).rows[0].ok, true);
+  assert.equal((await db.query(SENTINELAS['20261126211000'].sentinel)).rows[0].ok, true);
   await db.exec(`
     select set_config('test.tenant_id', '${tenant}', false);
     select set_config('test.actor_id', '${actor}', false);
@@ -129,4 +129,11 @@ test('PostgreSQL aplica el cierre y hace cumplir autenticación y alcance por pa
     /No tienes acceso clínico/
   );
   assert.equal((await db.query(`select status from public.smyl_prescriptions where id = '${prescriptionB}'`)).rows[0].status, 'issued');
+});
+
+test('el endurecimiento se aplica después de la reparación de consentimientos (ambas redefinen la revocación)', () => {
+  const files = readdirSync(new URL('../supabase/migrations/', import.meta.url)).sort();
+  const repair = files.findIndex((f) => /_smyl_informed_consent_compat_repair\.sql$/.test(f));
+  const hardening = files.findIndex((f) => /_smyl_clinical_security_hardening\.sql$/.test(f));
+  assert.ok(repair >= 0 && hardening > repair, 'si la reparación corriera después, volvería a quitar la reautenticación');
 });

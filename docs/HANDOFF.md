@@ -1,3 +1,11 @@
+## 2026-11-27 — Claude — Versiones de migración repetidas corregidas
+
+- Había dos pares con la misma versión. Se renombró **un archivo de cada par** (solo cambia el nombre/orden; el SQL no cambió y lo ya aplicado en producción no se toca):
+  - `20261126210000_smyl_clinical_security_hardening.sql` → **`20261126211000`**. Ambas migraciones redefinen `smyl_revoke_informed_consent`; con la misma versión el orden alfabético dejaba a `compat_repair` corriendo *después* y quitaba la reautenticación. Ahora el endurecimiento corre al final. El centinela se movió a la clave `'20261126211000'` en `scripts/migration-sentinels.mjs`.
+  - `20261128140000_smyl_ai_scheduling_book.sql` → **`20261128141000`** (`treatment_v2` conserva `20261128140000`, ya registrada en producción). La copia `docs/sql-agenda-ia-agendar-pegar-en-supabase.sql` es idéntica.
+- Si `supabase migration list` marca estas dos versiones como pendientes en remoto, son idempotentes (`create or replace` / `if not exists`): aplicarlas es seguro.
+- Pruebas: `migrations-reconcile`, `appointment-request-scope-guard`, `smyl-clinical-security-hardening-v1` (+ prueba nueva de orden), `lana-scheduling-request`, `smyl-treatment-v2-backend`, `smyl-procedure-execution-v1`.
+
 ## 2026-11-26 — Codex — Inventario por producto y directorio de proveedores
 
 - Productos abre en Todos y agrupa el saldo por almacén. Proveedores comparte los vínculos existentes con el editor de cada producto. Compras conserva las modalidades por sucursal y central. Movimientos reúne el consumo, conteo, traslado, ajuste y merma.
