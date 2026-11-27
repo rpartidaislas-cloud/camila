@@ -69,11 +69,16 @@ test('migración: estado de la solicitud en plan y comprobante, y bitácora ampl
 test('Cobros: planear, cancelar en sandbox y verificar desde el comprobante', () => {
   const js = read('smyl-finance.js');
   assert.match(js, /data-cancel-cfdi/);
-  assert.match(js, /plan&&plan\.status==='planned'&&pacConnected\(\)/);
+  // Con el plan guardado y Facturapi conectado, la fila ofrece «Enviar cancelación» en su menú.
+  assert.match(js, /connected=pacConnected\(\)/);
+  assert.match(js, /else if\(plan\.status==='planned'&&connected\)menu\.push\(item\('data-cancel-cfdi','Enviar cancelación',true\)\);/);
+  assert.match(js, /if\(plan&&plan\.status==='submitted'\)\{main=button\('data-cancelcheck-cfdi','Verificar'\);/);
   assert.match(js, /data-cancelcheck-cfdi/);
-  assert.match(js, /facturapiAction\(\{action:'cancel',draft_id:draft\.id\}\)/);
+  assert.match(js, /facturapiAction\(live\?\{action:'cancel',draft_id:draft\.id,confirm_text:typed\}:\{action:'cancel',draft_id:draft\.id\}\)/);
   assert.match(js, /facturapiAction\(\{action:'cancel_check',draft_id:draft\.id\}\)/);
-  assert.match(js, /Cancelado en sandbox/);
+  // Una cancelada dice «Cancelada»; mientras la clínica no timbre en producción, «Cancelada de prueba».
+  assert.match(js, /if\(d\.status==='cancelled'\)tag='Cancelada';/);
+  assert.match(js, /if\(bucket!=='drafts'&&!invoiceIsReal\(d\)\)tag\+=' de prueba';/);
   assert.match(js, /Es una prueba\./);
   assert.equal(read('smyl-finance.js'), read('mobile/www/smyl-finance.js'));
   assert.equal(read('smyl-finance.css'), read('mobile/www/smyl-finance.css'));

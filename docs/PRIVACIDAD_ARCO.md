@@ -24,19 +24,23 @@ Texto legal del aviso: **borrador** (`modelo-provisional-2`). Un abogado debe re
 - Es una protección del flujo de la clínica, no una frontera de seguridad: lo aplica el servidor, pero depende de que el panel diga de qué paciente son los datos.
 
 ### Funciones con candado
-`claude` (fotos clínicas) · `periodontal-summary` · `radiograph-analyze` · `mila-interview` (la entrevista previa pasa a formulario sin IA) · `cloud-classify` (por el paciente del archivo) · `fiscal-extract` (el panel manda `patient_id`).
+`claude` (fotos clínicas y simulador de sonrisa abierto desde el expediente) · `segment-teeth` (simulador) · `periodontal-summary` · `radiograph-analyze` · `mila-interview` (la entrevista previa pasa a formulario sin IA) · `cloud-classify` (por el paciente del archivo) · `fiscal-extract` (el panel manda `patient_id`).
 
 ### Funciones SIN candado y por qué
 | Función | Motivo | Qué haría falta |
 |---|---|---|
-| `segment-teeth`, `analizar-foto` | El simulador trabaja con «casos» (`camila_casos`) que no están ligados a un paciente en el esquema | Ligar cada caso del simulador a un paciente y mandarlo en la llamada |
+| `analizar-foto` | Ningún archivo del repositorio la llama | Nada hasta que se use |
 | `mila-transcribe`, `mila-clinical-dictation` | Reciben solo audio; el panel no manda paciente | Que el panel mande el paciente al dictar |
+| Simulador en modo prospecto (`?clinica=`) | La persona aún no es paciente | Nada: no hay paciente de quien respetar la decisión |
+
+**Simulador:** cuando se abre desde el expediente (`simulacion-rapida.html?workspace=professional&patient=<id>`), el navegador manda la cabecera `X-SMYL-Patient-Id` y `claude` y `segment-teeth` la revisan. Sin esa cabecera (o abierto a mano) no se revisa nada.
 
 ## Despliegue de Edge Functions (Verify JWT)
 
 | Función | JWT |
 |---|---|
 | `claude`, `radiograph-analyze`, `cloud-classify`, `fiscal-extract`, `whatsapp-templates` | Activado |
+| `segment-teeth` | Como esté hoy en el panel (no cambió) |
 | `mila-interview` (entra por token de QR), `periodontal-summary`, `privacy-notice-dispatch` | Desactivado (revisan sesión y permiso dentro del código) |
 
 **Los paquetes de `docs/bundles` se pegan en el panel de Supabase.** Un nombre repetido entre módulos `_shared` rompe la función al arrancar (BOOT_ERROR) aunque el código fuente se vea bien. `tests/bundles-privacidad-compilan.test.mjs` los compila tal como se pegan. Regla: un módulo `_shared` **no** reexporta nombres importados (`export { ... }`).
@@ -59,3 +63,4 @@ Texto legal del aviso: **borrador** (`modelo-provisional-2`). Un abogado debe re
 | 2026-11-21 | Aviso automático a pacientes nuevos | Migración `20261124200000`, `privacy-notice-dispatch` |
 | 2026-11-21 | Error propio: bundles con declaración duplicada (BOOT_ERROR) en las 4 funciones con candado | Corregido; candado extendido a `cloud-classify` y `fiscal-extract`; prueba de compilación de bundles |
 | 2026-11-22 | Consentimiento más claro; los derechos pasan a cada paciente | «Pedir firma» pregunta dónde firma; se quita «Privacidad y derechos» de Configuración; el interruptor del aviso automático se mueve a Plantillas |
+| 2026-11-22 | Candado de IA en el simulador | `claude` y `segment-teeth` leen `X-SMYL-Patient-Id`; `segment-teeth` pasa a importar `createClient` desde npm (el bundle tenía dos imports del mismo nombre) |

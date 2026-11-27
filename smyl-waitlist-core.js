@@ -122,5 +122,25 @@
     return lines.join('\n');
   }
 
-  return { matches: matches, describe: describe, waitingSince: waitingSince, offerMessage: offerMessage, localParts: localParts, dayLabel: dayLabel, DEFAULTS: DEFAULTS };
+  // Plantilla de WhatsApp aprobada por Meta para cuando la ventana de 24 h está cerrada (catálogo de SMYL: «Se liberó un horario»).
+  // Cuerpo: «Hola {{1}}, se liberó un horario en {{2}} para el {{3}} a las {{4}}. Si te interesa, responde a este mensaje…»
+  var OFFER_TEMPLATE = 'cita_lista_espera_v1';
+
+  // Variables en el orden de la plantilla: nombre, lugar, fecha («martes 25 de noviembre») y hora («10:00 a.m.»), en la zona de la sucursal.
+  function templateVariables(data) {
+    data = data || {};
+    var date = new Date(data.startsAt);
+    function format(zone) {
+      var day = { weekday: 'long', day: 'numeric', month: 'long' }, time = { hour: 'numeric', minute: '2-digit', hour12: true };
+      if (zone) { day.timeZone = zone; time.timeZone = zone; }
+      return [date.toLocaleDateString('es-MX', day).replace(/^(\S+?),\s*/, '$1 ').toLowerCase(), date.toLocaleTimeString('es-MX', time).replace(/\s+/g, ' ').toLowerCase()];
+    }
+    var parts = ['', ''];
+    if (Number.isFinite(date.getTime())) { try { parts = format(data.timeZone); } catch (error) { parts = format(undefined); } }
+    var name = String(data.firstName || '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 40) || 'paciente';
+    var place = String(data.place || '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 100) || 'la clínica';
+    return [name, place, parts[0], parts[1]];
+  }
+
+  return { matches: matches, describe: describe, waitingSince: waitingSince, offerMessage: offerMessage, localParts: localParts, dayLabel: dayLabel, DEFAULTS: DEFAULTS, OFFER_TEMPLATE: OFFER_TEMPLATE, templateVariables: templateVariables };
 });

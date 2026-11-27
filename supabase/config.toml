@@ -49,6 +49,11 @@ verify_jwt = true
 [functions.fiscal-extract]
 verify_jwt = true
 
+# MILA prepara borradores administrativos de cumplimiento. Exige sesión y settings.manage;
+# no recibe datos de pacientes y nunca guarda ni certifica sin confirmación en la interfaz.
+[functions.compliance-assistant]
+verify_jwt = true
+
 [functions.smyl-consumables-webhook]
 verify_jwt = false
 
@@ -124,4 +129,8 @@ verify_jwt = false
 
 # Aviso de privacidad automático por WhatsApp: sesión y permiso patients.manage comprobados dentro del handler (requireUser + requirePermission).
 [functions.privacy-notice-dispatch]
+verify_jwt = false
+
+# Horarios libres para el asistente de IA de LANA (solo lectura). verify_jwt=false: la autentica la firma HMAC (SMYL_LANA_SCHEDULING_SECRET).
+[functions.lana-scheduling]
 verify_jwt = false

@@ -71,7 +71,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
 .tc-badge.youthful{background:#FDF4FF;color:#9333EA}
 .tc-badge.mature{background:#FFF7ED;color:#EA580C}
 .tc-badge.feminine{background:#FFF1F2;color:#E11D48}
-.tc-badge.masculine{background:#F0F9FF;color:#0284C7}
+.tc-badge.masculine{background:#F0F9FF;color:#0046c9}
 
 /* Detail panel */
 .detail-panel{position:fixed;right:0;top:56px;bottom:0;width:320px;background:var(--s);border-left:1px solid var(--bd);display:none;flex-direction:column;z-index:50;box-shadow:-4px 0 20px rgba(0,0,0,.06)}
@@ -630,9 +630,9 @@ function getCatColor(cat) {
 }
 function getCatStroke(cat) {
   var map = {
-    'oval':'#2563EB','ovoid':'#0284C7','tapered':'#16A34A','tapered-oval':'#059669',
+    'oval':'#2563EB','ovoid':'#0046c9','tapered':'#16A34A','tapered-oval':'#059669',
     'square':'#D97706','soft-square':'#CA8A04','aggressive-square':'#EA580C',
-    'youthful':'#9333EA','mature':'#EA580C','feminine':'#E11D48','masculine':'#0284C7',
+    'youthful':'#9333EA','mature':'#EA580C','feminine':'#E11D48','masculine':'#0046c9',
   };
   return map[cat] || '#5B47E0';
 }

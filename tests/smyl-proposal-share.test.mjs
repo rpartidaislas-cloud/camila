@@ -113,9 +113,9 @@ test("propuesta.html: sin innerHTML con datos, CSP, noindex, token en fragmento 
 test("interfaz del doctor: botón «Compartir con el paciente» solo con propuesta aprobada y permiso; móvil sincronizado", () => {
   const js = read("smyl-proposals.js");
   assert.match(js, /shareButton=b\('Compartir con el paciente',openShare\)/);
-  assert.match(js, /shareBtn\.disabled=ctx\.busy\|\|!approved\|\|!ctx\.access\.followup/);
+  assert.match(js, /shareBtn\.disabled=ctx\.busy\|\|ctx\.historical\|\|!approved\|\|!ctx\.access\.followup/);
   for (const f of ["smyl-proposals.js", "smyl-proposal-print.js", "app.html", "sw.js"]) assert.equal(read(f), read("mobile/www/" + f), `${f} móvil igual`);
-  assert.match(read("app.html"), /smyl-proposals\.js\?v=26/);
+  assert.match(read("app.html"), /smyl-proposals\.js\?v=32/);
 });
 
 test("aviso en la lista: el equipo solo lee columnas seguras del enlace; la función ya no escribe en el seguimiento del equipo", () => {

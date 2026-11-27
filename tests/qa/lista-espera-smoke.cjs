@@ -26,7 +26,7 @@ const server = http.createServer((req, res) => {
       const db = window.__db; db.smyl_waitlist_entries = []; db.smyl_professional_services = [{ professional_id: 'pr1', service_id: 's1' }, { professional_id: 'pr1', service_id: 's2' }];
       db.camila_lana_handoffs = [{ tenant_id: db.camila_tenants[0].id, patient_id: P3, lana_conversation_id: 'conv-3', lana_channel: 'whatsapp', updated_at: new Date().toISOString() }];
       db.smyl_branches[0].timezone = 'America/Mexico_City';
-      window.__composed = []; window.SmylInbox = Object.assign(window.SmylInbox || {}, { compose: async (id, text) => { window.__composed.push({ id, text }); return true; } });
+      window.__composed = []; window.__composeResult = true; window.SmylInbox = Object.assign(window.SmylInbox || {}, { compose: async (id, text, opts) => { window.__composed.push({ id, text, template: opts && opts.template ? { names: opts.template.names, variables: opts.template.variables, missing: opts.template.missingText } : null }); window.__onSent = opts && opts.onSent; return window.__composeResult; } });
       const rpc = window.sb.rpc.bind(window.sb);
       window.sb.rpc = async (n, a) => {
         const T = db.camila_tenants[0].id;
@@ -76,6 +76,22 @@ const server = http.createServer((req, res) => {
     check(/Se le ofreció/.test(await page.textContent('#schedule-waitlist')), `${name}: la lista muestra «Se le ofreció…»`);
     await page.click('[data-wl-booked]'); await page.waitForTimeout(900);
     check(/Nadie está esperando/.test(await page.textContent('#schedule-waitlist')), `${name}: «Ya se agendó» lo saca de la lista`);
+    // ventana de 24 h cerrada: plantilla con variables llenas; la oferta se registra solo cuando se envía
+    const addAgain = () => page.evaluate(async (P3) => { await window.sb.rpc('smyl_waitlist_add', { p_patient_id: P3, p_service_id: 's1', p_branch_id: null, p_professional_id: null, p_daypart: 'afternoon', p_not_before: null, p_not_after: null, p_priority: 'normal', p_note: '', p_source: 'manual' }); await window.SmylWaitlist.reload(); }, P3);
+    const offerOnce = async () => { await clearToast(); await page.evaluate((s) => window.SmylWaitlist.onSlotFreed({ canManage: true, slot: s }), await slot(16)); await page.waitForSelector('#waitlist-toast button.btn'); await page.click('#waitlist-toast button.btn'); await page.waitForSelector('[data-wl-offer="0"]'); await page.click('[data-wl-offer="0"]'); await page.waitForTimeout(1000); };
+    await addAgain(); await page.evaluate(() => { window.__composeResult = 'template'; window.__composed.length = 0; });
+    await offerOnce();
+    const viaTemplate = await page.evaluate(() => ({ call: window.__composed[0], status: window.__db.smyl_waitlist_entries[0].status }));
+    check(viaTemplate.call && viaTemplate.call.template && viaTemplate.call.template.names[0] === 'cita_lista_espera_v1', `${name}: con la ventana cerrada pide la plantilla «Se liberó un horario»`);
+    const vars = viaTemplate.call.template.variables;
+    check(vars.length === 4 && vars[0] === 'La' && vars[1] === 'Principal' && /^[a-záéíóú]+ \d{1,2} de [a-z]+$/.test(vars[2]) && /^\d{1,2}:\d{2} [ap]\.m\.$/.test(vars[3]), `${name}: las cuatro variables van llenas (${vars.join(' | ')})`);
+    check(viaTemplate.status === 'waiting', `${name}: la oferta NO se registra mientras no se envíe la plantilla`);
+    await page.evaluate(() => window.__onSent()); await page.waitForTimeout(800);
+    check(await page.evaluate(() => window.__db.smyl_waitlist_entries[0].status) === 'offered', `${name}: al enviarse la plantilla, la oferta queda registrada`);
+    // sin plantilla aprobada: el chat avisa y devuelve false; nada se registra
+    await page.evaluate(() => { window.__db.smyl_waitlist_entries.length = 0; }); await addAgain(); await page.evaluate(() => { window.__composeResult = false; window.__composed.length = 0; });
+    await offerOnce();
+    check(await page.evaluate(() => window.__db.smyl_waitlist_entries[0].status) === 'waiting', `${name}: sin plantilla aprobada no se registra ninguna oferta`);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
     check(!overflow, `${name}: sin desbordamiento horizontal`);
     await ctx.close();

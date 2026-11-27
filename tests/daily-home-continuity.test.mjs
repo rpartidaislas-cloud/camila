@@ -77,9 +77,10 @@ test('La mesa de trabajo se distribuye en web, PWA y vista de QA', () => {
   assert.match(app, /smyl-daily-home\.css\?v=17/);
   assert.match(app, /smyl-daily-home\.js\?v=21/);
   assert.match(app, /smyl-dashboard-v2\.css\?v=2/);
-  assert.ok(app.indexOf('smyl-dashboard-v2.css?v=2') > app.indexOf('smyl-ui-template-v3.css?v=9'), 'la capa del dashboard debe gobernar después de la plantilla global');
-  assert.match(app, /smyl-clinic-setup\.js\?v=8/);
-  assert.match(app, /smyl-lana-attention\.js\?v=5/);
+  const template = app.indexOf('smyl-ui-template-v3.css?v=');
+  assert.ok(template >= 0 && app.indexOf('smyl-dashboard-v2.css?v=2') > template, 'la capa del dashboard debe gobernar después de la plantilla global');
+  assert.match(app, /smyl-clinic-setup\.js\?v=10/);
+  assert.match(app, /smyl-lana-attention\.js\?v=6/);
   assert.match(worker, /meta-cards-v13/);
   assert.match(worker, /patient-simulations-v70/);
   assert.match(worker, /smyl-daily-home\.js\?v=21/);
@@ -209,8 +210,7 @@ test('Inicio paso 1: barra compacta, chips en la jornada, una columna y «Config
   assert.match(script, /class="daily-home-fold"/, 'las citas terminadas se pliegan en una línea');
   assert.match(script, /daily-home-stat/);
   assert.match(styles, /\.daily-home-next-list\.daily-home-timeline\{display:block\}/, 'la jornada es una sola columna en todos los anchos');
-  assert.match(setup, /state\.operating = rows\[0\]\.ok/);
-  assert.match(setup, /!pending\.length \|\| state\.operating \|\| hiddenToday\(\)/, 'la tarjeta se oculta cuando la clínica ya opera o se ocultó hoy');
+  assert.match(setup, /info\.done >= info\.total \|\| hiddenToday\(\)/, 'la tarjeta se oculta al completar los pasos obligatorios o cuando se ocultó hoy');
   assert.match(setup, /Ocultar por hoy/);
   assert.match(setup, /smyl_clinic_setup_hidden_/);
 });

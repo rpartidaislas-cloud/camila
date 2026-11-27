@@ -33,7 +33,7 @@
   };
 
   // PRIMARY contiene únicamente módulos persistentes. La simulación se abre
-  // como acción contextual y desde Simulaciones; no ocupa un módulo propio.
+  // como acción contextual y desde la ficha del paciente; no ocupa un módulo propio.
   var PRIMARY = [
     ['Inicio', 'dashboard', 'home'],
     ['Agenda', 'agenda', 'calendar'],
@@ -55,16 +55,17 @@
     ['Servicios y tarifas', 'precios', 'pricing'],
     ['Inventario', 'inventario', 'inventory'],
     ['Reportes', 'reportes', 'reports'],
-    ['Nube', 'nube', 'cloud'],
-    ['Simulaciones', 'historial', 'history']
+    ['Nube', 'nube', 'cloud']
   ];
   // Todos los ajustes viven ahora en la pantalla Configuración (smyl-settings-hub.js), ordenada como el panel de LANA.
   // El menú solo tiene ese acceso; se marca mientras estás en cualquiera de las pantallas a las que lleva.
-  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'plan', 'mi-consultorio', 'mi-cuenta', 'almacenamiento', 'avisos-cita'];
+  var SETTINGS_ROUTES = ['clinica', 'directorio', 'colaboraciones', 'conexiones', 'lanzamiento', 'seguridad', 'sim-config', 'plan', 'mi-consultorio', 'mi-cuenta', 'almacenamiento', 'avisos-cita', 'cumplimiento'];
   var SETTINGS = [['Configuración', 'configuracion', 'settings']];
   // Otros módulos agregan su propio botón al menú cuando no lo encuentran. Estas rutas ya no tienen botón visible,
   // pero se dejan registradas (ocultas) para que no reaparezcan sueltas en el menú.
   var REGISTRY = [
+    // Las simulaciones viven en la ficha de cada paciente (pestaña «Diseño de sonrisa»); la lista general ya no está en el menú.
+    ['Simulaciones', 'historial', 'history'],
     ['Mi clínica', 'clinica', 'clinic'],
     ['Directorio profesional', 'directorio', 'directory'],
     ['Colaboraciones', 'colaboraciones', 'patients'],
@@ -74,6 +75,7 @@
     ['Marca y simulación', 'sim-config', 'brand'],
     ['Mi cuenta', 'mi-cuenta', 'account'],
     ['Almacenamiento', 'almacenamiento', 'account'],
+    ['Guía COFEPRIS', 'cumplimiento', 'shield'],
     ['Avisos de cita', 'avisos-cita', 'templates'],
     // La ruta permanece registrada para impedir que otros módulos agreguen un acceso duplicado.
     ['Plantillas de WhatsApp', 'plantillas', 'templates']
@@ -119,6 +121,7 @@
     var summary = document.createElement('summary');
     summary.innerHTML = '<span class="pro-nav-group-icon">' + icon(iconName || 'reports', 18) + '</span><span class="pro-nav-group-label">' + label + '</span><span class="pro-nav-group-count" hidden></span><span class="pro-nav-chevron" aria-hidden="true">' + CHEVRON + '</span>';
     summary.dataset.tooltip = label;
+    summary.title = label;
     summary.setAttribute('aria-label', label);
     details.append(summary);
     var flyout = document.createElement('div');
@@ -169,6 +172,7 @@
     PRIMARY.forEach(function (entry) { nav.append(navItem(entry, false)); });
     nav.append(sectionLabel('Comunicación'));
     nav.append(detailsGroup('Mensajería', MESSAGING, false, 'messages'));
+    nav.append(sectionLabel('Gestión'));
     nav.append(detailsGroup('Negocio', BUSINESS, false, 'reports'));
     SETTINGS.forEach(function (entry) { nav.append(navItem(entry, false)); });
     var registry = document.createElement('div');
@@ -346,15 +350,24 @@
     tabs.setAttribute('aria-label', 'Configuración de canales');
     var paneHost = document.createElement('div');
     paneHost.className = 'connections-pane-host';
+    // Iconos de línea coherentes (antes eran letras sueltas: R, A, P, T).
+    function lineIcon(paths) { return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + '</svg>'; }
+    var TAB_ICONS = {
+      overview: lineIcon('<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'),
+      assistant: lineIcon('<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3z"/><path d="M19 15l.7 1.8L21.5 17.5l-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7L19 15z"/>'),
+      templates: lineIcon('<path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h7M9 16h7"/>'),
+      automations: lineIcon('<path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/>'),
+      lab: lineIcon('<path d="M9 3h6"/><path d="M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-9V3"/><path d="M8 15h8"/>')
+    };
     var entries = [
-      ['channels','Estado','R','general'],
+      ['channels','Estado',TAB_ICONS.overview,'general'],
       ['whatsapp','WhatsApp','<img src="icons/brands/whatsapp.svg" alt="">','channels'],
       ['messenger','Messenger','<img src="icons/brands/messenger.svg" alt="">','channels'],
       ['instagram','Instagram','<img src="icons/brands/instagram.svg" alt="">','channels'],
-      ['assistant','SMYL Asistente','A','tools'],
-      ['templates','Plantillas','P','tools'],
-      ['automations','Automatizaciones','⌁','tools'],
-      ['lab','Probar al asistente','T','tools']
+      ['assistant','SMYL Asistente',TAB_ICONS.assistant,'tools'],
+      ['templates','Plantillas',TAB_ICONS.templates,'tools'],
+      ['automations','Automatizaciones',TAB_ICONS.automations,'tools'],
+      ['lab','Probar al asistente',TAB_ICONS.lab,'tools']
     ];
     var groupLabels = { general: 'General', channels: 'Canales', tools: 'Herramientas' };
     var lastGroup = '';
@@ -371,7 +384,7 @@
       button.dataset.connectionTab = entry[0];
       button.dataset.connectionGroup = entry[3];
       button.setAttribute('aria-selected', String(index === 0));
-      button.innerHTML = '<span class="connections-tab-icon' + (entry[0] === 'whatsapp' ? ' connections-tab-icon--whatsapp' : (entry[0] === 'messenger' || entry[0] === 'instagram' ? ' connections-tab-icon--brand' : '')) + '" aria-hidden="true">' + entry[2] + '</span><strong>' + entry[1] + '</strong>' + (entry[3] === 'channels' && entry[0] !== 'channels' ? '<i class="connections-tab-dot" data-tab-dot="' + entry[0] + '" data-state="pending" aria-hidden="true"></i>' : '');
+      button.innerHTML = '<span class="connections-tab-icon' + (entry[0] === 'whatsapp' ? ' connections-tab-icon--whatsapp' : (entry[0] === 'messenger' || entry[0] === 'instagram' ? ' connections-tab-icon--brand' : '')) + '" aria-hidden="true">' + entry[2] + '</span><strong>' + entry[1] + '</strong>' + (entry[3] === 'channels' && entry[0] !== 'channels' ? '<i class="connections-tab-dot" data-tab-dot="' + entry[0] + '" data-state="pending" aria-hidden="true"></i><span class="connections-tab-sr" data-tab-state="' + entry[0] + '">Consultando estado</span>' : '');
       tabs.append(button);
     });
 
@@ -384,9 +397,31 @@
     var retry = channelCard && channelCard.querySelector('[data-channel-retry]');
     var boundary = channelCard && channelCard.querySelector('.connections-boundary');
     if (infrastructure) overviewPane.append(infrastructure);
+
+    // «Tus canales»: el estado de cada cuenta de un vistazo, con acceso directo (antes solo había puntos de color en el menú).
+    var glance = document.createElement('section');
+    glance.className = 'connections-glance';
+    glance.setAttribute('aria-labelledby', 'connections-glance-title');
+    var glanceNames = { whatsapp: 'WhatsApp', messenger: 'Messenger', instagram: 'Instagram' };
+    glance.innerHTML = '<h3 id="connections-glance-title">Tus canales</h3><ul>' + Object.keys(glanceNames).map(function (name) {
+      return '<li data-overview-channel="' + name + '" data-state="pending"><span class="connections-glance-brand' + (name === 'whatsapp' ? '' : ' connections-glance-brand--meta') + '" aria-hidden="true"><img src="icons/brands/' + name + '.svg" alt=""></span>' +
+        '<div><strong>' + glanceNames[name] + '</strong><small data-overview-state>Consultando estado…</small></div>' +
+        '<button type="button" class="btn btn-secondary btn-sm" data-overview-open="' + name + '" aria-label="Abrir ' + glanceNames[name] + '">Ver</button></li>';
+    }).join('') + '</ul>';
+    glance.addEventListener('click', function (event) {
+      var open = event.target.closest('[data-overview-open]'); if (!open) return;
+      var tab = tabs.querySelector('[data-connection-tab="' + open.dataset.overviewOpen + '"]'); if (tab) tab.click();
+    });
+    overviewPane.append(glance);
     if (retry) overviewPane.append(retry);
-    if (boundary) overviewPane.append(boundary);
-    overviewPane.append(flow, safety);
+
+    // El detalle de cómo protege SMYL las conversaciones queda plegado: informa, pero ya no ocupa media pantalla.
+    var how = document.createElement('details');
+    how.className = 'connections-how';
+    how.innerHTML = '<summary>Cómo protege SMYL tus conversaciones</summary>';
+    how.append(flow, safety);
+    if (boundary) how.append(boundary);
+    overviewPane.append(how);
     paneHost.append(overviewPane);
 
     var channelCopy = {
@@ -422,6 +457,11 @@
     training.dataset.connectionPane = 'assistant';
     training.hidden = true;
     paneHost.append(training);
+    // Interruptor de la IA (task-id smyl-ia-interruptor): vive en la pestaña del asistente, debajo de la barra de estado, plegado
+    // hasta que se pulsa el chip «IA encendida · Administrar» (se abre solo si la IA está apagada o programada).
+    var iaSlot = shell.querySelector('[data-ia-interruptor-slot]');
+    var trainingBar = training.querySelector('.connections-training-bar');
+    if (iaSlot && trainingBar) { iaSlot.hidden = true; iaSlot.classList.add('assistant-ia-slot'); trainingBar.after(iaSlot); }
 
     var templatesPane = document.createElement('section');
     templatesPane.className = 'connections-pane connections-tools-pane';
@@ -469,6 +509,7 @@
 
     function select(name) {
       if (!paneHost.querySelector('[data-connection-pane="' + name + '"]')) name = 'channels';
+      shell.dataset.connectionsActive = name;
       tabs.querySelectorAll('[data-connection-tab]').forEach(function (button) {
         var selected = button.dataset.connectionTab === name;
         button.setAttribute('aria-selected', String(selected));
@@ -567,7 +608,8 @@
     if (!wrap) {
       wrap = document.createElement('div');
       wrap.className = 'sb-quick';
-      logo.after(wrap);
+      var headerEnd = sidebar.querySelector('.sb-branch') || logo;
+      headerEnd.after(wrap);
     }
     wrap.append(button);
   }

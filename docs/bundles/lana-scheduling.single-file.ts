@@ -1,0 +1,795 @@
+// ARCHIVO GENERADO por scripts/bundle-edge-function.mjs — no lo edites a mano.
+// Es supabase/functions/lana-scheduling/index.ts con sus archivos de _shared incluidos,
+// para pegarlo en el editor de Edge Functions del panel de Supabase.
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+// ── _shared/lana-contract.mjs ──
+const { SMYL_LANA_CONTRACT_VERSION, normalizeLanaPath, lanaContractHeaders, SMYL_PRODUCT, readLanaContract, decideLanaLink } = (() => {
+const SMYL_LANA_CONTRACT_VERSION = "1.6";
+
+const ALLOWED_ROOTS = new Set([
+  "attention",
+  "channels",
+  "context",
+  "contract",
+  "conversations",
+  "ia",
+  "inbox",
+  "payments",
+  "training",
+]);
+
+function normalizeLanaPath(input: any) {
+  const raw = String(input || "").trim();
+  if (!raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\")) {
+    throw new Error("Ruta LANA no permitida.");
+  }
+
+  const rawPath = raw.split(/[?#]/, 1)[0];
+  let rawSegments;
+  try {
+    rawSegments = rawPath.split("/").filter(Boolean).map((segment) => decodeURIComponent(segment));
+  } catch {
+    throw new Error("Ruta LANA no permitida.");
+  }
+  if (rawSegments.some((segment) => segment === "." || segment === "..")) {
+    throw new Error("Ruta LANA no permitida.");
+  }
+
+  const parsed = new URL(raw, "https://lana.invalid");
+  if (parsed.origin !== "https://lana.invalid" || parsed.username || parsed.password || parsed.hash) {
+    throw new Error("Ruta LANA no permitida.");
+  }
+
+  const segments = parsed.pathname.split("/").filter(Boolean);
+  if (!segments.length) throw new Error("Ruta LANA no permitida.");
+  if (!ALLOWED_ROOTS.has(segments[0])) throw new Error("Endpoint LANA no permitido.");
+
+  return `${parsed.pathname}${parsed.search}`;
+}
+
+function lanaContractHeaders() {
+  return { "X-SMYL-LANA-Contract-Version": SMYL_LANA_CONTRACT_VERSION };
+}
+
+// ── Aislamiento de contexto SMYL ↔ LANA ─────────────────────────────────────────────────────────────
+// SMYL usa el motor de chat de LANA, pero cada clínica debe vivir en SU PROPIO tenant de LANA, marcado como producto
+// "smyl": así el asistente usa el contexto y las herramientas dentales, nunca el catálogo/pedidos/precios comerciales.
+// LANA declara esa marca en `GET /contract` → `contract.product` (y `contract.tenant_id`).
+const SMYL_PRODUCT = "smyl";
+
+// Interpreta la respuesta de /contract. Devuelve el producto y el id del tenant LANA, o null si LANA aún no los informa.
+function readLanaContract(body: any) {
+  const contract = body && typeof body === "object" && body.contract && typeof body.contract === "object" ? body.contract : null;
+  const product = contract && typeof contract.product === "string" ? contract.product.trim().toLowerCase().slice(0, 40) : null;
+  const rawTenant = contract && typeof contract.tenant_id === "string" ? contract.tenant_id.trim().toLowerCase() : "";
+  const lanaTenantId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(rawTenant) ? rawTenant : null;
+  return { product: product || null, lanaTenantId };
+}
+
+// Decide si un tenant de LANA puede vincularse a una clínica de SMYL.
+//  - strict (código de enlace manual): exige que LANA confirme product === "smyl"; sin confirmación se rechaza.
+//  - no strict (alta automática o verificación de un enlace ya existente): sólo se rechaza un producto distinto de "smyl";
+//    si LANA aún no informa el producto, se acepta pero queda marcado como "sin verificar".
+// Resultado: { ok, verified, code, message }
+function decideLanaLink(info: any, { strict }) {
+  const product = info && info.product ? info.product : null;
+  if (product === SMYL_PRODUCT) return { ok: true, verified: true, code: "", message: "" };
+  if (product) {
+    return { ok: false, verified: false, code: "wrong_product", message: "Este código pertenece a una cuenta comercial de LANA y no se puede usar en SMYL. Usa la activación automática." };
+  }
+  if (strict) {
+    return { ok: false, verified: false, code: "product_unconfirmed", message: "LANA no confirmó que este código sea de una cuenta SMYL. Usa la activación automática o pide soporte." };
+  }
+  return { ok: true, verified: false, code: "", message: "" };
+}
+
+return { SMYL_LANA_CONTRACT_VERSION, normalizeLanaPath, lanaContractHeaders, SMYL_PRODUCT, readLanaContract, decideLanaLink };
+})();
+
+// ── _shared/lana-crypto-core.mjs ──
+const { LEGACY_KEY_VERSION, readKeyring, storedKeyVersion, encryptLanaKey, decryptLanaKey, reencryptIfNeeded } = (() => {
+// Cifrado de la credencial de LANA con rotación de llave (sin dependencias de Deno: se prueba en Node).
+//
+// Variables de entorno:
+//   SMYL_LANA_ENCRYPTION_KEY                 llave vigente (32 bytes en base64)
+//   SMYL_LANA_ENCRYPTION_KEY_VERSION         etiqueta de la vigente (por omisión "1")
+//   SMYL_LANA_ENCRYPTION_KEY_PREVIOUS        llave anterior, solo mientras dura la rotación (opcional)
+//   SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION etiqueta de la anterior (por omisión: la vigente menos 1 si es número)
+//
+// Cada credencial guarda `key_version`. Las anteriores a este cambio no la tienen y se tratan como la versión "1".
+
+const LEGACY_KEY_VERSION = "1";
+
+function bytesToBase64(bytes: any) {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function base64ToBytes(value: any) {
+  const binary = atob(value);
+  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function cleanVersion(value: any) {
+  const text = String(value ?? "").trim();
+  if (!/^[A-Za-z0-9._-]{1,32}$/.test(text)) return "";
+  return text;
+}
+
+function readKeyring(env = {}) {
+  const currentB64 = String(env.SMYL_LANA_ENCRYPTION_KEY || "").trim();
+  if (!currentB64) throw new Error("SMYL_LANA_ENCRYPTION_KEY no configurada.");
+  const currentVersion = cleanVersion(env.SMYL_LANA_ENCRYPTION_KEY_VERSION || LEGACY_KEY_VERSION);
+  if (!currentVersion) throw new Error("SMYL_LANA_ENCRYPTION_KEY_VERSION no es válida.");
+  const keys = [{ version: currentVersion, b64: currentB64, current: true }];
+  const previousB64 = String(env.SMYL_LANA_ENCRYPTION_KEY_PREVIOUS || "").trim();
+  if (previousB64) {
+    let previousVersion = cleanVersion(env.SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION);
+    if (!previousVersion && /^\d+$/.test(currentVersion) && Number(currentVersion) > 1) previousVersion = String(Number(currentVersion) - 1);
+    if (!previousVersion) throw new Error("Falta SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION.");
+    if (previousVersion === currentVersion) throw new Error("La llave anterior y la vigente no pueden tener la misma versión.");
+    if (previousB64 === currentB64) throw new Error("La llave anterior es igual a la vigente.");
+    keys.push({ version: previousVersion, b64: previousB64, current: false });
+  }
+  for (const key of keys) {
+    if (base64ToBytes(key.b64).length !== 32) throw new Error(`La llave de versión ${key.version} debe contener 32 bytes.`);
+  }
+  return { keys, currentVersion };
+}
+
+function storedKeyVersion(lana: any) {
+  return cleanVersion(lana?.key_version) || LEGACY_KEY_VERSION;
+}
+
+async function importKey(subtle: any, key: any, usages: any) {
+  return subtle.importKey("raw", base64ToBytes(key.b64), "AES-GCM", false, usages);
+}
+
+async function encryptLanaKey(apiKey: any, keyring: any, { subtle = globalThis.crypto.subtle, random = (n) => globalThis.crypto.getRandomValues(new Uint8Array(n)) } = {}) {
+  const current = keyring.keys.find((key) => key.current);
+  const iv = random(12);
+  const encrypted = await subtle.encrypt({ name: "AES-GCM", iv }, await importKey(subtle, current, ["encrypt"]), new TextEncoder().encode(apiKey));
+  return { ciphertext: bytesToBase64(new Uint8Array(encrypted)), iv: bytesToBase64(iv), key_version: current.version };
+}
+
+// Primero la llave que la credencial dice tener; si falla (p. ej. una versión mal anotada) prueba las demás.
+async function decryptLanaKey(lana: any, keyring: any, { subtle = globalThis.crypto.subtle } = {}) {
+  const wanted = storedKeyVersion(lana);
+  const ordered = [...keyring.keys].sort((a, b) => Number(b.version === wanted) - Number(a.version === wanted));
+  const iv = base64ToBytes(lana.api_key_iv);
+  const data = base64ToBytes(lana.api_key_ciphertext);
+  for (const key of ordered) {
+    try {
+      const clear = await subtle.decrypt({ name: "AES-GCM", iv }, await importKey(subtle, key, ["decrypt"]), data);
+      return { apiKey: new TextDecoder().decode(clear), key_version: key.version, needsReencrypt: !key.current };
+    } catch { /* siguiente llave */ }
+  }
+  throw new Error("No se pudo descifrar la credencial de LANA con las llaves configuradas.");
+}
+
+// Devuelve la credencial ya cifrada con la llave vigente (o null si ya lo estaba).
+async function reencryptIfNeeded(lana: any, keyring: any, deps = {}) {
+  const decrypted = await decryptLanaKey(lana, keyring, deps);
+  const stale = decrypted.needsReencrypt || storedKeyVersion(lana) !== keyring.currentVersion || !lana.key_version;
+  if (!stale) return null;
+  const encrypted = await encryptLanaKey(decrypted.apiKey, keyring, deps);
+  return { ...lana, api_key_ciphertext: encrypted.ciphertext, api_key_iv: encrypted.iv, key_version: encrypted.key_version };
+}
+
+return { LEGACY_KEY_VERSION, readKeyring, storedKeyVersion, encryptLanaKey, decryptLanaKey, reencryptIfNeeded };
+})();
+
+// ── _shared/lana-linked.ts ──
+const { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin } = (() => {
+
+const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
+const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
+const LANA_API_BASE = "https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v1/camila-api";
+const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
+
+type LanaConfig = {
+  api_key_ciphertext: string;
+  api_key_iv: string;
+  key_version?: string;
+  estado: string;
+};
+
+function keyring() {
+  return readKeyring({
+    SMYL_LANA_ENCRYPTION_KEY: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY"),
+    SMYL_LANA_ENCRYPTION_KEY_VERSION: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_VERSION"),
+    SMYL_LANA_ENCRYPTION_KEY_PREVIOUS: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_PREVIOUS"),
+    SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION"),
+  });
+}
+
+async function linkedLanaApiKey(tenantId: string): Promise<string> {
+  const { data, error } = await admin.from("camila_tenants").select("config").eq("id", tenantId).maybeSingle();
+  if (error || !data) throw new Error("No se pudo consultar la configuración de la clínica.");
+  const config = data.config && typeof data.config === "object" ? data.config as Record<string, unknown> : {};
+  const integrations = config.integraciones && typeof config.integraciones === "object"
+    ? config.integraciones as Record<string, unknown> : {};
+  const lana = integrations.lana && typeof integrations.lana === "object"
+    ? integrations.lana as Partial<LanaConfig> : null;
+  if (!lana?.api_key_ciphertext || !lana.api_key_iv || lana.estado !== "conectada") {
+    throw new Error("LANA todavía no está conectada o requiere atención.");
+  }
+  // Descifra con la llave vigente o, durante una rotación, con la anterior. La reescritura con la llave nueva la hace lana-connection.
+  return (await decryptLanaKey(lana as LanaConfig, keyring())).apiKey;
+}
+
+async function lanaRequest(
+  tenantId: string,
+  path: string,
+  init: RequestInit = {},
+  timeoutMs = 12000,
+): Promise<{ response: Response; body: Record<string, unknown> }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const safePath = normalizeLanaPath(path);
+    const headers = new Headers(init.headers);
+    headers.set("Authorization", `Bearer ${await linkedLanaApiKey(tenantId)}`);
+    headers.set("Accept", "application/json");
+    if (!(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
+    for (const [name, value] of Object.entries(lanaContractHeaders())) headers.set(name, value);
+    const response = await fetch(`${LANA_API_BASE}${safePath}`, {
+      ...init,
+      headers,
+      signal: controller.signal,
+    });
+    const body = await response.json().catch(() => ({})) as Record<string, unknown>;
+    return { response, body };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+
+return { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin: admin };
+})();
+
+// ── _shared/schedule-suggest-core.mjs ──
+const { suggest, describe, keyOf, localParts, AFTERNOON_FROM } = (() => {
+// ARCHIVO GENERADO por scripts/sync-schedule-suggest.mjs a partir de smyl-schedule-suggest.js: no lo edites.
+const module = { exports: {} };
+/* SMYL · Agenda: «Sugerir horarios».
+   Elige, entre los horarios libres que ya calculó el servidor, un máximo de tres opciones ordenadas y variadas para ofrecerlas
+   a un paciente. No consulta ni escribe datos: solo ordena lo que recibe. Es determinista (sin IA) para que el resultado sea
+   explicable y repetible, y es el mismo motor que usará el asistente de IA cuando agende solo.
+
+   Reglas:
+   1. Una sola sucursal: la que se pidió o, si no hay, la del primer espacio libre.
+   2. Opción 1: el primer espacio libre (o el de su profesional de continuidad si cae dentro de 72 h del primero).
+   3. Opción 2: otro día y otra franja del día (mañana / tarde); si no existe, otro día; si no, el mismo día con 3 h de distancia.
+   4. Opción 3: un tercer día; si no existe, un horario que se separe al menos 2 h de los demás.
+   5. Nunca se ofrece un horario ya pasado ni con menos de `minLeadMinutes` de anticipación. */
+(function (root: any, factory: any) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.SmylScheduleSuggest = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  var HOUR = 3600000;
+  var AFTERNOON_FROM = 13;           // 13:00 en adelante cuenta como «tarde»
+  var CONTINUITY_WINDOW_MS = 72 * HOUR;
+  var SAME_DAY_GAP_MS = 3 * HOUR, FALLBACK_GAP_MS = 2 * HOUR;
+
+  function keyOf(slot: any) {
+    return [slot.service_id || '', slot.branch_id || '', slot.professional_id || '', new Date(slot.starts_at).toISOString()].join('|');
+  }
+
+  // Día (YYYY-MM-DD) y hora en la zona de la sucursal; sin zona o con una inválida usa la del navegador.
+  function localParts(iso: any, timeZone: any) {
+    var date = new Date(iso);
+    function from(zone: any) {
+      var options = { hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit' };
+      if (zone) options.timeZone = zone;
+      var out = {}; new Intl.DateTimeFormat('en-CA', options).formatToParts(date).forEach(function (part: any) { out[part.type] = part.value; });
+      return { day: out.year + '-' + out.month + '-' + out.day, hour: Number(out.hour) % 24 };
+    }
+    try { return from(timeZone); } catch (error) { return from(undefined); }
+  }
+
+  function daypart(parts: any) { return parts.hour >= AFTERNOON_FROM ? 'afternoon' : 'morning'; }
+
+  function prepare(slots: any, config: any) {
+    var now = config.now instanceof Date ? config.now.getTime() : Number(config.now || Date.now());
+    var earliest = now + Math.max(0, Number(config.minLeadMinutes == null ? 60 : config.minLeadMinutes)) * 60000;
+    var excluded = {}; (config.exclude || []).forEach(function (key: any) { excluded[key] = true; });
+    var rows = [];
+    (Array.isArray(slots) ? slots : []).forEach(function (slot: any) {
+      if (!slot || !slot.starts_at) return;
+      var start = new Date(slot.starts_at).getTime();
+      if (!Number.isFinite(start) || start < earliest || excluded[keyOf(slot)]) return;
+      if (config.professionalId && slot.professional_id !== config.professionalId) return;
+      var parts = localParts(slot.starts_at, slot.timezone);
+      rows.push({ slot: slot, start: start, day: parts.day, part: daypart(parts) });
+    });
+    rows.sort(function (a: any, b: any) { return a.start - b.start || String(a.slot.professional_name || '').localeCompare(String(b.slot.professional_name || '')); });
+    return rows;
+  }
+
+  function pick(rows: any, picked: any, test: any) {
+    for (var i = 0; i < rows.length; i += 1) {
+      if (picked.indexOf(rows[i]) >= 0) continue;
+      if (test(rows[i])) return rows[i];
+    }
+    return null;
+  }
+
+  // slots: lista del servidor. config: { now, limit (≤3), branchId, professionalId, preferredProfessionalId, exclude: [clave], minLeadMinutes }
+  function suggest(slots: any, config: any) {
+    config = config || {};
+    var limit = Math.min(Math.max(Number(config.limit) || 3, 1), 3);
+    var rows = prepare(slots, config);
+    if (config.branchId) rows = rows.filter(function (row: any) { return row.slot.branch_id === config.branchId; });
+    var branchIds = {}; rows.forEach(function (row: any) { branchIds[row.slot.branch_id || ''] = true; });
+    var otherBranches = Object.keys(branchIds).length > 1;
+    if (!config.branchId && rows.length) { var chosen = rows[0].slot.branch_id; rows = rows.filter(function (row: any) { return row.slot.branch_id === chosen; }); }
+    var result = { options: [], reason: rows.length ? 'ok' : 'none', total: rows.length, branch_id: rows.length ? rows[0].slot.branch_id : null, other_branches: otherBranches && !config.branchId };
+    if (!rows.length) return result;
+
+    var picked = [], tags = [];
+    // 1) primer espacio libre, o el de su profesional si está cerca
+    var first = rows[0];
+    if (config.preferredProfessionalId) {
+      var continuity = pick(rows, [], function (row: any) { return row.slot.professional_id === config.preferredProfessionalId && row.start - rows[0].start <= CONTINUITY_WINDOW_MS; });
+      if (continuity) first = continuity;
+    }
+    picked.push(first); tags.push(first === rows[0] ? 'Primer espacio libre' : 'Con su profesional');
+    // 2) otro día y otra franja
+    if (limit >= 2) {
+      var second = pick(rows, picked, function (row: any) { return row.day !== first.day && row.part !== first.part; })
+        || pick(rows, picked, function (row: any) { return row.day !== first.day; })
+        || pick(rows, picked, function (row: any) { return row.day === first.day && Math.abs(row.start - first.start) >= SAME_DAY_GAP_MS; });
+      if (second) { picked.push(second); tags.push(second.day === first.day ? 'Más tarde ese día' : second.part !== first.part ? (second.part === 'afternoon' ? 'Por la tarde' : 'Por la mañana') : 'Otro día'); }
+    }
+    // 3) un tercer día
+    if (limit >= 3 && picked.length >= 2) {
+      var days = picked.map(function (row: any) { return row.day; });
+      var third = pick(rows, picked, function (row: any) { return days.indexOf(row.day) < 0; })
+        || pick(rows, picked, function (row: any) { return picked.every(function (p: any) { return Math.abs(row.start - p.start) >= FALLBACK_GAP_MS; }); });
+      if (third) { picked.push(third); tags.push(days.indexOf(third.day) < 0 ? 'Otro día' : 'Otro horario'); }
+    }
+    var order = picked.map(function (row: any, index: any) { return { row: row, tag: tags[index], rank: index + 1 }; });
+    order.sort(function (a: any, b: any) { return a.row.start - b.row.start; });
+    result.options = order.map(function (item: any) { return { slot: item.row.slot, tag: item.tag, rank: item.rank, key: keyOf(item.row.slot) }; });
+    if (result.options.length < limit) result.reason = 'few';
+    return result;
+  }
+
+  // Frase corta para el equipo cuando no hay tres opciones.
+  function describe(result: any, periodLabel: any) {
+    if (!result || result.reason === 'none') return 'No hay espacios libres' + (periodLabel ? ' ' + periodLabel : '') + '. Amplía el periodo o prueba con otra sucursal o profesional.';
+    if (result.reason === 'few') return 'Solo encontré ' + result.options.length + (result.options.length === 1 ? ' espacio' : ' espacios') + (periodLabel ? ' ' + periodLabel : '') + '. Puedes ampliar el periodo para tener más opciones.';
+    return '';
+  }
+
+  return { suggest: suggest, describe: describe, keyOf: keyOf, localParts: localParts, AFTERNOON_FROM: AFTERNOON_FROM };
+});
+
+const suggest = module.exports.suggest;
+const describe = module.exports.describe;
+const keyOf = module.exports.keyOf;
+const localParts = module.exports.localParts;
+const AFTERNOON_FROM = module.exports.AFTERNOON_FROM;
+
+return { suggest, describe, keyOf, localParts, AFTERNOON_FROM };
+})();
+
+// ── _shared/lana-scheduling-core.mjs ──
+const { CONTRACT_VERSION, SKEW_MS, MAX_REQUESTS_PER_MINUTE, MAX_BODY_BYTES, MAX_PAGES, PAGE_SIZE, OFFER_TTL_MS, hmacHex, safeEqual, firmaValida, etiquetaLocal, manejar } = (() => {
+// SMYL · Contrato con el asistente de IA de LANA para consultar horarios libres y dejar una SOLICITUD de cita.
+// Lógica pura y sin red: la función `lana-scheduling` solo conecta `deps` con Supabase. Así todo se prueba en Node con datos de prueba.
+//
+// Seguridad: solicitud firmada (HMAC-SHA256 del cuerpo crudo, ±5 min); apagado por defecto; solo servicios que la clínica marcó; nunca
+// devuelve datos de pacientes ni de conversaciones; límite de uso por conversación; cada respuesta con Cache-Control: no-store.
+// `context` y `suggest` son de SOLO LECTURA (con nivel «request», `suggest` guarda la oferta en el servidor). `request` (task-id
+// smyl-agenda-ia-solicitud) solo existe con el nivel «request» que la clínica enciende: crea una solicitud PENDIENTE a partir de una opción
+// ofrecida, con consentimiento explícito del paciente. Nunca confirma una cita.
+
+const CONTRACT_VERSION = 1;
+const SKEW_MS = 5 * 60 * 1000;
+const MAX_REQUESTS_PER_MINUTE = 20;
+const MAX_BODY_BYTES = 8192;
+const MAX_PAGES = 6;
+const PAGE_SIZE = 30;
+const OFFER_TTL_MS = 30 * 60 * 1000;
+const NOTICE_RE = /^chat-appointment-v[0-9]+$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const enc = new TextEncoder();
+const hex = (buffer) => [...new Uint8Array(buffer)].map((x) => x.toString(16).padStart(2, "0")).join("");
+
+async function hmacHex(secret: any, raw: any) {
+  const key = await crypto.subtle.importKey("raw", enc.encode(String(secret)), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return hex(await crypto.subtle.sign("HMAC", key, enc.encode(String(raw))));
+}
+function safeEqual(a: any, b: any) {
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+async function firmaValida(secret: any, raw: any, header: any) {
+  if (typeof secret !== "string" || secret.length < 32 || typeof header !== "string") return false;
+  return safeEqual(header, `sha256=${await hmacHex(secret, raw)}`);
+}
+
+const reply = (status, body, headers = {}) => ({ status, body: { ...body, contract_version: CONTRACT_VERSION }, headers });
+const fail = (status, error, message, extra = {}, headers = {}) => reply(status, { ok: false, error, message, ...extra }, headers);
+
+const uuid = (v) => (typeof v === "string" && UUID_RE.test(v.trim()) ? v.trim().toLowerCase() : null);
+const isoDate = (v) => { const d = new Date(String(v || "")); return Number.isFinite(d.getTime()) ? d : null; };
+
+// «Martes 25 de noviembre, 10:00 a. m.» en la zona de la sucursal (una zona inválida cae a la del servidor).
+function etiquetaLocal(iso: any, timeZone: any) {
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return "";
+  const make = (zone) => {
+    const day = { weekday: "long", day: "numeric", month: "long" }, time = { hour: "numeric", minute: "2-digit", hour12: true };
+    if (zone) { day.timeZone = zone; time.timeZone = zone; }
+    const d = date.toLocaleDateString("es-MX", day).replace(/^(\S+?),\s*/, "$1 ");
+    return d.charAt(0).toUpperCase() + d.slice(1) + ", " + date.toLocaleTimeString("es-MX", time).replace(/\s+/g, " ").replace(/a\.m\./i, "a. m.").replace(/p\.m\./i, "p. m.");
+  };
+  try { return make(timeZone); } catch { return make(undefined); }
+}
+
+function direccion(branch: any) {
+  return [branch.address_line, branch.city, branch.state, branch.postal_code].map((x) => String(x || "").trim()).filter(Boolean).join(", ");
+}
+function vistaSucursal(branch: any) {
+  return { id: branch.id, name: branch.name, timezone: branch.timezone || "America/Mexico_City", address: direccion(branch), phone: String(branch.phone || "").trim() };
+}
+
+function validar(body: any, now: any) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return { error: fail(400, "invalid_request", "Solicitud inválida.") };
+  if (body.contract_version !== CONTRACT_VERSION) return { error: fail(400, "invalid_request", `contract_version debe ser ${CONTRACT_VERSION}.`) };
+  if (body.action !== "context" && body.action !== "suggest" && body.action !== "request" && body.action !== "book") return { error: fail(400, "invalid_request", "Acción no válida.") };
+  const tenantId = uuid(body.tenant_id), conversationId = uuid(body.conversation_id);
+  if (!tenantId || !conversationId) return { error: fail(400, "invalid_request", "tenant_id y conversation_id deben ser UUID.") };
+  const occurred = isoDate(body.occurred_at);
+  if (!occurred || Math.abs(now.getTime() - occurred.getTime()) > SKEW_MS) return { error: fail(400, "expired_request", "La solicitud está fuera de tiempo. Revisa el reloj del servidor.") };
+  return { tenantId, conversationId, action: body.action };
+}
+
+async function registrar(deps: any, event: any) { try { await deps.log(event); } catch { /* la bitácora nunca debe romper una respuesta */ } }
+
+const ERRORES_SOLICITUD = [
+  ["SMYL_CONSENT_REQUIRED", 400, "consent_required", "Falta la autorización del paciente para usar su nombre y su medio de contacto."],
+  ["SMYL_INVALID_CONTACT", 400, "invalid_contact", "El nombre o el medio de contacto no son válidos (teléfono de 10 dígitos o correo)."],
+  ["SMYL_INVALID_REQUEST", 400, "invalid_request", "Solicitud inválida."],
+  ["SMYL_OFFER_NOT_FOUND", 404, "offer_not_found", "No existe esa opción ofrecida. Consulta los horarios de nuevo."],
+  ["SMYL_OFFER_ALREADY_USED", 409, "offer_already_used", "Ya se eligió otra opción de esa oferta. Consulta los horarios de nuevo."],
+  ["SMYL_OFFER_EXPIRED", 410, "offer_expired", "La oferta venció. Consulta los horarios de nuevo."],
+  ["SMYL_BOOK_DISABLED", 403, "disabled", "La clínica no permite que el asistente agende por sí solo."],
+  ["SMYL_CAPPED", 429, "capped", "Esta conversación o la clínica ya tienen demasiadas solicitudes pendientes. Un asesor dará seguimiento."],
+];
+
+async function solicitar({ body, settings, tenantId, conversationId, now, deps, log, modo }) {
+  const agenda = modo === "book";
+  if (agenda ? settings.level !== "book" : (settings.level !== "request" && settings.level !== "book")) {
+    await log("denied", { reason: agenda ? "book_disabled" : "requests_disabled" });
+    return fail(403, "disabled", agenda ? "La clínica no permite que el asistente agende por sí solo." : "La clínica no permite que el asistente deje solicitudes de cita.");
+  }
+  // `offer_key` es opcional: sin ella se usa la oferta más reciente de la conversación (el modelo solo elige el número de la opción).
+  const lanaTenantId = uuid(body.lana_tenant_id), offerKey = body.offer_key == null ? null : uuid(body.offer_key);
+  const index = Number.isInteger(body.option_index) ? body.option_index : null;
+  const name = typeof body.name === "string" ? body.name.trim() : "", contact = typeof body.contact === "string" ? body.contact.trim() : "";
+  if (!lanaTenantId || (body.offer_key != null && !offerKey) || index === null || index < 1 || index > 3) { await log("invalid", { reason: "fields" }); return fail(400, "invalid_request", "Faltan lana_tenant_id u option_index (1 a 3), o offer_key no es un UUID."); }
+  if (body.privacy_consent !== true) { await log("denied", { reason: "consent_required" }); return fail(400, "consent_required", ERRORES_SOLICITUD[0][3]); }
+  if (typeof body.privacy_notice_version !== "string" || !NOTICE_RE.test(body.privacy_notice_version)) { await log("invalid", { reason: "notice_version" }); return fail(400, "invalid_request", "privacy_notice_version no es válida."); }
+  if (name.length < 2 || name.length > 80 || contact.length < 7 || contact.length > 120) { await log("invalid", { reason: "contact" }); return fail(400, "invalid_contact", ERRORES_SOLICITUD[1][3]); }
+  if (!(await deps.lanaTenantMatches(tenantId, lanaTenantId))) { await log("denied", { reason: "lana_mismatch" }); return fail(403, "lana_mismatch", "La conversación no pertenece a la cuenta de LANA vinculada a esta clínica."); }
+  let result;
+  try {
+    const datos = { tenantId, lanaTenantId, conversationId, offerKey, optionIndex: index, name, contact, privacyNoticeVersion: body.privacy_notice_version };
+    result = agenda ? await deps.book(datos) : await deps.createRequest(datos);
+  } catch (error) {
+    const text = String((error && error.message) || error), code = String((error && error.code) || "");
+    const hit = ERRORES_SOLICITUD.find(([token]) => text.includes(token));
+    if (hit) { await log(hit[2] === "capped" ? "capped" : hit[2] === "offer_expired" ? "expired" : "invalid", { reason: hit[2] }); return fail(hit[1], hit[2], hit[3], {}, hit[2] === "capped" ? { "Retry-After": "3600" } : {}); }
+    if (code === "23P01" || /ya no est[aá] disponible/i.test(text)) { await log("taken", { option: index }); return fail(409, "slot_taken", "Ese horario ya no está disponible. Consulta los horarios de nuevo para ofrecer otras opciones."); }
+    throw error;
+  }
+  const slot = result && typeof result.slot === "object" && result.slot ? result.slot : {};
+  const label = String(slot.local_label || etiquetaLocal(result.starts_at, slot.timezone));
+  if (agenda && result.status === "booked") {
+    await log("booked", { option: index, duplicate: Boolean(result.duplicate), service_id: slot.service_id || null, branch_id: slot.branch_id || null });
+    return reply(200, {
+      ok: true, status: "booked", duplicate: Boolean(result.duplicate),
+      appointment: { id: result.appointment_id, starts_at: result.starts_at, ends_at: result.ends_at, local_label: label, service_name: slot.service_name || "", branch_name: slot.branch_name || "", professional_name: slot.professional_name || "" },
+      message_hint: `Listo: tu cita quedó confirmada para ${label}${slot.professional_name ? " con " + slot.professional_name : ""}${slot.branch_name ? " en " + slot.branch_name : ""}. Si necesitas cambiarla, avísanos por este chat.`,
+      next_step: "confirmed", generated_at: now.toISOString(),
+    });
+  }
+  if (agenda) {
+    // Quedó como solicitud pendiente (conversación sin paciente vinculado, tope diario o solicitud ya cerrada): igual que el nivel «solicitud».
+    await log("pending_review", { option: index, reason: String(result.reason || "") });
+    return reply(200, {
+      ok: true, status: "pending_review", reason: String(result.reason || ""),
+      request: { id: result.request_id, starts_at: result.starts_at, ends_at: result.ends_at, local_label: label, hold_expires_at: result.hold_expires_at || null, service_name: slot.service_name || "", branch_name: slot.branch_name || "" },
+      message_hint: `Listo: dejé tu solicitud para ${label}. Todavía NO está confirmada: la clínica la revisará y te confirmará por este mismo chat.`,
+      next_step: "wait_for_clinic", generated_at: now.toISOString(),
+    });
+  }
+  await log(result.duplicate ? "duplicate" : "created", { option: index, service_id: slot.service_id || null, branch_id: slot.branch_id || null });
+  return reply(200, {
+    ok: true, status: result.duplicate ? "duplicate" : "created",
+    request: { id: result.request_id, starts_at: result.starts_at, ends_at: result.ends_at, local_label: label, hold_expires_at: result.hold_expires_at || null, service_name: slot.service_name || "", branch_name: slot.branch_name || "" },
+    message_hint: `Listo: dejé tu solicitud para ${label}. Todavía NO está confirmada: la clínica la revisará y te confirmará por este mismo chat.`,
+    next_step: "wait_for_clinic", generated_at: now.toISOString(),
+  });
+}
+
+async function manejar({ raw, signature, now = new Date(), secret, deps }) {
+  if (typeof secret !== "string" || secret.length < 32) return fail(503, "not_configured", "La integración no está configurada en el servidor.");
+  if (!(await firmaValida(secret, raw, signature))) return fail(403, "bad_signature", "Firma inválida.");
+  let body;
+  try { body = JSON.parse(raw || "{}"); } catch { return fail(400, "invalid_request", "El cuerpo no es JSON."); }
+  const parsed = validar(body, now);
+  if (parsed.error) return parsed.error;
+  const { tenantId, conversationId, action } = parsed;
+  const log = (status, detail = {}) => registrar(deps, { tenant_id: tenantId, conversation_id: conversationId, action, status, detail });
+
+  try {
+    if (!(await deps.allow(tenantId, conversationId, now, MAX_REQUESTS_PER_MINUTE))) {
+      await log("limited");
+      return fail(429, "rate_limited", "Demasiadas consultas para esta conversación. Intenta de nuevo en un minuto.", {}, { "Retry-After": "60" });
+    }
+    const settings = await deps.settings(tenantId);
+    if (!settings || settings.level === "off") {
+      if (action === "context") return reply(200, { ok: true, enabled: false, generated_at: now.toISOString() });
+      await log("denied", { reason: "disabled" });
+      return fail(403, "disabled", "La clínica no tiene activada la consulta de horarios para el asistente.");
+    }
+    // ── request: deja una solicitud PENDIENTE a partir de una opción que el propio servidor ofreció (nunca confirma una cita) ──
+    if (action === "request") return await solicitar({ body, settings, tenantId, conversationId, now, deps, log, modo: "request" });
+    // ── book: además CONFIRMA la cita, solo con el nivel «book», con paciente vinculado y bajo el tope diario (si no, queda como solicitud) ──
+    if (action === "book") return await solicitar({ body, settings, tenantId, conversationId, now, deps, log, modo: "book" });
+    const [branches, services, assignment] = await Promise.all([deps.branches(tenantId), deps.services(tenantId), deps.conversationBranch(tenantId, conversationId)]);
+    // Profesionales activos y sus sedes: el asistente puede pedir horarios con uno en concreto (`professional_id`). Solo nombre público; sin datos de contacto ni clínicos.
+    const professionals = typeof deps.professionals === "function" ? ((await deps.professionals(tenantId)) || []).slice(0, 40).map((p) => ({ id: p.id, name: String(p.name || "").slice(0, 120), branch_ids: Array.isArray(p.branch_ids) ? p.branch_ids.slice(0, 20) : [], ...(Array.isArray(p.service_ids) ? { service_ids: p.service_ids.slice(0, 60) } : {}) })) : [];
+    const policy = { min_lead_hours: settings.min_lead_hours, horizon_days: settings.horizon_days, max_options: 3 };
+    const branchViews = branches.map(vistaSucursal);
+
+    // Sucursal de la conversación: única, ya asignada, o pendiente de preguntar al paciente.
+    let status = "not_applicable", branch = null;
+    if (branches.length === 1) { status = "single_branch"; branch = branchViews[0]; }
+    else if (branches.length > 1) {
+      const assigned = assignment && branchViews.find((b) => b.id === assignment.branch_id);
+      if (assigned) { status = "assigned"; branch = assigned; } else status = "unassigned";
+    }
+
+    if (action === "context") {
+      await log("ok", { branch_status: status, services: services.length });
+      return reply(200, {
+        ok: true, enabled: true, level: settings.level, status, branch,
+        branches: branchViews.map((b) => ({ id: b.id, name: b.name })),
+        services: services.map((s) => ({ id: s.id, name: s.name, duration_minutes: s.duration_minutes })),
+        professionals,
+        policy, generated_at: now.toISOString(),
+      });
+    }
+
+    // ── suggest ──
+    // Con el nivel «request» la oferta se guarda en el servidor, y se exige que la conversación sea de la cuenta de LANA vinculada a la clínica.
+    const guardaOferta = settings.level === "request" || settings.level === "book";
+    let lanaTenantId = null;
+    if (guardaOferta) {
+      lanaTenantId = uuid(body.lana_tenant_id);
+      if (!lanaTenantId) { await log("invalid", { reason: "lana_tenant_id" }); return fail(400, "invalid_request", "lana_tenant_id debe ser un UUID."); }
+      if (!(await deps.lanaTenantMatches(tenantId, lanaTenantId))) { await log("denied", { reason: "lana_mismatch" }); return fail(403, "lana_mismatch", "La conversación no pertenece a la cuenta de LANA vinculada a esta clínica."); }
+    }
+    const serviceId = uuid(body.service_id);
+    if (!serviceId) { await log("invalid", { reason: "service_id" }); return fail(400, "invalid_request", "service_id debe ser un UUID."); }
+    const service = services.find((s) => s.id === serviceId);
+    if (!service) { await log("denied", { reason: "service_not_allowed" }); return fail(403, "service_not_allowed", "Ese servicio no está habilitado para que el asistente sugiera horarios."); }
+    const professionalId = body.professional_id == null ? null : uuid(body.professional_id);
+    const preferredId = body.preferred_professional_id == null ? null : uuid(body.preferred_professional_id);
+    if ((body.professional_id != null && !professionalId) || (body.preferred_professional_id != null && !preferredId)) { await log("invalid", { reason: "professional_id" }); return fail(400, "invalid_request", "professional_id no es válido."); }
+    let exclude = Array.isArray(body.exclude) ? body.exclude.filter((x) => typeof x === "string" && x.length <= 300).slice(0, 30) : [];
+    // «Más opciones»: el servidor excluye los horarios que ya ofreció en esta conversación (ofertas recientes), sin que el cliente tenga que recordarlos.
+    if (body.more === true && typeof deps.recentOfferKeys === "function") {
+      const vistos = (await deps.recentOfferKeys({ tenantId, conversationId, since: new Date(now.getTime() - 2 * 3600000).toISOString() })) || [];
+      exclude = Array.from(new Set(exclude.concat(vistos.filter((x) => typeof x === "string" && x.length <= 300)))).slice(0, 60);
+    }
+
+    let chosen = null;
+    if (body.branch_id != null) {
+      const requested = uuid(body.branch_id);
+      chosen = requested && branchViews.find((b) => b.id === requested);
+      if (!chosen) { await log("invalid", { reason: "branch_not_found" }); return fail(404, "branch_not_found", "La sucursal no existe o no está activa."); }
+    } else if (branch) chosen = branch;
+    else if (branches.length === 0) { await log("invalid", { reason: "no_branches" }); return fail(409, "no_branches", "La clínica no tiene sucursales activas."); }
+    else { await log("invalid", { reason: "branch_required" }); return fail(409, "branch_required", "Pregunta al paciente en qué sucursal quiere atenderse.", { branches: branchViews.map((b) => ({ id: b.id, name: b.name })) }); }
+
+    const lead = settings.min_lead_hours, horizon = settings.horizon_days;
+    const earliest = new Date(now.getTime() + lead * 3600000), latest = new Date(now.getTime() + horizon * 86400000);
+    const reqFrom = body.from == null ? null : isoDate(body.from), reqTo = body.to == null ? null : isoDate(body.to);
+    if ((body.from != null && !reqFrom) || (body.to != null && !reqTo)) { await log("invalid", { reason: "period" }); return fail(400, "invalid_period", "Las fechas no son válidas."); }
+    const from = reqFrom && reqFrom > earliest ? reqFrom : earliest, to = reqTo && reqTo < latest ? reqTo : latest;
+    if (to <= from) { await log("invalid", { reason: "period" }); return fail(400, "invalid_period", `El periodo debe estar dentro de los próximos ${horizon} días y con al menos ${lead} h de anticipación.`); }
+
+    // El servidor devuelve como máximo 30 horarios por consulta, ordenados por hora: se pide el resto desde el último (hasta MAX_PAGES).
+    const rows = []; const seen = new Set(); let cursor = from;
+    for (let page = 0; page < MAX_PAGES; page += 1) {
+      const got = await deps.slots({ tenantId, serviceId, branchId: chosen.id, professionalId, from: cursor.toISOString(), to: to.toISOString(), limit: PAGE_SIZE });
+      let fresh = 0;
+      for (const slot of got || []) { const key = [slot.service_id, slot.branch_id, slot.professional_id, new Date(slot.starts_at).toISOString()].join("|"); if (!seen.has(key)) { seen.add(key); rows.push(slot); fresh += 1; } }
+      if (!got || got.length < PAGE_SIZE || !fresh) break;
+      cursor = new Date(got[got.length - 1].starts_at);
+    }
+
+    const result = suggestEngine(rows, { now, limit: 3, branchId: chosen.id, professionalId, preferredProfessionalId: preferredId, exclude, minLeadMinutes: lead * 60 });
+    const options = result.options.map((o, i) => {
+      const zone = o.slot.timezone || chosen.timezone;
+      return {
+        index: i + 1, key: o.key, tag: o.tag, starts_at: new Date(o.slot.starts_at).toISOString(), ends_at: o.slot.ends_at ? new Date(o.slot.ends_at).toISOString() : null,
+        local_label: etiquetaLocal(o.slot.starts_at, zone), timezone: zone, service_id: serviceId, service_name: o.slot.service_name || service.name,
+        professional_id: o.slot.professional_id, professional_name: o.slot.professional_name || "", branch_id: o.slot.branch_id, branch_name: o.slot.branch_name || chosen.name,
+      };
+    });
+    const period = `en los próximos ${horizon} días`;
+    const lines = options.map((o) => `${o.index}) ${o.local_label}${o.professional_name ? " con " + o.professional_name : ""}`);
+    const hint = options.length ? [`Estas son las opciones disponibles en ${chosen.name}:`, ...lines, "Responde con el número que prefieras."].join("\n") : "";
+    const code = result.reason; // ok | few | none
+    let offerKey = null;
+    if (guardaOferta && options.length) {
+      offerKey = crypto.randomUUID();
+      await deps.saveOffer({ tenantId, lanaTenantId, conversationId, offerKey, serviceId, slots: options.map((o) => ({
+        index: o.index, key: o.key, service_id: o.service_id, branch_id: o.branch_id, professional_id: o.professional_id, starts_at: o.starts_at, ends_at: o.ends_at,
+        local_label: o.local_label, timezone: o.timezone, service_name: o.service_name, professional_name: o.professional_name, branch_name: o.branch_name,
+      })), expiresAt: new Date(now.getTime() + OFFER_TTL_MS).toISOString() });
+    }
+    await log(code, { options: options.length, service_id: serviceId, branch_id: chosen.id, candidates: rows.length });
+    return reply(200, {
+      ok: true, status: code, branch: { id: chosen.id, name: chosen.name, timezone: chosen.timezone }, options, ...(offerKey ? { offer_key: offerKey } : {}), message_hint: hint,
+      explanation: code === "ok" ? "" : describeEngine(result, period),
+      next_step: code === "none" ? "widen_period_or_other_branch_or_waitlist" : code === "few" ? "offer_these_or_widen_period" : "present_options",
+      other_branches_available: Boolean(result.other_branches), generated_at: now.toISOString(),
+    });
+  } catch (error) {
+    await log("error", { message: String((error && error.message) || error).slice(0, 200) });
+    return fail(502, "upstream_error", "No se pudo consultar la agenda en este momento.");
+  }
+}
+
+return { CONTRACT_VERSION, SKEW_MS, MAX_REQUESTS_PER_MINUTE, MAX_BODY_BYTES, MAX_PAGES, PAGE_SIZE, OFFER_TTL_MS, hmacHex, safeEqual, firmaValida, etiquetaLocal, manejar };
+})();
+
+// ── lana-scheduling/index.ts ──
+// Horarios libres y solicitud de cita para el asistente de IA de LANA. `context` y `suggest` son de solo lectura; `request` (nivel «request» que la clínica
+// enciende) deja una solicitud PENDIENTE en «Agenda → Por aprobar», nunca confirma. Contrato: docs/LANA_AGENDA_CONTRATO.md.
+// Autenticación: firma HMAC-SHA256 del cuerpo crudo (X-SMYL-Signature: sha256=<hex>) con SMYL_LANA_SCHEDULING_SECRET; no usa sesión de personal
+// (verify_jwt=false en config.toml). Apagado por defecto: la clínica lo enciende en Configuración → Agenda con IA y elige los servicios.
+// Nunca agenda por sí sola. La lógica vive en _shared/lana-scheduling-core.mjs (pura y probada); aquí solo se conecta con la base de datos.
+
+const admin = smylAdmin;
+const SECRET = (Deno.env.get("SMYL_LANA_SCHEDULING_SECRET") || "").trim();
+// deno-lint-ignore no-explicit-any
+type Row = Record<string, any>;
+
+const deps = {
+  // Límite de uso: máximo N consultas por minuto por conversación (cuenta las de la bitácora).
+  allow: async (tenantId: string, conversationId: string, now: Date, max: number): Promise<boolean> => {
+    const since = new Date(now.getTime() - 60000).toISOString();
+    const { count, error } = await admin.from("smyl_ai_scheduling_events").select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId).eq("conversation_id", conversationId).gte("created_at", since);
+    if (error) throw error;
+    return (count || 0) < max;
+  },
+  settings: async (tenantId: string): Promise<Row | null> => {
+    const { data, error } = await admin.from("smyl_ai_scheduling_settings").select("level,min_lead_hours,horizon_days").eq("tenant_id", tenantId).maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+  // Solo los servicios que la clínica habilitó y que siguen activos.
+  services: async (tenantId: string): Promise<Row[]> => {
+    const { data: allowed, error } = await admin.from("smyl_ai_scheduling_services").select("service_id").eq("tenant_id", tenantId);
+    if (error) throw error;
+    const ids = (allowed || []).map((r: Row) => r.service_id);
+    if (!ids.length) return [];
+    const { data, error: e2 } = await admin.from("smyl_services").select("id,name,duration_minutes").eq("tenant_id", tenantId).eq("active", true).in("id", ids).order("name");
+    if (e2) throw e2;
+    return data || [];
+  },
+  branches: async (tenantId: string): Promise<Row[]> => {
+    const { data, error } = await admin.from("smyl_branches").select("id,name,timezone,address_line,city,state,postal_code,phone").eq("tenant_id", tenantId).eq("active", true).order("name");
+    if (error) throw error;
+    return data || [];
+  },
+  conversationBranch: async (tenantId: string, conversationId: string): Promise<Row | null> => {
+    const { data, error } = await admin.from("smyl_conversation_branches").select("branch_id,source").eq("tenant_id", tenantId).eq("conversation_id", conversationId).maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+  // Misma función que usa la Agenda y el chat: horario de sucursal y profesional, servicio, sillón, bloqueos, citas y apartados vigentes.
+  // El actor es la propia clínica (cuenta propietaria): solo lectura.
+  slots: async (q: Row): Promise<Row[]> => {
+    const { data, error } = await admin.rpc("smyl_inbox_available_slots_v2", {
+      p_tenant_id: q.tenantId, p_actor_id: q.tenantId, p_service_id: q.serviceId, p_from: q.from, p_to: q.to,
+      p_branch_id: q.branchId, p_professional_id: q.professionalId, p_limit: q.limit,
+    });
+    if (error) throw error;
+    return data || [];
+  },
+  // ¿La conversación pertenece a la cuenta de LANA vinculada a esta clínica? (camila_tenants.config.integraciones.lana.lana_tenant_id)
+  lanaTenantMatches: async (tenantId: string, lanaTenantId: string): Promise<boolean> => {
+    const { data, error } = await admin.from("camila_tenants").select("config").eq("id", tenantId).maybeSingle();
+    if (error) throw error;
+    const lana = data?.config?.integraciones?.lana;
+    return !!lana && lana.estado === "conectada" && typeof lana.lana_tenant_id === "string" && lana.lana_tenant_id.toLowerCase() === lanaTenantId.toLowerCase();
+  },
+  // Profesionales activos, sus sedes y los servicios que realizan (solo ids y nombre público).
+  professionals: async (tenantId: string): Promise<Row[]> => {
+    const [{ data: pros, error }, { data: links, error: e2 }, { data: svc, error: e3 }] = await Promise.all([
+      admin.from("smyl_professionals").select("id,display_name,active").eq("tenant_id", tenantId).eq("active", true).order("display_name"),
+      admin.from("smyl_professional_branches").select("professional_id,branch_id").eq("tenant_id", tenantId),
+      admin.from("smyl_professional_services").select("professional_id,service_id").eq("tenant_id", tenantId),
+    ]);
+    if (error) throw error; if (e2) throw e2; if (e3) throw e3;
+    return (pros || []).map((p: Row) => ({
+      id: p.id, name: p.display_name,
+      branch_ids: (links || []).filter((l: Row) => l.professional_id === p.id).map((l: Row) => l.branch_id),
+      service_ids: (svc || []).filter((l: Row) => l.professional_id === p.id).map((l: Row) => l.service_id),
+    }));
+  },
+  // Claves de los horarios ya ofrecidos en esta conversación (para «más opciones»).
+  recentOfferKeys: async (q: Row): Promise<string[]> => {
+    const { data, error } = await admin.from("smyl_assistant_slot_offers").select("slots").eq("tenant_id", q.tenantId).eq("lana_conversation_id", q.conversationId).gte("created_at", q.since).order("created_at", { ascending: false }).limit(10);
+    if (error) throw error;
+    const keys: string[] = [];
+    for (const row of data || []) for (const slot of (row.slots as Row[]) || []) if (slot && typeof slot.key === "string") keys.push(slot.key);
+    return keys;
+  },
+  // Guarda la oferta (hasta 3 opciones) para que `request` solo pueda elegir entre lo que el servidor ofreció. Sin datos personales.
+  saveOffer: async (o: Row): Promise<void> => {
+    const { error } = await admin.from("smyl_assistant_slot_offers").insert({
+      tenant_id: o.tenantId, lana_tenant_id: o.lanaTenantId, lana_conversation_id: o.conversationId, offer_key: o.offerKey,
+      service_id: o.serviceId, slots: o.slots, expires_at: o.expiresAt,
+    });
+    if (error) throw error;
+  },
+  createRequest: async (q: Row): Promise<Row> => {
+    const { data, error } = await admin.rpc("smyl_ai_scheduling_create_request", {
+      p_tenant_id: q.tenantId, p_lana_tenant_id: q.lanaTenantId, p_conversation_id: q.conversationId, p_offer_key: q.offerKey,
+      p_option_index: q.optionIndex, p_name: q.name, p_contact: q.contact, p_consent: true, p_notice_version: q.privacyNoticeVersion,
+    });
+    if (error) throw Object.assign(new Error(error.message), { code: error.code });
+    return data as Row;
+  },
+  // Agendar (nivel «book»): confirma la cita solo si pasan los candados de la función de base de datos; si no, queda como solicitud pendiente.
+  book: async (q: Row): Promise<Row> => {
+    const { data, error } = await admin.rpc("smyl_ai_scheduling_book", {
+      p_tenant_id: q.tenantId, p_lana_tenant_id: q.lanaTenantId, p_conversation_id: q.conversationId, p_offer_key: q.offerKey,
+      p_option_index: q.optionIndex, p_name: q.name, p_contact: q.contact, p_consent: true, p_notice_version: q.privacyNoticeVersion,
+    });
+    if (error) throw Object.assign(new Error(error.message), { code: error.code });
+    return data as Row;
+  },
+  log: async (event: Row): Promise<void> => {
+    const { error } = await admin.from("smyl_ai_scheduling_events").insert(event);
+    if (error) console.error("[lana-scheduling] bitácora:", error.message);
+  },
+};
+
+Deno.serve(async (req: Request): Promise<Response> => {
+  const send = (status: number, body: Row, headers: Record<string, string> = {}) =>
+    new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...headers } });
+  if (req.method !== "POST") return send(405, { ok: false, error: "method_not_allowed" });
+  const raw = await req.text();
+  if (raw.length > MAX_BODY_BYTES) return send(413, { ok: false, error: "too_large" });
+  try {
+    const result = await manejar({ raw, signature: req.headers.get("X-SMYL-Signature"), now: new Date(), secret: SECRET, deps });
+    return send(result.status, result.body, result.headers);
+  } catch (error) {
+    console.error("[lana-scheduling]", (error as Error)?.message);
+    return send(500, { ok: false, error: "internal_error" });
+  }
+});

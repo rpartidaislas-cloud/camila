@@ -106,6 +106,16 @@ export function rfcCoincide(rfcCertificado, rfcClinica) {
 }
 
 // Compuerta de producción: todo debe cumplirse en el servidor.
+// Cancelar un CFDI de producción es una acción real ante el SAT: además del permiso y del plan guardado, exige el interruptor del servidor
+// (FACTURAPI_LIVE_CANCELLATION=1) y que quien cancela escriba el texto de confirmación. En sandbox no pide nada de esto.
+export const CONFIRM_LIVE_CANCEL_TEXT = "CANCELAR EN PRODUCCION";
+export function puedeCancelarEnProduccion({ live, enabled, confirmText } = {}) {
+  if (!live) return { ok: true };
+  if (!enabled) return { ok: false, error: "La cancelación en producción aún no está habilitada en el servidor. Cancela este comprobante desde tu panel de Facturapi o pide que se habilite." };
+  if (String(confirmText || "").trim().toUpperCase() !== CONFIRM_LIVE_CANCEL_TEXT) return { ok: false, error: `Para confirmar la cancelación en producción escribe: ${CONFIRM_LIVE_CANCEL_TEXT}` };
+  return { ok: true };
+}
+
 export function puedeActivarProduccion({ mode, status, productionReady, issuerReviewed, policyReviewed, confirmText } = {}) {
   if (mode !== "platform") return { ok: false, error: "La producción se activa solo con la cuenta de plataforma de SMYL." };
   if (status !== "connected") return { ok: false, error: "Primero activa la facturación de la clínica." };
@@ -309,3 +319,139 @@ export const DESCARGAS = {
 export function descarga(kind) {
   return Object.prototype.hasOwnProperty.call(DESCARGAS, kind) ? DESCARGAS[kind] : DESCARGAS.pdf;
 }
+
+// ───────────── Catálogo SAT (búsqueda de ClaveProdServ) ─────────────
+// Facturapi sirve el catálogo oficial del SAT; aquí solo se lee la respuesta de forma defensiva: { data: [{ key, description }] }.
+// Una clave válida son 8 dígitos. Se devuelven a lo más `max` resultados, con la descripción recortada.
+export function leerProductosSat(body, max = 12) {
+  const lista = body && typeof body === "object" && Array.isArray(body.data) ? body.data : [];
+  return lista
+    .map((x) => ({ key: String((x && x.key) || "").trim(), description: String((x && x.description) || "").replace(/\s+/g, " ").trim().slice(0, 200) }))
+    .filter((x) => /^\d{8}$/.test(x.key))
+    .slice(0, max);
+}
+// Texto de búsqueda: sin espacios de más, entre 3 y 60 caracteres; "" si no sirve.
+export function textoBusquedaSat(value) {
+  const q = String(value || "").replace(/\s+/g, " ").trim().slice(0, 60);
+  return q.length >= 3 ? q : "";
+}
+
+// ───────────── Sugerencia de clave SAT con IA ─────────────
+// La IA NUNCA inventa una clave: primero propone consultas de búsqueda, el catálogo oficial devuelve claves reales y la IA solo elige
+// entre ellas. Lo que no esté en la lista de candidatos se descarta.
+// Sin maxItems/minimum/maximum: los structured outputs no aceptan restricciones y la API rechaza el esquema (400). Los topes se aplican al leer la respuesta.
+export const SAT_CONSULTAS_SCHEMA = {
+  type: "object", additionalProperties: false, required: ["queries"],
+  properties: { queries: { type: "array", items: { type: "string" } } },
+};
+export const SAT_SELECCION_SCHEMA = {
+  type: "object", additionalProperties: false, required: ["picks"],
+  properties: { picks: { type: "array", items: { type: "object", additionalProperties: false, required: ["key", "reason"], properties: { key: { type: "string" }, reason: { type: "string" } } } } },
+};
+// Palabras generales con las que el catálogo del SAT nombra los servicios dentales; se usan si las que propuso la IA no encuentran nada.
+export const SAT_CONSULTAS_RESPALDO = ["odontólogos", "dentistas", "higienista dental"];
+export const SAT_SYSTEM_CONSULTAS = [
+  "Ayudas a un consultorio dental en México a encontrar la ClaveProdServ del SAT (catálogo c_ClaveProdServ) de uno de sus servicios.",
+  "Devuelve de 2 a 4 consultas CORTAS (1 a 3 palabras, en español) para buscar en el catálogo oficial. Usa el lenguaje del catálogo",
+  "(por ejemplo «odontólogos», «higienista dental», «ortodoncia», «cirugía oral», «radiografía dental»), no el nombre comercial del servicio.",
+  "No inventes ni escribas claves numéricas: solo palabras de búsqueda.",
+].join(" ");
+export const SAT_SYSTEM_SELECCION = [
+  "Eliges la ClaveProdServ más adecuada para un servicio de un consultorio dental en México.",
+  "Recibes el servicio y una lista de claves REALES del catálogo del SAT. Elige de 1 a 3 solo de esa lista, de la mejor a la menos buena,",
+  "con una razón de una frase corta. Si ninguna describe razonablemente el servicio, devuelve la lista vacía. Nunca escribas una clave que no esté en la lista.",
+].join(" ");
+
+// Texto del servicio que se manda a la IA: solo nombre, categoría y descripción del servicio (no hay datos de pacientes).
+export function descripcionServicioSat(input) {
+  const o = input && typeof input === "object" ? input : {};
+  const clean = (v, n) => String(v || "").replace(/\s+/g, " ").trim().slice(0, n);
+  const name = clean(o.name, 120);
+  if (name.length < 2) return null;
+  return { name, category: clean(o.category, 60), description: clean(o.description, 300) };
+}
+function leerJson(text) {
+  try { return JSON.parse(String(text || "")); } catch { return null; }
+}
+// Consultas de búsqueda: de 1 a 4 textos de 3 a 60 caracteres, sin repetir y sin parecer una clave numérica.
+export function leerConsultasSat(text) {
+  const o = leerJson(text);
+  const list = o && Array.isArray(o.queries) ? o.queries : [];
+  const seen = new Set(), out = [];
+  for (const q of list) {
+    const t = String(q || "").replace(/\s+/g, " ").trim().slice(0, 60);
+    if (t.length < 3 || /^\d{6,}$/.test(t) || seen.has(t.toLowerCase())) continue;
+    seen.add(t.toLowerCase()); out.push(t);
+    if (out.length === 4) break;
+  }
+  return out;
+}
+// Une listas de resultados del catálogo sin repetir claves (conserva el orden de aparición).
+export function unirCandidatosSat(lists, max = 24) {
+  const seen = new Set(), out = [];
+  for (const list of lists) for (const x of list || []) { if (x && !seen.has(x.key)) { seen.add(x.key); out.push(x); if (out.length >= max) return out; } }
+  return out;
+}
+// Elección de la IA: solo claves que estaban entre los candidatos, sin repetir, con la razón recortada. Cualquier otra se descarta.
+export function leerSeleccionSat(text, candidates) {
+  const o = leerJson(text);
+  const picks = o && Array.isArray(o.picks) ? o.picks : [];
+  const known = new Map((candidates || []).map((c) => [c.key, c]));
+  const seen = new Set(), out = [];
+  for (const p of picks) {
+    const key = String((p && p.key) || "").trim();
+    if (!known.has(key) || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ key, description: known.get(key).description, reason: String((p && p.reason) || "").replace(/\s+/g, " ").trim().slice(0, 200) });
+    if (out.length === 3) break;
+  }
+  return out;
+}
+
+// ───────────── Sugerencia del servicio completo con IA (todo menos el precio) ─────────────
+export const SERVICIO_CATEGORIAS = ["diagnostic", "preventive", "restorative", "endodontic", "periodontic", "surgery", "prosthodontic", "aesthetic", "orthodontic", "implantology", "pediatric", "emergency", "imaging", "other"];
+export const SERVICIO_ALCANCES = ["session", "tooth", "teeth", "surface", "quadrant", "arch", "phase", "package", "general"];
+export const SERVICIO_COBROS = ["fixed", "per_tooth", "per_surface", "per_quadrant", "per_arch", "per_session", "per_phase", "package", "from"];
+export const SERVICIO_SCHEMA = {
+  type: "object", additionalProperties: false,
+  required: ["category", "scope_type", "pricing_mode", "duration_minutes", "description", "prep_instructions", "tax_treatment", "sat_queries"],
+  properties: {
+    category: { type: "string", enum: SERVICIO_CATEGORIAS, description: "Especialidad: diagnostic=valoración y diagnóstico, preventive=prevención y limpieza, restorative=restauradora, endodontic=endodoncia, periodontic=periodoncia, surgery=cirugía oral, prosthodontic=prótesis, aesthetic=estética y carillas, orthodontic=ortodoncia, implantology=implantología, pediatric=odontopediatría, emergency=urgencias, imaging=imagen y laboratorio, other=otros." },
+    scope_type: { type: "string", enum: SERVICIO_ALCANCES, description: "A qué se aplica el servicio: session=sesión completa, tooth=una pieza, teeth=varias piezas, surface=superficie dental, quadrant=cuadrante o sextante, arch=arcada, phase=fase de un tratamiento, package=paquete, general=general." },
+    pricing_mode: { type: "string", enum: SERVICIO_COBROS, description: "Cómo se suele cobrar: fixed=precio fijo, per_tooth=por pieza, per_surface=por superficie, per_quadrant=por cuadrante, per_arch=por arcada, per_session=por sesión, per_phase=por fase, package=paquete, from=desde." },
+    duration_minutes: { type: "integer", description: "Duración típica de la cita en minutos, entre 10 y 480." },
+    description: { type: "string", description: "Una o dos frases en español sencillo para el paciente: qué es y para qué sirve. Sin prometer resultados ni dar precios." },
+    prep_instructions: { type: "string", description: "Instrucciones cortas antes de la cita (qué evitar, qué traer). Cadena vacía si no hace falta ninguna." },
+    tax_treatment: { type: "string", enum: ["pending", "exempt", "rate", "non_object"], description: "Tratamiento de IVA como SUGERENCIA para el contador: exempt si es un servicio profesional de salud dental prestado por dentistas con título; rate si es venta de productos o un servicio que no es de salud; non_object si no es objeto de impuesto; pending si dudas." },
+    sat_queries: { type: "array", items: { type: "string" }, description: "De 2 a 4 consultas cortas (1 a 3 palabras) para buscar la ClaveProdServ en el catálogo del SAT, en el lenguaje del catálogo. Nunca claves numéricas." },
+  },
+};
+export const SERVICIO_SYSTEM = [
+  "Ayudas a un consultorio dental en México a dar de alta un servicio en su catálogo. Recibes el nombre que verá el paciente y propones los demás campos como SUGERENCIA que una persona revisará.",
+  "No propongas precio. Usa español claro y sencillo. No prometas resultados clínicos, no des diagnósticos ni cifras de éxito.",
+  "Elige valores típicos de un consultorio dental. Si dudas entre dos opciones, elige la más común y prudente.",
+].join(" ");
+
+// Respuesta de la IA para el servicio completo: solo valores válidos; lo que no cumpla se omite (null) para no llenar un campo con algo inventado.
+export function leerServicioSugerido(text) {
+  const o = leerJson(text);
+  if (!o || typeof o !== "object") return null;
+  const clean = (v, n) => String(v || "").replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, "\n").trim().slice(0, n);
+  const pick = (v, list) => (list.includes(v) ? v : null);
+  const mins = Number(o.duration_minutes);
+  return {
+    category: pick(o.category, SERVICIO_CATEGORIAS), scope_type: pick(o.scope_type, SERVICIO_ALCANCES), pricing_mode: pick(o.pricing_mode, SERVICIO_COBROS),
+    duration_minutes: Number.isFinite(mins) && mins >= 10 && mins <= 480 ? Math.round(mins / 5) * 5 : null,
+    description: clean(o.description, 400), prep_instructions: clean(o.prep_instructions, 400),
+    tax_treatment: pick(o.tax_treatment, ["pending", "exempt", "rate", "non_object"]),
+    queries: leerConsultasSat(JSON.stringify({ queries: o.sat_queries })),
+  };
+}
+// Tokens de varias llamadas a la IA sumados (entrada, salida y caché), para el registro de consumo.
+export function sumarUso(usages) {
+  const n = (v) => (typeof v === "number" && Number.isFinite(v) && v > 0 ? Math.round(v) : 0);
+  const out = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0, calls: 0 };
+  for (const u of usages || []) { if (!u) continue; out.calls += 1; out.input_tokens += n(u.input_tokens); out.output_tokens += n(u.output_tokens); out.cache_read_input_tokens += n(u.cache_read_input_tokens); out.cache_creation_input_tokens += n(u.cache_creation_input_tokens); }
+  return out;
+}
+

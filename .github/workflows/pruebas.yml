@@ -30,6 +30,26 @@ jobs:
         run: |
           node --test --test-skip-pattern="la deuda tipográfica" $(ls tests/*.test.mjs | grep -v 'tests/lana-quick.test.mjs')
 
+  # Pruebas CRÍTICAS del chat y la mensajería (permisos, aislamiento por clínica/sucursal, envíos, idempotencia, vínculos).
+  # Obligatoria y SIN omisiones: instala PGlite y Chromium y falla si una sola prueba se omite (scripts/run-critical-tests.mjs).
+  # En el trabajo `suite` esas pruebas se omiten solas por no haber PGlite/Chromium, así que no protegían nada.
+  criticas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Instalar PGlite y Chromium
+        shell: bash
+        run: |
+          npm install --no-save --no-package-lock @electric-sql/pglite playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Ejecutar pruebas críticas sin omisiones
+        shell: bash
+        run: node scripts/run-critical-tests.mjs
+
   # Prueba del editor REAL de la Historia clínica en Chromium (tests/smyl-history-roundtrip.test.mjs): llena todos los campos, guarda,
   # reabre y verifica que no se pierda nada. Informativa mientras se confirma que es estable en el runner (no bloquea el PR); para
   # volverla obligatoria basta quitar `continue-on-error`. En el trabajo `suite` esa misma prueba se omite sola por no haber Chromium.

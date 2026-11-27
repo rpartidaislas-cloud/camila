@@ -31,7 +31,7 @@ test('stage 5 UI distinguishes receipts, CFDI drafts and SaaS billing',()=>{
   assert.match(ui,/Comprobante interno de pago/);
   assert.match(ui,/no consulta, timbra ni envía información al SAT o a un PAC/);
   assert.match(ui,/smyl_prepare_cfdi_draft/);
-  assert.match(app,/smyl-finance\.js\?v=67/);
+  assert.match(app,/smyl-finance\.js\?v=87/);
   assert.match(ui,/forPatient:function\(patientId\)/);
 assert.match(sw,/smyl-v267-guided-collection-sentry-v1/);
   assert.equal(app,read('../mobile/www/app.html'));
@@ -41,7 +41,7 @@ assert.match(sw,/smyl-v267-guided-collection-sentry-v1/);
 
 test('patient fiscal details are no longer a global cash action',()=>{
   assert.doesNotMatch(ui,/finance-new-fiscal-head/);
-  assert.match(ui,/Los datos del receptor se administran desde la ficha de cada paciente/);
+  assert.match(ui,/Los datos fiscales del paciente se editan en su ficha/);
   assert.match(ui,/data-fiscal-patient/);
   assert.match(ui,/SmylPatient360\.forBilling/);
 });

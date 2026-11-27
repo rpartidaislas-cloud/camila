@@ -15,9 +15,10 @@ test('Por cobrar es el inicio, Pagos sigue a las cuentas y Facturación conserva
   assert.match(js, /tab:'accounts'/);
   assert.match(js, /\['accounts','Por cobrar'\],\['receipts','Pagos'\]/);
   assert.match(js, /<section data-finance-panel="receipts" id="finance-panel-receipts"/);
-  assert.match(js, /<h2>Facturación<\/h2>/);
-  assert.match(js, /Proceso fiscal independiente/);
-  assert.match(js, /Las facturas comienzan desde un recibo/);
+  // Facturación es una lista con sus filtros arriba; la pestaña ya la nombra, así que no repite un encabezado.
+  assert.match(js, /<section data-finance-panel="fiscal" id="finance-panel-fiscal" role="tabpanel" aria-labelledby="finance-tab-fiscal" hidden><article class="finance-card finance-list-card finance-fiscal-card"><div id="finance-fiscal"><\/div><\/article><\/section>/);
+  assert.match(js, /Una factura siempre nace de un recibo/);
+  assert.match(js, /var INVOICE_FILTERS=\[\['drafts','Borradores'\],\['issued','Emitidas'\],\['cancelled','Canceladas'\],\['pending','Por facturar'\]\];/);
   assert.match(js, /function renderPayments\(\)/);
   assert.match(js, /function renderFiscal\(\)/);
 });
@@ -78,9 +79,9 @@ test('web y PWA publican la misma bandeja versionada', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) {
     assert.equal(read('mobile/www/' + file), read(file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=50/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=67/);
-  assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=26/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=63/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=87/);
+  assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=31/);
   assert.match(read('sw.js'), /professional-finance-v1/);
   assert.match(read('sw.js'), /finanzas-workspace-v5/);
 });

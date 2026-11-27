@@ -21,7 +21,7 @@ test('total en vivo: descuento en $ o %, precio con comas y signo de pesos', () 
   assert.deepEqual([amt.gross, amt.disc, amt.total], [600, 100, 500]);
 });
 
-test('IVA: lo decide la política del servicio; sólo concepto libre o servicio pendiente permiten marcar 16%', () => {
+test('IVA: lo decide la política del servicio; sólo un concepto libre permite marcar 16%', () => {
   const exento = { tax_treatment: 'exempt', fiscal_status: 'reviewed', sat_product_service_code: '85121800' };
   const tasa = { tax_treatment: 'rate', tax_rate: 0.16, fiscal_status: 'reviewed', sat_product_service_code: '85121800' };
   const pendiente = { tax_treatment: 'pending', fiscal_status: 'pending' };
@@ -30,9 +30,11 @@ test('IVA: lo decide la política del servicio; sólo concepto libre o servicio 
   m = calc.chargeMath(form({ p: '3000', d: '100' }), tasa);
   assert.deepEqual([m.tax, m.total], [464, 3364], 'igual que el servidor: (3000-100)×16%');
   m = calc.chargeMath(form({ p: '100', q: '2', iva: true }), pendiente);
-  assert.deepEqual([m.tax, m.total, m.autoTax], [32, 232, false]);
+  assert.deepEqual([m.tax, m.total, m.autoTax], [0, 200, false], 'con un servicio, el IVA lo decide el servicio: la casilla no aplica');
   m = calc.chargeMath(form({ p: '500' }), null);
   assert.deepEqual([m.tax, m.total], [0, 500]);
+  m = calc.chargeMath(form({ p: '500', iva: true }), null);
+  assert.deepEqual([m.tax, m.total], [80, 580], 'solo un concepto libre permite marcar el IVA');
   assert.equal(calc.chargeTaxLabel(exento), 'IVA exento (servicio dental)');
   assert.equal(calc.chargeTaxLabel(tasa), 'IVA 16%');
 });
@@ -48,9 +50,18 @@ test('la ventana: errores dentro, citas del paciente, sucursal automática, venc
   for (const base of ['', 'mobile/www/']) {
     const f = read(base + 'smyl-finance.js');
     assert.match(f, /data-form-error hidden/);
-    assert.match(f, /catch\(err\)\{fail\(message\(err\)\);\}/);
+    assert.match(f, /catch\(err\)\{if\(isDefiniteError\(err\)\)attemptClose\('charge'\);fail\(isDefiniteError\(err\)\?message\(err\):/);
     assert.match(f, /a\.patient_id===pid&&a\.status!=='cancelled'/);
-    assert.match(f, /branches\.length<=1\?' hidden':''/);
+    assert.match(f, /branches\.length<=1\|\|mine\?' hidden':''/);
+    // Sucursal automática: la del consultorio activo; el precio de lista sigue a la sucursal; «Concepto» no repite al servicio.
+    assert.match(f, /defaultBranch=pickBranch\(\),mine=myBranchId\(\)/);
+    assert.match(f, /function repriceForBranch\(\)/); assert.match(f, /data-concept-label/); assert.match(f, /Detalle \(opcional\)/);
+    assert.match(f, /concept=\(s\?s\.name\+\(typed\?' · '\+typed:''\):typed\)\.slice\(0,240\)/);
+    // Menos campos a la vista: la cita solo si el paciente tiene, el descuento y el calendario solo cuando se piden.
+    assert.match(f, /data-appointment-wrap hidden/); assert.match(f, /\.hidden=!list\.length/);
+    assert.match(f, /data-show-discount>Agregar descuento<\/button><label data-discount-wrap hidden>/);
+    assert.match(f, /data-due="custom">Otra fecha<\/button><input name="due" type="date" aria-label="Fecha de vencimiento" hidden>/);
+    assert.match(f, /data-price-hint/); assert.match(f, /Otro concepto \(sin servicio del catálogo\)/);
     assert.match(f, /data-due="0">Hoy<\/button><button type="button" data-due="15">15 días/);
     assert.match(f, /Sin fecha: nunca aparecerá como vencido ni en «Vencidas»\./);
     assert.match(f, /data-mode="pay">Guardar y continuar al pago<\/button>/);
@@ -93,6 +104,6 @@ test('Cobros ya no se limita a los primeros 500 pacientes: completa los nombres 
     assert.match(f, /async function ensurePatientNames\(\)\{/);
     assert.match(f, /\[state\.charges,state\.payments,state\.appointments,state\.visitAppointments,state\.proposals,state\.fiscal\]/);
     assert.match(f, /\.in\('id',ids\.slice\(i,i\+100\)\)/);
-    assert.match(f, /state\.fiscalReadiness=rows\[19\]\|\|null;await loadVisits\(\);await ensurePatientNames\(\);state\.loaded=true;/);
+    assert.match(f, /state\.fiscalReadiness=rows\[19\]\|\|null;[\s\S]*?try\{state\.creditApps=[\s\S]*?catch\(e\)\{state\.creditApps=\[\];\}await loadVisits\(\);await ensurePatientNames\(\);state\.loaded=true;/);
   }
 });

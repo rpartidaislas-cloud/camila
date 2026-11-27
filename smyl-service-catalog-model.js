@@ -13,6 +13,10 @@
     ['aesthetic','Estética y carillas'],['orthodontic','Ortodoncia'],['implantology','Implantología'],
     ['pediatric','Odontopediatría'],['emergency','Urgencias'],['imaging','Imagen y laboratorio'],['other','Otros']
   ];
+  // Tratamiento de IVA del servicio (la base lo exige distinto de «pendiente» para poder marcarlo como revisado). Exento y con IVA llevan ObjetoImp 02; no objeto, 01.
+  var TAX_TREATMENTS = [
+    ['pending','Pendiente de definir'],['exempt','Exento de IVA (servicios dentales profesionales)'],['rate','Con IVA 16 %'],['non_object','No objeto de IVA']
+  ];
   var SCOPES = [
     ['session','Sesión'],['tooth','Pieza'],['teeth','Varias piezas'],['surface','Superficie dental'],
     ['quadrant','Cuadrante o sextante'],['arch','Arcada'],['phase','Fase'],['package','Paquete'],['general','General']
@@ -99,6 +103,8 @@
   function normalize(input) {
     var row = input || {};
     var price = row.reference_price === '' || row.reference_price == null ? null : Number(row.reference_price);
+    var treatment = TAX_TREATMENTS.some(function (t) { return t[0] === row.tax_treatment; }) ? row.tax_treatment : 'pending';
+    var rate = row.tax_rate === '' || row.tax_rate == null ? NaN : Number(row.tax_rate);
     return {
       template_key: row.template_key || null,
       name: String(row.name || '').trim(), patient_name: String(row.patient_name || row.name || '').trim(),
@@ -107,7 +113,9 @@
       currency: row.currency || 'MXN', scope_type: row.scope_type || 'session', pricing_mode: row.pricing_mode || 'fixed',
       sat_product_service_code: String(row.sat_product_service_code || '').trim() || null,
       sat_unit_code: String(row.sat_unit_code || '').trim().toUpperCase() || null,
-      tax_object_code: String(row.tax_object_code || '').trim() || null,
+      tax_treatment: treatment, tax_rate: treatment === 'rate' ? (Number.isFinite(rate) ? rate : 0.16) : null,
+      // La base exige que el objeto de impuesto coincida con el tratamiento: se deriva aquí para que nunca se contradigan.
+      tax_object_code: treatment === 'non_object' ? '01' : (treatment === 'exempt' || treatment === 'rate') ? '02' : (String(row.tax_object_code || '').trim() || null),
       fiscal_status: row.fiscal_status === 'reviewed' ? 'reviewed' : 'pending', active: row.active !== false,
       featured: row.featured === true
     };
@@ -124,10 +132,12 @@
     if (row.sat_product_service_code && !/^\d{8}$/.test(row.sat_product_service_code)) errors.push('Clave SAT debe contener 8 dígitos.');
     if (row.sat_unit_code && !/^[A-Z0-9]{1,8}$/.test(row.sat_unit_code)) errors.push('Clave de unidad SAT no válida.');
     if (row.tax_object_code && !/^\d{2}$/.test(row.tax_object_code)) errors.push('Objeto de impuesto debe contener 2 dígitos.');
+    if (row.tax_rate != null && !(row.tax_rate >= 0 && row.tax_rate <= 1)) errors.push('La tasa de IVA no es válida.');
+    if (row.fiscal_status === 'reviewed' && row.tax_treatment === 'pending') errors.push('Elige el tratamiento de IVA (exento, con IVA o no objeto) para marcar el servicio como revisado.');
     return errors;
   }
   function presetInsert(preset, tenantId, actorId) {
     var row = normalize(preset); row.tenant_id=tenantId; row.created_by=actorId; row.template_key=preset.key; row.fiscal_status='pending'; return row;
   }
-  return Object.freeze({categories:CATEGORIES,scopes:SCOPES,pricingModes:PRICING,presets:PRESETS,satSuggestions:SAT,normalize:normalize,validate:validate,presetInsert:presetInsert});
+  return Object.freeze({categories:CATEGORIES,scopes:SCOPES,pricingModes:PRICING,taxTreatments:TAX_TREATMENTS,presets:PRESETS,satSuggestions:SAT,normalize:normalize,validate:validate,presetInsert:presetInsert});
 });

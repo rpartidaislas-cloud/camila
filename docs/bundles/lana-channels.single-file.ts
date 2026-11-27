@@ -169,7 +169,7 @@ return { requireUser, requirePermission };
 })();
 
 // ── _shared/lana-contract.mjs ──
-const { SMYL_LANA_CONTRACT_VERSION, normalizeLanaPath, lanaContractHeaders } = (() => {
+const { SMYL_LANA_CONTRACT_VERSION, normalizeLanaPath, lanaContractHeaders, SMYL_PRODUCT, readLanaContract, decideLanaLink } = (() => {
 const SMYL_LANA_CONTRACT_VERSION = "1.6";
 
 const ALLOWED_ROOTS = new Set([
@@ -178,7 +178,9 @@ const ALLOWED_ROOTS = new Set([
   "context",
   "contract",
   "conversations",
+  "ia",
   "inbox",
+  "payments",
   "training",
 ]);
 
@@ -215,7 +217,135 @@ function lanaContractHeaders() {
   return { "X-SMYL-LANA-Contract-Version": SMYL_LANA_CONTRACT_VERSION };
 }
 
-return { SMYL_LANA_CONTRACT_VERSION, normalizeLanaPath, lanaContractHeaders };
+// ── Aislamiento de contexto SMYL ↔ LANA ─────────────────────────────────────────────────────────────
+// SMYL usa el motor de chat de LANA, pero cada clínica debe vivir en SU PROPIO tenant de LANA, marcado como producto
+// "smyl": así el asistente usa el contexto y las herramientas dentales, nunca el catálogo/pedidos/precios comerciales.
+// LANA declara esa marca en `GET /contract` → `contract.product` (y `contract.tenant_id`).
+const SMYL_PRODUCT = "smyl";
+
+// Interpreta la respuesta de /contract. Devuelve el producto y el id del tenant LANA, o null si LANA aún no los informa.
+function readLanaContract(body: any) {
+  const contract = body && typeof body === "object" && body.contract && typeof body.contract === "object" ? body.contract : null;
+  const product = contract && typeof contract.product === "string" ? contract.product.trim().toLowerCase().slice(0, 40) : null;
+  const rawTenant = contract && typeof contract.tenant_id === "string" ? contract.tenant_id.trim().toLowerCase() : "";
+  const lanaTenantId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(rawTenant) ? rawTenant : null;
+  return { product: product || null, lanaTenantId };
+}
+
+// Decide si un tenant de LANA puede vincularse a una clínica de SMYL.
+//  - strict (código de enlace manual): exige que LANA confirme product === "smyl"; sin confirmación se rechaza.
+//  - no strict (alta automática o verificación de un enlace ya existente): sólo se rechaza un producto distinto de "smyl";
+//    si LANA aún no informa el producto, se acepta pero queda marcado como "sin verificar".
+// Resultado: { ok, verified, code, message }
+function decideLanaLink(info: any, { strict }) {
+  const product = info && info.product ? info.product : null;
+  if (product === SMYL_PRODUCT) return { ok: true, verified: true, code: "", message: "" };
+  if (product) {
+    return { ok: false, verified: false, code: "wrong_product", message: "Este código pertenece a una cuenta comercial de LANA y no se puede usar en SMYL. Usa la activación automática." };
+  }
+  if (strict) {
+    return { ok: false, verified: false, code: "product_unconfirmed", message: "LANA no confirmó que este código sea de una cuenta SMYL. Usa la activación automática o pide soporte." };
+  }
+  return { ok: true, verified: false, code: "", message: "" };
+}
+
+return { SMYL_LANA_CONTRACT_VERSION, normalizeLanaPath, lanaContractHeaders, SMYL_PRODUCT, readLanaContract, decideLanaLink };
+})();
+
+// ── _shared/lana-crypto-core.mjs ──
+const { LEGACY_KEY_VERSION, readKeyring, storedKeyVersion, encryptLanaKey, decryptLanaKey, reencryptIfNeeded } = (() => {
+// Cifrado de la credencial de LANA con rotación de llave (sin dependencias de Deno: se prueba en Node).
+//
+// Variables de entorno:
+//   SMYL_LANA_ENCRYPTION_KEY                 llave vigente (32 bytes en base64)
+//   SMYL_LANA_ENCRYPTION_KEY_VERSION         etiqueta de la vigente (por omisión "1")
+//   SMYL_LANA_ENCRYPTION_KEY_PREVIOUS        llave anterior, solo mientras dura la rotación (opcional)
+//   SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION etiqueta de la anterior (por omisión: la vigente menos 1 si es número)
+//
+// Cada credencial guarda `key_version`. Las anteriores a este cambio no la tienen y se tratan como la versión "1".
+
+const LEGACY_KEY_VERSION = "1";
+
+function bytesToBase64(bytes: any) {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function base64ToBytes(value: any) {
+  const binary = atob(value);
+  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function cleanVersion(value: any) {
+  const text = String(value ?? "").trim();
+  if (!/^[A-Za-z0-9._-]{1,32}$/.test(text)) return "";
+  return text;
+}
+
+function readKeyring(env = {}) {
+  const currentB64 = String(env.SMYL_LANA_ENCRYPTION_KEY || "").trim();
+  if (!currentB64) throw new Error("SMYL_LANA_ENCRYPTION_KEY no configurada.");
+  const currentVersion = cleanVersion(env.SMYL_LANA_ENCRYPTION_KEY_VERSION || LEGACY_KEY_VERSION);
+  if (!currentVersion) throw new Error("SMYL_LANA_ENCRYPTION_KEY_VERSION no es válida.");
+  const keys = [{ version: currentVersion, b64: currentB64, current: true }];
+  const previousB64 = String(env.SMYL_LANA_ENCRYPTION_KEY_PREVIOUS || "").trim();
+  if (previousB64) {
+    let previousVersion = cleanVersion(env.SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION);
+    if (!previousVersion && /^\d+$/.test(currentVersion) && Number(currentVersion) > 1) previousVersion = String(Number(currentVersion) - 1);
+    if (!previousVersion) throw new Error("Falta SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION.");
+    if (previousVersion === currentVersion) throw new Error("La llave anterior y la vigente no pueden tener la misma versión.");
+    if (previousB64 === currentB64) throw new Error("La llave anterior es igual a la vigente.");
+    keys.push({ version: previousVersion, b64: previousB64, current: false });
+  }
+  for (const key of keys) {
+    if (base64ToBytes(key.b64).length !== 32) throw new Error(`La llave de versión ${key.version} debe contener 32 bytes.`);
+  }
+  return { keys, currentVersion };
+}
+
+function storedKeyVersion(lana: any) {
+  return cleanVersion(lana?.key_version) || LEGACY_KEY_VERSION;
+}
+
+async function importKey(subtle: any, key: any, usages: any) {
+  return subtle.importKey("raw", base64ToBytes(key.b64), "AES-GCM", false, usages);
+}
+
+async function encryptLanaKey(apiKey: any, keyring: any, { subtle = globalThis.crypto.subtle, random = (n) => globalThis.crypto.getRandomValues(new Uint8Array(n)) } = {}) {
+  const current = keyring.keys.find((key) => key.current);
+  const iv = random(12);
+  const encrypted = await subtle.encrypt({ name: "AES-GCM", iv }, await importKey(subtle, current, ["encrypt"]), new TextEncoder().encode(apiKey));
+  return { ciphertext: bytesToBase64(new Uint8Array(encrypted)), iv: bytesToBase64(iv), key_version: current.version };
+}
+
+// Primero la llave que la credencial dice tener; si falla (p. ej. una versión mal anotada) prueba las demás.
+async function decryptLanaKey(lana: any, keyring: any, { subtle = globalThis.crypto.subtle } = {}) {
+  const wanted = storedKeyVersion(lana);
+  const ordered = [...keyring.keys].sort((a, b) => Number(b.version === wanted) - Number(a.version === wanted));
+  const iv = base64ToBytes(lana.api_key_iv);
+  const data = base64ToBytes(lana.api_key_ciphertext);
+  for (const key of ordered) {
+    try {
+      const clear = await subtle.decrypt({ name: "AES-GCM", iv }, await importKey(subtle, key, ["decrypt"]), data);
+      return { apiKey: new TextDecoder().decode(clear), key_version: key.version, needsReencrypt: !key.current };
+    } catch { /* siguiente llave */ }
+  }
+  throw new Error("No se pudo descifrar la credencial de LANA con las llaves configuradas.");
+}
+
+// Devuelve la credencial ya cifrada con la llave vigente (o null si ya lo estaba).
+async function reencryptIfNeeded(lana: any, keyring: any, deps = {}) {
+  const decrypted = await decryptLanaKey(lana, keyring, deps);
+  const stale = decrypted.needsReencrypt || storedKeyVersion(lana) !== keyring.currentVersion || !lana.key_version;
+  if (!stale) return null;
+  const encrypted = await encryptLanaKey(decrypted.apiKey, keyring, deps);
+  return { ...lana, api_key_ciphertext: encrypted.ciphertext, api_key_iv: encrypted.iv, key_version: encrypted.key_version };
+}
+
+return { LEGACY_KEY_VERSION, readKeyring, storedKeyVersion, encryptLanaKey, decryptLanaKey, reencryptIfNeeded };
 })();
 
 // ── _shared/lana-linked.ts ──
@@ -223,27 +353,23 @@ const { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin } = (() => {
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
-const ENCRYPTION_KEY = (Deno.env.get("SMYL_LANA_ENCRYPTION_KEY") || "").trim();
 const LANA_API_BASE = "https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v1/camila-api";
 const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 
 type LanaConfig = {
   api_key_ciphertext: string;
   api_key_iv: string;
+  key_version?: string;
   estado: string;
 };
 
-function base64ToBytes(value: string): Uint8Array<ArrayBuffer> {
-  const binary = atob(value);
-  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
-  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
-
-async function cryptoKey(): Promise<CryptoKey> {
-  const raw = base64ToBytes(ENCRYPTION_KEY);
-  if (raw.length !== 32) throw new Error("SMYL_LANA_ENCRYPTION_KEY no configurada correctamente.");
-  return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
+function keyring() {
+  return readKeyring({
+    SMYL_LANA_ENCRYPTION_KEY: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY"),
+    SMYL_LANA_ENCRYPTION_KEY_VERSION: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_VERSION"),
+    SMYL_LANA_ENCRYPTION_KEY_PREVIOUS: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_PREVIOUS"),
+    SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION"),
+  });
 }
 
 async function linkedLanaApiKey(tenantId: string): Promise<string> {
@@ -257,12 +383,8 @@ async function linkedLanaApiKey(tenantId: string): Promise<string> {
   if (!lana?.api_key_ciphertext || !lana.api_key_iv || lana.estado !== "conectada") {
     throw new Error("LANA todavía no está conectada o requiere atención.");
   }
-  const clear = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: base64ToBytes(lana.api_key_iv) },
-    await cryptoKey(),
-    base64ToBytes(lana.api_key_ciphertext),
-  );
-  return new TextDecoder().decode(clear);
+  // Descifra con la llave vigente o, durante una rotación, con la anterior. La reescritura con la llave nueva la hace lana-connection.
+  return (await decryptLanaKey(lana as LanaConfig, keyring())).apiKey;
 }
 
 async function lanaRequest(
@@ -337,6 +459,10 @@ function channel(value: unknown): "whatsapp" | "messenger" | "instagram" | null 
   return value === "whatsapp" || value === "messenger" || value === "instagram" ? value : null;
 }
 
+function connectionMode(value: unknown): "dedicated" | "coexistence" | null {
+  return value === "dedicated" || value === "coexistence" ? value : null;
+}
+
 Deno.serve(async (req: Request) => {
   const CORS = makeCors(req, "GET, POST, OPTIONS");
   const json = (status: number, body: Record<string, unknown>): Response =>
@@ -370,13 +496,21 @@ Deno.serve(async (req: Request) => {
       return json(200, { ...remote.body, can_manage: true });
     }
     if (body.action !== "setup") return json(400, { error: "Acción no reconocida." });
+    const requestedMode = body.connection_mode === undefined ? "dedicated" : connectionMode(body.connection_mode);
+    if (!requestedMode) return json(400, { error: "Modo de conexión no soportado." });
+    if (selected !== "whatsapp" && body.connection_mode !== undefined && requestedMode !== "dedicated") {
+      return json(400, { error: "La coexistencia solo está disponible para WhatsApp." });
+    }
     const returnOrigin = new URL(SMYL_PUBLIC_APP_URL).origin;
     if (new URL(SMYL_PUBLIC_APP_URL).protocol !== "https:") {
       return json(500, { error: "SMYL_PUBLIC_APP_URL debe usar HTTPS." });
     }
     const remote = await lanaRequest(auth.tenantId, `/channels/${selected}/setup-session`, {
       method: "POST",
-      body: JSON.stringify({ return_origin: returnOrigin }),
+      body: JSON.stringify({
+        return_origin: returnOrigin,
+        connection_mode: selected === "whatsapp" ? requestedMode : "dedicated",
+      }),
     });
     if (!remote.response.ok) return json(remote.response.status, { error: String(remote.body.error || "No se pudo iniciar la conexión del canal.") });
     return json(200, { ...remote.body, can_manage: true });

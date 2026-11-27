@@ -8,6 +8,8 @@
     var response=await fetch(SUPA_URL+'/functions/v1/lana-inbox',{method:'POST',headers:headers,body:JSON.stringify({action:action==='preview'?'patient_link_preview':'patient_link_confirm',conversation_id:conversationId,patient_id:patientId||null})});
     var data=await response.json().catch(function(){return {};});if(!response.ok)throw new Error(data.error||'No se pudo preparar el expediente desde esta conversación.');return data;
   }
+  // Desde el chat, vincular NO te saca del chat: se avisa con un evento y el chat se actualiza solo.
+  var session={stay:true};
   function modal(){return document.getElementById('lana-handoff-overlay');}
   function close(){var m=modal();if(m)m.hidden=true;}
 
@@ -81,11 +83,18 @@
     var button=document.querySelector('[data-lana-confirm]'),selected=document.querySelector('input[name="lana-patient"]:checked');
     if(!selected)return;
     var label=button.textContent;button.disabled=true;button.textContent='Vinculando…';
-    try{var result=await request('confirm',data.conversation.id,selected.value);await openPatient(result.link.patient_id,data.conversation.id);}
+    try{
+      var result=await request('confirm',data.conversation.id,selected.value);
+      var patientName=selected.value?(selected.getAttribute('data-name')||''):((data.conversation&&data.conversation.name)||'');
+      var detail={conversationId:data.conversation.id,patientId:result.link.patient_id,patientName:patientName,created:!selected.value};
+      if(session.stay){close();try{window.dispatchEvent(new CustomEvent('smyl:chat-patient-linked',{detail:detail}));}catch(_){}}
+      else await openPatient(result.link.patient_id,data.conversation.id);
+    }
     catch(error){var old=document.querySelector('#lana-handoff-body [data-tone="error"]');if(old)old.remove();document.getElementById('lana-handoff-body').insertAdjacentHTML('beforeend','<p class="connections-form-message" data-tone="error">'+esc(error.message)+'</p>');button.disabled=false;button.textContent=label;}
   }
-  async function open(conversationId){
+  async function open(conversationId,options){
     if(!/^[0-9a-f-]{36}$/i.test(String(conversationId||'')))return;
+    session.stay=!options||options.stay!==false;
     var m=modal();m.hidden=false;document.getElementById('lana-handoff-body').innerHTML=window.SmylSkeleton?window.SmylSkeleton.html('list',{rows:2,plain:true,label:'Consultando la identidad del contacto'}):'<p class="lana-handoff-state">Consultando la identidad del contacto…</p>';document.getElementById('lana-handoff-actions').innerHTML='';history.replaceState(null,'',location.pathname);
     try{
       var data=await request('preview',conversationId);

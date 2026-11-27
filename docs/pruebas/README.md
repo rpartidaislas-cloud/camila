@@ -46,3 +46,9 @@ En «Agendar cita» del chat, con el servicio indicado:
 - **Cancelar / reagendar** citas ya creadas y crear bloqueos nuevos desde la Agenda.
 - **Permisos por sucursal.** Un usuario de recepción con alcance a una sola sucursal debe ver solo los chats y citas de la suya.
 - **Precios por sucursal, inventario por sucursal y recordatorios.** Para los recordatorios usa solo tu propio número.
+
+## Diagnóstico de la confirmación automática de citas
+
+`confirmacion-de-cita-diagnostico.sql` (solo lectura). Tras encender «Confirmación al agendar» y agendar una cita de prueba
+a un paciente con chat de WhatsApp vinculado, pégalo en el SQL Editor: muestra la configuración, el estado de cada mensaje
+(`pending/sent/failed/cancelled` con su `last_error`), si la cita cumple las reglas y si el paciente tiene chat vinculado.

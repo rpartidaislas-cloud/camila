@@ -1,0 +1,27 @@
+.ia-sw-card{margin:0 0 22px;padding:22px 24px;background:#fdfdf9;border:1.5px solid #dce2dd;border-radius:18px}
+.ia-sw-card.is-off{border-color:#b45d47;background:#fbf2ef}
+.ia-sw-card.is-scheduled{border-color:#a58b52;background:#faf6ec}
+.ia-sw-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.ia-sw-head h2{margin:0;font-size:18px;font-weight:600;color:#22263e}
+.ia-sw-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:999px;font-size:12px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;background:#e1efe8;color:#286653}
+.ia-sw-dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.ia-sw-card.is-off .ia-sw-pill{background:#f4e5e0;color:#8b4737}
+.ia-sw-card.is-scheduled .ia-sw-pill{background:#f1eadc;color:#745f39}
+.ia-sw-line,.ia-sw-reason,.ia-sw-global,.ia-sw-note,.ia-sw-zone{margin:6px 0 0;font-size:13px;line-height:1.55;color:#525465}
+.ia-sw-global{color:#8b4737;font-weight:650}
+.ia-sw-note,.ia-sw-zone{font-size:12px;color:#657777}
+.ia-sw-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.ia-sw-form{display:grid;gap:14px;margin-top:16px;padding-top:16px;border-top:1px solid #dce2dd}
+.ia-sw-label{display:block;margin-bottom:7px;font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:#657777}
+.ia-sw-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ia-sw-chip{padding:8px 14px;border-radius:999px;border:1.5px solid #cbd0da;background:#fff;color:#22263e;font:600 13px Inter,sans-serif;cursor:pointer}
+.ia-sw-chip.is-active{background:#313c83;border-color:#313c83;color:#fff}
+.ia-sw-form input[type=datetime-local],.ia-sw-reason-input{min-height:40px;padding:0 12px;border:1px solid #bdcec5;border-radius:9px;background:#fff;color:#22263e;font:500 13px Inter,sans-serif}
+.ia-sw-reason-input{width:100%;box-sizing:border-box}
+.ia-sw-check{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.5;color:#525465;cursor:pointer}
+.ia-sw-check input{margin-top:3px}
+.ia-sw-error{margin:8px 0 0;font-size:12px;color:#8b4737;min-height:0}
+.ia-sw-submit{justify-self:start}
+.ia-sw-submit:disabled{opacity:.5;cursor:not-allowed}
+.ia-sw-banner{margin:0 0 16px;padding:11px 16px;background:#b45d47;color:#fff;border-radius:12px;font-size:13px;font-weight:650;line-height:1.45}
+@media(max-width:600px){.ia-sw-card{padding:18px}.ia-sw-actions .btn,.ia-sw-submit{width:100%;justify-content:center}.ia-sw-form input[type=datetime-local]{width:100%}}

@@ -28,6 +28,14 @@ test('El responsable es explícito: no se autoasigna al abrir y sólo el equipo 
   assert.doesNotMatch(assign, /targetId \|\| state\.actor/);
 });
 
+
+// Con la cabecera estrecha (celular o paneles abiertos) el responsable vive en «Opciones del chat»: se abre si hace falta.
+async function openOwner(page) {
+  const owner = page.locator('[data-thread-owner]');
+  if (!(await owner.isVisible())) await page.locator('[data-thread-options]').click();
+  await owner.click();
+}
+
 for (const width of [1440, 1024, 390]) {
   test('Asigna a recepción o dentista sin perder Agendar cita a '+width+' px', async (t) => {
     if (!browser) return t.skip('Se necesita Chromium.');
@@ -38,11 +46,19 @@ for (const width of [1440, 1024, 390]) {
     await page.waitForSelector('html[data-preview-ready=true]');
     const assign=page.locator('[data-thread-assign]'), menu=page.locator('[data-thread-more]'), schedule=page.locator('[data-thread-primary-action="schedule"]');
     const ownerButton = page.getByRole('button',{name:/Atiende el chat/});
-    async function checkWidth() {
+    // En celular el responsable vive dentro del panel «Opciones del chat» (botón de engrane); en escritorio está en la cabecera.
+    const compact = width < 500;
+    async function showOwner() {
+      if (!(await ownerButton.isVisible())) await page.locator('[data-thread-options]').click();
+      assert.equal(await ownerButton.isVisible(), true, 'el responsable es alcanzable a '+width+' px');
+    }
+    async function checkWidth(options = {}) {
       const header = await page.locator('.smyl-inbox-thread-head').boundingBox();
       const identity = page.locator('[data-inbox-context]');
-      assert.ok(await identity.evaluate(el => el.nextElementSibling?.matches('[data-thread-owner]')), 'Ficha y asignación son controles vecinos e independientes');
-      for(const control of [identity,ownerButton,schedule]) {
+      if (compact) { if (!options.ownerHidden) await showOwner(); }
+      else assert.ok(await identity.evaluate(el => el.nextElementSibling?.matches('[data-thread-owner]')), 'Ficha y asignación son controles vecinos e independientes');
+      assert.ok(await identity.evaluate((el, owner) => !el.contains(owner), await page.locator('[data-thread-owner]').elementHandle()), 'Ficha y asignación son controles independientes (uno no contiene al otro)');
+      for(const control of (compact ? [identity,schedule] : [identity,ownerButton,schedule])) {
         const box=await control.boundingBox(); assert.ok(box && box.width>0 && box.x>=header.x-1 && box.x+box.width<=header.x+header.width+1,'Header action fits at '+width);
       }
       if (header.width > 830) {
@@ -52,6 +68,7 @@ for (const width of [1440, 1024, 390]) {
     }
     await checkWidth();
     const privateNote = page.locator('[data-owner-dialog] [data-handoff]');
+    await showOwner();
     await ownerButton.click();
     assert.equal(await privateNote.isVisible(), false);
     await assign.selectOption('desk-preview');
@@ -74,12 +91,14 @@ for (const width of [1440, 1024, 390]) {
     assert.ok(await ownerButton.evaluate(el => document.activeElement === el));
     assert.ok(!(await page.locator('[data-thread-messages]').innerText()).includes('Llamar después de las cuatro.'));
     assert.equal(await page.locator('[name=message]').inputValue(), '');
+    await showOwner();
     await ownerButton.click();
     await assign.selectOption('owner-preview');
     await dialog.locator('[type=submit]').click();
     await page.waitForFunction(() => document.querySelector('[data-thread-owner-name]').textContent === 'Dra. Mariana');
     assert.equal(await privateNote.isVisible(),false);
     assert.equal(await noteText.textContent(),'');
+    await showOwner();
     await ownerButton.click();
     await assign.selectOption('');
     await dialog.locator('[type=submit]').click();
@@ -87,7 +106,7 @@ for (const width of [1440, 1024, 390]) {
     assert.equal(await menu.count(), 0);
     const expand=page.locator('[data-inbox-context]');
     if (await expand.getAttribute('aria-expanded')!=='true') await expand.click();
-    await checkWidth(); assert.deepEqual(errors,[]);
+    await checkWidth({ ownerHidden: true }); assert.deepEqual(errors,[]); // con la ficha abierta (pantalla completa en celular) el panel de opciones queda tapado
   });
 }
 
@@ -110,18 +129,19 @@ for (const width of [1440, 820, 390]) test('Filtros sólo contiene estado y cana
   const panel = page.locator('[data-inbox-filter-panel]');
   await panel.waitFor();
   assert.equal(await page.locator('[data-inbox-notify],[data-inbox-operations],[data-inbox-bulk],[data-inbox-refresh]').count(),0);
-  const paused=panel.locator('[data-inbox-filter="paused"]'), channel=panel.getByRole('combobox');
-  assert.equal(await panel.getByRole('button').count(),3);
-  assert.equal(await channel.inputValue(),'');
+  const paused=panel.locator('[data-inbox-filter="paused"]'), channel=panel.locator('[data-channel-value="instagram"]');
+  assert.equal(await panel.getByRole('button').count(),6);
+  assert.equal(await panel.locator('[data-channel-value]').count(),3);
+  assert.equal(await channel.getAttribute('aria-pressed'),'false');
   assert.equal(await panel.evaluate(el=>el.contains(document.activeElement)),true);
   await paused.click();
   assert.equal(await paused.getAttribute('aria-pressed'),'true');
-  await channel.selectOption('instagram');
+  await channel.click();
   await paused.click();
   assert.equal(await paused.getAttribute('aria-pressed'),'false');
-  assert.equal(await channel.inputValue(),'instagram');
+  assert.equal(await channel.getAttribute('aria-pressed'),'true');
   assert.equal(await filters.getAttribute('data-active'),'true');
-  await channel.selectOption('');
+  await channel.click();
   assert.equal(await filters.getAttribute('data-active'),'false');
   const box=await panel.boundingBox(); assert.ok(box.x>=0 && box.x+box.width<=width+1);
   if(process.env.SMYL_QA_SHOTS) await panel.screenshot({path:process.env.SMYL_QA_SHOTS+'/inbox-filtros-'+width+'.png'});
@@ -218,7 +238,7 @@ test('Al transferir su conversación el agente pierde el hilo incluso desde el e
   await page.goto(fixture.href+'&chat=agent');
   await page.waitForSelector('html[data-preview-ready=true]');
   const assign=page.locator('[data-thread-assign]');
-  await page.locator('[data-thread-owner]').click();
+  await openOwner(page);
   await assign.selectOption('desk-preview');
   await page.locator('[data-chat-transfer] textarea').fill('Contactar por la tarde');
   await page.locator('[data-chat-transfer] [type=submit]').click();
@@ -292,17 +312,19 @@ test('Dos sesiones comparten el relevo sin publicar la nota en el canal del paci
   const sender=await login('owner-preview'), recipient=await login('desk-preview');
   assert.equal(await recipient.locator('.smyl-inbox-row').count(),0);
   const select=sender.locator('[data-thread-assign]');
-  await sender.locator('[data-thread-owner]').click();
+  await openOwner(sender);
   await select.selectOption('desk-preview');
   await sender.locator('[data-chat-transfer] textarea').fill('Pidió que le llamemos por la tarde.');
   await sender.getByRole('button',{name:'Cancelar',exact:true}).click();
+  // El diálogo se retira en su evento «close» (asíncrono): esperar a que desaparezca evita ver dos a la vez.
+  await sender.waitForFunction(()=>!document.querySelector('[data-chat-transfer]'));
   assert.equal(owner,'owner-preview'); assert.equal(version,1);
   await select.selectOption('desk-preview');
   await sender.locator('[data-chat-transfer] textarea').fill('Pidió que le llamemos por la tarde.');
   await sender.locator('[data-chat-transfer] [type=submit]').click();
   await sender.waitForFunction(()=>document.querySelector('[data-inbox-thread]').hidden);
   await recipient.evaluate(()=>window.SmylInbox.open('c-preview'));
-  await recipient.locator('[data-thread-owner]').click();
+  await openOwner(recipient);
   assert.equal(await recipient.locator('[data-handoff] p').innerText(),note);
   assert.ok(!(await recipient.locator('[data-thread-messages]').innerText()).includes(note));
   assert.equal(sends,0);

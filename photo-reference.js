@@ -5,7 +5,7 @@
   async function choose(photos){
     if(photos.length<2)return defaultView(photos);
     return new Promise(resolve=>{
-      const d=document.createElement('dialog');d.style.cssText='box-sizing:border-box;font:16px/1.5 system-ui;max-width:560px;width:90vw;max-height:85dvh;overflow:auto;background:#101b26;color:white;border:1px solid #456070;border-radius:16px;padding:20px';
+      const d=document.createElement('dialog');d.style.cssText='box-sizing:border-box;font:16px/1.5 system-ui;max-width:560px;width:90vw;max-height:85dvh;overflow:auto;background:#101b26;color:white;border:1px solid #444a71;border-radius:16px;padding:20px';
       const title=document.createElement('h2');title.textContent='Diseño con varias vistas';d.append(title);
       const p=document.createElement('p');p.textContent='Elige la foto más clara como referencia. La intraoral es opcional. Cada generación requiere tu autorización; las vistas no permiten conocer con exactitud la anatomía oculta.';d.append(p);
       const select=document.createElement('select');select.setAttribute('aria-label','Fotografía de referencia');select.style.cssText='width:100%;padding:12px;font:inherit';

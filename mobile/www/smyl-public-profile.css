@@ -10,8 +10,8 @@
   --profile-primary: var(--smyl-primary, #194391);
   --profile-primary-hover: var(--smyl-primary-hover, #12366f);
   --profile-primary-subtle: var(--smyl-primary-subtle, #edf3fc);
-  --profile-accent: var(--smyl-accent, #0f766e);
-  --profile-accent-subtle: var(--smyl-accent-subtle, #eaf7f5);
+  --profile-accent: var(--smyl-accent, #142bc3);
+  --profile-accent-subtle: var(--smyl-accent-subtle, #eaf0f7);
   --profile-success: var(--smyl-success, #087a55);
   --profile-warning: var(--smyl-warning, #966300);
   --profile-danger: var(--smyl-danger, #b42318);
@@ -214,7 +214,7 @@ img { max-width: 100%; }
   font-size: 11px;
   font-weight: 600;
 }
-.trust span[data-verified="true"] { border-color: #a7d6c5; background: var(--profile-accent-subtle); color: #0b625a; }
+.trust span[data-verified="true"] { border-color: #a7d6c5; background: var(--profile-accent-subtle); color: #0f25af; }
 .trust span[data-verified="false"] { border-style: dashed; }
 .hero-cta-panel {
   align-self: stretch;
@@ -461,7 +461,7 @@ img { max-width: 100%; }
 .fine { margin-top: 10px; color: var(--profile-muted); font-size: 10px; line-height: 1.5; text-align: left; }
 .honeypot { position: absolute !important; width: 1px !important; height: 1px !important; overflow: hidden !important; clip-path: inset(50%) !important; white-space: nowrap !important; }
 .error { border-left: 3px solid var(--profile-danger); border-radius: 6px; padding: 9px 10px; background: #fff3f1; color: #8e241d; font-size: 12px; }
-.result { padding: 20px; border-radius: 8px; background: var(--profile-accent-subtle); color: #0c5c55; text-align: left; }
+.result { padding: 20px; border-radius: 8px; background: var(--profile-accent-subtle); color: #1226a8; text-align: left; }
 .result strong { display: block; font-size: 15px; }
 .result p { margin: 6px 0 0; font-size: 12px; line-height: 1.6; }
 

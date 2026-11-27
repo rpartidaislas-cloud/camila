@@ -127,7 +127,9 @@ test('migración: datos de la factura, bitácora solo de servidor y candado de c
 test('Cobros: timbrar, verificar y descargar desde la lista de borradores', () => {
   const js = read('smyl-finance.js');
   assert.match(js, /data-stamp-cfdi/);
-  assert.match(js, /d\.sandbox_status==='passed'&&\(d\.status==='draft'\|\|d\.status==='rejected'\)&&pacConnected\(\)/);
+  // Un borrador (o uno rechazado) ya validado y con Facturapi conectado ofrece «Timbrar».
+  assert.match(js, /open=d\.status==='draft'\|\|d\.status==='rejected',connected=pacConnected\(\)/);
+  assert.match(js, /if\(open\)\{\s*if\(d\.sandbox_status==='passed'&&connected\)\{main=button\('data-stamp-cfdi','Timbrar'\);menu\.push\(item\('data-validate-cfdi','Validar de nuevo'\)\);\}/);
   assert.match(js, /data-reconcile-cfdi/);
   assert.match(js, /data-download-cfdi/);
   assert.match(js, /facturapiAction\(\{action:'stamp',draft_id:draft\.id,payment_form:form\}\)/);

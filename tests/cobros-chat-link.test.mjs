@@ -45,7 +45,7 @@ test('Cobros ya no tiene pestaña Plantillas (viven en Mensajería) y el catálo
     assert.doesNotMatch(f, /data-finance-panel="templates"/);
     assert.doesNotMatch(f, /T\.summary\('pagos'\)/);
     const t = read(base + 'smyl-templates.js');
-    assert.match(t, /summary: summary, request: requestTemplate, show: showTemplates/);
+    assert.match(t, /summary: summary, request: requestTemplate, requestMany: requestMany, show: showTemplates/);
     assert.match(t, /onChange: function \(fn\)/);
   }
   const catalog = (await import('../smyl-template-catalog.js')).default;
@@ -162,13 +162,14 @@ test('el envío de cobros revisa bloqueo, horario y tope semanal, y registra el 
     assert.match(i, /fuera del horario recomendado \(9:00 a 20:00\)/);
     assert.match(i, /lastDays < 7 && !window\.confirm\('Ya se envió un recordatorio de cobro/);
     assert.match(i, /if \(isCobro\) pending\.onSent = function \(\) \{ logCobroReminder\(conversation, template\.name\); \};/);
-    assert.match(i, /pending\.reconciled = true;\s*if \(typeof pending\.onSent === 'function'\)/);
+    assert.match(i, /pending\.reconciled = true;\s*(?:pending\.onMediaConfirmed\?\.\(\);\s*)?if \(typeof pending\.onSent === 'function'\)/);
     assert.match(i, /collect: async function \(conversationId\)/);
   }
 });
 
 test('el chat no toca tablas ni el tenant: usa SmylFinance.contactContext', () => {
-  for (const base of ['', 'mobile/www/']) assert.doesNotMatch(read(base + 'smyl-inbox.js'), /tenant_id|window\.tenantId|smyl_collection_(prefs|reminders)'\)/);
+  // (única lectura permitida de window.tenantId: la llave de caché de la revisión de archivos del paciente, sin relación con Finanzas)
+  for (const base of ['', 'mobile/www/']) assert.doesNotMatch(read(base + 'smyl-inbox.js'), /tenant_id|window\.tenantId(?!,conv\.id)|smyl_collection_(prefs|reminders)'\)/);
 });
 
 test('Finanzas: filtro «Vencidas» de Por cobrar sin envíos automáticos (cada recordatorio pasa por el chat)', () => {

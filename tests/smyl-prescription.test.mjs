@@ -67,6 +67,17 @@ test("payload y hoja: solo viajan los campos conocidos y la hoja sale de la copi
   assert.deepEqual(hoja.legends, [], "el módulo no inventa leyendas legales");
 });
 
+test("reutilizar una receta crea un borrador editable sin modificar la copia congelada", () => {
+  const row = { snapshot: { diagnosis: "Dx anterior", indications: "Con alimentos", items: [{ ...ok, duration_days: undefined, duration: "7 días" }] } };
+  const draft = M.draftFromPrescription(row);
+  assert.equal(draft.items.length, 1);
+  assert.equal(draft.items[0].duration_days, 7);
+  assert.equal(draft.diagnosis, "Dx anterior");
+  draft.items[0].generic = "Otro";
+  assert.equal(row.snapshot.items[0].generic, "Amoxicilina", "la receta emitida no se toca");
+  assert.deepEqual(M.draftFromPrescription(null), { items: [], diagnosis: "", indications: "" });
+});
+
 test("migración: emisor siempre la sesión, receta inmutable, folio consecutivo y permisos cerrados", () => {
   assert.match(sql, /user_id = auth\.uid\(\) and active/);
   assert.match(sql, /'clinical\.write'/);
@@ -91,8 +102,8 @@ test("interfaz: se carga en la app, la consulta abre la receta y nada se interpr
   assert.match(read("smyl-consultorio.js"), /window\.SmylPrescriptions\.open\(\{ patientId: p\.id/);
   const app = read("app.html"), sw = read("sw.js");
   for (const f of ["smyl-prescription-model.js", "smyl-prescription-print.js", "smyl-prescriptions.js", "smyl-prescription.css"]) {
-    assert.ok(app.includes(f + "?v=1"), `${f} en app.html`);
-    assert.ok(sw.includes(`/camila/${f}?v=1`), `${f} en sw.js`);
+    assert.ok(app.includes(f + "?v=2"), `${f} en app.html`);
+    assert.ok(sw.includes(`/camila/${f}?v=2`), `${f} en sw.js`);
     assert.equal(read(f), read("mobile/www/" + f), `${f} móvil igual`);
   }
   for (const f of ["app.html", "sw.js", "smyl-consultorio.js"]) assert.equal(read(f), read("mobile/www/" + f), `${f} móvil igual`);

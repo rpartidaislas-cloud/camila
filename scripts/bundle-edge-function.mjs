@@ -37,6 +37,8 @@ const normalizeImport = (line) => line.trim().replace(/'/g, '"').replace(/;$/, '
 function stripExports(source) {
   return source
     .replace(/^export\s+\{[^}]*\};?\s*$/gm, '')
+    // «export default x;» (p. ej. los módulos generados desde archivos UMD) no tiene sentido dentro del archivo único: se quita.
+    .replace(/^export\s+default\s+[^;\n]+;?\s*$/gm, '')
     .replace(/^export\s+(?=(?:async\s+)?function|const|let|interface|type|class)/gm, '');
 }
 
@@ -100,7 +102,16 @@ function loadShared(file) {
   // Los .mjs no declaran tipos; el bundle es TypeScript estricto, así que se anotan los parámetros sueltos.
   if (file.endsWith('.mjs')) {
     code = code.replace(/function\s*(\w*)\s*\(([^)]*)\)/g, (match, name, params) => {
-      const typed = params.split(',').map((param) => (/^\s*\w+\s*$/.test(param) ? param.trim() + ': any' : param.trim())).filter(Boolean).join(', ');
+      // Se parte por comas de primer nivel (no las de dentro de llaves, corchetes o paréntesis) y solo se anotan los parámetros simples.
+      // Un parámetro como `{ cer, key, password } = {}` se deja tal cual: partirlo por comas convertía `key` en `key: any`,
+      // que en JavaScript renombra la variable y rompe la función.
+      const parts = []; let depth = 0, current = '';
+      for (const ch of params) {
+        if ('{[('.includes(ch)) depth += 1; else if ('}])'.includes(ch)) depth -= 1;
+        if (ch === ',' && depth === 0) { parts.push(current); current = ''; } else current += ch;
+      }
+      parts.push(current);
+      const typed = parts.map((param) => (/^\s*\w+\s*$/.test(param) ? param.trim() + ': any' : param.trim())).filter(Boolean).join(', ');
       return 'function ' + name + '(' + typed + ')';
     });
   }

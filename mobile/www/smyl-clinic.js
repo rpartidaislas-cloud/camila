@@ -276,6 +276,7 @@
     current.dirty = JSON.stringify(formDocument()) !== current.saved;
     document.getElementById('clinic-review-confirm').checked = false;
     if (current.aiDraft) clearAIDraft('La información cambió. Genera otro borrador si quieres volver a usar la IA.');
+    planTotals();
     status();
   }
   function status() {
@@ -288,6 +289,7 @@
     document.getElementById('clinic-save').disabled = !current.ready || !current.canWrite || current.saving || (!current.dirty && !!current.row);
     document.getElementById('clinic-review').disabled = !current.ready || !current.canWrite || !current.canApprove || current.saving || (savedReview && !current.dirty);
     document.getElementById('clinic-add').disabled = !current.ready || !current.canWrite || current.saving || document.querySelectorAll('.clinic-treatment').length >= 20;
+    var addServiceButton = document.getElementById('clinic-add-service'); if (addServiceButton) addServiceButton.disabled = document.getElementById('clinic-add').disabled;
     var proposal = document.getElementById('clinic-proposal');
     if (proposal) proposal.disabled = !current.canApprove || !savedReview || current.dirty || current.saving;
     var resume = document.getElementById('clinic-portal-return');
@@ -316,6 +318,85 @@
     model.surfaces.forEach(function(entry){var label=el('label'),input=el('input');input.type='checkbox';input.value=entry[0];input.checked=surfaces.has(entry[0]);input.onchange=function(){if(input.checked)surfaces.add(input.value);else surfaces.delete(input.value);};label.append(input,document.createTextNode(entry[0]+' · '+entry[1]));surfaceBox.append(label);});
     var actions=el('div','clinic-actions');actions.append(button('Cancelar',function(){dialog.close();}),button('Aplicar selección',function(){row.dataset.teeth=JSON.stringify(Array.from(teeth));row.dataset.surfaces=JSON.stringify(teeth.size?Array.from(surfaces):[]);treatmentSummary(row);dialog.close();changed();},'btn btn-primary'));dialog.append(surfaceBox,actions);document.body.append(dialog);dialog.addEventListener('close',function(){dialog.remove();},{once:true});dialog.showModal();
   }
+
+  // ── Plan con precios ─────────────────────────────────────────────────────────────────────────────────────────
+  // El dentista ve cuánto cuesta lo que indica. El precio sale del catálogo (el de la sucursal activa si tiene uno propio); lo que no tiene
+  // servicio del catálogo es una indicación sin cobro y no pasa al presupuesto.
+  function planMoney(v) { return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(v); }
+  function unitPrice(serviceId) {
+    var s = (current.services || []).find(function (x) { return x.id === serviceId; });
+    if (!s) return null;
+    var scope = window.SmylBranchScope && typeof SmylBranchScope.get === 'function' ? SmylBranchScope.get() : null;
+    if (scope && scope !== SmylBranchScope.ALL) {
+      var own = (current.branchPrices || []).find(function (x) { return x.service_id === serviceId && x.branch_id === scope; });
+      if (own) return Number(own.price);
+    }
+    return s.reference_price == null ? null : Number(s.reference_price);
+  }
+  function rowLine(row) {
+    var sid = row.dataset.serviceId;
+    if (!sid) return { billable: false };
+    var snap = row.dataset.serviceSnapshot ? JSON.parse(row.dataset.serviceSnapshot) : null;
+    var qty = model.quantity({ service_snapshot: snap, teeth: JSON.parse(row.dataset.teeth || '[]'), surfaces: JSON.parse(row.dataset.surfaces || '[]') });
+    var price = unitPrice(sid);
+    return { billable: true, price: price, qty: qty, total: price == null ? null : price * qty };
+  }
+  function planTotals() {
+    if (!current || !current.ready) return;
+    var rows = Array.from(document.querySelectorAll('.clinic-treatment')), byPhase = {}, total = 0, free = 0, unpriced = 0;
+    rows.forEach(function (row) {
+      var line = rowLine(row), out = row.querySelector('.clinic-treatment-price'), phase = (row.querySelector('[data-field="phase"]') || {}).value || 'treat';
+      if (!line.billable) { free++; if (out) out.textContent = 'Indicación sin cobro: no pasa al presupuesto. Elige un servicio del catálogo si quieres cobrarla.'; return; }
+      if (line.price == null) { unpriced++; if (out) out.textContent = 'Este servicio no tiene precio. Defínelo en Servicios y tarifas para poder presupuestarlo.'; return; }
+      byPhase[phase] = (byPhase[phase] || 0) + line.total; total += line.total;
+      if (out) out.textContent = (line.qty > 1 ? planMoney(line.price) + ' × ' + line.qty + ' = ' : '') + planMoney(line.total) + (line.qty === 1 ? ' · precio del catálogo' : '');
+    });
+    var box = document.getElementById('clinic-plan-total');
+    if (!box) return;
+    box.replaceChildren();
+    var head = el('div', 'clinic-plan-total-head');
+    head.append(el('span', '', 'Total estimado del plan'), el('strong', '', planMoney(total)));
+    box.append(head);
+    model.phases.forEach(function (ph) { if (byPhase[ph[0]]) { var l = el('p', 'clinic-plan-total-line'); l.append(el('span', '', ph[1]), el('b', '', planMoney(byPhase[ph[0]]))); box.append(l); } });
+    var notes = [];
+    if (free) notes.push(free + (free === 1 ? ' indicación sin cobro' : ' indicaciones sin cobro') + ' (no pasan al presupuesto)');
+    if (unpriced) notes.push(unpriced + (unpriced === 1 ? ' servicio sin precio' : ' servicios sin precio'));
+    if (notes.length) box.append(el('p', 'clinic-plan-total-note', notes.join(' · ')));
+    box.hidden = !rows.length;
+  }
+  function openServicePicker() {
+    if (!current || !current.ready || !current.canWrite) return;
+    var dlg = el('dialog', 'proposal-service-dialog'), form = el('form'); form.method = 'dialog';
+    var head = el('header'); head.append(el('h2', '', 'Agregar servicio'), el('p', '', 'Elige de los servicios dados de alta en tu clínica. Cada uno trae su precio.'));
+    var search = el('input', 'proposal-service-search'); search.type = 'search'; search.placeholder = 'Buscar: limpieza, implante, resina…'; search.setAttribute('aria-label', 'Buscar servicio');
+    var list = el('div', 'proposal-service-list'), status = el('p', 'proposal-service-empty'); status.setAttribute('role', 'status'); status.style.cssText = 'flex:1;margin:0;padding:0;align-self:center;text-align:left';
+    var foot = el('footer'), done = button('Listo', function () { dlg.close(); }, 'btn btn-primary'); foot.append(status, done);
+    form.append(head, search, list, foot); dlg.append(form); document.body.append(dlg);
+    dlg.addEventListener('close', function () { dlg.remove(); });
+    var services = (current.services || []).filter(function (x) { return x.active && x.name; }), cats = window.SmylServiceCatalogModel && SmylServiceCatalogModel.CATEGORIES || [];
+    function catLabel(k) { var f = cats.filter(function (c) { return c[0] === k; })[0]; return f ? f[1] : (k || 'Otros'); }
+    function pick(service) {
+      if (document.querySelectorAll('.clinic-treatment').length >= 20) { status.textContent = 'El plan admite hasta 20 tratamientos.'; return; }
+      var label = service.patient_name || service.name;
+      addTreatment({ service_id: service.id, service_revision: service.catalog_revision, service_snapshot: service, name: label, phase: 'treat', area: '', notes: '', teeth: [], surfaces: [] });
+      changed(); status.textContent = '✓ Agregado: ' + label + '. Puedes agregar otro.';
+    }
+    function render() {
+      var term = search.value.trim().toLocaleLowerCase('es-MX'), shown = services.filter(function (x) { return !term || (x.name + ' ' + (x.patient_name || '') + ' ' + (x.category || '')).toLocaleLowerCase('es-MX').includes(term); });
+      list.replaceChildren();
+      if (!shown.length) { list.append(el('p', 'proposal-service-empty', services.length ? 'Ningún servicio coincide con la búsqueda.' : 'Todavía no hay servicios activos. Dalos de alta en Servicios y tarifas.')); return; }
+      var last = null;
+      shown.forEach(function (service) {
+        if (service.category !== last) { list.append(el('div', 'proposal-service-group', catLabel(service.category))); last = service.category; }
+        var btn = el('button', 'proposal-service-option'); btn.type = 'button';
+        var price = unitPrice(service.id);
+        btn.append(el('strong', '', service.patient_name || service.name), el('small', '', service.name !== service.patient_name ? service.name : ' '), el('span', 'proposal-service-price', price == null ? 'Sin precio' : planMoney(price)));
+        btn.addEventListener('click', function () { pick(service); }); list.append(btn);
+      });
+    }
+    search.addEventListener('input', render); render(); dlg.showModal(); search.focus();
+  }
+  function ctxCanWrite() { return !!(current && current.canWrite); }
   function addTreatment(item) {
     item = item || {};
     if (document.querySelectorAll('.clinic-treatment').length >= 20) return;
@@ -325,11 +406,12 @@
     row.dataset.serviceRevision = item.service_revision || '';
     row.dataset.serviceSnapshot = item.service_snapshot ? JSON.stringify(model.snapshot(item.service_snapshot)) : '';
     row.dataset.teeth = JSON.stringify(item.teeth || []);row.dataset.surfaces = JSON.stringify(item.surfaces || []);
-    var serviceField=el('div','clinic-field'),serviceLabel=el('label','','Servicio del catálogo · opcional'),service=el('select');service.dataset.field='service';serviceLabel.htmlFor='clinic-item-'+rowSequence+'-service';service.id=serviceLabel.htmlFor;service.append(new Option('Indicación clínica sin concepto comercial',''));
+    var serviceField=el('div','clinic-field'),serviceLabel=el('label','','Servicio del catálogo'),service=el('select');service.dataset.field='service';serviceLabel.htmlFor='clinic-item-'+rowSequence+'-service';service.id=serviceLabel.htmlFor;service.append(new Option('Indicación sin cobro (no pasa al presupuesto)',''));
     (current.services||[]).forEach(function(s){var option=new Option(s.patient_name||s.name,s.id);option.disabled=!s.active;service.append(option);});
     if(item.service_id&&!Array.from(service.options).some(function(o){return o.value===item.service_id;})){var historical=new Option((item.service_snapshot&&item.service_snapshot.patient_name)||item.name,item.service_id);historical.disabled=true;service.append(historical);}
     service.value=item.service_id||'';service.onchange=function(){var selected=(current.services||[]).find(function(s){return s.id===service.value;});if(!selected){row.dataset.serviceId='';row.dataset.serviceRevision='';row.dataset.serviceSnapshot='';return changed();}row.dataset.serviceId=selected.id;row.dataset.serviceRevision=String(selected.catalog_revision);row.dataset.serviceSnapshot=JSON.stringify(model.snapshot(selected));row.querySelector('[data-field="name"]').value=selected.patient_name||selected.name;changed();};serviceField.append(serviceLabel,service);row.append(serviceField);
     var phaseField=el('div','clinic-field'),phaseLabel=el('label','','Fase'),phase=el('select');phase.id='clinic-item-'+rowSequence+'-phase';phaseLabel.htmlFor=phase.id;phase.dataset.field='phase';model.phases.forEach(function(entry){phase.add(new Option(entry[1],entry[0]));});phase.value=item.phase||'treat';phaseField.append(phaseLabel,phase);row.append(phaseField);
+    var priceLine=el('p','clinic-treatment-price');priceLine.setAttribute('aria-live','polite');row.append(priceLine);
     [['Tratamiento o indicación','name',200],['Zona o piezas · opcional','area',200],['Detalles · opcional','notes',2000]].forEach(function (entry) {
       var f = field(entry[0], 'clinic-item-' + rowSequence + '-' + entry[1], item[entry[1]], entry[2], entry[1] === 'notes');
       f.lastElementChild.dataset.field = entry[1]; row.append(f);
@@ -338,6 +420,7 @@
     var remove = button('Quitar', function () { row.remove(); changed(); }, 'clinic-remove');
     remove.setAttribute('aria-label', 'Quitar este tratamiento'); row.append(remove);
     document.getElementById('clinic-treatments').append(row);
+    planTotals();
   }
   function planContext(ctx) {
     if (!ctx || current !== ctx || !ctx.ready || ctx.saving || ctx.aiBusy) return {error:'El plan no está listo.'};
@@ -452,8 +535,11 @@
     var generate=button('Preparar borrador con IA',generateAIDraft,'btn btn-secondary');generate.id='clinic-ai-generate';
     var aiResults=el('div','clinic-ai-results');aiResults.id='clinic-ai-results';ai.append(consent,aiState,generate,aiResults);
     var list = el('div'); list.id = 'clinic-treatments';
-    var add = button('+ Añadir tratamiento', function () { addTreatment(); changed(); document.querySelector('.clinic-treatment:last-child input').focus(); }); add.id = 'clinic-add';
-    form.append(plan, ai, list, add);
+    var add = button('+ Indicación sin cobro', function () { addTreatment(); changed(); document.querySelector('.clinic-treatment:last-child input').focus(); }); add.id = 'clinic-add';
+    var addService = button('+ Agregar servicio', openServicePicker, 'btn btn-primary'); addService.id = 'clinic-add-service'; addService.disabled = !ctxCanWrite();
+    var addRow = el('div', 'clinic-add-row'); addRow.append(addService, add);
+    var totals = el('section', 'clinic-plan-total'); totals.id = 'clinic-plan-total'; totals.hidden = true; totals.setAttribute('aria-live', 'polite');
+    form.append(plan, ai, list, addRow, totals);
     var foot = el('div', 'clinic-savebar');
     var saveState = el('p'); saveState.id = 'clinic-save-status'; saveState.setAttribute('role', 'status');
     var actions = el('div', 'clinic-actions');
@@ -467,7 +553,7 @@
       document.getElementById('clinic-review-dialog').showModal();
     }, 'btn btn-primary'); review.id = 'clinic-review';
     actions.append(save, review); foot.append(saveState, actions); form.append(foot);
-    var proposal = button('Preparar presupuesto · opcional', function () { if (window.SmylProposals) SmylProposals.forPatient(current.patient); });
+    var proposal = button('Preparar presupuesto · opcional', function () { if (window.SmylCaseWorkspace && typeof SmylCaseWorkspace.openQuote === 'function' && SmylCaseWorkspace.openQuote(current.patient)) return; if (window.SmylProposals) SmylProposals.forPatient(current.patient); });
     proposal.id = 'clinic-proposal'; foot.append(proposal);
     host.append(form);
     doc.treatments.forEach(addTreatment);
@@ -500,10 +586,18 @@
     document.getElementById('clinic-review-dialog').close();
     document.getElementById('clinic-feedback').replaceChildren();
     try {
-      var row = await checked(sb.rpc('smyl_save_clinical_plan_v2', {
-        p_tenant_id: ctx.tenant, p_patient_id: ctx.patient,
-        p_expected_revision: ctx.row ? ctx.row.revision : 0, p_document: doc, p_review: review
-      }));
+      var args = { p_tenant_id: ctx.tenant, p_patient_id: ctx.patient,
+        p_expected_revision: ctx.row ? ctx.row.revision : 0, p_document: doc, p_review: review };
+      var activeTreatment = window.SmylTreatments && window.SmylTreatments.current ? window.SmylTreatments.current(ctx.patient) : null;
+      var treatmentId = (ctx.row && ctx.row.treatment_id) || (activeTreatment && activeTreatment.id) || null;
+      var row;
+      if (treatmentId) {
+        try { row = await checked(sb.rpc('smyl_save_clinical_plan_v3', Object.assign({}, args, { p_treatment_id: treatmentId }))); }
+        catch (versionError) {
+          if (!/smyl_save_clinical_plan_v3|PGRST202|42883|schema cache/i.test(String((versionError && versionError.message) || '') + ' ' + String((versionError && versionError.code) || ''))) throw versionError;
+        }
+      }
+      if (!row) row = await checked(sb.rpc('smyl_save_clinical_plan_v2', args));
       if (Array.isArray(row)) row = row[0];
       if (!row || row.patient_id !== ctx.patient || row.tenant_id !== ctx.tenant || !row.revision) throw new Error('Unconfirmed save');
       if (current !== ctx || !activeForm.isConnected) return;
@@ -603,8 +697,10 @@
       }
       var loaded = await Promise.all([
         checked(sb.from('smyl_clinical_plans').select('*').eq('tenant_id', ctx.tenant).eq('patient_id', p.id).maybeSingle()),
-        checked(sb.from('smyl_services').select('*').eq('tenant_id',ctx.tenant).order('name'))
-      ]), data=loaded[0];ctx.services=loaded[1]||[];
+        checked(sb.from('smyl_services').select('*').eq('tenant_id',ctx.tenant).order('name')),
+        // Precios por sucursal: si no se pueden leer, el plan usa el precio de lista.
+        Promise.resolve(checked(sb.from('smyl_service_branch_prices').select('service_id,branch_id,price').eq('tenant_id',ctx.tenant))).catch(function(){return [];})
+      ]), data=loaded[0];ctx.services=loaded[1]||[];ctx.branchPrices=loaded[2]||[];
       if (current !== ctx || sequence !== token || tenantId !== ctx.tenant || !content.isConnected) return true;
       ctx.row = data; ctx.ready = true; renderEditor();
       if (!ctx.canWrite) feedback.append(notice('Consulta de solo lectura. Tu rol no puede modificar este plan.'));
@@ -977,9 +1073,37 @@
         var review = capturePatientReview(tenant, patient);
         var mounted = !!document.getElementById('clinic-form');
         var doc = ctx.ready && mounted ? formDocument() : null;
-        return { ready: !!review, revision: review ? review.revision : null, dirty: ctx.dirty || ctx.saving,
+        var planItems = (doc && doc.treatments || []).map(function (item) {
+          return Object.freeze({
+            id: item.id || '', name: String(item.name || '').trim(), phase: item.phase || '',
+            area: String(item.area || '').trim(), teeth: Array.isArray(item.teeth) ? item.teeth.slice(0, 32) : [],
+            surfaces: Array.isArray(item.surfaces) ? item.surfaces.slice(0, 32) : [],
+            serviceId: item.service_id || null, serviceRevision: item.service_revision || null
+          });
+        });
+        var orthodonticItems = (doc && doc.treatments || []).filter(function (item) {
+          var snapshot = item && item.service_snapshot || {};
+          return snapshot.category === 'orthodontic' || snapshot.specialty === 'orthodontic';
+        }).map(function (item) {
+          return Object.freeze({
+            id: item.id || '', name: String(item.name || '').trim(), phase: item.phase || '',
+            area: String(item.area || '').trim(), teeth: Array.isArray(item.teeth) ? item.teeth.slice(0, 32) : [],
+            serviceId: item.service_id || null
+          });
+        });
+        var treatment = window.SmylTreatments && window.SmylTreatments.current ? window.SmylTreatments.current(patient) : null;
+        return { ready: !!review, revision: review ? review.revision : (ctx.row && ctx.row.revision || null), dirty: ctx.dirty || ctx.saving,
           available: ctx.ready && mounted, saving: ctx.saving, saved: !!ctx.row,
-          assessment: !!doc?.assessment.trim(), treatments: !!doc?.treatments.some(function (t) { return t.name.trim(); }) };
+          assessment: !!doc?.assessment.trim(), treatments: !!doc?.treatments.some(function (t) { return t.name.trim(); }),
+          treatmentId: (ctx.row && ctx.row.treatment_id) || (treatment && treatment.id) || null,
+          treatment: treatment ? Object.freeze({ id: treatment.id, seq: treatment.seq, title: treatment.title, revision: treatment.revision || 1 }) : null,
+          items: Object.freeze(planItems),
+          orthodontics: Object.freeze({
+            eligible: !!review && orthodonticItems.length > 0,
+            items: Object.freeze(orthodonticItems),
+            revision: review ? review.revision : (ctx.row && ctx.row.revision || null),
+            reviewedAt: review ? review.reviewedAt : null
+          }) };
       },
       // options (opcional): {title, text, action} para reutilizar la guía desde otros recorridos (p. ej. Cotizar).
       focus: function (tenant, patient, resume, options) {

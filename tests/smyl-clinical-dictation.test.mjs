@@ -105,11 +105,11 @@ test('la interfaz conserva accesibilidad, móvil y movimiento reducido', () => {
   assert.match(styles, /@media\(max-width:600px\)/);
   assert.match(styles, /@media\(prefers-reduced-motion:reduce\)/);
   assert.match(styles, /#0b1b2e/);
-  assert.match(styles, /#0f766e/);
+  assert.match(styles, /#142bc3/);
 });
 
 test('web, PWA y móvil incluyen la misma integración', () => {
-  for (const asset of ['smyl-dental-dictation.css?v=2', 'smyl-dental-dictation.js?v=2', 'smyl-dental-record.js?v=35', 'smyl-case-workspace.css?v=33', 'smyl-case-workspace.js?v=47']) {
+  for (const asset of ['smyl-dental-dictation.css?v=2', 'smyl-dental-dictation.js?v=2', 'smyl-dental-record.js?v=35', 'smyl-case-workspace.css?v=36', 'smyl-case-workspace.js?v=52']) {
     assert.match(app, new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     assert.match(worker, new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }

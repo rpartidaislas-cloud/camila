@@ -101,6 +101,7 @@
     page.querySelector('[data-thread-name]').textContent = '';
     page.querySelector('[data-thread-meta]').textContent = '';
     page.querySelector('[data-thread-messages]').replaceChildren();
+    renderFileSuggestion([]);
     var owner = page.querySelector('[data-thread-assign]'); delete owner.dataset.conversationId;
     page.querySelector('[data-thread-owner-name]').textContent = 'Sin asignar';
     render();
@@ -295,7 +296,7 @@
   }
 
   function setComposerText(value) {
-    var input = document.querySelector('[name="message"]'); if (!input) return;
+    var input = document.getElementById('smyl-inbox-message'); if (!input) return;
     input.value = String(value || '').slice(0, 4000);
     fitComposerText(input); scheduleDraftSave(input.value);
     input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -366,7 +367,7 @@
   var CHANNEL_MARKS = {
     whatsapp: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#25D366"/><path fill="#fff" d="M12.04 5.2a6.8 6.8 0 0 0-5.84 10.3L5.3 18.8l3.4-.9a6.8 6.8 0 1 0 3.34-12.7Zm3.9 9.6c-.17.47-.97.9-1.35.95-.35.05-.78.07-1.26-.08-.29-.09-.66-.22-1.14-.43-2-.87-3.3-2.9-3.4-3.04-.1-.13-.81-1.08-.81-2.06 0-.98.51-1.46.7-1.66.18-.2.39-.25.52-.25h.38c.12 0 .29-.05.45.35.17.4.57 1.38.62 1.48.05.1.08.22.02.35-.07.13-.1.22-.2.33-.1.12-.2.26-.29.35-.1.1-.2.2-.09.4.12.2.52.86 1.12 1.39.77.69 1.42.9 1.62 1 .2.1.32.08.44-.05.12-.14.5-.58.64-.78.13-.2.27-.17.45-.1.18.07 1.17.55 1.37.65.2.1.33.15.38.23.05.09.05.5-.12.97Z"/></svg>',
     instagram: '<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="smyl-ig-gradient" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#FEC053"/><stop offset=".35" stop-color="#F2203E"/><stop offset=".7" stop-color="#B729A8"/><stop offset="1" stop-color="#5342D6"/></linearGradient></defs><circle cx="12" cy="12" r="12" fill="url(#smyl-ig-gradient)"/><rect x="6.3" y="6.3" width="11.4" height="11.4" rx="3.4" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="12" cy="12" r="2.7" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="15.6" cy="8.4" r="1" fill="#fff"/></svg>',
-    messenger: '<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="smyl-ms-gradient" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#0099FF"/><stop offset="1" stop-color="#A033FF"/></linearGradient></defs><circle cx="12" cy="12" r="12" fill="url(#smyl-ms-gradient)"/><path fill="#fff" d="M12 5.2c-3.9 0-6.8 2.86-6.8 6.73 0 2 .8 3.7 2.12 4.9v2.17l1.98-1.1c.8.23 1.6.34 2.7.34 3.9 0 6.8-2.86 6.8-6.7S15.9 5.2 12 5.2Z"/><path fill="#7B3CFF" d="m7.6 13.6 2.7-2.9 1.5 1.5 2.6-1.5-2.7 2.9-1.5-1.5-2.6 1.5Z"/></svg>'
+    messenger: '<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="smyl-ms-gradient" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#0059ff"/><stop offset="1" stop-color="#A033FF"/></linearGradient></defs><circle cx="12" cy="12" r="12" fill="url(#smyl-ms-gradient)"/><path fill="#fff" d="M12 5.2c-3.9 0-6.8 2.86-6.8 6.73 0 2 .8 3.7 2.12 4.9v2.17l1.98-1.1c.8.23 1.6.34 2.7.34 3.9 0 6.8-2.86 6.8-6.7S15.9 5.2 12 5.2Z"/><path fill="#7B3CFF" d="m7.6 13.6 2.7-2.9 1.5 1.5 2.6-1.5-2.7 2.9-1.5-1.5-2.6 1.5Z"/></svg>'
   };
 
   // Insignia con la marca del canal; se coloca en la esquina del avatar.
@@ -464,7 +465,8 @@
             '<div class="smyl-inbox-filter-pair" role="presentation"><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="attention">Por atender</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="mine">Mías</button></div>' +
           '</div>' +
           '<div class="smyl-inbox-branch-strip" data-inbox-branch-strip hidden></div>' +
-          '<section class="smyl-inbox-filter-panel" id="smyl-inbox-filter-panel" data-inbox-filter-panel aria-label="Filtros de conversaciones" hidden><fieldset><legend>Estado</legend><div class="smyl-inbox-secondary-filters"><button type="button" data-inbox-filter="unassigned">Sin asignar</button><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="pinned">Fijadas</button></div></fieldset><label>Canal<select data-inbox-channel aria-label="Filtrar por canal"><option value="">Todos los canales</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option></select></label></section>' +
+          '<section class="smyl-inbox-filter-panel" id="smyl-inbox-filter-panel" data-inbox-filter-panel aria-label="Filtros de conversaciones" hidden><fieldset><legend>Estado</legend><div class="smyl-inbox-secondary-filters"><button type="button" data-inbox-filter="unassigned">Sin asignar</button><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="pinned">Fijadas</button></div></fieldset><div class="smyl-inbox-channel-filter"><span class="smyl-inbox-channel-label" id="smyl-inbox-channel-label">Canal</span><div class="smyl-inbox-channel-chips" data-inbox-channel role="group" aria-labelledby="smyl-inbox-channel-label">' +
+          ['whatsapp', 'messenger', 'instagram'].map(function (c) { return '<button type="button" class="smyl-inbox-channel-chip" data-channel-value="' + c + '" aria-pressed="false" aria-label="' + channelLabel(c) + '" title="' + channelLabel(c) + '">' + CHANNEL_MARKS[c] + '</button>'; }).join('') + '</div></div></section>' +
           '<div class="smyl-inbox-queue-summary" data-inbox-queue-summary role="status" aria-live="polite"></div><div class="smyl-inbox-queue-summary" data-inbox-handoff-status role="status" aria-live="polite" hidden></div>' +
           '<div class="smyl-inbox-list" data-inbox-list></div>' +
           '<div class="smyl-inbox-bulkbar" data-inbox-bulkbar hidden></div>' +
@@ -489,7 +491,7 @@
             '<div class="smyl-inbox-transcript"><div class="smyl-inbox-thread-body" data-thread-body tabindex="-1" aria-label="Historial de mensajes" role="region"><button type="button" class="smyl-inbox-older" data-thread-older hidden>Cargar mensajes anteriores</button><div id="smyl-thread-log" data-thread-messages role="log" aria-live="polite" aria-relevant="additions text" aria-atomic="false"></div></div>' +
               '<button type="button" class="smyl-inbox-jump" data-thread-jump aria-controls="smyl-thread-log" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-6-6 6 6 6-6"/></svg><span>Ir al final</span></button><span class="smyl-inbox-sr" role="status" data-thread-jump-status></span></div>' +
             '<section class="smyl-inbox-copilot-draft" data-copilot-draft hidden></section>' +
-            '<form class="smyl-inbox-composer" data-inbox-composer><label class="smyl-inbox-sr" for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window aria-live="polite" hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><p class="smyl-compose-save-warning" data-compose-save-warning role="status" hidden>No se pudo guardar el texto para esta sesión.</p><div class="smyl-inbox-compose-surface" data-compose-surface><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-card"><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea></div><div class="smyl-inbox-compose-bar" role="group" aria-label="Acciones de respuesta"><div class="smyl-inbox-compose-primary"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-compose-tools" aria-label="Abrir herramientas de mensaje" title="Herramientas">' + composeIcon('plus') + '</button></div><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden><div class="smyl-inbox-compose-actions"><button type="button" class="smyl-inbox-compose-copilot" title="Sugerir con MILA" data-compose-copilot aria-label="Sugerir con MILA">' + composeIcon('mila') + '<span>Sugerir con MILA</span></button><button type="submit" class="smyl-inbox-send" data-compose-send aria-label="Enviar mensaje"><span>Enviar</span>' + composeIcon('send') + '</button></div></div></div><div class="smyl-inbox-compose-tools" id="smyl-inbox-compose-tools" data-compose-tools role="menu" aria-label="Herramientas de mensaje" hidden><button type="button" data-compose-attach role="menuitem" aria-label="Adjuntar archivo">' + composeIcon('attach') + '<span><strong>Adjuntar</strong><small>Foto, archivo o audio</small></span></button><button type="button" data-compose-quick role="menuitem" aria-label="Respuesta rápida">' + composeIcon('quick') + '<span><strong>Respuesta rápida</strong><small>Insertar texto del equipo</small></span></button><button type="button" data-compose-rewrite role="menuitem" aria-label="Mejorar redacción con MILA">' + composeIcon('rewrite') + '<span><strong>Mejorar redacción</strong><small>Corregir el texto actual de la caja</small></span></button><button type="button" data-compose-emoji role="menuitem" aria-label="Agregar emoji">' + composeIcon('smile') + '<span><strong>Emoji</strong><small>Insertar en el mensaje</small></span></button><button type="button" data-compose-template role="menuitem">' + composeIcon('template') + '<span><strong>Plantilla</strong><small>Mensaje aprobado</small></span></button><button type="button" data-compose-schedule role="menuitem">' + composeIcon('calendar') + '<span><strong>Programar</strong><small>Enviar después</small></span></button><button type="button" data-compose-record role="menuitem" aria-pressed="false">' + composeIcon('mic') + '<span><strong>Nota de voz</strong><small>Grabar audio</small></span></button><button type="button" data-compose-location role="menuitem" aria-label="Enviar ubicación actual">' + composeIcon('location') + '<span><strong>Enviar ubicación</strong><small>Ubicación actual o enlace de Maps</small></span></button></div></div></div></form>' +
+            '<form class="smyl-inbox-composer" data-inbox-composer><label class="smyl-inbox-sr" for="smyl-inbox-message">Responder como equipo</label><div class="smyl-inbox-window" data-wa-window aria-live="polite" hidden></div><div class="media-reply-offer" data-media-offer aria-live="polite" hidden></div><div class="smyl-inbox-compose-context" data-compose-context hidden></div><p class="smyl-compose-save-warning" data-compose-save-warning role="status" hidden>No se pudo guardar el texto para esta sesión.</p><div class="smyl-inbox-compose-surface" data-compose-surface><div class="smyl-inbox-compose-main"><div class="smyl-inbox-compose-card"><div class="smyl-inbox-message-row"><textarea id="smyl-inbox-message" name="message" rows="2" maxlength="4000" placeholder="Escribe una respuesta…"></textarea></div><div class="smyl-inbox-compose-bar" role="group" aria-label="Acciones de respuesta"><div class="smyl-inbox-compose-primary"><button type="button" class="smyl-inbox-compose-more" data-compose-more aria-expanded="false" aria-haspopup="menu" aria-controls="smyl-inbox-compose-tools" aria-label="Abrir herramientas de mensaje" title="Herramientas">' + composeIcon('plus') + '</button></div><input type="file" data-compose-file accept="image/jpeg,image/png,image/webp,video/mp4,application/pdf,text/plain,.doc,.docx,audio/aac,audio/amr,audio/mpeg,audio/mp4,audio/ogg" hidden><div class="smyl-inbox-compose-actions"><button type="button" class="smyl-inbox-compose-copilot" title="Sugerir con MILA" data-compose-copilot aria-label="Sugerir con MILA">' + composeIcon('mila') + '<span>Sugerir con MILA</span></button><button type="submit" class="smyl-inbox-send" data-compose-send aria-label="Enviar mensaje"><span>Enviar</span>' + composeIcon('send') + '</button></div></div></div><div class="smyl-inbox-compose-tools" id="smyl-inbox-compose-tools" data-compose-tools role="menu" aria-label="Herramientas de mensaje" hidden><button type="button" data-compose-attach role="menuitem" aria-label="Adjuntar archivo">' + composeIcon('attach') + '<span><strong>Adjuntar</strong><small>Foto, archivo o audio</small></span></button><button type="button" data-compose-quick role="menuitem" aria-label="Respuesta rápida">' + composeIcon('quick') + '<span><strong>Respuesta rápida</strong><small>Insertar texto del equipo</small></span></button><button type="button" data-compose-rewrite role="menuitem" aria-label="Mejorar redacción con MILA">' + composeIcon('rewrite') + '<span><strong>Mejorar redacción</strong><small>Corregir el texto actual de la caja</small></span></button><button type="button" data-compose-emoji role="menuitem" aria-label="Agregar emoji">' + composeIcon('smile') + '<span><strong>Emoji</strong><small>Insertar en el mensaje</small></span></button><button type="button" data-compose-template role="menuitem">' + composeIcon('template') + '<span><strong>Plantilla</strong><small>Mensaje aprobado</small></span></button><button type="button" data-compose-schedule role="menuitem">' + composeIcon('calendar') + '<span><strong>Programar</strong><small>Enviar después</small></span></button><button type="button" data-compose-record role="menuitem" aria-pressed="false">' + composeIcon('mic') + '<span><strong>Nota de voz</strong><small>Grabar audio</small></span></button><button type="button" data-compose-location role="menuitem" aria-label="Enviar ubicación actual">' + composeIcon('location') + '<span><strong>Enviar ubicación</strong><small>Ubicación actual o enlace de Maps</small></span></button></div></div></div></form>' +
           '</div>' +
         '</main>' +
         '<section class="smyl-inbox-offline" data-inbox-offline hidden aria-live="polite"></section>' +
@@ -563,9 +565,9 @@
   }
 
   var CLINIC_PIPELINE_STAGES = [
-    { id: 'smyl:confirmed', name: 'Cita confirmada', color: '#276B99' },
+    { id: 'smyl:confirmed', name: 'Cita confirmada', color: '#3045cf' },
     { id: 'smyl:arrived', name: 'Llegó', color: '#9A650E' },
-    { id: 'smyl:attended', name: 'Atendido', color: '#147060' }
+    { id: 'smyl:attended', name: 'Atendido', color: '#1d31b9' }
   ];
   var pendingStageMoves = new Set();
 
@@ -905,6 +907,7 @@
   }
 
   function renderFilterControls() {
+    document.querySelectorAll('[data-channel-value]').forEach(function (chip) { chip.setAttribute('aria-pressed', String(chip.dataset.channelValue === state.channel)); });
     var advanced = ['paused', 'pinned', 'unassigned'].indexOf(state.filter) !== -1 || Boolean(state.channel);
     document.querySelectorAll('[data-inbox-filter]').forEach(function (button) {
       var filter = button.dataset.inboxFilter;
@@ -1077,7 +1080,7 @@
     renderPipeline();
   }
 
-  var PIPELINE_COLORS = ['#2F6FA3', '#28796E', '#7A5AA6', '#B7791F', '#2E8B57', '#B4536A', '#5B6B7A'];
+  var PIPELINE_COLORS = ['#2F6FA3', '#394ab9', '#7A5AA6', '#B7791F', '#2E8B57', '#B4536A', '#5B6B7A'];
 
   function appointmentStatusLabel(status) {
     var labels = { confirmed:'Cita confirmada', arrived:'Llegó', checked_in:'Llegó', in_progress:'En consulta', completed:'Atendido', attended:'Atendido',
@@ -1394,7 +1397,7 @@
       var localEcho = false;
       if (item.client_request_id) {
         (state.pending[conversationId] || []).forEach(function (pending) {
-          if (pending.key === item.client_request_id) { pending.reconciled = true; localEcho = true; }
+          if (pending.key === item.client_request_id) { pending.reconciled = true; localEcho = true; pending.onMediaConfirmed?.(); }
         });
       }
       if (!prepend && !item.deleted && !localEcho && !map.has(String(item.id))) added++;
@@ -1536,7 +1539,7 @@
     }
     if (item.media_type === 'image' && hasPermission('clinical.write')) action('Enviar a revisión clínica', function () { linkClinicalImage(item); }, 'is-clinical');
     if (item.author_type === 'assistant' && hasPermission('messages.respond')) action('Evaluar IA', function () { openFeedback(item); }, 'is-copilot');
-    if (hasPermission('messages.manage')) action('Eliminar', function () { mutateMessage(item, 'delete'); }, 'is-danger');
+    if (hasPermission('messages.manage')) action('Ocultar en el panel', function () { mutateMessage(item, 'delete'); }, 'is-danger');
     if (!menu.childNodes.length) return null;
     var rail = node('div', 'smyl-inbox-message-actions');
     var button = node('button', 'smyl-inbox-message-more'); button.type = 'button';
@@ -1898,6 +1901,8 @@
       bubble.append(chatMediaButton(item, state.selectedId, true));
     } else if (item.media_type === 'audio' && mediaUrl) {
       var audio = document.createElement('audio'); audio.controls = true; audio.preload = 'metadata'; audio.src = mediaUrl; bubble.append(audio);
+    } else if (item.media_type === 'video' && mediaUrl) {
+      var video = document.createElement('video'); video.controls=true; video.playsInline=true; video.preload='metadata'; video.src=mediaUrl; bubble.append(video);
     } else if (item.media_type === 'document' && mediaUrl) {
       var attachment = document.createElement('a'); attachment.className = 'smyl-inbox-attachment'; attachment.href = mediaUrl; attachment.target = '_blank'; attachment.rel = 'noopener noreferrer';
       attachment.textContent = '📄 ' + (item.media_filename || 'Abrir documento'); bubble.append(attachment);
@@ -1911,7 +1916,7 @@
 
   async function mutateMessage(item, action) {
     var conversation = selectedConversation(); if (!conversation) return;
-    if (action === 'delete' && !window.confirm('Esto solo lo ocultará en el panel; no lo retira del teléfono del paciente. ¿Continuar?')) return;
+    if (action === 'delete' && !window.confirm('Esto solo oculta el mensaje en el panel. NO se borra del teléfono del paciente ni de WhatsApp, Messenger o Instagram (Meta no permite a un negocio borrar mensajes ya enviados). ¿Ocultarlo en el panel?')) return;
     try {
       await request('POST', {}, { action: action, conversation_id: conversation.id, message_id: item.id }, uuid());
       if (action === 'star') item.starred = true;
@@ -1951,6 +1956,54 @@
       dialog.close(); mergeMessages(select.value, data.message ? [data.message] : [], false); mergeConversations([{ id: select.value, last_message: data.message && data.message.content, last_message_at: new Date().toISOString(), paused: true }], false); renderList();
     } catch (error) { window.alert(error.message || 'No se pudo reenviar el mensaje.'); }
   }
+
+  const suggestedAttachments = new WeakSet();
+  let mediaLookup = '', checkedMediaAt = 0, mediaSequence = 0;
+  function renderFileSuggestion(items) {
+    const box = document.querySelector('[data-media-offer]');
+    if (!box || !window.SmylMediaReplies || typeof window.sb?.rpc !== 'function') return;
+    const conv = selectedConversation(), epoch = accessEpoch;
+    const last = [...items].reverse().find(m => !m.deleted && (m.role === 'user' || m.author_type === 'patient' || m.author_type === 'team'));
+    const allowed = conv && canOperate(conv,'messages.respond') && liveWhatsappWindow(conv)?.freeform_allowed !== false;
+    const key = allowed && last && (last.role==='user'||last.author_type==='patient') && last.content
+      ? [epoch,conv.id,last.id,last.content].join('|') : '';
+    if(key && mediaLookup===key && Date.now()-checkedMediaAt<60000) return;
+    const seq=++mediaSequence;
+    mediaLookup=key;checkedMediaAt=Date.now();box.hidden=true;box.replaceChildren();
+    if(!key) return;
+    const current=()=>seq===mediaSequence && epoch===accessEpoch && state.selectedId===conv.id && canOperate(selectedConversation(),'messages.respond');
+    const lookup=()=>window.sb.rpc('smyl_suggest_media_reply',{p_message:last.content,p_channel:conv.channel});
+    Promise.resolve(lookup()).then(({data,error})=>{
+      if(error || !current() || !data?.length) return;
+      const title=node('span','',data.length===1?'Sugerencia · '+data[0].title:'Respuesta sugerida');
+      const picker=document.createElement('select');picker.setAttribute('aria-label','Respuesta con archivo');
+      data.forEach(r=>picker.add(new Option(r.title,r.id)));picker.hidden=data.length===1;
+      const use=node('button','','Preparar respuesta');use.type='button';
+      use.onclick=async()=>{
+        const input=document.getElementById('smyl-inbox-message');
+        if(!current()||input.disabled) return;
+        const prior=input.value, attachment=state.attachment, reply=state.replyTo, choice=picker.value;
+        if((prior.trim()||attachment||reply) && !window.confirm('¿Reemplazar la respuesta que estás preparando?'))return;
+        use.disabled=true;
+        try {
+          const refreshed=await lookup();
+          const active=refreshed.data?.find(r=>r.id===choice);
+          if(refreshed.error||!active)throw new Error('Esta sugerencia ya no está disponible.');
+          const media=await window.sb.storage.from(window.SmylMediaReplies.bucket).download(active.asset);
+          if(media.error||!media.data)throw new Error('No se pudo cargar el archivo. Intenta de nuevo.');
+          if(!current()||input.disabled)return;
+          if(input.value!==prior||state.attachment!==attachment||state.replyTo!==reply)throw new Error('El mensaje cambió. Vuelve a preparar la respuesta.');
+          const file=new File([media.data],window.SmylMediaReplies.filename(active.asset),{type:media.data.type});
+          suggestedAttachments.add(file);
+          if(!chooseAttachment(file))return;
+          setComposerText(active.reply_text);box.hidden=true;
+        } catch(err){if(current())title.textContent=err.message;}
+        finally{use.disabled=false;}
+      };
+      box.append(title,picker,use);box.hidden=false;
+    }).catch(()=>{});
+  }
+  window.addEventListener('smyl:media-rules-changed',()=>{mediaLookup='';if(state.selectedId)renderMessages(true);});
 
   function renderMessages(keepPosition) {
     var wrap = document.querySelector('[data-thread-messages]'); var older = document.querySelector('[data-thread-older]');
@@ -2020,6 +2073,7 @@
     if (menuFocusId) Array.from(wrap.querySelectorAll('[data-message-id]')).find(function (row) { return row.dataset.messageId === menuFocusId; })?.querySelector('.smyl-inbox-message-more')?.focus({preventScroll:true});
 
     renderPrivacyNotice(items, body);
+    renderFileSuggestion(items);
 
     var finishAccessibleRender = function () {
       if (!wrap.isConnected || wrap.dataset.renderSequence !== renderSequence) return;
@@ -2250,7 +2304,12 @@
     if (Array.isArray(preferred)) {
       var match = null;
       preferred.some(function (name) { match = state.templates.find(function (item) { return item.name === name; }) || null; return Boolean(match); });
-      if (!match) { state.templatePreset = null; window.alert((preset && preset.missingText) || 'No hay una plantilla de cobro aprobada todavía. Solicítala en Mensajería → Plantillas; Meta suele tardar de unos minutos a 48 horas.'); return; }
+      if (!match) {
+        state.templatePreset = null;
+        var missingCopy = (preset && preset.missingText) || 'No hay una plantilla de cobro aprobada todavía. Solicítala en Mensajería → Plantillas; Meta suele tardar de unos minutos a 48 horas.';
+        if (window.SmylTemplateSuggest) window.SmylTemplateSuggest.offerMissing(preferred, missingCopy); else window.alert(missingCopy);
+        return;
+      }
       select.value = match.id;
     }
     renderTemplateFields(select, dialog.querySelector('[data-template-preview]'), dialog.querySelector('[data-template-variables]'), 'send');
@@ -2574,6 +2633,41 @@
       pilotSection.append(actions);
     } else pilotSection.append(node('p', 'smyl-inbox-pilot-readonly', 'Seguimiento de solo lectura. El dueño de la clínica registra y aprueba las pruebas.'));
     content.append(pilotSection);
+    if (canManagePilot) content.append(buildEmergencyPause());
+  }
+
+  // Pausa de emergencia (solo el dueño). Pausa a la IA en cada conversación EXISTENTE y dice con números qué pasó.
+  function buildEmergencyPause() {
+    var section = node('section', 'smyl-inbox-operations-section smyl-inbox-emergency');
+    section.append(node('h3', '', 'Respuestas automáticas'));
+    section.append(node('p', '', 'Si algo sale mal, pausa a la IA en todas las conversaciones de la clínica. Seguirás viendo los mensajes y podrás responder tú.'));
+    section.append(node('small', 'smyl-inbox-pilot-safety', 'Cubre las conversaciones que existen ahora. Una conversación nueva que llegue después no queda pausada: vuelve a pulsar el botón o pide a soporte la pausa general. Cada conversación se reanuda por separado.'));
+    var button = node('button', 'btn connections-danger-button', state.pauseAllLoading ? 'Pausando…' : 'Pausar respuestas automáticas'); button.type = 'button'; button.disabled = Boolean(state.pauseAllLoading);
+    button.onclick = pauseAllReplies; section.append(button);
+    var result = state.pauseAllResult;
+    if (result) {
+      var box = node('div', 'smyl-inbox-emergency-result is-' + (result.error ? 'error' : result.complete ? 'ok' : 'warn')); box.setAttribute('role', 'status');
+      if (result.error) box.append(node('strong', '', 'No se pudo completar'), node('p', '', result.error));
+      else {
+        box.append(node('strong', '', result.complete ? 'Listo: todas las conversaciones están pausadas' : 'Pausa incompleta: revisa y repite'));
+        box.append(node('p', '', result.paused + ' pausadas ahora · ' + result.already_paused + ' ya estaban pausadas · ' + result.failed + ' con error · ' + result.scanned + ' revisadas.'));
+        if (result.truncated) box.append(node('p', '', 'Hay más conversaciones de las que se pudieron revisar. Vuelve a pulsar el botón para continuar.'));
+        if (result.failed) box.append(node('p', '', 'No se pudo pausar ' + result.failed + ' conversación(es). Vuelve a intentarlo; si persiste, pausa esas conversaciones a mano o pide ayuda a soporte.'));
+      }
+      section.append(box);
+    }
+    return section;
+  }
+
+  async function pauseAllReplies() {
+    if (state.pauseAllLoading) return;
+    if (!window.confirm('¿Pausar las respuestas automáticas en TODAS las conversaciones de la clínica?\n\nLa IA dejará de contestar hasta que reanudes cada conversación. Tú y tu equipo pueden seguir respondiendo.')) return;
+    state.pauseAllLoading = true; state.pauseAllResult = null; renderOperations();
+    try {
+      state.pauseAllResult = await request('POST', {}, { action: 'pause_all' }, uuid(), 90000);
+      try { loadList(true); } catch (_) {}
+    } catch (error) { state.pauseAllResult = { error: error.message || 'No se pudo pausar las respuestas automáticas.' }; }
+    finally { state.pauseAllLoading = false; renderOperations(); }
   }
 
   async function loadOperations(force) {
@@ -2652,7 +2746,7 @@
     var reportWindow = window.open('', '_blank');
     if (!reportWindow) { window.alert('Permite ventanas emergentes para imprimir o guardar el informe como PDF.'); return; }
     reportWindow.opener = null;
-    reportWindow.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SMYL · Informe operativo del piloto</title><style>body{max-width:820px;margin:0 auto;padding:36px;font-family:Arial,sans-serif;color:#173149}h1{margin:0 0 6px;font-size:26px}.meta{margin:0 0 24px;color:#607286}.smyl-inbox-report-summary{position:relative;padding:18px;border:1px solid #bfd8d2;border-radius:10px;background:#f4faf8}.smyl-inbox-report-summary>span{font-size:10px;font-weight:bold;letter-spacing:.08em;color:#5c756f}.smyl-inbox-report-summary h3{margin:7px 0 4px;font-size:20px}.smyl-inbox-report-summary p{margin:0;color:#5c6d7c}.smyl-inbox-report-status{margin-top:12px;font-weight:bold}.smyl-inbox-report-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}.smyl-inbox-operations-metric{padding:12px;border:1px solid #d9e2e8;border-radius:8px}.smyl-inbox-operations-metric span,.smyl-inbox-operations-metric strong,.smyl-inbox-operations-metric small{display:block}.smyl-inbox-operations-metric span,.smyl-inbox-operations-metric small{color:#657687;font-size:11px}.smyl-inbox-operations-metric strong{margin:5px 0;font-size:20px}.smyl-inbox-report-section{margin-top:22px}.smyl-inbox-report-section h3{padding-bottom:8px;border-bottom:1px solid #dce4ea;font-size:15px}.smyl-inbox-report-list,.smyl-inbox-report-evidence,.smyl-inbox-report-alerts{padding:0;list-style:none}.smyl-inbox-report-list li,.smyl-inbox-report-evidence li,.smyl-inbox-report-alerts li{display:flex;gap:10px;margin:9px 0;padding:10px;background:#f8fafb;border-radius:7px}.smyl-inbox-report-list i,.smyl-inbox-report-evidence i,.smyl-inbox-report-alerts i{font-style:normal;font-weight:bold}.smyl-inbox-report-list strong,.smyl-inbox-report-list span,.smyl-inbox-report-evidence strong,.smyl-inbox-report-evidence span,.smyl-inbox-report-alerts strong,.smyl-inbox-report-alerts span{display:block}.smyl-inbox-report-list span,.smyl-inbox-report-evidence span,.smyl-inbox-report-alerts span{margin-top:3px;color:#657687;font-size:12px}.smyl-inbox-report-disclaimer{margin-top:24px;padding:12px;border-left:3px solid #72899a;background:#f4f7f9;color:#526474;font-size:11px;line-height:1.5}@media print{body{padding:0}@page{margin:16mm}}@media(max-width:600px){body{padding:20px}.smyl-inbox-report-metrics{grid-template-columns:1fr 1fr}}</style></head><body><h1>Informe operativo del piloto</h1><p class="meta">SMYL · Mensajes</p>' + content.innerHTML + '</body></html>');
+    reportWindow.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SMYL · Informe operativo del piloto</title><style>body{max-width:820px;margin:0 auto;padding:36px;font-family:Arial,sans-serif;color:#173149}h1{margin:0 0 6px;font-size:26px}.meta{margin:0 0 24px;color:#607286}.smyl-inbox-report-summary{position:relative;padding:18px;border:1px solid #bbcedc;border-radius:10px;background:#f4faf8}.smyl-inbox-report-summary>span{font-size:10px;font-weight:bold;letter-spacing:.08em;color:#4c6085}.smyl-inbox-report-summary h3{margin:7px 0 4px;font-size:20px}.smyl-inbox-report-summary p{margin:0;color:#5c6d7c}.smyl-inbox-report-status{margin-top:12px;font-weight:bold}.smyl-inbox-report-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}.smyl-inbox-operations-metric{padding:12px;border:1px solid #d9e0e8;border-radius:8px}.smyl-inbox-operations-metric span,.smyl-inbox-operations-metric strong,.smyl-inbox-operations-metric small{display:block}.smyl-inbox-operations-metric span,.smyl-inbox-operations-metric small{color:#657687;font-size:11px}.smyl-inbox-operations-metric strong{margin:5px 0;font-size:20px}.smyl-inbox-report-section{margin-top:22px}.smyl-inbox-report-section h3{padding-bottom:8px;border-bottom:1px solid #dce4ea;font-size:15px}.smyl-inbox-report-list,.smyl-inbox-report-evidence,.smyl-inbox-report-alerts{padding:0;list-style:none}.smyl-inbox-report-list li,.smyl-inbox-report-evidence li,.smyl-inbox-report-alerts li{display:flex;gap:10px;margin:9px 0;padding:10px;background:#f8fafb;border-radius:7px}.smyl-inbox-report-list i,.smyl-inbox-report-evidence i,.smyl-inbox-report-alerts i{font-style:normal;font-weight:bold}.smyl-inbox-report-list strong,.smyl-inbox-report-list span,.smyl-inbox-report-evidence strong,.smyl-inbox-report-evidence span,.smyl-inbox-report-alerts strong,.smyl-inbox-report-alerts span{display:block}.smyl-inbox-report-list span,.smyl-inbox-report-evidence span,.smyl-inbox-report-alerts span{margin-top:3px;color:#657687;font-size:12px}.smyl-inbox-report-disclaimer{margin-top:24px;padding:12px;border-left:3px solid #72899a;background:#f4f6f9;color:#526474;font-size:11px;line-height:1.5}@media print{body{padding:0}@page{margin:16mm}}@media(max-width:600px){body{padding:20px}.smyl-inbox-report-metrics{grid-template-columns:1fr 1fr}}</style></head><body><h1>Informe operativo del piloto</h1><p class="meta">SMYL · Mensajes</p>' + content.innerHTML + '</body></html>');
     reportWindow.document.close(); reportWindow.focus(); setTimeout(function () { reportWindow.print(); }, 250);
   }
 
@@ -4118,8 +4212,24 @@
   function openAvailabilityPatientLink() {
     var dialog = document.querySelector('[data-availability-dialog]');
     if (dialog && dialog.open) dialog.close();
+    // Al terminar de vincular se vuelve a abrir «Agendar cita» (ver el evento smyl:chat-patient-linked).
+    state.availabilityResume = { id: state.selectedId, at: Date.now() };
     openPatientContext(state.selectedId);
   }
+
+  // Vincular un paciente desde el chat (ventana «Vincular paciente»): actualiza el chat sin sacarte de él.
+  window.addEventListener('smyl:chat-patient-linked', function (event) {
+    var detail = (event && event.detail) || {}; var id = detail.conversationId;
+    if (!id || !detail.patientId) return;
+    var prior = state.clinical[id] || {};
+    state.clinical[id] = Object.assign({}, prior, { linked: true, patient: { id: detail.patientId, name: detail.patientName || (prior.patient && prior.patient.name) || '' }, provisional_contact: Boolean(detail.created), unavailable: false });
+    delete state.clinical[id].auto_link_reason;
+    state.patientLinkChecked[id] = true;
+    if (state.selectedId === id) { renderCareBar(); renderThreadHeader(); renderContext(); refreshAvailabilityPatientIdentity(); }
+    loadClinicalContext(id);
+    var resume = state.availabilityResume; state.availabilityResume = null;
+    if (resume && resume.id === id && Date.now() - resume.at < 15 * 60 * 1000 && state.selectedId === id) openAvailabilityDialog();
+  });
 
   function resetAvailabilityScope() {
     var dialog = document.querySelector('[data-availability-dialog]'); if (!dialog) return;
@@ -5049,6 +5159,7 @@
       var data = await request('POST', {}, payload, key, 35000);
       if (epoch !== accessEpoch || revision !== threadEpoch.get(conversationId)) return;
       pending.reconciled = true;
+      pending.onMediaConfirmed?.();
       if (typeof pending.onSent === 'function') { try { pending.onSent(); } catch (_) {} }
       mergeMessages(conversationId, data.message ? [data.message] : [], false);
       refreshSentConversation(conversationId, content, data.message?.created_at || pending.created_at);
@@ -5068,38 +5179,54 @@
     if (!conversation || !canOperate(conversation, 'messages.respond')) return;
     var waWindow = liveWhatsappWindow(conversation);
     if (waWindow && !waWindow.freeform_allowed) { openTemplateDialog(); return; }
-    if (state.attachment) { sendAttachment(state.attachment); return; }
+    var mediaFile = state.attachment;
+    if (mediaFile && (!suggestedAttachments.has(mediaFile) || !content)) { sendAttachment(mediaFile); return; }
     if (!content) return;
     var key = uuid();
     var reply = state.replyTo;
     var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: content, reply_to: reply ? { id: reply.id, preview: replyPreview(reply), type: reply.media_type || 'text' } : null, created_at: new Date().toISOString(), status: 'sending' };
+    if (mediaFile) {
+      var sendEpoch = accessEpoch;
+      state.attachment = null;
+      pending.onMediaConfirmed = function () {
+        pending.onMediaConfirmed = null;
+        if (sendEpoch === accessEpoch) sendAttachment(mediaFile, conversation);
+      };
+    }
     state.pending[conversation.id] = (state.pending[conversation.id] || []).concat(pending);
     input.value = ''; fitComposerText(input); clearEncryptedDraft(conversation.id); state.replyTo = null; renderComposerContext(); renderMessages(false); requestAnimationFrame(scrollThreadBottom);
     submitMessage(content, key, pending, reply ? { reply_to_message_id: reply.id } : null);
   }
 
   function attachmentKind(file) {
-    return String(file.type || '').startsWith('image/') ? 'image' : String(file.type || '').startsWith('audio/') ? 'audio' : 'document';
+    return String(file.type || '').startsWith('image/') ? 'image' : String(file.type || '').startsWith('audio/') ? 'audio' : file.type === 'video/mp4' ? 'video' : 'document';
+  }
+
+  function attachmentUploadKind(file) {
+    const kind = attachmentKind(file);
+    return kind === 'audio' && suggestedAttachments.has(file) ? 'audio_clip' : kind;
   }
 
   function chooseAttachment(file) {
     if (!file) return;
-    var kind = attachmentKind(file); var max = kind === 'audio' ? 16 : kind === 'image' ? 10 : 25;
+    var kind = attachmentKind(file); var max = kind === 'audio' || kind === 'video' ? 16 : kind === 'image' ? 10 : 25;
     if (file.size > max * 1024 * 1024) { window.alert('El archivo supera el límite de ' + max + ' MB.'); return; }
     var conversation = selectedConversation();
-    if (kind === 'audio' && conversation && conversation.channel !== 'whatsapp') { window.alert('Las notas de voz solo están disponibles en WhatsApp.'); return; }
+    if (kind === 'audio' && conversation && conversation.channel !== 'whatsapp' && !suggestedAttachments.has(file)) { window.alert('Las notas de voz solo están disponibles en WhatsApp.'); return; }
     if (kind === 'document' && conversation && conversation.channel === 'instagram') { window.alert('Instagram no permite enviar documentos.'); return; }
     state.attachment = file; state.replyTo = null; renderComposerContext(); return true;
   }
 
-  async function sendAttachment(file) {
-    var conversation = selectedConversation(); if (!conversation || !file) return;
+  async function sendAttachment(file, destination) {
+    var conversation = destination || selectedConversation(); if (!conversation || !file) return;
     var waWindow = liveWhatsappWindow(conversation); if (waWindow && !waWindow.freeform_allowed) { window.alert('La ventana de WhatsApp venció. Usa una plantilla aprobada.'); return; }
-    var kind = attachmentKind(file); var key = uuid(); var previewUrl = kind === 'image' || kind === 'audio' ? URL.createObjectURL(file) : null;
-    var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: kind === 'image' ? '📷 Imagen' : kind === 'audio' ? '🎤 Nota de voz' : '📄 ' + file.name, media_type: kind, media_url: previewUrl, created_at: new Date().toISOString(), status: 'sending', file: file };
-    state.pending[conversation.id] = (state.pending[conversation.id] || []).concat(pending); state.attachment = null; renderComposerContext(); renderMessages(false); requestAnimationFrame(scrollThreadBottom);
+    var kind = attachmentKind(file); var key = uuid(); var previewUrl = ['image','audio','video'].includes(kind) ? URL.createObjectURL(file) : null;
+    var pending = { id: 'pending:' + key, key: key, client_request_id: key, role: 'assistant', author_type: 'team', content: kind === 'video' ? 'Video' : kind === 'image' ? '📷 Imagen' : kind === 'audio' ? (suggestedAttachments.has(file) ? 'Audio' : '🎤 Nota de voz') : '📄 ' + file.name, media_type: kind, media_url: previewUrl, created_at: new Date().toISOString(), status: 'sending', file: file };
+    state.pending[conversation.id] = (state.pending[conversation.id] || []).concat(pending);
+    if (!destination) state.attachment = null;
+    if (state.selectedId === conversation.id) { renderComposerContext(); renderMessages(false); requestAnimationFrame(scrollThreadBottom); }
     try {
-      var form = new FormData(); form.append('conversation_id', conversation.id); form.append('kind', kind); form.append('file', file, file.name);
+      var form = new FormData(); form.append('conversation_id', conversation.id); form.append('kind', attachmentUploadKind(file)); form.append('file', file, file.name);
       var data = await requestForm(form, key, 60000); pending.reconciled = true;
       mergeMessages(conversation.id, data.message ? [data.message] : [], false);
       refreshSentConversation(conversation.id, pending.content, data.message?.created_at || pending.created_at);
@@ -5137,7 +5264,7 @@
   function retryPending(item) {
     item.status = 'sending'; renderMessages(false);
     if (item.file) {
-      var conversationId = state.selectedId; var kind = attachmentKind(item.file); var form = new FormData();
+      var conversationId = state.selectedId; var kind = attachmentUploadKind(item.file); var form = new FormData();
       form.append('conversation_id', conversationId); form.append('kind', kind); form.append('file', item.file, item.file.name);
       requestForm(form, item.key, 60000).then(function (data) {
         item.reconciled = true; mergeMessages(conversationId, data.message ? [data.message] : [], false); render(); requestAnimationFrame(scrollThreadBottom);
@@ -5655,7 +5782,7 @@
     page.querySelector('[data-pipeline-more]').addEventListener('click', function () { loadList(!state.hasMore); });
     var savedView = null; try { savedView = window.sessionStorage.getItem('smyl_inbox_view'); } catch (_) {}
     setInboxView(savedView);
-    page.querySelector('[data-inbox-channel]').addEventListener('change', function (event) { state.channel = event.target.value; renderFilterControls(); loadList(true); });
+    page.querySelector('[data-inbox-channel]').addEventListener('click', function (event) { var chip = event.target.closest('[data-channel-value]'); if (!chip) return; state.channel = state.channel === chip.dataset.channelValue ? '' : chip.dataset.channelValue; renderFilterControls(); loadList(true); });
     page.querySelector('[data-inbox-more]').addEventListener('click', function () { loadList(false); });
     page.querySelector('[data-thread-older]').addEventListener('click', function () { loadThread(state.selectedId, true); });
     page.querySelector('[data-thread-jump]').addEventListener('click', function () {
@@ -5910,8 +6037,29 @@
   window.SmylInbox = {
     canAccess: chatEnabled,
     open: function (conversationId) { window.ir('inbox'); return openConversation(conversationId); },
-    // Abre la conversación y deja el texto escrito en el compositor para que una persona lo revise y lo envíe (nunca lo envía).
-    compose: async function (conversationId, text) { window.ir('inbox'); await openConversation(conversationId); if (state.selectedId !== conversationId) return false; setComposerText(text); return true; },
+    // Abre la conversación y, ya dentro, «Agendar cita» (con «Sugerir horarios»). Solo prepara: la persona revisa y envía.
+    offerSlots: async function (conversationId) { window.ir('inbox'); await openConversation(conversationId); if (state.selectedId !== conversationId) return false; await openAvailabilityDialog(); return true; },
+    // Abre la conversación para que una persona revise y envíe (nunca envía por sí solo).
+    //  · Con la ventana de 24 h de WhatsApp abierta (o en otros canales): deja `text` escrito en el compositor y devuelve true.
+    //  · Con la ventana cerrada y `options.template` = { names, variables, missingText }: abre esa plantilla aprobada con las variables ya llenas
+    //    y devuelve 'template' (`options.onSent` se llama solo si la persona la envía). Sin la plantilla aprobada avisa y devuelve false.
+    compose: async function (conversationId, text, options) {
+      options = options || {}; window.ir('inbox'); await openConversation(conversationId);
+      if (state.selectedId !== conversationId) return false;
+      var conversation = selectedConversation(), windowNow = conversation ? liveWhatsappWindow(conversation) : null;
+      if (options.template && conversation && conversation.channel === 'whatsapp' && windowNow && !windowNow.freeform_allowed) {
+        var names = Array.isArray(options.template.names) ? options.template.names : [];
+        try { await loadTemplates(); } catch (_) { return false; }
+        if (!state.templates.some(function (item) { return names.indexOf(item.name) !== -1; })) {
+          var missingCopy = options.template.missingText || 'No hay una plantilla aprobada para este mensaje. Solicítala en Mensajería → Plantillas; Meta suele tardar de unos minutos a 48 horas.';
+          if (window.SmylTemplateSuggest) window.SmylTemplateSuggest.offerMissing(names, missingCopy); else window.alert(missingCopy);
+          return false;
+        }
+        await openTemplateDialog(names, { variables: options.template.variables || [], onSent: options.onSent || null });
+        return 'template';
+      }
+      setComposerText(text); return true;
+    },
     sendTemplate: async function (conversationId, options) { options = options || {}; window.ir('inbox'); await openConversation(conversationId); if (state.selectedId !== conversationId || !chatEnabled()) return; await openTemplateDialog(options.preferred, options); },
     collect: async function (conversationId) { window.ir('inbox'); await openConversation(conversationId); if (state.selectedId !== conversationId || !chatEnabled()) return; await openCobroTemplate(); },
     openOperations: async function () { window.ir('inbox'); if (await refreshAccess() && hasPermission('messages.manage')) openOperations(); },

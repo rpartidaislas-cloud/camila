@@ -70,7 +70,7 @@ test('desactivar los recordatorios cancela lo que estaba en cola', () => {
   assert.match(fn, /if \(!enabled\) \{/);
   // Se apaga por tipo (confirmación o recordatorio): cada uno cancela solo lo suyo.
   assert.match(fn, /\[col\.enabled\]: false, updated_by: auth\.user!\.id/);
-  assert.match(fn, /cancelled_in_lana: await cancelQueued\(tenantId, confirmation \? "confirmation" : "reminder"\)/);
+  assert.match(fn, /cancelled_in_lana: await cancelQueued\(tenantId, confirmation \? "confirmation" : noShow \? "no_show" : feedback \? "feedback" : "reminder"\)/);
   // Apagar no debe depender de LANA: la validación de plantilla va después.
   assert.ok(fn.indexOf('[col.enabled]: false, updated_by') < fn.indexOf('La plantilla ya no está disponible en LANA'));
 });
@@ -91,8 +91,8 @@ test('sin plantillas aprobadas, el diálogo lleva a las propuestas de Mensajerí
 });
 
 test('web, móvil y PWA publican el módulo de recordatorios', () => {
-  assert.match(app, /<script defer src="smyl-reminders\.js\?v=4"><\/script>/);
-  assert.match(worker, /'\/camila\/smyl-reminders\.js\?v=4'/);
+  assert.match(app, /<script defer src="smyl-reminders\.js\?v=9"><\/script>/);
+  assert.match(worker, /'\/camila\/smyl-reminders\.js\?v=9'/);
   assert.equal(read('../mobile/www/smyl-reminders.js'), ui);
   assert.equal(read('../mobile/www/smyl-schedule.js'), schedule);
   assert.equal(read('../mobile/www/app.html'), app);

@@ -178,6 +178,7 @@ const ALLOWED_ROOTS = new Set([
   "context",
   "contract",
   "conversations",
+  "ia",
   "inbox",
   "payments",
   "training",
@@ -251,32 +252,124 @@ function decideLanaLink(info: any, { strict }) {
 return { SMYL_LANA_CONTRACT_VERSION, normalizeLanaPath, lanaContractHeaders, SMYL_PRODUCT, readLanaContract, decideLanaLink };
 })();
 
-// ── _shared/lana-linked.ts ──
-const { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin } = (() => {
+// ── _shared/lana-crypto-core.mjs ──
+const { LEGACY_KEY_VERSION, readKeyring, storedKeyVersion, encryptLanaKey, decryptLanaKey, reencryptIfNeeded } = (() => {
+// Cifrado de la credencial de LANA con rotación de llave (sin dependencias de Deno: se prueba en Node).
+//
+// Variables de entorno:
+//   SMYL_LANA_ENCRYPTION_KEY                 llave vigente (32 bytes en base64)
+//   SMYL_LANA_ENCRYPTION_KEY_VERSION         etiqueta de la vigente (por omisión "1")
+//   SMYL_LANA_ENCRYPTION_KEY_PREVIOUS        llave anterior, solo mientras dura la rotación (opcional)
+//   SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION etiqueta de la anterior (por omisión: la vigente menos 1 si es número)
+//
+// Cada credencial guarda `key_version`. Las anteriores a este cambio no la tienen y se tratan como la versión "1".
 
-const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
-const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
-const ENCRYPTION_KEY = (Deno.env.get("SMYL_LANA_ENCRYPTION_KEY") || "").trim();
-const LANA_API_BASE = "https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v1/camila-api";
-const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
+const LEGACY_KEY_VERSION = "1";
 
-type LanaConfig = {
-  api_key_ciphertext: string;
-  api_key_iv: string;
-  estado: string;
-};
+function bytesToBase64(bytes: any) {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
 
-function base64ToBytes(value: string): Uint8Array<ArrayBuffer> {
+function base64ToBytes(value: any) {
   const binary = atob(value);
   const bytes = new Uint8Array(new ArrayBuffer(binary.length));
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
   return bytes;
 }
 
-async function cryptoKey(): Promise<CryptoKey> {
-  const raw = base64ToBytes(ENCRYPTION_KEY);
-  if (raw.length !== 32) throw new Error("SMYL_LANA_ENCRYPTION_KEY no configurada correctamente.");
-  return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
+function cleanVersion(value: any) {
+  const text = String(value ?? "").trim();
+  if (!/^[A-Za-z0-9._-]{1,32}$/.test(text)) return "";
+  return text;
+}
+
+function readKeyring(env = {}) {
+  const currentB64 = String(env.SMYL_LANA_ENCRYPTION_KEY || "").trim();
+  if (!currentB64) throw new Error("SMYL_LANA_ENCRYPTION_KEY no configurada.");
+  const currentVersion = cleanVersion(env.SMYL_LANA_ENCRYPTION_KEY_VERSION || LEGACY_KEY_VERSION);
+  if (!currentVersion) throw new Error("SMYL_LANA_ENCRYPTION_KEY_VERSION no es válida.");
+  const keys = [{ version: currentVersion, b64: currentB64, current: true }];
+  const previousB64 = String(env.SMYL_LANA_ENCRYPTION_KEY_PREVIOUS || "").trim();
+  if (previousB64) {
+    let previousVersion = cleanVersion(env.SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION);
+    if (!previousVersion && /^\d+$/.test(currentVersion) && Number(currentVersion) > 1) previousVersion = String(Number(currentVersion) - 1);
+    if (!previousVersion) throw new Error("Falta SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION.");
+    if (previousVersion === currentVersion) throw new Error("La llave anterior y la vigente no pueden tener la misma versión.");
+    if (previousB64 === currentB64) throw new Error("La llave anterior es igual a la vigente.");
+    keys.push({ version: previousVersion, b64: previousB64, current: false });
+  }
+  for (const key of keys) {
+    if (base64ToBytes(key.b64).length !== 32) throw new Error(`La llave de versión ${key.version} debe contener 32 bytes.`);
+  }
+  return { keys, currentVersion };
+}
+
+function storedKeyVersion(lana: any) {
+  return cleanVersion(lana?.key_version) || LEGACY_KEY_VERSION;
+}
+
+async function importKey(subtle: any, key: any, usages: any) {
+  return subtle.importKey("raw", base64ToBytes(key.b64), "AES-GCM", false, usages);
+}
+
+async function encryptLanaKey(apiKey: any, keyring: any, { subtle = globalThis.crypto.subtle, random = (n) => globalThis.crypto.getRandomValues(new Uint8Array(n)) } = {}) {
+  const current = keyring.keys.find((key) => key.current);
+  const iv = random(12);
+  const encrypted = await subtle.encrypt({ name: "AES-GCM", iv }, await importKey(subtle, current, ["encrypt"]), new TextEncoder().encode(apiKey));
+  return { ciphertext: bytesToBase64(new Uint8Array(encrypted)), iv: bytesToBase64(iv), key_version: current.version };
+}
+
+// Primero la llave que la credencial dice tener; si falla (p. ej. una versión mal anotada) prueba las demás.
+async function decryptLanaKey(lana: any, keyring: any, { subtle = globalThis.crypto.subtle } = {}) {
+  const wanted = storedKeyVersion(lana);
+  const ordered = [...keyring.keys].sort((a, b) => Number(b.version === wanted) - Number(a.version === wanted));
+  const iv = base64ToBytes(lana.api_key_iv);
+  const data = base64ToBytes(lana.api_key_ciphertext);
+  for (const key of ordered) {
+    try {
+      const clear = await subtle.decrypt({ name: "AES-GCM", iv }, await importKey(subtle, key, ["decrypt"]), data);
+      return { apiKey: new TextDecoder().decode(clear), key_version: key.version, needsReencrypt: !key.current };
+    } catch { /* siguiente llave */ }
+  }
+  throw new Error("No se pudo descifrar la credencial de LANA con las llaves configuradas.");
+}
+
+// Devuelve la credencial ya cifrada con la llave vigente (o null si ya lo estaba).
+async function reencryptIfNeeded(lana: any, keyring: any, deps = {}) {
+  const decrypted = await decryptLanaKey(lana, keyring, deps);
+  const stale = decrypted.needsReencrypt || storedKeyVersion(lana) !== keyring.currentVersion || !lana.key_version;
+  if (!stale) return null;
+  const encrypted = await encryptLanaKey(decrypted.apiKey, keyring, deps);
+  return { ...lana, api_key_ciphertext: encrypted.ciphertext, api_key_iv: encrypted.iv, key_version: encrypted.key_version };
+}
+
+return { LEGACY_KEY_VERSION, readKeyring, storedKeyVersion, encryptLanaKey, decryptLanaKey, reencryptIfNeeded };
+})();
+
+// ── _shared/lana-linked.ts ──
+const { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin } = (() => {
+
+const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
+const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
+const LANA_API_BASE = "https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v1/camila-api";
+const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
+
+type LanaConfig = {
+  api_key_ciphertext: string;
+  api_key_iv: string;
+  key_version?: string;
+  estado: string;
+};
+
+function keyring() {
+  return readKeyring({
+    SMYL_LANA_ENCRYPTION_KEY: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY"),
+    SMYL_LANA_ENCRYPTION_KEY_VERSION: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_VERSION"),
+    SMYL_LANA_ENCRYPTION_KEY_PREVIOUS: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_PREVIOUS"),
+    SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION"),
+  });
 }
 
 async function linkedLanaApiKey(tenantId: string): Promise<string> {
@@ -290,12 +383,8 @@ async function linkedLanaApiKey(tenantId: string): Promise<string> {
   if (!lana?.api_key_ciphertext || !lana.api_key_iv || lana.estado !== "conectada") {
     throw new Error("LANA todavía no está conectada o requiere atención.");
   }
-  const clear = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: base64ToBytes(lana.api_key_iv) },
-    await cryptoKey(),
-    base64ToBytes(lana.api_key_ciphertext),
-  );
-  return new TextDecoder().decode(clear);
+  // Descifra con la llave vigente o, durante una rotación, con la anterior. La reescritura con la llave nueva la hace lana-connection.
+  return (await decryptLanaKey(lana as LanaConfig, keyring())).apiKey;
 }
 
 async function lanaRequest(
@@ -675,16 +764,17 @@ async function processCancellations(tenantId: string): Promise<number> {
 }
 
 // Al desactivar, nada que esté en cola debe salir: se cancela aquí y en LANA. `kind` limita a confirmaciones o a recordatorios.
-const REMINDER_TYPES = ["24h", "2h", "custom"];
-async function cancelQueued(tenantId: string, kind: "reminder" | "confirmation" = "reminder"): Promise<number> {
-  const types = kind === "confirmation" ? ["confirmation"] : REMINDER_TYPES;
+const REMINDER_TYPES = ["24h", "2h", "48h", "custom"];
+const NO_SHOW_WINDOW_MS = 24 * 60 * 60 * 1000; // el seguimiento de inasistencia se descarta si no sale en un día
+async function cancelQueued(tenantId: string, kind: "reminder" | "confirmation" | "no_show" | "feedback" = "reminder"): Promise<number> {
+  const types = kind === "confirmation" ? ["confirmation"] : kind === "no_show" ? ["no_show"] : kind === "feedback" ? ["feedback"] : REMINDER_TYPES;
   const { data: queued } = await admin.from("smyl_appointment_reminders")
     .select("id,provider_reference")
     .eq("tenant_id", tenantId).in("reminder_type", types).in("status", ["pending", "processing"]).limit(500);
   for (const row of queued || []) {
     await admin.from("smyl_appointment_reminders").update({
       status: "cancelled", provider_cancel_required: Boolean(row.provider_reference),
-      last_error: kind === "confirmation" ? "Confirmaciones desactivadas por la clínica." : "Recordatorios desactivados por la clínica.", next_attempt_at: null,
+      last_error: kind === "confirmation" ? "Confirmaciones desactivadas por la clínica." : kind === "no_show" ? "Seguimiento de inasistencias desactivado por la clínica." : kind === "feedback" ? "Pregunta del motivo desactivada por la clínica." : "Recordatorios desactivados por la clínica.", next_attempt_at: null,
     }).eq("id", row.id).in("status", ["pending", "processing"]);
   }
   return processCancellations(tenantId);
@@ -709,10 +799,14 @@ async function dispatchTenant(tenantId: string): Promise<Summary> {
   const { data: settings } = await admin.from("smyl_reminder_settings").select("*").eq("tenant_id", tenantId).maybeSingle();
   const remindersOn = Boolean(settings?.enabled && settings.template_id);
   const confirmOn = Boolean(settings?.confirmation_enabled && settings.confirmation_template_id);
-  if (!settings || (!remindersOn && !confirmOn)) return { ...summary, error: "disabled" };
+  const noShowOn = Boolean(settings?.no_show_enabled && settings.no_show_template_id);
+  const feedbackOn = Boolean(settings?.feedback_enabled && settings.feedback_template_id);
+  if (!settings || (!remindersOn && !confirmOn && !noShowOn && !feedbackOn)) return { ...summary, error: "disabled" };
   await admin.from("smyl_reminder_settings").update({ last_dispatch_at: new Date().toISOString() }).eq("tenant_id", tenantId);
   const reminderVariables = normalizeVariables(settings.variables) || [];
   const confirmVariables = normalizeVariables(settings.confirmation_variables) || [];
+  const noShowVariables = normalizeVariables(settings.no_show_variables) || [];
+  const feedbackVariables = normalizeVariables(settings.feedback_variables) || [];
   const sendWindow = normalizeWindow(settings.send_window_start, settings.send_window_end);
   const clinic = await clinicName(tenantId);
 
@@ -726,7 +820,9 @@ async function dispatchTenant(tenantId: string): Promise<Summary> {
   for (const row of (claimed || []) as Claimed[]) {
     const startsAt = new Date(row.starts_at).getTime();
     const dueAt = new Date(row.scheduled_for).getTime();
-    if (startsAt - now < MIN_NOTICE_MS) {
+    const isFeedback = row.reminder_type === "feedback";
+    const isNoShow = row.reminder_type === "no_show" || isFeedback; // los dos son seguimientos de una cita pasada: no hay «cita próxima»
+    if (!isNoShow && startsAt - now < MIN_NOTICE_MS) {
       await admin.from("smyl_appointment_reminders").update({
         status: "cancelled", last_error: "Se omitió: la cita está a menos de 2 horas.",
       }).eq("id", row.reminder_id).eq("status", "processing");
@@ -735,9 +831,10 @@ async function dispatchTenant(tenantId: string): Promise<Summary> {
     }
     const isConfirmation = row.reminder_type === "confirmation";
     // Un tipo apagado (o sin plantilla) no sale aunque la fila ya exista.
-    if (isConfirmation ? !confirmOn : !remindersOn) {
+    const is48h = row.reminder_type === "48h";
+    if (isFeedback ? !feedbackOn : isNoShow ? !noShowOn : isConfirmation ? !confirmOn : (!remindersOn || (is48h && settings.reminder_48h_enabled !== true))) {
       await admin.from("smyl_appointment_reminders").update({
-        status: "cancelled", last_error: isConfirmation ? "Se omitió: las confirmaciones están desactivadas." : "Se omitió: los recordatorios están desactivados.",
+        status: "cancelled", last_error: isFeedback ? "Se omitió: la pregunta del motivo está desactivada." : isNoShow ? "Se omitió: el seguimiento de inasistencias está desactivado." : isConfirmation ? "Se omitió: las confirmaciones están desactivadas." : is48h ? "Se omitió: el aviso de 48 horas está desactivado." : "Se omitió: los recordatorios están desactivados.",
       }).eq("id", row.reminder_id).eq("status", "processing");
       summary.skipped += 1;
       continue;
@@ -753,7 +850,7 @@ async function dispatchTenant(tenantId: string): Promise<Summary> {
     const conversationId = await whatsappConversation(tenantId, row.patient_id);
     if (!conversationId) {
       // Recordatorio: espera hasta su hora. Confirmación: espera hasta poco antes de la cita (el paciente puede vincularse antes).
-      const limitAt = isConfirmation ? startsAt - MIN_NOTICE_MS : dueAt;
+      const limitAt = isNoShow ? dueAt + NO_SHOW_WINDOW_MS : isConfirmation ? startsAt - MIN_NOTICE_MS : dueAt;
       const overdue = now >= limitAt;
       await admin.from("smyl_appointment_reminders").update(overdue
         ? { status: "failed", last_error: NO_WHATSAPP }
@@ -764,11 +861,11 @@ async function dispatchTenant(tenantId: string): Promise<Summary> {
     }
     // Solo dentro de la ventana de envío de la sucursal (por omisión 9:00–20:00).
     const timing = sendAtWithinWindow({
-      dueMs: isConfirmation ? now : dueAt, nowMs: now, startsMs: startsAt, zone: validTimeZone(row.branch_timezone),
-      window: sendWindow, mode: isConfirmation ? "later" : "nearest", leadMs: SEND_LEAD_MS, minNoticeMs: MIN_NOTICE_MS,
+      dueMs: isConfirmation ? now : dueAt, nowMs: now, startsMs: isNoShow ? now + NO_SHOW_WINDOW_MS + MIN_NOTICE_MS : startsAt, zone: validTimeZone(row.branch_timezone),
+      window: sendWindow, mode: isConfirmation || isNoShow ? "later" : "nearest", leadMs: SEND_LEAD_MS, minNoticeMs: MIN_NOTICE_MS,
     });
-    const templateId = isConfirmation ? settings.confirmation_template_id : settings.template_id;
-    const variables = isConfirmation ? confirmVariables : reminderVariables;
+    const templateId = isFeedback ? settings.feedback_template_id : isNoShow ? settings.no_show_template_id : isConfirmation ? settings.confirmation_template_id : settings.template_id;
+    const variables = isFeedback ? feedbackVariables : isNoShow ? noShowVariables : isConfirmation ? confirmVariables : reminderVariables;
     const payload = {
       type: "template",
       send_at: new Date(timing.sendAtMs).toISOString(),
@@ -807,7 +904,7 @@ async function dispatchTenant(tenantId: string): Promise<Summary> {
     }
     const message = text(body.error, 400) || `LANA rechazó el recordatorio (HTTP ${status || "sin respuesta"}).`;
     const transient = status === 0 || status === 429 || status >= 500;
-    if (transient && row.attempt_count < MAX_TRANSIENT_ATTEMPTS && now < startsAt - MIN_NOTICE_MS) {
+    if (transient && row.attempt_count < MAX_TRANSIENT_ATTEMPTS && now < (isNoShow ? dueAt + NO_SHOW_WINDOW_MS : startsAt - MIN_NOTICE_MS)) {
       await admin.from("smyl_appointment_reminders").update({
         status: "pending", last_error: message,
         next_attempt_at: new Date(now + row.attempt_count * 5 * 60 * 1000).toISOString(),
@@ -878,9 +975,9 @@ async function overview(tenantId: string): Promise<Record<string, number>> {
     .select("status,provider_reference,last_error,reminder_type")
     .eq("tenant_id", tenantId).gte("scheduled_for", since).limit(1000);
   // Los cuatro primeros cuentan recordatorios (igual que antes); confirmation_* cuenta las confirmaciones.
-  const counts: Record<string, number> = { scheduled: 0, waiting: 0, sent: 0, failed: 0, confirmation_scheduled: 0, confirmation_waiting: 0, confirmation_sent: 0, confirmation_failed: 0 };
+  const counts: Record<string, number> = { scheduled: 0, waiting: 0, sent: 0, failed: 0, confirmation_scheduled: 0, confirmation_waiting: 0, confirmation_sent: 0, confirmation_failed: 0, no_show_scheduled: 0, no_show_waiting: 0, no_show_sent: 0, no_show_failed: 0, feedback_scheduled: 0, feedback_waiting: 0, feedback_sent: 0, feedback_failed: 0 };
   for (const row of data || []) {
-    const prefix = row.reminder_type === "confirmation" ? "confirmation_" : "";
+    const prefix = row.reminder_type === "confirmation" ? "confirmation_" : row.reminder_type === "no_show" ? "no_show_" : row.reminder_type === "feedback" ? "feedback_" : "";
     if (row.status === "processing" && row.provider_reference) counts[prefix + "scheduled"] += 1;
     else if (row.status === "pending" || row.status === "processing") counts[prefix + "waiting"] += 1;
     else if (row.status === "sent") counts[prefix + "sent"] += 1;
@@ -899,11 +996,13 @@ Deno.serve(async (req) => {
   const cronSecret = req.headers.get("x-smyl-cron-secret") || "";
   if (cronSecret) {
     if (!sameSecret(cronSecret, CRON_SECRET)) return json(401, { error: "Secreto de cron no válido." });
-    const [byReminders, byConfirmation] = await Promise.all([
+    const [byReminders, byConfirmation, byNoShow, byFeedback] = await Promise.all([
       admin.from("smyl_reminder_settings").select("tenant_id").eq("enabled", true).limit(200),
       admin.from("smyl_reminder_settings").select("tenant_id").eq("confirmation_enabled", true).limit(200),
+      admin.from("smyl_reminder_settings").select("tenant_id").eq("no_show_enabled", true).limit(200),
+      admin.from("smyl_reminder_settings").select("tenant_id").eq("feedback_enabled", true).limit(200),
     ]);
-    const enabled = [...new Map([...(byReminders.data || []), ...(byConfirmation.data || [])].map((row) => [row.tenant_id, row])).values()];
+    const enabled = [...new Map([...(byReminders.data || []), ...(byConfirmation.data || []), ...(byNoShow.data || []), ...(byFeedback.data || [])].map((row) => [row.tenant_id, row])).values()];
     const results: Record<string, Summary> = {};
     for (const row of enabled) results[row.tenant_id] = await dispatchTenant(row.tenant_id).catch(() => ({ scheduled: 0, waiting: 0, failed: 0, skipped: 0, cancelled_in_lana: 0, synced: 0, error: "Error inesperado." }));
     return json(200, { tenants: Object.keys(results).length, results });
@@ -921,13 +1020,15 @@ Deno.serve(async (req) => {
 
   if (action === "settings") {
     const { data: settings } = await admin.from("smyl_reminder_settings")
-      .select("enabled,template_id,template_name,template_language,variables,last_dispatch_at,updated_at,confirmation_enabled,confirmation_template_id,confirmation_template_name,confirmation_template_language,confirmation_variables,confirmation_since,send_window_start,send_window_end,require_consent,whatsapp_mode,whatsapp_phone")
+      .select("enabled,reminder_48h_enabled,template_id,template_name,template_language,variables,last_dispatch_at,updated_at,confirmation_enabled,confirmation_template_id,confirmation_template_name,confirmation_template_language,confirmation_variables,confirmation_since,no_show_enabled,no_show_template_id,no_show_template_name,no_show_template_language,no_show_variables,no_show_since,feedback_enabled,feedback_template_id,feedback_template_name,feedback_template_language,feedback_variables,feedback_since,send_window_start,send_window_end,require_consent,whatsapp_mode,whatsapp_phone")
       .eq("tenant_id", tenantId).maybeSingle();
     const catalog = canConfigure ? await templates(tenantId, userHeaders(auth.user!, tenantId)) : { templates: [] };
     return json(200, {
       settings: settings || {
-        enabled: false, template_id: null, template_name: "", template_language: "", variables: [], last_dispatch_at: null,
+        enabled: false, reminder_48h_enabled: false, template_id: null, template_name: "", template_language: "", variables: [], last_dispatch_at: null,
         confirmation_enabled: false, confirmation_template_id: null, confirmation_template_name: "", confirmation_template_language: "", confirmation_variables: [], confirmation_since: null,
+        no_show_enabled: false, no_show_template_id: null, no_show_template_name: "", no_show_template_language: "", no_show_variables: [], no_show_since: null,
+        feedback_enabled: false, feedback_template_id: null, feedback_template_name: "", feedback_template_language: "", feedback_variables: [], feedback_since: null,
         send_window_start: "09:00:00", send_window_end: "20:00:00", require_consent: false, whatsapp_mode: "single", whatsapp_phone: "",
       },
       can_configure: canConfigure, sources: SOURCES, overview: await overview(tenantId), ...catalog,
@@ -952,22 +1053,28 @@ Deno.serve(async (req) => {
       return json(200, { ok: true });
     }
 
-    if (kind !== "reminder" && kind !== "confirmation") return json(400, { error: "Tipo de mensaje no reconocido." });
+    if (kind !== "reminder" && kind !== "confirmation" && kind !== "no_show" && kind !== "feedback") return json(400, { error: "Tipo de mensaje no reconocido." });
     const confirmation = kind === "confirmation";
+    const noShow = kind === "no_show";
+    const feedback = kind === "feedback";
     const col = confirmation
       ? { enabled: "confirmation_enabled", id: "confirmation_template_id", name: "confirmation_template_name", language: "confirmation_template_language", variables: "confirmation_variables" }
-      : { enabled: "enabled", id: "template_id", name: "template_name", language: "template_language", variables: "variables" };
+      : feedback
+        ? { enabled: "feedback_enabled", id: "feedback_template_id", name: "feedback_template_name", language: "feedback_template_language", variables: "feedback_variables" }
+        : noShow
+        ? { enabled: "no_show_enabled", id: "no_show_template_id", name: "no_show_template_name", language: "no_show_template_language", variables: "no_show_variables" }
+        : { enabled: "enabled", id: "template_id", name: "template_name", language: "template_language", variables: "variables" };
     const enabled = body.enabled === true;
     // Apagar siempre debe funcionar, aunque LANA no responda o la plantilla ya no exista.
     if (!enabled) {
       const { error } = await admin.from("smyl_reminder_settings").upsert({ tenant_id: tenantId, [col.enabled]: false, updated_by: auth.user!.id }, { onConflict: "tenant_id" });
       if (error) return json(500, { error: "No se pudo guardar la configuración." });
-      return json(200, { ok: true, cancelled_in_lana: await cancelQueued(tenantId, confirmation ? "confirmation" : "reminder") });
+      return json(200, { ok: true, cancelled_in_lana: await cancelQueued(tenantId, confirmation ? "confirmation" : noShow ? "no_show" : feedback ? "feedback" : "reminder") });
     }
     const templateId = body.template_id == null || body.template_id === "" ? null : uuid(body.template_id);
     const variables = normalizeVariables(body.variables);
     if (variables === null) return json(400, { error: "Las variables de la plantilla no son válidas." });
-    if (enabled && !templateId) return json(400, { error: confirmation ? "Elige una plantilla aprobada para activar las confirmaciones." : "Elige una plantilla aprobada para activar los recordatorios." });
+    if (enabled && !templateId) return json(400, { error: confirmation ? "Elige una plantilla aprobada para activar las confirmaciones." : noShow ? "Elige una plantilla aprobada para activar el seguimiento de inasistencias." : feedback ? "Elige una plantilla aprobada para activar la pregunta del motivo." : "Elige una plantilla aprobada para activar los recordatorios." });
     let templateName = ""; let templateLanguage = "";
     if (templateId) {
       const catalog = await templates(tenantId, userHeaders(auth.user!, tenantId));
@@ -979,7 +1086,7 @@ Deno.serve(async (req) => {
       templateName = String(template.name || ""); templateLanguage = String(template.language || "");
     }
     const row: Record<string, unknown> = {
-      tenant_id: tenantId, [col.enabled]: enabled, [col.id]: templateId, [col.name]: templateName,
+      tenant_id: tenantId, ...(confirmation || noShow || feedback ? {} : { reminder_48h_enabled: body.reminder_48h === true }), [col.enabled]: enabled, [col.id]: templateId, [col.name]: templateName,
       [col.language]: templateLanguage, [col.variables]: variables, updated_by: auth.user!.id,
     };
     if (confirmation) {
@@ -987,14 +1094,24 @@ Deno.serve(async (req) => {
       const { data: previous } = await admin.from("smyl_reminder_settings").select("confirmation_enabled,confirmation_since").eq("tenant_id", tenantId).maybeSingle();
       row.confirmation_since = previous?.confirmation_enabled && previous.confirmation_since ? previous.confirmation_since : new Date().toISOString();
     }
+    if (noShow) {
+      // El seguimiento solo cubre inasistencias marcadas desde que se enciende: nunca en retroactivo.
+      const { data: previous } = await admin.from("smyl_reminder_settings").select("no_show_enabled,no_show_since").eq("tenant_id", tenantId).maybeSingle();
+      row.no_show_since = previous?.no_show_enabled && previous.no_show_since ? previous.no_show_since : new Date().toISOString();
+    }
+    if (feedback) {
+      // Solo cubre seguimientos de «No vino» enviados desde que se enciende: nunca en retroactivo.
+      const { data: previous } = await admin.from("smyl_reminder_settings").select("feedback_enabled,feedback_since").eq("tenant_id", tenantId).maybeSingle();
+      row.feedback_since = previous?.feedback_enabled && previous.feedback_since ? previous.feedback_since : new Date().toISOString();
+    }
     const { error } = await admin.from("smyl_reminder_settings").upsert(row, { onConflict: "tenant_id" });
     if (error) return json(500, { error: "No se pudo guardar la configuración." });
     return json(200, { ok: true, summary: await dispatchTenant(tenantId) });
   }
 
   if (action === "dispatch") {
-    const { data: settings } = await admin.from("smyl_reminder_settings").select("enabled,confirmation_enabled,last_dispatch_at").eq("tenant_id", tenantId).maybeSingle();
-    if (!settings?.enabled && !settings?.confirmation_enabled) return json(200, { skipped: "disabled" });
+    const { data: settings } = await admin.from("smyl_reminder_settings").select("enabled,confirmation_enabled,no_show_enabled,feedback_enabled,last_dispatch_at").eq("tenant_id", tenantId).maybeSingle();
+    if (!settings?.enabled && !settings?.confirmation_enabled && !settings?.no_show_enabled && !settings?.feedback_enabled) return json(200, { skipped: "disabled" });
     const recent = settings.last_dispatch_at && Date.now() - new Date(settings.last_dispatch_at).getTime() < 60 * 1000;
     if (recent && !(body.force === true && can["schedule.manage"])) return json(200, { skipped: "recent" });
     return json(200, { summary: await dispatchTenant(tenantId) });

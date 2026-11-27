@@ -1,9 +1,18 @@
-/* SMYL · Consentimiento informado por procedimiento (NOM-004-SSA3-2012).
- * Sección «Consentimientos informados» en la historia clínica del paciente: lista los firmados y permite recabar uno
- * nuevo desde una plantilla editable (procedimiento, beneficios, riesgos, alternativas, cuidados). El paciente firma en
- * pantalla; el profesional confirma su identidad (SmylAuthGuard.reauthenticate) y el servidor guarda su nombre y cédula.
- * Las plantillas son un punto de partida: el profesional debe adaptarlas al caso. Todo texto entra escapado. */
-(function (root, factory) { var api = factory(); if (typeof module === 'object' && module.exports) module.exports = api; else root.SmylInformedConsent = api; })(globalThis, function () {
+/* SMYL · Consentimiento informado por procedimiento.
+ *
+ * Flujo profesional: elegir procedimiento, personalizar, lectura del paciente,
+ * firma y confirmación profesional. El servidor conserva el texto exacto, su
+ * huella, la firma y la identidad del profesional; un documento firmado nunca
+ * se edita ni se elimina, únicamente puede revocarse con motivo.
+ *
+ * Las plantillas son un punto de partida clínico editable. No sustituyen la
+ * revisión del profesional ni la validación legal aplicable a cada clínica.
+ */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.SmylInformedConsent = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
   var ANESTESIA = 'Anestesia local: puede causar adormecimiento prolongado, hematoma o dolor en el sitio de punción y, en raras ocasiones, reacciones alérgicas o lesión transitoria de un nervio.';
@@ -61,23 +70,13 @@
 
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
   function template(key) { return TEMPLATES.find(function (t) { return t.key === key; }) || TEMPLATES[TEMPLATES.length - 1]; }
+  function clean(v) { return String(v == null ? '' : v).trim(); }
 
-  /** Texto completo que el paciente lee y firma (se guarda tal cual, con su huella). */
   function compose(f) {
-    var lines = [
-      'CONSENTIMIENTO INFORMADO',
-      'Procedimiento: ' + f.title,
-      'Clínica: ' + (f.clinic || '—'),
-      'Paciente: ' + f.patient + (f.relation === 'guardian' ? ' · Firma su tutor o representante: ' + f.signer : ''),
-      'Fecha: ' + f.date,
-      '',
-      'En qué consiste: ' + f.description,
-      'Beneficios esperados: ' + f.benefits,
-      'Riesgos y posibles complicaciones: ' + f.risks,
-      'Alternativas: ' + f.alternatives,
-      'Cuidados posteriores: ' + (f.care || 'Los que indique el profesional.'),
-      ''
-    ];
+    var lines = ['CONSENTIMIENTO INFORMADO', 'Procedimiento: ' + f.title, 'Clínica: ' + (f.clinic || '—'),
+      'Paciente: ' + f.patient + (f.relation === 'guardian' ? ' · Firma su tutor o representante: ' + f.signer : ''), 'Fecha: ' + f.date, '',
+      'En qué consiste: ' + f.description, 'Beneficios esperados: ' + f.benefits, 'Riesgos y posibles complicaciones: ' + f.risks,
+      'Alternativas: ' + f.alternatives, 'Cuidados posteriores: ' + (f.care || 'Los que indique el profesional.'), ''];
     if (f.notes) lines.push('Información particular de este caso: ' + f.notes, '');
     lines.push('Declaro que el profesional me explicó en lenguaje claro en qué consiste el procedimiento, sus beneficios, riesgos y alternativas; que pude hacer preguntas y fueron respondidas; y que autorizo su realización de forma libre. Sé que puedo revocar este consentimiento en cualquier momento antes del procedimiento.');
     lines.push('Este documento forma parte de mi expediente clínico conforme a la NOM-004-SSA3-2012.');
@@ -85,131 +84,139 @@
   }
 
   function validate(f) {
-    if (!f.title || f.title.trim().length < 3) return 'Escribe el nombre del procedimiento.';
+    if (clean(f.title).length < 3) return 'Escribe el nombre del procedimiento.';
     var required = [['description', 'en qué consiste'], ['benefits', 'los beneficios'], ['risks', 'los riesgos'], ['alternatives', 'las alternativas']];
-    for (var i = 0; i < required.length; i++) if (!f[required[i][0]] || f[required[i][0]].trim().length < 10) return 'Describe ' + required[i][1] + '.';
-    if (!f.signer || f.signer.trim().length < 2) return 'Escribe el nombre de quien firma.';
+    for (var i = 0; i < required.length; i++) if (clean(f[required[i][0]]).length < 10) return 'Describe ' + required[i][1] + '.';
+    if (compose(f).length > 20000) return 'El consentimiento es demasiado extenso. Resume el contenido antes de solicitar la firma.';
+    if (clean(f.signer).length < 2) return 'Escribe el nombre de quien firma.';
     if (!f.explained) return 'Confirma que explicaste el procedimiento y resolviste las dudas.';
     if (!f.inked) return 'Falta la firma del paciente.';
     return '';
   }
 
-  /* ── Navegador ── */
-  function fmtDate(v) { try { return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(v)); } catch (e) { return String(v); } }
-
-  function signaturePad(canvas) {
-    var ctx = canvas.getContext('2d'), drawing = false, inked = false, last = null;
-    function size() { var r = canvas.getBoundingClientRect(), d = window.devicePixelRatio || 1; canvas.width = Math.max(1, r.width * d); canvas.height = Math.max(1, r.height * d); ctx.setTransform(d, 0, 0, d, 0, 0); ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = '#0f172a'; }
-    function pos(e) { var r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
-    canvas.addEventListener('pointerdown', function (e) { drawing = true; last = pos(e); canvas.setPointerCapture(e.pointerId); e.preventDefault(); });
-    canvas.addEventListener('pointermove', function (e) { if (!drawing) return; var p = pos(e); ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke(); last = p; inked = true; });
-    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (n) { canvas.addEventListener(n, function () { drawing = false; }); });
-    requestAnimationFrame(size);
-    return {
-      inked: function () { return inked; },
-      clear: function () { ctx.clearRect(0, 0, canvas.width, canvas.height); inked = false; },
-      png: function () { var out = document.createElement('canvas'); out.width = 600; out.height = 200; var c = out.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, 600, 200); c.drawImage(canvas, 0, 0, 600, 200); return out.toDataURL('image/png'); }
-    };
+  function stepIssue(step, f) {
+    if (step === 'procedure' && clean(f.title).length < 3) return 'Escribe el nombre del procedimiento.';
+    if (step === 'customize') {
+      var core = validate(Object.assign({}, f, { signer: 'Paciente', explained: true, inked: true }));
+      if (core) return core;
+    }
+    if (step === 'read' && (!f.readFull || !f.questions || !f.answered)) return 'Confirma que el paciente leyó la información, pudo preguntar y recibió respuestas.';
+    if (step === 'sign' && clean(f.signer).length < 2) return 'Escribe el nombre de quien firma.';
+    if (step === 'sign' && !f.inked) return 'Falta la firma del paciente.';
+    return '';
   }
 
-  function rpc(name, args) { return globalThis.sb.rpc(name, args).then(function (r) { if (r.error) throw r.error; return r.data; }); }
-  function errText(err) {
-    var msg = String(err && err.message || ''), code = err && err.code;
-    if (/PGRST202|42883|schema cache/i.test(code + ' ' + msg)) return 'Falta aplicar la migración de consentimiento informado en la base de datos.';
-    return msg || 'No se pudo completar. Intenta de nuevo.';
+  function fmtDate(v) { try { return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(v)); } catch (_) { return String(v || ''); } }
+  function n(tag, cls, text) { var node = document.createElement(tag); if (cls) node.className = cls; if (text != null) node.textContent = text; return node; }
+  function button(text, cls, onClick) { var control = n('button', cls || 'btn btn-secondary', text); control.type = 'button'; if (onClick) control.addEventListener('click', onClick); return control; }
+  function labeledInput(label, name, tag, rows) { var wrap = n('label', 'ic-field'), caption = n('span', '', label), input = n(tag || 'input'); input.name = name; if (rows) input.rows = rows; wrap.append(caption, input); return { wrap: wrap, input: input }; }
+  function rpc(name, args) { return globalThis.sb.rpc(name, args).then(function (result) { if (result.error) throw result.error; return result.data; }); }
+  function errText(err) { var msg = String(err && err.message || ''), code = err && err.code; if (/PGRST202|42883|schema cache/i.test(code + ' ' + msg)) return 'Falta activar el registro seguro de consentimientos en la clínica.'; return msg || 'No se pudo completar. Intenta de nuevo.'; }
+
+  function signaturePad(canvas, onChange) {
+    var context = canvas.getContext('2d'), drawing = false, inked = false, last = null, observer = null, distance = 0, points = 0;
+    function configure(scale) { context.setTransform(scale, 0, 0, scale, 0, 0); context.lineWidth = 2.25; context.lineCap = 'round'; context.lineJoin = 'round'; context.strokeStyle = '#10223a'; context.fillStyle = '#10223a'; }
+    function resize() {
+      var rect = canvas.getBoundingClientRect(); if (!rect.width || !rect.height) return; var previous = null;
+      if (inked && canvas.width && canvas.height) { previous = document.createElement('canvas'); previous.width = canvas.width; previous.height = canvas.height; previous.getContext('2d').drawImage(canvas, 0, 0); }
+      var scale = window.devicePixelRatio || 1; canvas.width = Math.max(1, Math.round(rect.width * scale)); canvas.height = Math.max(1, Math.round(rect.height * scale)); configure(scale);
+      if (previous) context.drawImage(previous, 0, 0, previous.width, previous.height, 0, 0, rect.width, rect.height);
+    }
+    function point(event) { var rect = canvas.getBoundingClientRect(); return { x: event.clientX - rect.left, y: event.clientY - rect.top }; }
+    function changed(value) { if (inked === value) return; inked = value; if (onChange) onChange(inked); }
+    canvas.addEventListener('pointerdown', function (event) { drawing = true; last = point(event); canvas.setPointerCapture(event.pointerId); context.beginPath(); context.arc(last.x, last.y, 1.15, 0, Math.PI * 2); context.fill(); event.preventDefault(); });
+    canvas.addEventListener('pointermove', function (event) { if (!drawing) return; var next = point(event); distance += Math.hypot(next.x - last.x, next.y - last.y); points++; context.beginPath(); context.moveTo(last.x, last.y); context.lineTo(next.x, next.y); context.stroke(); last = next; changed(distance >= 24 && points >= 2); event.preventDefault(); });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (eventName) { canvas.addEventListener(eventName, function () { drawing = false; }); });
+    if (typeof ResizeObserver !== 'undefined') { observer = new ResizeObserver(resize); observer.observe(canvas); } requestAnimationFrame(resize);
+    return { inked: function () { return inked; }, resize: resize, clear: function () { context.clearRect(0, 0, canvas.width, canvas.height); distance = 0; points = 0; changed(false); },
+      png: function () { var out = document.createElement('canvas'); out.width = 600; out.height = 200; var c = out.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, 600, 200); c.drawImage(canvas, 0, 0, 600, 200); return out.toDataURL('image/png'); }, destroy: function () { if (observer) observer.disconnect(); } };
   }
 
-  function printConsent(row) {
-    var w = window.open('', '_blank', 'noopener=no');
-    if (!w) { window.alert('Permite las ventanas emergentes para imprimir el consentimiento.'); return; }
-    var html = '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Consentimiento informado</title><style>body{font:13px/1.55 Georgia,serif;color:#111;max-width:720px;margin:32px auto;padding:0 20px}pre{white-space:pre-wrap;font:inherit}.firmas{display:flex;gap:32px;margin-top:28px;flex-wrap:wrap}.firmas div{flex:1;min-width:240px;border-top:1px solid #333;padding-top:6px}img{max-width:260px;display:block}small{color:#555}</style></head><body>'
-      + '<pre>' + esc(row.document_text) + '</pre>'
-      + '<div class="firmas"><div><img src="' + esc(row.signature_png) + '" alt="Firma"><b>' + esc(row.signer_name) + '</b><br><small>' + (row.signer_relation === 'guardian' ? 'Tutor o representante' : 'Paciente') + ' · ' + esc(fmtDate(row.signed_at)) + '</small></div>'
-      + '<div><b>' + esc(row.professional_name) + '</b><br><small>Cédula profesional ' + esc(row.professional_license) + ' · Informó y recabó el consentimiento</small></div></div>'
-      + (row.revoked_at ? '<p><b>Revocado</b> el ' + esc(fmtDate(row.revoked_at)) + ': ' + esc(row.revoked_reason) + '</p>' : '')
-      + '<p><small>Huella del documento (SHA-256): ' + esc(row.document_sha256) + '</small></p></body></html>';
-    w.document.open(); w.document.write(html); w.document.close(); w.focus(); setTimeout(function () { w.print(); }, 300);
+  function patientContext() { var patient = globalThis.pacienteActual || {}; return { name: [patient.nombre, patient.apellido].filter(Boolean).join(' ') || 'Paciente', clinic: globalThis.tenantData && (globalThis.tenantData.nombre || globalThis.tenantData.nombre_consultorio) || '' }; }
+  function readDraft(state) { return { title: clean(state.fields.title.value), description: clean(state.fields.description.value), benefits: clean(state.fields.benefits.value), risks: clean(state.fields.risks.value), alternatives: clean(state.fields.alternatives.value), care: clean(state.fields.care.value), notes: clean(state.fields.notes.value), relation: state.relation.value, signer: clean(state.signer.value), patient: state.patient, clinic: state.clinic, date: fmtDate(new Date()), explained: !!(state.readFull.checked && state.questions.checked && state.answered.checked), readFull: state.readFull.checked, questions: state.questions.checked, answered: state.answered.checked, inked: !!(state.pad && state.pad.inked()) }; }
+  function updateTemplateButtons(state) { state.templateButtons.forEach(function (control) { var active = control.dataset.key === state.templateKey; control.setAttribute('aria-pressed', active ? 'true' : 'false'); control.dataset.state = active ? 'selected' : 'idle'; }); }
+  function resetSignature(state, message) { var hadSignature = !!(state.pad && state.pad.inked()); if (hadSignature) state.pad.clear(); if (state.signatureState) { state.signatureState.textContent = 'Pendiente'; state.signatureState.dataset.state = 'pending'; } if (hadSignature && message) setStatus(state, message, 'warn'); return hadSignature; }
+  function invalidateDocumentReview(state) { var controls = [state.readFull, state.questions, state.answered].filter(Boolean), hadReading = controls.some(function (control) { return control.checked; }); controls.forEach(function (control) { control.checked = false; }); var hadSignature = resetSignature(state, ''); if (hadReading || hadSignature) setStatus(state, 'El documento cambió. El paciente debe leer nuevamente la versión actual y volver a firmarla.', 'warn'); }
+  function invalidateSigner(state) { if (resetSignature(state, 'La identidad del firmante cambió. Solicita una firma nueva antes de guardar.')) updateSummary(state); }
+  function applyTemplate(state, key, force) { if (!force && key === state.templateKey) return; if (!force && state.customized && typeof window.confirm === 'function' && !window.confirm('Cambiar la plantilla reemplazará el texto que personalizaste. ¿Deseas continuar?')) return; invalidateDocumentReview(state); var source = template(key); state.templateKey = source.key; ['title', 'description', 'benefits', 'risks', 'alternatives', 'care'].forEach(function (name) { state.fields[name].value = source.key === 'custom' && name === 'title' ? '' : source[name]; }); state.fields.notes.value = ''; state.customized = false; state.dirty = !force; updateTemplateButtons(state); updateSummary(state); if (source.key === 'custom') state.fields.title.focus(); }
+  function stageHeader(eyebrow, title, copy) { var header = n('header', 'ic-stage-header'); header.append(n('span', 'ic-eyebrow', eyebrow), n('h3', '', title), n('p', '', copy)); return header; }
+
+  function buildProcedureStage(state) {
+    var stage = n('section', 'ic-stage'); stage.dataset.stage = 'procedure'; stage.append(stageHeader('PASO 1', 'Elige el procedimiento', 'Usa una plantilla clínica como punto de partida. Podrás adaptar todo el contenido al caso.'));
+    var notice = n('div', 'ic-template-notice'); notice.append(n('span', '', 'i'), n('p', '', 'Las plantillas son editables y requieren revisión profesional antes de recabar la firma.')); stage.append(notice);
+    var grid = n('div', 'ic-template-grid'); state.templateButtons = [];
+    TEMPLATES.forEach(function (item) { var control = button('', 'ic-template-card', function () { applyTemplate(state, item.key, false); }); control.dataset.key = item.key; control.setAttribute('aria-pressed', 'false'); var icon = n('span', 'ic-template-icon', item.key === 'custom' ? '+' : item.title.charAt(0)); var copy = n('span', 'ic-template-copy'); copy.append(n('strong', '', item.title), n('small', '', item.key === 'custom' ? 'Redacta un consentimiento desde cero.' : item.description)); control.append(icon, copy, n('span', 'ic-template-check', '✓')); grid.append(control); state.templateButtons.push(control); }); stage.append(grid);
+    var title = labeledInput('Nombre que aparecerá en el documento *', 'title'); title.input.maxLength = 160; title.input.placeholder = 'Ej. Extracción quirúrgica de tercer molar'; state.fields.title = title.input; stage.append(title.wrap); return stage;
   }
 
-  function openNew(o) {
-    var doc = document, d = doc.createElement('dialog'); d.className = 'ic-dialog';
-    var patient = (globalThis.pacienteActual || {}), patientName = [patient.nombre, patient.apellido].filter(Boolean).join(' ') || 'Paciente';
-    var clinic = (globalThis.tenantData && (globalThis.tenantData.nombre || globalThis.tenantData.nombre_consultorio)) || '';
-    d.innerHTML = '<form class="ic-box"><header><h2>Nuevo consentimiento informado</h2><button type="button" class="ic-x" aria-label="Cerrar">×</button></header>'
-      + '<p class="ic-help">Elige una plantilla y adáptala a este caso. El paciente debe leerla completa antes de firmar.</p>'
-      + '<label>Procedimiento<select name="tpl">' + TEMPLATES.map(function (t) { return '<option value="' + t.key + '">' + esc(t.title) + '</option>'; }).join('') + '</select></label>'
-      + '<label>Nombre del procedimiento<input name="title" maxlength="160" required></label>'
-      + '<label>En qué consiste<textarea name="description" rows="2"></textarea></label>'
-      + '<label>Beneficios esperados<textarea name="benefits" rows="2"></textarea></label>'
-      + '<label>Riesgos y posibles complicaciones<textarea name="risks" rows="4"></textarea></label>'
-      + '<label>Alternativas<textarea name="alternatives" rows="2"></textarea></label>'
-      + '<label>Cuidados posteriores<textarea name="care" rows="2"></textarea></label>'
-      + '<label>Información particular de este caso (opcional)<textarea name="notes" rows="2" maxlength="2000"></textarea></label>'
-      + '<div class="ic-row"><label>Firma<select name="relation"><option value="patient">El paciente</option><option value="guardian">Su tutor o representante</option></select></label><label>Nombre de quien firma<input name="signer" maxlength="150" required></label></div>'
-      + '<label class="ic-check"><input type="checkbox" name="explained"> Expliqué el procedimiento, sus riesgos y alternativas, y resolví las dudas del paciente.</label>'
-      + '<div class="ic-pad"><canvas aria-label="Espacio para la firma del paciente" role="img"></canvas><button type="button" class="ic-clear">Borrar firma</button></div>'
-      + '<p class="ic-feedback" role="status"></p>'
-      + '<div class="ic-actions"><button type="button" class="btn btn-secondary ic-cancel">Cancelar</button><button type="submit" class="btn btn-primary">Firmar como profesional y guardar</button></div></form>';
-    doc.body.append(d);
-    var form = d.querySelector('form'), feedback = d.querySelector('.ic-feedback'), pad = signaturePad(d.querySelector('canvas'));
-    form.signer.value = patientName;
-    function fill(key) { var t = template(key); form.title.value = t.key === 'custom' ? '' : t.title; ['description', 'benefits', 'risks', 'alternatives', 'care'].forEach(function (k) { form[k].value = t[k]; }); }
-    fill(TEMPLATES[0].key);
-    form.tpl.onchange = function () { fill(form.tpl.value); };
-    form.relation.onchange = function () { if (form.relation.value === 'patient') form.signer.value = patientName; else if (form.signer.value === patientName) form.signer.value = ''; };
-    function close() { try { d.close(); } catch (e) {} d.remove(); }
-    d.querySelector('.ic-x').onclick = close; d.querySelector('.ic-cancel').onclick = close;
-    d.querySelector('.ic-clear').onclick = function () { pad.clear(); };
-    d.querySelector('canvas').addEventListener('pointerdown', function () { feedback.textContent = ''; });
-    form.onsubmit = async function (e) {
-      e.preventDefault();
-      var f = { title: form.title.value.trim(), description: form.description.value.trim(), benefits: form.benefits.value.trim(), risks: form.risks.value.trim(), alternatives: form.alternatives.value.trim(), care: form.care.value.trim(), notes: form.notes.value.trim(), relation: form.relation.value, signer: form.signer.value.trim(), explained: form.explained.checked, inked: pad.inked(), patient: patientName, clinic: clinic, date: fmtDate(new Date()) };
-      var problem = validate(f); if (problem) { feedback.textContent = problem; return; }
-      var submit = form.querySelector('[type=submit]'); submit.disabled = true; feedback.textContent = '';
-      try {
-        if (globalThis.SmylAuthGuard && !(await globalThis.SmylAuthGuard.reauthenticate(globalThis.sb, 'firmar el consentimiento'))) { submit.disabled = false; return; }
-        await rpc('smyl_record_informed_consent', { p_patient_id: o.patient, p_template_key: form.tpl.value, p_procedure_title: f.title, p_document_text: compose(f), p_signer_name: f.signer, p_signer_relation: f.relation, p_signature_png: pad.png() });
-        close(); if (o.refresh) o.refresh();
-      } catch (err) { feedback.textContent = errText(err); submit.disabled = false; }
-    };
-    d.showModal();
+  function buildCustomizeStage(state) {
+    var stage = n('section', 'ic-stage'); stage.dataset.stage = 'customize'; stage.append(stageHeader('PASO 2', 'Personaliza este caso', 'Explica con lenguaje claro lo que se realizará. Evita términos que el paciente no pueda comprender.'));
+    var groups = [['01', 'Procedimiento y beneficio', 'Qué se hará y qué resultado se espera.', [['description', 'En qué consiste *', 3], ['benefits', 'Beneficios esperados *', 3]]], ['02', 'Riesgos y alternativas', 'Lo que el paciente debe conocer antes de decidir.', [['risks', 'Riesgos y posibles complicaciones *', 5], ['alternatives', 'Alternativas disponibles *', 3]]], ['03', 'Cuidados y particularidades', 'Indicaciones posteriores y datos propios de este caso.', [['care', 'Cuidados posteriores', 3], ['notes', 'Información particular del caso (opcional)', 3]]]];
+    groups.forEach(function (group) { var card = n('section', 'ic-editor-card'), heading = n('header'); heading.append(n('span', '', group[0]), n('div')); heading.lastChild.append(n('h4', '', group[1]), n('p', '', group[2])); card.append(heading); group[3].forEach(function (entry) { var field = labeledInput(entry[1], entry[0], 'textarea', entry[2]); field.input.maxLength = entry[0] === 'notes' ? 2000 : 6000; state.fields[entry[0]] = field.input; card.append(field.wrap); }); stage.append(card); }); return stage;
   }
 
-  function render(rows, number, canAct) {
-    var list = rows === null ? '<p class="ic-empty">No se pudieron consultar los consentimientos.</p>'
-      : !rows.length ? '<p class="ic-empty">Aún no hay consentimientos informados. Recaba uno antes de cada procedimiento que lo requiera.</p>'
-      : '<ul class="ic-list">' + rows.map(function (r) {
-        return '<li data-state="' + (r.revoked_at ? 'revoked' : 'ok') + '"><div><b>' + esc(r.procedure_title) + '</b><small>Firmó ' + esc(r.signer_name) + (r.signer_relation === 'guardian' ? ' (tutor)' : '') + ' · ' + esc(fmtDate(r.signed_at)) + ' · Informó ' + esc(r.professional_name) + ' (Céd. ' + esc(r.professional_license) + ')' + (r.revoked_at ? ' · Revocado' : '') + '</small></div>'
-          + '<div class="ic-li-acts"><button type="button" class="p360-hc-edit" data-ic-print="' + esc(r.id) + '">Ver e imprimir</button>' + (canAct && !r.revoked_at ? '<button type="button" class="p360-hc-edit" data-ic-revoke="' + esc(r.id) + '">Revocar</button>' : '') + '</div></li>';
-      }).join('') + '</ul>';
-    return '<section class="p360-hc-band" id="p360-hc-consents" data-tone="consents" tabindex="-1" aria-labelledby="p360-hc-consents-t">'
-      + '<header class="p360-hc-band-h"><div class="p360-hc-title"><span class="p360-hc-num" aria-hidden="true">' + Number(number) + '</span><div><h3 id="p360-hc-consents-t">Consentimientos informados</h3><small>Por procedimiento, firmados por el paciente y el profesional.</small></div></div>'
-      + (canAct ? '<div class="pp-actions"><button type="button" class="p360-hc-edit" data-ic-new>Nuevo consentimiento</button></div>' : '') + '</header>' + list + '</section>';
+  function appendReadSection(host, number, title, text) { var section = n('section', 'ic-read-section'); section.append(n('span', '', number), n('div')); section.lastChild.append(n('h4', '', title), n('p', '', text || '—')); host.append(section); }
+  function renderReading(state) { var f = readDraft(state), host = state.readDocument; host.replaceChildren(); var identity = n('header', 'ic-read-identity'); identity.append(n('span', 'ic-eyebrow', 'CONSENTIMIENTO INFORMADO'), n('h3', '', f.title), n('p', '', f.patient + (f.clinic ? ' · ' + f.clinic : ''))); host.append(identity); appendReadSection(host, '01', 'En qué consiste', f.description); appendReadSection(host, '02', 'Beneficios esperados', f.benefits); appendReadSection(host, '03', 'Riesgos y posibles complicaciones', f.risks); appendReadSection(host, '04', 'Alternativas', f.alternatives); appendReadSection(host, '05', 'Cuidados posteriores', f.care || 'Los que indique el profesional.'); if (f.notes) appendReadSection(host, '06', 'Información particular de este caso', f.notes); var declaration = n('section', 'ic-read-declaration'); declaration.append(n('strong', '', 'Declaración del paciente'), n('p', '', 'Autorizo este procedimiento de forma libre después de recibir una explicación clara, conocer sus beneficios, riesgos y alternativas, y tener oportunidad de hacer preguntas. Sé que puedo revocar mi consentimiento antes del procedimiento.')); host.append(declaration); }
+  function checkRow(text) { var label = n('label', 'ic-check'), input = n('input'); input.type = 'checkbox'; label.append(input, n('span', '', text)); return { label: label, input: input }; }
+  function buildReadStage(state) { var stage = n('section', 'ic-stage'); stage.dataset.stage = 'read'; stage.append(stageHeader('PASO 3', 'Lectura con el paciente', 'Entrega el dispositivo al paciente o lee el documento completo en voz alta.')); state.readDocument = n('article', 'ic-read-document'); stage.append(state.readDocument); var confirmation = n('section', 'ic-read-confirm'); confirmation.append(n('h4', '', 'Antes de continuar')); var full = checkRow('El paciente leyó el documento completo o recibió su lectura en voz alta.'); state.readFull = full.input; var questions = checkRow('El paciente tuvo oportunidad de hacer preguntas.'); state.questions = questions.input; var answered = checkRow('Respondí sus dudas de forma clara antes de solicitar la firma.'); state.answered = answered.input; confirmation.append(full.label, questions.label, answered.label); stage.append(confirmation); return stage; }
+
+  function buildSignStage(state) {
+    var stage = n('section', 'ic-stage'); stage.dataset.stage = 'sign'; stage.append(stageHeader('PASO 4', 'Identidad y firma', 'La firma corresponde a la persona identificada abajo y se incorporará al documento inmutable.'));
+    var identity = n('section', 'ic-sign-card'); identity.append(n('h4', '', '¿Quién firma?')); var row = n('div', 'ic-two-col'), relation = labeledInput('Relación con el paciente', 'relation', 'select'), signer = labeledInput('Nombre completo de quien firma *', 'signer'); [['patient', 'El paciente'], ['guardian', 'Tutor o representante']].forEach(function (option) { var item = n('option', '', option[1]); item.value = option[0]; relation.input.append(item); }); signer.input.maxLength = 150; relation.input.addEventListener('change', function () { state.dirty = true; invalidateSigner(state); if (relation.input.value === 'patient') signer.input.value = state.patient; else if (signer.input.value === state.patient) signer.input.value = ''; updateSummary(state); }); signer.input.addEventListener('input', function () { state.dirty = true; invalidateSigner(state); updateSummary(state); }); state.relation = relation.input; state.signer = signer.input; row.append(relation.wrap, signer.wrap); identity.append(row); stage.append(identity);
+    var padCard = n('section', 'ic-signature-card'), padHead = n('header'); padHead.append(n('div'), n('span', 'ic-sign-state', 'Pendiente')); padHead.firstChild.append(n('h4', '', 'Firma del paciente'), n('p', '', 'Firma dentro del recuadro con el dedo o un lápiz táctil.')); state.signatureState = padHead.lastChild; state.canvas = n('canvas'); state.canvas.setAttribute('aria-label', 'Espacio para la firma del paciente o tutor'); state.canvas.setAttribute('role', 'img'); var clear = button('Borrar firma', 'ic-link ic-danger', function () { if (state.pad) state.pad.clear(); }); padCard.append(padHead, state.canvas, clear); stage.append(padCard); return stage;
   }
 
-  function mount(o) {
-    var doc = globalThis.document;
-    if (!o || !o.host || !globalThis.sb || !doc) return Promise.resolve(false);
-    var host = o.host, main = host.querySelector('.p360-hc-main'), index = host.querySelector('.p360-hc-index');
-    if (!main || !index) return Promise.resolve(false);
-    o.refresh = function () { var b = host.querySelector('#p360-hc-consents'), g = host.querySelector('[data-hc-goto="consents"]'); if (b) b.remove(); if (g) g.remove(); mount(o); };
-    return rpc('smyl_list_informed_consents', { p_patient_id: o.patient }).catch(function () { return null; }).then(function (rows) {
-      if (o.isCurrent && !o.isCurrent()) return false;
-      if (!host.isConnected || host.querySelector('#p360-hc-consents')) return false;
-      var number = host.querySelectorAll('.p360-hc-band').length + 1, tpl = doc.createElement('template');
-      tpl.innerHTML = render(rows, number, !!o.canAct);
-      main.insertBefore(tpl.content, main.querySelector('.p360-hc-footer') || null);
-      var itpl = doc.createElement('template');
-      itpl.innerHTML = '<button type="button" data-hc-goto="consents"><span class="p360-hc-dot" data-state="' + (rows && rows.length ? 'ok' : 'neutral') + '" aria-hidden="true"></span>' + number + ' · Consentimientos</button>';
-      index.insertBefore(itpl.content, index.querySelector('.p360-hc-progress') || null);
-      var band = host.querySelector('#p360-hc-consents');
-      index.querySelector('[data-hc-goto="consents"]').onclick = function () { band.scrollIntoView({ block: 'start' }); band.focus({ preventScroll: true }); };
-      var add = band.querySelector('[data-ic-new]'); if (add) add.onclick = function () { openNew(o); };
-      band.querySelectorAll('[data-ic-print]').forEach(function (b) { b.onclick = function () { rpc('smyl_get_informed_consent', { p_id: b.dataset.icPrint }).then(printConsent, function (e) { window.alert(errText(e)); }); }; });
-      band.querySelectorAll('[data-ic-revoke]').forEach(function (b) { b.onclick = function () { var reason = window.prompt('¿Por qué se revoca este consentimiento? (por ejemplo: el paciente decidió no realizarse el procedimiento)'); if (!reason) return; rpc('smyl_revoke_informed_consent', { p_id: b.dataset.icRevoke, p_reason: reason }).then(o.refresh, function (e) { window.alert(errText(e)); }); }; });
-      return true;
-    });
+  function renderConfirmation(state) { var f = readDraft(state), host = state.confirmContent; host.replaceChildren(); var warning = n('section', 'ic-lock-notice'); warning.append(n('span', '', '✓'), n('div')); warning.lastChild.append(n('strong', '', 'Listo para convertirlo en un documento clínico'), n('p', '', 'Después de guardarlo no podrá editarse ni eliminarse. Si el paciente cambia de decisión, se registra una revocación sin alterar el original.')); host.append(warning); var summary = n('section', 'ic-confirm-summary'); [['Paciente', f.patient], ['Procedimiento', f.title], ['Firmante', f.signer + (f.relation === 'guardian' ? ' · Tutor o representante' : ' · Paciente')], ['Fecha', f.date]].forEach(function (item) { var row = n('div'); row.append(n('small', '', item[0]), n('strong', '', item[1])); summary.append(row); }); host.append(summary); var checklist = n('section', 'ic-confirm-checks'); checklist.append(n('h4', '', 'Contenido incluido')); ['Descripción del procedimiento', 'Beneficios esperados', 'Riesgos y complicaciones', 'Alternativas', 'Cuidados posteriores', 'Firma del paciente'].forEach(function (item) { checklist.append(n('span', '', '✓ ' + item)); }); host.append(checklist); host.append(n('p', 'ic-reauth-note', 'Al guardar, SMYL pedirá al profesional confirmar nuevamente su identidad.')); }
+  function buildConfirmStage(state) { var stage = n('section', 'ic-stage'); stage.dataset.stage = 'confirm'; stage.append(stageHeader('PASO 5', 'Confirmación profesional', 'Haz una última revisión antes de firmar como profesional y guardar.')); state.confirmContent = n('div'); stage.append(state.confirmContent); return stage; }
+
+  function updateSummary(state) { if (!state.summary) return; var f = readDraft(state), source = template(state.templateKey), completed = 0; if (clean(f.title).length >= 3) completed++; if (!stepIssue('customize', f)) completed++; if (f.readFull && f.questions && f.answered) completed++; if (f.inked && clean(f.signer).length >= 2) completed++; state.summary.replaceChildren(); var head = n('header'); head.append(n('span', 'ic-eyebrow', 'BORRADOR ACTUAL'), n('strong', '', completed + ' de 4 listo' + (completed === 1 ? '' : 's'))); state.summary.append(head); var progress = n('div', 'ic-progress'), bar = n('span'); bar.style.width = (completed * 25) + '%'; progress.append(bar); state.summary.append(progress); var data = n('dl'); [['Paciente', f.patient], ['Procedimiento', f.title || 'Por elegir'], ['Plantilla', source.title], ['Firmante', clean(f.signer) || 'Por confirmar']].forEach(function (item) { data.append(n('dt', '', item[0]), n('dd', '', item[1])); }); state.summary.append(data); state.summary.append(n('p', 'ic-summary-note', 'Nada se incorpora al expediente hasta confirmar la identidad profesional y guardar.')); }
+  function setStatus(state, message, tone) { state.status.replaceChildren(); if (!message) return; var note = n('p', 'ic-note ic-' + (tone || 'info'), message); note.setAttribute('role', tone === 'error' ? 'alert' : 'status'); state.status.append(note); }
+  function ensurePad(state) { if (!state.pad) state.pad = signaturePad(state.canvas, function (inked) { state.signatureState.textContent = inked ? 'Firma registrada' : 'Pendiente'; state.signatureState.dataset.state = inked ? 'ready' : 'pending'; state.dirty = true; updateSummary(state); }); requestAnimationFrame(state.pad.resize); }
+  function setStep(state, index) { state.step = Math.max(0, Math.min(state.stages.length - 1, index)); state.stages.forEach(function (stage, i) { stage.hidden = i !== state.step; }); state.stepItems.forEach(function (item, i) { item.dataset.state = i === state.step ? 'active' : i < state.step ? 'complete' : 'pending'; item.setAttribute('aria-current', i === state.step ? 'step' : 'false'); }); state.back.hidden = state.step === 0; state.next.textContent = state.step === 4 ? 'Confirmar identidad y guardar' : state.step === 3 ? 'Revisar y guardar' : 'Continuar'; state.shell.dataset.step = String(state.step + 1); if (state.step === 2) renderReading(state); if (state.step === 3) ensurePad(state); if (state.step === 4) renderConfirmation(state); setStatus(state, ''); updateSummary(state); state.form.scrollTo({ top: 0, behavior: 'instant' }); var heading = state.stages[state.step].querySelector('h3'); if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); } }
+  function advance(state) { var names = ['procedure', 'customize', 'read', 'sign'], f = readDraft(state), problem = state.step < 4 ? stepIssue(names[state.step], f) : ''; if (problem) { setStatus(state, problem, 'error'); return; } if (state.step === 4) { saveConsent(state); return; } setStep(state, state.step + 1); }
+
+  async function fetchConsent(id) { return rpc('smyl_get_informed_consent', { p_id: id }); }
+  function buildSignedDocument(row) { row = row || {}; var article = n('article', 'ic-document'), head = n('header', 'ic-document-head'), title = n('div'); title.append(n('span', 'ic-eyebrow', 'DOCUMENTO CLÍNICO'), n('h2', '', row.procedure_title || 'Consentimiento informado'), n('p', '', 'Firmado ' + fmtDate(row.signed_at))); head.append(title, n('span', 'ic-document-status', row.revoked_at ? 'Revocado' : 'Firmado')); article.append(head); if (row.revoked_at) { var revoked = n('section', 'ic-revoked-banner'); revoked.append(n('strong', '', 'Consentimiento revocado'), n('p', '', fmtDate(row.revoked_at) + (row.revoked_reason ? ' · ' + row.revoked_reason : ''))); article.append(revoked); } article.append(n('pre', 'ic-document-text', row.document_text || '')); var signatures = n('section', 'ic-document-signatures'), signer = n('div'), professional = n('div'); if (/^data:image\/png;base64,/.test(row.signature_png || '')) { var image = n('img'); image.src = row.signature_png; image.alt = 'Firma de ' + (row.signer_name || 'paciente'); signer.append(image); } signer.append(n('strong', '', row.signer_name || '—'), n('small', '', row.signer_relation === 'guardian' ? 'Tutor o representante' : 'Paciente')); professional.append(n('span', 'ic-sign-line'), n('strong', '', row.professional_name || '—'), n('small', '', 'Cédula profesional ' + (row.professional_license || '—') + ' · Informó y recabó el consentimiento')); signatures.append(signer, professional); article.append(signatures); article.append(n('p', 'ic-document-hash', 'Huella del documento (SHA-256): ' + (row.document_sha256 || '—'))); return article; }
+  function printConsent(row) { var previous = document.getElementById('ic-print-root'); if (previous) previous.remove(); var root = n('div', 'ic-print-root'); root.id = 'ic-print-root'; root.append(buildSignedDocument(row)); document.body.append(root); document.body.classList.add('ic-printing'); var cleanup = function () { document.body.classList.remove('ic-printing'); root.remove(); window.removeEventListener('afterprint', cleanup); }; window.addEventListener('afterprint', cleanup); setTimeout(function () { window.print(); }, 80); }
+
+  function openDocument(row, returnFocus) { var dialog = n('dialog', 'ic-document-dialog'), box = n('div', 'ic-document-box'), head = n('header', 'ic-document-toolbar'); head.append(n('div'), button('×', 'ic-x', close)); head.firstChild.append(n('span', 'ic-eyebrow', 'COPIA DEL EXPEDIENTE'), n('h2', '', 'Consentimiento informado')); head.lastChild.setAttribute('aria-label', 'Cerrar documento'); var body = n('div', 'ic-document-scroll'); body.append(buildSignedDocument(row)); var actions = n('footer', 'ic-document-actions'); actions.append(button('Cerrar', 'btn btn-secondary', close), button('Imprimir', 'btn btn-primary', function () { printConsent(row); })); box.append(head, body, actions); dialog.append(box); document.body.append(dialog); function close() { dialog.close(); dialog.remove(); if (returnFocus && returnFocus.isConnected) returnFocus.focus(); } dialog.addEventListener('cancel', function (event) { event.preventDefault(); close(); }); dialog.showModal(); }
+  async function loadDocument(id, trigger, status) { if (trigger) trigger.disabled = true; if (status) status.textContent = 'Abriendo documento…'; try { var row = await fetchConsent(id); openDocument(row, trigger); if (status) status.textContent = ''; } catch (error) { if (status) { status.textContent = errText(error); status.dataset.tone = 'error'; } } if (trigger) trigger.disabled = false; }
+
+  function openRevoke(row, opts, trigger) {
+    var dialog = n('dialog', 'ic-revoke-dialog'), form = n('form', 'ic-revoke-box'); form.addEventListener('submit', submit); var head = n('header'); head.append(n('span', 'ic-danger-mark', '!'), n('div')); head.lastChild.append(n('span', 'ic-eyebrow', 'REVOCACIÓN'), n('h2', '', 'Registrar cambio de decisión')); var copy = n('p', '', 'El documento original de “' + (row.procedure_title || 'este procedimiento') + '” permanecerá en el expediente y quedará marcado como revocado.'); var field = labeledInput('Motivo de la revocación *', 'reason', 'textarea', 4); field.input.maxLength = 500; field.input.placeholder = 'Ej. El paciente decidió posponer o no realizar el procedimiento.'; var feedback = n('p', 'ic-feedback'); feedback.setAttribute('aria-live', 'polite'); var actions = n('footer'); actions.append(button('Cancelar', 'btn btn-secondary', close)); var confirm = button('Registrar revocación', 'btn ic-destructive', function () { form.requestSubmit(); }); actions.append(confirm); form.append(head, copy, field.wrap, feedback, actions); dialog.append(form); document.body.append(dialog);
+    function close() { dialog.close(); dialog.remove(); if (trigger && trigger.isConnected) trigger.focus(); }
+    async function submit(event) { event.preventDefault(); var reason = clean(field.input.value); if (reason.length < 3) { feedback.textContent = 'Escribe el motivo de la revocación.'; return; } confirm.disabled = true; confirm.textContent = 'Confirmando identidad…'; try { if (globalThis.SmylAuthGuard && !(await globalThis.SmylAuthGuard.reauthenticate(globalThis.sb, 'revocar el consentimiento'))) { feedback.textContent = 'La revocación no se registró porque se canceló la confirmación de identidad.'; confirm.disabled = false; confirm.textContent = 'Registrar revocación'; return; } confirm.textContent = 'Guardando…'; await rpc('smyl_revoke_informed_consent', { p_id: row.id, p_reason: reason }); close(); if (opts.refresh) opts.refresh(); } catch (error) { feedback.textContent = errText(error); confirm.disabled = false; confirm.textContent = 'Registrar revocación'; } }
+    dialog.addEventListener('cancel', function (event) { event.preventDefault(); close(); }); dialog.showModal(); field.input.focus();
   }
 
-  return { TEMPLATES: TEMPLATES, compose: compose, validate: validate, render: render, mount: mount, esc: esc };
+  async function saveConsent(state) {
+    if (state.saving) return; var f = readDraft(state), problem = validate(f); if (problem) { setStatus(state, problem, 'error'); return; } state.saving = true; state.next.disabled = true; state.next.textContent = 'Confirmando…'; setStatus(state, 'Confirmando la identidad profesional y guardando el documento…', 'info');
+    try { if (globalThis.SmylAuthGuard && !(await globalThis.SmylAuthGuard.reauthenticate(globalThis.sb, 'firmar el consentimiento'))) { state.saving = false; state.next.disabled = false; state.next.textContent = 'Confirmar identidad y guardar'; setStatus(state, 'La confirmación fue cancelada. El borrador y la firma se conservaron.', 'warn'); return; } var id = await rpc('smyl_record_informed_consent', { p_patient_id: state.opts.patient, p_template_key: state.templateKey, p_procedure_title: f.title, p_document_text: compose(f), p_signer_name: f.signer, p_signer_relation: f.relation, p_signature_png: state.pad.png() }); state.savedId = id; state.dirty = false; if (state.opts.refresh) state.opts.refresh(); renderSuccess(state); } catch (error) { state.saving = false; state.next.disabled = false; state.next.textContent = 'Confirmar identidad y guardar'; setStatus(state, errText(error), 'error'); }
+  }
+
+  function renderSuccess(state) { var success = n('main', 'ic-success'); success.append(n('span', 'ic-success-mark', '✓'), n('span', 'ic-eyebrow', 'DOCUMENTO GUARDADO'), n('h2', '', 'Consentimiento incorporado al expediente'), n('p', '', 'El texto, la firma y la identidad profesional quedaron protegidos contra modificaciones.')); var facts = n('div', 'ic-success-facts'); facts.append(n('strong', '', clean(state.fields.title.value)), n('span', '', state.signer.value + (state.relation.value === 'guardian' ? ' · Tutor o representante' : ' · Paciente'))); success.append(facts); var actions = n('div', 'ic-success-actions'); var view = button('Ver documento', 'btn btn-primary', async function () { view.disabled = true; try { openDocument(await fetchConsent(state.savedId), view); } catch (error) { state.successFeedback.textContent = errText(error); } view.disabled = false; }); var print = button('Imprimir', 'btn btn-secondary', async function () { print.disabled = true; try { printConsent(await fetchConsent(state.savedId)); } catch (error) { state.successFeedback.textContent = errText(error); } print.disabled = false; }); actions.append(view, print, button('Cerrar', 'ic-link', function () { state.close(true); })); success.append(actions); state.successFeedback = n('p', 'ic-feedback'); success.append(state.successFeedback); state.form.replaceChildren(state.head, success); success.querySelector('h2').tabIndex = -1; success.querySelector('h2').focus(); }
+
+  function openNew(opts) {
+    opts = opts || {}; if (!globalThis.sb || !opts.patient || !globalThis.document) return; var context = patientContext(), dialog = n('dialog', 'ic-dialog'), form = n('form', 'ic-flow'); form.addEventListener('submit', function (event) { event.preventDefault(); }); var state = { opts: opts, dialog: dialog, form: form, patient: context.name, clinic: context.clinic, fields: {}, stages: [], stepItems: [], templateButtons: [], templateKey: TEMPLATES[0].key, step: 0, dirty: false, customized: false, saving: false, pad: null };
+    var head = state.head = n('header', 'ic-flow-head'), title = n('div'); title.append(n('span', 'ic-eyebrow', 'EXPEDIENTE DEL PACIENTE'), n('h2', '', 'Nuevo consentimiento'), n('p', '', state.patient)); var closeButton = button('×', 'ic-x', function () { state.close(false); }); closeButton.setAttribute('aria-label', 'Cerrar consentimiento'); head.append(title, closeButton);
+    var steps = n('ol', 'ic-stepper'); steps.setAttribute('aria-label', 'Proceso del consentimiento'); [['1', 'Procedimiento'], ['2', 'Personalizar'], ['3', 'Lectura'], ['4', 'Firma'], ['5', 'Confirmar']].forEach(function (entry) { var item = n('li'); item.append(n('span', '', entry[0]), n('strong', '', entry[1])); state.stepItems.push(item); steps.append(item); });
+    state.status = n('div', 'ic-status'); state.status.setAttribute('aria-live', 'polite'); state.shell = n('div', 'ic-shell'); var main = n('main', 'ic-main'); state.stages = [buildProcedureStage(state), buildCustomizeStage(state), buildReadStage(state), buildSignStage(state), buildConfirmStage(state)]; state.stages.forEach(function (stage) { main.append(stage); }); var aside = n('aside', 'ic-aside'); state.summary = n('section', 'ic-draft-summary'); var guide = n('section', 'ic-guide-card'); guide.append(n('span', 'ic-eyebrow', 'CONTROL PROFESIONAL'), n('h3', '', 'Antes de solicitar la firma'), n('p', '', 'Adapta el texto al caso, léelo con el paciente y resuelve sus preguntas. SMYL conservará exactamente la versión firmada.')); aside.append(state.summary, guide); state.shell.append(main, aside);
+    var actions = n('footer', 'ic-flow-actions'); state.back = button('Atrás', 'btn btn-secondary', function () { setStep(state, state.step - 1); }); state.next = button('Continuar', 'btn btn-primary', function () { advance(state); }); actions.append(state.back, state.next); form.append(head, steps, state.status, state.shell, actions); dialog.append(form); document.body.append(dialog);
+    state.close = function (force) { if (!force && state.dirty && !state.savedId && typeof window.confirm === 'function' && !window.confirm('Hay un consentimiento sin guardar. ¿Deseas cerrarlo?')) return; if (state.pad) state.pad.destroy(); dialog.close(); dialog.remove(); };
+    dialog.addEventListener('cancel', function (event) { event.preventDefault(); state.close(false); }); dialog.addEventListener('close', function () { if (state.pad) state.pad.destroy(); }); Object.keys(state.fields).forEach(function (key) { state.fields[key].addEventListener('input', function () { state.dirty = true; state.customized = true; invalidateDocumentReview(state); updateSummary(state); }); }); [state.readFull, state.questions, state.answered].forEach(function (control) { control.addEventListener('change', function () { state.dirty = true; updateSummary(state); setStatus(state, ''); }); }); state.signer.value = state.patient; applyTemplate(state, TEMPLATES[0].key, true); setStep(state, 0); dialog.showModal(); requestAnimationFrame(function () { state.templateButtons[0].focus(); });
+  }
+
+  function statusChip(text, state) { var chip = n('span', 'ic-state-chip', text); chip.dataset.state = state; return chip; }
+  function buildBand(rows, number, canAct, opts) {
+    var section = n('section', 'p360-hc-band ic-band'); section.id = 'p360-hc-consents'; section.dataset.tone = 'consents'; section.tabIndex = -1; section.setAttribute('aria-labelledby', 'p360-hc-consents-t'); var head = n('header', 'p360-hc-band-h ic-band-head'), title = n('div', 'p360-hc-title'); title.append(n('span', 'p360-hc-num', String(number)), n('div')); title.lastChild.append(n('h3', '', 'Consentimientos informados'), n('small', '', 'Documentos por procedimiento, firmados y protegidos contra modificaciones.')); title.querySelector('h3').id = 'p360-hc-consents-t'; head.append(title); if (canAct) { var headActions = n('div', 'pp-actions'); headActions.append(button('Nuevo consentimiento', 'p360-hc-edit ic-new-button', function () { openNew(opts); })); head.append(headActions); } section.append(head); var status = n('p', 'ic-band-status'); status.setAttribute('aria-live', 'polite'); section.append(status);
+    if (rows === null) { var error = n('div', 'ic-list-empty'); error.append(n('strong', '', 'No pudimos consultar los consentimientos'), n('p', '', 'El expediente no se modificó. Intenta actualizar esta sección.')); section.append(error); return section; }
+    if (!rows.length) { var empty = n('div', 'ic-list-empty'); empty.append(n('span', 'ic-empty-icon', '✦'), n('strong', '', 'Aún no hay consentimientos informados'), n('p', '', 'Recaba uno antes de cada procedimiento que lo requiera.')); if (canAct) empty.append(button('Crear el primero', 'btn btn-secondary', function () { openNew(opts); })); section.append(empty); return section; }
+    var active = rows.filter(function (row) { return !row.revoked_at; }).length, summary = n('div', 'ic-list-summary'); summary.append(n('strong', '', rows.length + (rows.length === 1 ? ' documento' : ' documentos')), statusChip(active + ' vigente' + (active === 1 ? '' : 's'), 'active')); if (rows.length - active) summary.append(statusChip((rows.length - active) + ' revocado' + (rows.length - active === 1 ? '' : 's'), 'revoked')); section.append(summary);
+    var list = n('div', 'ic-list'); rows.forEach(function (row) { var card = n('article', 'ic-consent-card'); card.dataset.state = row.revoked_at ? 'revoked' : 'active'; var marker = n('span', 'ic-card-mark', row.revoked_at ? '×' : '✓'), info = n('div', 'ic-card-copy'); info.append(n('strong', '', row.procedure_title || 'Consentimiento informado'), n('p', '', 'Firmó ' + (row.signer_name || '—') + (row.signer_relation === 'guardian' ? ' · Tutor o representante' : ' · Paciente')), n('small', '', fmtDate(row.signed_at) + ' · ' + (row.professional_name || 'Profesional') + ' · Céd. ' + (row.professional_license || '—'))); if (row.revoked_at) info.append(n('span', 'ic-card-revoked', 'Revocado ' + fmtDate(row.revoked_at) + (row.revoked_reason ? ' · ' + row.revoked_reason : ''))); var actions = n('div', 'ic-card-actions'), view = button('Ver documento', 'p360-hc-edit', function () { loadDocument(row.id, view, status); }); actions.append(view); if (canAct && !row.revoked_at) actions.append(button('Revocar', 'ic-link ic-danger', function (event) { openRevoke(row, opts, event.currentTarget); })); card.append(marker, info, actions); list.append(card); }); section.append(list); return section;
+  }
+
+  function render(rows, number, canAct) { var body = rows === null ? '<p class="ic-empty">No se pudieron consultar los consentimientos.</p>' : !rows.length ? '<p class="ic-empty">Aún no hay consentimientos informados.</p>' : '<ul class="ic-list">' + rows.map(function (row) { return '<li data-state="' + (row.revoked_at ? 'revoked' : 'ok') + '"><b>' + esc(row.procedure_title) + '</b><small>' + esc(row.signer_name) + '</small>' + (canAct && !row.revoked_at ? '<button data-ic-revoke="' + esc(row.id) + '">Revocar</button>' : '') + '</li>'; }).join('') + '</ul>'; return '<section id="p360-hc-consents"><h3>' + Number(number) + ' · Consentimientos informados</h3>' + body + '</section>'; }
+  function mount(opts) { var doc = globalThis.document; if (!opts || !opts.host || !globalThis.sb || !doc) return Promise.resolve(false); var host = opts.host, main = host.querySelector('.p360-hc-main'), index = host.querySelector('.p360-hc-index'); if (!main || !index) return Promise.resolve(false); opts.refresh = function () { var band = host.querySelector('#p360-hc-consents'), link = host.querySelector('[data-hc-goto="consents"]'); if (band) band.remove(); if (link) link.remove(); mount(opts); }; return rpc('smyl_list_informed_consents', { p_patient_id: opts.patient }).catch(function () { return null; }).then(function (rows) { if (opts.isCurrent && !opts.isCurrent()) return false; if (!host.isConnected || host.querySelector('#p360-hc-consents')) return false; var number = host.querySelectorAll('.p360-hc-band').length + 1, band = buildBand(rows, number, !!opts.canAct, opts); main.insertBefore(band, main.querySelector('.p360-hc-footer') || null); var link = button('', ''); link.dataset.hcGoto = 'consents'; link.append(n('span', 'p360-hc-dot')); link.firstChild.dataset.state = rows && rows.length ? 'ok' : 'neutral'; link.append(document.createTextNode(number + ' · Consentimientos')); link.addEventListener('click', function () { band.scrollIntoView({ block: 'start' }); band.focus({ preventScroll: true }); }); index.insertBefore(link, index.querySelector('.p360-hc-progress') || null); return true; }); }
+
+  return { TEMPLATES: TEMPLATES, compose: compose, validate: validate, stepIssue: stepIssue, render: render, mount: mount, open: openNew, esc: esc };
 });

@@ -11,9 +11,13 @@ import { smylAdmin } from "../_shared/lana-linked.ts";
 import {
   FACTURAPI_BASE, LIVE_KEY_RE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion,
   datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd,
+  SAT_CONSULTAS_RESPALDO, leerProductosSat, textoBusquedaSat, descripcionServicioSat, leerConsultasSat, unirCandidatosSat, leerSeleccionSat,
+  SAT_CONSULTAS_SCHEMA, SAT_SELECCION_SCHEMA, SAT_SYSTEM_CONSULTAS, SAT_SYSTEM_SELECCION, SERVICIO_SCHEMA, SERVICIO_SYSTEM, leerServicioSugerido, sumarUso,
   FORMAS_PAGO, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura,
-  parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, descarga,
+  parametrosCancelacion, estadoCancelacion, clasificarCancelacion, puedeCancelarEnProduccion, validarCorreo, enmascararCorreo, clasificarEnvio, descarga,
 } from "../_shared/facturapi-core.mjs";
+import { FISCAL_EXTRACT_MODEL, FISCAL_EXTRACT_MAX_TOKENS, FISCAL_EXTRACT_TIMEOUT_MS, topesDeEntorno, evaluarTopeFiscal, costoEstimadoUsd } from "../_shared/fiscal-core.mjs";
+import { inicioDiaUTC, inicioMesUTC } from "../_shared/ai-quota.ts";
 
 const admin = smylAdmin;
 const MASTER = Deno.env.get("FACTURAPI_ENCRYPTION_KEY") || "";
@@ -22,6 +26,10 @@ const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SB_ANON_KEY") || "";
 // Timbrar en producción emite facturas reales. Apagado por defecto: se enciende con FACTURAPI_LIVE_STAMPING=1 tras una prueba controlada.
 const LIVE_STAMPING = Deno.env.get("FACTURAPI_LIVE_STAMPING") === "1";
+// Igual que el resto de SMYL: mientras no se active el cobro de consumibles, el consumo se mide (meter_only) sin bloquear.
+const CONSUMABLES_ENFORCED = (Deno.env.get("SMYL_CONSUMABLES_ENFORCED") || "false") === "true";
+// Cancelar en producción es una acción real ante el SAT: apagado por defecto, se enciende con FACTURAPI_LIVE_CANCELLATION=1 tras una prueba controlada.
+const LIVE_CANCELLATION = Deno.env.get("FACTURAPI_LIVE_CANCELLATION") === "1";
 const STAMP_TIMEOUT_MS = 40_000;
 const RECONCILE_WAIT_MS = 2 * 60_000; // no se da por «no creada» una solicitud más reciente que esto
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -30,7 +38,7 @@ const MAX_CSD_FAILS_PER_HOUR = 5;
 // deno-lint-ignore no-explicit-any
 type Json = Record<string, any>;
 
-const vista = (r: Json | null) => ({ ...vistaConexion(r), live_stamping: LIVE_STAMPING });
+const vista = (r: Json | null) => ({ ...vistaConexion(r), live_stamping: LIVE_STAMPING, live_cancellation: LIVE_CANCELLATION });
 const json = (cors: Record<string, string>, status: number, body: Json) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
 
@@ -136,6 +144,92 @@ async function llamarFacturapi(key: string, path: string, init: RequestInit = {}
   } catch { return { status: 0, body: null, res: null }; }
 }
 
+// ───────────── Sugerencia de clave SAT con IA ─────────────
+// Una llamada corta a Claude (modelo económico) con salida estructurada. Solo viaja el nombre, la categoría y la descripción del servicio.
+async function llamarIA(aiKey: string, system: string, texto: string, schema: Json): Promise<{ ok: boolean; text: string; usage: Json | null; id: string | null; ms: number; stop: string | null; detail: string }> {
+  const inicio = Date.now();
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST", signal: AbortSignal.timeout(FISCAL_EXTRACT_TIMEOUT_MS),
+      headers: { "content-type": "application/json", "x-api-key": aiKey, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({
+        model: FISCAL_EXTRACT_MODEL, max_tokens: FISCAL_EXTRACT_MAX_TOKENS, system,
+        messages: [{ role: "user", content: [{ type: "text", text: texto }] }],
+        output_config: { effort: "low", format: { type: "json_schema", schema } },
+      }),
+    });
+    const msg = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      // Tipo y mensaje del error de la API (describe el esquema o el límite; nunca lleva la llave ni el texto del servicio).
+      const detail = `${resp.status} ${String(msg?.error?.type || "")}: ${String(msg?.error?.message || "").replace(/\s+/g, " ").slice(0, 240)}`.trim();
+      console.error("[facturapi] la IA rechazó la solicitud:", detail);
+      return { ok: false, text: "", usage: null, id: null, ms: Date.now() - inicio, stop: `api_${resp.status}`, detail };
+    }
+    const text = Array.isArray(msg.content) ? msg.content.filter((b: Json) => b?.type === "text").map((b: Json) => b.text).join("") : "";
+    // «max_tokens» aquí significa que el razonamiento + la respuesta no cupieron: la respuesta llega cortada y no se puede leer.
+    if (msg.stop_reason && msg.stop_reason !== "end_turn") console.error("[facturapi] la IA terminó con:", msg.stop_reason);
+    return { ok: true, text, usage: msg.usage || null, id: msg.id || null, ms: Date.now() - inicio, stop: typeof msg.stop_reason === "string" ? msg.stop_reason : null, detail: "" };
+  } catch { return { ok: false, text: "", usage: null, id: null, ms: Date.now() - inicio, stop: "error_de_red", detail: "No se pudo contactar a la IA (red o tiempo de espera)." }; }
+}
+// Se mide en el mismo registro y con el mismo tope que la lectura de constancias (feature «fiscal_extract»): no requiere migración.
+async function medirIA(tenantId: string, r: { ok: boolean; usage: Json | null; id: string | null; ms: number; stop: string | null; detail?: string }) {
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : null);
+  const { error } = await admin.from("smyl_ai_usage_log").insert({
+    tenant_id: tenantId, feature: "fiscal_extract", model: FISCAL_EXTRACT_MODEL, request_id: r.id ? `sat:${r.id}`.slice(0, 120) : null, outcome: r.ok ? "ok" : "error",
+    input_tokens: n(r.usage?.input_tokens), output_tokens: n(r.usage?.output_tokens), cache_read_tokens: n(r.usage?.cache_read_input_tokens),
+    cache_write_tokens: n(r.usage?.cache_creation_input_tokens), duration_ms: n(r.ms), stop_reason: r.stop ? r.stop.slice(0, 40) : null, estimated_cost_usd: costoEstimadoUsd(FISCAL_EXTRACT_MODEL, r.usage),
+  });
+  if (error) console.error("[facturapi] no se pudo medir la IA:", error.message);
+}
+
+// Cuenta cada sugerencia en «Créditos de IA» (Consumo) con los tokens usados (suma de todas sus llamadas); si falla el registro, no se pierde la sugerencia.
+async function registrarConsumo(tenantId: string, llamadas: Array<{ usage: Json | null; id: string | null }>, etiqueta: string, ok: boolean) {
+  const uso = sumarUso(llamadas.map((l) => l.usage));
+  const base = llamadas.map((l) => l.id).find(Boolean) || crypto.randomUUID();
+  const { error } = await admin.rpc("smyl_consume", {
+    p_tenant_id: tenantId, p_resource: "ai_credits", p_quantity_units: 1, p_idempotency_key: `${etiqueta}:${base}`,
+    p_source_type: etiqueta, p_source_id: null, p_provider: "anthropic", p_provider_model: FISCAL_EXTRACT_MODEL,
+    p_metadata: { token_usage: uso, estimated_cost_usd: costoEstimadoUsd(FISCAL_EXTRACT_MODEL, uso), outcome: ok ? "ok" : "error" },
+    p_enforce: CONSUMABLES_ENFORCED,
+  });
+  if (error) console.error("[facturapi] no se pudo registrar el consumo de IA:", error.message);
+}
+// Antes de llamar a la IA: llave configurada, tope diario/mensual y, si el cobro de consumibles está activo, saldo de créditos. null = se puede continuar.
+async function puedeUsarIA(tenantId: string, CORS: Record<string, string>): Promise<{ aiKey: string } | Response> {
+  const aiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!aiKey) return json(CORS, 503, { error: "La IA no está configurada todavía. Captura los datos a mano." });
+  const ahora = new Date();
+  const [dia, mes] = await Promise.all(
+    [inicioDiaUTC(ahora), inicioMesUTC(ahora)].map((desde) =>
+      admin.from("smyl_ai_usage_log").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("feature", "fiscal_extract").gte("created_at", desde)),
+  );
+  const tope = evaluarTopeFiscal(dia.count || 0, mes.count || 0, topesDeEntorno(Deno.env));
+  if (!tope.permitido) return json(CORS, 429, { error: tope.mensaje });
+  if (CONSUMABLES_ENFORCED) {
+    const { data: wallet } = await admin.from("smyl_wallets").select("balance_units").eq("tenant_id", tenantId).eq("resource", "ai_credits").maybeSingle();
+    if (!wallet || Number(wallet.balance_units) < 1) return json(CORS, 402, { error: "No hay créditos de IA suficientes. Captura los datos a mano." });
+  }
+  return { aiKey };
+}
+// Claves del SAT: busca cada consulta en el catálogo oficial y la IA elige solo entre las claves reales encontradas.
+async function sugerirClaveSat(tenantId: string, aiKey: string, key: string, texto: string, consultas: string[]) {
+  // Cada búsqueda deja su resultado (código HTTP y cuántas claves) para poder explicar un resultado vacío.
+  const diagnostico: Array<{ q: string; status: number; n: number }> = [];
+  const buscar = async (q: string) => {
+    const r = await fp(`/catalogs/products?q=${encodeURIComponent(q)}&limit=10`, {}, key);
+    const lista = r.ok && r.body && typeof r.body === "object" ? leerProductosSat(r.body, 10) : [];
+    diagnostico.push({ q, status: r.status, n: lista.length });
+    return lista;
+  };
+  let candidatos = unirCandidatosSat(await Promise.all(consultas.map(buscar)));
+  // Si las palabras de la IA no encontraron nada, se prueba con palabras generales del catálogo dental (así se llaman los servicios del SAT).
+  if (!candidatos.length) candidatos = unirCandidatosSat(await Promise.all(SAT_CONSULTAS_RESPALDO.filter((q) => !consultas.includes(q)).map(buscar)));
+  if (!candidatos.length) return { suggestions: [], candidates: [], queries: consultas, diagnostico, llamadas: [] as Array<{ usage: Json | null; id: string | null }> };
+  const ia = await llamarIA(aiKey, SAT_SYSTEM_SELECCION, `${texto}\n\nClaves reales del catálogo:\n${candidatos.map((c) => `${c.key} — ${c.description}`).join("\n")}`, SAT_SELECCION_SCHEMA);
+  await medirIA(tenantId, ia);
+  return { suggestions: ia.ok ? leerSeleccionSat(ia.text, candidatos) : [], candidates: candidatos, queries: consultas, diagnostico, llamadas: [{ usage: ia.usage, id: ia.id }] };
+}
+
 async function timbrado(req: Request, CORS: Record<string, string>, tenantId: string, actor: string, body: Json): Promise<Response> {
   const draftId = typeof body.draft_id === "string" && UUID_RE.test(body.draft_id) ? body.draft_id : "";
   if (!draftId) return json(CORS, 400, { error: "Borrador inválido." });
@@ -213,8 +307,12 @@ async function timbrado(req: Request, CORS: Record<string, string>, tenantId: st
 
   // ── Cancelación (sandbox) ──
   if (body.action === "cancel" || body.action === "cancel_check") {
-    // La cancelación en producción es una acción real ante el SAT y aún no tiene su propia compuerta: por ahora solo sandbox.
-    if (live) return json(CORS, 409, { error: "La cancelación desde SMYL todavía solo está disponible en pruebas (sandbox). Cancela los comprobantes de producción desde tu panel de Facturapi." });
+    // En producción cancelar es real ante el SAT: interruptor del servidor + texto de confirmación (solo al enviar; verificar es solo lectura).
+    if (live && body.action === "cancel") {
+      const gate = puedeCancelarEnProduccion({ live, enabled: LIVE_CANCELLATION, confirmText: body.confirm_text });
+      if (!gate.ok) return json(CORS, 409, { error: gate.error });
+    }
+    if (live && body.action === "cancel_check" && !LIVE_CANCELLATION) return json(CORS, 409, { error: "La cancelación en producción aún no está habilitada en el servidor." });
     if (draft.status === "cancelled") return json(CORS, 200, { draft, message: "Este comprobante ya está cancelado." });
     if (draft.status !== "issued" || !draft.provider_invoice_id) return json(CORS, 409, { error: "Solo un comprobante timbrado se puede cancelar." });
     const { data: plan } = await admin.from("smyl_cfdi_cancellation_plans").select("*").eq("tenant_id", tenantId).eq("draft_id", draftId).in("status", ["planned", "submitted"]).maybeSingle();
@@ -254,19 +352,19 @@ async function timbrado(req: Request, CORS: Record<string, string>, tenantId: st
     if (!claimed) return json(CORS, 409, { error: "Otra persona ya está enviando esta cancelación." });
     const r = await llamarFacturapi(key, `/invoices/${encodeURIComponent(draft.provider_invoice_id)}?${params.query}`, { method: "DELETE" });
     const clase = clasificarCancelacion(r.status, r.body);
-    if (clase === "accepted") { await aceptar(); await eventoTimbre(tenantId, actor, draftId, "cancel", "success", { motive: plan.reason_code }); return json(CORS, 200, { draft: await vista(), message: "Comprobante cancelado en sandbox." }); }
+    if (clase === "accepted") { await aceptar(); await eventoTimbre(tenantId, actor, draftId, "cancel", "success", { motive: plan.reason_code, live }); return json(CORS, 200, { draft: await vista(), message: live ? "Comprobante cancelado en producción." : "Comprobante cancelado en sandbox." }); }
     if (clase === "pending") {
-      await pendiente(); await eventoTimbre(tenantId, actor, draftId, "cancel", "pending", { motive: plan.reason_code });
+      await pendiente(); await eventoTimbre(tenantId, actor, draftId, "cancel", "pending", { motive: plan.reason_code, live });
       return json(CORS, 202, { draft: await vista(), message: "La cancelación está pendiente: el paciente debe aceptarla. Usa «Verificar cancelación» más tarde." });
     }
     if (clase === "rejected") {
       const msg = mensajeFacturapi(r.body, r.status);
-      await rechazar(msg); await eventoTimbre(tenantId, actor, draftId, "cancel", "failed", { status: r.status, motive: plan.reason_code });
+      await rechazar(msg); await eventoTimbre(tenantId, actor, draftId, "cancel", "failed", { status: r.status, motive: plan.reason_code, live });
       return json(CORS, 422, { error: `Facturapi no pudo cancelar el comprobante: ${msg}`, draft: await vista() });
     }
     const msg = "No se confirmó la cancelación (Facturapi no respondió a tiempo o pidió esperar). Usa «Verificar cancelación» antes de intentar de nuevo.";
     await admin.from("smyl_cfdi_cancellation_plans").update({ provider_message: msg }).eq("tenant_id", tenantId).eq("id", plan.id);
-    await eventoTimbre(tenantId, actor, draftId, "cancel", "pending", { status: r.status, motive: plan.reason_code });
+    await eventoTimbre(tenantId, actor, draftId, "cancel", "pending", { status: r.status, motive: plan.reason_code, live });
     return json(CORS, 202, { draft: await vista(), message: msg });
   }
 
@@ -348,6 +446,66 @@ Deno.serve(async (req) => {
   if (platformActions.includes(action) && !USER_KEY) { console.error("[facturapi] falta FACTURAPI_USER_KEY"); return json(CORS, 503, { error: "La facturación automática aún no está configurada en el servidor." }); }
 
   try {
+    // ── Buscar la ClaveProdServ de un servicio en el catálogo oficial del SAT (lo sirve Facturapi; no depende de producción) ──
+    if (action === "search_sat_products") {
+      if (!row || row.status !== "connected" || !row.secret_ciphertext) return json(CORS, 409, { error: "Conecta Facturapi en Configuración → Facturación para buscar claves del SAT." });
+      const q = textoBusquedaSat(body.q);
+      if (!q) return json(CORS, 400, { error: "Escribe al menos 3 letras del servicio." });
+      let key: string;
+      try { key = await descifrar(MASTER, tenantId, row.secret_ciphertext, row.secret_iv); }
+      catch { return json(CORS, 500, { error: "No se pudo leer la llave guardada. Vuelve a conectar Facturapi." }); }
+      const r = await fp(`/catalogs/products?q=${encodeURIComponent(q)}&limit=12`, {}, key);
+      if (!r.ok || !r.body || typeof r.body !== "object") return json(CORS, 502, { error: "Facturapi no pudo buscar claves en este momento. Intenta de nuevo." });
+      const results = leerProductosSat(r.body);
+      return json(CORS, 200, { results, ...(results.length ? {} : { diagnostico: [{ q, status: r.status, n: 0 }] }) });
+    }
+
+    // ── La IA sugiere la ClaveProdServ: propone palabras de búsqueda, el catálogo oficial devuelve claves reales y solo se elige entre ellas ──
+    if (action === "suggest_sat_product") {
+      if (!row || row.status !== "connected" || !row.secret_ciphertext) return json(CORS, 409, { error: "Conecta Facturapi en Configuración → Facturación para buscar claves del SAT." });
+      const servicio = descripcionServicioSat(body);
+      if (!servicio) return json(CORS, 400, { error: "Escribe primero el nombre del servicio." });
+      const listo = await puedeUsarIA(tenantId, CORS);
+      if (listo instanceof Response) return listo;
+      let key: string;
+      try { key = await descifrar(MASTER, tenantId, row.secret_ciphertext, row.secret_iv); }
+      catch { return json(CORS, 500, { error: "No se pudo leer la llave guardada. Vuelve a conectar Facturapi." }); }
+      const texto = `Servicio: ${servicio.name}${servicio.category ? `\nCategoría: ${servicio.category}` : ""}${servicio.description ? `\nDescripción: ${servicio.description}` : ""}`;
+      // 1) palabras de búsqueda; si la IA falla se busca con el nombre del servicio
+      const ia1 = await llamarIA(listo.aiKey, SAT_SYSTEM_CONSULTAS, texto, SAT_CONSULTAS_SCHEMA);
+      await medirIA(tenantId, ia1);
+      let consultas = ia1.ok ? leerConsultasSat(ia1.text) : [];
+      if (!consultas.length) consultas = [textoBusquedaSat(servicio.name)].filter(Boolean);
+      const sat = await sugerirClaveSat(tenantId, listo.aiKey, key, texto, consultas);
+      await registrarConsumo(tenantId, [{ usage: ia1.usage, id: ia1.id }, ...sat.llamadas], "sat_suggest", ia1.ok);
+      return json(CORS, 200, { suggestions: sat.suggestions, candidates: sat.candidates, queries: sat.queries, diagnostico: sat.diagnostico });
+    }
+
+    // ── La IA sugiere el servicio completo (todo menos el precio): especialidad, alcance, cobro, duración, textos y clave SAT. Es una sugerencia que la persona revisa. ──
+    if (action === "suggest_service") {
+      const servicio = descripcionServicioSat(body);
+      if (!servicio) return json(CORS, 400, { error: "Escribe primero el nombre del servicio." });
+      const listo = await puedeUsarIA(tenantId, CORS);
+      if (listo instanceof Response) return listo;
+      const texto = `Nombre del servicio: ${servicio.name}`;
+      const ia1 = await llamarIA(listo.aiKey, SERVICIO_SYSTEM, texto, SERVICIO_SCHEMA);
+      await medirIA(tenantId, ia1);
+      const campos = ia1.ok ? leerServicioSugerido(ia1.text) : null;
+      if (!campos) { console.error("[facturapi] sugerencia de servicio ilegible; ia_ok:", ia1.ok, "stop:", ia1.stop, "respuesta_vacía:", !ia1.text); await registrarConsumo(tenantId, [{ usage: ia1.usage, id: ia1.id }], "service_suggest", false); return json(CORS, 502, { error: "La IA no dio una respuesta clara. Llena el servicio a mano.", detail: ia1.detail || (ia1.ok ? `La respuesta no tenía el formato esperado (terminó con: ${ia1.stop || "desconocido"}${ia1.text ? "" : ", vacía"}).` : "") }); }
+      const { queries, ...fields } = campos;
+      // Clave SAT: solo si Facturapi está conectado (el catálogo del SAT lo sirve Facturapi); si no, el resto de la sugerencia sigue valiendo.
+      let sat: Json | null = null, llamadas: Array<{ usage: Json | null; id: string | null }> = [{ usage: ia1.usage, id: ia1.id }];
+      if (row && row.status === "connected" && row.secret_ciphertext) {
+        try {
+          const key = await descifrar(MASTER, tenantId, row.secret_ciphertext, row.secret_iv);
+          const r = await sugerirClaveSat(tenantId, listo.aiKey, key, `Servicio: ${servicio.name}${fields.description ? `\nDescripción: ${fields.description}` : ""}`, queries.length ? queries : [textoBusquedaSat(servicio.name)].filter(Boolean));
+          sat = { suggestions: r.suggestions, candidates: r.candidates, queries: r.queries, diagnostico: r.diagnostico }; llamadas = [...llamadas, ...r.llamadas];
+        } catch { sat = null; }
+      }
+      await registrarConsumo(tenantId, llamadas, "service_suggest", true);
+      return json(CORS, 200, { fields, sat, sat_note: sat ? "" : "Conecta Facturapi en Configuración → Facturación para sugerir también la clave del SAT." });
+    }
+
     // ── cuenta propia (avanzado), solo pruebas ──
     if (action === "connect") {
       if (row?.mode === "platform" && row?.organization_id) return json(CORS, 409, { error: "Esta clínica usa la cuenta de SMYL. Desconéctala primero si quieres usar tu propia cuenta." });

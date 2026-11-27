@@ -178,6 +178,7 @@ const ALLOWED_ROOTS = new Set([
   "context",
   "contract",
   "conversations",
+  "ia",
   "inbox",
   "payments",
   "training",
@@ -251,32 +252,124 @@ function decideLanaLink(info: any, { strict }) {
 return { SMYL_LANA_CONTRACT_VERSION, normalizeLanaPath, lanaContractHeaders, SMYL_PRODUCT, readLanaContract, decideLanaLink };
 })();
 
-// ── _shared/lana-linked.ts ──
-const { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin } = (() => {
+// ── _shared/lana-crypto-core.mjs ──
+const { LEGACY_KEY_VERSION, readKeyring, storedKeyVersion, encryptLanaKey, decryptLanaKey, reencryptIfNeeded } = (() => {
+// Cifrado de la credencial de LANA con rotación de llave (sin dependencias de Deno: se prueba en Node).
+//
+// Variables de entorno:
+//   SMYL_LANA_ENCRYPTION_KEY                 llave vigente (32 bytes en base64)
+//   SMYL_LANA_ENCRYPTION_KEY_VERSION         etiqueta de la vigente (por omisión "1")
+//   SMYL_LANA_ENCRYPTION_KEY_PREVIOUS        llave anterior, solo mientras dura la rotación (opcional)
+//   SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION etiqueta de la anterior (por omisión: la vigente menos 1 si es número)
+//
+// Cada credencial guarda `key_version`. Las anteriores a este cambio no la tienen y se tratan como la versión "1".
 
-const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
-const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
-const ENCRYPTION_KEY = (Deno.env.get("SMYL_LANA_ENCRYPTION_KEY") || "").trim();
-const LANA_API_BASE = "https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v1/camila-api";
-const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
+const LEGACY_KEY_VERSION = "1";
 
-type LanaConfig = {
-  api_key_ciphertext: string;
-  api_key_iv: string;
-  estado: string;
-};
+function bytesToBase64(bytes: any) {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
 
-function base64ToBytes(value: string): Uint8Array<ArrayBuffer> {
+function base64ToBytes(value: any) {
   const binary = atob(value);
   const bytes = new Uint8Array(new ArrayBuffer(binary.length));
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
   return bytes;
 }
 
-async function cryptoKey(): Promise<CryptoKey> {
-  const raw = base64ToBytes(ENCRYPTION_KEY);
-  if (raw.length !== 32) throw new Error("SMYL_LANA_ENCRYPTION_KEY no configurada correctamente.");
-  return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
+function cleanVersion(value: any) {
+  const text = String(value ?? "").trim();
+  if (!/^[A-Za-z0-9._-]{1,32}$/.test(text)) return "";
+  return text;
+}
+
+function readKeyring(env = {}) {
+  const currentB64 = String(env.SMYL_LANA_ENCRYPTION_KEY || "").trim();
+  if (!currentB64) throw new Error("SMYL_LANA_ENCRYPTION_KEY no configurada.");
+  const currentVersion = cleanVersion(env.SMYL_LANA_ENCRYPTION_KEY_VERSION || LEGACY_KEY_VERSION);
+  if (!currentVersion) throw new Error("SMYL_LANA_ENCRYPTION_KEY_VERSION no es válida.");
+  const keys = [{ version: currentVersion, b64: currentB64, current: true }];
+  const previousB64 = String(env.SMYL_LANA_ENCRYPTION_KEY_PREVIOUS || "").trim();
+  if (previousB64) {
+    let previousVersion = cleanVersion(env.SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION);
+    if (!previousVersion && /^\d+$/.test(currentVersion) && Number(currentVersion) > 1) previousVersion = String(Number(currentVersion) - 1);
+    if (!previousVersion) throw new Error("Falta SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION.");
+    if (previousVersion === currentVersion) throw new Error("La llave anterior y la vigente no pueden tener la misma versión.");
+    if (previousB64 === currentB64) throw new Error("La llave anterior es igual a la vigente.");
+    keys.push({ version: previousVersion, b64: previousB64, current: false });
+  }
+  for (const key of keys) {
+    if (base64ToBytes(key.b64).length !== 32) throw new Error(`La llave de versión ${key.version} debe contener 32 bytes.`);
+  }
+  return { keys, currentVersion };
+}
+
+function storedKeyVersion(lana: any) {
+  return cleanVersion(lana?.key_version) || LEGACY_KEY_VERSION;
+}
+
+async function importKey(subtle: any, key: any, usages: any) {
+  return subtle.importKey("raw", base64ToBytes(key.b64), "AES-GCM", false, usages);
+}
+
+async function encryptLanaKey(apiKey: any, keyring: any, { subtle = globalThis.crypto.subtle, random = (n) => globalThis.crypto.getRandomValues(new Uint8Array(n)) } = {}) {
+  const current = keyring.keys.find((key) => key.current);
+  const iv = random(12);
+  const encrypted = await subtle.encrypt({ name: "AES-GCM", iv }, await importKey(subtle, current, ["encrypt"]), new TextEncoder().encode(apiKey));
+  return { ciphertext: bytesToBase64(new Uint8Array(encrypted)), iv: bytesToBase64(iv), key_version: current.version };
+}
+
+// Primero la llave que la credencial dice tener; si falla (p. ej. una versión mal anotada) prueba las demás.
+async function decryptLanaKey(lana: any, keyring: any, { subtle = globalThis.crypto.subtle } = {}) {
+  const wanted = storedKeyVersion(lana);
+  const ordered = [...keyring.keys].sort((a, b) => Number(b.version === wanted) - Number(a.version === wanted));
+  const iv = base64ToBytes(lana.api_key_iv);
+  const data = base64ToBytes(lana.api_key_ciphertext);
+  for (const key of ordered) {
+    try {
+      const clear = await subtle.decrypt({ name: "AES-GCM", iv }, await importKey(subtle, key, ["decrypt"]), data);
+      return { apiKey: new TextDecoder().decode(clear), key_version: key.version, needsReencrypt: !key.current };
+    } catch { /* siguiente llave */ }
+  }
+  throw new Error("No se pudo descifrar la credencial de LANA con las llaves configuradas.");
+}
+
+// Devuelve la credencial ya cifrada con la llave vigente (o null si ya lo estaba).
+async function reencryptIfNeeded(lana: any, keyring: any, deps = {}) {
+  const decrypted = await decryptLanaKey(lana, keyring, deps);
+  const stale = decrypted.needsReencrypt || storedKeyVersion(lana) !== keyring.currentVersion || !lana.key_version;
+  if (!stale) return null;
+  const encrypted = await encryptLanaKey(decrypted.apiKey, keyring, deps);
+  return { ...lana, api_key_ciphertext: encrypted.ciphertext, api_key_iv: encrypted.iv, key_version: encrypted.key_version };
+}
+
+return { LEGACY_KEY_VERSION, readKeyring, storedKeyVersion, encryptLanaKey, decryptLanaKey, reencryptIfNeeded };
+})();
+
+// ── _shared/lana-linked.ts ──
+const { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin } = (() => {
+
+const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
+const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
+const LANA_API_BASE = "https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v1/camila-api";
+const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
+
+type LanaConfig = {
+  api_key_ciphertext: string;
+  api_key_iv: string;
+  key_version?: string;
+  estado: string;
+};
+
+function keyring() {
+  return readKeyring({
+    SMYL_LANA_ENCRYPTION_KEY: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY"),
+    SMYL_LANA_ENCRYPTION_KEY_VERSION: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_VERSION"),
+    SMYL_LANA_ENCRYPTION_KEY_PREVIOUS: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_PREVIOUS"),
+    SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION"),
+  });
 }
 
 async function linkedLanaApiKey(tenantId: string): Promise<string> {
@@ -290,12 +383,8 @@ async function linkedLanaApiKey(tenantId: string): Promise<string> {
   if (!lana?.api_key_ciphertext || !lana.api_key_iv || lana.estado !== "conectada") {
     throw new Error("LANA todavía no está conectada o requiere atención.");
   }
-  const clear = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: base64ToBytes(lana.api_key_iv) },
-    await cryptoKey(),
-    base64ToBytes(lana.api_key_ciphertext),
-  );
-  return new TextDecoder().decode(clear);
+  // Descifra con la llave vigente o, durante una rotación, con la anterior. La reescritura con la llave nueva la hace lana-connection.
+  return (await decryptLanaKey(lana as LanaConfig, keyring())).apiKey;
 }
 
 async function lanaRequest(
@@ -432,6 +521,14 @@ const catalog = (function () {
       'Después de una inasistencia, para ofrecer reagendar.',
       'Hola {{1}}, notamos que no pudiste asistir a tu cita del {{2}} en {{3}}. Si deseas reagendarla, responde a este mensaje y con gusto te ayudamos.',
       pick('nombre', 'fecha', 'clinica')),
+    utility('cita_no_asistio_reagendar_v1', 'citas', 'No pudimos verte: reagenda con un toque',
+      'Seguimiento automático después de «No vino», con botón para pedir nuevo horario.',
+      'Hola {{1}}, notamos que no pudiste asistir a tu cita del {{2}} en {{3}}. Si quieres reagendarla, toca el botón y con gusto te ayudamos.',
+      pick('nombre', 'fecha', 'clinica'), { buttons: quick('Quiero reagendar'), recommended: true }),
+    utility('cita_motivo_no_reagenda_v1', 'citas', '¿Qué pasó con tu cita?',
+      'Unos días después del seguimiento de «No vino», si el paciente no reagendó: pregunta el motivo con tres botones.',
+      'Hola {{1}}, notamos que tu cita en {{2}} no se pudo reagendar. Para mejorar nuestro servicio, ¿nos cuentas qué pasó? Elige una opción.',
+      pick('nombre', 'clinica'), { buttons: quick('El horario no me va', 'Por el costo', 'Otro motivo'), recommended: true }),
     utility('cita_confirmar_llegada_v1', 'citas', 'Confirma si vienes en camino',
       'Poco antes de la cita, cuando el equipo necesita organizar la recepción.',
       'Hola {{1}}, tu cita en {{2}} comienza hoy a las {{3}}. Indícanos si vienes en camino o si necesitas ayuda con tu horario.',
@@ -490,6 +587,11 @@ const catalog = (function () {
       'Cuando hay un saldo por pagar.',
       'Hola {{1}}, tienes un pago pendiente de {{2}} en {{3}} con vencimiento el {{4}}. Si ya lo realizaste, responde a este mensaje para que lo verifiquemos.',
       [V.nombre, text('Monto', '$1,500.00'), V.clinica, text('Fecha de vencimiento', '25 de octubre')]),
+    utility('cobro_enlace_pago_v1', 'pagos', 'Enlace para pagar',
+      'Se envía desde Finanzas → Cobrar → «Enviar por WhatsApp», cuando el paciente no ha escrito en las últimas 24 horas. Solicítala para mandar el enlace de pago desde la cuenta de la clínica.',
+      'Hola {{1}}, tienes un saldo de {{2}} en {{3}}. Puedes pagarlo de forma segura en línea aquí: {{4}} El enlace es personal y tiene vigencia limitada.',
+      [V.nombre, text('Monto', '$1,500.00'), V.clinica, text('Enlace de pago', 'https://app.smyldesign.ai/pago.html?token=ejemplo')],
+      { note: 'El enlace lo genera SMYL para cada cobro; no lo escribas a mano.' }),
     utility('plan_pagos_proximo_v1', 'pagos', 'Próximo pago de tu plan',
       'Para pacientes con pagos parciales de un tratamiento.',
       'Hola {{1}}, tu próximo pago de {{2}} del plan de tratamiento en {{3}} vence el {{4}}. Responde a este mensaje si necesitas ayuda o quieres ajustar la fecha.',
@@ -843,6 +945,8 @@ Deno.serve(async (req) => {
         templates: list.map((item) => ({
           name: text(item.name, 200), language: text(item.language, 20), category: text(item.category, 20),
           status: text(item.status, 30), rejection_reason: text(item.rejection_reason, 500) || null,
+          // Para el panel «Tus solicitudes a Meta»: cuándo se pidió y cuándo cambió de estado por última vez.
+          requested_at: text(item.created_at, 40) || null, updated_at: text(item.updated_at, 40) || null,
         })).filter((item) => item.name),
       });
     } catch (error) {

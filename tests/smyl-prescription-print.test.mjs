@@ -46,6 +46,7 @@ test("render: dibuja con textContent; un nombre con HTML malicioso queda como te
   assert.ok(todo.includes("Amoxicilina · 500 mg · cápsulas"));
   assert.ok(todo.includes("1 cápsula, vía oral, cada 8 horas, durante 7 días."));
   assert.ok(todo.includes("Cantidad: 21"));
+  assert.ok(todo.includes("RECETA MÉDICA") && todo.includes("CL"), "identidad visible de la clínica");
   assert.ok(todo.includes("Firma del profesional") && todo.includes("Sello"));
   assert.ok(!/innerHTML/.test(read("smyl-prescription-print.js").replace(/\/\*[\s\S]*?\*\//, "").replace(/set innerHTML/g, "")), "el módulo no usa innerHTML");
 });

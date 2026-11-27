@@ -78,5 +78,5 @@ test('la Nube ofrece compartir solo con cloud.share y llega igual a web y móvil
   assert.match(ui, /invokeFn\('cloud-share'/);
   assert.match(ui, /smyl_cloud_shares/);
   for (const file of ['smyl-cloud.js', 'smyl-cloud.css', 'app.html', 'sw.js']) assert.equal(read(file), read(`mobile/www/${file}`), file);
-  assert.match(read('app.html'), /smyl-cloud\.js\?v=4/);
+  assert.match(read('app.html'), /smyl-cloud\.js\?v=5/);
 });

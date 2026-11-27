@@ -9,9 +9,10 @@ const p360 = read('smyl-patient-360.js');
 const bar = read('smyl-professional-v3.js');
 
 test('la barra del paciente ya no esconde acciones en «Más acciones»', () => {
-  assert.doesNotMatch(bar, /pro-patient-more|<summary>Más acciones/);
-  for (const label of ["'Agendar cita'", "'Nueva evolución'"]) assert.ok(bar.includes(label), label);
-  for (const label of ["'Cotizar'", "'Cobrar'", "'Enviar mensaje'"]) assert.ok(!bar.includes(label), `${label} ya no va en la barra`);
+  const patientBar = bar.slice(bar.indexOf('function patientBar()'), bar.indexOf('function treatmentJourney()'));
+  assert.doesNotMatch(patientBar, /pro-patient-more|<summary>Más acciones/);
+  for (const label of ["'Agendar cita'", "'Nueva evolución'"]) assert.ok(patientBar.includes(label), label);
+  for (const label of ["'Cotizar'", "'Cobrar'", "'Enviar mensaje'"]) assert.ok(!patientBar.includes(label), `${label} ya no va en la barra`);
 });
 
 test('«Datos del paciente» muestra datos generales y edita con el formulario de alta existente', () => {
@@ -40,10 +41,10 @@ test('el contacto vive solo en Datos del paciente (con Agregar si falta) y la fi
 
 test('web, móvil y PWA publican Datos del paciente', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-patient-360\.js\?v=37/);
-    assert.match(read(file), /smyl-patient-360\.css\?v=21/);
-    assert.match(read(file), /smyl-professional-v3\.js\?v=15/);
-    assert.match(read(file), /smyl-professional-v3\.css\?v=13/);
+    assert.match(read(file), /smyl-patient-360\.js\?v=42/);
+    assert.match(read(file), /smyl-patient-360\.css\?v=24/);
+    assert.match(read(file), /smyl-professional-v3\.js\?v=16/);
+    assert.match(read(file), /smyl-professional-v3\.css\?v=15/);
   }
   for (const file of ['smyl-patient-360.js', 'smyl-patient-360.css', 'smyl-professional-v3.js', 'smyl-professional-v3.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);
@@ -52,7 +53,7 @@ test('web, móvil y PWA publican Datos del paciente', () => {
 
 test('organización v2: pestañas clínicas en orden de consulta y lo administrativo fuera de ellas', () => {
   const tabs = [...p360.matchAll(/data-p360-tab="([a-z]+)"[^>]*>([^<]+)</g)].map((m) => m[2]);
-  assert.deepEqual(tabs, ['Resumen', 'Historia clínica', 'Evoluciones y citas', 'Tratamiento', 'Diseño de sonrisa', 'Imágenes y estudios']);
+  assert.deepEqual(tabs, ['Resumen', 'Historia clínica', 'Consulta', 'Tratamiento', 'Diseño de sonrisa', 'Imágenes y estudios']);
   assert.match(p360, /visits:\['notes','appointments'\]/, 'evoluciones y citas dejan de estar escondidas');
   assert.match(p360, /<dialog class="p360-drawer"/, 'datos del paciente en panel lateral');
   assert.match(p360, /function renderFlags\(s\)/);

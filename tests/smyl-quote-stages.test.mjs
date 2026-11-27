@@ -91,13 +91,14 @@ test('una cotización ya convertida no duplica cargos al reabrir el recorrido',(
 const pro=read('smyl-professional-v3.js'),proCss=read('smyl-professional-v3.css'),clinic=read('smyl-clinic.js');
 test('el buscador de cotizar muestra el estado de la propuesta y ordena listos primero',()=>{
   assert.match(pro,/from\('smyl_clinical_plans'\)\.select\('patient_id,status,revision,reviewed_at'\)/);
-  for(const text of ['Listo para cotizar','Propuesta sin revisar','Sin propuesta','Listos para cotizar · ','Necesitan propuesta · '])assert.match(pro,new RegExp(text));
+  for(const text of ['Plan revisado','Plan por revisar','Sin propuesta clínica','Listos para cotizar · ','Necesitan propuesta · '])assert.match(pro,new RegExp(text));
   assert.match(pro,/plan\.status==='reviewed'\?'ready':'draft'/);
-  // si falla la consulta de planes, el buscador funciona como antes (sin estados)
-  assert.match(pro,/catch\(_\)\{taskPlans=null;\}/);
+  // Si falla la consulta de contexto, se informa sin bloquear la selección.
+  assert.match(pro,/No pudimos verificar cuáles planes están revisados/);
+  assert.match(pro,/taskContextWarning/);
 });
 test('elegir a alguien sin propuesta revisada abre su expediente en la propuesta, sin pantalla intermedia',()=>{
-  assert.match(pro,/button\.dataset\.plan!=='ready'&&P&&typeof P\.openPlan==='function'\)\{closeTask\(\);P\.openPlan\(id\);return;\}/);
+  assert.match(pro,/button\.dataset\.plan!=='ready'&&P&&typeof P\.openPlan==='function'\)\{closeTask\(false\);P\.openPlan\(id\);return;\}/);
   assert.match(ui,/openPlan:openPlanForQuote/);
   const helper=ui.slice(ui.indexOf('function openPlanForQuote'),ui.indexOf('  function init(){'));
   assert.match(helper,/flow\.focus\(tenant,patientId,/);
@@ -116,13 +117,13 @@ test('la ventana de tareas no usa microtexto en la versión nueva',()=>{
 
 test('al cotizar, una cotización existente de la misma propuesta se continúa en vez de duplicarse',()=>{
   assert.match(pro,/from\('smyl_proposals'\)\.select\('id,patient_id,status,plan_revision,updated_at'\)/);
-  assert.match(pro,/quote\.plan_revision===plan\.revision\?quote:null/);
-  assert.match(pro,/button\.dataset\.quote&&P&&typeof P\.openSaved==='function'\)\{closeTask\(\);P\.openSaved\(button\.dataset\.quote\);return;\}/);
-  for(const text of ['Cotización en borrador','Cotización aprobada','Continuar la cotización del '])assert.match(pro,new RegExp(text));
+  assert.match(pro,/quotes\.find\(function\(quote\)\{return quote\.plan_revision===plan\.revision;\}\)/);
+  assert.match(pro,/button\.dataset\.quote&&P&&typeof P\.openSaved==='function'\)\{closeTask\(false\);P\.openSaved\(button\.dataset\.quote\);return;\}/);
+  for(const text of ['Cotización en borrador','Cotización aprobada','Actualizada el '])assert.match(pro,new RegExp(text));
 });
 test('pestañas Listos / Necesitan propuesta / Todos, búsqueda en todos y Enter elige el primero',()=>{
   assert.match(pro,/\['ready','Listos',ready\],\['pending','Por completar',rest\],\['all','Todos',total\]/);
-  assert.match(pro,/filter=query\?'all':taskQuoteFilter/);
+  assert.match(pro,/if\(taskType==='quote'&&term\)taskQuoteFilter='all'/);
   assert.match(pro,/if\(ev\.key!=='Enter'\)return;var first=taskDialog\.querySelector\('\[data-task-patient\]'\)/);
   // si nadie está listo, abre en «Todos»
   assert.match(pro,/taskPlans&&!taskPatients\.some\(function\(p\)\{return planState\(p\)==='ready';\}\)\)taskQuoteFilter='all'/);

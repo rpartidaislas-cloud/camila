@@ -91,8 +91,8 @@ test('Nueva cita usa el tablero, sin cambiar cómo se guarda ni lo demás', () =
 test('web, PWA y móvil publican el tablero', () => {
   for (const file of ['app.html', 'sw.js']) {
     assert.match(read(file), /smyl-schedule-board\.js\?v=3/);
-    assert.match(read(file), /smyl-schedule\.js\?v=58/);
-    assert.match(read(file), /smyl-schedule\.css\?v=37/);
+    assert.match(read(file), /smyl-schedule\.js\?v=68/);
+    assert.match(read(file), /smyl-schedule\.css\?v=40/);
   }
   assert.ok(read('app.html').indexOf('smyl-schedule-slots.js') < read('app.html').indexOf('smyl-schedule-board.js') && read('app.html').indexOf('smyl-schedule-board.js') < read('app.html').indexOf('smyl-schedule.js?'), 'el tablero se carga después de las horas libres y antes de la Agenda');
   for (const file of ['smyl-schedule-board.js', 'smyl-schedule.js', 'smyl-schedule.css', 'app.html', 'sw.js']) assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);

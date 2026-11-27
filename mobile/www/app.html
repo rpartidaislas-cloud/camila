@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>SMYL · Diseño de Sonrisa Digital</title>
 <link rel="manifest" href="manifest-app.json">
-<meta name="theme-color" content="#0B1B2E">
+<meta name="theme-color" content="#1b2477">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -32,10 +32,10 @@
   --color-primary-hover:#12366F;
   --color-primary-subtle:#EDF3FC;
   --color-primary-border:#C9D8EF;
-  --color-accent:#0F766E;
-  --color-accent-hover:#115E59;
-  --color-accent-subtle:#EAF8F6;
-  --gradient-primary:linear-gradient(135deg,#194391 0%,#2476B8 58%,#16A69B 100%);
+  --color-accent:#142bc3;
+  --color-accent-hover:#1a2da6;
+  --color-accent-subtle:#eaf0f8;
+  --gradient-primary:linear-gradient(135deg,#194391 0%,#2476B8 58%,#1934e6 100%);
   --color-surface:#FFFFFF;
   --color-surface-raised:#F4F7FA;
   --color-border:#DCE4EC;
@@ -77,8 +77,8 @@
   --violeta:#194391;
   --violeta-s:#EDF3FC;
   --violeta-b:#C9D8EF;
-  --teal:#0F766E;
-  --teal-s:#EAF8F6;
+  --teal:#142bc3;
+  --teal-s:#eaf0f8;
   --verde:#087A55;
   --verde-s:#ECFDF5;
   --rojo:#B42318;
@@ -108,18 +108,18 @@ body{font-family:'Inter',sans-serif;background:var(--color-surface-raised);color
 /* Sidebar oscuro sobre contenido claro — el mismo contraste que usan
    Vercel/Linear/Arc, le da la sensación "premium SaaS" que antes no tenía
    (todo el panel era plano y blanco de lado a lado) */
-.sidebar{width:240px;background:#0B1B2E;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;z-index:20;box-shadow:12px 0 34px rgba(16,34,57,.07)}
+.sidebar{width:240px;background:#2d3a9e;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;z-index:20;box-shadow:12px 0 34px rgba(16,34,57,.07)}
 .main{flex:1;overflow-y:auto;min-width:0}
 
 /* ── SIDEBAR ── */
 .sb-branch{padding:2px 14px 10px}
-.sb-branch label{display:block;padding:0 4px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(200,222,228,.5);margin-bottom:5px}
-.sb-branch-field{position:relative;display:flex;align-items:center;gap:8px;min-height:36px;padding:0 10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#e4f0f3;transition:background-color .15s,border-color .15s}
+.sb-branch label{display:block;padding:0 4px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(197, 216, 231,.5);margin-bottom:5px}
+.sb-branch-field{position:relative;display:flex;align-items:center;gap:8px;min-height:36px;padding:0 10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.04);color:#e4ebf3;transition:background-color .15s,border-color .15s}
 .sb-branch-field:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}
-.sb-branch-field:focus-within{border-color:#6ed8ce;box-shadow:0 0 0 2px rgba(110,216,206,.25)}
-.sb-branch-icon{position:relative;display:grid;place-items:center;flex:0 0 16px;color:rgba(186,208,216,.75)}
+.sb-branch-field:focus-within{border-color:#64abe2;box-shadow:0 0 0 2px rgba(100, 171, 226,.25)}
+.sb-branch-icon{position:relative;display:grid;place-items:center;flex:0 0 16px;color:rgba(182, 204, 220,.75)}
 .sb-branch-value{flex:1;min-width:0;overflow:hidden;font-size:13px;font-weight:500;line-height:1.2;text-overflow:ellipsis;white-space:nowrap}
-.sb-branch-chev{flex:0 0 auto;font-size:11px;color:rgba(186,208,216,.6)}
+.sb-branch-chev{flex:0 0 auto;font-size:11px;color:rgba(182, 204, 220,.6)}
 .sb-branch select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;margin:0;-webkit-appearance:none;appearance:none}
 .sb-branch select option{color:#1F2937;background:#fff}
 body.branch-scope-all .sb-branch-icon::after{content:"";position:absolute;top:-3px;right:-4px;width:7px;height:7px;border-radius:50%;background:#F59E0B;box-shadow:0 0 0 2px #10283a}
@@ -135,7 +135,7 @@ body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .
 
 .sb-user{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08);cursor:pointer;transition:background-color 150ms ease;outline:none}
 .sb-user:hover{background:rgba(255,255,255,.04)}
-.sb-user:focus-visible{box-shadow:inset 0 0 0 2px rgba(74,155,211,.45)}
+.sb-user:focus-visible{box-shadow:inset 0 0 0 2px rgba(40, 112, 245,.45)}
 .sb-avatar{width:32px;height:32px;background:var(--gradient-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;flex-shrink:0}
 .sb-user-row{display:flex;align-items:center;gap:9px}
 .sb-user-info{flex:1;min-width:0}
@@ -156,11 +156,11 @@ body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .
 .nav-items{flex:1;padding:6px 8px;overflow-y:auto}
 .nav-item{display:flex;align-items:center;gap:10px;padding:0 11px;height:38px;border-radius:10px;cursor:pointer;color:rgba(255,255,255,.66);font-size:13px;font-weight:500;letter-spacing:.1px;transition:background-color 150ms ease,color 150ms ease,box-shadow 150ms ease;margin-bottom:2px;border:1px solid transparent;outline:none}
 .nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
-.nav-item:focus-visible{box-shadow:0 0 0 2px rgba(74,155,211,.45);color:#fff}
-/* Ítem activo — degradado IA (#27D7E7 → #7A4DFF), como pide la guía para
+.nav-item:focus-visible{box-shadow:0 0 0 2px rgba(40, 112, 245,.45);color:#fff}
+/* Ítem activo — degradado IA (#0f63ff → #7A4DFF), como pide la guía para
    el estado activo de navegación */
-.nav-item.activo{background:rgba(36,118,184,.2);border-color:rgba(74,155,211,.18);color:#fff;font-weight:600;box-shadow:inset 3px 0 0 var(--color-accent)}
-.nav-item.activo:focus-visible{box-shadow:inset 3px 0 0 var(--color-accent),0 0 0 2px rgba(74,155,211,.45)}
+.nav-item.activo{background:rgba(36,118,184,.2);border-color:rgba(40, 112, 245,.18);color:#fff;font-weight:600;box-shadow:inset 3px 0 0 var(--color-accent)}
+.nav-item.activo:focus-visible{box-shadow:inset 3px 0 0 var(--color-accent),0 0 0 2px rgba(40, 112, 245,.45)}
 .nav-item .ni-icon{width:16px;height:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:.7}
 .nav-item.activo .ni-icon{opacity:1}
 .nav-badge{margin-left:auto;background:var(--color-error);color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:99px;min-width:17px;text-align:center}
@@ -357,7 +357,7 @@ body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .
 .slot-requirement{position:absolute;top:10px;left:10px;display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:99px;background:#fff;border:1px solid var(--color-border);font-size:9px;font-weight:700;letter-spacing:.55px;text-transform:uppercase;color:var(--color-text-secondary)}
 .slot-requirement.required{background:var(--color-primary-subtle);border-color:var(--color-primary-border);color:var(--color-primary)}
 .upload-slot img.slot-preview{order:-1;width:100%;height:88px;object-fit:cover;border-radius:9px;margin-bottom:10px;border:1px solid var(--color-border)}
-.upload-slot.tiene-img{border-color:#80C9C2;border-style:solid;background:var(--color-accent-subtle);justify-content:flex-start;padding-top:16px}
+.upload-slot.tiene-img{border-color:#78aad1;border-style:solid;background:var(--color-accent-subtle);justify-content:flex-start;padding-top:16px}
 .slot-check{position:absolute;top:10px;right:10px;width:24px;height:24px;background:var(--color-success);border-radius:50%;display:none;align-items:center;justify-content:center;font-size:11px;color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.9)}
 .upload-slot.tiene-img .slot-check{display:flex}
 
@@ -463,11 +463,11 @@ body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .
 /* ── MI CUENTA ── */
 .cuenta-grid{display:grid;grid-template-columns:1fr 2fr;gap:16px}
 .cuenta-grid--una{grid-template-columns:minmax(0,640px)}
-.mc-enlaces{display:grid;gap:8px}
-.mc-enlace{display:flex;flex-direction:column;gap:2px;align-items:flex-start;text-align:left;width:100%;padding:12px 14px;background:var(--color-surface-raised,#fff);border:1px solid var(--color-border,#e3e8f0);border-radius:12px;cursor:pointer;font:inherit;color:inherit}
-.mc-enlace strong{font-size:14px}
-.mc-enlace span{font-size:12.5px;color:var(--texto2)}
-.mc-enlace:hover,.mc-enlace:focus-visible{border-color:var(--color-primary,#5B47E0);outline:none}
+.clinic-data-card{max-width:680px}
+.clinic-data-lead{font-size:13px;color:var(--texto2);line-height:1.55;margin:0 0 16px}
+.clinic-data-actions{display:flex;justify-content:flex-end;margin-top:18px}
+.clinic-data-actions .btn{min-height:44px;min-width:120px}
+@media(max-width:600px){.clinic-data-card .form-grid{grid-template-columns:1fr}.clinic-data-actions .btn{width:100%}}
 .plan-card{background:linear-gradient(135deg,var(--violeta),var(--azul));border-radius:var(--radius-l);padding:24px;color:#fff}
 .plan-card h3{font-size:22px;font-weight:800;margin-bottom:4px}
 .plan-card p{font-size:13px;opacity:.8}
@@ -475,6 +475,94 @@ body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .
 .plan-feature{font-size:12px;opacity:.9;display:flex;align-items:center;gap:6px}
 .upgrade-btn{margin-top:20px;padding:10px;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:var(--radius-s);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;width:100%;transition:all .2s}
 .upgrade-btn:hover{background:rgba(255,255,255,.3)}
+
+/* Plan y suscripción: consumo del mes */
+.cuenta-grid:has(#plan-usage-root){grid-template-columns:minmax(260px,340px) minmax(0,1fr);align-items:start}
+.plan-usage-col{min-width:0}
+.pu-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.pu-title h2{margin:0;font-size:20px;font-weight:800;color:var(--texto)}
+.pu-title p{margin:4px 0 0;font-size:13.5px;color:var(--texto2);line-height:1.45}
+.pu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.pu-card{display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--borde,#dbe3e9);border-radius:16px;background:#fff;min-width:0}
+.pu-head{display:flex;align-items:center;gap:10px}
+.pu-head strong{font-size:14px;font-weight:700;color:var(--texto);flex:1;min-width:0}
+.pu-ico{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#eef3f8;color:#1b4d77;flex:none}
+.pu-pct{font-size:13px;font-weight:800;color:var(--texto2)}
+.pu-val{font-size:24px;font-weight:800;color:var(--texto);line-height:1.15}
+.pu-val small{font-size:13px;font-weight:500;color:var(--texto2)}
+.pu-bar{height:10px;border-radius:999px;background:#e8eef3;overflow:hidden}
+.pu-bar span{display:block;height:100%;border-radius:999px;background:#2f8f6b;transition:width .5s ease}
+.pu-mid .pu-bar span{background:#d69e2e}.pu-high .pu-bar span{background:#dd6b20}.pu-full .pu-bar span{background:#c53030}
+.pu-mid .pu-pct{color:#a16207}.pu-high .pu-pct{color:#c2410c}.pu-full .pu-pct{color:#b42318}
+.pu-none .pu-bar span{background:#cbd5e0}
+.pu-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;color:var(--texto2);flex-wrap:wrap}
+.pu-muted{color:var(--texto3,#6b7b8a);font-size:13px;line-height:1.4}
+.pu-lv{font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;background:#e6f5ee;color:#16794c}
+.pu-lv-mid{background:#fff4d6;color:#8a5a00}.pu-lv-high{background:#ffe7d6;color:#b13a0b}.pu-lv-full{background:#fdecea;color:#9b2c1f}
+.pu-proj{margin:0;font-size:12.5px;color:#a16207;line-height:1.4}
+.pu-buy{align-self:flex-start;font-size:13px;font-weight:700;color:#1b4d77;text-decoration:none;padding:6px 0;min-height:32px;display:inline-flex;align-items:center}
+.pu-buy:hover{text-decoration:underline}
+.pu-upsell{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:14px 16px;margin-bottom:14px;border-radius:14px;background:#fff7e0;border:1px solid #f1dfa8}
+.pu-upsell div{display:grid;gap:2px;min-width:0}.pu-upsell strong{font-size:14px;color:#6b4800}.pu-upsell span{font-size:13px;color:#7a5a12;line-height:1.4}
+.pu-warn{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#f3f6f9;color:var(--texto2);font-size:13px}
+.pu-bill{padding:18px;border:1px solid var(--borde,#dbe3e9);border-radius:16px;background:#fff}
+.pu-bill h3{margin:0 0 10px;font-size:16px;font-weight:800}
+.pu-bill dl{margin:0;display:grid;gap:2px}
+.pu-bill dl>div{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--borde,#e6ecf1);font-size:14px}
+.pu-bill dl>div:last-child{border-bottom:0}
+.pu-bill dt{color:var(--texto2)}.pu-bill dd{margin:0;font-weight:700;color:var(--texto);text-align:right}
+.pu-chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:700;background:#e6f5ee;color:#16794c}
+.pu-chip-past_due{background:#fff4d6;color:#8a5a00}.pu-chip-cancelled{background:#fdecea;color:#9b2c1f}.pu-chip-unknown{background:#eef2f6;color:#52626f}
+@media(max-width:1000px){.cuenta-grid:has(#plan-usage-root){grid-template-columns:1fr}}
+@media(max-width:640px){.pu-grid{grid-template-columns:1fr}.pu-val{font-size:22px}}
+/* Planes y suscripción */
+.planes-periodo{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:var(--fondo2,#eef2f6);margin:0 0 16px}
+.planes-periodo button{border:0;background:transparent;padding:8px 16px;border-radius:999px;font:inherit;font-size:13px;font-weight:600;color:var(--texto2);cursor:pointer;min-height:36px}
+.planes-periodo button.is-on{background:#fff;color:var(--texto);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.planes-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.plan-opt{position:relative;display:flex;flex-direction:column;gap:8px;padding:20px;border:1px solid var(--borde,#dbe3e9);border-radius:16px;background:#fff}
+.plan-opt.is-reco{border-color:var(--azul,#1b4d77);box-shadow:0 6px 22px rgba(27,77,119,.14)}
+.plan-opt.is-actual{background:#f6f9fb}
+.plan-opt h4{margin:0;font-size:18px;font-weight:800}
+.plan-opt-actual{font-size:12px;font-weight:600;color:var(--exito,#16794c)}
+.plan-opt-tag{position:absolute;top:-11px;left:16px;background:var(--azul,#1b4d77);color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px}
+.plan-opt-sub{margin:0;font-size:13px;color:var(--texto2);line-height:1.4;min-height:36px}
+.plan-opt-precio{font-size:28px;font-weight:800}
+.plan-opt-precio span{font-size:13px;font-weight:500;color:var(--texto2)}
+.plan-opt ul{list-style:none;margin:6px 0 10px;padding:0;display:grid;gap:7px;flex:1}
+.plan-opt li{font-size:13px;color:var(--texto2);line-height:1.4;padding-left:20px;position:relative}
+.plan-opt li::before{content:"✓";position:absolute;left:0;color:var(--exito,#16794c);font-weight:700}
+.planes-nota{margin:14px 0 0;font-size:12.5px;color:var(--texto3);line-height:1.5}
+
+/* Pago con tarjeta (Openpay) */
+#mp-planes-grid .bill-back{border:0;background:none;color:var(--azul,#1b4d77);font:inherit;font-size:14px;font-weight:600;cursor:pointer;padding:4px 0;margin-bottom:12px;min-height:36px}
+.bill-summary{display:grid;gap:4px;padding:14px 16px;border:1px solid var(--borde,#dbe3e9);border-radius:12px;background:#f6f9fb;margin-bottom:14px}
+.bill-summary strong{font-size:16px}.bill-summary span{font-size:13px;color:var(--texto2);line-height:1.4}
+.bill-sandbox{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#fff7e0;color:#7a5200;font-size:13px;line-height:1.45}
+#bill-form{display:grid;gap:12px;max-width:460px;min-width:0}
+#bill-form label{display:grid;gap:5px;font-size:13px;font-weight:600;color:var(--texto2);min-width:0}
+#bill-form input{width:100%;min-width:0;box-sizing:border-box;min-height:44px;border:1px solid var(--borde,#cfd9e1);border-radius:10px;padding:0 12px;font:inherit;font-size:15px;background:#fff;color:var(--texto)}
+.bill-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;min-width:0}
+.bill-pay{min-height:46px}
+.bill-safe{margin:6px 0 0;font-size:12.5px;color:var(--texto3);line-height:1.5}
+.bill-msg{margin:0 0 12px;padding:10px 12px;border-radius:10px;font-size:13.5px;line-height:1.45}
+.bill-msg.is-error{background:#fdecea;color:#9b2c1f}.bill-msg.is-ok{background:#e6f5ee;color:#16794c}
+.bill-wait{margin:8px 0 14px;color:var(--texto2);font-size:14px}
+.bill-facts{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:8px}
+.bill-facts li{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:8px 0;border-bottom:1px solid var(--borde,#e3e9ee)}
+.bill-facts li span{color:var(--texto2)}
+.bill-actions{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+.bill-danger{color:#9b2c1f!important}
+.bill-done{text-align:center;padding:24px 8px;display:grid;gap:10px;justify-items:center}
+.bill-check{width:52px;height:52px;border-radius:50%;background:#dff3ea;color:#16794c;display:grid;place-items:center;font-size:26px;font-weight:700}
+.bill-done h4{margin:0;font-size:20px}.bill-done p{margin:0;color:var(--texto2);font-size:14px}
+@media(max-width:480px){.bill-row{grid-template-columns:repeat(2,minmax(0,1fr))}.bill-row label:last-child{grid-column:1/-1}}
+#modal-planes .modal{width:min(1040px,calc(100vw - 32px))!important}
+@media(max-width:640px){#modal-planes .modal{width:100vw!important}}
+.plan-opt-precio span{display:inline!important}
+.plan-opt ul{align-content:start}
+@media(max-width:820px){.planes-cols{grid-template-columns:1fr}}
+
 
 /* ── COLABORACIONES ── */
 .collab-empty{text-align:center;padding:48px 20px}
@@ -554,7 +642,7 @@ body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .
 .ba-loading-txt,.ba-loading>div{position:relative;z-index:1}
 .ba-loading-txt{font-size:12px;color:var(--violeta);font-weight:500}
 /* Detalle en degradado para todo lo relacionado con IA */
-.fal-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;font-size:10px;font-weight:700;background:linear-gradient(135deg,rgba(39,215,231,.12),rgba(122,77,255,.12));color:#7A4DFF;border:1px solid rgba(122,77,255,.22);margin-bottom:12px}
+.fal-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;font-size:10px;font-weight:700;background:linear-gradient(135deg,rgba(15, 99, 255,.12),rgba(122,77,255,.12));color:#7A4DFF;border:1px solid rgba(122,77,255,.22);margin-bottom:12px}
 .btn-generar-ba{width:100%;padding:14px;background:linear-gradient(135deg,var(--violeta),var(--azul));color:#fff;border:none;border-radius:var(--radius-s);font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(124,58,237,.3);margin-bottom:16px}
 .btn-generar-ba:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,.4)}
 .btn-generar-ba:disabled{opacity:.5;cursor:not-allowed;transform:none}
@@ -821,7 +909,7 @@ html{overflow-x:hidden}
 /* clip (no hidden) en body: hidden lo vuelve contenedor de scroll y rompe el position:sticky del sidebar */
 body{overflow-x:clip}
 input,textarea,select{touch-action:manipulation;font-size:16px!important}
-.rep-header-card{background:linear-gradient(135deg,#12366F 0%,#194391 58%,#147F78 100%)!important;border:none!important;border-radius:12px!important;padding:22px 24px!important;margin-bottom:20px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;box-shadow:0 10px 30px rgba(16,34,57,.2)!important;position:relative;overflow:hidden}
+.rep-header-card{background:linear-gradient(135deg,#0d1e74 0%,#194391 58%,#1b32ca 100%)!important;border:none!important;border-radius:12px!important;padding:22px 24px!important;margin-bottom:20px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;box-shadow:0 10px 30px rgba(16,34,57,.2)!important;position:relative;overflow:hidden}
 .rep-header-card::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;background:rgba(255,255,255,.06);border-radius:50%;pointer-events:none}
 .rep-header-card::after{content:'';position:absolute;bottom:-30px;left:30%;width:100px;height:100px;background:rgba(255,255,255,.04);border-radius:50%;pointer-events:none}
 .rep-header-card>div:first-child{display:flex;flex-direction:column;gap:4px}
@@ -876,12 +964,16 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-panel.css?v=5">
 <script defer src="smyl-skeleton.js?v=1"></script>
 <script defer src="smyl-panel.js?v=7"></script>
-<link rel="stylesheet" href="smyl-clinic-admin.css?v=20">
-<script defer src="smyl-clinic-admin.js?v=26"></script>
+<link rel="stylesheet" href="smyl-clinic-admin.css?v=24">
+<script defer src="smyl-clinic-admin.js?v=31"></script>
+<script defer src="smyl-billing.js?v=1"></script>
+<script defer src="smyl-plan-usage.js?v=2"></script>
 <link rel="stylesheet" href="smyl-professional-directory.css?v=13">
 <script defer src="smyl-professional-directory.js?v=14"></script>
-<link rel="stylesheet" href="smyl-schedule.css?v=37">
+<link rel="stylesheet" href="smyl-schedule.css?v=40">
+<link rel="stylesheet" href="smyl-agenda-accordion.css?v=1">
 <link rel="stylesheet" href="smyl-waitlist.css?v=1">
+<link rel="stylesheet" href="smyl-ai-scheduling.css?v=4">
 <link rel="stylesheet" href="smyl-google-calendar.css?v=2">
 <link rel="stylesheet" href="smyl-schedule-setup.css?v=2">
 <script defer src="smyl-schedule-grid.js?v=2"></script>
@@ -890,31 +982,35 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-branch-scope.js?v=4"></script>
 <link rel="stylesheet" href="smyl-select-menu.css?v=1">
 <script defer src="smyl-select-menu.js?v=1"></script>
-<script defer src="smyl-waitlist-core.js?v=1"></script>
-<script defer src="smyl-waitlist.js?v=1"></script>
-<script defer src="smyl-schedule.js?v=58"></script>
+<script defer src="smyl-waitlist-core.js?v=2"></script>
+<script defer src="smyl-waitlist.js?v=2"></script>
+<script defer src="smyl-ai-scheduling.js?v=5"></script>
+<script defer src="smyl-schedule.js?v=68"></script>
 <script defer src="smyl-google-calendar.js?v=3"></script>
 <script defer src="smyl-schedule-message.js?v=5"></script>
 <script defer src="smyl-schedule-setup.js?v=2"></script>
-<script defer src="smyl-reminders.js?v=4"></script>
-<link rel="stylesheet" href="smyl-templates.css?v=6">
-<script defer src="smyl-template-catalog.js?v=7"></script>
-<script defer src="smyl-templates.js?v=7"></script>
+<script defer src="smyl-reminders.js?v=9"></script>
+<script defer src="smyl-agenda-accordion.js?v=1"></script>
+<link rel="stylesheet" href="smyl-templates.css?v=7">
+<link rel="stylesheet" href="smyl-template-suggest.css?v=3">
+<script defer src="smyl-template-catalog.js?v=10"></script>
+<script defer src="smyl-templates.js?v=10"></script>
+<script defer src="smyl-template-suggest.js?v=6"></script>
 <link rel="stylesheet" href="smyl-messaging.css?v=1">
 <script defer src="smyl-messaging.js?v=1"></script>
-<link rel="stylesheet" href="smyl-service-catalog.css?v=2">
-<link rel="stylesheet" href="smyl-service-catalog-stage1.css?v=4">
-<script defer src="smyl-service-catalog-model.js?v=3"></script>
-<script defer src="smyl-service-catalog.js?v=10"></script>
-<link rel="stylesheet" href="smyl-inventory.css?v=15">
-<script defer src="smyl-inventory-routing.js?v=1"></script>
-<script defer src="smyl-inventory-procurement.js?v=2"></script>
-<script defer src="smyl-inventory.js?v=22"></script>
-<link rel="stylesheet" href="smyl-finance.css?v=50">
+<link rel="stylesheet" href="smyl-service-catalog.css?v=6">
+<link rel="stylesheet" href="smyl-service-catalog-stage1.css?v=7">
+<script defer src="smyl-service-catalog-model.js?v=4"></script>
+<script defer src="smyl-service-catalog.js?v=21"></script>
+<link rel="stylesheet" href="smyl-inventory.css?v=16">
+<script defer src="smyl-inventory-routing.js?v=2"></script>
+<script defer src="smyl-inventory-procurement.js?v=3"></script>
+<script defer src="smyl-inventory.js?v=23"></script>
+<link rel="stylesheet" href="smyl-finance.css?v=63">
 <script defer src="smyl-fiscal-rules.js?v=2"></script>
 <script defer src="smyl-fiscal-capture.js?v=4"></script>
 <script defer src="smyl-xlsx.js?v=1"></script>
-<script defer src="smyl-finance.js?v=67"></script>
+<script defer src="smyl-finance.js?v=87"></script>
 <link rel="stylesheet" href="smyl-online-pay-setup.css?v=2">
 <script defer src="smyl-online-pay-setup.js?v=3"></script>
 <link rel="stylesheet" href="smyl-reports.css?v=6">
@@ -923,6 +1019,9 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-readiness.js?v=1"></script>
 <link rel="stylesheet" href="smyl-storage.css?v=1">
 <script defer src="smyl-storage.js?v=1"></script>
+<link rel="stylesheet" href="smyl-compliance.css?v=3">
+<script defer src="smyl-compliance-model.js?v=3"></script>
+<script defer src="smyl-compliance.js?v=3"></script>
 <link rel="stylesheet" href="smyl-privacy-rights.css?v=2">
 <script defer src="smyl-privacy-rights.js?v=3"></script>
 <script defer src="smyl-privacy-dispatch.js?v=1"></script>
@@ -930,14 +1029,19 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-notice-settings.js?v=1"></script>
 <link rel="stylesheet" href="smyl-appointment-notice.css?v=2">
 <script defer src="smyl-appointment-notice.js?v=3"></script>
-<link rel="stylesheet" href="smyl-cloud.css?v=3">
-<script defer src="smyl-cloud.js?v=4"></script>
-<link rel="stylesheet" href="smyl-connections.css?v=21">
-<script defer src="smyl-connections.js?v=28"></script>
+<link rel="stylesheet" href="smyl-cloud.css?v=4">
+<script defer src="smyl-cloud.js?v=5"></script>
+<link rel="stylesheet" href="smyl-connections.css?v=23">
+<link rel="stylesheet" href="smyl-media-replies.css?v=1">
+<script defer src="smyl-media-replies.js?v=1"></script>
+<script defer src="smyl-training-autofill.js?v=1"></script>
+<script defer src="smyl-connections.js?v=33&media=1"></script>
 <link rel="stylesheet" href="smyl-lana-handoff.css?v=2">
-<script defer src="smyl-lana-handoff.js?v=7"></script>
+<script defer src="smyl-lana-handoff.js?v=8"></script>
 <link rel="stylesheet" href="smyl-lana-attention.css?v=1">
-<script defer src="smyl-lana-attention.js?v=5"></script>
+<script defer src="smyl-lana-attention.js?v=6"></script>
+<link rel="stylesheet" href="smyl-ia-interruptor.css?v=1">
+<script defer src="smyl-ia-interruptor.js?v=2"></script>
 <link rel="stylesheet" href="smyl-daily-home.css?v=17">
 <link rel="stylesheet" href="smyl-consultorio.css?v=9">
 <link rel="stylesheet" href="smyl-clinical-tools.css?v=1">
@@ -946,18 +1050,18 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-visit-model.js?v=7"></script>
 <script defer src="smyl-privacy-notice.js?v=3"></script>
 <script defer src="smyl-history-interview.js?v=1"></script>
-<script defer src="smyl-clinical-tools.js?v=1"></script>
-<script defer src="smyl-consultorio.js?v=13"></script>
-<link rel="stylesheet" href="smyl-clinic-setup.css?v=5">
-<script defer src="smyl-clinic-setup.js?v=8"></script>
+<script defer src="smyl-clinical-tools.js?v=2"></script>
+<script defer src="smyl-consultorio.js?v=14"></script>
+<link rel="stylesheet" href="smyl-clinic-setup.css?v=6">
+<script defer src="smyl-clinic-setup.js?v=10"></script>
 <link rel="stylesheet" href="smyl-settings-hub.css?v=6">
-<script defer src="smyl-settings-hub.js?v=17"></script>
+<script defer src="smyl-settings-hub.js?v=21"></script>
 <link rel="stylesheet" href="smyl-task-center.css?v=1">
 <script defer src="smyl-task-center.js?v=9"></script>
 <link rel="stylesheet" href="smyl-resilience.css?v=1">
 <script defer src="smyl-resilience.js?v=1"></script>
 <link rel="stylesheet" href="smyl-design-system-v2.css?v=2">
-<link rel="stylesheet" href="smyl-inbox.css?v=79">
+<link rel="stylesheet" href="smyl-inbox.css?v=81">
 <link rel="stylesheet" href="smyl-privacy-inbox.css?v=1">
 <link rel="stylesheet" href="smyl-chat-media-viewer.css?v=1">
 <script defer src="smyl-schedule-suggest.js?v=1"></script>
@@ -967,38 +1071,39 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-chat-pdf.js?v=1"></script>
 <script defer src="smyl-chat-media-viewer.js?v=1"></script>
 <script defer src="smyl-privacy-inbox.js?v=2"></script>
-<script defer src="smyl-inbox.js?v=95"></script>
-<link rel="stylesheet" href="smyl-navigation.css?v=11">
-<script defer src="smyl-navigation.js?v=31"></script>
+<script defer src="smyl-inbox.js?v=101&media=1"></script>
+<link rel="stylesheet" href="smyl-navigation.css?v=15">
+<script defer src="smyl-navigation.js?v=36"></script>
 <link rel="stylesheet" href="smyl-command-menu.css?v=3">
 <script defer src="smyl-command-menu.js?v=5"></script>
-<link rel="stylesheet" href="smyl-clinic.css?v=13">
+<link rel="stylesheet" href="smyl-clinic.css?v=14">
 <script defer src="smyl-clinical-model.js?v=3"></script>
 <script defer src="smyl-treatment-plan-model.js?v=1"></script>
 <script defer src="smyl-treatment-plan-client.js?v=2"></script>
-<script defer src="smyl-clinic.js?v=27"></script>
-<link rel="stylesheet" href="smyl-patient-360.css?v=21">
+<script defer src="smyl-clinic.js?v=31"></script>
+<link rel="stylesheet" href="smyl-patient-360.css?v=24">
 <link rel="stylesheet" href="smyl-patient-privacy-panel.css?v=4">
 <link rel="stylesheet" href="smyl-mila-interview.css?v=5">
 <script defer src="smyl-history-model.js?v=3"></script>
 <script defer src="smyl-history-read.js?v=4"></script>
-<script defer src="smyl-patient-privacy-panel.js?v=5"></script>
-<link rel="stylesheet" href="smyl-informed-consent.css?v=1">
-<script defer src="smyl-informed-consent.js?v=1"></script>
+<script defer src="smyl-patient-privacy-panel.js?v=6"></script>
+<link rel="stylesheet" href="smyl-informed-consent.css?v=2">
+<script defer src="smyl-informed-consent.js?v=2"></script>
 <script defer src="smyl-clinical-background.js?v=1"></script>
-<script defer src="smyl-patient-360.js?v=37"></script>
+<script defer src="smyl-procedure-safety.js?v=3"></script>
+<script defer src="smyl-patient-360.js?v=42"></script>
 <script defer src="vendor/qrcode-generator-1.4.4.js"></script>
 <script defer src="smyl-mila-interview.js?v=7"></script>
 <link rel="stylesheet" href="smyl-patient-record-stage2.css?v=2">
 <script defer src="smyl-patient-record-stage2.js?v=2"></script>
-<link rel="stylesheet" href="smyl-proposals.css?v=16">
-<link rel="stylesheet" href="smyl-prescription.css?v=1">
-<script defer src="smyl-proposal-model.js?v=4"></script>
-<script defer src="smyl-proposal-print.js?v=7"></script>
-<script defer src="smyl-prescription-model.js?v=1"></script>
-<script defer src="smyl-prescription-print.js?v=1"></script>
-<script defer src="smyl-prescriptions.js?v=1"></script>
-<script defer src="smyl-proposals.js?v=26"></script>
+<link rel="stylesheet" href="smyl-proposals.css?v=20">
+<link rel="stylesheet" href="smyl-prescription.css?v=2">
+<script defer src="smyl-proposal-model.js?v=7"></script>
+<script defer src="smyl-proposal-print.js?v=8"></script>
+<script defer src="smyl-prescription-model.js?v=2"></script>
+<script defer src="smyl-prescription-print.js?v=2"></script>
+<script defer src="smyl-prescriptions.js?v=2"></script>
+<script defer src="smyl-proposals.js?v=32"></script>
 <link rel="stylesheet" href="smyl-treatment-quote-stage3.css?v=3">
 <script defer src="smyl-treatment-quote-stage3.js?v=1"></script>
 <link rel="stylesheet" href="smyl-patient-cases.css?v=4">
@@ -1058,7 +1163,8 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-evidence-center.js?v=12"></script>
 <script defer src="smyl-clinical-photo-service.js?v=2"></script>
 <link rel="stylesheet" href="smyl-clinical-photo-review.css?v=2">
-<link rel="stylesheet" href="smyl-case-workspace.css?v=33">
+<link rel="stylesheet" href="smyl-case-workspace.css?v=39">
+<link rel="stylesheet" href="smyl-orthodontics.css?v=2">
 <link rel="stylesheet" href="smyl-periodontal-graph.css?v=2">
 <link rel="stylesheet" href="smyl-periodontal-review.css?v=3">
 <link rel="stylesheet" href="smyl-periodontal-guided.css?v=1">
@@ -1069,21 +1175,24 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-periodontal-guided.js?v=1"></script>
 <script defer src="smyl-periodontal-review.js?v=3"></script>
 <script defer src="smyl-guided-photos.js?v=1"></script>
-<script defer src="smyl-case-workspace.js?v=47"></script>
+<script defer src="smyl-treatments.js?v=5"></script>
+<script defer src="smyl-orthodontics.js?v=2"></script>
+<script defer src="smyl-case-workspace.js?v=56"></script>
 <script defer src="smyl-clinical-photo-review.js?v=5"></script>
 <script defer src="smyl-evidence-center-integration.js?v=12"></script>
-<link rel="stylesheet" href="smyl-professional-v3.css?v=13">
-<script defer src="smyl-professional-v3.js?v=15"></script>
+<link rel="stylesheet" href="smyl-professional-v3.css?v=15">
+<script defer src="smyl-professional-v3.js?v=16"></script>
 <link rel="stylesheet" href="smyl-dialog-system.css?v=3">
 <script defer src="smyl-dialog-system.js?v=4"></script>
 <script defer src="smyl-modal-guard.js?v=1"></script>
 <!-- SMYL UI v3 se carga al final: gobierna el shell y los componentes compartidos
      sin depender del orden histórico de cada módulo. -->
-<link rel="stylesheet" href="smyl-ui-template-v3.css?v=9">
+<link rel="stylesheet" href="smyl-ui-template-v3.css?v=10">
 <!-- La capa del dashboard se carga después de la plantilla global para conservar su jerarquía propia. -->
 <link rel="stylesheet" href="smyl-dashboard-v2.css?v=2">
 <link rel="stylesheet" href="smyl-patients-directory.css?v=3">
 <link rel="stylesheet" href="smyl-ui-datta-v4.css?v=2">
+<link rel="stylesheet" href="smyl-brand.css?v=1">
 </head>
 <body class="smyl-professional smyl-management-v3 smyl-ui-governed">
 <script>/* Estado del menú lateral y del tema aplicados antes del primer pintado, para que el panel no «salte» al terminar de cargar. */try{if(window.localStorage.getItem("smyl_sidebar_collapsed")==="1")document.body.classList.add("smyl-sidebar-collapsed")}catch(e){}</script>
@@ -1331,7 +1440,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
               <div id="dash-ultimos-casos">
                 <div class="dashboard-empty">
                   <div class="dashboard-empty-visual" aria-hidden="true">
-                    <svg width="74" height="74" viewBox="0 0 80 80" fill="none"><rect x="15" y="18" width="50" height="44" rx="12" fill="white" stroke="currentColor" stroke-width="2"/><path d="M26 43c3.8 6.2 8.4 9.2 14 9.2 5.7 0 10.3-3 14-9.2" stroke="#0F766E" stroke-width="3" stroke-linecap="round"/><circle cx="31" cy="34" r="2.5" fill="currentColor"/><circle cx="49" cy="34" r="2.5" fill="currentColor"/><path d="M25 18v-3M55 18v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    <svg width="74" height="74" viewBox="0 0 80 80" fill="none"><rect x="15" y="18" width="50" height="44" rx="12" fill="white" stroke="currentColor" stroke-width="2"/><path d="M26 43c3.8 6.2 8.4 9.2 14 9.2 5.7 0 10.3-3 14-9.2" stroke="#142bc3" stroke-width="3" stroke-linecap="round"/><circle cx="31" cy="34" r="2.5" fill="currentColor"/><circle cx="49" cy="34" r="2.5" fill="currentColor"/><path d="M25 18v-3M55 18v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                   </div>
                   <div>
                     <div class="dashboard-empty-kicker">Tu primer caso</div>
@@ -2133,38 +2242,24 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
               <button class="upgrade-btn" style="margin-top:8px" onclick="abrirPortalStripe()">💳 Gestionar suscripción</button>
             </div>
           </div>
-          <div>
-            <div class="card">
-              <div class="card-title">Uso del plan</div>
-              <div id="mc-uso-detalle" style="font-size:13px;color:var(--texto2);line-height:2.2"></div>
-              <a class="btn btn-secondary" href="consumos.html" style="margin-top:12px;display:inline-flex;text-decoration:none">Ver consumo de MILA, IA, canales y almacenamiento</a>
-            </div>
+          <div class="plan-usage-col">
+            <div id="plan-usage-root" aria-live="polite"></div>
+            <div id="mc-uso-detalle" hidden></div>
           </div>
         </div>
       </div>
 
       <!-- ═══ MI CONSULTORIO (solo dueño) ═══ -->
       <div class="pantalla" id="p-mi-consultorio">
-        <div class="cuenta-grid cuenta-grid--una">
-          <div class="card">
-            <div class="card-title">Datos del consultorio</div>
-            <p style="font-size:12.5px;color:var(--texto2);line-height:1.5;margin:0 0 12px">Así se identifica tu consultorio en cotizaciones, mensajes y reportes. Tus datos personales están en Mi cuenta.</p>
-            <div class="form-grid">
-              <div class="fg"><label for="conf-consultorio">Nombre del consultorio</label><input type="text" id="conf-consultorio" placeholder="Ej. Clínica Estética Dental"></div>
-              <div class="fg"><label for="conf-doctor">Doctor o doctora titular</label><input type="text" id="conf-doctor" placeholder="Dr. / Dra. ..."></div>
-              <div class="fg full"><label for="conf-ciudad">Ciudad</label><input type="text" id="conf-ciudad" placeholder="Ej. Guadalajara, Jalisco"></div>
-            </div>
-            <button class="btn btn-primary" id="btn-guardar-config" style="margin-top:12px" onclick="guardarConfig()">💾 Guardar datos del consultorio</button>
+        <div class="card clinic-data-card">
+          <div class="card-title">Datos de la clínica</div>
+          <p class="clinic-data-lead">Con este nombre te identificamos en recordatorios, mensajes, cotizaciones y reportes. Tus datos personales están en tu perfil, abajo a la izquierda.</p>
+          <div class="form-grid">
+            <div class="fg full"><label for="conf-consultorio">Nombre de la clínica</label><input type="text" id="conf-consultorio" placeholder="Ej. Clínica Estética Dental" autocomplete="organization"></div>
+            <div class="fg"><label for="conf-doctor">Doctor o doctora titular</label><input type="text" id="conf-doctor" placeholder="Dr. / Dra. …" autocomplete="name"></div>
+            <div class="fg"><label for="conf-ciudad">Ciudad</label><input type="text" id="conf-ciudad" placeholder="Ej. Guadalajara, Jalisco" autocomplete="address-level2"></div>
           </div>
-          <div class="card">
-            <div class="card-title">Lo demás de tu consultorio</div>
-            <div class="mc-enlaces">
-              <button type="button" class="mc-enlace" onclick="ir('clinica')"><strong>Sucursales y espacios</strong><span>Direcciones, consultorios, horarios y equipo.</span></button>
-              <button type="button" class="mc-enlace" onclick="ir('caja')"><strong>Datos fiscales y facturación</strong><span>RFC, régimen y conexión para facturar.</span></button>
-              <button type="button" class="mc-enlace" onclick="ir('sim-config')"><strong>Marca para tus pacientes</strong><span>Nombre público, color y mensaje de bienvenida.</span></button>
-              <button type="button" class="mc-enlace" onclick="ir('directorio')"><strong>Directorio profesional</strong><span>Perfil público para recibir solicitudes de cita.</span></button>
-            </div>
-          </div>
+          <div class="clinic-data-actions"><button class="btn btn-primary" id="btn-guardar-config" onclick="guardarConfig()">Guardar</button></div>
         </div>
       </div>
 
@@ -2265,12 +2360,12 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 
 <!-- ═══ MODAL CAMBIAR DE PLAN ═══ -->
 <div class="modal-bg" id="modal-planes">
-  <div class="modal" style="max-width:640px">
+  <div class="modal" style="max-width:1040px;width:calc(100vw - 32px)">
     <div class="modal-header">
-      <h3>Cambiar de plan</h3>
+      <h3>Elige tu plan</h3>
       <button class="modal-close" onclick="cerrarModalPlanes()">✕</button>
     </div>
-    <div id="mp-planes-grid" style="display:flex;gap:14px;flex-wrap:wrap"></div>
+    <div id="mp-planes-grid"></div>
   </div>
 </div>
 
@@ -2450,7 +2545,7 @@ var SLOT_ICONS = [
   // Perfil lateral
   '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2476B8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3c1.8 1 3 2.8 3 5 0 2-.9 3.8-2.3 5"/><path d="M9 3C7.2 4 6 5.8 6 8c0 2 .9 3.8 2.3 5"/><path d="M9 3h6"/><path d="M8 13h8l-1 5H9l-1-5z"/><line x1="10" y1="18" x2="14" y2="18"/></svg>',
   // Intraoral frontal
-  '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="4.5" rx="1.5"/><rect x="2" y="12.5" width="20" height="4.5" rx="1.5"/><line x1="6" y1="7" x2="6" y2="11.5"/><line x1="10" y1="7" x2="10" y2="11.5"/><line x1="14" y1="7" x2="14" y2="11.5"/><line x1="18" y1="7" x2="18" y2="11.5"/><line x1="6" y1="12.5" x2="6" y2="17"/><line x1="10" y1="12.5" x2="10" y2="17"/><line x1="14" y1="12.5" x2="14" y2="17"/><line x1="18" y1="12.5" x2="18" y2="17"/></svg>',
+  '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#142bc3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="4.5" rx="1.5"/><rect x="2" y="12.5" width="20" height="4.5" rx="1.5"/><line x1="6" y1="7" x2="6" y2="11.5"/><line x1="10" y1="7" x2="10" y2="11.5"/><line x1="14" y1="7" x2="14" y2="11.5"/><line x1="18" y1="7" x2="18" y2="11.5"/><line x1="6" y1="12.5" x2="6" y2="17"/><line x1="10" y1="12.5" x2="10" y2="17"/><line x1="14" y1="12.5" x2="14" y2="17"/><line x1="18" y1="12.5" x2="18" y2="17"/></svg>',
   // Radiografía
   '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6E6E7C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="7" x2="17" y2="7"/><line x1="7" y1="10" x2="17" y2="10"/><path d="M7 14h2a1 1 0 0 1 1 1v1a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h2"/></svg>',
 ];
@@ -2587,7 +2682,7 @@ if ('serviceWorker' in navigator) {
     aviso.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:9000;width:min(420px,calc(100% - 32px));box-sizing:border-box;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid #D7DDE5;border-radius:12px;box-shadow:0 8px 28px rgba(15,23,42,.16);padding:10px 12px;font:13px/1.4 system-ui,sans-serif;color:#1F2937';
     aviso.innerHTML = '<span style="flex:1;min-width:150px">Hay una versión nueva de SMYL.</span>' +
       '<button type="button" data-update-later style="border:0;background:none;color:#64748B;font:inherit;cursor:pointer;padding:6px 8px">Después</button>' +
-      '<button type="button" data-update-now style="border:0;background:#0F766E;color:#fff;font:inherit;font-weight:600;border-radius:8px;cursor:pointer;padding:7px 12px">Actualizar</button>';
+      '<button type="button" data-update-now style="border:0;background:#142bc3;color:#fff;font:inherit;font-weight:600;border-radius:8px;cursor:pointer;padding:7px 12px">Actualizar</button>';
     aviso.querySelector('[data-update-now]').addEventListener('click', smylApplyUpdate);
     aviso.querySelector('[data-update-later]').addEventListener('click', function () { aviso.remove(); });
     document.body.appendChild(aviso);
@@ -2619,7 +2714,7 @@ function smylToastError() {
       box = document.createElement('div');
       box.id = 'smyl-error-toast';
       box.setAttribute('role', 'status');
-      box.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:92vw;background:#102239;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 8px 28px rgba(16,34,57,.35);z-index:99999;font:14px/1.4 system-ui,sans-serif';
+      box.style.cssText = 'position:fixed;left:50%;bottom:20px;transform:translateX(-50%);max-width:92vw;background:#0e153b;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 8px 28px rgba(16,34,57,.35);z-index:99999;font:14px/1.4 system-ui,sans-serif';
       document.body.appendChild(box);
     }
     box.textContent = 'Algo no salió como se esperaba. Ya registramos el detalle; si la pantalla no responde, recarga la página.';
@@ -2668,14 +2763,9 @@ var EDGE_URL = SUPA_URL + '/functions/v1/claude';
 var USE_EDGE = true;
 
 // ══════════════════════════════════════════
-// STRIPE — suscripciones
+// SUSCRIPCIONES — el cobro es con Openpay (smyl-billing.js + Edge Function openpay-billing); ya no se usa Stripe.
 // ══════════════════════════════════════════
-// TODO: pegar aquí los 3 Price ID de Stripe (Dashboard → Product catalog →
-// cada plan → Price ID, empiezan con "price_"). Sin esto, los botones de
-// suscripción avisan que falta configuración en vez de fallar en silencio.
-var STRIPE_PRICE_IDS = { esencial: '', profesional: '', premium: '' };
-var STRIPE_CHECKOUT_URL = SUPA_URL + '/functions/v1/stripe-checkout';
-var STRIPE_PORTAL_URL = SUPA_URL + '/functions/v1/stripe-portal';
+var planPeriodoElegido = 'mensual';
 // Edge Function para IA (proxy — resuelve CORS)
 // Si no existe aún, fallback a localStorage temporal
 var USE_EDGE = true;
@@ -2804,70 +2894,68 @@ var PRECIOS_DEFAULT = [
 ];
 
 var PLANES = {
-  esencial:    {label:'Esencial',    precio:'$399',  limite:15,  features:['15 análisis con IA/mes','Análisis IA básico','Cotización automática','1 usuario']},
-  profesional: {label:'Profesional', precio:'$799',  limite:40,  features:['40 análisis con IA/mes','Análisis IA completo','Chatbot de pacientes','Historial ilimitado','3 usuarios']},
-  premium:     {label:'Premium',     precio:'$1,499',limite:100, features:['100 análisis con IA/mes','Análisis IA avanzado','Colaboraciones TeamUp','Marca personalizada','Usuarios ilimitados']},
+  esencial: {
+    label: 'Esencial', mensual: 299, anual: 2990, resumen: 'Toda la plataforma. La IA la pagas según uso.',
+    features: ['Toda la plataforma incluida', 'IA bajo demanda: pagas solo los tokens que uses', '3 GB de almacenamiento', '1 sucursal · 3 usuarios', 'Timbres fiscales por paquete']
+  },
+  profesional: {
+    label: 'Profesional', mensual: 899, anual: 8990, resumen: 'Para clínicas que ya usan la IA y los mensajes todos los días.', recomendado: true,
+    features: ['Toda la plataforma incluida', '1M de tokens de IA al mes', '25 GB de almacenamiento', '50 timbres fiscales al mes', '3 sucursales · 10 usuarios', '10% de descuento en paquetes extra', 'Capacitación inicial de la IA']
+  },
+  premium: {
+    label: 'Premium', mensual: 1499, anual: 14990, resumen: 'Sin límites de equipo y con atención directa.',
+    features: ['Todo lo del plan Profesional', '3M de tokens de IA al mes, sin caducidad', '100 GB de almacenamiento', '150 timbres fiscales al mes', 'Sucursales y usuarios ilimitados', 'Marca propia en el simulador de pacientes', '20% de descuento en paquetes extra', 'Soporte prioritario', 'Migración de pacientes y puesta en marcha de WhatsApp']
+  }
 };
+function planPrecio(plan, periodo) {
+  var p = PLANES[plan]; if (!p) return '';
+  var n = periodo === 'anual' ? p.anual : p.mensual;
+  return '$' + n.toLocaleString('es-MX');
+}
 
 // ══════════════════════════════════════════
-// STRIPE — checkout y portal de facturación
+// SUSCRIPCIÓN — cambio de plan (el cobro con Openpay se conecta después)
 // ══════════════════════════════════════════
 function abrirModalPlanes() {
+  renderModalPlanes();
+  document.getElementById('modal-planes').classList.add('visible');
+}
+function renderModalPlanes() {
   var planActual = (tenantData && tenantData.plan) || 'profesional';
-  var html = Object.keys(PLANES).map(function(key) {
+  var anual = planPeriodoElegido === 'anual';
+  var toggle = '<div class="planes-periodo" role="group" aria-label="Periodo de pago">' +
+    '<button type="button" class="' + (anual ? '' : 'is-on') + '" onclick="cambiarPeriodoPlanes(\'mensual\')">Mensual</button>' +
+    '<button type="button" class="' + (anual ? 'is-on' : '') + '" onclick="cambiarPeriodoPlanes(\'anual\')">Anual · 2 meses gratis</button></div>';
+  var cards = Object.keys(PLANES).map(function(key) {
     var p = PLANES[key];
     var esActual = key === planActual;
-    return '<div class="card" style="flex:1;min-width:180px">' +
-      '<div class="card-title">' + p.label + (esActual ? ' <span style="font-size:11px;color:var(--exito)">· plan actual</span>' : '') + '</div>' +
-      '<div style="font-size:20px;font-weight:800;margin:4px 0">' + p.precio + '<span style="font-size:12px;font-weight:400;color:var(--texto2)">/mes</span></div>' +
-      '<div class="plan-features" style="margin-top:10px">' + p.features.map(function(f){return '<div style="font-size:12px;color:var(--texto2)">✓ ' + f + '</div>';}).join('') + '</div>' +
-      (esActual ? '' : '<button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="suscribirsePlan(\'' + key + '\', this)">Suscribirme</button>') +
+    return '<div class="plan-opt' + (p.recomendado ? ' is-reco' : '') + (esActual ? ' is-actual' : '') + '">' +
+      (p.recomendado ? '<span class="plan-opt-tag">Recomendado</span>' : '') +
+      '<h4>' + p.label + (esActual ? ' <span class="plan-opt-actual">· tu plan</span>' : '') + '</h4>' +
+      '<p class="plan-opt-sub">' + p.resumen + '</p>' +
+      '<div class="plan-opt-precio">' + planPrecio(key, planPeriodoElegido) + '<span>' + (anual ? ' MXN/año' : ' MXN/mes') + '</span></div>' +
+      '<ul>' + p.features.map(function(f){ return '<li>' + f + '</li>'; }).join('') + '</ul>' +
+      (esActual ? '' : '<button class="btn btn-primary" style="width:100%" onclick="suscribirsePlan(\'' + key + '\', this)">Elegir ' + p.label + '</button>') +
       '</div>';
   }).join('');
-  document.getElementById('mp-planes-grid').innerHTML = html;
-  document.getElementById('modal-planes').classList.add('visible');
+  document.getElementById('mp-planes-grid').innerHTML = toggle + '<div class="planes-cols">' + cards + '</div>' +
+    '<p class="planes-nota">Precios en pesos mexicanos. Los paquetes extra de tokens, almacenamiento y timbres se compran aparte desde Consumo.</p>';
+}
+function cambiarPeriodoPlanes(periodo) {
+  planPeriodoElegido = periodo === 'anual' ? 'anual' : 'mensual';
+  renderModalPlanes();
 }
 function cerrarModalPlanes() {
   document.getElementById('modal-planes').classList.remove('visible');
 }
-
-async function suscribirsePlan(planKey, btn) {
-  var priceId = STRIPE_PRICE_IDS[planKey];
-  if (!priceId) { alert('Falta terminar de configurar el cobro para este plan. Contacta a soporte.'); return; }
-  if (btn) { btn.disabled = true; btn.textContent = 'Redirigiendo a pago...'; }
-  try {
-    var sess = await sb.auth.getSession();
-    var token = sess.data.session ? sess.data.session.access_token : null;
-    if (!token) { alert('Tu sesión expiró, vuelve a iniciar sesión.'); return; }
-    var resp = await fetch(STRIPE_CHECKOUT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ priceId: priceId, planKey: planKey })
-    });
-    var data = await resp.json();
-    if (data.url) { window.location.href = data.url; return; }
-    alert('No se pudo iniciar el pago: ' + (data.error || 'error desconocido'));
-  } catch (e) {
-    alert('No se pudo conectar con el servidor de pagos. Intenta de nuevo en unos minutos.');
-  }
-  if (btn) { btn.disabled = false; btn.textContent = 'Suscribirme'; }
+// El pago con tarjeta (Openpay) vive en smyl-billing.js.
+function suscribirsePlan(planKey, btn) {
+  if (window.SmylBilling) { window.SmylBilling.choose(planKey); return; }
+  alert('El módulo de pago todavía se está cargando. Intenta de nuevo en unos segundos.');
 }
-
-async function abrirPortalStripe() {
-  try {
-    var sess = await sb.auth.getSession();
-    var token = sess.data.session ? sess.data.session.access_token : null;
-    if (!token) { alert('Tu sesión expiró, vuelve a iniciar sesión.'); return; }
-    var resp = await fetch(STRIPE_PORTAL_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
-    });
-    var data = await resp.json();
-    if (data.url) { window.location.href = data.url; return; }
-    alert(data.error || 'No se pudo abrir el portal de facturación.');
-  } catch (e) {
-    alert('No se pudo conectar con el servidor de pagos.');
-  }
+function abrirPortalStripe() {
+  if (window.SmylBilling) { window.SmylBilling.manage(); return; }
+  alert('El módulo de pago todavía se está cargando. Intenta de nuevo en unos segundos.');
 }
 
 // ══════════════════════════════════════════
@@ -3737,6 +3825,7 @@ async function verPaciente(id) {
   var edad = p.fecha_nacimiento ? calcularEdad(p.fecha_nacimiento) + ' años' : '-';
   document.getElementById('det-info-rapida').textContent = edad + (p.email ? ' · ' + p.email : '') + (p.telefono ? ' · ' + p.telefono : '');
   document.getElementById('det-info-grid').innerHTML = [
+    ...(p.record_number ? [{lbl:'Expediente', val:'EXP-' + p.record_number}] : []),
     {lbl:'Email', val: p.email||'-'},
     {lbl:'Teléfono', val: p.telefono||'-'},
     {lbl:'Edad', val: edad},
@@ -4788,7 +4877,7 @@ async function guardarConfig() {
 // ══════════════════════════════════════════
 // EQUIPO (etapa 4 -- dueño + staff, ver camila_team.sql)
 // ══════════════════════════════════════════
-var LIMITE_USUARIOS_POR_PLAN = { esencial: 1, profesional: 3 }; // premium: sin tope
+var LIMITE_USUARIOS_POR_PLAN = { esencial: 3, profesional: 10 }; // premium: sin tope
 
 // El staff nunca podría guardar estos cambios de todos modos (la política
 // RLS de camila_tenants solo acepta UPDATE si id = auth.uid(), y el staff
@@ -5505,7 +5594,7 @@ function renderPlan() {
   var vence = new Date(tenantData.vence_en || Date.now() + 30*86400000);
 
   document.getElementById('mc-plan').textContent = planInfo.label;
-  document.getElementById('mc-precio').textContent = planInfo.precio + ' MXN/mes';
+  document.getElementById('mc-precio').textContent = planPrecio(plan in PLANES ? plan : 'profesional', 'mensual') + ' MXN/mes';
   document.getElementById('mc-features').innerHTML = planInfo.features.map(function(f) {
     return '<div class="plan-feature">✓ ' + f + '</div>';
   }).join('');

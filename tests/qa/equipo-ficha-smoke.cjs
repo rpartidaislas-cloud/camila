@@ -102,7 +102,7 @@ function fakeSource(who) {
 }
 
 async function open(browser, who, size, init) {
-  const ctx = await browser.newContext({ serviceWorkers: 'block', viewport: size || { width: 1500, height: 950 } }); const page = await ctx.newPage(); const errs = [];
+  const ctx = await browser.newContext({ serviceWorkers: 'block', viewport: size || (process.env.VIEW ? { width: +process.env.VIEW.split('x')[0], height: +process.env.VIEW.split('x')[1] } : { width: 1500, height: 950 }) }); const page = await ctx.newPage(); const errs = [];
   page.on('pageerror', e => errs.push(e.message.slice(0, 200))); page.on('dialog', d => d.accept());
   const source = fakeSource(who);
   await page.route('**/*', r => {
@@ -225,22 +225,50 @@ server.listen(0, '127.0.0.1', async () => {
     check(/visible para pacientes/.test(wa.t), 'la ficha debe decir que es visible para pacientes');
     const editBtns = await page.$$('.clinic-admin-sheet-branch .clinic-admin-link'); check(editBtns.length === 2, 'cada sede asignada debe ofrecer «Editar horario»: ' + editBtns.length);
     await editBtns[0].click(); await page.waitForTimeout(250);
-    const ed = await page.evaluate(() => ({ dias: document.querySelectorAll('.clinic-admin-hours-day').length, lunes: [...document.querySelectorAll('.clinic-admin-hours-day')][0].querySelectorAll('input[type=time]').length, hint: document.querySelector('.clinic-admin-hours-editor .clinic-admin-hint').innerText }));
-    check(ed.dias === 7 && ed.lunes === 2, 'el editor debe mostrar 7 días y el bloque del lunes: ' + JSON.stringify(ed));
-    check(/Horario de la sucursal: Lun 08:00–20:00/.test(ed.hint), 'debe recordar el horario de la sucursal: ' + ed.hint);
+    // Modo simple: días en un toque + un solo horario. Quien tiene un solo bloque por día lo abre así.
+    const ed = await page.evaluate(() => ({ simple: !!document.querySelector('.clinic-admin-hours-simple'), chips: document.querySelectorAll('.clinic-admin-day-chip').length, on: [...document.querySelectorAll('.clinic-admin-day-chip.is-on')].map(c => c.getAttribute('aria-label')), de: document.querySelectorAll('.clinic-admin-hours-simple input[type=time]')[0].value, a: document.querySelectorAll('.clinic-admin-hours-simple input[type=time]')[1].value, atajos: [...document.querySelectorAll('.clinic-admin-chip-action')].map(c => c.textContent), hint: document.querySelector('.clinic-admin-hours-editor .clinic-admin-hint').innerText, total: document.querySelector('.clinic-admin-hours-total').innerText }));
+    check(ed.simple && ed.chips === 7 && ed.on.join() === 'Lunes' && ed.de === '09:00' && ed.a === '13:00', 'el editor abre en modo simple con 7 días y el horario actual: ' + JSON.stringify(ed));
+    check(ed.atajos.join() === 'Igual que la sucursal,Lunes a viernes,Lunes a sábado', 'debe ofrecer tres atajos: ' + ed.atajos);
+    check(/Horario de la sucursal: Lun–Vie 08:00–20:00/.test(ed.hint) && /Atiende 1 día · 4 h por semana/.test(ed.total), 'recuerda la sucursal y resume las horas: ' + ed.total);
     if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT });
-    await page.click('.clinic-admin-hours-tools .clinic-admin-link'); await page.waitForTimeout(250);
-    await page.uncheck('.clinic-admin-hours-day:nth-child(3) input[type=checkbox]'); await page.waitForTimeout(250);
-    await page.fill('.clinic-admin-hours-day:nth-child(4) input[type=time] >> nth=1', '08:00'); await page.dispatchEvent('.clinic-admin-hours-day:nth-child(4) input[type=time] >> nth=1', 'change');
+    if (process.env.SHOT_ONLY) process.exit(0);
+    await page.click('.clinic-admin-chip-action:has-text("Lunes a viernes")'); await page.waitForTimeout(250);
+    const lv = await page.evaluate(() => ({ on: document.querySelectorAll('.clinic-admin-day-chip.is-on').length, total: document.querySelector('.clinic-admin-hours-total').innerText, warn: !!document.querySelector('.clinic-admin-hours-warn') }));
+    check(lv.on === 5 && /Atiende 5 días · 20 h por semana/.test(lv.total) && !lv.warn, '«Lunes a viernes» enciende 5 días sin avisos: ' + JSON.stringify(lv));
+    await page.click('.clinic-admin-chip-action:has-text("Lunes a sábado")'); await page.waitForTimeout(250);
+    const sab = await page.evaluate(() => ({ warn: (document.querySelector('.clinic-admin-hours-warn') || {}).innerText || '' }));
+    check(/Sábado: la sucursal no abre ese día/.test(sab.warn), 'avisa antes de guardar que la sucursal no abre el sábado: ' + sab.warn);
+    await page.click('.clinic-admin-day-chip[aria-label="Sábado"]'); await page.waitForTimeout(250);
+    await page.fill('.clinic-admin-hours-simple input[type=time] >> nth=0', '07:00'); await page.dispatchEvent('.clinic-admin-hours-simple input[type=time] >> nth=0', 'change'); await page.waitForTimeout(250);
+    const early = await page.evaluate(() => ({ warn: (document.querySelector('.clinic-admin-hours-warn') || {}).innerText || '' }));
+    check(/la sucursal atiende de 08:00 a 20:00/.test(early.warn), 'avisa si empieza antes de que abra la sucursal: ' + early.warn);
     await page.click('.clinic-admin-hours-editor .btn-primary'); await page.waitForTimeout(300);
     const bad = await page.evaluate(() => ({ msg: (document.getElementById('clinic-admin-feedback') || {}).innerText || '', saved: window.__db.smyl_professional_hours.filter(h => h.professional_id === 'pr3' && h.branch_id === 'b1' && h.active).length }));
-    check(/Jueves: la hora de fin/.test(bad.msg) && bad.saved === 1, 'un horario inválido no se guarda y se explica: ' + JSON.stringify(bad));
-    await page.fill('.clinic-admin-hours-day:nth-child(4) input[type=time] >> nth=1', '13:00'); await page.dispatchEvent('.clinic-admin-hours-day:nth-child(4) input[type=time] >> nth=1', 'change');
+    check(/la sucursal atiende de 08:00 a 20:00/.test(bad.msg) && bad.saved === 1, 'un horario fuera de la sucursal no se guarda y se explica: ' + JSON.stringify(bad));
+    await page.fill('.clinic-admin-hours-simple input[type=time] >> nth=0', '09:00'); await page.dispatchEvent('.clinic-admin-hours-simple input[type=time] >> nth=0', 'change'); await page.waitForTimeout(250);
     await page.click('.clinic-admin-hours-editor .btn-primary'); await page.waitForTimeout(1000);
     const okh = await page.evaluate(() => ({ dias: window.__db.smyl_professional_hours.filter(h => h.professional_id === 'pr3' && h.branch_id === 'b1' && h.active).map(h => h.weekday).sort().join(), b2: window.__db.smyl_professional_hours.filter(h => h.professional_id === 'pr3' && h.branch_id === 'b2' && h.active).length, texto: document.getElementById('clinic-admin-person').innerText, editor: !!document.querySelector('.clinic-admin-hours-editor') }));
     console.log('4c) horario guardado:', JSON.stringify({ dias: okh.dias, b2: okh.b2, editor: okh.editor }));
-    check(okh.dias === '1,2,4,5' && okh.b2 === 1 && !okh.editor, 'debe guardar lunes, martes, jueves y viernes en Centro sin tocar la otra sede');
-    check(/Mar 09:00–13:00/.test(okh.texto) && /Vie 09:00–13:00/.test(okh.texto), 'la ficha debe mostrar el horario nuevo');
+    check(okh.dias === '1,2,3,4,5' && okh.b2 === 1 && !okh.editor, 'guarda lunes a viernes en Centro sin tocar la otra sede: ' + okh.dias);
+    check(/Lun–Vie 09:00–13:00/.test(okh.texto), 'la ficha resume el horario nuevo en un rango de días: ' + okh.texto.slice(okh.texto.indexOf('Lun')));
+    // «Ajustar día por día» sigue disponible para horarios con comida u horas distintas.
+    await (await page.$$('.clinic-admin-sheet-branch .clinic-admin-link'))[0].click(); await page.waitForTimeout(250);
+    await page.click('.clinic-admin-hours-simple .clinic-admin-link'); await page.waitForTimeout(250);
+    const det = await page.evaluate(() => ({ dias: document.querySelectorAll('.clinic-admin-hours-day').length, volver: [...document.querySelectorAll('.clinic-admin-hours-tools .clinic-admin-link')].map(c => c.textContent), total: document.querySelector('.clinic-admin-hours-total').innerText }));
+    check(det.dias === 7 && det.volver.includes('Volver a lo simple') && /Total: 20 h por semana/.test(det.total), 'el modo día por día muestra 7 días, vuelve a lo simple y suma las horas: ' + JSON.stringify(det));
+    await page.click('.clinic-admin-hours-editor .btn-secondary'); await page.waitForTimeout(250);
+    // Desde la Agenda: una fila por profesional y sede con su semana resumida; «Editar horario» abre la misma ficha.
+    await page.evaluate(() => { const d = document.getElementById('clinic-admin-person'); if (d && d.open) d.close(); ir('agenda'); });
+    await page.waitForTimeout(1800);
+    await page.evaluate(() => document.querySelector('[data-schedule-tab="settings"]').click()); await page.waitForTimeout(800);
+    const ag = await page.evaluate(() => ({ filas: [...document.querySelectorAll('#schedule-hours-list .schedule-hour')].map(a => a.innerText.replace(/\s+/g, ' ').trim()), botones: document.querySelectorAll('[data-hour-edit]').length, viejo: !!document.getElementById('schedule-add-hours') }));
+    console.log('4d) agenda:', JSON.stringify(ag));
+    check(!ag.viejo && ag.botones > 0 && ag.filas.some(f => /Lun–Vie 09:00–13:00/.test(f)), 'la Agenda lista el horario por profesional y sede, sin el botón viejo «Agregar»: ' + JSON.stringify(ag.filas.slice(0, 3)));
+    await page.evaluate(() => { const rows = [...document.querySelectorAll('#schedule-hours-list .schedule-hour')]; const r = rows.find(a => /Carrasco/.test(a.innerText) && /Centro/.test(a.innerText)); r.querySelector('[data-hour-edit]').click(); });
+    await page.waitForTimeout(1500);
+    const viaAgenda = await page.evaluate(() => ({ abierta: !!(document.getElementById('clinic-admin-person') || {}).open && document.getElementById('clinic-admin-person').getClientRects().length > 0, simple: !!document.querySelector('#clinic-admin-person .clinic-admin-hours-simple'), nombre: (document.querySelector('#clinic-admin-person h2, #clinic-admin-person [data-person-name]') || {}).innerText || '' }));
+    check(viaAgenda.abierta && viaAgenda.simple, '«Editar horario» en la Agenda abre la ficha directo en el editor simple: ' + JSON.stringify(viaAgenda));
+    await page.click('#clinic-admin-person .clinic-admin-hours-editor .btn-secondary'); await page.waitForTimeout(250); // sigue abierta la ficha de Iván para las pruebas siguientes
 
     // Asignar y quitar sede
     await page.selectOption('.clinic-admin-sheet-add select', 'b3'); await page.click('.clinic-admin-sheet-add button'); await page.waitForTimeout(1200);

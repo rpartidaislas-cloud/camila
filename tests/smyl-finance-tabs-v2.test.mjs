@@ -14,7 +14,7 @@ test('Finanzas tiene cuatro destinos claros y abre en Por cobrar', () => {
   assert.doesNotMatch(js, /data-finance-tab="(summary|payments|today)"/);
   for (const old of ['Resumen', 'Cuentas por cobrar', 'Pagos y recibos', 'Por cobrar hoy', 'Corte de caja', 'Preparación CFDI', 'Plantillas']) assert.ok(!nav.includes(old), old);
   const hub = read('smyl-settings-hub.js');
-  for (const id of ['receipts', 'cash']) assert.match(hub, new RegExp('data-finance-tab="' + id + '"'));
+  for (const id of ['receipts', 'cash']) assert.doesNotMatch(hub, new RegExp('data-finance-tab="' + id + '"'), 'Pagos y Caja viven en Finanzas, no en Configuración');
   // La configuración fiscal ya no es una pestaña de Cobros: Configuración incrusta #billing-setup.
   assert.match(hub, /element: '#billing-setup'/);
 });
@@ -150,7 +150,7 @@ test('Cobros: «Reembolsar y cancelar cargos» es una función de rol aplicada e
   assert.match(fin, /state\.canManage&&state\.canRefund/);
   assert.match(fin, /data-refund=/);
   assert.match(fin, /finance-row-menu/);
-  assert.match(fin, /function openRefund\(payment\)\{if\(!state\.canRefund\)/);
+  assert.match(fin, /function openRefund\(payment\)\{\s*if\(!state\.canRefund\)/);
   assert.match(admin, /'finance\.refund': 'Reembolsar y cancelar cargos'/);
   assert.match(admin, /'finance\.manage', 'finance\.cash', 'finance\.cash\.supervise', 'finance\.refund'/);
   assert.match(sql, /smyl_finance_refund_guard/);
@@ -163,14 +163,12 @@ test('Cobros: «Reembolsar y cancelar cargos» es una función de rol aplicada e
   for (const f of ['smyl-finance.js', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
 
-test('Servicios y tarifas: todo servicio activo muestra su precio editable en la fila para quien puede cambiarlo', () => {
+test('Servicios y tarifas: la tarjeta no muestra ni edita el precio; se cambia en «Editar»', () => {
   const js = fs.readFileSync(new URL('../smyl-service-catalog.js', import.meta.url), 'utf8');
-  const css = fs.readFileSync(new URL('../smyl-service-catalog-stage1.css', import.meta.url), 'utf8');
-  assert.match(js, /var priceCell=row&&active&&state\.canManage&&state\.canPrices\?/);
-  assert.doesNotMatch(js, /var priceCell=row&&active&&missingPrice&&/);
-  assert.match(js, /data-current=/);
-  assert.match(js, /if\(input\.value===''&&current\)\{input\.value=current;return;\}/);
-  assert.match(css, /\.catalog-price-input\.has-price/);
+  assert.doesNotMatch(js, /var priceCell=|catalog-service-price|catalog-price-input/);
+  assert.match(js, /name="reference_price"/);
+  assert.match(js, /precio varía por sede/);
+  assert.match(js, /Falta precio/);
 });
 
 test('Agregar servicio o cargo: el selector no marca «sin datos fiscales»; el aviso al elegir lo explica', () => {
@@ -192,14 +190,15 @@ test('Agregar servicio o cargo: el total queda junto a los botones y el descuent
 test('Inventario v2: un solo título, alertas en chips, primer uso guiado y sin aviso fijo', () => {
   const js = fs.readFileSync(new URL('../smyl-inventory.js', import.meta.url), 'utf8');
   const css = fs.readFileSync(new URL('../smyl-inventory.css', import.meta.url), 'utf8');
-  assert.match(js, /<h1>Inventario<\/h1>/);
+  assert.equal((js.match(/<h1>/g) || []).length, 0, 'el título vive en el encabezado de la página; el módulo no repite un segundo título');
   assert.doesNotMatch(js, /Inventario, compras y trazabilidad/);
   assert.doesNotMatch(js, /id="inventory-metrics"|renderMetrics/);
   assert.match(js, /id="inventory-alerts"/);
   assert.match(js, /inventory-chip/);
   assert.match(js, /function renderFirstUse\(host\)/);
-  assert.match(js, /Aún no tienes insumos/);
-  assert.match(js, /Todo en orden/);
+  assert.match(js, /Agrega tu primer producto/);
+  assert.match(js, /Prepara tu inventario/);
+  assert.match(js, /host\.innerHTML = actions\.join\(''\)/, 'sin alertas no se pinta ningún aviso fijo');
   assert.doesNotMatch(js, /notify\('Existencias calculadas/);
   assert.match(css, /\.inventory-first-use\{/);
   assert.match(css, /\.inventory-chip\[data-tone="danger"\]/);
@@ -234,7 +233,7 @@ test('Inventario v2 paso 3: orden de compra con varias líneas, total y proveedo
   assert.match(js, /data-new-supplier/);
   assert.match(js, /from\('smyl_inventory_suppliers'\)\.insert\(\{tenant_id:state\.tenant,name:name/);
   assert.match(js, /p_lines:lines/);
-  assert.match(js, /onclick=function\(\)\{openOrder\(\);\}/);
+  assert.match(js, /#inventory-new-order'\)\.onclick=\(\)=>openOrder\(\)/);
   assert.doesNotMatch(js, /onclick=openOrder/);
   assert.match(css, /\.inventory-order-line\{display:grid/);
   assert.match(css, /\.inventory-order-total\{/);
@@ -252,7 +251,7 @@ test('Inventario v2: consumo al cerrar la cita (aviso, estado en la ficha y list
   assert.match(inv, /async function consumptionStatus\(app\)/);
   assert.match(inv, /async function loadPendingMaterial\(\)/);
   assert.match(inv, /function openPendingMaterial\(\)/);
-  assert.match(inv, /MATERIAL PENDIENTE/);
+  assert.match(inv, /citas con material pendiente/);
   assert.match(inv, /consumptionStatus:consumptionStatus/);
   assert.match(css, /\.inventory-toast\{/);
   assert.match(css, /\.inventory-dialog\[data-plain\]/);
@@ -313,16 +312,16 @@ test('Finanzas abre en Por cobrar y conserva la cuenta detallada con sus filtros
   assert.match(js, /Todo cobrado por ahora/);
   assert.match(js, /<header class="finance-page-head finance-actionsbar"><div class="finance-head-actions"><\/div><\/header>/);
   // El nombre del paciente (con su línea de estado) es el botón que abre la cuenta.
-  assert.match(css, /#p-caja button\.finance-line-who:hover \.finance-line-name\{color:var\(--smyl-accent,#0f766e\);text-decoration:underline/);
+  assert.match(css, /#p-caja button\.finance-line-who:hover \.finance-line-name\{color:var\(--smyl-accent,#142bc3\);text-decoration:underline/);
   const app = read('app.html'), shell = read('smyl-professional-v3.css');
   assert.match(app, /new MutationObserver\(function\(\)\{place\(\);\}\)/, 'el pie de derechos siempre queda al final del contenido');
   assert.match(shell, /\.contenido>#app-copyright\{position:static[^}]*height:0/);
 });
 
-test('Cobros paso 2: la ayuda de caja vive en «Mi turno» y los botones sin clase usan el estilo de la app', () => {
-  assert.doesNotMatch(js, /<h2>Reglas de caja<\/h2>/);
-  assert.match(js, /<details class="finance-cash-help"><summary>¿Cómo funciona la caja\?<\/summary>/);
-  for (const id of ['finance-adjust']) assert.match(js, new RegExp(`<button class="btn btn-secondary" id="${id}">`));
+test('Cobros paso 2: la ayuda de caja cabe en una línea al pie y los botones usan el estilo de la app', () => {
+  assert.doesNotMatch(js, /<h2>Reglas de caja<\/h2>|finance-cash-help|¿Cómo funciona la caja\?/);
+  assert.match(js, /<p class="finance-list-foot">Los pagos con tarjeta o transferencia no entran a la caja: se revisan al hacer el corte\.<\/p>/);
+  assert.match(js, /<button type="button" class="btn btn-secondary"'\+\(first\?' id="finance-adjust"':''\)\+' data-adjust="'\+s\.id\+'">Entrada o salida<\/button>/);
   assert.match(js, /class="btn btn-secondary" data-supervise-cash=/);
   assert.match(css, /#p-caja \.finance-segment\{display:inline-flex;padding:3px;/);
   assert.match(css, /#p-caja :is\(\.finance-chips>button,\.finance-segment>button,[^{]*\)\{min-height:44px\}/);

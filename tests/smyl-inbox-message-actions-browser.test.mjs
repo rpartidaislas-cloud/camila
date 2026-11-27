@@ -88,7 +88,7 @@ for(const [width,touch] of [[1440,false],[834,true],[390,true]]){
     }
     const last=page.locator('[data-message-id="pdf-test"] .smyl-inbox-message-more');await last.scrollIntoViewIfNeeded();await last.focus();await page.keyboard.press('ArrowDown');
     const menu=page.getByRole('menu',{name:'Opciones del mensaje'});await menu.waitFor();
-    assert.equal(await page.locator(':focus').innerText(),'Responder');await page.keyboard.press('End');assert.equal(await page.locator(':focus').innerText(),'Eliminar');
+    assert.equal(await page.locator(':focus').innerText(),'Responder');await page.keyboard.press('End');assert.equal(await page.locator(':focus').innerText(),'Ocultar en el panel');
     await page.keyboard.press('Home');assert.equal(await page.locator(':focus').innerText(),'Responder');await page.keyboard.press('Escape');assert.equal(await menu.count(),0);assert.ok(await last.evaluate(el=>document.activeElement===el));
     await last.click();await input.click();assert.equal(await menu.count(),0);
     await last.click();await body.evaluate(el=>el.scrollTop=0);await menu.waitFor({state:'detached'});

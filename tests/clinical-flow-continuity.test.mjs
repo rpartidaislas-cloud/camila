@@ -10,17 +10,19 @@ const worker = read('../sw.js');
 
 test('Tratamiento conserva cuatro etapas y simplifica Evaluación a tres pasos clínicos', () => {
   assert.match(script, /aria-label','Etapas del caso/);
-  for (const label of ['Evaluación', 'Propuesta', 'Aceptación', 'Seguimiento']) {
+  for (const label of ['Diagnóstico', 'Plan de tratamiento', 'Presupuesto y aceptación', 'En tratamiento']) {
     assert.match(script, new RegExp(`'${label}'`));
   }
-  assert.match(script, /\[\['evaluation','Evaluación'\],\['plan','Propuesta'\],\['approval','Aceptación'\],\['followup','Seguimiento'\]\]/);
+  assert.match(script, /const ROUTE=\[\['evaluation','Diagnóstico'\],\['plan','Plan de tratamiento'\],\['approval','Presupuesto y aceptación'\],\['followup','En tratamiento'\]\]/);
   assert.match(script, /id==='photos'\|\|id==='review'\?'evaluation'/);
   assert.match(script, /id==='share'\?'approval'/);
   assert.match(script, /ctx\.nav\[id\]=step/);
-  assert.match(script, /Siguiente acción · Completa la evaluación/);
-  assert.match(script, /Siguiente acción · Prepara la propuesta/);
-  assert.match(script, /Siguiente acción · Registra la aceptación/);
-  assert.match(script, /Siguiente acción · Continúa el seguimiento/);
+  // La ruta dice qué sigue: cada etapa muestra Listo / En curso / qué falta, y hay una sola acción fija.
+  assert.doesNotMatch(script, /Siguiente acción · /);
+  assert.match(script, /function syncRoute\(ctx\)/);
+  assert.match(script, /function syncDock\(ctx\)/);
+  assert.match(script, /Puedes empezarlo; se recomienda confirmar el diagnóstico/);
+  assert.match(script, /Se habilita al aprobar el plan/);
   assert.match(styles, /\.cw-nav\{display:grid/);
   assert.match(styles, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   for (const task of [
@@ -33,7 +35,7 @@ test('Tratamiento conserva cuatro etapas y simplifica Evaluación a tres pasos c
 
 test('la evaluación conserva una sola acción principal y la adapta al paso pendiente', () => {
   assert.match(script, /function updateEvaluationAction\(ctx\)/);
-  for (const label of ['Continuar a revisión', 'Continuar a conclusión', 'Continuar revisión', 'Continuar a propuesta']) {
+  for (const label of ['Continuar a revisión', 'Continuar a conclusión', 'Continuar revisión', 'Confirmar diagnóstico']) {
     assert.match(script, new RegExp(label));
   }
   assert.equal((script.match(/ctx\.evaluationCta=btn/g) || []).length, 1);
@@ -48,7 +50,7 @@ test('la evaluación conserva una sola acción principal y la adapta al paso pen
 });
 
 test('el recorrido termina en seguimiento sin afirmar un envío automático', () => {
-  assert.match(script, /Continuar a aceptación/);
+  assert.match(script, /Continuar al presupuesto/);
   assert.match(script, /ctx\.planNext\.onclick=\(\)=>open\('approval'\)/);
   assert.match(script, /Continuar seguimiento en Mensajes/);
   assert.match(script, /window\.ir\('inbox'\)/);

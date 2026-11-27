@@ -71,3 +71,40 @@ export function vistaPublicaEnlace(link, { clinica, paciente, recibo } = {}, aho
     receipt_folio: recibo ? String(recibo).padStart(6, "0") : null,
   };
 }
+
+// ── Alcance por sucursal de los enlaces de pago ──
+// La función usa el cliente administrativo, así que NADA de la base limita por sucursal: se decide aquí con las mismas reglas de Finanzas
+// (smyl_can_access_finance_patient / smyl_can_access_finance_branch, evaluadas con la sesión de quien llama).
+// `permisos` = { paciente(branchId|null) -> Promise<boolean>, sucursal(branchId) -> Promise<boolean> }
+
+// ¿Puede quien llama operar sobre este paciente y estos cargos? Revisa una vez por sucursal distinta (incluida «sin sucursal»).
+export async function autorizarCargos(input) {
+  const abiertos = input.abiertos || [], chargeIds = input.chargeIds || null, permisos = input.permisos;
+  const incluidos = abiertos.filter((c) => !chargeIds || chargeIds.includes(c.charge_id));
+  const ramas = [...new Set(incluidos.map((c) => (c.branch_id == null ? "" : String(c.branch_id))))];
+  if (!ramas.length) ramas.push("");
+  const denegadas = [];
+  for (const rama of ramas) {
+    if (!(await permisos.paciente(rama || null))) denegadas.push(rama || null);
+  }
+  return { ok: denegadas.length === 0, denegadas };
+}
+
+// ¿Puede quien llama ver/cancelar este enlace? Hay que poder ver al paciente Y la sucursal en que se creó el enlace.
+export async function autorizarEnlace(input) {
+  const link = input.link, permisos = input.permisos;
+  if (!(await permisos.paciente(link.branch_id || null))) return false;
+  return Boolean(link.branch_id) ? await permisos.sucursal(String(link.branch_id)) : true;
+}
+
+// De una lista de enlaces, solo los de sucursales que quien llama puede ver (para `list`).
+export async function enlacesVisibles(input) {
+  const out = [];
+  const cache = new Map();
+  for (const link of input.links || []) {
+    const key = link.branch_id == null ? "" : String(link.branch_id);
+    if (!cache.has(key)) cache.set(key, await autorizarEnlace({ link: { branch_id: link.branch_id }, permisos: input.permisos }));
+    if (cache.get(key)) out.push(link);
+  }
+  return out;
+}

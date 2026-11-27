@@ -7,7 +7,8 @@ import vm from 'node:vm';
 // Los bundles de docs/bundles se pegan en el panel de Supabase: si no compilan, la función responde BOOT_ERROR (503).
 // Esta prueba "arranca" cada bundle de la Nube con un Deno y un cliente simulados para atrapar errores de sintaxis y
 // declaraciones duplicadas que el generador puede introducir y que el código original no tiene.
-const bundles = ['cloud-share', 'cloud-classify', 'secure-clinical-file', 'file-lifecycle-maintenance'];
+// facturapi: un defecto del generador (`key: any` dentro de parámetros desestructurados) dejó sin arrancar a facturapi en producción.
+const bundles = ['cloud-share', 'cloud-classify', 'secure-clinical-file', 'file-lifecycle-maintenance', 'facturapi'];
 
 for (const name of bundles) {
   test(`el bundle de ${name} compila y arranca`, async (t) => {
@@ -26,10 +27,22 @@ for (const name of bundles) {
 }
 
 test('los bundles de la Nube no repiten nombres entre bloques _shared', () => {
-  for (const name of ['cloud-share', 'cloud-classify']) {
+  for (const name of ['cloud-share', 'cloud-classify', 'facturapi']) {
     const source = readFileSync(new URL(`../docs/bundles/${name}.single-file.ts`, import.meta.url), 'utf8');
     const destructured = [...source.matchAll(/^const \{([^}]+)\} = \(\(\) => \{/gm)].flatMap((m) => m[1].split(',').map((x) => x.trim()));
     const repeated = destructured.filter((n, i) => destructured.indexOf(n) !== i);
     assert.deepEqual(repeated, [], `${name}: nombres repetidos entre bloques: ${repeated.join(', ')}`);
   }
+});
+
+
+test('ningún archivo único para pegar en Supabase conserva instrucciones export/import dentro del código (el panel falla con «import and export cannot be used outside of module code»)', async () => {
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const dir = new URL('../docs/bundles/', import.meta.url);
+  const malos = [];
+  for (const file of readdirSync(dir).filter((name) => name.endsWith('.single-file.ts'))) {
+    const lines = readFileSync(new URL(file, dir), 'utf8').split('\n');
+    lines.forEach((line, index) => { if (/^export\s/.test(line)) malos.push(`${file}:${index + 1}: ${line.slice(0, 60)}`); });
+  }
+  assert.deepEqual(malos, []);
 });

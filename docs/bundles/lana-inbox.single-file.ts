@@ -178,6 +178,7 @@ const ALLOWED_ROOTS = new Set([
   "context",
   "contract",
   "conversations",
+  "ia",
   "inbox",
   "payments",
   "training",
@@ -251,32 +252,124 @@ function decideLanaLink(info: any, { strict }) {
 return { SMYL_LANA_CONTRACT_VERSION, normalizeLanaPath, lanaContractHeaders, SMYL_PRODUCT, readLanaContract, decideLanaLink };
 })();
 
-// ── _shared/lana-linked.ts ──
-const { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin } = (() => {
+// ── _shared/lana-crypto-core.mjs ──
+const { LEGACY_KEY_VERSION, readKeyring, storedKeyVersion, encryptLanaKey, decryptLanaKey, reencryptIfNeeded } = (() => {
+// Cifrado de la credencial de LANA con rotación de llave (sin dependencias de Deno: se prueba en Node).
+//
+// Variables de entorno:
+//   SMYL_LANA_ENCRYPTION_KEY                 llave vigente (32 bytes en base64)
+//   SMYL_LANA_ENCRYPTION_KEY_VERSION         etiqueta de la vigente (por omisión "1")
+//   SMYL_LANA_ENCRYPTION_KEY_PREVIOUS        llave anterior, solo mientras dura la rotación (opcional)
+//   SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION etiqueta de la anterior (por omisión: la vigente menos 1 si es número)
+//
+// Cada credencial guarda `key_version`. Las anteriores a este cambio no la tienen y se tratan como la versión "1".
 
-const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
-const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
-const ENCRYPTION_KEY = (Deno.env.get("SMYL_LANA_ENCRYPTION_KEY") || "").trim();
-const LANA_API_BASE = "https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v1/camila-api";
-const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
+const LEGACY_KEY_VERSION = "1";
 
-type LanaConfig = {
-  api_key_ciphertext: string;
-  api_key_iv: string;
-  estado: string;
-};
+function bytesToBase64(bytes: any) {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
 
-function base64ToBytes(value: string): Uint8Array<ArrayBuffer> {
+function base64ToBytes(value: any) {
   const binary = atob(value);
   const bytes = new Uint8Array(new ArrayBuffer(binary.length));
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
   return bytes;
 }
 
-async function cryptoKey(): Promise<CryptoKey> {
-  const raw = base64ToBytes(ENCRYPTION_KEY);
-  if (raw.length !== 32) throw new Error("SMYL_LANA_ENCRYPTION_KEY no configurada correctamente.");
-  return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
+function cleanVersion(value: any) {
+  const text = String(value ?? "").trim();
+  if (!/^[A-Za-z0-9._-]{1,32}$/.test(text)) return "";
+  return text;
+}
+
+function readKeyring(env = {}) {
+  const currentB64 = String(env.SMYL_LANA_ENCRYPTION_KEY || "").trim();
+  if (!currentB64) throw new Error("SMYL_LANA_ENCRYPTION_KEY no configurada.");
+  const currentVersion = cleanVersion(env.SMYL_LANA_ENCRYPTION_KEY_VERSION || LEGACY_KEY_VERSION);
+  if (!currentVersion) throw new Error("SMYL_LANA_ENCRYPTION_KEY_VERSION no es válida.");
+  const keys = [{ version: currentVersion, b64: currentB64, current: true }];
+  const previousB64 = String(env.SMYL_LANA_ENCRYPTION_KEY_PREVIOUS || "").trim();
+  if (previousB64) {
+    let previousVersion = cleanVersion(env.SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION);
+    if (!previousVersion && /^\d+$/.test(currentVersion) && Number(currentVersion) > 1) previousVersion = String(Number(currentVersion) - 1);
+    if (!previousVersion) throw new Error("Falta SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION.");
+    if (previousVersion === currentVersion) throw new Error("La llave anterior y la vigente no pueden tener la misma versión.");
+    if (previousB64 === currentB64) throw new Error("La llave anterior es igual a la vigente.");
+    keys.push({ version: previousVersion, b64: previousB64, current: false });
+  }
+  for (const key of keys) {
+    if (base64ToBytes(key.b64).length !== 32) throw new Error(`La llave de versión ${key.version} debe contener 32 bytes.`);
+  }
+  return { keys, currentVersion };
+}
+
+function storedKeyVersion(lana: any) {
+  return cleanVersion(lana?.key_version) || LEGACY_KEY_VERSION;
+}
+
+async function importKey(subtle: any, key: any, usages: any) {
+  return subtle.importKey("raw", base64ToBytes(key.b64), "AES-GCM", false, usages);
+}
+
+async function encryptLanaKey(apiKey: any, keyring: any, { subtle = globalThis.crypto.subtle, random = (n) => globalThis.crypto.getRandomValues(new Uint8Array(n)) } = {}) {
+  const current = keyring.keys.find((key) => key.current);
+  const iv = random(12);
+  const encrypted = await subtle.encrypt({ name: "AES-GCM", iv }, await importKey(subtle, current, ["encrypt"]), new TextEncoder().encode(apiKey));
+  return { ciphertext: bytesToBase64(new Uint8Array(encrypted)), iv: bytesToBase64(iv), key_version: current.version };
+}
+
+// Primero la llave que la credencial dice tener; si falla (p. ej. una versión mal anotada) prueba las demás.
+async function decryptLanaKey(lana: any, keyring: any, { subtle = globalThis.crypto.subtle } = {}) {
+  const wanted = storedKeyVersion(lana);
+  const ordered = [...keyring.keys].sort((a, b) => Number(b.version === wanted) - Number(a.version === wanted));
+  const iv = base64ToBytes(lana.api_key_iv);
+  const data = base64ToBytes(lana.api_key_ciphertext);
+  for (const key of ordered) {
+    try {
+      const clear = await subtle.decrypt({ name: "AES-GCM", iv }, await importKey(subtle, key, ["decrypt"]), data);
+      return { apiKey: new TextDecoder().decode(clear), key_version: key.version, needsReencrypt: !key.current };
+    } catch { /* siguiente llave */ }
+  }
+  throw new Error("No se pudo descifrar la credencial de LANA con las llaves configuradas.");
+}
+
+// Devuelve la credencial ya cifrada con la llave vigente (o null si ya lo estaba).
+async function reencryptIfNeeded(lana: any, keyring: any, deps = {}) {
+  const decrypted = await decryptLanaKey(lana, keyring, deps);
+  const stale = decrypted.needsReencrypt || storedKeyVersion(lana) !== keyring.currentVersion || !lana.key_version;
+  if (!stale) return null;
+  const encrypted = await encryptLanaKey(decrypted.apiKey, keyring, deps);
+  return { ...lana, api_key_ciphertext: encrypted.ciphertext, api_key_iv: encrypted.iv, key_version: encrypted.key_version };
+}
+
+return { LEGACY_KEY_VERSION, readKeyring, storedKeyVersion, encryptLanaKey, decryptLanaKey, reencryptIfNeeded };
+})();
+
+// ── _shared/lana-linked.ts ──
+const { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin } = (() => {
+
+const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
+const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
+const LANA_API_BASE = "https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v1/camila-api";
+const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
+
+type LanaConfig = {
+  api_key_ciphertext: string;
+  api_key_iv: string;
+  key_version?: string;
+  estado: string;
+};
+
+function keyring() {
+  return readKeyring({
+    SMYL_LANA_ENCRYPTION_KEY: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY"),
+    SMYL_LANA_ENCRYPTION_KEY_VERSION: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_VERSION"),
+    SMYL_LANA_ENCRYPTION_KEY_PREVIOUS: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_PREVIOUS"),
+    SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION"),
+  });
 }
 
 async function linkedLanaApiKey(tenantId: string): Promise<string> {
@@ -290,12 +383,8 @@ async function linkedLanaApiKey(tenantId: string): Promise<string> {
   if (!lana?.api_key_ciphertext || !lana.api_key_iv || lana.estado !== "conectada") {
     throw new Error("LANA todavía no está conectada o requiere atención.");
   }
-  const clear = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: base64ToBytes(lana.api_key_iv) },
-    await cryptoKey(),
-    base64ToBytes(lana.api_key_ciphertext),
-  );
-  return new TextDecoder().decode(clear);
+  // Descifra con la llave vigente o, durante una rotación, con la anterior. La reescritura con la llave nueva la hace lana-connection.
+  return (await decryptLanaKey(lana as LanaConfig, keyring())).apiKey;
 }
 
 async function lanaRequest(
@@ -390,6 +479,75 @@ function matchBranchInMessages(messages: { role?: string; content?: string }[], 
 return { tokens, matchBranch, matchBranchInMessages };
 })();
 
+// ── _shared/pause-all-core.mjs ──
+const { DEFAULT_LIMITS, pauseAllConversations } = (() => {
+// Pausa de emergencia: pausa a la IA en TODAS las conversaciones de la clínica que aún no están pausadas.
+//
+// Límite honesto: el contrato de LANA solo ofrece pausa POR conversación (POST /inbox/conversations/:id/pause), no un
+// interruptor global. Esto cubre las conversaciones que existen en este momento; una conversación NUEVA que llegue
+// después no queda pausada hasta que se vuelva a ejecutar. El resultado lo dice con números verificables.
+//
+// Módulo puro (sin Deno ni red) para poder probarlo con simuladores.
+
+const DEFAULT_LIMITS = Object.freeze({ maxConversations: 500, pageSize: 100, concurrency: 5, budgetMs: 45000 });
+
+/**
+ * @param {object} io
+ * @param {(offset:number, take:number)=>Promise<{conversations:Array<{id:string,paused?:boolean}>, hasMore:boolean}>} io.fetchPage
+ * @param {(id:string)=>Promise<boolean>} io.pause   true si LANA aceptó la pausa
+ * @param {()=>number} [io.now]
+ * @param {Partial<typeof DEFAULT_LIMITS>} [limits]
+ */
+async function pauseAllConversations(io: any, limits = {}) {
+  const cfg = { ...DEFAULT_LIMITS, ...limits };
+  const now = io.now || Date.now;
+  const started = now();
+  const seen = new Set();
+  const toPause = [];
+  let scanned = 0, alreadyPaused = 0, offset = 0, hasMore = true, truncated = false, listError = '';
+
+  while (hasMore) {
+    if (scanned >= cfg.maxConversations) { truncated = true; break; }
+    if (now() - started > cfg.budgetMs) { truncated = true; break; }
+    let page;
+    try { page = await io.fetchPage(offset, cfg.pageSize); }
+    catch (error) { listError = error instanceof Error ? error.message : 'No se pudo consultar la bandeja.'; truncated = true; break; }
+    const rows = Array.isArray(page && page.conversations) ? page.conversations : [];
+    for (const row of rows) {
+      if (!row || typeof row.id !== 'string' || seen.has(row.id)) continue;
+      seen.add(row.id); scanned += 1;
+      if (row.paused === true) alreadyPaused += 1; else toPause.push(row.id);
+    }
+    offset += rows.length;
+    hasMore = Boolean(page && page.hasMore) && rows.length > 0;
+  }
+
+  let paused = 0; const failedIds = [];
+  let cursor = 0;
+  async function worker() {
+    while (cursor < toPause.length) {
+      const id = toPause[cursor++];
+      if (now() - started > cfg.budgetMs * 2) { failedIds.push(id); continue; }
+      let ok = false;
+      try { ok = (await io.pause(id)) === true; } catch { ok = false; }
+      if (ok) paused += 1; else failedIds.push(id);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(cfg.concurrency, toPause.length) }, worker));
+
+  const failed = failedIds.length;
+  return {
+    scanned, paused, already_paused: alreadyPaused, failed,
+    failed_ids: failedIds.slice(0, 20),
+    truncated, list_error: listError,
+    // «Completa» solo si se vio toda la bandeja y nada falló: es lo único que permite decir «todas están pausadas».
+    complete: !truncated && failed === 0 && !listError,
+  };
+}
+
+return { DEFAULT_LIMITS, pauseAllConversations };
+})();
+
 // ── _shared/cors.ts ──
 const { makeCors, corsPublic, corsHeaders } = (() => {
 // Orígenes autorizados para funciones privadas (autenticadas).
@@ -422,6 +580,46 @@ const corsPublic: Record<string, string> = {
 const corsHeaders = corsPublic;
 
 return { makeCors, corsPublic, corsHeaders };
+})();
+
+// ── _shared/fiscal-chat.mjs ──
+const { MAX_CHAT_FILE_BYTES, tipoPorFirma, urlDescargable, bytesABase64, esArchivoFiscal } = (() => {
+// Leer la Constancia de Situación Fiscal desde un archivo que el paciente mandó por el chat (sin Deno ni red).
+// lana-inbox descarga el archivo del mensaje (validado contra la conversación del paciente) y lo pasa a fiscal-extract.
+const MAX_CHAT_FILE_BYTES = 4 * 1024 * 1024;
+
+// El tipo se decide por los primeros bytes, no por lo que diga el remitente: solo PDF, PNG o JPG.
+function tipoPorFirma(bytes: any) {
+  if (!bytes || bytes.length < 4) return null;
+  if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "application/pdf"; // %PDF
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  return null;
+}
+
+// Solo https hacia nombres de dominio públicos: nunca IPs, localhost ni nombres internos.
+function urlDescargable(value: any) {
+  let url;
+  try { url = new URL(String(value || "")); } catch { return false; }
+  if (url.protocol !== "https:" || url.username || url.password) return false;
+  const host = url.hostname.toLowerCase();
+  if (!host.includes(".") || host === "localhost" || host.endsWith(".local") || host.endsWith(".internal")) return false;
+  if (/^[\d.]+$/.test(host) || host.includes(":") || host.startsWith("[")) return false;
+  return true;
+}
+
+function bytesABase64(bytes: any) {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(binary);
+}
+
+// Mensajes del chat que pueden ser una constancia: fotos y documentos disponibles.
+function esArchivoFiscal(message: any) {
+  return Boolean(message) && message.deleted !== true && (message.media_type === "image" || message.media_type === "document") && Boolean(message.media_url);
+}
+
+return { MAX_CHAT_FILE_BYTES, tipoPorFirma, urlDescargable, bytesABase64, esArchivoFiscal };
 })();
 
 // ── lana-inbox/index.ts ──
@@ -895,6 +1093,8 @@ async function filterConversationPayload(actor: Actor, tenantId: string, body: R
     if (((filter === "mine" || pick === "me") && ownerId !== actor.id) || ((filter === "unassigned" || pick === "unassigned") && ownerId)
        || (pick && uuid(pick) && pick !== ownerId)) continue;
     conversation.branch = assigned ? {id:assigned.branch_id,name:names.get(assigned.branch_id)||"Sucursal",source:assigned.source} : null;
+    // SMYL ya comprobó acceso y alcance de esta conversación arriba: no se depende de que LANA mande «can_operate» (si falta, el chat ocultaba «Agendar» y otras acciones sin avisar).
+    if (typeof conversation.can_operate !== "boolean") conversation.can_operate = true;
     allowed.push(projectOwner(conversation,owner,members));
   }
   const stages = await pipelineContext(tenantId, actor, allowed.map(row => String(row.id)));
@@ -1318,6 +1518,37 @@ async function patientLinkIdentity(actor: Actor, tenantId: string, conversationI
   };
 }
 
+// Pausa de emergencia: pausa a la IA en todas las conversaciones existentes de la clínica (solo el dueño).
+// LANA solo ofrece pausa por conversación; las conversaciones nuevas que lleguen después NO quedan pausadas.
+async function pauseAllAutomaticReplies(actor: Actor, tenantId: string): Promise<Response> {
+  const result = await pauseAllConversations({
+    fetchPage: async (offset: number, take: number) => {
+      const source = new URL("https://smyl.invalid/");
+      source.searchParams.set("filter", "all"); source.searchParams.set("limit", String(take)); source.searchParams.set("offset", String(offset));
+      const remote = await lanaRequest(tenantId, queryPath(source, "list", null)!, { method: "GET", headers: connectorHeaders(tenantId) }, 15000);
+      if (!remote.response.ok) throw new Error("No se pudo consultar la bandeja.");
+      const raw = Array.isArray(remote.body.conversations) ? remote.body.conversations as { id: unknown; paused?: unknown }[] : [];
+      const page = remote.body.page as { has_more?: boolean } | undefined;
+      return { conversations: raw.map((row) => ({ id: String(row.id || ""), paused: row.paused === true })), hasMore: page?.has_more ?? raw.length >= take };
+    },
+    pause: async (conversationId: string) => {
+      if (!uuid(conversationId)) return false;
+      const remote = await lanaRequest(tenantId, `/inbox/conversations/${conversationId}/pause`, {
+        method: "POST", headers: actorHeaders(actor, crypto.randomUUID()), body: "{}",
+      }, 15000);
+      return remote.response.ok;
+    },
+  });
+  // Rastro sin datos de pacientes: cuántas se pausaron, quién y cuándo.
+  const audit = await admin.from("smyl_audit_events").insert({
+    tenant_id: tenantId, actor_id: actor.id, action: "update", entity_type: "chat_pause_all", entity_id: "emergency",
+    before_data: null,
+    after_data: { scanned: result.scanned, paused: result.paused, already_paused: result.already_paused, failed: result.failed, truncated: result.truncated, complete: result.complete },
+  });
+  if (audit.error) console.error("[lana-inbox] auditoría de pausa de emergencia:", audit.error.message);
+  return json(200, { ok: true, ...result, actor });
+}
+
 async function patientLinkPreview(actor: Actor, tenantId: string, conversationId: string): Promise<Response> {
   const resolved = await patientLinkIdentity(actor, tenantId, conversationId);
   if (resolved.response || !resolved.identity) return resolved.response || json(502, { error: "No se pudo identificar al contacto." });
@@ -1500,6 +1731,58 @@ async function linkClinicalImage(
     return json(500, { error: "No se pudo vincular la fotografía al expediente." });
   }
   return json(200, { ok: true, link: data });
+}
+
+// Constancia de situación fiscal enviada por el chat: se valida que el mensaje sea de la conversación del paciente,
+// se descarga aquí (el navegador nunca ve la llave de LANA) y se entrega a fiscal-extract con la sesión de quien la pide,
+// así aplican el mismo permiso (finance.manage), los topes y el consumo de créditos de IA. El archivo no se guarda.
+async function fiscalDocumentFromChat(
+  tenantId: string,
+  actor: Actor,
+  conversationId: string,
+  rawPatientId: unknown,
+  rawMessageId: unknown,
+  authorization: string,
+): Promise<Response> {
+  const id = messageId(rawMessageId);
+  const patientId = uuid(rawPatientId);
+  if (!id || !patientId) return json(400, { error: "Elige un archivo del chat." });
+  const { data: handoff } = await admin.from("camila_lana_handoffs").select("patient_id")
+    .eq("tenant_id", tenantId).eq("lana_conversation_id", conversationId).maybeSingle();
+  if (!handoff?.patient_id || String(handoff.patient_id) !== patientId) {
+    return json(409, { error: "Ese chat no está vinculado a este paciente.", code: "handoff_required" });
+  }
+  const remote = await lanaRequest(tenantId, `/inbox/conversations/${conversationId}/messages/${id}`, {
+    method: "GET", headers: actorHeaders(actor),
+  }, 15000);
+  if (!remote.response.ok) return json(remote.response.status, { error: String(remote.body.error || "No se pudo consultar el mensaje en LANA.") });
+  const message = remote.body.message as Record<string, unknown> | undefined;
+  if (!esArchivoFiscal(message) || !urlDescargable(message?.media_url)) {
+    return json(409, { error: "Ese mensaje no tiene una foto o documento disponible." });
+  }
+  let bytes: Uint8Array;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    const file = await fetch(String(message!.media_url), { signal: controller.signal, redirect: "follow" }).finally(() => clearTimeout(timer));
+    if (!file.ok) return json(502, { error: "No se pudo descargar el archivo del chat. Pide al paciente que lo envíe de nuevo." });
+    const declared = Number(file.headers.get("content-length") || 0);
+    if (declared > MAX_CHAT_FILE_BYTES) return json(413, { error: "El archivo del chat pesa más de 4 MB. Pide la constancia en PDF." });
+    bytes = new Uint8Array(await file.arrayBuffer());
+  } catch (error) {
+    console.error("[lana-inbox fiscal-document]", (error as Error)?.name || "error");
+    return json(502, { error: "No se pudo descargar el archivo del chat. Intenta de nuevo." });
+  }
+  if (bytes.length > MAX_CHAT_FILE_BYTES) return json(413, { error: "El archivo del chat pesa más de 4 MB. Pide la constancia en PDF." });
+  const mediaType = tipoPorFirma(bytes);
+  if (!mediaType) return json(415, { error: "Ese archivo no es PDF, JPG ni PNG. Elige la foto o el PDF de la constancia." });
+  const extract = await fetch(`${SB_URL}/functions/v1/fiscal-extract`, {
+    method: "POST",
+    headers: { "Authorization": authorization, "apikey": Deno.env.get("SUPABASE_ANON_KEY") || "", "Content-Type": "application/json", "Origin": "https://app.smyldesign.ai" },
+    body: JSON.stringify({ file_base64: bytesABase64(bytes), media_type: mediaType }),
+  });
+  const result = await extract.json().catch(() => ({ error: "No se pudo leer la constancia. Captura los datos a mano." }));
+  return json(extract.status, result as Record<string, unknown>);
 }
 
 const INBOX_PRIORITIES = ["low", "normal", "high", "urgent"];
@@ -1707,6 +1990,11 @@ return scheduleDenied || await appointmentContext(actor, auth.tenantId, conversa
       }, 20000);
       return json(remote.response.status, { ...remote.body, actor });
     }
+    if (action === "pause_all") {
+      if (actor.role !== "owner" || actor.scopes.messages !== "clinic") return json(403, { error: "Solo el dueño de la clínica puede pausar todas las respuestas automáticas.", code: "permission_denied" });
+      if (!uuid(req.headers.get("Idempotency-Key"))) return json(400, { error: "Idempotency-Key debe ser un UUID válido." });
+      return await pauseAllAutomaticReplies(actor, auth.tenantId);
+    }
     if (action === "stage_create" || action === "stage_update" || action === "stage_reorder" || action === "stage_seed_dental") {
       if (actor.role !== "owner") return json(403, { error: "Solo el dueño de la clínica puede configurar las etapas del Pipeline.", code: "permission_denied" });
       let path = "/inbox/stages";
@@ -1782,6 +2070,11 @@ return scheduleDenied || await appointmentContext(actor, auth.tenantId, conversa
       const channel = text(body.channel, 20);
       if (!["whatsapp", "messenger", "instagram"].includes(channel)) return json(400, { error: "Canal no válido." });
       return await linkClinicalImage(auth.tenantId, actor, conversationId, channel, body.message_id, body.label);
+    }
+    if (action === "fiscal_document") {
+      const denied = requirePermission(actor, "finance.manage", "Tu rol no permite editar los datos fiscales.");
+      if (denied) return denied;
+      return await fiscalDocumentFromChat(auth.tenantId, actor, conversationId, body.patient_id, body.message_id, req.headers.get("Authorization") || "");
     }
     if (action === "rewrite_message") {
       const denied = requirePermission(actor, "messages.respond", "Tu rol no permite preparar respuestas para pacientes.");
