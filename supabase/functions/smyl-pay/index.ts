@@ -59,6 +59,14 @@ async function cancelarEnLana(tenantId: string, link: Json): Promise<boolean> {
   } catch (_) { return false; }
 }
 
+// El cobro en línea solo se acepta con la caja de la sucursal ABIERTA: un pago que entra con la caja cerrada no cae en ningún corte.
+async function cajaAbierta(tenantId: string, branchId: unknown): Promise<boolean> {
+  if (typeof branchId !== "string" || !UUID_RE.test(branchId)) return false;
+  const { data, error } = await admin.from("smyl_cash_sessions").select("id").eq("tenant_id", tenantId).eq("branch_id", branchId).eq("status", "open").limit(1);
+  if (error) return false;   // si no se puede comprobar, no se cobra
+  return Array.isArray(data) && data.length > 0;
+}
+
 async function enlacePorToken(token: unknown): Promise<Json | null> {
   if (typeof token !== "string" || !TOKEN_RE.test(token)) return null;
   const { data } = await admin.from("smyl_payment_links").select("*").eq("token_hash", await sha256Hex(token)).maybeSingle();
@@ -223,6 +231,7 @@ async function accionesPersonal(req: Request, body: Json, CORS: Record<string, s
   }
   if (!branchId) return json(CORS, 422, { error: "Crea una sucursal antes de cobrar en línea." });
   if (!(await permisos.sucursal(branchId))) return json(CORS, 403, { error: "La sucursal de este cobro está fuera de tu alcance.", error_code: "branch_scope_denied" });
+  if (!(await cajaAbierta(tenantId, branchId))) return json(CORS, 409, { error: "La caja de esta sucursal está cerrada. Ábrela para poder cobrar en línea.", error_code: "cash_closed" });
 
   // Un enlace vigente por paciente: los anteriores se cancelan (si ya se pagaron se registran y se avisa).
   const { data: previos } = await admin.from("smyl_payment_links").select("*").eq("tenant_id", tenantId).eq("patient_id", patientId).eq("status", "pending");
@@ -290,7 +299,10 @@ Deno.serve(async (req: Request) => {
     const link = await enlacePorToken(body.token);
     if (!link) return json(CORS, 404, { error: "Este enlace no existe o ya no está disponible." });
     const actual = await conciliar(link);
-    return json(CORS, 200, vistaPublicaEnlace(actual, await datosPublicos(actual)));
+    const vista = vistaPublicaEnlace(actual, await datosPublicos(actual));
+    // Enlace vigente pero la caja de la sucursal se cerró: la página no ofrece pagar (el estado real del enlace no cambia).
+    if (actual.status === "pending" && !(await cajaAbierta(String(actual.tenant_id), actual.branch_id))) return json(CORS, 200, { ...vista, cash_closed: true });
+    return json(CORS, 200, vista);
   }
   return await accionesPersonal(req, body, CORS);
 });

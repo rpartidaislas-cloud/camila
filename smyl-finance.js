@@ -1223,7 +1223,9 @@
   // snapshot de su recibo (provider='openpay') y se reportan aparte en el corte; el servidor arma el mismo reporte al cerrar.
   function onlinePaymentIds(){var ids=new Set();state.receipts.forEach(function(r){if(r.snapshot&&r.snapshot.provider==='openpay'&&r.payment_id)ids.add(r.payment_id);});return ids;}
   function onlineForCut(s){
-    var start=new Date(s.opened_at).getTime(),online=onlinePaymentIds(),reported=new Set();
+    var opened=new Date(s.opened_at).getTime(),start=opened,online=onlinePaymentIds(),reported=new Set();
+    /* Igual que el servidor: el reporte arranca en el cierre de la caja anterior de la sucursal, para incluir lo cobrado con la caja cerrada. */
+    state.sessions.forEach(function(o){if(o.id===s.id||o.status!=='closed'||o.branch_id!==s.branch_id||!o.closed_at)return;var c=new Date(o.closed_at).getTime();if(c<=opened&&(start===opened||c>start))start=c;});
     state.sessions.forEach(function(o){if(o.id===s.id)return;var items=o.close_reconciliation&&o.close_reconciliation.online&&o.close_reconciliation.online.items;(items||[]).forEach(function(it){reported.add(it.payment_id);});});
     var out={items:[],byMethod:{},totalCents:0};
     state.payments.forEach(function(p){
