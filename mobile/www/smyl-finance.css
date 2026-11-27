@@ -1267,3 +1267,25 @@ dialog[data-smyl-dialog-system="true"][open] .finance-allocation-input>input[typ
 /* Cobro: descuento y fecha de vencimiento aparecen solo cuando se piden. */
 #finance-dialog .finance-discount-link{justify-self:start;align-self:end;padding:8px 0;min-height:42px}
 
+
+/* Enlace de pago listo: ventana compacta, con el enlace y «Copiar» en una sola fila y la acción principal a ancho completo. */
+.finance-link-ready{display:grid;justify-items:center;gap:10px;padding:28px 26px 24px;text-align:center}
+.finance-link-mark{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:#dff3eb;color:#1f6b43;font-size:22px;font-weight:800}
+.finance-dialog .finance-link-ready h2{margin:0;font-size:22px;line-height:1.25}
+.finance-link-sub{margin:0;color:#3d4f66;font-size:14px}
+.finance-link-field{display:flex;gap:8px;width:100%;margin-top:4px}
+.finance-link-field input{flex:1 1 auto;min-width:0;min-height:44px;padding:0 12px;border:1px solid #cfd8e3;border-radius:10px;background:#f8fafc;color:#12233f;font:500 13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;text-overflow:ellipsis}
+.finance-link-field button{flex:none;min-height:44px;padding:0 16px;border:1px solid #cfd8e3;border-radius:10px;background:#fff;color:#2034b8;font:700 14px/1 inherit;cursor:pointer}
+.finance-link-hint,.finance-link-note{margin:0;font-size:12.5px;line-height:1.5;color:#66788d}
+.finance-link-note{padding:9px 12px;border-radius:10px;background:#fff6e5;color:#7a4b00;text-align:left}
+.finance-link-actions{display:grid;gap:8px;width:100%;margin-top:6px}
+.finance-link-actions .btn{display:flex;align-items:center;justify-content:center;min-height:46px;width:100%;box-sizing:border-box;text-decoration:none}
+.finance-link-actions .btn-secondary{background:transparent;border-color:transparent;color:#526477;min-height:40px}
+.finance-link-field button:focus-visible,.finance-link-field input:focus-visible,.finance-link-actions .btn:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+
+/* Vista previa de la plantilla tal como la verá el paciente. */
+.finance-link-preview{display:grid;gap:6px;width:100%;text-align:left}
+.finance-link-preview small{color:#66788d;font-size:12px;font-weight:600}
+.finance-link-bubble{max-width:100%;padding:10px 12px;border:1px solid #cde8d8;border-radius:12px 12px 12px 4px;background:#eaf7ef;color:#16324f}
+.finance-link-bubble p{margin:0;font-size:13.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.finance-link-bubble span{display:block;margin-top:6px;color:#64748b;font-size:11.5px}

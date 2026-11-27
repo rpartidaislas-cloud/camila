@@ -22,7 +22,7 @@
     { id: 'team', group: 'team', required: true, title: 'Da rol y sede a tu equipo', hint: 'Que cada integrante tenga su rol y su sucursal.', action: 'Revisar equipo', route: 'clinica' },
     { id: 'services', group: 'services', required: true, title: 'Agrega tus servicios con precio', hint: 'Los tratamientos con su precio, para cotizar y cobrar.', action: 'Agregar servicios', route: 'precios' },
     { id: 'whatsapp', group: 'messages', required: true, title: 'Conecta WhatsApp', hint: 'Para recibir y responder mensajes de tus pacientes.', action: 'Conectar', route: 'conexiones' },
-    { id: 'template', group: 'messages', required: true, title: 'Solicita tu primera plantilla', hint: 'Meta debe aprobarla para poder recordar citas.', action: 'Ver plantillas', route: 'plantillas' },
+    { id: 'template', group: 'messages', required: true, title: 'Solicita las plantillas esenciales', hint: 'Las que la Agenda necesita para avisar solos a tus pacientes. Meta debe aprobarlas.', action: 'Solicitar', route: 'plantillas' },
     { id: 'reminders', group: 'messages', required: true, title: 'Activa los recordatorios de cita', hint: 'Configura los avisos para tus pacientes desde la agenda.', action: 'Configurar', route: 'agenda' },
     { id: 'patient', group: 'flow', required: true, title: 'Registra tu primer paciente', hint: 'Crea el expediente con sus datos de contacto.', action: 'Registrar paciente', route: 'pacientes', open: 'patient' },
     { id: 'appointment', group: 'flow', required: true, title: 'Agenda tu primera cita', hint: 'Así ves todo funcionando de principio a fin.', action: 'Agendar cita', route: 'agenda' },
@@ -104,6 +104,13 @@
     if (result.error) throw result.error;
     if (!result.data || !Array.isArray(result.data.templates)) throw new Error('Plantillas no disponibles');
     var list = result.data.templates;
+    // Con el módulo de plantillas sugeridas: el paso se cumple cuando las esenciales de la Agenda están aprobadas.
+    var suggest = window.SmylTemplateSuggest;
+    if (suggest && typeof suggest.essentialProgress === 'function') {
+      var progress = suggest.essentialProgress('agenda', list);
+      var note = progress.ready + ' de ' + progress.total + ' aprobadas' + (progress.pending ? ' · ' + progress.pending + ' en revisión de Meta' : '');
+      return { state: progress.ready === progress.total ? 'done' : (progress.pending > 0 && progress.missing === 0 ? 'pending' : 'todo'), note: note };
+    }
     if (list.some(function (item) { return item.status === 'APPROVED' && item.category === 'UTILITY'; })) return 'done';
     if (list.some(function (item) { return item.status === 'PENDING'; })) return 'pending';
     return 'todo';
@@ -151,7 +158,7 @@
       team: r.staff.ok && r.roles.ok ? { done: r.roles.value >= r.staff.value, note: r.roles.value < r.staff.value ? (r.staff.value - r.roles.value) + (r.staff.value - r.roles.value === 1 ? ' integrante sin rol' : ' integrantes sin rol') : '' } : { unknown: true },
       services: flag(r.priced, function (n) { return n > 0; }),
       whatsapp: r.channels.ok && r.channels.value.accounts.whatsapp ? { done: r.channels.value.accounts.whatsapp.connected } : { unknown: true },
-      template: r.templates.ok ? { done: r.templates.value === 'done', waiting: r.templates.value === 'pending' } : { unknown: true },
+      template: r.templates.ok ? (typeof r.templates.value === 'object' ? { done: r.templates.value.state === 'done', waiting: r.templates.value.state === 'pending', note: r.templates.value.state === 'done' ? '' : r.templates.value.note } : { done: r.templates.value === 'done', waiting: r.templates.value === 'pending' }) : { unknown: true },
       reminders: flag(r.reminders, function (v) { return v.reminders; }),
       patient: flag(r.patients, function (n) { return n > 0; }),
       appointment: flag(r.appts, function (n) { return n > 0; }),
@@ -213,6 +220,13 @@
     return result.note ? result.note + ' · ' + step.hint : step.hint;
   }
   function go(step) {
+    // Plantillas esenciales: se piden en bloque desde aquí (el propietario confirma una vez). Si no se puede, se lleva a Plantillas.
+    if (step.id === 'template' && window.SmylTemplateSuggest && window.SmylTemplates && typeof window.SmylTemplates.requestMany === 'function') {
+      Promise.resolve(window.SmylTemplates.requestMany(window.SmylTemplateSuggest.essentialsOf('agenda'))).then(function (outcome) {
+        if (outcome && (outcome.requested.length || outcome.failed || outcome.cancelled)) load(true); else route(step.route);
+      }, function () { route(step.route); });
+      return;
+    }
     route(step.route);
     if (step.open === 'patient') setTimeout(function () { if (typeof window.abrirModalPaciente === 'function') window.abrirModalPaciente(); }, 0);
   }

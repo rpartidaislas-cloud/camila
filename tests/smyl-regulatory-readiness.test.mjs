@@ -44,3 +44,13 @@ test('la interfaz no confunde preparación con certificación',()=>{
   assert.match(css,/cp-print-root/);
   assert.match(docs,/No es una certificación, autorización ni resolución de COFEPRIS/);
 });
+
+test('la asistencia de MILA conserva la decisión humana y no mezcla datos de pacientes',()=>{
+  const edge=read('../supabase/functions/compliance-assistant/index.ts');
+  assert.match(ui,/Preparar con MILA/);
+  assert.match(ui,/Tú decides qué guardar/);
+  assert.match(edge,/No incluyas datos de pacientes/);
+  assert.match(edge,/status === 'have' && !reference/);
+  assert.match(edge,/status === 'not_applicable' && notes\.length < 8/);
+  assert.doesNotMatch(edge,/camila_pacientes|patient_id|diagnos/i);
+});

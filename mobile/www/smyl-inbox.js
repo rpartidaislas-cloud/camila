@@ -2304,7 +2304,12 @@
     if (Array.isArray(preferred)) {
       var match = null;
       preferred.some(function (name) { match = state.templates.find(function (item) { return item.name === name; }) || null; return Boolean(match); });
-      if (!match) { state.templatePreset = null; window.alert((preset && preset.missingText) || 'No hay una plantilla de cobro aprobada todavía. Solicítala en Mensajería → Plantillas; Meta suele tardar de unos minutos a 48 horas.'); return; }
+      if (!match) {
+        state.templatePreset = null;
+        var missingCopy = (preset && preset.missingText) || 'No hay una plantilla de cobro aprobada todavía. Solicítala en Mensajería → Plantillas; Meta suele tardar de unos minutos a 48 horas.';
+        if (window.SmylTemplateSuggest) window.SmylTemplateSuggest.offerMissing(preferred, missingCopy); else window.alert(missingCopy);
+        return;
+      }
       select.value = match.id;
     }
     renderTemplateFields(select, dialog.querySelector('[data-template-preview]'), dialog.querySelector('[data-template-variables]'), 'send');
@@ -6011,7 +6016,8 @@
         var names = Array.isArray(options.template.names) ? options.template.names : [];
         try { await loadTemplates(); } catch (_) { return false; }
         if (!state.templates.some(function (item) { return names.indexOf(item.name) !== -1; })) {
-          window.alert(options.template.missingText || 'No hay una plantilla aprobada para este mensaje. Solicítala en Mensajería → Plantillas; Meta suele tardar de unos minutos a 48 horas.');
+          var missingCopy = options.template.missingText || 'No hay una plantilla aprobada para este mensaje. Solicítala en Mensajería → Plantillas; Meta suele tardar de unos minutos a 48 horas.';
+          if (window.SmylTemplateSuggest) window.SmylTemplateSuggest.offerMissing(names, missingCopy); else window.alert(missingCopy);
           return false;
         }
         await openTemplateDialog(names, { variables: options.template.variables || [], onSent: options.onSent || null });

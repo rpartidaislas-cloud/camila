@@ -213,8 +213,24 @@
       var rows=await q(window.sb.from('camila_lana_handoffs').select('patient_id,lana_conversation_id,lana_channel,updated_at').eq('tenant_id',tenant).order('updated_at',{ascending:false}).limit(1000));
       if(version!==chatLinkVersion||window.tenantId!==tenant||!window.SmylInbox.canAccess())return;
       var map={};(rows||[]).forEach(function(r){if(!map[r.patient_id])map[r.patient_id]={conversation:r.lana_conversation_id,channel:r.lana_channel};});
-      chatLinks=map;renderAccounts();
+      chatLinks=map;renderAccounts();renderFiscal();
     }catch(e){if(version===chatLinkVersion){chatLinks={};state.chatLinksTenant=null;}}
+  }
+  // Avisar al paciente por WhatsApp (plantillas «factura_disponible_v1» y «datos_facturacion_pendientes_v1»). Nunca envía solo:
+  // abre el chat con la plantilla ya llenada y una persona la revisa y la manda. Solo si el paciente tiene un chat de WhatsApp vinculado.
+  function waLink(patientId){var l=chatLinks[patientId];return l&&l.channel==='whatsapp'&&window.SmylInbox&&typeof window.SmylInbox.sendTemplate==='function'?l:null;}
+  function patientFirstName(patientId){return String(name(patientId)).trim().split(/\s+/)[0]||'';}
+  function clinicLabel(){var t=window.tenantData||{},c=t.config||{};return String(c.consultorio||t.nombre||'tu clínica').trim();}
+  function invoiceFolio(d){var f=[d.invoice_series,d.invoice_folio].filter(function(x){return x!=null&&x!=='';}).join('-');return f||String(d.external_uuid||d.id||'').slice(0,8)||'—';}
+  function whatsappInvoice(d){
+    var link=d&&waLink(d.patient_id);if(!link)return;
+    window.SmylInbox.sendTemplate(link.conversation,{preferred:['factura_disponible_v1'],variables:[patientFirstName(d.patient_id),invoiceFolio(d),clinicLabel()],
+      missingText:'Para avisarle por WhatsApp que su factura está lista necesitas la plantilla «Factura disponible» aprobada por Meta.'});
+  }
+  function whatsappFiscalData(patientId){
+    var link=waLink(patientId);if(!link)return;
+    window.SmylInbox.sendTemplate(link.conversation,{preferred:['datos_facturacion_pendientes_v1'],variables:[patientFirstName(patientId),clinicLabel()],
+      missingText:'Para pedirle sus datos fiscales por WhatsApp necesitas la plantilla «Faltan datos para tu factura» aprobada por Meta.'});
   }
   function resetChatLinks(){
     chatLinkVersion++;chatLinks={};state.chatLinksTenant=null;
@@ -448,6 +464,7 @@
         if(plan&&plan.status==='submitted'){main=button('data-cancelcheck-cfdi','Verificar');menu.push(item('data-email-cfdi',d.last_emailed_at?'Reenviar por correo':'Enviar por correo'));}
         else main=button('data-email-cfdi',d.last_emailed_at?'Reenviar':'Enviar');
         menu.push(file('pdf','Descargar PDF'),file('xml','Descargar XML'));
+        if(waLink(d.patient_id))menu.push(item('data-wa-cfdi','Avisar por WhatsApp'));
         if(!plan)menu.push(item('data-plan-cancel','Planear cancelación'));
         else if(plan.status==='planned'&&connected)menu.push(item('data-cancel-cfdi','Enviar cancelación',true));
       }else{main=file('acuse_pdf','Acuse PDF',true);menu.push(file('acuse_xml','Acuse XML'),file('pdf','Factura PDF'),file('xml','Factura XML'));}
@@ -468,6 +485,7 @@
     if(facts.concept)sub.push(esc(facts.concept));
     return '<article class="finance-line" data-cols="invoices" data-invoice-state="pending" data-invoice-code="'+x.code+'" role="listitem"><button type="button" class="finance-line-who" data-account="'+p.patient_id+'" title="Abrir la cuenta"><strong class="finance-line-name">'+patient+'</strong><small>'+sub.join(' · ')+'</small></button>'
       +'<div class="finance-line-state">'+state_+'</div><div class="finance-line-amount"><strong>'+money(p.amount)+'</strong></div><div class="finance-line-actions"><button type="button" class="finance-link-action" data-open-receipt="'+receipt.id+'" aria-label="Recibo '+folio+' de '+patient+'">Recibo</button>'
+      +(state.canInvoice&&x.code==='profile'&&waLink(p.patient_id)?'<button type="button" class="finance-link-action" data-wa-fiscal="'+p.patient_id+'">Pedir datos por WhatsApp</button>':'')
       +(state.canInvoice?'<button type="button" class="btn btn-secondary" data-invoice-payment="'+p.id+'">Facturar</button>':'')+'</div></article>';
   }
   function setInvoiceFilter(filter){state.fiscalFilter=INVOICE_FILTERS.some(function(f){return f[0]===filter;})?filter:'drafts';state.shown.invoices=PAGE_ROWS;renderFiscal();}
@@ -497,6 +515,8 @@
     host.querySelectorAll('[data-cancel-cfdi]').forEach(function(b){b.onclick=function(){openCancelSend(by(state.drafts,b.dataset.cancelCfdi));};});
     host.querySelectorAll('[data-cancelcheck-cfdi]').forEach(function(b){b.onclick=function(){checkCancellation(by(state.drafts,b.dataset.cancelcheckCfdi));};});
     host.querySelectorAll('[data-plan-cancel]').forEach(function(b){b.onclick=function(){planCfdiCancellation(by(state.drafts,b.dataset.planCancel));};});
+    host.querySelectorAll('[data-wa-cfdi]').forEach(function(b){b.onclick=function(){whatsappInvoice(by(state.drafts,b.dataset.waCfdi));};});
+    host.querySelectorAll('[data-wa-fiscal]').forEach(function(b){b.onclick=function(){whatsappFiscalData(b.dataset.waFiscal);};});
     var cfg=host.querySelector('#finance-open-billing-setup');if(cfg)cfg.onclick=openBillingSetup;
     bindMoreRows(host,'invoices',renderFiscal);
   }
@@ -1034,8 +1054,17 @@
       if(err&&err.context&&typeof err.context.json==='function'){try{data=await err.context.json();}catch(e){}}
       if(!data||!data.url)throw new Error((data&&data.error)||'No se pudo generar el enlace de pago.');
       var text='Hola '+(name(patientId).split(' ')[0]||'')+', este es tu enlace seguro para pagar '+(chargeIds&&chargeIds.length?'tu tratamiento':'tu saldo')+' de '+money(data.amount)+' con tarjeta o transferencia: '+data.url;
-      var d=dialog('<section class="finance-payment-success"><h2>Enlace de pago listo</h2><p>Saldo a cobrar: <strong>'+money(data.amount)+'</strong>. Vence '+date(data.expires_at,true)+'. Al pagarse, el recibo se emite solo y el saldo se actualiza.</p><label class="wide">Enlace<input readonly value="'+esc(data.url)+'" onfocus="this.select()"></label><div class="finance-actions"><button type="button" data-close>Cerrar</button><button type="button" id="link-copy">Copiar enlace</button><a class="btn btn-primary" id="link-wa" target="_blank" rel="noopener" href="https://wa.me/?text='+encodeURIComponent(text)+'">Enviar por WhatsApp</a></div></section>');
-      var cp=d.querySelector('#link-copy');if(cp)cp.onclick=async function(){try{await navigator.clipboard.writeText(data.url);cp.textContent='Copiado';}catch(e){}};
+      var hasChat=Boolean(waLink(patientId));
+      var preview='';
+      if(hasChat){var tpl0=window.SmylTemplateCatalog&&window.SmylTemplateCatalog.TEMPLATES?window.SmylTemplateCatalog.TEMPLATES.filter(function(t){return t.id==='cobro_enlace_pago_v1';})[0]:null;
+        if(tpl0){var vals=[patientFirstName(patientId),money(data.amount),clinicLabel(),data.url];
+          preview='<div class="finance-link-preview"><small>Así lo recibirá el paciente por WhatsApp</small><div class="finance-link-bubble"><p>'+esc(tpl0.body.replace(/\{\{\s*(\d+)\s*\}\}/g,function(m,n){return vals[Number(n)-1]!=null?vals[Number(n)-1]:m;}))+'</p><span>Plantilla «'+esc(tpl0.title)+'»</span></div></div>';}}
+      var d=dialog('<section class="finance-link-ready"><span class="finance-link-mark" aria-hidden="true">✓</span><h2>Enlace de pago listo</h2><p class="finance-link-sub">Saldo a cobrar <strong>'+money(data.amount)+'</strong> · vence '+esc(date(data.expires_at,true))+'</p><div class="finance-link-field"><input readonly aria-label="Enlace de pago" value="'+esc(data.url)+'" onfocus="this.select()"><button type="button" id="link-copy">Copiar</button></div><p class="finance-link-hint">Al pagarse, el recibo se emite solo y el saldo se actualiza.</p>'+preview+(hasChat?'':'<p class="finance-link-note">Este paciente no tiene un chat de WhatsApp en Mensajes, así que no se puede mandar con la plantilla de la clínica. Copia el enlace o envíalo desde tu WhatsApp.</p>')+'<div class="finance-link-actions">'+(hasChat?'<button type="button" class="btn btn-primary" id="link-wa-template">Enviar por WhatsApp</button>':'<a class="btn btn-primary" id="link-wa" target="_blank" rel="noopener" href="https://wa.me/?text='+encodeURIComponent(text)+'">Enviar desde mi WhatsApp</a>')+'<button type="button" class="btn btn-secondary" data-close>Cerrar</button></div></section>');
+      var tpl=d.querySelector('#link-wa-template');
+      if(tpl)tpl.onclick=function(){var link=waLink(patientId);if(!link)return;close();
+        window.SmylInbox.sendTemplate(link.conversation,{preferred:['cobro_enlace_pago_v1'],variables:[patientFirstName(patientId),money(data.amount),clinicLabel(),data.url],
+          missingText:'Para mandar el enlace de pago por WhatsApp necesitas la plantilla «Enlace para pagar» aprobada por Meta.'});};
+      var cp=d.querySelector('#link-copy');if(cp)cp.onclick=async function(){try{await navigator.clipboard.writeText(data.url);cp.textContent='Copiado ✓';setTimeout(function(){cp.textContent='Copiar';},2000);}catch(e){}};
     }catch(e){notify(String(e&&e.message||e),'error');}
     finally{if(button){button.disabled=false;button.textContent=label;}}
   }

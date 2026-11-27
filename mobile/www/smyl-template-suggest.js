@@ -1,0 +1,371 @@
+/* SMYL · Plantillas sugeridas por sección.
+   Cada pantalla que manda WhatsApp (Agenda, Finanzas, Cotizaciones, Pacientes) muestra qué plantillas necesita, cuáles ya están aprobadas por Meta,
+   cuáles están en revisión y cuáles faltan, con UN botón para solicitar las que faltan (franja de una línea que se puede cerrar; en Finanzas, una opción del menú «Más»). Así el tenant no tiene que adivinar entre las 60 del catálogo.
+   · Parte pura (mapa sección → plantillas, plan de avance): se prueba en Node.
+   · Parte de pantalla: tarjeta compacta en cada sección + aviso «Solicitar ahora» cuando falta una plantilla al mandar un mensaje.
+   Marketing queda fuera de las sugerencias (requiere consentimiento del paciente). Solo el propietario puede solicitar; los demás ven qué falta. */
+(function (root, factory) {
+  var catalog = typeof module === 'object' && module.exports ? require('./smyl-template-catalog.js') : root.SmylTemplateCatalog;
+  var api = factory(catalog);
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else { root.SmylTemplateSuggest = api; if (root.document) api.start(root); }
+})(typeof self !== 'undefined' ? self : this, function (catalog) {
+  'use strict';
+
+  // tier: 'essential' (lo necesario para que la sección funcione) o 'recommended'. Nunca Marketing.
+  var SECTIONS = {
+    agenda: {
+      title: 'Plantillas para los avisos de la Agenda',
+      intro: 'Para que los recordatorios, confirmaciones y seguimientos de la Agenda salgan solos por WhatsApp.',
+      items: [
+        ['recordatorio_cita_confirmar_v1', 'essential', 'Recordatorio 48 h y 24 h antes, con botones Confirmo / Necesito reprogramar'],
+        ['cita_confirmada_v1', 'essential', 'Confirmación al agendar una cita'],
+        ['cita_reprogramada_v1', 'essential', 'Aviso cuando mueves una cita'],
+        ['cita_cancelada_clinica_v1', 'essential', 'Aviso cuando la clínica cancela una cita'],
+        ['cita_no_asistio_reagendar_v1', 'essential', 'Seguimiento si no vino, con botón para reagendar'],
+        ['cita_motivo_no_reagenda_v1', 'essential', 'Pregunta por qué no reagendó'],
+        ['cita_propuesta_paciente_v1', 'essential', 'Proponer un horario al paciente: Aceptar / Ver otras opciones / Hablar con la clínica'],
+        ['cita_confirmacion_profesional_v1', 'essential', 'Pedir al dentista que confirme una cita propuesta'],
+        ['cita_lista_espera_v1', 'recommended', 'Ofrecer un horario que se liberó a quien está en lista de espera'],
+        ['cita_opciones_horario_v1', 'recommended', 'Proponer horarios disponibles desde Mensajes'],
+        ['recordatorio_cita_mismo_dia_v1', 'recommended', 'Recordatorio el mismo día de la cita'],
+        ['cita_indicaciones_previas_v1', 'recommended', 'Indicaciones antes de la cita'],
+        ['cita_como_llegar_v1', 'recommended', 'Cómo llegar a la sucursal'],
+        ['cita_retraso_v1', 'recommended', 'Avisar que hay un retraso'],
+        ['cita_confirmar_llegada_v1', 'recommended', 'Preguntar si el paciente viene en camino'],
+        ['cita_solicitud_recibida_v1', 'recommended', 'Avisar que recibimos su solicitud de cita'],
+        ['agenda_cita_nueva_profesional_v1', 'recommended', 'Avisar al dentista de una cita nueva'],
+        ['agenda_cambio_profesional_v1', 'recommended', 'Avisar al dentista de un cambio de horario'],
+        ['agenda_cancelacion_profesional_v1', 'recommended', 'Avisar al dentista de una cancelación']
+      ]
+    },
+    finanzas: {
+      title: 'Plantillas para cobros y facturación',
+      intro: 'Para mandar por WhatsApp pagos, saldos y facturas aunque haya pasado la ventana de 24 horas.',
+      items: [
+        ['pago_recibido_v1', 'essential', 'Confirmar que recibimos un pago', 'Cobros'],
+        ['pago_pendiente_v1', 'essential', 'Recordar un pago pendiente', 'Cobros'],
+        ['cobro_enlace_pago_v1', 'essential', 'Mandar el enlace de pago al paciente', 'Cobros'],
+        ['saldo_vencido_aviso_v1', 'essential', 'Avisar de un saldo vencido', 'Cobros'],
+        ['factura_disponible_v1', 'essential', 'Avisar que su factura está lista', 'Facturación'],
+        ['datos_facturacion_pendientes_v1', 'essential', 'Pedir los datos fiscales para facturar', 'Facturación'],
+        ['comprobante_pago_v1', 'recommended', 'Mandar el comprobante de pago', 'Cobros'],
+        ['estado_cuenta_v1', 'recommended', 'Mandar el estado de cuenta', 'Cobros'],
+        ['saldo_actualizado_v1', 'recommended', 'Avisar que su saldo cambió', 'Cobros'],
+        ['plan_pagos_acordado_v1', 'recommended', 'Confirmar un plan de pagos acordado', 'Cobros'],
+        ['plan_pagos_proximo_v1', 'recommended', 'Recordar el próximo pago del plan', 'Cobros']
+      ]
+    },
+    cotizaciones: {
+      title: 'Plantillas para tus cotizaciones',
+      intro: 'Para enviar la cotización por WhatsApp y darle seguimiento sin depender de la ventana de 24 horas.',
+      items: [
+        ['cotizacion_lista_v1', 'essential', 'Avisar que su cotización está lista'],
+        ['cotizacion_seguimiento_v1', 'essential', 'Dar seguimiento a una cotización sin respuesta'],
+        ['plan_tratamiento_listo_v1', 'recommended', 'Avisar que su plan de tratamiento está listo']
+      ]
+    },
+    pacientes: {
+      title: 'Plantillas para tus pacientes',
+      intro: 'Para el aviso de privacidad, la entrevista previa y el seguimiento después de la cita.',
+      items: [
+        ['aviso_privacidad_v1', 'essential', 'Enviar el aviso de privacidad'],
+        ['entrevista_previa_v1', 'essential', 'Pedir la entrevista previa antes de la primera cita'],
+        ['seguimiento_postcita_v1', 'essential', 'Preguntar cómo sigue después de su cita'],
+        ['documento_por_firmar_v1', 'recommended', 'Pedir que firme un documento'],
+        ['actualizar_datos_v1', 'recommended', 'Pedir que actualice sus datos'],
+        ['documentos_recibidos_v1', 'recommended', 'Confirmar que recibimos sus documentos'],
+        ['documento_incompleto_v1', 'recommended', 'Avisar que un documento está incompleto'],
+        ['indicaciones_postratamiento_v1', 'recommended', 'Indicaciones después de un tratamiento'],
+        ['proxima_cita_tratamiento_v1', 'recommended', 'Recordar la próxima cita del tratamiento'],
+        ['control_ortodoncia_v1', 'recommended', 'Recordar su control de ortodoncia'],
+        ['estudios_listos_v1', 'recommended', 'Avisar que sus estudios están listos'],
+        ['trabajo_laboratorio_listo_v1', 'recommended', 'Avisar que su trabajo de laboratorio llegó'],
+        ['seguimiento_control_pendiente_v1', 'recommended', 'Recordar un control pendiente']
+      ]
+    }
+  };
+
+  function titleOf(id) {
+    var found = catalog && catalog.TEMPLATES ? catalog.TEMPLATES.filter(function (item) { return item.id === id; })[0] : null;
+    return found ? found.title : id;
+  }
+  function groupOfStatus(status) { return status === 'APPROVED' ? 'ready' : status === 'PENDING' ? 'pending' : (!status || status === 'NONE') ? 'missing' : 'problem'; }
+
+  // Plan de una sección: cada plantilla con su estado y los conteos de esenciales y recomendadas.
+  // statusOf: función id → 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED' | … (o un objeto {id: estado}).
+  function plan(sectionId, statusOf) {
+    var section = SECTIONS[sectionId]; if (!section) return null;
+    var lookup = typeof statusOf === 'function' ? statusOf : function (id) { return statusOf ? statusOf[id] : 'NONE'; };
+    var items = section.items.map(function (row) {
+      var status = lookup(row[0]) || 'NONE';
+      return { id: row[0], title: titleOf(row[0]), why: row[2], area: row[3] || '', tier: row[1], status: status, state: groupOfStatus(status) };
+    });
+    function count(tier) {
+      var own = items.filter(function (item) { return item.tier === tier; });
+      return {
+        total: own.length,
+        ready: own.filter(function (item) { return item.state === 'ready'; }).length,
+        pending: own.filter(function (item) { return item.state === 'pending'; }).length,
+        problems: own.filter(function (item) { return item.state === 'problem'; }).length,
+        missing: own.filter(function (item) { return item.state === 'missing'; }).map(function (item) { return item.id; })
+      };
+    }
+    return { id: sectionId, title: section.title, intro: section.intro, items: items, essential: count('essential'), recommended: count('recommended') };
+  }
+
+  function essentialsOf(sectionId) {
+    var section = SECTIONS[sectionId];
+    return section ? section.items.filter(function (row) { return row[1] === 'essential'; }).map(function (row) { return row[0]; }) : [];
+  }
+  function sectionsOf(templateId) {
+    return Object.keys(SECTIONS).filter(function (key) { return SECTIONS[key].items.some(function (row) { return row[0] === templateId; }); });
+  }
+  // Avance de las plantillas esenciales de la Agenda a partir de la lista que devuelve la función de plantillas (para «Puesta en marcha»).
+  function essentialProgress(sectionId, remoteList) {
+    var ids = essentialsOf(sectionId), by = {};
+    (remoteList || []).forEach(function (item) { if (item && item.name) by[item.name] = item; });
+    var ready = 0, pending = 0;
+    ids.forEach(function (id) { var r = by[id]; if (r && r.status === 'APPROVED') ready += 1; else if (r && r.status === 'PENDING') pending += 1; });
+    return { total: ids.length, ready: ready, pending: pending, missing: ids.length - ready - pending };
+  }
+
+  var api = { SECTIONS: SECTIONS, plan: plan, essentialsOf: essentialsOf, sectionsOf: sectionsOf, essentialProgress: essentialProgress, titleOf: titleOf };
+
+  // ───────────────────────── Pantalla ─────────────────────────
+  api.start = function (win) {
+    var doc = win.document;
+    var STATE_TEXT = { ready: 'Aprobada', pending: 'En revisión de Meta', missing: 'Por solicitar', problem: 'Con problemas' };
+    var MOUNTS = [
+      { route: 'agenda', page: 'p-agenda', section: 'agenda', find: function (page) {
+        var grid = page.querySelector('[data-schedule-panel="settings"] .schedule-settings-grid');
+        return grid ? { parent: grid, after: page.querySelector('#schedule-reminders-card') } : null;
+      } },
+      // Finanzas no lleva franja: la sugerencia vive como una opción dentro del menú «Más» de la cabecera.
+      { route: 'caja', page: 'p-caja', section: 'finanzas', menu: true },
+      { route: 'propuestas', page: 'p-propuestas', section: 'cotizaciones', find: function (page) { return { parent: page, after: null }; } },
+      { route: 'pacientes', page: 'p-pacientes', section: 'pacientes', find: function (page) { return { parent: page, after: null }; } }
+    ];
+    var data = { summary: null, loading: false };
+
+    function el(tag, cls, text) { var node = doc.createElement(tag); if (cls) node.className = cls; if (text != null) node.textContent = text; return node; }
+    function templates() { return win.SmylTemplates && typeof win.SmylTemplates.summary === 'function' ? win.SmylTemplates : null; }
+    function statusMap() {
+      var map = {};
+      ((data.summary && data.summary.templates) || []).forEach(function (item) { map[item.id] = item.status; });
+      return map;
+    }
+    function load() {
+      var t = templates(); if (!t || data.loading) return Promise.resolve();
+      data.loading = true;
+      return Promise.resolve(t.summary()).then(function (summary) { data.summary = summary; }, function () { data.summary = null; })
+        .then(function () { data.loading = false; refresh(); });
+    }
+
+    function row(item, canRequest) {
+      var li = el('li', 'tpl-suggest-row'); li.dataset.state = item.state; li.dataset.template = item.id;
+      var mark = el('span', 'tpl-suggest-mark'); mark.setAttribute('role', 'img'); mark.setAttribute('aria-label', STATE_TEXT[item.state]);
+      mark.textContent = item.state === 'ready' ? '✓' : item.state === 'pending' ? '…' : item.state === 'problem' ? '!' : '';
+      var copy = el('div', 'tpl-suggest-copy');
+      copy.append(el('strong', '', item.title), el('small', '', item.why + (item.area ? ' · ' + item.area : '')));
+      var side = el('div', 'tpl-suggest-side');
+      side.append(el('span', 'tpl-suggest-state', STATE_TEXT[item.state]));
+      if (item.state === 'missing' && canRequest && win.SmylTemplates.request) {
+        var one = el('button', 'tpl-suggest-link', 'Solicitar'); one.type = 'button';
+        one.setAttribute('aria-label', 'Solicitar ' + item.title);
+        one.onclick = function () { win.SmylTemplates.request(item.id); };
+        side.append(one);
+      }
+      li.append(mark, copy, side);
+      return li;
+    }
+
+    // La sugerencia es una franja de una línea (no una tarjeta): solo aparece si faltan esenciales o alguna tiene problemas, se puede cerrar
+    // por 14 días y el detalle (avance, lista y «Ir a Plantillas») queda plegado dentro.
+    var DISMISS_DAYS = 14;
+    function dismissKey(sectionId) { return 'smyl_tpl_suggest_' + (win.tenantId || '') + '_' + sectionId; }
+    function dismissed(sectionId) {
+      try { var at = Number(win.localStorage.getItem(dismissKey(sectionId)) || 0); return at > 0 && Date.now() - at < DISMISS_DAYS * 86400000; } catch (_) { return false; }
+    }
+    // Avance + lista de esenciales y recomendadas (se usa en la franja desplegada y en la ventana completa).
+    function detailInto(list, p, canRequest) {
+      var meter = el('div', 'tpl-suggest-meter');
+      var bar = el('div', 'tpl-suggest-bar'); bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', String(p.essential.total));
+      bar.setAttribute('aria-valuenow', String(p.essential.ready)); bar.setAttribute('aria-label', 'Plantillas esenciales aprobadas');
+      var fill = el('span'); fill.style.width = Math.round(p.essential.ready / Math.max(1, p.essential.total) * 100) + '%'; bar.append(fill);
+      meter.append(el('small', '', p.essential.ready + ' de ' + p.essential.total + ' esenciales aprobadas' + (p.essential.pending ? ' · ' + p.essential.pending + ' en revisión de Meta' : '')), bar);
+      list.append(meter);
+      [['essential', 'Esenciales'], ['recommended', 'Recomendadas']].forEach(function (tier) {
+        var items = p.items.filter(function (item) { return item.tier === tier[0]; });
+        if (!items.length) return;
+        var group = el('section', 'tpl-suggest-group'); group.append(el('h3', '', tier[1]));
+        var ul = el('ul', 'tpl-suggest-rows'); items.forEach(function (item) { ul.append(row(item, canRequest)); });
+        group.append(ul); list.append(group);
+      });
+    }
+    // Ventana completa: ve qué plantillas hay, en qué estado está cada una y las pide todas de una vez (esta ventana es la confirmación).
+    function openFull(sectionId) {
+      return load().then(function () {
+        var p = plan(sectionId, statusMap()); if (!p) return;
+        var canRequest = Boolean(data.summary && data.summary.canRequest);
+        var missing = p.essential.missing;
+        var dialog = el('dialog', 'tpl-dialog tpl-suggest-full'); dialog.setAttribute('aria-label', p.title);
+        var body = el('div', 'tpl-dialog-body');
+        body.append(el('h3', '', p.title), el('p', '', p.intro));
+        var list = el('div', 'tpl-suggest-detail'); detailInto(list, p, canRequest); body.append(list);
+        if (missing.length && canRequest) body.append(el('p', 'tpl-dialog-warn', 'Se envían una tras otra a tu cuenta de WhatsApp Business. Meta decide si las aprueba y suele tardar de unos minutos a 48 horas. Si Meta rechaza una, el envío se detiene para no afectar la reputación de tu cuenta.'));
+        if (!canRequest) body.append(el('p', 'tpl-dialog-warn', 'Solo el propietario puede solicitarlas: pídeselo.'));
+        var actions = el('div', 'tpl-dialog-actions');
+        var all = el('button', 'tpl-suggest-link', 'Ir a Plantillas'); all.type = 'button';
+        all.onclick = function () { dialog.close(); if (win.SmylTemplates && win.SmylTemplates.show) win.SmylTemplates.show(); else if (win.ir) win.ir('plantillas'); };
+        var close = el('button', 'btn btn-secondary btn-sm', 'Cerrar'); close.type = 'button'; close.onclick = function () { dialog.close(); };
+        actions.append(all, close);
+        if (missing.length && canRequest && win.SmylTemplates && win.SmylTemplates.requestMany) {
+          var ask = el('button', 'btn btn-primary btn-sm', 'Solicitar las que faltan (' + missing.length + ')'); ask.type = 'button';
+          ask.onclick = function () { ask.disabled = true; dialog.close(); Promise.resolve(win.SmylTemplates.requestMany(missing, { confirmed: true })).then(load, load); };
+          actions.append(ask);
+        }
+        body.append(actions); dialog.append(body);
+        dialog.addEventListener('close', function () { dialog.remove(); });
+        doc.body.append(dialog); if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open', '');
+      });
+    }
+    api.openFull = openFull;
+
+    function build(sectionId) {
+      var p = plan(sectionId, statusMap()); if (!p) return null;
+      var canRequest = Boolean(data.summary && data.summary.canRequest);
+      var missing = p.essential.missing, problems = p.essential.problems;
+      if (!missing.length && !problems) return null; // todo aprobado o en revisión: nada que ofrecer aquí
+      if (!problems && dismissed(sectionId)) return null;
+      var card = el('section', 'tpl-suggest'); card.dataset.tplSuggest = sectionId; card.setAttribute('aria-label', 'Plantillas de WhatsApp');
+      card.dataset.tone = problems ? 'warn' : '';
+      card.dataset.sig = JSON.stringify([canRequest, p.items.map(function (item) { return item.status; })]);
+
+      var line = el('div', 'tpl-suggest-line');
+      var summary = missing.length
+        ? 'Faltan ' + missing.length + (missing.length === 1 ? ' plantilla' : ' plantillas') + ' de WhatsApp ' + p.title.replace(/^Plantillas /, '')
+        : problems + (problems === 1 ? ' plantilla tiene problemas' : ' plantillas tienen problemas') + ': revísala en Plantillas';
+      var detail = el('button', 'tpl-suggest-toggle'); detail.type = 'button'; detail.setAttribute('aria-expanded', 'false');
+      detail.append(el('span', 'tpl-suggest-icon', problems && !missing.length ? '!' : '💬'), el('span', 'tpl-suggest-text', summary), el('span', 'tpl-suggest-chevron'));
+      detail.lastChild.setAttribute('aria-hidden', 'true');
+      line.append(detail);
+      if (missing.length) {
+        if (canRequest && win.SmylTemplates && win.SmylTemplates.requestMany) {
+          var ask = el('button', 'btn btn-primary btn-sm tpl-suggest-ask', 'Solicitar (' + missing.length + ')'); ask.type = 'button';
+          ask.setAttribute('aria-label', 'Solicitar las ' + missing.length + ' plantillas que faltan');
+          ask.onclick = function () { openFull(sectionId); };
+          line.append(ask);
+        } else line.append(el('span', 'tpl-suggest-note', 'Solo el propietario puede solicitarlas: pídeselo.'));
+      }
+      var close = el('button', 'tpl-suggest-close', '✕'); close.type = 'button';
+      close.setAttribute('aria-label', 'Ocultar este aviso por ' + DISMISS_DAYS + ' días'); close.title = 'Ocultar por ' + DISMISS_DAYS + ' días';
+      close.onclick = function () { try { win.localStorage.setItem(dismissKey(sectionId), String(Date.now())); } catch (_) {} card.remove(); };
+      line.append(close); card.append(line);
+
+      var list = el('div', 'tpl-suggest-detail'); list.hidden = true;
+      detailInto(list, p, canRequest);
+      var all = el('button', 'tpl-suggest-link', 'Ir a Plantillas'); all.type = 'button';
+      all.onclick = function () { if (win.SmylTemplates && win.SmylTemplates.show) win.SmylTemplates.show(); else if (win.ir) win.ir('plantillas'); };
+      list.append(all); card.append(list);
+      detail.onclick = function () { var open = list.hidden; list.hidden = !open; detail.setAttribute('aria-expanded', String(open)); };
+      return card;
+    }
+
+    // Opción dentro del menú «Más» de Finanzas: «Plantillas de WhatsApp · Faltan N». Solo la ve quien puede solicitarlas y solo si falta algo.
+    function placeMenu(mount) {
+      var page = doc.getElementById(mount.page); if (!page) return;
+      var box = page.querySelector('.finance-operations-menu > div');
+      var current = box && box.querySelector('[data-tpl-menu="' + mount.section + '"]');
+      var p = data.summary && data.summary.loaded ? plan(mount.section, statusMap()) : null;
+      var missing = p ? p.essential.missing : [];
+      if (!box || !missing.length || !(data.summary && data.summary.canRequest) || !win.SmylTemplates || !win.SmylTemplates.requestMany) { if (current) current.remove(); return; }
+      var sig = missing.join(',');
+      if (current && current.dataset.sig === sig) return;
+      var item = el('button'); item.type = 'button'; item.dataset.tplMenu = mount.section; item.dataset.sig = sig;
+      item.append(el('strong', '', 'Plantillas de WhatsApp'), el('small', '', 'Faltan ' + missing.length + ' para avisar de pagos y facturas. Toca para verlas y solicitarlas.'));
+      item.onclick = function () { var menu = item.closest('details'); if (menu) menu.open = false; openFull(mount.section); };
+      if (current) current.replaceWith(item); else box.append(item);
+    }
+
+    function place(mount) {
+      if (mount.menu) return placeMenu(mount);
+      var page = doc.getElementById(mount.page); if (!page) return;
+      var current = page.querySelector('[data-tpl-suggest="' + mount.section + '"]');
+      if (!data.summary || !data.summary.loaded) { if (current) current.remove(); return; }
+      var card = build(mount.section);
+      var open = current && current.querySelector('.tpl-suggest-detail') && !current.querySelector('.tpl-suggest-detail').hidden;
+      if (!card) { if (current) current.remove(); return; }
+      if (current && current.dataset.sig === card.dataset.sig) return; // nada cambió: no se vuelve a pintar
+      var target = mount.find(page); if (!target) { if (current) current.remove(); return; }
+      if (open) { card.querySelector('.tpl-suggest-detail').hidden = false; card.querySelector('.tpl-suggest-toggle').setAttribute('aria-expanded', 'true'); }
+      if (current) current.replaceWith(card);
+      else if (target.after && target.after.parentNode === target.parent) target.after.after(card);
+      else target.parent.insertBefore(card, target.parent.firstChild);
+    }
+    var scheduled = 0;
+    function refresh() { win.clearTimeout(scheduled); scheduled = win.setTimeout(function () { MOUNTS.forEach(place); }, 30); }
+
+    // «Falta una plantilla»: en vez de un aviso sin salida, ofrece solicitarla ahora (o dice a quién pedirlo).
+    function offerMissing(names, fallbackText) {
+      var list = (names || []).filter(Boolean);
+      var known = list.filter(function (name) { return sectionsOf(name).length; })[0] || list[0];
+      var t = templates();
+      if (!t || !known) { win.alert(fallbackText || 'No hay una plantilla aprobada para este mensaje. Solicítala en Mensajería → Plantillas.'); return Promise.resolve(false); }
+      return Promise.resolve(t.summary()).then(function (summary) {
+        data.summary = summary;
+        var item = (summary.templates || []).filter(function (entry) { return list.indexOf(entry.id) !== -1; })
+          .sort(function (a, b) { return (a.status === 'PENDING' ? 0 : 1) - (b.status === 'PENDING' ? 0 : 1); })[0];
+        var dialog = el('dialog', 'tpl-dialog tpl-suggest-dialog'); var body = el('div', 'tpl-dialog-body');
+        body.append(el('h3', '', 'Falta una plantilla aprobada'));
+        body.append(el('p', '', 'Para escribirle a este paciente fuera de la ventana de 24 horas se necesita la plantilla «' + titleOf(known) + '» aprobada por Meta.'));
+        var actions = el('div', 'tpl-dialog-actions');
+        var close = el('button', 'btn btn-secondary btn-sm', 'Cerrar'); close.type = 'button'; close.onclick = function () { dialog.close(); };
+        if (item && item.status === 'PENDING') body.append(el('p', 'tpl-dialog-warn', 'Ya la solicitaste: Meta la está revisando. Suele tardar de unos minutos a 48 horas.'));
+        else if (item && item.status && item.status !== 'NONE' && item.status !== 'APPROVED') body.append(el('p', 'tpl-dialog-warn', 'Meta la dejó con problemas. Revísala en Plantillas.'));
+        else if (!summary.canRequest) body.append(el('p', 'tpl-dialog-warn', 'Solo el propietario puede solicitarla. Pídele que lo haga desde Mensajería → Plantillas.'));
+        actions.append(close);
+        if (summary.canRequest && (!item || item.status === 'NONE')) {
+          var ask = el('button', 'btn btn-primary btn-sm', 'Solicitar ahora'); ask.type = 'button';
+          ask.onclick = function () { dialog.close(); win.SmylTemplates.request(known); };
+          actions.append(ask);
+        }
+        body.append(actions); dialog.append(body);
+        dialog.addEventListener('close', function () { dialog.remove(); });
+        doc.body.append(dialog); if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open', '');
+        return true;
+      }, function () { win.alert(fallbackText || 'No pudimos consultar tus plantillas. Intenta de nuevo.'); return false; });
+    }
+    api.offerMissing = offerMissing;
+    api.reload = load;
+
+    function init() {
+      var previous = win.ir;
+      if (typeof previous === 'function') {
+        win.ir = function (route) {
+          var result = previous.apply(this, arguments);
+          if (MOUNTS.some(function (mount) { return mount.route === route; })) { load(); refresh(); }
+          return result;
+        };
+      }
+      // Las pantallas se vuelven a pintar solas: el aviso se vuelve a poner si desaparece.
+      if (win.MutationObserver) {
+        // Se ignoran los cambios que provoca la propia tarjeta (si no, se pintaría en bucle).
+        var own = function (record) {
+          var inside = record.target && record.target.closest && record.target.closest('.tpl-suggest');
+          var nodes = Array.prototype.slice.call(record.addedNodes).concat(Array.prototype.slice.call(record.removedNodes));
+          return Boolean(inside) || (nodes.length > 0 && nodes.every(function (node) { return node.classList && node.classList.contains('tpl-suggest'); }));
+        };
+        var observer = new win.MutationObserver(function (records) { if (data.summary && !records.every(own)) refresh(); });
+        MOUNTS.forEach(function (mount) {
+          var tries = 0;
+          (function watch() { var page = doc.getElementById(mount.page); if (page) observer.observe(page, { childList: true, subtree: true }); else if (tries++ < 40) win.setTimeout(watch, 250); })();
+        });
+      }
+      if (win.SmylTemplates && win.SmylTemplates.onChange) win.SmylTemplates.onChange(function () { load(); });
+    }
+    if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', init); else init();
+  };
+
+  return api;
+});

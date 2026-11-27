@@ -147,22 +147,125 @@
       }
     });
   }
-  function askItem(row) {
-    var existing = row.row, kind = existing ? existing.status : 'have';
+  function askItem(row, draft) {
+    var existing = row.row, suggested = draft || {}, kind = suggested.status || (existing ? existing.status : 'have');
     var clear = el('button', 'btn btn-secondary cp-clear', 'Quitar'); clear.type = 'button'; clear.hidden = !existing;
     var dlg = ask({
       title: row.title, help: row.source, submit: 'Guardar', extra: existing ? [clear] : [],
       build: function (b) {
         b.append(choice('status', [['have', 'Lo tengo', 'Anota el folio o dónde está.'], ['not_applicable', 'No aplica en mi consultorio', 'Por ejemplo, un servicio que no ofreces.']], kind));
-        b.append(field('Folio o referencia', input('text', { name: 'reference', maxlength: 120, value: existing ? existing.reference || '' : '', placeholder: row.hint || '' })));
-        if (row.validity) b.append(field('Vigencia hasta', input('date', { name: 'valid_until', value: existing && existing.valid_until ? String(existing.valid_until).slice(0, 10) : '' }), 'Te avisamos 30 días antes de que venza.'));
-        b.append(field('Notas (opcional)', input('text', { name: 'notes', maxlength: 500, value: existing ? existing.notes || '' : '' })));
+        b.append(field('Folio o referencia', input('text', { name: 'reference', maxlength: 120, value: suggested.reference || (existing ? existing.reference || '' : ''), placeholder: row.hint || '' })));
+        if (row.validity) b.append(field('Vigencia hasta', input('date', { name: 'valid_until', value: suggested.valid_until || (existing && existing.valid_until ? String(existing.valid_until).slice(0, 10) : '') }), 'Te avisamos 30 días antes de que venza.'));
+        b.append(field('Notas (opcional)', input('text', { name: 'notes', maxlength: 500, value: suggested.notes || (existing ? existing.notes || '' : '') })));
       },
       read: function (b) { var q = function (n) { return b.querySelector('[name=' + n + ']'); }; return { status: b.querySelector('[name=status]:checked').value, reference: q('reference').value, valid_until: q('valid_until') ? q('valid_until').value : '', notes: q('notes').value }; },
       validate: function () { return ''; },
       onSubmit: async function (v) { await rpc('smyl_set_compliance_item', { p_key: row.key, p_status: v.status, p_reference: v.reference.trim(), p_valid_until: v.valid_until || null, p_notes: v.notes.trim() }); await load(true); }
     });
     clear.onclick = async function () { try { await rpc('smyl_set_compliance_item', { p_key: row.key, p_status: 'clear' }); dlg.close(); await load(true); } catch (error) { var e = dlg.querySelector('.cp-error'); e.hidden = false; e.textContent = friendly(error); } };
+  }
+
+  /* ---------------------------------------------------------------- preparación asistida */
+  function manualRows() {
+    if (!state.data) return [];
+    return M.evaluate(state.data, new Date()).groups.reduce(function (all, group) {
+      return all.concat(group.rows.filter(function (row) { return row.manual; }));
+    }, []);
+  }
+  async function milaDraft(context) {
+    var rows = manualRows();
+    var payload = rows.map(function (row) {
+      return {
+        key: row.key, title: row.title, hint: row.hint || '', cadence: row.cadence || 'setup',
+        validity: !!row.validity, current_status: row.row ? row.row.status : '',
+        current_reference: row.row ? row.row.reference || '' : '', current_notes: row.row ? row.row.notes || '' : ''
+      };
+    });
+    var result = await win.sb.functions.invoke('compliance-assistant', { body: {
+      clinic_name: clinicName(), context: String(context || '').trim().slice(0, 6000), items: payload
+    } });
+    if (result.error) throw result.error;
+    if (!result.data || !Array.isArray(result.data.suggestions)) throw new Error('MILA no devolvió un borrador utilizable.');
+    return result.data;
+  }
+  function assistantStatus(s) {
+    return s.status === 'have' ? 'Parece que lo tienes' : s.status === 'not_applicable' ? 'Podría no aplicar' : 'Necesita un dato';
+  }
+  function renderMilaReview(dialog, data) {
+    var rows = manualRows(), byKey = {}; rows.forEach(function (row) { byKey[row.key] = row; });
+    var form = dialog.querySelector('.cp-form'), body = dialog.querySelector('.cp-form-body'), foot = dialog.querySelector('.cp-form-foot');
+    body.replaceChildren(); foot.replaceChildren();
+    body.append(el('div', 'cp-ai-summary', data.overview || 'MILA preparó un borrador para que lo revises.'));
+    var suggestions = data.suggestions.filter(function (s) { return s && byKey[s.key]; });
+    suggestions.forEach(function (s) {
+      var row = byKey[s.key], item = el('article', 'cp-ai-suggestion'); item.dataset.status = s.status;
+      var top = el('div', 'cp-ai-suggestion-head'), check = input('checkbox', { name: 'apply', value: s.key });
+      check.disabled = !['have', 'not_applicable'].includes(s.status);
+      var copy = el('div'); copy.append(el('strong', '', row.title), el('span', 'cp-ai-label', assistantStatus(s)));
+      top.append(check, copy); item.append(top);
+      if (s.explanation) item.append(el('p', 'cp-help', s.explanation));
+      if (!check.disabled) {
+        item.dataset.proposedStatus = s.status;
+        item.append(field('Folio o referencia', input('text', { name: 'reference', maxlength: 120, value: s.reference || '', placeholder: row.hint || '' })));
+        if (row.validity) item.append(field('Vigencia hasta', input('date', { name: 'valid_until', value: s.valid_until || '' })));
+        item.append(field('Notas', input('text', { name: 'notes', maxlength: 500, value: s.notes || '' })));
+      }
+      var revise = el('button', 'cp-ai-revise', 'Revisar por separado'); revise.type = 'button';
+      revise.onclick = function () { dialog.close(); askItem(row, s); };
+      item.append(revise); body.append(item);
+    });
+    if (Array.isArray(data.questions) && data.questions.length) {
+      var questions = el('div', 'cp-ai-questions'); questions.append(el('strong', '', 'Lo único que MILA todavía necesita de ti'));
+      var list = el('ul'); data.questions.slice(0, 6).forEach(function (q) { list.append(el('li', '', q)); }); questions.append(list); body.append(questions);
+    }
+    var confirmation = el('label', 'cp-ai-confirm'), confirm = input('checkbox', { name: 'confirm_review' });
+    confirmation.append(confirm, el('span', '', 'Confirmo que revisé los datos seleccionados. MILA sólo preparó el borrador.')); body.append(confirmation);
+    var error = dialog.querySelector('.cp-error');
+    var cancel = el('button', 'btn btn-secondary', 'Cerrar'); cancel.type = 'button'; cancel.onclick = function () { dialog.close(); };
+    var save = el('button', 'btn btn-primary', 'Guardar seleccionados'); save.type = 'button';
+    save.onclick = async function () {
+      error.hidden = true;
+      var selected = Array.from(body.querySelectorAll('[name=apply]:checked'));
+      if (!selected.length) { error.hidden = false; error.textContent = 'Selecciona al menos un borrador para guardar.'; return; }
+      if (!confirm.checked) { error.hidden = false; error.textContent = 'Confirma que revisaste los datos antes de guardarlos.'; return; }
+      save.disabled = true; save.textContent = 'Guardando…';
+      try {
+        for (var i = 0; i < selected.length; i++) {
+          var article = selected[i].closest('.cp-ai-suggestion'), status = article.dataset.proposedStatus;
+          var reference = article.querySelector('[name=reference]'), valid = article.querySelector('[name=valid_until]'), notes = article.querySelector('[name=notes]');
+          if (status === 'have' && !String(reference.value || '').trim()) throw new Error('Agrega el folio o la referencia de “' + byKey[selected[i].value].title + '”.');
+          if (status === 'not_applicable' && String(notes.value || '').trim().length < 8) throw new Error('Explica por qué no aplica “' + byKey[selected[i].value].title + '”.');
+          await rpc('smyl_set_compliance_item', { p_key: selected[i].value, p_status: status, p_reference: String(reference.value || '').trim(), p_valid_until: valid && valid.value ? valid.value : null, p_notes: String(notes.value || '').trim() });
+        }
+        dialog.close(); await load(true);
+      } catch (err) { error.hidden = false; error.textContent = friendly(err); save.disabled = false; save.textContent = 'Guardar seleccionados'; }
+    };
+    foot.append(cancel, save); form.onsubmit = function (e) { e.preventDefault(); save.click(); };
+  }
+  function askMila() {
+    var d = el('dialog', 'cp-dialog cp-ai-dialog'); d.setAttribute('aria-labelledby', 'cp-mila-title');
+    var form = el('form', 'cp-form'); form.noValidate = true;
+    var head = el('header', 'cp-form-head'), copy = el('div');
+    var title = el('h2', '', 'Preparar con MILA'); title.id = 'cp-mila-title';
+    copy.append(title, el('p', 'cp-help', 'MILA ordena lo que SMYL ya sabe y prepara borradores. Tú decides qué guardar.'));
+    var x = el('button', 'cp-x', '×'); x.type = 'button'; x.setAttribute('aria-label', 'Cerrar'); x.onclick = function () { d.close(); };
+    head.append(copy, x); form.append(head);
+    var body = el('div', 'cp-form-body');
+    var note = el('div', 'cp-ai-safe'); note.append(el('strong', '', 'No inventa ni aprueba documentos.'), el('span', '', 'Sólo propone datos a partir de lo que escribas. Cada propuesta queda pendiente de tu revisión.'));
+    var context = el('textarea', 'cp-ai-context'); context.name = 'context'; context.maxLength = 6000; context.rows = 7;
+    context.placeholder = 'Ejemplo: Tengo aviso de funcionamiento con folio…, contrato de RPBI con la empresa… vigente hasta…, no opero equipo de rayos X…';
+    body.append(note, field('Cuéntale qué documentos y controles ya tiene la clínica', context, 'Puedes pegar varios folios, fechas y notas en un solo texto. No incluyas datos de pacientes.'));
+    form.append(body);
+    var err = el('p', 'cp-error'); err.setAttribute('role', 'alert'); err.hidden = true; form.append(err);
+    var foot = el('footer', 'cp-form-foot'), cancel = el('button', 'btn btn-secondary', 'Cancelar'); cancel.type = 'button'; cancel.onclick = function () { d.close(); };
+    var prepare = el('button', 'btn btn-primary', 'Preparar borrador con MILA'); prepare.type = 'submit';
+    foot.append(cancel, prepare); form.append(foot); d.append(form); document.body.append(d);
+    form.onsubmit = async function (event) {
+      event.preventDefault(); err.hidden = true; prepare.disabled = true; prepare.textContent = 'MILA está preparando…';
+      try { renderMilaReview(d, await milaDraft(context.value)); }
+      catch (error) { err.hidden = false; err.textContent = friendly(error); prepare.disabled = false; prepare.textContent = 'Preparar borrador con MILA'; }
+    };
+    d.addEventListener('close', function () { d.remove(); }, { once: true }); d.showModal(); context.focus();
   }
 
   /* ---------------------------------------------------------------- pantalla */
@@ -182,6 +285,18 @@
     return li;
   }
   function card(title, sub) { var c = el('section', 'cp-card'), h = el('header', 'cp-card-head'), t = el('div'); t.append(el('h2', '', title)); if (sub) t.append(el('p', 'cp-help', sub)); h.append(t); c.append(h); c.head = h; return c; }
+  function rowsWithCadence(ev, values) {
+    return ev.groups.reduce(function (all, group) { return all.concat(group.rows); }, []).filter(function (row) { return values.includes(row.cadence); });
+  }
+  function cadenceCard(title, sub, eyebrow, rows, open) {
+    var details = el('details', 'cp-card cp-cadence'); details.open = !!open;
+    var summary = el('summary', 'cp-cadence-head'), copy = el('div');
+    copy.append(el('span', 'cp-cadence-eyebrow', eyebrow), el('h2', '', title), el('p', 'cp-help', sub));
+    var pending = rows.filter(function (row) { return !['ok', 'info', 'na'].includes(row.status); }).length;
+    summary.append(copy, chip(pending ? 'missing' : 'ok', pending ? pending + ' por revisar' : 'Al día'));
+    var listRows = el('ul', 'cp-rows'); rows.forEach(function (row) { listRows.append(rowEl(row)); });
+    details.append(summary, listRows); return details;
+  }
 
   function render() {
     var host = document.getElementById('cp-content'); if (!host) return;
@@ -192,33 +307,30 @@
     if (!state.data) return;
     var ev = M.evaluate(state.data, new Date()), s = ev.summary, steril = state.data.sterilization || {}, rpbi = state.data.rpbi || {};
 
-    var sum = card('Resumen para una inspección');
+    var sum = card('Tu avance');
     var big = el('div', 'cp-summary'); big.append(el('strong', '', s.ok + ' de ' + s.total), el('span', '', ' requisitos al día'));
     var bar = el('div', 'cp-bar'); bar.setAttribute('aria-hidden', 'true'); var fill = el('i', ''); fill.style.width = (s.total ? Math.round(s.ok / s.total * 100) : 0) + '%'; bar.append(fill);
     sum.append(big, bar);
     if (s.pending) {
-      var todo = el('ul', 'cp-todo'); s.pendingRows.slice(0, 6).forEach(function (r) { var li = el('li', ''); li.dataset.status = r.status; li.append(el('span', '', r.title), chip(r.status, r.label)); todo.append(li); });
-      sum.append(el('h3', 'cp-sub', s.pending === 1 ? 'Falta 1 punto' : 'Faltan ' + s.pending + ' puntos'), todo);
+      var todo = el('ul', 'cp-todo'); s.pendingRows.slice(0, 3).forEach(function (r) { var li = el('li', ''); li.dataset.status = r.status; li.append(el('span', '', r.title), chip(r.status, r.label)); todo.append(li); });
+      sum.append(el('h3', 'cp-sub', 'Lo siguiente que conviene resolver'), todo);
     } else sum.append(el('p', 'cp-help', 'Todo lo que SMYL puede comprobar está al día.'));
     host.append(sum);
 
-    var st = card('Esterilización', 'Ciclos de autoclave y testigo biológico cada 2 meses.');
-    var b1 = el('button', 'btn btn-primary', '+ Registrar ciclo'); b1.type = 'button'; b1.onclick = askCycle;
-    var b2 = el('button', 'btn btn-secondary', 'Testigo biológico'); b2.type = 'button'; b2.onclick = askBio;
-    var acts = el('div', 'cp-actions'); acts.append(b1, b2); st.head.append(acts);
-    st.append(list(steril.recent, function (r) { return [fmtDate(r.occurred_at, true), r.kind === 'cycle' ? 'Ciclo' + (r.device ? ' · ' + r.device : '') + (r.temperature_c ? ' · ' + r.temperature_c + ' °C' : '') + (r.minutes ? ' · ' + r.minutes + ' min' : '') + ' · indicador ' + (r.indicator_ok ? 'correcto' : 'incorrecto') : 'Testigo biológico · ' + (r.bio_result === 'negative' ? 'negativo' : 'POSITIVO')]; }, 'Todavía no hay registros de esterilización en el periodo.'));
-    host.append(st);
-
-    var rp = card('Residuos peligrosos (RPBI)', 'Recolecciones con su manifiesto.');
-    var b3 = el('button', 'btn btn-primary', '+ Registrar recolección'); b3.type = 'button'; b3.onclick = askRpbi; var a3 = el('div', 'cp-actions'); a3.append(b3); rp.head.append(a3);
-    rp.append(list(rpbi.recent, function (r) { return [fmtDate(r.collected_at), 'Manifiesto ' + r.manifest + (r.company ? ' · ' + r.company : '') + (r.kg != null ? ' · ' + r.kg + ' kg' : '')]; }, 'Todavía no hay recolecciones registradas en el periodo.'));
-    host.append(rp);
-
-    ev.groups.forEach(function (g) {
-      if (!g.rows.length) return;
-      var c = card(g.name, g.name === 'Por confirmar con tu asesor' ? 'No verificamos estos requisitos contra su texto. Confírmalos con un asesor sanitario.' : g.name === 'Lo que SMYL registra por ti' ? 'Se calcula solo con lo que ya capturas al atender.' : ''), ul = el('ul', 'cp-rows');
-      g.rows.forEach(function (r) { ul.append(rowEl(r)); }); c.append(ul); host.append(c);
+    var guide = el('div', 'cp-rhythm-guide');
+    [['01', 'Configura una vez', 'Documentos, equipo y avisos de la clínica.'], ['02', 'Mantén al día', 'Controles diarios, mensuales o anuales.'], ['03', 'SMYL lo registra', 'Actividad clínica que se comprueba automáticamente.']].forEach(function (item) {
+      var tile = el('div', ''); tile.append(el('span', '', item[0]), el('strong', '', item[1]), el('small', '', item[2])); guide.append(tile);
     });
+    host.append(guide);
+    host.append(cadenceCard('Configura la clínica una sola vez', 'Completa estos datos al iniciar; después sólo los revisas si algo cambia.', 'PRIMERA VEZ', rowsWithCadence(ev, ['setup']), true));
+    var routineRows = rowsWithCadence(ev, ['routine', 'periodic']);
+    var routine = cadenceCard('Rutinas y vencimientos', 'Aquí vive lo diario, periódico y todo lo que requiere una nueva evidencia.', 'MANTENER AL DÍA', routineRows, true);
+    var history = el('details', 'cp-history'); history.append(el('summary', '', 'Ver registros recientes'));
+    var logs = el('div', 'cp-history-grid');
+    var ster = el('section'); ster.append(el('h3', '', 'Esterilización'), list(steril.recent, function (r) { return [fmtDate(r.occurred_at, true), r.kind === 'cycle' ? 'Ciclo' + (r.device ? ' · ' + r.device : '') : 'Testigo biológico · ' + (r.bio_result === 'negative' ? 'negativo' : 'positivo')]; }, 'Sin registros en el periodo.'));
+    var waste = el('section'); waste.append(el('h3', '', 'RPBI'), list(rpbi.recent, function (r) { return [fmtDate(r.collected_at), 'Manifiesto ' + r.manifest + (r.company ? ' · ' + r.company : '')]; }, 'Sin recolecciones en el periodo.'));
+    logs.append(ster, waste); history.append(logs); routine.append(history); host.append(routine);
+    host.append(cadenceCard('Lo que SMYL registra automáticamente', 'Se actualiza con la agenda, las notas firmadas, los consentimientos y los procedimientos.', 'SIN CAPTURA DOBLE', rowsWithCadence(ev, ['automatic']), false));
     host.append(el('p', 'cp-foot', 'Este resumen se arma con los registros de tu consultorio. No sustituye los documentos originales ni una asesoría sanitaria.'));
   }
   function list(rows, cols, empty) {
@@ -257,11 +369,12 @@
   function build() {
     var page = el('section', 'pantalla cp-page'); page.id = 'p-cumplimiento';
     var head = el('header', 'cp-head'), copy = el('div');
-    copy.append(el('span', 'pro-eyebrow', 'CONFIGURACIÓN · CUENTA Y SEGURIDAD'), el('h1', '', 'Cumplimiento sanitario'), el('p', '', 'Bitácoras y la carpeta para una visita de COFEPRIS, con lo que ya registras al atender.'));
+    copy.append(el('span', 'pro-eyebrow', 'CONFIGURACIÓN · CUENTA Y SEGURIDAD'), el('h1', '', 'Cumplimiento sanitario'), el('p', '', 'SMYL ordena lo que se hace una vez, lo que debes mantener y lo que ya se registra solo.'));
     var actions = el('div', 'cp-actions');
     var refresh = el('button', 'btn btn-secondary', 'Actualizar'); refresh.type = 'button'; refresh.onclick = function () { load(true); };
-    var report = el('button', 'btn btn-primary', 'Generar reporte'); report.type = 'button'; report.id = 'cp-report'; report.onclick = printReport;
-    actions.append(refresh, report); head.append(copy, actions); page.append(head);
+    var report = el('button', 'btn btn-secondary', 'Generar reporte'); report.type = 'button'; report.id = 'cp-report'; report.onclick = printReport;
+    var assistant = el('button', 'btn btn-primary cp-mila', 'Preparar con MILA'); assistant.type = 'button'; assistant.onclick = askMila;
+    actions.append(refresh, report, assistant); head.append(copy, actions); page.append(head);
     var content = el('div', 'cp-content'); content.id = 'cp-content'; content.setAttribute('aria-live', 'polite'); page.append(content);
     var host = document.querySelector('.contenido'); if (host) host.append(page);
   }

@@ -15,3 +15,7 @@
 .ai-switch-book { border-color: #f1dfae; background: #fffaf0; }
 .ai-switch-book .ai-cap { margin-top: 10px; display: flex; gap: 8px; align-items: center; font-size: 13px; color: #33415c; }
 .ai-cap select { min-height: 36px; border: 1px solid #cbd0d8; border-radius: 8px; padding: 0 8px; background: #fff; }
+
+.ai-services-note{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px solid #dce6e3;border-radius:14px}
+.ai-services-note strong,.ai-services-note small{display:block}
+.ai-services-note small{color:#5f716b;font-size:13px;line-height:1.5;margin-top:2px;max-width:56ch}

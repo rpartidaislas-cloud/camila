@@ -10,7 +10,7 @@
   function field(label,id,value,type){var wrap=n('div','clinic-field'),input=n(type==='textarea'?'textarea':'input'),lbl=n('label','',label);input.id=id;lbl.htmlFor=id;if(type&&type!=='textarea')input.type=type;input.value=value==null?'':value;wrap.append(lbl,input);return wrap;}
   async function checked(query){var res=await sbTimeout(query,30000);if(res.error)throw res.error;return res.data;}
   async function capabilities(tenant){if(window.miRolEquipo==='dueño')return {read:true,write:true,approve:true,followup:true,finance:true};var auth=await window.sb.auth.getUser(),actor=auth.data&&auth.data.user&&auth.data.user.id;if(!actor)return {read:false,write:false,approve:false,followup:false};var assignments=await checked(window.sb.from('smyl_member_roles').select('role_id').eq('tenant_id',tenant).eq('user_id',actor)),ids=(assignments||[]).map(function(x){return x.role_id;});if(!ids.length)return {read:false,write:false,approve:false,followup:false};var rows=await checked(window.sb.from('smyl_role_permissions').select('permission_key').eq('tenant_id',tenant).in('role_id',ids)),perms=new Set((rows||[]).map(function(x){return x.permission_key;}));return {read:perms.has('proposal.read'),write:perms.has('proposal.write'),approve:perms.has('proposal.approve'),followup:perms.has('proposal.followup'),finance:perms.has('finance.read')};}
-  function errorText(error){if(['40001','PT409'].includes(error.code))return 'El plan o la propuesta cambió, o su vigencia terminó. Conservamos tus cambios; vuelve a cargar la propuesta o actualiza su plan y revisa de nuevo.';if(['42P01','PGRST202','PGRST205'].includes(error.code))return 'Propuestas aún no está habilitado en la base de datos. Falta activar esta etapa.';return SmylClinicalModel.errorMessage(error);}
+  function errorText(error){if(['40001','PT409'].includes(error.code))return 'El plan o la propuesta cambió, o su vigencia terminó. Conservamos tus cambios; vuelve a cargar la propuesta o actualiza su plan y revisa de nuevo.';if(/Manual quote item cannot claim|Invalid quote item v2|Invalid service link/i.test(String(error&&error.message||'')))return 'Falta actualizar la base de datos de SMYL para agregar servicios del catálogo y etapas a la cotización.';if(/Service is unavailable or changed|Service snapshot mismatch/i.test(String(error&&error.message||'')))return 'Un servicio del catálogo cambió o se desactivó. Quítalo y vuelve a agregarlo desde «Agregar servicio».';if(['42P01','PGRST202','PGRST205'].includes(error.code))return 'Propuestas aún no está habilitado en la base de datos. Falta activar esta etapa.';return SmylClinicalModel.errorMessage(error);}
   function feedback(text,error){var host=document.getElementById('proposal-feedback');if(host)host.replaceChildren(notice(text,error));}
   function patientCacheKey(patientId,tenant){return String(tenant||window.tenantId||'')+':'+String(patientId||'');}
   function summaryKey(patientId,treatmentId,tenant){return patientCacheKey(patientId,tenant)+':'+String(treatmentId||'current');}
@@ -79,7 +79,7 @@
   var listBranches=new Map();
   function rowFromForm(){
     var doc={schema:2,title:document.getElementById('proposal-title').value.trim(),introduction:document.getElementById('proposal-intro').value.trim(),terms:document.getElementById('proposal-terms').value.trim(),valid_until:document.getElementById('proposal-valid').value,items:[],photos:null};
-    document.querySelectorAll('.proposal-item').forEach(function(row){var meta=JSON.parse(row.dataset.itemMeta||'{}');doc.items.push(Object.assign(meta,{label:row.querySelector('[data-field="label"]').value.trim(),area:row.querySelector('[data-field="area"]').value.trim(),quantity:Number(row.querySelector('[data-field="quantity"]').value),unit_cents:M.cents(row.querySelector('[data-field="price"]').value),currency:'MXN'}));});
+    document.querySelectorAll('.proposal-item').forEach(function(row){var meta=JSON.parse(row.dataset.itemMeta||'{}');doc.items.push(Object.assign(meta,{label:row.querySelector('[data-field="label"]').value.trim(),area:row.querySelector('[data-field="area"]').value.trim(),quantity:Number(row.querySelector('[data-field="quantity"]').value),unit_cents:M.cents(row.querySelector('[data-field="price"]').value),currency:'MXN',phase:M.phaseKey((row.querySelector('[data-field="phase"]')||{}).value||meta.phase)}));});
     if(document.getElementById('proposal-include-photos').checked)doc.photos={before_path:ctx.files.before?ctx.files.before.path:ctx.photoPaths?.before_path||'',simulation_path:ctx.files.simulation?ctx.files.simulation.path:ctx.photoPaths?.simulation_path||'',view:document.getElementById('proposal-view').value};
     return {...ctx.row,document:doc,plan_revision:ctx.plan.revision,branch_id:currentBranchId()};
   }
@@ -110,10 +110,61 @@
     var eventButton=document.getElementById('proposal-record-event');if(eventButton)eventButton.disabled=ctx.busy||ctx.historical||ctx.eventsLoading||!approved||!ctx.access.followup||ctx.decisionFinal;
     ['proposal-event-type','proposal-event-channel','proposal-event-note'].forEach(function(id){var input=document.getElementById(id);if(input)input.disabled=ctx.busy||ctx.historical||ctx.eventsLoading||!approved||!ctx.access.followup||ctx.decisionFinal;});
     document.querySelectorAll('[data-proposal-line-decision]').forEach(function(input){input.disabled=ctx.busy||ctx.historical||ctx.eventsLoading||!approved||!ctx.access.followup||ctx.decisionFinal;});
-    var decisionButton=document.getElementById('proposal-save-decision');if(decisionButton)decisionButton.disabled=ctx.busy||ctx.historical||ctx.eventsLoading||!approved||!ctx.access.followup||ctx.decisionFinal;
-    document.getElementById('proposal-add').disabled=ctx.busy||ctx.historical||!ctx.access.write||doc.items.length>=20;
+    var allAccepted=document.getElementById('proposal-accept-all');if(allAccepted)allAccepted.disabled=ctx.busy||ctx.historical||ctx.eventsLoading||!approved||!ctx.access.followup||ctx.decisionFinal;var decisionButton=document.getElementById('proposal-save-decision');if(decisionButton)decisionButton.disabled=ctx.busy||ctx.historical||ctx.eventsLoading||!approved||!ctx.access.followup||ctx.decisionFinal;
+    ['proposal-add','proposal-add-service'].forEach(function(id){var btn=document.getElementById(id);if(btn)btn.disabled=ctx.busy||ctx.historical||!ctx.access.write||doc.items.length>=20;});
     document.getElementById('proposal-photo-inputs').hidden=!document.getElementById('proposal-include-photos').checked;
     document.getElementById('proposal-approve').disabled=ctx.busy||ctx.historical||ctx.stale||!ctx.access.approve||!document.getElementById('proposal-approval-check').checked;
+  }
+
+  // ── Servicios del catálogo dentro de la cotización ───────────────────────────────────────────────────────────────
+  // Cualquier servicio activo de la clínica (limpieza, implante, resina, ortodoncia…) puede ir en la cotización con su precio de la sucursal
+  // y su copia congelada; el servidor valida que el servicio siga vigente. «Otro concepto» queda para lo que no esté en el catálogo.
+  async function loadCatalog(){
+    if(ctx.services)return ctx.services;
+    var rows=await checked(sb.from('smyl_services').select('*').eq('tenant_id',ctx.tenant).eq('active',true).order('category').order('name'));
+    ctx.services=(rows||[]).filter(function(x){return x&&x.id&&x.name;});return ctx.services;
+  }
+  function servicePriceLabel(service){var snap=SmylClinicalModel.snapshot(service),cents=branchUnitCents({service_id:service.id,service_snapshot:snap},currentBranchId());return cents===undefined?'Por definir':M.money(cents);}
+  var PRICING_HINT={per_tooth:'por pieza',per_surface:'por superficie',per_quadrant:'por cuadrante',per_arch:'por arcada',per_session:'por sesión',per_phase:'por etapa',package:'paquete',from:'desde',fixed:''};
+  async function openServicePicker(){
+    if(!ctx||ctx.busy||ctx.historical)return;var current=ctx;
+    var dlg=n('dialog','proposal-service-dialog'),form=n('form');form.method='dialog';
+    var head=n('header');head.append(n('h2','','Agregar servicio'),n('p','','Elige de los servicios dados de alta en tu clínica. El precio es el de la sucursal de esta cotización.'));
+    var search=n('input','proposal-service-search');search.type='search';search.placeholder='Buscar: limpieza, implante, resina…';search.setAttribute('aria-label','Buscar servicio');
+    var list=n('div','proposal-service-list'),status=n('p','proposal-service-empty');status.setAttribute('role','status');
+    var foot=n('footer'),done=b('Listo',function(){dlg.close();},'btn btn-primary');status.style.cssText='flex:1;margin:0;padding:0;align-self:center;text-align:left';foot.append(status,done);
+    form.append(head,search,list,foot);dlg.append(form);document.body.append(dlg);
+    dlg.addEventListener('close',function(){dlg.remove();});dlg.showModal();
+    list.replaceChildren(skel('list',{rows:4,avatar:false,label:'Cargando servicios'}));
+    var services;try{services=await loadCatalog();}catch(error){list.replaceChildren(notice('No se pudo cargar el catálogo de servicios.',true));return;}
+    if(ctx!==current)return;
+    function pick(service){
+      if(document.querySelectorAll('.proposal-item').length>=20){status.textContent='La cotización admite hasta 20 conceptos.';return;}
+      var snap=SmylClinicalModel.snapshot(service),cents=branchUnitCents({service_id:service.id,service_snapshot:snap},currentBranchId());
+      addLine({id:'quote-'+crypto.randomUUID(),treatment_id:null,service_id:service.id,service_revision:service.catalog_revision,service_snapshot:snap,teeth:[],surfaces:[],
+        label:snap.patient_name||snap.name,area:'',quantity:1,unit_cents:cents===undefined?null:cents,phase:'treat'});
+      changed();status.textContent='✓ Agregado: '+(snap.patient_name||snap.name)+'. Ajusta cantidad, etapa o precio en la lista; puedes agregar otro.';
+    }
+    function render(){
+      var term=search.value.trim().toLocaleLowerCase('es-MX'),shown=services.filter(function(x){return !term||(x.name+' '+(x.patient_name||'')+' '+(x.category||'')+' '+(x.specialty||'')).toLocaleLowerCase('es-MX').includes(term);});
+      list.replaceChildren();if(!shown.length){list.append(n('p','proposal-service-empty',services.length?'Ningún servicio coincide con la búsqueda.':'Todavía no hay servicios activos. Dalos de alta en Servicios.'));return;}
+      var lastCat=null;shown.forEach(function(service){
+        var cat=service.category||'Otros';if(cat!==lastCat){list.append(n('div','proposal-service-group',cat));lastCat=cat;}
+        var btn=n('button','proposal-service-option');btn.type='button';
+        btn.append(n('strong','',service.patient_name||service.name),n('small','',[service.name!==service.patient_name?service.name:'',PRICING_HINT[service.pricing_mode]||''].filter(Boolean).join(' · ')||' '),n('span','proposal-service-price',servicePriceLabel(service)));
+        btn.addEventListener('click',function(){pick(service);});list.append(btn);
+      });
+    }
+    search.addEventListener('input',render);render();search.focus();
+  }
+  // Una cotización nueva sale con vigencia y condiciones ya escritas (editables); la clínica puede fijar las suyas en config.proposal_defaults.
+  var DEFAULT_TERMS='Los importes están expresados en pesos mexicanos e incluyen los tratamientos listados en esta propuesta. Cualquier tratamiento adicional que resulte necesario se acordará contigo antes de realizarse. La propuesta puede ajustarse si cambia tu valoración clínica.';
+  function applyProposalDefaults(doc){
+    var cfg=(window.tenantData&&window.tenantData.config&&window.tenantData.config.proposal_defaults)||{},days=Number(cfg.valid_days)||30,d=new Date(Date.now()+Math.min(Math.max(days,1),365)*86400000);
+    if(!doc.valid_until)doc.valid_until=d.toLocaleDateString('en-CA',{timeZone:'America/Mexico_City'});
+    if(!doc.terms)doc.terms=String(cfg.terms||DEFAULT_TERMS).slice(0,3000);
+    if(!doc.introduction&&cfg.introduction)doc.introduction=String(cfg.introduction).slice(0,3000);
+    return doc;
   }
   function addLine(item){
     if(document.querySelectorAll('.proposal-item').length>=20)return;item=item||{label:'',area:'',quantity:1,unit_cents:null};lineSequence++;
@@ -121,7 +172,9 @@
     [['Concepto','label',item.label,'text'],['Zona · opcional','area',item.area,'text'],['Cantidad','quantity',item.quantity,'number'],['Precio por unidad · MXN','price',item.unit_cents===null?'':(item.unit_cents/100).toFixed(2),'text']].forEach(function(e){var f=field(e[0],'proposal-line-'+lineSequence+'-'+e[1],e[2],e[3]);f.lastChild.dataset.field=e[1];if(e[1]==='quantity'){f.lastChild.min='1';f.lastChild.max='100';f.lastChild.step='1';}else{f.lastChild.maxLength=e[1]==='price'?10:200;}if(e[1]==='price'){f.lastChild.inputMode='decimal';f.lastChild.placeholder='Por definir';}row.append(f);});
     var priceInput=row.querySelector('[data-field="price"]');if(priceInput)priceInput.addEventListener('input',function(ev){if(ev.isTrusted)row.dataset.priceManual='1';});
     if(meta.teeth.length){var target=n('p','proposal-item-target','Mapa dental · piezas '+meta.teeth.join(', ')+(meta.surfaces.length?' · superficies '+meta.surfaces.join(', '):''));row.append(target);}
-    if(meta.service_snapshot){var fiscal=n('small','proposal-item-fiscal','Catálogo v'+meta.service_revision+' · SAT '+(meta.service_snapshot.sat_product_service_code||'por definir')+' · '+(meta.service_snapshot.fiscal_status==='reviewed'?'fiscal revisado':'revisión fiscal pendiente'));row.append(fiscal);}
+    var phaseWrap=n('div','clinic-field proposal-phase-field'),phaseLabelEl=n('label','','Etapa del tratamiento'),phaseSelect=n('select');phaseSelect.id='proposal-line-'+lineSequence+'-phase';phaseLabelEl.htmlFor=phaseSelect.id;phaseSelect.dataset.field='phase';M.phases.forEach(function(ph){phaseSelect.append(new Option(ph[1],ph[0]));});phaseSelect.value=meta.phase;phaseWrap.append(phaseLabelEl,phaseSelect);row.append(phaseWrap);
+    if(meta.service_snapshot&&meta.service_snapshot.fiscal_status!=='reviewed')row.append(n('small','proposal-item-fiscal proposal-item-fiscal-warn','Servicio con datos fiscales por revisar (en Servicios). El paciente no lo ve.'));
+    if(meta.service_id&&!meta.treatment_id)row.append(n('small','proposal-item-fiscal','Servicio del catálogo'));
     row.append(b('Quitar concepto',function(){row.remove();changed();},'clinic-remove'));document.getElementById('proposal-items').append(row);
   }
   async function selectPhoto(kind,file){
@@ -349,7 +402,7 @@
       card.append(options);host.append(card);
     });
     var totals=n('div','proposal-decision-totals');totals.id='proposal-decision-totals';host.append(totals);renderDecisionTotals(ctx.decision?summary:selectedDecisionSummary());
-    if(!ctx.decision&&!ctx.decisionFinal){var saveButton=b('Guardar decisión',recordDecision,'btn btn-primary');saveButton.id='proposal-save-decision';host.append(saveButton,n('p','proposal-privacy','La decisión queda asociada a esta versión. Los conceptos pendientes o rechazados nunca se enviarán a Caja; para decidirlos después prepara una nueva versión.'));}
+    if(!ctx.decision&&!ctx.decisionFinal){var allButton=b('Aceptó todo el plan',function(){document.querySelectorAll('[data-proposal-line-decision][value="accepted"]').forEach(function(input){input.checked=true;});renderDecisionTotals(selectedDecisionSummary());recordDecision();},'btn btn-secondary');allButton.id='proposal-accept-all';var saveButton=b('Guardar decisión',recordDecision,'btn btn-primary');saveButton.id='proposal-save-decision';host.append(allButton,saveButton,n('p','proposal-privacy','La decisión queda asociada a esta versión. Los conceptos pendientes o rechazados nunca se enviarán a Caja; para decidirlos después prepara una nueva versión.'));}
     else if(ctx.decision)host.append(n('p','proposal-decision-saved','Decisión registrada · '+new Date(ctx.decision.occurred_at||ctx.decision.created_at).toLocaleString('es-MX')));
     if(latest&&latest.event_type==='changes_requested'&&!ctx.decision)host.append(n('p','proposal-event-empty','El paciente solicitó cambios. Prepara una nueva versión antes de registrar otra decisión.'));
   }
@@ -592,7 +645,7 @@
     }
     form.append(field('Mensaje para el paciente · opcional','proposal-intro',doc.introduction,'textarea'));
     var quotation=n('div','clinic-section-heading');quotation.append(n('h2','','Tratamiento e inversión'),n('p','','Los conceptos vienen del plan revisado. Ajusta su descripción, cantidad y precio. No se copian las notas clínicas internas.'));
-    var items=n('div');items.id='proposal-items';var add=b('+ Añadir concepto',function(){addLine();changed();});add.id='proposal-add';form.append(quotation,items,add);
+    var items=n('div');items.id='proposal-items';var add=b('+ Otro concepto',function(){addLine();changed();});add.id='proposal-add';var addService=b('+ Agregar servicio',openServicePicker,'btn btn-primary');addService.id='proposal-add-service';var addRow=n('div','proposal-add-row');addRow.append(addService,add);form.append(quotation,items,addRow);
     var photo=n('details','clinic-secondary');photo.append(n('summary','','Comparación de sonrisa · opcional'));
     var include=n('label','clinic-confirm'),includeCheck=n('input');includeCheck.type='checkbox';includeCheck.id='proposal-include-photos';includeCheck.checked=!!doc.photos;include.append(includeCheck,document.createTextNode('Incluir foto original y simulación'));photo.append(include);
     var inputs=n('div');inputs.id='proposal-photo-inputs';
@@ -643,7 +696,7 @@
         var go=b('Ir a la propuesta de '+who,function(){openPlanForQuote(patient.id);},'btn btn-primary');go.id='proposal-gate-open';
         gate.append(go,b('Volver a Cotizaciones',loadList));root.replaceChildren(gate);return;}
       if(token!==sequence||tenant!==tenantId)return;
-      if(!row){var config=tenantData?.config||{};row={id:crypto.randomUUID(),tenant_id:tenant,patient_id:patient.id,treatment_id:plan.treatment_id||null,patient_name:[patient.nombre,patient.apellido].filter(Boolean).join(' '),clinic_name:config.consultorio||tenantData?.nombre||'Clínica dental',professional_name:config.doctor||'',plan_revision:plan.revision,revision:0,status:'draft',document:M.fromPlan(plan)};}else row.document=M.normalize(row.document);
+      if(!row){var config=tenantData?.config||{};row={id:crypto.randomUUID(),tenant_id:tenant,patient_id:patient.id,treatment_id:plan.treatment_id||null,patient_name:[patient.nombre,patient.apellido].filter(Boolean).join(' '),clinic_name:config.consultorio||tenantData?.nombre||'Clínica dental',professional_name:config.doctor||'',plan_revision:plan.revision,revision:0,status:'draft',document:applyProposalDefaults(M.fromPlan(plan))};}else row.document=M.normalize(row.document);
       var branches=[],branchPrices=[];
       try{branches=await checked(sb.from('smyl_branches').select('id,name,is_default,address_line,city,state,phone').eq('tenant_id',tenant).eq('active',true).order('is_default',{ascending:false}).order('name'))||[];branchPrices=await checked(sb.from('smyl_service_branch_prices').select('service_id,branch_id,price').eq('tenant_id',tenant))||[];}catch(_){branchPrices=[];}
       var scopeBranch=window.SmylBranchScope&&typeof SmylBranchScope.get==='function'?SmylBranchScope.get():null,mineBranch=scopeBranch&&scopeBranch!==SmylBranchScope.ALL&&branches.some(function(b){return b.id===scopeBranch;})?scopeBranch:'';
