@@ -12940,3 +12940,9 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **No verificado contra LANA real:** la ruta `/pause` y el campo `paused` de la lista se tomaron del contrato y del código existente; los simuladores de prueba cubren la lógica (paginación, fallos, tope, tiempo).
 - **CI:** `scripts/run-critical-tests.mjs` ahora incluye `lana-unlink`, `pausa-emergencia` y `auditoria-chat-`.
 - **Archivos:** `supabase/functions/lana-connection/index.ts` + bundle, `lana-inbox/index.ts` + bundle, `_shared/pause-all-core.mjs`, migración, `smyl-connections.js/.css`, `smyl-inbox.js/.css`, `app.html`, `sw.js`, copias móviles, `tests/lana-unlink-messaging` (actualizada), `tests/pausa-emergencia-core`, `tests/auditoria-chat-desvincular-pausa`.
+
+## 2026-11-27 · Claude · Finanzas: Bloques 3 y 4 de la auditoría
+- **Función a redesplegar:** `facturapi` (pegar `docs/bundles/facturapi.single-file.ts`). Nueva compuerta de cancelación en producción: `puedeCancelarEnProduccion` (`_shared/facturapi-core.mjs`), secreto `FACTURAPI_LIVE_CANCELLATION=1` (apagado por defecto) y texto «CANCELAR EN PRODUCCION». `cancel_check` en producción también requiere el interruptor. La vista de conexión devuelve `live_cancellation`. Los eventos de cancelación guardan `live`. Sin SQL.
+- `smyl-finance.js?v=83` / `.css?v=60`: diálogo de cancelación real vs sandbox; tarjeta «Pagos» con el periodo del panel (`periodFacts`); `message()` ya no colapsa los permisos en un texto único; caja ajena con nombre del responsable.
+- Doc nueva: `docs/FACTURAPI_PUESTA_EN_PRODUCCION.md` (configuración 4/4, contador, secretos, prueba controlada).
+- Pruebas nuevas: `facturapi-cancelacion-produccion`, `finance-bloque4-ux`; 351 pruebas de finanzas/CFDI verdes y el humo de navegador completo.
