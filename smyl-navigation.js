@@ -38,7 +38,6 @@
     ['Inicio', 'dashboard', 'home'],
     ['Agenda', 'agenda', 'calendar'],
     ['Pacientes', 'pacientes', 'patients'],
-    ['Finanzas', 'caja', 'cash'],
     ['Cotizaciones', 'propuestas', 'quote']
   ];
   // Centro de comunicación: una sola jerarquía para conversar, preparar plantillas
@@ -52,8 +51,9 @@
   ];
   var MOBILE_PRIMARY = [PRIMARY[0], PRIMARY[1], PRIMARY[2], MESSAGING[0]];
   var BUSINESS = [
-    ['Servicios y tarifas', 'precios', 'pricing'],
+    ['Cobros y caja', 'caja', 'cash'],
     ['Inventario', 'inventario', 'inventory'],
+    ['Servicios y tarifas', 'precios', 'pricing'],
     ['Reportes', 'reportes', 'reports'],
     ['Nube', 'nube', 'cloud']
   ];
@@ -149,7 +149,7 @@
       item.classList.toggle('activo', isActive);
       if (isActive) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
     });
-    // Mensajería y Negocio se abren solos al entrar a una de sus pantallas y se cierran al salir.
+    // Mensajería y Mi clínica se abren solos al entrar a una de sus pantallas y se cierran al salir.
     document.querySelectorAll('.pro-nav-group').forEach(function (group) {
       var contains = (' ' + group.dataset.routes + ' ').indexOf(' ' + route + ' ') !== -1;
       group.classList.toggle('has-active', contains);
@@ -173,7 +173,7 @@
     nav.append(sectionLabel('Comunicación'));
     nav.append(detailsGroup('Mensajería', MESSAGING, false, 'messages'));
     nav.append(sectionLabel('Gestión'));
-    nav.append(detailsGroup('Negocio', BUSINESS, false, 'reports'));
+    nav.append(detailsGroup('Mi clínica', BUSINESS, false, 'reports'));
     SETTINGS.forEach(function (entry) { nav.append(navItem(entry, false)); });
     var registry = document.createElement('div');
     registry.className = 'pro-nav-registry'; registry.hidden = true; registry.style.display = 'none'; registry.setAttribute('aria-hidden', 'true');
@@ -241,7 +241,7 @@
     host.replaceChildren(
       mobileGroup('Trabajo diario', daily),
       mobileDetailsGroup('Mensajería', MESSAGING, true),
-      mobileGroup('Negocio', BUSINESS),
+      mobileGroup('Mi clínica', BUSINESS),
       mobileGroup('Configuración', SETTINGS),
       mobileGroup('Acción rápida', quick)
     );

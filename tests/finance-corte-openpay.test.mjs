@@ -4,7 +4,7 @@ import fs from 'node:fs';
 
 const read = (p) => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const js = read('smyl-finance.js');
-const sql = read('supabase/migrations/20261128120000_smyl_cash_close_online_report.sql');
+const sql = read('supabase/migrations/20261128121000_smyl_cash_close_online_report.sql');
 const block = (name) => { const m = js.match(new RegExp('function ' + name + '\\([^)]*\\)\\{[\\s\\S]*?\\n  \\}\\n')); assert.ok(m, name); return m[0]; };
 const cents = (v) => Math.round(Number(v || 0) * 100);
 

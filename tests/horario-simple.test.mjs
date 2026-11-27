@@ -36,6 +36,6 @@ test('Configuración: «Horarios y servicios» ya no se repite (Servicios y tari
 
 test('web y móvil publican los mismos archivos del editor de horarios', () => {
   for (const f of ['smyl-clinic-admin.js', 'smyl-clinic-admin.css', 'smyl-schedule.js', 'smyl-settings-hub.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
-  assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=31/);
-  assert.match(read('app.html'), /smyl-schedule\.js\?v=68/);
+  assert.match(read('app.html'), /smyl-clinic-admin\.js\?v=32/);
+  assert.match(read('app.html'), /smyl-schedule\.js\?v=69/);
 });

@@ -53,11 +53,10 @@ test('el orden de los avisos es caja, cobro, factura, y sin nada que avisar no s
 });
 
 test('la pantalla dibuja los avisos, nunca borra un cobro sin verificar y respeta el texto como texto', () => {
-  assert.match(ui, /<div class=\\?"finance-alerts\\?" id=\\?"finance-alerts\\?" role=\\?"region\\?" aria-label=\\?"Avisos de Finanzas\\?">/);
+  assert.match(ui, /<div class=\\?"finance-alerts\\?" id=\\?"finance-alerts\\?" role=\\?"region\\?" aria-label=\\?"Avisos de Cobros y caja\\?">/);
   assert.match(ui, /renderTruncationBanner\(\);renderContext\(\);renderAlerts\(\);/);
-  const verify = ui.slice(ui.indexOf('if(a.verify){'), ui.indexOf('showTab(a.tab);};});'));
-  assert.match(verify, /from\('smyl_finance_payments'\)\.select\('id'\)\.eq\('tenant_id',window\.tenantId\)\.eq\('id',att\.id\)/, 'verifica contra el servidor');
-  assert.ok(verify.indexOf("El cobro sí se había registrado") < verify.indexOf('No encontramos ese cobro'), 'primero busca el cobro');
+  assert.match(ui, /verifyPaymentDialog\(att,true\)/);
+  assert.equal(build({ now: NOW, money, attempt: { at: NOW, amount: 800, unverified: true } })[0].action, 'Verificar pago');
   assert.match(ui, /<p>'\+esc\(a\.text\)\+'<\/p>/);
 });
 
@@ -71,5 +70,5 @@ test('contexto de sucursal: varias, una sola, con sucursal elegida y sin ella', 
   assert.equal(make({ branches: [{ id: 'g', name: 'Guadalupe' }] }, '')().text, 'Vista financiera: Guadalupe');
   assert.equal(make({ branches: [] }, '')().text, 'Vista financiera: tu clínica');
   assert.match(make({ branches: [{ id: 'x', name: '<b>Mala</b>' }] }, '')().text, /&lt;b>Mala/, 'el nombre de la sucursal se escapa');
-  assert.match(ui, /<h1>Finanzas<\/h1><p class=\\?"finance-context\\?" id=\\?"finance-context\\?" aria-live=\\?"polite\\?"><\/p>/);
+  assert.match(ui, /<h1>Cobros y caja<\/h1><p class=\\?"finance-context\\?" id=\\?"finance-context\\?" aria-live=\\?"polite\\?"><\/p>/);
 });

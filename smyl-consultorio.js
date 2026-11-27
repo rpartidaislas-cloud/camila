@@ -525,8 +525,8 @@
     host.append(sec);
     /* Cobro */
     if (can('finance.read')) {
-      var pay = el('div', 'co-csec'); pay.append(el('b', '', 'Cuenta del paciente'), el('small', '', 'Abre Finanzas para revisar el cargo pendiente de esta visita.'));
-      var go = ivButton('Ir a Finanzas', 'co-sec', function () { if (typeof window.ir === 'function') window.ir('caja'); }); go.dataset.coPay = ''; pay.append(go); host.append(pay);
+      var pay = el('div', 'co-csec'); pay.append(el('b', '', 'Cuenta del paciente'), el('small', '', 'Abre Cobros y caja para revisar el cargo pendiente de esta visita.'));
+      var go = ivButton('Ir a Cobros y caja', 'co-sec', function () { if (typeof window.ir === 'function') window.ir('caja'); }); go.dataset.coPay = ''; pay.append(go); host.append(pay);
     }
     /* Despedida por WhatsApp */
     var message = V.farewell({ name: Q.isPending(p) ? '' : Q.displayName(p), nextText: nextText }), url = Q.whatsappUrl(p.telefono, message);

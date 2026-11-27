@@ -11,7 +11,13 @@ const server = http.createServer((req, res) => {
   if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end(); }
   res.writeHead(200, { 'Content-Type': types[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(res);
 });
-const handler = `rpc:async(name,args)=>{window.__calls.push(['rpc',name,args]);if(name.startsWith('smyl_compliance')||name==='smyl_log_sterilization'||name==='smyl_log_rpbi'||name==='smyl_set_compliance_item'){const S=window.__cp=window.__cp||{ster:[],rpbi:[],items:[]};
+const handler = `rpc:async(name,args)=>{window.__calls.push(['rpc',name,args]);const S=window.__cp=window.__cp||{ster:[],rpbi:[],items:[],sanAssets:[],sanLogs:[]};
+if(name==='smyl_daily_sanitation_overview'){
+if(!S.sanAssets.length)S.sanAssets=[{id:'11111111-1111-4111-8111-111111111111',name:'Consultorio 1',category:'clinical_space',default_task:'Limpieza y desinfección del espacio clínico',default_product:'',source_key:'room:1',editable:false},{id:'22222222-2222-4222-8222-222222222222',name:'Área de esterilización',category:'sterilization',default_task:'Limpieza y desinfección del área',default_product:'Alcohol al 70%',source_key:'system:sterilization',editable:false}];
+const day=(args&&args.p_date)||new Date().toISOString().slice(0,10);return {data:{context:{branch_id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',branch_name:'Mi Consultorio',timezone:'America/Mexico_City',date:day,time:'13:05',shift:'Matutino',responsible_name:'Dd',can_write:true,can_manage:true},items:S.sanAssets.map(a=>Object.assign({},a,{last_log:[...S.sanLogs].reverse().find(l=>l.asset_id===a.id&&l.activity_date===day)||null})),history:S.sanLogs},error:null};}
+if(name==='smyl_save_daily_sanitation'){(args.p_checks||[]).forEach(c=>S.sanLogs.push({id:Math.random().toString(),asset_id:c.asset_id,asset_name:(S.sanAssets.find(a=>a.id===c.asset_id)||{}).name,status:c.status,product_method:c.product_method,notes:c.notes,responsible_name:'Dd',shift:args.p_shift,shift_name:args.p_shift,activity_date:args.p_local_date,occurred_at:args.p_local_date+'T'+args.p_local_time+':00'}));return {data:{count:(args.p_checks||[]).length},error:null};}
+if(name==='smyl_configure_sanitation_asset'){if(args.p_action==='create'){const v=args.p_values,id='33333333-3333-4333-8333-'+String(S.sanAssets.length+1).padStart(12,'0');S.sanAssets.push({id,name:v.name,category:v.category,default_task:v.default_task,default_product:v.default_product||'',source_key:'custom:'+id,editable:true});}else S.sanAssets=S.sanAssets.filter(a=>a.id!==args.p_values.id);return {data:{},error:null};}
+if(name.startsWith('smyl_compliance')||name==='smyl_log_sterilization'||name==='smyl_log_rpbi'||name==='smyl_set_compliance_item'){
 if(name==='smyl_log_sterilization'){S.ster.push(Object.assign({kind:args.p_kind,occurred_at:new Date().toISOString()},args.p_values));return {data:{},error:null};}
 if(name==='smyl_log_rpbi'){S.rpbi.push(args.p_values);return {data:{},error:null};}
 if(name==='smyl_set_compliance_item'){S.items=S.items.filter(i=>i.key!==args.p_key);if(args.p_status!=='clear')S.items.push({key:args.p_key,status:args.p_status,reference:args.p_reference,valid_until:args.p_valid_until,notes:args.p_notes});return {data:{},error:null};}
@@ -46,9 +52,20 @@ return {data:{from:'2025-11-23',to:'2026-11-23',sterilization:{cycles:S.ster.fil
   const printed = await page.evaluate(() => window.__printed || '');
   check(/Carpeta de cumplimiento sanitario/.test(printed) && /M-100/.test(printed), 'el reporte incluye título y manifiesto');
   await page.click('[data-cp-view="daily"]'); await page.waitForTimeout(300);
-  check((await page.textContent('#cp-content')).includes('OPCIONAL EN SMYL'), 'la revisión diaria se presenta como opcional');
-  await page.check('[name=daily_select_all]'); await page.click('button:has-text("Guardar revisión")'); await page.waitForTimeout(600);
-  check(await page.evaluate(() => window.__cp.items.some(i => /^daily_review_/.test(i.key) && String(i.notes).split(',').length === 5)), 'seleccionar todo guarda una sola revisión diaria, no cinco cumplimientos');
+  check((await page.textContent('#cp-content')).includes('BITÁCORA OPCIONAL EN SMYL'), 'la bitácora diaria se presenta como opcional');
+  check(await page.inputValue('[name=sanitation_time]') === '13:05' && await page.inputValue('[name=sanitation_date]') !== '', 'fecha y hora aparecen prellenadas y editables');
+  check((await page.textContent('#cp-content')).includes('Mi Consultorio') && (await page.textContent('#cp-content')).includes('Dd'), 'muestra sucursal y responsable resueltos por la sesión');
+  await page.locator('.cp-sanitation-row').first().locator('.cp-detail-toggle').click();
+  await page.locator('.cp-sanitation-row').first().locator('[name=sanitation_status]').selectOption('incident');
+  await page.check('[name=sanitation_select_all]'); await page.click('button:has-text("Guardar registros")'); await page.waitForTimeout(600);
+  check((await page.textContent('.cp-daily-saved')).includes('Describe la incidencia'), 'una incidencia exige observación antes de guardar');
+  await page.locator('.cp-sanitation-row').first().locator('[name=sanitation_notes]').fill('Faltó producto; se repuso antes del siguiente paciente.');
+  await page.click('button:has-text("Guardar registros")'); await page.waitForTimeout(600);
+  check(await page.evaluate(() => window.__cp.sanLogs.length === 2 && new Set(window.__cp.sanLogs.map(r => r.asset_id)).size === 2 && window.__cp.sanLogs.some(r => r.status === 'incident')), 'seleccionar pendientes guarda un registro auditable por equipo o área');
+  check(await page.evaluate(() => window.__cp.sanLogs.some(r => r.product_method === 'Alcohol al 70%')), 'reutiliza el método habitual sin bloquear su edición');
+  check(await page.evaluate(() => !document.querySelector('.cp-auto-card input[type=checkbox]')), 'las comprobaciones automáticas no se confunden con tareas manuales');
+  await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(250);
+  check(await page.evaluate(() => { const p = document.querySelector('.cp-page'); if (!p) return false; const right = Math.max(...Array.from(p.querySelectorAll('*')).filter(e => getComputedStyle(e).position !== 'fixed').map(e => e.getBoundingClientRect().right)); return p.scrollWidth <= p.clientWidth + 2 && right <= innerWidth + 2; }), 'la bitácora cabe en una PWA de 390 px sin desbordamiento horizontal');
   check(errs.length === 0, 'sin errores de página ' + errs.join(' | '));
   await browser.close(); server.close(); process.exit(fails ? 1 : 0);
 })();

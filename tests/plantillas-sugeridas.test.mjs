@@ -110,7 +110,7 @@ test('Puesta en marcha: el paso de plantillas es «las esenciales de la Agenda»
 
 test('web, móvil y PWA publican el módulo nuevo después del de Plantillas', () => {
   const app = read('app.html'), worker = read('sw.js');
-  assert.match(app, /<link rel="stylesheet" href="smyl-template-suggest\.css\?v=3">\s*<script defer src="smyl-template-catalog\.js\?v=10"><\/script>\s*<script defer src="smyl-templates\.js\?v=10"><\/script>\s*<script defer src="smyl-template-suggest\.js\?v=6"><\/script>/);
+  assert.match(app, /<link rel="stylesheet" href="smyl-template-suggest\.css\?v=3">\s*<script defer src="smyl-template-catalog\.js\?v=11"><\/script>\s*<script defer src="smyl-templates\.js\?v=10"><\/script>\s*<script defer src="smyl-template-suggest\.js\?v=6"><\/script>/);
   assert.ok(app.indexOf('smyl-template-catalog.js') < app.indexOf('smyl-template-suggest.js'), 'el catálogo carga antes');
   assert.ok(worker.includes("'/camila/smyl-template-suggest.js?v=6'") && worker.includes("'/camila/smyl-template-suggest.css?v=3'"));
   for (const f of ['smyl-template-suggest.js', 'smyl-template-suggest.css', 'smyl-templates.js', 'smyl-inbox.js', 'smyl-clinic-setup.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);

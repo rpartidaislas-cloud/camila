@@ -44,11 +44,11 @@
   function stage(input){
     input=input||{};var row=input.row||{},event=input.event||null,share=input.share||null,plan=input.plan||null,type=event&&event.event_type,decision=input.decision||null;
     var valid=row.document&&row.document.valid_until,today=input.today||new Date().toLocaleDateString('en-CA',{timeZone:'America/Mexico_City'});
-    if(row.status==='approved'&&decision&&decision.acceptedCount>0&&input.batch)return {key:'converted',label:'En tratamiento',detail:'Los conceptos aceptados se enviaron a Finanzas el '+day(input.batch.created_at)+'.',priority:9,action:false};
+    if(row.status==='approved'&&decision&&decision.acceptedCount>0&&input.batch)return {key:'converted',label:'En tratamiento',detail:'Los conceptos aceptados se enviaron a Cobros y caja el '+day(input.batch.created_at)+'.',priority:9,action:false};
     if(row.status==='approved'&&decision&&decision.state==='partial')return {key:'partial',label:'Aceptada parcialmente',detail:decision.acceptedCount+' aceptado(s) · '+decision.pendingCount+' pendiente(s) · '+decision.rejectedCount+' no aceptado(s).',priority:4,action:true};
     if(row.status==='approved'&&decision&&decision.state==='accepted')return {key:'accepted',label:'Aceptada',detail:'Todos los conceptos fueron aceptados.',priority:5,action:input.financeVisible!==false};
     if(row.status==='approved'&&decision&&decision.state==='declined')return {key:'declined',label:'No aceptada',detail:'La decisión quedó registrada por concepto.',priority:8,action:false};
-    if(row.status==='approved'&&type==='accepted'&&input.batch)return {key:'converted',label:'En tratamiento',detail:'Cargos creados en Finanzas el '+day(input.batch.created_at)+'.',priority:9,action:false};
+    if(row.status==='approved'&&type==='accepted'&&input.batch)return {key:'converted',label:'En tratamiento',detail:'Cargos creados en Cobros y caja el '+day(input.batch.created_at)+'.',priority:9,action:false};
     if(row.status==='approved'&&type==='accepted'){var finance=input.financeVisible!==false;return {key:'accepted',label:'Aceptada',detail:'Decisión registrada '+day(event.occurred_at)+'.'+(finance?' Falta iniciar el tratamiento: cargos, anticipo y primera cita.':''),priority:finance?5:8,action:finance};}
     if(row.status==='approved'&&type==='declined')return {key:'declined',label:'No aceptada',detail:'Decisión registrada; conserva el motivo en el historial.',priority:8,action:false};
     if(plan&&(plan.status!=='reviewed'||plan.revision!==row.plan_revision))return {key:'stale',label:'Plan actualizado',detail:'El plan clínico cambió después de cotizar. Ábrela y usa el plan revisado actual.',priority:1,action:true};

@@ -166,7 +166,7 @@ const catalog = (function () {
       'Hola {{1}}, tienes un pago pendiente de {{2}} en {{3}} con vencimiento el {{4}}. Si ya lo realizaste, responde a este mensaje para que lo verifiquemos.',
       [V.nombre, text('Monto', '$1,500.00'), V.clinica, text('Fecha de vencimiento', '25 de octubre')]),
     utility('cobro_enlace_pago_v1', 'pagos', 'Enlace para pagar',
-      'Se envía desde Finanzas → Cobrar → «Enviar por WhatsApp», cuando el paciente no ha escrito en las últimas 24 horas. Solicítala para mandar el enlace de pago desde la cuenta de la clínica.',
+      'Se envía desde Cobros y caja → Cobrar → «Enviar por WhatsApp», cuando el paciente no ha escrito en las últimas 24 horas. Solicítala para mandar el enlace de pago desde la cuenta de la clínica.',
       'Hola {{1}}, tienes un saldo de {{2}} en {{3}}. Puedes pagarlo de forma segura en línea aquí: {{4}} El enlace es personal y tiene vigencia limitada.',
       [V.nombre, text('Monto', '$1,500.00'), V.clinica, text('Enlace de pago', 'https://app.smyldesign.ai/pago.html?token=ejemplo')],
       { note: 'El enlace lo genera SMYL para cada cobro; no lo escribas a mano.' }),

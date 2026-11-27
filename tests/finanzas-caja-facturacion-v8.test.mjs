@@ -275,7 +275,7 @@ test('Caja y Facturación: una tarjeta, sin encabezado repetido y cada cosa una 
 });
 
 test('ventanas de Caja: el corte en una tabla que cabe, «Entrada o salida» con su nombre y «Cancelar» que cierra', () => {
-  const cut = src.slice(src.indexOf('  function openCloseCash(s){'), src.indexOf('  // Alta/edición de datos fiscales del paciente'));
+  const cut = src.slice(src.indexOf('  function openCloseCash(s,previousCounts){'), src.indexOf('  // Alta/edición de datos fiscales del paciente'));
   assert.match(cut, /<form class="finance-cut-form" novalidate><h2>Corte de caja<\/h2>/);
   assert.match(cut, /<div class="finance-cut-row finance-cut-head" role="row"><span role="columnheader">Forma de pago<\/span><span role="columnheader">Debe haber<\/span><span role="columnheader">Se contó<\/span><span role="columnheader">Diferencia<\/span><\/div>/);
   assert.match(cut, /<div class="finance-cut-row finance-cut-total" role="row"><strong role="cell">Total<\/strong><b role="cell" data-label="Debe haber">'\+money\(expectedTotal\)\+'<\/b><b role="cell" data-label="Se contó" data-close-declared>—<\/b><output role="cell" data-label="Diferencia" data-close-total>—<\/output><\/div>/);
@@ -347,8 +347,8 @@ test('los estilos del paso 3: mismas filas y etiquetas, acomodo por espacio y ve
 
 test('versiones publicadas y copias de la app móvil al día', () => {
   const app = read('app.html'), sw = read('sw.js');
-  assert.match(app, /smyl-finance\.css\?v=63/); assert.match(app, /smyl-finance\.js\?v=87/);
-  assert.match(sw, /smyl-finance\.js\?v=87/); assert.match(sw, /smyl-finance\.css\?v=63/); assert.match(sw, /finanzas-caja-facturacion-v9/);
+  assert.match(app, /smyl-finance\.css\?v=64/); assert.match(app, /smyl-finance\.js\?v=89/);
+  assert.match(sw, /smyl-finance\.js\?v=89/); assert.match(sw, /smyl-finance\.css\?v=64/); assert.match(sw, /finanzas-caja-facturacion-v9/);
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + file), read(file), file);
 });
 

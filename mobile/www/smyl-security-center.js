@@ -1,26 +1,129 @@
-/* SMYL · Seguridad etapa 5: monitoreo, exportaciones e incidentes sin PHI. */
+/* SMYL · Seguridad en lenguaje simple: una pregunta por cada aviso, con botones Sí / No.
+ * El monitoreo (sin datos de pacientes) sigue igual en el servidor; esta pantalla solo lo explica y deja responder con un clic.
+ * «Sí» cierra el aviso como actividad normal; «No» lo marca en investigación y dice qué hacer. Un aviso no confirma por sí solo un incidente. */
 (function(){
   'use strict';
-  var state={client:null,loading:false,loaded:false,denied:false,data:null,error:'',observed:false};
+  var state={client:null,loading:false,loaded:false,denied:false,data:null,error:'',observed:false,busy:false,message:''};
+  var NOTE_YES='Confirmado por la persona que revisó: actividad normal.';
+  var NOTE_NO='La persona que revisó indicó que no reconoce esta actividad.';
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
   function date(v){return v?new Intl.DateTimeFormat('es-MX',{dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):'Sin registro';}
-  function severityLabel(v){return({critical:'Prioridad crítica',high:'Prioridad alta',warning:'Prioridad media',info:'Prioridad informativa'})[v]||'Prioridad por revisar';}
-  function statusLabel(v){return({open:'Abierta',investigating:'En investigación',resolved:'Resuelta'})[v]||'Por revisar';}
-  function sourceLabel(v){return({exports:'Exportaciones',permissions:'Permisos',access:'Accesos',audit:'Auditoría'})[v]||String(v||'Seguridad');}
-  async function call(action,payload){if(!state.client)throw new Error('La sesión de seguridad aún no está lista.');var r=await state.client.functions.invoke('security-monitor',{body:Object.assign({action:action},payload||{})});if(r.error){var message=r.error.message||'No se pudo consultar seguridad.';try{if(r.error.context){var b=await r.error.context.json();if(b&&b.error)message=b.error;}}catch(_){}throw new Error(message);}return r.data||{};}
-  function build(){if(document.getElementById('p-seguridad'))return;var page=document.createElement('section');page.className='pantalla security-page';page.id='p-seguridad';page.innerHTML='<header class="security-head"><div><span class="security-eyebrow">CENTRO DE SEGURIDAD</span><h1>Señales claras, respuesta humana.</h1><p>Monitoreo por clínica sin mostrar datos de pacientes. Una señal requiere verificación: no confirma por sí sola un incidente.</p></div><button type="button" class="btn btn-secondary" data-security-refresh>Actualizar</button></header><div data-security-feedback aria-live="polite"></div><section class="security-metrics" data-security-metrics></section><section class="security-layout"><article class="security-card"><header><div><h2>Señales e incidentes</h2><p>Prioriza, investiga y documenta la resolución.</p></div></header><div data-security-events></div></article><aside class="security-card security-runbook"><header><div><h2>Respuesta recomendada</h2><p>Guía breve para preservar evidencia.</p></div></header><ol><li><strong>Contén</strong><span>Revoca la sesión o limita el acceso afectado.</span></li><li><strong>Verifica</strong><span>Contrasta hora, actor y operación con el equipo.</span></li><li><strong>Preserva</strong><span>No borres bitácoras ni archivos relacionados.</span></li><li><strong>Corrige</strong><span>Ajusta permisos, credenciales o el flujo vulnerable.</span></li><li><strong>Documenta</strong><span>Registra la conclusión y las acciones tomadas.</span></li></ol><p class="security-emergency">Si hay indicios de acceso real a expedientes, suspende exportaciones, conserva evidencia y activa asesoría legal y técnica antes de notificar.</p></aside></section><section class="security-card"><header><div><h2>Exportaciones registradas · 7 días</h2><p>Conteos agregados; los identificadores clínicos se conservan únicamente como huellas irreversibles.</p></div></header><div data-security-exports></div></section><dialog class="security-dialog" data-security-dialog><form method="dialog"><header><h2 data-security-dialog-title>Documentar señal</h2><button value="cancel" aria-label="Cerrar">×</button></header><p data-security-dialog-copy></p><label>Resultado de la revisión<textarea data-security-note maxlength="500" placeholder="Describe qué verificaste y qué acción tomaste."></textarea></label><footer><button value="cancel" class="btn btn-secondary">Cancelar</button><button type="button" class="btn btn-secondary" data-security-investigate>Marcar en investigación</button><button type="button" class="btn btn-primary" data-security-resolve>Resolver</button></footer><div data-security-dialog-error role="alert"></div></form></dialog>';
-    document.querySelector('.contenido').append(page);page.querySelector('[data-security-refresh]').onclick=function(){load(true);};
+  function day(v){return v?new Intl.DateTimeFormat('es-MX',{day:'numeric',month:'long'}).format(new Date(v)):'';}
+  function num(e,key){return Number(e&&e.evidence&&e.evidence[key])||0;}
+  /* Cada tipo de aviso, dicho como lo diría una persona: qué pasó, y qué se le pregunta. kind: 'yesno' (¿fuiste tú?) o 'ok' (solo enterarse). */
+  function plain(e){
+    var when=day(e.last_seen_at),n;
+    switch(e.event_type){
+      case 'access_fingerprint_velocity':n=num(e,'fingerprints_24h');return {kind:'yesno',title:'Entraron a una cuenta desde varios aparatos',text:'El '+when+' se entró a una cuenta de tu clínica desde '+(n||'varios')+' aparatos o navegadores distintos en un solo día. Por ejemplo: la computadora, el celular, una ventana de incógnito o la app instalada.',ask:'¿Fuiste tú o tu equipo trabajando normalmente?',yes:'Sí, fuimos nosotros',no:'No, no lo reconozco'};
+      case 'export_volume':n=num(e,'exports_15m');return {kind:'yesno',title:'Se descargaron varios documentos seguidos',text:'El '+when+' se descargaron '+(n||'varios')+' documentos o reportes en pocos minutos.',ask:'¿Fue trabajo normal de tu clínica?',yes:'Sí, fue normal',no:'No, no lo reconozco'};
+      case 'rejected_file_volume':n=num(e,'rejected_15m');return {kind:'yesno',title:'Se bloquearon varios archivos por seguridad',text:'El '+when+' SMYL no dejó subir '+(n||'varios')+' archivos en pocos minutos, porque podían ser peligrosos o de un tipo no permitido.',ask:'¿Estabas subiendo archivos tú o tu equipo?',yes:'Sí, éramos nosotros',no:'No, no lo reconozco'};
+      case 'privilege_change_volume':n=num(e,'changes_1h');return {kind:'yesno',title:'Cambiaron los permisos de varias personas',text:'El '+when+' se cambiaron permisos o roles '+(n||'varias')+' veces en una hora.',ask:'¿Fuiste tú o alguien de confianza?',yes:'Sí, fuimos nosotros',no:'No, no lo reconozco'};
+      case 'file_maintenance_error':return {kind:'ok',title:'Un archivo tuvo un problema al revisarse',text:'La revisión automática de archivos terminó con un error. No pierdes nada y no tienes que hacer algo ahora; si se repite varios días, avísanos.',ask:'',yes:'Entendido'};
+      case 'legacy_file_review':n=num(e,'files');return {kind:'ok',title:'Hay archivos antiguos por revisar',text:(n?n+(n===1?' archivo guardado de antes quedó':' archivos guardados de antes quedaron'):'Hay archivos guardados de antes que quedaron')+' pendientes de una revisión de seguridad. No se borró nada.',ask:'',yes:'Entendido'};
+      default:return {kind:'yesno',title:e.title||'Actividad por confirmar',text:e.summary||'SMYL notó algo distinto a lo habitual.',ask:'¿Reconoces esta actividad?',yes:'Sí, la reconozco',no:'No, no la reconozco'};
+    }
   }
-  function metrics(){var m=state.data&&state.data.metrics||{},items=[['Señales abiertas',m.open_events||0,'requieren revisión'],['Prioridad alta',m.high_events||0,'atender primero'],['Exportaciones 24 h',m.exports_24h||0,'acciones registradas'],['Trazas auditadas 24 h',m.audit_events_24h||0,'cambios operativos']];document.querySelector('[data-security-metrics]').innerHTML=items.map(function(x,i){return '<article data-alert="'+String(i===1&&x[1]>0)+'"><span>'+esc(x[0])+'</span><strong>'+x[1]+'</strong><small>'+esc(x[2])+'</small></article>';}).join('');}
-  function events(){var host=document.querySelector('[data-security-events]'),rows=state.data&&state.data.events||[];if(!rows.length){host.innerHTML='<div class="security-empty"><strong>Sin señales abiertas o históricas</strong><p>El monitoreo no detectó patrones que necesiten revisión con la información disponible.</p></div>';return;}host.innerHTML='<div class="security-events" role="list" aria-label="Señales de seguridad">'+rows.map(function(e){var proof=Object.entries(e.evidence||{}).map(function(x){return '<span>'+esc(x[0].replaceAll('_',' '))+': <b>'+esc(x[1])+'</b></span>';}).join('');var action=e.status==='resolved'?'Resuelta':e.status==='investigating'?'Actualizar':'Revisar';return '<article role="listitem" data-severity="'+esc(e.severity)+'" data-status="'+esc(e.status)+'"><i aria-hidden="true"></i><div><div class="security-event-meta"><div><span class="security-source">'+esc(sourceLabel(e.source))+'</span><span class="security-severity">'+esc(severityLabel(e.severity))+'</span><span class="security-state">'+esc(statusLabel(e.status))+'</span></div><time>'+esc(date(e.last_seen_at))+'</time></div><strong>'+esc(e.title)+'</strong><p>'+esc(e.summary)+'</p><div class="security-evidence">'+proof+'</div>'+(e.resolution_note?'<small>Registro: '+esc(e.resolution_note)+'</small>':'')+'</div><button type="button" data-security-event="'+esc(e.id)+'" aria-label="'+esc(action+' señal: '+e.title)+'" '+(e.status==='resolved'?'disabled':'')+'>'+action+'</button></article>';}).join('')+'</div>';host.querySelectorAll('[data-security-event]:not([disabled])').forEach(function(b){b.onclick=function(){openDialog(rows.find(function(e){return e.id===b.dataset.securityEvent;}));};});}
-  function exportsView(){var host=document.querySelector('[data-security-exports]'),rows=state.data&&state.data.exports||[],labels={clinical_pdf:'PDF clínico',proposal_pdf:'Propuesta PDF',receipt_pdf:'Recibo PDF',executive_csv:'Reporte CSV'},purposes={patient_copy:'Copia para paciente',clinical_continuity:'Continuidad clínica',administration:'Administración',fiscal:'Fiscal'};host.innerHTML=rows.length?'<div class="security-export-list">'+rows.map(function(x){return '<article><div><strong>'+esc(labels[x.export_type]||x.export_type)+'</strong><span>'+esc(purposes[x.purpose]||x.purpose)+'</span></div><b>'+Number(x.count||0)+'</b><time>'+esc(date(x.last_at))+'</time></article>';}).join('')+'</div>':'<div class="security-empty"><strong>Sin exportaciones registradas</strong><p>Las exportaciones protegidas aparecerán aquí.</p></div>';}
-  function render(){var page=document.getElementById('p-seguridad');if(!page)return;var feedback=page.querySelector('[data-security-feedback]'),refresh=page.querySelector('[data-security-refresh]');refresh.disabled=state.loading;refresh.textContent=state.loading?'Actualizando…':'Actualizar';if(state.denied){feedback.innerHTML='<div class="security-notice"><strong>Acceso restringido</strong><span>Tu rol necesita el permiso de auditoría para consultar señales y exportaciones.</span></div>';page.querySelector('[data-security-metrics]').replaceChildren();page.querySelector('[data-security-events]').replaceChildren();page.querySelector('[data-security-exports]').replaceChildren();return;}feedback.innerHTML=state.error?'<div class="security-notice is-error"><strong>No pudimos actualizar seguridad</strong><span>'+esc(state.error)+'</span></div>':'';if(state.loading&&!state.data){var skel=function(k,o){return window.SmylSkeleton?window.SmylSkeleton.html(k,o):'<p>'+o.label+'…</p>';};page.querySelector('[data-security-metrics]').innerHTML=skel('kpis',{count:3,label:'Cargando seguridad'});page.querySelector('[data-security-events]').innerHTML=skel('list',{rows:4,action:true,label:'Cargando señales de seguridad'});page.querySelector('[data-security-exports]').innerHTML=skel('list',{rows:2,label:'Cargando exportaciones'});return;}if(state.data){metrics();events();exportsView();var detail={open:Number(state.data.metrics&&state.data.metrics.open_events||0),high:Number(state.data.metrics&&state.data.metrics.high_events||0)};window.dispatchEvent(new CustomEvent('smyl:security-updated',{detail:detail}));}}
+  function isOpen(e){return e.status!=='resolved';}
+  function el(tag,cls,text){var n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n;}
+  async function call(action,payload){if(!state.client)throw new Error('La sesión de seguridad aún no está lista.');var r=await state.client.functions.invoke('security-monitor',{body:Object.assign({action:action},payload||{})});if(r.error){var m='No se pudo completar la acción.';try{var j=r.error.context&&await r.error.context.json();if(j&&j.error)m=j.error;}catch(e){}throw new Error(m);}return r.data;}
+  function build(){
+    if(document.getElementById('p-seguridad'))return;
+    var page=el('section','pantalla security-page');page.id='p-seguridad';
+    page.innerHTML='<header class="security-head"><div><span class="security-eyebrow">Tu clínica y tus datos</span><h1>Seguridad</h1><p>SMYL vigila en silencio que nadie use tu cuenta o se lleve información sin permiso. Si nota algo distinto, te lo pregunta aquí.</p></div><button type="button" class="btn btn-secondary" data-security-refresh>Actualizar</button></header><div data-security-feedback aria-live="polite"></div><section data-security-status></section><section data-security-events></section><section data-security-more></section>';
+    document.querySelector('.contenido').append(page);
+    page.querySelector('[data-security-refresh]').onclick=function(){state.message='';load(true);};
+  }
+  function statusCard(open){
+    var host=document.querySelector('[data-security-status]');host.replaceChildren();
+    var ok=!open.length,card=el('div','security-status'+(ok?' is-ok':' is-ask'));
+    var mark=el('i','',ok?'✓':'!');mark.setAttribute('aria-hidden','true');
+    var copy=el('div');
+    copy.append(el('strong','',ok?'Todo en orden':open.length===1?'Hay 1 cosa que revisar':'Hay '+open.length+' cosas que revisar'),el('p','',ok?'No encontramos nada raro en tu clínica.':'Responde con un clic. Si fuiste tú, se cierra en un segundo.'));
+    card.append(mark,copy);host.append(card);
+  }
+  function answer(e,yes,button){
+    if(state.busy)return;state.busy=true;button.disabled=true;
+    call('update_event',{event_id:e.id,status:yes?'resolved':'investigating',note:yes?NOTE_YES:NOTE_NO}).then(function(){
+      state.message=yes?'Listo, lo marcamos como normal.':'Gracias por avisar. Sigue los pasos de abajo.';state.loaded=false;return load(true);
+    }).catch(function(err){state.message=err.message;render();}).then(function(){state.busy=false;});
+  }
+  function allSame(rows,type){
+    if(state.busy)return;
+    if(!window.confirm('¿Marcar '+rows.length+' avisos iguales como actividad normal?'))return;
+    state.busy=true;var i=0,failed=0;
+    function next(){var e=rows[i++];if(!e)return Promise.resolve();return call('update_event',{event_id:e.id,status:'resolved',note:NOTE_YES}).catch(function(){failed++;}).then(next);}
+    Promise.all([next(),next(),next()]).then(function(){state.message=failed?'Se cerraron '+(rows.length-failed)+' de '+rows.length+'. Intenta con el resto.':'Listo, los '+rows.length+' avisos quedaron como normales.';state.loaded=false;return load(true);}).catch(function(err){state.message=err.message;render();}).then(function(){state.busy=false;});
+  }
+  function questionCard(e){
+    var p=plain(e),card=el('article','security-question');card.dataset.severity=e.severity||'warning';card.dataset.status=e.status||'open';
+    var head=el('div','security-question-head');
+    if(e.severity==='high'||e.severity==='critical')head.append(el('span','security-tag','Importante'));
+    if(e.status==='investigating')head.append(el('span','security-tag is-wait','Dijiste que no lo reconoces'));
+    head.append(el('time','',date(e.last_seen_at)));
+    card.append(head,el('h3','',p.title),el('p','security-question-text',p.text));
+    var actions=el('div','security-actions');
+    if(p.kind==='ok'){
+      var okb=el('button','btn btn-primary',p.yes);okb.type='button';okb.onclick=function(){answer(e,true,okb);};actions.append(okb);
+    }else if(e.status==='investigating'){
+      card.append(el('p','security-question-ask','¿Ya lo aclaraste?'));
+      var done=el('button','btn btn-primary','Sí, ya está resuelto');done.type='button';done.onclick=function(){answer(e,true,done);};actions.append(done);
+    }else{
+      card.append(el('p','security-question-ask',p.ask));
+      var yes=el('button','btn btn-primary security-yes',p.yes);yes.type='button';yes.onclick=function(){answer(e,true,yes);};
+      var no=el('button','btn btn-secondary security-no',p.no);no.type='button';no.onclick=function(){answer(e,false,no);};
+      actions.append(yes,no);
+    }
+    card.append(actions);
+    var detail=el('details','security-detail');detail.append(el('summary','','Ver detalle'));
+    var list=el('dl');
+    Object.keys(e.evidence||{}).forEach(function(k){list.append(el('dt','',k.replace(/_/g,' ')),el('dd','',String(e.evidence[k])));});
+    list.append(el('dt','','Primera vez'),el('dd','',date(e.first_seen_at||e.last_seen_at)),el('dt','','Última vez'),el('dd','',date(e.last_seen_at)),el('dt','','Código'),el('dd','',String(e.event_type||'')));
+    detail.append(list);card.append(detail);
+    return card;
+  }
+  function help(){
+    var box=el('aside','security-help');box.setAttribute('role','note');
+    box.append(el('strong','','Si no reconoces la actividad'));
+    var ol=el('ol');['Cambia tu contraseña ahora.','Revisa quién tiene acceso a tu clínica en Configuración → Equipo y quita a quien ya no deba estar.','No borres nada. Si crees que alguien vio expedientes de pacientes, escríbenos para ayudarte.'].forEach(function(t){ol.append(el('li','',t));});
+    box.append(ol);return box;
+  }
+  function events(){
+    var host=document.querySelector('[data-security-events]');host.replaceChildren();
+    var rows=state.data&&state.data.events||[],open=rows.filter(isOpen),closed=rows.filter(function(e){return !isOpen(e);});
+    statusCard(open);
+    if(state.message)host.append(el('p','security-flash',state.message));
+    var order={critical:0,high:1,warning:2,info:3};
+    open.sort(function(a,b){return (order[a.severity]-order[b.severity])||String(b.last_seen_at).localeCompare(String(a.last_seen_at));});
+    // Muchos avisos iguales pendientes (por ejemplo, tus propios navegadores): se pueden cerrar juntos.
+    var byType={};open.forEach(function(e){if(e.status==='open'&&plain(e).kind==='yesno'&&e.severity!=='high'&&e.severity!=='critical')(byType[e.event_type]=byType[e.event_type]||[]).push(e);});
+    Object.keys(byType).forEach(function(t){var list=byType[t];if(list.length<3)return;var bar=el('div','security-bulk');bar.append(el('span','',list.length+' avisos de este tipo esperan tu respuesta.'));var b=el('button','btn btn-secondary','Todos fueron normales');b.type='button';b.onclick=function(){allSame(list,t);};bar.append(b);host.append(bar);});
+    open.slice(0,12).forEach(function(e){host.append(questionCard(e));});
+    if(open.length>12)host.append(el('p','security-more-note','Mostramos los 12 más importantes. Al responderlos aparecen los demás.'));
+    if(open.some(function(e){return e.status==='investigating';}))host.append(help());
+    if(closed.length){var d=el('details','security-closed');d.append(el('summary','','Ya revisados ('+closed.length+')'));var ul=el('ul');closed.slice(0,15).forEach(function(e){var li=el('li');li.append(el('span','',plain(e).title),el('time','',date(e.resolved_at||e.last_seen_at)));ul.append(li);});d.append(ul);host.append(d);}
+  }
+  function exportsView(){
+    var host=document.querySelector('[data-security-more]');host.replaceChildren();
+    var rows=state.data&&state.data.exports||[],labels={clinical_pdf:'PDF clínico',proposal_pdf:'Propuesta PDF',receipt_pdf:'Recibo PDF',executive_csv:'Reporte CSV'},purposes={patient_copy:'copia para el paciente',clinical_continuity:'continuidad clínica',administration:'administración',fiscal:'fiscal'};
+    var d=el('details','security-closed');d.append(el('summary','','Documentos descargados esta semana'+(rows.length?' ('+rows.length+')':'')));
+    if(!rows.length){d.append(el('p','security-more-note','Todavía no se ha descargado nada.'));}
+    else{var ul=el('ul');rows.forEach(function(x){var li=el('li');li.append(el('span','',(labels[x.export_type]||x.export_type)+' · '+(purposes[x.purpose]||x.purpose)+' · '+Number(x.count||0)+(Number(x.count||0)===1?' vez':' veces')),el('time','',date(x.last_at)));ul.append(li);});d.append(ul);}
+    host.append(d);
+  }
+  function render(){
+    var page=document.getElementById('p-seguridad');if(!page)return;
+    var feedback=page.querySelector('[data-security-feedback]'),refresh=page.querySelector('[data-security-refresh]');
+    refresh.disabled=state.loading;refresh.textContent=state.loading?'Actualizando…':'Actualizar';
+    feedback.replaceChildren();
+    if(state.denied){var n=el('div','security-notice');n.append(el('strong','','Esta sección es para quien administra la clínica'),el('span','','Pídele a la persona responsable que la revise.'));feedback.append(n);['status','events','more'].forEach(function(k){page.querySelector('[data-security-'+k+']').replaceChildren();});return;}
+    if(state.error){var er=el('div','security-notice is-error');er.append(el('strong','','No pudimos actualizar'),el('span','',state.error));feedback.append(er);}
+    if(state.loading&&!state.data){var s=page.querySelector('[data-security-events]');s.innerHTML=window.SmylSkeleton?window.SmylSkeleton.html('list',{rows:3,action:true,label:'Cargando seguridad'}):'<p>Cargando…</p>';return;}
+    if(state.data){events();exportsView();var m=state.data.metrics||{};window.dispatchEvent(new CustomEvent('smyl:security-updated',{detail:{open:Number(m.open_events||0),high:Number(m.high_events||0)}}));}
+  }
   async function load(force){if(!state.client||state.loading||(!force&&state.loaded))return state.data;state.loading=true;state.error='';render();try{var r=await call('dashboard');state.data=r.dashboard;state.loaded=true;state.denied=false;}catch(e){state.error=e.message;state.denied=/rol|auditor/i.test(e.message);}finally{state.loading=false;render();}return state.data;}
-  function openDialog(event){if(!event)return;var d=document.querySelector('[data-security-dialog]');d.dataset.eventId=event.id;d.querySelector('[data-security-dialog-title]').textContent=event.title;d.querySelector('[data-security-dialog-copy]').textContent='Esta señal está '+(event.status==='investigating'?'en investigación.':'abierta.')+' Documenta sólo hechos verificados; no incluyas nombres ni datos clínicos.';d.querySelector('[data-security-note]').value=event.resolution_note||'';d.querySelector('[data-security-dialog-error]').textContent='';d.showModal();}
-  async function update(status){var d=document.querySelector('[data-security-dialog]'),note=d.querySelector('[data-security-note]').value.trim(),error=d.querySelector('[data-security-dialog-error]');if(note.length<8){error.textContent='Escribe al menos 8 caracteres sobre la revisión.';return;}d.querySelectorAll('button').forEach(function(b){b.disabled=true;});try{await call('update_event',{event_id:d.dataset.eventId,status:status,note:note});d.close();state.loaded=false;await load(true);}catch(e){error.textContent=e.message;}finally{d.querySelectorAll('button').forEach(function(b){b.disabled=false;});}}
   async function recordExport(details){var r=await call('record_export',details);if(!r.ok)throw new Error('La exportación no quedó registrada.');state.loaded=false;return r;}
   function start(client){if(state.client||!client)return;state.client=client;function observe(session){if(!session||state.observed)return;state.observed=true;call('observe').catch(function(){});}client.auth.getSession().then(function(r){observe(r&&r.data&&r.data.session);}).catch(function(){});client.auth.onAuthStateChange(function(event,session){if(event==='SIGNED_IN')observe(session);});}
-  function init(){build();var d=document.querySelector('[data-security-dialog]');d.querySelector('[data-security-investigate]').onclick=function(){update('investigating');};d.querySelector('[data-security-resolve]').onclick=function(){update('resolved');};window.TITULOS.seguridad='Seguridad';var previous=window.ir;window.ir=function(route){var result=previous(route);if(route==='seguridad')load(false);return result;};}
-  window.SmylSecurity=Object.freeze({start:start,load:load,loadSummary:function(){return load(false);},recordExport:recordExport});
+  function init(){build();window.TITULOS.seguridad='Seguridad';var previous=window.ir;window.ir=function(route){var result=previous(route);if(route==='seguridad')load(false);return result;};}
+  window.SmylSecurity=Object.freeze({start:start,load:load,loadSummary:function(){return load(false);},recordExport:recordExport,plain:plain});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

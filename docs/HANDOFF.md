@@ -1,3 +1,13 @@
+## 2026-11-27 — Claude — Prospecto → paciente (PR 1: base de datos)
+
+- Migración nueva `20261203100000_smyl_prospect_lifecycle.sql` (aditiva; **la aplica Ricardo en el SQL Editor**): `camila_pacientes.ciclo_vida` (`prospecto`|`paciente`, por omisión `paciente`) y `convertido_at`. La cita sigue apuntando a la misma fila; no cambia ninguna FK.
+- Disparador en `smyl_appointments` (`smyl_promote_prospect_on_attendance`): al pasar a `arrived`/`in_progress`/`completed` (o nacer así, como walk-in) el prospecto se vuelve paciente. Es disparador y no cambio en `smyl_transition_appointment` para cubrir todas las rutas. Guarda de invariante en `camila_pacientes`: quien ya tiene una cita atendida nunca queda como prospecto.
+- RPC `smyl_promote_prospect(p_patient_id)` para «Convertir en paciente» a mano (exige `patients.manage` y alcance del paciente).
+- **No reclasifica datos.** `docs/sql-prospectos-migrar-pegar-en-supabase.sql` trae vista previa (cuántos pasarían) y el UPDATE comentado: solo personas «por registrar» sin cita atendida, sin antecedente clínico y sin caso.
+- Pendiente (PR 2, interfaz): que la agenda dé de alta a la persona nueva con `ciclo_vida='prospecto'` (con reintento sin la columna si la migración aún no está), ocultar prospectos de Pacientes, filtro «Prospectos» y botón «Convertir en paciente». `camila_confirmar_lana_handoff` (alta explícita desde el chat con caso) NO se tocó: sigue creando pacientes.
+- También: se renombraron dos migraciones que habían quedado con versión repetida tras fusionar otras sesiones: `daily_sanitation_log` → `20261127181000` (chocaba con `finance_deploy_check`) y `cash_close_online_report` → `20261128121000` (chocaba con `no_show_followup`). Si ya las habías aplicado a mano con la versión anterior, son idempotentes.
+- Pruebas: `tests/smyl-prospect-lifecycle.test.mjs` (PostgreSQL real con PGlite: agendar no convierte, no-show no convierte, «Llegó» y walk-in sí, el invariante, conversión manual con permisos y aislamiento por clínica).
+
 ## 2026-11-27 — Claude — Rotación de la llave de cifrado de LANA (`key_version`)
 
 - Nuevo `supabase/functions/_shared/lana-crypto-core.mjs` (puro, probado en Node): llavero con la llave vigente (`SMYL_LANA_ENCRYPTION_KEY` + `_VERSION`, por omisión `1`) y, solo durante la rotación, la anterior (`SMYL_LANA_ENCRYPTION_KEY_PREVIOUS` + `_PREVIOUS_VERSION`). Cada credencial guarda `key_version`; sin él cuenta como `1`, así que **nada cambia hasta que se configure una llave nueva** y no hace falta migración.
@@ -13032,6 +13042,18 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - `smyl-case-workspace.js` v56: «Preparar/Revisar presupuesto» monta el editor en `#cw-quote-host` dentro de la etapa Presupuesto (ya no navega a Cotizaciones); `SmylCaseWorkspace.openQuote(patient)` lo abre desde el plan; `smyl-clinic.js` v31: «Preparar presupuesto · opcional» del plan usa `openQuote`. El espacio de trabajo clínico sigue sin consultar la base. Si el espacio no está disponible, se cae al flujo anterior (`forPatient`).
 - Sin migraciones. Sufijo SW `-presupuesto-incrustado-v1`, copias en `mobile/www/`. Pruebas: `tests/embedded-quote.test.mjs`, `tests/qa/presupuesto-incrustado-smoke.cjs`.
 - Pendiente: «Cotizar ahora» desde el selector de pacientes (Inicio/Cotizaciones) aún abre la pantalla de Cotizaciones; entrega 4 (avance del tratamiento: conceptos realizados vs pendientes y saldo, aviso al cerrar).
+
+## 2026-11-27 · Codex · Mi clínica y Cobros y caja
+
+- El menú de escritorio y «Más» en celular reúnen Cobros y caja, Inventario, Servicios y tarifas, Reportes y Nube en Mi clínica. La ruta de cobro sigue siendo `caja`. El buscador de módulos también reconoce el nombre anterior.
+- Cobros y caja abre en Por cobrar. Le siguen Caja, Pagos y recibos y Facturación. En Pagos y recibos se puede abrir un comprobante por nombre, apellido o folio sin elegir fecha. Limpiar la búsqueda devuelve los filtros previos. Si se alcanza el límite de carga del historial se indica el alcance de la búsqueda.
+- Cambios principales en `smyl-navigation.js`, `smyl-command-menu.js`, `smyl-finance.js` y `smyl-finance.css`, con nombres actualizados en los accesos desde Agenda, Consultorio, Configuración, alertas y cotizaciones. Se sincronizaron la PWA, las copias móviles y el texto del catálogo de plantillas.
+
+## 2026-11-27 · Codex · Verificación de cobros y movimientos del turno
+
+- En Cobros y caja, un pago cuya respuesta se perdió queda pendiente de verificación para la clínica y el usuario de esa pestaña. La consulta distingue un pago registrado, una respuesta vacía válida y una consulta fallida. Un reintento explícito conserva el identificador, la llave, la fecha, el importe y las aplicaciones originales.
+- Caja incluye los turnos abiertos antiguos y pagina sus ajustes por identificador de turno. Si el historial general alcanza su límite, completa los pagos, reembolsos y recibos de los turnos abiertos. Antes de cerrar, consulta el efectivo esperado mediante la función existente `smyl_cash_session_expected`. Si el importe cambió, vuelve a mostrar el corte con las cantidades capturadas.
+- Archivos principales: `smyl-finance.js`, `app.html`, `sw.js` y sus copias en `mobile/www`. Pruebas en `tests/finance-attempts.test.mjs`, `tests/caja-paginada.test.mjs` y `tests/qa/finanzas-pestanas-smoke.cjs`. Sin migraciones.
 
 ## 2026-11-22 — Claude Code — Publicado en producción: cumplimiento fase 2 y recetas
 - Aplicadas y registradas en `schema_migrations`: `20261126100000` a `20261126160000` (retención, firma v2, consentimiento informado, cédula de especialidad, antecedentes/signos vitales, contexto del aviso, perfiles públicos) y, con autorización del dueño, `20261125130000_smyl_prescriptions.sql` (módulo de recetas de la otra sesión, PR #262).

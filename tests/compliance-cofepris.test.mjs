@@ -39,13 +39,31 @@ test('migración y cableado de la pantalla', () => {
   for (const f of ['smyl_log_sterilization', 'smyl_log_rpbi', 'smyl_set_compliance_item', 'smyl_compliance_overview']) assert.match(sql, new RegExp(f));
   assert.match(sql, /enable row level security/i);
   const app = fs.readFileSync(new URL('../app.html', import.meta.url), 'utf8');
-  assert.match(app, /smyl-compliance-model\.js\?v=3/);
-  assert.match(app, /smyl-compliance\.js\?v=3/);
+  assert.match(app, /smyl-compliance-model\.js\?v=4/);
+  assert.match(app, /smyl-compliance\.js\?v=4/);
   const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
   assert.match(sw, /cumplimiento-carpeta-v1/);
   assert.match(fs.readFileSync(new URL('../smyl-navigation.js', import.meta.url), 'utf8'), /'cumplimiento'/);
   for (const f of ['smyl-compliance.js', 'smyl-compliance-model.js', 'smyl-compliance.css', 'sw.js', 'app.html'])
     assert.equal(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'), fs.readFileSync(new URL('../mobile/www/' + f, import.meta.url), 'utf8'), f);
+});
+
+test('la bitácora diaria registra cada equipo o área sin preconfirmar su realización', () => {
+  const migration = fs.readFileSync(new URL('../supabase/migrations/20261127181000_smyl_daily_sanitation_log.sql', import.meta.url), 'utf8');
+  const ui = fs.readFileSync(new URL('../smyl-compliance.js', import.meta.url), 'utf8');
+  for (const table of ['smyl_sanitation_assets', 'smyl_sanitation_logs']) assert.match(migration, new RegExp('create table if not exists public\\.' + table));
+  for (const rpc of ['smyl_daily_sanitation_overview', 'smyl_save_daily_sanitation', 'smyl_configure_sanitation_asset']) assert.match(migration, new RegExp(rpc));
+  assert.match(migration, /status in \('done', 'incident', 'not_applicable'\)/);
+  assert.match(migration, /responsible_name/);
+  assert.match(migration, /captured_at timestamptz not null default now\(\)/);
+  assert.match(migration, /smyl_sanitation_logs_guard/);
+  assert.match(migration, /p_local_date date, p_local_time time/);
+  assert.doesNotMatch(migration, /default\s+'done'/i);
+  assert.match(ui, /Nada se marca por ti/);
+  assert.match(ui, /Seleccionar pendientes/);
+  assert.match(ui, /Agregar equipo o área/);
+  assert.match(ui, /Comprobaciones automáticas/);
+  assert.match(ui, /Los registros anteriores no se sobrescriben/);
 });
 
 test('la experiencia separa revisión diaria opcional y Guía COFEPRIS', () => {

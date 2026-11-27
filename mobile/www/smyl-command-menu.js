@@ -4,8 +4,8 @@
   var GROUPS=[
     {label:'Trabajo diario',items:[['Inicio','dashboard','Resumen y prioridades de hoy'],['Pacientes','pacientes','Directorio y expedientes'],['Agenda','agenda','Citas, llegadas y solicitudes'],['Mensajes','inbox','WhatsApp, Messenger e Instagram']]},
     {label:'Clínica',items:[['Nueva simulación','__simulation','Registrar fotografías y propuesta'],['Simulaciones anteriores','historial','Casos y resultados guardados']]},
-    {label:'Negocio',items:[['Servicios y tarifas','precios','Catálogo clínico, precios y claves fiscales'],['Inventario','inventario','Existencias, lotes y compras'],['Caja y cobros','caja','Pagos, saldos y cortes'],['Reportes','reportes','Indicadores agregados de operación']]},
-    {label:'Configuración',items:[['Mi clínica','clinica','Sucursales, equipo y permisos'],['Directorio profesional','directorio','Perfil, CV, enlace y QR'],['Canales y asistente','conexiones','Meta, contexto y laboratorio'],['Preparación operativa','lanzamiento','Controles antes del piloto'],['Marca y simulación','sim-config','Identidad y presentación'],['Mi cuenta','mi-cuenta','Plan y acceso']]}
+    {label:'Mi clínica',items:[['Cobros y caja','caja','Pagos y recibos, saldos y cortes','Finanzas'],['Inventario','inventario','Existencias, lotes y compras'],['Servicios y tarifas','precios','Catálogo clínico, precios y claves fiscales'],['Reportes','reportes','Indicadores agregados de operación']]},
+    {label:'Configuración',items:[['Configuración de la clínica','clinica','Sucursales, equipo y permisos'],['Directorio profesional','directorio','Perfil, CV, enlace y QR'],['Canales y asistente','conexiones','Meta, contexto y laboratorio'],['Preparación operativa','lanzamiento','Controles antes del piloto'],['Marca y simulación','sim-config','Identidad y presentación'],['Mi cuenta','mi-cuenta','Plan y acceso']]}
   ];
   var dialog,input,lastFocus;
   function esc(value){return String(value).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
@@ -20,7 +20,7 @@
     if(!dialog)return;var q=normalize(input&&input.value),host=dialog.querySelector('[data-command-results]'),visible=0;host.innerHTML='';
     GROUPS.forEach(function(group){var items=group.items.filter(function(item){
       if(item[1]==='inbox'&&!window.SmylInbox?.canAccess?.())return false;
-      return !q||normalize(item.join(' ')).includes(q);
+      return !q||normalize(item.join(' ')).includes(q)||normalize(group.label).includes(q);
     });if(!items.length)return;visible+=items.length;var section=document.createElement('section');section.innerHTML='<h3>'+esc(group.label)+'</h3><div>'+items.map(function(item){return '<button type="button" data-command-route="'+esc(item[1])+'"><span><strong>'+esc(item[0])+'</strong><small>'+esc(item[2])+'</small></span><i aria-hidden="true">→</i></button>';}).join('')+'</div>';host.append(section);});
     if(!visible)host.innerHTML='<div class="smyl-command-empty"><strong>Sin coincidencias</strong><p>Prueba con el nombre de una tarea o módulo.</p></div>';
     host.querySelectorAll('[data-command-route]').forEach(function(button){button.onclick=function(){go(button.dataset.commandRoute);};});
