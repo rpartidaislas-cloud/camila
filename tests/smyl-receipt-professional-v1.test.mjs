@@ -10,15 +10,23 @@ const css = read('smyl-finance.css');
 const detail = js.slice(js.indexOf('function openReceiptDetails('), js.indexOf('async function printReceipt('));
 
 test('el recibo prioriza pago, total, conceptos y seguimiento fiscal', () => {
-  for (const copy of ['Pago confirmado', 'Total pagado', 'CONCEPTOS', 'Servicios cobrados', '¿REQUIERE FACTURA?', 'Comprobante interno de pago. No sustituye un CFDI.']) {
+  for (const copy of ['Pago confirmado', 'Total pagado', 'CONCEPTOS', 'Servicios cobrados', 'FACTURACIÓN', 'Compartir comprobante', 'Comprobante interno de pago. No sustituye un CFDI.']) {
     assert.match(detail, new RegExp(copy));
   }
   assert.match(detail, /<details class="finance-receipt-meta">/);
-  assert.match(detail, /Ver detalles del pago/);
+  assert.match(detail, /DATOS DEL PAGO/);
   assert.match(detail, /Descargar o imprimir/);
   assert.match(detail, /Enviar recibo/);
   assert.match(detail, /finance-receipt-fiscal/);
   assert.equal((detail.match(/data-close/g) || []).length, 1, 'el recibo debe tener un solo cierre visible');
+});
+
+test('un reembolso muestra el efecto real sobre el pago antes de facturar', () => {
+  for (const copy of ['Pago original', 'Reembolsado', 'Neto del pago', 'Revisión necesaria']) {
+    assert.match(detail, new RegExp(copy));
+  }
+  assert.match(detail, /paymentSummary=refund\?/);
+  assert.match(detail, /Math\.max\(0,Number\(payment&&payment\.amount\|\|0\)-refund\)/);
 });
 
 test('imprimir y compartir ofrecen confirmación visible sin cambiar la operación existente', () => {
@@ -34,8 +42,9 @@ test('la ventana es compacta en escritorio y una hoja completa en PWA', () => {
   const block = css.slice(css.indexOf('.finance-receipt-dialog'));
   assert.match(block, /position:fixed;inset:50% auto auto 50%/);
   assert.match(block, /margin:0;transform:translate\(-50%,-50%\)/);
-  assert.match(block, /width:min\(700px,calc\(100vw - 32px\)\)/);
-  assert.match(block, /finance-receipt-detail-body\{display:grid;grid-template-columns:1fr;align-content:start;gap:16px/);
+  assert.match(block, /width:min\(760px,calc\(100vw - 32px\)\)/);
+  assert.match(block, /finance-receipt-detail-body\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(220px,\.48fr\)/);
+  assert.match(block, /finance-receipt-detail-body\{grid-template-columns:1fr;gap:14px/);
   assert.match(block, /finance-receipt-dialog\{inset:0;width:100%;max-width:none;height:100dvh/);
   assert.match(block, /transform:none;border:0;border-radius:0/);
   assert.match(block, /finance-receipt-detail\{height:100dvh;max-height:none\}/);

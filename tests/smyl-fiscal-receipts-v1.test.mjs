@@ -69,7 +69,8 @@ test('la lista de pagos y el detalle del recibo se adaptan a PWA sin microtexto'
   assert.ok(block.length > 0);
   // En celular cada pago acomoda paciente e importe arriba; fecha y recibo abajo.
   assert.match(block, /#p-caja \.finance-line\[data-cols=payments\]\{grid-template-columns:minmax\(0,1fr\) auto;grid-template-areas:"who amount" "who how" "when actions"\}/);
-  assert.match(block, /finance-receipt-detail-body\{display:grid;grid-template-columns:1fr;align-content:start/);
+  assert.match(block, /finance-receipt-detail-body\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(220px,\.48fr\);align-content:start/);
+  assert.match(block, /finance-receipt-detail-body\{grid-template-columns:1fr;gap:14px/, 'en PWA el recibo vuelve a una sola columna');
   assert.doesNotMatch(css, /finance-fiscal-receipt-list|finance-fiscal-receipt-filters/, 'la bandeja vieja de recibos ya no existe');
   const tiny = [...block.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].filter((match) => Number(match[1]) < 11);
   assert.equal(tiny.length, 0);

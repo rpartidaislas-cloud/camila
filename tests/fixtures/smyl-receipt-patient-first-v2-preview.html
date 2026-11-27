@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>SMYL · Recibo</title>
-  <link rel="stylesheet" href="../../smyl-finance.css?v=47">
+  <link rel="stylesheet" href="../../smyl-finance.css?v=66">
   <style>
     *{box-sizing:border-box}body{margin:0;min-height:100vh;background:#dfe7eb;font-family:Inter,Arial,sans-serif}.finance-dialog{display:block}.finance-dialog::backdrop{display:none}button{font:inherit}
   </style>
@@ -21,16 +21,17 @@
           <div><span>CONCEPTOS</span><h3>Servicios cobrados</h3></div>
           <article><div><strong>Consulta de valoración</strong><small>1 × $10.00</small></div><strong>$10.00</strong></article>
           <div class="finance-receipt-total"><span>Total pagado</span><strong>$10.00 <em>MXN</em></strong></div>
+          <div class="finance-receipt-adjustments"><div><span>Pago original</span><strong>$10.00</strong></div><div data-tone="danger"><span>Reembolsado</span><strong>−$10.00</strong></div><div data-total><span>Neto del pago</span><strong>$0.00</strong></div></div>
         </section>
         <details class="finance-receipt-meta">
-          <summary>Ver detalles del pago <span aria-hidden="true">⌄</span></summary>
+          <summary><span><small>DATOS DEL PAGO</small> Método, sucursal y responsable</span><i aria-hidden="true">⌄</i></summary>
           <dl><div><dt>Método</dt><dd>Tarjeta</dd></div><div><dt>Sucursal</dt><dd>Círculo Médico Dental</dd></div><div><dt>Referencia</dt><dd>OpenPay · tr…7plnp</dd></div><div><dt>Registrado por</dt><dd>Dd</dd></div></dl>
         </details>
       </div>
       <footer class="finance-receipt-footer">
-        <section class="finance-receipt-fiscal" data-tone="warning"><span aria-hidden="true">!</span><div><small>¿REQUIERE FACTURA?</small><strong>Faltan datos fiscales</strong><p>Agrega los datos fiscales del paciente para preparar su factura.</p></div><button type="button" class="btn btn-primary">Completar datos fiscales</button></section>
-        <div class="finance-receipt-footer-actions"><div><button type="button" class="btn btn-primary"><span aria-hidden="true">⇩</span> Descargar o imprimir</button><button type="button"><span aria-hidden="true">↗</span> Enviar recibo</button></div><p aria-live="polite"></p></div>
-        <small>Comprobante interno de pago. No sustituye un CFDI.</small>
+        <section class="finance-receipt-fiscal" data-tone="danger"><span aria-hidden="true">!</span><div><div class="finance-receipt-fiscal-title"><small>FACTURACIÓN</small><em>Revisión necesaria</em></div><strong>Reembolso registrado</strong><p>El recibo incluye un reembolso y requiere revisión antes de facturar.</p></div><button type="button">Revisar cuenta</button></section>
+        <div class="finance-receipt-footer-actions"><div class="finance-receipt-action-copy"><strong>Compartir comprobante</strong><small>Entrega una copia al paciente.</small></div><div class="finance-receipt-action-buttons"><button type="button"><span aria-hidden="true">⇩</span> Descargar o imprimir</button><button type="button" class="btn btn-primary"><span aria-hidden="true">↗</span> Enviar recibo</button></div><p aria-live="polite"></p></div>
+        <small class="finance-receipt-legal">Comprobante interno de pago. No sustituye un CFDI.</small>
       </footer>
     </section>
   </dialog>
