@@ -49,6 +49,11 @@ verify_jwt = true
 [functions.fiscal-extract]
 verify_jwt = true
 
+# MILA prepara borradores administrativos de cumplimiento. Exige sesión y settings.manage;
+# no recibe datos de pacientes y nunca guarda ni certifica sin confirmación en la interfaz.
+[functions.compliance-assistant]
+verify_jwt = true
+
 [functions.smyl-consumables-webhook]
 verify_jwt = false
 

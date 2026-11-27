@@ -23,7 +23,12 @@
     PROMOTIONAL: 'Meta la consideró promocional, no de utilidad.',
     NONE: ''
   };
-  var state = { category: 'all', group: 'all', query: '', remote: null, canRequest: false, loading: false, error: '', loadedAt: 0, requesting: '', notice: null };
+  // Filtro por estado (panel «Tus solicitudes a Meta» y barra de filtros). PAUSED, DISABLED y PENDING_DELETION cuentan como problemas.
+  var STATE_FILTERS = [['all', 'Todas'], ['NONE', 'Por solicitar'], ['PENDING', 'En revisión'], ['APPROVED', 'Aprobadas'], ['PROBLEM', 'Con problemas']];
+  var AUTO_REFRESH_MS = 60 * 1000;
+  var state = { category: 'all', group: 'all', status: 'all', query: '', remote: null, canRequest: false, loading: false, error: '', loadedAt: 0, requesting: '', notice: null };
+  var refreshTimer = 0;
+  var searchTimer = 0;
 
   function el(tag, cls, text) {
     var node = document.createElement(tag);
@@ -62,7 +67,7 @@
 
   async function loadApproved(force) {
     if (state.loading || (!force && state.loadedAt && Date.now() - state.loadedAt < 60 * 1000)) return;
-    state.loading = true; state.error = ''; renderStatus();
+    state.loading = true; state.error = ''; renderStatus(); renderTracker();
     try {
       var data = await invoke({ action: 'list' });
       var map = {};
@@ -72,7 +77,7 @@
     } catch (error) {
       state.remote = null; state.canRequest = false; state.error = error.message || 'No pudimos consultar el servicio de mensajería.';
     } finally {
-      state.loading = false; renderStatus(); renderGrid(); notifyChange();
+      state.loading = false; renderStatus(); renderTracker(); renderStatusFilters(); renderGrid(); notifyChange(); scheduleRefresh();
     }
   }
 
@@ -82,6 +87,21 @@
     if (!remote) return 'NONE';
     return STATUS[remote.status] ? remote.status : 'PENDING';
   }
+  function stateGroup(key) { return key === 'NONE' || key === 'PENDING' || key === 'APPROVED' ? key : 'PROBLEM'; }
+
+  // «hace 5 min», «hace 2 h», «ayer», «el 12 nov». Sin fecha devuelve ''.
+  function ago(value) {
+    var time = value ? new Date(value).getTime() : NaN;
+    if (!isFinite(time)) return '';
+    var minutes = Math.max(0, Math.round((Date.now() - time) / 60000));
+    if (minutes < 1) return 'hace un momento';
+    if (minutes < 60) return 'hace ' + minutes + ' min';
+    var hours = Math.round(minutes / 60);
+    if (hours < 24) return 'hace ' + hours + ' h';
+    if (hours < 48) return 'ayer';
+    try { return 'el ' + new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' }).format(new Date(time)); } catch (_) { return ''; }
+  }
+
   function reasonText(remote) {
     var code = String(remote.rejection_reason || '').trim();
     if (!code) return 'Meta no indicó el motivo.';
@@ -93,6 +113,7 @@
     return catalog.TEMPLATES.filter(function (template) {
       if (state.category !== 'all' && template.category !== state.category) return false;
       if (state.group !== 'all' && template.group !== state.group) return false;
+      if (state.status !== 'all' && (!state.remote || stateGroup(statusKey(template)) !== state.status)) return false;
       if (query && normalize([template.title, template.body, template.id, template.when].join(' ')).indexOf(query) === -1) return false;
       return true;
     });
@@ -181,13 +202,14 @@
   }
 
   function card(template) {
-    var article = el('article', 'tpl-card'); article.dataset.category = template.category;
+    var article = el('article', 'tpl-card'); article.dataset.category = template.category; article.dataset.tplCard = template.id;
+    if (state.remote) article.dataset.state = STATUS[statusKey(template)][1];
     var head = el('header', 'tpl-card-head');
     var chips = el('div', 'tpl-chips');
     var category = el('span', 'tpl-chip', CATEGORY[template.category]); category.dataset.category = template.category;
     chips.append(category);
+    var status = statusChip(template); if (status) chips.prepend(status);
     if (template.recommended) chips.append(el('span', 'tpl-chip tpl-chip-recommended', 'Recomendada'));
-    var status = statusChip(template); if (status) chips.append(status);
     if (template.automatic) chips.append(el('span', 'tpl-chip tpl-chip-auto', 'Recordatorio automático'));
     head.append(chips, el('h3', '', template.title), el('p', 'tpl-when', template.when));
     article.append(head);
@@ -229,7 +251,7 @@
     var actions = el('footer', 'tpl-actions');
     var key = statusKey(template);
     if (state.remote && key === 'NONE') actions.append(requestButton(template));
-    actions.append(copyButton('Copiar datos de solicitud', function () { return catalog.formatForLana(template); }, !(state.remote && key === 'NONE')), copyButton('Copiar solo el texto', function () { return template.body; }, false));
+    actions.append(copyButton('Copiar datos de solicitud', function () { return catalog.formatForLana(template); }, !state.remote), copyButton('Copiar solo el texto', function () { return template.body; }, false));
     article.append(actions);
     return article;
   }
@@ -237,7 +259,7 @@
   function renderStatus() {
     var host = document.querySelector('[data-tpl-status]');
     if (!host) return;
-    host.innerHTML = '';
+    host.replaceChildren();
     if (state.notice) { var notice = el('span', 'tpl-notice', state.notice.text); notice.dataset.kind = state.notice.kind; host.append(notice); }
     if (state.loading) {
       if (window.SmylSkeleton) { var skNode = window.SmylSkeleton.node('text', { lines: 1, label: 'Consultando plantillas' }); skNode.classList.add('tpl-status-skeleton'); host.append(skNode); }
@@ -261,10 +283,150 @@
     }
   }
 
+  // ── Panel «Tus solicitudes a Meta»: todo lo que ya se mandó a revisión, lo más urgente primero ──
+  var TRACK_ORDER = { PENDING: 0, PROBLEM: 1, APPROVED: 2 };
+  function trackedItems() {
+    if (!state.remote) return [];
+    var known = {};
+    var items = catalog.TEMPLATES.filter(function (template) { known[template.id] = true; return statusKey(template) !== 'NONE'; }).map(function (template) {
+      return { id: template.id, title: template.title, group: template.group, category: template.category, key: statusKey(template), remote: remoteOf(template), inCatalog: true };
+    });
+    // Plantillas que existen en Meta pero no en el catálogo (creadas desde el panel de mensajería).
+    Object.keys(state.remote).forEach(function (name) {
+      if (known[name]) return;
+      var remote = state.remote[name];
+      items.push({ id: name, title: name, group: '', category: remote.category, key: STATUS[remote.status] ? remote.status : 'PENDING', remote: remote, inCatalog: false });
+    });
+    return items.sort(function (a, b) {
+      var order = TRACK_ORDER[stateGroup(a.key)] - TRACK_ORDER[stateGroup(b.key)];
+      if (order) return order;
+      return String((b.remote && b.remote.requested_at) || '').localeCompare(String((a.remote && a.remote.requested_at) || ''));
+    });
+  }
+
+  function groupLabel(id) {
+    var match = catalog.GROUPS.filter(function (group) { return group.id === id; })[0];
+    return match ? match.label : '';
+  }
+
+  function focusCard(id) {
+    state.category = 'all'; state.group = 'all'; state.status = 'all'; state.query = '';
+    var input = document.querySelector('#p-plantillas .tpl-toolbar input[type="search"]'); if (input) input.value = '';
+    renderToolbar(); renderGroupToolbar(); renderStatusFilters(); renderGrid();
+    var target = document.querySelector('[data-tpl-card="' + id + '"]');
+    if (!target) return;
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.classList.add('is-focus');
+    setTimeout(function () { target.classList.remove('is-focus'); }, 2200);
+  }
+
+  function renderTracker() {
+    var host = document.querySelector('[data-tpl-tracker]');
+    if (!host) return;
+    host.replaceChildren();
+    if (!state.remote) { host.hidden = true; return; }
+    host.hidden = false;
+    var items = trackedItems();
+    var counts = { PENDING: 0, APPROVED: 0, PROBLEM: 0 };
+    items.forEach(function (item) { counts[stateGroup(item.key)] += 1; });
+
+    var head = el('div', 'tpl-track-head');
+    var title = el('div');
+    title.append(el('h2', '', 'Tus solicitudes a Meta'),
+      el('p', '', items.length ? 'Meta revisa cada plantilla; aquí ves cómo va cada una. El estado se actualiza solo mientras haya plantillas en revisión.' : 'Todavía no has enviado plantillas a Meta. Empieza por las marcadas como «Recomendada».'));
+    var side = el('div', 'tpl-track-side');
+    if (state.loadedAt) side.append(el('span', 'tpl-track-time', 'Consultado ' + ago(state.loadedAt)));
+    var refresh = el('button', 'btn btn-secondary btn-sm', state.loading ? 'Actualizando…' : 'Actualizar estado');
+    refresh.type = 'button'; refresh.disabled = state.loading;
+    refresh.onclick = function () { loadApproved(true); };
+    side.append(refresh);
+    head.append(title, side);
+    host.append(head);
+    if (!items.length) return;
+    // Con solicitudes en curso, la guía de pasos ya no hace falta abierta (una sola vez; luego respeta lo que elija la persona).
+    if (!state.guideCollapsed) { state.guideCollapsed = true; var how = document.querySelector('#p-plantillas .tpl-how'); if (how) how.open = false; }
+    // Con solicitudes en curso, la guía de pasos ya no hace falta abierta (una sola vez; luego respeta lo que elija la persona).
+    if (!state.guideCollapsed) { state.guideCollapsed = true; var how = document.querySelector('#p-plantillas .tpl-how'); if (how) how.open = false; }
+
+    var stats = el('div', 'tpl-track-stats');
+    [['PENDING', 'En revisión', 'pending'], ['APPROVED', 'Aprobadas', 'approved'], ['PROBLEM', 'Con problemas', 'rejected']].forEach(function (entry) {
+      var button = el('button', 'tpl-track-stat'); button.type = 'button'; button.dataset.state = entry[2];
+      button.setAttribute('aria-pressed', String(state.status === entry[0]));
+      button.append(el('strong', '', String(counts[entry[0]])), el('span', '', entry[1]));
+      button.disabled = !counts[entry[0]];
+      button.onclick = function () { state.status = state.status === entry[0] ? 'all' : entry[0]; renderTracker(); renderStatusFilters(); renderGrid(); };
+      stats.append(button);
+    });
+    host.append(stats);
+
+    var list = el('ul', 'tpl-track-list');
+    items.forEach(function (item) {
+      var row = el('li', 'tpl-track-row'); row.dataset.state = STATUS[item.key][1];
+      var main = el('div', 'tpl-track-main');
+      var line = el('div', 'tpl-track-line');
+      var pill = el('span', 'tpl-chip tpl-chip-status', STATUS[item.key][0]); pill.dataset.state = STATUS[item.key][1];
+      line.append(pill, el('strong', '', item.title));
+      main.append(line);
+      var meta = [CATEGORY[item.category] || item.category, groupLabel(item.group)].filter(Boolean);
+      var requested = ago(item.remote && item.remote.requested_at);
+      var updated = ago(item.remote && item.remote.updated_at);
+      if (requested) meta.push('Solicitada ' + requested);
+      if (updated && updated !== requested && item.key !== 'PENDING') meta.push('Respuesta de Meta ' + updated);
+      if (!item.inCatalog) meta.push('Creada fuera del catálogo');
+      main.append(el('p', 'tpl-track-meta', meta.join(' · ')));
+      if (item.key === 'PENDING') main.append(el('p', 'tpl-track-hint', 'Meta suele responder entre unos minutos y 48 horas. No tienes que hacer nada.'));
+      if (stateGroup(item.key) === 'PROBLEM' && item.remote) main.append(el('p', 'tpl-track-reason', 'Motivo: ' + reasonText(item.remote)));
+      var template = catalog.TEMPLATES.filter(function (t) { return t.id === item.id; })[0];
+      var changed = template ? reclassified(template) : '';
+      if (changed) main.append(el('p', 'tpl-track-reason', 'Meta la clasificó como ' + (CATEGORY[changed] || changed) + '; para recordatorios automáticos debe ser de Utilidad.'));
+      row.append(main);
+      if (item.inCatalog) {
+        var view = el('button', 'btn btn-secondary btn-sm', 'Ver plantilla'); view.type = 'button';
+        view.onclick = function () { focusCard(item.id); };
+        row.append(view);
+      }
+      list.append(row);
+    });
+    host.append(list);
+  }
+
+  function renderStatusFilters() {
+    var host = document.querySelector('[data-tpl-states]');
+    if (!host) return;
+    host.replaceChildren();
+    host.hidden = !state.remote;
+    if (!state.remote) return;
+    STATE_FILTERS.forEach(function (entry) {
+      var total = catalog.TEMPLATES.filter(function (template) { return entry[0] === 'all' || stateGroup(statusKey(template)) === entry[0]; }).length;
+      var button = el('button'); button.type = 'button';
+      button.setAttribute('aria-pressed', String(state.status === entry[0]));
+      button.append(el('span', '', entry[1]), el('b', '', String(total)));
+      button.onclick = function () { state.status = entry[0]; renderStatusFilters(); renderTracker(); renderGrid(); };
+      host.append(button);
+    });
+  }
+
+  // Mientras haya plantillas en revisión y la pantalla esté a la vista, se vuelve a consultar cada minuto.
+  function pendingCount() {
+    if (!state.remote) return 0;
+    return trackedItems().filter(function (item) { return item.key === 'PENDING'; }).length;
+  }
+  function pageVisible() {
+    var page = document.getElementById('p-plantillas');
+    return Boolean(page && page.offsetParent !== null && document.visibilityState === 'visible');
+  }
+  function scheduleRefresh() {
+    clearTimeout(refreshTimer);
+    if (!pendingCount()) return;
+    refreshTimer = setTimeout(function () {
+      if (pageVisible()) loadApproved(true); else scheduleRefresh();
+    }, AUTO_REFRESH_MS);
+  }
+
   function renderToolbar() {
     var tabs = document.querySelector('[data-tpl-tabs]');
     if (!tabs) return;
-    tabs.innerHTML = '';
+    tabs.replaceChildren();
     [['all', 'Todas'], ['UTILITY', 'Utilidad'], ['MARKETING', 'Marketing']].forEach(function (entry) {
       var total = catalog.TEMPLATES.filter(function (template) { return entry[0] === 'all' || template.category === entry[0]; }).length;
       var button = el('button', '', entry[1]); button.type = 'button'; button.setAttribute('role', 'tab');
@@ -278,7 +440,7 @@
   function renderGroupToolbar() {
     var host = document.querySelector('[data-tpl-groups]');
     if (!host) return;
-    host.innerHTML = '';
+    host.replaceChildren();
     [{ id: 'all', label: 'Todas' }].concat(catalog.GROUPS).forEach(function (entry) {
       var total = catalog.TEMPLATES.filter(function (template) { return entry.id === 'all' || template.group === entry.id; }).length;
       var button = el('button', '', entry.label); button.type = 'button';
@@ -294,10 +456,10 @@
     var count = document.querySelector('[data-tpl-count]');
     if (!grid) return;
     var items = visibleTemplates();
-    grid.innerHTML = '';
+    grid.replaceChildren();
     if (count) count.textContent = items.length === catalog.TEMPLATES.length ? items.length + ' plantillas' : items.length + ' de ' + catalog.TEMPLATES.length + ' plantillas';
     if (!items.length) {
-      var empty = el('div', 'tpl-empty'); empty.append(el('strong', '', 'No hay plantillas con esos filtros'), el('p', '', 'Prueba con otra categoría o borra la búsqueda.'));
+      var empty = el('div', 'tpl-empty'); empty.append(el('strong', '', 'No hay plantillas con esos filtros'), el('p', '', 'Prueba con otra categoría, otro estado o borra la búsqueda.'));
       grid.append(empty); return;
     }
     catalog.GROUPS.forEach(function (group) {
@@ -333,8 +495,54 @@
     var template = catalog.TEMPLATES.filter(function (item) { return item.id === id; })[0];
     if (template && state.canRequest && !state.requesting) confirmRequest(template);
   }
+  // Solicitud en bloque: UNA confirmación, y luego una plantilla tras otra con una pausa (Meta cuida la reputación de la cuenta).
+  // Se detiene en el primer error. Solo se envían las que aún no se han solicitado.
+  function confirmMany(list) {
+    return new Promise(function (resolve) {
+      var dialog = el('dialog', 'tpl-dialog');
+      var form = el('div', 'tpl-dialog-body');
+      form.append(el('h3', '', 'Solicitar ' + list.length + (list.length === 1 ? ' plantilla' : ' plantillas') + ' a Meta'));
+      form.append(el('p', '', 'Se enviarán una tras otra, tal cual están, a tu cuenta de WhatsApp Business. Meta decide si las aprueba y suele tardar de unos minutos a 48 horas.'));
+      var items = el('ul', 'tpl-many-list');
+      list.forEach(function (template) { items.append(el('li', '', template.title)); });
+      form.append(items);
+      if (list.some(function (template) { return template.category === 'MARKETING'; })) form.append(el('p', 'tpl-dialog-warn', 'Incluye plantillas de Marketing: solo envíalas a pacientes que aceptaron recibir promociones.'));
+      form.append(el('p', 'tpl-dialog-warn', 'Si Meta rechaza una, el envío se detiene para no afectar la reputación de tu cuenta.'));
+      var actions = el('div', 'tpl-dialog-actions');
+      var cancel = el('button', 'btn btn-secondary btn-sm', 'Cancelar'); cancel.type = 'button';
+      var ok = el('button', 'btn btn-primary btn-sm', 'Solicitar ' + (list.length === 1 ? 'la plantilla' : 'las ' + list.length)); ok.type = 'button';
+      var answer = false;
+      cancel.onclick = function () { dialog.close(); };
+      ok.onclick = function () { answer = true; dialog.close(); };
+      actions.append(cancel, ok); form.append(actions); dialog.append(form);
+      dialog.addEventListener('close', function () { dialog.remove(); resolve(answer); });
+      document.body.append(dialog);
+      if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', '');
+    });
+  }
+  async function requestMany(ids, options) {
+    await loadApproved(false);
+    var list = (ids || []).map(function (id) { return catalog.TEMPLATES.filter(function (item) { return item.id === id; })[0]; })
+      .filter(function (template) { return template && statusKey(template) === 'NONE'; });
+    if (!list.length || !state.canRequest || state.requesting) return { requested: [], failed: null, cancelled: false };
+    if (!(options && options.confirmed) && !(await confirmMany(list))) return { requested: [], failed: null, cancelled: true };
+    state.requesting = 'many'; state.notice = null; renderGrid(); notifyChange();
+    var requested = [], failed = null;
+    for (var i = 0; i < list.length; i += 1) {
+      try { await invoke({ action: 'request', template_id: list[i].id }); requested.push(list[i].id); }
+      catch (error) { failed = { id: list[i].id, title: list[i].title, message: error.message || 'No se pudo solicitar la plantilla.' }; break; }
+      if (i < list.length - 1) await new Promise(function (resolve) { setTimeout(resolve, 1500); });
+    }
+    state.requesting = '';
+    state.notice = failed
+      ? { kind: 'error', text: (requested.length ? 'Se enviaron ' + requested.length + ' a Meta, pero «' + failed.title + '» falló: ' : 'No se pudo solicitar «' + failed.title + '»: ') + failed.message }
+      : { kind: 'ok', text: requested.length + (requested.length === 1 ? ' plantilla se envió' : ' plantillas se enviaron') + ' a Meta. Te mostraremos aquí cómo van.' };
+    state.loadedAt = 0;
+    try { await loadApproved(true); } finally { renderStatus(); }
+    return { requested: requested, failed: failed, cancelled: false };
+  }
   function showTemplates(groupId, query) {
-    state.category = 'all'; state.group = groupId || 'all'; state.query = query || '';
+    state.category = 'all'; state.group = groupId || 'all'; state.status = 'all'; state.query = query || '';
     var input = document.querySelector('#p-plantillas .tpl-toolbar input[type="search"]'); if (input) input.value = state.query;
     renderToolbar(); renderGroupToolbar(); renderGrid();
     if (typeof window.ir === 'function') window.ir('plantillas');
@@ -346,7 +554,7 @@
     var copyBlock = el('div');
     copyBlock.append(el('span', 'pro-eyebrow', 'MENSAJERÍA'), el('h1', '', 'Plantillas de WhatsApp'),
       el('p', '', catalog.TEMPLATES.length + ' propuestas para clínicas dentales. Solicítalas aquí: Meta debe aprobar cada una antes de usarla fuera de la ventana de 24 horas.'));
-    var status = el('div', 'tpl-status'); status.dataset.tplStatus = '';
+    var status = el('div', 'tpl-status'); status.dataset.tplStatus = ''; status.setAttribute('aria-live', 'polite');
     head.append(copyBlock, status);
 
     // En celular los pasos empiezan plegados para llegar antes a las plantillas.
@@ -369,14 +577,19 @@
     var toolbar = el('div', 'tpl-toolbar');
     var tabs = el('div', 'tpl-tabs'); tabs.dataset.tplTabs = ''; tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Categoría');
     var search = el('input'); search.type = 'search'; search.placeholder = 'Buscar plantilla'; search.setAttribute('aria-label', 'Buscar plantilla');
-    search.oninput = function () { state.query = search.value; renderGrid(); };
+    search.oninput = function () {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function () { state.query = search.value; renderGrid(); }, 150);
+    };
     var groups = el('div', 'tpl-group-tabs'); groups.dataset.tplGroups = ''; groups.setAttribute('aria-label', 'Uso de la plantilla');
-    toolbar.append(tabs, groups, search);
+    var states = el('div', 'tpl-state-tabs'); states.dataset.tplStates = ''; states.setAttribute('aria-label', 'Estado en Meta'); states.hidden = true;
+    toolbar.append(tabs, groups, states, search);
 
     var count = el('p', 'tpl-count'); count.dataset.tplCount = '';
     var grid = el('div', 'tpl-grid'); grid.dataset.tplGrid = '';
     how.append(steps);
-    page.append(head, how, rules, toolbar, count, grid);
+    var tracker = el('section', 'tpl-tracker'); tracker.dataset.tplTracker = ''; tracker.hidden = true; tracker.setAttribute('aria-label', 'Tus solicitudes a Meta');
+    page.append(head, tracker, how, rules, toolbar, count, grid);
     document.querySelector('.contenido').append(page);
     renderToolbar(); renderGroupToolbar(); renderStatus(); renderGrid();
   }
@@ -387,6 +600,9 @@
     window.TITULOS.plantillas = 'Plantillas de WhatsApp';
     build();
     var previous = window.ir;
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible' && pendingCount() && pageVisible()) loadApproved(false);
+    });
     if (typeof previous === 'function') {
       window.ir = function (route) {
         var result = previous.apply(this, arguments);
@@ -396,7 +612,7 @@
     }
     window.SmylTemplates = Object.freeze({
       reload: function () { return loadApproved(true); },
-      summary: summary, request: requestTemplate, show: showTemplates,
+      summary: summary, request: requestTemplate, requestMany: requestMany, show: showTemplates,
       onChange: function (fn) { if (typeof fn === 'function') listeners.push(fn); }
     });
   }

@@ -1,3 +1,137 @@
+## 2026-11-26 — Codex — Inventario por producto y directorio de proveedores
+
+- Productos abre en Todos y agrupa el saldo por almacén. Proveedores comparte los vínculos existentes con el editor de cada producto. Compras conserva las modalidades por sucursal y central. Movimientos reúne el consumo, conteo, traslado, ajuste y merma.
+- Los avisos y filtros de caducidad utilizan los lotes con saldo de la ubicación elegida. Una pieza de material puede tener varios lotes en plazos distintos. La reposición sugiere presentaciones completas y mantiene el precio equivalente por unidad.
+- Archivos principales: smyl-inventory.js y .css, smyl-inventory-procurement.js, smyl-inventory-routing.js, referencias en app.html y sw.js y copias en mobile/www. Se conserva el esquema y los permisos existentes. Pruebas locales con datos ficticios, incluidas recepciones parciales y guardado de un proveedor alternativo. Pendiente de publicación.
+
+## 2026-11-26 — Codex — Tratamiento v2: continuidad clínica y aceptación por concepto
+
+- La revisión de vigencia posterior a Dentalink confirmó que este bloque **sí seguía siendo relevante**: el plan, la propuesta, la decisión del paciente, los cargos y el historial podían existir sin una identidad clínica común. No se volvió a construir Agenda; Ricardo la está trabajando en Claude.
+- Nueva migración `20261128140000_smyl_treatment_v2.sql`: `treatment_id` canónico en planes, versiones y propuestas; backfill conservador que deja sin asignar lo ambiguo; disparadores compatibles con clientes anteriores; RLS clínica/financiera y contratos idempotentes.
+- La propuesta permite decidir cada concepto como **aceptado, no aceptado o para decidir después**. El total y los cargos se calculan únicamente con conceptos aceptados; una presentación o envío ya no se interpreta como aceptación.
+- Las propuestas históricas conservan su versión, se abren en modo de solo lectura y siguen siendo exportables. Las propuestas vencidas no pueden aceptarse ni generar cargos nuevos; los cargos y créditos de simulación no pueden cruzar sucursales.
+- Cerrar un capítulo y abrir el siguiente es una sola operación: valida revisiones, deja un único tratamiento activo y permite trasladar explícitamente procedimientos pendientes con identificadores nuevos y trazabilidad de origen.
+- Web y PWA usan los mismos activos y contratos. Validación: contrato completo ejecutado en PostgreSQL real; batería relevante 197/197 aprobada, sin omisiones. La suite general del repositorio conserva fallos ajenos ya existentes; no se modificaron esos módulos.
+- **Producción:** la migración `20261128140000` se aplicó como transacción aislada y quedó registrada en el historial remoto el 26 de noviembre de 2026; el centinela confirmó tablas, columna canónica y cinco RPC. Web/PWA se publican desde esta misma entrega después de integrar los cambios recientes de `main`.
+- Siguiente bloque que conserva valor: **ejecución y evolución de procedimientos aceptados** (estado por procedimiento, evidencia/notas y cierre verificable). Tratamientos simultáneos sólo deben añadirse si aparece una necesidad clínica real; por ahora se mantiene deliberadamente un tratamiento activo por paciente.
+
+## 2026-11-26 — Codex — Backend canónico de ortodoncia longitudinal v1
+
+- Nueva migración `20261126220000_smyl_orthodontics_backend.sql`: casos vinculados por FK al capítulo de tratamiento, versiones append-only con bloqueo optimista, controles vinculados a notas clínicas y aislamiento multi-tenant/RLS.
+- `smyl_create_orthodontic_control` crea la nota clínica y el índice del control en una sola transacción y reutiliza `clinical_note_id` para reintentos idempotentes. El servidor agrega `caseId`, `treatmentId`, `controlType` y la fase canónica a la nota.
+- Seguridad clínica: el caso inicia en `records`; en `records/planning` sólo admite `baseline` o `emergency`. `smyl_activate_orthodontic_case` vincula el consentimiento vigente y activa el caso en una sola transacción con bloqueo optimista y `clinical.approve`. En `retention` sólo admite control de retención o urgencia. Los casos cerrados no se reabren.
+- El Centro de evidencia admite contexto `orthodontic_case` y rol `baseline/progress/issue/final/retention`; un estudio puede ligarse al caso y, opcionalmente, al control sin copiar su binario.
+- RPC: `smyl_get_orthodontic_case`, `smyl_create_orthodontic_case`, `smyl_update_orthodontic_case`, `smyl_transition_orthodontic_phase`, `smyl_activate_orthodontic_case`, `smyl_create_orthodontic_control`, `smyl_list_orthodontic_controls` y `smyl_link_orthodontic_evidence`.
+- QA: `tests/smyl-orthodontics-backend-v1.test.mjs` y fixtures `orthodontics-backend-stubs.sql` / `orthodontics-backend-scenarios.sql`. 10/10 pruebas del backend, incluido el escenario completo en PostgreSQL real (caso → activación atómica → control → evidencia, sin duplicados). La batería relevante suma 57/57 y los tres recorridos visuales de ortodoncia, consentimiento y receta pasan en escritorio/PWA.
+- Integración frontend completada en web y PWA: crea/obtiene el caso por RPC, guarda nota+control con el RPC transaccional, preselecciona `baseline` antes de la activación y permite vincular explícitamente un consentimiento vigente. No infiere el consentimiento por el título de una plantilla.
+- Hardening complementario `20261126210000_smyl_clinical_security_hardening.sql`: la revocación de consentimientos exige reautenticación reciente en servidor y las recetas validan el alcance clínico por paciente en lectura, emisión y anulación.
+- Revisión de vigencia posterior a la comparación con Dentalink: **ya no son pendientes** el diagnóstico «nuevo/de antes», la creación del plan desde hallazgos confirmados, el presupuesto automático ni el aviso de cotización desactualizada; esas capacidades ya existen y no deben reconstruirse.
+- Siguiente bloque vigente: **Tratamiento v2**. Asociar propuestas y actividad con `treatment_id`, cerrar/abrir capítulos de forma atómica, permitir aceptación parcial y trasladar procedimientos pendientes al capítulo siguiente. Después se puede decidir si SMYL necesita tratamientos simultáneos; hoy se conserva deliberadamente un solo tratamiento activo por paciente.
+- Sigue vigente, pero no debe adelantarse sin revisión sanitaria: plantillas de receta personales sincronizadas y validación regulatoria oficial. **Agenda queda fuera** de este bloque porque Ricardo la está trabajando en Claude.
+
+## 2026-11-26 — Codex — Cumplimiento visible sin duplicar consentimientos
+
+- Inicio muestra al propietario un recordatorio sanitario discreto, con avance, siguiente prioridad, acceso directo a **Configuración → Cumplimiento sanitario** y opción **Ocultar por hoy**. Lee el mismo `smyl_compliance_overview` y las mismas reglas de `SmylComplianceModel`; no mantiene una segunda lista regulatoria.
+- La historia clínica distingue **Privacidad y permisos de datos** de **Consentimientos informados por procedimiento**. Se conservan el aviso firmado, decisiones de datos y solicitudes ARCO dentro del espacio de privacidad; el consentimiento clínico canónico permanece en `smyl-informed-consent.js`.
+- Se retiró el prototipo duplicado `smyl-informed-consents.js` y su migración incompatible. La migración `20261126210000_smyl_informed_consent_compat_repair.sql` elimina exclusivamente el bloqueo experimental extra y reinstala de forma idempotente las funciones canónicas de consentimiento.
+- Se conservan las migraciones de evidencia regulatoria y guardas de conservación ya aplicadas. La UI de cumplimiento es una herramienta de preparación y seguimiento; no certifica cumplimiento ante COFEPRIS.
+- Versiones: `smyl-clinic-setup` JS v9 / CSS v6, `smyl-patient-privacy-panel.js` v6 y caché `compliance-nudge-v1-privacy-labels-v1`; web y PWA sincronizados.
+
+## 2026-11-25 — Codex — Ortodoncia longitudinal: plan, controles y evidencia (web y PWA)
+
+- Alcance posterior a la auditoría Dentalink: se construyó **Ortodoncia longitudinal** dentro de `Tratamiento → En tratamiento`; **Agenda permanece fuera** porque Ricardo la está trabajando en Claude, tanto de forma directa como desde el chat.
+- Nuevo módulo `smyl-orthodontics.js` / `.css` v1 con cuatro vistas: **Hoy, Controles, Evidencia y Plan base**. Resume modalidad, fase, aparatología, último control y próximo intervalo recomendado con hechos clínicos, sin porcentajes genéricos ni una ficha paralela.
+- Nuevo asistente profesional de cuatro pasos: **Contexto → Revisión clínica → Trabajo e indicaciones → Comprobar**. Cambia los campos según alineadores, brackets, mixto o retención; separa lo referido, lo observado, cambios, conclusión, incidentes, indicaciones y objetivos siguientes.
+- Guardar crea una nota clínica **en borrador** mediante la RPC existente `smyl_create_clinical_note`; nunca firma por el profesional. La firma e inmutabilidad continúan en Consulta. Los reintentos reutilizan el mismo identificador para no duplicar notas si se pierde la respuesta de red.
+- Seguridad de estado: el historial sigue visible en consulta, pero registrar otro control exige permiso de escritura, plan ortodóntico revisado y tratamiento activo. Si el plan deja de estar vigente, la captura falla cerrada.
+- Evidencia: reutiliza fotografías, radiografías y documentos del expediente y abre las capturas/archivos canónicos; no vuelve a subir originales. La interfaz aclara que la evidencia disponible todavía no queda vinculada a un control específico en esta primera versión.
+- PWA: diálogo a una sola etapa, acciones inferiores sin superposición, campos táctiles, límites de captura, 320/390/834 px sin desbordes y activos web/`mobile/www` idénticos. Versiones: `smyl-clinic.js` v28, `smyl-patient-360.js` v41, `smyl-case-workspace.js` v52; caché `ortodoncia-longitudinal-v1`.
+- Contrato para la siguiente etapa backend en `docs/SMYL_ORTHODONTICS_CONTRACT_V1.md`: propone caso canónico, controles versionados, vínculos de evidencia y políticas multi-tenant. **No se modificaron migraciones ni funciones de servidor** en esta entrega.
+- QA: baterías 29/29 y 76/76, más recorrido visual real 1/1 en Chrome de plan, evidencia, historial, captura, comprobación, guardado, modo sólo lectura y PWA. Fixture: `tests/fixtures/smyl-orthodontics-v1-preview.html`; prueba: `tests/smyl-orthodontics-browser.cjs`.
+- **Límite actual explícito:** el registro estructurado vive dentro de la nota clínica existente. Para casos ortodónticos canónicos, hitos y evidencia ligada por control se requiere implementar el contrato backend antes de afirmar trazabilidad ortodóntica completa.
+
+## 2026-11-25 — Codex — Consentimientos informados: proceso profesional y documento protegido (web y PWA)
+
+- Alcance posterior a la auditoría Dentalink: se profesionalizó **Consentimientos informados** y se mantuvo **Agenda fuera** porque Ricardo la está trabajando en Claude.
+- `smyl-informed-consent.js` / `.css` v2: el formulario genérico se convirtió en un proceso de cinco etapas separadas: **Procedimiento → Personalizar → Lectura → Firma → Confirmar**. Incluye plantillas clínicas editables, resumen vivo, lectura guiada al paciente, identidad del firmante, firma táctil y confirmación profesional.
+- Integridad del consentimiento: si cambia cualquier parte del documento después de la lectura, se invalidan las confirmaciones y la firma; si cambia el paciente/tutor firmante, se invalida la firma. Un toque accidental ya no cuenta como firma y el trazo se conserva al redimensionar la pantalla.
+- El límite de 20,000 caracteres de la RPC se valida antes de llegar a lectura/firma. Los documentos firmados se consultan e imprimen con DOM seguro, sin `document.write`, `prompt` ni `alert`; siguen siendo inmutables y una revocación conserva el original.
+- La revocación ahora usa diálogo propio, exige motivo y solicita confirmación de identidad en el cliente. **Pendiente para Claude/backend:** exigir también autenticación reciente dentro de `smyl_revoke_informed_consent`; la protección del cliente no sustituye la validación del servidor.
+- PWA: flujo móvil a una sola columna, acciones fijas sin superposición, soporte de `safe-area-inset-bottom`, historial compacto y activos web/móvil idénticos. `app.html` y `sw.js` usan v2 y caché `consentimiento-profesional-v2`.
+- Se reutilizaron sin cambios las RPC existentes `smyl_list_informed_consents`, `smyl_get_informed_consent`, `smyl_record_informed_consent` y `smyl_revoke_informed_consent`; no se modificaron migraciones ni Agenda.
+- QA: 25/25 pruebas de consentimiento, Ficha 360 y procedimiento; recorrido real en Chrome de creación, regreso entre etapas, invalidación de lectura/firma, firma de tutor, reautenticación, guardado, documento, impresión y revocación. Validado a 1440, 834 y 390 px, sin desbordes. Fixture: `tests/fixtures/smyl-informed-consent-v2-preview.html`; prueba: `tests/smyl-informed-consent-browser.cjs`.
+- **Siguiente etapa propuesta:** ortodoncia longitudinal (plan, citas de control, movimientos, fotografías y evolución), primero con contrato de datos multi-tenant coordinado con Claude y después su interfaz profesional.
+- **Límite clínico/legal:** las plantillas son puntos de partida editables; requieren revisión clínica y legal antes de uso real. La interfaz no afirma por sí sola cumplimiento regulatorio.
+
+## 2026-11-25 — Codex — Recetas profesionales: preparar → revisar → emitir (web y PWA)
+
+- Alcance solicitado después de la auditoría Dentalink: se avanzó en **Prescripciones** y se dejó **Agenda fuera** porque Ricardo la está trabajando en Claude, tanto en pantalla como desde el chat.
+- `smyl-prescriptions.js` / `smyl-prescription.css` v2: el formulario técnico se convirtió en un proceso de tres pasos (**Preparar, Revisar, Emitir**) con jerarquía visual, resumen vivo, seguridad clínica visible, confirmación profesional y estado final de emisión.
+- La captura separa identidad del medicamento e instrucciones para el paciente; señala antibióticos, posibles controlados y coincidencias con alergias antes de emitir. El servidor continúa siendo la validación autoritativa.
+- Historial mejorado: una receta anterior se puede **usar como base** de un borrador nuevo, pero la receta emitida permanece congelada e inmutable. Siguen disponibles reimpresión y anulación auditada.
+- `smyl-prescription-print.js`: hoja media carta con identidad clínica y monograma; no se agregaron leyendas regulatorias inventadas.
+- Web y `mobile/www` quedaron sincronizados; `app.html` y `sw.js` usan activos v2 y caché renovada.
+- QA: 16/16 pruebas de modelo, seguridad, impresión e integración; prueba real en Chrome del flujo preparar/reutilizar/revisar/emitir/imprimir a 1440 y 390 px, sin desbordes ni etapas superpuestas. Fixture: `tests/fixtures/smyl-prescription-professional-v2-preview.html`; prueba: `tests/smyl-prescription-browser.cjs`.
+- **Pendiente para Claude/backend:** si se quieren plantillas personales permanentes y sincronizadas entre dispositivos, necesitan contrato y persistencia multi-tenant en servidor. Esta entrega reutiliza recetas ya emitidas sin alterar su copia. No se modificaron migraciones ni funciones.
+- **Límite explícito:** `docs/RECETA_REQUISITOS.md` sigue indicando que los requisitos no están verificados contra el texto oficial. Validar con asesoría sanitaria antes de uso real; la UI no afirma cumplimiento legal.
+
+## 2026-11-25 — Claude Code — Plantillas de WhatsApp: panel «Tus solicitudes a Meta» y mejoras visuales
+
+- Petición de Ricardo: mejorar la parte técnica y visual de Mensajería → Plantillas de WhatsApp, y tener un lugar para ver el estatus de las plantillas enviadas a Meta. El estado solo aparecía como una etiqueta dentro de cada una de las 58 tarjetas.
+- **Panel «Tus solicitudes a Meta»** (`smyl-templates.js` v8 / `.css` v7):
+  - Lista todo lo que ya se mandó a Meta, en este orden: primero en revisión, luego con problemas y al final aprobadas.
+  - Cada fila muestra estado, categoría, grupo, «Solicitada hace…» y «Respuesta de Meta…», el motivo de rechazo y si Meta la reclasificó.
+  - Incluye las plantillas creadas fuera del catálogo y un botón «Ver plantilla», que lleva a la tarjeta y la resalta.
+  - Tiene contadores (En revisión / Aprobadas / Con problemas) que sirven de filtro, más «Actualizar estado» y «Consultado hace…».
+  - Mientras haya plantillas en revisión y la pantalla esté a la vista, vuelve a consultar cada minuto. También consulta al regresar a la pestaña.
+  - La guía «Cómo solicitarlas» se pliega sola la primera vez que hay solicitudes.
+- **Filtros y tarjetas:**
+  - Nuevo filtro por estado: Todas, Por solicitar, En revisión, Aprobadas, Con problemas.
+  - Las tarjetas muestran una franja de color según su estado y el estado aparece primero.
+  - «Copiar datos de solicitud» solo es el botón principal cuando no se pudo consultar Meta.
+- **Técnico:**
+  - `whatsapp-templates` ahora entrega `requested_at` y `updated_at`, que LANA ya devolvía. Bundle regenerado.
+  - Sin `innerHTML` (se usa `replaceChildren`).
+  - La búsqueda espera 150 ms antes de filtrar.
+  - El estado se anuncia por `aria-live`.
+  - Los textos de 11 px pasaron a 12 px.
+- **Despliegue:** hay que desplegar `whatsapp-templates` en SMYL para que aparezcan las fechas. Sin ese despliegue el panel funciona igual, solo sin «Solicitada hace…».
+- QA visual a 1440, 820 y 390 px con datos simulados, sin desbordes. Las fallas de la suite completa son las mismas 14 de antes del cambio.
+
+## 2026-11-24 — Claude Code — Agenda con IA paso 2: el asistente deja solicitudes en «Por aprobar» (B2a)
+
+- Solicitud de Ricardo (B2a): que el asistente ofrezca horarios reales y deje la solicitud en «Agenda → Por aprobar»; decisión: se guardan nombre y teléfono con autorización explícita del paciente. **Nunca confirma una cita.**
+- **Migración `20261128100000_smyl_ai_scheduling_request.sql`** (aditiva/idempotente; APLICAR ANTES de desplegar): nivel `request` en `smyl_ai_scheduling_settings`, `request` en la bitácora, `smyl_set_ai_scheduling` acepta `request` (y se corrige el parámetro `p_tenant_id` que mandaba la pantalla y la función no tiene: la tarjeta no podía guardarse), columnas `requester_name/contact/chat_consent_at/chat_privacy_notice_version/requester_expires_at` en `smyl_appointment_requests`, RPC `smyl_ai_scheduling_create_request` (solo service_role: oferta propia y vigente, idempotente, topes 2 pendientes por conversación y 30 por clínica/hora, horario revalidado y apartado 10 min) y `smyl_ai_scheduling_purge_requester_data` (90 días; **falta programarla**).
+- `lana-scheduling` (bundle `docs/bundles/lana-scheduling.single-file.ts` regenerado): `suggest` con nivel `request` guarda la oferta y devuelve `offer_key`; nueva acción `request`; exige `lana_tenant_id` = cuenta de LANA vinculada. Contrato en `docs/LANA_AGENDA_CONTRATO.md`.
+- UI: Agenda → Agenda con IA: casilla «También puede dejar la solicitud en Por aprobar» (`smyl-ai-scheduling.js` v2). «Por aprobar» (`smyl-schedule.js` v60): origen «Chat con IA», nombre y contacto, botón «Abrir conversación» (antes «Vincular paciente» llevaba a un callejón sin salida).
+- **Despliegue**: 1) migración en SMYL, 2) `lana-scheduling` en SMYL, 3) secretos `SMYL_LANA_SCHEDULING_SECRET` (mismo valor en ambos proyectos) y `SMYL_FUNCTIONS_URL` en LANA, 4) `whatsapp-webhook` y `meta-webhook` en LANA, 5) la clínica enciende el modo en Agenda con IA. Ver `promodesk/docs/SMYL_AGENDA_IA.md`.
+- Pruebas: `tests/lana-scheduling-request.test.mjs`.
+
+## 2026-11-24 — Claude Code — SMYL Asistente: niveles de autonomía 1-3 (parte B1)
+
+- Solicitud de Ricardo: «Nivel 1 solo datos tipo FAQ; Nivel 2 FAQ + citas y precios; Nivel 3 interacción más profunda». Decisión: el nivel 2 comparte **precios de referencia** («desde $X, sujeto a valoración»).
+- **Tarjetas de nivel** al inicio del paso 5 «Reglas de atención» (`data-level-card`, `role=radiogroup`, flechas del teclado) sobre el `<select name="autonomy_level">` (que sigue siendo lo que se guarda: ahora 1 Informativo · 2 Citas y precios · 3 Acompañamiento; un 4 anterior se carga como 3, vacío = 1). **Chip «Nivel N · …»** en la barra de estado (lleva al paso 5).
+- El comportamiento lo aplica LANA en código (ver `promodesk/docs/SMYL_ASISTENTE_NIVELES.md`): el nivel 1 no recibe precios; los niveles 2-3 toman los datos de la cita y los pasan al equipo con un resumen (la solicitud automática en «Por aprobar», las propuestas/pagos y reagendar quedan para B2: requieren una conexión LANA → SMYL). Los precios salen de «Servicios confirmados» y quedan congelados al publicar.
+- **Orden de despliegue**: LANA primero (`camila-api`, `whatsapp-webhook`, `meta-webhook`; no requiere migración) y después publicar la app (si la app sale antes, las tarjetas guardan el nivel pero LANA aún usa la semántica anterior).
+- `smyl-connections.js` v30, `smyl-navigation.css` v14, copia móvil, `sw.js`. Pruebas: `tests/smyl-asistente-niveles.test.mjs`.
+
+## 2026-11-24 — Claude Code — SMYL Asistente: pantalla reorganizada (parte A)
+
+- Solicitud de Ricardo: la pestaña «SMYL Asistente» (Canales → CAPACITAR IA) estaba desordenada y con mucho espacio vacío; propuesta aprobada en dos entregas (A = visual; B = niveles de autonomía 1-3, pendiente de su decisión sobre precios de referencia).
+- **Barra de estado** (la `.connections-training-bar` de siempre, con sus `data-*`): borrador/versión/% de capacitación + chips: **IA** (lee `SmylIaInterruptor.summary()`; abre/cierra la tarjeta del interruptor, que ahora vive en esta pestaña y se abre sola si la IA está apagada o programada), **canales conectados** y **«Probar el asistente →»** (salta a la pestaña de prueba).
+- **Pasos en una sola fila** a todo el ancho (en ≤980px se desplazan) y formulario en tarjeta con acciones fijas abajo; historial de versiones como tarjeta; la caja vacía «Probar tu asistente con lo que llevas» se oculta (la prueba vive en su pestaña). El hero «Canales» se oculta en esta pestaña (`data-connections-active` en el shell; NO usar `data-connection-tab`: lo cuentan los botones de pestaña).
+- Sin tocar la lógica: mismos ids, `name` y selectores (guardado, autosave, validar, publicar, ejemplos, medios). CSS nuevo al final de `smyl-navigation.css` (v13); `smyl-navigation.js` v34, `smyl-connections.js` v29, `smyl-ia-interruptor.js` v2, copia en `mobile/www/`, `sw.js`.
+- Pruebas: `tests/smyl-asistente-layout.test.mjs`; verificado en navegador real (pasos, chip, 404/409 del interruptor, anchos 390–1440, teclado) y `smyl-settings-channels-v2-browser`. Fallos preexistentes de la suite completa iguales a `main`.
+
+## 2026-11-24 — Claude Code — Interruptor de la IA de la clínica (Canales)
+
+- Solicitud de Ricardo: «quiero aplicarlo en SMYL» (el interruptor de emergencia de la IA de LANA). Lo pueden cambiar el **dueño y el perfil administrador** (`administrador`/`propietario` de sistema); el resto del equipo solo lo ve.
+- **Mismo interruptor que en LANA** (una sola fuente de verdad): apaga las respuestas automáticas de WhatsApp, Messenger e Instagram de la clínica (corren en LANA) y el asistente del perfil público. NO apaga la IA interna del personal (dictado, radiografías, mejorar borrador) ni los avisos de cita/cobro.
+- Función `lana-ia-interruptor` (GET estado para todo el equipo; PUT solo dueño/administrador; manda la persona y el rol a `PUT /ia/interruptor` de LANA), `_shared/ia-interruptor-clinica.{mjs,ts}`, `ia` en `ALLOWED_ROOTS` de `lana-contract.mjs`, compuerta en `public-profile-assistant` (calla y falla cerrado), `smyl-ia-interruptor.{js,css}` (tarjeta en Canales con apagar ahora / programar / fecha de regreso / «no contestar chats viejos», franja roja en el inicio), ranura en `smyl-connections.js`, `app.html` v1, `sw.js` y copia móvil. Bundle `docs/bundles/lana-ia-interruptor.single-file.ts` y los demás regenerados (cambió `lana-contract.mjs`).
+- Fechas en la zona `America/Mexico_City` (la de la clínica por defecto), enviadas en UTC.
+- **Orden de despliegue**: migración `20261124100000` de LANA → `camila-api` (LANA) → `lana-ia-interruptor` y `public-profile-assistant` → publicar la app.
+- Pruebas: `tests/smyl-ia-interruptor.test.mjs`. Fallos preexistentes en `main`, no tocados: `smyl-inbox-typography-browser` (editor largo) y otros 16 de la suite completa.
+
 ## 2026-11-23 — Claude — Paleta de marca: del verde azulado al degradado del logo
 
 - Solicitud de Ricardo: el menú y casi todo el sistema tiraban a verde oscuro; quiere los colores del logo de smyl (cian → azul → índigo → violeta, los mismos del botón «Entrar a SMYL») con degradados suaves, en todo el sistema.
@@ -362,6 +496,10 @@
 - **Pruebas:** migraciones reales en PGlite, roles y tenants distintos, recepción histórica, parcialidades y reintentos; recorridos de catálogo y compras + administrador/sucursal en navegador, escritorio/tablet/celular. 93 pruebas locales aprobadas, 2 recorridos de navegador aprobados y 9 controles del release gate. Migración aplicada y registrada en producción; 5 tablas con RLS, sin escritura directa y función heredada privada. Lint sin errores nuevos; permanecen el error ajeno de MILA y avisos de radiografías. Frontend se publica mediante GitHub Pages; GitHub Actions conserva el bloqueo de facturación preexistente.
 
 # Bitácora compartida — SMYL
+
+## 2026-11-26 — Claude Code — Menú: se quita «Simulaciones» de Negocio
+
+- A pedido del usuario. Las simulaciones viven en la ficha de cada paciente (pestaña «Diseño de sonrisa»). `['Simulaciones','historial','history']` pasó de `BUSINESS` a `REGISTRY` en `smyl-navigation.js`: la ruta `historial` sigue registrada (oculta) para que no reaparezca suelta en el menú, pero ya no hay botón. `smyl-navigation.js?v=35`, caché `menu-sin-simulaciones-v1`, `mobile/www` sincronizado. Pruebas de navegación: mismas 4 fallas que `main`.
 
 ## 2026-11-22 — Claude Code — Receta médica: módulo completo (PENDIENTE de revisión legal; no usar con pacientes reales)
 
@@ -12594,3 +12732,189 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - `_shared/provider-cost.mjs` (+ `tests/provider-cost.test.mjs`, 7 pruebas): mismo cálculo en JS para registrar el costo real de cada llamada más adelante.
 - `docs/COSTOS_Y_PRECIOS_IA.md`: cómo capturar precios. NO se cargó ningún precio (los reales vienen de los paneles de OpenAI/Anthropic).
 - No cambia el cobro: las funciones siguen cobrando 1 crédito por operación y `meta-send` sigue contando todos los mensajes. Siguiente: registrar tokens/costo real por llamada y ponderar los créditos.
+
+## 2026-11-24 — Claude Code — Servicios y tarifas: la tarjeta ya no muestra el precio
+- La fila de cada servicio quita el precio (y su campo editable); el precio se cambia en «Editar». Se conserva la etiqueta «Falta precio» y «precio varía por sede» en la línea de detalle; el servicio sin activar muestra «Sin activar» junto al botón.
+- `smyl-service-catalog.js` v17, `smyl-service-catalog-stage1.css` v5 (+ pines en pruebas, copias en `mobile/www/`).
+
+## 2026-11-25 — Claude Code — Chat: filtro por canal con logos
+- En Filtros del Inbox, «Canal» ya no es una lista: son tres botones redondos con el logo de WhatsApp, Messenger e Instagram (reutilizan `CHANNEL_MARKS`). Tocar uno filtra; tocarlo otra vez quita el filtro. Botones de 44 px, `aria-pressed` y nombre accesible por plataforma.
+- `smyl-inbox.js` v97, `smyl-inbox.css` v80 (+ pines en pruebas y copias en `mobile/www/`). Prueba `smyl-inbox-thread-assignment` y `smyl-inbox-queue-focus-stage3` actualizadas.
+
+## 2026-11-25 — Claude Code — Servicios y tarifas: edición en bloque
+- Botón «Editar varios» (encabezado, solo con permiso de gestionar) → casillas en cada servicio y barra fija con: Elegir los visibles, Limpiar, **Precio** (solo con `catalog.prices`), **Duración** (10–480 min), **Marcar fiscal revisada** (solo servicios con ClaveProdServ, unidad, objeto de impuesto e IVA completos; confirma y avisa cuántos omitió) y **Activar / Desactivar** (confirma). Una sola escritura por acción (`update … in('id', ids)` acotada a la clínica); no toca los precios propios por sucursal; el servidor sigue siendo quien aplica los permisos.
+- `smyl-service-catalog.js` v18, `smyl-service-catalog-stage1.css` v6 (+ pines y copias en `mobile/www/`). Pruebas: `tests/catalogo-edicion-bloque.test.mjs` y humo `tests/qa/catalogo-edicion-bloque-smoke.cjs` (16 comprobaciones con base simulada).
+
+## 2026-11-25 — Claude — Chat: vincular paciente ya no te saca del chat ni se queda «sin vincular»
+
+- **Síntoma:** al agendar desde el chat y pulsar «Vincular paciente» (o en la ficha del chat), elegir un paciente existente te llevaba a la ficha del paciente y, al volver, el chat seguía diciendo «sin vincular».
+- **Causa:** el servidor SÍ confirmaba el vínculo (`patient_link_confirm`), pero `smyl-lana-handoff.js` solo hacía `openPatient()` (navegar al expediente) y nunca avisaba al chat; `state.clinical[conversación]` quedaba con `linked:false` y su `auto_link_reason`.
+- **Arreglo:** `SmylLanaHandoff.open(id, {stay})` — por defecto `stay:true` (desde el chat): al confirmar cierra la ventana, **no navega** y emite `smyl:chat-patient-linked` `{conversationId, patientId, patientName, created}`. `smyl-inbox.js` lo escucha: marca el chat como vinculado, limpia `auto_link_reason`, recarga el contexto clínico y, si venía de «Agendar cita» (`state.availabilityResume`, 15 min), **vuelve a abrir el diálogo de agenda** ya con el paciente. La bandeja de atención (`smyl-lana-attention.js`) llama con `{stay:false}` y conserva el comportamiento de abrir el expediente. «Expediente» (ya vinculado) sigue abriendo la ficha con «Volver al chat».
+- **Archivos:** `smyl-lana-handoff.js` (v8), `smyl-lana-attention.js` (v6), `smyl-inbox.js` (v98), `app.html`, `sw.js`, copias en `mobile/www/`, `tests/vincular-paciente-chat-sin-salir.test.mjs` (2 de navegador con el flujo real de la ventana + 2 estáticas).
+- **No verificado con datos reales:** no se pudo reproducir contra la base de la clínica; el diagnóstico sale de leer el código (la ventana solo navegaba y el chat no tenía forma de enterarse).
+- **Pregunta abierta del usuario (no implementada):** hoy el chat crea/reutiliza el paciente al abrir la conversación o al agendar (`smyl_auto_link_lana_conversation`, «Contacto provisional») y `smyl_appointments.patient_id` es obligatorio. El usuario quiere que el perfil de paciente solo exista como tal cuando llega a su primera cita. Propuesta pendiente de aprobación: estado de perfil `prospecto` → `paciente` al marcar «Llegó» por primera vez, ocultando los prospectos de Pacientes.
+
+## 2026-11-25 — Claude Code — Chat: la lista marca `can_operate` desde SMYL
+- `lana-inbox` (lista de conversaciones): si LANA no manda `can_operate`, SMYL lo marca `true` solo para conversaciones que ya pasaron el filtro de acceso y alcance. Antes el chat ocultaba «Agendar» y otras acciones sin avisar si el campo faltaba. Hay que **volver a desplegar `lana-inbox`** (`docs/bundles/lana-inbox.single-file.ts`). Prueba: `tests/lana-inbox-can-operate.test.mjs`.
+
+## 2026-11-26 — Claude Code — Avisos de cita: primer aviso 48 h antes (paso 1 de «Confirmaciones»)
+- **Contexto:** el dueño quiere automatizar cuatro flujos de WhatsApp (confirmaciones 48 h y 24 h, ausentismos, cancelaciones, retroalimentación). Este es el paso 1; los demás siguen.
+- **Qué hace:** nuevo tipo de mensaje `48h` en `smyl_appointment_reminders` e interruptor `smyl_reminder_settings.reminder_48h_enabled` (apagado por omisión). Usa la MISMA plantilla/variables que el recordatorio de 24 h (conviene `recordatorio_cita_confirmar_v1`, con botones «Confirmo mi asistencia» / «Necesito reprogramar»; las respuestas ya se guardan y se ven en la Agenda). Solo citas a más de 48 h; mover/cancelar la cita lo cancela (trigger existente). Requiere recordatorios 24 h encendidos.
+- **Migración:** `20261128110000_smyl_reminder_48h.sql` (copia para pegar: `docs/sql-aviso-48h-pegar-en-supabase.sql`). Redefine `smyl_claim_appointment_reminders`. Publicar la migración antes que la función; al revés no rompe nada.
+- **Función:** `appointment-reminders` (bundle regenerado en `docs/bundles/`); hay que volver a pegarla en Supabase.
+- **UI:** casilla «Enviar también un primer aviso 48 h antes» en Mensajes automáticos de citas (`smyl-reminders.js` v5, `sw.js`, `app.html`, copias en `mobile/www/`).
+- **Pruebas:** `tests/aviso-48h.test.mjs` (estática; no se probó contra Postgres real ni con LANA).
+- **Pendiente de los otros pasos:** ausentismos automático, ofrecer horarios al cancelar, retroalimentación, plantillas nuevas a pedir a Meta.
+
+## 2026-11-26 — Claude Code — Avisos de cita: seguimiento automático de «No vino» (paso 2 de los flujos de WhatsApp)
+- **Qué hace:** 2 h después de que una cita se marca «No vino» (solo desde que la clínica lo enciende y de los últimos 3 días; un solo mensaje por cita) se manda por WhatsApp una plantilla de reagendar. Nueva plantilla del catálogo `cita_no_asistio_reagendar_v1` con botón «Quiero reagendar» (hay que pedirla a Meta desde Plantillas). Si el paciente toca el botón se guarda la respuesta `rebook` en la cita y la Agenda muestra la tarea «Quiere reagendar». **La respuesta nunca agenda ni mueve nada.**
+- **Migración:** `20261128120000_smyl_no_show_followup.sql` (copia: `docs/sql-seguimiento-no-vino-pegar-en-supabase.sql`). Tipo `no_show` en recordatorios, respuesta `rebook`, columnas `no_show_*` en `smyl_reminder_settings`, redefine `smyl_claim_appointment_reminders` y `smyl_apply_patient_attendance_response`. **Probada dos veces en Postgres 16 real** con un escenario (solo la inasistencia reciente y posterior al encendido recibe mensaje; no duplica; reabrir la cita cancela el pendiente; `rebook` no cambia el estado de la cita).
+- **Funciones a volver a pegar:** `appointment-reminders`, `appointment-negotiations` (acepta «Quiero reagendar»), `whatsapp-templates` (catálogo nuevo). Bundles en `docs/bundles/`.
+- **UI:** sección «Seguimiento de inasistencias» en Mensajes automáticos de citas (`smyl-reminders.js` v6), Agenda `smyl-schedule.js` v62 (tarea y etiqueta «Pidió reagendar su cita»), catálogo `smyl-template-catalog.js` v8 (fuente; la copia de la función se genera con `scripts/sync-template-catalog.mjs`).
+- **Límite conocido:** la tarea «Quiere reagendar» solo aparece si la cita no vino está en la lista cargada de la Agenda; el detalle de la cita siempre muestra la respuesta.
+- **Siguiente:** cancelaciones (ofrecer horarios) y retroalimentación (motivo de no reagendar).
+
+## 2026-11-26 — Claude Code — «Ofrecer horarios» desde la Agenda (paso 3: cancelaciones / reprogramaciones)
+- **Qué hace:** las tareas de la Agenda «Pidió reprogramar» y «Quiere reagendar» ahora tienen el botón **Ofrecer horarios**: busca el chat de WhatsApp vinculado del paciente (`camila_lana_handoffs`) y abre Mensajes directo en «Agendar cita» (con «Sugerir horarios», que ya existía). La persona revisa y envía; **no envía ni agenda sola**. Sin chat vinculado avisa y abre la cita.
+- **Archivos:** `smyl-schedule.js` v63 (`offerSlots`), `smyl-inbox.js` v99 (`SmylInbox.offerSlots`), `app.html`, `sw.js`, copias en `mobile/www/`, `tests/seguimiento-no-vino.test.mjs`. Sin SQL ni funciones nuevas.
+- **Decisión:** el diálogo automático «¿Te gustaría reagendar? Sí/No» y la oferta de horarios dentro del chat son del asistente de IA de LANA (contrato `lana-scheduling`: sugiere y deja solicitudes en «Por aprobar»); SMYL no manda esos mensajes por su cuenta. Falta confirmar con LANA ese comportamiento.
+- **No probado en navegador** (solo pruebas estáticas).
+- **Siguiente:** retroalimentación (motivo de no reagendar).
+
+## 2026-11-26 — Claude Code — Avisos de cita: pregunta del motivo cuando el paciente no reagenda (paso 4)
+- **Qué hace:** 3 días después de que salió el seguimiento de «No vino», si el paciente no reagendó (ni tiene otra cita próxima ni tocó «Quiero reagendar»), se le manda UNA plantilla con tres botones: «El horario no me va» · «Por el costo» · «Otro motivo». Se guarda solo la opción (`reason_schedule|price|other`) en la cita y se ve en su detalle. Apagado por omisión; solo para seguimientos enviados desde que se enciende.
+- **Migración:** `20261128130000_smyl_feedback_followup.sql` (copia `docs/sql-motivo-no-reagenda-pegar-en-supabase.sql`; requiere la anterior de «No vino»). Probada en Postgres 16 real (3 migraciones en cadena, dos veces; solo reciben la pregunta quienes no reagendaron ni tienen otra cita; no duplica; motivo inválido se rechaza; la cita no cambia).
+- **Funciones a volver a pegar:** `appointment-reminders`, `appointment-negotiations`, `whatsapp-templates`. Plantilla nueva a pedir a Meta: `cita_motivo_no_reagenda_v1`.
+- **UI:** sección «¿Por qué no reagendó?» en Mensajes automáticos (`smyl-reminders.js` v7), etiqueta del motivo en la Agenda (`smyl-schedule.js` v64), catálogo v9.
+- **Pendiente:** un reporte con el conteo de motivos (hoy solo se ve por cita). Decisión abierta con el dueño: nivel «agendar» de la IA (hoy máximo «Solicitud»).
+- **Nota:** en `main` hay pruebas ya rotas por otras sesiones (p. ej. `smyl-clinic-admin.js?v=27` vs v30 en `clinic-readiness-professional-stage8` y `equipo-ficha`).
+
+## 2026-11-26 — Claude Code — «Mensajes automáticos de citas»: tarjeta compacta y al final de «Horarios y servicios»
+- **Por qué:** la tarjeta ocupaba media pantalla con 12 cuadros casi todos en cero y obligaba a hacer mucho scroll antes de ver Servicios y Disponibilidad.
+- **Qué cambió:** una fila por mensaje (Confirmación, Recordatorios 24/48 h, Seguimiento «No vino», Pregunta del motivo) con punto de estado, cuándo sale, plantilla, etiqueta Activo/Apagado y números solo cuando hay actividad (programados, en espera, enviados, con error; con ayuda al pasar el cursor). La tarjeta pasó al final de la pestaña (la entrada «Recordatorios de cita» de Configuración sigue embebiéndola). Sin cambios de datos ni funciones.
+- **Archivos:** `smyl-reminders.js` v8, `smyl-schedule.css` v39 (se quitaron `.schedule-reminders-status/stats`), `app.html`, `sw.js`, copias en `mobile/www/`. Revisada en 3 tamaños con un Supabase simulado (escritorio 368 px de alto vs ~430 antes; sin scroll horizontal).
+- **Ojo al publicar:** esta rama incluye también el paso 4 (pregunta del motivo). No fusionar hasta aplicar `docs/sql-motivo-no-reagenda-pegar-en-supabase.sql` y desplegar `appointment-reminders`, `appointment-negotiations` y `whatsapp-templates`; si no, guardar esa sección en la pantalla falla.
+
+## 2026-11-26 — Claude Code — Horario del dentista «exageradamente simple» (un solo camino)
+- **Problema:** dos vías para el mismo dato. Agenda → Disponibilidad → «Agregar» pedía dentista, sede, UN día y horas (5 diálogos para lun–vie); la ficha de Equipo tenía el editor semanal pero con 7 filas de horas.
+- **Qué cambió:** (1) El editor de la ficha (Equipo → persona → «Editar horario») abre en **modo simple**: 3 atajos («Igual que la sucursal», «Lunes a viernes», «Lunes a sábado»), 7 botones de día, un solo «De … a …», resumen «Atiende 5 días · 45 h por semana» y aviso claro **antes** de guardar si la sucursal no abre ese día o abre en otro horario (`branchProblem`). «Ajustar día por día» (el editor anterior, con comida/varios bloques) sigue ahí; los horarios con bloques distintos abren directo en ese modo. (2) Agenda → «Horarios y servicios»: la tarjeta pasó a «Horario de tu equipo»: una fila por profesional y sede con su semana resumida («Lun–Vie 09:00–13:00») y «Editar horario»/«Poner horario», que abre la misma ficha (`SmylClinicAdmin.editHours`, que cambia a «Mi clínica» primero). Se eliminó el diálogo de un solo día (`openHours`) y «Quitar» por bloque. (3) La ficha ya no manda «Editar horarios en la Agenda →» (sería circular). (4) Configuración: «Horarios y servicios» ya no repite la descripción de «Profesionales».
+- **Sin SQL ni funciones.** Mismas tablas (`smyl_professional_hours`), misma lógica de guardado.
+- **Archivos:** `smyl-clinic-admin.js` v31, `smyl-clinic-admin.css` v24, `smyl-schedule.js` v65, `smyl-settings-hub.js` v19, `app.html`, `sw.js`, copias en `mobile/www/`; `tests/horario-simple.test.mjs` (4) y humo de navegador `tests/qa/equipo-ficha-smoke.cjs` actualizado (modo simple, atajos, avisos de sucursal, camino desde la Agenda). Maqueta del editor revisada a 360 y 768 px sin scroll horizontal.
+- **Siguiente:** lista de integración de la clínica con barra de avance.
+
+## 2026-11-26 — Claude Code — «Puesta en marcha»: lista de integración con barra de avance
+- **Qué es:** la lista corta «Configura tu clínica» de Inicio (5 pasos) pasó a **Puesta en marcha**: 11 pasos obligatorios (cuentan para el 100 %) y 5 recomendados, en 6 grupos (Tu clínica, Tu equipo, Servicios, Mensajes a pacientes, Pacientes y agenda, Recomendados). Cada paso se verifica solo con datos reales y de solo lectura; nadie lo palomea a mano; un fallo de lectura deja el paso «sin verificar» (no cuenta como listo).
+- **Obligatorios:** sucursal con dirección, horario de la clínica, consultorios, horario de los dentistas, rol de cada integrante, servicios con precio, WhatsApp conectado, plantilla aprobada, recordatorios activos, primer paciente, primera cita. **Recomendados:** IVA/clave SAT revisados, facturación configurada (`smyl_issuer_fiscal_profiles.fiscal_status='reviewed'`), seguimiento «No vino», Google Calendar, Agenda con IA.
+- **Pantallas:** (1) Inicio: tarjeta con % grande + barra (`role="progressbar"`) + «Siguiente paso» + «Ver todos los pasos»; se oculta al completar lo obligatorio o con «Ocultar por hoy» (por día y clínica). (2) «Ver todos los pasos»: ventana accesible con la lista agrupada, lo completado atenuado y sin botón, el siguiente resaltado. (3) Configuración: acceso permanente «Puesta en marcha · NN %» al pie del menú lateral mientras falte algo (`SmylClinicSetup.summary()/open()`). Solo propietario.
+- **Cambio de comportamiento:** ya no se oculta por «clínica en marcha» (horario + servicio + cita terminada): ahora se oculta solo al completar lo obligatorio.
+- **Sin SQL ni funciones.** Consultas de solo conteo con RLS (14 en paralelo, caché de 60 s).
+- **Archivos:** `smyl-clinic-setup.js` v9, `smyl-clinic-setup.css` v6, `smyl-settings-hub.js` v20, `app.html`, `sw.js`, copias en `mobile/www/`; pruebas `tests/smyl-clinic-setup.test.mjs` y `tests/smyl-clinic-setup-browser.test.mjs` (reescritas: 320/820/1440 px, lista completa, 100 %, paso sin verificar, clínica tardía), `tests/daily-home-continuity.test.mjs` actualizado.
+- **Pendiente / ideas:** aviso de privacidad como paso (hoy `smyl_privacy_settings` no es legible desde el navegador: haría falta una función), pagos en línea (Openpay), mostrar el avance también a administradores (hoy solo propietario).
+
+## 2026-11-26 — Claude Code — Servicios: «Quién lo realiza», «La IA puede ofrecerlo» y una sola IA (con lo fiscal)
+- **Migración `20261129100000_smyl_ai_service_flag.sql`** (copia: `docs/sql-ia-por-servicio-pegar-en-supabase.sql`; aditiva, probada dos veces en Postgres 16): `smyl_set_ai_services(uuid[], boolean)` (marca/quita servicios; si quita el último con la IA encendida, la apaga) y `smyl_set_ai_scheduling_options(level, lead, horizon)` (no toca servicios; exige ≥1 marcado para encender). Usa la misma tabla `smyl_ai_scheduling_services`: lo ya marcado se conserva. `smyl_set_ai_scheduling` sigue existiendo, sin uso desde la pantalla.
+- **Servicios y tarifas:** el diálogo trae «Quién lo realiza» (chips de profesionales; escribe `smyl_professional_services`, requiere `schedule.manage`) y «La IA puede ofrecerlo» (requiere `settings.manage`); «Se aplica a» y «Cómo se cobra» pasan a «Más opciones». La tarjeta muestra «Sin profesional» (aviso, no aparece en Agenda ni asistente) y «La IA lo ofrece». En «Editar varios» hay acciones **Quién lo realiza** (agregar/quitar), **La IA lo ofrece** y **Quitar de la IA**.
+- **Una sola IA:** «✦ Sugerir todo con IA» (junto al nombre) ahora llena también lo fiscal: clave SAT (la mejor sugerida, o la más cercana avisando), unidad E48, tratamiento de IVA y objeto de impuesto; nunca marca «Revisada» ni toca el precio; se puede deshacer. Se quitó el botón separado «Sugerir con IA» de Facturación (el buscador manual sigue).
+- **Agenda → Agenda con IA:** ya no lista servicios; muestra cuántos hay marcados y un botón a Servicios y tarifas.
+- Versiones: `smyl-service-catalog.js` v19, `-stage1.css` v7, `smyl-ai-scheduling.js` v3 / `.css` v2 (+ copias `mobile/www/`). Pruebas: `tests/catalogo-edicion-bloque.test.mjs` y humo `tests/qa/catalogo-edicion-bloque-smoke.cjs` (ampliado: diálogo, IA fiscal, guardado de profesionales/IA y bloque).
+- **Para activar:** aplicar el SQL antes de publicar la web (sin él la casilla de IA no aparece y la tarjeta de Agenda con IA no puede guardar).
+## 2026-11-26 — Codex — Ejecución clínica de procedimientos aceptados (Tratamiento v2)
+- **Problema resuelto:** aceptar un concepto de la propuesta ya no puede confundirse con haberlo realizado. Cada concepto aceptado se materializa como una ejecución clínica trazable con estados `Aceptado`, `En atención`, `Pospuesto`, `Cancelado` o `Completado`.
+- **Regla clínica:** el procedimiento sólo pasa a `Completado` cuando su nota clínica vinculada se firma. La aceptación económica, crear un borrador o pulsar el botón de registro no lo completan.
+- **Flujo en el expediente:** el capítulo activo muestra «Procedimientos aceptados», avance por concepto y una única acción contextual: registrar, reactivar, revisar y firmar o consultar la nota. El registro conserva decisión, propuesta, revisión, concepto, cantidad, sucursal, pieza/zona y consentimiento.
+- **Consentimiento:** se eliminó la casilla manual. Cirugía exige seleccionar un consentimiento informado real, vigente y del mismo paciente; el servidor vuelve a comprobarlo.
+- **Evidencia:** fotografías y radiografías se vinculan a la ejecución por referencia; no se duplican archivos clínicos.
+- **Backend:** migración `20261128150000_smyl_procedure_execution_v1.sql` aplicada en producción y registrada como `applied` (sentinel remoto `ok=true`); tabla `smyl_procedure_executions`; RPC `smyl_sync_procedure_executions_v1`, `smyl_list_procedure_executions_v1`, `smyl_create_procedure_note_v1`, `smyl_set_procedure_execution_status_v1` y `smyl_link_procedure_evidence_v1`; bloqueo optimista, RLS, auditoría y origen aceptado inmutable.
+- **UI/PWA:** `smyl-procedure-safety.js` v3, `smyl-patient-360.js` v42/CSS v24, `smyl-case-workspace.js` v54/CSS v38, caché PWA `procedure-execution-v1`; copias idénticas en `mobile/www/`.
+- **Pruebas:** 43/43 del alcance pasaron, incluidas tres rutas PostgreSQL reales en PGlite: Tratamiento v2, ortodoncia longitudinal y procedimiento aceptado → nota firmada. Sin cambios en Agenda.
+- **Siguiente útil:** asociar automáticamente una cita concreta cuando el procedimiento se inicia desde la visita y añadir el reporte longitudinal de ejecución/tiempos. No conviene crear más pantallas clínicas antes de validar este flujo con un caso real de la clínica.
+
+## 2026-11-26 — Claude Code — Agenda con IA: nivel «agendar» (book) con candados
+- **Qué es:** tercer nivel de la tarjeta «Agenda con IA» (apagado por omisión): cuando el paciente acepta un horario que el servidor ofreció, la IA **confirma la cita** sin aprobación humana. Antes el máximo era «solicitud» (queda en «Por aprobar»).
+- **Candados (todos en SMYL):** nivel `book` encendido por la clínica y solo servicios habilitados · misma validación que `request` (oferta guardada del servidor, vigente, consentimiento del paciente, horario revalidado con la lógica de la Agenda) · la conversación debe estar **vinculada a un paciente** (la IA nunca crea pacientes) · tope diario (`book_daily_cap`, 10 por omisión, 1–50) · si falla un candado NO se pierde nada: queda como solicitud pendiente (`pending_review`, motivos `needs_patient|daily_cap|request_closed`) · transacción única (horario ocupado → `23P01`/409 y no queda nada a medias) · idempotente.
+- **Reversible y visible:** la cita queda `confirmed`, `source='assistant_request'`, notas «Agendada por la IA en el chat…», evento `created` con `source: assistant_ai`; la Agenda muestra 48 h la tarea «Agendada por la IA · revisa que todo esté bien»; el equipo la cancela o mueve como cualquier otra. Se pide confirmación una vez al activar el nivel.
+- **Migración:** `20261128140000_smyl_ai_scheduling_book.sql` (copia: `docs/sql-agenda-ia-agendar-pegar-en-supabase.sql`). Cambia la firma de `smyl_set_ai_scheduling` (parámetro opcional `p_book_cap`): **hay que aplicarla ANTES de publicar la pantalla** (si no, guardar cualquier nivel falla). Probada dos veces en Postgres 16 real con tablas simplificadas y la validación del horario simulada: nivel apagado, sin paciente, con paciente, reintento, tope diario, horario ocupado (atómico), permisos (solo `service_role`). **No probada contra el esquema completo ni con LANA real.**
+- **Función:** `lana-scheduling` (acción nueva `book`; `suggest` guarda ofertas también con este nivel; `request` sigue válido con `book`). Bundle: `docs/bundles/lana-scheduling.single-file.ts`. Contrato: `docs/LANA_AGENDA_CONTRATO.md` (sección `book`).
+- **Pendiente en LANA (fuera de este repo):** usar `action: "book"` solo cuando `context` devuelva `level: "book"` y decir «confirmada» solo con `status: "booked"`; con `pending_review` decir que todavía no está confirmada.
+- **Archivos:** `smyl-ai-scheduling.js/.css` v3, `smyl-schedule.js` v66, `app.html`, `sw.js`, copias en `mobile/www/`, pruebas en `tests/lana-scheduling-request.test.mjs` (+8) y `tests/lana-scheduling-core.test.mjs`.
+
+## 2026-11-26 — Claude Code — Arreglo del archivo único de `lana-scheduling` (no se podía desplegar)
+- **Error visto en Supabase al desplegar:** «The module's source code could not be parsed: 'import', and 'export' cannot be used outside of module code … export default module.exports».
+- **Causa:** `_shared/schedule-suggest-core.mjs` (generado desde un archivo UMD) termina en `export default module.exports;` y el generador de archivos únicos (`scripts/bundle-edge-function.mjs`) solo quitaba `export const/function/{…}`, no `export default`; quedaba dentro de una función. Venía de antes de los cambios del nivel «agendar» (el archivo anterior ya lo tenía).
+- **Arreglo:** el generador quita `export default …;`; se regeneraron todos los archivos únicos (solo cambió `lana-scheduling`); nueva prueba en `tests/cloud-bundles-boot.test.mjs` que falla si algún `docs/bundles/*.single-file.ts` conserva una línea que empiece con `export`.
+
+## 2026-11-26 — Codex — Selector profesional para preparar cotizaciones
+- **Visual:** la ventana ahora se centra correctamente en escritorio, usa una jerarquía más limpia, búsqueda de 48 px, pestañas ligeras, filas clínicas uniformes y acciones explícitas (`Cotizar`, `Continuar`, `Completar plan`, `Crear propuesta`). En PWA se convierte en una hoja inferior con áreas táctiles, safe area y sin desbordamiento horizontal.
+- **Búsqueda real:** el listado inicial conserva hasta 200 pacientes, pero al escribir 2 o más caracteres consulta todo el directorio mediante `smyl_search_patients` por nombre, teléfono o correo, tolerando acentos. Si la consulta remota falla, conserva los pacientes ya cargados y muestra una explicación visible.
+- **Estado clínico y cotizaciones:** planes y cotizaciones se consultan en paralelo. Las cotizaciones se conservan por revisión del plan; se abre la que coincide con la revisión clínica vigente aunque exista otra más reciente de una revisión anterior, evitando crear duplicados por una selección incorrecta.
+- **Resiliencia y accesibilidad:** errores de contexto no bloquean la selección; se muestran como advertencias. La ventana tiene cierre por fondo/Escape, navegación de pestañas con flechas/Home/End, `aria-live`, `aria-busy`, foco visible y devuelve el foco al control de origen.
+- **Archivos:** `smyl-professional-v3.js` v16, `smyl-professional-v3.css` v14, `app.html`, `sw.js` (`quote-picker-v2`) y copias idénticas en `mobile/www/`. Sin SQL nuevo: reutiliza el RPC de búsqueda ya existente.
+- **Pruebas:** 38/38 estáticas/integración del alcance y 2/2 de navegador en Chrome (1440 px y PWA 390 px), incluyendo centrado, búsqueda remota, estados, foco, objetivos táctiles y ausencia de scroll horizontal.
+
+## 2026-11-26 — Claude Code — Servicios: «duplicate key … smyl_services_name_idx» al activar un servicio
+- Causa: la base solo admite un servicio ACTIVO por nombre (`unique (tenant_id, lower(name)) where active`). Si la clínica ya tenía un servicio creado a mano (Agenda → horarios y servicios o la puesta en marcha) con el mismo nombre que una plantilla del catálogo, «Activar y configurar» intentaba crear otro y la base lo rechazaba con ese error técnico.
+- Ahora: al activar una plantilla cuyo nombre ya existe sin plantilla, se **reutiliza ese servicio** (se edita y queda ligado a la plantilla, conservando sus citas); un nombre repetido al crear/editar avisa «Ya hay un servicio activo llamado …» sin intentar guardar; y los errores de la base se traducen (también al activar y en bloque). `smyl-service-catalog.js` v20.
+## 2026-11-26 — Claude Code — Plantillas sugeridas por sección (tarjeta + solicitud en bloque)
+- **Qué es:** cada pantalla que manda WhatsApp muestra qué plantillas necesita, cuáles están aprobadas / en revisión / por solicitar, con UN botón «Solicitar las que faltan (N)». Antes el tenant tenía que adivinar entre 60 del catálogo y el aviso de «falta plantilla» era un callejón sin salida.
+- **Módulo nuevo:** `smyl-template-suggest.js` + `.css` (v1). Parte pura (mapa sección → plantillas, `plan`, `essentialsOf`, `essentialProgress`, `sectionsOf`; probada en Node) y parte de pantalla. Mapa: **Agenda** (6 esenciales + 12 recomendadas: recordatorio con botones, confirmación, cita movida, cita cancelada, «no vino» con botón, motivo de no reagendar…), **Finanzas** (5 esenciales: pago recibido, pago pendiente, saldo vencido, factura disponible, datos fiscales pendientes + 5 recomendadas), **Cotizaciones** (2 + 1), **Pacientes** (3 esenciales: aviso de privacidad, entrevista previa, seguimiento post-cita + 10 recomendadas de documentos y tratamientos). **Marketing queda fuera** (requiere consentimiento). Se recomienda `recordatorio_cita_confirmar_v1` (con botones) y no la duplicada `recordatorio_cita_24h_v1`.
+- **Dónde se monta:** Agenda → Horarios y servicios (después de «Mensajes automáticos de citas»), Finanzas (`#p-caja`, tras el aviso), Cotizaciones (`#p-propuestas`), Pacientes (`#p-pacientes`). Se vuelve a poner si la pantalla se repinta (MutationObserver que ignora sus propios cambios), no se repinta si nada cambió, y desaparece cuando todo está aprobado. La ven todos los que entran a esa sección; **solo el propietario puede solicitar** (a los demás el botón sale bloqueado con «pídeselo»).
+- **Solicitud en bloque** (`SmylTemplates.requestMany`, `smyl-templates.js` v9): UNA confirmación con la lista, solicita una tras otra con pausa de 1,5 s, se detiene en el primer error, solo pide las que están en «Por solicitar».
+- **En el uso:** los dos avisos del chat «no hay plantilla aprobada» (`smyl-inbox.js` v100, `openTemplateDialog` y `compose`) ahora abren «Falta una plantilla aprobada» con «Solicitar ahora» (o «ya la solicitaste», o «pídeselo al propietario»); sin el módulo conservan el `alert` anterior.
+- **Puesta en marcha** (`smyl-clinic-setup.js` v10): el paso «Solicita tu primera plantilla» pasó a «Solicita las plantillas esenciales» (listas las 6 esenciales de la Agenda, con «N de 6 aprobadas · M en revisión») y su botón las solicita en bloque.
+- **Sin SQL ni funciones.** Pruebas: `tests/plantillas-sugeridas.test.mjs` (9) y humo de navegador `tests/qa/plantillas-sugeridas-smoke.cjs` (escritorio, celular y «sin permiso»: tarjetas en las 4 secciones, 1 confirmación → 3 solicitudes, bloqueo, sin bucle, sin scroll horizontal).
+- **Pendiente:** botón «Enviar factura por WhatsApp» en Facturación (las 2 plantillas de factura aún no tienen quién las envíe), campañas/Marketing con control de consentimiento.
+- **Ojo (no es de este cambio):** `main` tiene ~79 pruebas fallando por copias móviles/versiones desincronizadas de otras sesiones; comparé nombre por nombre: este cambio no agrega ninguna.
+
+## 2026-11-26 — Claude Code — Facturación: «Avisar por WhatsApp» y «Pedir datos por WhatsApp»
+- **Qué hace:** (1) En Finanzas → Facturación → **Emitidas**, el menú «•••» de una factura timbrada ofrece **Avisar por WhatsApp**: abre el chat de WhatsApp del paciente con la plantilla `factura_disponible_v1` ya llenada (nombre, folio `SERIE-FOLIO` y clínica). (2) En **Por facturar**, un pago cuyo paciente no tiene datos fiscales muestra **Pedir datos por WhatsApp** con `datos_facturacion_pendientes_v1` (nombre y clínica). Solo aparecen si el paciente tiene un chat de WhatsApp vinculado (`camila_lana_handoffs`). **Nunca envía solo**: una persona revisa y manda desde el chat; si falta la plantilla aprobada sale «Falta una plantilla aprobada → Solicitar ahora» (paquete de plantillas sugeridas).
+- **Archivos:** `smyl-finance.js` v75 (`waLink`, `whatsappInvoice`, `whatsappFiscalData`; repinta Facturación al llegar los chats vinculados), `app.html`, `sw.js`, copias en `mobile/www/`; pruebas `tests/factura-whatsapp.test.mjs` (3), humo `tests/qa/factura-whatsapp-smoke.cjs` (escritorio y celular, factura con/sin chat, pedir datos, plantilla y variables correctas, no envía nada) y `tests/finanzas-caja-facturacion-v8.test.mjs` (la caja de pruebas incluye el ayudante nuevo).
+- **Sin SQL ni funciones.** Con esto las dos plantillas de facturación de la tarjeta «Plantillas para cobros y facturación» ya tienen quién las use.
+
+## 2026-11-26 — Claude Code — Agenda → Horarios y servicios: secciones plegables (menos scroll)
+- **Problema:** la pestaña apilaba cuatro tarjetas largas (12 servicios, horario por profesional y sede, mensajes automáticos, Agenda con IA) y obligaba a hacer mucho scroll.
+- **Qué cambió:** (1) **Acordeón** (`smyl-agenda-accordion.js/.css` v1): cada tarjeta lleva un botón en su encabezado (chip de resumen + chevron) y se pliega a UNA fila de ~64 px. Abre todo plegado; el estado se recuerda por clínica y dispositivo (`smyl_agenda_sections_<tenant>`); tocar el título también pliega; «Expandir todo / Contraer todo». Una sola columna. Las cuatro juntas plegadas ocupan ~300 px (cabe en una pantalla). No mueve DOM: oculta el cuerpo con CSS, así sobrevive a que cada módulo repinte su contenido, y solo aplica dentro de la pestaña (la tarjeta de mensajes incrustada en Configuración se ve siempre abierta). (2) **Resúmenes** en el encabezado: «12 servicios», «6 profesionales · 2 sin horario» (ámbar), «2 de 4 activos», «Apagada / Solo sugiere / Deja solicitudes / Agenda sola». (3) **Horario de tu equipo** ahora es una fila por profesional con una línea por sede (antes una fila por profesional y sede), con «Editar horario»/«Poner horario» por sede.
+- **No tocado a propósito:** la tarjeta «Plantillas de WhatsApp» (tiene su propio resumen y botón) queda visible entre Mensajes y Agenda con IA.
+- **Archivos:** `smyl-schedule.js` v67, `smyl-reminders.js` v9, `smyl-ai-scheduling.js` v5, `smyl-agenda-accordion.js/.css` v1 (nuevos), `app.html`, `sw.js`, copias en `mobile/www/`. Pruebas: `tests/agenda-secciones-plegables.test.mjs` (4) y humo `tests/qa/agenda-secciones-smoke.cjs` (escritorio y celular: abre plegado con resumen, una fila por sección, plegar/desplegar por botón y por título, expandir/contraer todo, recuerda al recargar, horario agrupado, sin errores ni scroll horizontal).
+- **Sin SQL ni funciones.**
+
+## 2026-11-26 · Claude · Plantillas sugeridas de Agenda: se agregan las que usa la negociación de horarios
+- `smyl-template-suggest.js` (v2): `cita_propuesta_paciente_v1` entra a Agenda como esencial y `cita_confirmacion_profesional_v1` pasa de recomendada a esencial (las usa `appointment-negotiations` de forma automática). Agenda: 8 esenciales (antes 6); recomendadas: 11.
+- Pruebas/humo actualizados (`tests/plantillas-sugeridas.test.mjs`, `tests/qa/plantillas-sugeridas-smoke.cjs`), `app.html`/`sw.js` y copias en `mobile/www/`. Sin SQL ni funciones.
+
+## 2026-11-26 · Claude · Plantillas sugeridas: de tarjeta a franja discreta
+- `smyl-template-suggest.js` (v3) y `.css` (v2): la sugerencia ahora es una franja de una línea («Faltan N plantillas de WhatsApp …» + «Solicitar (N)» + ✕). Solo aparece si faltan esenciales o hay problemas; la ✕ la oculta 14 días por clínica (localStorage; con problemas siempre se ve, en tono ámbar). El avance, la lista y «Ir a Plantillas» quedan en un detalle plegado.
+- En Finanzas se coloca debajo de las pestañas (antes iba encima de las cifras). Quien no es propietario ve «pídeselo» en vez del botón.
+- Pruebas y humo actualizados; `app.html`/`sw.js`/`mobile/www/` sincronizados. Sin SQL ni funciones.
+
+## 2026-11-26 · Claude · Finanzas: plantillas dentro del menú «Más»
+- `smyl-template-suggest.js` (v4): en Finanzas ya no hay franja; aparece la opción «Plantillas de WhatsApp · Faltan N…» dentro del menú «Más» de la cabecera (solo si faltan esenciales y el usuario es propietario). Al tocarla pide la confirmación única de `requestMany`. Agenda, Cotizaciones y Pacientes conservan la franja.
+- Pruebas y humo actualizados; `app.html`/`sw.js`/`mobile/www/` sincronizados. Sin SQL ni funciones.
+
+## 2026-11-26 · Claude · Cotización completa: servicios del catálogo, etapas y propuesta limpia
+
+- **Migración NUEVA (aplicar a mano en SQL Editor, antes de publicar el frontend)**: `supabase/migrations/20261201100000_smyl_proposal_catalog_lines.sql`. Reemplaza el cuerpo de `smyl_save_proposal_v2` (lo usan v3 y v4; firma y grants iguales): un concepto de cotización puede ser (a) del plan clínico, (b) un servicio ACTIVO del catálogo (se valida vigencia, `catalog_revision` y copia exacta del servicio, igual que en el plan) o (c) texto libre; además acepta `phase` (evaluate|prevent|stabilize|treat|maintain). Validada en PostgreSQL 16 local (9 casos, idempotente). **Sin esta migración, guardar cualquier cotización con el frontend nuevo falla** (la llave `phase` no existe en la validación vieja); el frontend lo explica con un mensaje.
+- Front: `smyl-proposals.js` v29 («+ Agregar servicio» con buscador del catálogo y precio de la sucursal, «+ Otro concepto», etapa por concepto, vigencia 30 días y condiciones por defecto en cotizaciones nuevas —editables; la clínica puede fijar `tenantData.config.proposal_defaults {terms, introduction, valid_days}`—, botón «Aceptó todo el plan»), `smyl-proposal-model.js` v6 (`phases`, `groups`), `smyl-proposal-print.js` v8 (PDF, vista previa y enlace del paciente agrupan por «Etapa N · Nombre» con subtotal cuando hay más de una; se quitó el código SAT que veía el paciente), `smyl-proposals.css` v18, sufijo SW `-cotizacion-completa-v1`, copias en `mobile/www/`.
+- La Edge Function `smyl-proposal-share` no cambia: la copia congelada conserva `phase` y usa el mismo renderizador.
+- Pendiente (propuestas acordadas con Ricardo): opciones A/B/C, descuento/IVA/plan de pagos, un solo catálogo de precios entre simulador y cotización, foto/simulación automática del caso.
+- Pruebas: `tests/qa/cotizacion-completa-smoke.cjs`; se actualizaron pins de versión en pruebas de cotizaciones. Falla previa en `main` (no mía): `delegated-proposals-stage3` espera `smyl-case-workspace.js?v=53`.
+## 2026-11-26 · Claude · Plantillas: ventana completa en vez de la confirmación pelada
+- `smyl-template-suggest.js` (v5) / `.css` (v3): «Solicitar (N)» de la franja y la opción de «Más» en Finanzas abren una ventana completa (avance, esenciales y recomendadas con su estado, «Solicitar» por plantilla, «Ir a Plantillas» y «Solicitar las que faltan (N)»). Esa ventana es la confirmación: `SmylTemplates.requestMany(ids, { confirmed: true })` (`smyl-templates.js` v10) ya no muestra la segunda ventana con solo nombres. `api.openFull(sectionId)`.
+- «Puesta en marcha» sigue usando `requestMany(ids)` con su confirmación normal. Sin SQL ni funciones; `mobile/www/` sincronizado.
+
+## 2026-11-26 · Claude · Enlace de pago por plantilla de WhatsApp
+- Catálogo (`smyl-template-catalog.js` v10, 61 plantillas): nueva `cobro_enlace_pago_v1` (UTILITY): «Hola {{1}}, tienes un saldo de {{2}} en {{3}}. Puedes pagarlo de forma segura en línea aquí: {{4}} …». El enlace va como variable (mismo patrón que entrevista previa y aviso de privacidad). Copia para Edge Functions regenerada (`_shared/whatsapp-template-catalog.mjs`) y bundle `docs/bundles/whatsapp-templates.single-file.ts`: hay que **redesplegar `whatsapp-templates`** para poder solicitarla a Meta.
+- `smyl-finance.js` (v76): en «Enlace de pago listo», «Enviar por WhatsApp» manda la plantilla desde la cuenta de la clínica (`SmylInbox.sendTemplate`, variables nombre/monto/clínica/enlace; si falta, ofrece «Solicitar ahora»). Si el paciente no tiene chat de WhatsApp, queda el atajo `wa.me` renombrado «Enviar desde mi WhatsApp».
+- `smyl-template-suggest.js` (v6): `cobro_enlace_pago_v1` entra como esencial de Finanzas (ahora 6).
+- Prueba nueva `tests/cobro-plantilla-enlace.test.mjs`; sin SQL.
+
+## 2026-11-27 · Claude · Ventana «Enlace de pago listo» rediseñada
+- `smyl-finance.js` (v77) / `.css` (v55): ventana compacta: marca ✓, título, «Saldo a cobrar … · vence …» (sin el doble punto), enlace + «Copiar» en una fila (el botón dice «Copiado ✓» 2 s), acción principal a ancho completo y «Cerrar» discreto. Si el paciente no tiene chat de WhatsApp en Mensajes se explica por qué el envío es «Enviar desde mi WhatsApp» (atajo wa.me) en vez de la plantilla. Ids sin cambio (`link-copy`, `link-wa-template`, `link-wa`). Sin SQL ni funciones.
+
+## 2026-11-27 · Claude · Vista previa de la plantilla en «Enlace de pago listo»
+- `smyl-finance.js` (v78) / `.css` (v56): cuando el paciente tiene chat de WhatsApp, la ventana muestra «Así lo recibirá el paciente por WhatsApp» con la plantilla `cobro_enlace_pago_v1` ya rellenada (nombre, monto, clínica, enlace) en una burbuja. Los datos son los mismos que se envían (`vals`). Sin SQL ni funciones.
+
+## 2026-11-27 — Claude — Finanzas: Bloque 1 de la auditoría
+- Migración `20261127120000_smyl_finance_cash_integrity.sql`: reembolsos con método/caja/sucursal/referencia, `smyl_cash_expected` (fuente única del corte; los históricos siguen en la caja del pago), `smyl_cash_session_expected` (lectura con alcance), disparador `smyl_lock_open_cash_session` en pagos/ajustes/reembolsos, y `smyl_refund_payment` con 8 parámetros (sustituye a la de 5). Probada en Postgres local, incluidas dos carreras reales (`docs/pruebas/caja-integridad/`).
+- `smyl-pay`: alcance por sucursal en list/cancel/create (`autorizarCargos/autorizarEnlace/enlacesVisibles` en `_shared/smyl-pay-core.mjs`); el alias `smylAdmin as admin` impedía empaquetar, ya hay `docs/bundles/smyl-pay.single-file.ts`.
+- `smyl-finance.js?v=79` / `.css?v=57`: reembolso con método/caja/referencia y llave de intento estable; `receiptLines` desde el snapshot; `refundOnSession`; textos ≥ 12 px.
+- Suite financiera verde (253). Detalle y pendientes en `docs/FINANZAS_AUDITORIA_2026-11-26.md`.

@@ -110,7 +110,7 @@
     var record = node('button', 'btn btn-secondary btn-sm', item.linked ? 'Abrir expediente' : 'Preparar expediente');
     record.type = 'button';
     record.addEventListener('click', function () {
-      if (window.SmylLanaHandoff) window.SmylLanaHandoff.open(item.id);
+      if (window.SmylLanaHandoff) window.SmylLanaHandoff.open(item.id, { stay: false });
     });
     var chat = node('button', 'btn btn-primary btn-sm', 'Abrir conversación');
     chat.type = 'button';

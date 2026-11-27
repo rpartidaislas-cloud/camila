@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>SMYL · Consentimientos profesionales · Vista de prueba</title>
+  <link rel="stylesheet" href="../../smyl-informed-consent.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#eef3f6;color:#10223a;font:14px Inter,system-ui,sans-serif}.shell{max-width:1120px;margin:auto;padding:38px 22px}.shell>h1{margin:0 0 5px;font-size:28px}.shell>p{margin:0 0 24px;color:#64778a}.p360-hc-band{overflow:hidden;border:1px solid #d8e2e9;border-radius:16px;background:#fff}.p360-hc-band-h{display:flex;justify-content:space-between;gap:12px;padding:16px 22px}.p360-hc-title{display:flex;gap:11px}.p360-hc-num{width:31px;height:31px;border-radius:10px;display:grid;place-items:center;background:#e5f3f0;color:#0f7064;font-weight:900}.p360-hc-title h3{margin:0}.p360-hc-title small{color:#687b8e}.p360-hc-edit,.btn{min-height:36px;padding:8px 11px;border:1px solid #cbd8e1;border-radius:9px;background:#fff;color:#183249;font-weight:700;cursor:pointer}.btn-primary{background:#0d2c45;color:#fff}.p360-hc-index{display:none}@media(max-width:620px){.shell{padding:18px 10px}.p360-hc-band-h{padding:14px 16px;align-items:flex-start}.p360-hc-band-h .pp-actions{flex:none}.ic-new-button{font-size:0}.ic-new-button::after{content:"+ Nuevo";font-size:12px}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <h1>Historia clínica</h1><p>Paciente ficticio · entorno de validación visual</p>
+    <div id="history"><nav class="p360-hc-index"></nav><div class="p360-hc-main"><footer class="p360-hc-footer"></footer></div></div>
+  </main>
+  <script>
+    window.pacienteActual={nombre:'Mariana',apellido:'López'};window.tenantData={nombre:'Clínica Centro'};
+    const prior={id:'consent-prior',procedure_title:'Extracción dental',signer_name:'Mariana López',signer_relation:'patient',professional_name:'Dra. Fernanda Lozano',professional_license:'12345678',signed_at:'2026-11-20T17:30:00Z',revoked_at:null,revoked_reason:null,document_sha256:'a'.repeat(64)};
+    const full={...prior,document_text:'CONSENTIMIENTO INFORMADO\nProcedimiento: Extracción dental\nPaciente: Mariana López\n\nEn qué consiste: Retiro del diente indicado.\nBeneficios esperados: Eliminar dolor.\nRiesgos y posibles complicaciones: Sangrado e infección.\nAlternativas: Conservar el diente cuando sea posible.\nCuidados posteriores: Seguir indicaciones.',signature_png:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/6wN9GQAAAABJRU5ErkJggg=='};
+    window.__icRows=[prior];window.__icCalls=[];window.__icDocs={'consent-prior':full};
+    window.SmylAuthGuard={reauthenticate:async()=>true};
+    window.sb={rpc:async(name,args)=>{window.__icCalls.push({name,args});if(name==='smyl_list_informed_consents')return{data:window.__icRows,error:null};if(name==='smyl_get_informed_consent')return{data:window.__icDocs[args.p_id],error:null};if(name==='smyl_record_informed_consent'){const id='consent-new',row={id,procedure_title:args.p_procedure_title,signer_name:args.p_signer_name,signer_relation:args.p_signer_relation,professional_name:'Dra. Fernanda Lozano',professional_license:'12345678',signed_at:new Date().toISOString(),revoked_at:null,revoked_reason:null,document_sha256:'b'.repeat(64)};window.__icRows=[row,...window.__icRows];window.__icDocs[id]={...row,document_text:args.p_document_text,signature_png:args.p_signature_png};return{data:id,error:null};}if(name==='smyl_revoke_informed_consent'){const row=window.__icRows.find(x=>x.id===args.p_id);row.revoked_at=new Date().toISOString();row.revoked_reason=args.p_reason;window.__icDocs[args.p_id]={...window.__icDocs[args.p_id],...row};return{data:null,error:null};}return{data:null,error:{message:'RPC desconocido'}};}};
+  </script>
+  <script src="../../smyl-informed-consent.js"></script>
+  <script>SmylInformedConsent.mount({host:document.getElementById('history'),patient:'patient-preview',canAct:true,isCurrent:()=>true});</script>
+</body>
+</html>

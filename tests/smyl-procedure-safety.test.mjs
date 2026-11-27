@@ -69,8 +69,9 @@ test('cada tipo pide solo lo que corresponde: la presión es obligatoria en ciru
   assert.match(P.build({ ...base, type: 'anesthesia', agent: 'lidocaine', cartridges: 2, weightKg: 70 }, { asa: 'II' }).error, /ASA II/);
   assert.ok(P.build({ ...base, type: 'anesthesia', agent: 'lidocaine', cartridges: 2, weightKg: 70 }, { asa: 'I' }).value);
   // Cirugía: la presión siempre; el anestésico es opcional.
-  assert.match(P.build({ ...base, type: 'surgery' }, {}).error, /cirugía/);
-  assert.ok(P.build({ ...base, type: 'surgery', systolic: '120', diastolic: '80' }, {}).value);
+  assert.match(P.build({ ...base, type: 'surgery', consentVerified: true }, {}).error, /cirugía/);
+  assert.match(P.build({ ...base, type: 'surgery', systolic: '120', diastolic: '80' }, {}).error, /consentimiento/);
+  assert.ok(P.build({ ...base, type: 'surgery', consentVerified: true, systolic: '120', diastolic: '80' }, {}).value);
 });
 
 test('el procedimiento exige sitio confirmado y alergias revisadas, y guarda la hora de cada paso', () => {
@@ -117,17 +118,18 @@ test('es una pantalla propia con tres entradas: herramientas, pestaña Consulta 
   assert.doesNotMatch(note, /SmylProcedureSafety\.enhance|SmylProcedureSafety\.collect/, 'el formulario de la nota ya no lleva el bloque');
   assert.match(note, /if\(row&&d&&d\.procedure\)doc\.procedure=d\.procedure;/, 'un borrador que ya traía procedimiento lo conserva');
   assert.match(note, /smyl:clinical-note-created/);
-  assert.match(read('smyl-case-workspace.js'), /btn\('Registrar procedimiento'/);
+  assert.match(read('smyl-case-workspace.js'), /btn\('Registrar siguiente procedimiento'/);
   const ui = read('smyl-procedure-safety.js');
-  assert.match(ui, /smyl_create_clinical_note/);
-  assert.match(ui, /p_note_type: 'progress'/);
+  assert.match(ui, /smyl_create_procedure_note_v1/);
+  assert.match(ui, /p_note_type: 'procedure'/);
+  assert.match(ui, /smyl_list_informed_consents/);
   assert.match(read('smyl-patient-360.css'), /\.ps-dialog\{/);
 });
 
 test('web, móvil y PWA distribuyen la pantalla de procedimiento', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-procedure-safety\.js\?v=2/);
-    assert.match(read(file), /smyl-patient-360\.js\?v=40/);
+    assert.match(read(file), /smyl-procedure-safety\.js\?v=3/);
+    assert.match(read(file), /smyl-patient-360\.js\?v=42/);
     assert.match(read(file), /smyl-clinical-tools\.js\?v=2/);
   }
   assert.ok(read('app.html').indexOf('smyl-procedure-safety.js') < read('app.html').indexOf('smyl-patient-360.js'));

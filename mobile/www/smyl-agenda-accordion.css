@@ -1,0 +1,42 @@
+/* Agenda → Horarios y servicios: secciones plegables en una sola columna. */
+.schedule-card .sc-toggle { display: none; }
+.sc-toolbar { display: flex; justify-content: flex-end; gap: 6px; margin: 0 0 8px; }
+.sc-toolbar-action { min-height: 32px; padding: 4px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--smyl-accent, #394ab9); font: 700 13px/18px var(--smyl-font, system-ui, sans-serif); cursor: pointer; }
+.sc-toolbar-action:hover { text-decoration: underline; }
+.schedule-settings-grid.sc-accordion { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-items: start; }
+.schedule-settings-grid.sc-accordion > .schedule-card { grid-column: 1 / -1; margin: 0; }
+.schedule-settings-grid.sc-accordion > .schedule-card > .schedule-section-title { align-items: center; margin-bottom: 14px; cursor: pointer; }
+.schedule-settings-grid.sc-accordion > .schedule-card[data-collapsed="true"] { padding-block: 0; }
+.schedule-settings-grid.sc-accordion > .schedule-card[data-collapsed="true"] > .schedule-section-title { min-height: 64px; margin-bottom: 0; }
+.schedule-settings-grid.sc-accordion > .schedule-card[data-collapsed="true"] > :not(.schedule-section-title) { display: none; }
+.schedule-settings-grid.sc-accordion > .schedule-card[data-collapsed="true"] > .schedule-section-title p,
+.schedule-settings-grid.sc-accordion > .schedule-card[data-collapsed="true"] > .schedule-section-title > :not(:first-child):not(.sc-toggle) { display: none; }
+.schedule-settings-grid.sc-accordion > .schedule-card[data-collapsed="true"] > .schedule-section-title h2 { margin: 0; }
+.schedule-settings-grid.sc-accordion > .schedule-card > .schedule-section-title > .sc-toggle {
+  display: inline-flex; align-items: center; gap: 10px; flex: none; margin-inline-start: auto; min-height: 44px; padding: 0 4px 0 10px;
+  border: 0; background: transparent; color: inherit; cursor: pointer; font: inherit;
+}
+.sc-chip { padding: 3px 10px; border-radius: 999px; background: #eef1f6; color: #526675; font: 600 12px/16px var(--smyl-font, system-ui, sans-serif); white-space: nowrap; }
+.sc-chip[data-tone="ok"] { background: #e3f3ea; color: #1f6b43; }
+.sc-chip[data-tone="warn"] { background: #fff2d6; color: #8a5a00; }
+.sc-chip[hidden] { display: none; }
+.sc-chevron { width: 8px; height: 8px; border: solid #415985; border-width: 0 2px 2px 0; transform: translateY(-2px) rotate(45deg); transition: transform .15s ease; }
+.schedule-card[data-collapsed="false"] .sc-chevron { transform: translateY(2px) rotate(225deg); }
+.sc-toggle:focus-visible, .sc-toolbar-action:focus-visible { outline: 2px solid var(--smyl-focus, #2563eb); outline-offset: 2px; border-radius: 8px; }
+@media (max-width: 640px) {
+  .schedule-settings-grid.sc-accordion > .schedule-card[data-collapsed="true"] > .schedule-section-title { min-height: 60px; }
+  .sc-chip { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (prefers-reduced-motion: reduce) { .sc-chevron { transition: none; } }
+
+/* Horario de tu equipo: una fila por profesional, una línea por sede. */
+.schedule-hour-pro { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid #dce4de; border-radius: 12px; background: #fff; }
+.schedule-hour-pro + .schedule-hour-pro { margin-top: 8px; }
+.schedule-hour-pro > strong { font-size: 14px; }
+.schedule-hour-sites { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.schedule-hour-sites li { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; padding-top: 6px; border-top: 1px solid #edf1ee; font-size: 13px; color: #475069; }
+.schedule-hour-sites li:first-child { border-top: 0; padding-top: 0; }
+.schedule-hour-sites li[data-empty="true"] span { color: #8a5a00; }
+.schedule-hour-sites span { min-width: 0; overflow-wrap: anywhere; }
+.schedule-hour-sites .btn { min-height: 36px; white-space: nowrap; }
+@media (max-width: 560px) { .schedule-hour-sites li { flex-direction: column; align-items: stretch; } .schedule-hour-sites .btn { width: 100%; min-height: 44px; } }

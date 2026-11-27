@@ -1,7 +1,8 @@
-// Consulta de horarios libres para el asistente de IA de LANA (SOLO LECTURA). Contrato: docs/LANA_AGENDA_CONTRATO.md.
+// Horarios libres y solicitud de cita para el asistente de IA de LANA. `context` y `suggest` son de solo lectura; `request` (nivel «request» que la clínica
+// enciende) deja una solicitud PENDIENTE en «Agenda → Por aprobar», nunca confirma. Contrato: docs/LANA_AGENDA_CONTRATO.md.
 // Autenticación: firma HMAC-SHA256 del cuerpo crudo (X-SMYL-Signature: sha256=<hex>) con SMYL_LANA_SCHEDULING_SECRET; no usa sesión de personal
 // (verify_jwt=false en config.toml). Apagado por defecto: la clínica lo enciende en Configuración → Agenda con IA y elige los servicios.
-// No agenda ni aparta nada. La lógica vive en _shared/lana-scheduling-core.mjs (pura y probada); aquí solo se conecta con la base de datos.
+// Nunca agenda por sí sola. La lógica vive en _shared/lana-scheduling-core.mjs (pura y probada); aquí solo se conecta con la base de datos.
 import { smylAdmin } from "../_shared/lana-linked.ts";
 import { manejar, MAX_BODY_BYTES } from "../_shared/lana-scheduling-core.mjs";
 
@@ -53,6 +54,60 @@ const deps = {
     });
     if (error) throw error;
     return data || [];
+  },
+  // ¿La conversación pertenece a la cuenta de LANA vinculada a esta clínica? (camila_tenants.config.integraciones.lana.lana_tenant_id)
+  lanaTenantMatches: async (tenantId: string, lanaTenantId: string): Promise<boolean> => {
+    const { data, error } = await admin.from("camila_tenants").select("config").eq("id", tenantId).maybeSingle();
+    if (error) throw error;
+    const lana = data?.config?.integraciones?.lana;
+    return !!lana && lana.estado === "conectada" && typeof lana.lana_tenant_id === "string" && lana.lana_tenant_id.toLowerCase() === lanaTenantId.toLowerCase();
+  },
+  // Profesionales activos, sus sedes y los servicios que realizan (solo ids y nombre público).
+  professionals: async (tenantId: string): Promise<Row[]> => {
+    const [{ data: pros, error }, { data: links, error: e2 }, { data: svc, error: e3 }] = await Promise.all([
+      admin.from("smyl_professionals").select("id,display_name,active").eq("tenant_id", tenantId).eq("active", true).order("display_name"),
+      admin.from("smyl_professional_branches").select("professional_id,branch_id").eq("tenant_id", tenantId),
+      admin.from("smyl_professional_services").select("professional_id,service_id").eq("tenant_id", tenantId),
+    ]);
+    if (error) throw error; if (e2) throw e2; if (e3) throw e3;
+    return (pros || []).map((p: Row) => ({
+      id: p.id, name: p.display_name,
+      branch_ids: (links || []).filter((l: Row) => l.professional_id === p.id).map((l: Row) => l.branch_id),
+      service_ids: (svc || []).filter((l: Row) => l.professional_id === p.id).map((l: Row) => l.service_id),
+    }));
+  },
+  // Claves de los horarios ya ofrecidos en esta conversación (para «más opciones»).
+  recentOfferKeys: async (q: Row): Promise<string[]> => {
+    const { data, error } = await admin.from("smyl_assistant_slot_offers").select("slots").eq("tenant_id", q.tenantId).eq("lana_conversation_id", q.conversationId).gte("created_at", q.since).order("created_at", { ascending: false }).limit(10);
+    if (error) throw error;
+    const keys: string[] = [];
+    for (const row of data || []) for (const slot of (row.slots as Row[]) || []) if (slot && typeof slot.key === "string") keys.push(slot.key);
+    return keys;
+  },
+  // Guarda la oferta (hasta 3 opciones) para que `request` solo pueda elegir entre lo que el servidor ofreció. Sin datos personales.
+  saveOffer: async (o: Row): Promise<void> => {
+    const { error } = await admin.from("smyl_assistant_slot_offers").insert({
+      tenant_id: o.tenantId, lana_tenant_id: o.lanaTenantId, lana_conversation_id: o.conversationId, offer_key: o.offerKey,
+      service_id: o.serviceId, slots: o.slots, expires_at: o.expiresAt,
+    });
+    if (error) throw error;
+  },
+  createRequest: async (q: Row): Promise<Row> => {
+    const { data, error } = await admin.rpc("smyl_ai_scheduling_create_request", {
+      p_tenant_id: q.tenantId, p_lana_tenant_id: q.lanaTenantId, p_conversation_id: q.conversationId, p_offer_key: q.offerKey,
+      p_option_index: q.optionIndex, p_name: q.name, p_contact: q.contact, p_consent: true, p_notice_version: q.privacyNoticeVersion,
+    });
+    if (error) throw Object.assign(new Error(error.message), { code: error.code });
+    return data as Row;
+  },
+  // Agendar (nivel «book»): confirma la cita solo si pasan los candados de la función de base de datos; si no, queda como solicitud pendiente.
+  book: async (q: Row): Promise<Row> => {
+    const { data, error } = await admin.rpc("smyl_ai_scheduling_book", {
+      p_tenant_id: q.tenantId, p_lana_tenant_id: q.lanaTenantId, p_conversation_id: q.conversationId, p_offer_key: q.offerKey,
+      p_option_index: q.optionIndex, p_name: q.name, p_contact: q.contact, p_consent: true, p_notice_version: q.privacyNoticeVersion,
+    });
+    if (error) throw Object.assign(new Error(error.message), { code: error.code });
+    return data as Row;
   },
   log: async (event: Row): Promise<void> => {
     const { error } = await admin.from("smyl_ai_scheduling_events").insert(event);

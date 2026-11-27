@@ -32,13 +32,13 @@ test('si no se puede leer nada no se inventa: queda sin dato y no se marca como 
   assert.equal(m.state, 'neutral');
 });
 
-test('la sección es solo del consentimiento: sin atajos a otras pantallas ni solicitudes de derechos', () => {
+test('la sección separa privacidad de los consentimientos clínicos y conserva las solicitudes de derechos', () => {
   const m = P.model({ consent: { signed: false }, privacy: null, openRequests: 3 }, fmt);
   assert.ok(m.rows.every((r) => r.label !== 'Solicitudes de derechos'), 'las solicitudes ARCO viven en Privacidad y derechos');
   const html = P.render(m, 6, { link: true, screen: true, requests: true });
   assert.doesNotMatch(html, /data-hp-requests|data-hp-screen|Ver solicitudes|Firmar en pantalla/);
-  assert.match(html, /Consentimiento de privacidad/);
-  assert.match(html, /Lo que firmó el paciente y lo que permite sobre sus datos/);
+  assert.match(html, /Privacidad y permisos de datos/);
+  assert.match(html, /Aviso firmado y lo que el paciente permite hacer con sus datos/);
 });
 
 test('los botones de firma solo se ofrecen si falta la firma y el rol puede actuar; todo se escapa', () => {
@@ -49,14 +49,14 @@ test('los botones de firma solo se ofrecen si falta la firma y el rol puede actu
   assert.doesNotMatch(P.render(P.model({ consent: firmado, privacy: null }, fmt), 6, { link: true, screen: true }), /data-hp-link/, 'ya firmado no se vuelve a pedir');
   const hostil = P.render(P.model({ consent: { signed: true, signer_name: '<img src=x onerror=alert(1)>', notice_version: '"><b>' }, privacy: null }, fmt), 6, {});
   assert.doesNotMatch(hostil, /<img/); assert.match(hostil, /&lt;img src=x onerror=alert\(1\)&gt;/); assert.match(hostil, /&quot;&gt;&lt;b&gt;/);
-  assert.match(P.indexButton(6, sin), /6 · Consentimiento/);
+  assert.match(P.indexButton(6, sin), /6 · Privacidad y datos/);
 });
 
 test('el expediente carga el módulo y lo monta en la historia clínica; la copia móvil es igual', () => {
   const t = read('smyl-patient-360.js');
   assert.match(t, /SmylPatientPrivacyPanel\.mount\(\{host:s\.historyHost,tenant:s\.tenant,patient:s\.patient/);
-  for (const f of ['app.html', 'mobile/www/app.html']) { const a = read(f); assert.match(a, /smyl-patient-privacy-panel\.js\?v=5/); assert.match(a, /smyl-patient-privacy-panel\.css\?v=4/); assert.match(a, /smyl-patient-360\.js\?v=40/); }
-  for (const f of ['sw.js', 'mobile/www/sw.js']) { const a = read(f); assert.match(a, /\/camila\/smyl-patient-privacy-panel\.js\?v=5/); assert.match(a, /privacidad-expediente-v2/); }
+  for (const f of ['app.html', 'mobile/www/app.html']) { const a = read(f); assert.match(a, /smyl-patient-privacy-panel\.js\?v=6/); assert.match(a, /smyl-patient-privacy-panel\.css\?v=4/); assert.match(a, /smyl-patient-360\.js\?v=41/); }
+  for (const f of ['sw.js', 'mobile/www/sw.js']) { const a = read(f); assert.match(a, /\/camila\/smyl-patient-privacy-panel\.js\?v=6/); assert.match(a, /privacy-labels-v1/); }
   for (const f of ['smyl-patient-privacy-panel.js', 'smyl-patient-privacy-panel.css', 'smyl-patient-360.js', 'smyl-consultorio.js', 'smyl-consultorio.css']) assert.equal(read(f), read('mobile/www/' + f), f);
   const js = read('smyl-patient-privacy-panel.js');
   assert.doesNotMatch(js.replace(/innerHTML = svg|tpl\.innerHTML = [^;]*;|itpl\.innerHTML = [^;]*;|qr\.innerHTML = svg/g, ''), /innerHTML/);

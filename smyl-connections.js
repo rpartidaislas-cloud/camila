@@ -31,6 +31,7 @@
       '<div class="connections-status-card" role="status" aria-live="polite" aria-atomic="true"><span class="connections-status-label">ESTADO</span>' +
       '<div class="connections-status-row"><span class="connections-status-dot"></span><strong data-lana-status><span class="sk-sr">Cargando…</span><span class="sk sk-line w-60 is-lg" aria-hidden="true"></span></strong></div>' +
       '<p data-lana-summary><span class="sk-sr">Comprobando la configuración de esta clínica.</span><span class="sk sk-line w-100" aria-hidden="true"></span></p><small data-lana-verified></small></div></header>' +
+      '<div data-ia-interruptor-slot></div>' +
       '<section class="connections-flow" aria-labelledby="connections-flow-title"><div class="connections-section-heading"><span>FLUJO SEGURO</span><h2 id="connections-flow-title">Un canal, dos responsabilidades claras</h2></div>' +
       '<ol><li><span>01</span><div><strong>El paciente escribe</strong><p>SMYL recibe y organiza la conversación de tus canales.</p></div></li>' +
       '<li><span>02</span><div><strong>El dentista revisa</strong><p>SMYL prepara la evidencia y el caso para revisión profesional.</p></div></li>' +
@@ -49,14 +50,14 @@
       '<dialog class="connections-disconnect-dialog" data-disconnect-dialog><form method="dialog"><span class="connections-status-label">DESCONECTAR CANAL</span><h2 data-disconnect-title>¿Desconectar este canal?</h2><p data-disconnect-copy>El asistente dejará de recibir y enviar mensajes. El historial se conservará y podrás conectar otra cuenta después.</p><div class="connections-disconnect-summary"><span class="connections-channel-icon" data-disconnect-icon>I</span><div><strong data-disconnect-name>Instagram</strong><small data-disconnect-account></small></div></div><footer><button type="button" class="btn btn-secondary" data-disconnect-cancel>Cancelar</button><button type="button" class="btn connections-danger-button" data-disconnect-confirm>Desconectar</button></footer></form></dialog>' +
       '<dialog class="connections-disconnect-dialog" data-unlink-dialog aria-labelledby="connections-unlink-title"><form method="dialog"><span class="connections-status-label">DESVINCULAR MENSAJERÍA</span><h2 id="connections-unlink-title">¿Desvincular la mensajería de esta clínica?</h2><p>SMYL dejará de leer y enviar mensajes por WhatsApp, Messenger e Instagram para esta clínica, y pausará los recordatorios por WhatsApp.</p><div class="connections-disconnect-summary"><span class="connections-channel-icon" aria-hidden="true">L</span><div><strong>Enlace de mensajería</strong><small data-unlink-code></small></div></div><p class="connections-help"><strong>No se borra ninguna cuenta ni conversación, ni en tu plataforma de mensajería ni en Meta.</strong> Tus canales siguen funcionando allá. Podrás volver a vincular cuando quieras.</p><footer><button type="button" class="btn btn-secondary" data-unlink-cancel>Cancelar</button><button type="button" class="btn connections-danger-button" data-unlink-confirm>Desvincular</button></footer></form></dialog>' +
       '<section class="connections-context connections-training" aria-labelledby="lana-training-title"><div class="connections-section-heading"><span>CAPACITAR IA</span><h2 id="lana-training-title">Prepara a SMYL Asistente para atender pacientes</h2><p>Trabaja en borrador, valida la información y publica cuando esté lista. Solo la versión publicada responde en WhatsApp, Messenger e Instagram.</p></div>' +
-      '<div class="connections-training-bar" role="status" aria-live="polite" aria-atomic="true"><div><span class="connections-training-state" data-training-state>Borrador sin guardar</span><small data-training-version>Sin versión publicada</small></div><div class="connections-training-score"><span data-training-score>0%</span><small>capacitación completa</small></div></div>' +
+      '<div class="connections-training-bar" role="status" aria-live="polite" aria-atomic="true"><div class="assistant-bar-main"><span class="connections-training-state" data-training-state>Borrador sin guardar</span><small data-training-version>Sin versión publicada</small></div><div class="assistant-bar-chips"><button type="button" class="assistant-chip" data-assistant-ia aria-expanded="false" hidden></button><button type="button" class="assistant-chip" data-assistant-level hidden></button><span class="assistant-chip is-static" data-assistant-channels></span><button type="button" class="assistant-chip is-action" data-autofill disabled title="Llena con los datos de tu clínica lo que todavía esté vacío">Autollenar con mis datos</button><button type="button" class="assistant-chip is-action" data-autofill-redo disabled title="Vuelve a llenar los campos autollenables con los datos actuales de tu clínica">Rehacer desde mi clínica</button><button type="button" class="assistant-chip is-link" data-select-workspace="lab">Probar el asistente →</button></div><div class="connections-training-score"><span data-training-score>0%</span><small>capacitación completa</small></div></div>' +
       '<form data-lana-training-form><fieldset><legend>Identidad y voz</legend><div class="connections-context-grid"><label>Nombre del asistente<input name="assistant_name" maxlength="50" value="SMYL Asistente"></label><label>Tono<select name="tone"><option value="profesional">Profesional y claro</option><option value="cercano">Cercano y empático</option><option value="breve">Breve y directo</option></select></label><label class="full">Mensaje de bienvenida<textarea name="welcome_message" maxlength="350" rows="2" placeholder="Hola, soy el asistente de la clínica. Puedo orientarte y ayudarte con el siguiente paso."></textarea></label></div></fieldset>' +
       '<fieldset><legend>La clínica</legend><div class="connections-context-grid"><label class="full">Descripción y enfoque<textarea name="clinic_description" maxlength="1600" rows="3" placeholder="Especialidad, enfoque, tipo de pacientes y qué distingue a la clínica."></textarea></label><label class="full">Especialidades confirmadas<textarea name="specialties" maxlength="1200" rows="2" placeholder="Odontología general, ortodoncia, implantología…"></textarea></label><label>Ubicación principal<input name="location" maxlength="500" placeholder="Dirección o zona de atención"></label><label>Horarios<input name="hours" maxlength="500" placeholder="Lun–Vie 9:00–18:00"></label><label>Idiomas<input name="languages" maxlength="300" placeholder="Español, inglés"></label><label>Canales de contacto<input name="contact_channels" maxlength="700" placeholder="Teléfono y medios autorizados"></label><label class="full">Acceso, estacionamiento y accesibilidad<textarea name="access_info" maxlength="900" rows="2"></textarea></label><label class="full">Política para menores y acompañantes<textarea name="minor_policy" maxlength="900" rows="2"></textarea></label></div></fieldset>' +
       '<fieldset><legend>Sucursales y operación</legend><div class="connections-context-grid"><label class="full" hidden>Sucursales, direcciones y cobertura<textarea name="branches" maxlength="2400" rows="4" tabindex="-1"></textarea></label><div class="full connections-auto" data-auto-branches></div>' +
       '<div class="full connections-branch-tools" data-branch-tools hidden><div class="connections-branch-tools-row"><label class="connections-inline-check"><input type="checkbox" data-ask-branch> Que el asistente pregunte la sucursal antes de agendar</label></div><p class="connections-fieldset-help">Cuando el paciente diga cuál sucursal prefiere, la conversación se asigna sola a esa sucursal.</p></div><label class="full">Reglas de agenda<textarea name="scheduling_rules" maxlength="1600" rows="3" placeholder="Anticipación para agendar, confirmación, reprogramación y horarios especiales. La duración de cada servicio ya se toma de tu catálogo."></textarea></label><label class="full">Promociones autorizadas y vigencia<textarea name="approved_promotions" maxlength="1200" rows="2" placeholder="Sólo promociones aprobadas; indica fecha de vencimiento."></textarea></label></div></fieldset>' +
       '<fieldset><legend>Servicios confirmados</legend><div class="connections-auto" data-auto-services></div><div class="connections-repeat-list" data-service-list hidden></div></fieldset>' +
       '<fieldset><legend>Preguntas frecuentes</legend><p class="connections-fieldset-help">El asistente respetará estas respuestas y no inventará una política distinta.</p><div class="connections-repeat-list" data-faq-list></div><button type="button" class="connections-add-row" data-add-faq>+ Agregar pregunta</button><button type="button" class="btn btn-secondary" data-media-training>Respuestas con archivos</button></fieldset>' +
-      '<fieldset><legend>Flujo de atención</legend><div class="connections-context-grid"><label class="full">Objetivo de la conversación<textarea name="attention_objective" maxlength="900" rows="2"></textarea></label><label class="full">Política de citas<textarea name="appointment_policy" maxlength="1200" rows="3" placeholder="Qué puede explicar, qué datos pedir y cuándo debe confirmar una persona."></textarea></label><label class="full">Cancelación e inasistencia<textarea name="cancellation_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Política de precios<textarea name="pricing_policy" maxlength="1200" rows="3" placeholder="Qué precios están confirmados y cuándo se requiere valoración. El asistente nunca inventa importes."></textarea></label><label class="full">Pagos, anticipos y financiamiento<textarea name="payment_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Facturación CFDI<textarea name="invoice_policy" maxlength="1200" rows="2" placeholder="Plazo, canal y datos que solicita el equipo; nunca recopilar contraseñas ni documentos completos."></textarea></label><label class="full">Seguros y reembolsos<textarea name="insurance_policy" maxlength="900" rows="2"></textarea></label><label class="full">Seguimientos y recordatorios<textarea name="followup_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Datos administrativos que puede solicitar<textarea name="intake_questions" maxlength="1600" rows="3" placeholder="Ej. nombre, tratamiento de interés, horario preferido y sucursal. Una o dos preguntas por mensaje."></textarea></label><label class="full">Protocolo administrativo de urgencias<textarea name="emergency_policy" maxlength="1200" rows="3" placeholder="Señales que exigen atención inmediata y texto aprobado por la clínica; nunca diagnosticar ni prescribir."></textarea></label><label class="full">Cuándo pasar la conversación a una persona<textarea name="handoff_rules" maxlength="1600" rows="3" placeholder="Ej. inconformidad, solicitud de hablar con el dentista o excepción administrativa. Dolor, urgencias y dudas clínicas ya escalan siempre."></textarea></label><label class="full">Expectativa de respuesta humana<textarea name="human_response_policy" maxlength="900" rows="2" placeholder="Indica tiempos sólo si la clínica realmente los mide."></textarea></label><label>Autonomía<select name="autonomy_level"><option value="1">1 · Solo bienvenida</option><option value="2">2 · Información y FAQ</option><option value="3">3 · Atención asistida</option><option value="4">4 · Gestión administrativa confirmada</option></select></label></div></fieldset>' +
+      '<fieldset><legend>Flujo de atención</legend><div class="connections-context-grid"><div class="full assistant-levels" data-assistant-levels role="radiogroup" aria-labelledby="assistant-levels-title"><span class="assistant-levels-title" id="assistant-levels-title">Nivel de autonomía</span><p class="assistant-levels-help">Define hasta dónde puede llegar el asistente por su cuenta. Empieza en el nivel 1 y sube cuando hayas probado sus respuestas.</p><div class="assistant-levels-grid"><button type="button" class="assistant-level" role="radio" aria-checked="false" data-level-card="1"><b>Nivel 1</b><strong>Informativo</strong><span>Responde preguntas frecuentes, dirección y horarios. No da precios ni agenda: si el paciente pide más, avisa a una persona.</span></button><button type="button" class="assistant-level" role="radio" aria-checked="false" data-level-card="2"><b>Nivel 2</b><strong>Citas y precios</strong><span>Además comparte precios de referencia («desde $X, sujeto a valoración») y toma los datos de la cita para que el equipo la confirme.</span></button><button type="button" class="assistant-level" role="radio" aria-checked="false" data-level-card="3"><b>Nivel 3</b><strong>Acompañamiento</strong><span>Conversa con más profundidad: motivo de consulta, urgencia y seguimiento. Una persona confirma citas, precios finales y pagos.</span></button></div><p class="assistant-levels-note" data-level-note></p><label class="assistant-levels-select">Autonomía<select name="autonomy_level"><option value="1">1 · Informativo</option><option value="2">2 · Citas y precios</option><option value="3">3 · Acompañamiento</option></select></label></div><label class="full">Objetivo de la conversación<textarea name="attention_objective" maxlength="900" rows="2"></textarea></label><label class="full">Política de citas<textarea name="appointment_policy" maxlength="1200" rows="3" placeholder="Qué puede explicar, qué datos pedir y cuándo debe confirmar una persona."></textarea></label><label class="full">Cancelación e inasistencia<textarea name="cancellation_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Política de precios<textarea name="pricing_policy" maxlength="1200" rows="3" placeholder="Qué precios están confirmados y cuándo se requiere valoración. El asistente nunca inventa importes."></textarea></label><label class="full">Pagos, anticipos y financiamiento<textarea name="payment_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Facturación CFDI<textarea name="invoice_policy" maxlength="1200" rows="2" placeholder="Plazo, canal y datos que solicita el equipo; nunca recopilar contraseñas ni documentos completos."></textarea></label><label class="full">Seguros y reembolsos<textarea name="insurance_policy" maxlength="900" rows="2"></textarea></label><label class="full">Seguimientos y recordatorios<textarea name="followup_policy" maxlength="1200" rows="2"></textarea></label><label class="full">Datos administrativos que puede solicitar<textarea name="intake_questions" maxlength="1600" rows="3" placeholder="Ej. nombre, tratamiento de interés, horario preferido y sucursal. Una o dos preguntas por mensaje."></textarea></label><label class="full">Protocolo administrativo de urgencias<textarea name="emergency_policy" maxlength="1200" rows="3" placeholder="Señales que exigen atención inmediata y texto aprobado por la clínica; nunca diagnosticar ni prescribir."></textarea></label><label class="full">Cuándo pasar la conversación a una persona<textarea name="handoff_rules" maxlength="1600" rows="3" placeholder="Ej. inconformidad, solicitud de hablar con el dentista o excepción administrativa. Dolor, urgencias y dudas clínicas ya escalan siempre."></textarea></label><label class="full">Expectativa de respuesta humana<textarea name="human_response_policy" maxlength="900" rows="2" placeholder="Indica tiempos sólo si la clínica realmente los mide."></textarea></label></div></fieldset>' +
       '<fieldset><legend>Memoria administrativa</legend><div class="connections-context-grid"><label class="full">Datos que puede recordar<textarea name="allowed_memory" maxlength="1200" rows="2"></textarea></label><label class="full">Datos que nunca debe recordar ni repetir<textarea name="prohibited_memory" maxlength="1200" rows="2"></textarea></label></div></fieldset>' +
       '<div class="connections-context-guard"><strong>Límites clínicos fijos · no se pueden editar</strong><ul><li>No diagnosticar, prescribir ni recomendar dosis.</li><li>No interpretar fotografías o radiografías ni prometer resultados.</li><li>No revelar expedientes ni compartir archivos clínicos sin revisión profesional.</li><li>Escalar síntomas, dolor, urgencias, incertidumbre y solicitudes clínicas.</li></ul></div>' +
       '<div class="connections-validation" data-training-validation hidden></div><div class="connections-training-actions"><button type="submit" class="btn btn-secondary" data-save-training>Guardar borrador</button><button type="button" class="btn btn-secondary" data-validate-training>Validar</button><button type="button" class="btn btn-primary" data-publish-training>Publicar capacitación</button><span class="connections-context-status" data-lana-context-status role="status"></span></div></form>' +
@@ -138,6 +139,7 @@
       cancelChannelLoad();
       renderChannels([]);
     }
+    renderAssistantBar();
   }
 
   async function sessionToken() {
@@ -334,6 +336,7 @@
       }
       renderChannelWorkspaceState(name, item, connected, connectedToLana);
     });
+    renderAssistantBar();
   }
 
   async function loadChannels() {
@@ -1086,6 +1089,159 @@
     updateTrainingSteps();
   }
 
+  // Nivel de autonomía (task-id smyl-asistente-niveles): tarjetas sobre el <select name="autonomy_level"> (que sigue siendo la fuente que
+  // lee y guarda la capacitación) y chip en la barra de estado.
+  var LEVEL_NAMES = { 1: 'Informativo', 2: 'Citas y precios', 3: 'Acompañamiento' };
+  var LEVEL_NOTES = {
+    1: 'Los precios no se le entregan al asistente en este nivel.',
+    2: 'Los precios de referencia salen de «Servicios confirmados» (tu catálogo) al publicar. Si cambias una tarifa, vuelve a publicar.',
+    3: 'Incluye todo lo del nivel 2. Las citas, los precios finales y los pagos los confirma siempre una persona.'
+  };
+  function currentLevel() {
+    var form = document.querySelector('[data-lana-training-form]');
+    var select = form && form.elements.autonomy_level;
+    var value = select ? Math.floor(Number(select.value)) : 0;
+    return value >= 1 && value <= 3 ? value : 0;
+  }
+  function renderAssistantLevels() {
+    var level = currentLevel();
+    document.querySelectorAll('[data-level-card]').forEach(function (card) {
+      var active = Number(card.dataset.levelCard) === level;
+      card.setAttribute('aria-checked', active ? 'true' : 'false');
+      card.tabIndex = active || (!level && card.dataset.levelCard === '1') ? 0 : -1;
+    });
+    var note = document.querySelector('[data-level-note]');
+    if (note) note.textContent = level ? LEVEL_NOTES[level] : '';
+    var chip = document.querySelector('[data-assistant-level]');
+    if (chip) {
+      chip.hidden = !level;
+      chip.dataset.state = level ? 'level' : '';
+      chip.textContent = level ? 'Nivel ' + level + ' · ' + LEVEL_NAMES[level] : '';
+    }
+  }
+  function chooseLevel(card) {
+    var form = document.querySelector('[data-lana-training-form]');
+    var select = form && form.elements.autonomy_level;
+    if (!select || select.disabled) return;
+    select.value = card.dataset.levelCard;
+    renderAssistantLevels();
+    select.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  // ── Autollenado desde los datos de la clínica (task-id smyl-asistente-autollenado) ──
+  // Prellena TODOS los pasos con lo que la clínica ya tiene en SMYL (nombre, ciudad, sucursales, teléfonos, notas de llegada, servicios con precio,
+  // especialidades, idiomas, canales conectados, agenda con IA, cargo por inasistencia, pago en línea, perfil fiscal, recordatorios), SIN pisar lo
+  // que la persona ya escribió y siempre editable. Lo que no tiene fuente (promociones, seguros, tiempos de respuesta) se deja vacío.
+  var AUTOFILL_DEFAULTS = { assistant_name: 'SMYL Asistente', languages: 'Español' };
+  var AUTOFILL_TTL_MS = 60000;
+  async function loadAutofillContext(force) {
+    if (!force && state.autofillCtx && Date.now() - state.autofillCtx.at < AUTOFILL_TTL_MS) return state.autofillCtx;
+    var sb = window.sb, t = window.tenantId;
+    var fallidas = 0;
+    async function safe(promise) { try { var r = await promise; if (r && r.error) fallidas += 1; return r && !r.error ? (r.data || null) : null; } catch (_) { fallidas += 1; return null; } }
+    var res = await Promise.all([
+      safe(sb.from('camila_tenants').select('nombre,email,config').eq('id', t).maybeSingle()),
+      safe(sb.from('smyl_branches').select('*').eq('tenant_id', t).eq('active', true)),
+      safe(sb.from('smyl_services').select('*').eq('tenant_id', t).eq('active', true).order('name')),
+      safe(sb.from('smyl_professionals').select('display_name,specialty').eq('tenant_id', t)),
+      safe(sb.from('smyl_professional_profiles').select('languages,treatment_focus').eq('tenant_id', t)),
+      safe(sb.from('smyl_ai_scheduling_settings').select('level,min_lead_hours,horizon_days').eq('tenant_id', t).maybeSingle()),
+      safe(sb.from('smyl_finance_settings').select('no_show_fee').eq('tenant_id', t).maybeSingle()),
+      safe(sb.from('smyl_reminder_settings').select('enabled,whatsapp_phone').eq('tenant_id', t).maybeSingle()),
+      safe(sb.from('smyl_issuer_fiscal_profiles').select('id').eq('tenant_id', t).limit(1))
+    ]);
+    var ctx = {
+      at: Date.now(), failedSources: fallidas, tenant: res[0] || {}, branches: Array.isArray(res[1]) ? res[1] : [], services: Array.isArray(res[2]) ? res[2] : [],
+      professionals: Array.isArray(res[3]) ? res[3] : [], profiles: Array.isArray(res[4]) ? res[4] : [], scheduling: res[5] || null,
+      noShowFee: res[6] ? res[6].no_show_fee : null, reminders: res[7] || null, fiscalProfile: Array.isArray(res[8]) && res[8].length > 0
+    };
+    state.autofillCtx = ctx;
+    return ctx;
+  }
+  function trainingIsBlank(form) {
+    var empty = function (name) { return !(form.elements[name] && String(form.elements[name].value || '').trim()); };
+    return empty('clinic_description') && empty('appointment_policy') && empty('specialties') && collectRepeatRows('[data-faq-list]', 'faq').length === 0;
+  }
+  function renderAutofillBadges() {
+    var form = document.querySelector('[data-lana-training-form]');
+    if (!form) return;
+    var seeds = state.autoSeed || {};
+    form.querySelectorAll('[data-autofill-for]').forEach(function (badge) { badge.remove(); });
+    Object.keys(seeds).forEach(function (name) {
+      var field = form.elements[name], label = field && field.closest && field.closest('label');
+      if (!field || !label || String(field.value || '').trim() !== seeds[name].text) return;
+      var badge = node('small', 'assistant-autofill-badge' + (seeds[name].kind === 'sugerido' ? ' is-suggested' : ''), seeds[name].kind === 'sugerido' ? 'Texto sugerido · revísalo y edítalo' : 'Autollenado con tus datos · editable');
+      badge.dataset.autofillFor = name;
+      label.append(badge);
+    });
+  }
+  async function runAutofill(options) {
+    options = options || {};
+    var form = document.querySelector('[data-lana-training-form]');
+    if (!form || !window.SmylTrainingAutofill || state.autofillBusy || !canAutosaveTraining()) return;
+    state.autofillBusy = true; renderAssistantBar();
+    try {
+      await refreshAutoFacts(true);
+      var ctx = Object.assign({}, await loadAutofillContext(true), { channels: state.channels || [], locationText: (state.autoFacts && state.autoFacts.location) || '', hoursText: (state.autoFacts && state.autoFacts.hours) || '' });
+      var proposal = window.SmylTrainingAutofill.compose(ctx);
+      state.autoSeed = state.autoSeed || {};
+      var filled = 0, kept = 0;
+      Object.keys(proposal.fields).forEach(function (name) {
+        var field = form.elements[name], item = proposal.fields[name];
+        if (!field || field.disabled) return;
+        var current = String(field.value || '').trim(), seed = state.autoSeed[name];
+        var libre = !current || current === AUTOFILL_DEFAULTS[name] || (seed && current === seed.text);
+        if (!libre && !options.overwrite) { kept += 1; return; }
+        if (current === item.text) { state.autoSeed[name] = item; return; }
+        field.value = item.text; state.autoSeed[name] = item; filled += 1;
+      });
+      var rows = collectRepeatRows('[data-faq-list]', 'faq');
+      // Sin «Rehacer», nunca se reemplaza una fila existente (aunque venga de un autollenado previo y el usuario la haya editado): solo se agregan las que faltan.
+      var base = options.overwrite ? rows.filter(function (r) { return !/^auto-faq-/.test(r.id || ''); }) : rows;
+      var preguntas = base.map(function (r) { return window.SmylTrainingAutofill.clip(r.question, 280).toLocaleLowerCase('es-MX'); });
+      var sobrantes = 20 - base.length;
+      var nuevas = proposal.faq.filter(function (f) { return preguntas.indexOf(f.q.toLocaleLowerCase('es-MX')) < 0; }).slice(0, Math.max(0, sobrantes)).map(function (f, i) { return { id: 'auto-faq-' + Date.now().toString(36) + '-' + (i + 1), question: f.q, answer: f.a }; });
+      var faqNuevas = base.concat(nuevas);
+      if (nuevas.length || (options.overwrite && faqNuevas.length !== rows.length)) {
+        renderRepeatRows('[data-faq-list]', 'faq', faqNuevas); filled += 1;
+      }
+      renderAutofillBadges();
+      if (filled) { markTrainingDirty(); updateTrainingSteps(); }
+      var total = Object.keys(proposal.fields).length;
+      contextStatus(filled
+        ? 'Llenamos tu capacitación con los datos de tu clínica (' + total + ' campos y ' + proposal.faq.length + ' preguntas frecuentes disponibles). Revisa cada paso y edítalo: lo que ya escribiste no se tocó' + (kept ? ' (' + kept + ' campos conservados)' : '') + '. El borrador se guarda solo; publica para que el asistente lo use.' + (ctx.failedSources ? ' Ojo: no pudimos leer ' + ctx.failedSources + ' fuente(s) de datos (por permisos o conexión); revisa que la información esté completa.' : '')
+        : 'No había nada nuevo que llenar' + (kept ? ': tus ' + kept + ' campos ya tienen texto.' : '.') , filled ? 'success' : '');
+    } catch (_) {
+      contextStatus('No pudimos leer los datos de tu clínica. Intenta de nuevo en un momento.', 'error');
+    } finally { state.autofillBusy = false; renderAssistantBar(); }
+  }
+
+  // Barra fija del asistente (task-id smyl-asistente-layout): estado de la IA (interruptor), canales conectados y acceso a la prueba.
+  function renderAssistantBar() {
+    renderAssistantLevels();
+    var listo = Boolean(state.status && state.status.connected && state.status.can_manage && state.trainingLoaded && !state.autofillBusy);
+    document.querySelectorAll('[data-autofill],[data-autofill-redo]').forEach(function (chip) { chip.disabled = !listo; });
+    var autoChip = document.querySelector('[data-autofill]');
+    if (autoChip) autoChip.textContent = state.autofillBusy ? 'Leyendo tu clínica…' : 'Autollenar con mis datos';
+    var chip = document.querySelector('[data-assistant-ia]');
+    var channels = document.querySelector('[data-assistant-channels]');
+    var slot = document.querySelector('[data-ia-interruptor-slot]');
+    if (channels) {
+      var connectedCount = (state.channels || []).filter(function (c) { return c && c.connected; }).length;
+      var linked = Boolean(state.status && state.status.connected);
+      channels.dataset.state = linked && connectedCount ? 'ok' : 'off';
+      channels.textContent = !linked ? 'Mensajería sin conectar' : (connectedCount ? connectedCount + (connectedCount === 1 ? ' canal conectado' : ' canales conectados') : 'Sin canales conectados');
+    }
+    if (!chip) return;
+    var summary = window.SmylIaInterruptor && window.SmylIaInterruptor.summary ? window.SmylIaInterruptor.summary() : null;
+    if (!summary || !summary.available) { chip.hidden = true; return; }
+    if ((summary.apagada || summary.programada) && !state.iaSlotTouched && slot && slot.hidden) slot.hidden = false;
+    chip.hidden = false;
+    chip.dataset.state = summary.apagada ? 'off' : (summary.programada ? 'scheduled' : 'on');
+    chip.textContent = (summary.apagada ? 'IA apagada' + (summary.hastaTexto ? ' hasta ' + summary.hastaTexto : '') : (summary.programada ? 'IA programada' : 'IA encendida')) + (summary.canManage ? ' · Administrar' : '');
+    chip.setAttribute('aria-expanded', slot && !slot.hidden ? 'true' : 'false');
+  }
+
   function renderTrainingMeta() {
     var badge = document.querySelector('[data-training-state]');
     var version = document.querySelector('[data-training-version]');
@@ -1095,6 +1251,7 @@
     if (badge) { badge.textContent = trainingStatusLabel(); badge.dataset.state = state.dirty ? 'dirty' : (state.publishedVersion && state.published && JSON.stringify(state.training) === JSON.stringify(state.published) ? 'published' : 'draft'); }
     if (version) version.textContent = state.publishedVersion ? 'Versión ' + state.publishedVersion + ' activa con pacientes' : (state.published ? 'Contexto anterior activo · publícalo para versionarlo' : 'Sin versión publicada');
     if (score) score.textContent = (state.validation && state.validation.score ? state.validation.score.percent : 0) + '%';
+    renderAssistantBar();
     if (source) {
       var publishedOption = source.querySelector('option[value="published"]');
       if (publishedOption) publishedOption.disabled = !state.published;
@@ -1157,7 +1314,8 @@
     form.elements.intake_questions.value = training.attention && training.attention.intake_questions || '';
     form.elements.handoff_rules.value = training.attention && training.attention.handoff_rules || '';
     ['cancellation_policy','payment_policy','invoice_policy','insurance_policy','followup_policy','emergency_policy','human_response_policy'].forEach(function (name) { form.elements[name].value = training.attention && training.attention[name] || ''; });
-    form.elements.autonomy_level.value = String(training.autonomy_level || 2);
+    form.elements.autonomy_level.value = String(Math.min(3, Math.max(1, Math.floor(Number(training.autonomy_level)) || 1)));
+    renderAssistantLevels();
     renderRepeatRows('[data-service-list]', 'service', training.services || []);
     renderRepeatRows('[data-faq-list]', 'faq', training.faq || []);
     var editable = Boolean(state.status && state.status.connected && state.status.can_manage);
@@ -1208,6 +1366,12 @@
     var trainingForm = document.querySelector('[data-lana-training-form]'), trainingSkeleton = null;
     if (trainingForm && window.SmylSkeleton) { trainingSkeleton = window.SmylSkeleton.node('form', { fields: 4, label: 'Cargando capacitación' }); trainingSkeleton.setAttribute('data-training-skeleton', ''); trainingForm.classList.add('is-sk-loading'); trainingForm.parentNode.insertBefore(trainingSkeleton, trainingForm); }
     try { fillTraining(await trainingRequest('GET', 'training')); state.trainingLoaded = true; await loadTrainingVersions(); refreshAutoFacts(true); }
+    catch (error) { contextStatus(error.message, 'error'); }
+    try {
+      // Capacitación vacía: se prellena sola con los datos de la clínica (una vez por sesión); todo queda editable.
+      var blankForm = document.querySelector('[data-lana-training-form]');
+      if (state.trainingLoaded && blankForm && !state.autofillTried && trainingIsBlank(blankForm)) { state.autofillTried = true; await runAutofill({ initial: true }); }
+      renderAssistantBar(); }
     catch (error) { contextStatus(error.message, 'error'); }
     finally { if (trainingSkeleton) { trainingSkeleton.remove(); trainingForm.classList.remove('is-sk-loading'); } }
   }
@@ -1527,6 +1691,7 @@
     var page = node('section', 'pantalla');
     page.id = 'p-conexiones';
     page.innerHTML = pageMarkup();
+    if (window.SmylIaInterruptor) window.SmylIaInterruptor.mount(page.querySelector('[data-ia-interruptor-slot]'));
     document.querySelector('.contenido').append(page);
     page.querySelector('[data-media-training]').addEventListener('click', function () { window.SmylMediaReplies.openEditor(); });
     bindBranchTools(page);
@@ -1568,6 +1733,38 @@
       this.setAttribute('aria-label', visible ? 'Mostrar código' : 'Ocultar código');
     });
     addMobileRow();
+
+    document.addEventListener('click', function (event) {
+      if (!event.target.closest('[data-assistant-ia]')) return;
+      var slot = document.querySelector('[data-ia-interruptor-slot]');
+      if (!slot) return;
+      slot.hidden = !slot.hidden;
+      state.iaSlotTouched = true;
+      renderAssistantBar();
+    });
+    document.addEventListener('click', function (event) {
+      var card = event.target.closest('[data-level-card]');
+      if (card) { chooseLevel(card); return; }
+      if (event.target.closest('[data-assistant-level]')) goTrainingStep(5);
+    });
+    document.addEventListener('keydown', function (event) {
+      var card = event.target.closest && event.target.closest('[data-level-card]');
+      if (!card || ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].indexOf(event.key) < 0) return;
+      event.preventDefault();
+      var next = Math.min(3, Math.max(1, Number(card.dataset.levelCard) + (event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1)));
+      var target = document.querySelector('[data-level-card="' + next + '"]');
+      if (target) { chooseLevel(target); target.focus(); }
+    });
+    document.addEventListener('click', function (event) {
+      if (event.target.closest('[data-autofill]')) { runAutofill({}); return; }
+      if (event.target.closest('[data-autofill-redo]')) {
+        if (window.confirm('Esto vuelve a llenar los campos autollenables con los datos actuales de tu clínica y reemplaza lo que hayas escrito en ellos (tus preguntas frecuentes propias se conservan). ¿Continuar?')) runAutofill({ overwrite: true });
+      }
+    });
+    var trainingForm = document.querySelector('[data-lana-training-form]');
+    if (trainingForm) trainingForm.addEventListener('input', function (event) { if (event.target && event.target.name && state.autoSeed && state.autoSeed[event.target.name]) renderAutofillBadges(); });
+    window.addEventListener('smyl:ia-interruptor-changed', renderAssistantBar);
+    renderAssistantBar();
 
     var previous = window.ir;
     window.ir = function (route) {

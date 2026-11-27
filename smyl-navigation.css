@@ -347,3 +347,99 @@ button.connections-tool-card:hover{border-color:#7692c5;background:#f3f5f8}
 .connections-channel-brand--meta img{width:30px;height:30px}
 .connections-channel-reqs{margin:14px 0 0}
 .connections-channel-pane[data-channel-state=connected] .connections-channel-reqs{display:none}
+
+/* ── SMYL Asistente: barra de estado, pasos en una fila y formulario en tarjeta (task-id smyl-asistente-layout) ── */
+.connections-shell[data-connections-active=assistant] .connections-hero{display:none}
+.connections-workspace .connections-training.connections-pane{display:grid;grid-template-columns:minmax(0,1fr);row-gap:14px;align-items:start;padding:0;border:0;background:transparent;box-shadow:none}
+.connections-workspace .connections-training.connections-pane[hidden]{display:none}
+.connections-workspace .connections-training>.connections-section-heading{display:block;margin:2px 0 0}
+.connections-workspace .connections-training>.connections-section-heading>span{display:block;margin:0 0 6px}
+.connections-workspace .connections-training>.connections-section-heading h2{margin:0;font-size:24px;line-height:1.25;letter-spacing:-.4px}
+.connections-workspace .connections-training>.connections-section-heading p{max-width:700px;margin:6px 0 0;font-size:13px;line-height:1.55;color:#657777}
+/* Barra de estado: fila 1 = estado, versión y avance; fila 2 = chips (IA, canales, probar) */
+.connections-workspace .connections-training-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin:0;padding:14px 18px;background:#fff;border:1px solid #dce2dd;border-radius:16px}
+.connections-workspace .connections-training-bar .assistant-bar-main{display:flex;flex:1 1 260px;flex-wrap:wrap;align-items:center;gap:6px 12px;min-width:0}
+.connections-workspace .connections-training-bar .assistant-bar-main small{font-size:12px;color:#657777}
+.connections-workspace .connections-training-score{order:2;margin:0;padding:0;border:0}
+.connections-workspace .assistant-bar-chips{order:3;display:flex;flex:1 0 100%;flex-wrap:wrap;align-items:center;gap:8px;margin:0;padding-top:12px;border-top:1px solid #e6eaee}
+.assistant-chip{display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 13px;border:1px solid #dce2dd;border-radius:999px;background:#f5f7f4;color:#22263e;font:600 12.5px Inter,sans-serif;white-space:nowrap}
+.assistant-chip:not(.is-static){cursor:pointer}
+.assistant-chip::before{content:"";width:8px;height:8px;border-radius:50%;background:#a9b3ad;flex:none}
+.assistant-chip[data-state=on],.assistant-chip[data-state=ok]{background:#e8f3ed;border-color:#bcd9c9;color:#286653}
+.assistant-chip[data-state=on]::before,.assistant-chip[data-state=ok]::before{background:#2f8a62}
+.assistant-chip[data-state=off]{background:#f7e9e5;border-color:#e3bdb2;color:#8b4737}
+.assistant-chip[data-state=off]::before{background:#b45d47}
+.assistant-chip[data-state=scheduled]{background:#f6efdf;border-color:#e2d2a8;color:#745f39}
+.assistant-chip[data-state=scheduled]::before{background:#a58b52}
+.assistant-chip.is-link{margin-left:auto;background:#fff;border-color:#c6cdf0;color:#313c83}
+.assistant-chip.is-link::before{display:none}
+.assistant-chip:focus-visible{outline:3px solid rgba(49,60,131,.28);outline-offset:2px}
+.connections-workspace .assistant-ia-slot[hidden]{display:none!important}
+.connections-workspace .assistant-ia-slot .ia-sw-card{margin:0}
+/* Pasos: una sola fila, con el avance a la vista */
+.connections-workspace .connections-training .connections-train-steps{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin:0;padding:6px;background:#fff;border:1px solid #dce2dd;border-radius:16px}
+.connections-workspace .connections-train-steps li{min-width:0}
+.connections-workspace .connections-train-steps button{display:flex;align-items:center;gap:8px;width:100%;height:100%;padding:8px 9px;border:0;border-radius:11px;background:transparent;color:#4a4d60;font-size:13px;font-weight:600;line-height:1.25;text-align:left}
+.connections-workspace .connections-train-steps button:hover{background:#f3f5f8}
+.connections-workspace .connections-train-steps button[data-state=current]{background:#eef1ff;color:#171b36}
+.connections-workspace .connections-train-steps button[data-state=done]{color:#286653}
+.connections-workspace .connections-train-steps button b{flex:none;width:24px;height:24px;font-size:12px}
+/* Tarjeta del paso: encabezado + formulario a todo el ancho */
+.connections-workspace .connections-training>.connections-train-intro{margin:0;padding:22px 28px 6px;border:1px solid #dce2dd;border-bottom:0;border-radius:16px 16px 0 0;background:#fff}
+.connections-workspace .connections-training>form[data-lana-training-form]{margin:-14px 0 0;padding:4px 28px 0;border:1px solid #dce2dd;border-top:0;border-radius:0 0 16px 16px;background:#fff}
+.connections-workspace .connections-training>.connections-step-test{display:none}
+.connections-workspace .connections-train-intro span{font-size:12px}
+.connections-workspace .connections-train-intro strong{font-size:22px}
+.connections-workspace .connections-training fieldset{margin:0 0 18px;padding:0;border:0}
+.connections-workspace .connections-training fieldset legend{margin:0 0 10px;padding:0;font-size:12px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:#657777}
+.connections-workspace .connections-context-grid{gap:18px}
+.connections-workspace .connections-context-grid label{font-size:13px;font-weight:650;color:#33374f}
+.connections-workspace .connections-training input:not([type=checkbox]):not([type=radio]),.connections-workspace .connections-training select,.connections-workspace .connections-training textarea{border-radius:11px}
+.connections-workspace .connections-training-actions{margin:8px -28px 0;padding:14px 28px;border-top:1px solid #e6eaee;border-radius:0 0 16px 16px;background:linear-gradient(to top,#fff 78%,rgba(255,255,255,.92))}
+/* Historial de versiones: tarjeta propia, sin línea suelta */
+.connections-workspace .connections-training>.connections-versions{margin:0;padding:14px 18px;border:1px solid #dce2dd;border-radius:16px;background:#fff}
+.connections-workspace .connections-training>.connections-versions>summary{font-weight:650}
+@media(max-width:980px){
+  .connections-workspace .connections-training .connections-train-steps{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;-webkit-overflow-scrolling:touch}
+  .connections-workspace .connections-train-steps li{flex:none}
+  .connections-workspace .connections-train-steps button{width:auto;white-space:nowrap}
+}
+@media(max-width:600px){
+  .connections-workspace .connections-training>.connections-train-intro{padding:18px 18px 4px}
+  .connections-workspace .connections-training>form[data-lana-training-form]{padding:4px 18px 0}
+  .connections-workspace .connections-training-actions{margin:8px -18px 0;padding:12px 18px}
+  .connections-workspace .connections-training-bar{padding:12px 14px}
+  .assistant-chip.is-link{margin-left:0}
+  .connections-workspace .connections-training-actions .connections-context-status{flex:1 1 100%;order:3;margin:0}
+}
+
+/* ── Nivel de autonomía del asistente: tarjetas (task-id smyl-asistente-niveles) ── */
+.connections-training .assistant-levels{grid-column:1/-1;display:grid;gap:10px;margin:0 0 6px;padding:16px;border:1px solid #dce2dd;border-radius:14px;background:#f8faf9}
+.connections-training .assistant-levels-title{font-size:13px;font-weight:700;color:#22263e}
+.connections-training .assistant-levels-help{margin:0;font-size:12.5px;line-height:1.5;color:#657777}
+.connections-training .assistant-levels-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.connections-training .assistant-level{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:14px;border:1.5px solid #d3dbd6;border-radius:13px;background:#fff;color:#22263e;text-align:left;font:inherit;cursor:pointer}
+.connections-training .assistant-level b{font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:#657777}
+.connections-training .assistant-level strong{font-size:16px;font-weight:650}
+.connections-training .assistant-level span{font-size:12.5px;line-height:1.5;color:#525465}
+.connections-training .assistant-level[aria-checked=true]{border-color:#313c83;background:#eef1ff;box-shadow:0 0 0 3px rgba(49,60,131,.12)}
+.connections-training .assistant-level[aria-checked=true] b{color:#313c83}
+.connections-training .assistant-level:hover:not([aria-checked=true]){border-color:#9aa6d6}
+.connections-training .assistant-level:focus-visible{outline:3px solid rgba(49,60,131,.35);outline-offset:2px}
+.connections-training .assistant-level:disabled{opacity:.55;cursor:not-allowed}
+.connections-training .assistant-levels-note{margin:0;font-size:12.5px;line-height:1.5;color:#745f39}
+.connections-training .assistant-levels-note:empty{display:none}
+.connections-training .assistant-levels-select{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.assistant-chip[data-state=level]{background:#eef1ff;border-color:#c6cdf0;color:#313c83}
+.assistant-chip[data-state=level]::before{background:#313c83}
+@media(max-width:760px){.connections-training .assistant-levels-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* ── Autollenado de la capacitación con los datos de la clínica (task-id smyl-asistente-autollenado) ── */
+.assistant-chip.is-action{background:#313c83;border-color:#313c83;color:#fff}
+.assistant-chip.is-action::before{display:none}
+.assistant-chip.is-action:disabled{opacity:.5;cursor:not-allowed}
+.assistant-chip.is-action[data-autofill-redo]{background:#fff;color:#313c83;border-color:#c6cdf0}
+.connections-training .assistant-autofill-badge{display:block;margin-top:5px;font-size:11.5px;font-weight:650;color:#286653}
+.connections-training .assistant-autofill-badge::before{content:"✓ "}
+.connections-training .assistant-autofill-badge.is-suggested{color:#745f39}
+.connections-training .assistant-autofill-badge.is-suggested::before{content:"✎ "}

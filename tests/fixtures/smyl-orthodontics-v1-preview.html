@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>SMYL · Ortodoncia longitudinal · Vista de prueba</title>
+  <link rel="stylesheet" href="../../smyl-orthodontics.css">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#eef3f6;color:#0b1b2e;font:14px Inter,system-ui,sans-serif}.preview-shell{max-width:1120px;margin:auto;padding:34px 22px 100px}.preview-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px}.preview-head h1{margin:0;font-size:28px}.preview-head p{margin:5px 0 0;color:#647486}.preview-stage{padding:18px;border:1px solid #d6e1e8;border-radius:18px;background:#fff}.preview-stage>header{display:flex;justify-content:space-between;gap:16px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #e2e8ed}.preview-stage h2{margin:0;font-size:18px}.preview-route{min-height:34px;padding:7px 11px;border:1px solid #91c8c1;border-radius:9px;background:#f4fbf9;color:#176e68;font-weight:750}@media(max-width:600px){.preview-shell{padding:14px 8px 92px}.preview-head{align-items:flex-start;flex-direction:column}.preview-head h1{font-size:22px}.preview-stage{padding:8px;border-radius:14px}.preview-stage>header{padding:8px 6px 13px}.preview-stage>header p{display:none}}
+  </style>
+</head>
+<body>
+  <main class="preview-shell">
+    <header class="preview-head"><div><h1>Tratamiento</h1><p>Paciente ficticio · validación visual y funcional</p></div><span>Plan revisado · Ortodoncia</span></header>
+    <section class="preview-stage"><header><div><small>ETAPA 04</small><h2>En tratamiento</h2></div><button class="preview-route">Disponible para controles</button></header><div id="ortho-host"></div></section>
+  </main>
+  <script>
+    window.__orthoCalls=[];window.__orthoActions=[];
+    window.SmylPatient360={open:key=>{window.__orthoActions.push('open:'+key);return true;}};
+    window.SmylCaseWorkspace={open:key=>{window.__orthoActions.push('stage:'+key);return true;},openChairside:(key)=>{window.__orthoActions.push('chairside:'+key);return true;}};
+    window.__orthoCase=null;
+    window.sb={rpc:async(name,args)=>{window.__orthoCalls.push({name,args});if(name==='smyl_get_orthodontic_case')return{data:window.__orthoCase,error:null};if(name==='smyl_create_orthodontic_case'){window.__orthoCase={id:'ortho-case-preview',patient_id:'patient-preview',treatment_chapter_id:args.p_treatment_chapter_id,revision:1,phase:'records',document:args.p_document};return{data:window.__orthoCase,error:null};}if(name==='smyl_create_orthodontic_control')return{data:{control:{id:'ortho-control-'+args.p_clinical_note_id,clinical_note_id:args.p_clinical_note_id,orthodontic_case_id:args.p_orthodontic_case_id},note:{id:args.p_clinical_note_id}},error:null};if(name==='smyl_list_informed_consents')return{data:[{id:'consent-ortho-preview',procedure_title:'Tratamiento de ortodoncia',signed_at:'2026-11-01T17:00:00Z',revoked_at:null}],error:null};if(name==='smyl_activate_orthodontic_case'){window.__orthoCase={...window.__orthoCase,revision:2,phase:'active',consent_id:args.p_consent_id,document:{...window.__orthoCase.document,consentId:args.p_consent_id}};return{data:window.__orthoCase,error:null};}return{data:null,error:null};}};
+  </script>
+  <script src="../../smyl-orthodontics.js"></script>
+  <script>
+    window.__orthoCtx={tenant:'tenant-preview',patient:'patient-preview'};
+    window.__orthoInfo={
+      clinical:{ready:true,orthodontics:{eligible:true,revision:4,reviewedAt:'2026-11-20T17:00:00Z',items:[{id:'item-1',name:'Tratamiento con alineadores',phase:'treat',area:'Ambas arcadas',teeth:[],serviceId:'svc-ortho'},{id:'item-2',name:'Retenedores',phase:'maintain',area:'Ambas arcadas',teeth:[],serviceId:'svc-retainer'}]}},
+      treatment:{id:'treatment-preview',title:'Ortodoncia integral',status:'active',opened_at:'2026-10-01T16:00:00Z'},
+      evidence:{ready:true,total:8,counts:{clinical_photo:5,radiograph:2,consent:1},items:[]},
+      controls:[{id:'control-1',status:'signed',revision:2,createdAt:'2026-11-12T17:15:00Z',signedAt:'2026-11-12T18:00:00Z',professionalName:'Dra. Fernanda Lozano',treatmentId:'treatment-preview',controlType:'aligner_change',phase:'active',appliance:{type:'aligner',arches:'both',currentAligner:8,totalAligners:24,upperWire:'',lowerWire:'',elastics:'Clase II nocturnos'},changes:['Se entregaron alineadores 8 a 11'],cooperation:'good',hygiene:'good',discomfort:'mild',incidents:[],nextControl:{recommendedWeeks:4,objectives:['Comprobar adaptación del alineador 11']},patientInstructions:['Uso 22 horas al día']}],
+      controlContext:{ready:true,canWrite:true,canApprove:true,professionals:[{id:'pro-1',name:'Dra. Fernanda Lozano'}],appointments:[{id:'appt-1',startsAt:'2026-11-12T17:00:00Z',status:'completed',professionalId:'pro-1',serviceId:'svc-ortho'}]}
+    };
+    const root=SmylOrthodontics.attach(window.__orthoCtx);document.getElementById('ortho-host').append(root);SmylOrthodontics.sync(window.__orthoCtx,window.__orthoInfo);
+    addEventListener('smyl:clinical-note-created',event=>{const call=window.__orthoCalls.findLast(x=>x.name==='smyl_create_orthodontic_control');if(!call)return;const d=call.args.p_document.orthodontics;window.__orthoInfo.controls.unshift({id:event.detail.noteId,status:'draft',revision:1,createdAt:new Date().toISOString(),professionalName:'Dra. Fernanda Lozano',treatmentId:d.treatmentId,orthodonticCaseId:d.orthodonticCaseId,controlType:d.controlType,phase:d.phase,appliance:d.appliance,changes:d.changes,cooperation:d.cooperation,hygiene:d.hygiene,discomfort:d.discomfort,incidents:d.incidents,nextControl:d.nextControl,patientInstructions:d.patientInstructions});SmylOrthodontics.sync(window.__orthoCtx,window.__orthoInfo);});
+  </script>
+</body>
+</html>

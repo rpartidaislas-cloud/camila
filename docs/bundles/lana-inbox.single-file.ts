@@ -178,6 +178,7 @@ const ALLOWED_ROOTS = new Set([
   "context",
   "contract",
   "conversations",
+  "ia",
   "inbox",
   "payments",
   "training",
@@ -935,6 +936,8 @@ async function filterConversationPayload(actor: Actor, tenantId: string, body: R
     if (((filter === "mine" || pick === "me") && ownerId !== actor.id) || ((filter === "unassigned" || pick === "unassigned") && ownerId)
        || (pick && uuid(pick) && pick !== ownerId)) continue;
     conversation.branch = assigned ? {id:assigned.branch_id,name:names.get(assigned.branch_id)||"Sucursal",source:assigned.source} : null;
+    // SMYL ya comprobó acceso y alcance de esta conversación arriba: no se depende de que LANA mande «can_operate» (si falta, el chat ocultaba «Agendar» y otras acciones sin avisar).
+    if (typeof conversation.can_operate !== "boolean") conversation.can_operate = true;
     allowed.push(projectOwner(conversation,owner,members));
   }
   const stages = await pipelineContext(tenantId, actor, allowed.map(row => String(row.id)));

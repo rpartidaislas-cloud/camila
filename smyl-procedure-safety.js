@@ -2,9 +2,9 @@
  *
  * Se abre desde tres lugares y es la MISMA pantalla: la herramienta «Procedimiento» de Consultorio y Agenda
  * (smyl-clinical-tools.js), el botón «Registrar procedimiento» de la pestaña Consulta del expediente y la etapa
- * «En tratamiento» del plan. Al guardar crea una NOTA CLÍNICA EN BORRADOR ya redactada, con el bloque `procedure` dentro
- * del documento; el profesional la revisa y la firma. La huella SHA-256 de la firma cubre todo el documento, así que
- * no necesita migración. Si el profesional es dueño del borrador, lo firma él (NOM-004-SSA3-2012, NOM-013-SSA2-2015 9.3).
+ * «En tratamiento» del plan. Cuando nace de una aceptación, conserva decisión, concepto, capítulo, consentimiento y
+ * nota en `smyl_procedure_executions`. La aceptación económica nunca equivale a trabajo clínico realizado: sólo la
+ * firma profesional de la nota convierte la ejecución en completada.
  *
  * Tres tipos, para no pedir de más:
  *   - Sin anestesia: sitio y alergias. La presión es opcional.
@@ -82,6 +82,7 @@
     if (bad) return { error: bad };
     if (!v.siteConfirmed) return { error: 'Confirma el sitio con el paciente antes de guardar.' };
     if (!v.allergiesReviewed) return { error: 'Confirma que revisaste las alergias del paciente.' };
+    if (type === 'surgery' && !v.consentVerified) return { error: 'Vincula un consentimiento informado vigente antes de registrar una cirugía.' };
     var bp = bpFrom(v.systolic, v.diastolic);
     if (bp === false) return { error: 'Revisa la presión arterial: la sistólica debe ser mayor que la diastólica.' };
     if (!bp && needsBp(type, o.asa)) return { error: type === 'surgery' ? 'En una cirugía se registra la presión arterial de hoy.' : 'Registra la presión arterial de hoy (el paciente es ASA ' + o.asa + ').' };
@@ -122,10 +123,21 @@
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   var active = null;
 
+  function uuid() { return window.crypto && crypto.randomUUID ? crypto.randomUUID() : null; }
+  function rpc(name, args) { return Promise.resolve(window.sb.rpc(name, args)).then(function (res) { if (res && res.error) throw res.error; return res ? res.data : null; }); }
+  function acceptedLabel(row) { var item = row && row.item_snapshot || {}; return String(item.label || item.name || 'Procedimiento aceptado'); }
+  function acceptedTarget(row) {
+    var item = row && row.item_snapshot || {}, teeth = Array.isArray(item.teeth) ? item.teeth : [], surfaces = Array.isArray(item.surfaces) ? item.surfaces : [];
+    return teeth.length ? teeth.join(', ') + (surfaces.length ? ' · ' + surfaces.join(', ') : '') : String(item.area || '').trim();
+  }
+  function typeFor(row) { return /cirug|extracci|implante|injerto/.test(acceptedLabel(row).toLowerCase()) ? 'surgery' : 'anesthesia'; }
+  function statusText(status) { return { accepted: 'Aceptado · por realizar', in_progress: 'Borrador pendiente de firma', deferred: 'Pospuesto', cancelled: 'Cancelado', completed: 'Completado y firmado' }[status] || 'Por revisar'; }
+
   function dialogHtml(st) {
     return '<form class="ps-form" novalidate>'
       + '<header class="ps-head"><div><span class="ps-kicker">PROCEDIMIENTO</span><h2 id="ps-title">' + esc(st.patientName || 'Paciente') + '</h2></div><button type="button" class="ps-x" data-ps-close aria-label="Cerrar">×</button></header>'
       + '<div class="ps-body">'
+      + (st.execution ? '<section class="ps-accepted"><span>CONCEPTO ACEPTADO</span><strong>' + esc(acceptedLabel(st.execution)) + '</strong><small>' + esc(acceptedTarget(st.execution) || 'Sin pieza específica') + '</small></section>' : '')
       + '<div class="ps-type p360-proc-pick" role="group" aria-label="Tipo de procedimiento">' + TYPES.map(function (t) { return '<button type="button" data-ps-type="' + t[0] + '" aria-pressed="' + (st.type === t[0]) + '">' + t[1] + '</button>'; }).join('') + '</div>'
       + '<section class="ps-sec"><h3><span>1</span> Sitio</h3>'
       + '<label class="ps-field">Pieza o zona<input data-ps="tooth" maxlength="60" autocomplete="off" placeholder="Ej. 36, o 16, 17" value="' + esc(st.tooth) + '"></label>'
@@ -134,7 +146,7 @@
       + '<label class="p360-proc-check is-key"><input type="checkbox" data-ps="site"> <span><strong>Confirmé el sitio con el paciente</strong><small>Pieza y lado correctos antes de empezar.</small></span></label></section>'
       + '<section class="ps-sec"><h3><span>2</span> Seguridad</h3>'
       + '<label class="p360-proc-check"><input type="checkbox" data-ps="allergy"> <span><strong>Revisé las alergias</strong><small data-ps-allergy-text>Consultando el expediente…</small></span></label>'
-      + '<label class="p360-proc-check"><input type="checkbox" data-ps="consent"> <span><strong>Hay consentimiento informado firmado</strong><small>Para este procedimiento.</small></span></label>'
+      + '<label class="ps-field">Consentimiento informado<select data-ps="consent"><option value="">No vinculado</option></select><small data-ps-consent-help>Se mostrarán únicamente documentos vigentes de este paciente.</small></label>'
       + '<div class="p360-proc-bp"><span>Presión arterial de hoy</span><div><input type="number" data-ps="sys" inputmode="numeric" min="50" max="260" aria-label="Sistólica"> / <input type="number" data-ps="dia" inputmode="numeric" min="30" max="160" aria-label="Diastólica"></div><small data-ps-bp-hint></small></div>'
       + '<p class="p360-proc-warn" data-ps-bp-alert role="alert" hidden></p></section>'
       + '<section class="ps-sec" data-ps-anest><h3><span>3</span> Anestesia</h3>'
@@ -156,7 +168,7 @@
     var o = opts || {};
     if (!o.tenant || !o.patient) return false;
     if (active) { try { active.dialog.close(); } catch (_) { /* ya cerrado */ } }
-    var st = { tenant: o.tenant, patient: o.patient, patientName: o.patientName || '', appointmentId: o.appointmentId || null, type: 'anesthesia', tooth: o.plannedTooth || '', agent: 'none', carts: 1, weightFromRecord: null, asa: null, siteAt: null, anesthesiaAt: null, busy: false, saved: false };
+    var st = { tenant: o.tenant, patient: o.patient, patientName: o.patientName || '', appointmentId: o.appointmentId || null, execution: o.execution || null, type: o.execution ? typeFor(o.execution) : 'anesthesia', tooth: o.plannedTooth || (o.execution ? acceptedTarget(o.execution).split(' · ')[0] : ''), agent: 'none', carts: 1, weightFromRecord: null, asa: null, siteAt: null, anesthesiaAt: null, busy: false, saved: false, consentId: null };
     var dialog = document.createElement('dialog');
     dialog.className = 'ps-dialog';
     dialog.setAttribute('aria-labelledby', 'ps-title');
@@ -214,6 +226,15 @@
       if (tries > 0 && dialog.isConnected) setTimeout(function () { allergies(tries - 1); }, 600); else allergyText.textContent = 'Revisa la historia clínica del paciente.';
     }
     allergies(4);
+    var consent = q('consent'), consentHelp = dialog.querySelector('[data-ps-consent-help]');
+    if (window.sb && typeof window.sb.rpc === 'function') {
+      rpc('smyl_list_informed_consents', { p_patient_id: st.patient }).then(function (rows) {
+        rows = Array.isArray(rows) ? rows.filter(function (row) { return !row.revoked_at; }) : [];
+        rows.forEach(function (row) { var option = document.createElement('option'); option.value = row.id; option.textContent = row.procedure_title + ' · ' + new Date(row.signed_at).toLocaleDateString('es-MX'); consent.append(option); });
+        consentHelp.textContent = rows.length ? rows.length + (rows.length === 1 ? ' documento vigente disponible.' : ' documentos vigentes disponibles.') : 'No hay documentos vigentes. Crea el consentimiento desde Historia clínica.';
+      }).catch(function () { consentHelp.textContent = 'No se pudieron consultar los consentimientos; no se marcará como verificado.'; });
+    }
+    consent.onchange = function () { st.consentId = this.value || null; showError(''); };
     if (window.sb && typeof window.sb.rpc === 'function') {
       Promise.resolve(window.sb.rpc('smyl_list_treatments', { p_patient_id: st.patient })).then(function (res) {
         var list = res && Array.isArray(res.data) ? res.data : [], act = list.filter(function (t) { return t.status === 'active'; })[0];
@@ -237,7 +258,7 @@
       if (st.busy) return;
       showError('');
       var built = build({
-        type: st.type, tooth: st.tooth, siteConfirmed: q('site').checked, siteAt: st.siteAt, allergiesReviewed: q('allergy').checked, consentVerified: q('consent').checked,
+        type: st.type, tooth: st.tooth, siteConfirmed: q('site').checked, siteAt: st.siteAt, allergiesReviewed: q('allergy').checked, consentVerified: !!st.consentId,
         systolic: q('sys').value, diastolic: q('dia').value, agent: st.agent, cartridges: st.carts, anesthesiaAt: st.anesthesiaAt,
         weightKg: st.weightFromRecord != null ? st.weightFromRecord : num(q('weight').value)
       }, { asa: st.asa });
@@ -255,12 +276,14 @@
           }
         } catch (_) { professional = null; }
         var doc = { subjective: '', objective: objectiveText(proc), assessment: '', diagnosis: '', diagnosis_code: '', prognosis: '', plan: String(q('did').value || '').trim(), procedure: proc };
-        var res = await window.sb.rpc('smyl_create_clinical_note', { p_id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : null, p_patient_id: st.patient, p_appointment_id: st.appointmentId, p_professional_id: professional, p_note_type: 'progress', p_document: doc });
-        if (res && res.error) throw res.error;
+        var noteId = uuid(), saved;
+        if (st.execution) saved = await rpc('smyl_create_procedure_note_v1', { p_execution_id: st.execution.id, p_note_id: noteId, p_appointment_id: st.appointmentId, p_professional_id: professional, p_informed_consent_id: st.consentId, p_document: doc });
+        else saved = await rpc('smyl_create_clinical_note', { p_id: noteId, p_patient_id: st.patient, p_appointment_id: st.appointmentId, p_professional_id: professional, p_note_type: 'procedure', p_document: doc });
         st.saved = true;
         success(dialog, st, proc);
-        window.dispatchEvent(new CustomEvent('smyl:clinical-note-created', { detail: { tenant: st.tenant, patient: st.patient } }));
-        if (typeof o.onSaved === 'function') { try { o.onSaved(proc); } catch (_) { /* no afecta al guardado */ } }
+        window.dispatchEvent(new CustomEvent('smyl:clinical-note-created', { detail: { tenant: st.tenant, patient: st.patient, noteId: noteId, procedureExecutionId: st.execution && st.execution.id } }));
+        window.dispatchEvent(new CustomEvent('smyl:procedure-execution-updated', { detail: { tenant: st.tenant, patient: st.patient, treatmentId: st.execution && st.execution.treatment_id } }));
+        if (typeof o.onSaved === 'function') { try { o.onSaved(proc, saved); } catch (_) { /* no afecta al guardado */ } }
       } catch (error) {
         st.busy = false; save.disabled = false; save.textContent = 'Guardar como borrador de nota';
         showError((error && error.message) || 'No se pudo guardar el procedimiento. Inténtalo de nuevo.');
@@ -275,7 +298,7 @@
   function success(dialog, st, proc) {
     var f = dialog.querySelector('form');
     f.innerHTML = '<header class="ps-head"><div><span class="ps-kicker">LISTO</span><h2 id="ps-title">Procedimiento registrado</h2></div><button type="button" class="ps-x" data-ps-close aria-label="Cerrar">×</button></header>'
-      + '<div class="ps-body"><p class="ps-done">' + esc(line(proc)) + '</p><p class="ps-hint">Quedó como <strong>borrador de nota</strong> con el procedimiento ya redactado. Revísala y fírmala en la pestaña <strong>Consulta</strong> del expediente.</p></div>'
+      + '<div class="ps-body"><p class="ps-done">' + esc(line(proc)) + '</p><p class="ps-hint">Quedó como <strong>borrador clínico enlazado</strong>. El procedimiento seguirá “en curso” hasta que el profesional revise y firme la nota.</p></div>'
       + '<footer class="ps-foot"><button type="button" class="btn btn-secondary" data-ps-close>Cerrar</button><button type="button" class="btn btn-primary" data-ps-go>Ir a firmar la nota</button></footer>';
     f.querySelectorAll('[data-ps-close]').forEach(function (b) { b.onclick = function () { dialog.close(); }; });
     f.querySelector('[data-ps-go]').onclick = async function () {
@@ -289,9 +312,71 @@
     f.querySelector('[data-ps-go]').focus();
   }
 
+  async function executions(opts, write) {
+    if (!opts || !opts.patient || !opts.treatmentId || !window.sb) return [];
+    var name = write === false ? 'smyl_list_procedure_executions_v1' : 'smyl_sync_procedure_executions_v1';
+    var rows = await rpc(name, { p_patient_id: opts.patient, p_treatment_id: opts.treatmentId });
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  function goNotes() {
+    try { if (window.SmylPatient360 && window.SmylPatient360.open) window.SmylPatient360.open('visits'); }
+    catch (_) { /* conserva la pantalla actual */ }
+  }
+
+  async function openNext(opts) {
+    try {
+      var rows = await executions(opts, opts.canWrite !== false);
+      var row = rows.filter(function (item) { return item.status === 'accepted'; })[0] || rows.filter(function (item) { return item.status === 'deferred'; })[0];
+      if (row && row.status === 'deferred' && opts.canWrite !== false) {
+        await rpc('smyl_set_procedure_execution_status_v1', { p_execution_id: row.id, p_expected_revision: row.revision, p_status: 'accepted', p_reason: '' });
+        row.status = 'accepted';
+        row.revision += 1;
+      }
+      if (row) return open(Object.assign({}, opts, { execution: row }));
+      if (rows.some(function (item) { return item.status === 'in_progress'; })) { goNotes(); return true; }
+    } catch (_) { /* el registro libre sigue disponible si el backend aún no está activo */ }
+    return open(opts);
+  }
+
+  function renderAccepted(host, opts) {
+    if (!host || !opts || !opts.treatmentId) { if (host) host.hidden = true; return Promise.resolve([]); }
+    host.hidden = false; host.replaceChildren(); host.setAttribute('aria-busy', 'true');
+    var loading = document.createElement('p'); loading.className = 'cw-procedure-loading'; loading.textContent = 'Consultando procedimientos aceptados…'; host.append(loading);
+    return executions(opts, opts.canWrite !== false).then(function (rows) {
+      if (!host.isConnected) return rows;
+      host.replaceChildren(); host.removeAttribute('aria-busy');
+      var head = document.createElement('header'), copy = document.createElement('div');
+      copy.innerHTML = '<span class="cw-kicker">PROCEDIMIENTOS ACEPTADOS</span><strong>Del presupuesto a la atención</strong><p>Cada concepto conserva su decisión, nota y estado clínico.</p>';
+      var counter = document.createElement('span'); counter.className = 'cw-procedure-counter'; counter.textContent = rows.filter(function (r) { return r.status === 'completed'; }).length + ' de ' + rows.length + ' completados'; head.append(copy, counter); host.append(head);
+      if (!rows.length) { var empty = document.createElement('p'); empty.className = 'cw-procedure-empty'; empty.textContent = 'Todavía no hay conceptos aceptados para este capítulo.'; host.append(empty); return rows; }
+      var list = document.createElement('div'); list.className = 'cw-procedure-list';
+      rows.forEach(function (row) {
+        var card = document.createElement('article'); card.className = 'cw-procedure-card'; card.dataset.state = row.status;
+        var marker = document.createElement('span'); marker.className = 'cw-procedure-marker'; marker.textContent = row.status === 'completed' ? '✓' : row.status === 'cancelled' ? '×' : '•';
+        var info = document.createElement('div'); info.className = 'cw-procedure-copy'; var title = document.createElement('strong'); title.textContent = acceptedLabel(row); var target = document.createElement('p'); target.textContent = acceptedTarget(row) || 'Sin pieza específica'; var state = document.createElement('small'); state.textContent = statusText(row.status) + (row.status_reason ? ' · ' + row.status_reason : ''); info.append(title, target, state);
+        var action = document.createElement('button'); action.type = 'button'; action.className = row.status === 'accepted' ? 'btn btn-primary' : 'btn btn-secondary';
+        if (row.status === 'accepted' || row.status === 'deferred') {
+          action.textContent = row.status === 'deferred' ? 'Reactivar y registrar' : 'Registrar'; action.disabled = opts.canWrite === false;
+          action.onclick = function () {
+            if (row.status === 'deferred') rpc('smyl_set_procedure_execution_status_v1', { p_execution_id: row.id, p_expected_revision: row.revision, p_status: 'accepted', p_reason: '' }).then(function (updated) { open(Object.assign({}, opts, { execution: updated })); }).catch(function (error) { alert(error.message || 'No se pudo reactivar.'); });
+            else open(Object.assign({}, opts, { execution: row }));
+          };
+        } else if (row.status === 'in_progress') { action.textContent = 'Revisar y firmar'; action.onclick = goNotes; }
+        else { action.textContent = row.status === 'completed' ? 'Ver nota' : 'Sin acción'; action.disabled = row.status === 'cancelled'; action.onclick = goNotes; }
+        card.append(marker, info, action); list.append(card);
+      });
+      host.append(list); return rows;
+    }).catch(function (error) {
+      if (!host.isConnected) return [];
+      host.removeAttribute('aria-busy'); host.replaceChildren(); var note = document.createElement('p'); note.className = 'cw-procedure-error'; note.textContent = (error && error.message) || 'No se pudieron consultar los procedimientos aceptados.'; host.append(note); return [];
+    });
+  }
+
   return {
     ANESTHETICS: ANESTHETICS, MAX_CARTRIDGES: MAX_CARTRIDGES, TYPES: TYPES, AREAS: AREAS,
     dose: dose, build: build, line: line, objectiveText: objectiveText, bpFrom: bpFrom, bpAlert: bpAlert, siteError: siteError, needsBp: needsBp,
-    open: open
+    open: open, openNext: openNext, renderAccepted: renderAccepted, executions: executions,
+    acceptedLabel: acceptedLabel, acceptedTarget: acceptedTarget, statusText: statusText
   };
 });

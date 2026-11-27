@@ -465,7 +465,8 @@
             '<div class="smyl-inbox-filter-pair" role="presentation"><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="attention">Por atender</button><button type="button" role="tab" aria-selected="false" tabindex="-1" data-inbox-filter="mine">Mías</button></div>' +
           '</div>' +
           '<div class="smyl-inbox-branch-strip" data-inbox-branch-strip hidden></div>' +
-          '<section class="smyl-inbox-filter-panel" id="smyl-inbox-filter-panel" data-inbox-filter-panel aria-label="Filtros de conversaciones" hidden><fieldset><legend>Estado</legend><div class="smyl-inbox-secondary-filters"><button type="button" data-inbox-filter="unassigned">Sin asignar</button><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="pinned">Fijadas</button></div></fieldset><label>Canal<select data-inbox-channel aria-label="Filtrar por canal"><option value="">Todos los canales</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option></select></label></section>' +
+          '<section class="smyl-inbox-filter-panel" id="smyl-inbox-filter-panel" data-inbox-filter-panel aria-label="Filtros de conversaciones" hidden><fieldset><legend>Estado</legend><div class="smyl-inbox-secondary-filters"><button type="button" data-inbox-filter="unassigned">Sin asignar</button><button type="button" data-inbox-filter="paused">En atención</button><button type="button" data-inbox-filter="pinned">Fijadas</button></div></fieldset><div class="smyl-inbox-channel-filter"><span class="smyl-inbox-channel-label" id="smyl-inbox-channel-label">Canal</span><div class="smyl-inbox-channel-chips" data-inbox-channel role="group" aria-labelledby="smyl-inbox-channel-label">' +
+          ['whatsapp', 'messenger', 'instagram'].map(function (c) { return '<button type="button" class="smyl-inbox-channel-chip" data-channel-value="' + c + '" aria-pressed="false" aria-label="' + channelLabel(c) + '" title="' + channelLabel(c) + '">' + CHANNEL_MARKS[c] + '</button>'; }).join('') + '</div></div></section>' +
           '<div class="smyl-inbox-queue-summary" data-inbox-queue-summary role="status" aria-live="polite"></div><div class="smyl-inbox-queue-summary" data-inbox-handoff-status role="status" aria-live="polite" hidden></div>' +
           '<div class="smyl-inbox-list" data-inbox-list></div>' +
           '<div class="smyl-inbox-bulkbar" data-inbox-bulkbar hidden></div>' +
@@ -906,6 +907,7 @@
   }
 
   function renderFilterControls() {
+    document.querySelectorAll('[data-channel-value]').forEach(function (chip) { chip.setAttribute('aria-pressed', String(chip.dataset.channelValue === state.channel)); });
     var advanced = ['paused', 'pinned', 'unassigned'].indexOf(state.filter) !== -1 || Boolean(state.channel);
     document.querySelectorAll('[data-inbox-filter]').forEach(function (button) {
       var filter = button.dataset.inboxFilter;
@@ -1537,7 +1539,7 @@
     }
     if (item.media_type === 'image' && hasPermission('clinical.write')) action('Enviar a revisión clínica', function () { linkClinicalImage(item); }, 'is-clinical');
     if (item.author_type === 'assistant' && hasPermission('messages.respond')) action('Evaluar IA', function () { openFeedback(item); }, 'is-copilot');
-    if (hasPermission('messages.manage')) action('Eliminar', function () { mutateMessage(item, 'delete'); }, 'is-danger');
+    if (hasPermission('messages.manage')) action('Ocultar en el panel', function () { mutateMessage(item, 'delete'); }, 'is-danger');
     if (!menu.childNodes.length) return null;
     var rail = node('div', 'smyl-inbox-message-actions');
     var button = node('button', 'smyl-inbox-message-more'); button.type = 'button';
@@ -1914,7 +1916,7 @@
 
   async function mutateMessage(item, action) {
     var conversation = selectedConversation(); if (!conversation) return;
-    if (action === 'delete' && !window.confirm('Esto solo lo ocultará en el panel; no lo retira del teléfono del paciente. ¿Continuar?')) return;
+    if (action === 'delete' && !window.confirm('Esto solo oculta el mensaje en el panel. NO se borra del teléfono del paciente ni de WhatsApp, Messenger o Instagram (Meta no permite a un negocio borrar mensajes ya enviados). ¿Ocultarlo en el panel?')) return;
     try {
       await request('POST', {}, { action: action, conversation_id: conversation.id, message_id: item.id }, uuid());
       if (action === 'star') item.starred = true;
@@ -2302,7 +2304,12 @@
     if (Array.isArray(preferred)) {
       var match = null;
       preferred.some(function (name) { match = state.templates.find(function (item) { return item.name === name; }) || null; return Boolean(match); });
-      if (!match) { state.templatePreset = null; window.alert((preset && preset.missingText) || 'No hay una plantilla de cobro aprobada todavía. Solicítala en Mensajería → Plantillas; Meta suele tardar de unos minutos a 48 horas.'); return; }
+      if (!match) {
+        state.templatePreset = null;
+        var missingCopy = (preset && preset.missingText) || 'No hay una plantilla de cobro aprobada todavía. Solicítala en Mensajería → Plantillas; Meta suele tardar de unos minutos a 48 horas.';
+        if (window.SmylTemplateSuggest) window.SmylTemplateSuggest.offerMissing(preferred, missingCopy); else window.alert(missingCopy);
+        return;
+      }
       select.value = match.id;
     }
     renderTemplateFields(select, dialog.querySelector('[data-template-preview]'), dialog.querySelector('[data-template-variables]'), 'send');
@@ -4170,8 +4177,24 @@
   function openAvailabilityPatientLink() {
     var dialog = document.querySelector('[data-availability-dialog]');
     if (dialog && dialog.open) dialog.close();
+    // Al terminar de vincular se vuelve a abrir «Agendar cita» (ver el evento smyl:chat-patient-linked).
+    state.availabilityResume = { id: state.selectedId, at: Date.now() };
     openPatientContext(state.selectedId);
   }
+
+  // Vincular un paciente desde el chat (ventana «Vincular paciente»): actualiza el chat sin sacarte de él.
+  window.addEventListener('smyl:chat-patient-linked', function (event) {
+    var detail = (event && event.detail) || {}; var id = detail.conversationId;
+    if (!id || !detail.patientId) return;
+    var prior = state.clinical[id] || {};
+    state.clinical[id] = Object.assign({}, prior, { linked: true, patient: { id: detail.patientId, name: detail.patientName || (prior.patient && prior.patient.name) || '' }, provisional_contact: Boolean(detail.created), unavailable: false });
+    delete state.clinical[id].auto_link_reason;
+    state.patientLinkChecked[id] = true;
+    if (state.selectedId === id) { renderCareBar(); renderThreadHeader(); renderContext(); refreshAvailabilityPatientIdentity(); }
+    loadClinicalContext(id);
+    var resume = state.availabilityResume; state.availabilityResume = null;
+    if (resume && resume.id === id && Date.now() - resume.at < 15 * 60 * 1000 && state.selectedId === id) openAvailabilityDialog();
+  });
 
   function resetAvailabilityScope() {
     var dialog = document.querySelector('[data-availability-dialog]'); if (!dialog) return;
@@ -5724,7 +5747,7 @@
     page.querySelector('[data-pipeline-more]').addEventListener('click', function () { loadList(!state.hasMore); });
     var savedView = null; try { savedView = window.sessionStorage.getItem('smyl_inbox_view'); } catch (_) {}
     setInboxView(savedView);
-    page.querySelector('[data-inbox-channel]').addEventListener('change', function (event) { state.channel = event.target.value; renderFilterControls(); loadList(true); });
+    page.querySelector('[data-inbox-channel]').addEventListener('click', function (event) { var chip = event.target.closest('[data-channel-value]'); if (!chip) return; state.channel = state.channel === chip.dataset.channelValue ? '' : chip.dataset.channelValue; renderFilterControls(); loadList(true); });
     page.querySelector('[data-inbox-more]').addEventListener('click', function () { loadList(false); });
     page.querySelector('[data-thread-older]').addEventListener('click', function () { loadThread(state.selectedId, true); });
     page.querySelector('[data-thread-jump]').addEventListener('click', function () {
@@ -5979,6 +6002,8 @@
   window.SmylInbox = {
     canAccess: chatEnabled,
     open: function (conversationId) { window.ir('inbox'); return openConversation(conversationId); },
+    // Abre la conversación y, ya dentro, «Agendar cita» (con «Sugerir horarios»). Solo prepara: la persona revisa y envía.
+    offerSlots: async function (conversationId) { window.ir('inbox'); await openConversation(conversationId); if (state.selectedId !== conversationId) return false; await openAvailabilityDialog(); return true; },
     // Abre la conversación para que una persona revise y envíe (nunca envía por sí solo).
     //  · Con la ventana de 24 h de WhatsApp abierta (o en otros canales): deja `text` escrito en el compositor y devuelve true.
     //  · Con la ventana cerrada y `options.template` = { names, variables, missingText }: abre esa plantilla aprobada con las variables ya llenas
@@ -5991,7 +6016,8 @@
         var names = Array.isArray(options.template.names) ? options.template.names : [];
         try { await loadTemplates(); } catch (_) { return false; }
         if (!state.templates.some(function (item) { return names.indexOf(item.name) !== -1; })) {
-          window.alert(options.template.missingText || 'No hay una plantilla aprobada para este mensaje. Solicítala en Mensajería → Plantillas; Meta suele tardar de unos minutos a 48 horas.');
+          var missingCopy = options.template.missingText || 'No hay una plantilla aprobada para este mensaje. Solicítala en Mensajería → Plantillas; Meta suele tardar de unos minutos a 48 horas.';
+          if (window.SmylTemplateSuggest) window.SmylTemplateSuggest.offerMissing(names, missingCopy); else window.alert(missingCopy);
           return false;
         }
         await openTemplateDialog(names, { variables: options.template.variables || [], onSent: options.onSent || null });

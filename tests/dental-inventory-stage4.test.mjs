@@ -59,12 +59,12 @@ test('browser can manage catalog but cannot write ledger or purchases directly',
 });
 
 test('inventory interface covers stock, movements, purchasing and configuration', () => {
-  assert.match(app, /smyl-inventory\.css\?v=15/);
+  assert.match(app, /smyl-inventory\.css\?v=16/);
   assert.match(app, /smyl-inventory\.js\?v=(?:[6-9]|[12][0-9])/);
-  assert.match(script, /Existencias/);
+  assert.match(script, /data-inventory-tab="stock" aria-selected="true">Productos/);
   assert.match(script, /Libro de movimientos/);
   assert.match(script, /Órdenes y recepciones/);
-  assert.match(script, /Catálogo y configuración/);
+  assert.match(script, /data-inventory-tab="suppliers">Proveedores/);
   assert.match(script, /inventory\.read/);
   assert.match(script, /inventory\.manage/);
   assert.doesNotMatch(script, /LANA/i);
@@ -78,7 +78,7 @@ test('web, mobile and offline inventory assets stay in lockstep', () => {
   assert.equal(styles, read('../mobile/www/smyl-inventory.css'));
 assert.match(worker, /smyl-v263-lana-connection-recovery/);
   assert.match(worker, /smyl-inventory\.js\?v=(?:[6-9]|[12][0-9])/);
-  assert.match(worker, /smyl-inventory\.css\?v=15/);
+  assert.match(worker, /smyl-inventory\.css\?v=16/);
 });
 
 test('clinical consumption can start from a patient appointment with context prefilled', () => {

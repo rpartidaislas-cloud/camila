@@ -54,7 +54,7 @@ test("firma: sin firma, firma falsa, cuerpo alterado, secreto corto o ausente �
 test("solicitud: contrato, acción, UUID y reloj se validan antes de consultar nada", async () => {
   const { deps, calls } = makeDeps();
   assert.equal((await call({ contract_version: 2, action: "context" }, { deps })).status, 400);
-  assert.equal((await call({ action: "book" }, { deps })).status, 400);
+  assert.equal((await call({ action: "agendar_solo" }, { deps })).status, 400);
   assert.equal((await call({ action: "context", tenant_id: "no-uuid" }, { deps })).status, 400);
   const viejo = await call({ action: "context", occurred_at: new Date(NOW.getTime() - 10 * 60000).toISOString() }, { deps });
   assert.equal(viejo.status, 400); assert.equal(viejo.body.error, "expired_request");
@@ -214,7 +214,58 @@ test("etiquetaLocal: zona de la sucursal, a. m./p. m. con espacio y zona inváli
 
 test("el motor del servidor es copia exacta del que usa el navegador", () => {
   const src = readFileSync(new URL("../smyl-schedule-suggest.js", import.meta.url), "utf8").replace(/\r\n/g, "\n");
-  const gen = readFileSync(new URL("../supabase/functions/_shared/schedule-suggest-core.mjs", import.meta.url), "utf8");
+  const gen = readFileSync(new URL("../supabase/functions/_shared/schedule-suggest-core.mjs", import.meta.url), "utf8").replace(/\r\n/g, "\n");
   assert.ok(gen.includes(src), "schedule-suggest-core.mjs está desfasado: ejecuta node scripts/sync-schedule-suggest.mjs");
   assert.match(gen, /^\/\/ ARCHIVO GENERADO por scripts\/sync-schedule-suggest\.mjs/);
+});
+
+// ── Profesional concreto y «más opciones» (tras la prueba real por Instagram: «con la Dra. Fernanda» y «¿tienes más opciones?») ──
+test("el contexto lista los profesionales activos con sus sedes (solo id y nombre público)", async () => {
+  const { deps } = makeDeps({ professionals: async () => [{ id: P1, name: "Dra. Fernanda Lozano Vera", branch_ids: [B1], extra_secreto: "x" }, { id: P2, name: "Dr. Iván Carrasco", branch_ids: [] }] });
+  const r = await call({ action: "context" }, { deps });
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body.professionals, [{ id: P1, name: "Dra. Fernanda Lozano Vera", branch_ids: [B1] }, { id: P2, name: "Dr. Iván Carrasco", branch_ids: [] }]);
+  const sin = await call({ action: "context" }, { deps: makeDeps().deps });
+  assert.deepEqual(sin.body.professionals, [], "sin la dependencia nueva el contexto sigue funcionando");
+});
+
+test("suggest con un profesional concreto lo pasa a la búsqueda y solo ofrece horarios suyos", async () => {
+  const { deps, calls } = makeDeps({ slots: async (q) => { calls.slots.push(q); return [slot(24, 10, { professional_id: P1 }), slot(24, 16, { professional_id: P2, professional_name: "Dr. Iván" }), slot(25, 10, { professional_id: P1 })]; } });
+  const r = await call({ action: "suggest", service_id: SVC, branch_id: B1, professional_id: P1 }, { deps });
+  assert.equal(r.status, 200);
+  assert.ok(calls.slots.length >= 1 && calls.slots.every((q) => q.professionalId === P1));
+  assert.ok(r.body.options.length > 0 && r.body.options.every((o) => o.professional_id === P1), "ninguna opción de otro profesional");
+});
+
+test("«más opciones» (more:true) excluye los horarios ya ofrecidos en la conversación y consulta solo ofertas recientes", async () => {
+  const todos = [slot(24, 10), slot(24, 16), slot(25, 10), slot(26, 11)];
+  const llaves = (arr) => arr.map((x) => [x.service_id, x.branch_id, x.professional_id, new Date(x.starts_at).toISOString()].join("|"));
+  let consultado = null;
+  const { deps } = makeDeps({ slots: async () => todos, recentOfferKeys: async (q) => { consultado = q; return llaves(todos.slice(0, 3)); } });
+  const r = await call({ action: "suggest", service_id: SVC, branch_id: B1, more: true }, { deps });
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body.options.map((o) => o.starts_at), [todos[3].starts_at], "solo lo que no se había ofrecido");
+  assert.equal(consultado.tenantId, T); assert.equal(consultado.conversationId, CONV);
+  assert.ok(new Date(consultado.since) > new Date(NOW.getTime() - 3 * HOUR), "ventana de 2 horas");
+  const sinMas = await call({ action: "suggest", service_id: SVC, branch_id: B1 }, { deps });
+  assert.equal(sinMas.body.options.length, 3, "sin more no se excluye nada");
+  const nada = await call({ action: "suggest", service_id: SVC, branch_id: B1, more: true }, { deps: makeDeps({ slots: async () => todos, recentOfferKeys: async () => llaves(todos) }).deps });
+  assert.equal(nada.body.options.length, 0); assert.equal(nada.body.status, "none");
+});
+
+test("la implementación real de las dependencias nuevas solo toca tablas de la clínica y no devuelve datos de contacto", () => {
+  const idx = readFileSync(new URL("../supabase/functions/lana-scheduling/index.ts", import.meta.url), "utf8");
+  assert.match(idx, /professionals: async \(tenantId: string\)/); assert.match(idx, /select\("id,display_name,active"\)\.eq\("tenant_id", tenantId\)\.eq\("active", true\)/);
+  assert.match(idx, /smyl_professional_branches/); assert.match(idx, /recentOfferKeys: async \(q: Row\)/);
+  assert.match(idx, /\.eq\("lana_conversation_id", q\.conversationId\)\.gte\("created_at", q\.since\)/);
+  assert.doesNotMatch(idx.slice(idx.indexOf("professionals: async"), idx.indexOf("recentOfferKeys: async")), /license|email|phone|user_id/);
+});
+
+
+test("el contexto incluye los servicios que realiza cada profesional (solo ids) y sin ellos sigue igual", async () => {
+  const { deps } = makeDeps({ professionals: async () => [{ id: P1, name: "Dra. Fernanda Lozano Vera", branch_ids: [B1], service_ids: ["s-1", "s-2"], secreto: "x" }, { id: P2, name: "Dr. Iván", branch_ids: [] }] });
+  const r = await call({ action: "context" }, { deps });
+  assert.deepEqual(r.body.professionals, [{ id: P1, name: "Dra. Fernanda Lozano Vera", branch_ids: [B1], service_ids: ["s-1", "s-2"] }, { id: P2, name: "Dr. Iván", branch_ids: [] }]);
+  const idx = readFileSync(new URL("../supabase/functions/lana-scheduling/index.ts", import.meta.url), "utf8");
+  assert.match(idx, /from\("smyl_professional_services"\)\.select\("professional_id,service_id"\)\.eq\("tenant_id", tenantId\)/);
 });

@@ -163,14 +163,12 @@ test('Cobros: «Reembolsar y cancelar cargos» es una función de rol aplicada e
   for (const f of ['smyl-finance.js', 'smyl-clinic-admin.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
 
-test('Servicios y tarifas: todo servicio activo muestra su precio editable en la fila para quien puede cambiarlo', () => {
+test('Servicios y tarifas: la tarjeta no muestra ni edita el precio; se cambia en «Editar»', () => {
   const js = fs.readFileSync(new URL('../smyl-service-catalog.js', import.meta.url), 'utf8');
-  const css = fs.readFileSync(new URL('../smyl-service-catalog-stage1.css', import.meta.url), 'utf8');
-  assert.match(js, /var priceCell=row&&active&&state\.canManage&&state\.canPrices\?/);
-  assert.doesNotMatch(js, /var priceCell=row&&active&&missingPrice&&/);
-  assert.match(js, /data-current=/);
-  assert.match(js, /if\(input\.value===''&&current\)\{input\.value=current;return;\}/);
-  assert.match(css, /\.catalog-price-input\.has-price/);
+  assert.doesNotMatch(js, /var priceCell=|catalog-service-price|catalog-price-input/);
+  assert.match(js, /name="reference_price"/);
+  assert.match(js, /precio varía por sede/);
+  assert.match(js, /Falta precio/);
 });
 
 test('Agregar servicio o cargo: el selector no marca «sin datos fiscales»; el aviso al elegir lo explica', () => {
@@ -192,14 +190,15 @@ test('Agregar servicio o cargo: el total queda junto a los botones y el descuent
 test('Inventario v2: un solo título, alertas en chips, primer uso guiado y sin aviso fijo', () => {
   const js = fs.readFileSync(new URL('../smyl-inventory.js', import.meta.url), 'utf8');
   const css = fs.readFileSync(new URL('../smyl-inventory.css', import.meta.url), 'utf8');
-  assert.match(js, /<h1>Inventario<\/h1>/);
+  assert.equal((js.match(/<h1>/g) || []).length, 0, 'el título vive en el encabezado de la página; el módulo no repite un segundo título');
   assert.doesNotMatch(js, /Inventario, compras y trazabilidad/);
   assert.doesNotMatch(js, /id="inventory-metrics"|renderMetrics/);
   assert.match(js, /id="inventory-alerts"/);
   assert.match(js, /inventory-chip/);
   assert.match(js, /function renderFirstUse\(host\)/);
-  assert.match(js, /Aún no tienes insumos/);
-  assert.match(js, /Todo en orden/);
+  assert.match(js, /Agrega tu primer producto/);
+  assert.match(js, /Prepara tu inventario/);
+  assert.match(js, /host\.innerHTML = actions\.join\(''\)/, 'sin alertas no se pinta ningún aviso fijo');
   assert.doesNotMatch(js, /notify\('Existencias calculadas/);
   assert.match(css, /\.inventory-first-use\{/);
   assert.match(css, /\.inventory-chip\[data-tone="danger"\]/);
@@ -234,7 +233,7 @@ test('Inventario v2 paso 3: orden de compra con varias líneas, total y proveedo
   assert.match(js, /data-new-supplier/);
   assert.match(js, /from\('smyl_inventory_suppliers'\)\.insert\(\{tenant_id:state\.tenant,name:name/);
   assert.match(js, /p_lines:lines/);
-  assert.match(js, /onclick=function\(\)\{openOrder\(\);\}/);
+  assert.match(js, /#inventory-new-order'\)\.onclick=\(\)=>openOrder\(\)/);
   assert.doesNotMatch(js, /onclick=openOrder/);
   assert.match(css, /\.inventory-order-line\{display:grid/);
   assert.match(css, /\.inventory-order-total\{/);
@@ -252,7 +251,7 @@ test('Inventario v2: consumo al cerrar la cita (aviso, estado en la ficha y list
   assert.match(inv, /async function consumptionStatus\(app\)/);
   assert.match(inv, /async function loadPendingMaterial\(\)/);
   assert.match(inv, /function openPendingMaterial\(\)/);
-  assert.match(inv, /MATERIAL PENDIENTE/);
+  assert.match(inv, /citas con material pendiente/);
   assert.match(inv, /consumptionStatus:consumptionStatus/);
   assert.match(css, /\.inventory-toast\{/);
   assert.match(css, /\.inventory-dialog\[data-plain\]/);

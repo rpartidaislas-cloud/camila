@@ -57,13 +57,23 @@
 /* Recordatorios por WhatsApp (smyl-reminders.js) */
 .schedule-reminders-card{grid-column:1/-1}
 .schedule-reminders-actions{display:flex;flex-wrap:wrap;gap:8px}
-.schedule-reminders-status{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px;color:#474b63;font-size:13px}
-.schedule-reminders-status i{width:8px;height:8px;border-radius:50%;background:#94a3b8}
-.schedule-reminders-status[data-enabled="true"] i{background:#2e8b57}
-.schedule-reminders-status strong{color:#1f233c;font-weight:600}
-.schedule-reminders-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
-.schedule-reminders-stats span{display:grid;gap:2px;padding:10px 12px;border:1px solid #dce4de;border-radius:10px;background:#fff;color:#6a7b73;font-size:12px}
-.schedule-reminders-stats b{color:#1f233c;font-size:18px;font-weight:600}
+.schedule-flow{display:grid;margin:0 0 12px;padding:0;list-style:none;border:1px solid #dce4de;border-radius:12px;overflow:hidden;background:#fff}
+.schedule-flow-row{display:grid;grid-template-columns:10px minmax(0,1fr) auto 76px;align-items:center;gap:12px;min-height:50px;padding:8px 14px}
+.schedule-flow-row+.schedule-flow-row{border-top:1px solid #edf1ee}
+.schedule-flow-row>i{width:10px;height:10px;border-radius:50%;background:#cbd5e1}
+.schedule-flow-row[data-on=true]>i{background:#2e8b57;box-shadow:0 0 0 3px #e3f3ea}
+.schedule-flow-main{display:grid;gap:2px;min-width:0}
+.schedule-flow-main strong{color:#1f233c;font-size:14px;font-weight:700}
+.schedule-flow-main small{color:#657777;font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.schedule-flow-row[data-on=false] .schedule-flow-main strong{color:#6a7387;font-weight:600}
+.schedule-flow-counts{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
+.schedule-flow-chip{padding:3px 9px;border-radius:999px;background:#eef1f6;color:#475069;font-size:12px;white-space:nowrap}
+.schedule-flow-chip b{font-weight:800}
+.schedule-flow-chip[data-tone=ok]{background:#e3f3ea;color:#1f6b43}.schedule-flow-chip[data-tone=wait]{background:#fff2d6;color:#8a5a00}
+.schedule-flow-chip[data-tone=bad]{background:#fde8e6;color:#b42318}.schedule-flow-chip[data-tone=info]{background:#e6ecff;color:#2c3a9c}
+.schedule-flow-state{justify-self:end;padding:3px 10px;border-radius:999px;background:#eef1f6;color:#6a7387;font-size:12px;font-weight:700}
+.schedule-flow-row[data-on=true] .schedule-flow-state{background:#e3f3ea;color:#1f6b43}
+@media(max-width:640px){.schedule-flow-row{grid-template-columns:10px minmax(0,1fr) auto;grid-template-areas:"dot main state" "dot counts counts"}.schedule-flow-row>i{grid-area:dot;align-self:start;margin-top:5px}.schedule-flow-main{grid-area:main}.schedule-flow-state{grid-area:state}.schedule-flow-counts{grid-area:counts;justify-content:flex-start}.schedule-flow-counts:empty{display:none}}
 .schedule-reminders-muted{margin:0;color:#6a7b73;font-size:12px;line-height:1.55}
 .schedule-reminders-alert{padding:10px 12px;border:1px solid #f4c7c1;border-radius:8px;background:#fef3f2;color:#b42318;font-size:12px}
 .schedule-reminders-form label{display:flex;flex-direction:column;margin-bottom:14px}
@@ -77,7 +87,7 @@
 .schedule-reminders-preview[hidden]{display:none}
 .schedule-reminders-preview span{color:#394ab9;font-size:11px;font-weight:600}
 .schedule-reminders-preview p{margin:4px 0 0;color:#1f233c;font-size:13px;line-height:1.5;white-space:pre-wrap}
-@media(max-width:760px){.schedule-reminders-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.schedule-reminders-variable:has(label[data-variable-text]:not([hidden])){grid-template-columns:1fr}.schedule-reminders-form select,.schedule-reminders-form input:not([type=checkbox]){min-height:44px}}
+@media(max-width:760px){.schedule-reminders-variable:has(label[data-variable-text]:not([hidden])){grid-template-columns:1fr}.schedule-reminders-form select,.schedule-reminders-form input:not([type=checkbox]){min-height:44px}}
 
 /* Paciente: búsqueda con alta rápida y errores dentro del diálogo */
 .schedule-patient{display:flex;flex-direction:column;gap:7px;min-width:0}
@@ -800,3 +810,9 @@ body.smyl-ui-governed #p-agenda .schedule-timeline-event[data-size=m]>.schedule-
 .schedule-focus-more{margin:0;padding:10px 22px;border-top:1px solid #e1e4e8;font-size:13px;color:#61756e}
 .schedule-focus-more button{border:0;background:none;padding:0;color:#313c81;font:inherit;text-decoration:underline;cursor:pointer}
 @media(max-width:700px){.schedule-focus-head{flex-wrap:wrap}.schedule-focus-actions{width:100%;justify-content:flex-end}}
+
+/* En escritorio (>=769px, donde la barra lateral es visible), «Nueva cita» ya está en la barra lateral y en el estado vacío de la agenda: se oculta del encabezado
+   (sigue en el DOM porque la barra lateral y otras pantallas lo accionan con .click()). En móvil se conserva. */
+@media(min-width:769px){
+  body #p-agenda .schedule-head-actions #schedule-new{display:none !important}
+}

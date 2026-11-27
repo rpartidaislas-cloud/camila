@@ -9,9 +9,10 @@ const p360 = read('smyl-patient-360.js');
 const bar = read('smyl-professional-v3.js');
 
 test('la barra del paciente ya no esconde acciones en «Más acciones»', () => {
-  assert.doesNotMatch(bar, /pro-patient-more|<summary>Más acciones/);
-  for (const label of ["'Agendar cita'", "'Nueva evolución'"]) assert.ok(bar.includes(label), label);
-  for (const label of ["'Cotizar'", "'Cobrar'", "'Enviar mensaje'"]) assert.ok(!bar.includes(label), `${label} ya no va en la barra`);
+  const patientBar = bar.slice(bar.indexOf('function patientBar()'), bar.indexOf('function treatmentJourney()'));
+  assert.doesNotMatch(patientBar, /pro-patient-more|<summary>Más acciones/);
+  for (const label of ["'Agendar cita'", "'Nueva evolución'"]) assert.ok(patientBar.includes(label), label);
+  for (const label of ["'Cotizar'", "'Cobrar'", "'Enviar mensaje'"]) assert.ok(!patientBar.includes(label), `${label} ya no va en la barra`);
 });
 
 test('«Datos del paciente» muestra datos generales y edita con el formulario de alta existente', () => {
@@ -40,10 +41,10 @@ test('el contacto vive solo en Datos del paciente (con Agregar si falta) y la fi
 
 test('web, móvil y PWA publican Datos del paciente', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-patient-360\.js\?v=40/);
-    assert.match(read(file), /smyl-patient-360\.css\?v=23/);
-    assert.match(read(file), /smyl-professional-v3\.js\?v=15/);
-    assert.match(read(file), /smyl-professional-v3\.css\?v=13/);
+    assert.match(read(file), /smyl-patient-360\.js\?v=42/);
+    assert.match(read(file), /smyl-patient-360\.css\?v=24/);
+    assert.match(read(file), /smyl-professional-v3\.js\?v=16/);
+    assert.match(read(file), /smyl-professional-v3\.css\?v=14/);
   }
   for (const file of ['smyl-patient-360.js', 'smyl-patient-360.css', 'smyl-professional-v3.js', 'smyl-professional-v3.css', 'app.html', 'sw.js']) {
     assert.equal(read(`mobile/www/${file}`), read(file), `mobile/www/${file} difiere`);

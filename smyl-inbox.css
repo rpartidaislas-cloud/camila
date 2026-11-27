@@ -3827,3 +3827,13 @@ html:not([data-smyl-chat-access="coordinator"]) #p-inbox [data-inbox-operations]
 /* Botones de «Sugerir horarios» y «Lista de espera» */
 #p-inbox .smyl-suggest-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
 @media (max-width: 620px) { #p-inbox .smyl-suggest-buttons { width: 100%; } #p-inbox .smyl-suggest-buttons .btn { flex: 1 1 100%; } }
+
+/* Filtro por canal: logos de cada plataforma en vez de lista desplegable. Toca otra vez para quitar el filtro. */
+.smyl-inbox-channel-filter{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.smyl-inbox-channel-label{font-weight:600}
+.smyl-inbox-channel-chips{display:flex;gap:10px}
+.smyl-inbox-channel-chip{display:inline-grid;place-items:center;width:44px;height:44px;padding:0;border:1.5px solid #d9dfe7;border-radius:50%;background:#fff;cursor:pointer;opacity:.75;transition:opacity .15s,border-color .15s,box-shadow .15s}
+.smyl-inbox-channel-chip svg{display:block;width:26px;height:26px}
+.smyl-inbox-channel-chip:hover{opacity:1}
+.smyl-inbox-channel-chip:focus-visible{outline:2px solid #142bc3;outline-offset:2px}
+.smyl-inbox-channel-chip[aria-pressed="true"]{opacity:1;border-color:#142bc3;box-shadow:0 0 0 3px rgba(20,43,195,.18)}

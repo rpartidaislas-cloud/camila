@@ -79,7 +79,7 @@ test('solo se dibuja la pestaña visible y las listas largas van de 50 en 50', (
   // Al terminar de cargar la página deja de anunciarse como ocupada (antes se quedaba en aria-busy="true").
   assert.match(finance, /renderPanel\(\);renderBillingSetup\(\);var page=document\.getElementById\('p-caja'\);if\(page\)page\.setAttribute\('aria-busy','false'\);/);
   // Cada lista se salta si su pestaña no está a la vista.
-  assert.match(finance, /function renderAccounts\(\)\{\n    var host=document\.getElementById\('finance-accounts'\);if\(!host\|\|state\.tab!=='accounts'\)return;/);
+  assert.match(finance, /function renderAccounts\(\)\{\r?\n    var host=document\.getElementById\('finance-accounts'\);if\(!host\|\|state\.tab!=='accounts'\)return;/);
   assert.match(finance, /var host=document\.getElementById\('finance-payments'\);if\(!host\|\|state\.tab!=='receipts'\)return;/);
   assert.match(finance, /var host=document\.getElementById\('finance-cash'\);if\(!host\|\|state\.tab!=='cash'\)return;/);
   // Pagos solo recorre el periodo elegido (abre en Hoy): no dibuja el historial completo.
@@ -133,10 +133,10 @@ test('web y PWA comparten la misma entrega versionada', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-xlsx.js', 'smyl-navigation.js', 'smyl-professional-v3.js', 'smyl-settings-hub.js', 'smyl-consultorio.js', 'smyl-proposals.js', 'app.html', 'sw.js']) {
     assert.equal(read(file), read('mobile/www/' + file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=54/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=74/);
-  assert.match(read('sw.js'), /smyl-finance\.js\?v=74/);
-  assert.match(read('sw.js'), /smyl-finance\.css\?v=54/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=57/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=79/);
+  assert.match(read('sw.js'), /smyl-finance\.js\?v=79/);
+  assert.match(read('sw.js'), /smyl-finance\.css\?v=57/);
   assert.match(read('sw.js'), /finanzas-pestanas-v6/);
   assert.match(read('sw.js'), /finanzas-cobrar-pagos-v7/);
 });

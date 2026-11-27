@@ -52,7 +52,7 @@ test('el editor de servicios trae el buscador, no marca el servicio como revisad
   assert.doesNotMatch(ui.slice(ui.indexOf('satBox.onclick'), ui.indexOf("d.querySelector('form').onsubmit")), /fiscal_reviewed/);
   assert.equal(ui, read('mobile/www/smyl-service-catalog.js'));
   assert.equal(read('smyl-service-catalog.css'), read('mobile/www/smyl-service-catalog.css'));
-  assert.match(read('app.html'), /smyl-service-catalog\.js\?v=16/); assert.match(read('app.html'), /smyl-service-catalog\.css\?v=6/);
+  assert.match(read('app.html'), /smyl-service-catalog\.js\?v=20/); assert.match(read('app.html'), /smyl-service-catalog\.css\?v=6/);
 });
 
 test('la IA nunca puede inventar una clave: solo se aceptan las que estaban entre los candidatos', () => {
@@ -131,9 +131,13 @@ test('suggest_service sugiere todo menos el precio, la clave SAT es opcional y c
   assert.match(consumo, /rpc\("smyl_consume"/); assert.match(consumo, /p_resource: "ai_credits"/); assert.match(consumo, /token_usage: uso/); assert.match(consumo, /p_enforce: CONSUMABLES_ENFORCED/);
 });
 
-test('el editor de servicios ofrece «Sugerir con IA» y avisa que se confirme con el contador', () => {
+test('la IA del editor es una sola («Sugerir todo con IA») y cubre también la parte fiscal; avisa que se confirme con el contador', () => {
   const ui = read('smyl-service-catalog.js');
-  assert.match(ui, /data-sat-ai/); assert.match(ui, /action:'suggest_sat_product'/); assert.match(ui, /Sugerir con IA/);
+  assert.doesNotMatch(ui, /data-sat-ai|async function satSuggest/);
+  assert.match(ui, /Sugerir todo con IA/); assert.match(ui, /action:'suggest_service'/);
+  const fill = ui.slice(ui.indexOf('async function aiAll'), ui.indexOf('aiBtn.onclick=aiAll'));
+  for (const k of ['Clave del SAT', 'Unidad', 'Tratamiento de IVA', 'Objeto de impuesto']) assert.ok(fill.includes(k), k);
+  assert.match(fill, /la confirmas tú/);
   assert.match(ui, /La IA solo elige entre claves reales del catálogo del SAT\. Confírmala con tu contador\./);
   assert.equal(ui, read('mobile/www/smyl-service-catalog.js'));
 });

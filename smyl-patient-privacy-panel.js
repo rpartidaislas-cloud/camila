@@ -43,12 +43,12 @@
     var btns = '';
     if (!m.signed && actions.link) btns += '<button type="button" class="p360-hc-edit" data-hp-link>Que firme en su celular</button>';
     return '<section class="p360-hc-band" id="p360-hc-privacy" data-tone="privacy" data-state="' + esc(m.state) + '" tabindex="-1" aria-labelledby="p360-hc-privacy-t">'
-      + '<header class="p360-hc-band-h"><div class="p360-hc-title"><span class="p360-hc-num" aria-hidden="true">' + Number(number) + '</span><div><h3 id="p360-hc-privacy-t">Consentimiento de privacidad</h3><small>Lo que firmó el paciente y lo que permite sobre sus datos.</small></div></div><div class="pp-actions">' + btns + '</div></header>'
+      + '<header class="p360-hc-band-h"><div class="p360-hc-title"><span class="p360-hc-num" aria-hidden="true">' + Number(number) + '</span><div><h3 id="p360-hc-privacy-t">Privacidad y permisos de datos</h3><small>Aviso firmado y lo que el paciente permite hacer con sus datos.</small></div></div><div class="pp-actions">' + btns + '</div></header>'
       + '<dl class="p360-hc-rows">' + m.rows.map(rowHtml).join('') + '</dl>'
       + (actions.arco ? '<div class="pp-arco"><p class="pp-feedback" role="status" aria-live="polite"></p><div data-pp-arco></div></div>' : '') + '</section>';
   }
   function indexButton(number, m) {
-    return '<button type="button" data-hc-goto="privacy"><span class="p360-hc-dot" data-state="' + esc(m.state === 'neutral' ? 'neutral' : m.state) + '" aria-hidden="true"></span>' + Number(number) + ' · Consentimiento</button>';
+    return '<button type="button" data-hc-goto="privacy"><span class="p360-hc-dot" data-state="' + esc(m.state === 'neutral' ? 'neutral' : m.state) + '" aria-hidden="true"></span>' + Number(number) + ' · Privacidad y datos</button>';
   }
 
   /* ── Navegador ── */

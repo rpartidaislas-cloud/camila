@@ -292,6 +292,16 @@ server.listen(0, '127.0.0.1', async () => {
   await page.keyboard.press('Escape'); await page.waitForTimeout(250);
   await page.click('#finance-payments .finance-line[data-kind=full] .finance-row-menu>summary'); await page.click('#finance-payments .finance-row-menu[open] [data-refund]'); await page.waitForTimeout(350);
   check((await page.$eval('#finance-dialog h2', e => e.textContent.trim())) === 'Registrar reembolso', 'el menú del pago ofrece «Reembolsar pago»');
+  // Reembolso con su caja de salida: el pago fue en efectivo, así que se propone efectivo y la caja abierta; con transferencia pide referencia.
+  const refund = await page.$eval('#finance-dialog form', f => ({ method: f.elements.method.value, cashShown: !f.querySelector('[data-refund-cash]').hidden, refShown: !f.querySelector('[data-refund-ref]').hidden, sources: [...f.elements.cash_session.options].map(o => o.textContent), disabled: f.querySelector('[data-refund-submit]').disabled }));
+  check(refund.method === 'cash' && refund.cashShown && !refund.refShown && refund.sources.length >= 1 && /Caja de/.test(refund.sources[0]) && !refund.disabled, 'el reembolso de un pago en efectivo propone efectivo y la caja abierta de la que sale: ' + JSON.stringify(refund));
+  await page.selectOption('#finance-dialog [name=method]', 'transfer'); await page.waitForTimeout(100);
+  const viaTransfer = await page.$eval('#finance-dialog form', f => ({ cashHidden: f.querySelector('[data-refund-cash]').hidden, refShown: !f.querySelector('[data-refund-ref]').hidden, refRequired: f.elements.reference.required }));
+  check(viaTransfer.cashHidden && viaTransfer.refShown && viaTransfer.refRequired, 'con transferencia se oculta la caja y se pide la referencia: ' + JSON.stringify(viaTransfer));
+  await page.fill('#finance-dialog [name=amount]', '10'); await page.fill('#finance-dialog [name=reason]', 'Prueba de reembolso'); await page.fill('#finance-dialog [name=reference]', 'SPEI 12345');
+  await page.evaluate(() => { window.__calls.length = 0; }); await page.click('#finance-dialog [data-refund-submit]'); await page.waitForTimeout(500);
+  const refundSent = await page.evaluate(() => (window.__calls.find(c => c[0] === 'rpc' && c[1] === 'smyl_refund_payment') || [])[2]);
+  check(refundSent && refundSent.p_method === 'transfer' && refundSent.p_cash_session_id === null && refundSent.p_reference === 'SPEI 12345' && refundSent.p_amount === 10 && refundSent.p_id && refundSent.p_idempotency_key, 'la llamada lleva método, sin caja y la referencia: ' + JSON.stringify(refundSent));
   await page.keyboard.press('Escape'); await page.waitForTimeout(250);
 
   // Exportar: el Excel trae lo mismo que la pantalla y la descarga queda registrada antes de generarse.

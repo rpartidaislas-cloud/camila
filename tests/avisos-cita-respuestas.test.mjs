@@ -9,7 +9,7 @@ const schedule = read('smyl-schedule.js');
 
 function loadNormalizer() {
   const source = fn.match(/function normalizeAttendance\(value: unknown\)[^{]*\{[\s\S]*?\n\}\n/)[0]
-    .replace('(value: unknown): "confirmed" | "reschedule" | null', '(value)');
+    .replace('(value: unknown): "confirmed" | "reschedule" | "rebook" | "reason_schedule" | "reason_price" | "reason_other" | null', '(value)');
   return new Function('text', `${source}; return normalizeAttendance;`)((value, max) => (typeof value === 'string' ? value.trim().slice(0, max) : ''));
 }
 
@@ -17,6 +17,7 @@ test('el servidor reconoce solo los dos botones de asistencia, sin importar acen
   const normalize = loadNormalizer();
   for (const label of ['Confirmo mi asistencia', 'CONFIRMO MI ASISTENCIA', ' confirmo ']) assert.equal(normalize(label), 'confirmed');
   for (const label of ['Necesito reprogramar', 'necesito  reprogramar'.replace('  ', ' '), 'Reprogramar']) assert.equal(normalize(label), 'reschedule');
+  for (const label of ['Quiero reagendar', 'reagendar']) assert.equal(normalize(label), 'rebook');
   for (const label of ['Aceptar', 'Rechazar', 'Voy en camino', 'Cancelar mi cita', '', null, undefined, 42]) assert.equal(normalize(label), null, String(label));
 });
 

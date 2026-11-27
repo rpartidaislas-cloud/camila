@@ -92,6 +92,8 @@ copyFile(path.join(ROOT, 'smyl-proposals.css'), path.join(WWW, 'smyl-proposals.c
 copyFile(path.join(ROOT, 'smyl-treatment-quote-stage3.js'), path.join(WWW, 'smyl-treatment-quote-stage3.js'));
 copyFile(path.join(ROOT, 'smyl-treatment-quote-stage3.css'), path.join(WWW, 'smyl-treatment-quote-stage3.css'));
 copyFile(path.join(ROOT, 'smyl-schedule.js'), path.join(WWW, 'smyl-schedule.js'));
+copyFile(path.join(ROOT, 'smyl-ai-scheduling.js'), path.join(WWW, 'smyl-ai-scheduling.js'));
+copyFile(path.join(ROOT, 'smyl-ai-scheduling.css'), path.join(WWW, 'smyl-ai-scheduling.css'));
 copyFile(path.join(ROOT, 'smyl-schedule.css'), path.join(WWW, 'smyl-schedule.css'));
 copyFile(path.join(ROOT, 'smyl-service-catalog-model.js'), path.join(WWW, 'smyl-service-catalog-model.js'));
 copyFile(path.join(ROOT, 'smyl-service-catalog.js'), path.join(WWW, 'smyl-service-catalog.js'));
@@ -110,6 +112,9 @@ for (const file of ['vendor/pdf-lib-1.17.1.min.mjs', 'vendor/pdf-lib-1.17.1.LICE
 copyFile(path.join(ROOT, 'smyl-task-center.js'), path.join(WWW, 'smyl-task-center.js'));
 copyFile(path.join(ROOT, 'smyl-schedule-message.js'), path.join(WWW, 'smyl-schedule-message.js'));
 copyFile(path.join(ROOT, 'smyl-lana-attention.js'), path.join(WWW, 'smyl-lana-attention.js'));
+copyFile(path.join(ROOT, 'smyl-ia-interruptor.js'), path.join(WWW, 'smyl-ia-interruptor.js'));
+copyFile(path.join(ROOT, 'smyl-training-autofill.js'), path.join(WWW, 'smyl-training-autofill.js'));
+copyFile(path.join(ROOT, 'smyl-ia-interruptor.css'), path.join(WWW, 'smyl-ia-interruptor.css'));
 copyFile(path.join(ROOT, 'smyl-daily-home.js'), path.join(WWW, 'smyl-daily-home.js'));
 copyFile(path.join(ROOT, 'smyl-daily-home.css'), path.join(WWW, 'smyl-daily-home.css'));
 copyFile(path.join(ROOT, 'smyl-dashboard-v2.css'), path.join(WWW, 'smyl-dashboard-v2.css'));

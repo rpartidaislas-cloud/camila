@@ -500,10 +500,18 @@
     document.getElementById('clinic-review-dialog').close();
     document.getElementById('clinic-feedback').replaceChildren();
     try {
-      var row = await checked(sb.rpc('smyl_save_clinical_plan_v2', {
-        p_tenant_id: ctx.tenant, p_patient_id: ctx.patient,
-        p_expected_revision: ctx.row ? ctx.row.revision : 0, p_document: doc, p_review: review
-      }));
+      var args = { p_tenant_id: ctx.tenant, p_patient_id: ctx.patient,
+        p_expected_revision: ctx.row ? ctx.row.revision : 0, p_document: doc, p_review: review };
+      var activeTreatment = window.SmylTreatments && window.SmylTreatments.current ? window.SmylTreatments.current(ctx.patient) : null;
+      var treatmentId = (ctx.row && ctx.row.treatment_id) || (activeTreatment && activeTreatment.id) || null;
+      var row;
+      if (treatmentId) {
+        try { row = await checked(sb.rpc('smyl_save_clinical_plan_v3', Object.assign({}, args, { p_treatment_id: treatmentId }))); }
+        catch (versionError) {
+          if (!/smyl_save_clinical_plan_v3|PGRST202|42883|schema cache/i.test(String((versionError && versionError.message) || '') + ' ' + String((versionError && versionError.code) || ''))) throw versionError;
+        }
+      }
+      if (!row) row = await checked(sb.rpc('smyl_save_clinical_plan_v2', args));
       if (Array.isArray(row)) row = row[0];
       if (!row || row.patient_id !== ctx.patient || row.tenant_id !== ctx.tenant || !row.revision) throw new Error('Unconfirmed save');
       if (current !== ctx || !activeForm.isConnected) return;
@@ -977,9 +985,37 @@
         var review = capturePatientReview(tenant, patient);
         var mounted = !!document.getElementById('clinic-form');
         var doc = ctx.ready && mounted ? formDocument() : null;
-        return { ready: !!review, revision: review ? review.revision : null, dirty: ctx.dirty || ctx.saving,
+        var planItems = (doc && doc.treatments || []).map(function (item) {
+          return Object.freeze({
+            id: item.id || '', name: String(item.name || '').trim(), phase: item.phase || '',
+            area: String(item.area || '').trim(), teeth: Array.isArray(item.teeth) ? item.teeth.slice(0, 32) : [],
+            surfaces: Array.isArray(item.surfaces) ? item.surfaces.slice(0, 32) : [],
+            serviceId: item.service_id || null, serviceRevision: item.service_revision || null
+          });
+        });
+        var orthodonticItems = (doc && doc.treatments || []).filter(function (item) {
+          var snapshot = item && item.service_snapshot || {};
+          return snapshot.category === 'orthodontic' || snapshot.specialty === 'orthodontic';
+        }).map(function (item) {
+          return Object.freeze({
+            id: item.id || '', name: String(item.name || '').trim(), phase: item.phase || '',
+            area: String(item.area || '').trim(), teeth: Array.isArray(item.teeth) ? item.teeth.slice(0, 32) : [],
+            serviceId: item.service_id || null
+          });
+        });
+        var treatment = window.SmylTreatments && window.SmylTreatments.current ? window.SmylTreatments.current(patient) : null;
+        return { ready: !!review, revision: review ? review.revision : (ctx.row && ctx.row.revision || null), dirty: ctx.dirty || ctx.saving,
           available: ctx.ready && mounted, saving: ctx.saving, saved: !!ctx.row,
-          assessment: !!doc?.assessment.trim(), treatments: !!doc?.treatments.some(function (t) { return t.name.trim(); }) };
+          assessment: !!doc?.assessment.trim(), treatments: !!doc?.treatments.some(function (t) { return t.name.trim(); }),
+          treatmentId: (ctx.row && ctx.row.treatment_id) || (treatment && treatment.id) || null,
+          treatment: treatment ? Object.freeze({ id: treatment.id, seq: treatment.seq, title: treatment.title, revision: treatment.revision || 1 }) : null,
+          items: Object.freeze(planItems),
+          orthodontics: Object.freeze({
+            eligible: !!review && orthodonticItems.length > 0,
+            items: Object.freeze(orthodonticItems),
+            revision: review ? review.revision : (ctx.row && ctx.row.revision || null),
+            reviewedAt: review ? review.reviewedAt : null
+          }) };
       },
       // options (opcional): {title, text, action} para reutilizar la guía desde otros recorridos (p. ej. Cotizar).
       focus: function (tenant, patient, resume, options) {
