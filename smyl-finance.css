@@ -1302,3 +1302,6 @@ dialog[data-smyl-dialog-system="true"][open] .finance-allocation-input>input[typ
 #p-caja .finance-alert .btn{flex:none;min-height:40px}
 @media(max-width:640px){#p-caja .finance-alert{flex-direction:column;align-items:stretch}}
 /*contenedor*/@container finance-workspace (max-width:640px){#p-caja .finance-alert{flex-direction:column;align-items:stretch}}
+
+/* Cancelación real ante el SAT (producción) */
+.finance-live-note{margin:14px 0 8px;padding:10px 12px;border:1px solid #efc3c3;border-radius:10px;background:#fdecec;font-size:13px;line-height:1.5;color:#8a1f1f}

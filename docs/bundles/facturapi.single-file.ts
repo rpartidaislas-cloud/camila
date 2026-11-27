@@ -365,7 +365,7 @@ return { LANA_API_BASE, linkedLanaApiKey, lanaRequest, smylAdmin: admin };
 })();
 
 // ── _shared/facturapi-core.mjs ──
-const { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, DESCARGAS, descarga, leerProductosSat, textoBusquedaSat, SAT_CONSULTAS_SCHEMA, SAT_SELECCION_SCHEMA, SAT_CONSULTAS_RESPALDO, SAT_SYSTEM_CONSULTAS, SAT_SYSTEM_SELECCION, descripcionServicioSat, leerConsultasSat, unirCandidatosSat, leerSeleccionSat, SERVICIO_CATEGORIAS, SERVICIO_ALCANCES, SERVICIO_COBROS, SERVICIO_SCHEMA, SERVICIO_SYSTEM, leerServicioSugerido, sumarUso } = (() => {
+const { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, CONFIRM_LIVE_CANCEL_TEXT, puedeCancelarEnProduccion, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, DESCARGAS, descarga, leerProductosSat, textoBusquedaSat, SAT_CONSULTAS_SCHEMA, SAT_SELECCION_SCHEMA, SAT_CONSULTAS_RESPALDO, SAT_SYSTEM_CONSULTAS, SAT_SYSTEM_SELECCION, descripcionServicioSat, leerConsultasSat, unirCandidatosSat, leerSeleccionSat, SERVICIO_CATEGORIAS, SERVICIO_ALCANCES, SERVICIO_COBROS, SERVICIO_SCHEMA, SERVICIO_SYSTEM, leerServicioSugerido, sumarUso } = (() => {
 // Lógica pura de la conexión Facturapi (sin Deno ni red): validación de llave, cifrado y lectura de la organización.
 // Solo sandbox: la llave debe ser de pruebas (sk_test_…). Las llaves live se rechazan.
 const FACTURAPI_BASE = "https://www.facturapi.io/v2";
@@ -474,6 +474,16 @@ function rfcCoincide(rfcCertificado: any, rfcClinica: any) {
 }
 
 // Compuerta de producción: todo debe cumplirse en el servidor.
+// Cancelar un CFDI de producción es una acción real ante el SAT: además del permiso y del plan guardado, exige el interruptor del servidor
+// (FACTURAPI_LIVE_CANCELLATION=1) y que quien cancela escriba el texto de confirmación. En sandbox no pide nada de esto.
+const CONFIRM_LIVE_CANCEL_TEXT = "CANCELAR EN PRODUCCION";
+function puedeCancelarEnProduccion({ live, enabled, confirmText } = {}) {
+  if (!live) return { ok: true };
+  if (!enabled) return { ok: false, error: "La cancelación en producción aún no está habilitada en el servidor. Cancela este comprobante desde tu panel de Facturapi o pide que se habilite." };
+  if (String(confirmText || "").trim().toUpperCase() !== CONFIRM_LIVE_CANCEL_TEXT) return { ok: false, error: `Para confirmar la cancelación en producción escribe: ${CONFIRM_LIVE_CANCEL_TEXT}` };
+  return { ok: true };
+}
+
 function puedeActivarProduccion({ mode, status, productionReady, issuerReviewed, policyReviewed, confirmText } = {}) {
   if (mode !== "platform") return { ok: false, error: "La producción se activa solo con la cuenta de plataforma de SMYL." };
   if (status !== "connected") return { ok: false, error: "Primero activa la facturación de la clínica." };
@@ -814,7 +824,7 @@ function sumarUso(usages: any) {
 }
 
 
-return { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, DESCARGAS, descarga, leerProductosSat, textoBusquedaSat, SAT_CONSULTAS_SCHEMA, SAT_SELECCION_SCHEMA, SAT_CONSULTAS_RESPALDO, SAT_SYSTEM_CONSULTAS, SAT_SYSTEM_SELECCION, descripcionServicioSat, leerConsultasSat, unirCandidatosSat, leerSeleccionSat, SERVICIO_CATEGORIAS, SERVICIO_ALCANCES, SERVICIO_COBROS, SERVICIO_SCHEMA, SERVICIO_SYSTEM, leerServicioSugerido, sumarUso };
+return { FACTURAPI_BASE, TEST_KEY_RE, validarLlave, huella, cifrar, descifrar, leerOrganizacion, vistaConexion, LIVE_KEY_RE, CONFIRM_LIVE_TEXT, datosLegales, validarCsd, estadoOrganizacion, rfcCoincide, CONFIRM_LIVE_CANCEL_TEXT, puedeCancelarEnProduccion, puedeActivarProduccion, leerLlave, mensajeCsd, FORMAS_PAGO, formaPagoSugerida, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura, MOTIVOS_CANCELACION, parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, DESCARGAS, descarga, leerProductosSat, textoBusquedaSat, SAT_CONSULTAS_SCHEMA, SAT_SELECCION_SCHEMA, SAT_CONSULTAS_RESPALDO, SAT_SYSTEM_CONSULTAS, SAT_SYSTEM_SELECCION, descripcionServicioSat, leerConsultasSat, unirCandidatosSat, leerSeleccionSat, SERVICIO_CATEGORIAS, SERVICIO_ALCANCES, SERVICIO_COBROS, SERVICIO_SCHEMA, SERVICIO_SYSTEM, leerServicioSugerido, sumarUso };
 })();
 
 // ── _shared/fiscal-core.mjs ──
@@ -1037,6 +1047,8 @@ const SB_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SB_ANON_K
 const LIVE_STAMPING = Deno.env.get("FACTURAPI_LIVE_STAMPING") === "1";
 // Igual que el resto de SMYL: mientras no se active el cobro de consumibles, el consumo se mide (meter_only) sin bloquear.
 const CONSUMABLES_ENFORCED = (Deno.env.get("SMYL_CONSUMABLES_ENFORCED") || "false") === "true";
+// Cancelar en producción es una acción real ante el SAT: apagado por defecto, se enciende con FACTURAPI_LIVE_CANCELLATION=1 tras una prueba controlada.
+const LIVE_CANCELLATION = Deno.env.get("FACTURAPI_LIVE_CANCELLATION") === "1";
 const STAMP_TIMEOUT_MS = 40_000;
 const RECONCILE_WAIT_MS = 2 * 60_000; // no se da por «no creada» una solicitud más reciente que esto
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -1045,7 +1057,7 @@ const MAX_CSD_FAILS_PER_HOUR = 5;
 // deno-lint-ignore no-explicit-any
 type Json = Record<string, any>;
 
-const vista = (r: Json | null) => ({ ...vistaConexion(r), live_stamping: LIVE_STAMPING });
+const vista = (r: Json | null) => ({ ...vistaConexion(r), live_stamping: LIVE_STAMPING, live_cancellation: LIVE_CANCELLATION });
 const json = (cors: Record<string, string>, status: number, body: Json) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
 
@@ -1314,8 +1326,12 @@ async function timbrado(req: Request, CORS: Record<string, string>, tenantId: st
 
   // ── Cancelación (sandbox) ──
   if (body.action === "cancel" || body.action === "cancel_check") {
-    // La cancelación en producción es una acción real ante el SAT y aún no tiene su propia compuerta: por ahora solo sandbox.
-    if (live) return json(CORS, 409, { error: "La cancelación desde SMYL todavía solo está disponible en pruebas (sandbox). Cancela los comprobantes de producción desde tu panel de Facturapi." });
+    // En producción cancelar es real ante el SAT: interruptor del servidor + texto de confirmación (solo al enviar; verificar es solo lectura).
+    if (live && body.action === "cancel") {
+      const gate = puedeCancelarEnProduccion({ live, enabled: LIVE_CANCELLATION, confirmText: body.confirm_text });
+      if (!gate.ok) return json(CORS, 409, { error: gate.error });
+    }
+    if (live && body.action === "cancel_check" && !LIVE_CANCELLATION) return json(CORS, 409, { error: "La cancelación en producción aún no está habilitada en el servidor." });
     if (draft.status === "cancelled") return json(CORS, 200, { draft, message: "Este comprobante ya está cancelado." });
     if (draft.status !== "issued" || !draft.provider_invoice_id) return json(CORS, 409, { error: "Solo un comprobante timbrado se puede cancelar." });
     const { data: plan } = await admin.from("smyl_cfdi_cancellation_plans").select("*").eq("tenant_id", tenantId).eq("draft_id", draftId).in("status", ["planned", "submitted"]).maybeSingle();
@@ -1355,19 +1371,19 @@ async function timbrado(req: Request, CORS: Record<string, string>, tenantId: st
     if (!claimed) return json(CORS, 409, { error: "Otra persona ya está enviando esta cancelación." });
     const r = await llamarFacturapi(key, `/invoices/${encodeURIComponent(draft.provider_invoice_id)}?${params.query}`, { method: "DELETE" });
     const clase = clasificarCancelacion(r.status, r.body);
-    if (clase === "accepted") { await aceptar(); await eventoTimbre(tenantId, actor, draftId, "cancel", "success", { motive: plan.reason_code }); return json(CORS, 200, { draft: await vista(), message: "Comprobante cancelado en sandbox." }); }
+    if (clase === "accepted") { await aceptar(); await eventoTimbre(tenantId, actor, draftId, "cancel", "success", { motive: plan.reason_code, live }); return json(CORS, 200, { draft: await vista(), message: live ? "Comprobante cancelado en producción." : "Comprobante cancelado en sandbox." }); }
     if (clase === "pending") {
-      await pendiente(); await eventoTimbre(tenantId, actor, draftId, "cancel", "pending", { motive: plan.reason_code });
+      await pendiente(); await eventoTimbre(tenantId, actor, draftId, "cancel", "pending", { motive: plan.reason_code, live });
       return json(CORS, 202, { draft: await vista(), message: "La cancelación está pendiente: el paciente debe aceptarla. Usa «Verificar cancelación» más tarde." });
     }
     if (clase === "rejected") {
       const msg = mensajeFacturapi(r.body, r.status);
-      await rechazar(msg); await eventoTimbre(tenantId, actor, draftId, "cancel", "failed", { status: r.status, motive: plan.reason_code });
+      await rechazar(msg); await eventoTimbre(tenantId, actor, draftId, "cancel", "failed", { status: r.status, motive: plan.reason_code, live });
       return json(CORS, 422, { error: `Facturapi no pudo cancelar el comprobante: ${msg}`, draft: await vista() });
     }
     const msg = "No se confirmó la cancelación (Facturapi no respondió a tiempo o pidió esperar). Usa «Verificar cancelación» antes de intentar de nuevo.";
     await admin.from("smyl_cfdi_cancellation_plans").update({ provider_message: msg }).eq("tenant_id", tenantId).eq("id", plan.id);
-    await eventoTimbre(tenantId, actor, draftId, "cancel", "pending", { status: r.status, motive: plan.reason_code });
+    await eventoTimbre(tenantId, actor, draftId, "cancel", "pending", { status: r.status, motive: plan.reason_code, live });
     return json(CORS, 202, { draft: await vista(), message: msg });
   }
 
