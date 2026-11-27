@@ -12912,3 +12912,9 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 
 ## 2026-11-27 · Claude · Vista previa de la plantilla en «Enlace de pago listo»
 - `smyl-finance.js` (v78) / `.css` (v56): cuando el paciente tiene chat de WhatsApp, la ventana muestra «Así lo recibirá el paciente por WhatsApp» con la plantilla `cobro_enlace_pago_v1` ya rellenada (nombre, monto, clínica, enlace) en una burbuja. Los datos son los mismos que se envían (`vals`). Sin SQL ni funciones.
+
+## 2026-11-27 — Claude — Finanzas: Bloque 1 de la auditoría
+- Migración `20261127120000_smyl_finance_cash_integrity.sql`: reembolsos con método/caja/sucursal/referencia, `smyl_cash_expected` (fuente única del corte; los históricos siguen en la caja del pago), `smyl_cash_session_expected` (lectura con alcance), disparador `smyl_lock_open_cash_session` en pagos/ajustes/reembolsos, y `smyl_refund_payment` con 8 parámetros (sustituye a la de 5). Probada en Postgres local, incluidas dos carreras reales (`docs/pruebas/caja-integridad/`).
+- `smyl-pay`: alcance por sucursal en list/cancel/create (`autorizarCargos/autorizarEnlace/enlacesVisibles` en `_shared/smyl-pay-core.mjs`); el alias `smylAdmin as admin` impedía empaquetar, ya hay `docs/bundles/smyl-pay.single-file.ts`.
+- `smyl-finance.js?v=79` / `.css?v=57`: reembolso con método/caja/referencia y llave de intento estable; `receiptLines` desde el snapshot; `refundOnSession`; textos ≥ 12 px.
+- Suite financiera verde (253). Detalle y pendientes en `docs/FINANZAS_AUDITORIA_2026-11-26.md`.

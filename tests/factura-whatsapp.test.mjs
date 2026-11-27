@@ -28,7 +28,7 @@ test('las dos plantillas existen y el folio y la clínica encajan con sus variab
 });
 
 test('web, móvil y PWA publican Finanzas con la versión nueva', () => {
-  assert.match(read('app.html'), /smyl-finance\.js\?v=78/);
-  assert.match(read('sw.js'), /'\/camila\/smyl-finance\.js\?v=78'/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=79/);
+  assert.match(read('sw.js'), /'\/camila\/smyl-finance\.js\?v=79'/);
   for (const f of ['smyl-finance.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });

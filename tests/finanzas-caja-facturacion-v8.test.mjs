@@ -14,7 +14,7 @@ const block = (name) => pick(new RegExp('(?:async )?function ' + name + '\\([^)]
 const code = [
   pick(/var byIndex[\s\S]*?return acct;\}/),
   line('esc'), line('money'), line('date'), line('name'), line('actorName'), line('plural'), line('dayOf'), line('whenLabel'), line('relDay'), line('signed'),
-  pick(/function cashFlow\(s\)\{[\s\S]*?return out;\}/), line('cashExpected'), block('cashMoves'),
+  line('refundOnSession'), pick(/function cashFlow\(s\)\{[\s\S]*?return out;\}/), line('cashExpected'), block('cashMoves'),
   line('atClock'), line('clock'), line('moveWhen'), line('openedLabel'), line('dayLabel'), line('shiftSpan'),
   line('ledgerRow'), block('cashLedger'), line('ledgerTotal'), block('moveLine'), block('cutNotes'), line('cutTag'), line('foldRow'), block('cutRow'), block('teamRow'), block('turnBlock'),
   line('receiptConcept'), block('paymentFacts'), block('fiscalReceiptItem'), line('pacConnected'), line('st_armed'),
@@ -101,7 +101,7 @@ test('mi turno: quién, desde cuándo, los dos botones una sola vez, el desglose
   assert.doesNotMatch(f.turnBlock(state.sessions[0], false), / id="/);
   // Sin permiso de caja se ve el turno, sin botones. Con más de 18 horas abierta, lo avisa.
   state.canCash = false; assert.doesNotMatch(f.turnBlock(state.sessions[0], true), /<button type="button" class="btn/);
-  state.sessions[0].opened_at = at(1, 8); assert.match(f.turnBlock(state.sessions[0], true), /class="finance-session-warn" role="status">Lleva más de 18 horas abierta\. Haz el corte para cerrar el turno\./);
+  state.sessions[0].opened_at = at(2, 8); assert.match(f.turnBlock(state.sessions[0], true), /class="finance-session-warn" role="status">Lleva más de 18 horas abierta\. Haz el corte para cerrar el turno\./);
   // Solo se dibujan los primeros movimientos; el resto se pide.
   state.shown.moves = 2; const few = f.turnBlock(state.sessions[0], true);
   assert.equal((few.match(/data-cols="moves"/g) || []).length, 2); assert.match(few, /Mostrando 2 de 6<\/span><button type="button" class="btn btn-secondary" data-more-moves>Ver todos<\/button>/);
@@ -347,7 +347,7 @@ test('los estilos del paso 3: mismas filas y etiquetas, acomodo por espacio y ve
 
 test('versiones publicadas y copias de la app móvil al día', () => {
   const app = read('app.html'), sw = read('sw.js');
-  assert.match(app, /smyl-finance\.css\?v=56/); assert.match(app, /smyl-finance\.js\?v=73/);
-  assert.match(sw, /smyl-finance\.js\?v=73/); assert.match(sw, /smyl-finance\.css\?v=56/); assert.match(sw, /finanzas-caja-facturacion-v9/);
+  assert.match(app, /smyl-finance\.css\?v=57/); assert.match(app, /smyl-finance\.js\?v=79/);
+  assert.match(sw, /smyl-finance\.js\?v=79/); assert.match(sw, /smyl-finance\.css\?v=57/); assert.match(sw, /finanzas-caja-facturacion-v9/);
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + file), read(file), file);
 });

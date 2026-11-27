@@ -305,11 +305,14 @@
     bindMoreRows(host,'accounts',renderAccounts);
   }
 
+  // ¿Este reembolso sacó efectivo de ESTA caja? Los nuevos guardan de qué caja salió el dinero; los históricos (sin método) se atribuyen
+  // a la caja del pago original, como siempre, para que ningún corte cerrado cambie. Misma regla que smyl_cash_expected.
+  function refundOnSession(r,s){if(r.refund_method)return r.refund_method==='cash'&&r.refund_cash_session_id===s.id;var p=by(state.payments,r.payment_id);return !!(p&&p.cash_session_id===s.id&&p.method==='cash');}
   // Efectivo de un turno, en centavos y por separado: lo cobrado, lo reembolsado y lo que entró o salió sin ser cobro.
   // Efectivo de un turno, en centavos: cuánto es cada renglón y cuántos movimientos lo forman. La suma es el efectivo que debe haber.
   function cashFlow(s){var out={opening:cents(s.opening_cash),collected:0,refunded:0,added:0,removed:0,payments:0,refunds:0,ins:0,outs:0};
     state.payments.forEach(function(p){if(p.cash_session_id===s.id&&p.method==='cash'){out.collected+=cents(p.amount);out.payments+=1;}});
-    state.refunds.forEach(function(r){var p=by(state.payments,r.payment_id);if(p&&p.cash_session_id===s.id&&p.method==='cash'){out.refunded+=cents(r.amount);out.refunds+=1;}});
+    state.refunds.forEach(function(r){if(refundOnSession(r,s)){out.refunded+=cents(r.amount);out.refunds+=1;}});
     state.adjustments.forEach(function(a){if(a.cash_session_id!==s.id)return;if(a.direction==='in'){out.added+=cents(a.amount);out.ins+=1;}else{out.removed+=cents(a.amount);out.outs+=1;}});
     out.expected=out.opening+out.collected-out.refunded+out.added-out.removed;return out;}
   function cashExpected(s){return cashFlow(s).expected/100;}
@@ -317,7 +320,7 @@
   function cashMoves(s){
     var rows=[{kind:'open',at:s.opened_at,cents:cents(s.opening_cash),title:'Apertura',note:'Fondo inicial'}];
     state.payments.forEach(function(p){if(p.cash_session_id!==s.id||p.method!=='cash')return;var receipt=byKey(state.receipts,'payment_id',p.id);rows.push({kind:'payment',at:p.paid_at,cents:cents(p.amount),title:'Cobro · '+name(p.patient_id),note:receipt?'Recibo '+String(receipt.folio||0).padStart(6,'0'):'Sin recibo',receipt:receipt});});
-    state.refunds.forEach(function(r){var p=by(state.payments,r.payment_id);if(!p||p.cash_session_id!==s.id||p.method!=='cash')return;rows.push({kind:'refund',at:r.refunded_at,cents:-cents(r.amount),title:'Reembolso · '+name(p.patient_id),note:r.reason||'Sin motivo capturado'});});
+    state.refunds.forEach(function(r){if(!refundOnSession(r,s))return;var p=by(state.payments,r.payment_id);rows.push({kind:'refund',at:r.refunded_at,cents:-cents(r.amount),title:'Reembolso · '+(p?name(p.patient_id):'Paciente'),note:r.reason||'Sin motivo capturado'});});
     state.adjustments.forEach(function(a){if(a.cash_session_id!==s.id)return;var entry=a.direction==='in';rows.push({kind:entry?'in':'out',at:a.created_at,cents:entry?cents(a.amount):-cents(a.amount),title:(entry?'Entrada':'Salida')+' · '+(a.reason||'Sin motivo'),note:'La registró '+actorName(a.created_by)});});
     return rows.sort(function(a,b){return (Date.parse(b.at)||0)-(Date.parse(a.at)||0);});
   }
@@ -420,7 +423,15 @@
     else if(!state.issuer||state.issuer.fiscal_status!=='reviewed'){code='issuer';label='Falta revisar emisor';tone='due';}
     return {receipt:receipt,payment:payment,draft:draft,profile:profile,bucket:bucket,code:code,label:label,tone:tone};
   }
-  function receiptLines(receipt){var payment=receipt&&by(state.payments,receipt.payment_id);if(!payment)return[];return (acctIndex().allocByPayment.get(payment.id)||[]).map(function(a){var charge=by(state.charges,a.charge_id);return charge?{charge:charge,amount:Number(a.amount||0)}:null;}).filter(Boolean);}
+  // Conceptos de un recibo: SIEMPRE los que se aplicaron al momento de cobrar (receipt.snapshot.allocations). Las aplicaciones posteriores de un
+  // anticipo o saldo a favor son eventos nuevos de la cuenta del paciente y NO reescriben un recibo ya emitido. Solo un recibo sin fotografía
+  // de aplicaciones (anterior a ese dato) cae a las aplicaciones actuales.
+  function receiptLines(receipt){
+    if(!receipt)return [];
+    var snap=receipt.snapshot&&typeof receipt.snapshot==='object'?receipt.snapshot:null,list=snap&&Array.isArray(snap.allocations)?snap.allocations:null;
+    if(!list){var payment=by(state.payments,receipt.payment_id);if(!payment)return [];list=acctIndex().allocByPayment.get(payment.id)||[];}
+    return list.map(function(a){var charge=by(state.charges,a.charge_id);return charge?{charge:charge,amount:Number(a.amount||0)}:null;}).filter(Boolean);
+  }
   // ── Facturación: una sola lista ──────────────────────────────────────────────────────────────────────
   // Borradores, emitidas y canceladas se filtran arriba. «Por facturar» trae los pagos completos que todavía no tienen factura (esa lista vivía en «Pagos»).
   // El proceso fiscal no cambia: cada fila muestra su estado en palabras llanas, un solo botón (el siguiente paso) y lo demás en «•••».
@@ -1080,7 +1091,29 @@
       try{await rpc('smyl_apply_credit_to_charge',{p_id:id,p_idempotency_key:key,p_patient_id:charge.patient_id,p_charge_id:charge.id,p_amount:c/100});close();await reload('Saldo a favor aplicado: '+money(c/100)+'.');openAccount(charge.patient_id);}catch(err){notify(message(err),'error');}};
   }
   function openVoidCharge(charge){if(!charge||!state.canRefund)return notify('Tu rol no permite anular cargos. Pídelo a quien administra la caja.','error');if(paidFor(charge)>0)return notify('Este cargo tiene pagos aplicados. Reembolsa primero el pago correspondiente.','error');var d=dialog('<form><h2>Anular cargo</h2><p><strong>'+esc(charge.concept)+'</strong> · '+money(charge.total_amount)+'. El cargo no se borrará: quedará en el historial con fecha, hora y motivo.</p><div class="finance-form-grid"><label class="wide">Motivo de la anulación<input name="reason" maxlength="500" placeholder="Ej. cargo duplicado o servicio no realizado" required></label></div><div class="finance-actions"><button type="button" data-close>Conservar cargo</button><button class="btn btn-danger">Confirmar anulación</button></div></form>');d.querySelector('form').onsubmit=async function(e){e.preventDefault();var f=new FormData(e.currentTarget);try{await rpc('smyl_void_charge',{p_charge_id:charge.id,p_reason:f.get('reason')});close();await reload('Cargo anulado y conservado en el historial.');openAccount(charge.patient_id);}catch(err){notify(message(err),'error');}};}
-  function openRefund(payment){if(!state.canRefund)return notify('Tu rol no permite reembolsar. Pídelo a quien administra la caja.','error');var already=(acctIndex().refundByPayment.get(payment.id)||[]).reduce(function(s,r){return s+cents(r.amount);},0),available=Math.max(0,cents(payment.amount)-already)/100,d=dialog('<form><h2>Registrar reembolso</h2><p>Disponible para reembolsar: '+money(available)+'. El movimiento quedará auditado.</p><div class="finance-form-grid"><label>Importe<input name="amount" type="number" min="0.01" max="'+available+'" step="0.01" required></label><label class="wide">Motivo<input name="reason" maxlength="500" required></label></div><div class="finance-actions"><button type="button" data-close>Cancelar</button><button class="btn btn-primary">Confirmar reembolso</button></div></form>');d.querySelector('form').onsubmit=async function(e){e.preventDefault();var f=new FormData(e.currentTarget);try{await rpc('smyl_refund_payment',{p_id:crypto.randomUUID(),p_idempotency_key:crypto.randomUUID(),p_payment_id:payment.id,p_amount:Number(f.get('amount')),p_reason:f.get('reason')});close();await reload('Reembolso registrado; los saldos fueron restituidos.');}catch(err){notify(message(err),'error');}};}
+  // Cajas de las que esta persona puede sacar efectivo: abiertas, y suyas (o de cualquiera si supervisa).
+  function cashSourcesForRefund(){return state.sessions.filter(function(x){return x.status==='open'&&(x.opened_by===state.actor?state.canCash:state.canSuperviseCash);});}
+  function openRefund(payment){
+    if(!state.canRefund)return notify('Tu rol no permite reembolsar. Pídelo a quien administra la caja.','error');
+    var already=(acctIndex().refundByPayment.get(payment.id)||[]).reduce(function(s,r){return s+cents(r.amount);},0),available=Math.max(0,cents(payment.amount)-already)/100;
+    var attempt={id:crypto.randomUUID(),key:crypto.randomUUID()}; // el mismo intento = la misma llave: si se corta la conexión, reintentar no devuelve dos veces
+    var sources=cashSourcesForRefund(),defaultMethod=PAYMENT_METHODS[payment.method]?payment.method:'cash';
+    var methodOptions=['cash','card','transfer','check','other'].map(function(m){return '<option value="'+m+'"'+(m===defaultMethod?' selected':'')+'>'+esc(PAYMENT_METHODS[m]||m)+'</option>';}).join('');
+    var sourceOptions=sources.map(function(x){return '<option value="'+x.id+'">'+esc('Caja de '+actorName(x.opened_by)+' · '+(by(state.branches,x.branch_id)||{name:'Sucursal'}).name)+'</option>';}).join('');
+    var d=dialog('<form><h2>Registrar reembolso</h2><p>Disponible para reembolsar: '+money(available)+'. El movimiento quedará auditado con la forma y la caja de la que sale el dinero.</p>'
+      +'<div class="finance-form-grid"><label>Importe<input name="amount" type="number" min="0.01" max="'+available+'" step="0.01" required></label>'
+      +'<label>¿Cómo se devuelve?<select name="method">'+methodOptions+'</select></label>'
+      +'<label class="wide" data-refund-cash><span>Caja de la que sale el efectivo</span>'+(sources.length?'<select name="cash_session">'+sourceOptions+'</select>':'<select name="cash_session" disabled><option value="">No hay caja abierta</option></select><small class="finance-field-note">Abre tu caja para devolver efectivo: el dinero sale de la caja y debe quedar en su corte.</small>')+'</label>'
+      +'<label class="wide" data-refund-ref hidden><span>Referencia de la devolución</span><input name="reference" maxlength="200" placeholder="Folio, últimos 4 dígitos u operación"></label>'
+      +'<label class="wide">Motivo<input name="reason" maxlength="500" required></label></div>'
+      +'<div class="finance-actions"><button type="button" data-close>Cancelar</button><button class="btn btn-primary" data-refund-submit>Confirmar reembolso</button></div></form>');
+    var form=d.querySelector('form');
+    function sync(){var cash=form.elements.method.value==='cash';form.querySelector('[data-refund-cash]').hidden=!cash;form.querySelector('[data-refund-ref]').hidden=cash||form.elements.method.value==='other';form.elements.reference.required=!cash&&form.elements.method.value!=='other';form.querySelector('[data-refund-submit]').disabled=cash&&!sources.length;}
+    form.elements.method.onchange=sync;sync();
+    form.onsubmit=async function(e){e.preventDefault();var f=new FormData(form),method=f.get('method'),button=form.querySelector('[data-refund-submit]');button.disabled=true;
+      try{await rpc('smyl_refund_payment',{p_id:attempt.id,p_idempotency_key:attempt.key,p_payment_id:payment.id,p_amount:Number(f.get('amount')),p_reason:f.get('reason'),p_method:method,p_cash_session_id:method==='cash'?f.get('cash_session'):null,p_reference:method==='cash'?'':String(f.get('reference')||'').trim()});close();await reload('Reembolso registrado; los saldos fueron restituidos.');}
+      catch(err){button.disabled=false;notify(message(err),'error');}};
+  }
   function openCash(){if(!state.canCash)return notify('Tu rol no permite abrir caja.','error');var d=dialog('<form><h2>Abrir mi caja</h2><p>Quedas como responsable de esta caja hasta hacer el corte.</p><div class="finance-form-grid"><label>Sucursal<select name="branch" required>'+opts(state.branches,'name',myBranchId()||undefined)+'</select></label><label>Fondo inicial<input name="opening" type="number" min="0" step="0.01" inputmode="decimal" value="0" required></label></div><div class="finance-actions"><button type="button" data-close>Cancelar</button><button class="btn btn-primary">Abrir caja</button></div></form>');d.querySelector('form').onsubmit=async function(e){e.preventDefault();var f=new FormData(e.currentTarget);try{await rpc('smyl_open_cash_session',{p_id:crypto.randomUUID(),p_branch_id:f.get('branch'),p_opening_cash:Number(f.get('opening'))});close();await reload('Caja abierta a tu nombre.');}catch(err){notify(message(err),'error');}};}
   // «Entrada o salida»: dinero que entra o sale de la caja sin ser un cobro. El botón dice lo que se va a registrar.
   function openAdjustment(s){if(!s||!(s.opened_by===state.actor?state.canCash:state.canSuperviseCash))return notify('Tu rol no permite registrar movimientos en esta caja.','error');var d=dialog('<form><h2>Entrada o salida</h2><p>Dinero que entra o sale de la caja sin ser un cobro. Caja de '+esc(actorName(s.opened_by))+'.</p><div class="finance-form-grid"><label>Tipo<select name="direction"><option value="out">Salida</option><option value="in">Entrada</option></select></label><label>Importe<input name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" required></label><label class="wide">Motivo<input name="reason" maxlength="500" required placeholder="Ej. Compra de guantes"></label></div><div class="finance-actions"><button type="button" data-close>Cancelar</button><button class="btn btn-primary" data-adjust-submit>Registrar salida</button></div></form>'),form=d.querySelector('form');form.elements.direction.onchange=function(){form.querySelector('[data-adjust-submit]').textContent=form.elements.direction.value==='in'?'Registrar entrada':'Registrar salida';};form.onsubmit=async function(e){e.preventDefault();var f=new FormData(e.currentTarget);try{await rpc('smyl_post_cash_adjustment',{p_id:crypto.randomUUID(),p_idempotency_key:crypto.randomUUID(),p_cash_session_id:s.id,p_direction:f.get('direction'),p_amount:Number(f.get('amount')),p_reason:f.get('reason')});close();await reload(f.get('direction')==='in'?'Entrada registrada.':'Salida registrada.');}catch(err){notify(message(err),'error');}};}
