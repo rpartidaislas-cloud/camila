@@ -463,11 +463,11 @@ body.smyl-ui-governed.smyl-management-v3:not(.smyl-sidebar-collapsed) .sidebar .
 /* ── MI CUENTA ── */
 .cuenta-grid{display:grid;grid-template-columns:1fr 2fr;gap:16px}
 .cuenta-grid--una{grid-template-columns:minmax(0,640px)}
-.mc-enlaces{display:grid;gap:8px}
-.mc-enlace{display:flex;flex-direction:column;gap:2px;align-items:flex-start;text-align:left;width:100%;padding:12px 14px;background:var(--color-surface-raised,#fff);border:1px solid var(--color-border,#e3e8f0);border-radius:12px;cursor:pointer;font:inherit;color:inherit}
-.mc-enlace strong{font-size:14px}
-.mc-enlace span{font-size:12.5px;color:var(--texto2)}
-.mc-enlace:hover,.mc-enlace:focus-visible{border-color:var(--color-primary,#5B47E0);outline:none}
+.clinic-data-card{max-width:680px}
+.clinic-data-lead{font-size:13px;color:var(--texto2);line-height:1.55;margin:0 0 16px}
+.clinic-data-actions{display:flex;justify-content:flex-end;margin-top:18px}
+.clinic-data-actions .btn{min-height:44px;min-width:120px}
+@media(max-width:600px){.clinic-data-card .form-grid{grid-template-columns:1fr}.clinic-data-actions .btn{width:100%}}
 .plan-card{background:linear-gradient(135deg,var(--violeta),var(--azul));border-radius:var(--radius-l);padding:24px;color:#fff}
 .plan-card h3{font-size:22px;font-weight:800;margin-bottom:4px}
 .plan-card p{font-size:13px;opacity:.8}
@@ -1055,7 +1055,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-clinic-setup.css?v=6">
 <script defer src="smyl-clinic-setup.js?v=10"></script>
 <link rel="stylesheet" href="smyl-settings-hub.css?v=6">
-<script defer src="smyl-settings-hub.js?v=20"></script>
+<script defer src="smyl-settings-hub.js?v=21"></script>
 <link rel="stylesheet" href="smyl-task-center.css?v=1">
 <script defer src="smyl-task-center.js?v=9"></script>
 <link rel="stylesheet" href="smyl-resilience.css?v=1">
@@ -2251,26 +2251,15 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 
       <!-- ═══ MI CONSULTORIO (solo dueño) ═══ -->
       <div class="pantalla" id="p-mi-consultorio">
-        <div class="cuenta-grid cuenta-grid--una">
-          <div class="card">
-            <div class="card-title">Datos del consultorio</div>
-            <p style="font-size:12.5px;color:var(--texto2);line-height:1.5;margin:0 0 12px">Así se identifica tu consultorio en cotizaciones, mensajes y reportes. Tus datos personales están en Mi cuenta.</p>
-            <div class="form-grid">
-              <div class="fg"><label for="conf-consultorio">Nombre del consultorio</label><input type="text" id="conf-consultorio" placeholder="Ej. Clínica Estética Dental"></div>
-              <div class="fg"><label for="conf-doctor">Doctor o doctora titular</label><input type="text" id="conf-doctor" placeholder="Dr. / Dra. ..."></div>
-              <div class="fg full"><label for="conf-ciudad">Ciudad</label><input type="text" id="conf-ciudad" placeholder="Ej. Guadalajara, Jalisco"></div>
-            </div>
-            <button class="btn btn-primary" id="btn-guardar-config" style="margin-top:12px" onclick="guardarConfig()">💾 Guardar datos del consultorio</button>
+        <div class="card clinic-data-card">
+          <div class="card-title">Datos de la clínica</div>
+          <p class="clinic-data-lead">Con este nombre te identificamos en recordatorios, mensajes, cotizaciones y reportes. Tus datos personales están en tu perfil, abajo a la izquierda.</p>
+          <div class="form-grid">
+            <div class="fg full"><label for="conf-consultorio">Nombre de la clínica</label><input type="text" id="conf-consultorio" placeholder="Ej. Clínica Estética Dental" autocomplete="organization"></div>
+            <div class="fg"><label for="conf-doctor">Doctor o doctora titular</label><input type="text" id="conf-doctor" placeholder="Dr. / Dra. …" autocomplete="name"></div>
+            <div class="fg"><label for="conf-ciudad">Ciudad</label><input type="text" id="conf-ciudad" placeholder="Ej. Guadalajara, Jalisco" autocomplete="address-level2"></div>
           </div>
-          <div class="card">
-            <div class="card-title">Lo demás de tu consultorio</div>
-            <div class="mc-enlaces">
-              <button type="button" class="mc-enlace" onclick="ir('clinica')"><strong>Sucursales y espacios</strong><span>Direcciones, consultorios, horarios y equipo.</span></button>
-              <button type="button" class="mc-enlace" onclick="ir('caja')"><strong>Datos fiscales y facturación</strong><span>RFC, régimen y conexión para facturar.</span></button>
-              <button type="button" class="mc-enlace" onclick="ir('sim-config')"><strong>Marca para tus pacientes</strong><span>Nombre público, color y mensaje de bienvenida.</span></button>
-              <button type="button" class="mc-enlace" onclick="ir('directorio')"><strong>Directorio profesional</strong><span>Perfil público para recibir solicitudes de cita.</span></button>
-            </div>
-          </div>
+          <div class="clinic-data-actions"><button class="btn btn-primary" id="btn-guardar-config" onclick="guardarConfig()">Guardar</button></div>
         </div>
       </div>
 

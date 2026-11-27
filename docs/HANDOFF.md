@@ -505,6 +505,16 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-27 — Claude Code — Configuración: sin duplicados y «Datos de la clínica» más limpio
+
+A pedido del usuario («que se sienta más profesional, sin duplicado»). Solo `smyl-settings-hub.js` y la pantalla `p-mi-consultorio` de `app.html`; sin datos ni SQL.
+- **Quitado de Configuración** (de 33 a 26 entradas): «Formas de pago y anticipo» (era «Próximamente»), «Horarios y servicios» (duplicaba Servicios y tarifas, que sigue en Catálogo), «Confirmaciones» (ya está en la Agenda), «Probar al asistente» (es una pestaña del asistente), «Recibos» y «Corte de caja» (trabajo diario de Finanzas; sus pestañas siguen ahí) y «Mi cuenta» (se abre desde el nombre del usuario, abajo a la izquierda).
+- **Reorganizado:** «Avisos de cita» pasó de Canales a Agenda junto a «Recordatorios de cita» (grupo «Avisos al paciente»); «Automatizaciones» se llama **«Reglas del asistente»** (no son recordatorios: es cuándo responde SMYL y cuándo pasa el chat a una persona); grupos de Canales renombrados («Asistente», «Plantillas y reglas»); «Datos del consultorio» → **«Datos de la clínica»**.
+- **Pantalla «Datos de la clínica»:** se quitó la tarjeta «Lo demás de tu consultorio» (4 atajos que repetían entradas de Configuración) y su CSS; campos reorganizados (nombre completo arriba, doctor y ciudad lado a lado, una columna en celular), botón «Guardar» sin emoji. Los datos (`config.consultorio`, `doctor`, `ciudad`) y `guardarConfig()` no cambian.
+- **Dejado a propósito:** «Modalidad de compras» (solo útil con varias sucursales), «Preparación operativa» y «Cumplimiento sanitario»: falta decidir con el usuario si se esconden.
+- **Pendiente:** «Marca y experiencia» (`p-sim-config`) mezcla el acceso al simulador, el enlace para prospectos (pausado), la marca y dos cuadros con instrucciones de IA; necesita su propio rediseño.
+- Versiones: `smyl-settings-hub.js?v=21`, caché `configuracion-limpia-v1`, `mobile/www` sincronizado. Pruebas de Configuración/Finanzas actualizadas a la nueva estructura (`smyl-settings-hub`, `horario-simple`, `smyl-finance-*`); queda 1 falla que ya existía en `main` (Facturapi/localStorage). Revisado en Playwright (fixture de Configuración) a 1280 y 390 px.
+
 ## 2026-11-26 — Claude Code — Menú: se quita «Simulaciones» de Negocio
 
 - A pedido del usuario. Las simulaciones viven en la ficha de cada paciente (pestaña «Diseño de sonrisa»). `['Simulaciones','historial','history']` pasó de `BUSINESS` a `REGISTRY` en `smyl-navigation.js`: la ruta `historial` sigue registrada (oculta) para que no reaparezca suelta en el menú, pero ya no hay botón. `smyl-navigation.js?v=35`, caché `menu-sin-simulaciones-v1`, `mobile/www` sincronizado. Pruebas de navegación: mismas 4 fallas que `main`.

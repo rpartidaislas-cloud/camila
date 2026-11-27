@@ -20,9 +20,9 @@ test('Finanzas abre en Por cobrar: cuatro pestañas con cifra y sin pestaña Res
   for (const gone of ["tab:'summary'", 'Panorama financiero de la clínica', 'Del saldo al cierre', 'finance-flow', 'finance-overview', 'renderFinanceOverview', 'renderMetrics', 'METRIC_GO', 'finance-titlebar']) {
     assert.ok(!finance.includes(gone), gone);
   }
-  // Los ids de pestaña no cambian: Configuración abre «receipts» y «cash» por su id.
+  // Los ids de pestaña no cambian. Recibos y Corte de caja ya no se repiten en Configuración: son trabajo diario de Finanzas.
   const hub = read('smyl-settings-hub.js');
-  for (const id of ['receipts', 'cash']) assert.match(hub, new RegExp('data-finance-tab="' + id + '"'));
+  for (const id of ['receipts', 'cash']) assert.doesNotMatch(hub, new RegExp('data-finance-tab="' + id + '"'));
 });
 
 test('la página se arma una sola vez, ya en su forma final', () => {

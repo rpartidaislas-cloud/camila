@@ -16,23 +16,28 @@ test('las secciones siguen las tareas administrativas de la clínica', () => {
   assert.ok(hub.SECTIONS.every(section => section.items.every(item => item.group && item.icon)), 'cada tarea debe pertenecer a un grupo y tener icono');
   assert.deepEqual(hub.groupedItems(hub.SECTIONS[4]).map(group => [group.name, group.items.length]), [
     ['Cuentas de mensajería', 3],
-    ['Asistente', 2],
-    ['Mensajes automáticos', 3]
+    ['Asistente', 1],
+    ['Plantillas y reglas', 2]
   ]);
+  // Sin duplicados: cada pantalla aparece una sola vez y las que ya viven en otro módulo no se repiten aquí.
+  const titles = hub.SECTIONS.flatMap(s => s.items.map(i => i.title));
+  assert.equal(new Set(titles).size, titles.length, 'no hay entradas repetidas');
+  for (const gone of ['Recibos', 'Corte de caja', 'Horarios y servicios', 'Confirmaciones', 'Probar al asistente', 'Mi cuenta', 'Formas de pago y anticipo']) {
+    assert.ok(!titles.includes(gone), `${gone} ya no está en Configuración`);
+  }
 });
 
 test('cada pantalla de configuración que existe hoy tiene su tarjeta y nada se queda sin camino', () => {
   const routes = new Set(hub.SECTIONS.flatMap(s => s.items.filter(i => !i.soon).map(i => i.route)));
-  for (const route of ['clinica', 'mi-cuenta', 'caja', 'precios', 'inventario', 'agenda', 'conexiones', 'sim-config', 'directorio', 'lanzamiento', 'seguridad']) {
+  for (const route of ['clinica', 'mi-consultorio', 'caja', 'precios', 'inventario', 'agenda', 'conexiones', 'sim-config', 'directorio', 'lanzamiento', 'seguridad']) {
     assert.ok(routes.has(route), `falta la ruta ${route}`);
   }
   for (const item of hub.SECTIONS.flatMap(s => s.items)) {
     assert.ok(item.soon || item.route, `${item.title} no lleva a ningún lado`);
     assert.ok(item.desc && item.desc.length > 10, `${item.title} necesita descripción`);
   }
-  // Lo que todavía no existe se muestra como «Próximamente», sin botón.
-  assert.deepEqual(hub.SECTIONS.flatMap(s => s.items).filter(i => i.soon).map(i => i.title).sort(),
-    ['Formas de pago y anticipo']);
+  // Nada «Próximamente»: lo que no existe no se muestra.
+  assert.deepEqual(hub.SECTIONS.flatMap(s => s.items).filter(i => i.soon).map(i => i.title), []);
 });
 
 test('los avisos de estado salen de verificaciones reales y no inventan nada si no se pudo verificar', () => {
@@ -77,9 +82,9 @@ test('la configuración se distribuye igual en web, móvil y PWA', () => {
   for (const file of ['smyl-settings-hub.js', 'smyl-settings-hub.css', 'smyl-navigation.js', 'smyl-clinic-setup.js', 'smyl-professional-v3.js', 'app.html', 'sw.js']) {
     assert.equal(read(path.join('mobile', 'www', file)), read(file), `${file} difiere en mobile/www`);
   }
-  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=20/);
+  assert.match(read('app.html'), /smyl-settings-hub\.js\?v=21/);
   assert.match(read('app.html'), /smyl-settings-hub\.css\?v=6/);
-  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=20/);
+  assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.js\?v=21/);
   assert.match(read('sw.js'), /\/camila\/smyl-settings-hub\.css\?v=6/);
 });
 
@@ -108,8 +113,7 @@ test('cada tarjeta abre la pestaña exacta de su pantalla y las pantallas ofrece
   assert.equal(targets['Messenger'], '[data-connection-tab="messenger"]');
   assert.equal(targets['Instagram'], '[data-connection-tab="instagram"]');
   assert.equal(targets['SMYL Asistente'], '[data-connection-tab="assistant"]');
-  assert.equal(targets['Automatizaciones'], '[data-connection-tab="automations"]');
-  assert.equal(targets['Probar al asistente'], '[data-connection-tab="lab"]');
+  assert.equal(targets['Reglas del asistente'], '[data-connection-tab="automations"]');
   // Cada selector existe de verdad en el código de su pantalla.
   assert.match(read('smyl-clinic-admin.js'), /data-ca-tab/);
   assert.match(read('smyl-finance.js'), /id="billing-setup"|sec\.id='billing-setup'/);
@@ -123,7 +127,7 @@ test('cada tarjeta abre la pestaña exacta de su pantalla y las pantallas ofrece
 
 test('Integrantes, permisos, profesionales, Facturación y Recordatorios se muestran dentro de Configuración sin copiarse', () => {
   const embedded = Object.fromEntries(hub.SECTIONS.flatMap(s => s.items).filter(i => i.embed).map(i => [i.title, i]));
-  assert.deepEqual(Object.keys(embedded).sort(), ['Corte de caja', 'Facturación', 'Integrantes', 'Pagos en línea (Openpay)', 'Profesionales', 'Recibos', 'Recordatorios de cita', 'Roles y permisos', 'Sucursales y espacios']);
+  assert.deepEqual(Object.keys(embedded).sort(), ['Facturación', 'Integrantes', 'Pagos en línea (Openpay)', 'Profesionales', 'Recordatorios de cita', 'Roles y permisos', 'Sucursales y espacios']);
   assert.equal(embedded['Recordatorios de cita'].element, '#schedule-reminders-card');
   assert.equal(embedded['Facturación'].element, '#billing-setup');
   assert.equal(embedded['Integrantes'].route, 'clinica');
