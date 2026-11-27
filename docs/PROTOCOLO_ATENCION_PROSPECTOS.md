@@ -1,6 +1,6 @@
 # Protocolo de atención a prospectos de SMYL (dentistas) — del primer contacto a la clínica conectada a LANA
 
-Versión 2 · 27 de noviembre de 2026 · Propuesta de trabajo. (v2: guía detallada de la conexión con Meta, sección 7.1.)
+Versión 3 · 27 de noviembre de 2026 · Propuesta de trabajo. (v2: guía detallada de la conexión con Meta, sección 7.1. v3: cómo plantear el acceso a Facebook, sección 7.1.10.)
 Lo marcado como **[Propuesta]** (tiempos, precios de excepción, pruebas gratis) es decisión comercial: ajústalo antes de usarlo.
 Lo demás describe lo que hoy hace la plataforma.
 
@@ -200,6 +200,36 @@ Pasos:
 - El dentista escribe contraseñas y códigos **solo en la ventana de Meta**. Nunca se piden por chat, llamada ni correo.
 - Si se comparte pantalla, **no grabar** el momento de los códigos.
 - Ningún dato de pacientes se maneja en la sesión de conexión.
+
+#### 7.1.10 Cómo plantear el acceso a Facebook sin ser invasivos
+
+**Principio:** nunca accedemos a la cuenta de Facebook del dentista. Él inicia sesión **dentro de la ventana de autorización de Meta**, elige qué quiere conectar y qué permisos concede. Nosotros no recibimos su contraseña, ni sus códigos, ni su perfil personal.
+
+**Cuándo decirlo:** desde la **demo** (etapa 3), no el día de la sesión. Incluirlo también en la lista de preparación (sección 6), para que nada lo tome por sorpresa.
+
+**Guion sugerido:**
+> Dr./Dra., no necesitamos tu usuario ni tu contraseña de Facebook, y nunca te los vamos a pedir. Meta te muestra su propia pantalla de autorización: ahí inicias sesión tú, eliges la cuenta de WhatsApp (o la Página) de la clínica que quieres conectar y ves qué permisos das. Solo se conectan los mensajes de esa cuenta de la clínica; no tu perfil personal ni tus mensajes personales. Puedes quitar el acceso cuando quieras desde la configuración de tu empresa en Meta. Si prefieres, lo haces tú solo y nosotros te guiamos.
+
+> **Verificar con LANA** los permisos exactos que solicita su app y la ruta para revocarlos, antes de decir esto literalmente.
+
+**Tres formas de acompañar (que él elija):**
+1. **Guía por escrito o video**, y lo hace solo.
+2. **Llamada guiada sin compartir pantalla:** nosotros indicamos el paso y él ejecuta.
+3. **Compartiendo pantalla, solo si él lo pide.** Se pausa o se deja de compartir al escribir contraseñas o códigos.
+
+**Lo que NO se pide nunca:**
+- Su contraseña de Facebook, de Instagram o de WhatsApp.
+- Los códigos de verificación o de dos pasos.
+- Que nos agregue como administradores de su Business Portfolio, ni que nos «preste» su cuenta personal. (Confirmar con LANA si su flujo necesita algún acceso de socio; si no lo necesita, no se pide.)
+
+**Para que se sienta en control:**
+- Leer **juntos** la pantalla de permisos de Meta antes de que acepte.
+- Después de conectar, enviarle por correo un **resumen por escrito**: qué se conectó, qué permisos se dieron y cómo revocarlos.
+- Recordarle que el asistente solo trabaja con la cuenta que él conectó y que puede **desconectar el canal** desde Configuración → Canales.
+
+**Si el dentista dice «no me siento cómodo»:** no insistir. Ofrecer otra modalidad de acompañamiento, o que la conexión la haga la persona de su confianza que administra su Business. Registrar el motivo en el estado del prospecto.
+
+**Sobre los pacientes:** ellos **no dan acceso a nada**. Solo escriben al número o a la Página de la clínica, como a cualquier negocio. Lo que sí debe existir es el aviso de privacidad de la clínica, que ya menciona a Meta y a LANA como proveedores, y el consentimiento de WhatsApp de cada paciente.
 
 ## 8. Etapa 7 — Piloto supervisado (primeros 7 días)
 
