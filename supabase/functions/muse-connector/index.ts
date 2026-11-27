@@ -19,12 +19,21 @@ Deno.serve(async (req:Request) => {
       const r=await db.from('smyl_chat_assignments').select('conversation_id').eq('tenant_id',c.tenant_id)
         .eq('assignee_id',c.user_id).order('updated_at',{ascending:false}).limit(10);
       if(r.error) throw new Error('chat_unavailable');
-      const chats=(await Promise.all((r.data || []).map(async row=>
-        await allowed(c,row.conversation_id)?(await readMuseChat(c,row.conversation_id)).conversation:null))).filter(Boolean);
+      // One unreadable chat (deleted in LANA, access just revoked) must not hide the rest of the list.
+      // Only the stable error code is logged, never message content or patient data.
+      let unavailable=0;
+      const chats=(await Promise.all((r.data || []).map(async row=>{
+        try { return await allowed(c,row.conversation_id)?(await readMuseChat(c,row.conversation_id)).conversation:null; }
+        catch(error) {
+          const code=error instanceof Error?error.message:'';
+          if(code!=='chat_unavailable' && code!=='access_denied') throw error;
+          unavailable+=1; console.error('muse-connector list_chats skipped one chat:',code); return null;
+        }
+      }))).filter(Boolean);
       if(!await allowed(c)) throw new Error('access_denied');
-      await audit(c,'list_chats','ok');
+      await audit(c,'list_chats',unavailable?'partial':'ok');
       const visible=await Promise.all(chats.map(async chat=>await allowed(c,chat!.id)?chat:null));
-      return reply(200,{chats:visible.filter(Boolean),limit:10,scope:'assigned_to_me'});
+      return reply(200,{chats:visible.filter(Boolean),limit:10,scope:'assigned_to_me',...(unavailable?{unavailable_count:unavailable}:{})});
     }
     if(input.action==='read_chat') {
       const result=await readMuseChat(c,input.conversation_id);
@@ -69,6 +78,7 @@ Deno.serve(async (req:Request) => {
     const code=error instanceof Error?error.message:'unavailable';
     if(['invalid_request','confirmation_required'].includes(code) || error instanceof SyntaxError) return reply(400,{error:'invalid_request_or_confirmation'});
     if(code==='access_denied') return reply(403,{error:code});
+    console.error('muse-connector failed:',/^[a-z_]{3,40}$/.test(code)?code:'unexpected');
     return reply(503,{error:'muse_temporarily_unavailable'});
   }
 });

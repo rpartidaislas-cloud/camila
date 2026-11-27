@@ -12,17 +12,17 @@ function load(relative,modules,serve,env=()=>undefined){
   const js=ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
   const exports={};new Function('require','exports','Deno',js)(name=>{if(!(name in modules))throw new Error('Unexpected import '+name);return modules[name];},exports,{serve,env:{get:env}});return exports;
 }
-function setup({claim=true,permitted=true,transportStatus=200,transportBody={ok:true},transportThrows=false}={}){
+function setup({claim=true,permitted=true,transportStatus=200,transportBody={ok:true},transportThrows=false,assignments,transportFor}={}){
   const c={id:randomUUID(),tenant_id:randomUUID(),user_id:randomUUID()};
   const conversation=randomUUID(),draft=randomUUID(),calls=[],saved=[];
   const db={
     rpc:async(name,args)=>{calls.push([name,args]);if(name==='smyl_muse_authenticate')return {data:[c]};if(name==='smyl_muse_allowed')return {data:permitted};
       if(name==='smyl_muse_claim_draft')return {data:{id:draft,conversation_id:conversation,content:'Texto aprobado',claimed:claim,status:claim?'sending':'accepted'}};throw new Error(name);},
-    from(name){let operation;const query={select(){return query;},eq(){return query;},maybeSingle:async()=>({data:{nombre:'Doctora de prueba'}}),
+    from(name){let operation;const query={select(){return query;},eq(){return query;},order(){return query;},limit(){return query;},maybeSingle:async()=>({data:{nombre:'Doctora de prueba'}}),
       update(data){operation=data;saved.push([name,data]);return query;},insert(data){saved.push([name,data]);return Promise.resolve({error:null});},
-      then(resolve){return Promise.resolve({error:null,data:operation}).then(resolve);}};return query;}
+      then(resolve){return Promise.resolve({error:null,data:name==='smyl_chat_assignments'&&assignments?assignments:operation}).then(resolve);}};return query;}
   };
-  const lanaRequest=async(tenant,url,init)=>{calls.push(['transport',{tenant,url,init}]);if(transportThrows)throw new Error('timeout');return {response:new Response('{}',{status:transportStatus}),body:transportBody};};
+  const lanaRequest=async(tenant,url,init)=>{calls.push(['transport',{tenant,url,init}]);if(transportThrows)throw new Error('timeout');const forUrl=transportFor&&transportFor(url);if(forUrl)return {response:new Response('{}',{status:forUrl.status}),body:forUrl.body};return {response:new Response('{}',{status:transportStatus}),body:transportBody};};
   const shared={'./lana-linked.ts':{smylAdmin:db,lanaRequest},'./muse-core.mjs':core};
   const inbox=load('_shared/muse-inbox.ts',shared);
   let handler;load('muse-connector/index.ts',{'../_shared/lana-linked.ts':{smylAdmin:db,lanaRequest},'../_shared/muse-core.mjs':core,'../_shared/muse-inbox.ts':inbox},fn=>handler=fn);
@@ -80,4 +80,24 @@ test('alert worker uses only generic approved template, linked doctor and stable
       assert.deepEqual(JSON.parse(sent[0].init.body),{type:'template',template_id:'template-id',template_variables:[]});}
     assert.equal(saved[0].status,permitted?'accepted':'skipped');
   }
+});
+
+test('listing skips a chat LANA cannot find (404) and still returns the readable ones',async()=>{
+  const good=randomUUID(),gone=randomUUID();
+  const s=setup({assignments:[{conversation_id:gone},{conversation_id:good}],transportFor:url=>url.includes(gone)
+    ?{status:404,body:{error:'not_found'}}
+    :{status:200,body:{conversation:{id:good,canal:'whatsapp',cliente_nombre:'Paciente de prueba'},messages:[]}}});
+  const errors=[];const original=console.error;console.error=(...a)=>errors.push(a.join(' '));
+  let response,body;try{response=await s.request('/chats',{});body=await response.json();}finally{console.error=original;}
+  assert.equal(response.status,200);
+  assert.deepEqual(body.chats.map(chat=>chat.id),[good]);
+  assert.equal(body.unavailable_count,1);
+  assert.equal(s.saved.some(([name,data])=>name==='smyl_muse_audit'&&data.action==='list_chats'&&data.outcome==='partial'),true);
+  assert.equal(errors.some(line=>/chat_unavailable/.test(line)),true,'the failure code is logged');
+  assert.equal(errors.some(line=>/Paciente de prueba/.test(line)),false,'no patient data in logs');
+});
+test('listing with only an unreadable chat returns an empty list, not a 503',async()=>{
+  const gone=randomUUID();const s=setup({assignments:[{conversation_id:gone}],transportFor:()=>({status:404,body:{error:'not_found'}})});
+  const original=console.error;console.error=()=>{};let response;try{response=await s.request('/chats',{});}finally{console.error=original;}
+  assert.equal(response.status,200);assert.deepEqual((await response.json()).chats,[]);
 });

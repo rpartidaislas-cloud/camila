@@ -1,3 +1,10 @@
+## 2026-11-27 — Claude — Muse: la lista de chats ya no falla por un chat ilegible
+
+- Síntoma (primera prueba real con la cuenta de Muse): `POST /chats` devolvía 503 `muse_temporarily_unavailable` dos veces. Causa: la única asignación del usuario (`e77f747d-…`, del 19 de noviembre, pruebas del sistema de asignación) apunta a una conversación que no existe en LANA; LANA respondía 404 a `GET /inbox/conversations/:id/messages` y `muse-connector` convertía ese fallo de un solo chat en un 503 de toda la lista. La autenticación y el formato de la petición eran correctos.
+- `supabase/functions/muse-connector/index.ts`: al listar, un chat con `chat_unavailable` o `access_denied` se omite y se informa `unavailable_count`; la auditoría queda en `partial`. Otros errores (p. ej. `authorization_unavailable`) siguen fallando la solicitud. Se registra en consola solo el código estable del error, nunca contenido ni datos de pacientes.
+- Pruebas nuevas en `tests/muse-pilot-edge.test.mjs` (chat inexistente + chat legible; solo chat ilegible → lista vacía), verificadas contra la versión anterior (fallan sin el cambio). `tests/muse-pilot.test.mjs` ya fallaba en `main` sin este cambio.
+- **Falta desplegar `muse-connector` en SMYL** (`supabase functions deploy muse-connector --project-ref rpxshsiwoxdbuevjjpfw`; respetar `supabase/config.toml`). Después, para probar de verdad, asignar al doctor una conversación **real** de prueba de LANA mediante la coordinación de SMYL; la asignación vieja `e77f747d-…` puede quedar o desasignarse con el flujo normal.
+
 ## 2026-11-27 — Claude Code — Facturación: firmar la Carta Manifiesto de Facturapi dentro de SMYL
 
 - Petición de Ricardo: Facturapi exige la Carta Manifiesto para validar la facturación, y ya se resolvió en LANA (`promodesk`, `config.jsx`, task-ids `cfdi-org-pasos-pendientes-live` y su ampliación). Que SMYL la tenga igual.
