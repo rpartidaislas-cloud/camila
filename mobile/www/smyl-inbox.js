@@ -1966,7 +1966,7 @@
     const last = [...items].reverse().find(m => !m.deleted && (m.role === 'user' || m.author_type === 'patient' || m.author_type === 'team'));
     const allowed = conv && canOperate(conv,'messages.respond') && liveWhatsappWindow(conv)?.freeform_allowed !== false;
     const key = allowed && last && (last.role==='user'||last.author_type==='patient') && last.content
-      ? [epoch,window.tenantId,conv.id,last.id,last.content].join('|') : '';
+      ? [epoch,conv.id,last.id,last.content].join('|') : '';
     if(key && mediaLookup===key && Date.now()-checkedMediaAt<60000) return;
     const seq=++mediaSequence;
     mediaLookup=key;checkedMediaAt=Date.now();box.hidden=true;box.replaceChildren();
