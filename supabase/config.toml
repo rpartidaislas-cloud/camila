@@ -1,5 +1,16 @@
 project_id = "rpxshsiwoxdbuevjjpfw"
 
+# Each pilot endpoint performs its own authentication (user session, scoped token,
+# signed LANA callback or service-only worker); no endpoint accepts an anonymous action.
+[functions.muse-manage]
+verify_jwt = false
+[functions.muse-connector]
+verify_jwt = false
+[functions.muse-events]
+verify_jwt = false
+[functions.muse-alerts]
+verify_jwt = false
+
 # Las funciones clínicas y administrativas siempre requieren JWT de usuario.
 [functions.claude]
 verify_jwt = true

@@ -13075,6 +13075,15 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - Cobros y caja abre en Por cobrar. Le siguen Caja, Pagos y recibos y Facturación. En Pagos y recibos se puede abrir un comprobante por nombre, apellido o folio sin elegir fecha. Limpiar la búsqueda devuelve los filtros previos. Si se alcanza el límite de carga del historial se indica el alcance de la búsqueda.
 - Cambios principales en `smyl-navigation.js`, `smyl-command-menu.js`, `smyl-finance.js` y `smyl-finance.css`, con nombres actualizados en los accesos desde Agenda, Consultorio, Configuración, alertas y cotizaciones. Se sincronizaron la PWA, las copias móviles y el texto del catálogo de plantillas.
 
+## 2026-11-27 — Piloto privado Muse por usuario y clínica (Codex)
+
+- Rama `codex/muse-doctor-pilot`, worktree `camila-muse-pilot`; coordinación LANA en `codex/smyl-muse-pilot`, worktree `promodesk-muse-pilot`. No se modificó Agenda ni el Inbox principal. El usuario autorizó empezar un piloto con permisos de SMYL, avisos al doctor y respuestas desde Muse en WhatsApp.
+- Nuevo módulo Configuración → Canales → Muse: titular habilita clínica/personas; consentimiento y revocación personales; credencial de siete días, SHA-256 en servidor, nunca persistida en navegador. Web y `mobile/www` sincronizados.
+- Migración `20261127150000_smyl_muse_pilot.sql`; funciones `muse-manage`, `muse-connector`, `muse-events`, `muse-alerts`; helpers `muse-core.mjs`/`muse-inbox.ts`. Reutiliza políticas reales de chat, permisos por sucursal, asignación personal y transporte LANA. No endpoints financieros/expedientes. Borrador inmutable y envío con aprobación, reclamo atómico e idempotencia. Incertidumbre de entrega se conserva sin reenvío automático.
+- Avisos genéricos con nueva plantilla `smyl_chat_pendiente_profesional_v1` (requiere aprobación de Meta). Cola y eventos firmados; ningún dato clínico en el aviso. Se excluyen del conector los chats internos de WhatsApp de profesionales para evitar autoavisos.
+- Contrato de conector `docs/muse-pilot.openapi.yaml`, alcance y activación en `docs/MUSE_PILOT.md`, cron optativo posterior al despliegue en `scripts/sql/muse-pilot-workers.sql`. **No se han aplicado migraciones ni desplegado funciones, habilitado clínicas, configurado Muse ni enviado mensajes reales.** No afirmar OAuth/MCP/push de Muse operativo: el piloto proporciona API privada con credencial individual y necesita verificación en la cuenta real. `enviarRespuesta` debe configurarse como escritura sensible con aprobación cada vez.
+- Validación: pruebas reales de permisos en PGlite, handlers con transporte simulado, regresiones de plantillas y navegador real en 1440/768/390 px (capturas locales ignoradas en `output/muse-pilot`). Seguridad cubierta: otra clínica/sucursal, usuario desactivado, pérdida de rol, reasignación, vencimiento/revocación, repetición/concurrencia, firma/replay del webhook y envío incierto.
+- Pendiente externo: usuario debe indicar clínica y doctor/cuenta Muse; después despliegue ordenado de ambos proyectos, secreto HMAC, cron, plantilla aprobada, conexión privada y prueba completa con teléfonos de prueba. La autorización humana del cliente Muse debe probarse antes de habilitar respuestas.
 ## 2026-11-27 · Codex · Verificación de cobros y movimientos del turno
 
 - En Cobros y caja, un pago cuya respuesta se perdió queda pendiente de verificación para la clínica y el usuario de esa pestaña. La consulta distingue un pago registrado, una respuesta vacía válida y una consulta fallida. Un reintento explícito conserva el identificador, la llave, la fecha, el importe y las aplicaciones originales.
@@ -13090,3 +13099,11 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - Frontend/PWA: `smyl-informed-consent.js/.css` v3, `firma-consentimiento.html`, `smyl-consent-signature.js/.css`, caché y copia exacta en `mobile/www/`.
 - Validación: 16 pruebas de contrato/migración y 2 recorridos reales de navegador pasan; escritorio y 390 px sin desborde.
 - No afirmar cumplimiento integral de NOM-004 para cartas formales: este flujo todavía no incorpora las dos firmas de testigos que pueden corresponder a esos documentos.
+
+## 2026-11-27 — Codex — Preparación operativa del piloto Muse
+
+- Ambas migraciones de Muse están instaladas y registradas; funciones y trabajos cada minuto desplegados. Los trabajadores usan SMYL_MUSE_WORKER_SECRET y Vault smyl_muse_worker_secret, con una clave diferente por proyecto; el HMAC compartido es independiente. No se expusieron credenciales.
+- camila-api se publicó desde la versión productiva 70 más la ruta Muse y su entrada de contrato (8 líneas añadidas, sin cambios en dependencias), evitando publicar cambios ajenos todavía pendientes en main.
+- WhatsApp del participante vinculado de forma privada tras autorización explícita para retirar un vínculo de prueba. Datos e identificadores personales quedan fuera de Git; traslado auditado en producción.
+- Pruebas: permisos y handlers, navegador 1440/768/390, catálogo y transporte de plantillas, contrato LANA y cola. Se regeneró el bundle de whatsapp-templates y se actualizó la prueba del catálogo a v12.
+- Pendiente: conexión personal en Muse, aprobación de plantilla y prueba real. No hay credencial personal ni envíos reales. No habilitar respuestas hasta comprobar la aprobación humana del cliente Muse.
