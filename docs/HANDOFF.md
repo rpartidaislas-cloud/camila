@@ -1,3 +1,12 @@
+## 2026-11-27 — Claude — Rotación de la llave de cifrado de LANA (`key_version`)
+
+- Nuevo `supabase/functions/_shared/lana-crypto-core.mjs` (puro, probado en Node): llavero con la llave vigente (`SMYL_LANA_ENCRYPTION_KEY` + `_VERSION`, por omisión `1`) y, solo durante la rotación, la anterior (`SMYL_LANA_ENCRYPTION_KEY_PREVIOUS` + `_PREVIOUS_VERSION`). Cada credencial guarda `key_version`; sin él cuenta como `1`, así que **nada cambia hasta que se configure una llave nueva** y no hace falta migración.
+- Descifrado: prueba primero la llave que indica `key_version` y luego las demás (una versión mal anotada no deja la credencial inaccesible). `lana-linked.ts` (todas las funciones de chat) y `lana-connection` lo usan.
+- Reescritura con la llave nueva: `lana-connection` acción `verify` (al pulsar Verificar) y acción nueva `rotate_key` (solo dueño, no llama a LANA). `publicStatus` suma `encryption: current | pending_rotation`; nunca expone ciphertext/iv. `connect` y `provision` guardan `key_version`.
+- Las clínicas que nadie verifique siguen en la llave anterior hasta entonces, por eso la llave anterior no se borra hasta que la consulta de `docs/LANA_ENCRYPTION_KEY_ROTATION.md` no devuelva filas.
+- Hay que **volver a desplegar** `lana-connection` y las funciones que importan `lana-linked.ts` (lana-inbox/channels/context/attention/training/ia-interruptor, appointment-negotiations/reminders); los bundles `docs/bundles/*` están regenerados. Mientras no se defina una llave nueva, el comportamiento es idéntico al actual.
+- Pruebas: `tests/lana-key-rotation.test.mjs` (7), `lana-connection-stage2` actualizada (AES-GCM ahora vive en el módulo compartido).
+
 ## 2026-11-27 — Claude — Versiones de migración repetidas corregidas
 
 - Había dos pares con la misma versión. Se renombró **un archivo de cada par** (solo cambia el nombre/orden; el SQL no cambió y lo ya aplicado en producción no se toca):

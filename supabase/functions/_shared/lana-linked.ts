@@ -1,29 +1,26 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { lanaContractHeaders, normalizeLanaPath } from "./lana-contract.mjs";
+import { decryptLanaKey, readKeyring } from "./lana-crypto-core.mjs";
 
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SB_SERVICE_ROLE_KEY") || "";
-const ENCRYPTION_KEY = (Deno.env.get("SMYL_LANA_ENCRYPTION_KEY") || "").trim();
 export const LANA_API_BASE = "https://lgjdzaqjrmmzyrenevfm.supabase.co/functions/v1/camila-api";
 const admin = createClient(SB_URL, SB_SERVICE_ROLE_KEY);
 
 type LanaConfig = {
   api_key_ciphertext: string;
   api_key_iv: string;
+  key_version?: string;
   estado: string;
 };
 
-function base64ToBytes(value: string): Uint8Array<ArrayBuffer> {
-  const binary = atob(value);
-  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
-  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
-
-async function cryptoKey(): Promise<CryptoKey> {
-  const raw = base64ToBytes(ENCRYPTION_KEY);
-  if (raw.length !== 32) throw new Error("SMYL_LANA_ENCRYPTION_KEY no configurada correctamente.");
-  return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
+function keyring() {
+  return readKeyring({
+    SMYL_LANA_ENCRYPTION_KEY: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY"),
+    SMYL_LANA_ENCRYPTION_KEY_VERSION: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_VERSION"),
+    SMYL_LANA_ENCRYPTION_KEY_PREVIOUS: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_PREVIOUS"),
+    SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION: Deno.env.get("SMYL_LANA_ENCRYPTION_KEY_PREVIOUS_VERSION"),
+  });
 }
 
 export async function linkedLanaApiKey(tenantId: string): Promise<string> {
@@ -37,12 +34,8 @@ export async function linkedLanaApiKey(tenantId: string): Promise<string> {
   if (!lana?.api_key_ciphertext || !lana.api_key_iv || lana.estado !== "conectada") {
     throw new Error("LANA todavía no está conectada o requiere atención.");
   }
-  const clear = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: base64ToBytes(lana.api_key_iv) },
-    await cryptoKey(),
-    base64ToBytes(lana.api_key_ciphertext),
-  );
-  return new TextDecoder().decode(clear);
+  // Descifra con la llave vigente o, durante una rotación, con la anterior. La reescritura con la llave nueva la hace lana-connection.
+  return (await decryptLanaKey(lana as LanaConfig, keyring())).apiKey;
 }
 
 export async function lanaRequest(
