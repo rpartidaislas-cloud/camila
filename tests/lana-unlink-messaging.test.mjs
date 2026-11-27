@@ -33,8 +33,13 @@ test('desvincular no llama a LANA ni a Meta: sólo olvida el enlace en SMYL', ()
   const fn = edge.slice(edge.indexOf('async function unlinkLanaConfig('), edge.indexOf('async function verifyLanaApiKey('));
   assert.doesNotMatch(fn, /fetch\(|lanaRequest|LANA_API_BASE/);
   assert.match(fn, /const \{ lana: _removed, \.\.\.remaining \}/, 'el enlace activo deja de existir en integraciones.lana');
-  assert.match(fn, /lana_desvinculada: \{ \.\.\.lana, estado: "desvinculada", desvinculada_at: now, desvinculada_por: actorId \}/,
-    'el enlace cifrado se aparta para poder restaurarlo, con quién y cuándo');
+  // La credencial cifrada se borra: ninguna función la restaura y conservarla solo ampliaba el daño de una filtración.
+  const kept = fn.slice(fn.indexOf('lana_desvinculada: {'), fn.indexOf('const { error }'));
+  assert.doesNotMatch(kept, /\.\.\.lana\b|api_key_ciphertext|api_key_iv/, 'no se conserva la credencial cifrada');
+  assert.match(kept, /estado: "desvinculada"/);
+  assert.match(kept, /fingerprint: lana\.fingerprint/);
+  assert.match(kept, /desvinculada_at: now, *\n? *desvinculada_por: actorId/);
+  assert.match(kept, /credencial_borrada: true/);
   assert.match(fn, /\.update\(\{ config: next \}\)\.eq\("id", tenantId\)/);
 });
 
@@ -46,6 +51,14 @@ test('la respuesta de desvincular no expone credenciales y el estado queda pendi
   assert.doesNotMatch(status, /api_key|ciphertext|api_key_iv/);
   assert.match(edge, /function readLanaConfig[\s\S]*?\(integrations as Record<string, unknown>\)\.lana;/,
     'sólo integraciones.lana cuenta como enlace activo; lana_desvinculada se ignora');
+});
+
+test('la respuesta incluye un reporte de lo que se detuvo y lo que no, sin secretos', () => {
+  const body = handler('disconnect');
+  assert.match(body, /report: unlinkReport\(\)/);
+  const report = edge.slice(edge.indexOf('function unlinkReport('), edge.indexOf('async function verifyLanaApiKey('));
+  for (const key of ['smyl_link: "removed"', 'credential: "deleted"', 'lana_channels: "unchanged"', 'whatsapp_meta: "still_connected"', 'lana_automatic_replies: "not_stopped"']) assert.ok(report.includes(key), key);
+  assert.doesNotMatch(report, /api_key|ciphertext|fetch\(/);
 });
 
 test('queda auditoría sin secretos y el fallo de auditoría no bloquea la desvinculación', () => {
@@ -79,10 +92,14 @@ test('Messenger e Instagram conservan su desconexión canal por canal y WhatsApp
   assert.match(ui, /channelRequest\('POST', \{ action: 'disconnect', channel: channel \}\)/);
 });
 
-test('el diálogo explica que no se borra nada y no muestra el nombre del motor', () => {
+test('el diálogo explica qué se detiene, qué se borra y qué NO se detiene, sin mostrar el nombre del motor', () => {
   const dialog = ui.slice(ui.indexOf('data-unlink-dialog'), ui.indexOf('data-unlink-confirm'));
-  assert.match(dialog, /No se borra ninguna cuenta ni conversación/);
-  assert.match(dialog, /Podrás volver a vincular cuando quieras/);
+  // Dice la verdad completa: qué se detiene, qué se borra y qué NO se detiene.
+  assert.match(dialog, /Se detiene en SMYL/);
+  assert.match(dialog, /Se borra/);
+  assert.match(dialog, /necesitarás un código de enlace nuevo/);
+  assert.match(dialog, /NO se detiene/);
+  assert.match(dialog, /las respuestas automáticas siguen activas/);
   assert.doesNotMatch(dialog, /\bLANA\b/);
   const done = ui.match(/var done = '([^']*)'/);
   assert.ok(done && !/LANA/.test(done[1]));

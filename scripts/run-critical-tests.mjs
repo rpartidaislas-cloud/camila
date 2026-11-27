@@ -19,7 +19,7 @@ export const CRITICAL = [
   /^lana-inbox-/, /^lana-stage[367]-/, /^smyl-chat-/, /^smyl-inbox-thread-assignment/, /^smyl-inbox-message-actions-browser/,
   /^smyl-branch-scope/, /^chat-por-sucursal/, /^chat-finance-scopes/, /^privacidad-chat/, /^appointment-negotiation/,
   /^smyl-confirmation-messages/, /^vincular-paciente-chat/, /^smyl-lana-/, /^inbox-confirmacion-completa/, /^lista-espera/,
-  /^cobros-chat-link/, /^smyl-inbox-ficha360-v4/
+  /^cobros-chat-link/, /^smyl-inbox-ficha360-v4/, /^lana-unlink/, /^pausa-emergencia/, /^auditoria-chat-/
 ];
 
 export function criticalFiles(dir = testsDir) {

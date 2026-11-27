@@ -61,6 +61,6 @@ test("copia móvil y versiones de caché", () => {
     assert.match(read(`${base}app.html`), /smyl-navigation\.js\?v=35/);
     assert.match(read(`${base}app.html`), /smyl-navigation\.css\?v=15/);
     assert.match(read(`${base}sw.js`), /smyl-navigation\.js\?v=35/);
-    assert.match(read(`${base}sw.js`), /smyl-connections\.js\?v=31&media=1/);
+    assert.match(read(`${base}sw.js`), /smyl-connections\.js\?v=32&media=1/);
   }
 });
