@@ -21,7 +21,7 @@ Estado del Bloque 1 («obligatorio antes del piloto») y lo que sigue. Verificad
 
 ## Pendiente
 
-- **Bloque 2:** saldos calculados en el servidor (hoy el navegador carga hasta 10,000 filas); persistir la llave del intento de COBRO (en reembolso ya se conserva mientras el diálogo siga abierto); sucursal visible en cobros; conciliación estructurada; alertas de cajas abiertas; verificador de despliegue.
+- **Bloque 2 (HECHO, 2026-11-27):** saldos por servidor (`smyl_finance_account_summaries/counts`, solo se usan cuando el navegador rebasa el tope; paridad probada con datos al azar); llave de intento persistida (cobro y cargo, 30 min) con aviso de pago parecido; línea de contexto global/sucursal; conciliación estructurada del corte (`close_reconciliation`, el servidor recalcula el esperado); alertas (cajas abiertas de días anteriores, pagos sin confirmar, CFDI atorados); verificador `smyl_finance_deploy_check()`. Migraciones `20261127150000`, `20261127170000`, `20261127180000`: aplicarlas ANTES de publicar la pantalla. Pagos y Caja siguen mostrando los movimientos recientes.
 - **Bloque 3 (CFDI productivo):** configuración 4/4, credenciales productivas, cancelación productiva, validación con contador.
 - **Bloque 4 (UX):** periodos de la tarjeta «Pagos hoy», títulos repetidos, mensajes de permisos específicos.
 - **Operativo (no es software):** cerrar y conciliar la caja abierta desde el 9 de noviembre antes del piloto.

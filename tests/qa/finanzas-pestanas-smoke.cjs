@@ -533,6 +533,60 @@ server.listen(0, '127.0.0.1', async () => {
     await s.ctx.close();
   }
 
+  // ── Clínica que rebasa el tope del navegador: las cuentas y totales salen del servidor ──
+  // (la base ya se probó contra el cálculo del navegador con datos al azar; aquí se comprueba la pantalla con un servidor simulado)
+  const serverMock = () => {
+    window.__smylFinancePageCap = 100; // tope bajo: con 130 pacientes extra el navegador ya no carga todo y debe usar el servidor
+    const db = window.__db, today = new Date(); today.setHours(0, 0, 0, 0);
+    // Una sola pasada con índices (con 10,000 pacientes un recorrido por paciente tardaría minutos).
+    let cache = null;
+    const rows = () => {
+      if (cache) return cache;
+      const paidByCharge = new Map(), payById = new Map(), recBy = new Map(), appBy = new Map(), chargesBy = new Map();
+      db.smyl_finance_payment_allocations.forEach(a => paidByCharge.set(a.charge_id, (paidByCharge.get(a.charge_id) || 0) + Math.round(a.amount * 100)));
+      db.smyl_finance_payments.forEach(x => { payById.set(x.id, x); recBy.set(x.patient_id, (recBy.get(x.patient_id) || 0) + Math.round(x.amount * 100)); });
+      db.smyl_finance_payment_allocations.forEach(a => { const pay = payById.get(a.payment_id); if (pay) appBy.set(pay.patient_id, (appBy.get(pay.patient_id) || 0) + Math.round(a.amount * 100)); });
+      db.smyl_finance_charges.forEach(c => { if (c.status === 'voided') return; if (!chargesBy.has(c.patient_id)) chargesBy.set(c.patient_id, []); chargesBy.get(c.patient_id).push(c); });
+      cache = db.camila_pacientes.map(p => {
+        const charges = chargesBy.get(p.id) || [];
+        const open = charges.map(c => ({ c, bal: Math.max(0, Math.round(c.total_amount * 100) - (paidByCharge.get(c.id) || 0)) })).filter(x => x.bal > 0);
+        const overdue = open.filter(x => x.c.due_on && new Date(x.c.due_on + 'T00:00:00') < today);
+        return { patient_id: p.id, nombre: p.nombre, apellido: p.apellido, charges_count: charges.length, open_count: open.length, overdue_count: overdue.length, due_cents: open.reduce((s, x) => s + x.bal, 0),
+          overdue_cents: overdue.reduce((s, x) => s + x.bal, 0), open_total_cents: open.reduce((s, x) => s + Math.round(x.c.total_amount * 100), 0), credit_cents: Math.max(0, (recBy.get(p.id) || 0) - (appBy.get(p.id) || 0)),
+          overdue_since: null, next_due_on: null, last_payment_at: null };
+      });
+      return cache;
+    };
+    const orig = window.sb.rpc.bind(window.sb); window.__serverCalls = [];
+    window.sb.rpc = (name, args) => {
+      if (name === 'smyl_finance_account_counts') { window.__serverCalls.push(name); const r = rows(); return Promise.resolve({ data: [{ due_cents: r.reduce((s, x) => s + x.due_cents, 0), overdue_cents: 0, credit_cents: r.reduce((s, x) => s + x.credit_cents, 0), debtors: r.filter(x => x.due_cents > 0).length, open_count: r.filter(x => x.due_cents > 0).length, overdue_count: 0, credit_count: r.filter(x => x.credit_cents > 0).length, all_count: r.filter(x => x.charges_count > 0 || x.credit_cents > 0).length }], error: null }); }
+      if (name === 'smyl_finance_account_summaries') {
+        window.__serverCalls.push(name + ':' + args.p_filter + ':' + args.p_search + ':' + args.p_offset);
+        const q = String(args.p_search || '').toLowerCase(); let r = rows().filter(x => q ? (x.nombre + ' ' + x.apellido).toLowerCase().includes(q) : args.p_filter === 'open' ? x.due_cents > 0 : args.p_filter === 'credit' ? x.credit_cents > 0 : args.p_filter === 'overdue' ? x.overdue_count > 0 : (x.charges_count > 0 || x.credit_cents > 0));
+        r = r.sort((a, b) => b.due_cents - a.due_cents || (a.nombre + a.apellido).localeCompare(b.nombre + b.apellido)); const total = r.length;
+        return Promise.resolve({ data: r.slice(args.p_offset, args.p_offset + args.p_limit).map(x => Object.assign({}, x, { total_count: total })), error: null });
+      }
+      return orig(name, args);
+    };
+  };
+  s = await open({ width: 1440, height: 900 }, 130, serverMock); page = s.page;
+  const banner = await page.$eval('#finance-truncation', e => e.textContent).catch(() => '');
+  check(/se calculan en el servidor y están completos/.test(banner), 'al rebasar el tope de carga el aviso dice que Por cobrar sale del servidor: ' + banner.slice(0, 120));
+  const srvTabs = await tabs(page);
+  check(/^\$/.test(srvTabs[0].figure) && srvTabs[0].figure !== '$5,700.00', 'la cifra de Por cobrar sale del servidor (todas las cuentas, no solo las descargadas): ' + srvTabs[0].figure);
+  await page.waitForSelector('#finance-accounts .finance-line', { timeout: 15000 });
+  const sFirst = [await rowCount(), await page.$eval('#finance-accounts .finance-more-rows', e => e.textContent.trim().replace(/\s+/g, ' ')).catch(() => '')];
+  check(sFirst[0] === 50 && /^Mostrando 50 de \d+\s*Mostrar 50 más$/.test(sFirst[1]), 'las cuentas llegan de 50 en 50 desde el servidor: ' + JSON.stringify(sFirst));
+  await page.click('#finance-accounts [data-more-server]'); await page.waitForTimeout(400);
+  check((await rowCount()) === 100, 'Mostrar 50 más trae las siguientes 50 sin repetir: ' + (await rowCount()));
+  await page.fill('#finance-search', 'Extra 042'); await page.waitForTimeout(700);
+  const srvFound = await page.$$eval('#finance-accounts .finance-line', els => els.map(e => e.textContent.replace(/\s+/g, ' ').trim()));
+  check(srvFound.length === 1 && /Paciente Extra 042/.test(srvFound[0]), 'la búsqueda de cuentas la resuelve el servidor y muestra el nombre del paciente: ' + JSON.stringify(srvFound));
+  const srvCalls = await page.evaluate(() => window.__serverCalls);
+  check(srvCalls.some(c => c === 'smyl_finance_account_summaries:all:Extra 042:0'), 'la búsqueda viaja al servidor: ' + JSON.stringify(srvCalls.slice(-3)));
+  check(s.errs.length === 0, 'sin errores de página con el servidor como fuente: ' + JSON.stringify(s.errs));
+  await s.ctx.close();
+
   await browser.close(); server.close();
   console.log(failures ? `\n${failures} comprobación(es) fallaron.` : '\nTodo bien: Finanzas v6 pasa el recorrido completo.');
   process.exit(failures ? 1 : 0);

@@ -12918,3 +12918,8 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - `smyl-pay`: alcance por sucursal en list/cancel/create (`autorizarCargos/autorizarEnlace/enlacesVisibles` en `_shared/smyl-pay-core.mjs`); el alias `smylAdmin as admin` impedía empaquetar, ya hay `docs/bundles/smyl-pay.single-file.ts`.
 - `smyl-finance.js?v=79` / `.css?v=57`: reembolso con método/caja/referencia y llave de intento estable; `receiptLines` desde el snapshot; `refundOnSession`; textos ≥ 12 px.
 - Suite financiera verde (253). Detalle y pendientes en `docs/FINANZAS_AUDITORIA_2026-11-26.md`.
+
+## 2026-11-27 · Claude · Finanzas: Bloque 2 de la auditoría
+- **Migraciones NUEVAS (SQL Editor, en este orden, ANTES de publicar la pantalla):** `20261127150000_smyl_cash_close_reconciliation.sql` (el cierre acepta `p_reconciliation`; sustituye la de 4 parámetros), `20261127170000_smyl_finance_account_summaries.sql` (saldos por servidor, SECURITY INVOKER), `20261127180000_smyl_finance_deploy_check.sql`. Después: `select * from smyl_finance_deploy_check() where not ok;` (vacío = todo aplicado; solo service_role).
+- `smyl-finance.js?v=81` / `.css?v=59`: llave de intento persistida (sessionStorage, 30 min) y aviso de pago parecido; línea de contexto (todas las sucursales vs sucursal); alertas; corte estructurado por método; modo servidor de «Por cobrar» solo si hay más de 10,000 filas (`window.__smylFinancePageCap` es gancho de pruebas).
+- Pruebas nuevas: `finance-attempts`, `finance-alerts`, `finance-bloque2-contract`; humo `finanzas-pestanas-smoke.cjs` con sección de clínica grande. Pendiente: Bloques 3 (CFDI productivo) y 4 (UX); cerrar la caja abierta desde 2026-11-09.
