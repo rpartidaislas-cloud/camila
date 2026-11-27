@@ -12892,3 +12892,6 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - `smyl-finance.js` (v76): en «Enlace de pago listo», «Enviar por WhatsApp» manda la plantilla desde la cuenta de la clínica (`SmylInbox.sendTemplate`, variables nombre/monto/clínica/enlace; si falta, ofrece «Solicitar ahora»). Si el paciente no tiene chat de WhatsApp, queda el atajo `wa.me` renombrado «Enviar desde mi WhatsApp».
 - `smyl-template-suggest.js` (v6): `cobro_enlace_pago_v1` entra como esencial de Finanzas (ahora 6).
 - Prueba nueva `tests/cobro-plantilla-enlace.test.mjs`; sin SQL.
+
+## 2026-11-27 · Claude · Ventana «Enlace de pago listo» rediseñada
+- `smyl-finance.js` (v77) / `.css` (v55): ventana compacta: marca ✓, título, «Saldo a cobrar … · vence …» (sin el doble punto), enlace + «Copiar» en una fila (el botón dice «Copiado ✓» 2 s), acción principal a ancho completo y «Cerrar» discreto. Si el paciente no tiene chat de WhatsApp en Mensajes se explica por qué el envío es «Enviar desde mi WhatsApp» (atajo wa.me) en vez de la plantilla. Ids sin cambio (`link-copy`, `link-wa-template`, `link-wa`). Sin SQL ni funciones.
