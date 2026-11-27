@@ -1,6 +1,6 @@
 # Protocolo de atención a prospectos de SMYL (dentistas) — del primer contacto a la clínica conectada a LANA
 
-Versión 1 · 27 de noviembre de 2026 · Propuesta de trabajo.
+Versión 2 · 27 de noviembre de 2026 · Propuesta de trabajo. (v2: guía detallada de la conexión con Meta, sección 7.1.)
 Lo marcado como **[Propuesta]** (tiempos, precios de excepción, pruebas gratis) es decisión comercial: ajústalo antes de usarlo.
 Lo demás describe lo que hoy hace la plataforma.
 
@@ -112,7 +112,7 @@ La conexión la hace **el dueño** de la clínica (solo él puede conectar canal
 1. **Configuración → Clínica**: sucursales con domicilio y horarios.
 2. **Equipo**: dar de alta a los profesionales con su cédula.
 3. **Configuración → Canales → «Activar canales para mi clínica»** (aprovisiona su cuenta en LANA).
-4. **WhatsApp → Conectar**, eligiendo el modo (exclusivo o coexistencia). Se abre la ventana de LANA con Embedded Signup. El dueño inicia sesión con Facebook, elige su Business y su número y acepta.
+4. **WhatsApp → Conectar**, eligiendo el modo (exclusivo o coexistencia). Se abre la ventana de LANA con Embedded Signup. El dueño inicia sesión con Facebook, elige su Business y su número y acepta. **Guía detallada en la sección 7.1.**
 5. Volver a SMYL y **verificar el estado**: debe decir «Mensajería activa» y mostrar el canal conectado.
 6. Repetir para Messenger e Instagram si aplica.
 7. **Capacitar el asistente**: identidad y voz, descripción de la clínica, sucursales, servicios, preguntas frecuentes y flujo de atención. Publicar y probar en el laboratorio privado antes de activar.
@@ -121,6 +121,85 @@ La conexión la hace **el dueño** de la clínica (solo él puede conectar canal
 10. **Privacidad**: confirmar que el aviso de privacidad de la clínica queda completo (domicilio y correo) y explicar el consentimiento de WhatsApp de cada paciente.
 
 **Criterio de salida:** canal conectado + asistente publicado + prueba real exitosa → `Conectado`.
+
+### 7.1 Guía detallada: conectar a la clínica con Meta
+
+Meta cambia sus pantallas y requisitos con frecuencia. Esta guía describe el recorrido general y lo que muestra SMYL; **lo marcado «verificar» debe confirmarse con LANA o en la documentación vigente de Meta antes de prometérselo al dentista.**
+
+#### 7.1.1 Qué explicarle al dentista (1 minuto)
+- **Business Portfolio** (la «cuenta empresarial» de Meta): es la que posee los activos de la clínica. Debe ser de la clínica, no de una agencia.
+- **Cuenta de WhatsApp Business (WABA)**: la cuenta de WhatsApp de la clínica dentro de ese portfolio; contiene el número.
+- **LANA** es el socio tecnológico (Tech Provider) autorizado por Meta para operar los canales; SMYL **no recibe ni guarda las claves de Meta**. Verificar con LANA qué permisos recibe y cómo puede la clínica revocarlos, para contestarlo con exactitud.
+
+#### 7.1.2 Antes de abrir la ventana (verificar en vivo)
+- [ ] El navegador **permite ventanas emergentes**: la conexión se abre en una ventana aparte; si se bloquea, SMYL lo avisa.
+- [ ] Mejor desde **computadora**, con el celular a la mano para códigos y, en coexistencia, para escanear.
+- [ ] La persona está iniciada en Facebook con la cuenta que **administra** el Business Portfolio. Las cuentas de Facebook nuevas o con restricciones suelen dar problemas (verificar).
+- [ ] Conectó **el dueño** de la clínica en SMYL (el equipo puede ver el estado, pero no conectar).
+- [ ] Decidió el modo (7.1.3 o 7.1.4).
+
+#### 7.1.3 Modo A: «Conservar mi WhatsApp» (coexistencia, en beta)
+Lo que SMYL le muestra al dentista **antes** de abrir Meta:
+- Necesita la app **WhatsApp Business** actualizada.
+- Grupos y llamadas siguen **solo en el celular**.
+- Los chats anteriores **no se importan todavía**; los mensajes nuevos sí llegan a SMYL.
+- Responder desde el celular **pausa al asistente** en esa conversación.
+
+Pasos:
+1. En SMYL: Configuración → Canales → WhatsApp → **«Conectar mi número actual»**.
+2. En la ventana de Meta: iniciar sesión, elegir o crear el Business Portfolio.
+3. Meta pide vincular la app WhatsApp Business del celular (normalmente escaneando un código QR) y aceptar permisos (verificar el flujo vigente).
+4. Volver a SMYL y comprobar el estado: debe decir **«WhatsApp + SMYL»**, y el historial «no se importa todavía».
+5. Recordarle: mantener la app WhatsApp Business activa en el celular; Meta exige uso periódico para conservar el enlace (verificar el plazo con LANA).
+
+#### 7.1.4 Modo B: «Usar un número exclusivo»
+Lo que SMYL le muestra antes de abrir Meta:
+- El número debe estar **libre de WhatsApp y de WhatsApp Business**.
+- Si ya está en una app, la migración puede **perder su historial local**.
+- Se recomienda una **línea nueva** para este modo.
+
+Pasos:
+1. En SMYL: **«Conectar número nuevo»**.
+2. En la ventana de Meta: crear o elegir la cuenta de WhatsApp Business (WABA) dentro del portfolio.
+3. Escribir el número y **verificarlo** con el código por SMS o llamada.
+4. Elegir el **nombre para mostrar**. Meta lo revisa: debe corresponder al nombre real de la clínica o del profesional. Puede quedar en revisión unos días.
+5. Aceptar los términos y volver a SMYL. Estado esperado: **«Sólo SMYL»**.
+
+#### 7.1.5 Messenger e Instagram (si los usa)
+- **Messenger:** quien conecta debe ser **administrador con control total** de la Página de Facebook.
+- **Instagram:** la cuenta debe ser **profesional** (Empresa o Creador) y estar **vinculada a la Página** de Facebook. En la configuración de mensajes de Instagram debe permitirse el acceso de herramientas conectadas (verificar la ruta vigente en la app de Instagram).
+- En SMYL: **Conectar** en cada canal → elegir Página o cuenta → autorizar los permisos de mensajes.
+
+#### 7.1.6 Después de conectar: verificaciones
+- [ ] El estado de la conexión dice **«Mensajería activa»** y el canal muestra nombre y número.
+- [ ] Un mensaje de prueba **desde otro teléfono** llega a la bandeja de SMYL.
+- [ ] El asistente responde y, cuando se le pide una persona, **escala**.
+- [ ] En coexistencia: una respuesta enviada desde el celular aparece en SMYL y pausa al asistente en esa conversación.
+- [ ] Plantillas solicitadas a Meta (quedan «pendientes» hasta su aprobación).
+
+#### 7.1.7 Límites y costos de Meta: decidir antes de ofrecerlo
+- **Verificación del negocio de la clínica:** no siempre es necesaria para empezar, pero influye en los límites de mensajes iniciados por la clínica (verificar con LANA). Definir cuándo se recomienda hacerla.
+- **Calidad del número:** si muchos pacientes bloquean o reportan los mensajes, Meta puede limitarlo. Por eso solo se escribe a quien dio su consentimiento de WhatsApp.
+- **Costos:** Meta cobra los mensajes de plantilla según su tarifa vigente. **Decidir quién los paga** (método de pago de la propia cuenta de WhatsApp de la clínica o facturación a través de LANA) e incluirlo en la propuesta, para que el dentista no se sorprenda.
+
+#### 7.1.8 Fallas típicas de la conexión con Meta
+
+| Síntoma | Causa probable | Qué hacer |
+|---|---|---|
+| La ventana no abre o se queda en blanco | Ventanas emergentes bloqueadas | Permitirlas para SMYL y reintentar |
+| No aparece su Business Portfolio | La cuenta de Facebook no es administradora | Que el administrador lo agregue o conecte con él presente |
+| «El número ya está registrado» | Está en WhatsApp, WhatsApp Business u otra cuenta | Elegir coexistencia, o liberar el número advirtiendo la posible pérdida de historial local |
+| No llega el código de verificación | Línea sin señal o reintentos seguidos | Probar llamada de voz y esperar; no reintentar muchas veces seguidas (puede bloquearse temporalmente) |
+| Nombre para mostrar rechazado | No corresponde al negocio | Ajustarlo al nombre real de la clínica y reenviar |
+| Meta pide verificar identidad o negocio | Revisión de seguridad de Meta | Completarla con los documentos de la clínica; escalar a LANA si se atora |
+| Conectó pero no llegan mensajes | Webhook o canal equivocado | Verificar el estado en SMYL; escalar a LANA |
+| Estado «Requiere atención» | Falló la validación de la conexión | Verificar de nuevo; si persiste, escalar a LANA |
+| Instagram no aparece | Cuenta no profesional o sin Página vinculada | Convertirla a profesional y vincularla a la Página |
+
+#### 7.1.9 Seguridad durante la conexión
+- El dentista escribe contraseñas y códigos **solo en la ventana de Meta**. Nunca se piden por chat, llamada ni correo.
+- Si se comparte pantalla, **no grabar** el momento de los códigos.
+- Ningún dato de pacientes se maneja en la sesión de conexión.
 
 ## 8. Etapa 7 — Piloto supervisado (primeros 7 días)
 
@@ -169,5 +248,6 @@ Por semana: contactos nuevos · calificados · demos hechas · cuentas creadas �
 
 1. **Dónde llevar a los prospectos.** SMYL no tiene hoy un lugar para el pipeline de dentistas prospecto (el «Pipeline» de la app es de los pacientes de cada clínica). Mientras tanto, una hoja de cálculo con los estados de la sección 1. Si conviene, se puede construir un formulario «Quiero una demo» en la landing que guarde el contacto con su consentimiento.
 2. **Decisiones comerciales** marcadas como [Propuesta]: tiempos, pruebas gratis, descuentos.
-3. **Validar con LANA** los requisitos actuales de Meta para coexistencia y para número exclusivo, y mantenerlos al día en la lista de la sección 6.
-4. **Probar el protocolo completo con una primera clínica** y ajustarlo con lo que salga.
+3. **Validar con LANA** todo lo marcado «verificar» en la sección 7.1 (requisitos de coexistencia y de número exclusivo, permisos que recibe LANA y su revocación, plazo de uso de la app Business) y mantenerlo al día.
+4. **Decidir el cobro de los mensajes de plantilla** de Meta (sección 7.1.7) y reflejarlo en la propuesta.
+5. **Probar el protocolo completo con una primera clínica** y ajustarlo con lo que salga.
