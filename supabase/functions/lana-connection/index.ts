@@ -185,6 +185,7 @@ function unlinkReport(): Record<string, string> {
     lana_channels: "unchanged",           // canales y conversaciones siguen en LANA
     whatsapp_meta: "still_connected",     // el número sigue conectado en Meta/LANA (desconectarlo requiere soporte)
     lana_automatic_replies: "not_stopped", // la IA de LANA puede seguir respondiendo si estaba activa
+    scheduled_reminders: "still_scheduled", // los recordatorios ya programados en LANA se enviarán; SMYL ya no podrá cancelarlos
   };
 }
 
