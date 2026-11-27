@@ -76,7 +76,7 @@
  }
  // Ruta del tratamiento: cuatro etapas con un estado claro y una sola acción principal.
  const ROUTE=[['evaluation','Diagnóstico'],['plan','Plan de tratamiento'],['approval','Presupuesto y aceptación'],['followup','En tratamiento']];
- const ROUTE_HINT={plan:'Se habilita al confirmar el diagnóstico',approval:'Se habilita al aprobar el plan',followup:'Se habilita al preparar el presupuesto'};
+ const ROUTE_HINT={plan:'Puedes empezarlo; se recomienda confirmar el diagnóstico',approval:'Se habilita al aprobar el plan',followup:'Se habilita al aceptar el presupuesto'};
  function open(id,focus=true){
   const ctx=active;if(!valid(ctx))return false;
   const requested=id;id=moduleId(id);if(!ctx.modules[id])return false;
@@ -100,11 +100,11 @@
  function routeViewing(ctx){return ctx.activeStage==='approval'||ctx.activeStage==='followup'?ctx.activeStage:moduleId(ctx.activeStage);}
  function syncRoute(ctx){
   const f=ctx.routeFlags;if(!f||!ctx.nav)return;
-  const current=ROUTE.map(r=>r[0]).find(id=>!f.done[id])||'followup';ctx.routeCurrent=current;let done=0;
-  ROUTE.forEach(([id],index)=>{const b=ctx.nav[id];if(!b)return;const isDone=!!f.done[id];if(isDone)done++;
-   const available=id==='followup'&&ctx.orthodonticsAvailable&&!isDone&&id!==current;
-   const tone=isDone?'done':id===current?'current':available?'available':'locked',text=isDone?'Listo':id===current?'En curso'+(f.status[id]?' · '+f.status[id]:''):available?'Disponible para controles':ROUTE_HINT[id]||'';
-   b.dataset.route=tone;copy(b.querySelector('.cw-step-num'),isDone?'✓':String(index+1));copy(b.querySelector('.cw-step-status'),text);b.setAttribute('aria-label',b.dataset.label+' · '+text);});
+  const skipped=f.skipped||{},current=ROUTE.map(r=>r[0]).find(id=>!f.done[id]&&!skipped[id])||'followup';ctx.routeCurrent=current;let done=0;
+  ROUTE.forEach(([id],index)=>{const b=ctx.nav[id];if(!b)return;const isDone=!!f.done[id],isSkipped=!!skipped[id]&&!isDone;if(isDone)done++;
+   const available=(id==='followup'&&ctx.orthodonticsAvailable&&!isDone&&id!==current)||(id==='plan'&&!isDone&&!isSkipped&&id!==current);
+   const tone=isDone?'done':isSkipped?'skipped':id===current?'current':available?'available':'locked',text=isDone?'Listo':isSkipped?'Pendiente · seguiste sin completarlo':id===current?'En curso'+(f.status[id]?' · '+f.status[id]:''):available?(id==='plan'?ROUTE_HINT.plan:'Disponible para controles'):ROUTE_HINT[id]||'';
+   b.dataset.route=tone;copy(b.querySelector('.cw-step-num'),isDone?'✓':isSkipped?'!':String(index+1));copy(b.querySelector('.cw-step-status'),text);b.setAttribute('aria-label',b.dataset.label+' · '+text);});
   if(ctx.routeFill)ctx.routeFill.style.width=Math.round(done/ROUTE.length*100)+'%';
   syncDock(ctx);
  }
@@ -116,10 +116,14 @@
    const place=()=>{if(!ctx.root.isConnected)return;const r=ctx.root.getBoundingClientRect();if(!r.width)return;ctx.dock.style.left=Math.round(r.left)+'px';ctx.dock.style.width=Math.round(r.width)+'px';const nav=document.querySelector('.pro-mobile-nav'),navUp=nav&&getComputedStyle(nav).display!=='none'?nav.offsetHeight:0;ctx.dock.style.bottom=navUp+'px';ctx.dock.dataset.floating=String(navUp>0);};ctx.placeDock=place;if(window.ResizeObserver){ctx.dockObserver=new ResizeObserver(place);ctx.dockObserver.observe(ctx.root);}addEventListener('resize',place,{passive:true});}
   ctx.placeDock?.();
   const order=ROUTE.map(r=>r[0]),current=ctx.routeCurrent||'evaluation',viewing=routeViewing(ctx),label=Object.fromEntries(ROUTE);
-  let title='',sub='',action='',disabled=false,hidden=false,run=null;const accessibleFollowup=viewing==='followup'&&ctx.orthodonticsAvailable,operating=accessibleFollowup?'followup':current;
-  if(viewing&&viewing!==current&&order.includes(viewing)&&!accessibleFollowup){
-   const past=order.indexOf(viewing)<order.indexOf(current);
-   title=past?'Estás viendo una etapa terminada':'Esta etapa todavía no está disponible';sub=past?'Puedes consultarla o corregirla.':(ROUTE_HINT[viewing]||'')+'.';action='Ir a '+label[current];run=()=>open(current);
+  let title='',sub='',action='',disabled=false,hidden=false,run=null;const accessibleFollowup=viewing==='followup'&&ctx.orthodonticsAvailable,flags=ctx.routeFlags,skippedNow=!!(flags.skipped&&flags.skipped.evaluation),operating=accessibleFollowup?'followup':(viewing&&order.includes(viewing)?viewing:current);
+  // Solo se bloquea lo que de verdad depende de lo anterior (presupuesto sin plan aprobado, seguimiento sin presupuesto aceptado).
+  // El diagnóstico guía: con el plan aprobado se puede seguir y queda constancia de la decisión.
+  const lockedApproval=viewing==='approval'&&!flags.done.plan,lockedFollowup=viewing==='followup'&&!accessibleFollowup&&current!=='followup',
+   past=!!viewing&&order.includes(viewing)&&order.indexOf(viewing)<order.indexOf(current)&&!!flags.done[viewing];
+  if(lockedApproval||lockedFollowup||past){
+   const target=lockedApproval?'plan':lockedFollowup?(flags.done.plan?'approval':'plan'):current;
+   title=past?'Estás viendo una etapa terminada':'Esta etapa todavía no está disponible';sub=past?'Puedes consultarla o corregirla.':(ROUTE_HINT[viewing]||'')+'.';action='Ir a '+label[target];run=()=>open(target);
   }else if(operating==='evaluation'){
    const cta=ctx.evaluationCta;title='Diagnóstico · '+(ctx.evaluationFooterStatus?.textContent||'en curso');action=cta?.textContent||'Continuar';disabled=!!cta?.disabled;hidden=!cta||cta.hidden;run=()=>ctx.evaluationAction?.();
   }else if(operating==='plan'){
@@ -129,6 +133,7 @@
   }else{
    const ortho=accessibleFollowup&&ctx.orthodonticsPrimary;title=ortho?'Ortodoncia · seguimiento longitudinal':'En tratamiento · registra cada avance con su evolución';sub=ortho?'Registra el control como borrador clínico y fírmalo desde Consulta.':'El cierre se documenta con una evolución firmada; SMYL no cierra casos automáticamente.';action=ortho?ortho.textContent:(ctx.evolveButton?.textContent||'Registrar evolución');disabled=ortho?ortho.disabled:!ctx.evolveButton||ctx.evolveButton.disabled;run=()=>ortho?ortho.click():ctx.evolveButton?.click();
   }
+  if(skippedNow&&(operating==='plan'||operating==='approval'))sub=(sub?sub+' · ':'')+'Diagnóstico pendiente';
   copy(ctx.dockTitle,title);copy(ctx.dockSub,sub);ctx.dockSub.hidden=!sub;copy(ctx.dockButton,action);ctx.dockButton.disabled=disabled;ctx.dockButton.hidden=hidden||!action;ctx.dockRun=run;
  }
  function module(ctx,id,index,title,subtitle){
@@ -619,6 +624,7 @@
   for(const [id,label] of [['assessment','Completar valoración'],['treatments','Elegir tratamientos'],['approved','Aprobar plan']]){const item=n('li','',label);item.dataset.label=label;planProgress.append(item);ctx.planChecks[id]=item;}
   plan.body.prepend(planProgress);
   ctx.shareHint=n('p','cw-help');approval.body.append(ctx.shareHint);
+  ctx.diagNotes=[plan,approval].map(m=>{const root=n('div','cw-diag-note'),text=n('span',''),button=btn('Completar diagnóstico',()=>{}),wrap=n('div','');root.setAttribute('role','status');root.hidden=true;wrap.append(text);root.append(wrap,button);m.body.prepend(root);return {root,text,button};});
   ctx.approvalSummary=n('section','cw-approval-summary');ctx.approvalSummary.hidden=true;ctx.approvalSummary.setAttribute('aria-label','Decisión del paciente sobre el presupuesto');
   const approvalSummaryHead=n('header','cw-approval-summary-head'),approvalSummaryText=n('div','');ctx.approvalState=n('strong','','Sin presupuesto');ctx.approvalStateCopy=n('p','','Prepara el presupuesto desde el plan aprobado.');approvalSummaryText.append(n('span','cw-kicker','DECISIÓN DEL PACIENTE'),ctx.approvalState,ctx.approvalStateCopy);ctx.approvalTotal=n('strong','cw-approval-total','');approvalSummaryHead.append(approvalSummaryText,ctx.approvalTotal);
   ctx.approvalFacts={};const approvalFacts=n('dl','cw-approval-facts');[['accepted','Aceptado'],['pending','Por decidir'],['rejected','No aceptado']].forEach(([key,label])=>{const item=n('div','');item.append(n('dt','',label),ctx.approvalFacts[key]=n('dd','','0'));approvalFacts.append(item);});ctx.approvalSummary.append(approvalSummaryHead,approvalFacts);approval.body.append(ctx.approvalSummary);
@@ -710,9 +716,14 @@
   ctx.planHistory.disabled=!document.getElementById('clinic-history');
   state(ctx,'plan',clinical?.saving?'Guardando':clinical?.dirty?'Cambios sin guardar':clinical?.ready?'Plan aprobado':clinical?.saved?'Borrador guardado':clinical?.available?'Por completar':'No disponible',clinical?.ready?'done':'pending');
   for(const [id,done] of [['assessment',clinical?.assessment],['treatments',clinical?.treatments],['approved',clinical?.ready]]){const item=ctx.planChecks[id];copy(item,(done?'✓ ':'○ ')+item.dataset.label);item.dataset.done=String(!!done);}
-  if(clinical?.ready&&!evaluationComplete){copy(ctx.planNext,'Terminar diagnóstico');ctx.planNext.disabled=false;ctx.planNext.onclick=()=>{open('evaluation');showEvaluationTask(ctx,contextReviewed?'findings':'context');};}
-  else if(!clinical?.ready){const reviewButton=document.getElementById('clinic-review');copy(ctx.planNext,'Aprobar plan');ctx.planNext.disabled=!reviewButton||reviewButton.disabled;ctx.planNext.onclick=()=>reviewButton?.click();}
-  else {copy(ctx.planNext,'Continuar al presupuesto');ctx.planNext.disabled=!planComplete;ctx.planNext.onclick=()=>open('approval');}
+  const diagnosisPending=[!contextReviewed?'contexto sin revisar':'',!findingsComplete?'hallazgos sin cerrar':''].filter(Boolean);
+  if(!clinical?.ready){const reviewButton=document.getElementById('clinic-review');copy(ctx.planNext,'Aprobar plan');ctx.planNext.disabled=!reviewButton||reviewButton.disabled;ctx.planNext.onclick=()=>{if(!evaluationComplete&&!window.confirm('El diagnóstico no está completo ('+(diagnosisPending.join(', ')||'por cerrar')+').\n\nPuedes aprobar el plan y preparar el presupuesto de todos modos. Queda registrado que seguiste sin completarlo.\n\n¿Continuar?'))return;reviewButton?.click();};}
+  else {copy(ctx.planNext,'Continuar al presupuesto');ctx.planNext.disabled=false;ctx.planNext.onclick=()=>open('approval');}
+  // Constancia (una por revisión del plan): el diagnóstico guía, pero la decisión de seguir sin cerrarlo queda registrada con fecha y usuario.
+  ctx.waived=ctx.waived||new Set();const waiveKey=String(clinical?.revision??'');
+  if(clinical?.ready&&!evaluationComplete&&waiveKey&&!ctx.waived.has(waiveKey)){ctx.waived.add(waiveKey);window.SmylTreatments?.waiveDiagnosis?.(ctx.patient,clinical.revision,diagnosisPending.join(', '));}
+  // Aviso (no bloqueo) en el plan y en el presupuesto mientras el diagnóstico siga pendiente.
+  for(const note of ctx.diagNotes||[]){note.root.hidden=!!evaluationComplete;copy(note.text,'Diagnóstico pendiente'+(diagnosisPending.length?': '+diagnosisPending.join(' y '):'')+'. Puedes continuar con el plan y el presupuesto; '+(clinical?.ready?'tu decisión quedó registrada.':'al aprobar el plan se registra tu decisión.'));note.button.onclick=()=>{open('evaluation');showEvaluationTask(ctx,contextReviewed?'findings':'context');};}
   const quoteReady=!!clinical?.ready,eligible=pairs>0&&planComplete;
   renderEvolution(ctx,progress,dental,clinical,activeTreatment);
   window.SmylOrthodontics?.sync?.(ctx,{progress,clinical,treatment:activeTreatment,evidence:orthodonticEvidence,controls:orthodonticControls,controlContext:orthodonticContext});
@@ -731,7 +742,7 @@
   ctx.history.disabled=!entry;
    if(presentationReady&&!proposal)copy(ctx.shareHint,'La presentación mySmyl está lista, pero todavía falta preparar el presupuesto y registrar la decisión del paciente.');
   // Ruta sugerida: no afirma que todo lo clínico quedó evaluado; el profesional decide.
-   ctx.routeFlags={done:{evaluation:evaluationComplete,plan:!!planComplete,approval:canActivate,followup:false},status:{evaluation:ctx.modules.evaluation.badge.textContent,plan:ctx.modules.plan.badge.textContent,approval:ctx.modules.approval.badge.textContent,followup:ctx.modules.followup.badge.textContent}};
+   ctx.routeFlags={done:{evaluation:evaluationComplete,plan:!!clinical?.ready,approval:canActivate,followup:false},skipped:{evaluation:!evaluationComplete&&!!clinical?.ready},status:{evaluation:ctx.modules.evaluation.badge.textContent,plan:ctx.modules.plan.badge.textContent,approval:ctx.modules.approval.badge.textContent,followup:ctx.modules.followup.badge.textContent}};
   syncNav(ctx);syncRoute(ctx);window.SmylTreatments?.sync?.(ctx,{planSaved:!!clinical?.saved});
  }
  function init(){
