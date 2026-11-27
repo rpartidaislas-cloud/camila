@@ -59,11 +59,12 @@ test('arquitectura visual: tarjeta (avance + un siguiente paso) y ventana accesi
   assert.match(styles, /min-height: 44px/);
 });
 
-test('el recordatorio sanitario reutiliza el módulo de Cumplimiento y no crea un flujo paralelo', () => {
+test('el recordatorio abre la revisión diaria del mismo módulo y no crea un flujo paralelo', () => {
   assert.match(script, /rpc\('smyl_compliance_overview'/);
-  assert.match(script, /SmylComplianceModel\.evaluate/);
+  assert.match(script, /SmylComplianceModel\.dailyReview/);
   assert.match(script, /route\('cumplimiento'\)/);
-  assert.match(script, /requisitos al día/);
+  assert.match(script, /REVISIÓN DIARIA · OPCIONAL/);
+  assert.match(script, /SmylCompliance\.open\('daily'\)/);
   assert.doesNotMatch(script, /smyl_regulatory_readiness_report|SmylReadiness\.open\('regulatory'\)/);
 });
 

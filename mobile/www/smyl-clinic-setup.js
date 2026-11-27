@@ -173,14 +173,13 @@
 
   async function complianceSummary() {
     if (!window.sb || typeof window.sb.rpc !== 'function' || !window.SmylComplianceModel) throw new Error('Cumplimiento no disponible');
-    var end = new Date(), start = new Date(end.getTime());
-    start.setFullYear(start.getFullYear() - 1);
+    var end = new Date(), day = end.toISOString().slice(0, 10);
     var result = await window.sb.rpc('smyl_compliance_overview', {
-      p_from: start.toISOString().slice(0, 10),
-      p_to: end.toISOString().slice(0, 10)
+      p_from: day,
+      p_to: day
     });
     if (result && result.error) throw result.error;
-    return window.SmylComplianceModel.evaluate(result && result.data, end).summary;
+    return window.SmylComplianceModel.dailyReview(result && result.data, end).summary;
   }
 
   async function load(force) {
@@ -254,7 +253,7 @@
     var title = el('h2', 'setup-title', 'Puesta en marcha'); title.id = 'clinic-setup-title';
     var dismiss = el('button', 'setup-dismiss', 'Ocultar por hoy'); dismiss.type = 'button';
     dismiss.onclick = function () {
-      var before = Array.from(host.querySelectorAll('button:not(:disabled)')).filter(function (button) { return !section.contains(button) && button.getClientRects().length; });
+      var before = Array.from(host.querySelectorAll('button:not(:disabled)')).filter(function (button) { return !section.contains(button) && !button.closest('#smyl-compliance-nudge') && button.getClientRects().length; });
       hideToday(); render();
       if (before.length) before[before.length - 1].focus();
     };
@@ -347,26 +346,21 @@
   function createComplianceNudge(host) {
     var section = el('section', 'clinic-compliance-nudge'); section.id = 'smyl-compliance-nudge';
     var copy = el('div', 'clinic-compliance-copy');
-    copy.append(el('span', 'clinic-compliance-kicker', 'CUMPLIMIENTO DE LA CLÍNICA'), el('strong', 'clinic-compliance-title'), el('small', 'clinic-compliance-next'));
-    var meter = el('span', 'clinic-compliance-meter'); meter.append(el('i'));
-    var action = el('button', 'clinic-compliance-action', 'Continuar'); action.type = 'button';
-    action.onclick = function () { route('cumplimiento'); };
-    var dismiss = el('button', 'clinic-compliance-dismiss', 'Ocultar por hoy'); dismiss.type = 'button';
+    copy.append(el('span', 'clinic-compliance-kicker', 'REVISIÓN DIARIA · OPCIONAL'), el('strong', 'clinic-compliance-title'), el('small', 'clinic-compliance-next'));
+    var action = el('button', 'clinic-compliance-action', 'Revisar hoy'); action.type = 'button';
+    action.onclick = function () { route('cumplimiento'); setTimeout(function () { if (window.SmylCompliance && window.SmylCompliance.open) window.SmylCompliance.open('daily'); }, 0); };
+    var dismiss = el('button', 'clinic-compliance-dismiss', 'Ahora no'); dismiss.type = 'button';
     dismiss.onclick = function () { hideComplianceToday(); render(); };
-    section.append(copy, meter, action, dismiss); host.append(section); return section;
+    section.append(copy, action, dismiss); host.append(section); return section;
   }
 
   function renderCompliance(host) {
     var existing = document.getElementById('smyl-compliance-nudge');
     var report = state.tenant === window.tenantId ? state.compliance : null;
-    if (!host || !isOwner() || !report || !report.pending || complianceHiddenToday()) { if (existing) existing.remove(); return; }
+    if (!host || !isOwner() || !report || complianceHiddenToday()) { if (existing) existing.remove(); return; }
     var section = existing || createComplianceNudge(host);
-    var next = report.pendingRows && report.pendingRows[0];
-    var pct = report.total ? Math.round(report.ok * 100 / report.total) : 0;
-    section.querySelector('.clinic-compliance-title').textContent = report.ok + ' de ' + report.total + ' requisitos al día';
-    section.querySelector('.clinic-compliance-next').textContent = next ? 'Siguiente prioridad: ' + next.title : 'Revisa la documentación pendiente.';
-    section.querySelector('.clinic-compliance-meter i').style.width = pct + '%';
-    section.querySelector('.clinic-compliance-meter').setAttribute('aria-label', pct + '% de avance documental');
+    section.querySelector('.clinic-compliance-title').textContent = report.actionable ? report.actionable + (report.actionable === 1 ? ' punto que conviene revisar' : ' puntos que conviene revisar') : 'Revisión rápida disponible';
+    section.querySelector('.clinic-compliance-next').textContent = report.next ? report.next.title + ' · no bloquea tu trabajo' : 'Sólo si la necesitas · toma menos de un minuto';
   }
 
   function render() {

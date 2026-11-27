@@ -37,7 +37,8 @@ test('la conservación bloquea el borrado físico y avanza con nueva actividad c
 });
 
 test('la interfaz no confunde preparación con certificación',()=>{
-  assert.match(ui,/Cumplimiento sanitario/);
+  assert.match(ui,/Control sanitario/);
+  assert.match(ui,/Guía COFEPRIS/);
   assert.match(ui,/no sustituye los documentos originales ni una asesoría sanitaria/i);
   assert.match(model,/Conviene validar la lista con un asesor sanitario antes de prometer cumplimiento/);
   assert.match(model,/Por confirmar con tu asesor/);

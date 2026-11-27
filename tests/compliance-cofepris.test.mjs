@@ -26,13 +26,21 @@ test('validaciones de captura', () => {
   assert.ok(M.rpbiError({ manifest: '' }));
   assert.equal(M.rpbiError({ manifest: 'M-1' }), '');
 });
+test('la revisión diaria es opcional y conserva una selección masiva sin certificar cumplimiento', () => {
+  const key = M.dailyReviewKey(now);
+  const review = M.dailyReview({ ...base, items: [{ key, status: 'have', notes: 'daily_cleaning,daily_sterilization' }] }, now);
+  assert.equal(review.key, 'daily_review_20261123');
+  assert.equal(review.summary.reviewed, 2);
+  assert.equal(review.rows.find(r => r.key === 'daily_cleaning').reviewed, true);
+  assert.equal(review.rows.find(r => r.key === 'daily_patients').reviewed, false);
+});
 test('migración y cableado de la pantalla', () => {
   const sql = fs.readFileSync(new URL('../supabase/migrations/20261126200000_smyl_compliance.sql', import.meta.url), 'utf8');
   for (const f of ['smyl_log_sterilization', 'smyl_log_rpbi', 'smyl_set_compliance_item', 'smyl_compliance_overview']) assert.match(sql, new RegExp(f));
   assert.match(sql, /enable row level security/i);
   const app = fs.readFileSync(new URL('../app.html', import.meta.url), 'utf8');
-  assert.match(app, /smyl-compliance-model\.js\?v=2/);
-  assert.match(app, /smyl-compliance\.js\?v=2/);
+  assert.match(app, /smyl-compliance-model\.js\?v=3/);
+  assert.match(app, /smyl-compliance\.js\?v=3/);
   const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
   assert.match(sw, /cumplimiento-carpeta-v1/);
   assert.match(fs.readFileSync(new URL('../smyl-navigation.js', import.meta.url), 'utf8'), /'cumplimiento'/);
@@ -40,13 +48,19 @@ test('migración y cableado de la pantalla', () => {
     assert.equal(fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8'), fs.readFileSync(new URL('../mobile/www/' + f, import.meta.url), 'utf8'), f);
 });
 
-test('la experiencia separa primera vez, rutinas y registros automáticos', () => {
+test('la experiencia separa revisión diaria opcional y Guía COFEPRIS', () => {
   const ui = fs.readFileSync(new URL('../smyl-compliance.js', import.meta.url), 'utf8');
   const css = fs.readFileSync(new URL('../smyl-compliance.css', import.meta.url), 'utf8');
   for (const cadence of ['setup', 'routine', 'periodic', 'automatic']) assert.match(fs.readFileSync(new URL('../smyl-compliance-model.js', import.meta.url), 'utf8'), new RegExp("cadence: '" + cadence + "'"));
-  assert.match(ui, /Configura la clínica una sola vez/);
-  assert.match(ui, /Rutinas y vencimientos/);
+  assert.match(ui, /Revisión diaria/);
+  assert.match(ui, /Guía COFEPRIS/);
+  assert.match(ui, /No bloquea la atención ni modifica tu estado regulatorio/);
+  assert.match(ui, /Seleccionar todo/);
+  assert.match(ui, /Guardar significa “revisado hoy”; no certifica cumplimiento/);
+  assert.match(ui, /Documentos y condiciones de la clínica/);
+  assert.match(ui, /Controles periódicos y vencimientos/);
   assert.match(ui, /Lo que SMYL registra automáticamente/);
+  assert.match(fs.readFileSync(new URL('../smyl-compliance-model.js', import.meta.url), 'utf8'), /dailyReview/);
   assert.match(css, /\.cp-dialog\{position:fixed;inset:0;margin:auto/);
 });
 
