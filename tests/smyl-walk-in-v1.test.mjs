@@ -36,6 +36,6 @@ test('web y móvil publican la misma versión', () => {
   for (const file of ['app.html', 'sw.js']) {
     assert.match(read(file), /smyl-schedule\.js\?v=68/);
     assert.match(read(file), /smyl-schedule\.css\?v=40/);
-    assert.match(read(file), /smyl-finance\.js\?v=82/);
+    assert.match(read(file), /smyl-finance\.js\?v=83/);
   }
 });

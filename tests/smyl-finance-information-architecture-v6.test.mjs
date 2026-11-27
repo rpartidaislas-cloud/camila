@@ -58,7 +58,7 @@ test('cada pestaña lleva su cifra y su aviso: vencido, citas sin cobrar, cobrad
   assert.match(finance, /if\(f\.overdueCents>0\)due\.push\('<b>'\+money\(f\.overdueCents\/100\)\+' vencido<\/b>'\)/);
   assert.match(finance, /if\(f\.visits\)due\.push\(plural\(f\.visits,'cita sin cobrar','citas sin cobrar'\)\)/);
   assert.match(finance, /put\('accounts',money\(f\.dueCents\/100\)/);
-  assert.match(finance, /put\('receipts',money\(f\.collectedCents\/100\),'Hoy · '/);
+  assert.match(finance, /var pf=periodFacts\(\);put\('receipts',money\(pf\.totalCents\/100\),pf\.label\+' · '/);
   assert.match(finance, /put\('cash',f\.session\?money\(f\.cashCents\/100\):'Cerrada'/);
   assert.match(finance, /f\.sessionOld\?'Abierta hace más de 18 h'/);
   assert.match(finance, /f\.fiscalReady\?'En pruebas':'Falta configurar'/);
@@ -133,10 +133,10 @@ test('web y PWA comparten la misma entrega versionada', () => {
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'smyl-xlsx.js', 'smyl-navigation.js', 'smyl-professional-v3.js', 'smyl-settings-hub.js', 'smyl-consultorio.js', 'smyl-proposals.js', 'app.html', 'sw.js']) {
     assert.equal(read(file), read('mobile/www/' + file), file);
   }
-  assert.match(read('app.html'), /smyl-finance\.css\?v=59/);
-  assert.match(read('app.html'), /smyl-finance\.js\?v=82/);
-  assert.match(read('sw.js'), /smyl-finance\.js\?v=82/);
-  assert.match(read('sw.js'), /smyl-finance\.css\?v=59/);
+  assert.match(read('app.html'), /smyl-finance\.css\?v=60/);
+  assert.match(read('app.html'), /smyl-finance\.js\?v=83/);
+  assert.match(read('sw.js'), /smyl-finance\.js\?v=83/);
+  assert.match(read('sw.js'), /smyl-finance\.css\?v=60/);
   assert.match(read('sw.js'), /finanzas-pestanas-v6/);
   assert.match(read('sw.js'), /finanzas-cobrar-pagos-v7/);
 });
