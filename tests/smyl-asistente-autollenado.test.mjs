@@ -107,7 +107,7 @@ test("estilos, carga del script y copia móvil con versiones coherentes", () => 
   assert.match(read("smyl-navigation.css"), /\.assistant-autofill-badge\.is-suggested/);
   for (const base of ["", "mobile/www/"]) {
     const app = read(`${base}app.html`);
-    assert.ok(app.indexOf("smyl-training-autofill.js?v=1") > 0 && app.indexOf("smyl-training-autofill.js?v=1") < app.indexOf("smyl-connections.js?v=31"), `${base}app.html: el módulo carga antes que smyl-connections.js`);
+    assert.ok(app.indexOf("smyl-training-autofill.js?v=1") > 0 && app.indexOf("smyl-training-autofill.js?v=1") < app.indexOf("smyl-connections.js?v=32"), `${base}app.html: el módulo carga antes que smyl-connections.js`);
     assert.match(read(`${base}sw.js`), /\/camila\/smyl-training-autofill\.js\?v=1/);
   }
   for (const f of ["smyl-training-autofill.js", "smyl-connections.js", "smyl-navigation.css"]) assert.equal(read(`mobile/www/${f}`), read(f), f);

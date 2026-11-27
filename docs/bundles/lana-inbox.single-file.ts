@@ -391,6 +391,75 @@ function matchBranchInMessages(messages: { role?: string; content?: string }[], 
 return { tokens, matchBranch, matchBranchInMessages };
 })();
 
+// ── _shared/pause-all-core.mjs ──
+const { DEFAULT_LIMITS, pauseAllConversations } = (() => {
+// Pausa de emergencia: pausa a la IA en TODAS las conversaciones de la clínica que aún no están pausadas.
+//
+// Límite honesto: el contrato de LANA solo ofrece pausa POR conversación (POST /inbox/conversations/:id/pause), no un
+// interruptor global. Esto cubre las conversaciones que existen en este momento; una conversación NUEVA que llegue
+// después no queda pausada hasta que se vuelva a ejecutar. El resultado lo dice con números verificables.
+//
+// Módulo puro (sin Deno ni red) para poder probarlo con simuladores.
+
+const DEFAULT_LIMITS = Object.freeze({ maxConversations: 500, pageSize: 100, concurrency: 5, budgetMs: 45000 });
+
+/**
+ * @param {object} io
+ * @param {(offset:number, take:number)=>Promise<{conversations:Array<{id:string,paused?:boolean}>, hasMore:boolean}>} io.fetchPage
+ * @param {(id:string)=>Promise<boolean>} io.pause   true si LANA aceptó la pausa
+ * @param {()=>number} [io.now]
+ * @param {Partial<typeof DEFAULT_LIMITS>} [limits]
+ */
+async function pauseAllConversations(io: any, limits = {}) {
+  const cfg = { ...DEFAULT_LIMITS, ...limits };
+  const now = io.now || Date.now;
+  const started = now();
+  const seen = new Set();
+  const toPause = [];
+  let scanned = 0, alreadyPaused = 0, offset = 0, hasMore = true, truncated = false, listError = '';
+
+  while (hasMore) {
+    if (scanned >= cfg.maxConversations) { truncated = true; break; }
+    if (now() - started > cfg.budgetMs) { truncated = true; break; }
+    let page;
+    try { page = await io.fetchPage(offset, cfg.pageSize); }
+    catch (error) { listError = error instanceof Error ? error.message : 'No se pudo consultar la bandeja.'; truncated = true; break; }
+    const rows = Array.isArray(page && page.conversations) ? page.conversations : [];
+    for (const row of rows) {
+      if (!row || typeof row.id !== 'string' || seen.has(row.id)) continue;
+      seen.add(row.id); scanned += 1;
+      if (row.paused === true) alreadyPaused += 1; else toPause.push(row.id);
+    }
+    offset += rows.length;
+    hasMore = Boolean(page && page.hasMore) && rows.length > 0;
+  }
+
+  let paused = 0; const failedIds = [];
+  let cursor = 0;
+  async function worker() {
+    while (cursor < toPause.length) {
+      const id = toPause[cursor++];
+      if (now() - started > cfg.budgetMs * 2) { failedIds.push(id); continue; }
+      let ok = false;
+      try { ok = (await io.pause(id)) === true; } catch { ok = false; }
+      if (ok) paused += 1; else failedIds.push(id);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(cfg.concurrency, toPause.length) }, worker));
+
+  const failed = failedIds.length;
+  return {
+    scanned, paused, already_paused: alreadyPaused, failed,
+    failed_ids: failedIds.slice(0, 20),
+    truncated, list_error: listError,
+    // «Completa» solo si se vio toda la bandeja y nada falló: es lo único que permite decir «todas están pausadas».
+    complete: !truncated && failed === 0 && !listError,
+  };
+}
+
+return { DEFAULT_LIMITS, pauseAllConversations };
+})();
+
 // ── _shared/cors.ts ──
 const { makeCors, corsPublic, corsHeaders } = (() => {
 // Orígenes autorizados para funciones privadas (autenticadas).
@@ -1361,6 +1430,37 @@ async function patientLinkIdentity(actor: Actor, tenantId: string, conversationI
   };
 }
 
+// Pausa de emergencia: pausa a la IA en todas las conversaciones existentes de la clínica (solo el dueño).
+// LANA solo ofrece pausa por conversación; las conversaciones nuevas que lleguen después NO quedan pausadas.
+async function pauseAllAutomaticReplies(actor: Actor, tenantId: string): Promise<Response> {
+  const result = await pauseAllConversations({
+    fetchPage: async (offset: number, take: number) => {
+      const source = new URL("https://smyl.invalid/");
+      source.searchParams.set("filter", "all"); source.searchParams.set("limit", String(take)); source.searchParams.set("offset", String(offset));
+      const remote = await lanaRequest(tenantId, queryPath(source, "list", null)!, { method: "GET", headers: connectorHeaders(tenantId) }, 15000);
+      if (!remote.response.ok) throw new Error("No se pudo consultar la bandeja.");
+      const raw = Array.isArray(remote.body.conversations) ? remote.body.conversations as { id: unknown; paused?: unknown }[] : [];
+      const page = remote.body.page as { has_more?: boolean } | undefined;
+      return { conversations: raw.map((row) => ({ id: String(row.id || ""), paused: row.paused === true })), hasMore: page?.has_more ?? raw.length >= take };
+    },
+    pause: async (conversationId: string) => {
+      if (!uuid(conversationId)) return false;
+      const remote = await lanaRequest(tenantId, `/inbox/conversations/${conversationId}/pause`, {
+        method: "POST", headers: actorHeaders(actor, crypto.randomUUID()), body: "{}",
+      }, 15000);
+      return remote.response.ok;
+    },
+  });
+  // Rastro sin datos de pacientes: cuántas se pausaron, quién y cuándo.
+  const audit = await admin.from("smyl_audit_events").insert({
+    tenant_id: tenantId, actor_id: actor.id, action: "update", entity_type: "chat_pause_all", entity_id: "emergency",
+    before_data: null,
+    after_data: { scanned: result.scanned, paused: result.paused, already_paused: result.already_paused, failed: result.failed, truncated: result.truncated, complete: result.complete },
+  });
+  if (audit.error) console.error("[lana-inbox] auditoría de pausa de emergencia:", audit.error.message);
+  return json(200, { ok: true, ...result, actor });
+}
+
 async function patientLinkPreview(actor: Actor, tenantId: string, conversationId: string): Promise<Response> {
   const resolved = await patientLinkIdentity(actor, tenantId, conversationId);
   if (resolved.response || !resolved.identity) return resolved.response || json(502, { error: "No se pudo identificar al contacto." });
@@ -1801,6 +1901,11 @@ return scheduleDenied || await appointmentContext(actor, auth.tenantId, conversa
         method: "POST", headers: actorHeaders(actor, idempotencyKey), body: JSON.stringify(forwarded),
       }, 20000);
       return json(remote.response.status, { ...remote.body, actor });
+    }
+    if (action === "pause_all") {
+      if (actor.role !== "owner" || actor.scopes.messages !== "clinic") return json(403, { error: "Solo el dueño de la clínica puede pausar todas las respuestas automáticas.", code: "permission_denied" });
+      if (!uuid(req.headers.get("Idempotency-Key"))) return json(400, { error: "Idempotency-Key debe ser un UUID válido." });
+      return await pauseAllAutomaticReplies(actor, auth.tenantId);
     }
     if (action === "stage_create" || action === "stage_update" || action === "stage_reorder" || action === "stage_seed_dental") {
       if (actor.role !== "owner") return json(403, { error: "Solo el dueño de la clínica puede configurar las etapas del Pipeline.", code: "permission_denied" });

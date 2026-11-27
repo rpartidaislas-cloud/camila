@@ -428,11 +428,21 @@ async function unlinkLanaConfig(
     ? current.integraciones as Record<string, unknown>
     : {} as Record<string, unknown>;
   const now = new Date().toISOString();
+  // La credencial cifrada se BORRA: ninguna función la restaura y conservarla solo ampliaba el daño de una filtración.
+  // Se deja un rastro sin secretos (huella pública, quién y cuándo) para auditoría y soporte.
   const next = {
     ...current,
     integraciones: {
       ...remaining,
-      lana_desvinculada: { ...lana, estado: "desvinculada", desvinculada_at: now, desvinculada_por: actorId },
+      lana_desvinculada: {
+        estado: "desvinculada",
+        fingerprint: lana.fingerprint,
+        lana_tenant_id: lana.lana_tenant_id ?? null,
+        connected_at: lana.connected_at,
+        desvinculada_at: now,
+        desvinculada_por: actorId,
+        credencial_borrada: true,
+      },
     },
   };
   const { error } = await admin.from("camila_tenants").update({ config: next }).eq("id", tenantId);
@@ -446,9 +456,20 @@ async function unlinkLanaConfig(
     entity_type: "lana_link",
     entity_id: lana.fingerprint,
     before_data: { estado: lana.estado, fingerprint: lana.fingerprint, lana_tenant_id: lana.lana_tenant_id ?? null, connected_at: lana.connected_at },
-    after_data: { estado: "desvinculada" },
+    after_data: { estado: "desvinculada", credencial_borrada: true },
   });
   if (audit.error) console.error("[lana-connection] auditoría de desvinculación:", audit.error.message);
+}
+
+// Qué se detuvo y qué NO al desvincular. Es la verdad completa: SMYL no puede apagar lo que vive en LANA ni en Meta.
+function unlinkReport(): Record<string, string> {
+  return {
+    smyl_link: "removed",                 // SMYL deja de leer y enviar mensajes
+    credential: "deleted",                // el código de enlace cifrado ya no existe en SMYL
+    lana_channels: "unchanged",           // canales y conversaciones siguen en LANA
+    whatsapp_meta: "still_connected",     // el número sigue conectado en Meta/LANA (desconectarlo requiere soporte)
+    lana_automatic_replies: "not_stopped", // la IA de LANA puede seguir respondiendo si estaba activa
+  };
 }
 
 async function verifyLanaApiKey(apiKey: string): Promise<LanaIdentity> {
@@ -689,13 +710,13 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "disconnect") {
-      // Desvincula SMYL de LANA y nada más: no llama a LANA ni a Meta, así que
-      // los canales, las conversaciones y la cuenta de WhatsApp siguen intactos
-      // allá. El enlace cifrado se aparta (sin exponerlo) para poder restaurarlo.
+      // Desvincula SMYL de LANA y borra la credencial cifrada. No llama a LANA ni a Meta, así que los canales,
+      // las conversaciones, la cuenta de WhatsApp y las respuestas automáticas de LANA siguen como estaban allá:
+      // la respuesta lo dice con `report`. Para volver a conectar hace falta un código de enlace nuevo.
       if (!canManage) return json(403, { error: "Solo el dueño de la clínica puede desvincular la mensajería." });
       if (!lana) return json(200, { ok: true, unlinked: false, ...publicStatus(null, canManage) });
       await unlinkLanaConfig(auth.tenantId, config, lana, auth.user.id);
-      return json(200, { ok: true, unlinked: true, ...publicStatus(null, canManage) });
+      return json(200, { ok: true, unlinked: true, report: unlinkReport(), ...publicStatus(null, canManage) });
     }
 
     if (action === "connect") {
