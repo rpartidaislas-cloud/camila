@@ -256,7 +256,7 @@ const STATIC_FILES = [
   '/camila/smyl-privacy-inbox.js?v=2',
   '/camila/smyl-inbox.js?v=101&media=1',
   '/camila/assets/emoji/catalog-es-v1.json',
-  '/camila/smyl-inbox.css?v=81',
+  '/camila/smyl-inbox.css?v=82',
   '/camila/smyl-privacy-inbox.css?v=1',
   '/camila/smyl-navigation.js?v=36',
   '/camila/smyl-navigation.css?v=15',

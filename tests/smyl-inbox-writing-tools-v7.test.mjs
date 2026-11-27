@@ -69,6 +69,6 @@ test('web y PWA comparten exactamente las herramientas', () => {
   assert.equal(read('../mobile/www/smyl-inbox.js'), inbox);
   assert.equal(read('../mobile/www/smyl-inbox.css'), css);
   assert.match(read('../app.html'), /smyl-inbox\.js\?v=101/);
-  assert.match(read('../app.html'), /smyl-inbox\.css\?v=81/);
+  assert.match(read('../app.html'), /smyl-inbox\.css\?v=82/);
   assert.match(read('../sw.js'), /inbox-composer-rewrite-v1/);
 });
