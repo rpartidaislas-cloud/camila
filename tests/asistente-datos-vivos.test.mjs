@@ -54,6 +54,6 @@ test('los ids de servicio son estables (no cambian en cada actualización) y el 
 
 test('web y móvil entregan lo mismo y la versión sube', () => {
   for (const file of ['smyl-connections.js', 'smyl-connections.css', 'app.html', 'sw.js']) assert.equal(read(file), read(`mobile/www/${file}`), file);
-  assert.match(read('app.html'), /smyl-connections\.js\?v=32/);
+  assert.match(read('app.html'), /smyl-connections\.js\?v=33/);
   assert.match(read('smyl-connections.css'), /\.connections-auto-drift/);
 });
