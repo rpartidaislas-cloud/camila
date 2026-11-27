@@ -1302,3 +1302,38 @@ dialog[data-smyl-dialog-system="true"][open] .finance-allocation-input>input[typ
 #p-caja .finance-alert .btn{flex:none;min-height:40px}
 @media(max-width:640px){#p-caja .finance-alert{flex-direction:column;align-items:stretch}}
 /*contenedor*/@container finance-workspace (max-width:640px){#p-caja .finance-alert{flex-direction:column;align-items:stretch}}
+
+/* Cancelación real ante el SAT (producción) */
+.finance-live-note{margin:14px 0 8px;padding:10px 12px;border:1px solid #efc3c3;border-radius:10px;background:#fdecec;font-size:13px;line-height:1.5;color:#8a1f1f}
+
+/* Corte de caja · cobros en línea (Openpay): reporte aparte, sin conteo */
+.finance-cut-online{margin:12px 0;border:1px solid var(--line,#dfe4ee);border-radius:12px;background:#f5f8ff}
+.finance-cut-online>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;cursor:pointer;list-style:none}
+.finance-cut-online>summary::-webkit-details-marker{display:none}
+.finance-cut-online>summary strong{display:block;font-size:14px}
+.finance-cut-online>summary small{display:block;margin-top:2px;font-size:12px;line-height:1.4;color:#5b6678}
+.finance-cut-online>summary>b{font-size:16px;white-space:nowrap}
+.finance-cut-online-list{display:grid;border-top:1px solid var(--line,#dfe4ee);max-height:220px;overflow:auto}
+.finance-cut-online-list>div{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:9px 14px;font-size:13px}
+.finance-cut-online-list>div+div{border-top:1px solid #e8edf6}
+.finance-cut-online-list small{grid-column:1;font-size:12px;color:#5b6678}
+.finance-cut-online-list b{grid-column:2;grid-row:1/3;align-self:center}
+
+/* Registrar cargo: cantidad y precio alineados; el IVA lo decide el servicio (solo un interruptor para conceptos libres) */
+.finance-charge-form .finance-form-grid{align-items:start}
+.finance-charge-form .finance-form-grid>label{justify-content:flex-start}
+.finance-charge-form input[name="quantity"]{height:40px;box-sizing:border-box;margin:0}
+.finance-charge-form .finance-money-input{height:40px;box-sizing:border-box}
+.finance-charge-form [data-price-hint]{min-height:16px;font-size:12px;line-height:1.3;color:#5b6678}
+#finance-dialog .finance-charge-form .finance-discount-link{grid-column:1/-1;justify-self:start;align-self:start;min-height:0;padding:0;margin:-4px 0 0;font-size:13px;color:var(--smyl-accent,#142bc3)}
+.finance-charge-form .finance-free-iva{grid-column:1/-1;margin:-2px 0 0;font-size:13px}
+.finance-charge-form .finance-inline-check[hidden]{display:none!important}
+.finance-charge-form .finance-form-grid>label>.smyl-field-label{display:block;min-height:18px;line-height:18px}
+#finance-dialog .finance-charge-form .finance-money-input input{border:0!important;box-shadow:none!important;background:transparent!important;outline:0!important;height:100%!important}
+
+/* Cobrar: el importe por cargo se reparte solo (solo lectura), no es un campo para escribir */
+dialog[data-smyl-dialog-system="true"] .finance-allocation-input{background:transparent;min-width:84px}
+dialog[data-smyl-dialog-system="true"][open] .finance-allocation-input>input[readonly]{border:0!important;background:transparent!important;box-shadow:none!important;font-weight:700;color:#12233f;pointer-events:none;cursor:default}
+dialog[data-smyl-dialog-system="true"] .finance-allocation-input:has(input[value="0"],input[value="0.00"])>input[readonly]{color:#8794a6;font-weight:500}
+.finance-payment-surplus{margin:10px 0 0;padding:9px 11px;border-radius:10px;background:#fff6e5;color:#7a4b00;font-size:13px;line-height:1.45}
+.finance-payment-open-head>span{white-space:nowrap}

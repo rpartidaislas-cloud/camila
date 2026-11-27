@@ -14,7 +14,7 @@ import {
   SAT_CONSULTAS_RESPALDO, leerProductosSat, textoBusquedaSat, descripcionServicioSat, leerConsultasSat, unirCandidatosSat, leerSeleccionSat,
   SAT_CONSULTAS_SCHEMA, SAT_SELECCION_SCHEMA, SAT_SYSTEM_CONSULTAS, SAT_SYSTEM_SELECCION, SERVICIO_SCHEMA, SERVICIO_SYSTEM, leerServicioSugerido, sumarUso,
   FORMAS_PAGO, UUID_RE, construirFactura, mensajeFacturapi, clasificarRespuesta, leerFactura,
-  parametrosCancelacion, estadoCancelacion, clasificarCancelacion, validarCorreo, enmascararCorreo, clasificarEnvio, descarga,
+  parametrosCancelacion, estadoCancelacion, clasificarCancelacion, puedeCancelarEnProduccion, validarCorreo, enmascararCorreo, clasificarEnvio, descarga,
 } from "../_shared/facturapi-core.mjs";
 import { FISCAL_EXTRACT_MODEL, FISCAL_EXTRACT_MAX_TOKENS, FISCAL_EXTRACT_TIMEOUT_MS, topesDeEntorno, evaluarTopeFiscal, costoEstimadoUsd } from "../_shared/fiscal-core.mjs";
 import { inicioDiaUTC, inicioMesUTC } from "../_shared/ai-quota.ts";
@@ -28,6 +28,8 @@ const SB_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SB_ANON_K
 const LIVE_STAMPING = Deno.env.get("FACTURAPI_LIVE_STAMPING") === "1";
 // Igual que el resto de SMYL: mientras no se active el cobro de consumibles, el consumo se mide (meter_only) sin bloquear.
 const CONSUMABLES_ENFORCED = (Deno.env.get("SMYL_CONSUMABLES_ENFORCED") || "false") === "true";
+// Cancelar en producción es una acción real ante el SAT: apagado por defecto, se enciende con FACTURAPI_LIVE_CANCELLATION=1 tras una prueba controlada.
+const LIVE_CANCELLATION = Deno.env.get("FACTURAPI_LIVE_CANCELLATION") === "1";
 const STAMP_TIMEOUT_MS = 40_000;
 const RECONCILE_WAIT_MS = 2 * 60_000; // no se da por «no creada» una solicitud más reciente que esto
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -36,7 +38,7 @@ const MAX_CSD_FAILS_PER_HOUR = 5;
 // deno-lint-ignore no-explicit-any
 type Json = Record<string, any>;
 
-const vista = (r: Json | null) => ({ ...vistaConexion(r), live_stamping: LIVE_STAMPING });
+const vista = (r: Json | null) => ({ ...vistaConexion(r), live_stamping: LIVE_STAMPING, live_cancellation: LIVE_CANCELLATION });
 const json = (cors: Record<string, string>, status: number, body: Json) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" } });
 
@@ -305,8 +307,12 @@ async function timbrado(req: Request, CORS: Record<string, string>, tenantId: st
 
   // ── Cancelación (sandbox) ──
   if (body.action === "cancel" || body.action === "cancel_check") {
-    // La cancelación en producción es una acción real ante el SAT y aún no tiene su propia compuerta: por ahora solo sandbox.
-    if (live) return json(CORS, 409, { error: "La cancelación desde SMYL todavía solo está disponible en pruebas (sandbox). Cancela los comprobantes de producción desde tu panel de Facturapi." });
+    // En producción cancelar es real ante el SAT: interruptor del servidor + texto de confirmación (solo al enviar; verificar es solo lectura).
+    if (live && body.action === "cancel") {
+      const gate = puedeCancelarEnProduccion({ live, enabled: LIVE_CANCELLATION, confirmText: body.confirm_text });
+      if (!gate.ok) return json(CORS, 409, { error: gate.error });
+    }
+    if (live && body.action === "cancel_check" && !LIVE_CANCELLATION) return json(CORS, 409, { error: "La cancelación en producción aún no está habilitada en el servidor." });
     if (draft.status === "cancelled") return json(CORS, 200, { draft, message: "Este comprobante ya está cancelado." });
     if (draft.status !== "issued" || !draft.provider_invoice_id) return json(CORS, 409, { error: "Solo un comprobante timbrado se puede cancelar." });
     const { data: plan } = await admin.from("smyl_cfdi_cancellation_plans").select("*").eq("tenant_id", tenantId).eq("draft_id", draftId).in("status", ["planned", "submitted"]).maybeSingle();
@@ -346,19 +352,19 @@ async function timbrado(req: Request, CORS: Record<string, string>, tenantId: st
     if (!claimed) return json(CORS, 409, { error: "Otra persona ya está enviando esta cancelación." });
     const r = await llamarFacturapi(key, `/invoices/${encodeURIComponent(draft.provider_invoice_id)}?${params.query}`, { method: "DELETE" });
     const clase = clasificarCancelacion(r.status, r.body);
-    if (clase === "accepted") { await aceptar(); await eventoTimbre(tenantId, actor, draftId, "cancel", "success", { motive: plan.reason_code }); return json(CORS, 200, { draft: await vista(), message: "Comprobante cancelado en sandbox." }); }
+    if (clase === "accepted") { await aceptar(); await eventoTimbre(tenantId, actor, draftId, "cancel", "success", { motive: plan.reason_code, live }); return json(CORS, 200, { draft: await vista(), message: live ? "Comprobante cancelado en producción." : "Comprobante cancelado en sandbox." }); }
     if (clase === "pending") {
-      await pendiente(); await eventoTimbre(tenantId, actor, draftId, "cancel", "pending", { motive: plan.reason_code });
+      await pendiente(); await eventoTimbre(tenantId, actor, draftId, "cancel", "pending", { motive: plan.reason_code, live });
       return json(CORS, 202, { draft: await vista(), message: "La cancelación está pendiente: el paciente debe aceptarla. Usa «Verificar cancelación» más tarde." });
     }
     if (clase === "rejected") {
       const msg = mensajeFacturapi(r.body, r.status);
-      await rechazar(msg); await eventoTimbre(tenantId, actor, draftId, "cancel", "failed", { status: r.status, motive: plan.reason_code });
+      await rechazar(msg); await eventoTimbre(tenantId, actor, draftId, "cancel", "failed", { status: r.status, motive: plan.reason_code, live });
       return json(CORS, 422, { error: `Facturapi no pudo cancelar el comprobante: ${msg}`, draft: await vista() });
     }
     const msg = "No se confirmó la cancelación (Facturapi no respondió a tiempo o pidió esperar). Usa «Verificar cancelación» antes de intentar de nuevo.";
     await admin.from("smyl_cfdi_cancellation_plans").update({ provider_message: msg }).eq("tenant_id", tenantId).eq("id", plan.id);
-    await eventoTimbre(tenantId, actor, draftId, "cancel", "pending", { status: r.status, motive: plan.reason_code });
+    await eventoTimbre(tenantId, actor, draftId, "cancel", "pending", { status: r.status, motive: plan.reason_code, live });
     return json(CORS, 202, { draft: await vista(), message: msg });
   }
 

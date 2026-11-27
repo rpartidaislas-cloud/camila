@@ -142,12 +142,31 @@ server.listen(0, '127.0.0.1', async () => {
   check(menu.join('|') === 'Registrar cargo|Recibir anticipo|Importar cotización|Política de inasistencia', 'el menú Más ofrece: ' + menu.join(', '));
   const titles = {};
   await page.click('#finance-new-charge'); await page.waitForTimeout(400);
-  titles.cargo = await page.$eval('#finance-dialog h2', e => e.textContent.trim()); await page.keyboard.press('Escape'); await page.waitForTimeout(250);
+  titles.cargo = await page.$eval('#finance-dialog h2', e => e.textContent.trim());
+  const chargeLook = await page.evaluate(() => {
+    const f = document.querySelector('#finance-dialog form'), r = el => el.getBoundingClientRect(), q = r(f.elements.quantity), p = r(f.querySelector('.finance-money-input')), vis = el => !!el && el.offsetParent !== null;
+    const free = vis(f.querySelector('[data-iva-wrap]'));
+    const opt = Array.from(f.elements.service.options).find(o => o.value); f.elements.service.value = opt.value; f.elements.service.dispatchEvent(new Event('change', { bubbles: true }));
+    return { dTop: Math.abs(q.top - p.top), dBottom: Math.abs(q.bottom - p.bottom), free, withService: vis(f.querySelector('[data-iva-wrap]')), taxLabel: !!f.querySelector('[data-tax-label]'), taxRow: vis(f.querySelector('[data-sum="tax"]').parentNode) };
+  });
+  check(chargeLook.dTop < 1.5 && chargeLook.dBottom < 1.5, 'Registrar cargo: cantidad y precio quedan alineados: ' + JSON.stringify(chargeLook));
+  check(chargeLook.free && !chargeLook.withService && !chargeLook.taxLabel, 'el IVA lo decide el servicio: solo un concepto libre ofrece marcarlo');
+  check(!chargeLook.taxRow, 'con un servicio exento la fila de IVA no estorba');
+  if (process.env.SHOTS_DIR) await page.screenshot({ path: path.join(process.env.SHOTS_DIR, 'cargo.png') });
+  await page.evaluate(() => { document.querySelector('#finance-dialog').dataset.smylDirty = 'false'; });
+  await page.keyboard.press('Escape'); await page.waitForTimeout(250);
   check(!(await page.$eval('#p-caja .finance-operations-menu', e => e.open)), 'el menú Más se cierra al elegir una opción');
   await page.click('#p-caja .finance-operations-menu>summary'); await page.click('#finance-new-advance'); await page.waitForTimeout(400);
   titles.anticipo = await page.$eval('#finance-dialog h2', e => e.textContent.trim()); await page.keyboard.press('Escape'); await page.waitForTimeout(250);
   await page.click('#finance-guided-collection'); await page.waitForTimeout(400);
-  titles.cobrar = await page.$eval('#finance-dialog h2', e => e.textContent.trim()); await page.keyboard.press('Escape'); await page.waitForTimeout(250);
+  titles.cobrar = await page.$eval('#finance-dialog h2', e => e.textContent.trim());
+  await page.evaluate(() => { document.querySelector('#finance-dialog').dataset.smylDirty = 'false'; }); await page.keyboard.press('Escape'); await page.waitForTimeout(250);
+  await page.evaluate(() => { const b = Array.from(document.querySelectorAll('#finance-panel-accounts button')).find(x => x.textContent.trim() === 'Cobrar'); b.click(); }); await page.waitForTimeout(500);
+  const alloc = await page.$$eval('#finance-dialog [data-allocation]', els => els.map(e => e.readOnly));
+  check(alloc.length > 0 && alloc.every(Boolean), 'Cobrar: el importe por cargo se reparte solo (solo lectura): ' + alloc.length + ' cargos');
+  if (process.env.SHOTS_DIR) await page.screenshot({ path: require('path').join(process.env.SHOTS_DIR, 'cobrar.png') });
+  await page.evaluate(() => { document.querySelector('#finance-dialog').dataset.smylDirty = 'false'; });
+  await page.keyboard.press('Escape'); await page.waitForTimeout(250);
   check(titles.cargo === 'Registrar cargo' && titles.anticipo === 'Recibir anticipo' && titles.cobrar === 'Cobrar', 'las ventanas se llaman igual que su botón: ' + JSON.stringify(titles));
 
   // Centavos: la cuenta de $100.20 pagada en tres partes no está pendiente ni vencida, y aparece liquidada.
@@ -168,8 +187,8 @@ server.listen(0, '127.0.0.1', async () => {
   check(afterRight === 'receipts' && (await visiblePanels(page)).join() === 'accounts', 'las flechas del teclado cambian de pestaña');
 
   // Desde Configuración se llega a la pestaña pedida.
-  await page.evaluate(() => window.SmylSettingsHub.openItem('cobros', 'Corte de caja')); await page.waitForTimeout(900);
-  check((await page.$eval('#finance-tab-cash', e => e.getAttribute('aria-selected'))) === 'true' && (await visiblePanels(page)).join() === 'cash', 'Configuración → Finanzas → Corte de caja abre la pestaña Caja');
+  await page.evaluate(() => window.SmylSettingsHub.openItem('cobros', 'Facturación')); await page.waitForTimeout(1200);
+  check(await page.evaluate(() => !!document.querySelector('#billing-setup') && document.querySelector('#billing-setup').offsetParent !== null), 'Configuración → Finanzas → Facturación abre la preparación de facturación');
   check(s.errs.length === 0, 'sin errores de página en computadora: ' + JSON.stringify(s.errs));
   await s.ctx.close();
 

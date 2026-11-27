@@ -505,6 +505,16 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-27 — Claude Code — Configuración: sin duplicados y «Datos de la clínica» más limpio
+
+A pedido del usuario («que se sienta más profesional, sin duplicado»). Solo `smyl-settings-hub.js` y la pantalla `p-mi-consultorio` de `app.html`; sin datos ni SQL.
+- **Quitado de Configuración** (de 33 a 26 entradas): «Formas de pago y anticipo» (era «Próximamente»), «Horarios y servicios» (duplicaba Servicios y tarifas, que sigue en Catálogo), «Confirmaciones» (ya está en la Agenda), «Probar al asistente» (es una pestaña del asistente), «Recibos» y «Corte de caja» (trabajo diario de Finanzas; sus pestañas siguen ahí) y «Mi cuenta» (se abre desde el nombre del usuario, abajo a la izquierda).
+- **Reorganizado:** «Avisos de cita» pasó de Canales a Agenda junto a «Recordatorios de cita» (grupo «Avisos al paciente»); «Automatizaciones» se llama **«Reglas del asistente»** (no son recordatorios: es cuándo responde SMYL y cuándo pasa el chat a una persona); grupos de Canales renombrados («Asistente», «Plantillas y reglas»); «Datos del consultorio» → **«Datos de la clínica»**.
+- **Pantalla «Datos de la clínica»:** se quitó la tarjeta «Lo demás de tu consultorio» (4 atajos que repetían entradas de Configuración) y su CSS; campos reorganizados (nombre completo arriba, doctor y ciudad lado a lado, una columna en celular), botón «Guardar» sin emoji. Los datos (`config.consultorio`, `doctor`, `ciudad`) y `guardarConfig()` no cambian.
+- **Dejado a propósito:** «Modalidad de compras» (solo útil con varias sucursales), «Preparación operativa» y «Cumplimiento sanitario»: falta decidir con el usuario si se esconden.
+- **Pendiente:** «Marca y experiencia» (`p-sim-config`) mezcla el acceso al simulador, el enlace para prospectos (pausado), la marca y dos cuadros con instrucciones de IA; necesita su propio rediseño.
+- Versiones: `smyl-settings-hub.js?v=21`, caché `configuracion-limpia-v1`, `mobile/www` sincronizado. Pruebas de Configuración/Finanzas actualizadas a la nueva estructura (`smyl-settings-hub`, `horario-simple`, `smyl-finance-*`); queda 1 falla que ya existía en `main` (Facturapi/localStorage). Revisado en Playwright (fixture de Configuración) a 1280 y 390 px.
+
 ## 2026-11-26 — Claude Code — Menú: se quita «Simulaciones» de Negocio
 
 - A pedido del usuario. Las simulaciones viven en la ficha de cada paciente (pestaña «Diseño de sonrisa»). `['Simulaciones','historial','history']` pasó de `BUSINESS` a `REGISTRY` en `smyl-navigation.js`: la ruta `historial` sigue registrada (oculta) para que no reaparezca suelta en el menú, pero ya no hay botón. `smyl-navigation.js?v=35`, caché `menu-sin-simulaciones-v1`, `mobile/www` sincronizado. Pruebas de navegación: mismas 4 fallas que `main`.
@@ -12949,6 +12959,11 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - **CI:** `scripts/run-critical-tests.mjs` ahora incluye `lana-unlink`, `pausa-emergencia` y `auditoria-chat-`.
 - **Archivos:** `supabase/functions/lana-connection/index.ts` + bundle, `lana-inbox/index.ts` + bundle, `_shared/pause-all-core.mjs`, migración, `smyl-connections.js/.css`, `smyl-inbox.js/.css`, `app.html`, `sw.js`, copias móviles, `tests/lana-unlink-messaging` (actualizada), `tests/pausa-emergencia-core`, `tests/auditoria-chat-desvincular-pausa`.
 
+## 2026-11-27 · Claude · Finanzas: Bloques 3 y 4 de la auditoría
+- **Función a redesplegar:** `facturapi` (pegar `docs/bundles/facturapi.single-file.ts`). Nueva compuerta de cancelación en producción: `puedeCancelarEnProduccion` (`_shared/facturapi-core.mjs`), secreto `FACTURAPI_LIVE_CANCELLATION=1` (apagado por defecto) y texto «CANCELAR EN PRODUCCION». `cancel_check` en producción también requiere el interruptor. La vista de conexión devuelve `live_cancellation`. Los eventos de cancelación guardan `live`. Sin SQL.
+- `smyl-finance.js?v=83` / `.css?v=60`: diálogo de cancelación real vs sandbox; tarjeta «Pagos» con el periodo del panel (`periodFacts`); `message()` ya no colapsa los permisos en un texto único; caja ajena con nombre del responsable.
+- Doc nueva: `docs/FACTURAPI_PUESTA_EN_PRODUCCION.md` (configuración 4/4, contador, secretos, prueba controlada).
+- Pruebas nuevas: `facturapi-cancelacion-produccion`, `finance-bloque4-ux`; 351 pruebas de finanzas/CFDI verdes y el humo de navegador completo.
 ## 2026-11-27 — Claude — Desvincular y pantalla Canales: contenido veraz y diseño
 
 - **Corrección de contenido (importante):** el diálogo de «Desvincular» decía «se pausan los recordatorios por WhatsApp». **Falso**: los recordatorios se programan en LANA (`/inbox/conversations/:id/scheduled`) y, una vez programados, **LANA los envía aunque se desvincule**; SMYL solo deja de programar los nuevos y, sin credencial, ya no puede cancelar los pendientes (`provider_cancel_required`). Ahora el diálogo lo dice en «NO se detiene», cuenta cuántos hay (`smyl_appointment_reminders` con `status='processing'`, `provider_reference` y `scheduled_for` futuro) y el servidor responde `report.scheduled_reminders: "still_scheduled"`. **Posible mejora futura:** cancelar en LANA los recordatorios pendientes antes de borrar la credencial. Redesplegar `lana-connection` para el campo nuevo del reporte.
@@ -12972,3 +12987,12 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - Sin la migración la sección no aparece y el catálogo funciona como antes.
 - Pruebas: `tests/service-requires-quote.test.mjs`, `tests/qa/requiere-presupuesto-smoke.cjs`.
 - Siguiente (acordado): paso 3 (avance del tratamiento: conceptos realizados, ligar desde el procedimiento y aviso al cerrar) y paso 4 (anticipo al aceptar y cargos programados; se muestra antes de implementarlo).
+## 2026-11-27 · Claude · Corte con reporte de Openpay + «Registrar cargo» sin IVA repetido
+- **Migración NUEVA (SQL Editor, antes de publicar la pantalla):** `20261128120000_smyl_cash_close_online_report.sql`. `smyl_cash_online_report` (solo service_role) arma en el servidor el reporte de cobros Openpay de la sucursal del corte (desde la apertura, netos de reembolsos, sin repetirse entre cortes) y `smyl_close_cash_session` (misma firma de 5 parámetros) lo guarda en `close_reconciliation->'online'`. Probada en Postgres 16 local (7 casos).
+- `smyl-finance.js?v=84` / `.css?v=61`: el corte separa los cobros en línea (se reconocen por `receipt.snapshot.provider='openpay'`): ya no entran a «Debe haber» de Tarjetas/Transferencias; el diálogo los muestra como «Cobros en línea · Openpay» (lista, sin conteo) y «Cortes anteriores» los resume.
+- «Registrar cargo»: el IVA lo decide el servicio (se quitó el recuadro repetido; la fila IVA del resumen solo aparece si hay IVA); solo un concepto libre ofrece «Este concepto lleva IVA 16%». Cantidad y precio alineados (misma estructura `smyl-field-label`), enlace «Agregar descuento» como texto.
+- Pruebas: `finance-corte-openpay`; `cobros-cargo-fiscal` actualizada; el humo mide la alineación.
+
+## 2026-11-27 · Claude · Cobrar: el importe por cargo ya no se edita
+- `smyl-finance.js?v=85` / `.css?v=62`: en «Cobrar → Aplicar a cargos» el importe de cada cargo es de solo lectura; se reparte solo con el «Importe» del paso 2, del cargo más antiguo al más reciente, y la persona solo marca qué cargos paga. Si sobra dinero y quedan cargos sin marcar, aparece «Sobran $X… quedarán como saldo a favor» (antes se creaba el saldo a favor sin avisar). Sin SQL ni funciones.
+- El humo `finanzas-pestanas-smoke.cjs` ya no busca «Corte de caja» en Configuración (lo quitó #339 de main): valida «Facturación».
