@@ -1,3 +1,20 @@
+## 2026-11-27 — Claude Code — Facturación: firmar la Carta Manifiesto de Facturapi dentro de SMYL
+
+- Petición de Ricardo: Facturapi exige la Carta Manifiesto para validar la facturación, y ya se resolvió en LANA (`promodesk`, `config.jsx`, task-ids `cfdi-org-pasos-pendientes-live` y su ampliación). Que SMYL la tenga igual.
+- **Qué faltaba:** SMYL ya leía el paso pendiente `manifiesto` de Facturapi, pero solo mostraba un texto («firma la carta y pulsa Revisar de nuevo») sin dar cómo firmarla.
+- **Qué hace ahora** (`smyl-finance.js` v91 / `.css` v65):
+  - En Configuración → Cobros y caja → Facturación, el paso «Tu certificado (CSD) y activación» muestra el botón **«Firmar Carta Manifiesto»** cuando el CSD ya está cargado y Facturapi sigue pidiendo la carta.
+  - El botón abre un diálogo que explica que firma el dueño del RFC con su e.firma (no es el CSD). «Mostrar formulario de firma» incrusta el módulo oficial `https://www.facturapi.io/embedded/manifiesto`, solo bajo demanda.
+  - «Abrir en otra ventana» abre `https://www.facturapi.io/manifiesto`. Respaldo siempre visible: Facturapi **no permite** incrustar ese portal (`X-Frame-Options: SAMEORIGIN`); el módulo `/embedded/` sí (`frame-ancestors *`).
+  - El diálogo revisa en Facturapi cada 25 s mientras esté visible, con tope de 48 revisiones, y también con «Ya firmé, revisar». Al detectar que el paso se completó, se cierra y actualiza el estado.
+  - Si todavía falta el CSD, el texto avisa que después viene la carta.
+  - Requiere el permiso de facturación, igual que subir el CSD.
+- **CSP (seguridad):** `app.html` y `mobile/www/app.html` añaden `https://www.facturapi.io` **solo a `frame-src`**. Facturapi no es origen de scripts ni de conexiones del panel. El iframe lleva `sandbox` sin permiso para navegar la página de SMYL y `referrerpolicy="no-referrer"`. SMYL no ve ni guarda la e.firma: el formulario es de otro origen.
+- **Verificado:** con el navegador de pruebas, el módulo real de Facturapi carga dentro de una página con la CSP real de SMYL y ese `sandbox`, sin violaciones; muestra el texto legal (reglas 2.7.2.5 y 2.7.2.7) y pide subir la e.firma. **No se probó firmar con una e.firma real.**
+- **Ojo:** la carta aplica a la cuenta de facturación **de SMYL** (modo plataforma). Con «cuenta propia de Facturapi en pruebas» no hace falta y no aparece. La producción solo se activa con la cuenta de SMYL.
+- **Pruebas:** nuevo `tests/smyl-billing-manifest.test.mjs` y ampliación de `tests/app-csp.test.mjs`. Las pruebas que fijaban `smyl-finance.js?v=90` y `smyl-finance.css?v=64` ahora aceptan cualquier `v=9x` y `v=6x`. En la suite completa no hay fallas nuevas: los dos casos que aparecieron son pruebas de navegador del chat que fallan de forma intermitente con o sin este cambio.
+- **Despliegue:** solo frontend, no hay nada que desplegar en Supabase.
+
 ## 2026-11-27 — Claude — Prospecto → paciente (PR 2: interfaz)
 
 - Requiere la migración `20261203100000_smyl_prospect_lifecycle.sql` (ya aplicada por Ricardo; el alta reintenta sin `ciclo_vida` si aún no existiera).

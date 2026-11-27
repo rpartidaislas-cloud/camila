@@ -871,8 +871,8 @@
     var csdText,csdAction,csdRun,csdDone,csdExtra=[];
     if(own){csdDone=true;csdText='Cuenta propia de Facturapi conectada (pruebas)'+(fp.organization_name?' · '+esc(fp.organization_name):'')+' · llave ····'+esc(String(fp.key_fingerprint||'').slice(-4))+(fp.last_verified_at?' · verificada '+date(fp.last_verified_at,true):'');csdAction='Cambiar llave';csdRun=openFacturapiConnect;csdExtra=[{label:'Verificar',run:function(){facturapiRun('verify');}},{label:'Desconectar',run:function(){if(window.confirm('¿Desconectar Facturapi? Se borrará la llave guardada.'))facturapiRun('disconnect');}}];}
     else if(platform&&fp.production_ready){csdDone=true;csdText='Facturación activa'+(fp.csd_valid_until?' · CSD vigente hasta '+date(fp.csd_valid_until):'');csdAction='Cambiar CSD';csdRun=openCsdDialog;csdExtra=[{label:'Revisar de nuevo',run:function(){syncOrganization();}}];}
-    else if(platform&&!needsCsd&&needsManifest){csdDone=false;csdText='Tu CSD ya está cargado'+(fp.csd_valid_until?' (vigente hasta '+date(fp.csd_valid_until)+')':'')+'. Falta firmar la Carta Manifiesto: es la autorización del SAT para que Facturapi timbre a nombre de la clínica. Cuando la firmes, pulsa «Revisar de nuevo».';csdAction='Revisar de nuevo';csdRun=syncOrganization;csdExtra=[{label:'Cambiar CSD',run:openCsdDialog}];}
-    else if(platform){csdDone=false;csdText='Falta subir el certificado de sello digital (CSD) de la clínica.';csdAction='Subir CSD';csdRun=openCsdDialog;}
+    else if(platform&&!needsCsd&&needsManifest){csdDone=false;csdText='Tu CSD ya está cargado'+(fp.csd_valid_until?' (vigente hasta '+date(fp.csd_valid_until)+')':'')+'. Falta firmar la Carta Manifiesto: es la autorización que le das a Facturapi, proveedor autorizado por el SAT, para timbrar facturas a nombre de la clínica. La firma el dueño del RFC con su e.firma, directo con Facturapi.';csdAction='Firmar Carta Manifiesto';csdRun=openManifestDialog;csdExtra=[{label:'Ya la firmé, revisar',run:syncOrganization},{label:'Cambiar CSD',run:openCsdDialog}];}
+    else if(platform){csdDone=false;csdText='Falta subir el certificado de sello digital (CSD) de la clínica.'+(needsManifest?' Después tendrás que firmar la Carta Manifiesto.':'');csdAction='Subir CSD';csdRun=openCsdDialog;}
     else if(fp.status==='unavailable'){csdDone=false;csdText='No se pudo consultar Facturapi: '+esc(fp.error||'')+'.';csdAction='Reintentar';csdRun=function(){loadFacturapi().then(function(){renderBillingSetup();});};}
     else{csdDone=false;csdText=issuerDone?'SMYL crea tu cuenta de facturación y la liga a tu CSD, que es el certificado que te da el SAT para facturar. No necesitas registrarte en Facturapi.':'Primero completa los datos fiscales de la clínica.';csdAction='Activar y subir CSD';csdRun=issuerDone?openCsdDialog:function(){notify('Primero completa los datos fiscales de la clínica.','info');};csdExtra=issuerDone?[{label:'Tengo mi propia cuenta',run:openFacturapiConnect}]:[];}
     var basics=issuerDone&&csdDone&&servicesDone&&!!pac.fiscal_policy_reviewed_at;
@@ -893,6 +893,37 @@
         action:pac.fiscal_policy_reviewed_at?'Quitar confirmación':'Ya lo revisó',run:async function(){try{await setPac({policy:!pac.fiscal_policy_reviewed_at});await reload(pac.fiscal_policy_reviewed_at?'Confirmación retirada.':'Revisión del contador confirmada.');}catch(e){notify(message(e),'error');}}},
       {id:'production',title:'Facturar en producción',done:prodDone,text:prodText,action:prodAction,run:prodRun,extra:prodExtra,muted:!prodDone&&!prodAction}
     ];
+  }
+  // Carta Manifiesto de Facturapi (misma solución que LANA). Firma el dueño del RFC con su e.firma en el módulo oficial de Facturapi,
+  // incrustado solo bajo demanda: SMYL no recibe ni guarda la e.firma. Solo /embedded/ permite iframe; el portal público debe abrirse aparte.
+  var MANIFEST_EMBED='https://www.facturapi.io/embedded/manifiesto',MANIFEST_PORTAL='https://www.facturapi.io/manifiesto',MANIFEST_POLL_MS=25000,MANIFEST_POLL_MAX=48;
+  function manifestPending(){return ((state.facturapi&&state.facturapi.pending_steps)||[]).some(function(x){return x&&x.type==='manifiesto';});}
+  function openManifestDialog(){
+    if(!state.canInvoice)return notify('Tu rol no permite configurar la facturación.','error');
+    var d=dialog('<div class="billing-manifest"><h2>Firma la Carta Manifiesto</h2><p>Con esta carta autorizas a Facturapi, proveedor autorizado por el SAT, a timbrar facturas a nombre de la clínica. <strong>Es un trámite de una sola vez.</strong></p><ul class="billing-manifest-list"><li>La firma <strong>el dueño del RFC</strong> con su <strong>e.firma</strong> (archivos .cer y .key y su contraseña). <strong>No es el CSD</strong> que ya subiste.</li><li>El formulario es de Facturapi: SMYL <strong>no ve ni guarda</strong> tu e.firma.</li><li>Al terminar, esta pantalla lo detecta sola; también puedes pulsar «Ya firmé, revisar».</li></ul><div class="billing-manifest-frame" data-manifest-frame hidden></div><div class="billing-manifest-status" data-manifest-status role="status" aria-live="polite"></div><div class="finance-actions"><button type="button" data-close>Cerrar</button><a class="btn btn-secondary" href="'+MANIFEST_PORTAL+'" target="_blank" rel="noopener noreferrer">Abrir en otra ventana</a><button type="button" class="btn btn-secondary" data-manifest-check>Ya firmé, revisar</button><button type="button" class="btn btn-primary" data-manifest-show>Mostrar formulario de firma</button></div></div>','finance-manifest-dialog');
+    var frame=d.querySelector('[data-manifest-frame]'),status=d.querySelector('[data-manifest-status]'),show=d.querySelector('[data-manifest-show]'),check=d.querySelector('[data-manifest-check]'),timer=0,runs=0,busy=false;
+    function stop(){clearInterval(timer);timer=0;d.classList.remove('finance-manifest-dialog');}
+    d.addEventListener('close',stop,{once:true});
+    async function verify(silent){
+      if(busy)return false;busy=true;if(!silent){check.disabled=true;status.textContent='Consultando a Facturapi…';}
+      try{
+        await facturapiCall({action:'sync'});await loadFacturapi();
+        if(!manifestPending()){stop();close();await reload('Listo: Facturapi ya tiene tu Carta Manifiesto.');renderBillingSetup();return true;}
+        if(!silent)status.textContent='Facturapi todavía no ve la firma. Termina el formulario y vuelve a revisar.';
+      }catch(err){if(!silent)status.textContent=String(err&&err.message||err);}
+      finally{busy=false;if(!silent)check.disabled=false;}
+      return false;
+    }
+    check.onclick=function(){verify(false);};
+    show.onclick=function(){
+      if(!frame.firstChild){
+        var f=document.createElement('iframe');f.title='Firma de la Carta Manifiesto de Facturapi';f.src=MANIFEST_EMBED;f.referrerPolicy='no-referrer';
+        f.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals');
+        frame.append(f);
+      }
+      frame.hidden=false;show.hidden=true;d.querySelector('.billing-manifest-list').hidden=true;status.textContent='Si el formulario no carga, usa «Abrir en otra ventana».';
+      if(!timer)timer=setInterval(function(){if(document.visibilityState==='visible'&&++runs<=MANIFEST_POLL_MAX)verify(true);},MANIFEST_POLL_MS);
+    };
   }
   async function syncOrganization(){try{await facturapiCall({action:'sync'});await loadFacturapi();await reload('Estado de Facturapi actualizado.');}catch(e){notify(String(e&&e.message||e),'error');}}
   function openCsdDialog(){
