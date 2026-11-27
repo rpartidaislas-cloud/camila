@@ -4,7 +4,7 @@
  *   - Revisión diaria: lista breve, opcional y sin puntuación regulatoria;
  *   - Guía COFEPRIS: documentos, controles periódicos y carpeta imprimible para una posible visita.
  * Las reglas viven en smyl-compliance-model.js (lógica pura). El servidor usa smyl_compliance_overview / smyl_log_* /
- * smyl_set_compliance_item y la bitácora por área de 20261127180000. Si la actualización nueva aún no está aplicada,
+ * smyl_set_compliance_item y la bitácora por área de 20261127181000. Si la actualización nueva aún no está aplicada,
  * se conserva temporalmente la revisión diaria anterior sin romper la Guía COFEPRIS.
  * Este reporte resume registros de la clínica; no sustituye los documentos originales ni una asesoría sanitaria. */
 (function (root, factory) {

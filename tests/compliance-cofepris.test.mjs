@@ -49,7 +49,7 @@ test('migración y cableado de la pantalla', () => {
 });
 
 test('la bitácora diaria registra cada equipo o área sin preconfirmar su realización', () => {
-  const migration = fs.readFileSync(new URL('../supabase/migrations/20261127180000_smyl_daily_sanitation_log.sql', import.meta.url), 'utf8');
+  const migration = fs.readFileSync(new URL('../supabase/migrations/20261127181000_smyl_daily_sanitation_log.sql', import.meta.url), 'utf8');
   const ui = fs.readFileSync(new URL('../smyl-compliance.js', import.meta.url), 'utf8');
   for (const table of ['smyl_sanitation_assets', 'smyl_sanitation_logs']) assert.match(migration, new RegExp('create table if not exists public\\.' + table));
   for (const rpc of ['smyl_daily_sanitation_overview', 'smyl_save_daily_sanitation', 'smyl_configure_sanitation_asset']) assert.match(migration, new RegExp(rpc));
