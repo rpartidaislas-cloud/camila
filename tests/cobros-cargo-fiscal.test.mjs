@@ -21,7 +21,7 @@ test('total en vivo: descuento en $ o %, precio con comas y signo de pesos', () 
   assert.deepEqual([amt.gross, amt.disc, amt.total], [600, 100, 500]);
 });
 
-test('IVA: lo decide la política del servicio; sólo concepto libre o servicio pendiente permiten marcar 16%', () => {
+test('IVA: lo decide la política del servicio; sólo un concepto libre permite marcar 16%', () => {
   const exento = { tax_treatment: 'exempt', fiscal_status: 'reviewed', sat_product_service_code: '85121800' };
   const tasa = { tax_treatment: 'rate', tax_rate: 0.16, fiscal_status: 'reviewed', sat_product_service_code: '85121800' };
   const pendiente = { tax_treatment: 'pending', fiscal_status: 'pending' };
@@ -30,9 +30,11 @@ test('IVA: lo decide la política del servicio; sólo concepto libre o servicio 
   m = calc.chargeMath(form({ p: '3000', d: '100' }), tasa);
   assert.deepEqual([m.tax, m.total], [464, 3364], 'igual que el servidor: (3000-100)×16%');
   m = calc.chargeMath(form({ p: '100', q: '2', iva: true }), pendiente);
-  assert.deepEqual([m.tax, m.total, m.autoTax], [32, 232, false]);
+  assert.deepEqual([m.tax, m.total, m.autoTax], [0, 200, false], 'con un servicio, el IVA lo decide el servicio: la casilla no aplica');
   m = calc.chargeMath(form({ p: '500' }), null);
   assert.deepEqual([m.tax, m.total], [0, 500]);
+  m = calc.chargeMath(form({ p: '500', iva: true }), null);
+  assert.deepEqual([m.tax, m.total], [80, 580], 'solo un concepto libre permite marcar el IVA');
   assert.equal(calc.chargeTaxLabel(exento), 'IVA exento (servicio dental)');
   assert.equal(calc.chargeTaxLabel(tasa), 'IVA 16%');
 });

@@ -12979,3 +12979,9 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - Front: `smyl-schedule.js` v68 (fila «Cotización» en la ficha de la cita con «Sugerido / Ligar a… / Quitar»; la fila «Cobro» pasa a «Cubierta por cotización»), `smyl-schedule.css` v40, `smyl-finance.js` v82 (una cita ligada no cuenta como «pendiente de cobro»). Sufijo SW `-cita-cotizacion-v1`, copias en `mobile/www/`. Sin la migración la fila queda oculta y todo sigue como antes.
 - No incluido todavía: ligar desde el procedimiento de Consulta y marcar el concepto «realizado» (paso 3: avance del tratamiento).
 - Pruebas: `tests/appointment-quote-links.test.mjs`, `tests/qa/cita-cotizacion-smoke.cjs`.
+
+## 2026-11-27 · Claude · Corte con reporte de Openpay + «Registrar cargo» sin IVA repetido
+- **Migración NUEVA (SQL Editor, antes de publicar la pantalla):** `20261128120000_smyl_cash_close_online_report.sql`. `smyl_cash_online_report` (solo service_role) arma en el servidor el reporte de cobros Openpay de la sucursal del corte (desde la apertura, netos de reembolsos, sin repetirse entre cortes) y `smyl_close_cash_session` (misma firma de 5 parámetros) lo guarda en `close_reconciliation->'online'`. Probada en Postgres 16 local (7 casos).
+- `smyl-finance.js?v=84` / `.css?v=61`: el corte separa los cobros en línea (se reconocen por `receipt.snapshot.provider='openpay'`): ya no entran a «Debe haber» de Tarjetas/Transferencias; el diálogo los muestra como «Cobros en línea · Openpay» (lista, sin conteo) y «Cortes anteriores» los resume.
+- «Registrar cargo»: el IVA lo decide el servicio (se quitó el recuadro repetido; la fila IVA del resumen solo aparece si hay IVA); solo un concepto libre ofrece «Este concepto lleva IVA 16%». Cantidad y precio alineados (misma estructura `smyl-field-label`), enlace «Agregar descuento» como texto.
+- Pruebas: `finance-corte-openpay`; `cobros-cargo-fiscal` actualizada; el humo mide la alineación.
