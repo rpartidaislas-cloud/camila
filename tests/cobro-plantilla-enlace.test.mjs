@@ -26,3 +26,11 @@ test('Finanzas: «Enviar por WhatsApp» usa la plantilla cuando el paciente tien
   assert.match(suggest, /\['cobro_enlace_pago_v1', 'essential'/);
   for (const dir of ['', 'mobile/www/']) assert.equal(read(dir + 'smyl-finance.js'), finance);
 });
+
+test('la ventana del enlace de pago muestra cómo lo recibirá el paciente (vista previa de la plantilla con sus datos)', () => {
+  const finance = read('smyl-finance.js');
+  assert.match(finance, /Así lo recibirá el paciente por WhatsApp/);
+  assert.match(finance, /finance-link-bubble/);
+  assert.match(finance, /vals=\[patientFirstName\(patientId\),money\(data\.amount\),clinicLabel\(\),data\.url\]/);
+  assert.match(read('smyl-finance.css'), /\.finance-link-bubble/);
+});

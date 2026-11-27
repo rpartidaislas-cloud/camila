@@ -12895,3 +12895,6 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 
 ## 2026-11-27 · Claude · Ventana «Enlace de pago listo» rediseñada
 - `smyl-finance.js` (v77) / `.css` (v55): ventana compacta: marca ✓, título, «Saldo a cobrar … · vence …» (sin el doble punto), enlace + «Copiar» en una fila (el botón dice «Copiado ✓» 2 s), acción principal a ancho completo y «Cerrar» discreto. Si el paciente no tiene chat de WhatsApp en Mensajes se explica por qué el envío es «Enviar desde mi WhatsApp» (atajo wa.me) en vez de la plantilla. Ids sin cambio (`link-copy`, `link-wa-template`, `link-wa`). Sin SQL ni funciones.
+
+## 2026-11-27 · Claude · Vista previa de la plantilla en «Enlace de pago listo»
+- `smyl-finance.js` (v78) / `.css` (v56): cuando el paciente tiene chat de WhatsApp, la ventana muestra «Así lo recibirá el paciente por WhatsApp» con la plantilla `cobro_enlace_pago_v1` ya rellenada (nombre, monto, clínica, enlace) en una burbuja. Los datos son los mismos que se envían (`vals`). Sin SQL ni funciones.
