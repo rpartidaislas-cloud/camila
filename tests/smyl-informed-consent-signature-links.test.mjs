@@ -27,6 +27,9 @@ function tableSql(name) {
 test('la migración dedicada conserva una sola fuente de verdad', () => {
   assert.equal(existsSync(migrationUrl), true, `falta ${migrationPath}`);
   assert.match(sql, /^begin;[\s\S]*commit;\s*$/m);
+  const validator = functionSql('smyl_valid_signature_png');
+  assert.match(validator, /return v_width = 600 and v_height = 200/i);
+  assert.match(sql, /revoke all on function public\.smyl_valid_signature_png\(text\)/i);
   assert.match(sql, /drop trigger if exists smyl_informed_consents_immutable[\s\S]*update public\.smyl_informed_consents/i);
   assert.match(sql, /create trigger smyl_informed_consents_immutable\s+before update or delete/i);
   assert.match(sql, /revoke all on (?:table )?public\.smyl_informed_consents from public, anon, authenticated/i);

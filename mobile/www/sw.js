@@ -6,6 +6,7 @@ const CHAT_WRITING_TOOLS_CACHE = COMPOSER_TOOLBOX_CACHE + '-inbox-writing-tools-
 const ANATOMICAL_ODONTOGRAM_CACHE = CHAT_WRITING_TOOLS_CACHE + '-chat-media-v1-inbox-header-v1-thread-ux-v5-chat-compact-v2-evidence-single-entry-fix-v1-radiograph-anatomic-odontogram-v20-radiograph-mobile-workspace-v22-radiograph-visual-architecture-v23-radiograph-fit-action-v24-evidence-library-v25-radiograph-crop-view-v26-radiograph-unified-review-v27-patient-reload-continuity-v1-clinical-file-layout-v28-radiograph-crop-editor-v29';
 const STATIC_CACHE = ANATOMICAL_ODONTOGRAM_CACHE + '-canales-cuentas-v1' + '-chat-control-icons-v1-inventory-policy-v1-collection-visual-v1-static-evidence-center-ux-v6-clinical-categories-v1-evidence-single-intake-v1-payments-ledger-ux-v1-evidence-workspace-v1-finance-workspace-v4-fiscal-receipts-v1-mila-interview-qr-v1-mila-voice-interview-v1-mila-dialog-v3-mila-live-orb-v1-mila-live-v2-summary-fix-v1-mila-orb-v3-mila-previsit-v1-orb-round-v1-online-pay-v1-oculto-v1-previsit-agenda-v1-mila-turnos-v1-mi-cuenta-personal-v1-mi-consultorio-v1-equipo-ficha-v1-branch-scope-v1-receipt-professional-v1-propuesta-compartida-v1-propuesta-aviso-v1-correcciones-revision-v1-quick-replies-v1-inbox-composer-rewrite-v1-lana-meta-attribution-v1-inicio-sin-nueva-cita-v1-branches-team-v2-branch-actions-v1-clinical-files-inset-v1-clinical-tools-v1-simulador-arreglos-v1-receta-base-v1-diseno-sonrisa-v1-receta-v1-ia-interruptor-v1-asistente-layout-v1-asistente-niveles-v1-agenda-ia-solicitud-v1-asistente-autollenado-v1-agenda-sin-nueva-cita-duplicada-v1-inbox-ocultar-mensaje-v1-agenda-error-envio-visible-v1-receta-profesional-v2-consentimiento-profesional-v2-ortodoncia-longitudinal-v2-compliance-nudge-v1-compliance-simple-v2-privacy-labels-v1-menu-sin-simulaciones-v1-inventario-productos-v1-configuracion-limpia-v1-daily-review-cofepris-v1-daily-sanitation-log-v1-cobro-verificado-corte-v2';
 const DYNAMIC_CACHE = ANATOMICAL_ODONTOGRAM_CACHE + '-collection-visual-v1-dynamic-evidence-center-ux-v6-clinical-categories-v1-evidence-single-intake-v1-payments-ledger-ux-v1-evidence-workspace-v1-finance-workspace-v4-fiscal-receipts-v1-lana-meta-attribution-v1';
+const ACTIVE_STATIC_CACHE = STATIC_CACHE + '-consent-signature-v3';
 
 // Archivos que se cachean al instalar
 const STATIC_FILES = [
@@ -94,14 +95,17 @@ const STATIC_FILES = [
   '/camila/smyl-history-model.js?v=3',
   '/camila/smyl-history-read.js?v=4',
   '/camila/smyl-patient-privacy-panel.js?v=6',
-  '/camila/smyl-informed-consent.js?v=2',
-  '/camila/smyl-informed-consent.css?v=2',
+  '/camila/smyl-informed-consent.js?v=3',
+  '/camila/smyl-informed-consent.css?v=3',
   '/camila/smyl-clinical-background.js?v=1',
   '/camila/smyl-procedure-safety.js?v=3',
   '/camila/smyl-patient-360.js?v=42',
   '/camila/smyl-mila-interview.js?v=7',
   '/camila/smyl-mila-interview.css?v=5',
   '/camila/vendor/qrcode-generator-1.4.4.js',
+  '/camila/firma-consentimiento.html',
+  '/camila/smyl-consent-signature.js?v=1',
+  '/camila/smyl-consent-signature.css?v=1',
   '/camila/smyl-patient-360.css?v=24',
   '/camila/smyl-patient-privacy-panel.css?v=4',
   '/camila/smyl-patient-record-stage2.js?v=2',
@@ -345,7 +349,7 @@ function scoped(url) {
 self.addEventListener('install', function(e) {
   console.log('[SW] Installing SMYL PWA update...');
   e.waitUntil(
-    caches.open(STATIC_CACHE).then(function(cache) {
+    caches.open(ACTIVE_STATIC_CACHE).then(function(cache) {
       // Un recurso externo no debe impedir que se actualice toda la PWA.
       return Promise.all(STATIC_FILES.map(function(url) {
         return cache.add(new Request(scoped(url), { cache: 'reload' })).catch(function(err) {
@@ -365,7 +369,7 @@ self.addEventListener('activate', function(e) {
     caches.keys().then(function(keys) {
       return Promise.all(
         keys.filter(function(key) {
-          return key !== STATIC_CACHE && key !== DYNAMIC_CACHE;
+          return key !== ACTIVE_STATIC_CACHE && key !== DYNAMIC_CACHE;
         }).map(function(key) {
           console.log('[SW] Deleting old cache:', key);
           return caches.delete(key);
@@ -412,7 +416,7 @@ self.addEventListener('fetch', function(e) {
     e.respondWith(
       fetch(e.request, { cache: 'no-store' }).then(function(response) {
         var clone = response.clone();
-        caches.open(STATIC_CACHE).then(function(cache) {
+        caches.open(ACTIVE_STATIC_CACHE).then(function(cache) {
           cache.put(e.request, clone);
         });
         return response;

@@ -8,6 +8,51 @@
 
 begin;
 
+-- Esta migración es autosuficiente. Producción puede recibir el flujo de
+-- consentimientos antes que la firma de notas clínicas, por lo que instalamos
+-- aquí el mismo validador estricto de PNG que comparten ambos módulos.
+create or replace function public.smyl_valid_signature_png(p_signature text)
+returns boolean
+language plpgsql
+immutable
+strict
+set search_path = pg_catalog, public
+as $$
+declare
+  v_bytes bytea;
+  v_width bigint;
+  v_height bigint;
+begin
+  if p_signature !~ '^data:image/png;base64,iVBORw0KGgo[A-Za-z0-9+/=]+$'
+     or char_length(p_signature) not between 300 and 120000 then
+    return false;
+  end if;
+
+  v_bytes := decode(split_part(p_signature, ',', 2), 'base64');
+  if octet_length(v_bytes) not between 200 and 90000
+     or substring(v_bytes from 1 for 8) <> decode('89504e470d0a1a0a', 'hex')
+     or substring(v_bytes from 13 for 4) <> convert_to('IHDR', 'UTF8') then
+    return false;
+  end if;
+
+  v_width := get_byte(v_bytes, 16)::bigint * 16777216
+    + get_byte(v_bytes, 17)::bigint * 65536
+    + get_byte(v_bytes, 18)::bigint * 256
+    + get_byte(v_bytes, 19)::bigint;
+  v_height := get_byte(v_bytes, 20)::bigint * 16777216
+    + get_byte(v_bytes, 21)::bigint * 65536
+    + get_byte(v_bytes, 22)::bigint * 256
+    + get_byte(v_bytes, 23)::bigint;
+
+  return v_width = 600 and v_height = 200;
+exception when others then
+  return false;
+end;
+$$;
+
+revoke all on function public.smyl_valid_signature_png(text)
+  from public, anon, authenticated;
+
 -- El texto de aceptación se versiona en servidor. Así una copia de frontend no
 -- puede cambiar silenciosamente lo que significa `patient-consent-v1`.
 create or replace function public.smyl_informed_consent_acceptance_text(p_version text)
