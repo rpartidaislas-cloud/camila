@@ -27,10 +27,11 @@ test('Agenda: una sola vía para el horario; la lista resume por profesional y s
   assert.match(admin, /window\.ir\('clinica'\)/, 'la ficha vive en Mi clínica: hay que ir allí para que se vea');
 });
 
-test('Configuración: «Profesionales» y «Horarios y servicios» ya no repiten la misma descripción', () => {
+test('Configuración: «Horarios y servicios» ya no se repite (Servicios y tarifas vive en Catálogo)', () => {
   const hub = read('smyl-settings-hub.js');
   assert.doesNotMatch(hub, /Define quién atiende, dónde y en qué horarios/);
-  assert.match(hub, /Servicios, tarifas y el horario semanal de cada profesional/);
+  assert.doesNotMatch(hub, /title: 'Horarios y servicios'/);
+  assert.match(hub, /title: 'Servicios y tarifas', desc: 'Tratamientos, duración, precios y datos fiscales\.'/);
 });
 
 test('web y móvil publican los mismos archivos del editor de horarios', () => {
