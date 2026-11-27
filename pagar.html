@@ -754,6 +754,7 @@ h1{font-size:22px;line-height:1.25;margin:4px 0 2px}
       if (v.status === 'expired') return showMessage('Enlace vencido', 'Este enlace de pago venció. Pide uno nuevo a tu clínica.', 'err');
       if (v.status === 'cancelled') return showMessage('Enlace cancelado', 'Tu clínica canceló este enlace. Pide uno nuevo si aún tienes saldo.', 'err');
       var returned = /[?&]pago=retorno/.test(location.search);
+      if (v.cash_closed && !returned) return showMessage('Pagos en pausa', clinicName() + ' no puede recibir pagos en línea en este momento. Inténtalo más tarde o comunícate con tu clínica.', 'info');
       return post(LANA_PAY, { accion: 'config', token: token }).then(function (c) {
         if (!c.openpay) return showMessage('Pago no disponible', c.error || 'El pago en línea no está disponible por ahora.', 'err');
         cfg = c;
