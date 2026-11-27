@@ -1289,3 +1289,16 @@ dialog[data-smyl-dialog-system="true"][open] .finance-allocation-input>input[typ
 .finance-link-bubble{max-width:100%;padding:10px 12px;border:1px solid #cde8d8;border-radius:12px 12px 12px 4px;background:#eaf7ef;color:#16324f}
 .finance-link-bubble p{margin:0;font-size:13.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
 .finance-link-bubble span{display:block;margin-top:6px;color:#64748b;font-size:12px}
+
+/* Contexto de sucursal bajo el título de Finanzas */
+#p-caja .finance-context{margin:2px 0 12px;font-size:13px;line-height:1.45;color:var(--smyl-muted,#52626f)}
+
+/* Avisos de Finanzas: cajas olvidadas, cobro sin confirmar, facturas atoradas */
+#p-caja .finance-alerts{display:grid;gap:8px;margin:0 0 12px}
+#p-caja .finance-alerts[hidden]{display:none}
+#p-caja .finance-alert{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-radius:12px;background:#fff4db;border:1px solid #f0dca8;color:#6b4800}
+#p-caja .finance-alert[data-tone=danger]{background:#fdecea;border-color:#f3c6c0;color:#8a2a1e}
+#p-caja .finance-alert p{margin:0;font-size:13.5px;line-height:1.45}
+#p-caja .finance-alert .btn{flex:none;min-height:40px}
+@media(max-width:640px){#p-caja .finance-alert{flex-direction:column;align-items:stretch}}
+/*contenedor*/@container finance-workspace (max-width:640px){#p-caja .finance-alert{flex-direction:column;align-items:stretch}}

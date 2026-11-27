@@ -48,7 +48,7 @@ test('la ventana: errores dentro, citas del paciente, sucursal automática, venc
   for (const base of ['', 'mobile/www/']) {
     const f = read(base + 'smyl-finance.js');
     assert.match(f, /data-form-error hidden/);
-    assert.match(f, /catch\(err\)\{fail\(message\(err\)\);\}/);
+    assert.match(f, /catch\(err\)\{if\(isDefiniteError\(err\)\)attemptClose\('charge'\);fail\(isDefiniteError\(err\)\?message\(err\):/);
     assert.match(f, /a\.patient_id===pid&&a\.status!=='cancelled'/);
     assert.match(f, /branches\.length<=1\|\|mine\?' hidden':''/);
     // Sucursal automática: la del consultorio activo; el precio de lista sigue a la sucursal; «Concepto» no repite al servicio.
