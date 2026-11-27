@@ -279,7 +279,7 @@ test("book: con ese nivel `suggest` también guarda la oferta del servidor y `re
 });
 
 test("book: la migración y la función dejan los candados escritos (nivel, paciente vinculado, tope diario, bitácora, solo service_role)", () => {
-  const sql = readFileSync(new URL("../supabase/migrations/20261128140000_smyl_ai_scheduling_book.sql", import.meta.url), "utf8");
+  const sql = readFileSync(new URL("../supabase/migrations/20261128141000_smyl_ai_scheduling_book.sql", import.meta.url), "utf8");
   assert.match(sql, /if v_level is distinct from 'book' then/);
   assert.match(sql, /smyl_ai_scheduling_create_request\(/);
   assert.match(sql, /if v_req\.patient_id is null then/);
