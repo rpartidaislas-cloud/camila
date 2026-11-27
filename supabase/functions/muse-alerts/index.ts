@@ -1,10 +1,10 @@
 import { smylAdmin as db, lanaRequest } from '../_shared/lana-linked.ts';
 import { reply, deliveryResult } from '../_shared/muse-core.mjs';
 import { allowed, type MuseConnection } from '../_shared/muse-inbox.ts';
-const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const workerSecret=Deno.env.get('SMYL_MUSE_WORKER_SECRET') || '';
 const TEMPLATE='smyl_chat_pendiente_profesional_v1';
 Deno.serve(async(req:Request)=>{
-  if(req.method!=='POST' || !service || req.headers.get('Authorization')!==`Bearer ${service}`) return reply(401,{error:'unauthorized'});
+  if(req.method!=='POST' || workerSecret.length<32 || req.headers.get('Authorization')!==`Bearer ${workerSecret}`) return reply(401,{error:'unauthorized'});
   const cleanup=await db.rpc('smyl_muse_cleanup');
   const claimed=await db.rpc('smyl_muse_claim_alerts');
   if(cleanup.error || claimed.error) return reply(503,{error:'queue_unavailable'});

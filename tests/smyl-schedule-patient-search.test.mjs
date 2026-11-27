@@ -31,7 +31,7 @@ test('la búsqueda ignora acentos y mayúsculas, y encuentra por teléfono', () 
 
 test('el alta rápida avisa de duplicados y guarda en la clínica de la sesión', () => {
   assert.match(schedule, /rpc\('smyl_patient_duplicates',\{p_tenant_id:state\.tenant/);
-  assert.match(schedule, /var fields=\{tenant_id:state\.tenant,nombre:nombre,apellido:apellido,telefono:tel,email:mail\}/);
+  assert.match(schedule, /var fields=\{tenant_id:state\.tenant,nombre:nombre,apellido:apellido,telefono:tel,email:mail,ciclo_vida:'prospecto'\}/);
   assert.match(schedule, /Ya existe un paciente con estos datos/);
   assert.match(schedule, /Es otra persona, registrar de todos modos/);
   assert.match(schedule, /code==='42501'\?'Tu rol no permite registrar pacientes/);

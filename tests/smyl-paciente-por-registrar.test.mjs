@@ -27,8 +27,10 @@ test('agendar a alguien nuevo exige teléfono, no nombre', () => {
 });
 
 test('si la migración aún no está aplicada, el alta reintenta sin la columna', () => {
-  assert.match(schedule, /catch\(first\)\{if\(!pending\|\|!\/registro_estado\|schema cache\|42703\|PGRST204\//);
-  assert.match(schedule, /delete fields\.registro_estado/);
+  // Reintenta quitando solo las columnas opcionales (registro_estado, ciclo_vida) que el servidor diga que no existen.
+  assert.match(schedule, /optional=\['ciclo_vida','registro_estado'\]/);
+  assert.match(schedule, /schema cache\|42703\|PGRST204/);
+  assert.match(schedule, /delete fields\[c\]/);
 });
 
 test('la agenda marca a la persona como por registrar en lista y semana', () => {

@@ -1,6 +1,8 @@
 # Piloto privado SMYL ↔ Muse · 27 de noviembre de 2026
 
-Estado: implementación y pruebas locales. No desplegado ni conectado a una cuenta real de Muse. No se han enviado mensajes a pacientes o doctores. Falta elegir clínica y doctor, completar la configuración externa y probar el recorrido real. El piloto permanece desactivado por defecto.
+Estado al 27 de noviembre de 2026: migraciones y servicios desplegados en SMYL y LANA; trabajos programados cada minuto con credenciales exclusivas. Participante y WhatsApp seleccionados y verificados fuera del repositorio. No hay conexión personal de Muse ni mensajes enviados. Falta publicar/completar la configuración de acceso, aprobar la plantilla y probar el recorrido real. Las respuestas permanecen deshabilitadas hasta comprobar la aprobación humana en Muse.
+
+El despliegue de `camila-api` se preparó desde su versión productiva 70, con exactamente siete líneas nuevas de enrutamiento y una entrada del contrato. No incluyó cambios de capacitación que estaban en `main` pero aún no en producción. Las dependencias productivas se conservaron. El PR de LANA conserva el cambio de Muse sobre `main` para su integración posterior.
 
 ## Alcance implementado
 
@@ -30,7 +32,7 @@ Responder directamente al aviso genérico no constituye una respuesta al pacient
    - LANA: `20261127150000_smyl_muse_events.sql`.
 3. Desplegar `camila-api` y `smyl-muse-events` en LANA; `muse-manage`, `muse-connector`, `muse-events`, `muse-alerts` en SMYL. Cada endpoint autentica su propia clase de solicitud; respetar `supabase/config.toml`.
 4. Configurar `SMYL_MUSE_WEBHOOK_SECRET` con el mismo secreto nuevo aleatorio de al menos 32 caracteres en ambos servidores, por un canal seguro. No sustituir el secreto de los callbacks de agenda. Mantener las claves de transporte LANA y Supabase únicamente en servidor.
-5. Verificar `pg_cron`, `pg_net` y `service_role_key` en Vault. Ejecutar `scripts/sql/smyl-muse-workers.sql` en LANA y `scripts/sql/muse-pilot-workers.sql` en SMYL. Comprobar ejecución y respuesta HTTP; sin esos trabajos no hay avisos continuos.
+5. Verificar `pg_cron` y `pg_net`. Crear una clave aleatoria exclusiva por proyecto para el trabajador: `SMYL_MUSE_WORKER_SECRET` en Edge Functions y el mismo valor en Vault como `smyl_muse_worker_secret`. No reutilizar la clave de base de datos ni el secreto HMAC. Ejecutar `scripts/sql/smyl-muse-workers.sql` en LANA y `scripts/sql/muse-pilot-workers.sql` en SMYL. Comprobar ejecución y respuesta HTTP; sin esos trabajos no hay avisos continuos.
 6. Publicar la interfaz y sus copias móviles. Solicitar desde Plantillas de WhatsApp la nueva `smyl_chat_pendiente_profesional_v1`; **esperar aprobación y categoría UTILITY**. No reutilizar una plantilla de agenda para este propósito.
 7. El titular habilita solo el usuario elegido. El doctor vincula su WhatsApp mediante el flujo existente y autoriza su conexión personal en Muse. Si no dispone de un campo seguro de credenciales en su cuenta de Muse, no pegar el secreto en el chat: detener la conexión y adaptar la autenticación soportada.
 8. Registrar el OpenAPI como conector privado en Muse. Clasificar `enviarRespuesta` como **escritura sensible con aprobación humana en cada uso**, `prepararRespuesta` como escritura de borrador sin envío, y las otras dos como lectura. La confirmación de texto en el payload no demuestra por sí sola una acción humana: se requiere verificar la barrera de aprobación del cliente Muse. Mantener respuestas deshabilitadas hasta observar esa aprobación en la prueba real.

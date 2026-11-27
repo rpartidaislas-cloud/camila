@@ -176,7 +176,7 @@ body.smyl-ui-governed #p-pacientes .patient-search-field .search-inp{
 body.smyl-ui-governed #p-pacientes .patient-search-field .search-inp::placeholder{color:#8491a2}
 body.smyl-ui-governed #p-pacientes .patient-search-field .search-inp:focus{border-color:#2451a4;box-shadow:0 0 0 3px rgba(68, 126, 231,.20);background:#fff}
 body.smyl-ui-governed #p-pacientes .patient-filter-group{display:grid;gap:7px;min-width:0}
-body.smyl-ui-governed #p-pacientes .patient-filter-pills{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:center;gap:5px;width:100%;padding:4px;border:1px solid #dbe4ec;border-radius:12px;background:#f3f6f9}
+body.smyl-ui-governed #p-pacientes .patient-filter-pills{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);align-items:center;gap:5px;width:100%;padding:4px;border:1px solid #dbe4ec;border-radius:12px;background:#f3f6f9}
 body.smyl-ui-governed #p-pacientes .patient-filter-pills button{
   min-height:36px;
   padding:0 13px;
@@ -191,6 +191,8 @@ body.smyl-ui-governed #p-pacientes .patient-filter-pills button{
 body.smyl-ui-governed #p-pacientes .patient-filter-pills button:hover{background:#e7edf3;color:var(--patient-ink)}
 body.smyl-ui-governed #p-pacientes .patient-filter-pills button.is-active{background:var(--patient-navy);color:#fff;box-shadow:0 5px 12px -8px rgba(11,31,53,.9)}
 body.smyl-ui-governed #p-pacientes .patient-filter-pills button:disabled{cursor:wait;opacity:.52}
+body.smyl-ui-governed #p-pacientes .patient-filter-pills button[hidden]{display:none}
+body.smyl-ui-governed #p-pacientes .patient-filter-pills button b{margin-left:6px;font-weight:800;opacity:.75}
 body.smyl-ui-governed #p-pacientes .patient-directory-summary{
   grid-column:1/-1;
   grid-row:auto;
@@ -421,7 +423,7 @@ body.smyl-ui-governed #p-pacientes .patient-loading span::after{
   body.smyl-ui-governed #p-pacientes .patient-insight-copy strong{grid-column:1;grid-row:1;justify-self:center;font-size:24px}
   body.smyl-ui-governed #p-pacientes .patient-insight-copy span{grid-column:1;font-size:12px;line-height:1.25}
   body.smyl-ui-governed #p-pacientes .patient-directory-toolbar{gap:14px;padding:15px;border-radius:14px}
-  body.smyl-ui-governed #p-pacientes .patient-filter-pills{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  body.smyl-ui-governed #p-pacientes .patient-filter-pills{display:grid;grid-auto-flow:row;grid-template-columns:1fr 1fr;width:100%}
   body.smyl-ui-governed #p-pacientes .patient-filter-pills button{min-height:44px;padding-inline:9px}
   body.smyl-ui-governed #p-pacientes .clinic-patient-table .clinic-patient-row{grid-template-columns:minmax(0,1fr)}
   body.smyl-ui-governed #p-pacientes .clinic-patient-table .clinic-patient-identity,
@@ -488,7 +490,7 @@ body.smyl-ui-governed #p-pacientes .patient-loading span::after{
   body.smyl-ui-governed #p-pacientes .patient-insight-copy strong{grid-column:1;grid-row:1;justify-self:center;font-size:24px}
   body.smyl-ui-governed #p-pacientes .patient-insight-copy span{grid-column:1;font-size:12px;line-height:1.25}
   body.smyl-ui-governed #p-pacientes .patient-directory-toolbar{gap:14px;padding:15px;border-radius:14px}
-  body.smyl-ui-governed #p-pacientes .patient-filter-pills{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  body.smyl-ui-governed #p-pacientes .patient-filter-pills{display:grid;grid-auto-flow:row;grid-template-columns:1fr 1fr;width:100%}
   body.smyl-ui-governed #p-pacientes .patient-filter-pills button{min-height:44px;padding-inline:9px}
   body.smyl-ui-governed #p-pacientes .clinic-patient-table .clinic-patient-row{grid-template-columns:minmax(0,1fr)}
   body.smyl-ui-governed #p-pacientes .clinic-patient-table .clinic-patient-identity,

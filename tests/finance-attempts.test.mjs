@@ -7,16 +7,17 @@ const ui = fs.readFileSync(new URL('../smyl-finance.js', import.meta.url), 'utf8
 const block = ui.slice(ui.indexOf('// ── Intento de cobro o de cargo'), ui.indexOf('  async function rpc(n,a){'));
 assert.ok(block.length > 800, 'no se encontró el bloque del intento');
 
-function world(state) {
-  const store = new Map();
+function world(state, store = new Map()) {
   const windowStub = { sessionStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) } };
   let n = 0;
   const cryptoStub = { randomUUID: () => 'uuid-' + (++n) };
-  const api = new Function('window', 'crypto', 'state', 'Date', block + ';return {attemptFingerprint,attemptOpen,attemptClose,attemptRead,isDefiniteError,similarRecentPayment,ATTEMPT_TTL};');
+  const api = new Function('window', 'crypto', 'state', 'Date', 'q', block + ';return {attemptFingerprint,attemptOpen,attemptClose,attemptRead,isDefiniteError,similarRecentPayment,ATTEMPT_TTL,paymentStatus,checkPayment,paymentRequest,savedAttempt};');
   const clock = { now: 1_000_000 };
   const DateStub = Object.assign(function (...a) { return new Date(...a); }, { now: () => clock.now });
   DateStub.prototype = Date.prototype;
-  return { f: api(windowStub, cryptoStub, state || { payments: [] }, DateStub), store, clock, windowStub };
+  windowStub.tenantId=state?.tenant;
+  const q=async builder=>{const result=await builder;if(result.error)throw result.error;return result.data;};
+  return { f: api(windowStub, cryptoStub, state || { payments: [] }, DateStub, q), store, clock, windowStub };
 }
 
 test('los mismos datos reutilizan la misma llave: un reintento tras perder la respuesta no duplica el cobro', () => {
@@ -51,17 +52,18 @@ test('al conocer el resultado el intento se cierra y el siguiente cobro igual ya
   assert.equal(b.reused, false); assert.notEqual(b.key, a.key);
 });
 
-test('un intento viejo (más de 30 min) no se reutiliza; cobros y cargos no se mezclan', () => {
+test('un pago pendiente conserva su llave después de 30 minutos; los cargos caducan aparte', () => {
   const { f, clock } = world();
   const fp = f.attemptFingerprint(['p1', 500]);
   const a = f.attemptOpen('payment', fp);
   const charge = f.attemptOpen('charge', fp);
   assert.notEqual(charge.key, a.key, 'cada tipo guarda su propio intento');
   clock.now += f.ATTEMPT_TTL + 1;
-  assert.equal(f.attemptOpen('payment', fp).reused, false);
+  assert.equal(f.attemptOpen('payment', fp).key, a.key);
+  assert.equal(f.attemptOpen('charge', fp).reused, false);
 });
 
-test('sin almacenamiento de sesión sigue funcionando (nunca rompe el cobro)', () => {
+test('sin almacenamiento de sesión conserva el intento en memoria', () => {
   const { f, windowStub } = world();
   windowStub.sessionStorage = { getItem() { throw new Error('bloqueado'); }, setItem() { throw new Error('bloqueado'); }, removeItem() { throw new Error('bloqueado'); } };
   const a = f.attemptOpen('payment', 'x');
@@ -93,13 +95,37 @@ test('pago igual reciente: mismo paciente, importe y forma en 10 minutos; con ce
 });
 
 test('la pantalla usa el intento al cobrar y al crear cargos, verifica antes de dar por fallido y no cambia la llave en cada clic', () => {
-  const pay = ui.slice(ui.indexOf("attemptOpen('payment',fp)"), ui.indexOf("attemptOpen('payment',fp)") + 3200);
-  assert.match(pay, /p_id:paymentId,p_idempotency_key:attempt\.key/);
-  assert.match(pay, /attemptClose\('payment'\)/);
-  assert.match(pay, /from\('smyl_finance_payments'\)\.select\('id'\)\.eq\('tenant_id',window\.tenantId\)\.eq\('id',paymentId\)/, 'consulta por id antes de permitir reintentar');
-  assert.match(pay, /Verificando si el pago se registró/);
-  assert.match(pay, /No pudimos confirmar si el pago se registró/);
-  assert.doesNotMatch(ui, /p_id:paymentId,p_idempotency_key:crypto\.randomUUID\(\)/);
-  assert.doesNotMatch(ui, /rpc\('smyl_post_charge',\{p_id:crypto\.randomUUID\(\),p_idempotency_key:crypto\.randomUUID\(\)/);
+  assert.match(ui, /submitPayment\(savedAttempt\('payment'\)\)/);
+  assert.match(ui, /rpc\('smyl_post_payment',paymentRequest\(attempt\)\)/);
+  assert.match(ui, /paymentStatus\(paymentId,'unverified'\)/);
+  assert.match(ui, /verifyPaymentDialog\(pendingAttempt\(\),true\)/);
   assert.match(ui, /attemptOpen\('charge'/);
+});
+
+test('un pago incierto sobrevive a una recarga y una consulta fallida; al verificarlo conserva o libera la misma llave',async()=>{
+  const state={tenant:'T',actor:'A',patients:[],payments:[]};
+  const first=world(state);
+  const fp=first.f.attemptFingerprint(['P','B','S',13.42,'cash','',[['C',13.42]]]);
+  const attempt=first.f.attemptOpen('payment',fp);
+  first.f.paymentStatus(attempt.id,'unverified');
+  const other=world({...state,actor:'otro'},first.store);
+  assert.equal(other.f.savedAttempt('payment'),null);
+  const {f,windowStub}=world(state,first.store);
+  const original=f.paymentRequest(f.savedAttempt('payment'));
+  let response;
+  const filters=[];
+  windowStub.sb={from(table){assert.equal(table,'smyl_finance_payments');return {
+    select(cols){assert.equal(cols,'id');return this;},eq(k,v){filters.push([k,v]);return this;},limit(){return response;}
+  };}};
+  for(response of [{error:Error('Sin conexión')},{data:null},{data:{}},{data:[{id:'otro'}]}]){
+    assert.equal(await f.checkPayment(attempt),'unknown');
+    assert.equal(f.savedAttempt('payment').status,'unverified');
+  }
+  response={data:[]};assert.equal(await f.checkPayment(attempt),'missing');
+  assert.deepEqual(f.paymentRequest(f.savedAttempt('payment')),original);
+  assert.deepEqual(original.p_allocations,[{charge_id:'C',amount:13.42}]);
+  assert.equal(original.p_idempotency_key,attempt.key);
+  response={data:[{id:attempt.id}]};assert.equal(await f.checkPayment(attempt),'registered');
+  assert.equal(f.savedAttempt('payment'),null);
+  assert.deepEqual(filters.slice(-2),[['tenant_id','T'],['id',attempt.id]]);
 });

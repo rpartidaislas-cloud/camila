@@ -1,3 +1,12 @@
+## 2026-11-27 — Claude — Prospecto → paciente (PR 2: interfaz)
+
+- Requiere la migración `20261203100000_smyl_prospect_lifecycle.sql` (ya aplicada por Ricardo; el alta reintenta sin `ciclo_vida` si aún no existiera).
+- Agenda (`smyl-schedule.js` v70): «Registrar como paciente nuevo» da de alta con `ciclo_vida='prospecto'`; el texto lo dice («pasa a Pacientes cuando llega a su primera cita»). El buscador de la agenda sigue encontrando a los prospectos para volver a agendarlos.
+- Pacientes (`smyl-clinic.js` v32, `smyl-clinic.css` v15, `smyl-patients-directory.css` v4): los prospectos salen de la lista normal y de los contadores; aparece el filtro **Prospectos** (oculto mientras no haya ninguno) con su cuenta; la fila muestra «Prospecto» y el botón **Convertir en paciente** (RPC `smyl_promote_prospect`). Al marcar «Llegó» en la agenda la conversión ocurre sola en base de datos.
+- Web/PWA/móvil sincronizados, `sw.js` con `-prospectos-v1`. Se actualizaron los pines de versión en las pruebas que los fijan.
+- Pendiente para Ricardo: ejecutar `docs/sql-prospectos-migrar-pegar-en-supabase.sql` (primero la vista previa) para reclasificar los contactos «por registrar» que ya existen.
+- No se tocó la ficha del paciente (no muestra aviso de prospecto) ni `camila_confirmar_lana_handoff`. Sin captura visual de la lista con la sesión real: revisar escritorio/tablet/móvil al publicar.
+
 ## 2026-11-27 — Claude — Prospecto → paciente (PR 1: base de datos)
 
 - Migración nueva `20261203100000_smyl_prospect_lifecycle.sql` (aditiva; **la aplica Ricardo en el SQL Editor**): `camila_pacientes.ciclo_vida` (`prospecto`|`paciente`, por omisión `paciente`) y `convertido_at`. La cita sigue apuntando a la misma fila; no cambia ninguna FK.
@@ -13058,3 +13067,26 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - Contrato de conector `docs/muse-pilot.openapi.yaml`, alcance y activación en `docs/MUSE_PILOT.md`, cron optativo posterior al despliegue en `scripts/sql/muse-pilot-workers.sql`. **No se han aplicado migraciones ni desplegado funciones, habilitado clínicas, configurado Muse ni enviado mensajes reales.** No afirmar OAuth/MCP/push de Muse operativo: el piloto proporciona API privada con credencial individual y necesita verificación en la cuenta real. `enviarRespuesta` debe configurarse como escritura sensible con aprobación cada vez.
 - Validación: pruebas reales de permisos en PGlite, handlers con transporte simulado, regresiones de plantillas y navegador real en 1440/768/390 px (capturas locales ignoradas en `output/muse-pilot`). Seguridad cubierta: otra clínica/sucursal, usuario desactivado, pérdida de rol, reasignación, vencimiento/revocación, repetición/concurrencia, firma/replay del webhook y envío incierto.
 - Pendiente externo: usuario debe indicar clínica y doctor/cuenta Muse; después despliegue ordenado de ambos proyectos, secreto HMAC, cron, plantilla aprobada, conexión privada y prueba completa con teléfonos de prueba. La autorización humana del cliente Muse debe probarse antes de habilitar respuestas.
+## 2026-11-27 · Codex · Verificación de cobros y movimientos del turno
+
+- En Cobros y caja, un pago cuya respuesta se perdió queda pendiente de verificación para la clínica y el usuario de esa pestaña. La consulta distingue un pago registrado, una respuesta vacía válida y una consulta fallida. Un reintento explícito conserva el identificador, la llave, la fecha, el importe y las aplicaciones originales.
+- Caja incluye los turnos abiertos antiguos y pagina sus ajustes por identificador de turno. Si el historial general alcanza su límite, completa los pagos, reembolsos y recibos de los turnos abiertos. Antes de cerrar, consulta el efectivo esperado mediante la función existente `smyl_cash_session_expected`. Si el importe cambió, vuelve a mostrar el corte con las cantidades capturadas.
+- Archivos principales: `smyl-finance.js`, `app.html`, `sw.js` y sus copias en `mobile/www`. Pruebas en `tests/finance-attempts.test.mjs`, `tests/caja-paginada.test.mjs` y `tests/qa/finanzas-pestanas-smoke.cjs`. Sin migraciones.
+
+## 2026-11-27 — Codex — Consentimiento del paciente con firma presencial simple A/B
+
+- El consentimiento informado ofrece exactamente dos rutas: **A. Firmar con mi celular** mediante QR presencial de cinco minutos y un solo uso, o **B. Firmar en este dispositivo** con dedo, lápiz táctil o mouse. WhatsApp no aparece como método de firma y ambas rutas terminan en la misma finalización clínica.
+- La ruta móvil abre `firma-consentimiento.html`: muestra el documento exacto, la aceptación textual versionada por el servidor, firma manuscrita PNG 600 × 200, vista previa obligatoria y confirmación final. El token viaja sólo en el fragmento, se retira del historial visible y nunca se guarda en claro.
+- El profesional revisa la firma, confirma presencialmente la identidad y cierra el documento con reautenticación. Cambiar documento o firmante invalida la captura anterior. El expediente conserva texto, firma, método, folio, fechas del servidor, cédula y huellas de integridad; el original queda inmutable y una revocación no lo borra.
+- Backend: `supabase/migrations/20261129130000_smyl_informed_consent_signing.sql`. Incluye enlaces efímeros, RLS/RPC-only, finalización idempotente común QR/local, auditoría, retención y purga. Si producción no tiene `pg_cron`, hay que programar externamente `smyl_purge_expired_informed_consent_signature_links(integer)`.
+- Frontend/PWA: `smyl-informed-consent.js/.css` v3, `firma-consentimiento.html`, `smyl-consent-signature.js/.css`, caché y copia exacta en `mobile/www/`.
+- Validación: 16 pruebas de contrato/migración y 2 recorridos reales de navegador pasan; escritorio y 390 px sin desborde.
+- No afirmar cumplimiento integral de NOM-004 para cartas formales: este flujo todavía no incorpora las dos firmas de testigos que pueden corresponder a esos documentos.
+
+## 2026-11-27 — Codex — Preparación operativa del piloto Muse
+
+- Ambas migraciones de Muse están instaladas y registradas; funciones y trabajos cada minuto desplegados. Los trabajadores usan SMYL_MUSE_WORKER_SECRET y Vault smyl_muse_worker_secret, con una clave diferente por proyecto; el HMAC compartido es independiente. No se expusieron credenciales.
+- camila-api se publicó desde la versión productiva 70 más la ruta Muse y su entrada de contrato (8 líneas añadidas, sin cambios en dependencias), evitando publicar cambios ajenos todavía pendientes en main.
+- WhatsApp del participante vinculado de forma privada tras autorización explícita para retirar un vínculo de prueba. Datos e identificadores personales quedan fuera de Git; traslado auditado en producción.
+- Pruebas: permisos y handlers, navegador 1440/768/390, catálogo y transporte de plantillas, contrato LANA y cola. Se regeneró el bundle de whatsapp-templates y se actualizó la prueba del catálogo a v12.
+- Pendiente: conexión personal en Muse, aprobación de plantilla y prueba real. No hay credencial personal ni envíos reales. No habilitar respuestas hasta comprobar la aprobación humana del cliente Muse.

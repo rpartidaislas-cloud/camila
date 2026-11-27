@@ -985,7 +985,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-waitlist-core.js?v=2"></script>
 <script defer src="smyl-waitlist.js?v=2"></script>
 <script defer src="smyl-ai-scheduling.js?v=5"></script>
-<script defer src="smyl-schedule.js?v=69"></script>
+<script defer src="smyl-schedule.js?v=70"></script>
 <script defer src="smyl-google-calendar.js?v=3"></script>
 <script defer src="smyl-schedule-message.js?v=5"></script>
 <script defer src="smyl-schedule-setup.js?v=2"></script>
@@ -1010,7 +1010,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-fiscal-rules.js?v=2"></script>
 <script defer src="smyl-fiscal-capture.js?v=4"></script>
 <script defer src="smyl-xlsx.js?v=1"></script>
-<script defer src="smyl-finance.js?v=88"></script>
+<script defer src="smyl-finance.js?v=90"></script>
 <link rel="stylesheet" href="smyl-online-pay-setup.css?v=2">
 <script defer src="smyl-online-pay-setup.js?v=3"></script>
 <link rel="stylesheet" href="smyl-reports.css?v=6">
@@ -1078,19 +1078,19 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <script defer src="smyl-navigation.js?v=37"></script>
 <link rel="stylesheet" href="smyl-command-menu.css?v=3">
 <script defer src="smyl-command-menu.js?v=6"></script>
-<link rel="stylesheet" href="smyl-clinic.css?v=14">
+<link rel="stylesheet" href="smyl-clinic.css?v=15">
 <script defer src="smyl-clinical-model.js?v=3"></script>
 <script defer src="smyl-treatment-plan-model.js?v=1"></script>
 <script defer src="smyl-treatment-plan-client.js?v=2"></script>
-<script defer src="smyl-clinic.js?v=31"></script>
+<script defer src="smyl-clinic.js?v=32"></script>
 <link rel="stylesheet" href="smyl-patient-360.css?v=24">
 <link rel="stylesheet" href="smyl-patient-privacy-panel.css?v=4">
 <link rel="stylesheet" href="smyl-mila-interview.css?v=5">
 <script defer src="smyl-history-model.js?v=3"></script>
 <script defer src="smyl-history-read.js?v=4"></script>
 <script defer src="smyl-patient-privacy-panel.js?v=6"></script>
-<link rel="stylesheet" href="smyl-informed-consent.css?v=2">
-<script defer src="smyl-informed-consent.js?v=2"></script>
+<link rel="stylesheet" href="smyl-informed-consent.css?v=3">
+<script defer src="smyl-informed-consent.js?v=3"></script>
 <script defer src="smyl-clinical-background.js?v=1"></script>
 <script defer src="smyl-procedure-safety.js?v=3"></script>
 <script defer src="smyl-patient-360.js?v=42"></script>
@@ -1192,7 +1192,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
 <link rel="stylesheet" href="smyl-ui-template-v3.css?v=10">
 <!-- La capa del dashboard se carga después de la plantilla global para conservar su jerarquía propia. -->
 <link rel="stylesheet" href="smyl-dashboard-v2.css?v=2">
-<link rel="stylesheet" href="smyl-patients-directory.css?v=3">
+<link rel="stylesheet" href="smyl-patients-directory.css?v=4">
 <link rel="stylesheet" href="smyl-ui-datta-v4.css?v=2">
 <link rel="stylesheet" href="smyl-brand.css?v=1">
 </head>
@@ -1533,6 +1533,7 @@ input,textarea,select{touch-action:manipulation;font-size:16px!important}
                 <button type="button" data-patient-filter-value="upcoming" aria-pressed="false" onclick="filtrarDirectorioPacientes('upcoming')">Con cita</button>
                 <button type="button" data-patient-filter-value="without-appointment" aria-pressed="false" onclick="filtrarDirectorioPacientes('without-appointment')">Sin cita</button>
                 <button type="button" data-patient-filter-value="incomplete" aria-pressed="false" onclick="filtrarDirectorioPacientes('incomplete')">Por completar</button>
+                <button type="button" data-patient-filter-value="prospects" aria-pressed="false" onclick="filtrarDirectorioPacientes('prospects')" hidden>Prospectos <b id="patient-metric-prospects">0</b></button>
               </div>
             </div>
             <p class="patient-directory-summary" id="patient-directory-summary" role="status" aria-live="polite">Cargando pacientes…</p>

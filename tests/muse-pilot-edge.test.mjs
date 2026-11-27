@@ -72,9 +72,9 @@ test('alert worker uses only generic approved template, linked doctor and stable
     const lanaRequest=async(t,url,init)=>{if(init.method==='GET')return {response:new Response('{}'),body:{templates:[{id:'template-id',name:'smyl_chat_pendiente_profesional_v1',status:'APPROVED',category:'UTILITY'}]}};
       sent.push({t,url,init});return {response:new Response('{}'),body:{ok:true}};};
     let handler;load('muse-alerts/index.ts',{'../_shared/lana-linked.ts':{smylAdmin:db,lanaRequest},'../_shared/muse-core.mjs':core,
-      '../_shared/muse-inbox.ts':{allowed:async()=>permitted}},fn=>handler=fn,name=>name==='SUPABASE_SERVICE_ROLE_KEY'?'worker-test-key':undefined);
+      '../_shared/muse-inbox.ts':{allowed:async()=>permitted}},fn=>handler=fn,name=>name==='SMYL_MUSE_WORKER_SECRET'?'worker-test-key-'.repeat(4):undefined);
     assert.equal((await handler(new Request('https://test.invalid',{method:'POST',headers:{Authorization:'Bearer invalid'}}))).status,401);
-    assert.equal((await handler(new Request('https://test.invalid',{method:'POST',headers:{Authorization:'Bearer worker-test-key'}}))).status,200);
+    assert.equal((await handler(new Request('https://test.invalid',{method:'POST',headers:{Authorization:'Bearer '+'worker-test-key-'.repeat(4)}}))).status,200);
     assert.equal(sent.length,permitted?1:0);
     if(permitted){assert.equal(sent[0].url,`/inbox/conversations/${doctorChannel}/messages`);assert.equal(sent[0].init.headers.get('Idempotency-Key'),job);
       assert.deepEqual(JSON.parse(sent[0].init.body),{type:'template',template_id:'template-id',template_variables:[]});}
