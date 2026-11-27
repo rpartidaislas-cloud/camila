@@ -14,7 +14,7 @@ const block = (name) => pick(new RegExp('(?:async )?function ' + name + '\\([^)]
 const code = [
   pick(/var byIndex[\s\S]*?return acct;\}/),
   line('esc'), line('money'), line('date'), line('name'), line('actorName'), line('plural'), line('dayOf'), line('whenLabel'), line('relDay'), line('signed'),
-  pick(/function cashFlow\(s\)\{[\s\S]*?return out;\}/), line('cashExpected'), block('cashMoves'),
+  line('refundOnSession'), pick(/function cashFlow\(s\)\{[\s\S]*?return out;\}/), line('cashExpected'), block('cashMoves'),
   line('atClock'), line('clock'), line('moveWhen'), line('openedLabel'), line('dayLabel'), line('shiftSpan'),
   line('ledgerRow'), block('cashLedger'), line('ledgerTotal'), block('moveLine'), block('cutNotes'), line('cutTag'), line('foldRow'), block('cutRow'), block('teamRow'), block('turnBlock'),
   line('receiptConcept'), block('paymentFacts'), block('fiscalReceiptItem'), line('pacConnected'), line('st_armed'),
@@ -347,7 +347,7 @@ test('los estilos del paso 3: mismas filas y etiquetas, acomodo por espacio y ve
 
 test('versiones publicadas y copias de la app móvil al día', () => {
   const app = read('app.html'), sw = read('sw.js');
-  assert.match(app, /smyl-finance\.css\?v=54/); assert.match(app, /smyl-finance\.js\?v=73/);
-  assert.match(sw, /smyl-finance\.js\?v=73/); assert.match(sw, /smyl-finance\.css\?v=54/); assert.match(sw, /finanzas-caja-facturacion-v9/);
+  assert.match(app, /smyl-finance\.css\?v=54/); assert.match(app, /smyl-finance\.js\?v=74/);
+  assert.match(sw, /smyl-finance\.js\?v=74/); assert.match(sw, /smyl-finance\.css\?v=54/); assert.match(sw, /finanzas-caja-facturacion-v9/);
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + file), read(file), file);
 });

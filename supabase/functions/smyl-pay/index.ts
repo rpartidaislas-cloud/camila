@@ -8,11 +8,13 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
 import { makeCors } from "../_shared/cors.ts";
-import { lanaRequest, smylAdmin as admin } from "../_shared/lana-linked.ts";
+import { lanaRequest, smylAdmin } from "../_shared/lana-linked.ts";
 import {
   UUID_RE, TOKEN_RE, VIGENCIA_MINUTOS, aleatorioHex, sha256Hex, firmaValida, planDeCobro, conceptoDelEnlace, vistaPublicaEnlace,
+  autorizarCargos, autorizarEnlace, enlacesVisibles,
 } from "../_shared/smyl-pay-core.mjs";
 
+const admin = smylAdmin; // (el empaquetador del panel no soporta «x as y» en imports)
 const SB_URL = Deno.env.get("SUPABASE_URL") || Deno.env.get("SB_URL") || "";
 const SB_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SB_ANON_KEY") || "";
 const APP_ORIGIN = "https://app.smyldesign.ai";
@@ -164,10 +166,18 @@ async function accionesPersonal(req: Request, body: Json, CORS: Record<string, s
   const patientId = body.patient_id;
   if (typeof patientId !== "string" || !UUID_RE.test(patientId)) return json(CORS, 400, { error: "Paciente inválido." });
 
+  // El cliente administrativo NO aplica el alcance por sucursal de Finanzas: se comprueba aquí con las mismas funciones que usan las políticas,
+  // evaluadas con la sesión de quien llama (auth.uid()).
+  const permisos = {
+    paciente: async (branchId: string | null) => (await asUser.rpc("smyl_can_access_finance_patient", { p_tenant: tenantId, p_patient: patientId, p_branch: branchId })).data === true,
+    sucursal: async (branchId: string) => (await asUser.rpc("smyl_can_access_finance_branch", { p_tenant: tenantId, p_branch: branchId })).data === true,
+  };
+
   if (body.action === "list") {
-    const { data } = await admin.from("smyl_payment_links")
-      .select("id, amount, status, expires_at, paid_at, method, created_at, allocations, lana_request_id, tenant_id")
+    const { data: todos } = await admin.from("smyl_payment_links")
+      .select("id, amount, status, expires_at, paid_at, method, created_at, allocations, lana_request_id, tenant_id, branch_id")
       .eq("tenant_id", tenantId).eq("patient_id", patientId).order("created_at", { ascending: false }).limit(10);
+    const data = await enlacesVisibles({ links: todos || [], permisos });
     const filas = await Promise.all((data || []).map((l: Json) => l.status === "pending" ? conciliar(l) : Promise.resolve(l)));
     return json(CORS, 200, {
       links: filas.map((l: Json) => ({ id: l.id, amount: Number(l.amount), status: vistaPublicaEnlace(l).status, expires_at: l.expires_at, paid_at: l.paid_at, method: l.method, created_at: l.created_at })),
@@ -179,6 +189,7 @@ async function accionesPersonal(req: Request, body: Json, CORS: Record<string, s
     if (typeof id !== "string" || !UUID_RE.test(id)) return json(CORS, 400, { error: "Enlace inválido." });
     const { data: link } = await admin.from("smyl_payment_links").select("*").eq("tenant_id", tenantId).eq("id", id).maybeSingle();
     if (!link) return json(CORS, 404, { error: "Enlace no encontrado." });
+    if (!(await autorizarEnlace({ link, permisos }))) return json(CORS, 403, { error: "Este enlace es de una sucursal o paciente fuera de tu alcance.", error_code: "branch_scope_denied" });
     const actual = await conciliar(link); // si ya se pagó, no se cancela
     if (actual.status === "paid") return json(CORS, 409, { error: "El enlace ya fue pagado.", status: "paid" });
     if (!(await cancelarEnLana(tenantId, link))) return json(CORS, 502, { error: "No se pudo cancelar el enlace en LANA. Inténtalo de nuevo; mientras tanto el paciente aún podría pagarlo." });
@@ -192,6 +203,8 @@ async function accionesPersonal(req: Request, body: Json, CORS: Record<string, s
     ? body.charge_ids.filter((x: unknown) => typeof x === "string" && UUID_RE.test(x as string)).slice(0, 50) : null;
   const { data: abiertos, error: errAbiertos } = await admin.rpc("smyl_open_charges_for_link", { p_tenant: tenantId, p_patient: patientId, p_charge_ids: chargeIds });
   if (errAbiertos) return json(CORS, 500, { error: "No se pudo calcular el saldo." });
+  const alcance = await autorizarCargos({ abiertos: abiertos || [], chargeIds, permisos });
+  if (!alcance.ok) return json(CORS, 403, { error: "Este paciente tiene cargos de una sucursal fuera de tu alcance.", error_code: "branch_scope_denied" });
   const plan = planDeCobro(abiertos || [], { chargeIds });
   if (!plan.ok) return json(CORS, 422, { error: plan.mensaje, error_code: plan.error });
 
@@ -201,13 +214,15 @@ async function accionesPersonal(req: Request, body: Json, CORS: Record<string, s
   ]);
   if (!paciente) return json(CORS, 404, { error: "Paciente no encontrado." });
 
-  let branchId = (abiertos || []).find((c: Json) => c.branch_id)?.branch_id as string | undefined;
+  // La sucursal del enlace sale de los cargos que SÍ se cobran (no de cualquier cargo abierto del paciente).
+  let branchId = (abiertos || []).find((c: Json) => c.branch_id && plan.allocations.some((a: Json) => a.charge_id === c.charge_id))?.branch_id as string | undefined;
   if (!branchId) {
     const { data: sucursal } = await admin.from("smyl_branches").select("id").eq("tenant_id", tenantId)
       .order("is_default", { ascending: false }).order("created_at", { ascending: true }).limit(1).maybeSingle();
     branchId = sucursal?.id;
   }
   if (!branchId) return json(CORS, 422, { error: "Crea una sucursal antes de cobrar en línea." });
+  if (!(await permisos.sucursal(branchId))) return json(CORS, 403, { error: "La sucursal de este cobro está fuera de tu alcance.", error_code: "branch_scope_denied" });
 
   // Un enlace vigente por paciente: los anteriores se cancelan (si ya se pagaron se registran y se avisa).
   const { data: previos } = await admin.from("smyl_payment_links").select("*").eq("tenant_id", tenantId).eq("patient_id", patientId).eq("status", "pending");

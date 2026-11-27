@@ -17,10 +17,11 @@ const code = [
   pick(/function patientBalance\(id\)\{[^\n]*\n/),
   pick(/function patientCredit\(id\)\{[^\n]*\n/),
   pick(/function accountSnapshot\(id\)\{[^\n]*\n/),
+  pick(/function refundOnSession\(r,s\)\{[^\n]*\n/),
   pick(/function cashFlow\(s\)\{[\s\S]*?return out;\}/),
   pick(/function cashExpected\(s\)\{[^\n]*\n/),
 ].join('\n');
-const build = new Function('state', code + ';return {accountSnapshot,patientCredit,patientBalance,balance,paidFor,sumBalance,cents,cashFlow,cashExpected};');
+const build = new Function('state', code + ';return {accountSnapshot,patientCredit,patientBalance,balance,paidFor,sumBalance,cents,cashFlow,cashExpected,refundOnSession};');
 
 const by = (a, id) => a.find((x) => x.id === id);
 function referencia(state) {
@@ -220,4 +221,25 @@ test('Centavos: el módulo ya no resta pesos con decimales para decidir saldos, 
   assert.match(src, /available=Math\.max\(0,cents\(payment\.amount\)-already\)\/100/);
   assert.match(src, /allocated===cents\(payment\.amount\)/);
   assert.match(src, /return \(received-refunded\)\/100;/);
+});
+
+test('Caja: el reembolso resta de la caja de la que SALIÓ el dinero, no de la del pago original', () => {
+  const state = {
+    patients: [], charges: [], allocations: [], refundAllocations: [],
+    payments: [{ id: 'lunes', cash_session_id: 'sLunes', method: 'cash', amount: 1000 }, { id: 'tarjeta', cash_session_id: null, method: 'card', amount: 400 }],
+    refunds: [
+      { id: 'r-nuevo', payment_id: 'lunes', amount: 300, refund_method: 'cash', refund_cash_session_id: 'sViernes' },          // efectivo del viernes por un pago del lunes
+      { id: 'r-transfer', payment_id: 'lunes', amount: 100, refund_method: 'transfer', refund_cash_session_id: null },        // no saca efectivo
+      { id: 'r-tarjeta', payment_id: 'tarjeta', amount: 50, refund_method: 'cash', refund_cash_session_id: 'sViernes' },      // pago con tarjeta devuelto en efectivo
+      { id: 'r-historico', payment_id: 'lunes', amount: 20 },                                                                 // anterior a la migración: sin método
+    ],
+    adjustments: [],
+  };
+  const f = build(state), lunes = { id: 'sLunes', opening_cash: 0 }, viernes = { id: 'sViernes', opening_cash: 500 };
+  assert.equal(f.cashFlow(lunes).refunded, 2000, 'solo el reembolso histórico (20.00) sigue atribuido a la caja del pago original');
+  assert.equal(f.cashFlow(viernes).refunded, 35000, 'la caja del viernes entregó 300 + 50');
+  assert.equal(f.cashFlow(viernes).refunds, 2);
+  assert.equal(f.cashExpected(viernes), 500 - 350);
+  assert.equal(f.cashExpected(lunes), 1000 - 20, 'la caja del lunes ya cerrada no se altera por el reembolso del viernes');
+  assert.equal(f.refundOnSession({ refund_method: 'transfer', refund_cash_session_id: 'sViernes' }, viernes), false);
 });

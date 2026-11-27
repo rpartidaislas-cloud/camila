@@ -150,7 +150,7 @@ test('Cobros: «Reembolsar y cancelar cargos» es una función de rol aplicada e
   assert.match(fin, /state\.canManage&&state\.canRefund/);
   assert.match(fin, /data-refund=/);
   assert.match(fin, /finance-row-menu/);
-  assert.match(fin, /function openRefund\(payment\)\{if\(!state\.canRefund\)/);
+  assert.match(fin, /function openRefund\(payment\)\{\s*if\(!state\.canRefund\)/);
   assert.match(admin, /'finance\.refund': 'Reembolsar y cancelar cargos'/);
   assert.match(admin, /'finance\.manage', 'finance\.cash', 'finance\.cash\.supervise', 'finance\.refund'/);
   assert.match(sql, /smyl_finance_refund_guard/);
