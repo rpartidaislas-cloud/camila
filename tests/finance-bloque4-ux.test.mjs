@@ -26,3 +26,10 @@ test('una caja ajena dice de quién es y quién puede operarla', () => {
   assert.match(js, /solo su responsable o un supervisor puede cerrarla\./);
   assert.match(js, /Solo un supervisor financiero puede reembolsar\./);
 });
+
+test('Cobrar: el importe por cargo se reparte solo y avisa cuando sobra dinero', () => {
+  assert.match(js, /<input data-allocation type="number"[^>]*readonly tabindex="-1"/);
+  assert.match(js, /el importe se reparte solo, del más antiguo al más reciente/);
+  assert.match(js, /finance-payment-surplus/);
+  assert.match(js, /Quedarán como saldo a favor porque hay cargos sin marcar/);
+});
