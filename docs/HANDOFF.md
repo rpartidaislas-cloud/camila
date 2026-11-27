@@ -12886,3 +12886,9 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 ## 2026-11-26 · Claude · Plantillas: ventana completa en vez de la confirmación pelada
 - `smyl-template-suggest.js` (v5) / `.css` (v3): «Solicitar (N)» de la franja y la opción de «Más» en Finanzas abren una ventana completa (avance, esenciales y recomendadas con su estado, «Solicitar» por plantilla, «Ir a Plantillas» y «Solicitar las que faltan (N)»). Esa ventana es la confirmación: `SmylTemplates.requestMany(ids, { confirmed: true })` (`smyl-templates.js` v10) ya no muestra la segunda ventana con solo nombres. `api.openFull(sectionId)`.
 - «Puesta en marcha» sigue usando `requestMany(ids)` con su confirmación normal. Sin SQL ni funciones; `mobile/www/` sincronizado.
+
+## 2026-11-26 · Claude · Enlace de pago por plantilla de WhatsApp
+- Catálogo (`smyl-template-catalog.js` v10, 61 plantillas): nueva `cobro_enlace_pago_v1` (UTILITY): «Hola {{1}}, tienes un saldo de {{2}} en {{3}}. Puedes pagarlo de forma segura en línea aquí: {{4}} …». El enlace va como variable (mismo patrón que entrevista previa y aviso de privacidad). Copia para Edge Functions regenerada (`_shared/whatsapp-template-catalog.mjs`) y bundle `docs/bundles/whatsapp-templates.single-file.ts`: hay que **redesplegar `whatsapp-templates`** para poder solicitarla a Meta.
+- `smyl-finance.js` (v76): en «Enlace de pago listo», «Enviar por WhatsApp» manda la plantilla desde la cuenta de la clínica (`SmylInbox.sendTemplate`, variables nombre/monto/clínica/enlace; si falta, ofrece «Solicitar ahora»). Si el paciente no tiene chat de WhatsApp, queda el atajo `wa.me` renombrado «Enviar desde mi WhatsApp».
+- `smyl-template-suggest.js` (v6): `cobro_enlace_pago_v1` entra como esencial de Finanzas (ahora 6).
+- Prueba nueva `tests/cobro-plantilla-enlace.test.mjs`; sin SQL.
