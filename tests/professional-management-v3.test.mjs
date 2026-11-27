@@ -52,7 +52,7 @@ test('las tareas frecuentes se resuelven por proceso y paciente',()=>{
 });
 
 test('web, móvil y PWA entregan el mismo panel profesional',()=>{
-  assert.match(app,/smyl-professional-v3\.css\?v=14/);
+  assert.match(app,/smyl-professional-v3\.css\?v=15/);
   assert.match(app,/smyl-professional-v3\.js\?v=16/);
   assert.match(app,/smyl-navigation\.js\?v=(?:9|[1-3][0-9])/);
   assert.match(worker,/smyl-v263-lana-connection-recovery/);

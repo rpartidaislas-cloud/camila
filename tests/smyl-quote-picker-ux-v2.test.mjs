@@ -38,7 +38,7 @@ test('la composición se centra en escritorio y funciona como hoja inferior en m
 });
 
 test('web, PWA y móvil publican exactamente la misma versión', () => {
-  assert.match(read('app.html'), /smyl-professional-v3\.css\?v=14/);
+  assert.match(read('app.html'), /smyl-professional-v3\.css\?v=15/);
   assert.match(read('app.html'), /smyl-professional-v3\.js\?v=16/);
   assert.match(read('sw.js'), /quote-picker-v2/);
   for (const file of ['smyl-professional-v3.js', 'smyl-professional-v3.css', 'app.html', 'sw.js']) {

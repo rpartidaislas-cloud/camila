@@ -12996,3 +12996,7 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 ## 2026-11-27 · Claude · Cobrar: el importe por cargo ya no se edita
 - `smyl-finance.js?v=85` / `.css?v=62`: en «Cobrar → Aplicar a cargos» el importe de cada cargo es de solo lectura; se reparte solo con el «Importe» del paso 2, del cargo más antiguo al más reciente, y la persona solo marca qué cargos paga. Si sobra dinero y quedan cargos sin marcar, aparece «Sobran $X… quedarán como saldo a favor» (antes se creaba el saldo a favor sin avisar). Sin SQL ni funciones.
 - El humo `finanzas-pestanas-smoke.cjs` ya no busca «Corte de caja» en Configuración (lo quitó #339 de main): valida «Facturación».
+
+## 2026-11-27 · Claude · Ventana «Preparar cotización» con la paleta de la plataforma
+
+- Ricardo notó que la ventana de tareas/selector de pacientes (Cotizaciones › Nueva cotización y atajos de Inicio) no combinaba con el resto: usaba un verde azulado propio (`--task-primary:#0f6b67`). `smyl-professional-v3.css` v15 agrega un bloque «v15» que reasigna esas variables al índigo de la plataforma (`--smyl-ui-primary` #2d3a9e / soft #eceffe) en pestañas, foco, hover, iconos, «Registrar paciente nuevo» y la acción de cada fila. Los chips de estado verdes se conservan (semántica de «listo»). Sin cambios de lógica. Sufijo SW `-ventana-cotizar-paleta-v1`, copia en `mobile/www/`.
