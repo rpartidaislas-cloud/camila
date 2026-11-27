@@ -33,6 +33,7 @@
       { title: 'Materiales e inventario', desc: 'Existencias, compras y material por tratamiento.', group: 'Operación', icon: 'inventory', action: 'Abrir', route: 'inventario' }
     ] },
     { id: 'canales', title: 'Canales', blurb: 'Administra las cuentas y los mensajes de tu clínica.', icon: 'channels', items: [
+      { title: 'Muse · Piloto', desc: 'Tu conexión personal, chats asignados y avisos al doctor.', group: 'Asistente', icon: 'bot', action: 'Configurar', route: 'muse' },
       { title: 'WhatsApp Business', desc: 'Número de la clínica', group: 'Cuentas de mensajería', icon: 'whatsapp', channel: 'whatsapp', route: 'conexiones', target: '[data-connection-tab="whatsapp"]', check: 'whatsapp' },
       { title: 'Messenger', desc: 'Página de Facebook', group: 'Cuentas de mensajería', icon: 'messenger', channel: 'messenger', route: 'conexiones', target: '[data-connection-tab="messenger"]' },
       { title: 'Instagram', desc: 'Cuenta profesional', group: 'Cuentas de mensajería', icon: 'instagram', channel: 'instagram', route: 'conexiones', target: '[data-connection-tab="instagram"]' },
