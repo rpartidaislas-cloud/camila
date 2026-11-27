@@ -90,3 +90,68 @@ test('PostgreSQL: la primera llegada convierte al prospecto y el invariante lo p
   await db.exec(`select set_config('test.tenant','22222222-2222-4222-8222-222222222222',false)`);
   await assert.rejects(() => db.query('select public.smyl_promote_prospect($1)', [P3]), /no existe/, 'otra clínica no ve al paciente');
 });
+
+// ── Interfaz ────────────────────────────────────────────────────────────────
+
+const clinicJs = read('smyl-clinic.js');
+const scheduleJs = read('smyl-schedule.js');
+let chromium = null;
+try { ({ chromium } = require('playwright')); } catch (e) { chromium = null; }
+
+test('la agenda da de alta a la persona nueva como prospecto, con reintento si la columna aún no existe', () => {
+  assert.match(scheduleJs, /ciclo_vida:'prospecto'/);
+  assert.match(scheduleJs, /optional=\['ciclo_vida','registro_estado'\]/);
+  assert.match(scheduleJs, /Se guarda como prospecto: pasa a Pacientes cuando llega a su primera cita/);
+});
+
+test('el directorio ofrece el filtro «Prospectos» y la conversión usa la RPC', () => {
+  assert.match(clinicJs, /function isProspect\(p\) \{ return !!p && p\.ciclo_vida === 'prospecto'; \}/);
+  assert.match(clinicJs, /sb\.rpc\('smyl_promote_prospect', \{ p_patient_id: p\.id \}\)/);
+  assert.match(read('app.html'), /data-patient-filter-value="prospects"/);
+  for (const file of ['smyl-clinic.js', 'smyl-clinic.css', 'smyl-patients-directory.css', 'smyl-schedule.js', 'app.html', 'sw.js']) {
+    assert.equal(read('mobile/www/' + file), read(file), `${file} difiere en mobile/www`);
+  }
+});
+
+test('navegador: los prospectos no cuentan como pacientes y se convierten con un clic', { skip: chromium ? false : 'Playwright/Chromium no disponible' }, async (t) => {
+  const browser = await chromium.launch();
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  await page.setContent(`<body class="smyl-ui-governed"><section id="p-pacientes">
+    <button data-patient-filter-value="all" class="is-active"></button><button data-patient-filter-value="incomplete"></button>
+    <button data-patient-filter-value="prospects" hidden>Prospectos <b id="patient-metric-prospects"></b></button>
+    <b id="patient-metric-total"></b><b id="patient-metric-incomplete"></b>
+    <input id="buscar-pac"><p id="patient-directory-summary"></p><div id="tabla-pacientes-wrap"></div></section></body>`);
+  await page.evaluate(() => {
+    window.tenantId = 't1'; window.sb = { rpc: (name, args) => { window.__rpc = [name, args]; return Promise.resolve({ data: true, error: null }); } };
+    window.sbTimeout = (q) => q; window.TITULOS = {};
+    window.todosLosPacientes = [
+      { id: 'p1', nombre: 'Ana', apellido: 'Paz', telefono: '5512345678', ciclo_vida: 'paciente' },
+      { id: 'p2', nombre: 'Beto', apellido: '', telefono: '5598765432', ciclo_vida: 'prospecto' },
+      { id: 'p3', nombre: 'Cris', apellido: '', email: 'c@x.mx' },
+    ];
+  });
+  page.on('pageerror', () => {});
+  await page.addScriptTag({ content: clinicJs });
+  const names = () => page.$$eval('#tabla-pacientes-wrap .clinic-patient-name-open', (n) => n.map((x) => x.textContent));
+  await page.evaluate(() => window.renderTablaPacientes(window.todosLosPacientes));
+  assert.deepEqual(await page.evaluate(() => window.todosLosPacientes.length), 3);
+  await page.evaluate(() => window.filtrarDirectorioPacientes('all'));
+  assert.deepEqual(await names(), ['Ana Paz', 'Cris'], 'la lista normal no incluye prospectos');
+  assert.equal(await page.textContent('#patient-metric-total'), '2');
+  assert.equal(await page.textContent('#patient-metric-prospects'), '1');
+  assert.equal(await page.$eval('[data-patient-filter-value="prospects"]', (b) => b.hidden), false, 'el filtro aparece cuando hay prospectos');
+
+  await page.evaluate(() => window.filtrarDirectorioPacientes('prospects'));
+  assert.deepEqual(await names(), ['Beto']);
+  assert.match(await page.textContent('#patient-directory-summary'), /1 prospecto/);
+  assert.match(await page.textContent('#tabla-pacientes-wrap .clinic-patient-status'), /Prospecto/);
+
+  await page.click('#tabla-pacientes-wrap .clinic-patient-promote');
+  await page.waitForFunction(() => window.__rpc);
+  assert.deepEqual(await page.evaluate(() => window.__rpc), ['smyl_promote_prospect', { p_patient_id: 'p2' }]);
+  await page.waitForFunction(() => window.todosLosPacientes.find((p) => p.id === 'p2').ciclo_vida === 'paciente');
+  await page.evaluate(() => window.filtrarDirectorioPacientes('all'));
+  assert.deepEqual(await names(), ['Ana Paz', 'Beto', 'Cris'], 'tras convertir, ya aparece entre los pacientes');
+  assert.equal(await page.textContent('#patient-metric-total'), '3');
+});

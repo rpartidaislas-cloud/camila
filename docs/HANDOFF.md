@@ -1,3 +1,12 @@
+## 2026-11-27 — Claude — Prospecto → paciente (PR 2: interfaz)
+
+- Requiere la migración `20261203100000_smyl_prospect_lifecycle.sql` (ya aplicada por Ricardo; el alta reintenta sin `ciclo_vida` si aún no existiera).
+- Agenda (`smyl-schedule.js` v70): «Registrar como paciente nuevo» da de alta con `ciclo_vida='prospecto'`; el texto lo dice («pasa a Pacientes cuando llega a su primera cita»). El buscador de la agenda sigue encontrando a los prospectos para volver a agendarlos.
+- Pacientes (`smyl-clinic.js` v32, `smyl-clinic.css` v15, `smyl-patients-directory.css` v4): los prospectos salen de la lista normal y de los contadores; aparece el filtro **Prospectos** (oculto mientras no haya ninguno) con su cuenta; la fila muestra «Prospecto» y el botón **Convertir en paciente** (RPC `smyl_promote_prospect`). Al marcar «Llegó» en la agenda la conversión ocurre sola en base de datos.
+- Web/PWA/móvil sincronizados, `sw.js` con `-prospectos-v1`. Se actualizaron los pines de versión en las pruebas que los fijan.
+- Pendiente para Ricardo: ejecutar `docs/sql-prospectos-migrar-pegar-en-supabase.sql` (primero la vista previa) para reclasificar los contactos «por registrar» que ya existen.
+- No se tocó la ficha del paciente (no muestra aviso de prospecto) ni `camila_confirmar_lana_handoff`. Sin captura visual de la lista con la sesión real: revisar escritorio/tablet/móvil al publicar.
+
 ## 2026-11-27 — Claude — Prospecto → paciente (PR 1: base de datos)
 
 - Migración nueva `20261203100000_smyl_prospect_lifecycle.sql` (aditiva; **la aplica Ricardo en el SQL Editor**): `camila_pacientes.ciclo_vida` (`prospecto`|`paciente`, por omisión `paciente`) y `convertido_at`. La cita sigue apuntando a la misma fila; no cambia ninguna FK.
