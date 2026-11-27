@@ -12985,3 +12985,7 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - `smyl-finance.js?v=84` / `.css?v=61`: el corte separa los cobros en línea (se reconocen por `receipt.snapshot.provider='openpay'`): ya no entran a «Debe haber» de Tarjetas/Transferencias; el diálogo los muestra como «Cobros en línea · Openpay» (lista, sin conteo) y «Cortes anteriores» los resume.
 - «Registrar cargo»: el IVA lo decide el servicio (se quitó el recuadro repetido; la fila IVA del resumen solo aparece si hay IVA); solo un concepto libre ofrece «Este concepto lleva IVA 16%». Cantidad y precio alineados (misma estructura `smyl-field-label`), enlace «Agregar descuento» como texto.
 - Pruebas: `finance-corte-openpay`; `cobros-cargo-fiscal` actualizada; el humo mide la alineación.
+
+## 2026-11-27 · Claude · Cobrar: el importe por cargo ya no se edita
+- `smyl-finance.js?v=85` / `.css?v=62`: en «Cobrar → Aplicar a cargos» el importe de cada cargo es de solo lectura; se reparte solo con el «Importe» del paso 2, del cargo más antiguo al más reciente, y la persona solo marca qué cargos paga. Si sobra dinero y quedan cargos sin marcar, aparece «Sobran $X… quedarán como saldo a favor» (antes se creaba el saldo a favor sin avisar). Sin SQL ni funciones.
+- El humo `finanzas-pestanas-smoke.cjs` ya no busca «Corte de caja» en Configuración (lo quitó #339 de main): valida «Facturación».

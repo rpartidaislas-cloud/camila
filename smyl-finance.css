@@ -1330,3 +1330,10 @@ dialog[data-smyl-dialog-system="true"][open] .finance-allocation-input>input[typ
 .finance-charge-form .finance-inline-check[hidden]{display:none!important}
 .finance-charge-form .finance-form-grid>label>.smyl-field-label{display:block;min-height:18px;line-height:18px}
 #finance-dialog .finance-charge-form .finance-money-input input{border:0!important;box-shadow:none!important;background:transparent!important;outline:0!important;height:100%!important}
+
+/* Cobrar: el importe por cargo se reparte solo (solo lectura), no es un campo para escribir */
+dialog[data-smyl-dialog-system="true"] .finance-allocation-input{background:transparent;min-width:84px}
+dialog[data-smyl-dialog-system="true"][open] .finance-allocation-input>input[readonly]{border:0!important;background:transparent!important;box-shadow:none!important;font-weight:700;color:#12233f;pointer-events:none;cursor:default}
+dialog[data-smyl-dialog-system="true"] .finance-allocation-input:has(input[value="0"],input[value="0.00"])>input[readonly]{color:#8794a6;font-weight:500}
+.finance-payment-surplus{margin:10px 0 0;padding:9px 11px;border-radius:10px;background:#fff6e5;color:#7a4b00;font-size:13px;line-height:1.45}
+.finance-payment-open-head>span{white-space:nowrap}
