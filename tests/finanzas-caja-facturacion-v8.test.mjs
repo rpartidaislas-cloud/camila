@@ -14,13 +14,13 @@ const block = (name) => pick(new RegExp('(?:async )?function ' + name + '\\([^)]
 const code = [
   pick(/var byIndex[\s\S]*?return acct;\}/),
   line('esc'), line('money'), line('date'), line('name'), line('actorName'), line('plural'), line('dayOf'), line('whenLabel'), line('relDay'), line('signed'),
-  pick(/function cashFlow\(s\)\{[\s\S]*?return out;\}/), line('cashExpected'), block('cashMoves'),
+  line('refundOnSession'), pick(/function cashFlow\(s\)\{[\s\S]*?return out;\}/), line('cashExpected'), block('cashMoves'),
   line('atClock'), line('clock'), line('moveWhen'), line('openedLabel'), line('dayLabel'), line('shiftSpan'),
-  line('ledgerRow'), block('cashLedger'), line('ledgerTotal'), block('moveLine'), block('cutNotes'), line('cutTag'), line('foldRow'), block('cutRow'), block('teamRow'), block('turnBlock'),
+  line('ledgerRow'), block('cashLedger'), line('ledgerTotal'), block('moveLine'), block('cutNotes'), block('cutDetails'), line('cutTag'), line('foldRow'), block('cutRow'), block('teamRow'), block('turnBlock'),
   line('receiptConcept'), block('paymentFacts'), block('fiscalReceiptItem'), line('pacConnected'), line('st_armed'),
   pick(/var INVOICE_FILTERS=[^\n]*\n/), line('invoiceBucket'), line('invoiceIsReal'), 'var chatLinks={};', line('waLink'), line('rowMenu'), block('invoiceLine'), block('pendingLine'), block('fiscalStatusStrip'),
 ].join('\n');
-const build = (state, steps) => new Function('state', 'billingSteps', code + ';return {cashFlow,cashExpected,cashMoves,atClock,openedLabel,dayLabel,cashLedger,moveLine,cutNotes,cutTag,cutRow,teamRow,turnBlock,fiscalReceiptItem,invoiceBucket,invoiceIsReal,invoiceLine,pendingLine,fiscalStatusStrip,INVOICE_FILTERS};')(state, () => steps || [{ done: true }, { done: false }, { done: false }, { done: false }]);
+const build = (state, steps) => new Function('state', 'billingSteps', code + ';return {cashFlow,cashExpected,cashMoves,atClock,openedLabel,dayLabel,cashLedger,moveLine,cutNotes,cutDetails,cutTag,cutRow,teamRow,turnBlock,fiscalReceiptItem,invoiceBucket,invoiceIsReal,invoiceLine,pendingLine,fiscalStatusStrip,INVOICE_FILTERS};')(state, () => steps || [{ done: true }, { done: false }, { done: false }, { done: false }]);
 
 // Momentos relativos a hoy, en la hora local de quien corre la prueba.
 const at = (daysAgo, hour = 12, minute = 0) => { const d = new Date(); d.setDate(d.getDate() - daysAgo); d.setHours(hour, minute, 0, 0); return d.toISOString(); };
@@ -101,7 +101,7 @@ test('mi turno: quién, desde cuándo, los dos botones una sola vez, el desglose
   assert.doesNotMatch(f.turnBlock(state.sessions[0], false), / id="/);
   // Sin permiso de caja se ve el turno, sin botones. Con más de 18 horas abierta, lo avisa.
   state.canCash = false; assert.doesNotMatch(f.turnBlock(state.sessions[0], true), /<button type="button" class="btn/);
-  state.sessions[0].opened_at = at(1, 8); assert.match(f.turnBlock(state.sessions[0], true), /class="finance-session-warn" role="status">Lleva más de 18 horas abierta\. Haz el corte para cerrar el turno\./);
+  state.sessions[0].opened_at = at(2, 8); assert.match(f.turnBlock(state.sessions[0], true), /class="finance-session-warn" role="status">Lleva más de 18 horas abierta\. Haz el corte para cerrar el turno\./);
   // Solo se dibujan los primeros movimientos; el resto se pide.
   state.shown.moves = 2; const few = f.turnBlock(state.sessions[0], true);
   assert.equal((few.match(/data-cols="moves"/g) || []).length, 2); assert.match(few, /Mostrando 2 de 6<\/span><button type="button" class="btn btn-secondary" data-more-moves>Ver todos<\/button>/);
@@ -289,7 +289,7 @@ test('ventanas de Caja: el corte en una tabla que cabe, «Entrada o salida» con
   // Con una casilla vacía el navegador señala cuál falta (antes el botón no hacía nada); el motivo solo se guarda si hay diferencia.
   assert.match(cut, /var snap=snapshot\(\);if\(!f\.reportValidity\(\)\|\|!snap\.complete\)return;/); assert.match(cut, /\+\(snap\.hasVariance&&reason\.value\?'\. Motivo: '/);
   // Lo que se guarda no cambia.
-  assert.match(cut, /rpc\('smyl_close_cash_session',\{p_session_id:s\.id,p_expected_revision:s\.revision,p_counted_cash:snap\.declared\.cash,p_notes:audit\.slice\(0,1000\)\}\)/);
+  assert.match(cut, /rpc\('smyl_close_cash_session',\{p_session_id:s\.id,p_expected_revision:s\.revision,p_counted_cash:snap\.declared\.cash,p_notes:audit\.slice\(0,1000\),p_reconciliation:recon\}\)/);
   assert.match(src, /<form><h2>Entrada o salida<\/h2><p>Dinero que entra o sale de la caja sin ser un cobro\. Caja de '\+esc\(actorName\(s\.opened_by\)\)\+'\.<\/p>/);
   assert.match(src, /form\.querySelector\('\[data-adjust-submit\]'\)\.textContent=form\.elements\.direction\.value==='in'\?'Registrar entrada':'Registrar salida';/);
   assert.match(src, /rpc\('smyl_post_cash_adjustment',\{p_id:crypto\.randomUUID\(\),p_idempotency_key:crypto\.randomUUID\(\),p_cash_session_id:s\.id,p_direction:f\.get\('direction'\),p_amount:Number\(f\.get\('amount'\)\),p_reason:f\.get\('reason'\)\}\)/);
@@ -347,7 +347,26 @@ test('los estilos del paso 3: mismas filas y etiquetas, acomodo por espacio y ve
 
 test('versiones publicadas y copias de la app móvil al día', () => {
   const app = read('app.html'), sw = read('sw.js');
-  assert.match(app, /smyl-finance\.css\?v=56/); assert.match(app, /smyl-finance\.js\?v=73/);
-  assert.match(sw, /smyl-finance\.js\?v=73/); assert.match(sw, /smyl-finance\.css\?v=56/); assert.match(sw, /finanzas-caja-facturacion-v9/);
+  assert.match(app, /smyl-finance\.css\?v=63/); assert.match(app, /smyl-finance\.js\?v=87/);
+  assert.match(sw, /smyl-finance\.js\?v=87/); assert.match(sw, /smyl-finance\.css\?v=63/); assert.match(sw, /finanzas-caja-facturacion-v9/);
   for (const file of ['smyl-finance.js', 'smyl-finance.css', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + file), read(file), file);
+});
+
+test('cortes: el detalle sale de la conciliación guardada por el servidor y, si no hay, del texto de las notas', () => {
+  const f = build(clinic());
+  const structured = f.cutDetails({ close_reconciliation: { type: 'shift', reason: 'Faltante de cambio', notes: 'Turno normal', methods: [
+    { method: 'cash', expected: 500, reported: 700, variance: 200 }, { method: 'card', expected: 300, reported: 250, variance: -50 }, { method: 'transfer', expected: 0, reported: 0, variance: 0 } ] }, close_notes: 'texto viejo que ya no manda' });
+  assert.equal(structured.kind, 'Cierre de turno'); assert.equal(structured.reason, 'Faltante de cambio'); assert.equal(structured.notes, 'Turno normal'); assert.equal(structured.raw, '');
+  assert.deepEqual(structured.methods.map((m) => [m.label, m.expected, m.declared, m.variance]), [['Efectivo', '$500.00', '$700.00', '+$200.00'], ['Tarjetas', '$300.00', '$250.00', '−$50.00'], ['Transferencias', '$0.00', '$0.00', '$0.00']]);
+  assert.equal(f.cutDetails({ close_reconciliation: { type: 'day', methods: [{ method: 'cash', expected: 1, reported: 1, variance: 0 }] } }).kind, 'Cierre del día');
+  // Un corte anterior (sin datos estructurados) sigue leyéndose del texto, y uno con otro formato se muestra tal cual.
+  const legacy = f.cutDetails({ close_reconciliation: null, close_notes: audit([2180, 2010], '.') });
+  assert.ok(legacy.methods.length >= 1 && legacy.methods[0].label === 'Efectivo');
+  assert.equal(f.cutDetails({ close_notes: 'Nota libre de un corte muy antiguo' }).raw, 'Nota libre de un corte muy antiguo');
+  assert.deepEqual(f.cutDetails({ close_reconciliation: { methods: [] }, close_notes: '' }).methods, [], 'una conciliación vacía no inventa renglones');
+});
+
+test('el cierre manda la conciliación estructurada y mantiene el texto de las notas', () => {
+  assert.match(src, /var recon=\{type:f\.elements\.closeType\.value==='day'\?'day':'shift',methods:methods\.map\(function\(method\)\{return \{method:method,expected:expected\[method\],reported:snap\.declared\[method\]\};\}\)/);
+  assert.match(src, /p_notes:audit\.slice\(0,1000\),p_reconciliation:recon/);
 });

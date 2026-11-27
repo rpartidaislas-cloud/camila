@@ -1966,7 +1966,7 @@
     const last = [...items].reverse().find(m => !m.deleted && (m.role === 'user' || m.author_type === 'patient' || m.author_type === 'team'));
     const allowed = conv && canOperate(conv,'messages.respond') && liveWhatsappWindow(conv)?.freeform_allowed !== false;
     const key = allowed && last && (last.role==='user'||last.author_type==='patient') && last.content
-      ? [epoch,window.tenantId,conv.id,last.id,last.content].join('|') : '';
+      ? [epoch,conv.id,last.id,last.content].join('|') : '';
     if(key && mediaLookup===key && Date.now()-checkedMediaAt<60000) return;
     const seq=++mediaSequence;
     mediaLookup=key;checkedMediaAt=Date.now();box.hidden=true;box.replaceChildren();
@@ -2633,6 +2633,41 @@
       pilotSection.append(actions);
     } else pilotSection.append(node('p', 'smyl-inbox-pilot-readonly', 'Seguimiento de solo lectura. El dueño de la clínica registra y aprueba las pruebas.'));
     content.append(pilotSection);
+    if (canManagePilot) content.append(buildEmergencyPause());
+  }
+
+  // Pausa de emergencia (solo el dueño). Pausa a la IA en cada conversación EXISTENTE y dice con números qué pasó.
+  function buildEmergencyPause() {
+    var section = node('section', 'smyl-inbox-operations-section smyl-inbox-emergency');
+    section.append(node('h3', '', 'Respuestas automáticas'));
+    section.append(node('p', '', 'Si algo sale mal, pausa a la IA en todas las conversaciones de la clínica. Seguirás viendo los mensajes y podrás responder tú.'));
+    section.append(node('small', 'smyl-inbox-pilot-safety', 'Cubre las conversaciones que existen ahora. Una conversación nueva que llegue después no queda pausada: vuelve a pulsar el botón o pide a soporte la pausa general. Cada conversación se reanuda por separado.'));
+    var button = node('button', 'btn connections-danger-button', state.pauseAllLoading ? 'Pausando…' : 'Pausar respuestas automáticas'); button.type = 'button'; button.disabled = Boolean(state.pauseAllLoading);
+    button.onclick = pauseAllReplies; section.append(button);
+    var result = state.pauseAllResult;
+    if (result) {
+      var box = node('div', 'smyl-inbox-emergency-result is-' + (result.error ? 'error' : result.complete ? 'ok' : 'warn')); box.setAttribute('role', 'status');
+      if (result.error) box.append(node('strong', '', 'No se pudo completar'), node('p', '', result.error));
+      else {
+        box.append(node('strong', '', result.complete ? 'Listo: todas las conversaciones están pausadas' : 'Pausa incompleta: revisa y repite'));
+        box.append(node('p', '', result.paused + ' pausadas ahora · ' + result.already_paused + ' ya estaban pausadas · ' + result.failed + ' con error · ' + result.scanned + ' revisadas.'));
+        if (result.truncated) box.append(node('p', '', 'Hay más conversaciones de las que se pudieron revisar. Vuelve a pulsar el botón para continuar.'));
+        if (result.failed) box.append(node('p', '', 'No se pudo pausar ' + result.failed + ' conversación(es). Vuelve a intentarlo; si persiste, pausa esas conversaciones a mano o pide ayuda a soporte.'));
+      }
+      section.append(box);
+    }
+    return section;
+  }
+
+  async function pauseAllReplies() {
+    if (state.pauseAllLoading) return;
+    if (!window.confirm('¿Pausar las respuestas automáticas en TODAS las conversaciones de la clínica?\n\nLa IA dejará de contestar hasta que reanudes cada conversación. Tú y tu equipo pueden seguir respondiendo.')) return;
+    state.pauseAllLoading = true; state.pauseAllResult = null; renderOperations();
+    try {
+      state.pauseAllResult = await request('POST', {}, { action: 'pause_all' }, uuid(), 90000);
+      try { loadList(true); } catch (_) {}
+    } catch (error) { state.pauseAllResult = { error: error.message || 'No se pudo pausar las respuestas automáticas.' }; }
+    finally { state.pauseAllLoading = false; renderOperations(); }
   }
 
   async function loadOperations(force) {

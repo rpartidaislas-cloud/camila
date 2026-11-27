@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireUser } from "../_shared/auth.ts";
 import { lanaRequest } from "../_shared/lana-linked.ts";
 import { matchBranch, matchBranchInMessages } from "../_shared/branch-match.ts";
+import { pauseAllConversations } from "../_shared/pause-all-core.mjs";
 import { makeCors } from "../_shared/cors.ts";
 import { MAX_CHAT_FILE_BYTES, tipoPorFirma, urlDescargable, bytesABase64, esArchivoFiscal } from "../_shared/fiscal-chat.mjs";
 
@@ -900,6 +901,37 @@ async function patientLinkIdentity(actor: Actor, tenantId: string, conversationI
   };
 }
 
+// Pausa de emergencia: pausa a la IA en todas las conversaciones existentes de la clínica (solo el dueño).
+// LANA solo ofrece pausa por conversación; las conversaciones nuevas que lleguen después NO quedan pausadas.
+async function pauseAllAutomaticReplies(actor: Actor, tenantId: string): Promise<Response> {
+  const result = await pauseAllConversations({
+    fetchPage: async (offset: number, take: number) => {
+      const source = new URL("https://smyl.invalid/");
+      source.searchParams.set("filter", "all"); source.searchParams.set("limit", String(take)); source.searchParams.set("offset", String(offset));
+      const remote = await lanaRequest(tenantId, queryPath(source, "list", null)!, { method: "GET", headers: connectorHeaders(tenantId) }, 15000);
+      if (!remote.response.ok) throw new Error("No se pudo consultar la bandeja.");
+      const raw = Array.isArray(remote.body.conversations) ? remote.body.conversations as { id: unknown; paused?: unknown }[] : [];
+      const page = remote.body.page as { has_more?: boolean } | undefined;
+      return { conversations: raw.map((row) => ({ id: String(row.id || ""), paused: row.paused === true })), hasMore: page?.has_more ?? raw.length >= take };
+    },
+    pause: async (conversationId: string) => {
+      if (!uuid(conversationId)) return false;
+      const remote = await lanaRequest(tenantId, `/inbox/conversations/${conversationId}/pause`, {
+        method: "POST", headers: actorHeaders(actor, crypto.randomUUID()), body: "{}",
+      }, 15000);
+      return remote.response.ok;
+    },
+  });
+  // Rastro sin datos de pacientes: cuántas se pausaron, quién y cuándo.
+  const audit = await admin.from("smyl_audit_events").insert({
+    tenant_id: tenantId, actor_id: actor.id, action: "update", entity_type: "chat_pause_all", entity_id: "emergency",
+    before_data: null,
+    after_data: { scanned: result.scanned, paused: result.paused, already_paused: result.already_paused, failed: result.failed, truncated: result.truncated, complete: result.complete },
+  });
+  if (audit.error) console.error("[lana-inbox] auditoría de pausa de emergencia:", audit.error.message);
+  return json(200, { ok: true, ...result, actor });
+}
+
 async function patientLinkPreview(actor: Actor, tenantId: string, conversationId: string): Promise<Response> {
   const resolved = await patientLinkIdentity(actor, tenantId, conversationId);
   if (resolved.response || !resolved.identity) return resolved.response || json(502, { error: "No se pudo identificar al contacto." });
@@ -1340,6 +1372,11 @@ return scheduleDenied || await appointmentContext(actor, auth.tenantId, conversa
         method: "POST", headers: actorHeaders(actor, idempotencyKey), body: JSON.stringify(forwarded),
       }, 20000);
       return json(remote.response.status, { ...remote.body, actor });
+    }
+    if (action === "pause_all") {
+      if (actor.role !== "owner" || actor.scopes.messages !== "clinic") return json(403, { error: "Solo el dueño de la clínica puede pausar todas las respuestas automáticas.", code: "permission_denied" });
+      if (!uuid(req.headers.get("Idempotency-Key"))) return json(400, { error: "Idempotency-Key debe ser un UUID válido." });
+      return await pauseAllAutomaticReplies(actor, auth.tenantId);
     }
     if (action === "stage_create" || action === "stage_update" || action === "stage_reorder" || action === "stage_seed_dental") {
       if (actor.role !== "owner") return json(403, { error: "Solo el dueño de la clínica puede configurar las etapas del Pipeline.", code: "permission_denied" });

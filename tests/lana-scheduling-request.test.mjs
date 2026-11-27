@@ -184,7 +184,7 @@ test("«Por aprobar» muestra el origen, el nombre y el contacto de una solicitu
   for (const f of ["smyl-schedule.js"]) assert.equal(readFileSync(new URL(`../mobile/www/${f}`, import.meta.url), "utf8"), readFileSync(new URL(`../${f}`, import.meta.url), "utf8"));
   for (const base of ["", "mobile/www/"]) {
     assert.match(readFileSync(new URL(`../${base}app.html`, import.meta.url), "utf8"), /smyl-ai-scheduling\.js\?v=5/);
-    assert.match(readFileSync(new URL(`../${base}app.html`, import.meta.url), "utf8"), /smyl-schedule\.js\?v=67/);
+    assert.match(readFileSync(new URL(`../${base}app.html`, import.meta.url), "utf8"), /smyl-schedule\.js\?v=68/);
   }
 });
 
@@ -279,7 +279,7 @@ test("book: con ese nivel `suggest` también guarda la oferta del servidor y `re
 });
 
 test("book: la migración y la función dejan los candados escritos (nivel, paciente vinculado, tope diario, bitácora, solo service_role)", () => {
-  const sql = readFileSync(new URL("../supabase/migrations/20261128140000_smyl_ai_scheduling_book.sql", import.meta.url), "utf8");
+  const sql = readFileSync(new URL("../supabase/migrations/20261128141000_smyl_ai_scheduling_book.sql", import.meta.url), "utf8");
   assert.match(sql, /if v_level is distinct from 'book' then/);
   assert.match(sql, /smyl_ai_scheduling_create_request\(/);
   assert.match(sql, /if v_req\.patient_id is null then/);

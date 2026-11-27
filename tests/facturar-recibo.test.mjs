@@ -116,7 +116,7 @@ test('la función exige JWT y finance.manage, mide el consumo y no guarda el arc
 
 test('Cobros: «Facturar» en el recibo, alta de datos fiscales al vuelo y continuación al guardar', () => {
   const js = read('smyl-finance.js');
-  assert.match(js, /data-success-invoice>Facturar/);
+  assert.match(js, /data-success-invoice>'\+successIcon\('invoice'\)\+'Facturar/);
   assert.match(js, /inv\.onclick=function\(\)\{d\.close\(\);startInvoice\(payment\);\}/);
   assert.match(js, /function startInvoice\(payment\)/);
   assert.match(js, /if\(fiscalReady\(payment\.patient_id\)\)return prepareCfdi\(payment\)/);
@@ -132,7 +132,7 @@ test('publicación: scripts cargados antes de Cobros y copias de móvil idéntic
   for (const html of ['app.html', 'mobile/www/app.html']) {
     const page = read(html);
     assert.ok(page.indexOf('smyl-fiscal-rules.js?v=2') < page.indexOf('smyl-fiscal-capture.js?v=4'));
-    assert.ok(page.indexOf('smyl-fiscal-capture.js?v=4') < page.indexOf('smyl-finance.js?v=73'));
+    assert.ok(page.indexOf('smyl-fiscal-capture.js?v=4') < page.indexOf('smyl-finance.js?v=87'));
   }
   for (const sw of ['sw.js', 'mobile/www/sw.js']) assert.match(read(sw), /smyl-fiscal-rules\.js\?v=2[\s\S]*smyl-fiscal-capture\.js\?v=4/);
   for (const f of ['smyl-fiscal-rules.js', 'smyl-fiscal-capture.js', 'smyl-finance.js', 'smyl-finance.css']) assert.equal(read(f), read('mobile/www/' + f), f);

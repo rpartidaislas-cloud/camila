@@ -80,7 +80,7 @@ test('la ventana del insumo (web y móvil): costo IVA incluido, presentación, p
     assert.match(j, /Para usar una presentación escribe su nombre/);
     // costos con respaldo, valor del inventario y compras con costo precargado
     assert.match(j, /if\(index\[item\.id\]==null&&item\.reference_cost!=null\)index\[item\.id\]=Number\(item\.reference_cost\)/);
-    assert.match(j, /VALOR EN EXISTENCIA/);
+    assert.match(j, /Valor en existencia/);
     assert.match(j, /Costo unit\. \(IVA incl\.\)/);
     assert.match(j, /draft\[lineIndex\]\.unit_cost=String\(Number\(chosen\.reference_cost\)\)/);
     assert.match(j, /usualSupplier\(itemId\)\{var pref=by\(state\.items,itemId\),prefSup=pref&&pref\.preferred_supplier_id/);
@@ -88,7 +88,7 @@ test('la ventana del insumo (web y móvil): costo IVA incluido, presentación, p
     assert.match(j, /options\(state\.professionals,'display_name',context\.professionalId\|\|myProfessionalId\(\)\)/);
     assert.match(j, /select\('id,display_name,user_id'\)/);
     assert.match(j, /id="inventory-use-material">Registrar uso de material/);
-    assert.match(j, /use\.hidden=!state\.canConsume/);
+    assert.match(j, /getElementById\('inventory-use-material'\)\.hidden=!state\.canConsume/);
     assert.match(j, /rpc\('smyl_inventory_consumption_report',\{p_from:period\.from,p_to:period\.to\}\)/);
     assert.match(j, /rpc\('smyl_inventory_consumption_totals',/);
     assert.match(j, /Quién usó qué material/);

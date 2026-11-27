@@ -106,6 +106,16 @@ export function rfcCoincide(rfcCertificado, rfcClinica) {
 }
 
 // Compuerta de producción: todo debe cumplirse en el servidor.
+// Cancelar un CFDI de producción es una acción real ante el SAT: además del permiso y del plan guardado, exige el interruptor del servidor
+// (FACTURAPI_LIVE_CANCELLATION=1) y que quien cancela escriba el texto de confirmación. En sandbox no pide nada de esto.
+export const CONFIRM_LIVE_CANCEL_TEXT = "CANCELAR EN PRODUCCION";
+export function puedeCancelarEnProduccion({ live, enabled, confirmText } = {}) {
+  if (!live) return { ok: true };
+  if (!enabled) return { ok: false, error: "La cancelación en producción aún no está habilitada en el servidor. Cancela este comprobante desde tu panel de Facturapi o pide que se habilite." };
+  if (String(confirmText || "").trim().toUpperCase() !== CONFIRM_LIVE_CANCEL_TEXT) return { ok: false, error: `Para confirmar la cancelación en producción escribe: ${CONFIRM_LIVE_CANCEL_TEXT}` };
+  return { ok: true };
+}
+
 export function puedeActivarProduccion({ mode, status, productionReady, issuerReviewed, policyReviewed, confirmText } = {}) {
   if (mode !== "platform") return { ok: false, error: "La producción se activa solo con la cuenta de plataforma de SMYL." };
   if (status !== "connected") return { ok: false, error: "Primero activa la facturación de la clínica." };

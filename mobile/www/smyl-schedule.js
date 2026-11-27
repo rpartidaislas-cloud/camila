@@ -112,7 +112,30 @@
   // Las citas de servicios con precio $0 (p. ej. Revisión) no llevan etiqueta. Si la función no existe todavía, no se muestra nada.
   var ARRIVED=['arrived','in_progress','completed','no_show'];
   function fmtMoney(n){return Number(n||0).toLocaleString('es-MX',{style:'currency',currency:'MXN',minimumFractionDigits:0,maximumFractionDigits:2});}
-  function billingInfo(a){var b=state.canFinance&&state.billing[a.id];if(!b||ARRIVED.indexOf(a.status)<0)return null;if(b.billing_state==='no_charge'&&a.status==='no_show')return ['Perdonada','none'];return {pending:['Por cobrar','pending'],no_show_pending:['Inasistencia por cobrar','pending'],due:['Saldo '+fmtMoney(b.due_amount),'due'],paid:['Cobrada','paid'],no_charge:['Sin cargo','none']}[b.billing_state]||null;}
+  function billingInfo(a){var b=state.canFinance&&state.billing[a.id];if(!b||ARRIVED.indexOf(a.status)<0)return null;if(b.billing_state==='no_charge'&&a.status==='no_show')return ['Perdonada','none'];return {pending:['Por cobrar','pending'],no_show_pending:['Inasistencia por cobrar','pending'],due:['Saldo '+fmtMoney(b.due_amount),'due'],paid:['Cobrada','paid'],covered:['Cubierta por cotización','paid'],no_charge:['Sin cargo','none']}[b.billing_state]||null;}
+  // Cita ↔ concepto de la cotización: si lo que se hizo ya estaba cotizado y cargado, se liga para no cobrarlo otra vez.
+  // Solo se ofrecen conceptos que ya tienen cargo (primero se inicia el tratamiento); nada se liga sin que la persona lo confirme.
+  function quoteRow(d,a){
+    var row=d.querySelector('[data-quote-row]');if(!row)return;var body=row.querySelector('[data-quote-body]');
+    function chip(text,cls){var c=document.createElement('i');c.className=cls||'';c.textContent=text;return c;}
+    function qty(n){return Number.isInteger(Number(n))?String(Number(n)):Number(n).toFixed(1);}
+    // La fila «Cobro» de esta misma ficha se actualiza (por ejemplo, a «Cubierta por cotización») sin cerrarla.
+    function repaintBilling(){var strong=d.querySelector('.sched-billing-row strong');if(!strong||!billingInfo(a))return;var st=state.billing[a.id].billing_state;strong.innerHTML=billingChip(a)+(['pending','no_show_pending','due'].indexOf(st)>=0?' <button type="button" class="sched-ficha-minor" data-go-finance>Ir a Finanzas</button>':'');var go=strong.querySelector('[data-go-finance]');if(go)go.onclick=function(){d.close();window.ir('caja');};}
+    function refresh(){return load().then(function(){return loadBilling();}).then(function(){repaintBilling();window.dispatchEvent(new CustomEvent('smyl:finance-updated'));});}
+    function act(label,fn){var b=document.createElement('button');b.type='button';b.className='sched-ficha-minor';b.textContent=label;b.onclick=function(){b.disabled=true;Promise.resolve(fn()).then(refresh,function(e){b.disabled=false;notify(message(e),'error');});};return b;}
+    async function load(){
+      var rows;try{rows=await rpc('smyl_appointment_quote_candidates',{p_appointment_id:a.id});}catch(e){row.hidden=true;return;}
+      if(!d.contains(row))return;rows=rows||[];body.replaceChildren();
+      var here=rows.filter(function(r){return r.linked_here;}),open=rows.filter(function(r){return !r.linked_here&&Number(r.remaining)>0;});
+      if(!here.length&&!open.length){row.hidden=true;return;}row.hidden=false;
+      here.forEach(function(r){var box=document.createElement('span');box.className='sched-quote-item';box.append(chip('✓ '+r.label,'sched-quote-linked'));if(state.canManage)box.append(act('Quitar',function(){return rpc('smyl_unlink_appointment_quote_item',{p_appointment_id:a.id,p_item_id:r.proposal_item_id});}));body.append(box);});
+      if(state.canManage&&!here.length){
+        open.slice(0,4).forEach(function(r){var box=document.createElement('span');box.className='sched-quote-item';if(r.suggested)box.append(chip('Sugerido','sched-quote-hint'));box.append(act('Ligar a «'+r.label+'»'+(Number(r.remaining)>1?' (quedan '+qty(r.remaining)+')':''),function(){return rpc('smyl_link_appointment_quote_item',{p_appointment_id:a.id,p_proposal_id:r.proposal_id,p_item_id:r.proposal_item_id});}));body.append(box);});
+        var hint=document.createElement('small');hint.textContent='Esta cita puede ser parte de un tratamiento ya cotizado. Si la ligas, no vuelve a aparecer como pendiente de cobro.';body.append(hint);
+      }
+    }
+    load();
+  }
   function billingChip(a){var t=billingInfo(a);return t?'<i class="schedule-billing" data-billing="'+t[1]+'">'+esc(t[0])+'</i>':'';}
   /* Entrevista previa de MILA: marca por cita (enviada, en curso, respondida, con alerta o no enviada). */
   var PREVISIT={sent:['Historia enviada','Se envió la entrevista previa; el paciente aún no responde.'],link:['Historia enviada','Se generó el enlace de la entrevista previa; el paciente aún no responde.'],in_progress:['Respondiendo','El paciente abrió la entrevista previa.'],answered:['Historia lista','El paciente respondió la entrevista previa. Revísala en su ficha.'],failed:['No se envió','La entrevista previa no se pudo enviar por WhatsApp.'],expired:['Sin responder','El paciente no respondió la entrevista previa.']};
@@ -574,6 +597,7 @@ state.loaded=false;await load(true);remindersChanged();var savedBranchName=(byId
       +'<li><span>Atiende</span><strong>'+esc(p?p.display_name:'Sin asignar')+(p&&p.specialty?' <small>'+esc(p.specialty)+'</small>':'')+'</strong></li>'
       +'<li><span>Lugar</span><strong>'+esc([state.branches.length>1&&br?br.name:'',room?room.name:''].filter(Boolean).join(' · ')||(br?br.name:'Sin sillón'))+'</strong></li>'
       +(billingInfo(a)?'<li class="sched-billing-row"><span>Cobro</span><strong>'+billingChip(a)+(['pending','no_show_pending','due'].indexOf(state.billing[a.id].billing_state)>=0?' <button type="button" class="sched-ficha-minor" data-go-finance>Ir a Finanzas</button>':'')+'</strong></li>':'')
+      +(a.patient_id&&state.canFinance&&!['cancelled','no_show'].includes(a.status)?'<li class="sched-quote-row" data-quote-row hidden><span>Cotización</span><strong data-quote-body></strong></li>':'')
       +(['in_progress','completed'].includes(a.status)?'<li class="sched-material-row" data-material-row hidden><span>Material</span><strong data-material-text></strong></li>':'')
       +(state.canManage&&['confirmed','arrived','in_progress'].includes(a.status)?'<li class="sched-extra"><span>Tiempo</span><strong><span class="sched-extra-now">'+(a.extra_minutes?'+'+a.extra_minutes+' min extra':'Duración estándar')+'</span><span class="sched-extra-chips">'+[15,30,60].map(function(n){return '<button type="button" data-extra="'+n+'"'+((a.extra_minutes||0)+n>240?' disabled':'')+'>+'+n+'</button>';}).join('')+(a.extra_minutes?'<button type="button" data-extra="0">Quitar</button>':'')+'</span></strong></li>':'')
       +(state.canReadClinical&&!a.patient_id?'<li><span>Expediente</span><strong>Esta cita no tiene un paciente vinculado.</strong></li>':'')
@@ -582,6 +606,7 @@ state.loaded=false;await load(true);remindersChanged();var savedBranchName=(byId
       +'<ul class="sched-ficha-reminders" data-ficha-notices aria-label="Avisos de cita enviados" hidden></ul>'
       +'<section data-ficha-messages hidden></section>'
       +'<footer class="sched-ficha-actions"><div class="sched-ficha-minors">'+patientButtons+((a.status==='no_show'||a.status==='cancelled')?'<button type="button" class="sched-ficha-minor" data-open-inbox>Abrir chat</button>':'')+minorButtons+'</div><div class="sched-ficha-main">'+rescheduleButton+mainButton+'</div></footer></div>');
+    quoteRow(d,a);
     d.querySelector('[data-close]').onclick=close;var rs=d.querySelector('[data-reschedule]');if(rs)rs.onclick=function(){d.close();openReschedule(a);};
     (function(){var row=d.querySelector('[data-material-row]');if(!row||!window.SmylInventory||!window.SmylInventory.consumptionStatus)return;window.SmylInventory.consumptionStatus(a).then(function(r){if(!r||(r.state!=='pending'&&r.state!=='done')||!d.contains(row))return;var text=row.querySelector('[data-material-text]');if(r.state==='done'){text.innerHTML='<i class="schedule-billing" data-billing="paid">Registrado</i>';}else{text.innerHTML='<i class="schedule-billing" data-billing="pending">Pendiente</i> <button type="button" class="sched-ficha-minor" data-material-register>Registrar material</button>';text.querySelector('[data-material-register]').onclick=function(){close();window.SmylInventory.openConsumption({patientId:a.patient_id,appointmentId:a.id,serviceId:a.service_id||'',professionalId:a.professional_id||''});};}row.hidden=false;}).catch(function(){});})();
     d.querySelectorAll('[data-extra]').forEach(function(b){b.onclick=async function(){var n=Number(b.dataset.extra),total=n?(a.extra_minutes||0)+n:0;d.querySelectorAll('[data-extra]').forEach(function(x){x.disabled=true;});try{await rpc('smyl_set_appointment_extra',{p_appointment_id:a.id,p_extra_minutes:total,p_extra_reason:'',p_expected_updated_at:a.updated_at});close();state.loaded=false;await load(true);notify(total?'Cita ampliada: +'+total+' min en total.':'Cita con su duración estándar.','success');}catch(err){close();notify(message(err),'error');}};});

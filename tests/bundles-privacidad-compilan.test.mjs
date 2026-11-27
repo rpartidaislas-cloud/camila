@@ -7,7 +7,7 @@ import vm from 'node:vm';
 // Los bundles de docs/bundles se pegan en el panel de Supabase. Si repiten un nombre o tienen un error de sintaxis, la función
 // responde BOOT_ERROR en producción aunque el código fuente se vea bien. Esta prueba compila cada bundle de privacidad tal como
 // se pega (un solo archivo), para atrapar justo eso.
-const BUNDLES = ['claude', 'mila-interview', 'periodontal-summary', 'radiograph-analyze', 'cloud-classify', 'fiscal-extract', 'privacy-notice-dispatch', 'whatsapp-templates', 'segment-teeth'];
+const BUNDLES = ['claude', 'mila-interview', 'periodontal-summary', 'radiograph-analyze', 'cloud-classify', 'fiscal-extract', 'privacy-notice-dispatch', 'whatsapp-templates', 'segment-teeth', 'smyl-pay'];
 
 for (const name of BUNDLES) {
   test(`el bundle de ${name} compila como un solo archivo`, (t) => {

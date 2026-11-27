@@ -2,7 +2,7 @@
 (function(){
   'use strict';
   var TYPES={receipt:'Recepción',transfer:'Traslado',consumption:'Consumo clínico',waste:'Merma',adjustment_in:'Ajuste de entrada',adjustment_out:'Ajuste de salida',reversal:'Compensación'};
-  var state={canAdjust:false,canPurchase:false,canConsume:false,accessTenant:null,pendingMaterial:[],lastMoves:[],loaded:false,loading:false,tenant:null,actor:null,tab:'stock',stockFilter:'attention',location:'',canRead:false,canManage:false,branches:[],rooms:[],locations:[],items:[],suppliers:[],reorders:[],orders:[],orderLines:[],movements:[],movementLines:[],patients:[],appointments:[],professionals:[],services:[],serviceMaterials:[],snapshot:[],lots:[],rolePermissions:[],memberRoles:[]};
+  var state={canAdjust:false,canPurchase:false,canConsume:false,accessTenant:null,pendingMaterial:[],lastMoves:[],loaded:false,loading:false,tenant:null,actor:null,tab:'stock',stockFilter:'all',expiryRange:'all',location:'',canRead:false,canManage:false,branches:[],rooms:[],locations:[],items:[],suppliers:[],reorders:[],orders:[],orderLines:[],movements:[],movementLines:[],patients:[],appointments:[],professionals:[],services:[],serviceMaterials:[],snapshot:[],lots:[],rolePermissions:[],memberRoles:[]};
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
   function el(t,c,x){var n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n;}
   function by(rows,id){return rows.find(function(x){return x.id===id;});}
@@ -30,6 +30,17 @@
   function date(v){return v?new Intl.DateTimeFormat('es-MX',{day:'numeric',month:'short',year:'numeric'}).format(new Date(v)):'—';}
   async function q(b){var r=await(typeof window.sbTimeout==='function'?window.sbTimeout(b):b);if(r&&r.error)throw r.error;return r?r.data:null;}
   async function rpc(n,a){return q(window.sb.rpc(n,a));}
+  async function readInventoryRows(makeQuery,sortKeys) {
+    const rows=[], size=500;
+    for(let start=0;;start+=size) {
+      let query=makeQuery();
+      if(typeof query.range!=='function')return (await q(query))||[];
+      for(const key of sortKeys) query=query.order(key);
+      const page=(await q(query.range(start,start+size-1)))||[];
+      rows.push(...page);
+      if(page.length<size)return rows;
+    }
+  }
   function error(e){var m=String(e&&(e.message||e.error_description||e.error)||'No se pudo completar la operación.');if(/existencia insuficiente/i.test(m))return 'La existencia cambió o no alcanza en ese lote. Actualiza y vuelve a intentarlo.';if(/40001|cambió/i.test(m))return 'La información cambió en otra sesión. Actualizamos antes de continuar.';if(/42501|permiso|row-level/i.test(m))return 'Tu rol no permite realizar esta acción.';return m.replace(/^Error:\s*/i,'');}
   function notify(text,tone){var h=document.getElementById('inventory-feedback');if(!h)return;var liveRole=tone==='error'?'alert':'status';h.innerHTML=text?'<div class="inventory-notice" data-tone="'+esc(tone||'info')+'" role="'+liveRole+'"><span>'+esc(text)+'</span><button type="button">Cerrar</button></div>':'';var b=h.querySelector('button');if(b)b.onclick=function(){h.replaceChildren();};}
   function capabilities(){var owner=window.miRolEquipo==='dueño',ids=new Set(state.memberRoles.filter(function(x){return x.user_id===state.actor;}).map(function(x){return x.role_id;})),p=new Set(state.rolePermissions.filter(function(x){return ids.has(x.role_id);}).map(function(x){return x.permission_key;}));state.canRead=owner||p.has('inventory.read');state.canManage=owner||p.has('inventory.manage');
@@ -51,7 +62,7 @@
   // Proveedor habitual: el del pedido más reciente (no cancelado) que incluyó el insumo y que sigue activo.
   function usualSupplier(itemId){var pref=by(state.items,itemId),prefSup=pref&&pref.preferred_supplier_id&&by(state.suppliers,pref.preferred_supplier_id);if(prefSup&&prefSup.active)return prefSup.id;var best=null;state.orderLines.forEach(function(l){if(l.item_id!==itemId)return;var o=by(state.orders,l.purchase_order_id);if(!o||o.status==='cancelled')return;if(!best||new Date(o.ordered_at)>new Date(best.ordered_at))best=o;});var sup=best&&by(state.suppliers,best.supplier_id);return sup&&sup.active?sup.id:'';}
   function rowsToOrder(){var seen={};return state.snapshot.filter(function(x){if(!x.below_minimum||suggestedPurchase(x)<=0)return false;if(state.location&&x.location_id!==state.location)return false;var k=x.item_id+'|'+x.location_id;if(seen[k])return false;seen[k]=1;return true;});}
-  function openSuggestedOrders(){if(window.SmylInventoryProcurement)return window.SmylInventoryProcurement.openPurchase();
+  function openSuggestedOrders(){if(window.SmylInventoryProcurement)return window.SmylInventoryProcurement.openPurchase({shortages:true});
     var groups={},order=[];
     rowsToOrder().forEach(function(x){var sup=usualSupplier(x.item_id),key=(sup||'none')+'|'+x.location_id;if(!groups[key]){groups[key]={key:key,supplier:sup,location:x.location_id,locationName:x.location_name,lines:[]};order.push(key);}groups[key].lines.push({item_id:x.item_id,quantity:suggestedPurchase(x),name:x.item_name,unit:x.unit});});
     var list=order.map(function(k){return groups[k];}),multiLocation=new Set(list.map(function(g){return g.location;})).size>1;
@@ -137,19 +148,163 @@
     toast.querySelector('[data-register]').onclick=function(){closeMaterialToast();window.SmylInventory.openConsumption(materialContext(app));};
     toastTimer=setTimeout(closeMaterialToast,30000);
   }
-  function renderInventoryFocus(){var host=document.getElementById('inventory-alerts'),low=state.snapshot.filter(function(x){return x.below_minimum;}),expired=state.snapshot.filter(function(x){return Number(x.on_hand)>0&&x.days_to_expiry!=null&&Number(x.days_to_expiry)<0;}),expiring=state.snapshot.filter(function(x){return Number(x.on_hand)>0&&x.days_to_expiry!=null&&Number(x.days_to_expiry)>=0&&Number(x.days_to_expiry)<=30;}),open=state.orders.filter(function(x){return ['ordered','partially_received'].includes(x.status);}),cards=[];if(low.length)cards.push({tone:'danger',label:'REPONER AHORA',title:low.length+' bajo mínimo',detail:fmt(low.reduce(function(a,x){return a+suggestedPurchase(x);},0))+' unidades sugeridas',action:'Ver faltantes',filter:'low'});if(expired.length)cards.push({tone:'danger',label:'NO UTILIZAR',title:expired.length+(expired.length===1?' lote caducado':' lotes caducados'),detail:'Registrar merma o disposición',action:'Revisar lotes',filter:'expiry'});if(expiring.length)cards.push({tone:'warning',label:'CADUCIDAD PRÓXIMA',title:expiring.length+(expiring.length===1?' caduca en 30 días':' caducan en 30 días'),detail:'Priorizar consumo clínico seguro',action:'Ver caducidades',filter:'expiry'});if(expiryBuckets(state.snapshot).d90)cards.push({tone:'info',label:'CADUCIDAD 90 DÍAS',title:expiryBuckets(state.snapshot).d90+' caducan en 31–90 días',detail:'Planea su uso o devolución con el proveedor',action:'Ver caducidades',filter:'expiry'});if(staleRows(state.snapshot,state.lastMoves).length)cards.push({tone:'info',label:'SIN MOVIMIENTO',title:staleRows(state.snapshot,state.lastMoves).length+' sin movimiento en 90 días',detail:'Revisa si conviene reducir compras o usarlos primero',action:'Ver insumos',filter:'stale'});if(state.canConsume&&(state.pendingMaterial||[]).length)cards.push({tone:'info',label:'MATERIAL PENDIENTE',title:state.pendingMaterial.length+(state.pendingMaterial.length===1?' cita sin material':' citas sin material'),detail:'Registra el material usado en citas terminadas',pending:true});if(open.length)cards.push({tone:'info',label:'POR RECIBIR',title:open.length+(open.length===1?' compra por recibir':' compras por recibir'),detail:'Confirmar cantidades, lote y caducidad',action:'Abrir compras',tab:'orders'});host.innerHTML=cards.length?cards.map(function(c){return '<button type="button" class="inventory-chip" data-tone="'+c.tone+'" '+(c.pending?'data-focus-pending="1"':c.tab?'data-focus-tab="'+c.tab+'"':'data-focus-filter="'+c.filter+'"')+' title="'+esc(c.detail)+'"><i aria-hidden="true"></i>'+c.title+'</button>';}).join(''):'';host.querySelectorAll('[data-focus-filter]').forEach(function(b){b.onclick=function(){state.tab='stock';state.stockFilter=b.dataset.focusFilter;render();document.getElementById('inventory-stock').scrollIntoView({behavior:'smooth',block:'start'});};});host.querySelectorAll('[data-focus-tab]').forEach(function(b){b.onclick=function(){state.tab=b.dataset.focusTab;render();};});host.querySelectorAll('[data-focus-pending]').forEach(function(b){b.onclick=openPendingMaterial;});}
-  function renderFirstUse(host){
-    var steps=[
-      {key:'location',done:state.locations.length>0,title:'Crear una ubicación',detail:state.locations.length?'Ya tienes '+state.locations.length+(state.locations.length===1?' ubicación':' ubicaciones'):'Almacén, gabinete o consultorio donde guardas el material',action:'Agregar ubicación'},
-      {key:'item',done:state.items.length>0,title:'Agregar tus insumos',detail:'Nombre, unidad, mínimo y si lleva lote o caducidad',action:'Agregar insumo'},
-      {key:'supplier',done:state.suppliers.length>0,title:'Agregar un proveedor',detail:'Para poder hacer pedidos de compra',action:'Agregar proveedor'},
-      {key:'order',done:state.orders.length>0,title:'Recibir tu primera compra',detail:'Así entran las existencias con lote y caducidad',action:'Nueva compra'}
-    ],next=steps.find(function(x){return !x.done;});
-    host.innerHTML='<section class="inventory-first-use" aria-labelledby="inventory-first-title"><h2 id="inventory-first-title">Aún no tienes insumos</h2><p>Para empezar a controlar existencias, completa estos pasos. Puedes hacerlos en cualquier orden.</p><ol>'+steps.map(function(x,i){return '<li data-done="'+x.done+'"><i aria-hidden="true">'+(x.done?'✓':i+1)+'</i><div><b>'+x.title+'</b><small>'+x.detail+'</small></div>'+(x.done?'<span class="inventory-first-done">Listo</span>':state.canManage?'<button type="button" class="btn '+(x===next?'btn-primary':'btn-secondary')+'" data-first="'+x.key+'">'+x.action+'</button>':'')+'</li>';}).join('')+'</ol>'+(state.canManage?'':'<p class="inventory-first-note">Pide a quien administra el inventario que complete estos pasos.</p>')+'</section>';
-    var map={location:openLocation,item:openItem,supplier:openSupplier,order:function(){openOrder();}};
-    host.querySelectorAll('[data-first]').forEach(function(b){b.onclick=function(){map[b.dataset.first]();};});
+  // La misma colección de lotes alimenta los avisos, sus contadores y la lista.
+  function datedLots() {
+    const snapshotDate = state.snapshot.find(row => row.nearest_expiry && row.days_to_expiry != null);
+    const today = new Date();
+    const day = 86400000;
+    const baseline = snapshotDate
+      ? Date.parse(snapshotDate.nearest_expiry) - Number(snapshotDate.days_to_expiry) * day
+      : Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+    const items = new Map(state.items.filter(item => item.active !== false).map(item => [item.id, item]));
+    const locations = new Map(state.locations.filter(loc => loc.active !== false).map(loc => [loc.id, loc]));
+    return state.lots.filter(lot => lot.expires_on && Number(lot.on_hand) > 0 && items.has(lot.item_id)
+      && locations.has(lot.location_id) && (!state.location || lot.location_id === state.location)).map(lot => ({
+        ...lot, item: items.get(lot.item_id), location: locations.get(lot.location_id),
+        days_to_expiry: Math.round((Date.parse(lot.expires_on) - baseline) / day)
+      })).filter(lot => lot.days_to_expiry <= 90).sort((a,b) => a.days_to_expiry - b.days_to_expiry);
   }
-  function renderStock(){var host=document.getElementById('inventory-stock'),rows=state.snapshot.filter(function(x){return !state.location||x.location_id===state.location;}),search=(document.getElementById('inventory-search').value||'').toLowerCase();if(state.stockFilter==='attention')rows=rows.filter(function(x){return x.below_minimum||(x.days_to_expiry!=null&&Number(x.days_to_expiry)<=30&&Number(x.on_hand)>0);});if(state.stockFilter==='stale'){var st=staleRows(state.snapshot,state.lastMoves);rows=rows.filter(function(x){return st.indexOf(x)>=0;});}if(state.stockFilter==='low')rows=rows.filter(function(x){return x.below_minimum;});if(state.stockFilter==='expiry')rows=rows.filter(function(x){return x.days_to_expiry!=null&&Number(x.days_to_expiry)<=30&&Number(x.on_hand)>0;});if(search)rows=rows.filter(function(x){return (x.item_name+' '+x.sku+' '+x.category+' '+((by(state.items,x.item_id)||{}).barcode||'')).toLowerCase().includes(search);});document.querySelectorAll('[data-stock-filter]').forEach(function(b){b.setAttribute('aria-selected',String(b.dataset.stockFilter===state.stockFilter));});var firstUse=!state.items.length,panel=document.querySelector('[data-inventory-panel="stock"]');if(panel)panel.classList.toggle('inventory-first',firstUse);if(firstUse){renderFirstUse(host);return;}var costsIdx=referenceCosts(),valuation=stockValue(state.snapshot.filter(function(x){return !state.location||x.location_id===state.location;}),costsIdx),valueBar=state.snapshot.length?'<div class="inventory-valuation"><div><span>VALOR EN EXISTENCIA</span><strong>'+money(valuation.total)+'</strong></div><small>IVA incluido'+(valuation.missing?' · '+valuation.missing+(valuation.missing===1?' insumo con existencia no tiene costo':' insumos con existencia no tienen costo')+' y no suma':'')+'</small></div>':'',toOrder=state.canPurchase?rowsToOrder():[],bar=toOrder.length&&state.stockFilter!=='expiry'?'<div class="inventory-suggest-bar"><div><b>'+toOrder.length+(toOrder.length===1?' insumo por reponer':' insumos por reponer')+'</b><span>Pedido sugerido según tus mínimos y lo que ya viene en camino</span></div><button type="button" class="btn btn-primary" data-suggest-orders>Crear pedidos sugeridos</button></div>':'';host.innerHTML=valueBar+(rows.length?bar+'<div class="inventory-table"><div class="inventory-row inventory-row-head"><span>Insumo</span><span>Ubicación</span><span>Existencia</span><span>Próxima caducidad</span><span>Control</span></div>'+rows.map(function(x){var expired=x.days_to_expiry!=null&&Number(x.days_to_expiry)<0,tone=expired?'expired':x.below_minimum?'low':x.days_to_expiry!=null&&x.days_to_expiry<=30?'expiry':'ok',suggested=suggestedPurchase(x),incoming=incomingQuantity(x);return '<article class="inventory-row" data-tone="'+tone+'"><div><strong>'+esc(x.item_name)+'</strong><small>'+esc(x.sku)+' · '+esc(x.category)+(x.requires_patient_trace?' · Trazabilidad por paciente':'')+'</small></div><span>'+esc(x.location_name)+'</span><div><strong>'+fmt(x.on_hand)+' '+esc(x.unit)+'</strong><small>'+(costsIdx[x.item_id]!=null&&Number(x.on_hand)>0?'Valor '+money(Number(x.on_hand)*costsIdx[x.item_id])+' · ':'')+(suggested?'Sugerido pedir '+fmt(suggested)+' · ':'')+(incoming?'En camino '+fmt(incoming)+' · ':'')+'Mínimo '+fmt(x.minimum_quantity)+'</small></div><span>'+(x.nearest_expiry?date(x.nearest_expiry)+(expired?' · Caducado':x.days_to_expiry<=30?' · '+x.days_to_expiry+' días':''):'Sin caducidad')+'</span><div><span class="inventory-badge" data-tone="'+tone+'">'+(expired?'No utilizar':x.below_minimum?'Reponer':tone==='expiry'?'Por caducar':'Disponible')+'</span>'+(state.canPurchase&&x.below_minimum&&suggested>0?'<button type="button" class="inventory-reponer" data-reponer="'+x.item_id+'" data-location="'+x.location_id+'">Reponer '+fmt(suggested)+'</button>':'')+(state.canManage?'<button data-reorder="'+x.item_id+'" data-location="'+x.location_id+'">Mínimos</button>':'')+'</div></article>';}).join('')+'</div>':(state.stockFilter==='attention'&&!search&&!state.location?'<div class="inventory-empty" data-good="true"><strong>Todo en orden</strong><p>Ningún insumo está bajo mínimo ni por caducar.</p><button type="button" class="btn btn-secondary" data-stock-all>Ver todo el inventario</button></div>':'<div class="inventory-empty"><strong>Sin resultados en este filtro</strong><p>Prueba otra ubicación, estado o término de búsqueda.</p></div>'));var allBtn=host.querySelector('[data-stock-all]');if(allBtn)allBtn.onclick=function(){state.stockFilter='all';renderStock();};host.querySelectorAll('[data-reorder]').forEach(function(b){b.onclick=function(){openReorder(b.dataset.reorder,b.dataset.location);};});host.querySelectorAll('[data-reponer]').forEach(function(b){b.onclick=function(){var x=state.snapshot.find(function(r){return r.item_id===b.dataset.reponer&&r.location_id===b.dataset.location;});if(!x)return;openOrder({supplier:usualSupplier(x.item_id),destination:x.location_id,lines:[{item_id:x.item_id,quantity:suggestedPurchase(x)}]});};});var suggestBtn=host.querySelector('[data-suggest-orders]');if(suggestBtn)suggestBtn.onclick=openSuggestedOrders;}
+  const expiryRanges = {expired:'Vencidos', d30:'De hoy a 30 días', d90:'De 31 a 90 días'};
+  function expiryRange(days) { return days < 0 ? 'expired' : days <= 30 ? 'd30' : 'd90'; }
+
+  function renderInventoryFocus(lots) {
+    const host = document.getElementById('inventory-alerts');
+    const counts = expiryBuckets(lots);
+    const actions = [];
+    if (state.stockFilter !== 'expiry') {
+      Object.keys(expiryRanges).forEach(key => {
+        const n = counts[key];
+        if (!n) return;
+        const label = n === 1 ? '1 lote' : n + ' lotes';
+        const suffix = key === 'expired' ? (n === 1 ? ' vencido' : ' vencidos')
+          : key === 'd30' ? ' · 0–30 días' : ' · 31–90 días';
+        actions.push('<button type="button" class="inventory-chip" data-tone="'+(key === 'expired' ? 'danger' : 'warning')+'" data-focus-expiry="'+key+'"><i aria-hidden="true"></i>'+label+suffix+'</button>');
+      });
+    }
+    if (state.canConsume && state.pendingMaterial.length) actions.push('<button type="button" class="inventory-chip" data-focus-pending>'+state.pendingMaterial.length+' citas con material pendiente</button>');
+    const pending = state.orders.filter(order => ['ordered','partially_received'].includes(order.status));
+    if (pending.length) actions.push('<button type="button" class="inventory-chip" data-focus-orders>'+pending.length+(pending.length===1?' compra por recibir':' compras por recibir')+'</button>');
+    host.innerHTML = actions.join('');
+    host.querySelectorAll('[data-focus-expiry]').forEach(button => button.onclick = () => {
+      state.expiryRange = button.dataset.focusExpiry;
+      document.getElementById('inventory-search').value = '';
+      state.stockFilter = 'expiry';
+      renderStock();
+      document.getElementById('inventory-expiry-range').focus();
+    });
+    const orders = host.querySelector('[data-focus-orders]');
+    if (orders) orders.onclick = () => selectSection('orders');
+    const pendingButton = host.querySelector('[data-focus-pending]');
+    if (pendingButton) pendingButton.onclick = openPendingMaterial;
+  }
+
+  function renderFirstUse(host) {
+    const hasLocation = state.locations.some(l=>l.active !== false);
+    const title = hasLocation ? 'Agrega tu primer producto' : 'Prepara tu inventario';
+    const description = hasLocation ? 'Registra el material, su unidad de uso y, si lo conoces, su proveedor.'
+      : 'Crea el almacén donde guardarás los productos de la clínica.';
+    host.innerHTML='<section class="inventory-first-use"><h2>'+title+'</h2><p>'+description+'</p>'
+      +(state.canManage?'<button type="button" class="btn btn-primary" data-first>'+(hasLocation?'Agregar producto':'Crear almacén')+'</button>'
+        :'<p class="inventory-first-note">Pide a quien administra el inventario que complete este paso.</p>')+'</section>';
+    const first=host.querySelector('[data-first]');
+    if(first) first.onclick=()=>{if(hasLocation)openItem();else openLocation();};
+  }
+  function productMatches(item, search) {
+    return [item.name,item.sku,item.category,item.barcode].some(v => String(v || '').toLocaleLowerCase('es').includes(search));
+  }
+  function renderExpiryList(host, lots, search) {
+    const counts = expiryBuckets(lots);
+    const rangeSelect = document.getElementById('inventory-expiry-range');
+    rangeSelect.innerHTML = '<option value="all">Todos los plazos ('+lots.length+')</option>' + Object.entries(expiryRanges).map(([key,label]) =>
+      '<option value="'+key+'">'+label+' ('+counts[key]+')</option>').join('');
+    rangeSelect.value = state.expiryRange;
+    const matches = lots.filter(lot => (state.expiryRange === 'all' || expiryRange(lot.days_to_expiry) === state.expiryRange)
+      && (productMatches(lot.item, search) || [lot.lot_code,lot.serial_number].some(v => String(v||'').toLowerCase().includes(search))));
+    host.innerHTML = matches.length ? '<div class="inventory-products">'+matches.map(lot => {
+      const location = by(state.branches,lot.location.branch_id);
+      const lotDate = new Intl.DateTimeFormat('es-MX',{dateStyle:'medium',timeZone:'UTC'}).format(new Date(lot.expires_on));
+      return '<article class="inventory-product"><div class="inventory-product-line"><div><strong>'+esc(lot.item.name)+'</strong><small>'+esc([lot.lot_code && 'Lote '+lot.lot_code,lot.serial_number && 'Serie '+lot.serial_number,location?.name,lot.location.name].filter(Boolean).join(' · '))+'</small></div><div><strong>'+fmt(lot.on_hand)+' '+esc(lot.item.unit)+'</strong><small>'+ (lot.days_to_expiry<0?'Venció el ':'Vence el ')+esc(lotDate)+'</small></div></div></article>';
+    }).join('')+'</div>' : '<div class="inventory-empty"><strong>Sin lotes en este filtro</strong><p>Prueba otro plazo, ubicación o búsqueda.</p></div>';
+  }
+
+  function productLocation(row) {
+    const suggested = suggestedPurchase(row), incoming = incomingQuantity(row);
+    const branch = by(state.branches,row.branch_id);
+    const label = [branch?.name,row.location_name].filter(Boolean).join(' · ');
+    const canRequest = state.purchasingPolicy?.configured && state.purchasingPolicy?.can_request && state.purchasingPolicy.mode === 'centralized' && !state.purchasingPolicy.can_central;
+    const canOrder = state.purchasingPolicy ? state.purchasingPolicy.can_buy || canRequest : state.canPurchase;
+    return '<div class="inventory-location-line"><div><b>'+esc(label)+'</b><small>'+fmt(row.on_hand)+' '+esc(row.unit)+' · Mínimo '+fmt(row.minimum_quantity)
+      +(incoming?' · En camino '+fmt(incoming):'')+(suggested?' · Sugerido pedir '+fmt(suggested):'')+'</small></div><div class="inventory-row-actions">'
+      +(canOrder && row.below_minimum && suggested>0?'<button type="button" data-reponer="'+esc(row.item_id)+'" data-location="'+esc(row.location_id)+'">'+(canRequest?'Solicitar al centro':'Preparar pedido')+'</button>':'')
+      +(state.canManage?'<button type="button" data-reorder="'+esc(row.item_id)+'" data-location="'+esc(row.location_id)+'">Mínimos</button>':'')+'</div></div>';
+  }
+  function renderStock() {
+    const host = document.getElementById('inventory-stock');
+    const panel = document.querySelector('[data-inventory-panel="stock"]');
+    const search = document.getElementById('inventory-search').value.trim().toLocaleLowerCase('es');
+    const firstUse = !state.items.some(item => item.active !== false);
+    panel.classList.toggle('inventory-first',firstUse);
+    const lots = datedLots();
+    renderInventoryFocus(lots);
+    const add = document.getElementById('inventory-create-product');
+    add.hidden = !state.canManage || firstUse;
+    document.getElementById('inventory-range-field').hidden = state.stockFilter !== 'expiry';
+    const scoped = state.snapshot.filter(row => !state.location || row.location_id === state.location);
+    const stale = new Set(staleRows(scoped,state.lastMoves));
+    const counts = {low:new Set(scoped.filter(row=>row.below_minimum).map(row=>row.item_id)).size,expiry:lots.length,stale:new Set([...stale].map(row=>row.item_id)).size};
+    panel.querySelectorAll('[data-stock-filter]').forEach(b => {
+      const key=b.dataset.stockFilter;
+      b.setAttribute('aria-pressed',String(key===state.stockFilter));
+      const count=b.querySelector('span');
+      if(count) count.textContent=counts[key];
+    });
+    if (firstUse) { renderFirstUse(host); return; }
+    if (state.stockFilter==='expiry') { renderExpiryList(host,lots,search); return; }
+    const locationsByItem = new Map();
+    scoped.forEach(row => {
+      if (!locationsByItem.has(row.item_id)) locationsByItem.set(row.item_id,[]);
+      locationsByItem.get(row.item_id).push(row);
+    });
+    const suppliers = new Map(state.suppliers.filter(p=>p.active!==false).map(p=>[p.id,p.name]));
+    const suppliersByItem = new Map();
+    for (const link of state.supplierItems || []) {
+      if (!suppliers.has(link.supplier_id)) continue;
+      if (!suppliersByItem.has(link.item_id)) suppliersByItem.set(link.item_id,new Set());
+      suppliersByItem.get(link.item_id).add(link.supplier_id);
+    }
+    const cards = [];
+    for (const item of state.items) {
+      if (item.active===false || !productMatches(item,search)) continue;
+      const rows = locationsByItem.get(item.id) || [];
+      if (state.location && !rows.length) continue;
+      const low = rows.some(row=>row.below_minimum);
+      if (state.stockFilter==='low' && !low || state.stockFilter==='stale' && !rows.some(row=>stale.has(row))) continue;
+      const total=rows.reduce((sum,row)=>sum+Number(row.on_hand),0);
+      const linked = suppliersByItem.get(item.id) || new Set();
+      const preferred = suppliers.get(item.preferred_supplier_id);
+      if(preferred) linked.add(item.preferred_supplier_id);
+      const supplierNames = [...linked].map(id=>suppliers.get(id));
+      const supplierText = preferred || supplierNames[0] || 'Vincular proveedor';
+      const more = supplierNames.length>1?' +'+(supplierNames.length-1):'';
+      const seller = state.canManage ? '<button type="button" class="inventory-seller" data-item-suppliers="'+esc(item.id)+'" aria-label="Proveedores de '+esc(item.name)+'">'+esc(supplierText+more)+'</button>' : esc(preferred||'');
+      const meta = [item.sku,item.category,item.requires_patient_trace?'Trazabilidad por paciente':''].filter(Boolean).join(' · ');
+      cards.push('<article class="inventory-product"><div class="inventory-product-line"><div><strong>'+esc(item.name)+'</strong><small>'+esc(meta)+'</small></div><div><strong>'+fmt(total)+' '+esc(item.unit==='pieza' && total!==1?'piezas':item.unit)+'</strong>'
+        +(low?'<small class="inventory-shortage">Por reponer</small>':'')+'</div><div>'+seller+'</div></div><details><summary>Detalle del producto</summary>'
+        +rows.map(productLocation).join('')+(state.canManage?'<button type="button" class="inventory-link" data-edit-item="'+esc(item.id)+'">Editar producto</button>':'')+'</details></article>');
+    }
+    const batchOrder = state.stockFilter==='low' && !search && state.canPurchase && (!state.purchasingPolicy || state.purchasingPolicy.can_buy) && rowsToOrder().length>1;
+    host.innerHTML = cards.length ? (batchOrder?'<div class="inventory-actions"><button type="button" data-suggest-orders>Preparar pedido de faltantes</button></div>':'')+'<div class="inventory-products"><div class="inventory-product-columns inventory-product-line" aria-hidden="true"><span>Producto</span><span>En existencia</span><span>Proveedor</span></div>'+cards.join('')+'</div>' : '<div class="inventory-empty"><strong>Sin productos en este filtro</strong><p>Prueba otra búsqueda, ubicación o estado.</p></div>';
+    host.querySelectorAll('[data-item-suppliers]').forEach(b=>b.onclick=()=>window.SmylInventoryProcurement ? window.SmylInventoryProcurement.openItemSuppliers(b.dataset.itemSuppliers) : openItem(b.dataset.itemSuppliers));
+    host.querySelectorAll('[data-edit-item]').forEach(b=>b.onclick=()=>openItem(b.dataset.editItem));
+    host.querySelectorAll('[data-reorder]').forEach(b=>b.onclick=()=>openReorder(b.dataset.reorder,b.dataset.location));
+    host.querySelectorAll('[data-reponer]').forEach(b=>b.onclick=()=>{
+      const row=scoped.find(r=>r.item_id===b.dataset.reponer && r.location_id===b.dataset.location);
+      if(row) openOrder({supplier:usualSupplier(row.item_id),destination:row.location_id,lines:[{item_id:row.item_id,quantity:suggestedPurchase(row)}]});
+    });
+    const batch=host.querySelector('[data-suggest-orders]');
+    if(batch) batch.onclick=openSuggestedOrders;
+  }
+
   function renderMovements(){var h=document.getElementById('inventory-movements'),rows=state.movements.slice(0,100);h.innerHTML=rows.length?rows.map(function(m){var lines=state.movementLines.filter(function(l){return l.movement_id===m.id;}),src=by(state.locations,m.source_location_id),dst=by(state.locations,m.destination_location_id),reversed=state.movements.some(function(x){return x.reversal_of===m.id;});return '<article class="inventory-movement"><div class="inventory-movement-icon" data-type="'+m.movement_type+'">'+(m.movement_type==='transfer'?'↔':m.destination_location_id?'+':'−')+'</div><div><span>'+esc(TYPES[m.movement_type]||m.movement_type)+'</span><strong>'+lines.map(function(l){var i=by(state.items,l.item_id);return fmt(l.quantity)+' '+esc(i?i.unit:'')+' '+esc(i?i.name:'Insumo');}).join(' · ')+'</strong><small>'+date(m.occurred_at)+' · '+esc(src?src.name:'Origen externo')+(dst?' → '+esc(dst.name):'')+(m.patient_id?' · '+esc(patientName(m.patient_id)):'')+'</small><p>'+esc(m.reason)+'</p></div>'+(state.canAdjust&&!reversed&&m.movement_type!=='reversal'?'<button data-reverse="'+m.id+'">Corregir</button>':'')+'</article>';}).join(''):'<div class="inventory-empty"><strong>Aún no hay movimientos</strong><p>Las recepciones, consumos, traslados y mermas aparecerán aquí.</p></div>';h.querySelectorAll('[data-reverse]').forEach(function(b){b.onclick=function(){reverseMovement(b.dataset.reverse);};});}
   function orderStatus(s){return {ordered:'Por recibir',partially_received:'Recepción parcial',received:'Recibido',cancelled:'Cancelado'}[s]||s;}
   function renderOrders(){if(window.SmylInventoryProcurement)return window.SmylInventoryProcurement.renderOrders();var h=document.getElementById('inventory-orders');h.innerHTML=state.orders.length?state.orders.map(function(o){var sup=by(state.suppliers,o.supplier_id),loc=by(state.locations,o.destination_location_id),lines=state.orderLines.filter(function(l){return l.purchase_order_id===o.id;}),total=lines.reduce(function(a,l){return a+Number(l.ordered_quantity)*Number(l.unit_cost||0);},0),ordered=lines.reduce(function(a,l){return a+Number(l.ordered_quantity||0);},0),received=lines.reduce(function(a,l){return a+Number(l.received_quantity||0);},0),progress=ordered?Math.min(100,Math.round(received/ordered*100)):0,open=o.status==='ordered'||o.status==='partially_received';return '<article class="inventory-order"><div class="inventory-order-main"><span class="inventory-badge" data-status="'+o.status+'">'+orderStatus(o.status)+'</span><h3>'+esc(o.reference||'Pedido '+o.id.slice(0,8))+'</h3><p>'+esc(sup?sup.name:'Proveedor')+' · '+esc(loc?loc.name:'Destino')+'</p><small>'+lines.length+' insumos · '+money(total)+(o.expected_on?' · Esperado '+date(o.expected_on):'')+'</small><div class="inventory-order-progress"><div><span style="width:'+progress+'%"></span></div><small>'+fmt(received)+' de '+fmt(ordered)+' unidades recibidas · '+progress+'%</small></div></div><div>'+(state.canPurchase&&open?'<button class="btn btn-primary" data-receive="'+o.id+'">Recibir</button>':'')+(state.canPurchase&&open?'<button data-send-order="'+o.id+'">Enviar al proveedor</button>':'')+(state.canPurchase&&o.status==='ordered'?'<button data-cancel-order="'+o.id+'">Cancelar</button>':'')+'</div></article>';}).join(''):'<div class="inventory-empty"><strong>No hay pedidos</strong><p>Crea una orden para registrar la compra antes de recibir lotes.</p></div>';h.querySelectorAll('[data-receive]').forEach(function(b){b.onclick=function(){openReceive(by(state.orders,b.dataset.receive));};});h.querySelectorAll('[data-send-order]').forEach(function(b){b.onclick=function(){openSendOrder(by(state.orders,b.dataset.sendOrder));};});h.querySelectorAll('[data-cancel-order]').forEach(function(b){b.onclick=function(){cancelOrder(by(state.orders,b.dataset.cancelOrder));};});}
@@ -219,9 +374,11 @@
   }
   function renderCosts(){
     var host=document.getElementById('inventory-costs');if(!host)return;
+    const value=stockValue(state.snapshot,referenceCosts());
+    document.getElementById('inventory-stock-value').innerHTML='<div class="inventory-valuation"><div><span>Valor en existencia</span><strong>'+money(value.total)+'</strong></div><small>IVA incluido'+(value.missing?' · '+value.missing+' sin costo registrado':'')+'</small></div>';
     var costs=referenceCosts(),activeItems=state.items.filter(function(item){return item.active;}),priced=activeItems.filter(function(item){return costs[item.id]!=null;}).length,kits=state.services.filter(function(service){return state.serviceMaterials.some(function(line){return line.service_id===service.id;});}),consumptions=state.movements.filter(function(movement){return movement.movement_type==='consumption'&&!state.movements.some(function(row){return row.reversal_of===movement.id;});}),wastes=state.movements.filter(function(movement){return movement.movement_type==='waste'&&!state.movements.some(function(row){return row.reversal_of===movement.id;});}),wasteValue=wastes.reduce(function(total,movement){return total+movementReference(movement,costs).known;},0);
     host.innerHTML='<section class="inventory-cost-intro"><div><span>LECTURA OPERATIVA</span><h2>Costos y uso de materiales</h2><p>Las salidas nuevas conservan el costo confirmado por el servidor; los registros anteriores usan una referencia visible cuando existe.</p></div><span class="inventory-cost-label">COSTO DE MATERIAL, NO UTILIDAD</span></section><section class="inventory-cost-metrics"><article><span>Cobertura de costos</span><strong>'+priced+' de '+activeItems.length+'</strong><small>insumos con costo (compra o referencia)</small></article><article><span>Kits configurados</span><strong>'+kits.length+'</strong><small>tratamientos con materiales previstos</small></article><article><span>Consumos visibles</span><strong>'+consumptions.length+'</strong><small>entre los últimos movimientos cargados</small></article><article><span>Valor de merma</span><strong>'+money(wasteValue)+'</strong><small>con costo congelado o referencia disponible</small></article></section><div class="inventory-cost-grid">'+(kits.length?kits.map(function(service){var kit=kitCost(service.id,costs),observed=consumptions.filter(function(movement){var appointment=by(state.appointments,movement.appointment_id);return appointment&&appointment.service_id===service.id;}),values=observed.map(function(movement){return movementReference(movement,costs);}),completeValues=values.filter(function(value){return value.complete;}),frozenValues=completeValues.filter(function(value){return value.frozen;}),average=completeValues.length?completeValues.reduce(function(total,value){return total+value.known;},0)/completeValues.length:null,price=service.reference_price==null?null:Number(service.reference_price),remainder=kit.complete&&price!=null?price-kit.known:null;return '<article class="inventory-cost-card" data-complete="'+String(kit.complete)+'"><header><div><span>TRATAMIENTO</span><h3>'+esc(service.name)+'</h3></div><span>'+kit.lines.length+(kit.lines.length===1?' material':' materiales')+'</span></header><div class="inventory-cost-values"><div><span>Kit de referencia</span><strong>'+(kit.lines.length?(kit.complete?money(kit.known):money(kit.known)+' parcial'):'—')+'</strong></div><div><span>Precio de referencia</span><strong>'+(price==null?'Sin definir':money(price))+'</strong></div><div><span>Uso observado</span><strong>'+(average==null?'Sin costo completo':money(average)+' prom.')+'</strong></div></div>'+(remainder==null?'':'<div class="inventory-cost-remainder"><span>Resto antes de honorarios, laboratorio, impuestos y otros gastos</span><strong>'+money(remainder)+'</strong></div>')+'<footer><div>'+(kit.missing.length?'<strong>Falta precio en '+kit.missing.length+(kit.missing.length===1?' material':' materiales')+'</strong><small>'+esc(kit.missing.join(' · '))+'</small>':'<strong>Kit con costo de referencia completo</strong><small>'+frozenValues.length+' de '+observed.length+' atenciones con costo histórico congelado</small>')+'</div><button type="button" data-open-kit="'+service.id+'">Ver kit</button></footer></article>';}).join(''):'<div class="inventory-empty inventory-cost-empty"><strong>Configura el primer kit</strong><p>Después de asociar materiales a un tratamiento, SMYL mostrará su costo de referencia aquí.</p></div>')+'</div><aside class="inventory-cost-boundary"><strong>Lectura transparente</strong><span>Los consumos nuevos usan el costo congelado al confirmarse. Los anteriores no se reescriben: cuando no tienen costo histórico, se muestran con la referencia actual de compras recibidas.</span></aside>';
-    host.querySelectorAll('[data-open-kit]').forEach(function(button){button.onclick=function(){state.tab='catalog';render();var kitHost=document.getElementById('inventory-kits');if(kitHost)kitHost.scrollIntoView({behavior:'smooth',block:'start'});};});
+    host.querySelectorAll('[data-open-kit]').forEach(function(button){button.onclick=function(){selectSection('catalog');var kitsButton=document.querySelector('[data-catalog="kits"]');if(kitsButton)kitsButton.click();var kitHost=document.getElementById('inventory-kits');if(kitHost)kitHost.scrollIntoView({behavior:'smooth',block:'start'});};});
   }
   function openServiceMaterial(){if(window.SmylInventoryProcurement)return window.SmylInventoryProcurement.openKit(arguments[0]);
     var activeServices=state.services.filter(function(x){return x.active!==false;}),activeItems=state.items.filter(function(x){return x.active;});
@@ -260,7 +417,23 @@
     }catch(err){state.usage={key:key,rows:[],totals:[],error:error(err)};}
     if(state.tab==='costs'&&usagePeriod(state.usagePeriod||'30').key===key)renderUsage();
   }
-  function render(){renderInventoryFocus();renderStock();renderMovements();renderOrders();renderCatalog();renderCosts();renderUsage();document.querySelectorAll('[data-inventory-tab]').forEach(function(b){var active=b.dataset.inventoryTab===state.tab;b.setAttribute('aria-selected',String(active));b.setAttribute('tabindex',active?'0':'-1');});document.querySelectorAll('[data-inventory-panel]').forEach(function(p){p.hidden=p.dataset.inventoryPanel!==state.tab;});['inventory-add-item','inventory-import','inventory-add-supplier','inventory-add-location','inventory-add-kit'].forEach(function(id){var x=document.getElementById(id);if(x)x.hidden=!state.canManage;});var mv=document.getElementById('inventory-new-movement'),po=document.getElementById('inventory-new-order'),use=document.getElementById('inventory-use-material');if(use)use.hidden=!state.canConsume;var cnt=document.getElementById('inventory-count');if(cnt){cnt.hidden=!state.canAdjust;cnt.onclick=openCount;}if(mv)mv.hidden=!(state.canConsume||state.canAdjust||state.canManage);if(po)po.hidden=!state.canPurchase;if(window.SmylInventoryRouting)window.SmylInventoryRouting.renderActions();}
+  function render(){
+    renderStock(); renderMovements(); renderOrders(); renderCatalog(); renderCosts(); renderUsage();
+    const secondary = ['catalog','costs'].includes(state.tab);
+    document.querySelectorAll('[data-inventory-tab]').forEach(b=>{
+      const active=b.dataset.inventoryTab === (secondary ? 'stock' : state.tab);
+      b.setAttribute('aria-selected',String(active)); b.tabIndex=active?0:-1;
+    });
+    document.querySelectorAll('[data-inventory-panel]').forEach(p=>p.hidden=p.dataset.inventoryPanel!==state.tab);
+    ['inventory-add-item','inventory-import','inventory-add-supplier','inventory-add-location','inventory-add-kit'].forEach(id=>{
+      const button=document.getElementById(id); if(button) button.hidden=!state.canManage;
+    });
+    document.getElementById('inventory-new-movement').hidden=!(state.canAdjust || state.canManage);
+    document.getElementById('inventory-use-material').hidden=!state.canConsume;
+    document.getElementById('inventory-new-order').hidden=!state.canPurchase;
+    const count=document.getElementById('inventory-count'); count.hidden=!state.canAdjust; count.onclick=openCount;
+    if(window.SmylInventoryRouting) window.SmylInventoryRouting.renderActions();
+  }
   function sk(k,o){return window.SmylSkeleton?window.SmylSkeleton.html(k,o):'<p>'+((o&&o.label)||'Cargando…')+'</p>';}
   function loadingSkeleton(on){if(on&&state.loaded)return;var map={'inventory-alerts':['kpis',{count:3,label:'Cargando inventario'}],'inventory-stock':['table',{rows:6,cols:5,label:'Cargando existencias'}],'inventory-movements':['list',{rows:5,action:true,label:'Cargando movimientos'}],'inventory-orders':['list',{rows:4,action:true,label:'Cargando compras'}],'inventory-items':['list',{rows:4,label:'Cargando insumos'}],'inventory-suppliers':['list',{rows:3,label:'Cargando proveedores'}],'inventory-locations':['list',{rows:3,label:'Cargando ubicaciones'}]};Object.keys(map).forEach(function(id){var h=document.getElementById(id);if(h)h.innerHTML=on?sk(map[id][0],map[id][1]):'';});}
   async function load(force){
@@ -274,9 +447,9 @@
       var rows=await Promise.all([
         q(window.sb.from('smyl_branches').select('id,name,active').eq('tenant_id',state.tenant).eq('active',true)),
         q(window.sb.from('smyl_rooms').select('id,branch_id,name,active').eq('tenant_id',state.tenant).eq('active',true)),
-        q(window.sb.from('smyl_inventory_locations').select('*').eq('tenant_id',state.tenant).order('name')),
-        q(window.sb.from('smyl_inventory_items').select('*').eq('tenant_id',state.tenant).order('name')),
-        q(window.sb.from('smyl_inventory_suppliers').select('*').eq('tenant_id',state.tenant).order('name')),
+        readInventoryRows(()=>window.sb.from('smyl_inventory_locations').select('*').eq('tenant_id',state.tenant),['name','id']),
+        readInventoryRows(()=>window.sb.from('smyl_inventory_items').select('*').eq('tenant_id',state.tenant),['name','id']),
+        readInventoryRows(()=>window.sb.from('smyl_inventory_suppliers').select('*').eq('tenant_id',state.tenant),['name','id']),
         q(window.sb.from('smyl_inventory_reorder_levels').select('*').eq('tenant_id',state.tenant)),
         q(window.sb.from('smyl_purchase_orders').select('*').eq('tenant_id',state.tenant).order('ordered_at',{ascending:false}).limit(100)),
         Promise.resolve([]),
@@ -287,8 +460,8 @@
         q(window.sb.from('smyl_professionals').select('id,display_name,user_id').eq('tenant_id',state.tenant).eq('active',true)),
         q(window.sb.from('smyl_services').select('id,name,active,reference_price').eq('tenant_id',state.tenant).order('name')),
         q(window.sb.from('smyl_service_materials').select('service_id,item_id,expected_quantity').eq('tenant_id',state.tenant)),
-        rpc('smyl_inventory_snapshot',{p_location_id:null}),
-        rpc('smyl_inventory_lot_stock',{p_location_id:null})
+        readInventoryRows(()=>window.sb.rpc('smyl_inventory_snapshot',{p_location_id:null}),['location_id','item_id']),
+        readInventoryRows(()=>window.sb.rpc('smyl_inventory_lot_stock',{p_location_id:null}),['location_id','item_id','lot_id'])
       ]);
       ['branches','rooms','locations','items','suppliers','reorders','orders','orderLines','movements','movementLines','patients','appointments','professionals','services','serviceMaterials','snapshot','lots'].forEach(function(k,i){state[k]=rows[i]||[];});
       var details=await Promise.all([state.orders.length?q(window.sb.from('smyl_purchase_order_lines').select('*').eq('tenant_id',state.tenant).in('purchase_order_id',state.orders.map(function(x){return x.id;}))):Promise.resolve([]),state.movements.length?q(window.sb.from('smyl_inventory_movement_lines').select('*').eq('tenant_id',state.tenant).in('movement_id',state.movements.map(function(x){return x.id;}))):Promise.resolve([])]);
@@ -425,7 +598,7 @@
   function openMovement(context){
     context=context||{};
     var linked=!!(context.patientId||context.appointmentId),activeItems=state.items.filter(function(x){return x.active;}),
-      kinds=MOVEMENT_KINDS.filter(function(k){return k.key==='consumption'?state.canConsume:k.key==='transfer'?state.canManage:state.canAdjust;});
+      kinds=MOVEMENT_KINDS.filter(function(k){return k.key==='consumption'?linked&&state.canConsume:k.key==='transfer'?state.canManage:state.canAdjust;});
     if(!kinds.length){notify('Tu rol no permite registrar movimientos de inventario.','error');return;}
     if(linked&&!state.canConsume){notify('Tu rol no permite registrar consumos.','error');return;}
     var kindState={key:kinds[0].key,dir:'in'};
@@ -583,11 +756,74 @@
   function openReceive(order){if(window.SmylInventoryRouting&&(!state.canReceive||!state.canManage)){notify('Tu rol no puede registrar recepciones.','error');return;}var lines=state.orderLines.filter(function(x){return x.purchase_order_id===order.id&&Number(x.received_quantity)<Number(x.ordered_quantity);}),d=dialog('<form><h2>Recibir compra</h2><p>Confirma cantidades, lote y caducidad. Esta recepción generará una entrada inmutable.</p><div class="inventory-receive-lines">'+lines.map(function(l){var i=by(state.items,l.item_id),remaining=Number(l.ordered_quantity)-Number(l.received_quantity);return '<fieldset data-line="'+l.id+'"><legend>'+esc(i?i.name:'Insumo')+' · pendiente '+fmt(remaining)+'</legend><div class="inventory-form-grid"><label>Cantidad<input name="qty-'+l.id+'" type="number" min="0" max="'+remaining+'" step="0.001" value="'+remaining+'"></label>'+(i&&i.track_lot?'<label>Lote<input name="lot-'+l.id+'" maxlength="100" required></label>':'')+(i&&i.track_expiry?'<label>Caducidad<input name="expiry-'+l.id+'" type="date" required></label>':'')+(i&&i.track_serial?'<label>Serie<input name="serial-'+l.id+'" maxlength="140" required></label>':'')+'</div></fieldset>';}).join('')+'</div><div class="inventory-actions"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button class="btn btn-primary">Confirmar recepción</button></div></form>');var receiptId=crypto.randomUUID(),receiptKey=crypto.randomUUID(),receiving=false;d.querySelector('form').onsubmit=async function(e){e.preventDefault();if(receiving)return;var f=new FormData(e.currentTarget),payload=lines.map(function(l){var qty=Number(f.get('qty-'+l.id)||0);return qty>0?{line_id:l.id,quantity:qty,lot_code:f.get('lot-'+l.id)||'',expires_on:f.get('expiry-'+l.id)||null,serial_number:f.get('serial-'+l.id)||''}:null;}).filter(Boolean);if(!payload.length){notify('Captura al menos una cantidad recibida.','error');return;}receiving=true;var submit=d.querySelector('button:not([type])');if(submit)submit.disabled=true;try{await rpc('smyl_receive_purchase_order',{p_order_id:order.id,p_movement_id:receiptId,p_idempotency_key:receiptKey,p_receipt_lines:payload});close();await reload('Compra recibida; existencias y lotes actualizados.');}catch(err){notify(error(err),'error');}finally{receiving=false;if(submit)submit.disabled=false;}};}
   async function cancelOrder(order){if(!await confirmAction({title:'¿Cancelar este pedido?',text:'Se cancela sin recibir nada; las existencias no cambian.',confirm:'Cancelar pedido',cancel:'Volver',danger:true}))return;try{await rpc('smyl_cancel_purchase_order',{p_order_id:order.id,p_expected_revision:order.revision});await reload('Pedido cancelado.');}catch(e){await reload();notify(error(e),'error');}}
   async function reverseMovement(id){var answer=await confirmAction({title:'Corregir este movimiento',text:'Se creará un movimiento compensatorio; el registro original no se modifica.',reason:'Motivo de la corrección',confirm:'Registrar corrección'});if(!answer)return;var reason=answer.reason;try{await rpc('smyl_reverse_inventory_movement',{p_movement_id:id,p_reversal_id:crypto.randomUUID(),p_idempotency_key:crypto.randomUUID(),p_reason:reason});await reload('Movimiento compensado sin alterar el registro original.');}catch(e){notify(error(e),'error');}}
-  function mountCosts(){var nav=document.querySelector('.inventory-tabs'),catalogButton=nav&&nav.querySelector('[data-inventory-tab="catalog"]'),catalogPanel=document.querySelector('[data-inventory-panel="catalog"]');if(!nav||!catalogButton||!catalogPanel||document.getElementById('inventory-costs'))return;var button=el('button','','Costos y uso');button.type='button';button.dataset.inventoryTab='costs';button.setAttribute('aria-selected','false');button.onclick=function(){state.tab='costs';render();};nav.insertBefore(button,catalogButton);var panel=el('section');panel.dataset.inventoryPanel='costs';panel.hidden=true;panel.innerHTML='<div id="inventory-costs"></div>';catalogPanel.before(panel);}
+
   function mountKits(){var grid=document.querySelector('[data-inventory-panel="catalog"] .inventory-catalog-grid');if(!grid||document.getElementById('inventory-kits'))return;var card=el('article','inventory-card inventory-catalog-wide');card.innerHTML='<div class="inventory-section-title"><div><span class="pro-eyebrow">PREPARACIÓN CLÍNICA</span><h2>Kits por tratamiento</h2><p>Define una vez los materiales habituales; al atender, sólo ajustas lo que realmente se utilizó.</p></div><button id="inventory-add-kit" hidden>Agregar o ajustar</button></div><div id="inventory-kits" class="inventory-kits"></div>';grid.prepend(card);card.querySelector('#inventory-add-kit').onclick=openServiceMaterial;}
-  function build(){var page=el('section','pantalla inventory-page');page.id='p-inventario';page.innerHTML='<header class="inventory-head"><div><h1>Inventario</h1><p>Existencias, compras y consumo clínico con trazabilidad por ubicación, lote y paciente.</p></div><div class="inventory-head-actions"><button class="btn btn-secondary" id="inventory-new-order">Nueva compra</button><button class="btn btn-secondary" id="inventory-use-material">Registrar uso de material</button><button class="btn btn-primary" id="inventory-new-movement">Registrar movimiento</button></div></header><div id="inventory-feedback" aria-live="polite"></div><div id="inventory-alerts" class="inventory-alerts"></div><nav class="inventory-tabs"><button data-inventory-tab="stock" aria-selected="true">Existencias</button><button data-inventory-tab="movements">Movimientos</button><button data-inventory-tab="orders">Compras</button><button data-inventory-tab="catalog">Catálogo y configuración</button></nav><section data-inventory-panel="stock"><div class="inventory-toolbar"><input id="inventory-search" type="search" placeholder="Buscar insumo o SKU"><select id="inventory-location" aria-label="Filtrar ubicación"></select><button type="button" class="btn btn-secondary" id="inventory-count" hidden>Conteo físico</button></div><div class="inventory-stock-filters" role="group" aria-label="Filtrar existencias por estado"><button type="button" data-stock-filter="attention" aria-selected="true">Por atender</button><button type="button" data-stock-filter="low">Bajo mínimo</button><button type="button" data-stock-filter="expiry">Caducidad</button><button type="button" data-stock-filter="stale">Sin movimiento</button><button type="button" data-stock-filter="all">Todo</button></div><div id="inventory-stock"></div></section><section data-inventory-panel="movements" hidden><div class="inventory-section-title"><div><h2>Libro de movimientos</h2><p>Los confirmados no se editan; se corrigen mediante compensaciones.</p></div></div><div id="inventory-movements" class="inventory-movement-list"></div></section><section data-inventory-panel="orders" hidden><div class="inventory-section-title"><div><h2>Órdenes y recepciones</h2><p>La recepción actualiza lotes y existencias en una sola transacción.</p></div></div><div id="inventory-orders" class="inventory-order-list"></div></section><section data-inventory-panel="catalog" hidden><div class="inventory-catalog-grid"><article class="inventory-card inventory-catalog-wide"><div class="inventory-section-title"><div><h2>Insumos</h2><p>Materiales, medicamentos, implantes e instrumental.</p></div><div class="inventory-actions"><button id="inventory-import" hidden>Importar CSV</button><button id="inventory-labels">Etiquetas</button><button id="inventory-add-item">Agregar</button></div></div><div id="inventory-items" class="inventory-simple-list"></div></article><article class="inventory-card"><div class="inventory-section-title"><div><h2>Proveedores</h2></div><button id="inventory-add-supplier">Agregar</button></div><div id="inventory-suppliers" class="inventory-simple-list"></div></article><article class="inventory-card"><div class="inventory-section-title"><div><h2>Ubicaciones</h2></div><button id="inventory-add-location">Agregar</button></div><div id="inventory-locations" class="inventory-simple-list"></div></article></div></section><dialog id="inventory-dialog" class="inventory-dialog"></dialog><dialog id="inventory-confirm" class="inventory-dialog inventory-confirm"></dialog>';document.querySelector('.contenido').append(page);page.querySelectorAll('[data-inventory-tab]').forEach(function(b){b.onclick=function(){state.tab=b.dataset.inventoryTab;render();};});page.querySelectorAll('[data-stock-filter]').forEach(function(b){b.onclick=function(){state.stockFilter=b.dataset.stockFilter;renderStock();};});page.querySelector('#inventory-new-movement').onclick=openMovement;page.querySelector('#inventory-use-material').onclick=function(){openKitConsumption({});};page.querySelector('#inventory-new-order').onclick=function(){openOrder();};page.querySelector('#inventory-add-item').onclick=openItem;page.querySelector('#inventory-import').onclick=openImport;page.querySelector('#inventory-labels').onclick=openLabels;page.querySelector('#inventory-add-supplier').onclick=function(){openSupplier();};page.querySelector('#inventory-add-location').onclick=function(){openLocation();};page.querySelector('#inventory-search').oninput=renderStock;page.querySelector('#inventory-location').onchange=function(){state.location=this.value;renderStock();};page.querySelector('#inventory-dialog').onclick=function(e){if(e.target===e.currentTarget)e.currentTarget.close();};}
+  function selectSection(tab) {
+    state.tab = tab;
+    render();
+    const back = document.querySelector('[data-inventory-panel="'+tab+'"] [data-back-products]');
+    const target = back || document.querySelector('[data-inventory-tab="'+tab+'"]');
+    if (target) target.focus();
+  }
+  function build() {
+    const page = el('section','pantalla inventory-page');
+    page.id = 'p-inventario';
+    page.innerHTML = `
+      <div id="inventory-feedback" aria-live="polite"></div>
+      <nav class="inventory-tabs">
+        <button type="button" data-inventory-tab="stock" aria-selected="true">Productos</button>
+        <button type="button" data-inventory-tab="orders">Compras</button>
+        <button type="button" data-inventory-tab="suppliers">Proveedores</button>
+        <button type="button" data-inventory-tab="movements">Movimientos</button>
+      </nav>
+      <section data-inventory-panel="stock">
+        <div class="inventory-section-title inventory-product-heading"><h2>Productos</h2>
+          <div class="inventory-actions"><details class="inventory-product-tools"><summary>Más opciones</summary><div>
+            <button data-section="catalog">Administrar catálogo</button><button data-section="costs">Costos y uso</button>
+          </div></details><button type="button" class="btn btn-primary" id="inventory-create-product" hidden>Agregar producto</button></div>
+        </div>
+        <div class="inventory-toolbar"><input id="inventory-search" type="search" placeholder="Buscar producto o código" aria-label="Buscar producto o código">
+          <select id="inventory-location" aria-label="Filtrar ubicación"><option value="">Todas las ubicaciones</option></select></div>
+        <div class="inventory-stock-filters" role="group" aria-label="Filtrar productos">
+          <button type="button" data-stock-filter="all" aria-pressed="true">Todos</button>
+          <button type="button" data-stock-filter="low">Por reponer <span></span></button>
+          <button type="button" data-stock-filter="expiry">Caducidad <span></span></button>
+          <button type="button" data-stock-filter="stale">Sin movimiento <span></span></button></div>
+        <label id="inventory-range-field" hidden>Plazo de caducidad <select id="inventory-expiry-range"></select></label>
+        <div id="inventory-alerts" class="inventory-alerts"></div><div id="inventory-stock"></div>
+      </section>
+      <section data-inventory-panel="orders" hidden><div class="inventory-section-title"><h2>Órdenes y recepciones</h2>
+        <button class="btn btn-primary" id="inventory-new-order" hidden>Preparar pedido</button></div><div id="inventory-orders" class="inventory-order-list"></div></section>
+      <section data-inventory-panel="suppliers" hidden><article class="inventory-card"><div class="inventory-section-title"><h2>Proveedores</h2><button id="inventory-add-supplier" hidden>Agregar proveedor</button></div><div id="inventory-suppliers" class="inventory-simple-list"></div></article></section>
+      <section data-inventory-panel="movements" hidden><div class="inventory-section-title"><h2>Libro de movimientos</h2><div class="inventory-actions">
+        <button type="button" id="inventory-count" hidden>Conteo físico</button><button type="button" id="inventory-new-movement" hidden>Otros movimientos</button>
+        <button class="btn btn-primary" id="inventory-use-material">Registrar uso de material</button></div></div><div id="inventory-movements" class="inventory-movement-list"></div></section>
+      <section data-inventory-panel="catalog" hidden><button type="button" class="inventory-back" data-back-products>← Productos</button><div id="inventory-catalog-body"><div class="inventory-catalog-grid">
+        <article class="inventory-card inventory-catalog-wide"><div class="inventory-section-title"><h2>Insumos</h2><div class="inventory-actions"><button id="inventory-import" hidden>Importar CSV</button><button id="inventory-labels">Etiquetas</button><button id="inventory-add-item" hidden>Agregar producto</button></div></div><div id="inventory-items" class="inventory-simple-list"></div></article>
+        <article class="inventory-card"><div class="inventory-section-title"><h2>Ubicaciones</h2><button id="inventory-add-location" hidden>Agregar ubicación</button></div><div id="inventory-locations" class="inventory-simple-list"></div></article></div></div></section>
+      <section data-inventory-panel="costs" hidden><button type="button" class="inventory-back" data-back-products>← Productos</button><div id="inventory-stock-value"></div><div id="inventory-costs"></div></section>
+      <dialog id="inventory-dialog" class="inventory-dialog"></dialog><dialog id="inventory-confirm" class="inventory-dialog inventory-confirm"></dialog>`;
+    document.querySelector('.contenido').append(page);
+    page.querySelectorAll('[data-inventory-tab]').forEach(b=>b.onclick=()=>selectSection(b.dataset.inventoryTab));
+    page.querySelectorAll('[data-back-products]').forEach(b=>b.onclick=()=>selectSection('stock'));
+    page.querySelectorAll('[data-section]').forEach(b=>b.onclick=()=>{ b.closest('details').open=false; selectSection(b.dataset.section); });
+    page.querySelectorAll('[data-stock-filter]').forEach(b=>b.onclick=()=>{state.stockFilter=b.dataset.stockFilter; state.expiryRange='all'; renderStock();});
+    page.querySelector('#inventory-expiry-range').onchange=e=>{state.expiryRange=e.target.value; renderStock();};
+    page.querySelector('#inventory-new-movement').onclick=()=>openMovement();
+    page.querySelector('#inventory-use-material').onclick=()=>openKitConsumption({});
+    page.querySelector('#inventory-new-order').onclick=()=>openOrder();
+    page.querySelector('#inventory-create-product').onclick=()=>openItem();
+    page.querySelector('#inventory-add-item').onclick=()=>openItem();
+    page.querySelector('#inventory-import').onclick=openImport;
+    page.querySelector('#inventory-labels').onclick=openLabels;
+    page.querySelector('#inventory-add-supplier').onclick=()=>openSupplier();
+    page.querySelector('#inventory-add-location').onclick=()=>openLocation();
+    page.querySelector('#inventory-search').oninput=renderStock;
+    page.querySelector('#inventory-location').onchange=e=>{state.location=e.target.value;renderStock();};
+    page.querySelector('#inventory-dialog').onclick=e=>{if(e.target===e.currentTarget)e.currentTarget.close();};
+  }
   function navigation(){window.TITULOS.inventario='Inventario';var primary=document.querySelector('.pro-primary-nav');if(primary&&!primary.querySelector('[onclick="ir(\'inventario\')"]')){var b=el('button','nav-item','Inventario');b.type='button';b.setAttribute('onclick',"ir('inventario')");var agenda=primary.querySelector('[onclick="ir(\'agenda\')"]');if(agenda)agenda.after(b);else primary.append(b);}var mobile=document.querySelector('.pro-mobile-nav');if(mobile&&!mobile.querySelector('[onclick="ir(\'inventario\')"]')){var m=el('button','nav-item','Inventario');m.type='button';m.setAttribute('onclick',"ir('inventario')");var a=mobile.querySelector('[onclick="ir(\'agenda\')"]');if(a)a.after(m);else mobile.append(m);}}
-  function init(){build();mountCosts();mountKits();if(window.SmylInventoryProcurement)window.SmylInventoryProcurement.init({state:state,q:q,rpc:rpc,dialog:dialog,close:close,reload:reload,notify:notify,error:error,openItem:openItem,openImport:openImport,openLabels:openLabels,orderStatus:orderStatus,usualSupplier:usualSupplier,suggestedPurchase:suggestedPurchase,openReceive:openReceive,cancelOrder:cancelOrder,confirmAction:confirmAction,waPhone:waPhone});navigation();window.addEventListener('smyl:appointment-completed',function(e){var app=e&&e.detail&&e.detail.appointment;if(app)suggestMaterialAfterClose(app);});var previous=window.ir;window.ir=function(route){var r=previous(route);if(route==='inventario'){var sel=document.getElementById('inventory-location');if(sel&&state.locations.length){sel.innerHTML='<option value="">Todas las ubicaciones</option>'+options(state.locations,'name',state.location);sel.value=state.location;}load(false).then(function(){var x=document.getElementById('inventory-location');if(x){x.innerHTML='<option value="">Todas las ubicaciones</option>'+options(state.locations,'name',state.location);x.value=state.location;}});}return r;};window.SmylInventory=Object.freeze({reload:function(){return reload();},consumptionStatus:consumptionStatus,consumptionBatch:consumptionBatch,consumptionDetail:consumptionDetail,openConsumption:function(context){window.ir('inventario');var attempts=0;function ready(){if(state.loaded&&!state.loading){if(!state.canConsume){notify('Tu rol puede consultar inventario, pero no registrar consumos.','error');return;}openKitConsumption(context||{});return;}if(attempts++<120)setTimeout(ready,50);else notify('No fue posible preparar el registro de materiales.','error');}ready();return true;}});}
-  function enhanceSemantics(){var page=document.getElementById('p-inventario');if(!page)return;var tablist=page.querySelector('.inventory-tabs'),tabs=Array.from(page.querySelectorAll('[data-inventory-tab]')),panels=Array.from(page.querySelectorAll('[data-inventory-panel]'));if(tablist){tablist.setAttribute('role','tablist');tablist.setAttribute('aria-label','Secciones de inventario');}tabs.forEach(function(tab,index){var name=tab.dataset.inventoryTab,panel=panels.find(function(candidate){return candidate.dataset.inventoryPanel===name;});tab.id='inventory-tab-'+name;tab.setAttribute('role','tab');if(panel){panel.id='inventory-panel-'+name;tab.setAttribute('aria-controls',panel.id);panel.setAttribute('aria-labelledby',tab.id);}tab.onkeydown=function(event){var next=index;if(event.key==='ArrowRight'||event.key==='ArrowDown')next=(index+1)%tabs.length;else if(event.key==='ArrowLeft'||event.key==='ArrowUp')next=(index-1+tabs.length)%tabs.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=tabs.length-1;else return;event.preventDefault();state.tab=tabs[next].dataset.inventoryTab;render();tabs[next].focus();};});panels.forEach(function(panel){panel.setAttribute('role','tabpanel');panel.setAttribute('tabindex','0');});}
+  function init(){build();mountKits();if(window.SmylInventoryProcurement)window.SmylInventoryProcurement.init({state:state,q:q,rpc:rpc,dialog:dialog,close:close,reload:reload,notify:notify,error:error,openItem:openItem,openImport:openImport,openLabels:openLabels,orderStatus:orderStatus,usualSupplier:usualSupplier,suggestedPurchase:suggestedPurchase,openReceive:openReceive,cancelOrder:cancelOrder,confirmAction:confirmAction,waPhone:waPhone});navigation();window.addEventListener('smyl:appointment-completed',function(e){var app=e&&e.detail&&e.detail.appointment;if(app)suggestMaterialAfterClose(app);});var previous=window.ir;window.ir=function(route){var r=previous(route);if(route==='inventario'){state.tab='stock';state.stockFilter='all';state.expiryRange='all';var search=document.getElementById('inventory-search');if(search)search.value='';if(search&&state.loaded&&state.tenant===window.tenantId)render();var sel=document.getElementById('inventory-location');if(sel&&state.locations.length){sel.innerHTML='<option value="">Todas las ubicaciones</option>'+options(state.locations,'name',state.location);sel.value=state.location;}load(false).then(function(){var x=document.getElementById('inventory-location');if(x){x.innerHTML='<option value="">Todas las ubicaciones</option>'+options(state.locations,'name',state.location);x.value=state.location;}});}return r;};window.SmylInventory=Object.freeze({reload:function(){return reload();},consumptionStatus:consumptionStatus,consumptionBatch:consumptionBatch,consumptionDetail:consumptionDetail,openConsumption:function(context){window.ir('inventario');var attempts=0;function ready(){if(state.loaded&&!state.loading){if(!state.canConsume){notify('Tu rol puede consultar inventario, pero no registrar consumos.','error');return;}openKitConsumption(context||{});return;}if(attempts++<120)setTimeout(ready,50);else notify('No fue posible preparar el registro de materiales.','error');}ready();return true;}});}
+  function enhanceSemantics(){var page=document.getElementById('p-inventario');if(!page)return;var tablist=page.querySelector('.inventory-tabs'),tabs=Array.from(page.querySelectorAll('[data-inventory-tab]')),panels=Array.from(page.querySelectorAll('[data-inventory-panel]'));if(tablist){tablist.setAttribute('role','tablist');tablist.setAttribute('aria-label','Secciones de inventario');}tabs.forEach(function(tab,index){var name=tab.dataset.inventoryTab,panel=panels.find(function(candidate){return candidate.dataset.inventoryPanel===name;});tab.id='inventory-tab-'+name;tab.setAttribute('role','tab');if(panel){panel.id='inventory-panel-'+name;tab.setAttribute('aria-controls',panel.id);panel.setAttribute('aria-labelledby',tab.id);}tab.onkeydown=function(event){var next=index;if(event.key==='ArrowRight'||event.key==='ArrowDown')next=(index+1)%tabs.length;else if(event.key==='ArrowLeft'||event.key==='ArrowUp')next=(index-1+tabs.length)%tabs.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=tabs.length-1;else return;event.preventDefault();state.tab=tabs[next].dataset.inventoryTab;render();tabs[next].focus();};});panels.forEach(function(panel){if(panel.hasAttribute('aria-labelledby')){panel.setAttribute('role','tabpanel');panel.setAttribute('tabindex','0');}else{panel.setAttribute('aria-label',panel.dataset.inventoryPanel==='costs'?'Costos y uso':'Administrar catálogo');}});}
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);document.addEventListener('DOMContentLoaded',enhanceSemantics);}else{init();enhanceSemantics();}
 })();

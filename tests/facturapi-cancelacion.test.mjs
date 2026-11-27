@@ -74,7 +74,7 @@ test('Cobros: planear, cancelar en sandbox y verificar desde el comprobante', ()
   assert.match(js, /else if\(plan\.status==='planned'&&connected\)menu\.push\(item\('data-cancel-cfdi','Enviar cancelación',true\)\);/);
   assert.match(js, /if\(plan&&plan\.status==='submitted'\)\{main=button\('data-cancelcheck-cfdi','Verificar'\);/);
   assert.match(js, /data-cancelcheck-cfdi/);
-  assert.match(js, /facturapiAction\(\{action:'cancel',draft_id:draft\.id\}\)/);
+  assert.match(js, /facturapiAction\(live\?\{action:'cancel',draft_id:draft\.id,confirm_text:typed\}:\{action:'cancel',draft_id:draft\.id\}\)/);
   assert.match(js, /facturapiAction\(\{action:'cancel_check',draft_id:draft\.id\}\)/);
   // Una cancelada dice «Cancelada»; mientras la clínica no timbre en producción, «Cancelada de prueba».
   assert.match(js, /if\(d\.status==='cancelled'\)tag='Cancelada';/);

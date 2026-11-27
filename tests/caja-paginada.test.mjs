@@ -6,7 +6,7 @@ const js = fs.readFileSync(new URL('../smyl-finance.js', import.meta.url), 'utf8
 
 // Extrae pageAll y sus constantes reales del archivo y las ejecuta con una base simulada que respeta range().
 function build(totalRows) {
-  const src = js.match(/var PAGE_SIZE=1000,PAGE_CAP=10000;\n\s*async function pageAll[\s\S]*?\n  \}\n/)[0];
+  const src = js.match(/var PAGE_SIZE=1000,PAGE_CAP=10000;\n[\s\S]*?async function pageAll[\s\S]*?\n  \}\n/)[0];
   const calls = [];
   const state = { tenant: 'T1', truncated: [] };
   const all = Array.from({ length: totalRows }, (_, i) => ({ id: 'r' + i }));

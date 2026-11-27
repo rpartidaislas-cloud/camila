@@ -15,8 +15,8 @@ const edge = read('../supabase/functions/lana-connection/index.ts');
 const sw = read('../sw.js');
 
 test('panel exposes the SMYL channel center and advances cached assets', () => {
-  assert.match(app, /smyl-connections\.css\?v=21/);
-  assert.match(app, /smyl-connections\.js\?v=31/);
+  assert.match(app, /smyl-connections\.css\?v=23/);
+  assert.match(app, /smyl-connections\.js\?v=33/);
   assert.match(app, /smyl-panel\.css\?v=5/);
   assert.match(app, /smyl-panel\.js\?v=7/);
   assert.match(connections, /<h1>Canales<\/h1>/);
@@ -25,12 +25,12 @@ test('panel exposes the SMYL channel center and advances cached assets', () => {
   assert.match(connections, /Instagram/);
   assert.match(styles, /connections-status-card/);
   assert.match(sw, /smyl-v263-lana-connection-recovery/);
-  assert.match(sw, /smyl-connections\.js\?v=31/);
-  assert.match(sw, /smyl-connections\.css\?v=21/);
+  assert.match(sw, /smyl-connections\.js\?v=33/);
+  assert.match(sw, /smyl-connections\.css\?v=23/);
   assert.equal(mobileConnections, connections);
   assert.equal(mobileStyles, styles);
-  assert.match(mobileApp, /smyl-connections\.js\?v=31/);
-  assert.match(mobileApp, /smyl-connections\.css\?v=21/);
+  assert.match(mobileApp, /smyl-connections\.js\?v=33/);
+  assert.match(mobileApp, /smyl-connections\.css\?v=23/);
   assert.equal(mobileSw, sw);
 });
 
@@ -48,7 +48,7 @@ test('connection recovery keeps actions unambiguous and tolerates cold starts', 
 });
 
 test('connection hides the infrastructure provider and keeps delivery human-controlled', () => {
-  assert.match(connections, /tokens de Meta se procesan en una capa privada/);
+  assert.match(connections, /claves de acceso de Meta se procesan en una capa privada/);
   assert.match(connections, /nunca se muestran en el navegador/);
   assert.match(connections, /Nada clínico se entrega automáticamente sin aprobación humana/);
   assert.doesNotMatch(connections, /meta-send|camila_canales|META_TOKEN/);

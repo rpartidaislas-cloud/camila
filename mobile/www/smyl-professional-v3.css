@@ -246,3 +246,17 @@ body.smyl-ui-governed .contenido>#app-copyright{position:static;z-index:auto;hei
   .pro-task-footer{margin-top:10px;padding:0 18px calc(14px + env(safe-area-inset-bottom,0px))}
 }
 @media(prefers-reduced-motion:reduce){.pro-task-dialog::backdrop{backdrop-filter:none}.pro-task-patients>button{transition:none}}
+
+/* Ventana de tareas v15 · paleta de la plataforma (índigo SMYL) en vez del verde azulado propio de esta ventana. */
+.pro-task-dialog{--task-primary:var(--smyl-ui-primary,#2d3a9e);--task-primary-soft:var(--smyl-ui-primary-soft,#eceffe);--task-muted:#5b6b86;--task-line:#dde3f0}
+.pro-task-close:focus-visible,.pro-task-dialog :is(button,input):focus-visible{outline-color:rgba(45,58,158,.3)}
+.pro-task-search input:focus{border-color:var(--task-primary);box-shadow:0 0 0 3px rgba(45,58,158,.14)}
+.pro-task-tabs button[aria-selected="true"] span{background:var(--task-primary-soft);color:var(--task-primary)}
+.pro-task-patients>button:hover,.pro-task-patients>button:focus-visible{background:#f4f6fe}
+.pro-task-patients>button[data-plan="ready"]>i,.pro-task-patients>button[data-quote]>i{background:var(--task-primary-soft);color:var(--task-primary)}
+.pro-task-empty button{border-color:#c9d3f5;color:var(--task-primary)}
+.pro-task-new-patient{border-color:#c9d3f5;background:#f8f9ff;color:var(--task-primary)}
+.pro-task-new-patient:hover{border-color:#8c9ae6;background:#f1f3ff}
+.pro-task-new-patient>i{background:var(--task-primary-soft);color:var(--task-primary)}
+.pro-task-search-status[data-state="loading"]{color:var(--task-primary)}
+.pro-task-row-action,.pro-task-row-action>span,.pro-task-row-action>b{color:var(--task-primary)}
