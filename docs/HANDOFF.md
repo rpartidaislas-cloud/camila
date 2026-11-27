@@ -12329,3 +12329,8 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - Aplicadas y registradas en `schema_migrations`: `20261126100000` a `20261126160000` (retención, firma v2, consentimiento informado, cédula de especialidad, antecedentes/signos vitales, contexto del aviso, perfiles públicos) y, con autorización del dueño, `20261125130000_smyl_prescriptions.sql` (módulo de recetas de la otra sesión, PR #262).
 - El candado de retención (`smyl_patient_last_clinical_activity`, plpgsql) incluye las recetas porque su tabla ya existe.
 - Recordatorio de la otra sesión: los requisitos legales de la receta (docs/RECETA_REQUISITOS.md) deben validarse con un abogado antes de usarla con pacientes reales.
+
+## 2026-11-27 — Claude Code — Protocolo de atención a prospectos (dentistas) para conectarlos a LANA
+- Nuevo `docs/PROTOCOLO_ATENCION_PROSPECTOS.md`: etapas del primer contacto a «Activo» (contacto, calificación, demo, propuesta y alta, preparación, sesión de conexión, piloto de 7 días, seguimiento), checklists, problemas frecuentes con a quién escalar, reglas de conducta (sin promesas clínicas ni datos de pacientes) y métricas.
+- Solo documentación; no cambia código ni base de datos. Los tiempos, descuentos y pruebas gratis están marcados **[Propuesta]** (decisión comercial).
+- Pendiente: un lugar para el pipeline de dentistas prospecto dentro de SMYL (hoy el «Pipeline» es de los pacientes de cada clínica) y validar con LANA los requisitos vigentes de Meta para coexistencia y número exclusivo.
