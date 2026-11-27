@@ -37,13 +37,13 @@ test('el pago se revisa antes de enviarse a la operación atómica', () => {
   assert.match(finance, /Listo para registrar/);
   assert.match(finance, /Se aplicará/);
   assert.match(finance, /Saldo a favor/);
-  assert.match(finance, /Abre una caja para esta sucursal antes de recibir efectivo/);
+  assert.match(finance, /Abre una caja para esta sucursal antes de cobrar\./);
   assert.match(finance, /rpc\('smyl_post_payment'/);
   assert.doesNotMatch(finance, /from\('smyl_finance_payments'\)\.insert/);
 });
 
 test('el registro profesional guía paciente, importe, método, aplicación y recibo', () => {
-  for (const copy of ['CUENTA DEL PACIENTE', 'Liquidar ', 'Recibir anticipo', 'Forma de pago', 'Aplicar a cargos', 'PAGO REGISTRADO', 'Imprimir recibo', 'Compartir']) {
+  for (const copy of ['CUENTA DEL PACIENTE', 'Liquidar ', 'Recibir anticipo', 'Forma de pago', 'Aplicar a cargos', 'Pago registrado', 'Imprimir recibo', 'Compartir']) {
     assert.match(finance, new RegExp(copy));
   }
   assert.match(finance, /data-allocation/);
@@ -81,8 +81,8 @@ test('el cobro cotidiano parte del paciente y decide la operación sin mezclar m
 });
 
 test('web, móvil y PWA publican la etapa cinco sincronizada', () => {
-  assert.match(app, /smyl-finance\.css\?v=62/);
-  assert.match(app, /smyl-finance\.js\?v=86/);
+  assert.match(app, /smyl-finance\.css\?v=63/);
+  assert.match(app, /smyl-finance\.js\?v=87/);
   assert.match(worker, /collection-visual-v1/);
   assert.match(worker, /smyl-v267-guided-collection-sentry-v1/);
   for (const file of ['app.html', 'sw.js', 'smyl-finance.js', 'smyl-finance.css', 'smyl-dialog-system.js']) {
