@@ -1,7 +1,7 @@
 /* Stage 4: professional proposal workspace; no automatic messaging or AI calls. */
 (function(){
   'use strict';
-  var M=SmylProposalModel,ctx=null,sequence=0,lineSequence=0;
+  var M=SmylProposalModel,ctx=null,sequence=0,lineSequence=0,embed=null;
   var proposalSummaries=new Map(),proposalSummaryFreshness=new Map(),patientSummaryKeys=new Map(),summaryPrimeInflight=new Map();
   function n(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
   function b(text,fn,cls){var e=n('button',cls||'btn btn-secondary',text);e.type='button';e.addEventListener('click',fn);return e;}
@@ -49,6 +49,10 @@
       }catch(_){return null;}finally{summaryPrimeInflight.delete(key);}
     })();summaryPrimeInflight.set(key,task);return task;
   }
+  // Modo incrustado: el mismo editor se monta dentro de la pestaña Tratamiento del paciente (en vez de abrir Cotizaciones).
+  function rootEl(){return embed&&embed.host&&embed.host.isConnected?embed.host:document.getElementById('p-propuestas');}
+  function closeEmbed(){var e=embed;embed=null;if(e&&e.host){e.host.replaceChildren();e.host.hidden=true;}if(e&&typeof e.onClose==='function')e.onClose();}
+  function backToList(){if(embed){closeEmbed();return;}loadList();}
   function cleanup(){if(ctx)Object.values(ctx.files).forEach(function(f){if(f)URL.revokeObjectURL(f.url);});ctx=null;sequence++;}
   function leave(){if(ctx&&ctx.busy){alert('Espera a que termine la operación.');return false;}if(ctx&&ctx.dirty&&!confirm('Hay cambios sin guardar en la propuesta. ¿Quieres descartarlos?'))return false;cleanup();return true;}
   // Sucursal de la propuesta: el precio de cada concepto sale del precio de esa sede (si tiene uno propio) y queda congelado al guardar.
@@ -626,8 +630,8 @@
     search.addEventListener('input',render);return {metrics:metrics,banner:banner,toolbar:toolbar,render:render};
   }
   function editor(){
-    var root=document.getElementById('p-propuestas');root.replaceChildren();
-    root.append(b('← Cotizaciones',function(){if(leave())loadList();},'clinic-back'));
+    var root=rootEl();root.replaceChildren();
+    root.append(b(embed?'← Volver al paciente':'← Cotizaciones',function(){if(leave())backToList();},'clinic-back'));
     var header=n('header','proposal-heading'),title=n('div');title.append(n('p','pro-eyebrow','PREPARAR PROPUESTA'),n('h1','',ctx.row.patient_name));var badge=n('span','clinic-state');badge.id='proposal-state';header.append(title,badge);root.append(header);
     var message=n('div');message.id='proposal-feedback';root.append(message);
     var layout=n('div','proposal-layout'),form=n('fieldset','proposal-editor');form.id='proposal-form';
@@ -670,15 +674,16 @@
     form.addEventListener('input',changed);form.addEventListener('change',changed);controls();
     if(ctx.historical)feedback('Esta cotización pertenece a un tratamiento cerrado. Se conserva en modo consulta y puede exportarse sin mezclarla con el capítulo activo.');
     else if(ctx.stale)feedback('Esta propuesta pertenece a otra versión del plan. Usa el plan revisado actual antes de aprobar o exportar.',true);
+    else if(!doc.items.length)feedback('Este plan no tiene servicios con cobro. Agrega servicios del catálogo con «+ Agregar servicio» para armar el presupuesto.');
     if(ctx.row.revision)loadEvents();
     if(doc.photos){var current=ctx;assetsFor(ctx.row,ctx,false).then(function(assets){if(ctx!==current)return;Object.keys(assets).forEach(function(key){var img=document.getElementById('proposal-photo-'+key);img.src=assets[key];img.hidden=false;});}).catch(function(){if(ctx===current)feedback('No se pudieron cargar las fotos guardadas. La propuesta conserva sus referencias; vuelve a intentar antes de exportar.',true);});}
   }
   async function open(id,patientId){
     if(!tenantId)return;
     if(!leave())return;
-    var tenant=tenantId,token=++sequence,root=document.getElementById('p-propuestas');root.replaceChildren(skel('detail',{label:'Preparando propuesta'}));
+    var tenant=tenantId,token=++sequence,root=rootEl();root.replaceChildren(skel('detail',{label:'Preparando propuesta'}));
     try{
-      var access=await capabilities(tenant);if(!access.read||(!id&&!access.write)){root.replaceChildren(notice(access.read?'Tu rol puede consultar cotizaciones, pero no preparar una nueva.':'Tu rol no permite consultar cotizaciones.',true),b('Volver a Cotizaciones',loadList));return;}
+      var access=await capabilities(tenant);if(!access.read||(!id&&!access.write)){root.replaceChildren(notice(access.read?'Tu rol puede consultar cotizaciones, pero no preparar una nueva.':'Tu rol no permite consultar cotizaciones.',true),b(embed?'Volver al paciente':'Volver a Cotizaciones',backToList));return;}
       var row=id?await checked(sb.from('smyl_proposals').select('*').eq('tenant_id',tenant).eq('id',id).single()):null;
       var patient=await checked(sb.from('camila_pacientes').select('id,nombre,apellido').eq('tenant_id',tenant).eq('id',row?row.patient_id:patientId).single());
       if(!patient)throw new Error('Patient not available');
@@ -696,7 +701,7 @@
         var who=[patient.nombre,patient.apellido].filter(Boolean).join(' ')||'este paciente',gate=n('section','proposal-plan-gate');
         gate.append(n('p','pro-eyebrow','ANTES DE COTIZAR'),n('h2','',plan?'El plan de '+who+' tiene cambios sin revisar':who+' todavía no tiene plan de tratamiento'),n('p','','La cotización toma los tratamientos, piezas y precios de la propuesta clínica revisada. Te llevamos a su expediente, en Tratamiento → Propuesta; al revisarla, pulsa «Cotizar ahora».'));
         var go=b('Ir a la propuesta de '+who,function(){openPlanForQuote(patient.id);},'btn btn-primary');go.id='proposal-gate-open';
-        gate.append(go,b('Volver a Cotizaciones',loadList));root.replaceChildren(gate);return;}
+        gate.append(go,b(embed?'Volver al paciente':'Volver a Cotizaciones',backToList));root.replaceChildren(gate);return;}
       if(token!==sequence||tenant!==tenantId)return;
       if(!row){var config=tenantData?.config||{};row={id:crypto.randomUUID(),tenant_id:tenant,patient_id:patient.id,treatment_id:plan.treatment_id||null,patient_name:[patient.nombre,patient.apellido].filter(Boolean).join(' '),clinic_name:config.consultorio||tenantData?.nombre||'Clínica dental',professional_name:config.doctor||'',plan_revision:plan.revision,revision:0,status:'draft',document:applyProposalDefaults(M.fromPlan(plan))};}else row.document=M.normalize(row.document);
       var branches=[],branchPrices=[];
@@ -705,7 +710,7 @@
       // La cotización nace en el consultorio activo de la persona (los precios siguen a la sucursal); si no hay, la predeterminada.
       var initialBranch=row.branch_id||mineBranch||(branches.length>1?((branches.find(function(b){return b.is_default;})||{}).id||''):((branches[0]&&branches[0].id)||null));
       ctx={branches:branches,branchPrices:branchPrices,branchId:initialBranch,row:row,tenant:tenant,plan:plan,access:access,historical:historical,files:{},photoPaths:row.document.photos,saved:JSON.stringify(row.document),dirty:!id,busy:false,events:[],eventsLoading:false,decision:null,decisionItems:[],decisionDraftOperation:null,decisionUnsupported:false,decisionFinal:false,stale:!historical&&(plan.status!=='reviewed'||row.plan_revision!==plan.revision)};if(!id&&ctx.branchId)repriceDocument(ctx.row.document,ctx.branchId);editor();
-    }catch(error){if(token===sequence)root.replaceChildren(notice(errorText(error),true),b('Volver a Presentaciones',loadList));}
+    }catch(error){if(token===sequence)root.replaceChildren(notice(errorText(error),true),b(embed?'Volver al paciente':'Volver a Cotizaciones',backToList));}
   }
   function toQuoteSection(rows){
     var sec=n('section','proposal-toquote'),head=n('header'),copy=n('div');
@@ -792,7 +797,7 @@
     addEventListener('beforeunload',function(e){if(ctx&&(ctx.dirty||ctx.busy)){e.preventDefault();e.returnValue='';}});
     // Primary navigation always returns to the section's list, including when
     // its editor is already open. Keep the same dirty/busy guard on that path.
-    var previous=window.ir;window.ir=function(route){if(ctx&&!leave())return false;var result=previous(route);if(result===false)return false;if(route==='propuestas')loadList();else sequence++;return result;};
+    var previous=window.ir;window.ir=function(route){if(ctx&&!leave())return false;var result=previous(route);if(result===false)return false;if(route==='propuestas'){embed=null;loadList();}else sequence++;return result;};
     var logout=window.cerrarSesion;window.cerrarSesion=function(){if(leave())logout();};
     function resetChatLinks(){
       quoteChats={};
@@ -805,6 +810,9 @@
     window.SmylProposals={
       forPatient:function(patientId){if(window.ir('propuestas')!==false)open(null,patientId);},
       openSaved:function(id){if(window.ir('propuestas')!==false)open(id);},
+      // Monta el editor de presupuesto dentro de otra pantalla (la pestaña Tratamiento del paciente), sin salir de ella.
+      mount:function(host,options){options=options||{};if(!host||!options.patientId)return false;if(ctx&&!leave())return false;embed={host:host,onClose:options.onClose||null};host.hidden=false;open(options.id||null,options.patientId);return true;},
+      unmount:function(){if(embed&&leave())closeEmbed();},
       openPlan:openPlanForQuote,
       summary:function(patientId,treatmentId){var value=cachedSummary(patientId,treatmentId);return value?Object.assign({},value):null;},
       primeSummary:primeSummary

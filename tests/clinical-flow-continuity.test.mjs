@@ -21,7 +21,7 @@ test('Tratamiento conserva cuatro etapas y simplifica Evaluación a tres pasos c
   assert.doesNotMatch(script, /Siguiente acción · /);
   assert.match(script, /function syncRoute\(ctx\)/);
   assert.match(script, /function syncDock\(ctx\)/);
-  assert.match(script, /Se habilita al confirmar el diagnóstico/);
+  assert.match(script, /Puedes empezarlo; se recomienda confirmar el diagnóstico/);
   assert.match(script, /Se habilita al aprobar el plan/);
   assert.match(styles, /\.cw-nav\{display:grid/);
   assert.match(styles, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);

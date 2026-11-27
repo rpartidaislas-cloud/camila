@@ -25,6 +25,6 @@ test('catálogo y cotizaciones usan la marca sin romper si la columna no existe'
 test('web, PWA y móvil publican la misma versión', () => {
   for (const f of ['smyl-service-catalog.js', 'smyl-proposals.js', 'smyl-proposals.css', 'app.html', 'sw.js'])
     assert.equal(read(f), read('mobile/www/' + f), f);
-  assert.match(read('app.html'), /smyl-proposals\.js\?v=30/);
+  assert.match(read('app.html'), /smyl-proposals\.js\?v=32/);
   assert.match(read('sw.js'), /requiere-presupuesto-v1/);
 });

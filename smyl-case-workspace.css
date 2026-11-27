@@ -790,3 +790,13 @@
 .cw-approval-facts dt{color:#647487;font-size:12px;font-weight:650}
 .cw-approval-facts dd{margin:0;color:#0b1b2e;font-size:14px;font-weight:750;font-variant-numeric:tabular-nums}
 @media(max-width:600px){.cw-approval-summary-head{display:grid}.cw-approval-total{font-size:16px}.cw-approval-facts{grid-template-columns:1fr}.cw-approval-facts>div{grid-template-columns:1fr auto;align-items:center;min-height:48px}}
+
+/* El diagnóstico guía, no bloquea: etapa «omitida» y aviso en el plan y el presupuesto. */
+.cw-enhanced .cw-route-v1 .cw-step[data-route=skipped]{background:#fff9ec;border-color:#f0d9a8}
+.cw-enhanced .cw-route-v1 .cw-step[data-route=skipped] .cw-step-num{border-color:#b7791f;background:#fff;color:#b7791f}
+.cw-enhanced .cw-route-v1 .cw-step[data-route=skipped] .cw-step-status{color:#8a5a0a;font-weight:650}
+.cw-enhanced .cw-route-v1 .cw-step[data-route=available]{background:#fff}
+.cw-diag-note{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 14px;padding:11px 14px;border:1px solid #f0d9a8;border-radius:12px;background:#fff9ec;color:#6b4a07;font-size:13px;line-height:1.5}
+.cw-diag-note[hidden]{display:none}
+.cw-diag-note button{flex:none;white-space:nowrap}
+@media(max-width:640px){.cw-diag-note{flex-direction:column;align-items:stretch}}
