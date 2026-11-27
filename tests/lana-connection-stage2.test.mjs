@@ -60,7 +60,7 @@ test('connection hides the infrastructure provider and keeps delivery human-cont
 
 test('server validates the LANA link and stores only AES-GCM ciphertext', () => {
   assert.match(edge, /SMYL_LANA_ENCRYPTION_KEY/);
-  assert.match(edge, /AES-GCM/);
+  assert.match(read('../supabase/functions/_shared/lana-crypto-core.mjs'), /AES-GCM/);
   assert.match(edge, /api_key_ciphertext/);
   assert.match(edge, /api_key_iv/);
   assert.match(edge, /fingerprint/);
