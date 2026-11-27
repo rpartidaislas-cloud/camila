@@ -45,6 +45,7 @@
       items: [
         ['pago_recibido_v1', 'essential', 'Confirmar que recibimos un pago', 'Cobros'],
         ['pago_pendiente_v1', 'essential', 'Recordar un pago pendiente', 'Cobros'],
+        ['cobro_enlace_pago_v1', 'essential', 'Mandar el enlace de pago al paciente', 'Cobros'],
         ['saldo_vencido_aviso_v1', 'essential', 'Avisar de un saldo vencido', 'Cobros'],
         ['factura_disponible_v1', 'essential', 'Avisar que su factura está lista', 'Facturación'],
         ['datos_facturacion_pendientes_v1', 'essential', 'Pedir los datos fiscales para facturar', 'Facturación'],

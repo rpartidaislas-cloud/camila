@@ -24,8 +24,8 @@ test('el mapa de plantillas por sección solo usa plantillas del catálogo, de U
   }
 });
 
-test('esenciales por sección: Agenda 8, Finanzas 5 (cobros y facturación), Cotizaciones 2, Pacientes 3', () => {
-  assert.deepEqual(['agenda', 'finanzas', 'cotizaciones', 'pacientes'].map(key => suggest.essentialsOf(key).length), [8, 5, 2, 3]);
+test('esenciales por sección: Agenda 8, Finanzas 6 (cobros y facturación), Cotizaciones 2, Pacientes 3', () => {
+  assert.deepEqual(['agenda', 'finanzas', 'cotizaciones', 'pacientes'].map(key => suggest.essentialsOf(key).length), [8, 6, 2, 3]);
   const agenda = suggest.essentialsOf('agenda');
   for (const id of ['recordatorio_cita_confirmar_v1', 'cita_confirmada_v1', 'cita_reprogramada_v1', 'cita_cancelada_clinica_v1', 'cita_no_asistio_reagendar_v1', 'cita_motivo_no_reagenda_v1', 'cita_propuesta_paciente_v1', 'cita_confirmacion_profesional_v1']) assert.ok(agenda.includes(id), id);
   assert.ok(!agenda.includes('recordatorio_cita_24h_v1'), 'se recomienda la plantilla con botones, no la duplicada de 24 h');
@@ -110,8 +110,8 @@ test('Puesta en marcha: el paso de plantillas es «las esenciales de la Agenda»
 
 test('web, móvil y PWA publican el módulo nuevo después del de Plantillas', () => {
   const app = read('app.html'), worker = read('sw.js');
-  assert.match(app, /<link rel="stylesheet" href="smyl-template-suggest\.css\?v=3">\s*<script defer src="smyl-template-catalog\.js\?v=9"><\/script>\s*<script defer src="smyl-templates\.js\?v=10"><\/script>\s*<script defer src="smyl-template-suggest\.js\?v=5"><\/script>/);
+  assert.match(app, /<link rel="stylesheet" href="smyl-template-suggest\.css\?v=3">\s*<script defer src="smyl-template-catalog\.js\?v=10"><\/script>\s*<script defer src="smyl-templates\.js\?v=10"><\/script>\s*<script defer src="smyl-template-suggest\.js\?v=6"><\/script>/);
   assert.ok(app.indexOf('smyl-template-catalog.js') < app.indexOf('smyl-template-suggest.js'), 'el catálogo carga antes');
-  assert.ok(worker.includes("'/camila/smyl-template-suggest.js?v=5'") && worker.includes("'/camila/smyl-template-suggest.css?v=3'"));
+  assert.ok(worker.includes("'/camila/smyl-template-suggest.js?v=6'") && worker.includes("'/camila/smyl-template-suggest.css?v=3'"));
   for (const f of ['smyl-template-suggest.js', 'smyl-template-suggest.css', 'smyl-templates.js', 'smyl-inbox.js', 'smyl-clinic-setup.js', 'app.html', 'sw.js']) assert.equal(read('mobile/www/' + f), read(f), f);
 });
