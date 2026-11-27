@@ -168,3 +168,11 @@
 .connections-training .is-sk-loading{display:none!important}
 .connections-training .sk-region{margin:12px 0}
 .connections-status-card .sk-line{margin:4px 0}
+
+/* Desvincular: qué se detiene, qué se borra y qué NO se detiene (la verdad completa antes de confirmar). */
+.connections-unlink-effects{display:grid;gap:8px;margin:12px 0 0}
+.connections-unlink-effects>div{padding:10px 12px;border-radius:10px;border:1px solid #dfe6ef;background:#f8fafc}
+.connections-unlink-effects dt{margin:0 0 3px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#4a5d72}
+.connections-unlink-effects dd{margin:0;font-size:13px;line-height:1.45;color:#33475c}
+.connections-unlink-effects .is-deleted{border-color:#f0c4be;background:#fff6f4}.connections-unlink-effects .is-deleted dt{color:#8f2f25}
+.connections-unlink-effects .is-stays{border-color:#f2d9a6;background:#fff9ec}.connections-unlink-effects .is-stays dt{color:#8a5a0a}
