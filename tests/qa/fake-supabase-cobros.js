@@ -64,7 +64,11 @@
         signOut:async()=>({error:null}),
       },
       from:chain,
-      rpc:async(name,args)=>{window.__calls.push(['rpc',name,args]);if(name==='smyl_cash_session_expected'){
+      rpc:async(name,args)=>{window.__calls.push(['rpc',name,args]);if(name==='smyl_search_patients'){
+          const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+          const words=normalize(args.p_query).split(/\s+/).filter(Boolean);
+          return {data:db.camila_pacientes.filter(p=>p.tenant_id===args.p_tenant_id&&words.every(word=>normalize([p.nombre,p.apellido,p.email].join(' ')).includes(word))).slice(0,Math.min(20,args.p_limit||8)),error:null};
+        }if(name==='smyl_cash_session_expected'){
           const id=args.p_session_id,s=db.smyl_cash_sessions?.find(s=>s.id===id);
           if(!s)return {data:null,error:null};
           const payments=(db.smyl_finance_payments||[]).filter(p=>p.cash_session_id===id&&p.method==='cash');
