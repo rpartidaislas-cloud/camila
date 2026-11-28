@@ -75,7 +75,7 @@ test('aceptada: «Iniciar tratamiento» crea cargos y guía a anticipo y primera
   assert.match(finance,/if\(options\.guided\)treatmentSteps\(proposal,batch,false\);else openAccount/);
   const steps=finance.slice(finance.indexOf('function treatmentSteps'),finance.indexOf('async function openProposalCharge'));
   for(const text of ['Cobrar anticipo','Agendar primera cita','Ver cuenta','Terminar'])assert.match(steps,new RegExp(text));
-  assert.match(steps,/openPayment\(pid,\{mode:'balance',after:canSchedule\?'schedule':''\}\)/);
+  assert.match(steps,/openPayment\(pid,\{mode:'balance',after:canSchedule\?'schedule':''(,amount:downAmount\|\|0)?\}\)/);
   assert.match(steps,/if\(!state\.canManage\)pay\.disabled=true/);
 });
 test('el cobro guiado ofrece agendar como siguiente paso, sin hacerlo solo',()=>{

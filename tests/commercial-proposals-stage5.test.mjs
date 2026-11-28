@@ -34,8 +34,8 @@ test('la cola permite filtrar y buscar sin otra fuente de datos',()=>{
 });
 
 test('web, móvil y PWA publican el tablero comercial',()=>{
-  assert.match(app,/smyl-proposals\.css\?v=20/);
-  assert.match(app,/smyl-proposals\.js\?v=32/);
+  assert.match(app,/smyl-proposals\.css\?v=21/);
+  assert.match(app,/smyl-proposals\.js\?v=33/);
   assert.match(sw,/smyl-v263-lana-connection-recovery/);
   assert.equal(app,read('mobile/www/app.html'));
   assert.equal(ui,read('mobile/www/smyl-proposals.js'));

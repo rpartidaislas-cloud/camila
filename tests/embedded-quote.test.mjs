@@ -19,6 +19,6 @@ test('el editor de presupuesto se puede montar dentro de la pestaña Tratamiento
 test('web, PWA y móvil publican la misma versión', () => {
   for (const f of ['smyl-proposals.js', 'smyl-proposals.css', 'smyl-case-workspace.js', 'smyl-clinic.js', 'app.html', 'sw.js'])
     assert.equal(read(f), read('mobile/www/' + f), f);
-  assert.match(read('app.html'), /smyl-proposals\.js\?v=32/);
+  assert.match(read('app.html'), /smyl-proposals\.js\?v=33/);
   assert.match(read('sw.js'), /presupuesto-incrustado-v1/);
 });

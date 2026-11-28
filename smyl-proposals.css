@@ -485,3 +485,8 @@
 .cw-quote-host .proposal-heading h1{font-size:22px}
 .cw-quote-host :is(button,input,select,textarea,summary):focus-visible{outline:3px solid rgba(45,58,158,.3);outline-offset:2px}
 @media(max-width:860px){.cw-quote-host .proposal-layout{grid-template-columns:minmax(0,1fr)}}
+
+/* Anticipo al aceptar */
+.proposal-down{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:8px 0 0;padding:12px 16px;border:1px solid #dde3f0;border-radius:12px;font-size:14px}
+.proposal-down span{color:#526174}.proposal-down strong{font-size:16px;font-variant-numeric:tabular-nums}
+.proposal-down-note{margin:4px 0 0;color:#2d3a9e;font-size:13px;font-weight:600}.proposal-down-note:empty{display:none}
