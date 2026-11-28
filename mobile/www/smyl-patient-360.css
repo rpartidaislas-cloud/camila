@@ -1225,3 +1225,16 @@
 .ps-dialog input:focus-visible,.ps-dialog button:focus-visible,.ps-dialog textarea:focus-visible{outline:3px solid #2b3dae;outline-offset:2px}
 @media(max-width:600px){.ps-dialog{width:100%;max-height:100%;border-radius:16px 16px 0 0;margin:auto 0 0}.ps-foot .btn{flex:1}.p360-today-actions,.p360-today-actions .btn{width:100%}}
 @media(prefers-reduced-motion:reduce){.p360-proc-meter span{transition:none}}
+
+/* Procedimiento: concepto de la cotización al que pertenece la cita */
+.ps-quote{display:grid;gap:8px;margin:0 0 12px;padding:12px 14px;border:1px solid #dde3f0;border-radius:12px;background:#f8f9ff}
+.ps-quote[hidden]{display:none}
+.ps-quote strong{font-size:13px;color:#12233f}
+.ps-quote-list{display:grid;gap:6px}
+.ps-quote-item{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ps-quote-item i{font-style:normal;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:#eceffe;color:#2d3a9e}
+.ps-quote-item i.ps-quote-linked{background:#e3f4ee;color:#17695a}
+.ps-quote-item i.ps-quote-hint{background:#fff3d6;color:#8a5a0a}
+.ps-quote-btn{border:1px solid #c9d3f5;background:#fff;color:#2d3a9e;border-radius:9px;padding:6px 11px;min-height:34px;font:600 13px/1.2 inherit;cursor:pointer}
+.ps-quote-btn:hover{background:#eceffe}.ps-quote-btn[disabled]{opacity:.55;cursor:wait}
+.ps-quote-error{margin:0;color:#8f2f25;font-size:13px}.ps-quote-error[hidden]{display:none}
