@@ -140,3 +140,19 @@ test('Iniciar tratamiento puede mandar el enlace de los cargos de la cotización
   assert.match(fin,/data-step-link>Mandar enlace de pago/);
   assert.match(fin,/c\.proposal_batch_id===batch\.id&&c\.status!=='voided'&&balance\(c\)>0/);
 });
+
+test("planDeCobro: cobra solo una parte (anticipo) repartida por orden, sin pasar del saldo", () => {
+  const ab = [{ charge_id: "a", concept: "Implante", open_amount: 36000 }, { charge_id: "b", concept: "Corona", open_amount: 9500 }];
+  const parcial = planDeCobro(ab, { monto: 9210 });
+  assert.equal(parcial.ok, true);
+  assert.equal(parcial.total, 9210);
+  assert.deepEqual(parcial.allocations, [{ charge_id: "a", concept: "Implante", amount: 9210 }]);
+  const cruza = planDeCobro(ab, { monto: 40000 });
+  assert.deepEqual(cruza.allocations.map((x) => [x.charge_id, x.amount]), [["a", 36000], ["b", 4000]]);
+  const solo = planDeCobro(ab, { chargeIds: ["b"], monto: 3000 });
+  assert.deepEqual(solo.allocations.map((x) => [x.charge_id, x.amount]), [["b", 3000]]);
+  assert.equal(planDeCobro(ab, { monto: 50000 }).error, "amount_exceeds_balance");
+  assert.equal(planDeCobro(ab, { monto: 0 }).error, "invalid_amount");
+  assert.equal(planDeCobro(ab, { monto: 5 }).error, "amount_too_low");
+  assert.equal(planDeCobro(ab).total, 45500);
+});

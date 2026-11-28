@@ -156,12 +156,54 @@
       + '<label class="p360-proc-weight" data-weight-box hidden>Peso del paciente (kg)<input type="number" data-ps="weight" step="0.1" min="1" max="400" inputmode="decimal"></label>'
       + '<p class="p360-proc-warn" data-dose-warn role="alert" hidden></p></section>'
       + '<section class="ps-sec"><h3><span data-ps-n4>4</span> Qué se hizo e indicaciones</h3>'
+      + '<div class="ps-quote" data-ps-quote hidden></div>'
       + '<label class="ps-field">Se usará en la nota<textarea data-ps="did" maxlength="2000" rows="3" placeholder="Ej. Se realizó la apertura cameral. Indicaciones entregadas por WhatsApp."></textarea></label>'
       + '<p class="ps-hint">Para firmar la nota hace falta esta descripción; puedes completarla después.</p></section>'
       + '</div>'
       + '<p class="ps-error" data-ps-error role="alert" hidden></p>'
       + '<footer class="ps-foot"><button type="button" class="btn btn-secondary" data-ps-close>Cancelar</button><button type="submit" class="btn btn-primary" data-ps-save>Guardar como borrador de nota</button></footer>'
       + '</form>';
+  }
+
+  // Cita ↔ concepto de la cotización, desde Consulta: si lo que se hace hoy ya estaba cotizado y cargado, se liga la cita a su concepto
+  // (no se cobra dos veces y el avance del tratamiento se actualiza). Es opcional y nunca se liga solo; sin permiso o sin conceptos, no aparece.
+  function quoteLink(dialog, st) {
+    var box = dialog.querySelector('[data-ps-quote]');
+    if (!box || !window.sb || typeof window.sb.rpc !== 'function') return;
+    function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+    function qty(n) { n = Number(n) || 0; return Number.isInteger(n) ? String(n) : n.toFixed(1); }
+    async function load() {
+      var rows;
+      try { rows = await rpc('smyl_appointment_quote_candidates', { p_appointment_id: st.appointmentId }); } catch (_) { box.hidden = true; return; }
+      if (!dialog.isConnected) return;
+      rows = Array.isArray(rows) ? rows : [];
+      var here = rows.filter(function (r) { return r.linked_here; }), open = rows.filter(function (r) { return !r.linked_here && Number(r.remaining) > 0; });
+      box.replaceChildren();
+      if (!here.length && !open.length) { box.hidden = true; return; }
+      box.hidden = false;
+      box.append(el('strong', '', 'Concepto de la cotización'));
+      var error = el('p', 'ps-quote-error'); error.setAttribute('role', 'alert'); error.hidden = true;
+      function act(label, fn) {
+        var b = el('button', 'ps-quote-btn', label); b.type = 'button';
+        b.onclick = function () { b.disabled = true; error.hidden = true; Promise.resolve(fn()).then(function () { window.dispatchEvent(new CustomEvent('smyl:appointments-changed')); window.dispatchEvent(new CustomEvent('smyl:finance-updated')); return load(); }, function (e) { b.disabled = false; error.textContent = (e && e.message) || 'No se pudo actualizar el enlace.'; error.hidden = false; }); };
+        return b;
+      }
+      var list = el('div', 'ps-quote-list');
+      here.forEach(function (r) {
+        var item = el('span', 'ps-quote-item'); item.append(el('i', 'ps-quote-linked', '✓ ' + r.label), act('Quitar', function () { return rpc('smyl_unlink_appointment_quote_item', { p_appointment_id: st.appointmentId, p_item_id: r.proposal_item_id }); }));
+        list.append(item);
+      });
+      if (!here.length) open.slice(0, 4).forEach(function (r) {
+        var item = el('span', 'ps-quote-item');
+        if (r.suggested) item.append(el('i', 'ps-quote-hint', 'Sugerido'));
+        item.append(act('Ligar a «' + r.label + '»' + (Number(r.remaining) > 1 ? ' (quedan ' + qty(r.remaining) + ')' : ''), function () { return rpc('smyl_link_appointment_quote_item', { p_appointment_id: st.appointmentId, p_proposal_id: r.proposal_id, p_item_id: r.proposal_item_id }); }));
+        list.append(item);
+      });
+      box.append(list);
+      if (!here.length) box.append(el('small', 'ps-hint', 'Si lo que haces hoy ya estaba cotizado, ligarlo evita cobrarlo dos veces y hace avanzar el tratamiento.'));
+      box.append(error);
+    }
+    load();
   }
 
   function open(opts) {
@@ -226,6 +268,7 @@
       if (tries > 0 && dialog.isConnected) setTimeout(function () { allergies(tries - 1); }, 600); else allergyText.textContent = 'Revisa la historia clínica del paciente.';
     }
     allergies(4);
+    if (st.appointmentId) quoteLink(dialog, st);
     var consent = q('consent'), consentHelp = dialog.querySelector('[data-ps-consent-help]');
     if (window.sb && typeof window.sb.rpc === 'function') {
       rpc('smyl_list_informed_consents', { p_patient_id: st.patient }).then(function (rows) {

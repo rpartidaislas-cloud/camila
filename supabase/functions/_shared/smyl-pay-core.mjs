@@ -33,13 +33,30 @@ export async function firmaValida(secreto, timestamp, cuerpo, firma, { ahoraSeg 
 }
 
 // Reparte el pago sobre los cargos abiertos (ya ordenados) y devuelve lo que cubre. `chargeIds` limita a esos cargos.
-export function planDeCobro(abiertos, { chargeIds = null } = {}) {
-  const filas = (abiertos || [])
+// `monto` (opcional) cobra solo una parte, por ejemplo el anticipo de una cotización: se reparte sobre los cargos en el mismo orden, sin pasar de
+// lo que cada uno debe. Si `monto` es mayor que el saldo de esos cargos se rechaza (nunca se cobra de más).
+export function planDeCobro(abiertos, { chargeIds = null, monto = null } = {}) {
+  let filas = (abiertos || [])
     .filter((c) => !chargeIds || chargeIds.includes(c.charge_id))
     .map((c) => ({ charge_id: c.charge_id, concept: String(c.concept || ""), amount: redondear2(c.open_amount) }))
     .filter((c) => c.amount > 0);
-  const total = redondear2(filas.reduce((s, c) => s + c.amount, 0));
   if (!filas.length) return { ok: false, error: "no_balance", mensaje: "El paciente no tiene saldo pendiente." };
+  if (monto !== null && monto !== undefined) {
+    const pedido = redondear2(monto);
+    if (!Number.isFinite(pedido) || pedido <= 0) return { ok: false, error: "invalid_amount", mensaje: "El monto a cobrar no es válido." };
+    const saldo = redondear2(filas.reduce((s, c) => s + c.amount, 0));
+    if (pedido > saldo) return { ok: false, error: "amount_exceeds_balance", mensaje: `El monto no puede ser mayor que el saldo pendiente ($${saldo}).` };
+    let resto = pedido;
+    const repartido = [];
+    for (const fila of filas) {
+      if (resto <= 0) break;
+      const parte = redondear2(Math.min(fila.amount, resto));
+      if (parte > 0) repartido.push({ ...fila, amount: parte });
+      resto = redondear2(resto - parte);
+    }
+    filas = repartido;
+  }
+  const total = redondear2(filas.reduce((s, c) => s + c.amount, 0));
   if (total < MONTO_MINIMO) return { ok: false, error: "amount_too_low", mensaje: `El monto mínimo para cobrar en línea es $${MONTO_MINIMO}.` };
   if (total > MONTO_MAXIMO) return { ok: false, error: "amount_too_high", mensaje: `El monto máximo por enlace es $${MONTO_MAXIMO}.` };
   return { ok: true, total, allocations: filas };

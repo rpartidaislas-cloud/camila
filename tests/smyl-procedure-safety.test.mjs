@@ -128,8 +128,8 @@ test('es una pantalla propia con tres entradas: herramientas, pestaña Consulta 
 
 test('web, móvil y PWA distribuyen la pantalla de procedimiento', () => {
   for (const file of ['app.html', 'sw.js']) {
-    assert.match(read(file), /smyl-procedure-safety\.js\?v=3/);
-    assert.match(read(file), /smyl-patient-360\.js\?v=42/);
+    assert.match(read(file), /smyl-procedure-safety\.js\?v=4/);
+    assert.match(read(file), /smyl-patient-360\.js\?v=43/);
     assert.match(read(file), /smyl-clinical-tools\.js\?v=2/);
   }
   assert.ok(read('app.html').indexOf('smyl-procedure-safety.js') < read('app.html').indexOf('smyl-patient-360.js'));

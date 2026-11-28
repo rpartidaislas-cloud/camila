@@ -13142,3 +13142,16 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - `smyl-case-workspace.js` v58: `SmylCaseWorkspace.openQuote` distingue `null` (el expediente aún no termina de montarse), `false` (listo pero no se puede presupuestar) y `true` (abierto). `smyl-proposals.js` v34, `smyl-clinic.js` v32, sufijo SW `-cotizar-en-paciente-v1`, copias en `mobile/www/`. Sin migraciones.
 - Pruebas: `tests/embedded-quote.test.mjs` (ampliada), `tests/qa/cotizar-en-paciente-smoke.cjs`.
 - Pendiente: ligar la cita desde el procedimiento de Consulta, cobro en línea por el monto del anticipo.
+
+## 2026-11-28 · Claude · Ligar la cita a su concepto cotizado desde el procedimiento (Consulta)
+
+- `smyl-procedure-safety.js` v4: en «Qué se hizo e indicaciones» aparece «Concepto de la cotización» cuando el procedimiento tiene cita: sugiere el concepto cotizado y cargado («Ligar a «Implante dental» (quedan 2)» / «Quitar»). Usa las MISMAS RPC del paso 1 (`smyl_appointment_quote_candidates`, `smyl_link_appointment_quote_item`, `smyl_unlink_appointment_quote_item`), nunca liga solo y no aparece sin cita, sin permiso o sin conceptos. `smyl-patient-360.js` v43 / `.css` v25: «Registrar procedimiento» de la pestaña Consulta ahora lo abre sobre la cita de hoy del paciente (`todayVisitId`: en curso > llegó > atendida > confirmada). Sin migraciones; sufijo SW `-procedimiento-cotizacion-v1`, copias en `mobile/www/`.
+- Efecto: el avance del tratamiento (paso 4) y el estado «Cubierta por cotización»/saldo de la cita (paso 1 y anticipo) se llenan desde donde el dentista ya trabaja.
+- Pruebas: `tests/procedure-quote-link.test.mjs`, `tests/qa/procedimiento-cotizacion-smoke.cjs`.
+- Pendiente: cobro en línea por el monto del anticipo.
+
+## 2026-11-28 · Claude · Cobro en línea por el monto del anticipo (requiere desplegar `smyl-pay`)
+
+- **Edge Function modificada: hay que desplegar `smyl-pay`** (`supabase functions deploy smyl-pay` desde el repo; usa `_shared/smyl-pay-core.mjs`). `smyl-pay` `create` acepta `amount` opcional (pesos): `planDeCobro(abiertos,{chargeIds,monto})` reparte ese monto sobre los cargos en el mismo orden, sin pasar de lo que cada uno debe; rechaza `amount_exceeds_balance`, `invalid_amount` y el mínimo/máximo de siempre. Sin `amount` todo funciona exactamente como antes. El enlace guarda las asignaciones parciales, así que el callback/recibo no cambian.
+- `smyl-finance.js` v95: en «Iniciar tratamiento» el botón «Mandar enlace de pago · $X» vuelve a aparecer también con anticipo y cobra SOLO el anticipo; el diálogo dice «Anticipo a cobrar». Si el servidor aún no está desplegado (ignoraría `amount` y generaría el enlace por el saldo completo) el cliente lo detecta (el monto devuelto no coincide), CANCELA ese enlace y avisa «El servicio de pago en línea todavía no admite cobrar solo el anticipo», sin ofrecerlo al paciente.
+- Sufijo SW `-anticipo-en-linea-v1`, copia en `mobile/www/`. Pruebas: `tests/smyl-pay-core.test.mjs` (monto parcial), `tests/down-payment.test.mjs`. Sin migraciones. Sin probar de punta a punta contra LANA/OpenPay (no hay sandbox aquí).

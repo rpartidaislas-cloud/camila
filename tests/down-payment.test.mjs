@@ -44,3 +44,16 @@ test('web, PWA y móvil publican la misma versión', () => {
   assert.match(read('app.html'), /smyl-proposals\.js\?v=34/);
   assert.match(read('sw.js'), /anticipo-v1/);
 });
+
+test('cobro en línea del anticipo: el servidor acepta un monto parcial y el cliente verifica que lo respetó', () => {
+  const fin = read('smyl-finance.js'), fn = read('supabase/functions/smyl-pay/index.ts'), core = read('supabase/functions/_shared/smyl-pay-core.mjs');
+  assert.match(core, /export function planDeCobro\(abiertos, \{ chargeIds = null, monto = null \} = \{\}\)/);
+  assert.match(core, /amount_exceeds_balance/);
+  assert.match(fn, /const monto = body\.amount === undefined/);
+  assert.match(fn, /planDeCobro\(abiertos \|\| \[\], \{ chargeIds, monto \}\)/);
+  assert.match(fin, /openOnlineLink\(pid,lnk,ids,downAmount>0\?downAmount:0\)/);
+  assert.match(fin, /partial\?\{amount:partial\}:\{\}/);
+  assert.match(fin, /Math\.abs\(Number\(data\.amount\)-partial\)>0\.009/);
+  assert.match(fin, /action:'cancel',patient_id:patientId,link_id:data\.link_id/);
+  assert.match(fin, /Anticipo a cobrar/);
+});
