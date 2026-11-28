@@ -213,7 +213,10 @@ async function accionesPersonal(req: Request, body: Json, CORS: Record<string, s
   if (errAbiertos) return json(CORS, 500, { error: "No se pudo calcular el saldo." });
   const alcance = await autorizarCargos({ abiertos: abiertos || [], chargeIds, permisos });
   if (!alcance.ok) return json(CORS, 403, { error: "Este paciente tiene cargos de una sucursal fuera de tu alcance.", error_code: "branch_scope_denied" });
-  const plan = planDeCobro(abiertos || [], { chargeIds });
+  // `amount` (opcional): cobrar solo una parte del saldo de esos cargos, por ejemplo el anticipo de una cotización.
+  const monto = body.amount === undefined || body.amount === null ? null : Number(body.amount);
+  if (monto !== null && !Number.isFinite(monto)) return json(CORS, 422, { error: "El monto a cobrar no es válido.", error_code: "invalid_amount" });
+  const plan = planDeCobro(abiertos || [], { chargeIds, monto });
   if (!plan.ok) return json(CORS, 422, { error: plan.mensaje, error_code: plan.error });
 
   const [{ data: paciente }, { data: clinica }] = await Promise.all([
