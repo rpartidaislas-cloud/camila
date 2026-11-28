@@ -28,6 +28,6 @@ test('la ruta guía y no bloquea: el diagnóstico pendiente deja continuar y reg
 test('web, PWA y móvil publican la misma versión', () => {
   for (const f of ['smyl-case-workspace.js', 'smyl-case-workspace.css', 'smyl-treatments.js', 'app.html', 'sw.js'])
     assert.equal(read(f), read('mobile/www/' + f), f);
-  assert.match(read('app.html'), /smyl-case-workspace\.js\?v=56/);
+  assert.match(read('app.html'), /smyl-case-workspace\.js\?v=57/);
   assert.match(read('sw.js'), /diagnostico-guia-v1/);
 });

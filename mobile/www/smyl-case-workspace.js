@@ -639,7 +639,7 @@
   ctx.history=btn('Consultar enlaces y solicitudes',()=>{if(valid(ctx)&&ctx.selected?.current())ctx.selected.present();});
   const past=n('details','cw-contact');past.append(n('summary','','Presentaciones anteriores'),n('p','cw-help','Consulta su vigencia o revoca un acceso desde «Enlaces anteriores y mensajes del paciente». Abrirlo no crea ni envía una propuesta.'),ctx.history);approval.body.append(past);
   ctx.orthodontics=window.SmylOrthodontics?.attach?.(ctx)||null;if(ctx.orthodontics)followup.body.append(ctx.orthodontics);
-  ctx.evolution=n('section','cw-evolution');followup.body.append(ctx.evolution);
+  ctx.evolution=n('section','cw-evolution');const progressBox=window.SmylTreatments?.attachProgress?.(ctx);if(progressBox)followup.body.append(progressBox);followup.body.append(ctx.evolution);
   ctx.followupButton=btn('Continuar seguimiento en Mensajes',()=>window.ir('inbox'),true);ctx.followupButton.hidden=true;ctx.followupActions=n('div','cw-action-row');ctx.followupActions.hidden=true;ctx.followupActions.append(ctx.followupButton);followup.body.append(ctx.followupActions);
   layout.append(root);adopt(ctx);refresh();open(resume.stage,false);
  }
@@ -745,7 +745,7 @@
    if(presentationReady&&!proposal)copy(ctx.shareHint,'La presentación mySmyl está lista, pero todavía falta preparar el presupuesto y registrar la decisión del paciente.');
   // Ruta sugerida: no afirma que todo lo clínico quedó evaluado; el profesional decide.
    ctx.routeFlags={done:{evaluation:evaluationComplete,plan:!!clinical?.ready,approval:canActivate,followup:false},skipped:{evaluation:!evaluationComplete&&!!clinical?.ready},status:{evaluation:ctx.modules.evaluation.badge.textContent,plan:ctx.modules.plan.badge.textContent,approval:ctx.modules.approval.badge.textContent,followup:ctx.modules.followup.badge.textContent}};
-  syncNav(ctx);syncRoute(ctx);window.SmylTreatments?.sync?.(ctx,{planSaved:!!clinical?.saved});
+  syncNav(ctx);syncRoute(ctx);window.SmylTreatments?.sync?.(ctx,{planSaved:!!clinical?.saved});window.SmylTreatments?.syncProgress?.(ctx);
  }
  function init(){
   const screen=document.getElementById('p-paciente-detalle');if(!screen)return;

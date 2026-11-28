@@ -103,6 +103,110 @@
     if (!window.sb || typeof window.sb.rpc !== 'function') return Promise.resolve({ data: null, error: { code: 'NO_CLIENT', message: 'Sin conexión.' } });
     return Promise.resolve(window.sb.rpc(name, args));
   }
+
+  // ── Avance del tratamiento ───────────────────────────────────────────────────────────────────────────────────
+  // Qué conceptos cotizados ya se realizaron (citas ligadas y completadas), cuáles están programados y cuánto se ha cobrado.
+  // Lo calcula smyl_treatment_progress; los importes solo llegan con permiso de finanzas. Nada de esto bloquea el cierre.
+  function pMoney(v) { return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(Number(v) || 0); }
+  function qtyText(v) { var n = Number(v) || 0; return Number.isInteger(n) ? String(n) : n.toFixed(1); }
+  function attachProgress(ctx) {
+    var host = el('section', 'cw-progress');
+    host.setAttribute('aria-label', 'Avance del tratamiento');
+    host.hidden = true;
+    var p = { host: host, key: '', busy: false, at: 0, data: null, unavailable: false };
+    ctx.treatmentProgress = p;
+    ['smyl:appointments-changed', 'smyl:finance-updated', 'smyl:proposal-updated', 'smyl:proposal-decision-updated', 'smyl:treatment-changed'].forEach(function (name) {
+      window.addEventListener(name, function () { if (alive(ctx) && ctx.treatmentProgress === p) { p.at = 0; } });
+    });
+    return host;
+  }
+  function progressTreatmentId(ctx) {
+    var st = ctx.treatments; if (!st || !st.list) return null;
+    var viewing = st.viewing ? st.list.filter(function (t) { return t.id === st.viewing; })[0] : null;
+    var t = viewing || activeOf(st);
+    return t ? t.id : null;
+  }
+  function renderProgress(ctx) {
+    var p = ctx.treatmentProgress; if (!p) return;
+    var host = p.host, data = p.data;
+    host.replaceChildren();
+    if (p.unavailable || !data) { host.hidden = true; return; }
+    host.hidden = false;
+    var totals = data.totals || {}, concepts = data.concepts || [], units = Number(totals.units) || 0, done = Number(totals.done) || 0;
+    var head = el('div', 'cw-progress-head'), title = el('div');
+    title.append(el('span', 'cw-kicker', 'AVANCE DEL TRATAMIENTO'),
+      el('strong', '', units ? qtyText(done) + ' de ' + qtyText(units) + ' conceptos realizados' : 'Todavía no hay conceptos cargados'));
+    head.append(title); host.append(head);
+    if (!units) {
+      host.append(el('p', 'cw-help', 'Cuando el presupuesto se acepte y se inicie el tratamiento, aquí verás qué se ha realizado y cuánto se ha cobrado.'));
+      return;
+    }
+    var pct = Math.round(done / units * 100), bar = el('div', 'cw-progress-bar'), fill = el('i');
+    bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', '100'); bar.setAttribute('aria-valuenow', String(pct));
+    fill.style.width = pct + '%'; bar.append(fill); host.append(bar);
+    if (totals.charged != null) {
+      var facts = el('dl', 'cw-progress-facts');
+      [['Cobrado', pMoney(totals.paid) + ' de ' + pMoney(totals.charged)], ['Por cobrar', pMoney(totals.due)], ['Realizado', pMoney(totals.realized_value)]].forEach(function (f) {
+        var d = el('div'); d.append(el('dt', '', f[0]), el('dd', '', f[1])); facts.append(d);
+      });
+      host.append(facts);
+    }
+    var list = el('ul', 'cw-progress-list');
+    concepts.forEach(function (c) {
+      var li = el('li'), q = Number(c.quantity) || 0, d = Number(c.done) || 0, s = Number(c.scheduled) || 0;
+      var state = d >= q && q > 0 ? 'done' : (d > 0 || s > 0) ? 'doing' : 'todo';
+      li.dataset.state = state;
+      var text = el('span'); text.append(el('strong', '', c.label || 'Concepto'), el('small', '', 'Realizado ' + qtyText(d) + ' de ' + qtyText(q) + (s ? ' · ' + s + (s === 1 ? ' cita programada' : ' citas programadas') : '')));
+      li.append(text, el('em', '', state === 'done' ? 'Realizado' : state === 'doing' ? 'En curso' : 'Pendiente'));
+      list.append(li);
+    });
+    host.append(list);
+    host.append(el('p', 'cw-help', 'Para que un concepto avance, liga la cita a su concepto desde la ficha de la cita en Agenda.'));
+  }
+  async function loadProgress(ctx, treatmentId) {
+    var p = ctx.treatmentProgress; if (!p || p.busy) return p && p.data;
+    p.busy = true;
+    try {
+      var result = await rpc('smyl_treatment_progress', { p_patient_id: ctx.patient, p_treatment_id: treatmentId });
+      if (!alive(ctx)) return null;
+      if (result.error) {
+        var text = String(result.error.message || '') + ' ' + String(result.error.code || '');
+        p.unavailable = /PGRST202|42883|schema cache|could not find/i.test(text);
+        p.data = null;
+      } else { p.unavailable = false; p.data = result.data || null; }
+      p.at = Date.now(); p.key = treatmentId || '';
+    } finally { p.busy = false; }
+    renderProgress(ctx);
+    return p.data;
+  }
+  // Se consulta solo cuando la etapa «En tratamiento» está a la vista y hay algo que cambió (o pasaron 30 s).
+  function syncProgress(ctx) {
+    var p = ctx && ctx.treatmentProgress;
+    if (!p || p.busy || !alive(ctx) || ctx.activeStage !== 'followup' || p.unavailable) return;
+    var id = progressTreatmentId(ctx);
+    if (!ctx.treatments.list) return;
+    if (p.key === (id || '') && Date.now() - p.at < 30000 && p.at) return;
+    loadProgress(ctx, id);
+  }
+  // Aviso (no bloqueo) al cerrar: lo que queda sin realizar y por cobrar.
+  function closeWarning(ctx) {
+    var box = el('div', 'cw-progress-close'); box.setAttribute('role', 'status');
+    var p = ctx.treatmentProgress; if (!p) return box;
+    function paint() {
+      box.replaceChildren();
+      var data = p.data, totals = data && data.totals || {}, units = Number(totals.units) || 0, left = units - (Number(totals.done) || 0), due = Number(totals.due) || 0;
+      if (!units || (left <= 0 && due <= 0)) { box.hidden = true; return; }
+      box.hidden = false;
+      var parts = [];
+      if (left > 0) parts.push('quedan ' + qtyText(left) + (left === 1 ? ' concepto sin realizar' : ' conceptos sin realizar'));
+      if (due > 0 && totals.due != null) parts.push(pMoney(due) + ' por cobrar');
+      box.append(el('strong', '', 'Antes de cerrar: '), document.createTextNode(parts.join(' y ') + '. Puedes cerrar igual; el plan y el avance quedan guardados tal como están.'));
+    }
+    paint(); box.hidden = true;
+    loadProgress(ctx, progressTreatmentId(ctx)).then(paint, function () {});
+    return box;
+  }
+
   // Constancia de «seguí sin completar el diagnóstico» (una por revisión del plan). Si la función aún no existe, no pasa nada.
   function waiveDiagnosis(patientId, revision, note) {
     return rpc('smyl_waive_diagnosis', { p_patient_id: patientId, p_plan_revision: Number(revision) || 0, p_pending_note: String(note || '') }).then(function () {}, function () {});
@@ -392,6 +496,7 @@
     var st = ctx.treatments, panel = el('div', 'cw-ch-panel');
     panel.append(el('h3', '', 'Cerrar «' + active.title + '»'));
     panel.append(el('p', 'cw-help', 'El plan queda guardado tal como está y el tratamiento ya no se puede modificar. Podrás consultarlo cuando quieras.'));
+    panel.append(closeWarning(ctx));
     panel.append(outcomeChoices(ctx, 'cw-close-outcome'));
     panel.append(noteField(ctx));
     panel.append(submitBar(ctx, 'Cerrar tratamiento', async function () {
@@ -582,6 +687,6 @@
     attachFindings: attachFindings, syncFindings: syncFindings, current: current,
     statusLabel: statusLabel, suggestedRecall: suggestedRecall, titleFrom: titleFrom, closeError: closeError,
     chapterMeta: chapterMeta, snapshotSummary: snapshotSummary, listError: listError, carryItemIds: carryItemIds, OUTCOMES: OUTCOMES,
-    attach: attach, sync: sync, waiveDiagnosis: waiveDiagnosis
+    attach: attach, sync: sync, waiveDiagnosis: waiveDiagnosis, attachProgress: attachProgress, syncProgress: syncProgress
   };
 });
