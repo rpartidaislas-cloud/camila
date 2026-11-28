@@ -41,6 +41,6 @@ test('el editor, el PDF y Finanzas usan el anticipo', () => {
 test('web, PWA y móvil publican la misma versión', () => {
   for (const f of ['smyl-finance.js', 'smyl-proposal-model.js', 'smyl-proposal-print.js', 'smyl-proposals.js', 'smyl-proposals.css', 'app.html', 'sw.js'])
     assert.equal(read(f), read('mobile/www/' + f), f);
-  assert.match(read('app.html'), /smyl-proposals\.js\?v=33/);
+  assert.match(read('app.html'), /smyl-proposals\.js\?v=34/);
   assert.match(read('sw.js'), /anticipo-v1/);
 });
