@@ -766,7 +766,8 @@
   addEventListener('smyl:clinical-photo-status',e=>{const ctx=active,d=e.detail;if(!valid(ctx)||d?.tenant!==ctx.tenant||d.patient!==ctx.patient)return;ctx.clinicalPhotoStatus=d;refresh();});
   window.sb?.auth?.onAuthStateChange?.((event,session)=>{const ctx=active;if(ctx?.root.isConnected&&(session?.user?.id!==ctx.actor||session.user.is_anonymous)){views.clear();disposePeriodontal(ctx);ctx.revoked=true;ctx.entries=null;ctx.selected=null;ctx.receipts.clear();ctx.root.replaceChildren(n('p','cw-overview','La sesión cambió. Abre nuevamente el expediente con la cuenta autorizada.'));}});
  }
- function openQuote(patient){const ctx=active;if(!valid(ctx)||ctx.patient!==patient||!ctx.quoteButton||ctx.quoteButton.disabled)return false;open('approval');ctx.quoteButton.click();return true;}
+ // null = el expediente aún no termina de montarse; false = ya está listo pero no se puede presupuestar (plan sin aprobar); true = abierto.
+ function openQuote(patient){const ctx=active;if(!valid(ctx)||ctx.patient!==patient||!ctx.quoteButton||!ctx.routeFlags)return null;if(ctx.quoteButton.disabled)return false;open('approval');ctx.quoteButton.click();return true;}
  window.SmylCaseWorkspace={open,openQuote,openChairside,openRadiographIntake,context(tenant,patient){const ctx=active;if(!valid(ctx)||ctx.tenant!==tenant||ctx.patient!==patient)return null;const entry=ctx.selected;return entry&&entry.current()?{caseId:entry.row.id,isCurrent:()=>valid(ctx)&&ctx.selected===entry&&entry.current()}:null;}};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

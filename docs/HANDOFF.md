@@ -13135,3 +13135,10 @@ Documento para el abogado: `docs/COFEPRIS_CLASIFICACION_IA.md`.
 - Front: `smyl-proposal-model.js` v9 (`downPct`, `downPayment`, validación), `smyl-proposals.js` v33 / `.css` v21 (campo «Anticipo al aceptar» con 30 % por defecto o `tenantData.config.proposal_defaults.down_payment_pct`; nota en el resumen), `smyl-proposal-print.js` v9 (PDF, vista previa y enlace muestran «Anticipo al aceptar (30 %) $X · El resto se paga conforme se realiza cada tratamiento»), `smyl-finance.js` v94 (paso «Cobrar anticipo · 30 % · $X» de «Iniciar tratamiento» abre el cobro con el monto precargado; con anticipo se oculta «Mandar enlace de pago» porque el servidor cobra el saldo completo). Agenda ya pinta el estado `due` como «Saldo $X».
 - Sufijo SW `-anticipo-v1`, copias en `mobile/www/`. Pruebas: `tests/down-payment.test.mjs`, `tests/qa/anticipo-smoke.cjs`.
 - Pendiente: pago en línea por el monto del anticipo (hoy el enlace cobra el saldo completo), ligar la cita desde el procedimiento de Consulta, «Cotizar ahora» del selector de pacientes.
+
+## 2026-11-28 · Claude · «Cotizar ahora» abre la pestaña Tratamiento del paciente
+
+- `SmylProposals.forPatient(patientId, options)` (lo usan el selector de pacientes de Inicio/Cotizaciones y «Cotizar ahora» tras revisar el plan) ahora abre el expediente del paciente, cambia a la pestaña Tratamiento y monta el editor de presupuesto ahí mismo (`quoteInPatient`). Si no se puede (plan sin aprobar, sin expediente) cae a la pantalla de Cotizaciones de siempre, que explica qué falta; `options.page` fuerza esa pantalla (lo usa el plan para no entrar en bucle).
+- `smyl-case-workspace.js` v58: `SmylCaseWorkspace.openQuote` distingue `null` (el expediente aún no termina de montarse), `false` (listo pero no se puede presupuestar) y `true` (abierto). `smyl-proposals.js` v34, `smyl-clinic.js` v32, sufijo SW `-cotizar-en-paciente-v1`, copias en `mobile/www/`. Sin migraciones.
+- Pruebas: `tests/embedded-quote.test.mjs` (ampliada), `tests/qa/cotizar-en-paciente-smoke.cjs`.
+- Pendiente: ligar la cita desde el procedimiento de Consulta, cobro en línea por el monto del anticipo.

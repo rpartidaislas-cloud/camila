@@ -795,6 +795,24 @@
     })();
     return true;
   }
+  function quoteInPatient(patientId){
+    var ws=window.SmylCaseWorkspace,p360=window.SmylPatient360;
+    if(!patientId||typeof window.verPaciente!=='function'||!ws||typeof ws.openQuote!=='function'||!p360||typeof p360.open!=='function')return false;
+    if(ctx&&!leave())return true;
+    var tenant=window.tenantId;
+    var detail=document.getElementById('p-paciente-detalle'),alreadyOpen=!!(window.pacienteActual&&window.pacienteActual.id===patientId&&detail&&detail.classList.contains('activa'));
+    if(!alreadyOpen)Promise.resolve(window.verPaciente(patientId)).catch(function(){});
+    var tries=0;(function ready(){
+      if(window.tenantId!==tenant)return;
+      var result=null;
+      try{p360.open('treatment');result=ws.openQuote(patientId);}catch(_){result=false;}
+      if(result===true)return;
+      if(result===null&&tries++<80)return setTimeout(ready,100);
+      // No se pudo: pantalla de Cotizaciones, que explica por qué (por ejemplo, plan sin aprobar).
+      if(window.ir('propuestas')!==false)open(null,patientId);
+    })();
+    return true;
+  }
   function init(){
     document.querySelectorAll('.pro-primary-nav .pro-next').forEach(function(e){e.remove();});
     var dialog=n('dialog','proposal-preview-dialog');dialog.id='proposal-preview-dialog';dialog.setAttribute('aria-label','Vista de la propuesta para el paciente');
@@ -817,7 +835,9 @@
     window.addEventListener('smyl:chat-routing-changed',resetChatLinks);
     setTimeout(refreshQuoteBadge,7000);setInterval(refreshQuoteBadge,600000);
     window.SmylProposals={
-      forPatient:function(patientId){if(window.ir('propuestas')!==false)open(null,patientId);},
+      // Cotizar a un paciente: se abre su pestaña Tratamiento con el presupuesto ahí mismo. Si no se puede (plan sin aprobar o sin expediente),
+      // se usa la pantalla de Cotizaciones de siempre, que explica qué falta. `options.page` fuerza esa pantalla.
+      forPatient:function(patientId,options){if(!(options&&options.page)&&quoteInPatient(patientId))return;if(window.ir('propuestas')!==false)open(null,patientId);},
       openSaved:function(id){if(window.ir('propuestas')!==false)open(id);},
       // Monta el editor de presupuesto dentro de otra pantalla (la pestaña Tratamiento del paciente), sin salir de ella.
       mount:function(host,options){options=options||{};if(!host||!options.patientId)return false;if(ctx&&!leave())return false;embed={host:host,onClose:options.onClose||null};host.hidden=false;open(options.id||null,options.patientId);return true;},
