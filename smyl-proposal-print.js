@@ -32,6 +32,8 @@
     });
     table.append(body);paper.append(table);
     var total=n('div','proposal-total');total.append(n('span','','Total estimado'),n('strong','',doc.items.some(function(i){return i.unit_cents===null;})?'Por completar':model.money(model.total(doc))));paper.append(total);
+    var downCents=model.downPayment(doc,model.total(doc));
+    if(downCents>0&&!doc.items.some(function(i){return i.unit_cents===null;})){var down=n('div','proposal-down');down.append(n('span','','Anticipo al aceptar ('+doc.down_payment_pct+' %)'),n('strong','',model.money(downCents)));paper.append(down,n('p','proposal-small','El resto se paga conforme se realiza cada tratamiento.'));}
     var terms=n('section','proposal-terms');terms.append(n('h2','','Antes de comenzar'),n('p','',doc.terms||'Condiciones pendientes de completar.'));if(doc.valid_until)terms.append(n('p','proposal-validity','Vigencia: '+doc.valid_until.split('-').reverse().join('/')));paper.append(terms);
     var footer=n('footer','proposal-paper-footer');footer.append(n('p','','La propuesta requiere valoración y acuerdo con tu dentista. No constituye una garantía de resultados ni una aceptación del tratamiento.'),n('small','','Propuesta '+(row.id||'sin guardar')+' · Versión '+(row.revision||'sin guardar')+' · Plan '+row.plan_revision+(approved?' · Aprobada por el profesional':' · No aprobada')));paper.append(footer);
     return paper;
