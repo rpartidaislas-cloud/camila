@@ -557,6 +557,16 @@
 
 # Bitácora compartida — SMYL
 
+## 2026-11-28 — Claude Code — Plan de tratamiento v2, fase 1: agregar servicios en un paso
+
+A pedido del usuario («simple, ya prerrellenado, fácil de llenar»). Solo interfaz: el documento del plan (`treatments[]`, `data-field`) y las RPC no cambian; no hay SQL.
+- **Ventana «Agregar servicio»** (`openServicePicker`, `smyl-clinic.js`): «★ Más usados» arriba (conteo por servicio en `localStorage`, `smyl_plan_service_use_<tenant>`), precio «/ pieza» en los que cobran por pieza y fase sugerida según la categoría (diagnóstico/imagen → Evaluación; prevención/odontopediatría → Prevención; lo demás → Tratamiento). Servicios generales: se agregan y la ventana sigue abierta. Servicios por pieza (`per_tooth`/`per_surface`/alcance diente): la ventana se cierra y se abre de inmediato el selector de piezas.
+- **Fila compacta** (`addTreatment`): nombre editable + total («3 × $900 = $2,700», «$900 por pieza» si faltan piezas, «Sin cobro», «Sin precio») + ✕; abajo un chip «🦷 Piezas 14 · 15 · 16» (ámbar y con pulso si el precio depende de las piezas y no hay) y la fase. El selector de servicio solo se ve en las indicaciones sin cobro; zona y detalles quedan en «Añadir nota o zona». La zona de texto se llena sola con las piezas salvo que el profesional ya la haya escrito.
+- **Pantalla reordenada** (`renderEditor`): «Propuesta de tratamiento» primero con su total; «Valoración y motivo» plegada con una línea de resumen (abierta mientras falte la valoración); antecedentes dentro; la IA es un solo botón «✨ Sugerir tratamientos con IA» (se abre al pedirla, mismos ids). La lista «Completar valoración · Elegir tratamientos · Aprobar plan» del módulo se oculta (`.cw-checklist`): el estado sigue en los 4 pasos y en la barra de abajo.
+- Versiones: `smyl-clinic.js?v=33`, `smyl-clinic.css?v=16`, `smyl-case-workspace.css?v=41`, caché `plan-tratamiento-v2-v1`; `mobile/www` sincronizado.
+- Verificado con Playwright montando el `smyl-clinic.js` real con Supabase simulado y paciente ficticio, a 1100 y 390 px: alta general y por pieza, selector de piezas, precio/zona/fase, total por fase, indicación sin cobro, resumen de valoración. Pruebas de la ficha y del plan: sin fallas nuevas contra `main` (las dos que fallaron por textos movidos se actualizaron). No probado en la app real.
+- Siguen (acordados con el usuario): **fase 2** sugerencias desde los hallazgos del odontograma («Sugerido: Resina · pieza 16»); **fase 3** planes tipo (p. ej. ortodoncia → encía → carillas) junto con el plan por fases.
+
 ## 2026-11-27 — Claude Code — Configuración: sin duplicados y «Datos de la clínica» más limpio
 
 A pedido del usuario («que se sienta más profesional, sin duplicado»). Solo `smyl-settings-hub.js` y la pantalla `p-mi-consultorio` de `app.html`; sin datos ni SQL.

@@ -301,10 +301,29 @@
     updateAIState();
   }
   var rowSequence = 0;
+  // Servicios cuyo precio depende de las piezas marcadas: sin piezas, el sistema cobraría 1 pieza.
+  function needsTeeth(snap) {
+    var mode = snap && snap.pricing_mode, scope = snap && snap.scope_type;
+    return mode === 'per_tooth' || mode === 'per_surface' || scope === 'tooth' || scope === 'teeth' || scope === 'surface';
+  }
   function treatmentSummary(row) {
     var teeth = JSON.parse(row.dataset.teeth || '[]'), surfaces = JSON.parse(row.dataset.surfaces || '[]');
-    var summary = row.querySelector('.clinic-treatment-target-summary');
-    summary.textContent = teeth.length ? 'Piezas FDI ' + teeth.join(', ') + (surfaces.length ? ' · Superficies ' + surfaces.join(', ') : ' · Pieza completa') : 'Sin piezas seleccionadas · tratamiento general';
+    var snap = row.dataset.serviceSnapshot ? JSON.parse(row.dataset.serviceSnapshot) : null;
+    var summary = row.querySelector('.clinic-treatment-target-summary'), chip = row.querySelector('.clinic-teeth-chip');
+    summary.textContent = teeth.length
+      ? 'Piezas ' + teeth.join(' · ') + (surfaces.length ? ' · ' + surfaces.join('') : '')
+      : (needsTeeth(snap) ? 'Elegir piezas' : 'Sin piezas · general');
+    if (chip) {
+      chip.dataset.empty = String(!teeth.length);
+      chip.dataset.needed = String(!teeth.length && needsTeeth(snap));
+      chip.setAttribute('aria-label', teeth.length ? 'Cambiar piezas: ' + teeth.join(', ') : 'Elegir piezas dentales');
+    }
+    // La zona se llena sola con las piezas, salvo que el profesional ya la haya escrito a mano.
+    var area = row.querySelector('[data-field="area"]');
+    if (area && (!area.value || area.value === row.dataset.areaAuto)) {
+      var auto = teeth.length ? teeth.join(', ') : '';
+      area.value = auto; row.dataset.areaAuto = auto;
+    }
   }
   function editTreatmentTargets(row) {
     var teeth = new Set(JSON.parse(row.dataset.teeth || '[]')), surfaces = new Set(JSON.parse(row.dataset.surfaces || '[]'));
@@ -346,10 +365,10 @@
     var rows = Array.from(document.querySelectorAll('.clinic-treatment')), byPhase = {}, total = 0, free = 0, unpriced = 0;
     rows.forEach(function (row) {
       var line = rowLine(row), out = row.querySelector('.clinic-treatment-price'), phase = (row.querySelector('[data-field="phase"]') || {}).value || 'treat';
-      if (!line.billable) { free++; if (out) out.textContent = 'Indicación sin cobro: no pasa al presupuesto. Elige un servicio del catálogo si quieres cobrarla.'; return; }
-      if (line.price == null) { unpriced++; if (out) out.textContent = 'Este servicio no tiene precio. Defínelo en Servicios y tarifas para poder presupuestarlo.'; return; }
+      if (!line.billable) { free++; if (out) { out.textContent = 'Sin cobro'; out.title = 'No pasa al presupuesto. Elige un servicio del catálogo si quieres cobrarla.'; out.dataset.tone = 'free'; } return; }
+      if (line.price == null) { unpriced++; if (out) { out.textContent = 'Sin precio'; out.title = 'Defínelo en Servicios y tarifas para poder presupuestarlo.'; out.dataset.tone = 'warn'; } return; }
       byPhase[phase] = (byPhase[phase] || 0) + line.total; total += line.total;
-      if (out) out.textContent = (line.qty > 1 ? planMoney(line.price) + ' × ' + line.qty + ' = ' : '') + planMoney(line.total) + (line.qty === 1 ? ' · precio del catálogo' : '');
+      if (out) { var snap = row.dataset.serviceSnapshot ? JSON.parse(row.dataset.serviceSnapshot) : null, noTeeth = needsTeeth(snap) && !JSON.parse(row.dataset.teeth || '[]').length; out.textContent = noTeeth ? planMoney(line.price) + ' por pieza' : (line.qty > 1 ? line.qty + ' × ' + planMoney(line.price) + ' = ' : '') + planMoney(line.total); out.title = noTeeth ? 'Elige las piezas para calcular el total.' : 'Precio del catálogo'; out.dataset.tone = noTeeth ? 'warn' : 'ok'; }
     });
     var box = document.getElementById('clinic-plan-total');
     if (!box) return;
@@ -367,7 +386,7 @@
   function openServicePicker() {
     if (!current || !current.ready || !current.canWrite) return;
     var dlg = el('dialog', 'proposal-service-dialog'), form = el('form'); form.method = 'dialog';
-    var head = el('header'); head.append(el('h2', '', 'Agregar servicio'), el('p', '', 'Elige de los servicios dados de alta en tu clínica. Cada uno trae su precio.'));
+    var head = el('header'); head.append(el('h2', '', 'Agregar servicio'), el('p', '', 'Toca un servicio: se agrega con su precio. Si cobra por pieza, te pedimos las piezas.'));
     var search = el('input', 'proposal-service-search'); search.type = 'search'; search.placeholder = 'Buscar: limpieza, implante, resina…'; search.setAttribute('aria-label', 'Buscar servicio');
     var list = el('div', 'proposal-service-list'), status = el('p', 'proposal-service-empty'); status.setAttribute('role', 'status'); status.style.cssText = 'flex:1;margin:0;padding:0;align-self:center;text-align:left';
     var foot = el('footer'), done = button('Listo', function () { dlg.close(); }, 'btn btn-primary'); foot.append(status, done);
@@ -375,23 +394,37 @@
     dlg.addEventListener('close', function () { dlg.remove(); });
     var services = (current.services || []).filter(function (x) { return x.active && x.name; }), cats = window.SmylServiceCatalogModel && SmylServiceCatalogModel.CATEGORIES || [];
     function catLabel(k) { var f = cats.filter(function (c) { return c[0] === k; })[0]; return f ? f[1] : (k || 'Otros'); }
+    // «Más usados»: se aprende de lo que esta clínica agrega (solo el conteo por servicio, en este navegador).
+    var usageKey = 'smyl_plan_service_use_' + current.tenant;
+    function usage() { try { return JSON.parse(localStorage.getItem(usageKey) || '{}') || {}; } catch (_) { return {}; } }
+    function bump(id) { try { var u = usage(); u[id] = (u[id] || 0) + 1; localStorage.setItem(usageKey, JSON.stringify(u)); } catch (_) {} }
     function pick(service) {
       if (document.querySelectorAll('.clinic-treatment').length >= 20) { status.textContent = 'El plan admite hasta 20 tratamientos.'; return; }
       var label = service.patient_name || service.name;
-      addTreatment({ service_id: service.id, service_revision: service.catalog_revision, service_snapshot: service, name: label, phase: 'treat', area: '', notes: '', teeth: [], surfaces: [] });
-      changed(); status.textContent = '✓ Agregado: ' + label + '. Puedes agregar otro.';
+      var row = addTreatment({ service_id: service.id, service_revision: service.catalog_revision, service_snapshot: service, name: label, phase: defaultPhase(service), area: '', notes: '', teeth: [], surfaces: [] });
+      if (!row) return;
+      bump(service.id); changed();
+      // Si el precio depende de las piezas, se piden de inmediato; si no, se puede seguir agregando.
+      if (needsTeeth(service)) { dlg.close(); row.scrollIntoView({ block: 'center', behavior: 'smooth' }); editTreatmentTargets(row); return; }
+      status.textContent = '✓ Agregado: ' + label + '. Puedes agregar otro.';
     }
     function render() {
       var term = search.value.trim().toLocaleLowerCase('es-MX'), shown = services.filter(function (x) { return !term || (x.name + ' ' + (x.patient_name || '') + ' ' + (x.category || '')).toLocaleLowerCase('es-MX').includes(term); });
       list.replaceChildren();
       if (!shown.length) { list.append(el('p', 'proposal-service-empty', services.length ? 'Ningún servicio coincide con la búsqueda.' : 'Todavía no hay servicios activos. Dalos de alta en Servicios y tarifas.')); return; }
-      var last = null;
+      var last = null, use = usage();
+      function option(service) {
+        var btn = el('button', 'proposal-service-option'); btn.type = 'button';
+        var price = unitPrice(service.id), per = needsTeeth(service) && price != null ? ' / pieza' : '';
+        btn.append(el('strong', '', service.patient_name || service.name), el('small', '', service.name !== service.patient_name ? service.name : ' '), el('span', 'proposal-service-price', price == null ? 'Sin precio' : planMoney(price) + per));
+        btn.addEventListener('click', function () { pick(service); }); return btn;
+      }
+      // Sin búsqueda, arriba van los más usados de la clínica (hasta 5).
+      var top = term ? [] : shown.filter(function (x) { return use[x.id] > 0; }).sort(function (a, b) { return use[b.id] - use[a.id]; }).slice(0, 5);
+      if (top.length) { list.append(el('div', 'proposal-service-group', '★ Más usados')); top.forEach(function (service) { list.append(option(service)); }); }
       shown.forEach(function (service) {
         if (service.category !== last) { list.append(el('div', 'proposal-service-group', catLabel(service.category))); last = service.category; }
-        var btn = el('button', 'proposal-service-option'); btn.type = 'button';
-        var price = unitPrice(service.id);
-        btn.append(el('strong', '', service.patient_name || service.name), el('small', '', service.name !== service.patient_name ? service.name : ' '), el('span', 'proposal-service-price', price == null ? 'Sin precio' : planMoney(price)));
-        btn.addEventListener('click', function () { pick(service); }); list.append(btn);
+        list.append(option(service));
       });
     }
     search.addEventListener('input', render); render(); dlg.showModal(); search.focus();
@@ -399,28 +432,68 @@
   function ctxCanWrite() { return !!(current && current.canWrite); }
   function addTreatment(item) {
     item = item || {};
-    if (document.querySelectorAll('.clinic-treatment').length >= 20) return;
+    if (document.querySelectorAll('.clinic-treatment').length >= 20) return null;
     var row = el('article', 'clinic-treatment'); rowSequence++;
     row.dataset.treatmentId = item.id || crypto.randomUUID();
     row.dataset.serviceId = item.service_id || '';
     row.dataset.serviceRevision = item.service_revision || '';
     row.dataset.serviceSnapshot = item.service_snapshot ? JSON.stringify(model.snapshot(item.service_snapshot)) : '';
     row.dataset.teeth = JSON.stringify(item.teeth || []);row.dataset.surfaces = JSON.stringify(item.surfaces || []);
-    var serviceField=el('div','clinic-field'),serviceLabel=el('label','','Servicio del catálogo'),service=el('select');service.dataset.field='service';serviceLabel.htmlFor='clinic-item-'+rowSequence+'-service';service.id=serviceLabel.htmlFor;service.append(new Option('Indicación sin cobro (no pasa al presupuesto)',''));
-    (current.services||[]).forEach(function(s){var option=new Option(s.patient_name||s.name,s.id);option.disabled=!s.active;service.append(option);});
-    if(item.service_id&&!Array.from(service.options).some(function(o){return o.value===item.service_id;})){var historical=new Option((item.service_snapshot&&item.service_snapshot.patient_name)||item.name,item.service_id);historical.disabled=true;service.append(historical);}
-    service.value=item.service_id||'';service.onchange=function(){var selected=(current.services||[]).find(function(s){return s.id===service.value;});if(!selected){row.dataset.serviceId='';row.dataset.serviceRevision='';row.dataset.serviceSnapshot='';return changed();}row.dataset.serviceId=selected.id;row.dataset.serviceRevision=String(selected.catalog_revision);row.dataset.serviceSnapshot=JSON.stringify(model.snapshot(selected));row.querySelector('[data-field="name"]').value=selected.patient_name||selected.name;changed();};serviceField.append(serviceLabel,service);row.append(serviceField);
-    var phaseField=el('div','clinic-field'),phaseLabel=el('label','','Fase'),phase=el('select');phase.id='clinic-item-'+rowSequence+'-phase';phaseLabel.htmlFor=phase.id;phase.dataset.field='phase';model.phases.forEach(function(entry){phase.add(new Option(entry[1],entry[0]));});phase.value=item.phase||'treat';phaseField.append(phaseLabel,phase);row.append(phaseField);
-    var priceLine=el('p','clinic-treatment-price');priceLine.setAttribute('aria-live','polite');row.append(priceLine);
-    [['Tratamiento o indicación','name',200],['Zona o piezas · opcional','area',200],['Detalles · opcional','notes',2000]].forEach(function (entry) {
+    // Encabezado: nombre (ya viene del servicio), total de la línea y quitar.
+    var head = el('div', 'clinic-treatment-head');
+    var nameField = el('div', 'clinic-field clinic-treatment-name'), nameLabel = el('label', 'clinic-sr', 'Tratamiento o indicación'), name = el('input');
+    name.id = 'clinic-item-' + rowSequence + '-name'; nameLabel.htmlFor = name.id; name.value = item.name || ''; name.maxLength = 200; name.dataset.field = 'name'; name.placeholder = 'Tratamiento o indicación';
+    nameField.append(nameLabel, name);
+    var priceLine = el('p', 'clinic-treatment-price'); priceLine.setAttribute('aria-live', 'polite');
+    var remove = button('✕', function () { row.remove(); changed(); }, 'clinic-remove');
+    remove.setAttribute('aria-label', 'Quitar este tratamiento'); remove.title = 'Quitar';
+    head.append(nameField, priceLine, remove); row.append(head);
+    // Fila de datos: piezas (un toque) y fase.
+    var meta = el('div', 'clinic-treatment-meta');
+    var chip = button('', function () { editTreatmentTargets(row); }, 'clinic-teeth-chip');
+    chip.title = 'Señalar en odontograma';
+    var chipIcon = el('span', 'clinic-teeth-icon', '🦷'); chipIcon.setAttribute('aria-hidden', 'true');
+    chip.append(chipIcon, el('span', 'clinic-treatment-target-summary'));
+    var phaseField = el('div', 'clinic-field clinic-phase-field'), phaseLabel = el('label', 'clinic-sr', 'Fase'), phase = el('select');
+    phase.id = 'clinic-item-' + rowSequence + '-phase'; phaseLabel.htmlFor = phase.id; phase.dataset.field = 'phase';
+    model.phases.forEach(function (entry) { phase.add(new Option(entry[1], entry[0])); });
+    phase.value = item.phase || 'treat'; phaseField.append(phaseLabel, phase);
+    meta.append(chip, phaseField); row.append(meta);
+    // El servicio ya viene elegido: el selector solo se ofrece en las indicaciones sin cobro.
+    var serviceField = el('div', 'clinic-field clinic-service-field'), serviceLabel = el('label', '', 'Servicio del catálogo · opcional'), service = el('select');
+    service.dataset.field = 'service'; serviceLabel.htmlFor = 'clinic-item-' + rowSequence + '-service'; service.id = serviceLabel.htmlFor;
+    service.append(new Option('Indicación sin cobro (no pasa al presupuesto)', ''));
+    (current.services || []).forEach(function (s) { var option = new Option(s.patient_name || s.name, s.id); option.disabled = !s.active; service.append(option); });
+    if (item.service_id && !Array.from(service.options).some(function (o) { return o.value === item.service_id; })) { var historical = new Option((item.service_snapshot && item.service_snapshot.patient_name) || item.name, item.service_id); historical.disabled = true; service.append(historical); }
+    service.value = item.service_id || '';
+    service.onchange = function () {
+      var selected = (current.services || []).find(function (s) { return s.id === service.value; });
+      if (!selected) { row.dataset.serviceId = ''; row.dataset.serviceRevision = ''; row.dataset.serviceSnapshot = ''; row.dataset.linked = 'false'; treatmentSummary(row); return changed(); }
+      row.dataset.serviceId = selected.id; row.dataset.serviceRevision = String(selected.catalog_revision); row.dataset.serviceSnapshot = JSON.stringify(model.snapshot(selected)); row.dataset.linked = 'true';
+      name.value = selected.patient_name || selected.name; phase.value = defaultPhase(selected); treatmentSummary(row); changed();
+    };
+    serviceField.append(serviceLabel, service); row.dataset.linked = String(Boolean(item.service_id)); row.append(serviceField);
+    // Zona escrita y detalles: ocultos hasta que se necesiten.
+    var more = el('details', 'clinic-treatment-more');
+    more.append(el('summary', '', 'Añadir nota o zona'));
+    [['Zona · opcional', 'area', 200], ['Detalles · opcional', 'notes', 2000]].forEach(function (entry) {
       var f = field(entry[0], 'clinic-item-' + rowSequence + '-' + entry[1], item[entry[1]], entry[2], entry[1] === 'notes');
-      f.lastElementChild.dataset.field = entry[1]; row.append(f);
+      f.lastElementChild.dataset.field = entry[1]; more.append(f);
     });
-    var targets=el('div','clinic-treatment-targets'),summary=el('p','clinic-treatment-target-summary');targets.append(summary,button('Señalar en odontograma',function(){editTreatmentTargets(row);},'btn btn-secondary'));row.append(targets);treatmentSummary(row);
-    var remove = button('Quitar', function () { row.remove(); changed(); }, 'clinic-remove');
-    remove.setAttribute('aria-label', 'Quitar este tratamiento'); row.append(remove);
+    if (item.area && /\S/.test(item.area) && !(item.teeth || []).length || item.notes) more.open = true;
+    row.append(more);
     document.getElementById('clinic-treatments').append(row);
+    row.dataset.areaAuto = (item.teeth || []).length && item.area === (item.teeth || []).join(', ') ? item.area : '';
+    treatmentSummary(row);
     planTotals();
+    return row;
+  }
+  // Fase sugerida según el tipo de servicio; el profesional puede cambiarla.
+  function defaultPhase(service) {
+    var cat = service && service.category;
+    if (cat === 'diagnostic' || cat === 'imaging') return 'evaluate';
+    if (cat === 'preventive' || cat === 'pediatric') return 'prevent';
+    return 'treat';
   }
   function planContext(ctx) {
     if (!ctx || current !== ctx || !ctx.ready || ctx.saving || ctx.aiBusy) return {error:'El plan no está listo.'};
@@ -506,7 +579,7 @@
     var consent=document.getElementById('clinic-ai-consent'),state=document.getElementById('clinic-ai-state'),capture=planContext(ctx);
     if(capture.error){state.textContent=capture.error;updateAIState();return;}
     if(!consent.checked){state.textContent='Confirma el envío privado de estos datos antes de continuar.';return;}
-    ctx.aiBusy=true;ctx.aiAbort=new AbortController();clearAIDraft();updateAIState();
+    ctx.aiBusy=true;ctx.aiAbort=new AbortController();clearAIDraft();updateAIState();var aiBox=document.getElementById('clinic-ai-box');if(aiBox)aiBox.open=true;
     try{
       var result=await window.SmylTreatmentPlanClient.suggest({client:window.sb,tenant:ctx.tenant,input:capture.input,current:capture.isCurrent,endpoint:window.EDGE_URL,publicKey:window.SUPA_KEY,signal:ctx.aiAbort.signal});
       if(current===ctx&&capture.isCurrent())renderAIDraft(ctx,result,capture);
@@ -518,28 +591,46 @@
     var doc = model.normalize(current.row && current.row.document);
     current.saved = JSON.stringify(doc); current.dirty = false;
     var form = el('fieldset', 'clinic-form'); form.id = 'clinic-form'; form.disabled = !current.ready || !current.canWrite;
-    form.append(field('¿Qué desea mejorar el paciente?', 'clinic-reason', doc.reason, 2000, true));
-    form.querySelector('#clinic-reason').placeholder = 'Escribe el motivo de la consulta.';
-    var background = el('details', 'clinic-secondary');
-    background.append(el('summary', '', 'Antecedentes y observaciones'), field('Información clínica relevante', 'clinic-background', doc.background, 8000, true));
-    form.append(background);
-    var heading = el('div', 'clinic-section-heading');
-    heading.append(el('span', 'pro-eyebrow', 'TU CRITERIO CLÍNICO'), el('h3', '', 'Valoración'), el('p', '', 'Registra lo que observaste y tu diagnóstico. La simulación es orientativa, no evidencia clínica.'));
-    form.append(heading, field('Valoración del profesional', 'clinic-assessment', doc.assessment, 8000, true));
-    form.querySelector('#clinic-assessment').placeholder = 'Tus hallazgos y valoración tras revisar al paciente. Puedes guardar un borrador y completarlo después.';
+    // 1) Tratamientos primero: es lo que el dentista viene a armar.
     var plan = el('div', 'clinic-section-heading');
-    plan.append(el('h3', '', 'Propuesta de tratamiento'), el('p', '', 'La IA puede organizar un borrador desde la evidencia confirmada. Tú decides qué incorporar, corriges y apruebas.'));
-    var ai=el('section','clinic-ai');ai.append(el('span','pro-eyebrow','COPILOTO CLÍNICO'),el('h4','','Borrador dirigido por IA'),el('p','','Usa únicamente el motivo de consulta, tus notas y observaciones ya confirmadas. No recibe nombres, fotografías ni simulaciones.'));
-    var consent=el('label','clinic-ai-consent'),consentCheck=el('input');consentCheck.type='checkbox';consentCheck.id='clinic-ai-consent';consent.append(consentCheck,document.createTextNode(' Autorizo enviar estos datos clínicos confirmados para preparar este borrador.'));
-    var aiState=el('p','clinic-ai-state');aiState.id='clinic-ai-state';aiState.setAttribute('role','status');
-    var generate=button('Preparar borrador con IA',generateAIDraft,'btn btn-secondary');generate.id='clinic-ai-generate';
-    var aiResults=el('div','clinic-ai-results');aiResults.id='clinic-ai-results';ai.append(consent,aiState,generate,aiResults);
+    plan.append(el('h3', '', 'Propuesta de tratamiento'), el('p', '', 'Agrega servicios del catálogo: traen su precio y fase. Marca las piezas con un toque.'));
     var list = el('div'); list.id = 'clinic-treatments';
-    var add = button('+ Indicación sin cobro', function () { addTreatment(); changed(); document.querySelector('.clinic-treatment:last-child input').focus(); }); add.id = 'clinic-add';
+    var add = button('+ Indicación sin cobro', function () { var row = addTreatment(); changed(); if (row) row.querySelector('[data-field="name"]').focus(); }); add.id = 'clinic-add';
+    add.classList.add('clinic-add-free');
     var addService = button('+ Agregar servicio', openServicePicker, 'btn btn-primary'); addService.id = 'clinic-add-service'; addService.disabled = !ctxCanWrite();
     var addRow = el('div', 'clinic-add-row'); addRow.append(addService, add);
     var totals = el('section', 'clinic-plan-total'); totals.id = 'clinic-plan-total'; totals.hidden = true; totals.setAttribute('aria-live', 'polite');
-    form.append(plan, ai, list, addRow, totals);
+    form.append(plan, list, addRow, totals);
+    // 2) Valoración plegada: una línea de resumen y se abre al tocarla (abierta si todavía falta la valoración).
+    var assessmentBox = el('details', 'clinic-valoracion'); assessmentBox.id = 'clinic-valoracion';
+    var assessmentSummary = el('summary'); assessmentSummary.append(el('b', '', 'Valoración y motivo'), el('span', 'clinic-valoracion-line', ''));
+    assessmentBox.append(assessmentSummary);
+    assessmentBox.append(field('¿Qué desea mejorar el paciente?', 'clinic-reason', doc.reason, 2000, true));
+    assessmentBox.querySelector('#clinic-reason').placeholder = 'Escribe el motivo de la consulta.';
+    assessmentBox.append(field('Valoración del profesional', 'clinic-assessment', doc.assessment, 8000, true));
+    assessmentBox.querySelector('#clinic-assessment').placeholder = 'Tus hallazgos y valoración tras revisar al paciente. Puedes guardar un borrador y completarlo después.';
+    var background = el('details', 'clinic-secondary');
+    background.append(el('summary', '', 'Antecedentes y observaciones'), field('Información clínica relevante', 'clinic-background', doc.background, 8000, true));
+    assessmentBox.append(background);
+    assessmentBox.append(el('p', 'clinic-note', 'La simulación es orientativa, no evidencia clínica.'));
+    assessmentBox.open = !String(doc.assessment || '').trim();
+    function paintAssessmentLine() {
+      var reason = document.getElementById('clinic-reason'), value = ((reason && reason.value) || '').trim().replace(/\s+/g, ' ');
+      var done = !!((document.getElementById('clinic-assessment') || {}).value || '').trim();
+      assessmentSummary.querySelector('.clinic-valoracion-line').textContent = (done ? '✓ ' : 'Falta · ') + (value ? value.slice(0, 80) + (value.length > 80 ? '…' : '') : 'sin motivo escrito');
+      assessmentSummary.dataset.done = String(done);
+    }
+    assessmentBox.addEventListener('input', paintAssessmentLine);
+    form.append(assessmentBox);
+    // 3) IA como un botón: el consentimiento y el resultado se abren al pedirla.
+    var ai = el('details', 'clinic-ai'); ai.id = 'clinic-ai-box';
+    ai.append(el('summary', '', '✨ Sugerir tratamientos con IA'));
+    ai.append(el('p', '', 'Usa únicamente el motivo, tus notas y observaciones ya confirmadas. No recibe nombres, fotografías ni simulaciones. Tú decides qué incorporar.'));
+    var consent = el('label', 'clinic-ai-consent'), consentCheck = el('input'); consentCheck.type = 'checkbox'; consentCheck.id = 'clinic-ai-consent'; consent.append(consentCheck, document.createTextNode(' Autorizo enviar estos datos clínicos confirmados para preparar este borrador.'));
+    var aiState = el('p', 'clinic-ai-state'); aiState.id = 'clinic-ai-state'; aiState.setAttribute('role', 'status');
+    var generate = button('Preparar borrador con IA', generateAIDraft, 'btn btn-secondary'); generate.id = 'clinic-ai-generate';
+    var aiResults = el('div', 'clinic-ai-results'); aiResults.id = 'clinic-ai-results'; ai.append(consent, aiState, generate, aiResults);
+    form.append(ai);
     var foot = el('div', 'clinic-savebar');
     var saveState = el('p'); saveState.id = 'clinic-save-status'; saveState.setAttribute('role', 'status');
     var actions = el('div', 'clinic-actions');
@@ -557,6 +648,7 @@
     proposal.id = 'clinic-proposal'; foot.append(proposal);
     host.append(form);
     doc.treatments.forEach(addTreatment);
+    paintAssessmentLine();
     form.addEventListener('input', function(event){if(event.target.closest('.clinic-ai'))updateAIState();else changed();});
     status();
   }

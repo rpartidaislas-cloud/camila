@@ -823,3 +823,6 @@
 .cw-enhanced .cw-route-v1 .cw-step[data-route=available]{border-color:#c9d3f5;background:#f8f9ff}
 .cw-enhanced .cw-route-v1 .cw-step[data-route=available] .cw-step-num{border-color:#2d3a9e;color:#2d3a9e}
 .cw-enhanced .cw-route-v1 .cw-step[data-route=available] .cw-step-status{color:#2d3a9e;font-weight:650}
+
+/* El estado del plan ya está en la barra de abajo y en los 4 pasos: la lista de arriba no se repite. */
+.cw-checklist{display:none}

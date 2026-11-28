@@ -512,3 +512,49 @@ body.smyl-ui-governed #modal-paciente .fg>:is(input,select,textarea),body.smyl-u
 .clinic-plan-total-head span{color:#5b6b86;font-size:13px}.clinic-plan-total-head strong{font-size:24px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:#12233f}
 .clinic-plan-total-line{display:flex;justify-content:space-between;gap:12px;margin:0;font-size:13px;color:#5b6b86}.clinic-plan-total-line b{color:#12233f;font-variant-numeric:tabular-nums}
 .clinic-plan-total-note{margin:4px 0 0;color:#8a5a0a;font-size:12.5px}
+
+/* ── Plan de tratamiento v2: fila compacta, piezas con un toque, valoración plegada ───────────────────────────── */
+.clinic-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.clinic-treatment{display:flex;flex-direction:column;gap:10px;padding:14px 16px;margin-bottom:10px;background:#fff;border:1px solid #dce2dd;border-radius:14px}
+.clinic-treatment:focus-within{border-color:#8fa2ee;box-shadow:0 0 0 3px rgba(93,81,164,.10)}
+.clinic-treatment-head{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px 12px}
+.clinic-treatment-name{min-width:0}
+.clinic-treatment-name input{border:1px solid transparent!important;background:transparent!important;font-size:16px!important;font-weight:650;padding:8px 6px!important;min-height:44px}
+.clinic-treatment-name input:hover{background:#f5f6f1!important}.clinic-treatment-name input:focus{background:#fff!important;border-color:#8fa2ee!important}
+.clinic-treatment .clinic-treatment-price{grid-column:auto;margin:0;padding:6px 12px;border-radius:999px;background:#eceffe;color:#2d3a9e;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.clinic-treatment-price[data-tone="warn"]{background:#fff2e0;color:#9a5a12}.clinic-treatment-price[data-tone="free"]{background:#eef1f4;color:#5f6c7b}
+.clinic-treatment .clinic-remove{grid-column:auto;justify-self:auto;width:40px;height:40px;min-height:40px;padding:0;border-radius:10px;font-size:15px;color:#8a6a62}
+.clinic-treatment .clinic-remove:hover{background:#fbeae6;color:#a2402a}
+.clinic-treatment-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.clinic-teeth-chip{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border:1px solid #cdd9d1;border-radius:999px;background:#f5f6f1;color:#22263e;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.clinic-teeth-chip:hover{border-color:#8fa2ee;background:#eef1ff}
+.clinic-teeth-chip[data-needed="true"]{border-color:#e0a55a;background:#fff6e8;color:#8a5a0a;animation:clinic-chip-pulse 1.6s ease-in-out 2}
+@keyframes clinic-chip-pulse{50%{box-shadow:0 0 0 4px rgba(224,165,90,.25)}}
+@media(prefers-reduced-motion:reduce){.clinic-teeth-chip[data-needed="true"]{animation:none}}
+.clinic-treatment-target-summary{margin:0;font-size:inherit;color:inherit}
+.clinic-phase-field{min-width:150px}.clinic-phase-field select{min-height:44px;border:1px solid #cdd9d1;border-radius:999px;background:#fff;padding:0 34px 0 14px;font:inherit;font-size:14px}
+.clinic-treatment[data-linked="true"] .clinic-service-field{display:none}
+.clinic-service-field select{min-height:44px}
+.clinic-treatment-more>summary{cursor:pointer;color:#5b6b86;font-size:13px;min-height:32px;display:flex;align-items:center}
+.clinic-treatment-more[open]>summary{margin-bottom:8px}
+.clinic-treatment-more{display:block}.clinic-treatment-more .clinic-field+.clinic-field{margin-top:10px}
+.clinic-treatment-more textarea{min-height:68px}
+@media(max-width:600px){.clinic-treatment-head{grid-template-columns:minmax(0,1fr) auto}.clinic-treatment .clinic-treatment-price{grid-column:1;justify-self:start;grid-row:2}.clinic-treatment .clinic-remove{grid-row:1;grid-column:2}.clinic-phase-field{flex:1 1 100%}.clinic-phase-field select{width:100%}}
+/* Totales y botones de alta */
+.clinic-add-row{align-items:center}.clinic-add-row .btn{min-height:46px}
+.clinic-add-free{background:transparent!important;border:1px dashed #b9c4d6!important;color:#4a5a78!important}
+.clinic-plan-total{box-shadow:0 6px 18px rgba(18,35,63,.07)}
+/* Valoración plegada */
+.clinic-valoracion{border:1px solid #dde3f0;border-radius:14px;background:#fff;margin:14px 0;padding:0 16px}
+.clinic-valoracion>summary{list-style:none;cursor:pointer;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;min-height:52px;padding:14px 0}
+.clinic-valoracion>summary::-webkit-details-marker{display:none}
+.clinic-valoracion>summary::after{content:'';margin-left:auto;width:8px;height:8px;border-right:2px solid #5b6b86;border-bottom:2px solid #5b6b86;transform:rotate(45deg);transition:transform .2s;align-self:center}
+.clinic-valoracion[open]>summary::after{transform:rotate(-135deg)}
+.clinic-valoracion-line{color:#5b6b86;font-size:13px;font-weight:500;flex:1 1 200px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.clinic-valoracion>summary[data-done="false"] .clinic-valoracion-line{color:#9a5a12}
+.clinic-valoracion[open]{padding-bottom:16px}.clinic-valoracion>.clinic-field{margin-bottom:12px}
+.clinic-note{margin:6px 0 0;color:#7a869c;font-size:12px}
+/* IA: un botón que se abre al pedirla */
+details.clinic-ai{border:1px dashed #b9c4d6;border-radius:14px;background:#fafbff;padding:0 16px;margin:0 0 14px}
+details.clinic-ai>summary{cursor:pointer;min-height:48px;display:flex;align-items:center;font-weight:650;color:#3a4a9e}
+details.clinic-ai[open]{padding-bottom:16px}details.clinic-ai>p{font-size:13px;color:#5b6b86}
